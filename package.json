@@ -1,0 +1,27 @@
+{
+  "name": "devhub",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Personal developer hub — projects, tasks, issues, tech stack, schema, decisions, releases",
+  "workspaces": [
+    "app",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,app -c blue,green \"npm:dev -w server\" \"npm:dev -w app\"",
+    "dev:server": "npm run dev -w server",
+    "dev:app": "npm run dev -w app",
+    "build": "npm run build -w app && npm run build -w server",
+    "start": "npm run start -w server",
+    "test": "npm run test -w server",
+    "test:unit": "npm run test:unit -w server",
+    "test:server": "npm run test:server -w server",
+    "db:migrate": "npm run db:migrate -w server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.4"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
