@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { pool } from '../db/pool.js';
 import { hashPassword, verifyPassword } from '../auth/password.js';
 import { signToken, JWT_TTL_SECONDS } from '../auth/jwt.js';
-import { requireAuth, type AuthedRequest } from '../auth/middleware/requireAuth.js';
+import { requireAuth, getUserId } from '../auth/middleware/requireAuth.js';
 import { SESSION_COOKIE, ApiError } from '../app.js';
 import { config } from '../config.js';
 
@@ -92,7 +92,7 @@ authRouter.post('/logout', (req, res) => {
 });
 
 authRouter.get('/me', requireAuth, async (req, res) => {
-  const userId = (req as AuthedRequest).userId;
+  const userId = getUserId(req);
   const result = await pool.query<{ id: string; email: string }>(
     'SELECT id, email FROM users WHERE id = $1',
     [userId],

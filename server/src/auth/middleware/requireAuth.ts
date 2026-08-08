@@ -2,11 +2,15 @@ import type { NextFunction, Request, Response } from 'express';
 import { SESSION_COOKIE, ApiError } from '../../app.js';
 import { verifyToken } from '../jwt.js';
 
-export interface AuthedRequest extends Request {
-  userId: string;
+declare global {
+  namespace Express {
+    interface Request {
+      userId?: string;
+    }
+  }
 }
 
-export function requireAuth(req: Request, res: Response, next: NextFunction): void {
+export function requireAuth(req: Request, _res: Response, next: NextFunction): void {
   const token = req.cookies?.[SESSION_COOKIE] as string | undefined;
   if (!token) {
     throw new ApiError(401, 'UNAUTHORIZED', 'Authentication required');
@@ -15,6 +19,13 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   if (!payload) {
     throw new ApiError(401, 'UNAUTHORIZED', 'Session expired or invalid');
   }
-  (req as AuthedRequest).userId = payload.sub;
+  req.userId = payload.sub;
   next();
+}
+
+export function getUserId(req: Request): string {
+  if (!req.userId) {
+    throw new ApiError(401, 'UNAUTHORIZED', 'Authentication required');
+  }
+  return req.userId;
 }
