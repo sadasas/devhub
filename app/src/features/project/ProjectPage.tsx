@@ -29,6 +29,7 @@ import { IssuesPage } from '../issues/IssuesPage';
 import { ReleasesPage } from '../releases/ReleasesPage';
 import { SchemaPage } from '../schema/SchemaPage';
 import { StackPage } from '../stack/StackPage';
+import { StatsPage } from '../stats/StatsPage';
 import { TestsPage } from '../tests/TestsPage';
 
 export type ProjectTab = 'board' | 'issues' | 'tests' | 'stack' | 'schema' | 'decisions' | 'releases' | 'stats';
@@ -150,6 +151,8 @@ export function ProjectPage({ projectId }: ProjectPageProps) {
             <DecisionsPage />
           ) : tab === 'releases' ? (
             <ReleasesPage />
+          ) : tab === 'stats' ? (
+            <StatsPage />
           ) : (
             <EmptyState
               icon={TABS.find((t) => t.id === tab)?.icon ?? <Columns size={22} />}

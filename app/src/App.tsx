@@ -3,6 +3,7 @@ import { NavigationProvider } from './state/navigation-context';
 import { ProjectsProvider } from './state/projects-context';
 import { AuthPage } from './features/auth/AuthPage';
 import { Layout } from './features/layout/Layout';
+import { CommandPalette } from './components/CommandPalette';
 import { Skeleton } from './components/Skeleton';
 
 function Splash() {
@@ -23,6 +24,7 @@ function Root() {
     <NavigationProvider>
       <ProjectsProvider>
         <Layout />
+        <CommandPalette />
       </ProjectsProvider>
     </NavigationProvider>
   );
