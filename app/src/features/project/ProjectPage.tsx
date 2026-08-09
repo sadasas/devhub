@@ -25,6 +25,7 @@ import { Modal } from '../../components/Modal';
 import { Skeleton } from '../../components/Skeleton';
 import { BoardPage } from '../board/BoardPage';
 import { IssuesPage } from '../issues/IssuesPage';
+import { StackPage } from '../stack/StackPage';
 import { TestsPage } from '../tests/TestsPage';
 
 export type ProjectTab = 'board' | 'issues' | 'tests' | 'stack' | 'schema' | 'decisions' | 'releases' | 'stats';
@@ -138,6 +139,8 @@ export function ProjectPage({ projectId }: ProjectPageProps) {
             <IssuesPage />
           ) : tab === 'tests' ? (
             <TestsPage />
+          ) : tab === 'stack' ? (
+            <StackPage />
           ) : (
             <EmptyState
               icon={TABS.find((t) => t.id === tab)?.icon ?? <Columns size={22} />}
