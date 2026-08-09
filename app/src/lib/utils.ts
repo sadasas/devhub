@@ -35,6 +35,10 @@ export function newId(): string {
   return crypto.randomUUID();
 }
 
+export function shortId(id: string): string {
+  return id.slice(0, 6);
+}
+
 export function nowIso(): string {
   return new Date().toISOString();
 }

@@ -16,12 +16,14 @@ import { ApiError } from '../../lib/api';
 import { PROJECT_STATUS } from '../../lib/labels';
 import { formatDate } from '../../lib/utils';
 import { useNavigation } from '../../state/navigation-context';
+import { ProjectProvider } from '../../state/project-context';
 import { useProjects } from '../../state/projects-context';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { Modal } from '../../components/Modal';
 import { Skeleton } from '../../components/Skeleton';
+import { BoardPage } from '../board/BoardPage';
 
 export type ProjectTab = 'board' | 'issues' | 'tests' | 'stack' | 'schema' | 'decisions' | 'releases' | 'stats';
 
@@ -74,90 +76,98 @@ export function ProjectPage({ projectId }: ProjectPageProps) {
   }
 
   return (
-    <div className="page">
-      <header className="project-header">
-        <div className="project-heading">
-          <button type="button" className="back-btn" onClick={openDashboard}>
-            <ArrowLeft size={14} aria-hidden="true" />
-            Projects
-          </button>
-          {project ? (
-            <div className="project-title-row">
-              <h1 className="page-title">{project.name}</h1>
-              <Badge tone={PROJECT_STATUS[project.status].tone}>{PROJECT_STATUS[project.status].label}</Badge>
-            </div>
-          ) : (
-            <Skeleton style={{ width: 200, height: 24, marginTop: 8 }} />
-          )}
-          <p className="page-subtitle">
+    <ProjectProvider key={projectId} projectId={projectId}>
+      <div className="page">
+        <header className="project-header">
+          <div className="project-heading">
+            <button type="button" className="back-btn" onClick={openDashboard}>
+              <ArrowLeft size={14} aria-hidden="true" />
+              Projects
+            </button>
             {project ? (
-              <>
-                {project.description || 'No description.'} · created {formatDate(project.createdAt)}
-              </>
+              <div className="project-title-row">
+                <h1 className="page-title">{project.name}</h1>
+                <Badge tone={PROJECT_STATUS[project.status].tone}>
+                  {PROJECT_STATUS[project.status].label}
+                </Badge>
+              </div>
             ) : (
-              ' '
+              <Skeleton style={{ width: 200, height: 24, marginTop: 8 }} />
             )}
-          </p>
-        </div>
-        <Button
-          variant="danger"
-          size="sm"
-          leftIcon={<Trash size={13} aria-hidden="true" />}
-          onClick={() => setConfirmOpen(true)}
-        >
-          Delete
-        </Button>
-      </header>
-
-      <nav className="tabs" aria-label="Project sections">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            className={`tab ${tab === t.id ? 'tab-active' : ''}`}
-            onClick={() => setTab(t.id)}
-            aria-current={tab === t.id ? 'page' : undefined}
+            <p className="page-subtitle">
+              {project ? (
+                <>
+                  {project.description || 'No description.'} · created {formatDate(project.createdAt)}
+                </>
+              ) : (
+                ' '
+              )}
+            </p>
+          </div>
+          <Button
+            variant="danger"
+            size="sm"
+            leftIcon={<Trash size={13} aria-hidden="true" />}
+            onClick={() => setConfirmOpen(true)}
           >
-            {t.icon}
-            {t.label}
-          </button>
-        ))}
-      </nav>
+            Delete
+          </Button>
+        </header>
 
-      <section className="tab-panel">
-        <EmptyState
-          icon={TABS.find((t) => t.id === tab)?.icon ?? <Columns size={22} />}
-          title={TABS.find((t) => t.id === tab)?.label ?? tab}
-          description={TAB_BLURBS[tab]}
-        />
-      </section>
+        <nav className="tabs" aria-label="Project sections">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className={`tab ${tab === t.id ? 'tab-active' : ''}`}
+              onClick={() => setTab(t.id)}
+              aria-current={tab === t.id ? 'page' : undefined}
+            >
+              {t.icon}
+              {t.label}
+            </button>
+          ))}
+        </nav>
 
-      <Modal
-        open={confirmOpen}
-        title="Delete project"
-        onClose={() => setConfirmOpen(false)}
-        width="sm"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setConfirmOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="danger" loading={deleting} onClick={() => void onDelete()}>
-              Delete
-            </Button>
-          </>
-        }
-      >
-        <p className="modal-copy">
-          This permanently deletes “{project?.name}” and all of its data — tasks, issues, schema,
-          decisions. This cannot be undone.
-        </p>
-        {deleteError && (
-          <p className="field-error" role="alert" style={{ marginTop: 10 }}>
-            {deleteError}
+        <section className="tab-panel">
+          {tab === 'board' ? (
+            <BoardPage />
+          ) : (
+            <EmptyState
+              icon={TABS.find((t) => t.id === tab)?.icon ?? <Columns size={22} />}
+              title={TABS.find((t) => t.id === tab)?.label ?? tab}
+              description={TAB_BLURBS[tab]}
+            />
+          )}
+        </section>
+
+        <Modal
+          open={confirmOpen}
+          title="Delete project"
+          onClose={() => setConfirmOpen(false)}
+          width="sm"
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setConfirmOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="danger" loading={deleting} onClick={() => void onDelete()}>
+                Delete
+              </Button>
+            </>
+          }
+        >
+          <p className="modal-copy">
+            This permanently deletes “{project?.name}” and all of its data — tasks, issues, schema,
+            decisions. This cannot be undone.
           </p>
-        )}
-      </Modal>
-    </div>
+          {deleteError && (
+            <p className="field-error" role="alert" style={{ marginTop: 10 }}>
+              {deleteError}
+            </p>
+          )}
+        </Modal>
+      </div>
+    </ProjectProvider>
   );
 }
