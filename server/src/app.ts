@@ -4,6 +4,8 @@ import rateLimit from 'express-rate-limit';
 import { config } from './config.js';
 import { authRouter } from './api/auth.routes.js';
 import { projectsRouter } from './api/projects.routes.js';
+import { mcpRouter } from './mcp/server.js';
+import { requireMcpKey } from './mcp/require-key.js';
 
 export const SESSION_COOKIE = 'devhub_session';
 
@@ -58,6 +60,9 @@ export function createApp(): express.Express {
 
   app.use('/api/auth', authRouter);
   app.use('/api/projects', projectsRouter);
+
+  app.use(requireMcpKey);
+  app.use(mcpRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
