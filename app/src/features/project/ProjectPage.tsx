@@ -24,6 +24,8 @@ import { EmptyState } from '../../components/EmptyState';
 import { Modal } from '../../components/Modal';
 import { Skeleton } from '../../components/Skeleton';
 import { BoardPage } from '../board/BoardPage';
+import { IssuesPage } from '../issues/IssuesPage';
+import { TestsPage } from '../tests/TestsPage';
 
 export type ProjectTab = 'board' | 'issues' | 'tests' | 'stack' | 'schema' | 'decisions' | 'releases' | 'stats';
 
@@ -132,6 +134,10 @@ export function ProjectPage({ projectId }: ProjectPageProps) {
         <section className="tab-panel">
           {tab === 'board' ? (
             <BoardPage />
+          ) : tab === 'issues' ? (
+            <IssuesPage />
+          ) : tab === 'tests' ? (
+            <TestsPage />
           ) : (
             <EmptyState
               icon={TABS.find((t) => t.id === tab)?.icon ?? <Columns size={22} />}

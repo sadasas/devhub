@@ -1,0 +1,126 @@
+import { useState } from 'react';
+import { Bug, PencilSimple, Plus } from '@phosphor-icons/react';
+import { useProject } from '../../state/project-context';
+import { ISSUE_SEVERITY, ISSUE_STATUS } from '../../lib/labels';
+import { shortId } from '../../lib/utils';
+import { Badge } from '../../components/Badge';
+import { Button } from '../../components/Button';
+import { EmptyState } from '../../components/EmptyState';
+import { Skeleton } from '../../components/Skeleton';
+import { IssueModal } from './IssueModal';
+import { NewIssueModal } from './NewIssueModal';
+
+export function IssuesPage() {
+  const { state, loading, error } = useProject();
+  const [creating, setCreating] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  if (loading) {
+    return (
+      <div className="data-list" aria-hidden="true">
+        <div className="data-row">
+          <Skeleton style={{ height: 16, width: '60%' }} />
+        </div>
+        <div className="data-row">
+          <Skeleton style={{ height: 16, width: '45%' }} />
+        </div>
+        <div className="data-row">
+          <Skeleton style={{ height: 16, width: '70%' }} />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <p className="field-error" role="alert">
+        {error}
+      </p>
+    );
+  }
+
+  if (!state) return null;
+
+  const issues = state.issues;
+
+  return (
+    <div>
+      <div className="data-list-header">
+        <span className="data-list-count">
+          {issues.length} {issues.length === 1 ? 'issue' : 'issues'}
+        </span>
+        <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
+          New issue
+        </Button>
+      </div>
+
+      {issues.length === 0 ? (
+        <EmptyState
+          icon={<Bug size={22} />}
+          title="No issues yet"
+          description="Log bugs with a severity level and reproduction steps so they don't get lost."
+          action={
+            <Button leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
+              Log an issue
+            </Button>
+          }
+        />
+      ) : (
+        <div className="data-list">
+          {issues.map((issue) => {
+            const linked = issue.linkedTaskId
+              ? state.tasks.find((t) => t.id === issue.linkedTaskId)
+              : undefined;
+            return (
+              <div
+                key={issue.id}
+                className="data-row"
+                role="button"
+                tabIndex={0}
+                onClick={() => setEditingId(issue.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setEditingId(issue.id);
+                  }
+                }}
+              >
+                <div className="data-row-main">
+                  <div className="data-row-title">
+                    <Badge tone={ISSUE_SEVERITY[issue.severity].tone}>
+                      {ISSUE_SEVERITY[issue.severity].label}
+                    </Badge>
+                    <span className="row-title-text">{issue.title}</span>
+                  </div>
+                  {issue.reproduction && <div className="data-row-sub">{issue.reproduction}</div>}
+                  <div className="data-row-meta">
+                    {linked && <span>linked: {linked.title}</span>}
+                    <span>#{shortId(issue.id)}</span>
+                  </div>
+                </div>
+                <div className="data-row-side">
+                  <Badge tone={ISSUE_STATUS[issue.status].tone}>{ISSUE_STATUS[issue.status].label}</Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="btn-icon"
+                    aria-label="Edit issue"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingId(issue.id);
+                    }}
+                  >
+                    <PencilSimple size={14} aria-hidden="true" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <NewIssueModal open={creating} onClose={() => setCreating(false)} />
+      <IssueModal issueId={editingId} onClose={() => setEditingId(null)} />
+    </div>
+  );
+}
