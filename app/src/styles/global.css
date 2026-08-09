@@ -1244,6 +1244,246 @@ a:hover {
 }
 
 /* ============================================================
+   Schema — tables, ERD, versions
+   ============================================================ */
+
+.data-list-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.sub-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-input);
+  margin-bottom: 16px;
+}
+
+.sub-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+}
+
+.sub-tab:hover {
+  color: var(--text-primary);
+}
+
+.sub-tab-active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.erd-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.erd-canvas {
+  position: relative;
+  height: 480px;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-card);
+  background: var(--bg-inset);
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.erd-canvas.dragging {
+  cursor: grabbing;
+}
+
+.erd-canvas svg {
+  display: block;
+}
+
+.erd-table-body {
+  fill: var(--bg-elevated);
+  stroke: var(--border-hairline);
+  stroke-width: 1;
+}
+
+.erd-table-header {
+  fill: var(--accent-dim);
+  stroke: none;
+}
+
+.erd-table-title {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  fill: var(--accent);
+}
+
+.erd-col-name {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  fill: var(--text-primary);
+}
+
+.erd-col-type {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  fill: var(--text-muted);
+}
+
+.erd-pk {
+  fill: var(--accent);
+}
+
+.erd-rel {
+  cursor: pointer;
+}
+
+.erd-rel polyline {
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+  transition: stroke var(--duration-fast) var(--ease-out);
+}
+
+.erd-rel:hover polyline,
+.erd-rel:focus-visible polyline {
+  stroke: var(--accent);
+}
+
+.erd-cardinality {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  fill: var(--accent);
+}
+
+.erd-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.erd-hint {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+  pointer-events: none;
+  letter-spacing: 0.02em;
+}
+
+.erd-zoom {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  gap: 6px;
+}
+
+.erd-zoom .btn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.col-edit-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.col-edit-caption {
+  display: grid;
+  grid-template-columns: 1fr 1fr 56px 44px 1fr 28px;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.col-edit-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 56px 44px 1fr 28px;
+  gap: 8px;
+  align-items: center;
+}
+
+.col-edit-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  margin: 0;
+}
+
+input[type='checkbox'] {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.relation-list {
+  gap: 0;
+}
+
+.relation-list .data-list-count {
+  padding: 4px 10px;
+}
+
+.versions-section {
+  margin-top: 32px;
+}
+
+.version-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 2px;
+}
+
+.version-row + .version-row {
+  border-top: 1px solid var(--border-hairline);
+}
+
+.version-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.version-notes {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.version-date {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ============================================================
    Utilities
    ============================================================ */
 
