@@ -59,7 +59,10 @@ export const api = {
   logout: () => request<void>('/auth/logout', { method: 'POST' }),
   me: () => request<User>('/auth/me'),
 
-  listProjects: () => request<Project[]>('/projects'),
+  listProjects: async () => {
+    const res = await request<{ projects: Project[] }>('/projects');
+    return res.projects;
+  },
   createProject: (name: string, description: string) =>
     request<Project>('/projects', {
       method: 'POST',
@@ -77,7 +80,10 @@ export const api = {
   deleteProject: (projectId: string) =>
     request<void>(`/projects/${encodeURIComponent(projectId)}`, { method: 'DELETE' }),
 
-  getState: (projectId: string) => request<State>(`/projects/${encodeURIComponent(projectId)}/state`),
+  getState: async (projectId: string) => {
+    const res = await request<{ state: State }>(`/projects/${encodeURIComponent(projectId)}/state`);
+    return res.state;
+  },
   putState: (projectId: string, state: State) =>
     request<{ ok: true }>(`/projects/${encodeURIComponent(projectId)}/state`, {
       method: 'PUT',
