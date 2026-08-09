@@ -1,0 +1,61 @@
+/* DevHub design tokens — single source of truth.
+   Spec: docs/03-engineering/coding-standards.md (Design System section). */
+
+:root {
+  /* Surfaces — layered off-black, never pure #000 */
+  --bg-base: #0a0a0c;
+  --bg-elevated: #101013;
+  --bg-overlay: #16161a;
+  --bg-inset: #0c0c0f;
+
+  /* Borders — hairline 1px */
+  --border-hairline: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  /* Text */
+  --text-primary: #e4e4e7;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --text-on-accent: #06251a;
+
+  /* Accent — emerald, desaturated (single accent, locked) */
+  --accent: #34c38e;
+  --accent-hover: #45d19e;
+  --accent-pressed: #29a878;
+  --accent-dim: rgba(52, 195, 142, 0.12);
+  --accent-ring: rgba(52, 195, 142, 0.35);
+
+  /* Semantic status colors (same family, only for status semantics) */
+  --status-danger: #f4706d;
+  --status-danger-dim: rgba(244, 112, 109, 0.12);
+  --status-warn: #e3b341;
+  --status-warn-dim: rgba(227, 179, 65, 0.12);
+  --status-success: #34c38e;
+  --status-success-dim: rgba(52, 195, 142, 0.12);
+  --status-info: #6ea8fe;
+  --status-info-dim: rgba(110, 168, 254, 0.12);
+
+  /* Radius scale — documented, locked */
+  --radius-card: 8px;
+  --radius-input: 6px;
+  --radius-sm: 4px;
+  --radius-pill: 999px;
+
+  /* Z-index scale — documented, locked */
+  --z-nav: 10;
+  --z-palette: 30;
+  --z-modal: 40;
+  --z-overlay: 50;
+
+  /* Typography */
+  --font-sans: 'Geist Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Geist Mono Variable', 'Cascadia Code', 'Consolas', monospace;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 120ms;
+
+  /* Shadows — tinted to background hue, never pure black */
+  --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
