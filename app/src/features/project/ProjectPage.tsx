@@ -24,7 +24,9 @@ import { EmptyState } from '../../components/EmptyState';
 import { Modal } from '../../components/Modal';
 import { Skeleton } from '../../components/Skeleton';
 import { BoardPage } from '../board/BoardPage';
+import { DecisionsPage } from '../decisions/DecisionsPage';
 import { IssuesPage } from '../issues/IssuesPage';
+import { ReleasesPage } from '../releases/ReleasesPage';
 import { SchemaPage } from '../schema/SchemaPage';
 import { StackPage } from '../stack/StackPage';
 import { TestsPage } from '../tests/TestsPage';
@@ -144,6 +146,10 @@ export function ProjectPage({ projectId }: ProjectPageProps) {
             <StackPage />
           ) : tab === 'schema' ? (
             <SchemaPage />
+          ) : tab === 'decisions' ? (
+            <DecisionsPage />
+          ) : tab === 'releases' ? (
+            <ReleasesPage />
           ) : (
             <EmptyState
               icon={TABS.find((t) => t.id === tab)?.icon ?? <Columns size={22} />}
