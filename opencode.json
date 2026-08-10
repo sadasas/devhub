@@ -5,7 +5,7 @@
       "type": "remote",
       "url": "http://localhost:3000/mcp",
       "headers": {
-        "Authorization": "Bearer {env:devhub_CnEa62UZyw90pThOq82rQpB0bdbvmR-Bxv6YqnY805U}"
+        "Authorization": "Bearer devhub_CnEa62UZyw90pThOq82rQpB0bdbvmR-Bxv6YqnY805U"
       }
     }
   }
