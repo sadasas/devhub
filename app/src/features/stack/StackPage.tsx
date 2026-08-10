@@ -14,7 +14,7 @@ import { TechModal } from './TechModal';
 const CATEGORY_ORDER: TechEntryCategory[] = ['frontend', 'backend', 'database', 'tooling'];
 
 export function StackPage() {
-  const { state, loading, error } = useProject();
+  const { state, loading, error, canEdit } = useProject();
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -57,9 +57,11 @@ export function StackPage() {
         <span className="data-list-count">
           {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
         </span>
-        <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
-          New entry
-        </Button>
+        {canEdit && (
+          <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
+            New entry
+          </Button>
+        )}
       </div>
 
       {entries.length === 0 ? (
@@ -68,9 +70,11 @@ export function StackPage() {
           title="No stack entries yet"
           description="Track what this project runs on — versions, categories and when an upgrade is due."
           action={
-            <Button leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
-              Add a tech entry
-            </Button>
+            canEdit && (
+              <Button leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
+                Add a tech entry
+              </Button>
+            )
           }
         />
       ) : (
@@ -104,18 +108,20 @@ export function StackPage() {
                 <Badge tone={TECH_CATEGORY[entry.category].tone}>
                   {TECH_CATEGORY[entry.category].label}
                 </Badge>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="btn-icon"
-                  aria-label="Edit entry"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditingId(entry.id);
-                  }}
-                >
-                  <PencilSimple size={14} aria-hidden="true" />
-                </Button>
+                {canEdit && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="btn-icon"
+                    aria-label="Edit entry"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingId(entry.id);
+                    }}
+                  >
+                    <PencilSimple size={14} aria-hidden="true" />
+                  </Button>
+                )}
               </div>
             </div>
           ))}

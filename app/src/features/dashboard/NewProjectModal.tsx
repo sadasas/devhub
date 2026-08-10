@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { ApiError } from '../../lib/api';
 import { useNavigation } from '../../state/navigation-context';
 import { useProjects } from '../../state/projects-context';
+import { useTeams } from '../../state/teams-context';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
@@ -15,18 +16,30 @@ interface NewProjectModalProps {
 
 export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
   const { create } = useProjects();
+  const { teams } = useTeams();
   const { openProject } = useNavigation();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [teamId, setTeamId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (open && teams && teams.length > 0) {
+      setTeamId((prev) => (prev && teams.some((t) => t.id === prev) ? prev : teams[0].id));
+    }
+  }, [open, teams]);
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!teamId) {
+      setError('Select a team first.');
+      return;
+    }
     setError(null);
     setSubmitting(true);
     try {
-      const project = await create(name.trim(), description.trim());
+      const project = await create(name.trim(), description.trim(), teamId);
       setName('');
       setDescription('');
       onClose();
@@ -70,6 +83,23 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
+        <div className="field">
+          <label className="field-label" htmlFor="new-project-team">
+            Team
+          </label>
+          <select
+            id="new-project-team"
+            className="select"
+            value={teamId}
+            onChange={(e) => setTeamId(e.target.value)}
+          >
+            {teams?.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </div>
         {error && (
           <p className="field-error" role="alert">
             {error}

@@ -11,7 +11,7 @@ import { MilestoneModal } from './MilestoneModal';
 import { NewMilestoneModal } from './NewMilestoneModal';
 
 export function ReleasesPage() {
-  const { state, loading, error } = useProject();
+  const { state, loading, error, canEdit } = useProject();
   const [openNew, setOpenNew] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
 
@@ -52,9 +52,11 @@ export function ReleasesPage() {
         <span className="data-list-count">
           {milestones.length} milestone{milestones.length === 1 ? '' : 's'}
         </span>
-        <Button size="sm" onClick={() => setOpenNew(true)}>
-          <Plus size={14} /> New milestone
-        </Button>
+        {canEdit && (
+          <Button size="sm" onClick={() => setOpenNew(true)}>
+            <Plus size={14} /> New milestone
+          </Button>
+        )}
       </div>
 
       {milestones.length === 0 ? (
@@ -63,9 +65,11 @@ export function ReleasesPage() {
           title="No milestones yet"
           description="Group work into releases and keep a changelog of what shipped with each."
           action={
-            <Button size="sm" onClick={() => setOpenNew(true)}>
-              <Plus size={14} /> New milestone
-            </Button>
+            canEdit && (
+              <Button size="sm" onClick={() => setOpenNew(true)}>
+                <Plus size={14} /> New milestone
+              </Button>
+            )
           }
         />
       ) : (
@@ -101,18 +105,20 @@ export function ReleasesPage() {
                 </div>
               </div>
               <div className="data-row-side">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="btn-icon"
-                  aria-label="Edit milestone"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditId(m.id);
-                  }}
-                >
-                  <PencilSimple size={14} />
-                </Button>
+                {canEdit && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="btn-icon"
+                    aria-label="Edit milestone"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditId(m.id);
+                    }}
+                  >
+                    <PencilSimple size={14} />
+                  </Button>
+                )}
               </div>
             </div>
           ))}

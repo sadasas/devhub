@@ -1,6 +1,7 @@
 import { AuthProvider, useAuth } from './state/auth-context';
 import { NavigationProvider } from './state/navigation-context';
 import { ProjectsProvider } from './state/projects-context';
+import { TeamsProvider } from './state/teams-context';
 import { AuthPage } from './features/auth/AuthPage';
 import { Layout } from './features/layout/Layout';
 import { CommandPalette } from './components/CommandPalette';
@@ -22,10 +23,12 @@ function Root() {
   if (!user) return <AuthPage />;
   return (
     <NavigationProvider>
-      <ProjectsProvider>
-        <Layout />
-        <CommandPalette />
-      </ProjectsProvider>
+      <TeamsProvider>
+        <ProjectsProvider>
+          <Layout />
+          <CommandPalette />
+        </ProjectsProvider>
+      </TeamsProvider>
     </NavigationProvider>
   );
 }

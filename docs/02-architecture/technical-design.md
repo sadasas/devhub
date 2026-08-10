@@ -98,10 +98,13 @@ This document specifies the technical architecture for DevHub V1: system context
 | Table | Purpose | Key columns |
 |---|---|---|
 | `users` | Accounts | id (UUID PK), email (unique), password_hash, created_at, updated_at |
-| `projects` | Per-user projects | id (UUID PK), owner_id (FK → users), name, description, status, data (JSONB), created_at, updated_at |
+| `teams` | Collaboration workspaces | id (UUID PK), name, created_by (FK → users), created_at, updated_at |
+| `team_members` | Team membership + role | team_id (FK → teams), user_id (FK → users), role (owner/admin/editor/viewer), joined_at, PK (team_id, user_id) |
+| `projects` | Team-scoped projects | id (UUID PK), team_id (FK → teams, NOT NULL), name, description, status, data (JSONB), created_at, updated_at |
+| `invitations` | Invite flow (email-only, registered users) | id (UUID PK), team_id (FK → teams), email, role, token (UUID, unique), status (pending/accepted/declined), expires_at (7-day TTL), created_by (FK → users), created_at |
 | `mcp_keys` | Per-user MCP API keys | id (UUID PK), user_id (FK → users), name, key_hash (SHA-256, raw key never stored), prefix, created_at, last_used_at, revoked_at |
 
-**Why JSONB?** See ADR-002. The 10-entity state model is a single JSON document per project. Indexed fields: `owner_id`.
+**Why JSONB?** See ADR-002. The 10-entity state model is a single JSON document per project. Indexed fields: `team_id` (projects), `user_id` (team_members), `email`+`status` (invitations).
 
 **Migrations:** sequential SQL files in `server/src/db/migrations/`, applied via `npm run db:migrate`. Schema version recorded in a `schema_migrations` table.
 
@@ -172,8 +175,20 @@ Base URL: `/api`. All endpoints JSON. Auth via httpOnly cookie `devhub_session`.
 | GET | `/api/keys` | Yes | List my MCP API keys |
 | POST | `/api/keys` | Yes | Create an MCP API key (returns raw key once) |
 | DELETE | `/api/keys/:id` | Yes | Revoke an MCP API key |
-| GET | `/api/projects` | Yes | List projects |
-| POST | `/api/projects` | Yes | Create project |
+| GET | `/api/teams` | Yes | List my teams + my role + member count |
+| POST | `/api/teams` | Yes | Create team (creator becomes owner) |
+| GET | `/api/teams/invitations` | Yes | List my pending invitations |
+| GET | `/api/teams/:teamId` | Yes | Team detail (member) |
+| PATCH | `/api/teams/:teamId` | Yes | Rename team (admin+) |
+| DELETE | `/api/teams/:teamId` | Yes | Delete team (owner) |
+| GET | `/api/teams/:teamId/members` | Yes | List members (member) |
+| PATCH | `/api/teams/:teamId/members/:userId` | Yes | Change member role (admin+; owner immutable) |
+| DELETE | `/api/teams/:teamId/members/:userId` | Yes | Remove member (admin+, or self-leave; owner immutable) |
+| POST | `/api/teams/:teamId/invitations` | Yes | Invite registered user by email (admin+) |
+| POST | `/api/teams/:teamId/invitations/:invitationId/accept` | Yes | Accept invite (invitee only, 7-day TTL) |
+| DELETE | `/api/teams/:teamId/invitations/:invitationId` | Yes | Decline/revoke invite (invitee or admin+) |
+| GET | `/api/projects` | Yes | List projects across my teams (with team + role) |
+| POST | `/api/projects` | Yes | Create project (must be member of target team) |
 | GET | `/api/projects/:id` | Yes | Project meta |
 | PATCH | `/api/projects/:id` | Yes | Update meta |
 | DELETE | `/api/projects/:id` | Yes | Delete project |
@@ -182,6 +197,8 @@ Base URL: `/api`. All endpoints JSON. Auth via httpOnly cookie `devhub_session`.
 | GET | `/api/projects/:id/export` | Yes | Download JSON snapshot |
 | POST | `/api/projects/:id/import` | Yes | Import JSON snapshot |
 | GET | `/api/health` | No | Health check (monitoring) |
+
+**Note:** all project state mutations (`PUT /state`, MCP write tools, import restore) require a member role of `owner`/`admin`/`editor`; `viewer` is read-only at both the API and MCP layers.
 
 Versioning contract, request/response examples, and error format: [API Guide](../04-api/api-guide.md) + [OpenAPI spec](../04-api/openapi.yaml).
 
@@ -194,7 +211,8 @@ Versioning contract, request/response examples, and error format: [API Guide](..
 1. `register`: validate email + password (zod), hash password with bcrypt (cost 12), insert user, set cookie.
 2. `login`: verify credentials, issue JWT signed with `JWT_SECRET` (HS256), payload `{ sub: userId, iat, exp }` (24h), delivered in httpOnly cookie: `SameSite=Lax; Path=/; HttpOnly; Secure` (Secure in production).
 3. `logout`: clear cookie.
-4. Authorization: every project query is scoped `WHERE owner_id = currentUserId`; `PUT /state` validates payload with zod before write.
+4. Team authorization: every project query is scoped via `team_members` (project must belong to a team the user belongs to). Roles: `owner` (team admin, member management, team deletion) → `admin` (renames, invites, member roles) → `editor` (project writes) → `viewer` (read-only). Every project query returns the caller's `role`; `PUT /state` and MCP write tools require `owner`/`admin`/`editor`.
+5. Invites are email-based for **registered users only**, carry a role, expire after 7 days, and must be accepted (or declined) by the invitee; invitations can be revoked by an admin+ at any time.
 
 ---
 
@@ -205,7 +223,7 @@ Versioning contract, request/response examples, and error format: [API Guide](..
 - **Transport:** Model Context Protocol, streamable HTTP (remote server).
 - **Auth:** per-user API key via `Authorization: Bearer <key>`; keys are created by each user via `POST /api/keys` and stored as SHA-256 hashes in `mcp_keys`; validated on every request and bound to the owning user (see ADR-013).
 - **Endpoint:** `POST /mcp` (exposed on the same Express server or a dedicated port in production).
-- **Authorization:** every MCP tool access is owner-scoped exactly like the REST API — a key can only read/update its owner's projects.
+- **Authorization:** every MCP tool access is team-member-scoped exactly like the REST API — a key can only access projects in teams the owning user belongs to, and write tools are rejected for `viewer` role.
 
 ### 7.2 Tools
 
@@ -258,10 +276,10 @@ Full spec: [MCP Integration Guide](../03-engineering/mcp-integration.md).
 | Mechanism | Now (V1) | Later (V3) |
 |---|---|---|
 | `Base.updatedAt` on all entities | Traceability | Last-write-wins merge across devices |
-| `Base.authorId` | `'me'` | Author attribution |
+| `Base.authorId` | `'me'` in solo data | Author attribution in shared teams |
 | API server | Single region | Stateless server → multiple instances behind LB |
 | State payload | Whole-document PUT | Patch/delta updates (WebSocket) |
-| Auth | Single user | Invites, roles |
+| Auth | ~~Single user~~ Teams shipped: invites (email-only, 7-day TTL), roles owner/admin/editor/viewer | Real-time presence, granular per-project roles |
 | Storage | Postgres JSONB | Same schema; sync service reads CDC/event log |
 
 **Explicitly NOT planned:** Yjs/CRDT libraries in V1. Merge conflict handling begins with LWW on `updatedAt`; CRDT only if collaboration demands it.

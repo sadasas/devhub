@@ -11,7 +11,7 @@ import { NewTestModal } from './NewTestModal';
 import { TestModal } from './TestModal';
 
 export function TestsPage() {
-  const { state, loading, error } = useProject();
+  const { state, loading, error, canEdit } = useProject();
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -49,9 +49,11 @@ export function TestsPage() {
         <span className="data-list-count">
           {tests.length} {tests.length === 1 ? 'test case' : 'test cases'}
         </span>
-        <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
-          New test case
-        </Button>
+        {canEdit && (
+          <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
+            New test case
+          </Button>
+        )}
       </div>
 
       {tests.length === 0 ? (
@@ -60,9 +62,11 @@ export function TestsPage() {
           title="No test cases yet"
           description="Capture manual checks with steps and expected results, linked to a task or issue."
           action={
-            <Button leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
-              Add a test case
-            </Button>
+            canEdit && (
+              <Button leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
+                Add a test case
+              </Button>
+            )
           }
         />
       ) : (
@@ -104,18 +108,20 @@ export function TestsPage() {
                   <Badge tone={TEST_CASE_STATUS[test.status].tone}>
                     {TEST_CASE_STATUS[test.status].label}
                   </Badge>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="btn-icon"
-                    aria-label="Edit test case"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingId(test.id);
-                    }}
-                  >
-                    <PencilSimple size={14} aria-hidden="true" />
-                  </Button>
+                  {canEdit && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="btn-icon"
+                      aria-label="Edit test case"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingId(test.id);
+                      }}
+                    >
+                      <PencilSimple size={14} aria-hidden="true" />
+                    </Button>
+                  )}
                 </div>
               </div>
             );

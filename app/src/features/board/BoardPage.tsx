@@ -16,7 +16,7 @@ const COLUMNS: { status: TaskStatus; label: string }[] = [
 ];
 
 export function BoardPage() {
-  const { state, loading, error, saveError, dispatch } = useProject();
+  const { state, loading, error, saveError, dispatch, canEdit } = useProject();
   const [overCol, setOverCol] = useState<TaskStatus | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [newStatus, setNewStatus] = useState<TaskStatus | null>(null);
@@ -95,15 +95,17 @@ export function BoardPage() {
                 ))}
               </div>
               <div className="kanban-col-add">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="kanban-add-btn"
-                  leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />}
-                  onClick={() => setNewStatus(col.status)}
-                >
-                  Add task
-                </Button>
+                {canEdit && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="kanban-add-btn"
+                    leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />}
+                    onClick={() => setNewStatus(col.status)}
+                  >
+                    Add task
+                  </Button>
+                )}
               </div>
             </div>
           );

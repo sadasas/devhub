@@ -126,8 +126,38 @@ export interface Project {
   name: string;
   description: string;
   status: ProjectStatus;
+  teamId: string;
+  teamName: string;
+  role: TeamRole;
   createdAt: string;
   updatedAt: string;
+}
+
+export type TeamRole = 'owner' | 'admin' | 'editor' | 'viewer';
+
+export interface Team {
+  id: string;
+  name: string;
+  role: TeamRole;
+  memberCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TeamMember {
+  id: string;
+  email: string;
+  role: TeamRole;
+  joinedAt: string;
+}
+
+export interface Invitation {
+  id: string;
+  teamId: string;
+  teamName: string;
+  role: TeamRole;
+  createdAt: string;
+  expiresAt: string;
 }
 
 export interface ExportDocument {

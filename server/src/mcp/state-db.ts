@@ -2,15 +2,12 @@ import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { pool } from '../db/pool.js';
 import { stateSchema, type State } from '../schema/state.js';
 import { getMcpUserId } from './context.js';
+import { getProjectWithRole } from '../api/authz.js';
 
 async function findRow(projectId: string) {
-  const result = await pool.query(
-    'SELECT id, name, data FROM projects WHERE id = $1 AND owner_id = $2',
-    [projectId, getMcpUserId()],
-  );
-  return result.rows[0] as
-    | { id: string; name: string; data: unknown }
-    | undefined;
+  const row = await getProjectWithRole(getMcpUserId(), projectId);
+  if (!row) return undefined;
+  return { id: row.id, name: row.name, data: row.data };
 }
 
 export async function loadState(projectId: string): Promise<State> {
@@ -26,9 +23,16 @@ export async function loadState(projectId: string): Promise<State> {
 }
 
 export async function saveState(projectId: string, state: State): Promise<void> {
+  const row = await getProjectWithRole(getMcpUserId(), projectId);
+  if (!row) {
+    throw new McpError(ErrorCode.InvalidParams, `Project not found: ${projectId}`);
+  }
+  if (row.role === 'viewer') {
+    throw new McpError(ErrorCode.InvalidParams, `No write access to project ${projectId}`);
+  }
   const result = await pool.query(
-    'UPDATE projects SET data = $2::jsonb, updated_at = now() WHERE id = $1 AND owner_id = $3 RETURNING id',
-    [projectId, JSON.stringify(state), getMcpUserId()],
+    'UPDATE projects SET data = $2::jsonb, updated_at = now() WHERE id = $1 RETURNING id',
+    [projectId, JSON.stringify(state)],
   );
   if (!result.rows[0]) {
     throw new McpError(ErrorCode.InvalidParams, `Project not found: ${projectId}`);

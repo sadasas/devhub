@@ -11,7 +11,7 @@ import { DecisionModal } from './DecisionModal';
 import { NewDecisionModal } from './NewDecisionModal';
 
 export function DecisionsPage() {
-  const { state, loading, error } = useProject();
+  const { state, loading, error, canEdit } = useProject();
   const [openNew, setOpenNew] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
 
@@ -48,9 +48,11 @@ export function DecisionsPage() {
         <span className="data-list-count">
           {decisions.length} decision{decisions.length === 1 ? '' : 's'}
         </span>
-        <Button size="sm" onClick={() => setOpenNew(true)}>
-          <Plus size={14} /> New decision
-        </Button>
+        {canEdit && (
+          <Button size="sm" onClick={() => setOpenNew(true)}>
+            <Plus size={14} /> New decision
+          </Button>
+        )}
       </div>
 
       {decisions.length === 0 ? (
@@ -59,9 +61,11 @@ export function DecisionsPage() {
           title="No decisions yet"
           description="Record architecture choices and trade-offs as ADRs so future you remembers why."
           action={
-            <Button size="sm" onClick={() => setOpenNew(true)}>
-              <Plus size={14} /> New decision
-            </Button>
+            canEdit && (
+              <Button size="sm" onClick={() => setOpenNew(true)}>
+                <Plus size={14} /> New decision
+              </Button>
+            )
           }
         />
       ) : (
@@ -95,18 +99,20 @@ export function DecisionsPage() {
                 </div>
               </div>
               <div className="data-row-side">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="btn-icon"
-                  aria-label="Edit decision"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditId(d.id);
-                  }}
-                >
-                  <PencilSimple size={14} />
-                </Button>
+                {canEdit && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="btn-icon"
+                    aria-label="Edit decision"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditId(d.id);
+                    }}
+                  >
+                    <PencilSimple size={14} />
+                  </Button>
+                )}
               </div>
             </div>
           ))}

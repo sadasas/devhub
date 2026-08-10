@@ -10,12 +10,12 @@ import { SESSION_COOKIE, ApiError } from '../app.js';
 import { config } from '../config.js';
 
 const registerSchema = z.object({
-  email: z.string().trim().email('Invalid email').max(254),
+  email: z.string().trim().toLowerCase().email('Invalid email').max(254),
   password: z.string().min(8, 'Password must be at least 8 characters').max(128),
 });
 
 const loginSchema = z.object({
-  email: z.string().trim().email('Invalid email').max(254),
+  email: z.string().trim().toLowerCase().email('Invalid email').max(254),
   password: z.string().min(1).max(128),
 });
 

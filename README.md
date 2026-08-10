@@ -51,6 +51,7 @@ DevHub is a project management application designed specifically for **programmi
 | Stats | Estimates vs actuals, velocity, issue aging — SVG charts |
 | Global | Command Palette (Ctrl+K), keyboard shortcuts, export/import JSON |
 | Auth | Email + password, JWT httpOnly cookie, rate limiting |
+| Teams | Workspaces with roles (owner/admin/editor/viewer), email invites (registered users only, 7-day expiry, accept/decline), member management, team-scoped project lists |
 
 ### V2 / V3 (deferred — see [Roadmap](docs/01-project/roadmap.md))
 
@@ -166,7 +167,7 @@ DevHub exposes a **remote MCP server** so AI coding agents (opencode, Claude, Cu
 - Auth: per-user API key (Bearer token). Each DevHub user creates their own key in the app under **API Keys** (or via `POST /api/keys`) — no shared server-wide secret.
 - Tools: `project_state`, `plan_project`, `create_task`, `update_task`, `add_issue`, `add_decision`, `update_milestone`.
 
-MCP keys are scoped to the user who created them: agents can only read/update **that user's own projects** (same ownership rules as the REST API). A step-by-step guide is available in the app under **MCP Guide** (sidebar). See [MCP Integration](docs/03-engineering/mcp-integration.md) for the full specification and example agent workflows.
+MCP keys are scoped to the user who created them: agents can only access projects in teams that user belongs to, with the same role rules as the REST API (viewers are read-only — write tools are rejected). A step-by-step guide is available in the app under **MCP Guide** (sidebar). See [MCP Integration](docs/03-engineering/mcp-integration.md) for the full specification and example agent workflows.
 
 ---
 
@@ -177,7 +178,7 @@ MCP keys are scoped to the user who created them: agents can only read/update **
 | Phase 0 | Planning, documentation suite | **Current** |
 | Phase 1 | V1 feature set (local-first, single-user) | Next |
 | Phase 2 | Public deploy, auth hardening, V2 features | Planned |
-| Phase 3 | Sync / collaboration, PWA | Planned |
+| Phase 3 | Collaboration (teams, invites, roles — shipped), real-time sync, PWA | In progress |
 
 ---
 

@@ -91,7 +91,10 @@ export function DashboardPage() {
               <button key={p.id} type="button" className="project-card" onClick={() => openProject(p.id)}>
                 <div className="project-card-top">
                   <span className="project-card-title">{p.name}</span>
-                  <Badge tone={PROJECT_STATUS[p.status].tone}>{PROJECT_STATUS[p.status].label}</Badge>
+                  <span className="project-card-badges">
+                    <Badge tone="info">{p.teamName}</Badge>
+                    <Badge tone={PROJECT_STATUS[p.status].tone}>{PROJECT_STATUS[p.status].label}</Badge>
+                  </span>
                 </div>
                 <p className="project-card-desc">{p.description || 'No description.'}</p>
                 <div className="project-card-meta">

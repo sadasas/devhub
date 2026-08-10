@@ -5,10 +5,18 @@ import { pool } from '../db/pool.js';
 import { requireAuth, getUserId } from '../auth/middleware/requireAuth.js';
 import { ApiError } from '../app.js';
 import { stateSchema, projectStatus, emptyState, exportDocumentSchema } from '../schema/state.js';
+import {
+  assertAdmin,
+  assertWrite,
+  getProjectWithRole,
+  getTeamWithRole,
+  type ProjectWithRole,
+} from './authz.js';
 
 const createProjectSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(200),
   description: z.string().max(5_000).default(''),
+  teamId: z.string().uuid('Team is required'),
 });
 
 const updateProjectSchema = z.object({
@@ -21,22 +29,26 @@ const putStateSchema = z.object({
   state: stateSchema,
 });
 
-async function getOwnedProject(userId: string, projectId: string) {
-  const result = await pool.query(
-    'SELECT id, name, description, status, data, created_at, updated_at FROM projects WHERE id = $1 AND owner_id = $2',
-    [projectId, userId],
-  );
-  return result.rows[0] as
-    | {
-        id: string;
-        name: string;
-        description: string;
-        status: string;
-        data: unknown;
-        created_at: Date;
-        updated_at: Date;
-      }
-    | undefined;
+const importProjectSchema = exportDocumentSchema.extend({
+  teamId: z.string().uuid().optional(),
+});
+
+interface ProjectRow extends Omit<ProjectWithRole, 'role'> {
+  role: string;
+}
+
+function projectJson(row: ProjectRow) {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    status: row.status,
+    teamId: row.team_id,
+    teamName: row.team_name,
+    role: row.role,
+    createdAt: row.created_at.toISOString(),
+    updatedAt: row.updated_at.toISOString(),
+  };
 }
 
 export const projectsRouter = Router();
@@ -45,20 +57,16 @@ projectsRouter.use(requireAuth);
 projectsRouter.get('/', async (req, res) => {
   const userId = getUserId(req);
   const result = await pool.query(
-    `SELECT id, name, description, status, created_at, updated_at
-     FROM projects WHERE owner_id = $1 ORDER BY updated_at DESC`,
+    `SELECT p.id, p.name, p.description, p.status,
+            p.created_at, p.updated_at, p.team_id, t.name AS team_name, tm.role
+     FROM projects p
+     JOIN team_members tm ON tm.team_id = p.team_id
+     JOIN teams t ON t.id = p.team_id
+     WHERE tm.user_id = $1
+     ORDER BY p.updated_at DESC`,
     [userId],
   );
-  res.json({
-    projects: result.rows.map((r) => ({
-      id: r.id,
-      name: r.name,
-      description: r.description,
-      status: r.status,
-      createdAt: r.created_at.toISOString(),
-      updatedAt: r.updated_at.toISOString(),
-    })),
-  });
+  res.json({ projects: result.rows.map(projectJson) });
 });
 
 projectsRouter.post('/', async (req, res) => {
@@ -67,42 +75,33 @@ projectsRouter.post('/', async (req, res) => {
   if (!parsed.success) {
     throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid project data', parsed.error.issues);
   }
+  const { name, description, teamId } = parsed.data;
+  const team = await getTeamWithRole(userId, teamId);
+  if (!team) throw new ApiError(404, 'NOT_FOUND', 'Team not found');
+  assertWrite(team.role);
   const result = await pool.query<{ id: string }>(
-    `INSERT INTO projects (owner_id, name, description, data)
+    `INSERT INTO projects (team_id, name, description, data)
      VALUES ($1, $2, $3, $4::jsonb) RETURNING id`,
-    [userId, parsed.data.name, parsed.data.description, JSON.stringify(emptyState)],
+    [teamId, name, description, JSON.stringify(emptyState)],
   );
   const id = result.rows[0]?.id;
   if (!id) throw new ApiError(500, 'INTERNAL', 'Failed to create project');
-  const row = await getOwnedProject(userId, id);
-  res.status(201).json({
-    id: row!.id,
-    name: row!.name,
-    description: row!.description,
-    status: row!.status,
-    createdAt: row!.created_at.toISOString(),
-    updatedAt: row!.updated_at.toISOString(),
-  });
+  const row = await getProjectWithRole(userId, id);
+  res.status(201).json(projectJson(row!));
 });
 
 projectsRouter.get('/:projectId', async (req, res) => {
   const userId = getUserId(req);
-  const row = await getOwnedProject(userId, req.params.projectId);
+  const row = await getProjectWithRole(userId, req.params.projectId);
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
-  res.json({
-    id: row.id,
-    name: row.name,
-    description: row.description,
-    status: row.status,
-    createdAt: row.created_at.toISOString(),
-    updatedAt: row.updated_at.toISOString(),
-  });
+  res.json(projectJson(row));
 });
 
 projectsRouter.patch('/:projectId', async (req, res) => {
   const userId = getUserId(req);
-  const row = await getOwnedProject(userId, req.params.projectId);
+  const row = await getProjectWithRole(userId, req.params.projectId);
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
+  assertWrite(row.role);
   const parsed = updateProjectSchema.safeParse(req.body);
   if (!parsed.success) {
     throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid project data', parsed.error.issues);
@@ -114,36 +113,31 @@ projectsRouter.patch('/:projectId', async (req, res) => {
        description = COALESCE($3, description),
        status = COALESCE($4, status),
        updated_at = now()
-     WHERE id = $1 AND owner_id = $5
+     WHERE id = $1
      RETURNING id, updated_at`,
-    [req.params.projectId, name ?? null, description ?? null, status ?? null, userId],
+    [req.params.projectId, name ?? null, description ?? null, status ?? null],
   );
   const updatedRow = updated.rows[0];
   if (!updatedRow) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
-  const fresh = await getOwnedProject(userId, req.params.projectId);
-  res.json({
-    id: fresh!.id,
-    name: fresh!.name,
-    description: fresh!.description,
-    status: fresh!.status,
-    createdAt: fresh!.created_at.toISOString(),
-    updatedAt: fresh!.updated_at.toISOString(),
-  });
+  const fresh = await getProjectWithRole(userId, req.params.projectId);
+  res.json(projectJson(fresh!));
 });
 
 projectsRouter.delete('/:projectId', async (req, res) => {
   const userId = getUserId(req);
-  const result = await pool.query(
-    'DELETE FROM projects WHERE id = $1 AND owner_id = $2 RETURNING id',
-    [req.params.projectId, userId],
-  );
+  const row = await getProjectWithRole(userId, req.params.projectId);
+  if (!row) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
+  assertAdmin(row.role);
+  const result = await pool.query('DELETE FROM projects WHERE id = $1 RETURNING id', [
+    req.params.projectId,
+  ]);
   if (!result.rows[0]) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
   res.json({ ok: true });
 });
 
 projectsRouter.get('/:projectId/state', async (req, res) => {
   const userId = getUserId(req);
-  const row = await getOwnedProject(userId, req.params.projectId);
+  const row = await getProjectWithRole(userId, req.params.projectId);
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
   const parsed = stateSchema.safeParse(row.data);
   if (!parsed.success) {
@@ -156,22 +150,23 @@ projectsRouter.get('/:projectId/state', async (req, res) => {
 
 projectsRouter.put('/:projectId/state', async (req, res) => {
   const userId = getUserId(req);
-  const row = await getOwnedProject(userId, req.params.projectId);
+  const row = await getProjectWithRole(userId, req.params.projectId);
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
+  assertWrite(row.role);
   const parsed = putStateSchema.safeParse(req.body);
   if (!parsed.success) {
     throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid state payload', parsed.error.issues);
   }
-  await pool.query(
-    'UPDATE projects SET data = $3::jsonb, updated_at = now() WHERE id = $1 AND owner_id = $2',
-    [req.params.projectId, userId, JSON.stringify(parsed.data.state)],
-  );
+  await pool.query('UPDATE projects SET data = $2::jsonb, updated_at = now() WHERE id = $1', [
+    req.params.projectId,
+    JSON.stringify(parsed.data.state),
+  ]);
   res.json({ ok: true });
 });
 
 projectsRouter.get('/:projectId/export', async (req, res) => {
   const userId = getUserId(req);
-  const row = await getOwnedProject(userId, req.params.projectId);
+  const row = await getProjectWithRole(userId, req.params.projectId);
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
   const parsed = stateSchema.safeParse(row.data);
   if (!parsed.success) {
@@ -194,27 +189,42 @@ projectsRouter.get('/:projectId/export', async (req, res) => {
 
 projectsRouter.post('/import', async (req, res) => {
   const userId = getUserId(req);
-  const parsed = exportDocumentSchema.safeParse(req.body);
+  const parsed = importProjectSchema.safeParse(req.body);
   if (!parsed.success) {
     throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid export document', parsed.error.issues);
   }
-  const { meta, state } = parsed.data;
-  const existing = await pool.query<{ id: string }>(
-    'SELECT id FROM projects WHERE id = $1 AND owner_id = $2',
-    [meta.projectId, userId],
-  );
-  if (existing.rows[0]) {
-    await pool.query(
-      'UPDATE projects SET data = $3::jsonb, updated_at = now() WHERE id = $1 AND owner_id = $2',
-      [meta.projectId, userId, JSON.stringify(state)],
-    );
+  const { meta, state, teamId } = parsed.data;
+  const existing = await getProjectWithRole(userId, meta.projectId);
+  if (existing) {
+    assertWrite(existing.role);
+    await pool.query('UPDATE projects SET data = $2::jsonb, updated_at = now() WHERE id = $1', [
+      meta.projectId,
+      JSON.stringify(state),
+    ]);
     res.json({ projectId: meta.projectId, restored: true });
     return;
   }
+  let targetTeamId = teamId;
+  if (!targetTeamId) {
+    const first = await pool.query<{ team_id: string }>(
+      `SELECT tm.team_id
+       FROM team_members tm
+       WHERE tm.user_id = $1 AND tm.role IN ('owner', 'admin', 'editor')
+       ORDER BY tm.joined_at ASC LIMIT 1`,
+      [userId],
+    );
+    targetTeamId = first.rows[0]?.team_id;
+  }
+  if (!targetTeamId) {
+    throw new ApiError(400, 'VALIDATION_ERROR', 'No team available to import into');
+  }
+  const team = await getTeamWithRole(userId, targetTeamId);
+  if (!team) throw new ApiError(404, 'NOT_FOUND', 'Team not found');
+  assertWrite(team.role);
   const name = `Imported ${new Date().toISOString().slice(0, 10)}`;
   const result = await pool.query<{ id: string }>(
-    'INSERT INTO projects (owner_id, name, description, data) VALUES ($1, $2, $3, $4::jsonb) RETURNING id',
-    [userId, name, 'Imported from export document', JSON.stringify(state)],
+    'INSERT INTO projects (team_id, name, description, data) VALUES ($1, $2, $3, $4::jsonb) RETURNING id',
+    [targetTeamId, name, 'Imported from export document', JSON.stringify(state)],
   );
   res.status(201).json({ projectId: result.rows[0]?.id, restored: false });
 });

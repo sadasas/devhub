@@ -4,6 +4,7 @@ import rateLimit from 'express-rate-limit';
 import { config } from './config.js';
 import { authRouter } from './api/auth.routes.js';
 import { projectsRouter } from './api/projects.routes.js';
+import { teamsRouter } from './api/teams.routes.js';
 import { keysRouter } from './api/keys.routes.js';
 import { mcpRouter } from './mcp/server.js';
 import { requireMcpKey } from './mcp/require-key.js';
@@ -64,6 +65,7 @@ export function createApp(): express.Express {
 
   app.use('/api/auth', authRouter);
   app.use('/api/projects', projectsRouter);
+  app.use('/api/teams', teamsRouter);
   app.use('/api/keys', keysRouter);
 
   app.use(requireMcpKey);

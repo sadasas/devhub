@@ -21,6 +21,7 @@ import type {
   Task,
   TechEntry,
   TestCase,
+  TeamRole,
 } from '../lib/types';
 
 /* ------------------------------------------------------------------ */
@@ -156,12 +157,22 @@ interface ProjectContextValue {
   loading: boolean;
   error: string | null;
   saveError: string | null;
+  role: TeamRole;
+  canEdit: boolean;
   dispatch: (action: ProjectAction) => void;
 }
 
 const ProjectContext = createContext<ProjectContextValue | null>(null);
 
-export function ProjectProvider({ projectId, children }: { projectId: string; children: ReactNode }) {
+export function ProjectProvider({
+  projectId,
+  role,
+  children,
+}: {
+  projectId: string;
+  role: TeamRole;
+  children: ReactNode;
+}) {
   const [state, setState] = useState<State | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -259,8 +270,16 @@ export function ProjectProvider({ projectId, children }: { projectId: string; ch
   }, [projectId]);
 
   const value = useMemo(
-    () => ({ state, loading, error, saveError, dispatch }),
-    [state, loading, error, saveError, dispatch],
+    () => ({
+      state,
+      loading,
+      error,
+      saveError,
+      role,
+      canEdit: role !== 'viewer',
+      dispatch,
+    }),
+    [state, loading, error, saveError, role, dispatch],
   );
 
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;

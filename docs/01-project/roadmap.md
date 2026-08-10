@@ -63,9 +63,11 @@ Projects · Kanban with `blockedBy` dependencies · Issues · Test cases · Tech
 
 ---
 
-## 5. Phase 3 — Collaboration & PWA (Planned)
+## 5. Phase 3 — Collaboration & PWA (Partially shipped)
 
-**Drivers:** Multi-device sync (IndexedDB provider + sync service), real-time collaboration (WebSocket + CRDT or last-write-wins merge — design prepared via Base fields), PWA offline, WebDAV/Nextcloud backup option, ntfy.sh push notifications.
+**Shipped (collaboration core):** team workspaces (one team → many projects), email invites for registered users with accept/decline flow + 7-day expiry, roles owner/admin/editor/viewer (viewer read-only enforced at API, UI, and MCP layers), per-team sidebar grouping, migration 003 backfill moved existing projects into a per-user "Personal" team. See [Team Collaboration Design](../02-architecture/team-collaboration-design.md).
+
+**Remaining drivers:** Multi-device sync (IndexedDB provider + sync service), real-time collaboration (WebSocket + CRDT or last-write-wins merge — LWW already chosen for conflict handling, prepared via `Base.updatedAt`), PWA offline, WebDAV/Nextcloud backup option, ntfy.sh push notifications, real-time presence.
 
 **Prerequisite:** StorageProvider abstraction already designed in [Technical Design](../02-architecture/technical-design.md) — adding sync requires one new provider, zero component changes.
 

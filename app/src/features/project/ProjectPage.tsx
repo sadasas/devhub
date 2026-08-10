@@ -15,7 +15,7 @@ import {
 } from '@phosphor-icons/react';
 import type { ReactNode } from 'react';
 import { ApiError } from '../../lib/api';
-import { PROJECT_STATUS } from '../../lib/labels';
+import { PROJECT_STATUS, TEAM_ROLE } from '../../lib/labels';
 import { copyText, formatDate } from '../../lib/utils';
 import { useNavigation } from '../../state/navigation-context';
 import { ProjectProvider } from '../../state/project-context';
@@ -80,6 +80,8 @@ export function ProjectPage({ projectId }: ProjectPageProps) {
   );
 
   const project = projects?.find((p) => p.id === projectId);
+  const role = project?.role ?? 'viewer';
+  const isAdmin = role === 'owner' || role === 'admin';
 
   async function onCopyProjectId() {
     const ok = await copyText(projectId);
@@ -102,7 +104,7 @@ export function ProjectPage({ projectId }: ProjectPageProps) {
   }
 
   return (
-    <ProjectProvider key={projectId} projectId={projectId}>
+    <ProjectProvider key={projectId} projectId={projectId} role={role}>
       <div className="page">
         <header className="project-header">
           <div className="project-heading">
@@ -113,6 +115,7 @@ export function ProjectPage({ projectId }: ProjectPageProps) {
             {project ? (
               <div className="project-title-row">
                 <h1 className="page-title">{project.name}</h1>
+                <Badge tone={TEAM_ROLE[role].tone}>{TEAM_ROLE[role].label}</Badge>
                 <Badge tone={PROJECT_STATUS[project.status].tone}>
                   {PROJECT_STATUS[project.status].label}
                 </Badge>
@@ -148,14 +151,16 @@ export function ProjectPage({ projectId }: ProjectPageProps) {
               </Button>
             </div>
           </div>
-          <Button
-            variant="danger"
-            size="sm"
-            leftIcon={<Trash size={13} aria-hidden="true" />}
-            onClick={() => setConfirmOpen(true)}
-          >
-            Delete
-          </Button>
+          {isAdmin && (
+            <Button
+              variant="danger"
+              size="sm"
+              leftIcon={<Trash size={13} aria-hidden="true" />}
+              onClick={() => setConfirmOpen(true)}
+            >
+              Delete
+            </Button>
+          )}
         </header>
 
         <nav className="tabs" aria-label="Project sections">

@@ -8,7 +8,7 @@ interface ProjectsContextValue {
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
-  create: (name: string, description: string) => Promise<Project>;
+  create: (name: string, description: string, teamId: string) => Promise<Project>;
   remove: (projectId: string) => Promise<void>;
 }
 
@@ -36,8 +36,8 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const create = useCallback(
-    async (name: string, description: string) => {
-      const project = await api.createProject(name, description);
+    async (name: string, description: string, teamId: string) => {
+      const project = await api.createProject(name, description, teamId);
       setProjects((prev) => (prev ? [...prev, project] : [project]));
       return project;
     },

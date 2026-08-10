@@ -11,7 +11,7 @@ import { IssueModal } from './IssueModal';
 import { NewIssueModal } from './NewIssueModal';
 
 export function IssuesPage() {
-  const { state, loading, error } = useProject();
+  const { state, loading, error, canEdit } = useProject();
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -49,9 +49,11 @@ export function IssuesPage() {
         <span className="data-list-count">
           {issues.length} {issues.length === 1 ? 'issue' : 'issues'}
         </span>
-        <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
-          New issue
-        </Button>
+        {canEdit && (
+          <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
+            New issue
+          </Button>
+        )}
       </div>
 
       {issues.length === 0 ? (
@@ -60,9 +62,11 @@ export function IssuesPage() {
           title="No issues yet"
           description="Log bugs with a severity level and reproduction steps so they don't get lost."
           action={
-            <Button leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
-              Log an issue
-            </Button>
+            canEdit && (
+              <Button leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
+                Log an issue
+              </Button>
+            )
           }
         />
       ) : (
@@ -100,18 +104,20 @@ export function IssuesPage() {
                 </div>
                 <div className="data-row-side">
                   <Badge tone={ISSUE_STATUS[issue.status].tone}>{ISSUE_STATUS[issue.status].label}</Badge>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="btn-icon"
-                    aria-label="Edit issue"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingId(issue.id);
-                    }}
-                  >
-                    <PencilSimple size={14} aria-hidden="true" />
-                  </Button>
+                  {canEdit && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="btn-icon"
+                      aria-label="Edit issue"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingId(issue.id);
+                      }}
+                    >
+                      <PencilSimple size={14} aria-hidden="true" />
+                    </Button>
+                  )}
                 </div>
               </div>
             );

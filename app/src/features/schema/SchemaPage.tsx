@@ -16,7 +16,7 @@ import { TableModal } from './TableModal';
 type SchemaView = 'tables' | 'erd';
 
 export function SchemaPage() {
-  const { state, loading, error, dispatch } = useProject();
+  const { state, loading, error, dispatch, canEdit } = useProject();
   const [view, setView] = useState<SchemaView>('tables');
   const [newTableOpen, setNewTableOpen] = useState(false);
   const [tableId, setTableId] = useState<string | null>(null);
@@ -60,7 +60,7 @@ export function SchemaPage() {
           versions
         </span>
         <div className="data-list-actions">
-          {view === 'erd' && (
+          {canEdit && view === 'erd' && (
             <Button
               variant="ghost"
               size="sm"
@@ -70,9 +70,11 @@ export function SchemaPage() {
               New relation
             </Button>
           )}
-          <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setNewTableOpen(true)}>
-            New table
-          </Button>
+          {canEdit && (
+            <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setNewTableOpen(true)}>
+              New table
+            </Button>
+          )}
         </div>
       </div>
 
@@ -106,9 +108,11 @@ export function SchemaPage() {
               <p className="empty-state-desc">
                 Model your database — tables, columns, keys — then view the ERD.
               </p>
-              <Button size="sm" onClick={() => setNewTableOpen(true)}>
-                New table
-              </Button>
+              {canEdit && (
+                <Button size="sm" onClick={() => setNewTableOpen(true)}>
+                  New table
+                </Button>
+              )}
             </div>
           </div>
         ) : (
@@ -145,9 +149,11 @@ export function SchemaPage() {
                     </div>
                   </div>
                   <div className="data-row-side">
-                    <Button variant="ghost" size="sm" className="btn-icon" aria-label={`Edit table ${t.name}`}>
-                      <PencilSimple size={13} aria-hidden="true" />
-                    </Button>
+                    {canEdit && (
+                      <Button variant="ghost" size="sm" className="btn-icon" aria-label={`Edit table ${t.name}`}>
+                        <PencilSimple size={13} aria-hidden="true" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -158,7 +164,7 @@ export function SchemaPage() {
           <ERD
             state={state}
             onDeleteRelation={setConfirmRel}
-            onNewTable={() => setNewTableOpen(true)}
+            onNewTable={canEdit ? () => setNewTableOpen(true) : () => {}}
           />
           {state.relations.length > 0 && (
             <div className="data-list relation-list">
@@ -176,15 +182,17 @@ export function SchemaPage() {
                     </div>
                   </div>
                   <div className="data-row-side">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="btn-icon"
-                      aria-label="Delete relation"
-                      onClick={() => setConfirmRel(r)}
-                    >
-                      <Trash size={13} aria-hidden="true" />
-                    </Button>
+                    {canEdit && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="btn-icon"
+                        aria-label="Delete relation"
+                        onClick={() => setConfirmRel(r)}
+                      >
+                        <Trash size={13} aria-hidden="true" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -196,14 +204,16 @@ export function SchemaPage() {
       <div className="versions-section">
         <div className="data-list-header">
           <span className="data-list-count">Schema versions</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            leftIcon={<FloppyDisk size={13} aria-hidden="true" />}
-            onClick={() => setSaveVersionOpen(true)}
-          >
-            Save version
-          </Button>
+          {canEdit && (
+            <Button
+              variant="ghost"
+              size="sm"
+              leftIcon={<FloppyDisk size={13} aria-hidden="true" />}
+              onClick={() => setSaveVersionOpen(true)}
+            >
+              Save version
+            </Button>
+          )}
         </div>
         {state.schemaVersions.length === 0 ? (
           <p className="field-helper" style={{ padding: '4px 2px' }}>

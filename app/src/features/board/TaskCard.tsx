@@ -11,7 +11,7 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, onOpen }: TaskCardProps) {
-  const { state } = useProject();
+  const { state, canEdit } = useProject();
   const blockers =
     task.blockedBy
       ?.map((id) => state?.tasks.find((t) => t.id === id))
@@ -20,7 +20,7 @@ export function TaskCard({ task, onOpen }: TaskCardProps) {
   return (
     <div
       className="task-card"
-      draggable
+      draggable={canEdit}
       role="button"
       tabIndex={0}
       onClick={onOpen}

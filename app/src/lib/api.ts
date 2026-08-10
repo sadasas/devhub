@@ -1,4 +1,15 @@
-import type { ExportDocument, McpKey, McpKeyCreated, Project, State, User } from './types';
+import type {
+  ExportDocument,
+  Invitation,
+  McpKey,
+  McpKeyCreated,
+  Project,
+  State,
+  Team,
+  TeamMember,
+  TeamRole,
+  User,
+} from './types';
 
 const API_BASE: string = import.meta.env.VITE_API_URL ?? '/api';
 
@@ -63,10 +74,10 @@ export const api = {
     const res = await request<{ projects: Project[] }>('/projects');
     return res.projects;
   },
-  createProject: (name: string, description: string) =>
+  createProject: (name: string, description: string, teamId: string) =>
     request<Project>('/projects', {
       method: 'POST',
-      body: JSON.stringify({ name, description }),
+      body: JSON.stringify({ name, description, teamId }),
     }),
   getProject: (projectId: string) => request<Project>(`/projects/${encodeURIComponent(projectId)}`),
   patchProject: (
@@ -108,4 +119,55 @@ export const api = {
     }),
   revokeKey: (keyId: string) =>
     request<{ ok: true }>(`/keys/${encodeURIComponent(keyId)}`, { method: 'DELETE' }),
+
+  listTeams: async () => {
+    const res = await request<{ teams: Team[] }>('/teams');
+    return res.teams;
+  },
+  createTeam: (name: string) =>
+    request<{ team: Team }>('/teams', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    }).then((r) => r.team),
+  renameTeam: (teamId: string, name: string) =>
+    request<{ ok: true }>(`/teams/${encodeURIComponent(teamId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name }),
+    }),
+  deleteTeam: (teamId: string) =>
+    request<{ ok: true }>(`/teams/${encodeURIComponent(teamId)}`, { method: 'DELETE' }),
+  listMembers: async (teamId: string) => {
+    const res = await request<{ members: TeamMember[] }>(
+      `/teams/${encodeURIComponent(teamId)}/members`,
+    );
+    return res.members;
+  },
+  setMemberRole: (teamId: string, userId: string, role: Exclude<TeamRole, 'owner'>) =>
+    request<{ ok: true }>(`/teams/${encodeURIComponent(teamId)}/members/${encodeURIComponent(userId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    }),
+  removeMember: (teamId: string, userId: string) =>
+    request<{ ok: true }>(`/teams/${encodeURIComponent(teamId)}/members/${encodeURIComponent(userId)}`, {
+      method: 'DELETE',
+    }),
+  inviteMember: (teamId: string, email: string, role: Exclude<TeamRole, 'owner'>) =>
+    request<{ ok: true }>(`/teams/${encodeURIComponent(teamId)}/invitations`, {
+      method: 'POST',
+      body: JSON.stringify({ email, role }),
+    }),
+  listInvitations: async () => {
+    const res = await request<{ invitations: Invitation[] }>('/teams/invitations');
+    return res.invitations;
+  },
+  acceptInvitation: (teamId: string, invitationId: string) =>
+    request<{ ok: true; teamId: string; teamName: string }>(
+      `/teams/${encodeURIComponent(teamId)}/invitations/${encodeURIComponent(invitationId)}/accept`,
+      { method: 'POST' },
+    ),
+  declineInvitation: (teamId: string, invitationId: string) =>
+    request<{ ok: true }>(
+      `/teams/${encodeURIComponent(teamId)}/invitations/${encodeURIComponent(invitationId)}`,
+      { method: 'DELETE' },
+    ),
 };

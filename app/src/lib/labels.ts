@@ -7,6 +7,7 @@ import type {
   ProjectStatus,
   TaskPriority,
   TaskStatus,
+  TeamRole,
   TechEntryCategory,
   TechStatus,
   TestCaseStatus,
@@ -81,4 +82,11 @@ export const MILESTONE_STATUS: Record<MilestoneStatus, Meta> = {
 export const PROJECT_STATUS: Record<ProjectStatus, Meta> = {
   active: { label: 'Active', tone: 'success' },
   archived: { label: 'Archived', tone: 'neutral' },
+};
+
+export const TEAM_ROLE: Record<TeamRole, Meta> = {
+  owner: { label: 'Owner', tone: 'accent' },
+  admin: { label: 'Admin', tone: 'info' },
+  editor: { label: 'Editor', tone: 'neutral' },
+  viewer: { label: 'Viewer', tone: 'warn' },
 };
