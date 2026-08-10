@@ -68,7 +68,7 @@ Express API server (auth, projects, state CRUD, export/import)
         │  pg
         ▼
 PostgreSQL (users + projects with JSONB state payload)
-        │  MCP (streamable HTTP, API-key auth)
+        │  MCP (streamable HTTP, per-user API key)
         ▼
 AI agents (opencode, Claude, etc.)
 ```
@@ -163,10 +163,10 @@ The full enterprise-grade documentation suite lives in `docs/`:
 DevHub exposes a **remote MCP server** so AI coding agents (opencode, Claude, Cursor, etc.) can read and update project state directly — an agent can plan tasks, implement code, then report progress back into DevHub automatically.
 
 - Protocol: Model Context Protocol, streamable HTTP transport.
-- Auth: API key (Bearer token).
+- Auth: per-user API key (Bearer token). Each DevHub user creates their own key in the app under **API Keys** (or via `POST /api/keys`) — no shared server-wide secret.
 - Tools: `project_state`, `plan_project`, `create_task`, `update_task`, `add_issue`, `add_decision`, `update_milestone`.
 
-See [MCP Integration](docs/03-engineering/mcp-integration.md) for the full specification and example agent workflows.
+MCP keys are scoped to the user who created them: agents can only read/update **that user's own projects** (same ownership rules as the REST API). A step-by-step guide is available in the app under **MCP Guide** (sidebar). See [MCP Integration](docs/03-engineering/mcp-integration.md) for the full specification and example agent workflows.
 
 ---
 

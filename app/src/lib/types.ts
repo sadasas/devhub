@@ -145,6 +145,19 @@ export interface User {
   email: string;
 }
 
+export interface McpKey {
+  id: string;
+  name: string;
+  prefix: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+}
+
+export interface McpKeyCreated extends McpKey {
+  key: string;
+}
+
 export const emptyState: State = {
   tasks: [],
   issues: [],

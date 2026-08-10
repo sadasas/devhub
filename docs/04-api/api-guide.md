@@ -5,7 +5,7 @@
 | **Document status** | Draft (Phase 0) |
 | **Version** | 1.0 |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-09 |
+| **Last updated** | 2026-08-10 |
 | **Related documents** | [OpenAPI Spec](openapi.yaml) · [TDD §5](../02-architecture/technical-design.md#5-api-design) · [MCP Guide](../03-engineering/mcp-integration.md) |
 
 ---
@@ -89,7 +89,34 @@ POST /api/projects
 
 ---
 
-## 4. State
+## 4. MCP Keys (per-user API keys)
+
+MCP access uses **per-user API keys**, not a server-wide secret. A key belongs to the user who created it and is scoped to that user's own projects (same ownership rules as §3). Raw keys are shown **once** at creation; the server stores only a SHA-256 hash.
+
+Keys are managed in the web app under **API Keys** (sidebar); the endpoints below are what that UI calls.
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/keys` | List my keys (id, name, prefix, created/last-used/revoked timestamps) |
+| POST | `/api/keys` | Create a key, body `{ "name"?: "my-agent" }` |
+| DELETE | `/api/keys/{id}` | Revoke a key (immediate; existing sessions fail on next call) |
+
+Example create:
+
+```http
+POST /api/keys
+{ "name": "opencode-desktop" }
+
+201 → { "id": "k-1", "name": "opencode-desktop", "prefix": "devhub_ab12", "key": "devhub_ab12cd34...", "createdAt": "..." }
+```
+
+- `key` is returned **only** in the create response — copy it immediately; it cannot be retrieved later.
+- Use `key` as the MCP bearer token: `Authorization: Bearer <key>`.
+- Revocation is soft (`revoked_at` set); the row is kept for audit, and revoked keys return `401` on the MCP endpoint.
+
+---
+
+## 5. State
 
 ### 4.1 Read
 
@@ -129,7 +156,7 @@ Content-Type: application/json
 
 ---
 
-## 5. Export / Import
+## 6. Export / Import
 
 ### 5.1 Export
 
@@ -161,24 +188,24 @@ Content-Type: application/json
 
 ---
 
-## 6. MCP Examples
+## 7. MCP Examples
 
-The MCP endpoint (`POST /mcp`) is a streamable-HTTP MCP server; same service layer, API-key auth.
+The MCP endpoint (`POST /mcp`) is a streamable-HTTP MCP server; same service layer, **per-user API-key auth** (see §4). Set `DEVHUB_MCP_KEY` to a key created via `POST /api/keys`.
 
 ```bash
 # 1. Initialize
 curl -s -X POST http://localhost:3000/mcp \
-  -H "Authorization: Bearer $MCP_API_KEY" -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $DEVHUB_MCP_KEY" -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"curl","version":"1"}}}'
 
 # 2. List tools
 curl -s -X POST http://localhost:3000/mcp \
-  -H "Authorization: Bearer $MCP_API_KEY" -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $DEVHUB_MCP_KEY" -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
 
 # 3. Call a tool
 curl -s -X POST http://localhost:3000/mcp \
-  -H "Authorization: Bearer $MCP_API_KEY" -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $DEVHUB_MCP_KEY" -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"project_state","arguments":{"projectId":"p-1"}}}'
 ```
 
@@ -186,7 +213,7 @@ Full tool contract: [MCP Integration Guide §3](../03-engineering/mcp-integratio
 
 ---
 
-## 7. Error Codes
+## 8. Error Codes
 
 | Code | HTTP | Meaning |
 |---|---|---|
@@ -200,7 +227,7 @@ Full tool contract: [MCP Integration Guide §3](../03-engineering/mcp-integratio
 
 ---
 
-## 8. Versioning & Compatibility
+## 9. Versioning & Compatibility
 
 - API v1: `/api` (no path version yet). Breaking changes require a new major version or endpoint suffix — recorded in the [ADR log](../02-architecture/adr.md) before rollout.
 - `app` ↔ `server` contract sync: types in `app/src/lib/types.ts` ↔ zod in `server/src/schema` must change together in one PR (see [Coding Standards §3](../03-engineering/coding-standards.md#3-typescript-rules)).

@@ -12,7 +12,7 @@ export function registerProjectState(server: McpServer): void {
     {
       title: 'Read project state',
       description:
-        'Read a DevHub project snapshot: task list with status/priority/estimate/blockers, issues, milestones, tech stack entries and counts. Use before planning new work.',
+        'Read a DevHub project snapshot: task list with status/priority/estimate/blockers, issues, milestones, tech stack entries, database schema (tables with columns and indexes, relations, schema versions) and counts. Use before planning new work.',
       inputSchema,
     },
     async (args) => {
@@ -58,9 +58,41 @@ export function registerProjectState(server: McpServer): void {
           id: t.id,
           name: t.name,
           version: t.version,
+          category: t.category,
           status: t.status,
+          notes: t.notes,
         })),
         decisions: state.decisions.map((d) => ({ id: d.id, title: d.title, status: d.status, date: d.date })),
+        tables: state.tables.map((t) => ({
+          id: t.id,
+          name: t.name,
+          comment: t.comment,
+          indexes: t.indexes,
+          columns: t.columns.map((c) => ({
+            id: c.id,
+            name: c.name,
+            type: c.type,
+            nullable: c.nullable,
+            primaryKey: c.primaryKey,
+            default: c.default ?? null,
+            comment: c.comment,
+          })),
+        })),
+        relations: state.relations.map((r) => ({
+          id: r.id,
+          fromTableId: r.fromTableId,
+          fromColumnId: r.fromColumnId,
+          toTableId: r.toTableId,
+          toColumnId: r.toColumnId,
+          cardinality: r.cardinality,
+          onDelete: r.onDelete,
+        })),
+        schemaVersions: state.schemaVersions.map((v) => ({
+          id: v.id,
+          version: v.version,
+          appliedAt: v.appliedAt,
+          notes: v.notes,
+        })),
       };
       return { content: [{ type: 'text', text: JSON.stringify(summary, null, 2) }] };
     },

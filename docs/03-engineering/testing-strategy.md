@@ -5,7 +5,7 @@
 | **Document status** | Draft (Phase 0) |
 | **Version** | 1.0 |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-09 |
+| **Last updated** | 2026-08-10 |
 
 ---
 
@@ -59,9 +59,10 @@ Location: `server/test/`.
 |---|---|
 | `auth.test.ts` | register → login → me → logout; wrong password; duplicate email; rate-limit triggers 429 |
 | `projects.test.ts` | CRUD; cross-user isolation (user B cannot access user A's project); 401 without cookie |
+| `keys.test.ts` | create → list → revoke; raw key returned once; 401 without cookie; revoked key rejected on `/mcp` |
 | `state.test.ts` | GET empty state; PUT valid state; PUT invalid → 400; oversize body → 413 |
 | `export-import.test.ts` | export → import round-trip preserves data |
-| `mcp.test.ts` | no key → 401; valid key + tool call → result; invalid args → 400 |
+| `mcp.test.ts` | no key → 401; invalid key → 401; revoked key → 401; user A's key cannot read/write user B's project; valid key + tool call → result; invalid args → 400 |
 
 **Database:** dedicated test Postgres (docker compose `devhub-test`), migrations run per suite, truncate between tests. `DATABASE_URL_TEST` env.
 

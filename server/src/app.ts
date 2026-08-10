@@ -4,6 +4,7 @@ import rateLimit from 'express-rate-limit';
 import { config } from './config.js';
 import { authRouter } from './api/auth.routes.js';
 import { projectsRouter } from './api/projects.routes.js';
+import { keysRouter } from './api/keys.routes.js';
 import { mcpRouter } from './mcp/server.js';
 import { requireMcpKey } from './mcp/require-key.js';
 
@@ -50,6 +51,9 @@ const limiter = rateLimit({
 export function createApp(): express.Express {
   const app = express();
   app.disable('x-powered-by');
+  if (config.NODE_ENV === 'test') {
+    app.set('trust proxy', true);
+  }
   app.use(express.json({ limit: '2mb' }));
   app.use(cookieParser());
   app.use('/api', limiter);
@@ -60,6 +64,7 @@ export function createApp(): express.Express {
 
   app.use('/api/auth', authRouter);
   app.use('/api/projects', projectsRouter);
+  app.use('/api/keys', keysRouter);
 
   app.use(requireMcpKey);
   app.use(mcpRouter);

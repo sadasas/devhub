@@ -5,7 +5,7 @@
 | **Document status** | Draft (Phase 0) |
 | **Version** | 1.0 |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-09 |
+| **Last updated** | 2026-08-10 |
 | **Related documents** | [PRD](../01-project/prd.md) · [ADR Log](adr.md) · [Security Design](security-design.md) · [API Guide](../04-api/api-guide.md) |
 
 ---
@@ -86,6 +86,7 @@ This document specifies the technical architecture for DevHub V1: system context
 |---|---|
 | `api/auth` | register / login / logout; JWT issuance; httpOnly cookie management |
 | `api/projects` | CRUD for projects (user-scoped) |
+| `api/keys` | per-user MCP API keys: create / list / revoke |
 | `api/state` | `GET/PUT /api/projects/:id/state` — full JSONB state payload, zod-validated |
 | `api/export-import` | JSON export / import for a project |
 | `db` | pg Pool + migrations (users, projects) |
@@ -98,6 +99,7 @@ This document specifies the technical architecture for DevHub V1: system context
 |---|---|---|
 | `users` | Accounts | id (UUID PK), email (unique), password_hash, created_at, updated_at |
 | `projects` | Per-user projects | id (UUID PK), owner_id (FK → users), name, description, status, data (JSONB), created_at, updated_at |
+| `mcp_keys` | Per-user MCP API keys | id (UUID PK), user_id (FK → users), name, key_hash (SHA-256, raw key never stored), prefix, created_at, last_used_at, revoked_at |
 
 **Why JSONB?** See ADR-002. The 10-entity state model is a single JSON document per project. Indexed fields: `owner_id`.
 
@@ -167,6 +169,9 @@ Base URL: `/api`. All endpoints JSON. Auth via httpOnly cookie `devhub_session`.
 | POST | `/api/auth/login` | No | Login, set cookie |
 | POST | `/api/auth/logout` | Yes | Clear cookie |
 | GET | `/api/auth/me` | Yes | Current user info |
+| GET | `/api/keys` | Yes | List my MCP API keys |
+| POST | `/api/keys` | Yes | Create an MCP API key (returns raw key once) |
+| DELETE | `/api/keys/:id` | Yes | Revoke an MCP API key |
 | GET | `/api/projects` | Yes | List projects |
 | POST | `/api/projects` | Yes | Create project |
 | GET | `/api/projects/:id` | Yes | Project meta |
@@ -198,20 +203,24 @@ Versioning contract, request/response examples, and error format: [API Guide](..
 ### 7.1 Protocol
 
 - **Transport:** Model Context Protocol, streamable HTTP (remote server).
-- **Auth:** API key via `Authorization: Bearer <key>`; key stored server-side (env `MCP_API_KEY`); validates on every request.
+- **Auth:** per-user API key via `Authorization: Bearer <key>`; keys are created by each user via `POST /api/keys` and stored as SHA-256 hashes in `mcp_keys`; validated on every request and bound to the owning user (see ADR-013).
 - **Endpoint:** `POST /mcp` (exposed on the same Express server or a dedicated port in production).
+- **Authorization:** every MCP tool access is owner-scoped exactly like the REST API — a key can only read/update its owner's projects.
 
 ### 7.2 Tools
 
 | Tool | Description |
 |---|---|
-| `project_state` | Returns the full state of a project by id |
+| `project_state` | Returns the full state of a project by id (tasks, issues, milestones, tech stack, schema tables/columns/relations) |
 | `plan_project` | Given a brief, proposes tasks with estimates + milestones (pure suggestion — does not write) |
 | `create_task` | Creates a task (zod-validated) |
 | `update_task` | Updates status and/or actualHours of a task |
 | `add_issue` | Creates an issue |
 | `add_decision` | Creates an ADR decision entry |
 | `update_milestone` | Updates milestone status/changelog |
+| `add_table` | Creates a schema table with columns/indexes |
+| `add_relation` | Creates a schema relation between two tables |
+| `add_tech` | Creates a tech stack entry |
 
 All tools return normalized responses with `updatedAt` so agents can detect external changes.
 
@@ -226,7 +235,7 @@ All tools return normalized responses with `updatedAt` so agents can detect exte
 6. Browser: polling GET /state every 5s (tab visible) → UI reflects changes
 ```
 
-Client configuration (opencode.json):
+Client configuration (opencode.json) — `DEVHUB_MCP_KEY` is a key created by the user via `POST /api/keys`:
 
 ```jsonc
 {
@@ -234,7 +243,7 @@ Client configuration (opencode.json):
     "devhub": {
       "type": "remote",
       "url": "https://devhub.example.com/mcp",
-      "headers": { "Authorization": "Bearer <MCP_API_KEY>" }
+      "headers": { "Authorization": "Bearer {env:DEVHUB_MCP_KEY}" }
     }
   }
 }
@@ -273,10 +282,11 @@ docker-compose.yml (local dev):  postgres:16-alpine on :5432
 |---|---|---|
 | `DATABASE_URL` | Yes | `postgres://user:pass@host:5432/devhub` |
 | `JWT_SECRET` | Yes | ≥ 32 random chars |
-| `MCP_API_KEY` | Yes | API key for AI agents |
 | `PORT` | No | Default 3000 |
 | `NODE_ENV` | No | `development` / `production` (cookie Secure flag) |
 | `COOKIE_SECURE` | No | Force Secure cookies when behind TLS proxy |
+
+MCP keys are **not** environment config: each user manages their own via the app's **API Keys** page (backed by `POST /api/keys`), stored hashed in Postgres.
 
 See [Deployment Runbook](../05-operations/deployment-runbook.md).
 

@@ -4,7 +4,7 @@
 |---|---|
 | **Document status** | Active (living document) |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-09 |
+| **Last updated** | 2026-08-10 |
 
 ---
 
@@ -38,13 +38,14 @@
 | [ADR-003](#adr-003) | AI agents interact via MCP tools only (no direct DB/file access) | Accepted | 2026-08-09 |
 | [ADR-004](#adr-004) | No Git CLI integration in V1 | Accepted | 2026-08-09 |
 | [ADR-005](#adr-005) | Auth: email+password, bcryptjs, JWT in httpOnly cookie | Accepted | 2026-08-09 |
-| [ADR-006](#adr-006) | MCP server: remote (streamable HTTP) with API-key auth | Accepted | 2026-08-09 |
+| [ADR-006](#adr-006) | MCP server: remote (streamable HTTP) with API-key auth | Superseded by [ADR-013](#adr-013) | 2026-08-09 |
 | [ADR-007](#adr-007) | Zero UI runtime dependencies except @phosphor-icons/react | Accepted | 2026-08-09 |
 | [ADR-008](#adr-008) | Design system: dark-tech, native CSS variables, emerald accent | Accepted | 2026-08-09 |
 | [ADR-009](#adr-009) | Every entity extends Base { id, createdAt, updatedAt, authorId } | Accepted | 2026-08-09 |
 | [ADR-010](#adr-010) | V1 deploys publicly (multi-user), not local-file mode | Accepted | 2026-08-09 |
 | [ADR-011](#adr-011) | No in-app AI chat UI; AI integration via MCP tools only | Accepted | 2026-08-09 |
 | [ADR-012](#adr-012) | Task dependencies, test cases, milestones promoted to V1 | Accepted | 2026-08-09 |
+| [ADR-013](#adr-013) | MCP auth: per-user API keys, not a shared server secret | Accepted | 2026-08-10 |
 
 ---
 
@@ -96,10 +97,24 @@
 ### ADR-006
 **MCP server: remote (streamable HTTP) with API-key auth**
 
-- **Status:** Accepted (2026-08-09)
+- **Status:** Superseded by [ADR-013](#adr-013) (2026-08-10)
 - **Context:** opencode supports both local (stdio) and remote (HTTP) MCP servers. Public deploy means agents connect over the network.
 - **Decision:** Remote MCP server implemented with `@modelcontextprotocol/sdk`, streamable HTTP transport at `/mcp`, authenticated with `Authorization: Bearer <MCP_API_KEY>`.
 - **Consequences:** Positive — works from any agent anywhere; official SDK support. Negative — requires API-key management.
+- **Superseded because:** the single shared `MCP_API_KEY` env secret could not attribute requests to a user, so MCP tools had no ownership enforcement and any key holder could read/write every user's projects. See ADR-013.
+
+### ADR-013
+**MCP auth: per-user API keys, not a shared server secret**
+
+- **Status:** Accepted (2026-08-10)
+- **Context:** ADR-006 used one global `MCP_API_KEY` env var for all MCP clients. With public multi-user deploy (ADR-010), that meant any holder of the key could read and modify **all** projects of **all** users — the MCP tools did not check `owner_id`, unlike the REST API. The REST side already had per-user identity (`requireAuth` → `req.userId`); MCP had none.
+- **Decision:** MCP access uses per-user API keys:
+  - New `mcp_keys` table: `id, user_id (FK → users, ON DELETE CASCADE), name, key_hash (SHA-256 of the raw key — raw key is never stored), prefix, created_at, last_used_at, revoked_at`.
+  - New REST endpoints under `requireAuth`: `GET /api/keys` (list mine), `POST /api/keys` (create, raw key returned once), `DELETE /api/keys/:id` (soft revoke).
+  - The `/mcp` middleware hashes the bearer token, looks up `key_hash` + `revoked_at IS NULL`, and binds `req.userId`. All MCP tool DB access is then scoped `owner_id = userId` (same rule as `getOwnedProject`).
+  - `MCP_API_KEY` env var is removed entirely — no shared backdoor.
+- **Consequences:** Positive — MCP tools are now user-scoped (closes cross-user access); keys can be revoked individually without restarting the server or editing agent configs; per-key `last_used_at` gives an audit trail; key rotation = create new + revoke old. Negative — users must create a key before agents can connect (small onboarding step); an extra table + endpoints to maintain.
+- **Alternatives considered:** Per-project keys (rejected: friction — one key per project to manage, and keys would live in per-repo configs); keeping `MCP_API_KEY` as dev-only fallback (rejected: reintroduces an unscoped access path); admin key alongside per-user keys (rejected: least-privilege violation).
 
 ### ADR-007
 **Zero UI runtime dependencies except @phosphor-icons/react**

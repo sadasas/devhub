@@ -5,7 +5,7 @@
 | **Document status** | Draft (Phase 0) |
 | **Version** | 1.0 |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-09 |
+| **Last updated** | 2026-08-10 |
 | **Related documents** | [Monitoring](monitoring.md) · [Backup & Recovery](backup-recovery.md) · [Security Design](../02-architecture/security-design.md) |
 
 ---
@@ -47,7 +47,7 @@ Solo operation: the owner is on-call 24/7. This document defines **what counts a
 ### 3.3 Diagnose (after stabilization)
 
 - Root-cause from logs (structured JSON lines, grep by time window).
-- For security incidents: check auth logs, rate-limit hits, MCP access logs; rotate `JWT_SECRET`, `MCP_API_KEY`, DB credentials.
+- For security incidents: check auth logs, rate-limit hits, MCP access logs (`mcp_keys.last_used_at`); rotate `JWT_SECRET`, revoke exposed MCP keys (`DELETE /api/keys/:id`), rotate DB credentials.
 - Never jump to conclusions; write findings in the postmortem.
 
 ### 3.4 Resolve & Recover

@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
   Bug,
   ChartBar,
+  Check,
   CheckSquare,
   Columns,
+  Copy,
   Database,
   Rocket,
   Scales,
@@ -14,7 +16,7 @@ import {
 import type { ReactNode } from 'react';
 import { ApiError } from '../../lib/api';
 import { PROJECT_STATUS } from '../../lib/labels';
-import { formatDate } from '../../lib/utils';
+import { copyText, formatDate } from '../../lib/utils';
 import { useNavigation } from '../../state/navigation-context';
 import { ProjectProvider } from '../../state/project-context';
 import { useProjects } from '../../state/projects-context';
@@ -67,8 +69,25 @@ export function ProjectPage({ projectId }: ProjectPageProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const copyTimer = useRef<number | null>(null);
+
+  useEffect(
+    () => () => {
+      if (copyTimer.current) window.clearTimeout(copyTimer.current);
+    },
+    [],
+  );
 
   const project = projects?.find((p) => p.id === projectId);
+
+  async function onCopyProjectId() {
+    const ok = await copyText(projectId);
+    if (!ok) return;
+    setCopied(true);
+    if (copyTimer.current) window.clearTimeout(copyTimer.current);
+    copyTimer.current = window.setTimeout(() => setCopied(false), 2000);
+  }
 
   async function onDelete() {
     setDeleteError(null);
@@ -110,6 +129,24 @@ export function ProjectPage({ projectId }: ProjectPageProps) {
                 ' '
               )}
             </p>
+            <div className="project-id-row">
+              <code className="project-id-code">{projectId}</code>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="project-id-copy"
+                leftIcon={
+                  copied ? (
+                    <Check size={12} weight="bold" aria-hidden="true" />
+                  ) : (
+                    <Copy size={12} aria-hidden="true" />
+                  )
+                }
+                onClick={() => void onCopyProjectId()}
+              >
+                {copied ? 'Copied' : 'Copy'}
+              </Button>
+            </div>
           </div>
           <Button
             variant="danger"

@@ -4,9 +4,8 @@
     "devhub": {
       "type": "remote",
       "url": "http://localhost:3000/mcp",
-      "enabled": true,
       "headers": {
-        "Authorization": "Bearer change-me-mcp-key"
+        "Authorization": "Bearer {env:devhub_CnEa62UZyw90pThOq82rQpB0bdbvmR-Bxv6YqnY805U}"
       }
     }
   }

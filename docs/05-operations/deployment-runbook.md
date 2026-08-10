@@ -5,7 +5,7 @@
 | **Document status** | Draft (Phase 0) |
 | **Version** | 1.0 |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-09 |
+| **Last updated** | 2026-08-10 |
 | **Related documents** | [TDD §9](../02-architecture/technical-design.md#9-deployment-architecture) · [Monitoring](monitoring.md) · [Incident Response](incident-response.md) |
 
 ---
@@ -40,14 +40,15 @@ Internet → HTTPS (proxy TLS) → container (node:22-alpine)
 - [ ] Node ≥ 22 locally, npm ≥ 10
 - [ ] Docker + Docker Compose (local testing)
 - [ ] Git repo pushed to origin
-- [ ] Secrets ready: `DATABASE_URL`, `JWT_SECRET`, `MCP_API_KEY`
+- [ ] Secrets ready: `DATABASE_URL`, `JWT_SECRET`
 
 Generate secrets:
 
 ```bash
 openssl rand -base64 48   # JWT_SECRET
-openssl rand -hex 32      # MCP_API_KEY
 ```
+
+MCP keys are **not** deployment secrets — each user creates their own via `POST /api/keys` (stored hashed in Postgres). No `MCP_API_KEY` env var exists.
 
 ---
 
@@ -63,7 +64,7 @@ docker compose up -d
 # 3. Env
 cp server/.env.example server/.env
 # edit: DATABASE_URL=postgres://devhub:devhub@localhost:5432/devhub
-#       JWT_SECRET=<random>  MCP_API_KEY=<random>
+#       JWT_SECRET=<random>
 
 # 4. Migrate + test
 npm run db:migrate
@@ -92,7 +93,6 @@ docker run -d --name devhub \
   -p 3000:3000 \
   -e DATABASE_URL="postgres://..." \
   -e JWT_SECRET="..." \
-  -e MCP_API_KEY="..." \
   -e NODE_ENV=production \
   -e COOKIE_SECURE=true \
   --restart unless-stopped \
@@ -124,10 +124,11 @@ devhub.example.com {
 |---|---|---|
 | `DATABASE_URL` | Yes | Postgres connection string |
 | `JWT_SECRET` | Yes | ≥ 32 chars random |
-| `MCP_API_KEY` | Yes | Bearer key for AI agents |
 | `PORT` | No | Default 3000 |
 | `NODE_ENV` | No | `production` for prod behaviors |
 | `COOKIE_SECURE` | No | `true` behind TLS |
+
+MCP keys live in Postgres (`mcp_keys` table), not env — each user manages their own via the app's **API Keys** page (`POST /api/keys`).
 
 **Never commit real values.** `server/.env` gitignored; `server/.env.example` holds placeholders.
 
@@ -137,9 +138,9 @@ devhub.example.com {
 
 - [ ] Migrations applied (`npm run db:migrate` on the deployed DB)
 - [ ] `GET /api/health` → `ok`
-- [ ] Register an account → login → create project
+- [ ] Register an account → login → create project → create an MCP key via the app's **API Keys** page (or `POST /api/keys`)
 - [ ] Cookie header shows `HttpOnly; SameSite=Lax; Secure`
-- [ ] `/mcp` rejects without key, works with key (curl, see [API Guide §6](../04-api/api-guide.md#6-mcp-examples))
+- [ ] `/mcp` rejects without key, works with a per-user key (curl, see [API Guide §7](../04-api/api-guide.md#7-mcp-examples))
 - [ ] Backup cron in place (next section)
 
 ---
@@ -173,7 +174,8 @@ devhub.example.com {
 | Postgres minor upgrade | Per provider window | Test locally first |
 | Backup restore drill | Quarterly | See [Backup & Recovery](backup-recovery.md) §5 |
 | Log rotation | Automated | See [Monitoring](monitoring.md) |
-| `JWT_SECRET` / `MCP_API_KEY` rotation | On exposure or yearly | Update agent configs after key rotation |
+| MCP key rotation | On exposure | Create new via `POST /api/keys`, update agent configs, revoke old via `DELETE /api/keys/:id` |
+| `JWT_SECRET` rotation | On exposure or yearly | Session invalidation on rotation (all cookies invalid) |
 
 ---
 

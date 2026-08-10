@@ -5,7 +5,7 @@
 | **Document status** | Draft (Phase 0) |
 | **Version** | 1.0 |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-09 |
+| **Last updated** | 2026-08-10 |
 | **Related documents** | [TDD](technical-design.md) · [ADR-005](adr.md#adr-005) · [Incident Response](../05-operations/incident-response.md) |
 
 ---
@@ -32,7 +32,7 @@
 | DoS | Brute-force login, state spam | express-rate-limit; body size limits |
 | Elevation of privilege | Access admin endpoints | No admin roles in V1; least privilege by design |
 
-**High-risk assets:** user credentials, project state (technical memory), MCP API key, `JWT_SECRET`.
+**High-risk assets:** user credentials, project state (technical memory), MCP API keys, `JWT_SECRET`.
 
 ---
 
@@ -90,7 +90,7 @@
 | Secret | Where | Rotation |
 |---|---|---|
 | `JWT_SECRET` | env (never in repo); `.env` gitignored; `server/.env.example` committed | On exposure or quarterly |
-| `MCP_API_KEY` | env | On exposure; agent config update required |
+| MCP API keys | Postgres `mcp_keys` (SHA-256 hash only); raw key shown once at creation | Create new in the app's **API Keys** page (`POST /api/keys`), revoke there (`DELETE /api/keys/:id`) |
 | `DATABASE_URL` | env | On credential exposure |
 
 - `.env` files in `.gitignore`; Docker secrets in Phase 2 (or `.env` files on VPS with 600 perms).
@@ -100,10 +100,12 @@
 
 ## 7. MCP Endpoint Security
 
-- Endpoint `/mcp` requires `Authorization: Bearer <MCP_API_KEY>`; constant-time comparison; rejects otherwise.
+- Endpoint `/mcp` requires `Authorization: Bearer <per-user key>`; key is hashed (SHA-256) and looked up in `mcp_keys` (active only: `revoked_at IS NULL`); rejects otherwise with `401`.
+- Keys are **user-scoped**: every MCP tool DB query is filtered `owner_id = key.user_id` (identical rule to the REST API) — a key can never read or modify another user's project.
 - All tool inputs validated with the same zod schemas as the API.
 - Rate limit on `/mcp` (e.g., 120 req/min per key).
-- Tool responses never include password hashes or secrets.
+- Tool responses never include password hashes, secrets, or key material.
+- Compromise containment: revoking a key (`DELETE /api/keys/:id`) takes effect immediately on the next request — no server restart or config change needed.
 
 ---
 
@@ -145,10 +147,10 @@
 - [ ] Auth: wrong password ×11 → rate-limited; invalid JWT → 401; expired JWT → 401
 - [ ] Cross-user: user B cannot GET/PUT/DELETE user A's project (403/404)
 - [ ] State: zod rejects malformed payload, dangling references, oversized body
-- [ ] MCP: no key → 401; invalid key → 401; malformed tool args → 400
+- [ ] MCP: no key → 401; invalid key → 401; revoked key → 401; user A's key cannot access user B's project; malformed tool args → 400
 - [ ] Cookies: `HttpOnly` and `SameSite=Lax` flags verified in response headers; `Secure` in prod
 - [ ] `npm audit` clean (no high/critical)
-- [ ] Secrets: grep repo for `JWT_SECRET=`/`MCP_API_KEY=` false positives
+- [ ] Secrets: grep repo for `JWT_SECRET=` false positives; no raw MCP keys committed (`key_hash` values only, never `key`)
 
 ---
 

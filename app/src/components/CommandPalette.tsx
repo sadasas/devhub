@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { SquaresFour, FolderSimple, ArrowUp, ArrowDown, ArrowRight } from '@phosphor-icons/react';
+import { SquaresFour, FolderSimple, Key, Robot, ArrowUp, ArrowDown, ArrowRight } from '@phosphor-icons/react';
 import { useNavigation } from '../state/navigation-context';
 import { useProjects } from '../state/projects-context';
 
@@ -12,7 +12,7 @@ interface PaletteCommand {
 }
 
 export function CommandPalette() {
-  const { openDashboard, openProject } = useNavigation();
+  const { openDashboard, openProject, openKeys, openMcpGuide } = useNavigation();
   const { projects } = useProjects();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -31,6 +31,26 @@ export function CommandPalette() {
           openDashboard();
         },
       },
+      {
+        id: 'keys',
+        group: 'Navigate',
+        label: 'Go to API keys',
+        icon: <Key size={16} />,
+        run: () => {
+          setOpen(false);
+          openKeys();
+        },
+      },
+      {
+        id: 'mcp',
+        group: 'Navigate',
+        label: 'Open MCP guide',
+        icon: <Robot size={16} />,
+        run: () => {
+          setOpen(false);
+          openMcpGuide();
+        },
+      },
     ];
     for (const p of projects ?? []) {
       list.push({
@@ -45,7 +65,7 @@ export function CommandPalette() {
       });
     }
     return list;
-  }, [projects, openDashboard, openProject]);
+  }, [projects, openDashboard, openProject, openKeys, openMcpGuide]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

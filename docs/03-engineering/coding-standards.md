@@ -4,7 +4,7 @@
 |---|---|
 | **Document status** | Active |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-09 |
+| **Last updated** | 2026-08-10 |
 | **Applies to** | All TypeScript code in `app/` and `server/` |
 
 ---
@@ -30,17 +30,17 @@ devhub/
 ├── app/                     # Vite React app
 │   └── src/
 │       ├── components/      # Design-system primitives (pure, no feature logic)
-│       ├── features/        # One folder per tab/feature: board/, issues/, schema/, ...
+│       ├── features/        # One folder per tab/feature: board/, issues/, keys/, schema/, ...
 │       │   └── <feature>/   #   <feature>Page.tsx, <feature>Reducer.ts, components/
 │       ├── lib/             # api.ts (ApiProvider), types.ts, utils/
 │       ├── state/           # store context, actions, selectors
 │       └── styles/          # tokens.css, global.css, fonts.css
 ├── server/
 │   └── src/
-│       ├── api/             # routers: auth.routes.ts, projects.routes.ts, state.routes.ts
+│       ├── api/             # routers: auth.routes.ts, projects.routes.ts, keys.routes.ts, state.routes.ts
 │       ├── auth/            # password.ts, jwt.ts, middleware/requireAuth.ts
 │       ├── db/              # pool.ts, migrations/, migrate.ts
-│       ├── mcp/             # server.ts, tools/ (one file per tool)
+│       ├── mcp/             # server.ts, context.ts, keys.ts, require-key.ts, tools/ (one file per tool)
 │       ├── schema/          # zod schemas (shared shape with app types)
 │       └── app.ts, index.ts
 ├── docs/                    # this documentation suite
@@ -152,7 +152,7 @@ enum TaskStatus { Todo, InProgress, Review, Done }
 - All handlers async; central error middleware; never throw into Express default handler.
 - SQL: parameterized queries only; transactions for multi-statement ops (e.g., import).
 - Routes: kebab-case paths; consistent error codes (see §7).
-- MCP tools: one file per tool in `server/src/mcp/tools/`, each exporting `{ name, schema, handler }`.
+- MCP tools: one file per tool in `server/src/mcp/tools/`, each exporting `{ name, schema, handler }`. MCP auth: per-user keys (`server/src/mcp/require-key.ts` + `keys.ts`); every tool DB access scoped by `owner_id` via `state-db.ts`.
 
 ---
 

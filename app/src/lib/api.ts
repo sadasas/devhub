@@ -1,4 +1,4 @@
-import type { ExportDocument, Project, State, User } from './types';
+import type { ExportDocument, McpKey, McpKeyCreated, Project, State, User } from './types';
 
 const API_BASE: string = import.meta.env.VITE_API_URL ?? '/api';
 
@@ -96,4 +96,16 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(doc),
     }),
+
+  listKeys: async () => {
+    const res = await request<{ keys: McpKey[] }>('/keys');
+    return res.keys;
+  },
+  createKey: (name?: string) =>
+    request<McpKeyCreated>('/keys', {
+      method: 'POST',
+      body: JSON.stringify({ name: name ?? '' }),
+    }),
+  revokeKey: (keyId: string) =>
+    request<{ ok: true }>(`/keys/${encodeURIComponent(keyId)}`, { method: 'DELETE' }),
 };
