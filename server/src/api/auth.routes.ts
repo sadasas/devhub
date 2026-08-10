@@ -64,6 +64,14 @@ authRouter.post('/register', registerLimiter, async (req, res) => {
   );
   const userId = result.rows[0]?.id;
   if (!userId) throw new ApiError(500, 'INTERNAL', 'Failed to create user');
+  await pool.query(
+    `WITH t AS (
+       INSERT INTO teams (name, created_by) VALUES ('Personal', $1) RETURNING id
+     )
+     INSERT INTO team_members (team_id, user_id, role)
+     SELECT id, $1, 'owner' FROM t`,
+    [userId],
+  );
   setSessionCookie(res, userId);
   res.status(201).json({ id: userId, email });
 });

@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CornersOut, Graph, MagnifyingGlassMinus, MagnifyingGlassPlus } from '@phosphor-icons/react';
 import type { Column, Relation, Table } from '../../lib/types';
 import type { State } from '../../lib/types';
+import { relationLabel } from '../../lib/utils';
 import { Button } from '../../components/Button';
 
 const TABLE_W = 208;
@@ -56,7 +57,7 @@ export function ERD({ state, onDeleteRelation, onNewTable }: ERDProps) {
   const [view, setView] = useState({ x: 16, y: 16, s: 1 });
   const [dragging, setDragging] = useState(false);
 
-  const layout = layoutTables(state.tables);
+  const layout = useMemo(() => layoutTables(state.tables), [state.tables]);
 
   useEffect(() => {
     const el = canvasRef.current;
@@ -117,6 +118,8 @@ export function ERD({ state, onDeleteRelation, onNewTable }: ERDProps) {
       <svg
         width="100%"
         height="100%"
+        role="img"
+        aria-label={`Entity relationship diagram with ${state.tables.length} tables and ${state.relations.length} relations`}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
@@ -151,7 +154,7 @@ export function ERD({ state, onDeleteRelation, onNewTable }: ERDProps) {
                 }}
               >
                 <title>
-                  {ft.table.name}.{fc.name} → {tt.table.name}.{tc.name} · {rel.cardinality} · on delete:{' '}
+                  {relationLabel(ft.table.name, fc.name, tt.table.name, tc.name)} · {rel.cardinality} · on delete:{' '}
                   {rel.onDelete} — click to delete
                 </title>
                 <polyline points={pts} fill="none" strokeWidth={1.5} />

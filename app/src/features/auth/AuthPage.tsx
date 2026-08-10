@@ -6,6 +6,7 @@ import { useAuth } from '../../state/auth-context';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Logo } from '../../components/Logo';
+import { InlineError } from '../../components/InlineError';
 
 export function AuthPage() {
   const { login, register } = useAuth();
@@ -99,11 +100,7 @@ export function AuthPage() {
             />
           )}
 
-          {error && (
-            <p className="field-error" role="alert">
-              {error}
-            </p>
-          )}
+          {error && <InlineError>{error}</InlineError>}
 
           <Button type="submit" loading={submitting} disabled={submitting || !email || !password}>
             {isRegister ? 'Create account' : 'Sign in'}

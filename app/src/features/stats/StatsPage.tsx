@@ -5,6 +5,7 @@ import { TASK_STATUS, TASK_PRIORITY, ISSUE_SEVERITY } from '../../lib/labels';
 import { computeProjectStats } from '../../lib/stats';
 import { formatDate } from '../../lib/utils';
 import type { TaskStatus, TaskPriority, IssueSeverity } from '../../lib/types';
+import { InlineError } from '../../components/InlineError';
 
 const STATUS_ORDER: TaskStatus[] = ['todo', 'inProgress', 'review', 'done'];
 const PRIORITY_ORDER: TaskPriority[] = ['urgent', 'high', 'medium', 'low'];
@@ -111,9 +112,9 @@ export function StatsPage() {
   }
   if (error) {
     return (
-      <p className="field-error" role="alert">
+      <InlineError>
         {error}
-      </p>
+      </InlineError>
     );
   }
   if (!state) return null;

@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Trash } from '@phosphor-icons/react';
 import { TASK_PRIORITY, TASK_STATUS } from '../../lib/labels';
-import { formatRelative } from '../../lib/utils';
+import { formatRelative, parseLabels } from '../../lib/utils';
 import type { Task, TaskPriority, TaskStatus } from '../../lib/types';
 import { useProject, wouldCreateCycle } from '../../state/project-context';
 import type { UpdatePatch } from '../../state/project-context';
@@ -9,6 +9,7 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { Textarea } from '../../components/Textarea';
+import { InlineError } from '../../components/InlineError';
 
 const STATUS_OPTIONS: TaskStatus[] = ['todo', 'inProgress', 'review', 'done'];
 const PRIORITY_OPTIONS: TaskPriority[] = ['low', 'medium', 'high', 'urgent'];
@@ -21,6 +22,10 @@ interface TaskModalProps {
 export function TaskModal({ taskId, onClose }: TaskModalProps) {
   const { state, dispatch } = useProject();
   const [cycleWarn, setCycleWarn] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCycleWarn(null);
+  }, [taskId]);
 
   const task = state?.tasks.find((t) => t.id === taskId);
   if (!task) return null;
@@ -120,7 +125,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
             value={task.estimate ?? ''}
             onChange={(e) => {
               const v = e.target.value;
-              update({ estimate: v === '' ? undefined : Number(v) });
+              update({ estimate: v === '' ? undefined : Math.max(0, Number(v)) });
             }}
           />
           <Input
@@ -130,7 +135,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
             value={task.actualHours ?? ''}
             onChange={(e) => {
               const v = e.target.value;
-              update({ actualHours: v === '' ? undefined : Number(v) });
+              update({ actualHours: v === '' ? undefined : Math.max(0, Number(v)) });
             }}
           />
         </div>
@@ -139,15 +144,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
           label="Labels"
           placeholder="comma, separated"
           value={task.labels.join(', ')}
-          onChange={(e) =>
-            update({
-              labels: e.target.value
-                .split(',')
-                .map((s) => s.trim())
-                .filter(Boolean)
-                .slice(0, 20),
-            })
-          }
+          onChange={(e) => update({ labels: parseLabels(e.target.value) })}
         />
 
         <Textarea
@@ -175,11 +172,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               </label>
             ))}
           </div>
-          {cycleWarn && (
-            <p className="field-error" role="alert">
-              {cycleWarn}
-            </p>
-          )}
+          {cycleWarn && <InlineError>{cycleWarn}</InlineError>}
         </div>
 
         <p className="field-helper">Updated {formatRelative(task.updatedAt)}</p>

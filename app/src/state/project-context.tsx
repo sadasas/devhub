@@ -157,9 +157,11 @@ interface ProjectContextValue {
   loading: boolean;
   error: string | null;
   saveError: string | null;
+  saving: boolean;
   role: TeamRole;
   canEdit: boolean;
   dispatch: (action: ProjectAction) => void;
+  retrySave: () => void;
 }
 
 const ProjectContext = createContext<ProjectContextValue | null>(null);
@@ -177,43 +179,55 @@ export function ProjectProvider({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-
+  const [saving, setSaving] = useState(false);
   const stateRef = useRef<State | null>(null);
   const lastSavedRef = useRef<State | null>(null);
   const dirtyRef = useRef(false);
   const savingRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const scheduleSave = useCallback(() => {
-    dirtyRef.current = true;
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      timerRef.current = null;
-      void runSave();
-    }, SAVE_DEBOUNCE_MS);
-  }, []);
-
-  async function runSave() {
+  const runSave = useCallback(async () => {
     const snapshot = stateRef.current;
     if (!snapshot || savingRef.current) return;
     dirtyRef.current = false;
     savingRef.current = true;
+    setSaving(true);
     try {
       await api.putState(projectId, snapshot);
       lastSavedRef.current = snapshot;
       setSaveError(null);
     } catch (err) {
       setSaveError(err instanceof ApiError ? err.message : 'Failed to save changes');
-      if (lastSavedRef.current) setState(lastSavedRef.current);
-      dirtyRef.current = false;
+      dirtyRef.current = true;
     } finally {
       savingRef.current = false;
+      setSaving(false);
     }
-  }
+  }, [projectId]);
+
+  const scheduleSave = useCallback(() => {
+    if (!stateRef.current) return;
+    dirtyRef.current = true;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null;
+      void runSave();
+    }, SAVE_DEBOUNCE_MS);
+  }, [runSave]);
+
+  const retrySave = useCallback(() => {
+    if (savingRef.current) return;
+    void runSave();
+  }, [runSave]);
 
   const dispatch = useCallback(
     (action: ProjectAction) => {
-      setState((prev) => (prev ? projectReducer(prev, action) : prev));
+      setState((prev) => {
+        if (!prev) return prev;
+        const next = projectReducer(prev, action);
+        stateRef.current = next;
+        return next;
+      });
       scheduleSave();
     },
     [scheduleSave],
@@ -262,10 +276,20 @@ export function ProjectProvider({
         });
     }, POLL_INTERVAL_MS);
 
+    const flushPendingSave = () => {
+      const snapshot = stateRef.current;
+      if (dirtyRef.current && snapshot && !savingRef.current) {
+        void api.putState(projectId, snapshot).catch(() => {});
+      }
+    };
+    window.addEventListener('pagehide', flushPendingSave);
+
     return () => {
       cancelled = true;
       clearInterval(interval);
+      window.removeEventListener('pagehide', flushPendingSave);
       if (timerRef.current) clearTimeout(timerRef.current);
+      flushPendingSave();
     };
   }, [projectId]);
 
@@ -275,11 +299,13 @@ export function ProjectProvider({
       loading,
       error,
       saveError,
+      saving,
       role,
       canEdit: role !== 'viewer',
       dispatch,
+      retrySave,
     }),
-    [state, loading, error, saveError, role, dispatch],
+    [state, loading, error, saveError, saving, role, dispatch, retrySave],
   );
 
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;

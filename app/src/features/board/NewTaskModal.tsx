@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { newId, nowIso } from '../../lib/utils';
+import { newId, nowIso, parseLabels } from '../../lib/utils';
 import type { TaskPriority, TaskStatus } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { Button } from '../../components/Button';
@@ -35,12 +35,8 @@ export function NewTaskModal({ status, onClose }: NewTaskModalProps) {
         title: title.trim(),
         status,
         priority,
-        estimate: estimate !== '' && !Number.isNaN(parsedEstimate) ? parsedEstimate : undefined,
-        labels: labels
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean)
-          .slice(0, 20),
+        estimate: estimate !== '' && !Number.isNaN(parsedEstimate) ? Math.max(0, parsedEstimate) : undefined,
+        labels: parseLabels(labels),
         blockedBy: [],
         description: description.trim(),
       },

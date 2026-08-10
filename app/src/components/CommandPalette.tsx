@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { SquaresFour, FolderSimple, Key, Robot, ArrowUp, ArrowDown, ArrowRight } from '@phosphor-icons/react';
 import { useNavigation } from '../state/navigation-context';
 import { useProjects } from '../state/projects-context';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface PaletteCommand {
   id: string;
@@ -18,6 +19,7 @@ export function CommandPalette() {
   const [query, setQuery] = useState('');
   const [index, setIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useFocusTrap<HTMLDivElement>(open);
 
   const commands = useMemo<PaletteCommand[]>(() => {
     const list: PaletteCommand[] = [
@@ -121,7 +123,7 @@ export function CommandPalette() {
   return (
     <div className="palette" role="dialog" aria-modal="true" aria-label="Command palette">
       <div className="palette-backdrop" onMouseDown={() => setOpen(false)} />
-      <div className="palette-panel">
+      <div className="palette-panel" ref={panelRef}>
         <input
           ref={inputRef}
           className="palette-input"
@@ -129,8 +131,12 @@ export function CommandPalette() {
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Type a command or project name…"
           aria-label="Search commands"
+          role="combobox"
+          aria-expanded="true"
+          aria-controls="palette-list"
+          aria-activedescendant={filtered[index] ? `palette-option-${filtered[index].id}` : undefined}
         />
-        <div className="palette-list">
+        <div className="palette-list" id="palette-list" role="listbox" aria-label="Commands">
           {filtered.length === 0 && <div className="palette-empty">No matches for “{query}”</div>}
           {groups.map((g) => (
             <div key={g}>
@@ -143,7 +149,10 @@ export function CommandPalette() {
                   return (
                     <button
                       key={c.id}
+                      id={`palette-option-${c.id}`}
                       type="button"
+                      role="option"
+                      aria-selected={isActive}
                       className={isActive ? 'palette-item palette-item-active' : 'palette-item'}
                       onMouseEnter={() => setIndex(flat - 1)}
                       onClick={() => c.run()}

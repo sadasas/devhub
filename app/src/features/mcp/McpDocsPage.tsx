@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
 import { Check, Copy, Key } from '@phosphor-icons/react';
 import { useNavigation } from '../../state/navigation-context';
+import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { Button } from '../../components/Button';
-import { copyText } from '../../lib/utils';
 
 const ENV_EXAMPLE = '$env:DEVHUB_MCP_KEY = "devhub_your_key_here"';
 
@@ -33,23 +32,7 @@ const MCP_TOOLS = [
 ];
 
 function CodeBlock({ label, code }: { label: string; code: string }) {
-  const [copied, setCopied] = useState(false);
-  const timer = useRef<number | null>(null);
-
-  useEffect(
-    () => () => {
-      if (timer.current) window.clearTimeout(timer.current);
-    },
-    [],
-  );
-
-  async function onCopy() {
-    const ok = await copyText(code);
-    if (!ok) return;
-    setCopied(true);
-    if (timer.current) window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setCopied(false), 2000);
-  }
+  const { copied, copy } = useCopyFeedback();
 
   return (
     <div className="code-block">
@@ -66,7 +49,7 @@ function CodeBlock({ label, code }: { label: string; code: string }) {
               <Copy size={12} aria-hidden="true" />
             )
           }
-          onClick={() => void onCopy()}
+          onClick={() => void copy(code)}
         >
           {copied ? 'Copied' : 'Copy'}
         </Button>

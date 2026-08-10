@@ -1,11 +1,11 @@
 import type {
-  ExportDocument,
   Invitation,
   McpKey,
   McpKeyCreated,
   Project,
   State,
   Team,
+  TeamInvitation,
   TeamMember,
   TeamRole,
   User,
@@ -100,13 +100,6 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ state }),
     }),
-  exportProject: (projectId: string) =>
-    request<ExportDocument>(`/projects/${encodeURIComponent(projectId)}/export`),
-  importProject: (doc: ExportDocument) =>
-    request<{ restored: boolean; projectId: string }>('/projects/import', {
-      method: 'POST',
-      body: JSON.stringify(doc),
-    }),
 
   listKeys: async () => {
     const res = await request<{ keys: McpKey[] }>('/keys');
@@ -142,7 +135,7 @@ export const api = {
     );
     return res.members;
   },
-  setMemberRole: (teamId: string, userId: string, role: Exclude<TeamRole, 'owner'>) =>
+  setMemberRole: (teamId: string, userId: string, role: TeamRole) =>
     request<{ ok: true }>(`/teams/${encodeURIComponent(teamId)}/members/${encodeURIComponent(userId)}`, {
       method: 'PATCH',
       body: JSON.stringify({ role }),
@@ -158,6 +151,12 @@ export const api = {
     }),
   listInvitations: async () => {
     const res = await request<{ invitations: Invitation[] }>('/teams/invitations');
+    return res.invitations;
+  },
+  listTeamInvitations: async (teamId: string) => {
+    const res = await request<{ invitations: TeamInvitation[] }>(
+      `/teams/${encodeURIComponent(teamId)}/invitations`,
+    );
     return res.invitations;
   },
   acceptInvitation: (teamId: string, invitationId: string) =>

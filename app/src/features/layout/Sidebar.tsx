@@ -40,6 +40,7 @@ export function Sidebar() {
         <button
           type="button"
           className={`sidebar-item ${view.name === 'dashboard' ? 'sidebar-item-active' : ''}`}
+          aria-current={view.name === 'dashboard' ? 'page' : undefined}
           onClick={openDashboard}
         >
           <SquaresFour size={15} weight="duotone" aria-hidden="true" />
@@ -48,6 +49,7 @@ export function Sidebar() {
         <button
           type="button"
           className={`sidebar-item ${view.name === 'invites' ? 'sidebar-item-active' : ''}`}
+          aria-current={view.name === 'invites' ? 'page' : undefined}
           onClick={openInvites}
         >
           <EnvelopeSimple size={15} weight="duotone" aria-hidden="true" />
@@ -57,6 +59,7 @@ export function Sidebar() {
         <button
           type="button"
           className={`sidebar-item ${view.name === 'keys' ? 'sidebar-item-active' : ''}`}
+          aria-current={view.name === 'keys' ? 'page' : undefined}
           onClick={openKeys}
         >
           <Key size={15} weight="duotone" aria-hidden="true" />
@@ -65,6 +68,7 @@ export function Sidebar() {
         <button
           type="button"
           className={`sidebar-item ${view.name === 'mcp' ? 'sidebar-item-active' : ''}`}
+          aria-current={view.name === 'mcp' ? 'page' : undefined}
           onClick={openMcpGuide}
         >
           <Robot size={15} weight="duotone" aria-hidden="true" />
@@ -107,6 +111,7 @@ export function Sidebar() {
                 <button
                   type="button"
                   className={`sidebar-item sidebar-team-head ${teamActive ? 'sidebar-item-active' : ''}`}
+                  aria-current={teamActive ? 'page' : undefined}
                   onClick={() => openTeam(t.id)}
                 >
                   <UsersThree size={13} weight="duotone" aria-hidden="true" />
@@ -122,6 +127,7 @@ export function Sidebar() {
                     className={`sidebar-item sidebar-project-item ${
                       view.name === 'project' && view.projectId === p.id ? 'sidebar-item-active' : ''
                     }`}
+                    aria-current={view.name === 'project' && view.projectId === p.id ? 'page' : undefined}
                     onClick={() => openProject(p.id)}
                   >
                     <FolderSimple size={14} weight="duotone" aria-hidden="true" />

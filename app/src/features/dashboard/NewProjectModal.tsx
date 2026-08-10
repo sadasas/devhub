@@ -8,6 +8,7 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { Textarea } from '../../components/Textarea';
+import { InlineError } from '../../components/InlineError';
 
 interface NewProjectModalProps {
   open: boolean;
@@ -26,7 +27,7 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
 
   useEffect(() => {
     if (open && teams && teams.length > 0) {
-      setTeamId((prev) => (prev && teams.some((t) => t.id === prev) ? prev : teams[0].id));
+      setTeamId((prev) => (prev && teams.some((t) => t.id === prev) ? prev : (teams[0]?.id ?? '')));
     }
   }, [open, teams]);
 
@@ -100,11 +101,7 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
             ))}
           </select>
         </div>
-        {error && (
-          <p className="field-error" role="alert">
-            {error}
-          </p>
-        )}
+        {error && <InlineError>{error}</InlineError>}
       </form>
     </Modal>
   );

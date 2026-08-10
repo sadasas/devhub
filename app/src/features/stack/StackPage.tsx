@@ -10,6 +10,7 @@ import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/Skeleton';
 import { NewTechModal } from './NewTechModal';
 import { TechModal } from './TechModal';
+import { InlineError } from '../../components/InlineError';
 
 const CATEGORY_ORDER: TechEntryCategory[] = ['frontend', 'backend', 'database', 'tooling'];
 
@@ -36,9 +37,9 @@ export function StackPage() {
 
   if (error) {
     return (
-      <p className="field-error" role="alert">
+      <InlineError>
         {error}
-      </p>
+      </InlineError>
     );
   }
 

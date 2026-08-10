@@ -9,6 +9,7 @@ import { CalendarBlank, PencilSimple, Plus, Rocket } from '@phosphor-icons/react
 import { Skeleton } from '../../components/Skeleton';
 import { MilestoneModal } from './MilestoneModal';
 import { NewMilestoneModal } from './NewMilestoneModal';
+import { InlineError } from '../../components/InlineError';
 
 export function ReleasesPage() {
   const { state, loading, error, canEdit } = useProject();
@@ -32,9 +33,7 @@ export function ReleasesPage() {
 
   if (error) {
     return (
-      <p className="field-error" role="alert">
-        Failed to load milestones.
-      </p>
+      <InlineError>Failed to load milestones.</InlineError>
     );
   }
 

@@ -43,6 +43,23 @@ export function nowIso(): string {
   return new Date().toISOString();
 }
 
+export function parseLabels(input: string): string[] {
+  return input
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 20);
+}
+
+export function relationLabel(
+  fromTable: string | undefined,
+  fromColumn: string | undefined,
+  toTable: string | undefined,
+  toColumn: string | undefined,
+): string {
+  return `${fromTable ?? '?'}.${fromColumn ?? '?'} → ${toTable ?? '?'}.${toColumn ?? '?'}`;
+}
+
 export async function copyText(text: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(text);

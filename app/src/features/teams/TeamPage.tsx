@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, Envelope, Trash, UsersThree } from '@phosphor-icons/react';
 import { ApiError, api } from '../../lib/api';
 import { TEAM_ROLE } from '../../lib/labels';
-import type { TeamMember, TeamRole } from '../../lib/types';
+import type { TeamInvitation, TeamMember, TeamRole } from '../../lib/types';
 import { useNavigation } from '../../state/navigation-context';
 import { useTeams } from '../../state/teams-context';
 import { Badge } from '../../components/Badge';
@@ -12,8 +12,10 @@ import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { Skeleton } from '../../components/Skeleton';
 import { InviteModal } from './InviteModal';
+import { InlineError } from '../../components/InlineError';
 
 const CHANGEABLE_ROLES: TeamRole[] = ['admin', 'editor', 'viewer'];
+const ALL_ROLES: TeamRole[] = [...CHANGEABLE_ROLES, 'owner'];
 
 interface TeamPageProps {
   teamId: string;
@@ -25,6 +27,7 @@ export function TeamPage({ teamId }: TeamPageProps) {
   const team = teams?.find((t) => t.id === teamId);
 
   const [members, setMembers] = useState<TeamMember[] | null>(null);
+  const [pendingInvites, setPendingInvites] = useState<TeamInvitation[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -48,21 +51,50 @@ export function TeamPage({ teamId }: TeamPageProps) {
     }
   }, [teamId]);
 
+  const loadPendingInvites = useCallback(async () => {
+    try {
+      const list = await api.listTeamInvitations(teamId);
+      setPendingInvites(list);
+    } catch {
+      setPendingInvites(null);
+    }
+  }, [teamId]);
+
   useEffect(() => {
     setMembers(null);
+    setPendingInvites(null);
     setActionError(null);
     void loadMembers();
-  }, [loadMembers]);
+    void loadPendingInvites();
+  }, [loadMembers, loadPendingInvites]);
+
+  useEffect(() => {
+    if (renameOpen) setRenameValue(team?.name ?? '');
+  }, [renameOpen, team?.name]);
 
   async function onChangeRole(member: TeamMember, role: TeamRole) {
     if (role === member.role) return;
     setBusyId(member.id);
     setActionError(null);
     try {
-      await api.setMemberRole(teamId, member.id, role as Exclude<TeamRole, 'owner'>);
+      await api.setMemberRole(teamId, member.id, role);
       setMembers((prev) => (prev ? prev.map((m) => (m.id === member.id ? { ...m, role } : m)) : prev));
+      if (role === 'owner') await refresh();
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : 'Failed to change role');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function onWithdrawInvite(inv: TeamInvitation) {
+    setBusyId(inv.id);
+    setActionError(null);
+    try {
+      await api.declineInvitation(teamId, inv.id);
+      setPendingInvites((prev) => (prev ? prev.filter((i) => i.id !== inv.id) : prev));
+    } catch (err) {
+      setActionError(err instanceof ApiError ? err.message : 'Failed to withdraw invitation');
     } finally {
       setBusyId(null);
     }
@@ -170,16 +202,8 @@ export function TeamPage({ teamId }: TeamPageProps) {
         </div>
       </header>
 
-      {loadError && (
-        <p className="field-error" role="alert">
-          {loadError}
-        </p>
-      )}
-      {actionError && (
-        <p className="field-error" role="alert">
-          {actionError}
-        </p>
-      )}
+      {loadError && <InlineError>{loadError}</InlineError>}
+      {actionError && <InlineError>{actionError}</InlineError>}
 
       <section className="tab-panel">
         {members === null ? (
@@ -198,6 +222,7 @@ export function TeamPage({ teamId }: TeamPageProps) {
         ) : (
           members.map((m) => {
             const isOwner = m.role === 'owner';
+            const roleOptions = isOwner || !isAdmin ? [] : team?.role === 'owner' ? ALL_ROLES : CHANGEABLE_ROLES;
             return (
               <div key={m.id} className="data-row">
                 <div className="data-row-main">
@@ -208,15 +233,20 @@ export function TeamPage({ teamId }: TeamPageProps) {
                   <span className="data-row-meta">joined {new Date(m.joinedAt).toLocaleDateString()}</span>
                 </div>
                 <div className="data-row-side">
-                  {!isOwner && isAdmin && (
+                  {roleOptions.length > 0 && (
                     <select
                       className="select"
                       style={{ width: 110 }}
                       value={m.role}
                       disabled={busyId === m.id}
+                      title={
+                        roleOptions.includes('owner')
+                          ? 'Transfer ownership (you will become admin)'
+                          : undefined
+                      }
                       onChange={(e) => void onChangeRole(m, e.target.value as TeamRole)}
                     >
-                      {CHANGEABLE_ROLES.map((r) => (
+                      {roleOptions.map((r) => (
                         <option key={r} value={r}>
                           {TEAM_ROLE[r].label}
                         </option>
@@ -241,6 +271,46 @@ export function TeamPage({ teamId }: TeamPageProps) {
         )}
       </section>
 
+      {isAdmin && pendingInvites !== null && pendingInvites.length > 0 && (
+        <section className="tab-panel" style={{ marginTop: 24 }}>
+          <h2
+            className="text-muted"
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              margin: '0 0 8px',
+            }}
+          >
+            Pending invitations
+          </h2>
+          {pendingInvites.map((inv) => (
+            <div key={inv.id} className="data-row">
+              <div className="data-row-main">
+                <span className="data-row-title">
+                  <span className="row-title-text">{inv.email}</span>
+                  <Badge tone={TEAM_ROLE[inv.role].tone}>{TEAM_ROLE[inv.role].label}</Badge>
+                </span>
+                <span className="data-row-meta">
+                  expires {new Date(inv.expiresAt).toLocaleDateString()}
+                </span>
+              </div>
+              <div className="data-row-side">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  loading={busyId === inv.id}
+                  onClick={() => void onWithdrawInvite(inv)}
+                >
+                  Withdraw
+                </Button>
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
       {team && team.role !== 'owner' && (
         <div className="page-footer" style={{ marginTop: 16 }}>
           <Button variant="ghost" size="sm" className="text-danger" onClick={() => setLeaveOpen(true)}>
@@ -249,7 +319,15 @@ export function TeamPage({ teamId }: TeamPageProps) {
         </div>
       )}
 
-      <InviteModal teamId={teamId} open={inviteOpen} onClose={() => setInviteOpen(false)} onInvited={() => void refresh()} />
+      <InviteModal
+        teamId={teamId}
+        open={inviteOpen}
+        onClose={() => setInviteOpen(false)}
+        onInvited={() => {
+          void refresh();
+          void loadPendingInvites();
+        }}
+      />
 
       <Modal
         open={renameOpen}

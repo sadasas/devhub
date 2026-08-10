@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { pool } from '../db/pool.js';
 import { requireAuth, getUserId } from '../auth/middleware/requireAuth.js';
 import { ApiError } from '../app.js';
-import { assertAdmin, assertOwner, getTeamWithRole, TEAM_ROLES, type TeamRole } from './authz.js';
+import { assertAdmin, assertOwner, getTeamWithRole, type TeamRole } from './authz.js';
 
 const INVITE_ROLES: ReadonlySet<TeamRole> = new Set(['admin', 'editor', 'viewer']);
 
@@ -16,7 +16,7 @@ const renameTeamSchema = z.object({
 });
 
 const memberRoleSchema = z.object({
-  role: z.enum(['admin', 'editor', 'viewer']),
+  role: z.enum(['admin', 'editor', 'viewer', 'owner']),
 });
 
 const inviteSchema = z.object({
@@ -195,7 +195,6 @@ teamsRouter.patch('/:teamId/members/:userId', async (req, res) => {
   const userId = getUserId(req);
   const row = await getTeamWithRole(userId, req.params.teamId);
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Team not found');
-  assertAdmin(row.role);
   const parsed = memberRoleSchema.safeParse(req.body);
   if (!parsed.success) {
     throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid member data', parsed.error.issues);
@@ -208,11 +207,34 @@ teamsRouter.patch('/:teamId/members/:userId', async (req, res) => {
   if (target.rows[0].role === 'owner') {
     throw new ApiError(400, 'VALIDATION_ERROR', 'The team owner cannot be modified');
   }
-  await pool.query('UPDATE team_members SET role = $3 WHERE team_id = $1 AND user_id = $2', [
-    row.id,
-    req.params.userId,
-    parsed.data.role,
-  ]);
+  if (parsed.data.role === 'owner') {
+    assertOwner(row.role);
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(
+        "UPDATE team_members SET role = 'admin' WHERE team_id = $1 AND role = 'owner'",
+        [row.id],
+      );
+      await client.query(
+        'UPDATE team_members SET role = $3 WHERE team_id = $1 AND user_id = $2',
+        [row.id, req.params.userId, 'owner'],
+      );
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw err;
+    } finally {
+      client.release();
+    }
+  } else {
+    assertAdmin(row.role);
+    await pool.query('UPDATE team_members SET role = $3 WHERE team_id = $1 AND user_id = $2', [
+      row.id,
+      req.params.userId,
+      parsed.data.role,
+    ]);
+  }
   res.json({ ok: true });
 });
 
@@ -234,6 +256,29 @@ teamsRouter.delete('/:teamId/members/:userId', async (req, res) => {
     req.params.userId,
   ]);
   res.json({ ok: true });
+});
+
+teamsRouter.get('/:teamId/invitations', async (req, res) => {
+  const userId = getUserId(req);
+  const row = await getTeamWithRole(userId, req.params.teamId);
+  if (!row) throw new ApiError(404, 'NOT_FOUND', 'Team not found');
+  assertAdmin(row.role);
+  const result = await pool.query(
+    `SELECT i.id, i.email, i.role, i.created_at, i.expires_at
+     FROM invitations i
+     WHERE i.team_id = $1 AND i.status = 'pending' AND i.expires_at > now()
+     ORDER BY i.created_at DESC`,
+    [row.id],
+  );
+  res.json({
+    invitations: result.rows.map((r) => ({
+      id: r.id,
+      email: r.email,
+      role: r.role,
+      createdAt: r.created_at.toISOString(),
+      expiresAt: r.expires_at.toISOString(),
+    })),
+  });
 });
 
 teamsRouter.post('/:teamId/invitations', async (req, res) => {

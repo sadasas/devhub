@@ -6,6 +6,7 @@ import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/Skeleton';
+import { InlineError } from '../../components/InlineError';
 
 export function InvitesPage() {
   const { invitations, loading, error, acceptInvitation, declineInvitation, refresh } = useTeams();
@@ -40,11 +41,7 @@ export function InvitesPage() {
         </div>
       </header>
 
-      {error && (
-        <p className="field-error" role="alert">
-          {error}
-        </p>
-      )}
+      {error && <InlineError>{error}</InlineError>}
 
       {loading ? (
         <Skeleton style={{ width: '100%', height: 48 }} />

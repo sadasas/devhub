@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import type { InputHTMLAttributes } from 'react';
+import { InlineError } from '../components/InlineError';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
@@ -22,9 +23,9 @@ export function Input({ label, error, helper, id, className = '', ...rest }: Inp
         {...rest}
       />
       {error ? (
-        <p className="field-error" role="alert">
+        <InlineError>
           {error}
-        </p>
+        </InlineError>
       ) : helper ? (
         <p className="field-helper">{helper}</p>
       ) : null}

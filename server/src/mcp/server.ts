@@ -13,19 +13,6 @@ import { registerAddTable } from './tools/add-table.js';
 import { registerAddRelation } from './tools/add-relation.js';
 import { registerAddTech } from './tools/add-tech.js';
 
-export const mcpServer = new McpServer({ name: 'devhub', version: '0.1.0' });
-
-registerProjectState(mcpServer);
-registerPlanProject(mcpServer);
-registerCreateTask(mcpServer);
-registerUpdateTask(mcpServer);
-registerAddIssue(mcpServer);
-registerAddDecision(mcpServer);
-registerUpdateMilestone(mcpServer);
-registerAddTable(mcpServer);
-registerAddRelation(mcpServer);
-registerAddTech(mcpServer);
-
 export const mcpRouter = Router();
 
 mcpRouter.post('/mcp', async (req, res) => {
@@ -34,6 +21,17 @@ mcpRouter.post('/mcp', async (req, res) => {
     res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'Invalid MCP API key' } });
     return;
   }
+  const mcpServer = new McpServer({ name: 'devhub', version: '0.1.0' });
+  registerProjectState(mcpServer);
+  registerPlanProject(mcpServer);
+  registerCreateTask(mcpServer);
+  registerUpdateTask(mcpServer);
+  registerAddIssue(mcpServer);
+  registerAddDecision(mcpServer);
+  registerUpdateMilestone(mcpServer);
+  registerAddTable(mcpServer);
+  registerAddRelation(mcpServer);
+  registerAddTech(mcpServer);
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,

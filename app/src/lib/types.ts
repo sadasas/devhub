@@ -114,7 +114,6 @@ export interface State {
   testCases: TestCase[];
   techEntries: TechEntry[];
   tables: Table[];
-  columns: Column[];
   relations: Relation[];
   schemaVersions: SchemaVersion[];
   decisions: Decision[];
@@ -160,14 +159,12 @@ export interface Invitation {
   expiresAt: string;
 }
 
-export interface ExportDocument {
-  meta: {
-    app: 'devhub';
-    version: string;
-    exportedAt: string;
-    projectId: string;
-  };
-  state: State;
+export interface TeamInvitation {
+  id: string;
+  email: string;
+  role: TeamRole;
+  createdAt: string;
+  expiresAt: string;
 }
 
 export interface User {
@@ -187,16 +184,3 @@ export interface McpKey {
 export interface McpKeyCreated extends McpKey {
   key: string;
 }
-
-export const emptyState: State = {
-  tasks: [],
-  issues: [],
-  testCases: [],
-  techEntries: [],
-  tables: [],
-  columns: [],
-  relations: [],
-  schemaVersions: [],
-  decisions: [],
-  milestones: [],
-};

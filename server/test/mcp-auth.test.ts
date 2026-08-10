@@ -1,49 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import type { TestAgent } from 'supertest';
-import { createApp } from '../src/app.js';
+import { app, createKey, createProject, register, uniqueIp } from './helpers.js';
 import { resetDb } from './setup.js';
 
-const app = createApp();
-
 const MCP_ACCEPT = 'application/json, text/event-stream';
-
-let ipCounter = 0;
-function uniqueIp(): string {
-  ipCounter += 1;
-  return `192.0.2.${ipCounter % 255}`;
-}
-
-async function register(email: string): Promise<string> {
-  const res = await request(app)
-    .post('/api/auth/register')
-    .set('X-Forwarded-For', uniqueIp())
-    .send({ email, password: 'password123' });
-  expect(res.status).toBe(201);
-  const cookie = (res.headers['set-cookie'] as unknown as string[] | undefined)?.[0];
-  expect(cookie).toBeDefined();
-  return cookie!.split(';')[0]!;
-}
-
-async function createKey(cookie: string): Promise<string> {
-  const res = await request(app)
-    .post('/api/keys')
-    .set('Cookie', cookie)
-    .set('X-Forwarded-For', uniqueIp())
-    .send({});
-  expect(res.status).toBe(201);
-  return res.body.key as string;
-}
-
-async function createProject(cookie: string): Promise<string> {
-  const res = await request(app)
-    .post('/api/projects')
-    .set('Cookie', cookie)
-    .set('X-Forwarded-For', uniqueIp())
-    .send({ name: 'Test project' });
-  expect(res.status).toBe(201);
-  return res.body.id as string;
-}
 
 function mcpCall(key: string, body: unknown): TestAgent {
   const req = request(app)
@@ -126,7 +87,6 @@ describe('MCP auth and ownership', () => {
   it('cannot read another user project', async () => {
     const cookieA = await register('owner@test.dev');
     const projectId = await createProject(cookieA);
-    const keyA = await createKey(cookieA);
 
     const cookieB = await register('other@test.dev');
     const keyB = await createKey(cookieB);

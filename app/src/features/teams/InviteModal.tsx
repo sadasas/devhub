@@ -7,6 +7,7 @@ import { useTeams } from '../../state/teams-context';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { InlineError } from '../../components/InlineError';
 
 interface InviteModalProps {
   teamId: string;
@@ -88,11 +89,7 @@ export function InviteModal({ teamId, open, onClose, onInvited }: InviteModalPro
             ))}
           </select>
         </div>
-        {error && (
-          <p className="field-error" role="alert">
-            {error}
-          </p>
-        )}
+        {error && <InlineError>{error}</InlineError>}
       </form>
     </Modal>
   );

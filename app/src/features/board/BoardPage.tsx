@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Warning } from '@phosphor-icons/react';
+import { Plus } from '@phosphor-icons/react';
 import type { TaskStatus } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { Button } from '../../components/Button';
@@ -7,6 +7,7 @@ import { Skeleton } from '../../components/Skeleton';
 import { TaskCard } from './TaskCard';
 import { TaskModal } from './TaskModal';
 import { NewTaskModal } from './NewTaskModal';
+import { InlineError } from '../../components/InlineError';
 
 const COLUMNS: { status: TaskStatus; label: string }[] = [
   { status: 'todo', label: 'Todo' },
@@ -16,7 +17,7 @@ const COLUMNS: { status: TaskStatus; label: string }[] = [
 ];
 
 export function BoardPage() {
-  const { state, loading, error, saveError, dispatch, canEdit } = useProject();
+  const { state, loading, error, dispatch, canEdit } = useProject();
   const [overCol, setOverCol] = useState<TaskStatus | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [newStatus, setNewStatus] = useState<TaskStatus | null>(null);
@@ -41,9 +42,9 @@ export function BoardPage() {
 
   if (error) {
     return (
-      <p className="field-error" role="alert">
+      <InlineError>
         {error}
-      </p>
+      </InlineError>
     );
   }
 
@@ -51,7 +52,8 @@ export function BoardPage() {
 
   function handleDrop(status: TaskStatus, e: React.DragEvent) {
     const id = e.dataTransfer.getData('text/plain');
-    if (id) {
+    const task = state?.tasks.find((t) => t.id === id);
+    if (task && task.status !== status) {
       dispatch({ type: 'task/update', id, patch: { status } });
     }
     setOverCol(null);
@@ -59,13 +61,6 @@ export function BoardPage() {
 
   return (
     <div>
-      {saveError && (
-        <p className="save-banner" role="alert">
-          <Warning size={13} weight="bold" aria-hidden="true" />
-          Save failed: {saveError} — changes were reverted.
-        </p>
-      )}
-
       <div className="kanban">
         {COLUMNS.map((col) => {
           const tasks = state.tasks.filter((t) => t.status === col.status);

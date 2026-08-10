@@ -9,6 +9,7 @@ import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/Skeleton';
 import { NewTestModal } from './NewTestModal';
 import { TestModal } from './TestModal';
+import { InlineError } from '../../components/InlineError';
 
 export function TestsPage() {
   const { state, loading, error, canEdit } = useProject();
@@ -33,9 +34,9 @@ export function TestsPage() {
 
   if (error) {
     return (
-      <p className="field-error" role="alert">
+      <InlineError>
         {error}
-      </p>
+      </InlineError>
     );
   }
 

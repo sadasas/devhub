@@ -52,10 +52,10 @@ const limiter = rateLimit({
 export function createApp(): express.Express {
   const app = express();
   app.disable('x-powered-by');
-  if (config.NODE_ENV === 'test') {
+  if (config.NODE_ENV === 'test' || config.TRUST_PROXY) {
     app.set('trust proxy', true);
   }
-  app.use(express.json({ limit: '2mb' }));
+  app.use(express.json({ limit: '10mb' }));
   app.use(cookieParser());
   app.use('/api', limiter);
 

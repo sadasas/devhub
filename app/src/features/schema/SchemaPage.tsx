@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { FloppyDisk, Graph, LinkSimple, List, PencilSimple, Plus, Trash } from '@phosphor-icons/react';
-import { formatDate, shortId } from '../../lib/utils';
+import { formatDate, relationLabel as formatRelation, shortId } from '../../lib/utils';
 import type { Relation } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { Badge } from '../../components/Badge';
@@ -12,6 +12,7 @@ import { NewRelationModal } from './NewRelationModal';
 import { NewTableModal } from './NewTableModal';
 import { SaveVersionModal } from './SaveVersionModal';
 import { TableModal } from './TableModal';
+import { InlineError } from '../../components/InlineError';
 
 type SchemaView = 'tables' | 'erd';
 
@@ -36,9 +37,9 @@ export function SchemaPage() {
 
   if (error) {
     return (
-      <p className="field-error" role="alert">
+      <InlineError>
         {error}
-      </p>
+      </InlineError>
     );
   }
 
@@ -47,9 +48,12 @@ export function SchemaPage() {
   const relationLabel = (rel: Relation) => {
     const ft = state.tables.find((t) => t.id === rel.fromTableId);
     const tt = state.tables.find((t) => t.id === rel.toTableId);
-    const fc = ft?.columns.find((c) => c.id === rel.fromColumnId);
-    const tc = tt?.columns.find((c) => c.id === rel.toColumnId);
-    return `${ft?.name ?? '?'}.${fc?.name ?? '?'} → ${tt?.name ?? '?'}.${tc?.name ?? '?'}`;
+    return formatRelation(
+      ft?.name,
+      ft?.columns.find((c) => c.id === rel.fromColumnId)?.name,
+      tt?.name,
+      tt?.columns.find((c) => c.id === rel.toColumnId)?.name,
+    );
   };
 
   return (

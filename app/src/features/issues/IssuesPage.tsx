@@ -9,6 +9,7 @@ import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/Skeleton';
 import { IssueModal } from './IssueModal';
 import { NewIssueModal } from './NewIssueModal';
+import { InlineError } from '../../components/InlineError';
 
 export function IssuesPage() {
   const { state, loading, error, canEdit } = useProject();
@@ -33,9 +34,9 @@ export function IssuesPage() {
 
   if (error) {
     return (
-      <p className="field-error" role="alert">
+      <InlineError>
         {error}
-      </p>
+      </InlineError>
     );
   }
 

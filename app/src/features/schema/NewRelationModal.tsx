@@ -5,6 +5,7 @@ import type { OnDelete, RelationCardinality } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
+import { InlineError } from '../../components/InlineError';
 
 interface NewRelationModalProps {
   open: boolean;
@@ -151,9 +152,7 @@ export function NewRelationModal({ open, onClose }: NewRelationModalProps) {
           </select>
         </div>
         {fromTableId === toTableId && fromTableId !== '' && (
-          <p className="field-error" role="alert">
-            From and to tables must be different.
-          </p>
+          <InlineError>From and to tables must be different.</InlineError>
         )}
         <div className="field-row">
           <div className="field">

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ArrowLeft,
   Bug,
@@ -16,7 +16,8 @@ import {
 import type { ReactNode } from 'react';
 import { ApiError } from '../../lib/api';
 import { PROJECT_STATUS, TEAM_ROLE } from '../../lib/labels';
-import { copyText, formatDate } from '../../lib/utils';
+import { formatDate } from '../../lib/utils';
+import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { useNavigation } from '../../state/navigation-context';
 import { ProjectProvider } from '../../state/project-context';
 import { useProjects } from '../../state/projects-context';
@@ -24,6 +25,7 @@ import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { Modal } from '../../components/Modal';
+import { SaveBanner } from '../../components/SaveBanner';
 import { Skeleton } from '../../components/Skeleton';
 import { BoardPage } from '../board/BoardPage';
 import { DecisionsPage } from '../decisions/DecisionsPage';
@@ -33,6 +35,7 @@ import { SchemaPage } from '../schema/SchemaPage';
 import { StackPage } from '../stack/StackPage';
 import { StatsPage } from '../stats/StatsPage';
 import { TestsPage } from '../tests/TestsPage';
+import { InlineError } from '../../components/InlineError';
 
 export type ProjectTab = 'board' | 'issues' | 'tests' | 'stack' | 'schema' | 'decisions' | 'releases' | 'stats';
 
@@ -47,17 +50,6 @@ const TABS: { id: ProjectTab; label: string; icon: ReactNode }[] = [
   { id: 'stats', label: 'Stats', icon: <ChartBar size={15} /> },
 ];
 
-const TAB_BLURBS: Record<ProjectTab, string> = {
-  board: 'Drag tasks between stages, track dependencies.',
-  issues: 'Log bugs with severity and reproduction steps.',
-  tests: 'Keep a checklist of manual test cases.',
-  stack: 'Ledger of the tech stack and dependency status.',
-  schema: 'Database tables, columns, relations and a visual ERD.',
-  decisions: 'Architecture Decision Records (ADRs).',
-  releases: 'Milestones, versions and changelogs.',
-  stats: 'Charts: velocity, estimates vs actuals, issues.',
-};
-
 interface ProjectPageProps {
   projectId: string;
 }
@@ -69,26 +61,41 @@ export function ProjectPage({ projectId }: ProjectPageProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const copyTimer = useRef<number | null>(null);
+  const { copied, copy } = useCopyFeedback();
 
-  useEffect(
-    () => () => {
-      if (copyTimer.current) window.clearTimeout(copyTimer.current);
-    },
-    [],
-  );
+  useEffect(() => {
+    setTab('board');
+  }, [projectId]);
 
   const project = projects?.find((p) => p.id === projectId);
-  const role = project?.role ?? 'viewer';
+
+  if (!project) {
+    return (
+      <div className="page">
+        {projects === null ? (
+          <>
+            <Skeleton style={{ width: 280, height: 28, marginTop: 8 }} />
+            <Skeleton style={{ width: '100%', height: 24, marginTop: 16 }} />
+            <Skeleton style={{ width: '100%', height: 180, marginTop: 24 }} />
+          </>
+        ) : (
+          <div className="page-empty">
+            <EmptyState
+              icon={<Columns size={22} />}
+              title="Project not found"
+              description="It may have been deleted, or you may not have access to it."
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const role = project.role;
   const isAdmin = role === 'owner' || role === 'admin';
 
   async function onCopyProjectId() {
-    const ok = await copyText(projectId);
-    if (!ok) return;
-    setCopied(true);
-    if (copyTimer.current) window.clearTimeout(copyTimer.current);
-    copyTimer.current = window.setTimeout(() => setCopied(false), 2000);
+    await copy(projectId);
   }
 
   async function onDelete() {
@@ -112,25 +119,15 @@ export function ProjectPage({ projectId }: ProjectPageProps) {
               <ArrowLeft size={14} aria-hidden="true" />
               Projects
             </button>
-            {project ? (
-              <div className="project-title-row">
-                <h1 className="page-title">{project.name}</h1>
-                <Badge tone={TEAM_ROLE[role].tone}>{TEAM_ROLE[role].label}</Badge>
-                <Badge tone={PROJECT_STATUS[project.status].tone}>
-                  {PROJECT_STATUS[project.status].label}
-                </Badge>
-              </div>
-            ) : (
-              <Skeleton style={{ width: 200, height: 24, marginTop: 8 }} />
-            )}
+            <div className="project-title-row">
+              <h1 className="page-title">{project.name}</h1>
+              <Badge tone={TEAM_ROLE[role].tone}>{TEAM_ROLE[role].label}</Badge>
+              <Badge tone={PROJECT_STATUS[project.status].tone}>
+                {PROJECT_STATUS[project.status].label}
+              </Badge>
+            </div>
             <p className="page-subtitle">
-              {project ? (
-                <>
-                  {project.description || 'No description.'} · created {formatDate(project.createdAt)}
-                </>
-              ) : (
-                ' '
-              )}
+              {project.description || 'No description.'} · created {formatDate(project.createdAt)}
             </p>
             <div className="project-id-row">
               <code className="project-id-code">{projectId}</code>
@@ -178,6 +175,8 @@ export function ProjectPage({ projectId }: ProjectPageProps) {
           ))}
         </nav>
 
+        <SaveBanner />
+
         <section className="tab-panel">
           {tab === 'board' ? (
             <BoardPage />
@@ -195,13 +194,7 @@ export function ProjectPage({ projectId }: ProjectPageProps) {
             <ReleasesPage />
           ) : tab === 'stats' ? (
             <StatsPage />
-          ) : (
-            <EmptyState
-              icon={TABS.find((t) => t.id === tab)?.icon ?? <Columns size={22} />}
-              title={TABS.find((t) => t.id === tab)?.label ?? tab}
-              description={TAB_BLURBS[tab]}
-            />
-          )}
+          ) : null}
         </section>
 
         <Modal
@@ -224,11 +217,7 @@ export function ProjectPage({ projectId }: ProjectPageProps) {
             This permanently deletes “{project?.name}” and all of its data — tasks, issues, schema,
             decisions. This cannot be undone.
           </p>
-          {deleteError && (
-            <p className="field-error" role="alert" style={{ marginTop: 10 }}>
-              {deleteError}
-            </p>
-          )}
+          {deleteError && <InlineError style={{ marginTop: 10 }}>{deleteError}</InlineError>}
         </Modal>
       </div>
     </ProjectProvider>

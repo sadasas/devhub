@@ -9,6 +9,7 @@ import { EmptyState } from '../../components/EmptyState';
 import { Modal } from '../../components/Modal';
 import { Skeleton } from '../../components/Skeleton';
 import { NewKeyModal } from './NewKeyModal';
+import { InlineError } from '../../components/InlineError';
 
 interface RevokeTarget {
   id: string;
@@ -86,9 +87,9 @@ export function KeysPage() {
 
       {error ? (
         <div className="form-stack">
-          <p className="field-error" role="alert">
+          <InlineError>
             {error}
-          </p>
+          </InlineError>
           <Button variant="secondary" size="sm" onClick={() => setAttempt((a) => a + 1)}>
             Try again
           </Button>
@@ -190,11 +191,7 @@ export function KeysPage() {
             “{revokeTarget?.name || 'Untitled key'}” ({revokeTarget?.prefix}…) will stop working
             immediately. Agents using it get a 401 on their next call.
           </p>
-          {revokeError && (
-            <p className="field-error" role="alert">
-              {revokeError}
-            </p>
-          )}
+          {revokeError && <InlineError>{revokeError}</InlineError>}
         </div>
       </Modal>
     </div>

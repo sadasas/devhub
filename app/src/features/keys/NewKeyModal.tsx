@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Check, Copy } from '@phosphor-icons/react';
 import { ApiError, api } from '../../lib/api';
 import type { McpKeyCreated } from '../../lib/types';
-import { copyText } from '../../lib/utils';
+import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { InlineError } from '../../components/InlineError';
 
 interface NewKeyModalProps {
   open: boolean;
@@ -20,8 +21,7 @@ export function NewKeyModal({ open, onClose, onCreated }: NewKeyModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState<McpKeyCreated | null>(null);
-  const [copied, setCopied] = useState(false);
-  const copyTimer = useRef<number | null>(null);
+  const { copied, copy, reset } = useCopyFeedback();
 
   useEffect(() => {
     if (!open) return;
@@ -30,15 +30,8 @@ export function NewKeyModal({ open, onClose, onCreated }: NewKeyModalProps) {
     setError(null);
     setSubmitting(false);
     setCreated(null);
-    setCopied(false);
-  }, [open]);
-
-  useEffect(
-    () => () => {
-      if (copyTimer.current) window.clearTimeout(copyTimer.current);
-    },
-    [],
-  );
+    reset();
+  }, [open, reset]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -57,11 +50,7 @@ export function NewKeyModal({ open, onClose, onCreated }: NewKeyModalProps) {
 
   async function onCopy() {
     if (!created) return;
-    const ok = await copyText(created.key);
-    if (!ok) return;
-    setCopied(true);
-    if (copyTimer.current) window.clearTimeout(copyTimer.current);
-    copyTimer.current = window.setTimeout(() => setCopied(false), 2000);
+    await copy(created.key);
   }
 
   function onDone() {
@@ -105,11 +94,7 @@ export function NewKeyModal({ open, onClose, onCreated }: NewKeyModalProps) {
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          {error && (
-            <p className="field-error" role="alert">
-              {error}
-            </p>
-          )}
+          {error && <InlineError>{error}</InlineError>}
         </form>
       ) : created ? (
         <div className="form-stack">

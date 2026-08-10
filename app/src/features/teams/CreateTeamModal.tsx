@@ -6,6 +6,7 @@ import { useTeams } from '../../state/teams-context';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { InlineError } from '../../components/InlineError';
 
 interface CreateTeamModalProps {
   open: boolean;
@@ -64,11 +65,7 @@ export function CreateTeamModal({ open, onClose }: CreateTeamModalProps) {
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        {error && (
-          <p className="field-error" role="alert">
-            {error}
-          </p>
-        )}
+        {error && <InlineError>{error}</InlineError>}
       </form>
     </Modal>
   );

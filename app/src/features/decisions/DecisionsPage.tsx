@@ -9,6 +9,7 @@ import { PencilSimple, Plus, Scales } from '@phosphor-icons/react';
 import { Skeleton } from '../../components/Skeleton';
 import { DecisionModal } from './DecisionModal';
 import { NewDecisionModal } from './NewDecisionModal';
+import { InlineError } from '../../components/InlineError';
 
 export function DecisionsPage() {
   const { state, loading, error, canEdit } = useProject();
@@ -32,9 +33,7 @@ export function DecisionsPage() {
 
   if (error) {
     return (
-      <p className="field-error" role="alert">
-        Failed to load decisions.
-      </p>
+      <InlineError>Failed to load decisions.</InlineError>
     );
   }
 

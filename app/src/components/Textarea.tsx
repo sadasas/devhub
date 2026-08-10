@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import type { TextareaHTMLAttributes } from 'react';
+import { InlineError } from '../components/InlineError';
 
 interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label: string;
@@ -22,9 +23,9 @@ export function Textarea({ label, error, helper, id, className = '', ...rest }: 
         {...rest}
       />
       {error ? (
-        <p className="field-error" role="alert">
+        <InlineError>
           {error}
-        </p>
+        </InlineError>
       ) : helper ? (
         <p className="field-helper">{helper}</p>
       ) : null}

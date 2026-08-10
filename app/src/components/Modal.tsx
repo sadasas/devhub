@@ -2,6 +2,7 @@ import { useEffect, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from '@phosphor-icons/react';
 import type { ReactNode } from 'react';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 type ModalWidth = 'sm' | 'md' | 'lg';
 
@@ -16,6 +17,7 @@ interface ModalProps {
 
 export function Modal({ open, title, onClose, children, footer, width = 'md' }: ModalProps) {
   const titleId = useId();
+  const dialogRef = useFocusTrap<HTMLDivElement>(open);
 
   useEffect(() => {
     if (!open) return;
@@ -41,6 +43,7 @@ export function Modal({ open, title, onClose, children, footer, width = 'md' }: 
       }}
     >
       <div
+        ref={dialogRef}
         className={`modal modal-${width}`}
         role="dialog"
         aria-modal="true"
