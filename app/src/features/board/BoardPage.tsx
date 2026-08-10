@@ -17,7 +17,6 @@ const COLUMNS: { status: TaskStatus; label: string }[] = [
 
 export function BoardPage() {
   const { state, loading, error, saveError, dispatch } = useProject();
-  const [dragId, setDragId] = useState<string | null>(null);
   const [overCol, setOverCol] = useState<TaskStatus | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [newStatus, setNewStatus] = useState<TaskStatus | null>(null);
@@ -50,11 +49,11 @@ export function BoardPage() {
 
   if (!state) return null;
 
-  function handleDrop(status: TaskStatus) {
-    if (dragId) {
-      dispatch({ type: 'task/update', id: dragId, patch: { status } });
+  function handleDrop(status: TaskStatus, e: React.DragEvent) {
+    const id = e.dataTransfer.getData('text/plain');
+    if (id) {
+      dispatch({ type: 'task/update', id, patch: { status } });
     }
-    setDragId(null);
     setOverCol(null);
   }
 
@@ -82,7 +81,7 @@ export function BoardPage() {
               onDragLeave={() => setOverCol((cur) => (cur === col.status ? null : cur))}
               onDrop={(e) => {
                 e.preventDefault();
-                handleDrop(col.status);
+                handleDrop(col.status, e);
               }}
             >
               <div className="kanban-col-header">
