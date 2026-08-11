@@ -82,7 +82,7 @@ export const api = {
   getProject: (projectId: string) => request<Project>(`/projects/${encodeURIComponent(projectId)}`),
   patchProject: (
     projectId: string,
-    patch: Partial<Pick<Project, 'name' | 'description' | 'status'>>,
+    patch: Partial<Pick<Project, 'name' | 'description' | 'status' | 'prd'>>,
   ) =>
     request<Project>(`/projects/${encodeURIComponent(projectId)}`, {
       method: 'PATCH',

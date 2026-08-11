@@ -9,6 +9,10 @@ interface ProjectsContextValue {
   error: string | null;
   refresh: () => Promise<void>;
   create: (name: string, description: string, teamId: string) => Promise<Project>;
+  update: (
+    projectId: string,
+    patch: Partial<Pick<Project, 'name' | 'description' | 'status' | 'prd'>>,
+  ) => Promise<Project>;
   remove: (projectId: string) => Promise<void>;
 }
 
@@ -49,9 +53,23 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     setProjects((prev) => (prev ? prev.filter((p) => p.id !== projectId) : prev));
   }, []);
 
+  const update = useCallback(
+    async (
+      projectId: string,
+      patch: Partial<Pick<Project, 'name' | 'description' | 'status' | 'prd'>>,
+    ) => {
+      const project = await api.patchProject(projectId, patch);
+      setProjects((prev) =>
+        prev ? prev.map((p) => (p.id === projectId ? project : p)) : prev,
+      );
+      return project;
+    },
+    [],
+  );
+
   const value = useMemo(
-    () => ({ projects, loading, error, refresh, create, remove }),
-    [projects, loading, error, refresh, create, remove],
+    () => ({ projects, loading, error, refresh, create, update, remove }),
+    [projects, loading, error, refresh, create, update, remove],
   );
 
   return <ProjectsContext.Provider value={value}>{children}</ProjectsContext.Provider>;

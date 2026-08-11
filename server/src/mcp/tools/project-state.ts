@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { loadState } from '../state-db.js';
+import { loadProjectSnapshot } from '../state-db.js';
 
 const inputSchema = z.object({
   projectId: z.string().describe('UUID of the project to inspect'),
@@ -12,13 +12,19 @@ export function registerProjectState(server: McpServer): void {
     {
       title: 'Read project state',
       description:
-        'Read a DevHub project snapshot: task list with status/priority/estimate/blockers, issues, milestones, tech stack entries, database schema (tables with columns and indexes, relations, schema versions) and counts. Use before planning new work.',
+        'Read a DevHub project snapshot: project name/description/status and product brief (PRD), task list with status/priority/estimate/blockers, issues, milestones, tech stack entries, database schema (tables with columns and indexes, relations, schema versions) and counts. Use before planning new work.',
       inputSchema,
     },
     async (args) => {
-      const state = await loadState(args.projectId);
+      const { state, meta } = await loadProjectSnapshot(args.projectId);
       const summary = {
         projectId: args.projectId,
+        project: {
+          name: meta.name,
+          description: meta.description,
+          status: meta.status,
+          prd: meta.prd,
+        },
         counts: {
           tasks: state.tasks.length,
           issues: state.issues.length,

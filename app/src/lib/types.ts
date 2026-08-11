@@ -120,11 +120,20 @@ export interface State {
   milestones: Milestone[];
 }
 
+export interface ProjectPrd {
+  purpose: string;
+  goals: string;
+  features: string;
+  scope: string;
+  outOfScope: string;
+}
+
 export interface Project {
   id: string;
   name: string;
   description: string;
   status: ProjectStatus;
+  prd: ProjectPrd;
   teamId: string;
   teamName: string;
   role: TeamRole;

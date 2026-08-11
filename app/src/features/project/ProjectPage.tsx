@@ -8,6 +8,7 @@ import {
   Columns,
   Copy,
   Database,
+  Info,
   Rocket,
   Scales,
   Stack,
@@ -35,9 +36,19 @@ import { SchemaPage } from '../schema/SchemaPage';
 import { StackPage } from '../stack/StackPage';
 import { StatsPage } from '../stats/StatsPage';
 import { TestsPage } from '../tests/TestsPage';
+import { AboutPage } from './AboutPage';
 import { InlineError } from '../../components/InlineError';
 
-export type ProjectTab = 'board' | 'issues' | 'tests' | 'stack' | 'schema' | 'decisions' | 'releases' | 'stats';
+export type ProjectTab =
+  | 'board'
+  | 'issues'
+  | 'tests'
+  | 'stack'
+  | 'schema'
+  | 'decisions'
+  | 'releases'
+  | 'stats'
+  | 'about';
 
 const TABS: { id: ProjectTab; label: string; icon: ReactNode }[] = [
   { id: 'board', label: 'Board', icon: <Columns size={15} /> },
@@ -48,6 +59,7 @@ const TABS: { id: ProjectTab; label: string; icon: ReactNode }[] = [
   { id: 'decisions', label: 'Decisions', icon: <Scales size={15} /> },
   { id: 'releases', label: 'Releases', icon: <Rocket size={15} /> },
   { id: 'stats', label: 'Stats', icon: <ChartBar size={15} /> },
+  { id: 'about', label: 'About', icon: <Info size={15} /> },
 ];
 
 interface ProjectPageProps {
@@ -194,6 +206,8 @@ export function ProjectPage({ projectId }: ProjectPageProps) {
             <ReleasesPage />
           ) : tab === 'stats' ? (
             <StatsPage />
+          ) : tab === 'about' ? (
+            <AboutPage project={project} />
           ) : null}
         </section>
 

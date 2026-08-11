@@ -5,6 +5,7 @@ import { pool } from '../db/pool.js';
 import { requireAuth, getUserId } from '../auth/middleware/requireAuth.js';
 import { ApiError } from '../app.js';
 import { stateSchema, projectStatus, emptyState, exportDocumentSchema } from '../schema/state.js';
+import { prdSchema, prdPatchSchema, mergePrd, normalizePrd } from '../schema/prd.js';
 import {
   assertAdmin,
   assertWrite,
@@ -17,12 +18,14 @@ const createProjectSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(200),
   description: z.string().max(5_000).default(''),
   teamId: z.string().uuid('Team is required'),
+  prd: prdSchema.optional(),
 });
 
 const updateProjectSchema = z.object({
   name: z.string().trim().min(1).max(200).optional(),
   description: z.string().max(5_000).optional(),
   status: projectStatus.optional(),
+  prd: prdPatchSchema.optional(),
 });
 
 const putStateSchema = z.object({
@@ -33,8 +36,9 @@ const importProjectSchema = exportDocumentSchema.extend({
   teamId: z.string().uuid().optional(),
 });
 
-interface ProjectRow extends Omit<ProjectWithRole, 'role'> {
+interface ProjectRow extends Omit<ProjectWithRole, 'role' | 'prd'> {
   role: string;
+  prd: Record<string, unknown> | null;
 }
 
 function projectJson(row: ProjectRow) {
@@ -43,6 +47,7 @@ function projectJson(row: ProjectRow) {
     name: row.name,
     description: row.description,
     status: row.status,
+    prd: normalizePrd(row.prd),
     teamId: row.team_id,
     teamName: row.team_name,
     role: row.role,
@@ -57,7 +62,7 @@ projectsRouter.use(requireAuth);
 projectsRouter.get('/', async (req, res) => {
   const userId = getUserId(req);
   const result = await pool.query(
-    `SELECT p.id, p.name, p.description, p.status,
+    `SELECT p.id, p.name, p.description, p.status, p.prd,
             p.created_at, p.updated_at, p.team_id, t.name AS team_name, tm.role
      FROM projects p
      JOIN team_members tm ON tm.team_id = p.team_id
@@ -75,14 +80,14 @@ projectsRouter.post('/', async (req, res) => {
   if (!parsed.success) {
     throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid project data', parsed.error.issues);
   }
-  const { name, description, teamId } = parsed.data;
+  const { name, description, teamId, prd } = parsed.data;
   const team = await getTeamWithRole(userId, teamId);
   if (!team) throw new ApiError(404, 'NOT_FOUND', 'Team not found');
   assertWrite(team.role);
   const result = await pool.query<{ id: string }>(
-    `INSERT INTO projects (team_id, name, description, data)
-     VALUES ($1, $2, $3, $4::jsonb) RETURNING id`,
-    [teamId, name, description, JSON.stringify(emptyState)],
+    `INSERT INTO projects (team_id, name, description, prd, data)
+     VALUES ($1, $2, $3, $4::jsonb, $5::jsonb) RETURNING id`,
+    [teamId, name, description, JSON.stringify(mergePrd(prd)), JSON.stringify(emptyState)],
   );
   const id = result.rows[0]?.id;
   if (!id) throw new ApiError(500, 'INTERNAL', 'Failed to create project');
@@ -106,16 +111,18 @@ projectsRouter.patch('/:projectId', async (req, res) => {
   if (!parsed.success) {
     throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid project data', parsed.error.issues);
   }
-  const { name, description, status } = parsed.data;
+  const { name, description, status, prd } = parsed.data;
+  const mergedPrd = prd !== undefined ? JSON.stringify(mergePrd(prd)) : null;
   const updated = await pool.query<{ id: string; updated_at: Date }>(
     `UPDATE projects SET
        name = COALESCE($2, name),
        description = COALESCE($3, description),
        status = COALESCE($4, status),
+       prd = COALESCE($5::jsonb, prd),
        updated_at = now()
      WHERE id = $1
      RETURNING id, updated_at`,
-    [req.params.projectId, name ?? null, description ?? null, status ?? null],
+    [req.params.projectId, name ?? null, description ?? null, status ?? null, mergedPrd],
   );
   const updatedRow = updated.rows[0];
   if (!updatedRow) throw new ApiError(404, 'NOT_FOUND', 'Project not found');

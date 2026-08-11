@@ -2054,6 +2054,81 @@ input[type='checkbox'] {
 }
 
 /* ============================================================
+   Project About
+   ============================================================ */
+
+.about-body {
+  max-width: 760px;
+}
+
+.about-description {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0 0 14px;
+  max-width: 72ch;
+  white-space: pre-wrap;
+}
+
+.about-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 20px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.about-meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.about-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 640px;
+}
+
+.about-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.about-section {
+  padding: 20px 0;
+  border-top: 1px solid var(--border-hairline);
+}
+
+.about-section-title {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin: 0 0 8px;
+}
+
+.about-section-body {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text-primary);
+  margin: 0;
+  max-width: 72ch;
+  white-space: pre-wrap;
+}
+
+.about-section-body-empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ============================================================
    Reduced motion — mandatory
    ============================================================ */
 
