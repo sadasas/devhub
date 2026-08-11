@@ -58,22 +58,35 @@ authRouter.post('/register', registerLimiter, async (req, res) => {
     throw new ApiError(409, 'CONFLICT', 'Email already registered');
   }
   const passwordHash = await hashPassword(password);
-  const result = await pool.query<{ id: string }>(
-    'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id',
-    [email, passwordHash],
-  );
-  const userId = result.rows[0]?.id;
-  if (!userId) throw new ApiError(500, 'INTERNAL', 'Failed to create user');
-  await pool.query(
-    `WITH t AS (
-       INSERT INTO teams (name, created_by) VALUES ('Personal', $1) RETURNING id
-     )
-     INSERT INTO team_members (team_id, user_id, role)
-     SELECT id, $1, 'owner' FROM t`,
-    [userId],
-  );
-  setSessionCookie(res, userId);
-  res.status(201).json({ id: userId, email });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await client.query<{ id: string }>(
+      'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id',
+      [email, passwordHash],
+    );
+    const userId = result.rows[0]?.id;
+    if (!userId) throw new ApiError(500, 'INTERNAL', 'Failed to create user');
+    await client.query(
+      `WITH t AS (
+         INSERT INTO teams (name, created_by) VALUES ('Personal', $1) RETURNING id
+       )
+       INSERT INTO team_members (team_id, user_id, role)
+       SELECT id, $1, 'owner' FROM t`,
+      [userId],
+    );
+    await client.query('COMMIT');
+    setSessionCookie(res, userId);
+    res.status(201).json({ id: userId, email });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    if ((err as { code?: string })?.code === '23505') {
+      throw new ApiError(409, 'CONFLICT', 'Email already registered');
+    }
+    throw err;
+  } finally {
+    client.release();
+  }
 });
 
 authRouter.post('/login', loginLimiter, async (req, res) => {

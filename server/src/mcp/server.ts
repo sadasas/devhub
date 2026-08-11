@@ -18,7 +18,7 @@ import { registerAddTech } from './tools/add-tech.js';
 
 export const mcpRouter = Router();
 
-mcpRouter.post('/mcp', async (req, res) => {
+mcpRouter.post('/', async (req, res) => {
   const userId = req.userId;
   if (!userId) {
     res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'Invalid MCP API key' } });

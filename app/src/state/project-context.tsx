@@ -191,6 +191,7 @@ export function ProjectProvider({
   const dirtyRef = useRef(false);
   const savingRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingFlushRef = useRef<Promise<void> | null>(null);
 
   const runSave = useCallback(async () => {
     const snapshot = stateRef.current;
@@ -210,6 +211,32 @@ export function ProjectProvider({
       setSaving(false);
     }
   }, [projectId]);
+
+  const flushPendingSave = useCallback(
+    (opts?: { keepalive?: boolean }) => {
+      const snapshot = stateRef.current;
+      if (!snapshot || !dirtyRef.current || savingRef.current) {
+        return pendingFlushRef.current ?? Promise.resolve();
+      }
+      if (pendingFlushRef.current) return pendingFlushRef.current;
+      dirtyRef.current = false;
+      const p = (opts?.keepalive ? api.putState(projectId, snapshot, true) : api.putState(projectId, snapshot))
+        .then(() => {
+          lastSavedRef.current = snapshot;
+          setSaveError(null);
+        })
+        .catch((err) => {
+          setSaveError(err instanceof ApiError ? err.message : 'Failed to save changes');
+          dirtyRef.current = true;
+        })
+        .finally(() => {
+          if (pendingFlushRef.current === p) pendingFlushRef.current = null;
+        });
+      pendingFlushRef.current = p;
+      return p;
+    },
+    [projectId],
+  );
 
   const scheduleSave = useCallback(() => {
     if (!stateRef.current) return;
@@ -248,20 +275,23 @@ export function ProjectProvider({
     setError(null);
     setSaveError(null);
 
-    api
-      .getState(projectId)
-      .then((s) => {
+    void (async () => {
+      await flushPendingSave();
+      if (cancelled) return;
+      try {
+        const s = await api.getState(projectId);
         if (cancelled) return;
         stateRef.current = s;
         lastSavedRef.current = s;
         setState(s);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'Failed to load project state');
-      })
-      .finally(() => {
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof ApiError ? err.message : 'Failed to load project state');
+        }
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    })();
 
     const interval = setInterval(() => {
       if (document.visibilityState !== 'visible') return;
@@ -270,6 +300,7 @@ export function ProjectProvider({
         .getState(projectId)
         .then((fresh) => {
           if (cancelled) return;
+          if (dirtyRef.current || savingRef.current) return;
           const cur = stateRef.current;
           if (cur && JSON.stringify(fresh) !== JSON.stringify(cur)) {
             stateRef.current = fresh;
@@ -282,22 +313,19 @@ export function ProjectProvider({
         });
     }, POLL_INTERVAL_MS);
 
-    const flushPendingSave = () => {
-      const snapshot = stateRef.current;
-      if (dirtyRef.current && snapshot && !savingRef.current) {
-        void api.putState(projectId, snapshot).catch(() => {});
-      }
+    const onPageHide = () => {
+      void flushPendingSave({ keepalive: true });
     };
-    window.addEventListener('pagehide', flushPendingSave);
+    window.addEventListener('pagehide', onPageHide);
 
     return () => {
       cancelled = true;
       clearInterval(interval);
-      window.removeEventListener('pagehide', flushPendingSave);
+      window.removeEventListener('pagehide', onPageHide);
       if (timerRef.current) clearTimeout(timerRef.current);
-      flushPendingSave();
+      void flushPendingSave();
     };
-  }, [projectId]);
+  }, [projectId, flushPendingSave]);
 
   const value = useMemo(
     () => ({

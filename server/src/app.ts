@@ -38,6 +38,15 @@ export function errorHandler(
     });
     return;
   }
+  const status = typeof err === 'object' && err !== null
+    ? ((err as { status?: unknown }).status ?? (err as { statusCode?: unknown }).statusCode)
+    : undefined;
+  if (typeof status === 'number' && status >= 400 && status < 500) {
+    res.status(status).json({
+      error: { code: 'BAD_REQUEST', message: (err as Error)?.message ?? 'Invalid request' },
+    });
+    return;
+  }
   console.error('Unhandled error:', err);
   res.status(500).json({ error: { code: 'INTERNAL', message: 'Internal server error' } });
 }
@@ -47,6 +56,14 @@ const limiter = rateLimit({
   limit: 300,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+});
+
+const mcpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 120,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: { code: 'RATE_LIMITED', message: 'Too many MCP requests, try again later' } },
 });
 
 export function createApp(): express.Express {
@@ -68,8 +85,9 @@ export function createApp(): express.Express {
   app.use('/api/teams', teamsRouter);
   app.use('/api/keys', keysRouter);
 
-  app.use(requireMcpKey);
-  app.use(mcpRouter);
+  app.use('/mcp', mcpLimiter);
+  app.use('/mcp', requireMcpKey);
+  app.use('/mcp', mcpRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

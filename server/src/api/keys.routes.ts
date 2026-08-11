@@ -4,6 +4,7 @@ import { pool } from '../db/pool.js';
 import { requireAuth, getUserId } from '../auth/middleware/requireAuth.js';
 import { ApiError } from '../app.js';
 import { generateMcpKey } from '../mcp/keys.js';
+import { isUuid } from './authz.js';
 
 const createKeySchema = z.object({
   name: z.string().trim().max(200).default(''),
@@ -55,6 +56,7 @@ keysRouter.post('/', async (req, res) => {
 
 keysRouter.delete('/:id', async (req, res) => {
   const userId = getUserId(req);
+  if (!isUuid(req.params.id)) throw new ApiError(404, 'NOT_FOUND', 'API key not found');
   const result = await pool.query(
     'UPDATE mcp_keys SET revoked_at = now() WHERE id = $1 AND user_id = $2 AND revoked_at IS NULL RETURNING id',
     [req.params.id, userId],

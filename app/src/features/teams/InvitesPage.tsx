@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ArrowLeft, Envelope } from '@phosphor-icons/react';
 import { TEAM_ROLE } from '../../lib/labels';
 import { useNavigation } from '../../state/navigation-context';
@@ -11,20 +12,30 @@ import { InlineError } from '../../components/InlineError';
 export function InvitesPage() {
   const { invitations, loading, error, acceptInvitation, declineInvitation, refresh } = useTeams();
   const { openDashboard } = useNavigation();
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   async function onAccept(invitationId: string, teamId: string) {
+    setBusyId(invitationId);
+    setActionError(null);
     try {
       await acceptInvitation(teamId, invitationId);
     } catch (err) {
-      void err;
+      setActionError(err instanceof Error ? err.message : 'Failed to accept invitation');
+    } finally {
+      setBusyId(null);
     }
   }
 
   async function onDecline(invitationId: string, teamId: string) {
+    setBusyId(invitationId);
+    setActionError(null);
     try {
       await declineInvitation(teamId, invitationId);
     } catch (err) {
-      void err;
+      setActionError(err instanceof Error ? err.message : 'Failed to decline invitation');
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -42,6 +53,7 @@ export function InvitesPage() {
       </header>
 
       {error && <InlineError>{error}</InlineError>}
+      {actionError && <InlineError>{actionError}</InlineError>}
 
       {loading ? (
         <Skeleton style={{ width: '100%', height: 48 }} />
@@ -69,6 +81,7 @@ export function InvitesPage() {
             <div className="data-row-side">
               <Button
                 size="sm"
+                loading={busyId === inv.id}
                 onClick={() => void onAccept(inv.id, inv.teamId)}
               >
                 Accept
@@ -77,6 +90,7 @@ export function InvitesPage() {
                 size="sm"
                 variant="ghost"
                 className="text-danger"
+                loading={busyId === inv.id}
                 onClick={() => void onDecline(inv.id, inv.teamId)}
               >
                 Decline

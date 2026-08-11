@@ -23,13 +23,13 @@ export type PrdPatch = z.infer<typeof prdPatchSchema>;
 
 export const PRD_EMPTY: Prd = { purpose: '', goals: '', features: '', scope: '', outOfScope: '' };
 
-export function mergePrd(patch: PrdPatch = {}): Prd {
+export function mergePrd(patch: PrdPatch = {}, current: Prd = PRD_EMPTY): Prd {
   return {
-    purpose: patch.purpose ?? '',
-    goals: patch.goals ?? '',
-    features: patch.features ?? '',
-    scope: patch.scope ?? '',
-    outOfScope: patch.outOfScope ?? '',
+    purpose: patch.purpose ?? current.purpose,
+    goals: patch.goals ?? current.goals,
+    features: patch.features ?? current.features,
+    scope: patch.scope ?? current.scope,
+    outOfScope: patch.outOfScope ?? current.outOfScope,
   };
 }
 

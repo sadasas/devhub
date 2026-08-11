@@ -5,6 +5,7 @@ import { TEAM_ROLE } from '../../lib/labels';
 import type { TeamInvitation, TeamMember, TeamRole } from '../../lib/types';
 import { useNavigation } from '../../state/navigation-context';
 import { useTeams } from '../../state/teams-context';
+import { useAuth } from '../../state/auth-context';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
@@ -23,6 +24,7 @@ interface TeamPageProps {
 
 export function TeamPage({ teamId }: TeamPageProps) {
   const { teams, refresh, deleteTeam, renameTeam } = useTeams();
+  const { user } = useAuth();
   const { openDashboard } = useNavigation();
   const team = teams?.find((t) => t.id === teamId);
 
@@ -38,6 +40,7 @@ export function TeamPage({ teamId }: TeamPageProps) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [renaming, setRenaming] = useState(false);
 
   const isAdmin = team?.role === 'owner' || team?.role === 'admin';
 
@@ -115,11 +118,11 @@ export function TeamPage({ teamId }: TeamPageProps) {
   }
 
   async function onLeave() {
-    if (!team) return;
+    if (!team || !user) return;
     setDeleting(true);
     setActionError(null);
     try {
-      await api.removeMember(teamId, team.id);
+      await api.removeMember(teamId, user.id);
       await refresh();
       openDashboard();
     } catch (err) {
@@ -142,7 +145,7 @@ export function TeamPage({ teamId }: TeamPageProps) {
 
   async function onRename(e: React.FormEvent) {
     e.preventDefault();
-    setDeleting(true);
+    setRenaming(true);
     setActionError(null);
     try {
       await renameTeam(teamId, renameValue.trim());
@@ -150,7 +153,7 @@ export function TeamPage({ teamId }: TeamPageProps) {
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : 'Failed to rename team');
     } finally {
-      setDeleting(false);
+      setRenaming(false);
     }
   }
 
@@ -342,7 +345,7 @@ export function TeamPage({ teamId }: TeamPageProps) {
             <Button
               type="submit"
               form="rename-team-form"
-              loading={deleting}
+              loading={renaming}
               disabled={!renameValue.trim()}
             >
               Save

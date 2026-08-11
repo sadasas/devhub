@@ -30,10 +30,18 @@ export interface TeamWithRole {
   role: TeamRole;
 }
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isUuid(value: string): boolean {
+  return UUID_RE.test(value);
+}
+
 export async function getProjectWithRole(
   userId: string,
   projectId: string,
 ): Promise<ProjectWithRole | undefined> {
+  if (!isUuid(projectId)) return undefined;
   const result = await pool.query(
     `SELECT p.id, p.name, p.description, p.status, p.prd, p.data,
             p.created_at, p.updated_at, p.team_id, t.name AS team_name, tm.role
@@ -50,6 +58,7 @@ export async function getTeamWithRole(
   userId: string,
   teamId: string,
 ): Promise<TeamWithRole | undefined> {
+  if (!isUuid(teamId)) return undefined;
   const result = await pool.query(
     `SELECT t.id, t.name, t.created_by, t.created_at, t.updated_at, tm.role
      FROM teams t

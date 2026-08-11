@@ -348,4 +348,27 @@ describe('teams routes', () => {
       .set('X-Forwarded-For', uniqueIp());
     expect(res.status).toBe(404);
   });
+
+  it('returns 404 for invalid uuid params instead of 500', async () => {
+    const cookie = await register('badid@test.dev');
+
+    const team = await request(app)
+      .get('/api/teams/not-a-uuid')
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(team.status).toBe(404);
+
+    const teamId = await createTeam(cookie);
+    const member = await request(app)
+      .delete(`/api/teams/${teamId}/members/not-a-uuid`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(member.status).toBe(404);
+
+    const invite = await request(app)
+      .delete(`/api/teams/${teamId}/invitations/not-a-uuid`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(invite.status).toBe(404);
+  });
 });

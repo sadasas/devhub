@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { pool } from '../db/pool.js';
 import { requireAuth, getUserId } from '../auth/middleware/requireAuth.js';
 import { ApiError } from '../app.js';
-import { assertAdmin, assertOwner, getTeamWithRole, type TeamRole } from './authz.js';
+import { assertAdmin, assertOwner, getTeamWithRole, isUuid, type TeamRole } from './authz.js';
 
 const INVITE_ROLES: ReadonlySet<TeamRole> = new Set(['admin', 'editor', 'viewer']);
 
@@ -92,7 +92,7 @@ teamsRouter.post('/', async (req, res) => {
       },
     });
   } catch (err) {
-    await pool.query('ROLLBACK').catch(() => {});
+    await client.query('ROLLBACK').catch(() => {});
     throw err;
   } finally {
     client.release();
@@ -193,6 +193,7 @@ teamsRouter.get('/:teamId/members', async (req, res) => {
 
 teamsRouter.patch('/:teamId/members/:userId', async (req, res) => {
   const userId = getUserId(req);
+  if (!isUuid(req.params.userId)) throw new ApiError(404, 'NOT_FOUND', 'Member not found');
   const row = await getTeamWithRole(userId, req.params.teamId);
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Team not found');
   const parsed = memberRoleSchema.safeParse(req.body);
@@ -240,6 +241,7 @@ teamsRouter.patch('/:teamId/members/:userId', async (req, res) => {
 
 teamsRouter.delete('/:teamId/members/:userId', async (req, res) => {
   const userId = getUserId(req);
+  if (!isUuid(req.params.userId)) throw new ApiError(404, 'NOT_FOUND', 'Member not found');
   const row = await getTeamWithRole(userId, req.params.teamId);
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Team not found');
   if (req.params.userId !== userId) assertAdmin(row.role);
@@ -335,6 +337,9 @@ teamsRouter.post('/:teamId/invitations', async (req, res) => {
 
 teamsRouter.post('/:teamId/invitations/:invitationId/accept', async (req, res) => {
   const userId = getUserId(req);
+  if (!isUuid(req.params.invitationId)) {
+    throw new ApiError(404, 'NOT_FOUND', 'Invitation not found or expired');
+  }
   const me = await pool.query<{ email: string }>('SELECT email FROM users WHERE id = $1', [userId]);
   const email = me.rows[0]?.email;
   if (!email) throw new ApiError(401, 'UNAUTHORIZED', 'Authentication required');
@@ -375,6 +380,9 @@ teamsRouter.post('/:teamId/invitations/:invitationId/accept', async (req, res) =
 
 teamsRouter.delete('/:teamId/invitations/:invitationId', async (req, res) => {
   const userId = getUserId(req);
+  if (!isUuid(req.params.invitationId)) {
+    throw new ApiError(404, 'NOT_FOUND', 'Invitation not found');
+  }
   const me = await pool.query<{ email: string }>('SELECT email FROM users WHERE id = $1', [userId]);
   const email = me.rows[0]?.email;
   if (!email) throw new ApiError(401, 'UNAUTHORIZED', 'Authentication required');

@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FolderOpen, Plus, SquaresFour } from '@phosphor-icons/react';
 import { api } from '../../lib/api';
-import { computeProjectStats } from '../../lib/stats';
 import type { ProjectStats } from '../../lib/stats';
 import { PROJECT_STATUS } from '../../lib/labels';
 import { formatDate, formatRelative } from '../../lib/utils';
@@ -14,55 +13,34 @@ import { Skeleton } from '../../components/Skeleton';
 import { NewProjectModal } from './NewProjectModal';
 import { InlineError } from '../../components/InlineError';
 
-const STATS_CACHE_TTL_MS = 30_000;
-
 export function DashboardPage() {
   const { projects, loading, error } = useProjects();
   const { openProject } = useNavigation();
   const [newOpen, setNewOpen] = useState(false);
   const [stats, setStats] = useState<Record<string, ProjectStats>>({});
   const [statsLoading, setStatsLoading] = useState(false);
-  const statsCacheRef = useRef(new Map<string, { stats: ProjectStats; fetchedAt: number }>());
 
   useEffect(() => {
     if (!projects) return;
     let cancelled = false;
-    const cache = statsCacheRef.current;
-    const now = Date.now();
-    const projectIds = new Set(projects.map((p) => p.id));
-    cache.forEach((_, id) => {
-      if (!projectIds.has(id)) cache.delete(id);
-    });
-    const missing = projects.filter((p) => {
-      const entry = cache.get(p.id);
-      return !entry || now - entry.fetchedAt > STATS_CACHE_TTL_MS;
-    });
-    if (missing.length === 0) {
-      const current: Record<string, ProjectStats> = {};
-      projects.forEach((p) => {
-        const entry = cache.get(p.id);
-        if (entry) current[p.id] = entry.stats;
-      });
-      setStats(current);
-      setStatsLoading(false);
-      return;
-    }
     setStatsLoading(true);
-    Promise.allSettled(
-      missing.map(async (p) => ({ id: p.id, stats: computeProjectStats(await api.getState(p.id)) })),
-    ).then((results) => {
-      if (cancelled) return;
-      results.forEach((r) => {
-        if (r.status === 'fulfilled') cache.set(r.value.id, { stats: r.value.stats, fetchedAt: Date.now() });
+    api
+      .projectStats()
+      .then((entries) => {
+        if (cancelled) return;
+        const current: Record<string, ProjectStats> = {};
+        entries.forEach((e) => {
+          const { projectId, ...rest } = e;
+          current[projectId] = rest;
+        });
+        setStats(current);
+      })
+      .catch(() => {
+        /* stats are decorative */
+      })
+      .finally(() => {
+        if (!cancelled) setStatsLoading(false);
       });
-      const current: Record<string, ProjectStats> = {};
-      projects.forEach((p) => {
-        const entry = cache.get(p.id);
-        if (entry) current[p.id] = entry.stats;
-      });
-      setStats(current);
-      setStatsLoading(false);
-    });
     return () => {
       cancelled = true;
     };

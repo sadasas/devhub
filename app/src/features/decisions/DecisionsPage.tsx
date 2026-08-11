@@ -33,7 +33,7 @@ export function DecisionsPage() {
 
   if (error) {
     return (
-      <InlineError>Failed to load decisions.</InlineError>
+      <InlineError>{error}</InlineError>
     );
   }
 

@@ -20,6 +20,12 @@ export function CommandPalette() {
   const [index, setIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useFocusTrap<HTMLDivElement>(open);
+  const openRef = useRef(open);
+  openRef.current = open;
+  const stateRef = useRef({ filtered: [] as PaletteCommand[], index: 0 });
+  useEffect(() => {
+    stateRef.current = { filtered, index };
+  });
 
   const commands = useMemo<PaletteCommand[]>(() => {
     const list: PaletteCommand[] = [
@@ -85,24 +91,24 @@ export function CommandPalette() {
         setOpen((o) => !o);
         return;
       }
-      if (!open) return;
+      if (!openRef.current) return;
       if (e.key === 'Escape') {
         e.preventDefault();
         setOpen(false);
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setIndex((i) => Math.min(i + 1, Math.max(filtered.length - 1, 0)));
+        setIndex((i) => Math.min(i + 1, Math.max(stateRef.current.filtered.length - 1, 0)));
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         setIndex((i) => Math.max(i - 1, 0));
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        filtered[index]?.run();
+        stateRef.current.filtered[stateRef.current.index]?.run();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, filtered, index]);
+  }, []);
 
   useEffect(() => {
     if (open) {

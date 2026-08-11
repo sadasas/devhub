@@ -18,6 +18,6 @@ export async function requireMcpKey(req: Request, _res: Response, next: NextFunc
     throw new ApiError(401, 'UNAUTHORIZED', 'Invalid MCP API key');
   }
   req.userId = row.user_id;
-  void pool.query('UPDATE mcp_keys SET last_used_at = now() WHERE id = $1', [row.id]);
+  void pool.query('UPDATE mcp_keys SET last_used_at = now() WHERE id = $1', [row.id]).catch(() => {});
   next();
 }

@@ -8,6 +8,9 @@ loadEnv({ path: path.join(envDir, '.env'), quiet: true });
 
 process.env.DATABASE_URL = process.env.DATABASE_URL_TEST ?? process.env.DATABASE_URL ?? '';
 process.env.NODE_ENV = 'test';
+if (process.env.JWT_SECRET === 'change-me-to-a-random-string-of-at-least-32-chars') {
+  process.env.JWT_SECRET = 'devhub-test-secret-0123456789-abcdefghijklmnop';
+}
 
 export default defineConfig({
   test: {

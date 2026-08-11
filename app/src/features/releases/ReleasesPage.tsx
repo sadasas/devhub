@@ -33,7 +33,7 @@ export function ReleasesPage() {
 
   if (error) {
     return (
-      <InlineError>Failed to load milestones.</InlineError>
+      <InlineError>{error}</InlineError>
     );
   }
 

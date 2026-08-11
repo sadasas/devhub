@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { api } from '../lib/api';
+import { api, setUnauthorizedHandler } from '../lib/api';
 import type { User } from '../lib/types';
 
 interface AuthContextValue {
@@ -33,6 +33,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => setUser(null));
+    return () => setUnauthorizedHandler(null);
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {

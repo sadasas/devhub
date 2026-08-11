@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Plus, SquaresFour, Flag } from '@phosphor-icons/react';
 import type { Task, TaskStatus } from '../../lib/types';
 import { useProject } from '../../state/project-context';
@@ -29,6 +29,7 @@ export function BoardPage() {
   const [overKey, setOverKey] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [newTaskAt, setNewTaskAt] = useState<NewTaskTarget | null>(null);
+  const openTask = useCallback((id: string) => setEditId(id), []);
 
   if (loading) {
     return (
@@ -115,7 +116,7 @@ export function BoardPage() {
         <div className={`kanban-col-body ${overKey === dropKey ? 'kanban-drop-active' : ''}`}>
           {tasks.length === 0 && <p className="kanban-col-empty">Drop tasks here</p>}
           {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} onOpen={() => setEditId(task.id)} showStatus={view === 'milestone'} showMilestone={view === 'status'} />
+            <TaskCard key={task.id} task={task} onOpen={openTask} showStatus={view === 'milestone'} showMilestone={view === 'status'} />
           ))}
         </div>
         <div className="kanban-col-add">

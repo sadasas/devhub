@@ -70,7 +70,7 @@ export async function updatePrd(projectId: string, patch: PrdPatch): Promise<Prd
   if (row.role === 'viewer') {
     throw new McpError(ErrorCode.InvalidParams, `No write access to project ${projectId}`);
   }
-  const merged = mergePrd(patch);
+  const merged = mergePrd(patch, normalizePrd(row.prd));
   const result = await pool.query(
     'UPDATE projects SET prd = $2::jsonb, updated_at = now() WHERE id = $1 RETURNING id',
     [projectId, JSON.stringify(merged)],

@@ -10,8 +10,16 @@ import type {
   TeamRole,
   User,
 } from './types';
+import type { ProjectStats } from './stats';
 
 const API_BASE: string = import.meta.env.VITE_API_URL ?? '/api';
+const REQUEST_TIMEOUT_MS = 15_000;
+
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  unauthorizedHandler = handler;
+}
 
 export class ApiError extends Error {
   readonly status: number;
@@ -28,18 +36,36 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const headers: Record<string, string> = {};
-  if (init?.body) headers['Content-Type'] = 'application/json';
+  const { headers: initHeaders, signal: initSignal, ...rest } = init ?? {};
+  const headers = new Headers(initHeaders);
+  if (rest.body && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  const controller = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, REQUEST_TIMEOUT_MS);
+  if (initSignal) {
+    if (initSignal.aborted) controller.abort();
+    else initSignal.addEventListener('abort', () => controller.abort(), { once: true });
+  }
 
   let res: Response;
   try {
     res = await fetch(`${API_BASE}${path}`, {
       credentials: 'include',
       headers,
-      ...init,
+      ...rest,
+      signal: controller.signal,
     });
   } catch {
+    if (timedOut) throw new ApiError(0, 'TIMEOUT', 'Request timed out');
     throw new ApiError(0, 'NETWORK', 'Cannot reach the server. Is it running?');
+  } finally {
+    clearTimeout(timer);
   }
 
   if (!res.ok) {
@@ -49,6 +75,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         error?: { code?: string; message?: string; details?: unknown };
       } | null
     )?.error;
+    if (res.status === 401 && !path.startsWith('/auth/')) {
+      unauthorizedHandler?.();
+    }
     throw new ApiError(res.status, err?.code ?? 'INTERNAL', err?.message ?? res.statusText, err?.details);
   }
 
@@ -80,6 +109,10 @@ export const api = {
       body: JSON.stringify({ name, description, teamId }),
     }),
   getProject: (projectId: string) => request<Project>(`/projects/${encodeURIComponent(projectId)}`),
+  projectStats: async () => {
+    const res = await request<{ projects: Array<{ projectId: string } & ProjectStats> }>('/projects/stats');
+    return res.projects;
+  },
   patchProject: (
     projectId: string,
     patch: Partial<Pick<Project, 'name' | 'description' | 'status' | 'prd'>>,
@@ -95,10 +128,11 @@ export const api = {
     const res = await request<{ state: State }>(`/projects/${encodeURIComponent(projectId)}/state`);
     return res.state;
   },
-  putState: (projectId: string, state: State) =>
+  putState: (projectId: string, state: State, keepalive = false) =>
     request<{ ok: true }>(`/projects/${encodeURIComponent(projectId)}/state`, {
       method: 'PUT',
       body: JSON.stringify({ state }),
+      keepalive,
     }),
 
   listKeys: async () => {

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { pool } from '../db/pool.js';
 import { requireAuth, getUserId } from '../auth/middleware/requireAuth.js';
 import { ApiError } from '../app.js';
-import { stateSchema, projectStatus, emptyState, exportDocumentSchema } from '../schema/state.js';
+import { stateSchema, projectStatus, emptyState, exportDocumentSchema, type Milestone, type State } from '../schema/state.js';
 import { prdSchema, prdPatchSchema, mergePrd, normalizePrd } from '../schema/prd.js';
 import {
   assertAdmin,
@@ -56,6 +56,32 @@ function projectJson(row: ProjectRow) {
   };
 }
 
+interface ProjectStats {
+  totalTasks: number;
+  doneTasks: number;
+  openIssues: number;
+  outdatedDeps: number;
+  totalMilestones: number;
+  releasedMilestones: number;
+  nextMilestone: Milestone | null;
+}
+
+function computeProjectStats(state: State): ProjectStats {
+  const now = Date.now();
+  const upcoming = state.milestones
+    .filter((m) => m.status !== 'released' && m.targetDate && Date.parse(m.targetDate) >= now)
+    .sort((a, b) => Date.parse(a.targetDate!) - Date.parse(b.targetDate!));
+  return {
+    totalTasks: state.tasks.length,
+    doneTasks: state.tasks.filter((t) => t.status === 'done').length,
+    openIssues: state.issues.filter((i) => !['resolved', 'wontfix'].includes(i.status)).length,
+    outdatedDeps: state.techEntries.filter((t) => t.status !== 'current').length,
+    totalMilestones: state.milestones.length,
+    releasedMilestones: state.milestones.filter((m) => m.status === 'released').length,
+    nextMilestone: upcoming[0] ?? null,
+  };
+}
+
 export const projectsRouter = Router();
 projectsRouter.use(requireAuth);
 
@@ -72,6 +98,22 @@ projectsRouter.get('/', async (req, res) => {
     [userId],
   );
   res.json({ projects: result.rows.map(projectJson) });
+});
+
+projectsRouter.get('/stats', async (req, res) => {
+  const userId = getUserId(req);
+  const result = await pool.query<{ id: string; data: unknown }>(
+    `SELECT p.id, p.data
+     FROM projects p
+     JOIN team_members tm ON tm.team_id = p.team_id
+     WHERE tm.user_id = $1`,
+    [userId],
+  );
+  const projects = result.rows.map((row) => {
+    const parsed = stateSchema.safeParse(row.data);
+    return { projectId: row.id, ...computeProjectStats(parsed.success ? parsed.data : emptyState) };
+  });
+  res.json({ projects });
 });
 
 projectsRouter.post('/', async (req, res) => {
@@ -112,7 +154,7 @@ projectsRouter.patch('/:projectId', async (req, res) => {
     throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid project data', parsed.error.issues);
   }
   const { name, description, status, prd } = parsed.data;
-  const mergedPrd = prd !== undefined ? JSON.stringify(mergePrd(prd)) : null;
+  const mergedPrd = prd !== undefined ? JSON.stringify(mergePrd(prd, normalizePrd(row.prd))) : null;
   const updated = await pool.query<{ id: string; updated_at: Date }>(
     `UPDATE projects SET
        name = COALESCE($2, name),

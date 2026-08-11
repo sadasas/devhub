@@ -136,6 +136,59 @@ describe('projects routes', () => {
     expect(get.body.state.tasks[0].title).toBe('Shipped task');
   });
 
+  it('patches a single PRD section without wiping the others', async () => {
+    const cookie = await register('prd-patch@test.dev');
+    const projectId = await createProject(cookie);
+
+    const seed = await request(app)
+      .patch(`/api/projects/${projectId}`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ prd: { purpose: 'Purpose stays', goals: 'Goal stays' } });
+    expect(seed.status).toBe(200);
+    expect(seed.body.prd.purpose).toBe('Purpose stays');
+
+    const patched = await request(app)
+      .patch(`/api/projects/${projectId}`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ prd: { goals: 'Goal updated' } });
+    expect(patched.status).toBe(200);
+    expect(patched.body.prd.purpose).toBe('Purpose stays');
+    expect(patched.body.prd.goals).toBe('Goal updated');
+    expect(patched.body.prd.features).toBe('');
+
+    const fetched = await request(app)
+      .get(`/api/projects/${projectId}`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(fetched.body.prd.purpose).toBe('Purpose stays');
+    expect(fetched.body.prd.goals).toBe('Goal updated');
+  });
+
+  it('returns 404 for an invalid project id instead of 500', async () => {
+    const cookie = await register('badid@test.dev');
+
+    const get = await request(app)
+      .get('/api/projects/not-a-uuid')
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(get.status).toBe(404);
+
+    const patch = await request(app)
+      .patch('/api/projects/not-a-uuid')
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ name: 'Nope' });
+    expect(patch.status).toBe(404);
+
+    const state = await request(app)
+      .get('/api/projects/not-a-uuid/state')
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(state.status).toBe(404);
+  });
+
   it('rejects state writes from viewers', async () => {
     const ownerCookie = await register('owner6@test.dev');
     const memberCookie = await register('viewer6@test.dev');

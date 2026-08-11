@@ -1,4 +1,4 @@
-import { useEffect, useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from '@phosphor-icons/react';
 import type { ReactNode } from 'react';
@@ -18,11 +18,13 @@ interface ModalProps {
 export function Modal({ open, title, onClose, children, footer, width = 'md' }: ModalProps) {
   const titleId = useId();
   const dialogRef = useFocusTrap<HTMLDivElement>(open);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onCloseRef.current();
     };
     document.addEventListener('keydown', onKey);
     const prevOverflow = document.body.style.overflow;
@@ -31,7 +33,7 @@ export function Modal({ open, title, onClose, children, footer, width = 'md' }: 
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prevOverflow;
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { LinkSimple } from '@phosphor-icons/react';
 import { TASK_PRIORITY, TASK_STATUS } from '../../lib/labels';
 import { shortId } from '../../lib/utils';
@@ -7,12 +8,17 @@ import { Badge } from '../../components/Badge';
 
 interface TaskCardProps {
   task: Task;
-  onOpen: () => void;
+  onOpen: (taskId: string) => void;
   showStatus?: boolean;
   showMilestone?: boolean;
 }
 
-export function TaskCard({ task, onOpen, showStatus = false, showMilestone = false }: TaskCardProps) {
+export const TaskCard = memo(function TaskCard({
+  task,
+  onOpen,
+  showStatus = false,
+  showMilestone = false,
+}: TaskCardProps) {
   const { state, canEdit } = useProject();
   const blockers =
     task.blockedBy
@@ -42,11 +48,11 @@ export function TaskCard({ task, onOpen, showStatus = false, showMilestone = fal
       draggable={canEdit}
       role="button"
       tabIndex={0}
-      onClick={onOpen}
+      onClick={() => onOpen(task.id)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onOpen();
+          onOpen(task.id);
         }
       }}
       onDragStart={(e) => {
@@ -90,4 +96,4 @@ export function TaskCard({ task, onOpen, showStatus = false, showMilestone = fal
       </span>
     </div>
   );
-}
+});
