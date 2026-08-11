@@ -50,6 +50,24 @@ export function registerAddRelation(server: McpServer): void {
           content: [{ type: 'text', text: 'toColumnId not found in the to table' }],
         };
       }
+      const existing = state.relations.find(
+        (r) =>
+          r.fromTableId === args.fromTableId &&
+          r.fromColumnId === args.fromColumnId &&
+          r.toTableId === args.toTableId &&
+          r.toColumnId === args.toColumnId,
+      );
+      if (existing) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: 'text',
+              text: `Identical relation already exists: ${existing.id} (${existing.cardinality})`,
+            },
+          ],
+        };
+      }
       const now = new Date().toISOString();
       const relation = {
         id: randomUUID(),

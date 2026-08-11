@@ -20,14 +20,17 @@ const OPENCODE_CONFIG = `{
 
 const MCP_TOOLS = [
   'project_state',
+  'update_prd',
   'plan_project',
   'create_task',
   'update_task',
   'add_issue',
+  'update_issue',
   'add_decision',
   'update_milestone',
   'add_table',
   'add_relation',
+  'delete_relation',
   'add_tech',
 ];
 

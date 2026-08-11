@@ -41,21 +41,24 @@ Every tool: inputs validated by zod; response includes `updatedAt` of the mutate
 
 | Tool | Input (brief) | Output | Writes? |
 |---|---|---|---|
-| `project_state` | `projectId` | Full state document (10 entity collections) | No |
+| `project_state` | `projectId` | Full state document (10 entity collections) + project meta (name, description, status, PRD) | No |
+| `update_prd` | `projectId`, `{ purpose?, goals?, features?, scope?, outOfScope? }` | Merged PRD (all 5 sections) | Yes |
 | `plan_project` | `projectId`, `brief: string` | Proposed `{ tasks: [...], milestones: [...], estimateHours }` | No (suggestion only) |
 | `create_task` | `projectId`, task fields (title, status?, priority?, estimate?, labels?, blockedBy?) | Created task | Yes |
 | `update_task` | `projectId`, `taskId`, `{ status?, actualHours? }` | Updated task | Yes |
 | `add_issue` | `projectId`, issue fields (title, severity, status?, reproduction?, linkedTaskId?) | Created issue | Yes |
+| `update_issue` | `projectId`, `issueId`, `{ title?, severity?, status?, reproduction?, linkedTaskId? }` | Updated issue | Yes |
 | `add_decision` | `projectId`, ADR fields (title, context, options[], decision, consequences, status?, date?) | Created decision | Yes |
 | `update_milestone` | `projectId`, `milestoneId`, `{ status?, changelog? }` | Updated milestone | Yes |
 | `add_table` | `projectId`, `name`, `columns[]` (name, type, nullable?, primaryKey?, default?, comment?), `indexes[]?`, `comment?` | Created table (+ column ids) | Yes |
-| `add_relation` | `projectId`, `fromTableId`, `fromColumnId`, `toTableId`, `toColumnId`, `cardinality?`, `onDelete?` | Created relation | Yes |
+| `add_relation` | `projectId`, `fromTableId`, `fromColumnId`, `toTableId`, `toColumnId`, `cardinality?`, `onDelete?` | Created relation (rejects identical duplicates) | Yes |
+| `delete_relation` | `projectId`, `relationId` | Deleted relation (with remaining count) | Yes |
 | `add_tech` | `projectId`, `name`, `version?`, `category?`, `status?`, `notes?` | Created tech entry | Yes |
 
 **Conventions:**
 - Tool names are registered with a server prefix in the client (`devhub_project_state`, etc.).
 - Errors: JSON-RPC error objects; validation failures return clear messages.
-- Idempotency: `create_*` tools do not dedupe — agents should check state first (via `project_state`) to avoid duplicates.
+- Idempotency: `create_*` tools do not dedupe — agents should check state first (via `project_state`) to avoid duplicates. Exception: `add_relation` rejects a relation identical (same 4 column ids) to an existing one.
 
 ---
 

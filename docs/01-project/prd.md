@@ -172,12 +172,18 @@ Base { id: string (UUID), createdAt: ISO, updatedAt: ISO, authorId?: string }
 | Tool | Signature (brief) |
 |---|---|
 | `project_state` | (projectId) → full state |
+| `update_prd` | (projectId, {purpose, goals, features, scope, outOfScope}) → PRD |
 | `plan_project` | (projectId, brief) → tasks + estimates + milestones |
 | `create_task` | (projectId, task) → task |
 | `update_task` | (projectId, taskId, {status, actualHours}) → task |
 | `add_issue` | (projectId, issue) → issue |
+| `update_issue` | (projectId, issueId, {status, severity, linkedTaskId}) → issue |
 | `add_decision` | (projectId, adr) → adr |
 | `update_milestone` | (projectId, milestoneId, {changelog, status}) → milestone |
+| `add_table` | (projectId, name, columns[]) → table |
+| `add_relation` | (projectId, tableIds, columnIds, cardinality) → relation (duplicates rejected) |
+| `delete_relation` | (projectId, relationId) → deleted relation |
+| `add_tech` | (projectId, name, version, category) → tech entry |
 
 ---
 

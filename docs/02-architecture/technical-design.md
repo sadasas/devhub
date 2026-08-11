@@ -229,15 +229,18 @@ Versioning contract, request/response examples, and error format: [API Guide](..
 
 | Tool | Description |
 |---|---|
-| `project_state` | Returns the full state of a project by id (tasks, issues, milestones, tech stack, schema tables/columns/relations) |
+| `project_state` | Returns the full state of a project by id (tasks, issues, milestones, tech stack, schema tables/columns/relations) plus project meta (name, description, status, PRD) |
+| `update_prd` | Edits the product brief (purpose, goals, features, scope, out-of-scope) |
 | `plan_project` | Given a brief, proposes tasks with estimates + milestones (pure suggestion — does not write) |
 | `create_task` | Creates a task (zod-validated) |
 | `update_task` | Updates status and/or actualHours of a task |
 | `add_issue` | Creates an issue |
+| `update_issue` | Updates an issue (status, severity, title, reproduction, linked task) |
 | `add_decision` | Creates an ADR decision entry |
 | `update_milestone` | Updates milestone status/changelog |
 | `add_table` | Creates a schema table with columns/indexes |
-| `add_relation` | Creates a schema relation between two tables |
+| `add_relation` | Creates a schema relation between two tables (rejects identical duplicates) |
+| `delete_relation` | Deletes a schema relation by id |
 | `add_tech` | Creates a tech stack entry |
 
 All tools return normalized responses with `updatedAt` so agents can detect external changes.
