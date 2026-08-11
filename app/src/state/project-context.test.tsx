@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { ApiError, api } from '../lib/api';
 import type { State, Task } from '../lib/types';
-import { ProjectProvider, useProject } from './project-context';
+import { ProjectProvider, projectReducer, useProject } from './project-context';
 import type { ProjectAction } from './project-context';
 
 const TASK: Omit<Task, 'createdAt' | 'updatedAt'> = {
@@ -169,5 +169,34 @@ describe('project save pipeline', () => {
       resolvePut({ ok: true });
     });
     await flush();
+  });
+});
+
+describe('milestone unlink on removal', () => {
+  it('clears milestoneId on tasks linked to the removed milestone', () => {
+    const milestoneId = 'm1';
+    const state = makeState();
+    state.milestones = [
+      {
+        id: milestoneId,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+        name: 'M7',
+        version: '0.2.0',
+        targetDate: '2026-08-11',
+        status: 'inProgress',
+        changelog: '',
+      },
+    ];
+    state.tasks = [
+      { ...TASK, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', milestoneId },
+      { ...TASK, id: 't2', title: 'Other', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+    ];
+
+    const next = projectReducer(state, { type: 'milestone/remove', id: milestoneId });
+
+    expect(next.milestones).toHaveLength(0);
+    expect(next.tasks.find((t) => t.id === 't1')?.milestoneId).toBeNull();
+    expect(next.tasks.find((t) => t.id === 't2')?.milestoneId).toBeUndefined();
   });
 });

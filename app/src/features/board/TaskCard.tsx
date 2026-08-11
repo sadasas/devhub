@@ -8,14 +8,33 @@ import { Badge } from '../../components/Badge';
 interface TaskCardProps {
   task: Task;
   onOpen: () => void;
+  showStatus?: boolean;
+  showMilestone?: boolean;
 }
 
-export function TaskCard({ task, onOpen }: TaskCardProps) {
+export function TaskCard({ task, onOpen, showStatus = false, showMilestone = false }: TaskCardProps) {
   const { state, canEdit } = useProject();
   const blockers =
     task.blockedBy
       ?.map((id) => state?.tasks.find((t) => t.id === id))
       .filter((t): t is Task => t !== undefined) ?? [];
+  const milestone = task.milestoneId
+    ? state?.milestones.find((m) => m.id === task.milestoneId)
+    : undefined;
+
+  const chipRows = (showStatus || showMilestone) && (
+    <div className="task-card-labels">
+      {showStatus && (
+        <Badge tone={TASK_STATUS[task.status].tone}>{TASK_STATUS[task.status].label}</Badge>
+      )}
+      {showMilestone && milestone && <span className="task-label">{milestone.name}</span>}
+      {task.labels.map((label) => (
+        <span key={label} className="task-label">
+          {label}
+        </span>
+      ))}
+    </div>
+  );
 
   return (
     <div
@@ -40,15 +59,9 @@ export function TaskCard({ task, onOpen }: TaskCardProps) {
         <Badge tone={TASK_PRIORITY[task.priority].tone}>{TASK_PRIORITY[task.priority].label}</Badge>
       </div>
 
-      {task.labels.length > 0 && (
-        <div className="task-card-labels">
-          {task.labels.map((label) => (
-            <span key={label} className="task-label">
-              {label}
-            </span>
-          ))}
-        </div>
-      )}
+      {(chipRows && task.labels.length > 0) || showStatus || (showMilestone && milestone) ? (
+        chipRows
+      ) : null}
 
       <div className="task-card-meta">
         <span className="task-meta-left">

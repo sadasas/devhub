@@ -1068,6 +1068,13 @@ a:hover {
   color: var(--text-muted);
 }
 
+.kanban-milestone-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .kanban-col-body {
   display: flex;
   flex-direction: column;
@@ -1183,6 +1190,28 @@ a:hover {
 
 .task-card-id {
   font-size: 10px;
+}
+
+.milestone-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.milestone-progress-track {
+  flex: 1;
+  max-width: 120px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.milestone-progress-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
 }
 
 .blocker-list {

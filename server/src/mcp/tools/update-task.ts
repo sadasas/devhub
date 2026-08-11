@@ -12,6 +12,7 @@ const inputSchema = z.object({
   estimate: z.number().int().min(0).optional(),
   actualHours: z.number().int().min(0).optional(),
   labels: z.array(z.string()).max(20).optional(),
+  milestoneId: z.string().uuid().nullable().optional().describe('Move task to another milestone, or null to unassign'),
   description: z.string().optional(),
 });
 
@@ -36,6 +37,7 @@ export function registerUpdateTask(server: McpServer): void {
       if (args.estimate !== undefined) task.estimate = args.estimate;
       if (args.actualHours !== undefined) task.actualHours = args.actualHours;
       if (args.labels !== undefined) task.labels = args.labels;
+      if (args.milestoneId !== undefined) task.milestoneId = args.milestoneId;
       if (args.description !== undefined) task.description = args.description;
       task.updatedAt = new Date().toISOString();
       await saveState(args.projectId, state);

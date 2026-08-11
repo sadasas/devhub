@@ -45,6 +45,8 @@ export function ReleasesPage() {
     return (a.targetDate ?? '9999-99-99').localeCompare(b.targetDate ?? '9999-99-99');
   });
 
+  const milestoneTasks = (id: string) => state.tasks.filter((t) => t.milestoneId === id);
+
   return (
     <div>
       <div className="data-list-header">
@@ -102,6 +104,26 @@ export function ReleasesPage() {
                   </span>
                   <span>#{shortId(m.id)}</span>
                 </div>
+                {milestoneTasks(m.id).length > 0 && (
+                  <div className="milestone-progress">
+                    <div className="milestone-progress-track">
+                      <div
+                        className="milestone-progress-fill"
+                        style={{
+                          width: `${Math.round(
+                            (milestoneTasks(m.id).filter((t) => t.status === 'done').length /
+                              milestoneTasks(m.id).length) *
+                              100,
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                    <span className="tabular">
+                      {milestoneTasks(m.id).filter((t) => t.status === 'done').length}/
+                      {milestoneTasks(m.id).length} done
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="data-row-side">
                 {canEdit && (

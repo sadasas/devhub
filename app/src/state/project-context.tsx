@@ -138,7 +138,13 @@ export function projectReducer(state: State, action: ProjectAction): State {
     case 'milestone/update':
       return { ...state, milestones: updateIn<Milestone>(state.milestones, action.id, action.patch) };
     case 'milestone/remove':
-      return { ...state, milestones: state.milestones.filter((m) => m.id !== action.id) };
+      return {
+        ...state,
+        milestones: state.milestones.filter((m) => m.id !== action.id),
+        tasks: state.tasks.map((t) =>
+          t.milestoneId === action.id ? { ...t, milestoneId: null, updatedAt: nowIso() } : t,
+        ),
+      };
 
     default:
       return state;

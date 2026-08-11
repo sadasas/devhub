@@ -11,6 +11,7 @@ const inputSchema = z.object({
   estimate: z.number().int().min(0).optional().describe('Estimated hours'),
   actualHours: z.number().int().min(0).optional(),
   labels: z.array(z.string()).max(20).default([]),
+  milestoneId: z.string().uuid().nullable().optional().describe('Optional milestone to group this task under'),
   description: z.string().default(''),
 });
 
@@ -20,8 +21,7 @@ export function registerCreateTask(server: McpServer): void {
     {
       title: 'Create a task',
       description: 'Add a task to a DevHub project board with status, priority, estimate and labels.',
-      inputSchema,
-    },
+      inputSchema,    },
     async (args) => {
       const state = await loadState(args.projectId);
       const now = new Date().toISOString();
@@ -36,6 +36,7 @@ export function registerCreateTask(server: McpServer): void {
         actualHours: args.actualHours,
         labels: args.labels,
         blockedBy: [] as string[],
+        milestoneId: args.milestoneId,
         description: args.description,
       };
       state.tasks.push(task);

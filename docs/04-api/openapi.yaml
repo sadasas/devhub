@@ -541,6 +541,11 @@ components:
                 type: string
                 format: uuid
               description: Must reference existing task ids (zod cross-check)
+            milestoneId:
+              type: string
+              format: uuid
+              nullable: true
+              description: Optional grouping milestone; null when unassigned
 
     Issue:
       allOf:

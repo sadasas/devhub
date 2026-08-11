@@ -23,6 +23,7 @@ export const taskSchema = z.object({
   actualHours: z.number().int().nonnegative().optional(),
   labels: z.array(z.string().max(50)).max(20).default([]),
   blockedBy: z.array(z.string().uuid()).default([]),
+  milestoneId: z.string().uuid().nullable().optional(),
   description: z.string().max(10_000).default(''),
 });
 

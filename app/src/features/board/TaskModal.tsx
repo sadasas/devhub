@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { Trash } from '@phosphor-icons/react';
 import { TASK_PRIORITY, TASK_STATUS } from '../../lib/labels';
 import { formatRelative, parseLabels } from '../../lib/utils';
-import type { Task, TaskPriority, TaskStatus } from '../../lib/types';
-import { useProject, wouldCreateCycle } from '../../state/project-context';
+import type { Task, TaskPriority, TaskStatus } from '../../lib/types';import { useProject, wouldCreateCycle } from '../../state/project-context';
 import type { UpdatePatch } from '../../state/project-context';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
@@ -115,6 +114,25 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               ))}
             </select>
           </div>
+        </div>
+
+        <div className="field">
+          <label className="field-label" htmlFor="task-milestone">
+            Milestone
+          </label>
+          <select
+            id="task-milestone"
+            className="select"
+            value={task.milestoneId ?? ''}
+            onChange={(e) => update({ milestoneId: e.target.value || null })}
+          >
+            <option value="">None</option>
+            {state!.milestones.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="field-row">

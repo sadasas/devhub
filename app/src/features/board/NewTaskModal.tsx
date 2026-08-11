@@ -9,12 +9,14 @@ import { Modal } from '../../components/Modal';
 import { Textarea } from '../../components/Textarea';
 
 interface NewTaskModalProps {
+  open: boolean;
   status: TaskStatus | null;
+  milestoneId?: string | null;
   onClose: () => void;
 }
 
-export function NewTaskModal({ status, onClose }: NewTaskModalProps) {
-  const { dispatch } = useProject();
+export function NewTaskModal({ open, status, milestoneId, onClose }: NewTaskModalProps) {
+  const { state, dispatch } = useProject();
   const [title, setTitle] = useState('');
   const [priority, setPriority] = useState<TaskPriority>('medium');
   const [estimate, setEstimate] = useState('');
@@ -23,7 +25,8 @@ export function NewTaskModal({ status, onClose }: NewTaskModalProps) {
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!status || !title.trim()) return;
+    if (!title.trim()) return;
+    const taskStatus = status ?? 'todo';
     const parsedEstimate = Number(estimate);
     const ts = nowIso();
     dispatch({
@@ -33,11 +36,12 @@ export function NewTaskModal({ status, onClose }: NewTaskModalProps) {
         createdAt: ts,
         updatedAt: ts,
         title: title.trim(),
-        status,
+        status: taskStatus,
         priority,
         estimate: estimate !== '' && !Number.isNaN(parsedEstimate) ? Math.max(0, parsedEstimate) : undefined,
         labels: parseLabels(labels),
         blockedBy: [],
+        milestoneId,
         description: description.trim(),
       },
     });
@@ -51,7 +55,7 @@ export function NewTaskModal({ status, onClose }: NewTaskModalProps) {
 
   return (
     <Modal
-      open={status !== null}
+      open={open}
       title="New task"
       onClose={onClose}
       width="sm"
@@ -105,6 +109,13 @@ export function NewTaskModal({ status, onClose }: NewTaskModalProps) {
           value={labels}
           onChange={(e) => setLabels(e.target.value)}
         />
+        {state && state.milestones.length > 0 && (
+          <p className="field-helper">
+            {milestoneId
+              ? `Milestone: ${state.milestones.find((m) => m.id === milestoneId)?.name ?? 'Unknown'}`
+              : 'No milestone assigned — can be set in the task editor.'}
+          </p>
+        )}
         <Textarea
           label="Description"
           rows={3}

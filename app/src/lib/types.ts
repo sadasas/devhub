@@ -30,6 +30,7 @@ export interface Task extends Base {
   actualHours?: number;
   labels: string[];
   blockedBy: string[];
+  milestoneId?: string | null;
   description: string;
 }
 
