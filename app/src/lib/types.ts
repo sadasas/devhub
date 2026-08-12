@@ -206,6 +206,9 @@ export interface TeamInvitation {
 export interface User {
   id: string;
   email: string;
+  displayName: string;
+  bio: string;
+  createdAt: string;
 }
 
 export interface McpKey {

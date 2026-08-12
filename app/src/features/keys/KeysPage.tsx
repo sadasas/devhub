@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Key, LockKey, Plus } from '@phosphor-icons/react';
+import { Key, Plus } from '@phosphor-icons/react';
 import { ApiError, api } from '../../lib/api';
 import type { McpKey, McpKeyCreated } from '../../lib/types';
 import { formatDate, formatRelative } from '../../lib/utils';
@@ -7,7 +7,6 @@ import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { InlineError } from '../../components/InlineError';
-import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { Skeleton } from '../../components/Skeleton';
 import { NewKeyModal } from './NewKeyModal';
@@ -23,16 +22,10 @@ export function KeysPage() {
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [newOpen, setNewOpen] = useState(false);
-const [revokeTarget, setRevokeTarget] = useState<RevokeTarget | null>(null);
+  const [revokeTarget, setRevokeTarget] = useState<RevokeTarget | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [revokeError, setRevokeError] = useState<string | null>(null);
   const [revoking, setRevoking] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [changing, setChanging] = useState(false);
-  const [changeError, setChangeError] = useState<string | null>(null);
-  const [changeSuccess, setChangeSuccess] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -75,30 +68,8 @@ const [revokeTarget, setRevokeTarget] = useState<RevokeTarget | null>(null);
       setRevokeTarget(null);
     } catch (err) {
       setRevokeError(err instanceof ApiError ? err.message : 'Failed to revoke key.');
-} finally {
-      setRevoking(false);
-    }
-  }
-
-  async function onChangePassword(e: React.FormEvent) {
-    e.preventDefault();
-    setChangeError(null);
-    setChangeSuccess(false);
-    if (newPassword !== confirmPassword) {
-      setChangeError('New password and confirmation do not match.');
-      return;
-    }
-    setChanging(true);
-    try {
-      await api.changePassword(currentPassword, newPassword);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setChangeSuccess(true);
-    } catch (err) {
-      setChangeError(err instanceof ApiError ? err.message : 'Failed to change password.');
     } finally {
-      setChanging(false);
+      setRevoking(false);
     }
   }
 
@@ -191,52 +162,7 @@ const [revokeTarget, setRevokeTarget] = useState<RevokeTarget | null>(null);
         </>
       )}
 
-<NewKeyModal open={newOpen} onClose={() => setNewOpen(false)} onCreated={onCreated} />
-
-      <section className="account-section" aria-label="Account">
-        <h2 className="account-section-title">
-          <LockKey size={13} aria-hidden="true" />
-          Account
-        </h2>
-        <form className="form-stack" onSubmit={(e) => void onChangePassword(e)}>
-          <Input
-            label="Current password"
-            type="password"
-            autoComplete="current-password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            required
-          />
-          <Input
-            label="New password"
-            type="password"
-            autoComplete="new-password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            helper="At least 8 characters and different from the current password."
-            required
-          />
-          <Input
-            label="Confirm new password"
-            type="password"
-            autoComplete="new-password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-          />
-          {changeError && <InlineError>{changeError}</InlineError>}
-          {changeSuccess && (
-            <p className="field-helper" role="status">
-              Password updated. Use it on your next login.
-            </p>
-          )}
-          <div>
-            <Button type="submit" loading={changing}>
-              Change password
-            </Button>
-          </div>
-        </form>
-      </section>
+      <NewKeyModal open={newOpen} onClose={() => setNewOpen(false)} onCreated={onCreated} />
 
       <Modal
         open={revokeTarget !== null}

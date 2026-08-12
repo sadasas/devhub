@@ -9,6 +9,7 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  setUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -41,13 +42,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const u = await api.login(email, password);
+    await api.login(email, password);
+    const u = await api.me();
     setUser(u);
   }, []);
 
   const register = useCallback(async (email: string, password: string) => {
-    const u = await api.register(email, password);
-    setUser({ id: u.id, email: u.email });
+    await api.register(email, password);
+    const u = await api.me();
+    setUser(u);
   }, []);
 
   const logout = useCallback(async () => {
@@ -56,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, login, register, logout }),
+    () => ({ user, loading, login, register, logout, setUser }),
     [user, loading, login, register, logout],
   );
 

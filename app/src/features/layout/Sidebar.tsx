@@ -4,6 +4,7 @@ import { NavLink, type NavLinkProps } from 'react-router';
 import { useAuth } from '../../state/auth-context';
 import { useProjects } from '../../state/projects-context';
 import { useTeams } from '../../state/teams-context';
+import { initialsOf } from '../../lib/initials';
 import { Button } from '../../components/Button';
 import { Logo } from '../../components/Logo';
 import { Skeleton } from '../../components/Skeleton';
@@ -116,19 +117,26 @@ export function Sidebar() {
       </nav>
 
       <div className="sidebar-footer">
-        <div className="sidebar-user">
-          <span className="sidebar-user-email" title={user?.email}>
-            {user?.email}
+        <NavLink to="/profile" className={itemClass('sidebar-user')} aria-label="Profile">
+          <span className="sidebar-user-avatar" aria-hidden="true">
+            {user ? initialsOf(user.displayName, user.email) : '?'}
           </span>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          leftIcon={<SignOut size={14} aria-hidden="true" />}
+          <span className="sidebar-user-meta">
+            <span className="sidebar-user-name" title={user?.email}>
+              {user?.displayName.trim() || user?.email || 'Signed in'}
+            </span>
+            <span className="sidebar-user-email">{user?.email}</span>
+          </span>
+        </NavLink>
+        <button
+          type="button"
+          className="sidebar-signout"
+          title="Sign out"
+          aria-label="Sign out"
           onClick={() => void logout()}
         >
-          Sign out
-        </Button>
+          <SignOut size={15} aria-hidden="true" />
+        </button>
       </div>
 
       <CreateTeamModal open={createTeamOpen} onClose={() => setCreateTeamOpen(false)} />

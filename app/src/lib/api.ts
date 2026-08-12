@@ -105,6 +105,11 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ currentPassword, newPassword }),
     }),
+  updateProfile: (patch: Partial<Pick<User, 'displayName' | 'bio'>>) =>
+    request<User>('/auth/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }),
 
   listProjects: async () => {
     const res = await request<{ projects: Project[] }>('/projects');

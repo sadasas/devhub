@@ -148,6 +148,15 @@ authRouter.patch('/password', passwordLimiter, requireAuth, async (req, res) => 
   res.json({ ok: true });
 });
 
+const profileSchema = z
+  .object({
+    displayName: z.string().trim().max(60, 'Display name must be at most 60 characters').optional(),
+    bio: z.string().trim().max(500, 'Bio must be at most 500 characters').optional(),
+  })
+  .refine((v) => v.displayName !== undefined || v.bio !== undefined, {
+    message: 'At least one field must be provided',
+  });
+
 authRouter.post('/logout', (req, res) => {
   res.clearCookie(SESSION_COOKIE, { path: '/' });
   res.json({ ok: true });
@@ -155,11 +164,50 @@ authRouter.post('/logout', (req, res) => {
 
 authRouter.get('/me', requireAuth, async (req, res) => {
   const userId = getUserId(req);
-  const result = await pool.query<{ id: string; email: string }>(
-    'SELECT id, email FROM users WHERE id = $1',
+  const result = await pool.query<{ id: string; email: string; display_name: string; bio: string; created_at: string }>(
+    'SELECT id, email, display_name, bio, created_at FROM users WHERE id = $1',
     [userId],
   );
   const user = result.rows[0];
   if (!user) throw new ApiError(401, 'UNAUTHORIZED', 'User not found');
-  res.json(user);
+  res.json(toUser(user));
 });
+
+authRouter.patch('/profile', requireAuth, async (req, res) => {
+  const userId = getUserId(req);
+  const parsed = profileSchema.safeParse(req.body);
+  if (!parsed.success) {
+    throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid profile data', parsed.error.issues);
+  }
+  const { displayName, bio } = parsed.data;
+  const result = await pool.query<ProfileRow>(
+    `UPDATE users
+     SET display_name = COALESCE($2, display_name),
+         bio = COALESCE($3, bio),
+         updated_at = now()
+     WHERE id = $1
+     RETURNING id, email, display_name, bio, created_at`,
+    [userId, displayName ?? null, bio ?? null],
+  );
+  const user = result.rows[0];
+  if (!user) throw new ApiError(401, 'UNAUTHORIZED', 'User not found');
+  res.json(toUser(user));
+});
+
+interface ProfileRow {
+  id: string;
+  email: string;
+  display_name: string;
+  bio: string;
+  created_at: string;
+}
+
+function toUser(row: ProfileRow) {
+  return {
+    id: row.id,
+    email: row.email,
+    displayName: row.display_name,
+    bio: row.bio,
+    createdAt: row.created_at,
+  };
+}

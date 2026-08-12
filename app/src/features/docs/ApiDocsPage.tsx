@@ -33,6 +33,8 @@ const GROUPS: ApiGroup[] = [
       { method: 'POST', path: '/api/auth/login', desc: 'Log in and start a session. Rate limited.', auth: false },
       { method: 'POST', path: '/api/auth/logout', desc: 'End the current session.' },
       { method: 'GET', path: '/api/auth/me', desc: 'Return the current user.' },
+      { method: 'PATCH', path: '/api/auth/profile', desc: 'Update your display name or bio.' },
+      { method: 'PATCH', path: '/api/auth/password', desc: 'Change your password. Rate limited.' },
     ],
   },
   {
