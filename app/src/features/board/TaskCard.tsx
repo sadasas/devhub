@@ -1,7 +1,7 @@
 import { memo } from 'react';
-import { LinkSimple } from '@phosphor-icons/react';
+import { LinkSimple, ListChecks } from '@phosphor-icons/react';
 import { TASK_PRIORITY, TASK_STATUS } from '../../lib/labels';
-import { shortId } from '../../lib/utils';
+import { linkedTestCases, shortId } from '../../lib/utils';
 import type { Task } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { Badge } from '../../components/Badge';
@@ -27,6 +27,7 @@ export const TaskCard = memo(function TaskCard({
   const milestone = task.milestoneId
     ? state?.milestones.find((m) => m.id === task.milestoneId)
     : undefined;
+  const testCases = linkedTestCases(task.id, state?.testCases ?? []);
 
   const chipRows = (showStatus || showMilestone) && (
     <div className="task-card-labels">
@@ -83,6 +84,15 @@ export const TaskCard = memo(function TaskCard({
             >
               <LinkSimple size={11} weight="bold" aria-hidden="true" />
               {blockers.length}
+            </span>
+          )}
+          {testCases.length > 0 && (
+            <span
+              className="task-tests"
+              title={testCases.map((tc) => `${tc.name} (${tc.status})`).join(', ')}
+            >
+              <ListChecks size={11} weight="bold" aria-hidden="true" />
+              {testCases.length}
             </span>
           )}
         </span>

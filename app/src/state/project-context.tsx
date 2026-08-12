@@ -11,6 +11,8 @@ import type { ReactNode } from 'react';
 import { ApiError, api } from '../lib/api';
 import { nowIso } from '../lib/utils';
 import type {
+  ApiCollection,
+  ApiEndpoint,
   Decision,
   Issue,
   Milestone,
@@ -55,7 +57,13 @@ export type ProjectAction =
   | { type: 'decision/remove'; id: string }
   | { type: 'milestone/add'; milestone: Milestone }
   | { type: 'milestone/update'; id: string; patch: UpdatePatch<Milestone> }
-  | { type: 'milestone/remove'; id: string };
+  | { type: 'milestone/remove'; id: string }
+  | { type: 'apiCollection/add'; collection: ApiCollection }
+  | { type: 'apiCollection/update'; id: string; patch: UpdatePatch<ApiCollection> }
+  | { type: 'apiCollection/remove'; id: string }
+  | { type: 'apiEndpoint/add'; endpoint: ApiEndpoint }
+  | { type: 'apiEndpoint/update'; id: string; patch: UpdatePatch<ApiEndpoint> }
+  | { type: 'apiEndpoint/remove'; id: string };
 
 /* ------------------------------------------------------------------ */
 /* Reducer — sole mutator of project state                             */
@@ -144,6 +152,37 @@ export function projectReducer(state: State, action: ProjectAction): State {
         tasks: state.tasks.map((t) =>
           t.milestoneId === action.id ? { ...t, milestoneId: null, updatedAt: nowIso() } : t,
         ),
+      };
+
+    case 'apiCollection/add':
+      return { ...state, apiCollections: [action.collection, ...state.apiCollections] };
+    case 'apiCollection/update':
+      return {
+        ...state,
+        apiCollections: updateIn<ApiCollection>(state.apiCollections, action.id, action.patch),
+      };
+    case 'apiCollection/remove':
+      return {
+        ...state,
+        apiCollections: state.apiCollections.filter((c) => c.id !== action.id),
+        apiEndpoints: state.apiEndpoints.map((e) =>
+          e.collectionId === action.id
+            ? { ...e, collectionId: null, updatedAt: nowIso() }
+            : e,
+        ),
+      };
+
+    case 'apiEndpoint/add':
+      return { ...state, apiEndpoints: [action.endpoint, ...state.apiEndpoints] };
+    case 'apiEndpoint/update':
+      return {
+        ...state,
+        apiEndpoints: updateIn<ApiEndpoint>(state.apiEndpoints, action.id, action.patch),
+      };
+    case 'apiEndpoint/remove':
+      return {
+        ...state,
+        apiEndpoints: state.apiEndpoints.filter((e) => e.id !== action.id),
       };
 
     default:

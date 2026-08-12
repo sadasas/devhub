@@ -1,3 +1,5 @@
+import type { Task, TestCase } from './types';
+
 const shortDate = new Intl.DateTimeFormat('en-US', {
   month: 'short',
   day: 'numeric',
@@ -37,6 +39,16 @@ export function newId(): string {
 
 export function shortId(id: string): string {
   return id.slice(0, 6);
+}
+
+export function linkedTestCases(taskId: string, testCases: TestCase[]): TestCase[] {
+  return testCases.filter((tc) => tc.taskId === taskId);
+}
+
+export function isTaskCompletable(task: Task, testCases: TestCase[]): boolean {
+  const linked = linkedTestCases(task.id, testCases);
+  if (linked.length === 0) return true;
+  return linked.every((tc) => tc.status === 'pass');
 }
 
 export function nowIso(): string {

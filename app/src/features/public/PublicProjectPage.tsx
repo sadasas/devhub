@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Bug, Columns, Flag, Info, Rocket, SquaresFour, Stack } from '@phosphor-icons/react';
+import { Bug, Columns, Flag, Info, ListChecks, Rocket, SquaresFour, Stack } from '@phosphor-icons/react';
 import { useNavigate, useParams } from 'react-router';
 import { ApiError, api } from '../../lib/api';
 import type { PublicProject, State, Task } from '../../lib/types';
@@ -12,7 +12,7 @@ import {
   TECH_CATEGORY,
   TECH_STATUS,
 } from '../../lib/labels';
-import { formatDate } from '../../lib/utils';
+import { formatDate, linkedTestCases } from '../../lib/utils';
 import { computeProjectStats } from '../../lib/stats';
 import { useAuth } from '../../state/auth-context';
 import { Badge } from '../../components/Badge';
@@ -183,6 +183,7 @@ function PublicTaskCard({
   const milestone = task.milestoneId
     ? state.milestones.find((m) => m.id === task.milestoneId)
     : undefined;
+  const testCases = linkedTestCases(task.id, state.testCases);
   return (
     <div className="task-card">
       <div className="task-card-top">
@@ -201,6 +202,17 @@ function PublicTaskCard({
         ))}
       </div>
       <div className="task-card-meta">
+        <span className="task-meta-left">
+          {testCases.length > 0 && (
+            <span
+              className="task-tests"
+              title={testCases.map((tc) => `${tc.name} (${tc.status})`).join(', ')}
+            >
+              <ListChecks size={11} weight="bold" aria-hidden="true" />
+              {testCases.length}
+            </span>
+          )}
+        </span>
         <span className="task-card-id font-mono" title={task.id}>
           {task.id.slice(0, 8)}
         </span>

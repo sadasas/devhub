@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Plus, SquaresFour, Flag } from '@phosphor-icons/react';
 import type { Task, TaskStatus } from '../../lib/types';
+import { isTaskCompletable } from '../../lib/utils';
 import { useProject } from '../../state/project-context';
 import { Button } from '../../components/Button';
 import { Skeleton } from '../../components/Skeleton';
@@ -29,7 +30,17 @@ export function BoardPage() {
   const [overKey, setOverKey] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [newTaskAt, setNewTaskAt] = useState<NewTaskTarget | null>(null);
+  const [doneBlockedMsg, setDoneBlockedMsg] = useState<string | null>(null);
+  const doneBlockedTimer = useRef<number | undefined>(undefined);
   const openTask = useCallback((id: string) => setEditId(id), []);
+
+  useEffect(() => () => window.clearTimeout(doneBlockedTimer.current), []);
+
+  const showDoneBlocked = (msg: string) => {
+    setDoneBlockedMsg(msg);
+    window.clearTimeout(doneBlockedTimer.current);
+    doneBlockedTimer.current = window.setTimeout(() => setDoneBlockedMsg(null), 4000);
+  };
 
   useEffect(() => {
     if (!canEdit || editId || newTaskAt) return;
@@ -90,7 +101,18 @@ export function BoardPage() {
   function handleDropStatus(status: TaskStatus, e: React.DragEvent) {
     const id = e.dataTransfer.getData('text/plain');
     const task = state?.tasks.find((t) => t.id === id);
-    if (task && task.status !== status) {
+    if (!task) {
+      setOverKey(null);
+      return;
+    }
+    if (status === 'done' && task.status !== 'done' && !isTaskCompletable(task, state!.testCases)) {
+      showDoneBlocked(
+        `"${task.title}" still has test cases that are not all passed. Finish them before moving to Done.`,
+      );
+      setOverKey(null);
+      return;
+    }
+    if (task.status !== status) {
       dispatch({ type: 'task/update', id, patch: { status } });
     }
     setOverKey(null);
@@ -214,6 +236,8 @@ export function BoardPage() {
           By Milestone
         </button>
       </div>
+
+      {doneBlockedMsg && <InlineError style={{ marginBottom: 12 }}>{doneBlockedMsg}</InlineError>}
 
       <div className="kanban">{view === 'status' ? statusColumns : milestoneCols}</div>
 

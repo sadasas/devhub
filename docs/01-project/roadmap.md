@@ -80,7 +80,7 @@ Every item intentionally postponed, with rationale. Items cannot return without 
 | ID | Feature | Deferred from | Rationale | Revisit |
 |---|---|---|---|---|
 | DEF-001 | Git CLI integration (run git commands, show branches) | V1 | Web browsers cannot spawn a git CLI; Node sidecar/Electron/Tauri rejected as over-engineering for V1 | Phase 3 (optional Tauri desktop) |
-| DEF-002 | API Endpoint Inventory | V1 | Nice-to-have; low usage cost vs effort | V2 |
+| DEF-002 | API Endpoint Inventory | ~~removed~~ | **Reinstated:** promoted to V1 — shipped as API docs (collections + endpoints with OpenAPI import/export, ADR-019) | — |
 | DEF-003 | Project Templates | V1 | Not needed for personal workflows | V2 |
 | DEF-004 | Release Tracker (rich version history) | V1 | Milestones cover basic need | V2 |
 | DEF-005 | Project Notes | V1 | Low priority | V2 |

@@ -126,6 +126,48 @@ export const milestoneSchema = z.object({
   changelog: z.string().max(20_000).default(''),
 });
 
+export const apiMethod = z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']);
+export const apiParamIn = z.enum(['path', 'query', 'header']);
+
+export const apiHeaderSchema = z.object({
+  key: z.string().min(1).max(200),
+  value: z.string().max(2_000).default(''),
+  description: z.string().max(2_000).default(''),
+});
+
+export const apiParamSchema = z.object({
+  name: z.string().min(1).max(200),
+  in: apiParamIn,
+  required: z.boolean().default(false),
+  description: z.string().max(2_000).default(''),
+});
+
+export const apiResponseSchema = z.object({
+  status: z.number().int().min(100).max(599),
+  contentType: z.string().max(100).default(''),
+  description: z.string().max(5_000).default(''),
+  body: z.string().max(50_000).default(''),
+});
+
+export const apiCollectionSchema = z.object({
+  ...baseFields,
+  name: z.string().min(1).max(200),
+  description: z.string().max(2_000).default(''),
+});
+
+export const apiEndpointSchema = z.object({
+  ...baseFields,
+  collectionId: z.string().uuid().nullable().optional(),
+  method: apiMethod,
+  path: z.string().min(1).max(500),
+  name: z.string().min(1).max(200),
+  description: z.string().max(10_000).default(''),
+  headers: z.array(apiHeaderSchema).max(100).default([]),
+  params: z.array(apiParamSchema).max(100).default([]),
+  body: z.string().max(50_000).default(''),
+  responses: z.array(apiResponseSchema).max(50).default([]),
+});
+
 export const projectStatus = z.enum(['active', 'archived']);
 
 export const stateSchema = z.object({
@@ -138,6 +180,8 @@ export const stateSchema = z.object({
   schemaVersions: z.array(schemaVersionSchema).default([]),
   decisions: z.array(decisionSchema).default([]),
   milestones: z.array(milestoneSchema).default([]),
+  apiCollections: z.array(apiCollectionSchema).default([]),
+  apiEndpoints: z.array(apiEndpointSchema).default([]),
 });
 
 export type State = z.infer<typeof stateSchema>;
@@ -151,6 +195,13 @@ export type Relation = z.infer<typeof relationSchema>;
 export type SchemaVersion = z.infer<typeof schemaVersionSchema>;
 export type Decision = z.infer<typeof decisionSchema>;
 export type Milestone = z.infer<typeof milestoneSchema>;
+export type ApiCollection = z.infer<typeof apiCollectionSchema>;
+export type ApiEndpoint = z.infer<typeof apiEndpointSchema>;
+export type ApiMethod = z.infer<typeof apiMethod>;
+export type ApiParamIn = z.infer<typeof apiParamIn>;
+export type ApiHeader = z.infer<typeof apiHeaderSchema>;
+export type ApiParam = z.infer<typeof apiParamSchema>;
+export type ApiResponse = z.infer<typeof apiResponseSchema>;
 
 export const emptyState: State = {
   tasks: [],
@@ -162,6 +213,8 @@ export const emptyState: State = {
   schemaVersions: [],
   decisions: [],
   milestones: [],
+  apiCollections: [],
+  apiEndpoints: [],
 };
 
 export const exportDocumentSchema = z.object({

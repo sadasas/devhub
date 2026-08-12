@@ -27,6 +27,7 @@ DevHub is a project management application designed specifically for **programmi
 
 - **Tech Stack Ledger** — what versions of what dependencies you use, and when a major upgrade is due.
 - **Database Schema Manager** — define tables, columns, and relations, with a visual ERD and schema versioning.
+- **API Documentation** — collections and endpoints with headers, params, body and responses, plus OpenAPI 3.0.3 import/export.
 - **Decision Log (ADR)** — why you chose this library or architecture, so you remember in 6 months.
 - **Dev-style tracking** — tasks with estimates, issues with reproduction steps, test case checklists, milestones with changelogs.
 
@@ -48,6 +49,7 @@ DevHub is a project management application designed specifically for **programmi
 | Schema | Table/Column/Relation CRUD, visual ERD (SVG, pan & zoom), schema versioning |
 | Decisions | ADR log: Proposed / Accepted / Rejected / Superseded |
 | Releases | Milestones with target dates, changelogs |
+| API Docs | Collections + endpoints inventory (headers, params, body, responses), read-only docs preview, MCP tools, OpenAPI 3.0.3 import/export (YAML/JSON) |
 | Stats | Estimates vs actuals, velocity, issue aging — SVG charts |
 | Global | Command Palette (Ctrl+K, `?`), keyboard shortcuts (`N` for new task), export/import JSON, URL routing (react-router) |
 | Auth | Email + password, JWT httpOnly cookie, rate limiting, change password |
@@ -57,7 +59,7 @@ DevHub is a project management application designed specifically for **programmi
 
 ### V2 / V3 (deferred — see [Roadmap](docs/01-project/roadmap.md))
 
-API endpoint inventory, templates, release tracker improvements, project notes, PWA, multi-device sync, real-time collaboration.
+Templates, release tracker improvements, project notes, PWA, multi-device sync, real-time collaboration.
 
 ---
 

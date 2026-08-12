@@ -110,6 +110,46 @@ export interface Milestone extends Base {
   changelog: string;
 }
 
+export type ApiMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS';
+export type ApiParamIn = 'path' | 'query' | 'header';
+
+export interface ApiHeader {
+  key: string;
+  value: string;
+  description: string;
+}
+
+export interface ApiParam {
+  name: string;
+  in: ApiParamIn;
+  required: boolean;
+  description: string;
+}
+
+export interface ApiResponse {
+  status: number;
+  contentType: string;
+  description: string;
+  body: string;
+}
+
+export interface ApiCollection extends Base {
+  name: string;
+  description: string;
+}
+
+export interface ApiEndpoint extends Base {
+  collectionId?: string | null;
+  method: ApiMethod;
+  path: string;
+  name: string;
+  description: string;
+  headers: ApiHeader[];
+  params: ApiParam[];
+  body: string;
+  responses: ApiResponse[];
+}
+
 export interface State {
   tasks: Task[];
   issues: Issue[];
@@ -120,6 +160,8 @@ export interface State {
   schemaVersions: SchemaVersion[];
   decisions: Decision[];
   milestones: Milestone[];
+  apiCollections: ApiCollection[];
+  apiEndpoints: ApiEndpoint[];
 }
 
 export interface ExportMeta {

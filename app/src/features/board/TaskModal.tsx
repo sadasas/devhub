@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Trash } from '@phosphor-icons/react';
 import { TASK_PRIORITY, TASK_STATUS } from '../../lib/labels';
-import { formatRelative, parseLabels } from '../../lib/utils';
+import { formatRelative, isTaskCompletable, parseLabels } from '../../lib/utils';
 import type { Task, TaskPriority, TaskStatus } from '../../lib/types';import { useProject, wouldCreateCycle } from '../../state/project-context';
 import type { UpdatePatch } from '../../state/project-context';
 import { Button } from '../../components/Button';
@@ -21,9 +21,11 @@ interface TaskModalProps {
 export function TaskModal({ taskId, onClose }: TaskModalProps) {
   const { state, dispatch } = useProject();
   const [cycleWarn, setCycleWarn] = useState<string | null>(null);
+  const [doneWarn, setDoneWarn] = useState<string | null>(null);
 
   useEffect(() => {
     setCycleWarn(null);
+    setDoneWarn(null);
   }, [taskId]);
 
   const task = state?.tasks.find((t) => t.id === taskId);
@@ -31,6 +33,20 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
 
   const update = (patch: UpdatePatch<Task>) =>
     dispatch({ type: 'task/update', id: task.id, patch });
+
+  const changeStatus = (next: TaskStatus) => {
+    if (next === 'done' && !isTaskCompletable(task, state!.testCases)) {
+      const pending = state!.testCases.filter(
+        (tc) => tc.taskId === task.id && tc.status !== 'pass',
+      );
+      setDoneWarn(
+        `Cannot mark done: ${pending.length} test case${pending.length === 1 ? ' is' : 's are'} not passed yet.`,
+      );
+      return;
+    }
+    setDoneWarn(null);
+    update({ status: next });
+  };
 
   const otherTasks = state!.tasks.filter((t) => t.id !== task.id);
   const blockerNames = task.blockedBy
@@ -88,7 +104,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               id="task-status"
               className="select"
               value={task.status}
-              onChange={(e) => update({ status: e.target.value as TaskStatus })}
+              onChange={(e) => changeStatus(e.target.value as TaskStatus)}
             >
               {STATUS_OPTIONS.map((s) => (
                 <option key={s} value={s}>
@@ -115,6 +131,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
             </select>
           </div>
         </div>
+        {doneWarn && <InlineError>{doneWarn}</InlineError>}
 
         <div className="field">
           <label className="field-label" htmlFor="task-milestone">

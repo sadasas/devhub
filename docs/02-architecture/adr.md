@@ -48,6 +48,7 @@
 | [ADR-013](#adr-013) | MCP auth: per-user API keys, not a shared server secret | Accepted | 2026-08-10 |
 | [ADR-016](#adr-016) | URL-based routing with react-router v7 | Accepted | 2026-08-11 |
 | [ADR-017](#adr-017) | Public read-only project sharing (`/p/:projectId`) | Accepted | 2026-08-12 |
+| [ADR-019](#adr-019) | API docs: collections + endpoints with OpenAPI import/export | Accepted | 2026-08-12 |
 
 ---
 
@@ -191,6 +192,20 @@
   - Visibility toggling is `PATCH /api/projects/:projectId { visibility }`, restricted to owner/admin (`assertAdmin`); the ProjectPage header shows the toggle and a copy-public-link button.
 - **Consequences:** Positive — shareable public URLs with zero runner overhead. Negative — anyone with the link can read public project state (intended); MCP and member REST access are unchanged; prod hosting needs SPA fallback for `/p/*` too (Phase 2).
 - **Alternatives considered:** Reusing `/project/:projectId` for anonymous viewers (rejected: couples public shell with the member flow); a per-project secret token (rejected: overhead without real gain for a self-hosted tool); read-only team invites (rejected: still requires accounts).
+
+### ADR-019
+**API docs: collections + endpoints with OpenAPI import/export**
+
+- **Status:** Accepted (2026-08-12)
+- **Context:** DevHub tracked tasks, stack and schema, but had no surface for documenting the project's HTTP API. Solo devs end up in Postman/Redoc side-by-side, duplicating state and cutting agents (MCP) off from the API surface. DEF-002 (API Endpoint Inventory) was previously deferred; a designer+research pass over Postman v12, Bruno, Hoppscotch and Redoc confirmed the universal grammar: collections tree + method-colored endpoints + tabs for headers/params/body/responses + read-only docs view.
+- **Decision:**
+  - Two new entities in the state document (JSONB arrays with `.default([])` — no DB migration, ADR-002): `apiCollections` (name ≤200, description ≤2k) and `apiEndpoints` (nullable `collectionId`, method enum GET/POST/PUT/PATCH/DELETE/OPTIONS, path ≤500, name ≤200, description ≤10k, `headers[]` {key,value,description}, `params[]` {name, in: path|query|header, required, description}, `body` ≤50k, `responses[]` {status, contentType, description, body}).
+  - **API** tab in the project page: two-pane layout — resizable collections tree with search (220–360px) + workbench with tabs (Headers / Params / Body / Responses); read-only **preview** mode doubles as the docs view (default for viewers).
+  - OpenAPI 3.0.3 import/export client-side in `app/src/lib/openapi.ts` (YAML via the `yaml` dependency, relaxed under the ADR-016 precedent): tags → collections, paths → endpoints; export writes tags/paths from state. Import merges by collection name (case-insensitive).
+  - MCP tools `add_api_collection`, `add_api_endpoint`, `update_api_endpoint` (writes follow the PATCH pattern of `update_task`).
+  - **Documentation only:** no request sending or mocking — Postman-style runner explicitly out of scope.
+- **Consequences:** Positive — lifecycle completes (schema defines the model, tasks build the API, endpoints document it); exports feed Swagger UI/Redoc/Postman; agents can read and document the API via MCP. Negative — one new UI dependency (`yaml`); imported documents are reduced (paths keep example values only, not the full schema objects).
+- **Alternatives considered:** External tool (Postman/Redoc) (rejected: extra account, duplicate state, no agent access); request runner UI (rejected: large scope, contradicts DEF-002 rationale); storing the raw OpenAPI blob (rejected: not queryable per-endpoint, no MCP granularity).
 
 ---
 

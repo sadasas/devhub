@@ -26,6 +26,8 @@ function makeState(): State {
     schemaVersions: [],
     decisions: [],
     milestones: [],
+    apiCollections: [],
+    apiEndpoints: [],
   };
 }
 

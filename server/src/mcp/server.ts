@@ -17,6 +17,9 @@ import { registerAddTable } from './tools/add-table.js';
 import { registerAddRelation } from './tools/add-relation.js';
 import { registerDeleteRelation } from './tools/delete-relation.js';
 import { registerAddTech } from './tools/add-tech.js';
+import { registerAddApiCollection } from './tools/add-api-collection.js';
+import { registerAddApiEndpoint } from './tools/add-api-endpoint.js';
+import { registerUpdateApiEndpoint } from './tools/update-api-endpoint.js';
 
 export const mcpRouter = Router();
 
@@ -42,6 +45,9 @@ mcpRouter.post('/', async (req, res) => {
   registerAddRelation(mcpServer);
   registerDeleteRelation(mcpServer);
   registerAddTech(mcpServer);
+  registerAddApiCollection(mcpServer);
+  registerAddApiEndpoint(mcpServer);
+  registerUpdateApiEndpoint(mcpServer);
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,

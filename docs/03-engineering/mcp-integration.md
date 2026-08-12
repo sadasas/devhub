@@ -41,7 +41,7 @@ Every tool: inputs validated by zod; response includes `updatedAt` of the mutate
 
 | Tool | Input (brief) | Output | Writes? |
 |---|---|---|---|
-| `project_state` | `projectId` | Full state document (10 entity collections) + project meta (name, description, status, PRD) | No |
+| `project_state` | `projectId` | Full state document (12 entity collections) + project meta (name, description, status, PRD) | No |
 | `update_prd` | `projectId`, `{ purpose?, goals?, features?, scope?, outOfScope? }` | Merged PRD (all 5 sections) | Yes |
 | `plan_project` | `projectId`, `brief: string` | Proposed `{ tasks: [...], milestones: [...], estimateHours }` | No (suggestion only) |
 | `create_task` | `projectId`, task fields (title, status?, priority?, estimate?, labels?, blockedBy?) | Created task | Yes |
@@ -56,6 +56,9 @@ Every tool: inputs validated by zod; response includes `updatedAt` of the mutate
 | `add_tech` | `projectId`, `name`, `version?`, `category?`, `status?`, `notes?` | Created tech entry | Yes |
 | `add_test_case` | `projectId`, `name`, `taskId?`, `issueId?`, `steps?`, `expected?`, `status?` | Created test case | Yes |
 | `update_test_case` | `projectId`, `testCaseId`, `{ name?, taskId?, issueId?, steps?, expected?, status? }` | Updated test case | Yes |
+| `add_api_collection` | `projectId`, `name`, `description?` | Created collection (rejects duplicate names) | Yes |
+| `add_api_endpoint` | `projectId`, `method`, `path`, `name`, `collectionId?`, `description?`, `headers[]?`, `params[]?`, `body?`, `responses[]?` | Created endpoint | Yes |
+| `update_api_endpoint` | `projectId`, `endpointId`, `{ collectionId?, method?, path?, name?, description?, headers[]?, params[]?, body?, responses[]? }` | Updated endpoint | Yes |
 
 **Conventions:**
 - Tool names are registered with a server prefix in the client (`devhub_project_state`, etc.).

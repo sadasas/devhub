@@ -12,6 +12,7 @@ import {
   GlobeSimple,
   Info,
   LinkSimple,
+  Plugs,
   Rocket,
   Scales,
   Stack,
@@ -42,6 +43,7 @@ import { StackPage } from '../stack/StackPage';
 import { StatsPage } from '../stats/StatsPage';
 import { TestsPage } from '../tests/TestsPage';
 import { AboutPage } from './AboutPage';
+import { ApiPage } from '../api/ApiPage';
 import { InlineError } from '../../components/InlineError';
 
 export type ProjectTab =
@@ -52,6 +54,7 @@ export type ProjectTab =
   | 'schema'
   | 'decisions'
   | 'releases'
+  | 'api'
   | 'stats'
   | 'about';
 
@@ -63,6 +66,7 @@ const TABS: { id: ProjectTab; label: string; icon: ReactNode }[] = [
   { id: 'schema', label: 'Schema', icon: <Database size={15} /> },
   { id: 'decisions', label: 'Decisions', icon: <Scales size={15} /> },
   { id: 'releases', label: 'Releases', icon: <Rocket size={15} /> },
+  { id: 'api', label: 'API', icon: <Plugs size={15} /> },
   { id: 'stats', label: 'Stats', icon: <ChartBar size={15} /> },
   { id: 'about', label: 'About', icon: <Info size={15} /> },
 ];
@@ -343,6 +347,8 @@ export function ProjectPage() {
             <DecisionsPage />
           ) : tab === 'releases' ? (
             <ReleasesPage />
+          ) : tab === 'api' ? (
+            <ApiPage projectName={project.name} projectDescription={project.description ?? ''} />
           ) : tab === 'stats' ? (
             <StatsPage />
           ) : tab === 'about' ? (

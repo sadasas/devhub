@@ -43,6 +43,8 @@ function makeState(over: Partial<State> = {}): State {
     schemaVersions: [],
     decisions: [],
     milestones: [],
+    apiCollections: [],
+    apiEndpoints: [],
     ...over,
   };
 }
