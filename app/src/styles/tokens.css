@@ -15,7 +15,7 @@
   /* Text */
   --text-primary: #e4e4e7;
   --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
+  --text-muted: #8a8a93;
   --text-on-accent: #06251a;
 
   /* Accent — emerald, desaturated (single accent, locked) */
@@ -28,7 +28,7 @@
   /* Semantic status colors (same family, only for status semantics) */
   --status-danger: #f4706d;
   --status-danger-dim: rgba(244, 112, 109, 0.12);
-  --status-warn: #e3b341;
+  --status-warn: #e8b955;
   --status-warn-dim: rgba(227, 179, 65, 0.12);
   --status-success: #34c38e;
   --status-success-dim: rgba(52, 195, 142, 0.12);
@@ -46,7 +46,7 @@
      OPTIONS/HEAD=neutral). Each has a -dim background variant. */
   --method-get: #34c38e;
   --method-get-dim: rgba(52, 195, 142, 0.12);
-  --method-post: #e3b341;
+  --method-post: #e8b955;
   --method-post-dim: rgba(227, 179, 65, 0.12);
   --method-put: #6ea8fe;
   --method-put-dim: rgba(110, 168, 254, 0.12);

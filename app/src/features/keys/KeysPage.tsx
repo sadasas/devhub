@@ -171,18 +171,24 @@ export function KeysPage() {
         width="sm"
         footer={
           <>
-            {confirming ? (
-              <Button variant="danger" loading={revoking} onClick={() => void onRevoke()}>
-                Confirm revoke
-              </Button>
-            ) : (
-              <Button variant="danger" onClick={() => setConfirming(true)}>
-                Revoke
-              </Button>
-            )}
-            <Button variant="ghost" onClick={() => setRevokeTarget(null)}>
-              Cancel
+<Button
+            variant="ghost"
+            onClick={() => {
+              setConfirming(false);
+              setRevokeTarget(null);
+            }}
+          >
+            Cancel
+          </Button>
+          {confirming ? (
+            <Button variant="danger" loading={revoking} onClick={() => void onRevoke()}>
+              Confirm revoke
             </Button>
+          ) : (
+            <Button variant="danger" onClick={() => setConfirming(true)}>
+              Revoke
+            </Button>
+          )}
           </>
         }
       >

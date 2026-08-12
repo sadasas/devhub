@@ -1,74 +1,20 @@
 import { useState } from 'react';
 import { PencilSimple } from '@phosphor-icons/react';
-import type { Project, ProjectPrd } from '../../lib/types';
+import type { Project } from '../../lib/types';
 import { useProject } from '../../state/project-context';
-import { useProjects } from '../../state/projects-context';
 import { formatDate } from '../../lib/utils';
 import { PROJECT_STATUS, TEAM_ROLE } from '../../lib/labels';
 import { computeProjectStats } from '../../lib/stats';
-import { ApiError } from '../../lib/api';
+import { PRD_SECTIONS } from '../../lib/prd';
 import { Button } from '../../components/Button';
 import { Badge } from '../../components/Badge';
 import { InlineError } from '../../components/InlineError';
 import { Skeleton } from '../../components/Skeleton';
-import { Textarea } from '../../components/Textarea';
-
-const PRD_SECTIONS: { key: keyof ProjectPrd; label: string; helper: string }[] = [
-  {
-    key: 'purpose',
-    label: 'Purpose',
-    helper: 'Why this project exists — the problem it solves.',
-  },
-  {
-    key: 'goals',
-    label: 'Goals',
-    helper: 'What success looks like. One line per goal.',
-  },
-  {
-    key: 'features',
-    label: 'Features',
-    helper: 'What this project will do. One feature per line.',
-  },
-  {
-    key: 'scope',
-    label: 'Scope',
-    helper: 'What is in scope for this project.',
-  },
-  {
-    key: 'outOfScope',
-    label: 'Out of scope',
-    helper: 'What is explicitly out of scope — for now or forever.',
-  },
-];
-
-const EMPTY_PRD: ProjectPrd = { purpose: '', goals: '', features: '', scope: '', outOfScope: '' };
+import { EditPrdModal } from './EditPrdModal';
 
 export function AboutPage({ project }: { project: Project }) {
   const { state, loading, error, canEdit } = useProject();
-  const { update } = useProjects();
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState<ProjectPrd>(project.prd);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-
-  function startEdit() {
-    setDraft({ ...EMPTY_PRD, ...project.prd });
-    setSaveError(null);
-    setEditing(true);
-  }
-
-  async function save() {
-    setSaveError(null);
-    setSaving(true);
-    try {
-      await update(project.id, { prd: draft });
-      setEditing(false);
-    } catch (err) {
-      setSaveError(err instanceof ApiError ? err.message : 'Failed to save changes.');
-    } finally {
-      setSaving(false);
-    }
-  }
+  const [editOpen, setEditOpen] = useState(false);
 
   if (loading) {
     return (
@@ -101,89 +47,62 @@ export function AboutPage({ project }: { project: Project }) {
   return (
     <div className="about-body">
       <div className="data-list-header">
-        <span className="data-list-count">About this project</span>
-        {canEdit && !editing && (
+        <span className="data-list-count">About</span>
+        {canEdit && (
           <Button
             size="sm"
             leftIcon={<PencilSimple size={13} aria-hidden="true" />}
-            onClick={startEdit}
+            onClick={() => setEditOpen(true)}
           >
             Edit PRD
           </Button>
         )}
       </div>
 
-      <p className="about-description">{project.description || 'No description yet.'}</p>
-      <p className="about-meta">
-        <span>Team: {project.teamName}</span>
-        <span>Created {formatDate(project.createdAt)}</span>
-        <span>Updated {formatDate(project.updatedAt)}</span>
-        <span>
-          <Badge tone={PROJECT_STATUS[project.status].tone}>{PROJECT_STATUS[project.status].label}</Badge>
-          <Badge tone={TEAM_ROLE[project.role].tone}>{TEAM_ROLE[project.role].label}</Badge>
-        </span>
-      </p>
+      <div className="about-hero">
+        <p className={`about-description${project.description ? '' : ' about-description-empty'}`}>
+          {project.description || 'No description yet.'}
+        </p>
+        <p className="about-meta">
+          <span className="about-meta-chip">Team: {project.teamName}</span>
+          <span className="about-meta-chip">Created {formatDate(project.createdAt)}</span>
+          <span className="about-meta-chip">Updated {formatDate(project.updatedAt)}</span>
+          <span className="about-meta-chip">
+            <Badge tone={PROJECT_STATUS[project.status].tone}>{PROJECT_STATUS[project.status].label}</Badge>
+          </span>
+          <span className="about-meta-chip">
+            <Badge tone={TEAM_ROLE[project.role].tone}>{TEAM_ROLE[project.role].label}</Badge>
+          </span>
+        </p>
+      </div>
 
-      <div className="stats-grid" style={{ marginBottom: 24 }}>
+      <div className="about-stats">
         {counts.map((c) => (
-          <div key={c.label} className="stat-card">
-            <div className="stat-card-head">
-              <span className="stat-card-title">{c.label}</span>
-              <span className="stat-card-value">{c.value}</span>
-            </div>
+          <div key={c.label} className="about-stat">
+            <span className="about-stat-title">{c.label}</span>
+            <span className="about-stat-value">{c.value}</span>
           </div>
         ))}
       </div>
 
-      {editing ? (
-        <form
-          className="about-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void save();
-          }}
-        >
-          {PRD_SECTIONS.map((s) => (
-            <Textarea
-              key={s.key}
-              label={s.label}
-              helper={s.helper}
-              value={draft[s.key]}
-              onChange={(e) => setDraft((d) => ({ ...d, [s.key]: e.target.value }))}
-            />
-          ))}
-          {saveError && <InlineError>{saveError}</InlineError>}
-          <div className="about-actions">
-            <Button type="submit" loading={saving}>
-              Save PRD
-            </Button>
-            <Button
-              variant="ghost"
-              disabled={saving}
-              onClick={() => {
-                setSaveError(null);
-                setEditing(false);
-              }}
-            >
-              Cancel
-            </Button>
-          </div>
-        </form>
-      ) : (
-        <>
-          {PRD_SECTIONS.map((s) => {
-            const value = project.prd[s.key];
-            return (
-              <section key={s.key} className="about-section">
-                <h3 className="about-section-title">{s.label}</h3>
-                <p className={`about-section-body${value ? '' : ' about-section-body-empty'}`}>
-                  {value || 'Not set yet.'}
-                </p>
-              </section>
-            );
-          })}
-        </>
-      )}
+      <div className="about-cards">
+        {PRD_SECTIONS.map((s) => {
+          const value = project.prd[s.key];
+          return (
+            <section key={s.key} className="about-card">
+              <h3 className="about-card-head">
+                <s.icon size={14} weight="bold" aria-hidden="true" />
+                <span className="about-card-title">{s.label}</span>
+              </h3>
+              <p className={`about-card-body${value ? '' : ' about-card-empty'}`}>
+                {value || 'Not set yet.'}
+              </p>
+            </section>
+          );
+        })}
+      </div>
+
+      <EditPrdModal open={editOpen} onClose={() => setEditOpen(false)} project={project} />
     </div>
   );
 }

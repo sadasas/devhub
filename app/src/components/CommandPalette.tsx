@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { SquaresFour, FolderSimple, Key, BookOpen, UserCircle, ArrowUp, ArrowDown, ArrowRight } from '@phosphor-icons/react';
+import { SquaresFour, FolderSimple, Key, BookOpen, UserCircle, Plus, ArrowUp, ArrowDown, ArrowRight } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router';
 import { useProjects } from '../state/projects-context';
 import { useFocusTrap } from '../hooks/useFocusTrap';
@@ -67,6 +67,16 @@ export function CommandPalette() {
         run: () => {
           setOpen(false);
           navigate('/profile');
+        },
+      },
+      {
+        id: 'new-project',
+        group: 'Create',
+        label: 'New project',
+        icon: <Plus size={16} />,
+        run: () => {
+          setOpen(false);
+          navigate('/?new=1');
         },
       },
     ];

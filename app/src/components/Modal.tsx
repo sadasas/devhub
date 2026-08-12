@@ -23,6 +23,7 @@ export function Modal({ open, title, onClose, children, footer, width = 'md' }: 
 
   useEffect(() => {
     if (!open) return;
+    dialogRef.current?.scrollTo(0, 0);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCloseRef.current();
     };
@@ -33,7 +34,7 @@ export function Modal({ open, title, onClose, children, footer, width = 'md' }: 
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prevOverflow;
     };
-  }, [open]);
+  }, [open, dialogRef]);
 
   if (!open) return null;
 

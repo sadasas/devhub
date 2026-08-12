@@ -173,7 +173,7 @@ export function TeamPage() {
           )}
           <p className="page-subtitle">Team members share every project in this workspace.</p>
         </div>
-        <div className="project-title-row" style={{ gap: 8 }}>
+        <div className="project-title-row gap-8">
           {team && isAdmin && (
             <Button
               variant="secondary"
@@ -235,8 +235,7 @@ export function TeamPage() {
                 <div className="data-row-side">
                   {roleOptions.length > 0 && (
                     <select
-                      className="select"
-                      style={{ width: 110 }}
+                      className="select select-role"
                       value={m.role}
                       disabled={busyId === m.id}
                       title={
@@ -272,19 +271,8 @@ export function TeamPage() {
       </section>
 
       {isAdmin && pendingInvites !== null && pendingInvites.length > 0 && (
-        <section className="tab-panel" style={{ marginTop: 24 }}>
-          <h2
-            className="text-muted"
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              margin: '0 0 8px',
-            }}
-          >
-            Pending invitations
-          </h2>
+        <section className="tab-panel mt-24">
+          <h2 className="panel-title text-muted">Pending invitations</h2>
           {pendingInvites.map((inv) => (
             <div key={inv.id} className="data-row">
               <div className="data-row-main">
@@ -312,7 +300,7 @@ export function TeamPage() {
       )}
 
       {team && team.role !== 'owner' && (
-        <div className="page-footer" style={{ marginTop: 16 }}>
+        <div className="page-footer">
           <Button variant="ghost" size="sm" className="text-danger" onClick={() => setLeaveOpen(true)}>
             Leave team
           </Button>

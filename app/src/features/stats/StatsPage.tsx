@@ -1,14 +1,13 @@
 import type { ReactNode } from 'react';
 import { useProject } from '../../state/project-context';
 import { Skeleton } from '../../components/Skeleton';
-import { TASK_STATUS, TASK_PRIORITY, ISSUE_SEVERITY } from '../../lib/labels';
+import { TASK_STATUS, TASK_PRIORITY, TASK_PRIORITY_ORDER, ISSUE_SEVERITY } from '../../lib/labels';
 import { computeProjectStats } from '../../lib/stats';
 import { formatDate } from '../../lib/utils';
 import type { TaskStatus, TaskPriority, IssueSeverity } from '../../lib/types';
 import { InlineError } from '../../components/InlineError';
 
 const STATUS_ORDER: TaskStatus[] = ['todo', 'inProgress', 'review', 'done'];
-const PRIORITY_ORDER: TaskPriority[] = ['urgent', 'high', 'medium', 'low'];
 const SEVERITY_ORDER: IssueSeverity[] = ['critical', 'high', 'medium', 'low'];
 
 const STATUS_COLOR: Record<TaskStatus, string> = {
@@ -124,7 +123,7 @@ export function StatsPage() {
     value: state.tasks.filter((t) => t.status === s).length,
     color: STATUS_COLOR[s],
   }));
-  const priorityRows = PRIORITY_ORDER.map((p) => ({
+  const priorityRows = TASK_PRIORITY_ORDER.map((p) => ({
     label: TASK_PRIORITY[p].label,
     value: state.tasks.filter((t) => t.priority === p).length,
     color: PRIORITY_COLOR[p],

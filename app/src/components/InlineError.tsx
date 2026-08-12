@@ -1,13 +1,13 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 interface InlineErrorProps {
   children: ReactNode;
-  style?: CSSProperties;
+  className?: string;
 }
 
-export function InlineError({ children, style }: InlineErrorProps) {
+export function InlineError({ children, className }: InlineErrorProps) {
   return (
-    <p className="field-error" role="alert" style={style}>
+    <p className={`field-error${className ? ` ${className}` : ''}`} role="alert">
       {children}
     </p>
   );

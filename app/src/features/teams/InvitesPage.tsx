@@ -101,7 +101,7 @@ export function InvitesPage() {
       )}
 
       {invitations.length > 0 && (
-        <div className="page-footer" style={{ marginTop: 16 }}>
+        <div className="page-footer">
           <Button variant="ghost" size="sm" onClick={() => void refresh()}>
             Refresh
           </Button>

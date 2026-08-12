@@ -233,7 +233,7 @@ export function SchemaPage() {
           )}
         </div>
         {state.schemaVersions.length === 0 ? (
-          <p className="field-helper" style={{ padding: '4px 2px' }}>
+          <p className="field-helper field-helper--flush">
             No versions recorded — snapshot the schema whenever it changes.
           </p>
         ) : (

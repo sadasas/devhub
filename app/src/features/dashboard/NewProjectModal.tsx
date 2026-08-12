@@ -62,7 +62,7 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" form="new-project-form" loading={submitting} disabled={!name.trim()}>
+          <Button type="submit" form="new-project-form" loading={submitting} disabled={!name.trim() || (teams?.length ?? 0) === 0}>
             Create
           </Button>
         </>
@@ -88,18 +88,24 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
           <label className="field-label" htmlFor="new-project-team">
             Team
           </label>
-          <select
-            id="new-project-team"
-            className="select"
-            value={teamId}
-            onChange={(e) => setTeamId(e.target.value)}
-          >
-            {teams?.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
+          {teams && teams.length === 0 ? (
+            <p className="field-helper" id="new-project-team-hint">
+              You have no teams yet — create one from the sidebar, then return here to add a project.
+            </p>
+          ) : (
+            <select
+              id="new-project-team"
+              className="select"
+              value={teamId}
+              onChange={(e) => setTeamId(e.target.value)}
+            >
+              {teams?.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
         {error && <InlineError>{error}</InlineError>}
       </form>

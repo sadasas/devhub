@@ -306,7 +306,7 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
         {toolbarButtons}
       </div>
 
-      {importError && <InlineError style={{ marginBottom: 12 }}>{importError}</InlineError>}
+      {importError && <InlineError className="mb-12">{importError}</InlineError>}
 
       <input
         ref={fileInputRef}
@@ -573,19 +573,19 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
                     onChange={(e) => updateEp({ description: e.target.value })}
                   />
 
-                  <div className="api-tabs" role="tablist" aria-label="Endpoint details">
+                  <div className="tabs mt-4" role="tablist" aria-label="Endpoint details">
                     {(['headers', 'params', 'body', 'responses'] as ApiTab[]).map((t) => (
                       <button
                         key={t}
                         type="button"
                         role="tab"
                         aria-selected={tab === t}
-                        className={`api-tab ${tab === t ? 'api-tab-active' : ''}`}
+                        className={`tab ${tab === t ? 'tab-active' : ''}`}
                         onClick={() => setTab(t)}
                       >
                         {t.charAt(0).toUpperCase() + t.slice(1)}
                         {t !== 'body' && selectedEp[t].length > 0 && (
-                          <span className="api-tab-count">{selectedEp[t].length}</span>
+                          <span className="tab-count">{selectedEp[t].length}</span>
                         )}
                       </button>
                     ))}
@@ -947,7 +947,7 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
               ) : (
                 selectedColl.description && (
                   <div className="preview-block">
-                    <p className="preview-body" style={{ marginTop: 8 }}>
+                    <p className="preview-body mt-8">
                       {selectedColl.description}
                     </p>
                   </div>

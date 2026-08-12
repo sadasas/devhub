@@ -271,30 +271,35 @@ export function BoardPage() {
 
   return (
     <div>
-      <div className="sub-tabs" role="tablist" aria-label="Board view">
-        <button
-          type="button"
-          role="tab"
-          className={`sub-tab ${view === 'status' ? 'sub-tab-active' : ''}`}
-          onClick={() => setView('status')}
-          aria-selected={view === 'status'}
-        >
-          <SquaresFour size={13} aria-hidden="true" />
-          By Status
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className={`sub-tab ${view === 'milestone' ? 'sub-tab-active' : ''}`}
-          onClick={() => setView('milestone')}
-          aria-selected={view === 'milestone'}
-        >
-          <Flag size={13} aria-hidden="true" />
-          By Milestone
-        </button>
+      <div className="board-toolbar">
+        <div className="sub-tabs" role="tablist" aria-label="Board view">
+          <button
+            type="button"
+            role="tab"
+            className={`sub-tab ${view === 'status' ? 'sub-tab-active' : ''}`}
+            onClick={() => setView('status')}
+            aria-selected={view === 'status'}
+          >
+            <SquaresFour size={13} aria-hidden="true" />
+            By Status
+          </button>
+          <button
+            type="button"
+            role="tab"
+            className={`sub-tab ${view === 'milestone' ? 'sub-tab-active' : ''}`}
+            onClick={() => setView('milestone')}
+            aria-selected={view === 'milestone'}
+          >
+            <Flag size={13} aria-hidden="true" />
+            By Milestone
+          </button>
+        </div>
+        <span className="board-hints" aria-hidden="true">
+          ← → move · n new task
+        </span>
       </div>
 
-      {doneBlockedMsg && <InlineError style={{ marginBottom: 12 }}>{doneBlockedMsg}</InlineError>}
+      {doneBlockedMsg && <InlineError className="mb-12">{doneBlockedMsg}</InlineError>}
 
       <div className="kanban">{view === 'status' ? statusColumns : milestoneCols}</div>
 

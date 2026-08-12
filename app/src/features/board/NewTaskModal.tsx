@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { newId, nowIso, parseLabels } from '../../lib/utils';
+import { TASK_PRIORITY, TASK_PRIORITY_ORDER } from '../../lib/labels';
 import type { TaskPriority, TaskStatus } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { Button } from '../../components/Button';
@@ -89,10 +90,11 @@ export function NewTaskModal({ open, status, milestoneId, onClose }: NewTaskModa
             value={priority}
             onChange={(e) => setPriority(e.target.value as TaskPriority)}
           >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="urgent">Urgent</option>
+            {TASK_PRIORITY_ORDER.map((p) => (
+              <option key={p} value={p}>
+                {TASK_PRIORITY[p].label}
+              </option>
+            ))}
           </select>
         </div>
         <Input

@@ -393,7 +393,7 @@ export function ProjectPage() {
             This permanently deletes “{project?.name}” and all of its data — tasks, issues, schema,
             decisions. This cannot be undone.
           </p>
-          {deleteError && <InlineError style={{ marginTop: 10 }}>{deleteError}</InlineError>}
+          {deleteError && <InlineError className="mt-10">{deleteError}</InlineError>}
         </Modal>
 
         <Modal
@@ -422,7 +422,7 @@ export function ProjectPage() {
             {importDoc ? importDoc.state.tasks.length : 0} tasks,{' '}
             {importDoc ? importDoc.state.issues.length : 0} issues
           </p>
-          {importError && <InlineError style={{ marginTop: 10 }}>{importError}</InlineError>}
+          {importError && <InlineError className="mt-10">{importError}</InlineError>}
         </Modal>
       </div>
     </ProjectProvider>

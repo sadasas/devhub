@@ -47,11 +47,11 @@ export function CollectionModal({ onClose, onCreated }: CollectionModalProps) {
       width="sm"
       footer={
         <>
-          <Button variant="primary" onClick={submit} disabled={!name.trim()}>
-            Create collection
-          </Button>
           <Button variant="ghost" onClick={onClose}>
             Cancel
+          </Button>
+          <Button variant="primary" onClick={submit} disabled={!name.trim()}>
+            Create collection
           </Button>
         </>
       }

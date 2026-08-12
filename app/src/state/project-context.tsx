@@ -203,6 +203,7 @@ interface ProjectContextValue {
   error: string | null;
   saveError: string | null;
   saving: boolean;
+  lastSavedAt: number | null;
   role: TeamRole;
   canEdit: boolean;
   dispatch: (action: ProjectAction) => void;
@@ -225,16 +226,19 @@ export function ProjectProvider({
   const [error, setError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const stateRef = useRef<State | null>(null);
   const lastSavedRef = useRef<State | null>(null);
   const dirtyRef = useRef(false);
   const savingRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingFlushRef = useRef<Promise<void> | null>(null);
+  const canEditRef = useRef(role !== 'viewer');
+  canEditRef.current = role !== 'viewer';
 
   const runSave = useCallback(async () => {
     const snapshot = stateRef.current;
-    if (!snapshot || savingRef.current) return;
+    if (!snapshot || savingRef.current || !canEditRef.current) return;
     dirtyRef.current = false;
     savingRef.current = true;
     setSaving(true);
@@ -242,6 +246,7 @@ export function ProjectProvider({
       await api.putState(projectId, snapshot);
       lastSavedRef.current = snapshot;
       setSaveError(null);
+      setLastSavedAt(Date.now());
     } catch (err) {
       setSaveError(err instanceof ApiError ? err.message : 'Failed to save changes');
       dirtyRef.current = true;
@@ -254,7 +259,7 @@ export function ProjectProvider({
   const flushPendingSave = useCallback(
     (opts?: { keepalive?: boolean }) => {
       const snapshot = stateRef.current;
-      if (!snapshot || !dirtyRef.current || savingRef.current) {
+      if (!snapshot || !dirtyRef.current || savingRef.current || !canEditRef.current) {
         return pendingFlushRef.current ?? Promise.resolve();
       }
       if (pendingFlushRef.current) return pendingFlushRef.current;
@@ -263,6 +268,7 @@ export function ProjectProvider({
         .then(() => {
           lastSavedRef.current = snapshot;
           setSaveError(null);
+          setLastSavedAt(Date.now());
         })
         .catch((err) => {
           setSaveError(err instanceof ApiError ? err.message : 'Failed to save changes');
@@ -294,6 +300,7 @@ export function ProjectProvider({
 
   const dispatch = useCallback(
     (action: ProjectAction) => {
+      if (!canEditRef.current) return;
       setState((prev) => {
         if (!prev) return prev;
         const next = projectReducer(prev, action);
@@ -373,12 +380,13 @@ export function ProjectProvider({
       error,
       saveError,
       saving,
+      lastSavedAt,
       role,
       canEdit: role !== 'viewer',
       dispatch,
       retrySave,
     }),
-    [state, loading, error, saveError, saving, role, dispatch, retrySave],
+    [state, loading, error, saveError, saving, lastSavedAt, role, dispatch, retrySave],
   );
 
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;

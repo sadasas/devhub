@@ -51,11 +51,11 @@ export function EndpointModal({ onClose, onCreated, collections }: EndpointModal
       width="md"
       footer={
         <>
-          <Button variant="primary" onClick={submit} disabled={!name.trim() || !path.trim()}>
-            Create endpoint
-          </Button>
           <Button variant="ghost" onClick={onClose}>
             Cancel
+          </Button>
+          <Button variant="primary" onClick={submit} disabled={!name.trim() || !path.trim()}>
+            Create endpoint
           </Button>
         </>
       }
@@ -87,7 +87,7 @@ export function EndpointModal({ onClose, onCreated, collections }: EndpointModal
               <option value="OPTIONS">OPTIONS</option>
             </select>
           </div>
-          <div className="field" style={{ flex: '1 1 0%' }}>
+          <div className="field field--grow">
             <label className="field-label" htmlFor="endpoint-path">
               Path
             </label>

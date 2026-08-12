@@ -54,11 +54,11 @@ export function NewDecisionModal({ onClose }: NewDecisionModalProps) {
       width="md"
       footer={
         <>
-          <Button variant="primary" onClick={submit} disabled={!title.trim()}>
-            Add decision
-          </Button>
           <Button variant="ghost" onClick={onClose}>
             Cancel
+          </Button>
+          <Button variant="primary" onClick={submit} disabled={!title.trim()}>
+            Add decision
           </Button>
         </>
       }

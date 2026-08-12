@@ -32,6 +32,8 @@ export const TASK_PRIORITY: Record<TaskPriority, Meta> = {
   urgent: { label: 'Urgent', tone: 'danger' },
 };
 
+export const TASK_PRIORITY_ORDER: TaskPriority[] = ['low', 'medium', 'high', 'urgent'];
+
 export const ISSUE_SEVERITY: Record<IssueSeverity, Meta> = {
   critical: { label: 'Critical', tone: 'danger' },
   high: { label: 'High', tone: 'warn' },

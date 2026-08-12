@@ -8,18 +8,25 @@ interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   helper?: string;
 }
 
-export function Textarea({ label, error, helper, id, className = '', ...rest }: TextareaProps) {
+export function Textarea({ label, error, helper, id, className = '', required, ...rest }: TextareaProps) {
   const autoId = useId();
   const textareaId = id ?? autoId;
   return (
     <div className="field">
       <label className="field-label" htmlFor={textareaId}>
         {label}
+        {required && (
+          <span className="field-required" aria-hidden="true">
+            {' '}*
+          </span>
+        )}
       </label>
       <textarea
         id={textareaId}
         className={`textarea ${error ? 'textarea-error' : ''} ${className}`}
         aria-invalid={error ? true : undefined}
+        aria-required={required ? true : undefined}
+        required={required}
         {...rest}
       />
       {error ? (

@@ -1,0 +1,232 @@
+# Audit UI/UX — DevHub
+
+- **Tanggal**: 2026-08-13
+- **Lingkup**: `app/src` (React 19 + Vite + TypeScript) — komponen, halaman, state, styling, aksesibilitas
+- **Metode**: audit statis 4 peran berurutan — UI Designer → UX Researcher → UX Architect → UI Finish-Gate Reviewer; verifikasi lint (`oxlint`) + build (`tsc -b && vite build`) sebelum/sesudah
+- **Status**: selaras dengan PRD (`docs/01-project/prd.md`) — dark-only, keyboard-first, WCAG AA, self-hosted solo dev
+
+## Ringkasan eksekutif
+
+| Peran | Fokus | Skor | Temuan | Diterapkan |
+| --- | --- | --- | --- | --- |
+| UI Designer | konsistensi visual, design tokens | 8.5/10 | D1–D6 (+D5/D6 valid) | 4 fix |
+| UX Researcher | alur, umpan balik, mikrokopi | 8.5/10 | U1–U9 | 6 fix, 2 catatan |
+| UX Architect | IA, routing, struktur | 8/10 | A1–A5 | 5 keputusan tercatat |
+| UI Finish-Gate | WCAG, aksesibilitas | 8.5/10 | G1–G4 (G1 = D2) | 3 fix |
+
+Skor keseluruhan **8.5/10**. Tidak ada temuan critical. Sistem design token internal adalah kekuatan utama (nol warna hardcoded di fitur; kontras, fokus ring, reduced-motion, dan feedback error konsisten di semua halaman).
+
+---
+
+## Temuan per peran
+
+### UI Designer
+
+| ID | Severity | Temuan | Keterangan |
+| --- | --- | --- | --- |
+| D1 | Low | `app/src/index.css` adalah boilerplate Vite yang mati (tema terang ungu, `#root` 1126px, tidak diimpor `main.tsx`) | **DIHAPUS** |
+| D2 | High | `--text-muted #71717a` pada teks 10–12px di atas `--bg-elevated`/`--bg-overlay` = kontras 4.1–4.4:1, gagal WCAG AA 4.5:1 untuk teks kecil | **DIUBAH** → `#8a8a93` (5.2–5.7:1 di semua surface) |
+| D3 | Medium | Tiga pola tab berbeda (`tabs`/`sub-tabs`/`api-tabs`) membuat hierarki kabur | **DIUNIFIKASI**: `api-tabs` menyatu ke pola `tabs`; `sub-tabs` dipertahankan sebagai segmented view-toggle yang sah |
+| D4 | Medium | 13 inline style layout tersebar di fitur (margin/padding/width) | **DIGANTI** dengan utility class (lihat daftar di bawah) |
+| D5 | — | (Diajukan) `font-weight 450/650` tidak valid | **DICABUT** — Geist Variable punya sumbu 100–900; nilai valid |
+| D6 | — | (Diajukan) warna chart via inline style | **VALID** — memakai CSS vars (`var(--status-*)`), bukan hex |
+
+### UX Researcher
+
+| ID | Severity | Temuan | Keterangan |
+| --- | --- | --- | --- |
+| U1 | Medium-High | Alur onboarding: modal "New project" tidak menjelaskan bahwa team wajib dibuat dulu; error "Select a team first." muncul belakangan | **DIPERBAIKI**: helper + disabled state + empty state dashboard "Create a team first" |
+| U2 | Medium | Autosave tidak memberi feedback sukses — pengguna tidak tahu kapan data tersimpan (state `saving` ada tapi tidak dirender) | **DIPERBAIKI**: indikator "Saving…" + "All changes saved" (lihat G3) |
+| U3 | Low-Medium | CommandPalette hanya navigasi, tidak ada aksi; PRD G-1 hanya mewajibkan navigasi | **DIPERBAIKI (parsial)**: aksi "New project" ditambah (`/?new=1`); aksi New task/issue memerlukan hoisting modal → tercatat di backlog |
+| U4 | Low | Arrow ←/→ pada task card memindah status/milestone tanpa konfirmasi/undo | **CATATAN**: perilaku dipertahankan + hint visual ditambah (edit langsung adalah nilai inti autosave; undo penuh = fitur terpisah di backlog) |
+| U5 | Low | Shortcut `n` (new task) tidak terlihat di UI | **DIPERBAIKI**: hint "← → move · n new task" di toolbar board |
+| U6 | Low | Urutan priority select (low→urgent) vs StatsPage (urgent→low) tidak konsisten | **DIPERBAIKI**: satu sumber `TASK_PRIORITY_ORDER` di `labels.ts`, dipakai TaskModal, NewTaskModal, StatsPage |
+| U7 | Low | Meta angka dashboard ("2/5 done", "3 issues") tanpa tooltip konteks penuh | **DIPERBAIKI**: `title` menjelaskan konteks penuh per span |
+| U8 | Low | Modal yang tetap ter-mount (TaskModal saat ganti task) tidak reset scroll body | **DIPERBAIKI**: `scrollTo(0,0)` saat modal terbuka |
+| U9 | — | Empty state bio profil memakai profil sendiri | Valid — tidak diubah |
+
+Kekuatan terverifikasi: autosave lokal-first berlapis (debounce 800ms + retry + `flushPendingSave` keepalive + polling 5s saat tab visible) — praktis tidak ada jalur kehilangan data; konfirmasi destruktif 2-langkah konsisten (task inline, key revoke modal, project delete); empty state + CTA konsisten; error selalu `role=alert`; keyboard-first nyata (Ctrl+K, `n`, arrow, `?`); URL encoding state tab/view (`?tab=`, `?view=`) → deep-linkable.
+
+### UX Architect
+
+| ID | Temuan / Pertimbangan | Keputusan |
+| --- | --- | --- |
+| A1 | Proyek kini punya 10 tab (naik dari 8 di PRD: +API, +About) | **Batasi 10**: tab ke-11 dikelompokkan/gabung (mis. "Overview" atau menu overflow). Pola tab → sub-tab → panel sudah distandarkan (D3) |
+| A2 | `projectId` UUID penuh di URL (`/project/:id`) | **Pertahankan**: unique, tidak perlu slug, aman di-share; kompensasi dengan chip short-id + copy di header proyek |
+| A3 | Tidak ada breadcrumb | **Skip**: hierarki 3 level (Dashboard → Proyek → Tab) cukup dijelaskan sidebar + back button; breadcrumb menambah noise untuk solo dev |
+| A4 | Scroll position tidak di-reset saat ganti tab (`?tab=`) | **Skip/dokumentasikan**: perilaku dipertahankan; konsisten dengan aplikasi dokumen (Notion-style) |
+| A5 | Hierarki state: URL = posisi; `ProjectProvider key={projectId}` = isolasi; polling cross-tab | Valid — tidak diubah. URL sudah menjadi single source of truth navigasi |
+
+### UI Finish-Gate Reviewer (WCAG)
+
+| ID | Severity | Temuan | Keterangan |
+| --- | --- | --- | --- |
+| G1 | High | = D2 (kontras teks muted) | **DIPERBAIKI** (lihat D2) |
+| G2 | Medium | Warn chip `#e3b341` ≈ 4.7:1 di atas bg dim — gagal 4.5:1 untuk teks kecil 10px | **DIUBAH** → `#e8b955` (≈5:1) — `--status-warn` + `--method-post` |
+| G3 | New | Tidak ada umpan balik autosave untuk screen reader (hanya visual) | **DIPERBAIKI**: `role="status"` aria-live polite + `role="alert"` untuk error (lihat U2) |
+| G4 | Low | Field wajib tidak ditandai (tanda `*` / `aria-required` tidak konsisten) | **DIPERBAIKI**: `Input`/`Textarea` kini render `*` + `aria-required` + `required` saat prop `required` dipakai (NewTaskModal title, AuthPage email/password/confirm, NewProjectModal name) |
+
+Lulus verifikasi: focus ring global `:focus-visible` 2px accent-ring + offset 2px; focus trap di Modal & CommandPalette; skip-link → `#main-content`; `aria-busy` pada tombol loading; modal `role=dialog aria-modal`; donut chart `role=img` + label; combobox/listbox pattern di palette lengkap dengan `aria-activedescendant`; label wrap checkbox blocker (wrapper label = benar); `prefers-reduced-motion` mematikan semua animasi.
+
+---
+
+## Perubahan yang diterapkan
+
+### Dihapus
+- `app/src/index.css` (boilerplate Vite mati)
+
+### `app/src/styles/tokens.css`
+- `--text-muted: #71717a` → `#8a8a93` (D2/G1)
+- `--status-warn` & `--method-post`: `#e3b341` → `#e8b955` (G2)
+
+### `app/src/styles/global.css`
+- Hapus blok `.api-tabs/.api-tab/.api-tab-active/.api-tab-count`; style pill dipindah ke `.tab-count` (D3)
+- Utility baru di section Utilities: `.mt-4 .mt-8 .mt-10 .mt-12 .mt-16 .mt-24`, `.mb-12 .mb-16 .mb-24`, `.flex-1`, `.gap-8`, `.field--grow`, `.page-footer`, `.panel-title`, `.select-role`, `.field-helper--flush`, `.field-helper--inset` (D4)
+- Baru: `.save-status` (feedback autosave), `.board-toolbar` + `.board-hints`, `.field-required` (G3, U4/U5, G4)
+
+### Komponen
+- `components/InlineError.tsx`: prop `style` → `className` (D4)
+- `components/Modal.tsx`: reset scroll body saat open (U8)
+- `components/CommandPalette.tsx`: aksi "New project" (U3)
+- `components/Input.tsx` / `Textarea.tsx`: `required` → `*` di label + `aria-required` (G4)
+- `components/SaveBanner.tsx`: tulis ulang — status saving/saved dengan `role="status"`, error `role="alert"` (U2/G3)
+
+### Halaman & flow
+- `features/board/BoardPage.tsx`: toolbar board + hint shortcut (U4/U5)
+- `features/board/TaskModal.tsx`, `NewTaskModal.tsx`: pakai `TASK_PRIORITY_ORDER` (U6)
+- `features/stats/StatsPage.tsx`: pakai `TASK_PRIORITY_ORDER` (U6)
+- `features/dashboard/DashboardPage.tsx`: empty state team-first (U1), `?new=1` membuka NewProjectModal (U3), `title` pada meta statistik (U7)
+- `features/project/NewProjectModal.tsx`: helper + disabled saat tidak punya team (U1)
+- `state/project-context.tsx`: state `lastSavedAt` di-update saat save sukses (U2)
+- `lib/labels.ts`: `TASK_PRIORITY_ORDER` baru (U6)
+
+### Verifikasi
+- `npm run lint -w app` — bersih (6 warning pre-existing `react(only-export-components)` di `state/*-context`)
+- `npm run build -w app` — tsc + vite sukses (1 warning chunk >500kB pre-existing)
+
+---
+
+## Batch 2 — Modal detail: read mode dulu (sebelum edit)
+
+**Latar**: semua 7 modal detail (Task, Issue, Milestone, Decision, Test, Tech, Table) sebelumnya langsung terbuka dalam mode edit dengan autosave per keystroke — viewer tidak bisa membaca tanpa risiko mengubah data, dan role check tidak konsisten antar jalur (klik baris vs tombol pensil vs shortcut keyboard).
+
+### Keputusan
+Setiap modal detail sekarang membuka dalam **read mode**: nilai ditampilkan sebagai label→value (teks, Badge status/priority/severity, mono untuk tanggal/versi, chips untuk labels, daftar untuk blocked-by/test-case/options/kolom tabel, `pre-wrap` untuk teks panjang; kosong = *italic* "—" atau "No …"). Tombol **Edit** (hanya rol editor) memasuki mode edit dengan form lama; tombol **Done** kembali ke read view. Viewer hanya melihat read mode (Edit & Delete disembunyikan).
+
+### Perubahan
+
+**Baru**
+- `components/DetailList.tsx` — `DetailList`, `DetailRow` (label 12px + value 13.5px `pre-wrap`), `DetailEmpty` (italic muted).
+
+**`app/src/styles/global.css`** (section "Read-mode detail views", setelah `.form-stack`)
+- `.detail-title`, `.detail-list`, `.detail-row` (grid 110px/1fr), `.detail-label`, `.detail-value`, `.detail-empty`, `.detail-chips`, `.detail-options` (ol), `.detail-col-caption`/`.detail-col-row` (grid nama/tipe/flags/default untuk kolom tabel).
+
+**7 modal detail** (`features/{board,issues,releases,decisions,tests,stack,schema}/*Modal.tsx`)
+- State `editing` + reset ke false setiap `id` berubah (bersamaan reset `confirmDelete`).
+- Judul konsisten (P4): read = "Task"/"Issue"/"Milestone"/"Decision record"/"Test case"/"Stack entry"/"Table"; edit = "Edit …".
+- Footer: read mode `[Delete] … [Close] [Edit]`; edit mode `[Delete] … [Done]`; saat konfirmasi hapus → `[Confirm delete] … [Cancel]`.
+- Read view Task: title heading + status/priority Badge, milestone, estimate/actual, labels, description, blocked-by (dengan Badge status tiap task), test case (dengan Badge status).
+- Read view Issue: severity/status Badge, linked task, description, reproduction.
+- Read view Milestone: status Badge, version, target date (mono), changelog.
+- Read view Decision: status Badge, date (mono), context, **options sebagai ordered list**, decision, consequences.
+- Read view Test: status Badge, linked task/issue, steps, expected.
+- Read view Tech: category/status Badge, version (mono), notes.
+- Read view Table: comment, **kolom dalam grid nama/type/flags(PK/NULL)/default**, indexes (mono).
+
+**`state/project-context.tsx` (P1 — pertahanan berlapis)**
+- `canEditRef` (sinkron dari `role` tiap render); `dispatch` kini **tidak melakukan apa-apa** jika `!canEditRef.current`; guard sama pada `runSave` dan `flushPendingSave` — viewer secara struktural tidak bisa mengubah atau memicu persist state.
+
+### Menutup temuan
+- **P2** (7 modal langsung edit mode) — selesai via read-mode-first.
+- **P3** (inkonsistensi jalur) — selesai: semua jalur edit kini melalui tombol Edit yang di-gate `canEdit`.
+- **P1** (viewer bisa ubah state lokal) — selesai: gate di level UI + state.
+- **P4** (judul modal) — selesai: pola "entity"/"Edit entity".
+
+### Verifikasi (batch ini)
+- `npm run lint -w app` — bersih (hanya 6 warning pre-existing)
+- `npm run build -w app` — tsc + vite sukses (1 warning chunk >500kB pre-existing)
+
+---
+
+## Batch 3 — Footer modal & konfirmasi hapus terpisah
+
+Perubahan ketiga yang diminta: tanpa tombol Close di footer (X di header sudah ada), edit mode tanpa Delete (hanya Cancel), dan hapus melalui popup konfirmasi terpisah.
+
+- **Komponen baru `components/ConfirmDeleteDialog.tsx`** — membungkus `Modal` (width sm, pola "Delete project" yang sudah ada): props `{open, title, description, confirmLabel?, onConfirm, onClose}`; body `.modal-copy`; footer `[Cancel (ghost)] [Delete (danger, icon Trash)]`.
+- **Footer read mode** (7 modal detail): `[Delete (canEdit)] [spacer] [Edit (canEdit)]` — tombol `Close` dihapus; tutup lewat X header / Esc / backdrop.
+- **Footer edit mode**: `[spacer] [Cancel (ghost)]` — kembali ke read view (autosave tetap); tombol `Done` dan `Delete` dihapus dari edit mode.
+- **Alur hapus**: klik Delete (read mode) → `ConfirmDeleteDialog` per entity ("Delete task?" / "Delete issue?" / "Delete milestone?" / "Delete decision record?" / "Delete test case?" / "Delete stack entry?" / "Delete table?") dengan copy spesifik — milestone: "Tasks linked to it will be unassigned."; tabel: "its columns and its relations."; konfirmasi → `remove()` (dispatch + tutup).
+- State `confirmDelete`/`confirmingDelete` (plus helper inline "This permanently deletes the task…") dihapus dari ketujuh modal, diganti `confirmOpen` (reset tiap open; `done()` kini hanya `setEditing(false)`).
+
+### Verifikasi (batch ini)
+- `npm run lint -w app` — bersih (hanya 6 warning pre-existing react(only-export-components))
+- `npm run build -w app` — tsc + vite sukses (1 warning chunk >500kB pre-existing)
+
+---
+
+## Batch 4 — Edit mode: Cancel restore data, tombol Done, posisi Cancel kiri
+
+Permintaan: tombol Delete tidak boleh tampil di edit mode, tambah tombol Done di kanan Cancel, dan pastikan Cancel selalu di kiri tombol lain di semua komponen.
+
+- **Posisi Cancel** — 6 situs yang masih menaruh Cancel di kanan dibalik menjadi kiri: `api/CollectionModal`, `api/EndpointModal`, `decisions/NewDecisionModal`, `releases/NewMilestoneModal`, `keys/KeysPage` (modal revoke: Cancel juga mereset state konfirmasi), `project/AboutPage` (form PRD). Audit `rg` mengkonfirmasi Cancel sudah di kiri di semua modal lain.
+- **7 modal detail** (Task/Issue/Milestone/Decision/Test/Tech/Table):
+  - Delete hanya muncul di read mode (`canEdit && !editing`).
+  - Edit mode: `[Cancel (ghost)] [Done (primary)]` — Cancel membatalkan perubahan (restore kolom) dan kembali ke read view; Done menyimpan (autosave) dan menutup modal.
+  - Implementasi cancel: `editSnapshot = useRef<State | null>` — snapshot `structuredClone(state)` diambil saat `startEditing` (tombol Edit), dan `cancelEditing` memulihkan via `dispatch({ type: 'replace', state: editSnapshot.current })` (gate `canEditRef` di `project-context` tetap jalan untuk viewer).
+  - `done` lama diganti `startEditing` / `cancelEditing` / `finishEditing (onClose)`.
+
+### Addendum — Board: tombol Add task selalu terjangkau
+
+Kolom kanban sebelumnya tumbuh penuh mengikuti jumlah item (tanpa batas tinggi; `.kanban` hanya scroll horizontal) — dengan banyak task, tombol "Add task" di bawah daftar terlempar keluar viewport. Perbaikan (murni CSS di `global.css`):
+- `.kanban-col` → `max-height: calc(100dvh - 180px)` (kolom dibatasi setinggi viewport minus header halaman/toolbar).
+- `.kanban-col-body` → `overflow-y: auto` (daftar task scroll internal; scrollbar webkit custom tetap).
+- `.kanban-col-add` → `border-top: 1px solid var(--border-hairline)` (tombol tampak ter-dock di bawah kolom).
+
+Hasil: tombol "Add task" (per kolom, `canEdit` saja, preset status/milestone tetap) selalu terlihat di paling bawah kolom — pola Trello/Todoist; struktur TSX tidak berubah.
+
+### Verifikasi (batch ini)
+- `npm run lint -w app` — bersih (6 warning pre-existing react(only-export-components))
+- `npm run build -w app` — tsc + vite sukses (686.57 kB chunk / gzip 179.68 kB; 1 warning chunk >500kB pre-existing)
+
+---
+
+## Batch 5 — Save status jadi toast pojok kanan atas
+
+Permintaan: "pemberitahuan state save dll pusatkan di pojok kanan atas". Sebelumnya `SaveBanner` dirender inline di bawah tabs (ProjectPage) — bergeser posisinya per tab dan mengubah tinggi halaman. Kini menjadi toast mengambang:
+
+- **`SaveBanner.tsx`** — kedua state dirender lewat `createPortal(…, document.body)` (pola sama seperti `Modal`); ini wajib karena `tab-panel` punya animasi `fade-in` (transform ancestor membuat `position: fixed` relatif terhadap panel, bukan viewport). Bila tidak sedang `saving`/`showSaved`/`saveError`, komponen kini `return null` (min-height anti-jump tidak diperlukan lagi karena keluar dari flow).
+- **global.css** — kelas baru `.save-toast`: `position: fixed; top: 16px; right: 20px; z-index: 20` dengan gaya kartu (bg-overlay, border-strong, shadow-raised, radius input, `max-width: min(400px, calc(100vw - 32px))`). `.save-banner` (error: border/background/teks danger) dan `.save-status` (12px muted) kini hanya memodifikasi varian dalam toast.
+- **Z-index 20** — di atas sidebar/konten (10), di bawah palette (30) dan modal (40): saat modal terbuka toast tidak menutupi; error + Retry tetap relevan setelah modal ditutup.
+- Perilaku tidak berubah: `Saving…` (role=status), "All changes saved" auto-hide 2 detik, error persisten `role=alert` + Retry tanpa tombol dismiss.
+
+### Verifikasi (batch ini)
+- `npm run lint -w app` — bersih (6 warning pre-existing react(only-export-components))
+- `npm run build -w app` — tsc + vite sukses (686.66 kB chunk / gzip 179.71 kB; 1 warning chunk >500kB pre-existing)
+
+---
+
+## Batch 6 — Redesign tab About + edit PRD jadi modal
+
+Permintaan: "redesign tab about, pastikan edit prd itu modal" (tingkat: full redesign). Tab About sebelumnya berupa deskripsi + meta + 7 kartu statistik + 5 section polos, dengan form edit PRD **inline** menggantikan seluruh section saat diedit.
+
+- **`lib/prd.ts` (baru)** — `PRD_SECTIONS` (purpose/goals/features/scope/outOfScope + label, helper, ikon Phosphor: Target, Flag, Rocket, MagnifyingGlass, Prohibit) dan `EMPTY_PRD`; dipakai AboutPage + modal.
+- **`features/project/EditPrdModal.tsx` (baru)** — pola ProfileEditModal: `Modal width="md"`, title "Edit PRD", footer `[Cancel][Save PRD]` (submit via `form=`), gate `dirty` (Save disabled tanpa perubahan), reset state saat open, `InlineError` saat gagal. Form berisi **Description** (jalur edit description yang sebelumnya tidak ada selain saat create) + 5 Textarea PRD (label + helper).
+- **`AboutPage.tsx` ditulis ulang (read-only)** — header "About" + tombol "Edit PRD" (canEdit) membuka modal; **hero card** (`.about-hero`): description 16px (kosong = italic "No description yet.") + meta sebagai chips mono pill (`Team / Created / Updated` + Badge status & role); **stat tiles** (`.about-stats`): grid `repeat(auto-fit, minmax(120px,1fr))`, judul mono uppercase 10.5 + nilai mono 20/600 tabular; **PRD section jadi kartu** (`.about-card`): ikon accent 14px + judul mono uppercase + body pre-wrap, kosong = italic muted "Not set yet.".
+- **global.css** — blok `.about-*` lama (`about-form`, `about-actions`, `about-section*`) diganti set baru (hero/meta-chip/stats/cards); semua memakai token & radius existing.
+
+### Verifikasi (batch ini)
+- `npm run lint -w app` — bersih (6 warning pre-existing react(only-export-components))
+- `npm run build -w app` — tsc + vite sukses (693.07 kB chunk / gzip 180.96 kB; 1 warning chunk >500kB pre-existing)
+
+### Little fixes (batch ini)
+- Tab About kini full width seperti tab lain: `max-width: 760px` dihapus dari `.about-body`; kartu PRD (`about-cards`) diubah `flex` → `grid repeat(auto-fit, minmax(320px, 1fr))` (2 kolom responsif di layar lebar, tetap satu kolom di mobile).
+
+---
+
+## Backlog (tidak dikerjakan dalam sesi ini)
+
+1. **Undo untuk perubahan board** (arrow move / drag) — edit langsung + autosave = tidak ada undo; pertimbangkan snapshot ringan atau shortcut `Ctrl+Z` di level project.
+2. **Aksi New task / New issue di CommandPalette** — butuh hoisting modal (task/issue memerlukan konteks project; bisa buka ke `/project/:id?tab=board&new=1`).
+3. **Penemuan hotkey**: hint board sudah ada; evaluasi daftar hotkey global di palette footer ("n new task" dsb) bila shortcut bertambah.
+4. **Chunk splitting** (>500 kB) — di luar lingkup UI/UX, tercatat untuk performa.
+5. **Mode baca di workbench API**: pola read-mode modal detail belum merata ke editor API (Edit/Preview toggle sudah ada di sana, tapi preview adalah render JSON, bukan tampilan read yang rapi).

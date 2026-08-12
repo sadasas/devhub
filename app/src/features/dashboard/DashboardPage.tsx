@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { FolderOpen, Plus, SquaresFour } from '@phosphor-icons/react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { api } from '../../lib/api';
 import type { ProjectStats } from '../../lib/stats';
 import { PROJECT_STATUS } from '../../lib/labels';
 import { formatDate, formatRelative } from '../../lib/utils';
 import { useProjects } from '../../state/projects-context';
+import { useTeams } from '../../state/teams-context';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
@@ -15,8 +16,17 @@ import { InlineError } from '../../components/InlineError';
 
 export function DashboardPage() {
   const { projects, loading, error } = useProjects();
+  const { teams } = useTeams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [newOpen, setNewOpen] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      setNewOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
   const [stats, setStats] = useState<Record<string, ProjectStats>>({});
   const [statsLoading, setStatsLoading] = useState(false);
 
@@ -75,8 +85,12 @@ export function DashboardPage() {
         <div className="page-empty">
           <EmptyState
             icon={<SquaresFour size={22} />}
-            title="No projects yet"
-            description="Create your first project to track tasks, issues, your tech stack and more."
+            title={teams && teams.length === 0 ? 'Create a team first' : 'No projects yet'}
+            description={
+              teams && teams.length === 0
+                ? 'DevHub organizes projects inside teams — create a team from the sidebar, then come back to add your first project.'
+                : 'Create your first project to track tasks, issues, your tech stack and more.'
+            }
             action={
               <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setNewOpen(true)}>
                 New project
@@ -101,14 +115,23 @@ export function DashboardPage() {
                 <div className="project-card-meta">
                   {st ? (
                     <>
-                      <span className="tabular">
+                      <span
+                        className="tabular"
+                        title={`${st.doneTasks} of ${st.totalTasks} tasks done`}
+                      >
                         {st.doneTasks}/{st.totalTasks} done
                       </span>
-                      <span className="tabular">{st.openIssues} issues</span>
+                      <span className="tabular" title={`${st.openIssues} open issues`}>
+                        {st.openIssues} issues
+                      </span>
                       {st.outdatedDeps > 0 ? (
-                        <span className="tabular text-danger">{st.outdatedDeps} deps outdated</span>
+                        <span className="tabular text-danger" title={`${st.outdatedDeps} outdated dependencies`}>
+                          {st.outdatedDeps} deps outdated
+                        </span>
                       ) : (
-                        <span className="tabular">{st.outdatedDeps} deps outdated</span>
+                        <span className="tabular" title={`${st.outdatedDeps} outdated dependencies`}>
+                          {st.outdatedDeps} deps outdated
+                        </span>
                       )}
                       {st.nextMilestone && (
                         <span className="project-card-meta-milestone" title={st.nextMilestone.name}>

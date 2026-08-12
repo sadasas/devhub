@@ -447,7 +447,7 @@ function PublicAbout({ project, state }: { project: PublicProject; state: State 
         <span>Updated {formatDate(project.updatedAt)}</span>
       </p>
 
-      <div className="stats-grid" style={{ marginBottom: 24 }}>
+      <div className="stats-grid mb-24">
         {counts.map((c) => (
           <div key={c.label} className="stat-card">
             <div className="stat-card-head">

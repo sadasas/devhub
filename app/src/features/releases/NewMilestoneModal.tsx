@@ -46,11 +46,11 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
       width="md"
       footer={
         <>
-          <Button variant="primary" onClick={submit} disabled={!name.trim()}>
-            Add milestone
-          </Button>
           <Button variant="ghost" onClick={onClose}>
             Cancel
+          </Button>
+          <Button variant="primary" onClick={submit} disabled={!name.trim()}>
+            Add milestone
           </Button>
         </>
       }
