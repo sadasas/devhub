@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { PencilSimple, Plus, Stack } from '@phosphor-icons/react';
+import { ListBullets, PencilSimple, Plus, ShareNetwork, Stack } from '@phosphor-icons/react';
 import type { TechEntryCategory } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { TECH_CATEGORY, TECH_STATUS } from '../../lib/labels';
@@ -10,14 +10,37 @@ import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/Skeleton';
 import { NewTechModal } from './NewTechModal';
 import { TechModal } from './TechModal';
+import { StackGraph } from './StackGraph';
 import { InlineError } from '../../components/InlineError';
 
 const CATEGORY_ORDER: TechEntryCategory[] = ['frontend', 'backend', 'database', 'tooling'];
+
+type StackView = 'list' | 'graph';
+
+const VIEW_KEY = 'devhub.stackView';
+
+function loadView(): StackView {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'graph' ? 'graph' : 'list';
+  } catch {
+    return 'list';
+  }
+}
 
 export function StackPage() {
   const { state, loading, error, canEdit } = useProject();
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [view, setView] = useState<StackView>(loadView);
+
+  const switchView = (next: StackView) => {
+    setView(next);
+    try {
+      localStorage.setItem(VIEW_KEY, next);
+    } catch {
+      // storage unavailable — view stays for this session
+    }
+  };
 
   if (loading) {
     return (
@@ -54,10 +77,34 @@ export function StackPage() {
 
   return (
     <div>
-      <div className="data-list-header">
-        <span className="data-list-count">
-          {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
-        </span>
+<div className="data-list-header">
+        <div className="stack-header-left">
+          <span className="data-list-count">
+            {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
+          </span>
+          <div className="sub-tabs stack-view-toggle" role="tablist" aria-label="Stack view">
+            <button
+              type="button"
+              className={`sub-tab ${view === 'list' ? 'sub-tab-active' : ''}`}
+              role="tab"
+              aria-selected={view === 'list'}
+              onClick={() => switchView('list')}
+            >
+              <ListBullets size={13} aria-hidden="true" />
+              List
+            </button>
+            <button
+              type="button"
+              className={`sub-tab ${view === 'graph' ? 'sub-tab-active' : ''}`}
+              role="tab"
+              aria-selected={view === 'graph'}
+              onClick={() => switchView('graph')}
+            >
+              <ShareNetwork size={13} aria-hidden="true" />
+              Graph
+            </button>
+          </div>
+        </div>
         {canEdit && (
           <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
             New entry
@@ -78,6 +125,8 @@ export function StackPage() {
             )
           }
         />
+      ) : view === 'graph' ? (
+        <StackGraph entries={entries} onOpen={setEditingId} />
       ) : (
         <div className="data-list">
           {sorted.map((entry) => (
