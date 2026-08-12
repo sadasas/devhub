@@ -53,7 +53,7 @@ export function Sidebar() {
           <Key size={15} weight="duotone" aria-hidden="true" />
           <span>API Keys</span>
         </NavLink>
-        <NavLink to="/docs/mcp" className={itemClass()} aria-label="Docs">
+        <NavLink to="/docs" className={itemClass()} aria-label="Docs">
           <BookOpen size={15} weight="duotone" aria-hidden="true" />
           <span>Docs</span>
         </NavLink>

@@ -50,13 +50,13 @@ export function CommandPalette() {
         },
       },
       {
-        id: 'mcp',
+        id: 'docs',
         group: 'Navigate',
-        label: 'Open MCP docs',
+        label: 'Open docs',
         icon: <BookOpen size={16} />,
         run: () => {
           setOpen(false);
-          navigate('/docs/mcp');
+          navigate('/docs');
         },
       },
     ];

@@ -7,6 +7,8 @@ import { Layout } from './features/layout/Layout';
 import { CommandPalette } from './components/CommandPalette';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { KeysPage } from './features/keys/KeysPage';
+import { DocsPage } from './features/docs/DocsPage';
+import { ApiDocsPage } from './features/docs/ApiDocsPage';
 import { McpDocsPage } from './features/docs/McpDocsPage';
 import { TeamPage } from './features/teams/TeamPage';
 import { InvitesPage } from './features/teams/InvitesPage';
@@ -38,7 +40,9 @@ function Root() {
               <Route path="/team/:teamId" element={<TeamPage />} />
               <Route path="/invites" element={<InvitesPage />} />
               <Route path="/keys" element={<KeysPage />} />
+              <Route path="/docs" element={<DocsPage />} />
               <Route path="/docs/mcp" element={<McpDocsPage />} />
+              <Route path="/docs/api" element={<ApiDocsPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Routes>
