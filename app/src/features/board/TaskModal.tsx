@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Trash } from '@phosphor-icons/react';
-import { TASK_PRIORITY, TASK_STATUS } from '../../lib/labels';
-import { formatRelative, isTaskCompletable, parseLabels } from '../../lib/utils';
-import type { Task, TaskPriority, TaskStatus } from '../../lib/types';import { useProject, wouldCreateCycle } from '../../state/project-context';
+import { TASK_PRIORITY, TASK_STATUS, TEST_CASE_STATUS } from '../../lib/labels';
+import { formatRelative, isTaskCompletable, linkedTestCases, parseLabels } from '../../lib/utils';
+import type { Task, TaskPriority, TaskStatus, TestCaseStatus } from '../../lib/types';import { useProject, wouldCreateCycle } from '../../state/project-context';
 import type { UpdatePatch } from '../../state/project-context';
+import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
@@ -19,7 +20,7 @@ interface TaskModalProps {
 }
 
 export function TaskModal({ taskId, onClose }: TaskModalProps) {
-  const { state, dispatch } = useProject();
+  const { state, dispatch, canEdit } = useProject();
   const [cycleWarn, setCycleWarn] = useState<string | null>(null);
   const [doneWarn, setDoneWarn] = useState<string | null>(null);
 
@@ -49,6 +50,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
   };
 
   const otherTasks = state!.tasks.filter((t) => t.id !== task.id);
+  const testCases = linkedTestCases(task.id, state!.testCases);
   const blockerNames = task.blockedBy
     .map((id) => state!.tasks.find((t) => t.id === id)?.title)
     .filter((t): t is string => t !== undefined);
@@ -208,6 +210,45 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
             ))}
           </div>
           {cycleWarn && <InlineError>{cycleWarn}</InlineError>}
+        </div>
+
+        <div className="field">
+          <label className="field-label">
+            Test cases{testCases.length > 0 ? ` — ${testCases.length}` : ''}
+          </label>
+          {testCases.length === 0 ? (
+            <p className="field-helper">No test cases linked to this task yet.</p>
+          ) : (
+            <div className="test-list">
+              {testCases.map((tc) => (
+                <div key={tc.id} className="test-row" title={tc.steps || tc.name}>
+                  <span className="test-title">{tc.name}</span>
+                  {canEdit ? (
+                    <select
+                      className="select test-status-select"
+                      aria-label={`Status of ${tc.name}`}
+                      value={tc.status}
+                      onChange={(e) =>
+                        dispatch({
+                          type: 'testCase/update',
+                          id: tc.id,
+                          patch: { status: e.target.value as TestCaseStatus },
+                        })
+                      }
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="pass">Pass</option>
+                      <option value="fail">Fail</option>
+                    </select>
+                  ) : (
+                    <Badge tone={TEST_CASE_STATUS[tc.status].tone}>
+                      {TEST_CASE_STATUS[tc.status].label}
+                    </Badge>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <p className="field-helper">Updated {formatRelative(task.updatedAt)}</p>
