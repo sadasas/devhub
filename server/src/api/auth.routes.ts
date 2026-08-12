@@ -35,6 +35,14 @@ const registerLimiter = rateLimit({
   message: { error: { code: 'RATE_LIMITED', message: 'Too many registrations from this IP' } },
 });
 
+const passwordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: { code: 'RATE_LIMITED', message: 'Too many password attempts, try again later' } },
+});
+
 function setSessionCookie(res: Response, userId: string): void {
   res.cookie(SESSION_COOKIE, signToken(userId), {
     httpOnly: true,
@@ -105,6 +113,39 @@ authRouter.post('/login', loginLimiter, async (req, res) => {
   }
   setSessionCookie(res, user.id);
   res.json({ id: user.id, email });
+});
+
+const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Current password is required').max(128),
+    newPassword: z.string().min(8, 'Password must be at least 8 characters').max(128),
+  })
+  .refine((v) => v.currentPassword !== v.newPassword, {
+    message: 'New password must be different from the current one',
+    path: ['newPassword'],
+  });
+
+authRouter.patch('/password', passwordLimiter, requireAuth, async (req, res) => {
+  const userId = getUserId(req);
+  const parsed = changePasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid password data', parsed.error.issues);
+  }
+  const { currentPassword, newPassword } = parsed.data;
+  const result = await pool.query<{ password_hash: string }>(
+    'SELECT password_hash FROM users WHERE id = $1',
+    [userId],
+  );
+  const user = result.rows[0];
+  if (!user || !(await verifyPassword(currentPassword, user.password_hash))) {
+    throw new ApiError(401, 'INVALID_PASSWORD', 'Current password is incorrect');
+  }
+  const passwordHash = await hashPassword(newPassword);
+  await pool.query('UPDATE users SET password_hash = $2, updated_at = now() WHERE id = $1', [
+    userId,
+    passwordHash,
+  ]);
+  res.json({ ok: true });
 });
 
 authRouter.post('/logout', (req, res) => {

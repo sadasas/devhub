@@ -38,6 +38,7 @@ export interface Issue extends Base {
   title: string;
   severity: IssueSeverity;
   status: IssueStatus;
+  description: string;
   reproduction: string;
   linkedTaskId?: string | null;
 }

@@ -35,6 +35,7 @@ export const issueSchema = z.object({
   title: z.string().min(1).max(500),
   severity: issueSeverity,
   status: issueStatus,
+  description: z.string().max(10_000).default(''),
   reproduction: z.string().max(10_000).default(''),
   linkedTaskId: z.string().uuid().nullable().optional(),
 });

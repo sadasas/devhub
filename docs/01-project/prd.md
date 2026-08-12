@@ -184,6 +184,8 @@ Base { id: string (UUID), createdAt: ISO, updatedAt: ISO, authorId?: string }
 | `add_relation` | (projectId, tableIds, columnIds, cardinality) → relation (duplicates rejected) |
 | `delete_relation` | (projectId, relationId) → deleted relation |
 | `add_tech` | (projectId, name, version, category) → tech entry |
+| `add_test_case` | (projectId, name, taskId?, issueId?, steps?, expected?, status?) → test case |
+| `update_test_case` | (projectId, testCaseId, {name, status, steps, expected, taskId, issueId}) → test case |
 
 ---
 

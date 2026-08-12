@@ -235,13 +235,15 @@ Versioning contract, request/response examples, and error format: [API Guide](..
 | `create_task` | Creates a task (zod-validated) |
 | `update_task` | Updates status and/or actualHours of a task |
 | `add_issue` | Creates an issue |
-| `update_issue` | Updates an issue (status, severity, title, reproduction, linked task) |
+| `update_issue` | Updates an issue (status, severity, title, description, reproduction, linked task) |
 | `add_decision` | Creates an ADR decision entry |
 | `update_milestone` | Updates milestone status/changelog |
 | `add_table` | Creates a schema table with columns/indexes |
 | `add_relation` | Creates a schema relation between two tables (rejects identical duplicates) |
 | `delete_relation` | Deletes a schema relation by id |
 | `add_tech` | Creates a tech stack entry |
+| `add_test_case` | Creates a test case (optionally linked to a task or issue) |
+| `update_test_case` | Updates a test case (status, steps, expected, linked task/issue) |
 
 All tools return normalized responses with `updatedAt` so agents can detect external changes.
 

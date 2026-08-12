@@ -9,6 +9,8 @@ import { registerCreateTask } from './tools/create-task.js';
 import { registerUpdateTask } from './tools/update-task.js';
 import { registerAddIssue } from './tools/add-issue.js';
 import { registerUpdateIssue } from './tools/update-issue.js';
+import { registerAddTestCase } from './tools/add-test-case.js';
+import { registerUpdateTestCase } from './tools/update-test-case.js';
 import { registerAddDecision } from './tools/add-decision.js';
 import { registerUpdateMilestone } from './tools/update-milestone.js';
 import { registerAddTable } from './tools/add-table.js';
@@ -32,6 +34,8 @@ mcpRouter.post('/', async (req, res) => {
   registerUpdateTask(mcpServer);
   registerAddIssue(mcpServer);
   registerUpdateIssue(mcpServer);
+  registerAddTestCase(mcpServer);
+  registerUpdateTestCase(mcpServer);
   registerAddDecision(mcpServer);
   registerUpdateMilestone(mcpServer);
   registerAddTable(mcpServer);

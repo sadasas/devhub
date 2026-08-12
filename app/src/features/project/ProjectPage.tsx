@@ -69,7 +69,7 @@ const TABS: { id: ProjectTab; label: string; icon: ReactNode }[] = [
 
 export function ProjectPage() {
   const { projectId = '' } = useParams<{ projectId: string }>();
-  const { projects, refresh, remove } = useProjects();
+  const { projects, refresh, remove, update } = useProjects();
   const navigate = useNavigate();
   const [tab, setTab] = useState<ProjectTab>('board');
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -80,7 +80,9 @@ export function ProjectPage() {
   const [importError, setImportError] = useState<string | null>(null);
   const [toggleError, setToggleError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { copied, copy } = useCopyFeedback();
+  const { copied: pidCopied, copy: copyPid } = useCopyFeedback();
+  const { copied: linkCopied, copy: copyLink } = useCopyFeedback();
+  const [toggling, setToggling] = useState(false);
 
   useEffect(() => {
     setTab('board');
@@ -114,7 +116,7 @@ export function ProjectPage() {
   const isAdmin = role === 'owner' || role === 'admin';
 
   async function onCopyProjectId() {
-    await copy(projectId);
+    await copyPid(projectId);
   }
 
   async function onExport() {
@@ -187,18 +189,20 @@ export function ProjectPage() {
   async function onToggleVisibility() {
     if (!project) return;
     setToggleError(null);
+    setToggling(true);
     try {
       const visibility = project.visibility === 'public' ? 'private' : 'public';
-      await api.patchProject(projectId, { visibility });
-      await refresh();
+      await update(projectId, { visibility });
     } catch (err) {
       setToggleError(err instanceof ApiError ? err.message : 'Failed to update visibility.');
+    } finally {
+      setToggling(false);
     }
   }
 
   async function onCopyPublicLink() {
     if (!project) return;
-    await copy(`${window.location.origin}/p/${projectId}`);
+    await copyLink(`${window.location.origin}/p/${projectId}`);
   }
 
   return (
@@ -227,7 +231,7 @@ export function ProjectPage() {
                 size="sm"
                 className="project-id-copy"
                 leftIcon={
-                  copied ? (
+                  pidCopied ? (
                     <Check size={12} weight="bold" aria-hidden="true" />
                   ) : (
                     <Copy size={12} aria-hidden="true" />
@@ -235,7 +239,7 @@ export function ProjectPage() {
                 }
                 onClick={() => void onCopyProjectId()}
               >
-                {copied ? 'Copied' : 'Copy'}
+                {pidCopied ? 'Copied' : 'Copy'}
               </Button>
             </div>
           </div>
@@ -262,6 +266,7 @@ export function ProjectPage() {
               <Button
                 variant="ghost"
                 size="sm"
+                disabled={toggling}
                 leftIcon={<GlobeSimple size={13} aria-hidden="true" />}
                 onClick={() => void onToggleVisibility()}
               >
@@ -273,7 +278,7 @@ export function ProjectPage() {
                 variant="ghost"
                 size="sm"
                 leftIcon={
-                  copied ? (
+                  linkCopied ? (
                     <Check size={12} weight="bold" aria-hidden="true" />
                   ) : (
                     <LinkSimple size={13} aria-hidden="true" />
@@ -281,7 +286,7 @@ export function ProjectPage() {
                 }
                 onClick={() => void onCopyPublicLink()}
               >
-                {copied ? 'Copied' : 'Copy link'}
+                {linkCopied ? 'Copied' : 'Copy link'}
               </Button>
             )}
             {isAdmin && (

@@ -8,6 +8,7 @@ const inputSchema = z.object({
   title: z.string().min(1).max(500),
   severity: z.enum(['critical', 'high', 'medium', 'low']).default('medium'),
   status: z.enum(['open', 'reproduced', 'fixing', 'resolved', 'wontfix']).default('open'),
+  description: z.string().default('').describe('What is broken, where, and why'),
   reproduction: z.string().default(''),
   linkedTaskId: z.string().optional().describe('Optional UUID of a related task'),
 });
@@ -30,6 +31,7 @@ export function registerAddIssue(server: McpServer): void {
         title: args.title.trim(),
         severity: args.severity,
         status: args.status,
+        description: args.description,
         reproduction: args.reproduction,
         linkedTaskId: args.linkedTaskId ?? null,
       };

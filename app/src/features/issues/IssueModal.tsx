@@ -118,6 +118,12 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
           </select>
         </div>
         <Textarea
+          label="Description"
+          rows={3}
+          value={issue.description}
+          onChange={(e) => update({ description: e.target.value })}
+        />
+        <Textarea
           label="Reproduction steps"
           rows={4}
           value={issue.reproduction}

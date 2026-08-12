@@ -32,9 +32,12 @@ const MCP_TOOLS = [
   'add_decision',
   'update_milestone',
   'add_table',
+  'add_tech',
+  'add_test_case',
   'add_relation',
   'delete_relation',
-  'add_tech',
+  'update_task',
+  'update_test_case',
 ];
 
 const TOC_ITEMS: DocsTocItem[] = [

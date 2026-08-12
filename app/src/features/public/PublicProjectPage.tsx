@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Bug, Columns, Info, Rocket, Stack } from '@phosphor-icons/react';
+import { Bug, Columns, Flag, Info, Rocket, SquaresFour, Stack } from '@phosphor-icons/react';
 import { useNavigate, useParams } from 'react-router';
 import { ApiError, api } from '../../lib/api';
-import type { PublicProject, State } from '../../lib/types';
+import type { PublicProject, State, Task } from '../../lib/types';
 import {
   ISSUE_STATUS,
   MILESTONE_STATUS,
@@ -167,50 +167,136 @@ export function PublicProjectPage() {
   );
 }
 
-function PublicBoard({ state }: { state: State }) {
+type BoardView = 'status' | 'milestone';
+
+function PublicTaskCard({
+  task,
+  state,
+  showStatus,
+  showMilestone,
+}: {
+  task: Task;
+  state: State;
+  showStatus?: boolean;
+  showMilestone?: boolean;
+}) {
+  const milestone = task.milestoneId
+    ? state.milestones.find((m) => m.id === task.milestoneId)
+    : undefined;
   return (
-    <div className="kanban">
-      {BOARD_STATUSES.map((status) => {
-        const tasks = state.tasks.filter((t) => t.status === status).slice(0, 20);
-        return (
-          <div key={status} className="kanban-col">
-            <div className="kanban-col-header">
-              <span className="kanban-col-label">{TASK_STATUS[status].label}</span>
-              {tasks.length > 0 && (
-                <span className="kanban-col-count tabular">{tasks.length}</span>
-              )}
-            </div>
-            <div className="kanban-col-body">
-              {tasks.length === 0 ? (
-                <p className="kanban-col-empty">No tasks</p>
-              ) : (
-                tasks.map((task) => (
-                  <div key={task.id} className="task-card">
-                    <div className="task-card-top">
-                      <span className="task-card-title">{task.title}</span>
-                    </div>
-                    <div className="task-card-labels">
-                      <span key="priority" className="task-label">
-                        {task.priority}
-                      </span>
-                      {task.labels.slice(0, 3).map((label) => (
-                        <span key={label} className="task-label">
-                          {label}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="task-card-meta">
-                      <span className="task-card-id font-mono" title={task.id}>
-                        {task.id.slice(0, 8)}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+    <div className="task-card">
+      <div className="task-card-top">
+        <span className="task-card-title">{task.title}</span>
+      </div>
+      <div className="task-card-labels">
+        {showStatus && <span className="task-label">{TASK_STATUS[task.status].label}</span>}
+        {showMilestone && milestone && <span className="task-label">{milestone.name}</span>}
+        <span key="priority" className="task-label">
+          {task.priority}
+        </span>
+        {task.labels.slice(0, 3).map((label) => (
+          <span key={label} className="task-label">
+            {label}
+          </span>
+        ))}
+      </div>
+      <div className="task-card-meta">
+        <span className="task-card-id font-mono" title={task.id}>
+          {task.id.slice(0, 8)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function PublicBoard({ state }: { state: State }) {
+  const [view, setView] = useState<BoardView>('status');
+
+  const milestoneOrder = (m: { status: string; targetDate?: string | null }): number =>
+    m.status === 'planned' ? 0 : m.status === 'inProgress' ? 1 : 2;
+
+  const milestoneColumns = [
+    ...[...state.milestones].sort((a, b) => {
+      const order = milestoneOrder(a) - milestoneOrder(b);
+      if (order !== 0) return order;
+      return (a.targetDate ?? '9999-99-99').localeCompare(b.targetDate ?? '9999-99-99');
+    }),
+    null,
+  ];
+
+  const statusCols = BOARD_STATUSES.map((status) => {
+    const tasks = state.tasks.filter((t) => t.status === status);
+    return (
+      <div key={status} className="kanban-col">
+        <div className="kanban-col-header">
+          <span className="kanban-col-label">{TASK_STATUS[status].label}</span>
+          {tasks.length > 0 && <span className="kanban-col-count tabular">{tasks.length}</span>}
+        </div>
+        <div className="kanban-col-body">
+          {tasks.length === 0 ? (
+            <p className="kanban-col-empty">No tasks</p>
+          ) : (
+            tasks.map((task) => (
+              <PublicTaskCard key={task.id} task={task} state={state} showMilestone />
+            ))
+          )}
+        </div>
+      </div>
+    );
+  });
+
+  const milestoneCols = milestoneColumns.map((m) => {
+    const mId = m?.id ?? null;
+    const tasks = state.tasks.filter((t) => t.milestoneId === mId);
+    const done = tasks.filter((t) => t.status === 'done').length;
+    const progress = tasks.length > 0 ? Math.round((done / tasks.length) * 100) : 0;
+    return (
+      <div key={mId ?? 'unassigned'} className="kanban-col">
+        <div className="kanban-col-header">
+          <div className="kanban-milestone-header">
+            <span className="kanban-col-label">{m?.name ?? 'Unassigned'}</span>
+            {m?.version && <span className="task-label">{m.version}</span>}
           </div>
-        );
-      })}
+          <span className="kanban-col-count tabular" title={`${done}/${tasks.length} done`}>
+            {tasks.length} · {progress}%
+          </span>
+        </div>
+        <div className="kanban-col-body">
+          {tasks.length === 0 ? (
+            <p className="kanban-col-empty">No tasks</p>
+          ) : (
+            tasks.map((task) => (
+              <PublicTaskCard key={task.id} task={task} state={state} showStatus />
+            ))
+          )}
+        </div>
+      </div>
+    );
+  });
+
+  return (
+    <div>
+      <div className="sub-tabs" role="tablist" aria-label="Board view">
+        <button
+          type="button"
+          className={`sub-tab ${view === 'status' ? 'sub-tab-active' : ''}`}
+          onClick={() => setView('status')}
+          aria-current={view === 'status' ? 'page' : undefined}
+        >
+          <SquaresFour size={13} aria-hidden="true" />
+          By Status
+        </button>
+        <button
+          type="button"
+          className={`sub-tab ${view === 'milestone' ? 'sub-tab-active' : ''}`}
+          onClick={() => setView('milestone')}
+          aria-current={view === 'milestone' ? 'page' : undefined}
+        >
+          <Flag size={13} aria-hidden="true" />
+          By Milestone
+        </button>
+      </div>
+      <div className="kanban">{view === 'status' ? statusCols : milestoneCols}</div>
     </div>
   );
 }
@@ -229,6 +315,12 @@ function PublicIssues({ state }: { state: State }) {
               Severity: {issue.severity}
               {issue.linkedTaskId ? ` · Linked to task ${issue.linkedTaskId.slice(0, 8)}` : ''}
             </span>
+            {issue.description && (
+              <span className="data-row-sub public-issue-text">{issue.description}</span>
+            )}
+            {issue.reproduction && (
+              <span className="data-row-sub public-issue-text">{issue.reproduction}</span>
+            )}
           </div>
           <div className="data-row-side">
             <Badge tone={ISSUE_STATUS[issue.status].tone}>{ISSUE_STATUS[issue.status].label}</Badge>

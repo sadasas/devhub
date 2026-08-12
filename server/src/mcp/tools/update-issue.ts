@@ -9,6 +9,7 @@ const inputSchema = z.object({
   title: z.string().min(1).max(500).optional(),
   severity: z.enum(['critical', 'high', 'medium', 'low']).optional(),
   status: z.enum(['open', 'reproduced', 'fixing', 'resolved', 'wontfix']).optional(),
+  description: z.string().optional(),
   reproduction: z.string().optional(),
   linkedTaskId: z.string().uuid().nullable().optional().describe('UUID of a related task, or null to clear'),
 });
@@ -31,6 +32,7 @@ export function registerUpdateIssue(server: McpServer): void {
       if (args.title !== undefined) issue.title = args.title.trim();
       if (args.severity !== undefined) issue.severity = args.severity;
       if (args.status !== undefined) issue.status = args.status;
+      if (args.description !== undefined) issue.description = args.description;
       if (args.reproduction !== undefined) issue.reproduction = args.reproduction;
       if (args.linkedTaskId !== undefined) issue.linkedTaskId = args.linkedTaskId;
       issue.updatedAt = new Date().toISOString();

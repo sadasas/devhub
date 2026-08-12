@@ -97,6 +97,7 @@ export function IssuesPage() {
                     </Badge>
                     <span className="row-title-text">{issue.title}</span>
                   </div>
+                  {issue.description && <div className="data-row-sub">{issue.description}</div>}
                   {issue.reproduction && <div className="data-row-sub">{issue.reproduction}</div>}
                   <div className="data-row-meta">
                     {linked && <span>linked: {linked.title}</span>}

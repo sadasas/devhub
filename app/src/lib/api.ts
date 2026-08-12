@@ -100,6 +100,11 @@ export const api = {
     }),
   logout: () => request<void>('/auth/logout', { method: 'POST' }),
   me: () => request<User>('/auth/me'),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<{ ok: true }>('/auth/password', {
+      method: 'PATCH',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
 
   listProjects: async () => {
     const res = await request<{ projects: Project[] }>('/projects');

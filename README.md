@@ -2,7 +2,7 @@
 
 > Developer-grade project management for programming projects. Track tasks, bugs, test cases, your tech stack, database schema, architectural decisions, releases, and velocity — all in one local-first tool built for a single developer.
 
-**Status:** Pre-development (Phase 0 — Planning). See [Roadmap](docs/01-project/roadmap.md).
+**Status:** In development (Milestone 7, v0.2.0 target). See [Roadmap](docs/01-project/roadmap.md).
 
 ---
 
@@ -49,9 +49,11 @@ DevHub is a project management application designed specifically for **programmi
 | Decisions | ADR log: Proposed / Accepted / Rejected / Superseded |
 | Releases | Milestones with target dates, changelogs |
 | Stats | Estimates vs actuals, velocity, issue aging — SVG charts |
-| Global | Command Palette (Ctrl+K), keyboard shortcuts, export/import JSON |
-| Auth | Email + password, JWT httpOnly cookie, rate limiting |
+| Global | Command Palette (Ctrl+K, `?`), keyboard shortcuts (`N` for new task), export/import JSON, URL routing (react-router) |
+| Auth | Email + password, JWT httpOnly cookie, rate limiting, change password |
 | Teams | Workspaces with roles (owner/admin/editor/viewer), email invites (registered users only, 7-day expiry, accept/decline), member management, team-scoped project lists |
+| Sharing | Public read-only project pages at `/p/:projectId` — no login needed; per-project visibility toggle (owner/admin) with copy-link |
+| Docs | In-app docs hub (`/docs`): overview with keyboard shortcuts, MCP integration guide, API reference |
 
 ### V2 / V3 (deferred — see [Roadmap](docs/01-project/roadmap.md))
 
@@ -82,7 +84,7 @@ See [Technical Design Document](docs/02-architecture/technical-design.md) for th
 
 | Layer | Technology |
 |---|---|
-| Frontend | Vite, React 18, TypeScript, CSS variables (native), @phosphor-icons/react |
+| Frontend | Vite, React 19, TypeScript, CSS variables (native), @phosphor-icons/react, react-router |
 | Backend | Node.js, Express, zod |
 | Data | PostgreSQL (JSONB state payload) |
 | Auth | bcryptjs, jsonwebtoken, cookie-parser, express-rate-limit |
@@ -165,9 +167,9 @@ DevHub exposes a **remote MCP server** so AI coding agents (opencode, Claude, Cu
 
 - Protocol: Model Context Protocol, streamable HTTP transport.
 - Auth: per-user API key (Bearer token). Each DevHub user creates their own key in the app under **API Keys** (or via `POST /api/keys`) — no shared server-wide secret.
-- Tools: `project_state`, `update_prd`, `plan_project`, `create_task`, `update_task`, `add_issue`, `update_issue`, `add_decision`, `update_milestone`, `add_table`, `add_relation`, `delete_relation`, `add_tech`.
+- Tools: `project_state`, `update_prd`, `plan_project`, `create_task`, `update_task`, `add_issue`, `update_issue`, `add_decision`, `update_milestone`, `add_table`, `add_relation`, `delete_relation`, `add_tech`, `add_test_case`, `update_test_case`.
 
-MCP keys are scoped to the user who created them: agents can only access projects in teams that user belongs to, with the same role rules as the REST API (viewers are read-only — write tools are rejected). A step-by-step guide is available in the app under **MCP Guide** (sidebar). See [MCP Integration](docs/03-engineering/mcp-integration.md) for the full specification and example agent workflows.
+MCP keys are scoped to the user who created them: agents can only access projects in teams that user belongs to, with the same role rules as the REST API (viewers are read-only — write tools are rejected). A step-by-step guide is available in the app under **Docs** (sidebar, `/docs/mcp`). See [MCP Integration](docs/03-engineering/mcp-integration.md) for the full specification and example agent workflows.
 
 ---
 
@@ -175,10 +177,11 @@ MCP keys are scoped to the user who created them: agents can only access project
 
 | Phase | Scope | Status |
 |---|---|---|
-| Phase 0 | Planning, documentation suite | **Current** |
-| Phase 1 | V1 feature set (local-first, single-user) | Next |
+| Phase 0 | Planning, documentation suite | Done |
+| Phase 1 | V1 feature set (local-first, single-user) | Done |
 | Phase 2 | Public deploy, auth hardening, V2 features | Planned |
-| Phase 3 | Collaboration (teams, invites, roles — shipped), real-time sync, PWA | In progress |
+| Phase 3 | Collaboration (teams, invites, roles), public sharing (`/p/:projectId`), in-app docs hub | In progress |
+| Phase 4 | Real-time sync, PWA | Planned |
 
 ---
 

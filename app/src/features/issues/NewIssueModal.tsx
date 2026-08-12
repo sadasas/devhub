@@ -17,6 +17,7 @@ export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
   const { dispatch } = useProject();
   const [title, setTitle] = useState('');
   const [severity, setSeverity] = useState<IssueSeverity>('medium');
+  const [description, setDescription] = useState('');
   const [reproduction, setReproduction] = useState('');
 
   function onSubmit(e: FormEvent) {
@@ -32,12 +33,14 @@ export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
         title: title.trim(),
         severity,
         status: 'open',
+        description: description.trim(),
         reproduction: reproduction.trim(),
         linkedTaskId: null,
       },
     });
     setTitle('');
     setSeverity('medium');
+    setDescription('');
     setReproduction('');
     onClose();
   }
@@ -84,6 +87,13 @@ export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
             <option value="low">Low</option>
           </select>
         </div>
+        <Textarea
+          label="Description"
+          rows={3}
+          placeholder="What's broken, where, and why — optional"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
         <Textarea
           label="Reproduction steps"
           rows={3}

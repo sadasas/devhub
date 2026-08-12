@@ -127,8 +127,11 @@ devhub.example.com {
 | `PORT` | No | Default 3000 |
 | `NODE_ENV` | No | `production` for prod behaviors |
 | `COOKIE_SECURE` | No | `true` behind TLS |
+| `TRUST_PROXY` | No | `true` when behind a reverse proxy — required so rate limiting and client IPs work correctly (otherwise every request appears to come from the proxy IP) |
 
 MCP keys live in Postgres (`mcp_keys` table), not env — each user manages their own via the app's **API Keys** page (`POST /api/keys`).
+
+**SPA fallback:** the server only exposes the API (no static hosting). Host the built `app/dist` behind a static server (Caddy `file_server`, nginx, Cloudflare Pages, etc.) and route every non-file path — including `/project/*`, `/team/*`, `/docs/*`, and `/p/*` — to `index.html` so client-side routes (including public project pages) deep-link correctly.
 
 **Never commit real values.** `server/.env` gitignored; `server/.env.example` holds placeholders.
 

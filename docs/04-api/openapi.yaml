@@ -26,6 +26,8 @@ tags:
     description: Full project state (JSONB payload)
   - name: Export/Import
     description: JSON snapshots
+  - name: Public
+    description: Read-only endpoints for sharing a project with anyone — no auth required
   - name: Health
     description: Operational health
 
@@ -299,6 +301,79 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /public/projects/{projectId}:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+    get:
+      tags: [Public]
+      summary: Get public project meta (no login)
+      operationId: getPublicProject
+      description: |
+        Returns project meta for a project with visibility set to public.
+        Projects that are private or do not exist return 404 — the endpoint does
+        not leak whether a project ID exists.
+      responses:
+        '200':
+          description: Public project meta
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [project]
+                properties:
+                  project:
+                    type: object
+                    required: [id, name, description, status, visibility, teamName, createdAt, updatedAt]
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      name:
+                        type: string
+                      description:
+                        type: string
+                      status:
+                        type: string
+                        enum: [active, archived]
+                      visibility:
+                        type: string
+                        enum: [private, public]
+                      prd:
+                        type: object
+                        nullable: true
+                      teamName:
+                        type: string
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /public/projects/{projectId}/state:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+    get:
+      tags: [Public]
+      summary: Get public project state (no login)
+      operationId: getPublicProjectState
+      description: Full project state for read-only public viewing. Returns 404 when the project is not public.
+      responses:
+        '200':
+          description: Public project state
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [state]
+                properties:
+                  state:
+                    $ref: '#/components/schemas/State'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /health:
     get:
       tags: [Health]
@@ -429,12 +504,9 @@ components:
 
     Project:
       type: object
-      required: [id, ownerId, name, status, createdAt, updatedAt]
+      required: [id, name, status, visibility, createdAt, updatedAt]
       properties:
         id:
-          type: string
-          format: uuid
-        ownerId:
           type: string
           format: uuid
         name:
@@ -448,6 +520,10 @@ components:
         status:
           type: string
           enum: [active, archived]
+        visibility:
+          type: string
+          enum: [private, public]
+          default: private
         createdAt:
           type: string
           format: date-time
@@ -482,6 +558,9 @@ components:
           maxLength: 120
         description:
           type: string
+        visibility:
+          type: string
+          enum: [private, public]
           maxLength: 2000
           nullable: true
         status:

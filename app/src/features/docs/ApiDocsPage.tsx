@@ -95,7 +95,7 @@ const GROUPS: ApiGroup[] = [
     id: 'mcp',
     title: 'MCP Transport',
     desc: 'The Model Context Protocol endpoint used by AI agents. Authenticated with an API key, not a session cookie.',
-    endpoints: [{ method: 'POST', path: '/mcp', desc: 'Streamable HTTP endpoint exposing 13 tools.', auth: true }],
+    endpoints: [{ method: 'POST', path: '/mcp', desc: 'Streamable HTTP endpoint exposing 15 tools.', auth: true }],
   },
 ];
 

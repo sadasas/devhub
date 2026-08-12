@@ -102,4 +102,63 @@ describe('auth routes', () => {
     expect(setCookie).toBeDefined();
     expect(setCookie).toContain('Expires=Thu, 01 Jan 1970');
   });
+
+  it('changes the password and logs in with the new one', async () => {
+    const cookie = await register('pw@test.dev');
+    const change = await request(app)
+      .patch('/api/auth/password')
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ currentPassword: 'password123', newPassword: 'newpass456' });
+    expect(change.status).toBe(200);
+    expect(change.body).toEqual({ ok: true });
+
+    const oldLogin = await request(app)
+      .post('/api/auth/login')
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ email: 'pw@test.dev', password: 'password123' });
+    expect(oldLogin.status).toBe(401);
+
+    const newLogin = await request(app)
+      .post('/api/auth/login')
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ email: 'pw@test.dev', password: 'newpass456' });
+    expect(newLogin.status).toBe(200);
+  });
+
+  it('rejects a wrong current password', async () => {
+    const cookie = await register('pw2@test.dev');
+    const res = await request(app)
+      .patch('/api/auth/password')
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ currentPassword: 'wrong-password', newPassword: 'newpass456' });
+    expect(res.status).toBe(401);
+    expect(res.body.error.code).toBe('INVALID_PASSWORD');
+  });
+
+  it('rejects a weak or identical new password', async () => {
+    const cookie = await register('pw3@test.dev');
+    const weak = await request(app)
+      .patch('/api/auth/password')
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ currentPassword: 'password123', newPassword: 'short' });
+    expect(weak.status).toBe(400);
+
+    const same = await request(app)
+      .patch('/api/auth/password')
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ currentPassword: 'password123', newPassword: 'password123' });
+    expect(same.status).toBe(400);
+  });
+
+  it('rejects password change without a session', async () => {
+    const res = await request(app)
+      .patch('/api/auth/password')
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ currentPassword: 'password123', newPassword: 'newpass456' });
+    expect(res.status).toBe(401);
+  });
 });
