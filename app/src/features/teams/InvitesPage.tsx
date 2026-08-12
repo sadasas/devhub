@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ArrowLeft, Envelope } from '@phosphor-icons/react';
+import { useNavigate } from 'react-router';
 import { TEAM_ROLE } from '../../lib/labels';
-import { useNavigation } from '../../state/navigation-context';
 import { useTeams } from '../../state/teams-context';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
@@ -11,7 +11,7 @@ import { InlineError } from '../../components/InlineError';
 
 export function InvitesPage() {
   const { invitations, loading, error, acceptInvitation, declineInvitation, refresh } = useTeams();
-  const { openDashboard } = useNavigation();
+  const navigate = useNavigate();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -43,7 +43,7 @@ export function InvitesPage() {
     <div className="page">
       <header className="page-header">
         <div>
-          <button type="button" className="back-btn" onClick={openDashboard}>
+          <button type="button" className="back-btn" onClick={() => navigate('/')}>
             <ArrowLeft size={14} aria-hidden="true" />
             Dashboard
           </button>

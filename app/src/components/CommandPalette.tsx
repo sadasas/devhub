@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { SquaresFour, FolderSimple, Key, Robot, ArrowUp, ArrowDown, ArrowRight } from '@phosphor-icons/react';
-import { useNavigation } from '../state/navigation-context';
+import { SquaresFour, FolderSimple, Key, BookOpen, ArrowUp, ArrowDown, ArrowRight } from '@phosphor-icons/react';
+import { useNavigate } from 'react-router';
 import { useProjects } from '../state/projects-context';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
@@ -13,7 +13,7 @@ interface PaletteCommand {
 }
 
 export function CommandPalette() {
-  const { openDashboard, openProject, openKeys, openMcpGuide } = useNavigation();
+  const navigate = useNavigate();
   const { projects } = useProjects();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -36,7 +36,7 @@ export function CommandPalette() {
         icon: <SquaresFour size={16} />,
         run: () => {
           setOpen(false);
-          openDashboard();
+          navigate('/');
         },
       },
       {
@@ -46,17 +46,17 @@ export function CommandPalette() {
         icon: <Key size={16} />,
         run: () => {
           setOpen(false);
-          openKeys();
+          navigate('/keys');
         },
       },
       {
         id: 'mcp',
         group: 'Navigate',
-        label: 'Open MCP guide',
-        icon: <Robot size={16} />,
+        label: 'Open MCP docs',
+        icon: <BookOpen size={16} />,
         run: () => {
           setOpen(false);
-          openMcpGuide();
+          navigate('/docs/mcp');
         },
       },
     ];
@@ -68,12 +68,12 @@ export function CommandPalette() {
         icon: <FolderSimple size={16} />,
         run: () => {
           setOpen(false);
-          openProject(p.id);
+          navigate(`/project/${p.id}`);
         },
       });
     }
     return list;
-  }, [projects, openDashboard, openProject, openKeys, openMcpGuide]);
+  }, [projects, navigate]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -89,6 +89,11 @@ export function CommandPalette() {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setOpen((o) => !o);
+        return;
+      }
+      if (e.key === '?' && !openRef.current) {
+        e.preventDefault();
+        setOpen(true);
         return;
       }
       if (!openRef.current) return;

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { FolderOpen, Plus, SquaresFour } from '@phosphor-icons/react';
+import { useNavigate } from 'react-router';
 import { api } from '../../lib/api';
 import type { ProjectStats } from '../../lib/stats';
 import { PROJECT_STATUS } from '../../lib/labels';
 import { formatDate, formatRelative } from '../../lib/utils';
-import { useNavigation } from '../../state/navigation-context';
 import { useProjects } from '../../state/projects-context';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
@@ -15,7 +15,7 @@ import { InlineError } from '../../components/InlineError';
 
 export function DashboardPage() {
   const { projects, loading, error } = useProjects();
-  const { openProject } = useNavigation();
+  const navigate = useNavigate();
   const [newOpen, setNewOpen] = useState(false);
   const [stats, setStats] = useState<Record<string, ProjectStats>>({});
   const [statsLoading, setStatsLoading] = useState(false);
@@ -89,7 +89,7 @@ export function DashboardPage() {
           {projects?.map((p) => {
             const st = stats[p.id];
             return (
-              <button key={p.id} type="button" className="project-card" onClick={() => openProject(p.id)}>
+              <button key={p.id} type="button" className="project-card" onClick={() => navigate(`/project/${p.id}`)}>
                 <div className="project-card-top">
                   <span className="project-card-title">{p.name}</span>
                   <span className="project-card-badges">

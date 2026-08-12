@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
   Bug,
@@ -8,20 +8,23 @@ import {
   Columns,
   Copy,
   Database,
+  DownloadSimple,
   Info,
   Rocket,
   Scales,
   Stack,
   Trash,
+  UploadSimple,
 } from '@phosphor-icons/react';
 import type { ReactNode } from 'react';
-import { ApiError } from '../../lib/api';
+import { useNavigate, useParams } from 'react-router';
+import { ApiError, api } from '../../lib/api';
 import { PROJECT_STATUS, TEAM_ROLE } from '../../lib/labels';
 import { formatDate } from '../../lib/utils';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
-import { useNavigation } from '../../state/navigation-context';
 import { ProjectProvider } from '../../state/project-context';
 import { useProjects } from '../../state/projects-context';
+import type { ExportDocument } from '../../lib/types';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
@@ -62,17 +65,18 @@ const TABS: { id: ProjectTab; label: string; icon: ReactNode }[] = [
   { id: 'about', label: 'About', icon: <Info size={15} /> },
 ];
 
-interface ProjectPageProps {
-  projectId: string;
-}
-
-export function ProjectPage({ projectId }: ProjectPageProps) {
-  const { projects, remove } = useProjects();
-  const { openDashboard } = useNavigation();
+export function ProjectPage() {
+  const { projectId = '' } = useParams<{ projectId: string }>();
+  const { projects, refresh, remove } = useProjects();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<ProjectTab>('board');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [importDoc, setImportDoc] = useState<ExportDocument | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { copied, copy } = useCopyFeedback();
 
   useEffect(() => {
@@ -110,12 +114,67 @@ export function ProjectPage({ projectId }: ProjectPageProps) {
     await copy(projectId);
   }
 
+  async function onExport() {
+    if (!project) return;
+    try {
+      const doc = await api.exportProjectDoc(projectId);
+      const safeName = project.name.replace(/[^a-z0-9-_]/gi, '_').toLowerCase() || 'project';
+      const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `devhub-${safeName}-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setDeleteError(err instanceof ApiError ? err.message : 'Failed to export project.');
+    }
+  }
+
+  function onImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const doc = JSON.parse(String(reader.result)) as ExportDocument;
+        if (doc?.meta?.app !== 'devhub' || !doc?.state) {
+          setImportError('Not a valid DevHub export document.');
+          setImportDoc(null);
+          return;
+        }
+        setImportError(null);
+        setImportDoc(doc);
+      } catch {
+        setImportError('Could not parse the selected file as JSON.');
+        setImportDoc(null);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  async function onConfirmImport() {
+    if (!importDoc) return;
+    setImportError(null);
+    setImporting(true);
+    try {
+      const result = await api.importProjectDoc(importDoc);
+      setImportDoc(null);
+      await refresh();
+      navigate(`/project/${result.projectId}`);
+    } catch (err) {
+      setImportError(err instanceof ApiError ? err.message : 'Failed to import project.');
+      setImporting(false);
+    }
+  }
+
   async function onDelete() {
     setDeleteError(null);
     setDeleting(true);
     try {
       await remove(projectId);
-      openDashboard();
+      navigate('/');
     } catch (err) {
       setDeleteError(err instanceof ApiError ? err.message : 'Failed to delete project.');
       setDeleting(false);
@@ -127,7 +186,7 @@ export function ProjectPage({ projectId }: ProjectPageProps) {
       <div className="page">
         <header className="project-header">
           <div className="project-heading">
-            <button type="button" className="back-btn" onClick={openDashboard}>
+            <button type="button" className="back-btn" onClick={() => navigate('/')}>
               <ArrowLeft size={14} aria-hidden="true" />
               Projects
             </button>
@@ -160,16 +219,43 @@ export function ProjectPage({ projectId }: ProjectPageProps) {
               </Button>
             </div>
           </div>
-          {isAdmin && (
+          <div className="project-actions">
             <Button
-              variant="danger"
+              variant="ghost"
               size="sm"
-              leftIcon={<Trash size={13} aria-hidden="true" />}
-              onClick={() => setConfirmOpen(true)}
+              leftIcon={<DownloadSimple size={13} aria-hidden="true" />}
+              onClick={() => void onExport()}
             >
-              Delete
+              Export
             </Button>
-          )}
+            {role !== 'viewer' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                leftIcon={<UploadSimple size={13} aria-hidden="true" />}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                Import
+              </Button>
+            )}
+            {isAdmin && (
+              <Button
+                variant="danger"
+                size="sm"
+                leftIcon={<Trash size={13} aria-hidden="true" />}
+                onClick={() => setConfirmOpen(true)}
+              >
+                Delete
+              </Button>
+            )}
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={onImportFile}
+          />
         </header>
 
         <nav className="tabs" aria-label="Project sections">
@@ -232,6 +318,35 @@ export function ProjectPage({ projectId }: ProjectPageProps) {
             decisions. This cannot be undone.
           </p>
           {deleteError && <InlineError style={{ marginTop: 10 }}>{deleteError}</InlineError>}
+        </Modal>
+
+        <Modal
+          open={importDoc !== null}
+          title="Import project backup"
+          onClose={() => setImportDoc(null)}
+          width="sm"
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setImportDoc(null)}>
+                Cancel
+              </Button>
+              <Button variant="primary" loading={importing} onClick={() => void onConfirmImport()}>
+                Import
+              </Button>
+            </>
+          }
+        >
+          <p className="modal-copy">
+            {importDoc?.meta.projectId === projectId
+              ? 'This backup belongs to the current project. Importing will overwrite its current data with the backup.'
+              : 'This backup belongs to a different project. Importing will create a new project from this data.'}
+          </p>
+          <p className="modal-copy modal-copy-muted">
+            Backed up {importDoc ? formatDate(importDoc.meta.exportedAt) : ''} ·{' '}
+            {importDoc ? importDoc.state.tasks.length : 0} tasks,{' '}
+            {importDoc ? importDoc.state.issues.length : 0} issues
+          </p>
+          {importError && <InlineError style={{ marginTop: 10 }}>{importError}</InlineError>}
         </Modal>
       </div>
     </ProjectProvider>

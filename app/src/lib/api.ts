@@ -11,6 +11,7 @@ import type {
   User,
 } from './types';
 import type { ProjectStats } from './stats';
+import type { ExportDocument } from './types';
 
 const API_BASE: string = import.meta.env.VITE_API_URL ?? '/api';
 const REQUEST_TIMEOUT_MS = 15_000;
@@ -123,6 +124,14 @@ export const api = {
     }),
   deleteProject: (projectId: string) =>
     request<void>(`/projects/${encodeURIComponent(projectId)}`, { method: 'DELETE' }),
+
+  exportProjectDoc: (projectId: string) =>
+    request<ExportDocument>(`/projects/${encodeURIComponent(projectId)}/export`),
+  importProjectDoc: (doc: ExportDocument) =>
+    request<{ projectId: string; restored: boolean }>('/projects/import', {
+      method: 'POST',
+      body: JSON.stringify(doc),
+    }),
 
   getState: async (projectId: string) => {
     const res = await request<{ state: State }>(`/projects/${encodeURIComponent(projectId)}/state`);

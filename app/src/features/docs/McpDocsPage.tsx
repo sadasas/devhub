@@ -1,5 +1,5 @@
 import { Check, Copy, Key } from '@phosphor-icons/react';
-import { useNavigation } from '../../state/navigation-context';
+import { useNavigate } from 'react-router';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { Button } from '../../components/Button';
 
@@ -65,7 +65,7 @@ function CodeBlock({ label, code }: { label: string; code: string }) {
 }
 
 export function McpDocsPage() {
-  const { openKeys } = useNavigation();
+  const navigate = useNavigate();
 
   return (
     <div className="page">
@@ -87,7 +87,7 @@ export function McpDocsPage() {
             </p>
             <Button
               leftIcon={<Key size={14} weight="bold" aria-hidden="true" />}
-              onClick={openKeys}
+              onClick={() => navigate('/keys')}
             >
               Go to API Keys
             </Button>

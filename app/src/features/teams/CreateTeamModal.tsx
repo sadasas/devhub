@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { useNavigate } from 'react-router';
 import { ApiError } from '../../lib/api';
-import { useNavigation } from '../../state/navigation-context';
 import { useTeams } from '../../state/teams-context';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
@@ -15,7 +15,7 @@ interface CreateTeamModalProps {
 
 export function CreateTeamModal({ open, onClose }: CreateTeamModalProps) {
   const { createTeam } = useTeams();
-  const { openTeam } = useNavigation();
+  const navigate = useNavigate();
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -28,7 +28,7 @@ export function CreateTeamModal({ open, onClose }: CreateTeamModalProps) {
       const team = await createTeam(name.trim());
       setName('');
       onClose();
-      openTeam(team.id);
+      navigate(`/team/${team.id}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to create team.');
       setSubmitting(false);

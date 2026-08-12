@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, Envelope, Trash, UsersThree } from '@phosphor-icons/react';
+import { useNavigate, useParams } from 'react-router';
 import { ApiError, api } from '../../lib/api';
 import { TEAM_ROLE } from '../../lib/labels';
 import type { TeamInvitation, TeamMember, TeamRole } from '../../lib/types';
-import { useNavigation } from '../../state/navigation-context';
 import { useTeams } from '../../state/teams-context';
 import { useAuth } from '../../state/auth-context';
 import { Badge } from '../../components/Badge';
@@ -18,14 +18,11 @@ import { InlineError } from '../../components/InlineError';
 const CHANGEABLE_ROLES: TeamRole[] = ['admin', 'editor', 'viewer'];
 const ALL_ROLES: TeamRole[] = [...CHANGEABLE_ROLES, 'owner'];
 
-interface TeamPageProps {
-  teamId: string;
-}
-
-export function TeamPage({ teamId }: TeamPageProps) {
+export function TeamPage() {
+  const { teamId = '' } = useParams<{ teamId: string }>();
   const { teams, refresh, deleteTeam, renameTeam } = useTeams();
   const { user } = useAuth();
-  const { openDashboard } = useNavigation();
+  const navigate = useNavigate();
   const team = teams?.find((t) => t.id === teamId);
 
   const [members, setMembers] = useState<TeamMember[] | null>(null);
@@ -124,7 +121,7 @@ export function TeamPage({ teamId }: TeamPageProps) {
     try {
       await api.removeMember(teamId, user.id);
       await refresh();
-      openDashboard();
+      navigate('/');
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : 'Failed to leave team');
       setDeleting(false);
@@ -136,7 +133,7 @@ export function TeamPage({ teamId }: TeamPageProps) {
     setActionError(null);
     try {
       await deleteTeam(teamId);
-      openDashboard();
+      navigate('/');
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : 'Failed to delete team');
       setDeleting(false);
@@ -161,7 +158,7 @@ export function TeamPage({ teamId }: TeamPageProps) {
     <div className="page">
       <header className="page-header">
         <div>
-          <button type="button" className="back-btn" onClick={openDashboard}>
+          <button type="button" className="back-btn" onClick={() => navigate('/')}>
             <ArrowLeft size={14} aria-hidden="true" />
             Dashboard
           </button>

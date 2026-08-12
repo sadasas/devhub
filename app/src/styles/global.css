@@ -806,6 +806,12 @@ a:hover {
   line-height: 1.6;
 }
 
+.modal-copy-muted {
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 /* ============================================================
    Dashboard — project grid
    ============================================================ */
@@ -920,6 +926,13 @@ a:hover {
 
 .project-heading {
   min-width: 0;
+}
+
+.project-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .back-btn {

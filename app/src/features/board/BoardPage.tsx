@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Plus, SquaresFour, Flag } from '@phosphor-icons/react';
 import type { Task, TaskStatus } from '../../lib/types';
 import { useProject } from '../../state/project-context';
@@ -30,6 +30,22 @@ export function BoardPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [newTaskAt, setNewTaskAt] = useState<NewTaskTarget | null>(null);
   const openTask = useCallback((id: string) => setEditId(id), []);
+
+  useEffect(() => {
+    if (!canEdit || editId || newTaskAt) return;
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const typing =
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.isContentEditable;
+      if (e.key !== 'n' || e.ctrlKey || e.metaKey || e.altKey || typing) return;
+      e.preventDefault();
+      setNewTaskAt({});
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [canEdit, editId, newTaskAt]);
 
   if (loading) {
     return (

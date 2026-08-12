@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
+import { useNavigate } from 'react-router';
 import { ApiError } from '../../lib/api';
-import { useNavigation } from '../../state/navigation-context';
 import { useProjects } from '../../state/projects-context';
 import { useTeams } from '../../state/teams-context';
 import { Button } from '../../components/Button';
@@ -18,7 +18,7 @@ interface NewProjectModalProps {
 export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
   const { create } = useProjects();
   const { teams } = useTeams();
-  const { openProject } = useNavigation();
+  const navigate = useNavigate();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [teamId, setTeamId] = useState('');
@@ -44,7 +44,7 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
       setName('');
       setDescription('');
       onClose();
-      openProject(project.id);
+      navigate(`/project/${project.id}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to create project.');
       setSubmitting(false);

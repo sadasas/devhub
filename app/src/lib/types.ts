@@ -121,6 +121,18 @@ export interface State {
   milestones: Milestone[];
 }
 
+export interface ExportMeta {
+  app: 'devhub';
+  version: string;
+  exportedAt: string;
+  projectId: string;
+}
+
+export interface ExportDocument {
+  meta: ExportMeta;
+  state: State;
+}
+
 export interface ProjectPrd {
   purpose: string;
   goals: string;

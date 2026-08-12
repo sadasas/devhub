@@ -1,7 +1,7 @@
-import { EnvelopeSimple, FolderSimple, Key, Plus, Robot, SignOut, SquaresFour, UsersThree } from '@phosphor-icons/react';
+import { BookOpen, EnvelopeSimple, FolderSimple, Key, Plus, SignOut, SquaresFour, UsersThree } from '@phosphor-icons/react';
 import { useMemo, useState } from 'react';
+import { NavLink, type NavLinkProps } from 'react-router';
 import { useAuth } from '../../state/auth-context';
-import { useNavigation } from '../../state/navigation-context';
 import { useProjects } from '../../state/projects-context';
 import { useTeams } from '../../state/teams-context';
 import { Button } from '../../components/Button';
@@ -13,8 +13,6 @@ export function Sidebar() {
   const { user, logout } = useAuth();
   const { projects } = useProjects();
   const { teams, invitations } = useTeams();
-  const { view, openDashboard, openProject, openTeam, openInvites, openKeys, openMcpGuide } =
-    useNavigation();
   const [createTeamOpen, setCreateTeamOpen] = useState(false);
 
   const projectsByTeam = useMemo(() => {
@@ -29,6 +27,11 @@ export function Sidebar() {
 
   const teamsLoading = teams === null;
 
+  const itemClass =
+    (extra = ''): NavLinkProps['className'] =>
+    ({ isActive }) =>
+      `sidebar-item${extra ? ` ${extra}` : ''}${isActive ? ' sidebar-item-active' : ''}`;
+
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
@@ -37,43 +40,23 @@ export function Sidebar() {
       </div>
 
       <nav className="sidebar-nav" aria-label="Main">
-        <button
-          type="button"
-          className={`sidebar-item ${view.name === 'dashboard' ? 'sidebar-item-active' : ''}`}
-          aria-current={view.name === 'dashboard' ? 'page' : undefined}
-          onClick={openDashboard}
-        >
+        <NavLink to="/" end className={itemClass()} aria-label="Dashboard">
           <SquaresFour size={15} weight="duotone" aria-hidden="true" />
           <span>Dashboard</span>
-        </button>
-        <button
-          type="button"
-          className={`sidebar-item ${view.name === 'invites' ? 'sidebar-item-active' : ''}`}
-          aria-current={view.name === 'invites' ? 'page' : undefined}
-          onClick={openInvites}
-        >
+        </NavLink>
+        <NavLink to="/invites" className={itemClass()} aria-label="Invitations">
           <EnvelopeSimple size={15} weight="duotone" aria-hidden="true" />
           <span>Invitations</span>
           {invitations.length > 0 && <span className="sidebar-count">{invitations.length}</span>}
-        </button>
-        <button
-          type="button"
-          className={`sidebar-item ${view.name === 'keys' ? 'sidebar-item-active' : ''}`}
-          aria-current={view.name === 'keys' ? 'page' : undefined}
-          onClick={openKeys}
-        >
+        </NavLink>
+        <NavLink to="/keys" className={itemClass()} aria-label="API Keys">
           <Key size={15} weight="duotone" aria-hidden="true" />
           <span>API Keys</span>
-        </button>
-        <button
-          type="button"
-          className={`sidebar-item ${view.name === 'mcp' ? 'sidebar-item-active' : ''}`}
-          aria-current={view.name === 'mcp' ? 'page' : undefined}
-          onClick={openMcpGuide}
-        >
-          <Robot size={15} weight="duotone" aria-hidden="true" />
-          <span>MCP Guide</span>
-        </button>
+        </NavLink>
+        <NavLink to="/docs/mcp" className={itemClass()} aria-label="Docs">
+          <BookOpen size={15} weight="duotone" aria-hidden="true" />
+          <span>Docs</span>
+        </NavLink>
       </nav>
 
       <div className="sidebar-section sidebar-section-row">
@@ -105,36 +88,26 @@ export function Sidebar() {
         ) : (
           teams?.map((t) => {
             const teamProjects = projectsByTeam.get(t.id) ?? [];
-            const teamActive = view.name === 'team' && view.teamId === t.id;
             return (
               <div key={t.id} className="sidebar-team">
-                <button
-                  type="button"
-                  className={`sidebar-item sidebar-team-head ${teamActive ? 'sidebar-item-active' : ''}`}
-                  aria-current={teamActive ? 'page' : undefined}
-                  onClick={() => openTeam(t.id)}
-                >
+                <NavLink to={`/team/${t.id}`} className={itemClass('sidebar-team-head')}>
                   <UsersThree size={13} weight="duotone" aria-hidden="true" />
                   <span className="sidebar-item-label" title={t.name}>
                     {t.name}
                   </span>
                   <span className="sidebar-count">{t.memberCount}</span>
-                </button>
+                </NavLink>
                 {teamProjects.map((p) => (
-                  <button
+                  <NavLink
                     key={p.id}
-                    type="button"
-                    className={`sidebar-item sidebar-project-item ${
-                      view.name === 'project' && view.projectId === p.id ? 'sidebar-item-active' : ''
-                    }`}
-                    aria-current={view.name === 'project' && view.projectId === p.id ? 'page' : undefined}
-                    onClick={() => openProject(p.id)}
+                    to={`/project/${p.id}`}
+                    className={itemClass('sidebar-project-item')}
                   >
                     <FolderSimple size={14} weight="duotone" aria-hidden="true" />
                     <span className="sidebar-item-label" title={p.name}>
                       {p.name}
                     </span>
-                  </button>
+                  </NavLink>
                 ))}
               </div>
             );

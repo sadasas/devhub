@@ -4,7 +4,7 @@
 |---|---|
 | **Document status** | Active (living document) |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-10 |
+| **Last updated** | 2026-08-11 |
 
 ---
 
@@ -39,13 +39,14 @@
 | [ADR-004](#adr-004) | No Git CLI integration in V1 | Accepted | 2026-08-09 |
 | [ADR-005](#adr-005) | Auth: email+password, bcryptjs, JWT in httpOnly cookie | Accepted | 2026-08-09 |
 | [ADR-006](#adr-006) | MCP server: remote (streamable HTTP) with API-key auth | Superseded by [ADR-013](#adr-013) | 2026-08-09 |
-| [ADR-007](#adr-007) | Zero UI runtime dependencies except @phosphor-icons/react | Accepted | 2026-08-09 |
+| [ADR-007](#adr-007) | Zero UI runtime dependencies except @phosphor-icons/react | Superseded by [ADR-016](#adr-016) | 2026-08-09 |
 | [ADR-008](#adr-008) | Design system: dark-tech, native CSS variables, emerald accent | Accepted | 2026-08-09 |
 | [ADR-009](#adr-009) | Every entity extends Base { id, createdAt, updatedAt, authorId } | Accepted | 2026-08-09 |
 | [ADR-010](#adr-010) | V1 deploys publicly (multi-user), not local-file mode | Accepted | 2026-08-09 |
 | [ADR-011](#adr-011) | No in-app AI chat UI; AI integration via MCP tools only | Accepted | 2026-08-09 |
 | [ADR-012](#adr-012) | Task dependencies, test cases, milestones promoted to V1 | Accepted | 2026-08-09 |
 | [ADR-013](#adr-013) | MCP auth: per-user API keys, not a shared server secret | Accepted | 2026-08-10 |
+| [ADR-016](#adr-016) | URL-based routing with react-router v7 | Accepted | 2026-08-11 |
 
 ---
 
@@ -119,10 +120,11 @@
 ### ADR-007
 **Zero UI runtime dependencies except @phosphor-icons/react**
 
-- **Status:** Accepted (2026-08-09)
+- **Status:** Superseded by [ADR-016](#adr-016) (2026-08-11)
 - **Context:** Long-term maintainability; design system skill mandates a single icon family and no hand-rolled icons.
 - **Decision:** Runtime UI deps = `@phosphor-icons/react` only. Kanban DnD (native HTML5), charts (hand-built SVG), state (Context+useReducer).
 - **Consequences:** Positive — tiny bundle, few breakages. Negative — some features take more code (accepted).
+- **Superseded because:** URL-based routing became a hard requirement once DevHub grew beyond a solo tool (ADR-001 positioning changed); hand-rolling routing on Context would cost more than the dependency it saves. See ADR-016.
 
 ### ADR-008
 **Design system: dark-tech, native CSS variables, emerald accent**
@@ -163,6 +165,18 @@
 - **Context:** Lifecycle review (idea → release) found V1 impossible without these: blocked work needs dependencies, release readiness needs test checklists, releases need milestones.
 - **Decision:** `Task.blockedBy`, TestCase entity, Milestone entity all ship in V1 (previously deferred).
 - **Consequences:** Positive — coherent lifecycle. Negative — slightly larger V1 (accepted).
+
+### ADR-016
+**URL-based routing with react-router v7**
+
+- **Status:** Accepted (2026-08-11)
+- **Context:** Navigation was state-based (a `View` union in a React context) with no URL routes. That prevented deep-linking, browser back/forward, and bookmarking — acceptable for a solo local tool, but DevHub now ships multi-user teams (ADR-010, ADR-013) and a public deploy, where shared URLs matter. Supersedes the dependency constraint in ADR-007.
+- **Decision:** Adopt `react-router` v7 with URL routes:
+  - `/` dashboard, `/project/:projectId` project, `/team/:teamId` team, `/invites`, `/keys`, `/docs/mcp` docs, unknown paths redirect to `/`.
+  - `BrowserRouter` + `Routes`; `Layout` renders `<Sidebar/>` + `<Outlet/>`.
+  - `useNavigate`/`useParams` replace the `NavigationContext` (deleted). Sidebar uses `NavLink`.
+- **Consequences:** Positive — deep links, back/forward, shareable URLs, less app-owned navigation state. Negative — one new runtime dependency (react-router) and prod hosting needs an `index.html` fallback for SPA routes (dev Vite already does this; Phase 2 item).
+- **Alternatives considered:** Hand-rolled history API on Context (rejected: reimplements what a battle-tested library does); hash-based routing (rejected: ugly URLs); keeping state-based nav (rejected: no deep links).
 
 ---
 
