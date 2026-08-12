@@ -42,7 +42,7 @@ export function StackGraph({ entries, onOpen }: StackGraphProps) {
       <svg
         viewBox={`0 0 ${STACK_VIEWBOX.width} ${STACK_VIEWBOX.height}`}
         className="stack-graph"
-        role="img"
+        role="group"
         aria-label={`Tech stack graph — ${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`}
       >
         {nodes.map((node) => {

@@ -129,21 +129,13 @@ export function StackPage() {
         <StackGraph entries={entries} onOpen={setEditingId} />
       ) : (
         <div className="data-list">
-          {sorted.map((entry) => (
-            <div
-              key={entry.id}
-              className="data-row"
-              role="button"
-              tabIndex={0}
-              onClick={() => setEditingId(entry.id)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  setEditingId(entry.id);
-                }
-              }}
-            >
-              <div className="data-row-main">
+{sorted.map((entry) => (
+            <div key={entry.id} className="data-row">
+              <button
+                type="button"
+                className="data-row-main"
+                onClick={() => setEditingId(entry.id)}
+              >
                 <div className="data-row-title">
                   <span className="row-title-text">{entry.name}</span>
                   <Badge tone={TECH_STATUS[entry.status].tone}>{TECH_STATUS[entry.status].label}</Badge>
@@ -153,7 +145,7 @@ export function StackPage() {
                   <span>v{entry.version}</span>
                   <span>#{shortId(entry.id)}</span>
                 </div>
-              </div>
+              </button>
               <div className="data-row-side">
                 <Badge tone={TECH_CATEGORY[entry.category].tone}>
                   {TECH_CATEGORY[entry.category].label}
@@ -164,10 +156,7 @@ export function StackPage() {
                     size="sm"
                     className="btn-icon"
                     aria-label="Edit entry"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingId(entry.id);
-                    }}
+                    onClick={() => setEditingId(entry.id)}
                   >
                     <PencilSimple size={14} aria-hidden="true" />
                   </Button>

@@ -104,7 +104,7 @@ describe('PublicProjectPage', () => {
     renderPage();
     await screen.findByRole('heading', { name: 'Demo Project' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'By Milestone' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'By Milestone' }));
 
     expect(screen.getByText('Alpha')).toBeDefined();
     expect(screen.getByText('1.0.0')).toBeDefined();
@@ -138,7 +138,7 @@ describe('PublicProjectPage', () => {
     renderPage();
     await screen.findByRole('heading', { name: 'Demo Project' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Issues' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Issues' }));
 
     expect(await screen.findByText('Login broken')).toBeDefined();
     expect(screen.getByText('Root cause is the expired token check.')).toBeDefined();

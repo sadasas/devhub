@@ -118,7 +118,7 @@ export function ERD({ state, onDeleteRelation, onNewTable }: ERDProps) {
       <svg
         width="100%"
         height="100%"
-        role="img"
+        role="group"
         aria-label={`Entity relationship diagram with ${state.tables.length} tables and ${state.relations.length} relations`}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}

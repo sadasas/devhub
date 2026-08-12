@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Bug, Columns, Flag, Info, ListChecks, Rocket, SquaresFour, Stack } from '@phosphor-icons/react';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { ApiError, api } from '../../lib/api';
 import type { PublicProject, State, Task } from '../../lib/types';
 import {
@@ -44,7 +44,19 @@ export function PublicProjectPage() {
   const { projectId = '' } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [tab, setTab] = useState<PublicTab>('board');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const tab: PublicTab = TABS.some((t) => t.id === tabParam) ? (tabParam as PublicTab) : 'board';
+  const setTab = (next: PublicTab) => {
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        p.set('tab', next);
+        return p;
+      },
+      { replace: true },
+    );
+  };
   const [project, setProject] = useState<PublicProject | null>(null);
   const [state, setState] = useState<State | null>(null);
   const [loading, setLoading] = useState(true);
@@ -139,11 +151,15 @@ export function PublicProjectPage() {
               </div>
             </div>
 
-            <nav className="tabs" aria-label="Public project sections">
+            <nav className="tabs" role="tablist" aria-label="Public project sections">
               {TABS.map((t) => (
                 <button
                   key={t.id}
                   type="button"
+                  role="tab"
+                  id={`public-tab-${t.id}`}
+                  aria-selected={tab === t.id}
+                  aria-controls="public-tabpanel"
                   className={`tab${tab === t.id ? ' tab-active' : ''}`}
                   onClick={() => setTab(t.id)}
                 >
@@ -153,7 +169,13 @@ export function PublicProjectPage() {
               ))}
             </nav>
 
-            <div className="tab-panel">
+            <div
+              className="tab-panel"
+              role="tabpanel"
+              id="public-tabpanel"
+              aria-labelledby={`public-tab-${tab}`}
+              tabIndex={0}
+            >
               {tab === 'board' && <PublicBoard state={state} />}
               {tab === 'issues' && <PublicIssues state={state} />}
               {tab === 'stack' && <PublicStack state={state} />}
@@ -291,18 +313,20 @@ function PublicBoard({ state }: { state: State }) {
       <div className="sub-tabs" role="tablist" aria-label="Board view">
         <button
           type="button"
+          role="tab"
           className={`sub-tab ${view === 'status' ? 'sub-tab-active' : ''}`}
           onClick={() => setView('status')}
-          aria-current={view === 'status' ? 'page' : undefined}
+          aria-selected={view === 'status'}
         >
           <SquaresFour size={13} aria-hidden="true" />
           By Status
         </button>
         <button
           type="button"
+          role="tab"
           className={`sub-tab ${view === 'milestone' ? 'sub-tab-active' : ''}`}
           onClick={() => setView('milestone')}
-          aria-current={view === 'milestone' ? 'page' : undefined}
+          aria-selected={view === 'milestone'}
         >
           <Flag size={13} aria-hidden="true" />
           By Milestone

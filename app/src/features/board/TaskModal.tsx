@@ -23,10 +23,12 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
   const { state, dispatch, canEdit } = useProject();
   const [cycleWarn, setCycleWarn] = useState<string | null>(null);
   const [doneWarn, setDoneWarn] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   useEffect(() => {
     setCycleWarn(null);
     setDoneWarn(null);
+    setConfirmingDelete(false);
   }, [taskId]);
 
   const task = state?.tasks.find((t) => t.id === taskId);
@@ -80,16 +82,38 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
       width="md"
       footer={
         <>
-          <Button variant="danger" size="sm" leftIcon={<Trash size={13} aria-hidden="true" />} onClick={remove}>
-            Delete task
-          </Button>
+          {confirmingDelete ? (
+            <Button variant="danger" size="sm" onClick={remove}>
+              Confirm delete
+            </Button>
+          ) : (
+            <Button
+              variant="danger"
+              size="sm"
+              leftIcon={<Trash size={13} aria-hidden="true" />}
+              onClick={() => setConfirmingDelete(true)}
+            >
+              Delete task
+            </Button>
+          )}
           <span style={{ flex: 1 }} />
-          <Button variant="ghost" onClick={onClose}>
-            Close
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setConfirmingDelete(false);
+              onClose();
+            }}
+          >
+            {confirmingDelete ? 'Cancel' : 'Close'}
           </Button>
         </>
       }
     >
+      {confirmingDelete && (
+        <p className="field-helper" style={{ padding: '0 16px 12px' }}>
+          This permanently deletes the task. This cannot be undone.
+        </p>
+      )}
       <div className="form-stack">
         <Input
           label="Title"

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Plus, SquaresFour, Flag } from '@phosphor-icons/react';
+import { useSearchParams } from 'react-router';
 import type { Task, TaskStatus } from '../../lib/types';
 import { isTaskCompletable } from '../../lib/utils';
 import { useProject } from '../../state/project-context';
@@ -19,6 +20,9 @@ const COLUMNS: { status: TaskStatus; label: string }[] = [
 
 type BoardView = 'status' | 'milestone';
 
+const milestoneOrder = (m: { status: string; targetDate?: string | null }): number =>
+  m.status === 'planned' ? 0 : m.status === 'inProgress' ? 1 : 2;
+
 interface NewTaskTarget {
   status?: TaskStatus;
   milestoneId?: string | null;
@@ -26,7 +30,19 @@ interface NewTaskTarget {
 
 export function BoardPage() {
   const { state, loading, error, dispatch, canEdit } = useProject();
-  const [view, setView] = useState<BoardView>('status');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const viewParam = searchParams.get('view');
+  const view: BoardView = viewParam === 'milestone' ? 'milestone' : 'status';
+  const setView = (next: BoardView) => {
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        p.set('view', next);
+        return p;
+      },
+      { replace: true },
+    );
+  };
   const [overKey, setOverKey] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [newTaskAt, setNewTaskAt] = useState<NewTaskTarget | null>(null);
@@ -58,6 +74,48 @@ export function BoardPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [canEdit, editId, newTaskAt]);
 
+  useEffect(() => {
+    if (!canEdit || editId || newTaskAt || !state) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      const el = document.activeElement;
+      if (!(el instanceof HTMLElement) || !el.classList.contains('task-card')) return;
+      const id = el.dataset.taskId;
+      if (!id) return;
+      const task = state.tasks.find((t) => t.id === id);
+      if (!task) return;
+      e.preventDefault();
+      const dir = e.key === 'ArrowRight' ? 1 : -1;
+      if (view === 'status') {
+        const i = COLUMNS.findIndex((c) => c.status === task.status);
+        const next = COLUMNS[(i + dir + COLUMNS.length) % COLUMNS.length]!.status;
+        if (next === task.status) return;
+        if (next === 'done' && !isTaskCompletable(task, state.testCases)) {
+          showDoneBlocked(
+            `"${task.title}" still has test cases that are not all passed. Finish them before moving to Done.`,
+          );
+          return;
+        }
+        dispatch({ type: 'task/update', id, patch: { status: next } });
+      } else {
+        const ordered: (string | null)[] = [...state.milestones]
+          .sort((a, b) => {
+            const order = milestoneOrder(a) - milestoneOrder(b);
+            if (order !== 0) return order;
+            return (a.targetDate ?? '9999-99-99').localeCompare(b.targetDate ?? '9999-99-99');
+          })
+          .map((m) => m.id);
+        ordered.push(null);
+        const i = ordered.indexOf(task.milestoneId ?? null);
+        const next = ordered[(i + dir + ordered.length) % ordered.length] ?? null;
+        if (next === task.milestoneId) return;
+        dispatch({ type: 'task/update', id, patch: { milestoneId: next } });
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [canEdit, editId, newTaskAt, view, state, dispatch]);
+
   if (loading) {
     return (
       <div className="kanban">
@@ -85,9 +143,6 @@ export function BoardPage() {
   }
 
   if (!state) return null;
-
-  const milestoneOrder = (m: { status: string; targetDate?: string | null }): number =>
-    m.status === 'planned' ? 0 : m.status === 'inProgress' ? 1 : 2;
 
   const milestoneColumns = [
     ...[...state.milestones].sort((a, b) => {
@@ -219,18 +274,20 @@ export function BoardPage() {
       <div className="sub-tabs" role="tablist" aria-label="Board view">
         <button
           type="button"
+          role="tab"
           className={`sub-tab ${view === 'status' ? 'sub-tab-active' : ''}`}
           onClick={() => setView('status')}
-          aria-current={view === 'status' ? 'page' : undefined}
+          aria-selected={view === 'status'}
         >
           <SquaresFour size={13} aria-hidden="true" />
           By Status
         </button>
         <button
           type="button"
+          role="tab"
           className={`sub-tab ${view === 'milestone' ? 'sub-tab-active' : ''}`}
           onClick={() => setView('milestone')}
-          aria-current={view === 'milestone' ? 'page' : undefined}
+          aria-selected={view === 'milestone'}
         >
           <Flag size={13} aria-hidden="true" />
           By Milestone

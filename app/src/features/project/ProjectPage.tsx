@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   ArrowLeft,
   Bug,
@@ -20,7 +20,7 @@ import {
   UploadSimple,
 } from '@phosphor-icons/react';
 import type { ReactNode } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { ApiError, api } from '../../lib/api';
 import { PROJECT_STATUS, TEAM_ROLE } from '../../lib/labels';
 import { formatDate } from '../../lib/utils';
@@ -75,7 +75,19 @@ export function ProjectPage() {
   const { projectId = '' } = useParams<{ projectId: string }>();
   const { projects, refresh, remove, update } = useProjects();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<ProjectTab>('board');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const tab: ProjectTab = TABS.some((t) => t.id === tabParam) ? (tabParam as ProjectTab) : 'board';
+  const setTab = (next: ProjectTab) => {
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        p.set('tab', next);
+        return p;
+      },
+      { replace: true },
+    );
+  };
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -87,10 +99,6 @@ export function ProjectPage() {
   const { copied: pidCopied, copy: copyPid } = useCopyFeedback();
   const { copied: linkCopied, copy: copyLink } = useCopyFeedback();
   const [toggling, setToggling] = useState(false);
-
-  useEffect(() => {
-    setTab('board');
-  }, [projectId]);
 
   const project = projects?.find((p) => p.id === projectId);
 
@@ -315,14 +323,17 @@ export function ProjectPage() {
 
         {toggleError && <InlineError>{toggleError}</InlineError>}
 
-        <nav className="tabs" aria-label="Project sections">
+        <nav className="tabs" role="tablist" aria-label="Project sections">
           {TABS.map((t) => (
             <button
               key={t.id}
               type="button"
+              role="tab"
+              id={`project-tab-${t.id}`}
+              aria-selected={tab === t.id}
+              aria-controls="project-tabpanel"
               className={`tab ${tab === t.id ? 'tab-active' : ''}`}
               onClick={() => setTab(t.id)}
-              aria-current={tab === t.id ? 'page' : undefined}
             >
               {t.icon}
               {t.label}
@@ -332,7 +343,13 @@ export function ProjectPage() {
 
         <SaveBanner />
 
-        <section className="tab-panel">
+        <section
+          className="tab-panel"
+          role="tabpanel"
+          id="project-tabpanel"
+          aria-labelledby={`project-tab-${tab}`}
+          tabIndex={0}
+        >
           {tab === 'board' ? (
             <BoardPage />
           ) : tab === 'issues' ? (

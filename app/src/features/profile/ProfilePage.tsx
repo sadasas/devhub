@@ -71,7 +71,7 @@ export function ProfilePage() {
         </div>
         <Button
           variant="secondary"
-          leftIcon={<PencilSimple size={14} weight="bold" />}
+          leftIcon={<PencilSimple size={14} weight="bold" aria-hidden="true" />}
           onClick={() => setEditOpen(true)}
         >
           Edit profile

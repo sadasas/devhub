@@ -76,21 +76,13 @@ export function IssuesPage() {
             const linked = issue.linkedTaskId
               ? state.tasks.find((t) => t.id === issue.linkedTaskId)
               : undefined;
-            return (
-              <div
-                key={issue.id}
-                className="data-row"
-                role="button"
-                tabIndex={0}
-                onClick={() => setEditingId(issue.id)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setEditingId(issue.id);
-                  }
-                }}
-              >
-                <div className="data-row-main">
+return (
+              <div key={issue.id} className="data-row">
+                <button
+                  type="button"
+                  className="data-row-main"
+                  onClick={() => setEditingId(issue.id)}
+                >
                   <div className="data-row-title">
                     <Badge tone={ISSUE_SEVERITY[issue.severity].tone}>
                       {ISSUE_SEVERITY[issue.severity].label}
@@ -103,7 +95,7 @@ export function IssuesPage() {
                     {linked && <span>linked: {linked.title}</span>}
                     <span>#{shortId(issue.id)}</span>
                   </div>
-                </div>
+                </button>
                 <div className="data-row-side">
                   <Badge tone={ISSUE_STATUS[issue.status].tone}>{ISSUE_STATUS[issue.status].label}</Badge>
                   {canEdit && (
@@ -112,10 +104,7 @@ export function IssuesPage() {
                       size="sm"
                       className="btn-icon"
                       aria-label="Edit issue"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingId(issue.id);
-                      }}
+                      onClick={() => setEditingId(issue.id)}
                     >
                       <PencilSimple size={14} aria-hidden="true" />
                     </Button>

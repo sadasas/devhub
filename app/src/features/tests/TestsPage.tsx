@@ -77,21 +77,13 @@ export function TestsPage() {
             const linkedIssue = test.issueId
               ? state.issues.find((i) => i.id === test.issueId)
               : undefined;
-            return (
-              <div
-                key={test.id}
-                className="data-row"
-                role="button"
-                tabIndex={0}
-                onClick={() => setEditingId(test.id)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setEditingId(test.id);
-                  }
-                }}
-              >
-                <div className="data-row-main">
+return (
+              <div key={test.id} className="data-row">
+                <button
+                  type="button"
+                  className="data-row-main"
+                  onClick={() => setEditingId(test.id)}
+                >
                   <div className="data-row-title">
                     <span className="row-title-text">{test.name}</span>
                   </div>
@@ -104,7 +96,7 @@ export function TestsPage() {
                     {linkedIssue && <span>issue: {linkedIssue.title}</span>}
                     <span>#{shortId(test.id)}</span>
                   </div>
-                </div>
+                </button>
                 <div className="data-row-side">
                   <Badge tone={TEST_CASE_STATUS[test.status].tone}>
                     {TEST_CASE_STATUS[test.status].label}
@@ -115,10 +107,7 @@ export function TestsPage() {
                       size="sm"
                       className="btn-icon"
                       aria-label="Edit test case"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingId(test.id);
-                      }}
+                      onClick={() => setEditingId(test.id)}
                     >
                       <PencilSimple size={14} aria-hidden="true" />
                     </Button>

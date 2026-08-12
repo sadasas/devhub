@@ -44,18 +44,12 @@ export const TaskCard = memo(function TaskCard({
   );
 
   return (
-    <div
+    <button
+      type="button"
       className="task-card"
       draggable={canEdit}
-      role="button"
-      tabIndex={0}
+      data-task-id={task.id}
       onClick={() => onOpen(task.id)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onOpen(task.id);
-        }
-      }}
       onDragStart={(e) => {
         e.dataTransfer.setData('text/plain', task.id);
         e.dataTransfer.effectAllowed = 'move';
@@ -102,8 +96,8 @@ export const TaskCard = memo(function TaskCard({
       </div>
 
       <span className="sr-only">
-        {TASK_STATUS[task.status].label} task. Drag to move between columns.
+        {TASK_STATUS[task.status].label} task. Drag to move between columns, or move with arrow keys when focused.
       </span>
-    </div>
+    </button>
   );
 });

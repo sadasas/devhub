@@ -55,7 +55,7 @@ export function ReleasesPage() {
         </span>
         {canEdit && (
           <Button size="sm" onClick={() => setOpenNew(true)}>
-            <Plus size={14} /> New milestone
+            <Plus size={14} aria-hidden="true" /> New milestone
           </Button>
         )}
       </div>
@@ -76,20 +76,12 @@ export function ReleasesPage() {
       ) : (
         <div className="data-list">
           {milestones.map((m) => (
-            <div
-              key={m.id}
-              className="data-row"
-              role="button"
-              tabIndex={0}
-              onClick={() => setEditId(m.id)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  setEditId(m.id);
-                }
-              }}
-            >
-              <div className="data-row-main">
+            <div key={m.id} className="data-row">
+              <button
+                type="button"
+                className="data-row-main"
+                onClick={() => setEditId(m.id)}
+              >
                 <div className="data-row-title">
                   <Badge tone={MILESTONE_STATUS[m.status].tone}>
                     {MILESTONE_STATUS[m.status].label}
@@ -100,7 +92,8 @@ export function ReleasesPage() {
                 {m.changelog && <div className="data-row-sub">{m.changelog}</div>}
                 <div className="data-row-meta">
                   <span>
-                    <CalendarBlank size={12} /> {m.targetDate ? formatDate(m.targetDate) : 'No target date'}
+                    <CalendarBlank size={12} aria-hidden="true" />{' '}
+                    {m.targetDate ? formatDate(m.targetDate) : 'No target date'}
                   </span>
                   <span>#{shortId(m.id)}</span>
                 </div>
@@ -124,7 +117,7 @@ export function ReleasesPage() {
                     </span>
                   </div>
                 )}
-              </div>
+              </button>
               <div className="data-row-side">
                 {canEdit && (
                   <Button
@@ -132,12 +125,9 @@ export function ReleasesPage() {
                     variant="ghost"
                     className="btn-icon"
                     aria-label="Edit milestone"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditId(m.id);
-                    }}
+                    onClick={() => setEditId(m.id)}
                   >
-                    <PencilSimple size={14} />
+                    <PencilSimple size={14} aria-hidden="true" />
                   </Button>
                 )}
               </div>

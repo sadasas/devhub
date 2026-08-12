@@ -37,7 +37,10 @@ export function DocsToc({ items }: { items: DocsTocItem[] }) {
               className={active === item.id ? 'docs-toc-link docs-toc-link-active' : 'docs-toc-link'}
               onClick={(e) => {
                 e.preventDefault();
-                document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                document.getElementById(item.id)?.scrollIntoView({
+                  behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+                  block: 'start',
+                });
               }}
             >
               {item.label}

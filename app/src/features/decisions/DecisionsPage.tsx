@@ -49,7 +49,7 @@ export function DecisionsPage() {
         </span>
         {canEdit && (
           <Button size="sm" onClick={() => setOpenNew(true)}>
-            <Plus size={14} /> New decision
+            <Plus size={14} aria-hidden="true" /> New decision
           </Button>
         )}
       </div>
@@ -70,20 +70,12 @@ export function DecisionsPage() {
       ) : (
         <div className="data-list">
           {decisions.map((d) => (
-            <div
-              key={d.id}
-              className="data-row"
-              role="button"
-              tabIndex={0}
-              onClick={() => setEditId(d.id)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  setEditId(d.id);
-                }
-              }}
-            >
-              <div className="data-row-main">
+            <div key={d.id} className="data-row">
+              <button
+                type="button"
+                className="data-row-main"
+                onClick={() => setEditId(d.id)}
+              >
                 <div className="data-row-title">
                   <Badge tone={DECISION_STATUS[d.status].tone}>
                     {DECISION_STATUS[d.status].label}
@@ -96,7 +88,7 @@ export function DecisionsPage() {
                   <span># {d.date}</span>
                   <span>#{shortId(d.id)}</span>
                 </div>
-              </div>
+              </button>
               <div className="data-row-side">
                 {canEdit && (
                   <Button
@@ -104,12 +96,9 @@ export function DecisionsPage() {
                     variant="ghost"
                     className="btn-icon"
                     aria-label="Edit decision"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditId(d.id);
-                    }}
+                    onClick={() => setEditId(d.id)}
                   >
-                    <PencilSimple size={14} />
+                    <PencilSimple size={14} aria-hidden="true" />
                   </Button>
                 )}
               </div>

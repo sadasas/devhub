@@ -340,15 +340,6 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
                     <div key={c.id} className="api-tree-group">
                       <div
                         className={`api-tree-group-label ${selection?.type === 'collection' && selection.id === c.id ? 'api-tree-item-selected' : ''}`}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setSelection({ type: 'collection', id: c.id })}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            setSelection({ type: 'collection', id: c.id });
-                          }
-                        }}
                       >
                         <button
                           type="button"
@@ -365,19 +356,22 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
                             aria-hidden="true"
                           />
                         </button>
-                        <Folder size={14} className="api-tree-folder" aria-hidden="true" />
-                        <span className="api-tree-item-title">{c.name}</span>
-                        <span className="api-tree-count">{endpointCount(c.id)}</span>
+                        <button
+                          type="button"
+                          className="api-tree-group-select"
+                          onClick={() => setSelection({ type: 'collection', id: c.id })}
+                        >
+                          <Folder size={14} className="api-tree-folder" aria-hidden="true" />
+                          <span className="api-tree-item-title">{c.name}</span>
+                          <span className="api-tree-count">{endpointCount(c.id)}</span>
+                        </button>
                         {canEdit && (
                           <button
                             type="button"
                             className="api-tree-actions"
                             aria-label={`Delete collection ${c.name}`}
                             title="Delete collection"
-                            onClick={(ev) => {
-                              ev.stopPropagation();
-                              setDeleteTarget({ kind: 'collection', id: c.id, name: c.name });
-                            }}
+                            onClick={() => setDeleteTarget({ kind: 'collection', id: c.id, name: c.name })}
                           >
                             <Trash size={13} aria-hidden="true" />
                           </button>
@@ -389,29 +383,23 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
                             <div
                               key={e.id}
                               className={`api-tree-item ${selection?.type === 'endpoint' && selection.id === e.id ? 'api-tree-item-selected' : ''}`}
-                              role="button"
-                              tabIndex={0}
-                              onClick={() => setSelection({ type: 'endpoint', id: e.id })}
-                              onKeyDown={(ev) => {
-                                if (ev.key === 'Enter' || ev.key === ' ') {
-                                  ev.preventDefault();
-                                  setSelection({ type: 'endpoint', id: e.id });
-                                }
-                              }}
                             >
                               <div className="api-tree-item-main">
-                                <ApiMethodChip method={e.method} />
-                                <span className="api-tree-item-title">{e.name}</span>
+                                <button
+                                  type="button"
+                                  className="api-tree-item-select"
+                                  onClick={() => setSelection({ type: 'endpoint', id: e.id })}
+                                >
+                                  <ApiMethodChip method={e.method} />
+                                  <span className="api-tree-item-title">{e.name}</span>
+                                </button>
                                 {canEdit && (
                                   <button
                                     type="button"
                                     className="api-tree-actions"
                                     aria-label={`Delete endpoint ${e.name}`}
                                     title="Delete endpoint"
-                                    onClick={(ev) => {
-                                      ev.stopPropagation();
-                                      setDeleteTarget({ kind: 'endpoint', id: e.id, name: e.name });
-                                    }}
+                                    onClick={() => setDeleteTarget({ kind: 'endpoint', id: e.id, name: e.name })}
                                   >
                                     <Trash size={13} aria-hidden="true" />
                                   </button>
@@ -453,29 +441,23 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
                           <div
                             key={e.id}
                             className={`api-tree-item ${selection?.type === 'endpoint' && selection.id === e.id ? 'api-tree-item-selected' : ''}`}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => setSelection({ type: 'endpoint', id: e.id })}
-                            onKeyDown={(ev) => {
-                              if (ev.key === 'Enter' || ev.key === ' ') {
-                                ev.preventDefault();
-                                setSelection({ type: 'endpoint', id: e.id });
-                              }
-                            }}
                           >
                             <div className="api-tree-item-main">
-                              <ApiMethodChip method={e.method} />
-                              <span className="api-tree-item-title">{e.name}</span>
+                              <button
+                                type="button"
+                                className="api-tree-item-select"
+                                onClick={() => setSelection({ type: 'endpoint', id: e.id })}
+                              >
+                                <ApiMethodChip method={e.method} />
+                                <span className="api-tree-item-title">{e.name}</span>
+                              </button>
                               {canEdit && (
                                 <button
                                   type="button"
                                   className="api-tree-actions"
                                   aria-label={`Delete endpoint ${e.name}`}
                                   title="Delete endpoint"
-                                  onClick={(ev) => {
-                                    ev.stopPropagation();
-                                    setDeleteTarget({ kind: 'endpoint', id: e.id, name: e.name });
-                                  }}
+                                  onClick={() => setDeleteTarget({ kind: 'endpoint', id: e.id, name: e.name })}
                                 >
                                   <Trash size={13} aria-hidden="true" />
                                 </button>
@@ -975,25 +957,18 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
                 {endpoints
                   .filter((e) => e.collectionId === selectedColl.id)
                   .map((e) => (
-                    <div
+                    <button
                       key={e.id}
+                      type="button"
                       className="api-col-list-row"
-                      role="button"
-                      tabIndex={0}
                       onClick={() => setSelection({ type: 'endpoint', id: e.id })}
-                      onKeyDown={(ev) => {
-                        if (ev.key === 'Enter' || ev.key === ' ') {
-                          ev.preventDefault();
-                          setSelection({ type: 'endpoint', id: e.id });
-                        }
-                      }}
                     >
                       <ApiMethodChip method={e.method} />
                       <div className="api-col-list-main">
                         <span className="api-tree-item-title">{e.name}</span>
                         <span className="api-tree-item-path">{e.path}</span>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 {endpoints.filter((e) => e.collectionId === selectedColl.id).length === 0 && (
                   <p className="api-rows-empty">No endpoints in this collection yet.</p>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { FloppyDisk, Graph, LinkSimple, List, PencilSimple, Plus, Trash } from '@phosphor-icons/react';
 import { formatDate, relationLabel as formatRelation, shortId } from '../../lib/utils';
 import type { Relation } from '../../lib/types';
@@ -18,7 +19,19 @@ type SchemaView = 'tables' | 'erd';
 
 export function SchemaPage() {
   const { state, loading, error, dispatch, canEdit } = useProject();
-  const [view, setView] = useState<SchemaView>('tables');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const viewParam = searchParams.get('schemaView');
+  const view: SchemaView = viewParam === 'erd' ? 'erd' : 'tables';
+  const setView = (next: SchemaView) => {
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        p.set('schemaView', next);
+        return p;
+      },
+      { replace: true },
+    );
+  };
   const [newTableOpen, setNewTableOpen] = useState(false);
   const [tableId, setTableId] = useState<string | null>(null);
   const [newRelationOpen, setNewRelationOpen] = useState(false);
@@ -82,12 +95,13 @@ export function SchemaPage() {
         </div>
       </div>
 
-      <div className="sub-tabs" role="tablist" aria-label="Schema view">
+<div className="sub-tabs" role="tablist" aria-label="Schema view">
         <button
           type="button"
           className={`sub-tab ${view === 'tables' ? 'sub-tab-active' : ''}`}
           onClick={() => setView('tables')}
-          aria-current={view === 'tables' ? 'page' : undefined}
+          role="tab"
+          aria-selected={view === 'tables'}
         >
           <List size={13} aria-hidden="true" />
           Tables
@@ -96,7 +110,8 @@ export function SchemaPage() {
           type="button"
           className={`sub-tab ${view === 'erd' ? 'sub-tab-active' : ''}`}
           onClick={() => setView('erd')}
-          aria-current={view === 'erd' ? 'page' : undefined}
+          role="tab"
+          aria-selected={view === 'erd'}
         >
           <Graph size={13} aria-hidden="true" />
           ERD
@@ -123,21 +138,13 @@ export function SchemaPage() {
           <div className="data-list">
             {[...state.tables]
               .sort((a, b) => a.name.localeCompare(b.name))
-              .map((t) => (
-                <div
-                  key={t.id}
-                  className="data-row"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setTableId(t.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      setTableId(t.id);
-                    }
-                  }}
-                >
-                  <div className="data-row-main">
+.map((t) => (
+                <div key={t.id} className="data-row">
+                  <button
+                    type="button"
+                    className="data-row-main"
+                    onClick={() => setTableId(t.id)}
+                  >
                     <div className="data-row-title">
                       <span className="row-title-text">{t.name}</span>
                     </div>
@@ -151,10 +158,16 @@ export function SchemaPage() {
                       </span>
                       <span>#{shortId(t.id)}</span>
                     </div>
-                  </div>
+                  </button>
                   <div className="data-row-side">
                     {canEdit && (
-                      <Button variant="ghost" size="sm" className="btn-icon" aria-label={`Edit table ${t.name}`}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="btn-icon"
+                        aria-label={`Edit table ${t.name}`}
+                        onClick={() => setTableId(t.id)}
+                      >
                         <PencilSimple size={13} aria-hidden="true" />
                       </Button>
                     )}
