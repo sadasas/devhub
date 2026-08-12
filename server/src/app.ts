@@ -6,6 +6,7 @@ import { authRouter } from './api/auth.routes.js';
 import { projectsRouter } from './api/projects.routes.js';
 import { teamsRouter } from './api/teams.routes.js';
 import { keysRouter } from './api/keys.routes.js';
+import { publicRouter } from './api/public.routes.js';
 import { mcpRouter } from './mcp/server.js';
 import { requireMcpKey } from './mcp/require-key.js';
 
@@ -84,6 +85,7 @@ export function createApp(): express.Express {
   app.use('/api/projects', projectsRouter);
   app.use('/api/teams', teamsRouter);
   app.use('/api/keys', keysRouter);
+  app.use('/api/public', publicRouter);
 
   app.use('/mcp', mcpLimiter);
   app.use('/mcp', requireMcpKey);

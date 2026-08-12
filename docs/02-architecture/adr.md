@@ -4,7 +4,7 @@
 |---|---|
 | **Document status** | Active (living document) |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-11 |
+| **Last updated** | 2026-08-12 |
 
 ---
 
@@ -47,6 +47,7 @@
 | [ADR-012](#adr-012) | Task dependencies, test cases, milestones promoted to V1 | Accepted | 2026-08-09 |
 | [ADR-013](#adr-013) | MCP auth: per-user API keys, not a shared server secret | Accepted | 2026-08-10 |
 | [ADR-016](#adr-016) | URL-based routing with react-router v7 | Accepted | 2026-08-11 |
+| [ADR-017](#adr-017) | Public read-only project sharing (`/p/:projectId`) | Accepted | 2026-08-12 |
 
 ---
 
@@ -177,6 +178,19 @@
   - `useNavigate`/`useParams` replace the `NavigationContext` (deleted). Sidebar uses `NavLink`.
 - **Consequences:** Positive — deep links, back/forward, shareable URLs, less app-owned navigation state. Negative — one new runtime dependency (react-router) and prod hosting needs an `index.html` fallback for SPA routes (dev Vite already does this; Phase 2 item).
 - **Alternatives considered:** Hand-rolled history API on Context (rejected: reimplements what a battle-tested library does); hash-based routing (rejected: ugly URLs); keeping state-based nav (rejected: no deep links).
+
+### ADR-017
+**Public read-only project sharing (`/p/:projectId`)**
+
+- **Status:** Accepted (2026-08-12)
+- **Context:** DevHub projects were only visible to team members behind the login wall. Users wanted to share a project with anyone — no login, no team membership. Sharing must be opt-in per project and read-only; write access stays inside teams.
+- **Decision:**
+  - `projects.visibility` column (`private` default | `public`); new migration `006_project_visibility.sql`.
+  - New unauthenticated router `/api/public` exposing `GET /api/public/projects/:projectId` (meta) and `GET /api/public/projects/:projectId/state` (full state) — both return 404 unless the project is public (no existence leak).
+  - Route `/p/:projectId` in the app renders a read-only shell (board, issues, stack, milestones, about) outside the auth gate; the gate stays for every other route.
+  - Visibility toggling is `PATCH /api/projects/:projectId { visibility }`, restricted to owner/admin (`assertAdmin`); the ProjectPage header shows the toggle and a copy-public-link button.
+- **Consequences:** Positive — shareable public URLs with zero runner overhead. Negative — anyone with the link can read public project state (intended); MCP and member REST access are unchanged; prod hosting needs SPA fallback for `/p/*` too (Phase 2).
+- **Alternatives considered:** Reusing `/project/:projectId` for anonymous viewers (rejected: couples public shell with the member flow); a per-project secret token (rejected: overhead without real gain for a self-hosted tool); read-only team invites (rejected: still requires accounts).
 
 ---
 

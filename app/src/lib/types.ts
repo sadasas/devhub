@@ -146,10 +146,23 @@ export interface Project {
   name: string;
   description: string;
   status: ProjectStatus;
+  visibility: 'private' | 'public';
   prd: ProjectPrd;
   teamId: string;
   teamName: string;
   role: TeamRole;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PublicProject {
+  id: string;
+  name: string;
+  description: string;
+  status: ProjectStatus;
+  visibility: 'private' | 'public';
+  prd: ProjectPrd;
+  teamName: string;
   createdAt: string;
   updatedAt: string;
 }

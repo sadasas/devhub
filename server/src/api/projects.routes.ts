@@ -25,6 +25,7 @@ const updateProjectSchema = z.object({
   name: z.string().trim().min(1).max(200).optional(),
   description: z.string().max(5_000).optional(),
   status: projectStatus.optional(),
+  visibility: z.enum(['private', 'public']).optional(),
   prd: prdPatchSchema.optional(),
 });
 
@@ -47,6 +48,7 @@ function projectJson(row: ProjectRow) {
     name: row.name,
     description: row.description,
     status: row.status,
+    visibility: row.visibility,
     prd: normalizePrd(row.prd),
     teamId: row.team_id,
     teamName: row.team_name,
@@ -88,7 +90,7 @@ projectsRouter.use(requireAuth);
 projectsRouter.get('/', async (req, res) => {
   const userId = getUserId(req);
   const result = await pool.query(
-    `SELECT p.id, p.name, p.description, p.status, p.prd,
+    `SELECT p.id, p.name, p.description, p.status, p.prd, p.visibility,
             p.created_at, p.updated_at, p.team_id, t.name AS team_name, tm.role
      FROM projects p
      JOIN team_members tm ON tm.team_id = p.team_id
@@ -153,18 +155,20 @@ projectsRouter.patch('/:projectId', async (req, res) => {
   if (!parsed.success) {
     throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid project data', parsed.error.issues);
   }
-  const { name, description, status, prd } = parsed.data;
+  const { name, description, status, visibility, prd } = parsed.data;
+  if (visibility !== undefined) assertAdmin(row.role);
   const mergedPrd = prd !== undefined ? JSON.stringify(mergePrd(prd, normalizePrd(row.prd))) : null;
   const updated = await pool.query<{ id: string; updated_at: Date }>(
     `UPDATE projects SET
        name = COALESCE($2, name),
        description = COALESCE($3, description),
        status = COALESCE($4, status),
-       prd = COALESCE($5::jsonb, prd),
+       visibility = COALESCE($5, visibility),
+       prd = COALESCE($6::jsonb, prd),
        updated_at = now()
      WHERE id = $1
      RETURNING id, updated_at`,
-    [req.params.projectId, name ?? null, description ?? null, status ?? null, mergedPrd],
+    [req.params.projectId, name ?? null, description ?? null, status ?? null, visibility ?? null, mergedPrd],
   );
   const updatedRow = updated.rows[0];
   if (!updatedRow) throw new ApiError(404, 'NOT_FOUND', 'Project not found');

@@ -13,6 +13,7 @@ import { McpDocsPage } from './features/docs/McpDocsPage';
 import { TeamPage } from './features/teams/TeamPage';
 import { InvitesPage } from './features/teams/InvitesPage';
 import { ProjectPage } from './features/project/ProjectPage';
+import { PublicProjectPage } from './features/public/PublicProjectPage';
 import { Skeleton } from './components/Skeleton';
 
 function Splash() {
@@ -32,22 +33,20 @@ function Root() {
   return (
     <TeamsProvider>
       <ProjectsProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route element={<Layout />}>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/project/:projectId" element={<ProjectPage />} />
-              <Route path="/team/:teamId" element={<TeamPage />} />
-              <Route path="/invites" element={<InvitesPage />} />
-              <Route path="/keys" element={<KeysPage />} />
-              <Route path="/docs" element={<DocsPage />} />
-              <Route path="/docs/mcp" element={<McpDocsPage />} />
-              <Route path="/docs/api" element={<ApiDocsPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Route>
-          </Routes>
-          <CommandPalette />
-        </BrowserRouter>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/project/:projectId" element={<ProjectPage />} />
+            <Route path="/team/:teamId" element={<TeamPage />} />
+            <Route path="/invites" element={<InvitesPage />} />
+            <Route path="/keys" element={<KeysPage />} />
+            <Route path="/docs" element={<DocsPage />} />
+            <Route path="/docs/mcp" element={<McpDocsPage />} />
+            <Route path="/docs/api" element={<ApiDocsPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+        </Routes>
+        <CommandPalette />
       </ProjectsProvider>
     </TeamsProvider>
   );
@@ -56,7 +55,12 @@ function Root() {
 export default function App() {
   return (
     <AuthProvider>
-      <Root />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/p/:projectId" element={<PublicProjectPage />} />
+          <Route path="/*" element={<Root />} />
+        </Routes>
+      </BrowserRouter>
     </AuthProvider>
   );
 }

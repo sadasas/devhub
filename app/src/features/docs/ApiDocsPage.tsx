@@ -83,6 +83,15 @@ const GROUPS: ApiGroup[] = [
     ],
   },
   {
+    id: 'public',
+    title: 'Public',
+    desc: 'Read-only endpoints for sharing a project with anyone, no login required. Only projects with visibility set to public are served; everything else returns 404.',
+    endpoints: [
+      { method: 'GET', path: '/api/public/projects/:projectId', desc: 'Project meta (name, description, status, PRD, team).', auth: false },
+      { method: 'GET', path: '/api/public/projects/:projectId/state', desc: 'Full project state for public viewing.', auth: false },
+    ],
+  },
+  {
     id: 'mcp',
     title: 'MCP Transport',
     desc: 'The Model Context Protocol endpoint used by AI agents. Authenticated with an API key, not a session cookie.',
@@ -99,8 +108,8 @@ export function ApiDocsPage() {
         <div>
           <h1 className="page-title">API Reference</h1>
           <p className="page-subtitle">
-            Every endpoint returns JSON. Auth endpoints use a session cookie; the MCP endpoint uses a
-            per-user API key.
+            Every endpoint returns JSON. Auth endpoints use a session cookie, the MCP endpoint uses a
+            per-user API key, and public endpoints require no authentication.
           </p>
         </div>
       </header>

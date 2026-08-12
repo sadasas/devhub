@@ -9,7 +9,9 @@ import {
   Copy,
   Database,
   DownloadSimple,
+  GlobeSimple,
   Info,
+  LinkSimple,
   Rocket,
   Scales,
   Stack,
@@ -76,6 +78,7 @@ export function ProjectPage() {
   const [importDoc, setImportDoc] = useState<ExportDocument | null>(null);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  const [toggleError, setToggleError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { copied, copy } = useCopyFeedback();
 
@@ -181,6 +184,23 @@ export function ProjectPage() {
     }
   }
 
+  async function onToggleVisibility() {
+    if (!project) return;
+    setToggleError(null);
+    try {
+      const visibility = project.visibility === 'public' ? 'private' : 'public';
+      await api.patchProject(projectId, { visibility });
+      await refresh();
+    } catch (err) {
+      setToggleError(err instanceof ApiError ? err.message : 'Failed to update visibility.');
+    }
+  }
+
+  async function onCopyPublicLink() {
+    if (!project) return;
+    await copy(`${window.location.origin}/p/${projectId}`);
+  }
+
   return (
     <ProjectProvider key={projectId} projectId={projectId} role={role}>
       <div className="page">
@@ -240,6 +260,32 @@ export function ProjectPage() {
             )}
             {isAdmin && (
               <Button
+                variant="ghost"
+                size="sm"
+                leftIcon={<GlobeSimple size={13} aria-hidden="true" />}
+                onClick={() => void onToggleVisibility()}
+              >
+                {project.visibility === 'public' ? 'Public' : 'Private'}
+              </Button>
+            )}
+            {isAdmin && project.visibility === 'public' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                leftIcon={
+                  copied ? (
+                    <Check size={12} weight="bold" aria-hidden="true" />
+                  ) : (
+                    <LinkSimple size={13} aria-hidden="true" />
+                  )
+                }
+                onClick={() => void onCopyPublicLink()}
+              >
+                {copied ? 'Copied' : 'Copy link'}
+              </Button>
+            )}
+            {isAdmin && (
+              <Button
                 variant="danger"
                 size="sm"
                 leftIcon={<Trash size={13} aria-hidden="true" />}
@@ -257,6 +303,8 @@ export function ProjectPage() {
             onChange={onImportFile}
           />
         </header>
+
+        {toggleError && <InlineError>{toggleError}</InlineError>}
 
         <nav className="tabs" aria-label="Project sections">
           {TABS.map((t) => (

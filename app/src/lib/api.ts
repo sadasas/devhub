@@ -3,6 +3,7 @@ import type {
   McpKey,
   McpKeyCreated,
   Project,
+  PublicProject,
   State,
   Team,
   TeamInvitation,
@@ -116,7 +117,7 @@ export const api = {
   },
   patchProject: (
     projectId: string,
-    patch: Partial<Pick<Project, 'name' | 'description' | 'status' | 'prd'>>,
+    patch: Partial<Pick<Project, 'name' | 'description' | 'status' | 'visibility' | 'prd'>>,
   ) =>
     request<Project>(`/projects/${encodeURIComponent(projectId)}`, {
       method: 'PATCH',
@@ -143,6 +144,19 @@ export const api = {
       body: JSON.stringify({ state }),
       keepalive,
     }),
+
+  getPublicProject: async (projectId: string) => {
+    const res = await request<{ project: PublicProject }>(
+      `/public/projects/${encodeURIComponent(projectId)}`,
+    );
+    return res.project;
+  },
+  getPublicState: async (projectId: string) => {
+    const res = await request<{ state: State }>(
+      `/public/projects/${encodeURIComponent(projectId)}/state`,
+    );
+    return res.state;
+  },
 
   listKeys: async () => {
     const res = await request<{ keys: McpKey[] }>('/keys');

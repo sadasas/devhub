@@ -40,7 +40,8 @@ export function DocsPage() {
               <p className="docs-step-desc">
                 DevHub is a self-hosted project management tool built for solo developers. It keeps your
                 tasks, issues, decisions, and schema in one place, and lets AI coding agents read and
-                update projects through MCP or the REST API.
+                update projects through MCP or the REST API. Projects can also be shared publicly as a
+                read-only view at <code className="inline-code">/p/:projectId</code> — no login required.
               </p>
             </section>
 

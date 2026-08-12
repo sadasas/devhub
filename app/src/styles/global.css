@@ -2509,6 +2509,54 @@ input[type='checkbox'] {
 }
 
 /* ============================================================
+   Public view — read-only project sharing
+   ============================================================ */
+
+.public-root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-base);
+}
+
+.public-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 32px;
+  border-bottom: 1px solid var(--border-hairline);
+  background: var(--bg-elevated);
+}
+
+.public-brand {
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.public-brand:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.public-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.public-root .page-empty .btn {
+  margin-top: 16px;
+}
+
+/* ============================================================
    Reduced motion — mandatory
    ============================================================ */
 
