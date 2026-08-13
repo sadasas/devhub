@@ -34,7 +34,7 @@ async function toolCall(key: string, name: string, args: Record<string, unknown>
 
 async function readTestCases(cookie: string, projectId: string) {
   const res = await request(app)
-    .get(`/api/projects/${projectId}/state`)
+    .get(`/api/v1/projects/${projectId}/state`)
     .set('Cookie', cookie)
     .set('X-Forwarded-For', uniqueIp());
   expect(res.status).toBe(200);
@@ -115,7 +115,7 @@ describe('MCP test case tools', () => {
     expect(issueText).toContain('Board breaks on mobile');
 
     const state = await request(app)
-      .get(`/api/projects/${projectId}/state`)
+      .get(`/api/v1/projects/${projectId}/state`)
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp());
     expect(state.body.state.issues[0]).toMatchObject({

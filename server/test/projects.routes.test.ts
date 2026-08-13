@@ -10,7 +10,7 @@ describe('projects routes', () => {
   });
 
   it('requires authentication', async () => {
-    const res = await request(app).get('/api/projects');
+    const res = await request(app).get('/api/v1/projects');
     expect(res.status).toBe(401);
   });
 
@@ -18,7 +18,7 @@ describe('projects routes', () => {
     const cookie = await register('owner@test.dev');
     const teamId = await getFirstTeamId(cookie);
     const res = await request(app)
-      .post('/api/projects')
+      .post('/api/v1/projects')
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp())
       .send({ name: 'My app', description: 'Desc', teamId });
@@ -28,7 +28,7 @@ describe('projects routes', () => {
     expect(res.body.role).toBe('owner');
 
     const list = await request(app)
-      .get('/api/projects')
+      .get('/api/v1/projects')
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp());
     expect(list.status).toBe(200);
@@ -43,7 +43,7 @@ describe('projects routes', () => {
     await inviteUser(ownerCookie, memberCookie, teamId, 'viewer');
 
     const res = await request(app)
-      .post('/api/projects')
+      .post('/api/v1/projects')
       .set('Cookie', memberCookie)
       .set('X-Forwarded-For', uniqueIp())
       .send({ name: 'Nope', teamId });
@@ -57,7 +57,7 @@ describe('projects routes', () => {
     await inviteUser(ownerCookie, editorCookie, teamId, 'editor');
 
     const res = await request(app)
-      .post('/api/projects')
+      .post('/api/v1/projects')
       .set('Cookie', editorCookie)
       .set('X-Forwarded-For', uniqueIp())
       .send({ name: 'Editable', teamId });
@@ -70,7 +70,7 @@ describe('projects routes', () => {
     const outsider = await register('outsider@test.dev');
 
     const res = await request(app)
-      .get(`/api/projects/${projectId}`)
+      .get(`/api/v1/projects/${projectId}`)
       .set('Cookie', outsider)
       .set('X-Forwarded-For', uniqueIp());
     expect(res.status).toBe(404);
@@ -84,7 +84,7 @@ describe('projects routes', () => {
     const projectId = await createProject(ownerCookie, 'Test project', teamId);
 
     const patched = await request(app)
-      .patch(`/api/projects/${projectId}`)
+      .patch(`/api/v1/projects/${projectId}`)
       .set('Cookie', ownerCookie)
       .set('X-Forwarded-For', uniqueIp())
       .send({ name: 'Renamed' });
@@ -92,7 +92,7 @@ describe('projects routes', () => {
     expect(patched.body.name).toBe('Renamed');
 
     const denied = await request(app)
-      .patch(`/api/projects/${projectId}`)
+      .patch(`/api/v1/projects/${projectId}`)
       .set('Cookie', memberCookie)
       .set('X-Forwarded-For', uniqueIp())
       .send({ name: 'Nope' });
@@ -121,7 +121,7 @@ describe('projects routes', () => {
     };
 
     const put = await request(app)
-      .put(`/api/projects/${projectId}/state`)
+      .put(`/api/v1/projects/${projectId}/state`)
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp())
       .send({ state, version: 1 });
@@ -129,7 +129,7 @@ describe('projects routes', () => {
     expect(put.body.version).toBe(2);
 
     const get = await request(app)
-      .get(`/api/projects/${projectId}/state`)
+      .get(`/api/v1/projects/${projectId}/state`)
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp());
     expect(get.status).toBe(200);
@@ -143,14 +143,14 @@ describe('projects routes', () => {
     const projectId = await createProject(cookie);
 
     const first = await request(app)
-      .put(`/api/projects/${projectId}/state`)
+      .put(`/api/v1/projects/${projectId}/state`)
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp())
       .send({ state: emptyState, version: 1 });
     expect(first.status).toBe(200);
 
     const stale = await request(app)
-      .put(`/api/projects/${projectId}/state`)
+      .put(`/api/v1/projects/${projectId}/state`)
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp())
       .send({ state: emptyState, version: 1 });
@@ -159,7 +159,7 @@ describe('projects routes', () => {
     expect(stale.body.error.details.current.version).toBe(2);
 
     const retry = await request(app)
-      .put(`/api/projects/${projectId}/state`)
+      .put(`/api/v1/projects/${projectId}/state`)
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp())
       .send({ state: emptyState, version: stale.body.error.details.current.version });
@@ -171,7 +171,7 @@ describe('projects routes', () => {
     const projectId = await createProject(cookie);
 
     const seed = await request(app)
-      .patch(`/api/projects/${projectId}`)
+      .patch(`/api/v1/projects/${projectId}`)
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp())
       .send({ prd: { purpose: 'Purpose stays', goals: 'Goal stays' } });
@@ -179,7 +179,7 @@ describe('projects routes', () => {
     expect(seed.body.prd.purpose).toBe('Purpose stays');
 
     const patched = await request(app)
-      .patch(`/api/projects/${projectId}`)
+      .patch(`/api/v1/projects/${projectId}`)
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp())
       .send({ prd: { goals: 'Goal updated' } });
@@ -189,7 +189,7 @@ describe('projects routes', () => {
     expect(patched.body.prd.features).toBe('');
 
     const fetched = await request(app)
-      .get(`/api/projects/${projectId}`)
+      .get(`/api/v1/projects/${projectId}`)
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp());
     expect(fetched.body.prd.purpose).toBe('Purpose stays');
@@ -200,20 +200,20 @@ describe('projects routes', () => {
     const cookie = await register('badid@test.dev');
 
     const get = await request(app)
-      .get('/api/projects/not-a-uuid')
+      .get('/api/v1/projects/not-a-uuid')
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp());
     expect(get.status).toBe(404);
 
     const patch = await request(app)
-      .patch('/api/projects/not-a-uuid')
+      .patch('/api/v1/projects/not-a-uuid')
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp())
       .send({ name: 'Nope' });
     expect(patch.status).toBe(404);
 
     const state = await request(app)
-      .get('/api/projects/not-a-uuid/state')
+      .get('/api/v1/projects/not-a-uuid/state')
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp());
     expect(state.status).toBe(404);
@@ -227,7 +227,7 @@ describe('projects routes', () => {
     const projectId = await createProject(ownerCookie, 'Test project', teamId);
 
     const res = await request(app)
-      .put(`/api/projects/${projectId}/state`)
+      .put(`/api/v1/projects/${projectId}/state`)
       .set('Cookie', memberCookie)
       .set('X-Forwarded-For', uniqueIp())
       .send({ state: emptyState });
@@ -242,19 +242,19 @@ describe('projects routes', () => {
     const projectId = await createProject(ownerCookie, 'Test project', teamId);
 
     const denied = await request(app)
-      .delete(`/api/projects/${projectId}`)
+      .delete(`/api/v1/projects/${projectId}`)
       .set('Cookie', editorCookie)
       .set('X-Forwarded-For', uniqueIp());
     expect(denied.status).toBe(403);
 
     const ok = await request(app)
-      .delete(`/api/projects/${projectId}`)
+      .delete(`/api/v1/projects/${projectId}`)
       .set('Cookie', ownerCookie)
       .set('X-Forwarded-For', uniqueIp());
     expect(ok.status).toBe(200);
 
     const gone = await request(app)
-      .get(`/api/projects/${projectId}`)
+      .get(`/api/v1/projects/${projectId}`)
       .set('Cookie', ownerCookie)
       .set('X-Forwarded-For', uniqueIp());
     expect(gone.status).toBe(404);
@@ -265,7 +265,7 @@ describe('projects routes', () => {
     const projectId = await createProject(cookie);
 
     const res = await request(app)
-      .get(`/api/projects/${projectId}/export`)
+      .get(`/api/v1/projects/${projectId}/export`)
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp());
     expect(res.status).toBe(200);
@@ -279,14 +279,14 @@ describe('projects routes', () => {
     const projectId = await createProject(cookie);
 
     const exported = await request(app)
-      .get(`/api/projects/${projectId}/export`)
+      .get(`/api/v1/projects/${projectId}/export`)
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp());
     const doc = exported.body;
     doc.state = { ...doc.state, tasks: [] };
 
     const restored = await request(app)
-      .post('/api/projects/import')
+      .post('/api/v1/projects/import')
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp())
       .send(doc);
@@ -307,7 +307,7 @@ describe('projects routes', () => {
     };
 
     const res = await request(app)
-      .post('/api/projects/import')
+      .post('/api/v1/projects/import')
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp())
       .send(doc);
@@ -316,7 +316,7 @@ describe('projects routes', () => {
     expect(res.body.projectId).toBeDefined();
 
     const list = await request(app)
-      .get('/api/projects')
+      .get('/api/v1/projects')
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp());
     expect(list.body.projects[0].name).toMatch(/^Imported \d{4}-\d{2}-\d{2}$/);

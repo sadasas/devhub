@@ -14,7 +14,7 @@ import type {
 import type { ProjectStats } from './stats';
 import type { ExportDocument } from './types';
 
-const API_BASE: string = import.meta.env.VITE_API_URL ?? '/api';
+const API_BASE: string = import.meta.env.VITE_API_URL ?? '/api/v1';
 const REQUEST_TIMEOUT_MS = 15_000;
 
 let unauthorizedHandler: (() => void) | null = null;
@@ -87,6 +87,37 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
+export type GranularEntity =
+  | 'tasks'
+  | 'issues'
+  | 'testCases'
+  | 'techEntries'
+  | 'tables'
+  | 'relations'
+  | 'schemaVersions'
+  | 'decisions'
+  | 'milestones'
+  | 'apiCollections'
+  | 'apiEndpoints';
+
+export type GranularEntityRecord = Record<string, unknown> & { id: string };
+
+interface EntityListResult {
+  items: GranularEntityRecord[];
+  nextCursor: string | null;
+  version: number;
+}
+
+interface EntityResult {
+  entity: GranularEntityRecord;
+  version: number;
+}
+
+function entityPath(projectId: string, entity: GranularEntity, entityId?: string): string {
+  const base = `/projects/${encodeURIComponent(projectId)}/${entity}`;
+  return entityId ? `${base}/${encodeURIComponent(entityId)}` : base;
+}
+
 export const api = {
   register: (email: string, password: string) =>
     request<{ id: string; email: string }>('/auth/register', {
@@ -150,10 +181,48 @@ export const api = {
     );
     return { state: res.state, version: res.version };
   },
-  putState: (projectId: string, state: State, version: number, keepalive = false) =>
-    request<{ ok: true; version: number }>(`/projects/${encodeURIComponent(projectId)}/state`, {
-      method: 'PUT',
-      body: JSON.stringify({ state, version }),
+  listEntities: async (
+    projectId: string,
+    entity: GranularEntity,
+    cursor?: { after?: string; limit?: number },
+  ): Promise<EntityListResult> => {
+    const qs = new URLSearchParams();
+    if (cursor?.after) qs.set('after', cursor.after);
+    if (cursor?.limit) qs.set('limit', String(cursor.limit));
+    const suffix = qs.size > 0 ? `?${qs.toString()}` : '';
+    return request<EntityListResult>(`${entityPath(projectId, entity)}${suffix}`);
+  },
+  createEntity: (
+    projectId: string,
+    entity: GranularEntity,
+    payload: Record<string, unknown>,
+  ) => request<EntityResult>(entityPath(projectId, entity), { method: 'POST', body: JSON.stringify(payload) }),
+  getEntity: (projectId: string, entity: GranularEntity, entityId: string) =>
+    request<EntityResult>(entityPath(projectId, entity, entityId)),
+  patchEntity: (
+    projectId: string,
+    entity: GranularEntity,
+    entityId: string,
+    payload: Record<string, unknown>,
+    version?: number,
+    keepalive = false,
+  ) =>
+    request<EntityResult>(entityPath(projectId, entity, entityId), {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+      headers: version !== undefined ? { 'If-Match': `"${version}"` } : undefined,
+      keepalive,
+    }),
+  deleteEntity: (
+    projectId: string,
+    entity: GranularEntity,
+    entityId: string,
+    version?: number,
+    keepalive = false,
+  ) =>
+    request<{ ok: true; version: number }>(entityPath(projectId, entity, entityId), {
+      method: 'DELETE',
+      headers: version !== undefined ? { 'If-Match': `"${version}"` } : undefined,
       keepalive,
     }),
 

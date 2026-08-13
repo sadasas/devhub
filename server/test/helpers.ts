@@ -12,7 +12,7 @@ export function uniqueIp(): string {
 
 export async function register(email: string): Promise<string> {
   const res = await request(app)
-    .post('/api/auth/register')
+    .post('/api/v1/auth/register')
     .set('X-Forwarded-For', uniqueIp())
     .send({ email, password: 'password123' });
   expect(res.status).toBe(201);
@@ -22,14 +22,14 @@ export async function register(email: string): Promise<string> {
 }
 
 export async function emailOf(cookie: string): Promise<string> {
-  const me = await request(app).get('/api/auth/me').set('Cookie', cookie);
+  const me = await request(app).get('/api/v1/auth/me').set('Cookie', cookie);
   expect(me.status).toBe(200);
   return (me.body as { email: string }).email;
 }
 
 export async function getFirstTeamId(cookie: string): Promise<string> {
   const res = await request(app)
-    .get('/api/teams')
+    .get('/api/v1/teams')
     .set('Cookie', cookie)
     .set('X-Forwarded-For', uniqueIp());
   expect(res.status).toBe(200);
@@ -40,7 +40,7 @@ export async function getFirstTeamId(cookie: string): Promise<string> {
 
 export async function createTeam(cookie: string, name = 'Test team'): Promise<string> {
   const res = await request(app)
-    .post('/api/teams')
+    .post('/api/v1/teams')
     .set('Cookie', cookie)
     .set('X-Forwarded-For', uniqueIp())
     .send({ name });
@@ -50,7 +50,7 @@ export async function createTeam(cookie: string, name = 'Test team'): Promise<st
 
 export async function createKey(cookie: string): Promise<string> {
   const res = await request(app)
-    .post('/api/keys')
+    .post('/api/v1/keys')
     .set('Cookie', cookie)
     .set('X-Forwarded-For', uniqueIp())
     .send({});
@@ -61,7 +61,7 @@ export async function createKey(cookie: string): Promise<string> {
 export async function createProject(cookie: string, name = 'Test project', teamId?: string): Promise<string> {
   const targetTeamId = teamId ?? (await getFirstTeamId(cookie));
   const res = await request(app)
-    .post('/api/projects')
+    .post('/api/v1/projects')
     .set('Cookie', cookie)
     .set('X-Forwarded-For', uniqueIp())
     .send({ name, teamId: targetTeamId });
@@ -77,13 +77,13 @@ export async function inviteUser(
 ): Promise<void> {
   const email = await emailOf(inviteeCookie);
   const invite = await request(app)
-    .post(`/api/teams/${teamId}/invitations`)
+    .post(`/api/v1/teams/${teamId}/invitations`)
     .set('Cookie', inviterCookie)
     .set('X-Forwarded-For', uniqueIp())
     .send({ email, role });
   expect(invite.status).toBe(201);
   const list = await request(app)
-    .get('/api/teams/invitations')
+    .get('/api/v1/teams/invitations')
     .set('Cookie', inviteeCookie)
     .set('X-Forwarded-For', uniqueIp());
   expect(list.status).toBe(200);
@@ -92,7 +92,7 @@ export async function inviteUser(
   );
   expect(inv).toBeDefined();
   const accept = await request(app)
-    .post(`/api/teams/${teamId}/invitations/${inv!.id}/accept`)
+    .post(`/api/v1/teams/${teamId}/invitations/${inv!.id}/accept`)
     .set('Cookie', inviteeCookie);
   expect(accept.status).toBe(200);
 }

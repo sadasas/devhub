@@ -8,7 +8,7 @@ import {
   useState,
 } from 'react';
 import type { ReactNode } from 'react';
-import { ApiError, api } from '../lib/api';
+import { ApiError, api, type GranularEntity } from '../lib/api';
 import { nowIso } from '../lib/utils';
 import type {
   ApiCollection,
@@ -191,7 +191,69 @@ export function projectReducer(state: State, action: ProjectAction): State {
 }
 
 /* ------------------------------------------------------------------ */
-/* Provider — load, optimistic edits, debounced save, polling          */
+/* Action → granular mutation mapping                                  */
+/* ------------------------------------------------------------------ */
+
+const ENTITY_FOR_ACTION: Record<string, GranularEntity> = {
+  task: 'tasks',
+  issue: 'issues',
+  testCase: 'testCases',
+  tech: 'techEntries',
+  table: 'tables',
+  relation: 'relations',
+  schemaVersion: 'schemaVersions',
+  decision: 'decisions',
+  milestone: 'milestones',
+  apiCollection: 'apiCollections',
+  apiEndpoint: 'apiEndpoints',
+};
+
+const PAYLOAD_KEY: Record<string, string> = {
+  task: 'task',
+  issue: 'issue',
+  testCase: 'testCase',
+  tech: 'entry',
+  table: 'table',
+  relation: 'relation',
+  schemaVersion: 'version',
+  decision: 'decision',
+  milestone: 'milestone',
+  apiCollection: 'collection',
+  apiEndpoint: 'endpoint',
+};
+
+interface PendingMutation {
+  key: string;
+  entity: GranularEntity;
+  op: 'create' | 'update' | 'delete';
+  id: string;
+  payload?: Record<string, unknown>;
+}
+
+function actionToMutation(action: ProjectAction): PendingMutation | null {
+  const [head, verb] = action.type.split('/') as [string, string];
+  const entity = ENTITY_FOR_ACTION[head];
+  if (!entity || !verb || verb === 'replace') return null;
+  const a = action as { id?: string; patch?: Record<string, unknown> } & Record<string, unknown>;
+  if (verb === 'add') {
+    const payload = a[PAYLOAD_KEY[head] ?? ''] as Record<string, unknown> | undefined;
+    const id = payload?.id as string | undefined;
+    if (!id) return null;
+    return { key: `${entity}:${id}`, entity, op: 'create', id, payload };
+  }
+  if (verb === 'update') {
+    if (!a.id) return null;
+    return { key: `${entity}:${a.id}`, entity, op: 'update', id: a.id, payload: a.patch ?? {} };
+  }
+  if (verb === 'remove') {
+    if (!a.id) return null;
+    return { key: `${entity}:${a.id}`, entity, op: 'delete', id: a.id };
+  }
+  return null;
+}
+
+/* ------------------------------------------------------------------ */
+/* Provider — load, optimistic edits, granular mutation flush, polling */
 /* ------------------------------------------------------------------ */
 
 const SAVE_DEBOUNCE_MS = 800;
@@ -239,71 +301,75 @@ export function ProjectProvider({
   const lastSavedRef = useRef<State | null>(null);
   const versionRef = useRef(0);
   const dirtyRef = useRef(false);
+  const mutationsRef = useRef<Map<string, PendingMutation>>(new Map());
   const savingRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingFlushRef = useRef<Promise<void> | null>(null);
   const canEditRef = useRef(role !== 'viewer');
   canEditRef.current = role !== 'viewer';
 
-  const runSave = useCallback(async () => {
-    const snapshot = stateRef.current;
-    if (!snapshot || savingRef.current || !canEditRef.current) return;
-    dirtyRef.current = false;
-    savingRef.current = true;
-    setSaving(true);
-    try {
-      const res = await api.putState(projectId, snapshot, versionRef.current);
-      versionRef.current = res.version;
-      lastSavedRef.current = snapshot;
-      setSaveError(null);
-      setLastSavedAt(Date.now());
-    } catch (err) {
-      setSaveError(err instanceof ApiError ? err.message : 'Failed to save changes');
-      if (err instanceof ApiError && err.status === 409) {
-        const current = (err.details as { current?: { state?: State; version?: number } } | undefined)?.current;
-        if (current?.state && current.version) {
-          setConflict({ message: err.message, current: { state: current.state, version: current.version } });
-        }
-      }
-      dirtyRef.current = true;
-    } finally {
-      savingRef.current = false;
-      setSaving(false);
-    }
-  }, [projectId]);
-
-  const flushPendingSave = useCallback(
-    (opts?: { keepalive?: boolean }) => {
-      const snapshot = stateRef.current;
-      if (!snapshot || !dirtyRef.current || savingRef.current || !canEditRef.current) {
-        return pendingFlushRef.current ?? Promise.resolve();
-      }
+  const flushMutations = useCallback(
+    async (opts?: { keepalive?: boolean }): Promise<void> => {
+      if (!canEditRef.current) return;
       if (pendingFlushRef.current) return pendingFlushRef.current;
-      dirtyRef.current = false;
-      const p = (opts?.keepalive
-        ? api.putState(projectId, snapshot, versionRef.current, true)
-        : api.putState(projectId, snapshot, versionRef.current)
-      )
-        .then((res) => {
-          versionRef.current = res.version;
-          lastSavedRef.current = snapshot;
+      const p = (async () => {
+        savingRef.current = true;
+        setSaving(true);
+        const queue = mutationsRef.current;
+        try {
+          while (queue.size > 0) {
+            const entry = [...queue.entries()][0]!;
+            queue.delete(entry[0]);
+            const m = entry[1];
+            if (m.op === 'create') {
+              const res = await api.createEntity(projectId, m.entity, m.payload!);
+              versionRef.current = res.version;
+            } else if (m.op === 'update') {
+              const res = await api.patchEntity(
+                projectId,
+                m.entity,
+                m.id,
+                m.payload!,
+                versionRef.current,
+                opts?.keepalive,
+              );
+              versionRef.current = res.version;
+            } else {
+              const res = await api.deleteEntity(
+                projectId,
+                m.entity,
+                m.id,
+                versionRef.current,
+                opts?.keepalive,
+              );
+              versionRef.current = res.version;
+            }
+          }
+          lastSavedRef.current = stateRef.current;
           setSaveError(null);
           setLastSavedAt(Date.now());
-        })
-        .catch((err) => {
+        } catch (err) {
           setSaveError(err instanceof ApiError ? err.message : 'Failed to save changes');
           if (err instanceof ApiError && err.status === 409) {
-            const current = (err.details as { current?: { state?: State; version?: number } } | undefined)?.current;
-            if (current?.state && current.version) {
-              setConflict({ message: err.message, current: { state: current.state, version: current.version } });
+            const current = (err.details as { current?: { version?: number } } | undefined)?.current;
+            if (current?.version && stateRef.current) {
+              setConflict({
+                message: err.message,
+                current: { state: stateRef.current, version: current.version },
+              });
             }
           }
           dirtyRef.current = true;
-        })
-        .finally(() => {
-          if (pendingFlushRef.current === p) pendingFlushRef.current = null;
-        });
+          queue.clear();
+        } finally {
+          savingRef.current = false;
+          setSaving(false);
+        }
+      })();
       pendingFlushRef.current = p;
+      void p.finally(() => {
+        if (pendingFlushRef.current === p) pendingFlushRef.current = null;
+      });
       return p;
     },
     [projectId],
@@ -315,27 +381,30 @@ export function ProjectProvider({
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       timerRef.current = null;
-      void runSave();
+      void flushMutations();
     }, SAVE_DEBOUNCE_MS);
-  }, [runSave]);
+  }, [flushMutations]);
 
   const retrySave = useCallback(() => {
     if (savingRef.current) return;
-    void runSave();
-  }, [runSave]);
+    void flushMutations();
+  }, [flushMutations]);
 
-  const resolveConflict = useCallback(() => {
-    setConflict((cur) => {
-      if (!cur) return null;
-      stateRef.current = cur.current.state;
-      lastSavedRef.current = cur.current.state;
-      versionRef.current = cur.current.version;
-      dirtyRef.current = false;
-      setState(cur.current.state);
-      setSaveError(null);
-      return null;
-    });
-  }, []);
+  const resolveConflict = useCallback(async () => {
+    setConflict(null);
+    mutationsRef.current.clear();
+    dirtyRef.current = false;
+    setSaveError(null);
+    try {
+      const fresh = await api.getState(projectId);
+      stateRef.current = fresh.state;
+      lastSavedRef.current = fresh.state;
+      versionRef.current = fresh.version;
+      setState(fresh.state);
+    } catch {
+      /* keep the local state; polling will retry */
+    }
+  }, [projectId]);
 
   const dispatch = useCallback(
     (action: ProjectAction) => {
@@ -346,6 +415,8 @@ export function ProjectProvider({
         stateRef.current = next;
         return next;
       });
+      const mutation = actionToMutation(action);
+      if (mutation) mutationsRef.current.set(mutation.key, mutation);
       scheduleSave();
     },
     [scheduleSave],
@@ -357,13 +428,14 @@ export function ProjectProvider({
     lastSavedRef.current = null;
     versionRef.current = 0;
     dirtyRef.current = false;
+    mutationsRef.current.clear();
     setConflict(null);
     setLoading(true);
     setError(null);
     setSaveError(null);
 
     void (async () => {
-      await flushPendingSave();
+      await flushMutations();
       if (cancelled) return;
       try {
         const loaded = await api.getState(projectId);
@@ -383,12 +455,12 @@ export function ProjectProvider({
 
     const interval = setInterval(() => {
       if (document.visibilityState !== 'visible') return;
-      if (dirtyRef.current || savingRef.current) return;
+      if (dirtyRef.current || savingRef.current || mutationsRef.current.size > 0) return;
       api
         .getState(projectId)
         .then((fresh) => {
           if (cancelled) return;
-          if (dirtyRef.current || savingRef.current) return;
+          if (dirtyRef.current || savingRef.current || mutationsRef.current.size > 0) return;
           const cur = stateRef.current;
           if (cur && JSON.stringify(fresh.state) !== JSON.stringify(cur)) {
             stateRef.current = fresh.state;
@@ -403,7 +475,7 @@ export function ProjectProvider({
     }, POLL_INTERVAL_MS);
 
     const onPageHide = () => {
-      void flushPendingSave({ keepalive: true });
+      void flushMutations({ keepalive: true });
     };
     window.addEventListener('pagehide', onPageHide);
 
@@ -412,9 +484,9 @@ export function ProjectProvider({
       clearInterval(interval);
       window.removeEventListener('pagehide', onPageHide);
       if (timerRef.current) clearTimeout(timerRef.current);
-      void flushPendingSave();
+      void flushMutations();
     };
-  }, [projectId, flushPendingSave]);
+  }, [projectId, flushMutations]);
 
   const value = useMemo(
     () => ({

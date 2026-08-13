@@ -13,7 +13,7 @@ function uniqueIp(): string {
 
 async function register(email: string): Promise<string> {
   const res = await request(app)
-    .post('/api/auth/register')
+    .post('/api/v1/auth/register')
     .set('X-Forwarded-For', uniqueIp())
     .send({ email, password: 'password123' });
   expect(res.status).toBe(201);
@@ -31,7 +31,7 @@ describe('API keys', () => {
     const cookie = await register('a@test.dev');
 
     const created = await request(app)
-      .post('/api/keys')
+      .post('/api/v1/keys')
       .set('Cookie', cookie)
       .send({ name: 'cli' });
     expect(created.status).toBe(201);
@@ -43,7 +43,7 @@ describe('API keys', () => {
     expect(key.slice(0, 8)).toBe(prefix);
     expect(createdAt).toBeTypeOf('string');
 
-    const listed = await request(app).get('/api/keys').set('Cookie', cookie);
+    const listed = await request(app).get('/api/v1/keys').set('Cookie', cookie);
     expect(listed.status).toBe(200);
     expect(listed.body.keys).toHaveLength(1);
     expect(listed.body.keys[0]).toMatchObject({ id, name: 'cli', prefix });
@@ -54,7 +54,7 @@ describe('API keys', () => {
 
   it('creates a key without a name', async () => {
     const cookie = await register('b@test.dev');
-    const res = await request(app).post('/api/keys').set('Cookie', cookie).send({});
+    const res = await request(app).post('/api/v1/keys').set('Cookie', cookie).send({});
     expect(res.status).toBe(201);
     expect(res.body.name).toBe('');
     expect(res.body.key).toMatch(/^devhub_/);
@@ -62,32 +62,32 @@ describe('API keys', () => {
 
   it('revokes a key (soft delete)', async () => {
     const cookie = await register('c@test.dev');
-    const created = await request(app).post('/api/keys').set('Cookie', cookie).send({});
+    const created = await request(app).post('/api/v1/keys').set('Cookie', cookie).send({});
     const id = created.body.id as string;
 
-    const revoked = await request(app).delete(`/api/keys/${id}`).set('Cookie', cookie);
+    const revoked = await request(app).delete(`/api/v1/keys/${id}`).set('Cookie', cookie);
     expect(revoked.status).toBe(200);
     expect(revoked.body).toEqual({ ok: true });
 
-    const listed = await request(app).get('/api/keys').set('Cookie', cookie);
+    const listed = await request(app).get('/api/v1/keys').set('Cookie', cookie);
     expect(listed.body.keys[0].revokedAt).not.toBeNull();
   });
 
   it('requires authentication', async () => {
-    const get = await request(app).get('/api/keys');
+    const get = await request(app).get('/api/v1/keys');
     expect(get.status).toBe(401);
 
-    const post = await request(app).post('/api/keys').send({});
+    const post = await request(app).post('/api/v1/keys').send({});
     expect(post.status).toBe(401);
 
-    const del = await request(app).delete('/api/keys/some-id');
+    const del = await request(app).delete('/api/v1/keys/some-id');
     expect(del.status).toBe(401);
   });
 
   it('rejects invalid payloads', async () => {
     const cookie = await register('d@test.dev');
     const res = await request(app)
-      .post('/api/keys')
+      .post('/api/v1/keys')
       .set('Cookie', cookie)
       .send({ name: 'x'.repeat(201) });
     expect(res.status).toBe(400);
@@ -95,14 +95,14 @@ describe('API keys', () => {
 
   it('cannot revoke another user key', async () => {
     const cookieA = await register('e@test.dev');
-    const created = await request(app).post('/api/keys').set('Cookie', cookieA).send({});
+    const created = await request(app).post('/api/v1/keys').set('Cookie', cookieA).send({});
     const id = created.body.id as string;
 
     const cookieB = await register('f@test.dev');
-    const del = await request(app).delete(`/api/keys/${id}`).set('Cookie', cookieB);
+    const del = await request(app).delete(`/api/v1/keys/${id}`).set('Cookie', cookieB);
     expect(del.status).toBe(404);
 
-    const listed = await request(app).get('/api/keys').set('Cookie', cookieA);
+    const listed = await request(app).get('/api/v1/keys').set('Cookie', cookieA);
     expect(listed.body.keys[0].revokedAt).toBeNull();
   });
 });

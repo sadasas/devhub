@@ -41,7 +41,7 @@ function Probe() {
     <div>
       <button onClick={() => ctx.dispatch(editAction())}>edit</button>
       <button onClick={() => ctx.retrySave()}>retry</button>
-      <button onClick={() => ctx.resolveConflict()}>resolve</button>
+      <button onClick={() => void ctx.resolveConflict()}>resolve</button>
       <span data-testid="title">{ctx.state?.tasks[0]?.title ?? 'none'}</span>
       <span data-testid="save-error">{ctx.saveError ?? ''}</span>
       <span data-testid="conflict">{ctx.conflict ? 'conflict' : ''}</span>
@@ -50,6 +50,7 @@ function Probe() {
 }
 
 const PROJECT_ID = '11111111-1111-4111-8111-111111111111';
+const TASK_ID = 't1';
 
 function renderProvider() {
   return render(
@@ -72,7 +73,9 @@ describe('project save pipeline', () => {
   it('persists the latest edits after the debounce', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval'] });
     const getState = vi.spyOn(api, 'getState').mockResolvedValue({ state: makeState(), version: 1 });
-    const putState = vi.spyOn(api, 'putState').mockResolvedValue({ ok: true, version: 2 });
+    const patchEntity = vi
+      .spyOn(api, 'patchEntity')
+      .mockResolvedValue({ entity: { ...TASK, createdAt: '', updatedAt: '' }, version: 2 });
 
     renderProvider();
     await flush();
@@ -86,10 +89,12 @@ describe('project save pipeline', () => {
     });
     await flush();
 
-    expect(putState).toHaveBeenCalledTimes(1);
-    expect(putState).toHaveBeenCalledWith(
+    expect(patchEntity).toHaveBeenCalledTimes(1);
+    expect(patchEntity).toHaveBeenCalledWith(
       PROJECT_ID,
-      expect.objectContaining({ tasks: [expect.objectContaining({ title: 'Edited' })] }),
+      'tasks',
+      TASK_ID,
+      expect.objectContaining({ title: 'Edited' }),
       1,
     );
     expect(getState).toHaveBeenCalledTimes(1);
@@ -97,12 +102,14 @@ describe('project save pipeline', () => {
 
   it('surfaces a 409 conflict and resolves to the server version', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval'] });
-    vi.spyOn(api, 'getState').mockResolvedValue({ state: makeState(), version: 1 });
     const serverState = makeState();
     serverState.tasks[0]!.title = 'Server wins';
-    vi.spyOn(api, 'putState').mockRejectedValue(
+    vi.spyOn(api, 'getState')
+      .mockResolvedValueOnce({ state: makeState(), version: 1 })
+      .mockResolvedValueOnce({ state: serverState, version: 2 });
+    vi.spyOn(api, 'patchEntity').mockRejectedValue(
       new ApiError(409, 'CONFLICT', 'conflicted', {
-        current: { state: serverState, version: 2 },
+        current: { version: 2 },
       }),
     );
 
@@ -120,6 +127,7 @@ describe('project save pipeline', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'resolve' }));
     await flush();
+    await flush();
 
     expect(screen.getByTestId('title').textContent).toBe('Server wins');
     expect(screen.getByTestId('conflict').textContent).toBe('');
@@ -128,10 +136,10 @@ describe('project save pipeline', () => {
   it('keeps local edits when a save fails and retry succeeds', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval'] });
     vi.spyOn(api, 'getState').mockResolvedValue({ state: makeState(), version: 1 });
-    const putState = vi
-      .spyOn(api, 'putState')
+    const patchEntity = vi
+      .spyOn(api, 'patchEntity')
       .mockRejectedValueOnce(new ApiError(500, 'INTERNAL', 'boom'))
-      .mockResolvedValue({ ok: true, version: 2 });
+      .mockResolvedValue({ entity: { ...TASK, createdAt: '', updatedAt: '' }, version: 2 });
 
     renderProvider();
     await flush();
@@ -143,7 +151,7 @@ describe('project save pipeline', () => {
     });
     await flush();
 
-    expect(putState).toHaveBeenCalledTimes(1);
+    expect(patchEntity).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('title').textContent).toBe('Edited');
     expect(screen.getByTestId('save-error').textContent).toContain('boom');
 
@@ -151,15 +159,17 @@ describe('project save pipeline', () => {
     await flush();
     await flush();
 
-    expect(putState).toHaveBeenCalledTimes(2);
+    expect(patchEntity).toHaveBeenCalledTimes(2);
     expect(screen.getByTestId('title').textContent).toBe('Edited');
     expect(screen.getByTestId('save-error').textContent).toBe('');
   });
 
-  it('flushes a pending save on unmount', async () => {
+  it('flushes a pending mutation on unmount', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval'] });
     vi.spyOn(api, 'getState').mockResolvedValue({ state: makeState(), version: 1 });
-    const putState = vi.spyOn(api, 'putState').mockResolvedValue({ ok: true, version: 2 });
+    const patchEntity = vi
+      .spyOn(api, 'patchEntity')
+      .mockResolvedValue({ entity: { ...TASK, createdAt: '', updatedAt: '' }, version: 2 });
 
     const { unmount } = renderProvider();
     await flush();
@@ -168,9 +178,11 @@ describe('project save pipeline', () => {
     fireEvent.click(screen.getByRole('button', { name: 'edit' }));
     unmount();
 
-    expect(putState).toHaveBeenCalledWith(
+    expect(patchEntity).toHaveBeenCalledWith(
       PROJECT_ID,
-      expect.objectContaining({ tasks: [expect.objectContaining({ title: 'Edited' })] }),
+      'tasks',
+      TASK_ID,
+      expect.objectContaining({ title: 'Edited' }),
       1,
     );
   });
@@ -178,11 +190,11 @@ describe('project save pipeline', () => {
   it('skips polling while a save is in flight', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval'] });
     const getState = vi.spyOn(api, 'getState').mockResolvedValue({ state: makeState(), version: 1 });
-    let resolvePut!: (v: { ok: true; version: number }) => void;
-    const putState = vi.spyOn(api, 'putState').mockImplementation(
+    let resolvePatch!: (v: { entity: Task; version: number }) => void;
+    const patchEntity = vi.spyOn(api, 'patchEntity').mockImplementation(
       () =>
-        new Promise<{ ok: true; version: number }>((resolve) => {
-          resolvePut = resolve;
+        new Promise<{ entity: Task; version: number }>((resolve) => {
+          resolvePatch = resolve;
         }),
     );
 
@@ -198,11 +210,11 @@ describe('project save pipeline', () => {
       vi.advanceTimersByTime(5000);
     });
 
-    expect(putState).toHaveBeenCalledTimes(1);
+    expect(patchEntity).toHaveBeenCalledTimes(1);
     expect(getState).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      resolvePut({ ok: true, version: 2 });
+      resolvePatch({ entity: { ...TASK, createdAt: '', updatedAt: '' }, version: 2 });
     });
     await flush();
   });

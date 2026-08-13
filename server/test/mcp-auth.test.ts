@@ -54,11 +54,11 @@ describe('MCP auth and ownership', () => {
 
   it('rejects a revoked key', async () => {
     const cookie = await register('revoked@test.dev');
-    const created = await request(app).post('/api/keys').set('Cookie', cookie).send({});
+    const created = await request(app).post('/api/v1/keys').set('Cookie', cookie).send({});
     const id = created.body.id as string;
     const key = created.body.key as string;
 
-    await request(app).delete(`/api/keys/${id}`).set('Cookie', cookie);
+    await request(app).delete(`/api/v1/keys/${id}`).set('Cookie', cookie);
 
     const res = await mcpCall(key, {
       jsonrpc: '2.0',

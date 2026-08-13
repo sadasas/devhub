@@ -14,6 +14,7 @@ import { keysRouter } from './api/keys.routes.js';
 import { publicRouter } from './api/public.routes.js';
 import { mcpRouter } from './mcp/server.js';
 import { requireMcpKey } from './mcp/require-key.js';
+import { entityRouter } from './api/v1/entity-router.js';
 
 export const SESSION_COOKIE = 'devhub_session';
 
@@ -127,9 +128,9 @@ export function createApp(): express.Express {
   app.use(requestLogger);
   app.use(express.json({ limit: '10mb' }));
   app.use(cookieParser());
-  app.use('/api', limiter);
+  app.use('/api/v1', limiter);
 
-  app.get('/api/health', async (_req, res) => {
+  app.get('/api/v1/health', async (_req, res) => {
     try {
       await pool.query('SELECT 1');
       res.json({ status: 'ok', db: 'connected', uptime: process.uptime() });
@@ -138,11 +139,12 @@ export function createApp(): express.Express {
     }
   });
 
-  app.use('/api/auth', authRouter);
-  app.use('/api/projects', projectsRouter);
-  app.use('/api/teams', teamsRouter);
-  app.use('/api/keys', keysRouter);
-  app.use('/api/public', publicRouter);
+  app.use('/api/v1/auth', authRouter);
+  app.use('/api/v1/projects', projectsRouter);
+  app.use('/api/v1/projects', entityRouter);
+  app.use('/api/v1/teams', teamsRouter);
+  app.use('/api/v1/keys', keysRouter);
+  app.use('/api/v1/public', publicRouter);
 
   app.use('/mcp', mcpLimiter);
   app.use('/mcp', requireMcpKey);

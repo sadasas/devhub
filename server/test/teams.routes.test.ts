@@ -5,7 +5,7 @@ import { resetDb } from './setup.js';
 
 async function memberRoles(teamId: string, cookie: string) {
   const res = await request(app)
-    .get(`/api/teams/${teamId}/members`)
+    .get(`/api/v1/teams/${teamId}/members`)
     .set('Cookie', cookie)
     .set('X-Forwarded-For', uniqueIp());
   expect(res.status).toBe(200);
@@ -21,7 +21,7 @@ describe('teams routes', () => {
     const cookie = await register('creator@test.dev');
     const teamId = await createTeam(cookie, 'Engineering');
     const res = await request(app)
-      .get(`/api/teams/${teamId}`)
+      .get(`/api/v1/teams/${teamId}`)
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp());
     expect(res.status).toBe(200);
@@ -35,7 +35,7 @@ describe('teams routes', () => {
     const outsider = await register('outsider@test.dev');
     const teamId = await createTeam(owner);
     const res = await request(app)
-      .get(`/api/teams/${teamId}`)
+      .get(`/api/v1/teams/${teamId}`)
       .set('Cookie', outsider)
       .set('X-Forwarded-For', uniqueIp());
     expect(res.status).toBe(404);
@@ -48,14 +48,14 @@ describe('teams routes', () => {
     await inviteUser(owner, viewer, teamId, 'viewer');
 
     const denied = await request(app)
-      .patch(`/api/teams/${teamId}`)
+      .patch(`/api/v1/teams/${teamId}`)
       .set('Cookie', viewer)
       .set('X-Forwarded-For', uniqueIp())
       .send({ name: 'Nope' });
     expect(denied.status).toBe(403);
 
     const ok = await request(app)
-      .patch(`/api/teams/${teamId}`)
+      .patch(`/api/v1/teams/${teamId}`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp())
       .send({ name: 'Renamed' });
@@ -69,13 +69,13 @@ describe('teams routes', () => {
     await inviteUser(owner, admin, teamId, 'admin');
 
     const denied = await request(app)
-      .delete(`/api/teams/${teamId}`)
+      .delete(`/api/v1/teams/${teamId}`)
       .set('Cookie', admin)
       .set('X-Forwarded-For', uniqueIp());
     expect(denied.status).toBe(403);
 
     const ok = await request(app)
-      .delete(`/api/teams/${teamId}`)
+      .delete(`/api/v1/teams/${teamId}`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp());
     expect(ok.status).toBe(200);
@@ -97,7 +97,7 @@ describe('teams routes', () => {
     const owner = await register('owner@test.dev');
     const teamId = await createTeam(owner);
     const res = await request(app)
-      .post(`/api/teams/${teamId}/invitations`)
+      .post(`/api/v1/teams/${teamId}/invitations`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp())
       .send({ email: 'ghost@nowhere.dev', role: 'editor' });
@@ -110,7 +110,7 @@ describe('teams routes', () => {
     const teamId = await createTeam(owner);
 
     const self = await request(app)
-      .post(`/api/teams/${teamId}/invitations`)
+      .post(`/api/v1/teams/${teamId}/invitations`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp())
       .send({ email: 'owner@test.dev', role: 'editor' });
@@ -118,7 +118,7 @@ describe('teams routes', () => {
 
     await inviteUser(owner, member, teamId, 'editor');
     const dup = await request(app)
-      .post(`/api/teams/${teamId}/invitations`)
+      .post(`/api/v1/teams/${teamId}/invitations`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp())
       .send({ email: 'member@test.dev', role: 'viewer' });
@@ -131,13 +131,13 @@ describe('teams routes', () => {
     const teamId = await createTeam(owner);
 
     await request(app)
-      .post(`/api/teams/${teamId}/invitations`)
+      .post(`/api/v1/teams/${teamId}/invitations`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp())
       .send({ email: 'member@test.dev', role: 'viewer' });
 
     const adminList = await request(app)
-      .get(`/api/teams/${teamId}/invitations`)
+      .get(`/api/v1/teams/${teamId}/invitations`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp());
     expect(adminList.status).toBe(200);
@@ -156,7 +156,7 @@ describe('teams routes', () => {
     expect(members.find((m) => m.email === 'member@test.dev')?.role).toBe('admin');
 
     const pending = await request(app)
-      .get(`/api/teams/${teamId}/invitations`)
+      .get(`/api/v1/teams/${teamId}/invitations`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp());
     expect(pending.body.invitations).toHaveLength(0);
@@ -169,19 +169,19 @@ describe('teams routes', () => {
     const email = await emailOf(member);
 
     const invite = await request(app)
-      .post(`/api/teams/${teamId}/invitations`)
+      .post(`/api/v1/teams/${teamId}/invitations`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp())
       .send({ email, role: 'viewer' });
     const invitationId = invite.body.invitation.id as string;
 
     const decline = await request(app)
-      .delete(`/api/teams/${teamId}/invitations/${invitationId}`)
+      .delete(`/api/v1/teams/${teamId}/invitations/${invitationId}`)
       .set('Cookie', member);
     expect(decline.status).toBe(200);
 
     const pending = await request(app)
-      .get(`/api/teams/${teamId}/invitations`)
+      .get(`/api/v1/teams/${teamId}/invitations`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp());
     expect(pending.body.invitations).toHaveLength(0);
@@ -198,20 +198,20 @@ describe('teams routes', () => {
     await inviteUser(owner, admin, teamId, 'admin');
 
     const invite = await request(app)
-      .post(`/api/teams/${teamId}/invitations`)
+      .post(`/api/v1/teams/${teamId}/invitations`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp())
       .send({ email: 'member@test.dev', role: 'viewer' });
     const invitationId = invite.body.invitation.id as string;
 
     const withdrawn = await request(app)
-      .delete(`/api/teams/${teamId}/invitations/${invitationId}`)
+      .delete(`/api/v1/teams/${teamId}/invitations/${invitationId}`)
       .set('Cookie', admin)
       .set('X-Forwarded-For', uniqueIp());
     expect(withdrawn.status).toBe(200);
 
     const pending = await request(app)
-      .get(`/api/teams/${teamId}/invitations`)
+      .get(`/api/v1/teams/${teamId}/invitations`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp());
     expect(pending.body.invitations).toHaveLength(0);
@@ -228,14 +228,14 @@ describe('teams routes', () => {
     const ownerId = members.find((m) => m.email === 'owner@test.dev')!.id;
 
     const change = await request(app)
-      .patch(`/api/teams/${teamId}/members/${memberId}`)
+      .patch(`/api/v1/teams/${teamId}/members/${memberId}`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp())
       .send({ role: 'viewer' });
     expect(change.status).toBe(200);
 
     const blocked = await request(app)
-      .patch(`/api/teams/${teamId}/members/${ownerId}`)
+      .patch(`/api/v1/teams/${teamId}/members/${ownerId}`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp())
       .send({ role: 'admin' });
@@ -254,7 +254,7 @@ describe('teams routes', () => {
     const memberId = members.find((m) => m.email === 'member@test.dev')!.id;
 
     const res = await request(app)
-      .patch(`/api/teams/${teamId}/members/${memberId}`)
+      .patch(`/api/v1/teams/${teamId}/members/${memberId}`)
       .set('Cookie', editor)
       .set('X-Forwarded-For', uniqueIp())
       .send({ role: 'admin' });
@@ -271,7 +271,7 @@ describe('teams routes', () => {
     const memberId = members.find((m) => m.email === 'member@test.dev')!.id;
 
     const transfer = await request(app)
-      .patch(`/api/teams/${teamId}/members/${memberId}`)
+      .patch(`/api/v1/teams/${teamId}/members/${memberId}`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp())
       .send({ role: 'owner' });
@@ -294,7 +294,7 @@ describe('teams routes', () => {
     const memberId = members.find((m) => m.email === 'member@test.dev')!.id;
 
     const res = await request(app)
-      .patch(`/api/teams/${teamId}/members/${memberId}`)
+      .patch(`/api/v1/teams/${teamId}/members/${memberId}`)
       .set('Cookie', admin)
       .set('X-Forwarded-For', uniqueIp())
       .send({ role: 'owner' });
@@ -312,13 +312,13 @@ describe('teams routes', () => {
     const ownerId = members.find((m) => m.email === 'owner@test.dev')!.id;
 
     const blocked = await request(app)
-      .delete(`/api/teams/${teamId}/members/${ownerId}`)
+      .delete(`/api/v1/teams/${teamId}/members/${ownerId}`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp());
     expect(blocked.status).toBe(400);
 
     const removed = await request(app)
-      .delete(`/api/teams/${teamId}/members/${memberId}`)
+      .delete(`/api/v1/teams/${teamId}/members/${memberId}`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp());
     expect(removed.status).toBe(200);
@@ -337,13 +337,13 @@ describe('teams routes', () => {
     const memberId = members.find((m) => m.email === 'member@test.dev')!.id;
 
     const leave = await request(app)
-      .delete(`/api/teams/${teamId}/members/${memberId}`)
+      .delete(`/api/v1/teams/${teamId}/members/${memberId}`)
       .set('Cookie', member)
       .set('X-Forwarded-For', uniqueIp());
     expect(leave.status).toBe(200);
 
     const res = await request(app)
-      .get(`/api/teams/${teamId}`)
+      .get(`/api/v1/teams/${teamId}`)
       .set('Cookie', member)
       .set('X-Forwarded-For', uniqueIp());
     expect(res.status).toBe(404);
@@ -353,20 +353,20 @@ describe('teams routes', () => {
     const cookie = await register('badid@test.dev');
 
     const team = await request(app)
-      .get('/api/teams/not-a-uuid')
+      .get('/api/v1/teams/not-a-uuid')
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp());
     expect(team.status).toBe(404);
 
     const teamId = await createTeam(cookie);
     const member = await request(app)
-      .delete(`/api/teams/${teamId}/members/not-a-uuid`)
+      .delete(`/api/v1/teams/${teamId}/members/not-a-uuid`)
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp());
     expect(member.status).toBe(404);
 
     const invite = await request(app)
-      .delete(`/api/teams/${teamId}/invitations/not-a-uuid`)
+      .delete(`/api/v1/teams/${teamId}/invitations/not-a-uuid`)
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp());
     expect(invite.status).toBe(404);

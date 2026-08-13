@@ -6,7 +6,7 @@ import { emptyState } from '../src/schema/state.js';
 
 async function makePublic(cookie: string, projectId: string): Promise<void> {
   const res = await request(app)
-    .patch(`/api/projects/${projectId}`)
+    .patch(`/api/v1/projects/${projectId}`)
     .set('Cookie', cookie)
     .set('X-Forwarded-For', uniqueIp())
     .send({ visibility: 'public' });
@@ -24,7 +24,7 @@ describe('public project routes', () => {
     await makePublic(cookie, projectId);
 
     const res = await request(app)
-      .get(`/api/public/projects/${projectId}`)
+      .get(`/api/v1/public/projects/${projectId}`)
       .set('X-Forwarded-For', uniqueIp());
     expect(res.status).toBe(200);
     expect(res.body.project.name).toBe('Public meta');
@@ -39,7 +39,7 @@ describe('public project routes', () => {
     await makePublic(cookie, projectId);
 
     const seed = await request(app)
-      .put(`/api/projects/${projectId}/state`)
+      .put(`/api/v1/projects/${projectId}/state`)
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp())
       .send({
@@ -65,7 +65,7 @@ describe('public project routes', () => {
     expect(seed.status).toBe(200);
 
     const res = await request(app)
-      .get(`/api/public/projects/${projectId}/state`)
+      .get(`/api/v1/public/projects/${projectId}/state`)
       .set('X-Forwarded-For', uniqueIp());
     expect(res.status).toBe(200);
     expect(res.body.state.tasks).toHaveLength(1);
@@ -77,19 +77,19 @@ describe('public project routes', () => {
     const projectId = await createProject(cookie);
 
     const meta = await request(app)
-      .get(`/api/public/projects/${projectId}`)
+      .get(`/api/v1/public/projects/${projectId}`)
       .set('X-Forwarded-For', uniqueIp());
     expect(meta.status).toBe(404);
 
     const state = await request(app)
-      .get(`/api/public/projects/${projectId}/state`)
+      .get(`/api/v1/public/projects/${projectId}/state`)
       .set('X-Forwarded-For', uniqueIp());
     expect(state.status).toBe(404);
   });
 
   it('returns 404 for an invalid project id', async () => {
     const res = await request(app)
-      .get('/api/public/projects/not-a-uuid')
+      .get('/api/v1/public/projects/not-a-uuid')
       .set('X-Forwarded-For', uniqueIp());
     expect(res.status).toBe(404);
   });
@@ -98,7 +98,7 @@ describe('public project routes', () => {
     const cookie = await register('default-priv@test.dev');
     const teamId = await createTeam(cookie);
     const res = await request(app)
-      .post('/api/projects')
+      .post('/api/v1/projects')
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp())
       .send({ name: 'Default private', teamId });
@@ -115,14 +115,14 @@ describe('public project routes', () => {
     const projectId = await createProject(ownerCookie, 'Toggle me', teamId);
 
     const asEditor = await request(app)
-      .patch(`/api/projects/${projectId}`)
+      .patch(`/api/v1/projects/${projectId}`)
       .set('Cookie', editorCookie)
       .set('X-Forwarded-For', uniqueIp())
       .send({ visibility: 'public' });
     expect(asEditor.status).toBe(403);
 
     const asOwner = await request(app)
-      .patch(`/api/projects/${projectId}`)
+      .patch(`/api/v1/projects/${projectId}`)
       .set('Cookie', ownerCookie)
       .set('X-Forwarded-For', uniqueIp())
       .send({ visibility: 'public' });
@@ -131,25 +131,25 @@ describe('public project routes', () => {
 
     await inviteUser(ownerCookie, viewerCookie, teamId, 'viewer');
     const asViewer = await request(app)
-      .patch(`/api/projects/${projectId}`)
+      .patch(`/api/v1/projects/${projectId}`)
       .set('Cookie', viewerCookie)
       .set('X-Forwarded-For', uniqueIp())
       .send({ visibility: 'private' });
     expect(asViewer.status).toBe(403);
 
     const hidden = await request(app)
-      .get(`/api/public/projects/${projectId}`)
+      .get(`/api/v1/public/projects/${projectId}`)
       .set('X-Forwarded-For', uniqueIp());
     expect(hidden.status).toBe(200);
 
     const revert = await request(app)
-      .patch(`/api/projects/${projectId}`)
+      .patch(`/api/v1/projects/${projectId}`)
       .set('Cookie', ownerCookie)
       .set('X-Forwarded-For', uniqueIp())
       .send({ visibility: 'private' });
     expect(revert.status).toBe(200);
     const gone = await request(app)
-      .get(`/api/public/projects/${projectId}`)
+      .get(`/api/v1/public/projects/${projectId}`)
       .set('X-Forwarded-For', uniqueIp());
     expect(gone.status).toBe(404);
   });
