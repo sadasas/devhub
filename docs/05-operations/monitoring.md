@@ -22,7 +22,7 @@
 
 ### 2.1 Endpoint
 
-`GET /api/health` → 200:
+`GET /api/v1/health` → 200:
 
 ```json
 { "status": "ok", "db": "connected", "uptime": 12345.6 }
@@ -35,7 +35,7 @@
 
 | Option | Notes |
 |---|---|
-| UptimeRobot (free tier) | HTTP check every 5 min on `/api/health` |
+| UptimeRobot (free tier) | HTTP check every 5 min on `/api/v1/health` |
 | Better Stack / Healthchecks.io | Optional; keep one provider |
 | **Choice (Phase 2)** | UptimeRobot free tier |
 

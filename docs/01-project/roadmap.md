@@ -121,4 +121,10 @@ Audit server & platform 6-peran (lihat [dokumen audit](../04-audit-server-2026-0
 
 ---
 
+## 9. Granular API v1 (M8)
+
+Implementasi ADR-022: seluruh permukaan API pindah ke /api/v1 (auth, teams, keys, public, projects) - permukaan /api lama dihapus. Endpoint granular per-entitas (11 entity) di server/src/api/v1/entity-router.ts dengan row-lock transaksional, If-Match/ETag opsional (409 + banner konflik), cascade server-side, dan pipeline save frontend berbasis mutation queue (coalesced + debounce + flush serial). PUT /state tetap sebagai bulk/compat. Verifikasi: server 91/91 test, app 27/27 test, lint+build hijau.
+
+---
+
 *End of Roadmap.*

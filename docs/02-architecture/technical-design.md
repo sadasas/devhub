@@ -196,7 +196,7 @@ Base URL: `/api`. All endpoints JSON. Auth via httpOnly cookie `devhub_session`.
 | PUT | `/api/projects/:id/state` | Yes | Replace state (zod-validated) |
 | GET | `/api/projects/:id/export` | Yes | Download JSON snapshot |
 | POST | `/api/projects/:id/import` | Yes | Import JSON snapshot |
-| GET | `/api/health` | No | Health check (monitoring) |
+| GET | `/api/v1/health` | No | Health check (monitoring) |
 
 **Note:** all project state mutations (`PUT /state`, MCP write tools, import restore) require a member role of `owner`/`admin`/`editor`; `viewer` is read-only at both the API and MCP layers.
 

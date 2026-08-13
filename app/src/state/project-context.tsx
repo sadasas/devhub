@@ -316,20 +316,21 @@ export function ProjectProvider({
         savingRef.current = true;
         setSaving(true);
         const queue = mutationsRef.current;
+        let current: PendingMutation | undefined;
         try {
           while (queue.size > 0) {
             const entry = [...queue.entries()][0]!;
             queue.delete(entry[0]);
-            const m = entry[1];
-            if (m.op === 'create') {
-              const res = await api.createEntity(projectId, m.entity, m.payload!);
+            current = entry[1];
+            if (current.op === 'create') {
+              const res = await api.createEntity(projectId, current.entity, current.payload!);
               versionRef.current = res.version;
-            } else if (m.op === 'update') {
+            } else if (current.op === 'update') {
               const res = await api.patchEntity(
                 projectId,
-                m.entity,
-                m.id,
-                m.payload!,
+                current.entity,
+                current.id,
+                current.payload!,
                 versionRef.current,
                 opts?.keepalive,
               );
@@ -337,13 +338,14 @@ export function ProjectProvider({
             } else {
               const res = await api.deleteEntity(
                 projectId,
-                m.entity,
-                m.id,
+                current.entity,
+                current.id,
                 versionRef.current,
                 opts?.keepalive,
               );
               versionRef.current = res.version;
             }
+            current = undefined;
           }
           lastSavedRef.current = stateRef.current;
           setSaveError(null);
@@ -351,16 +353,18 @@ export function ProjectProvider({
         } catch (err) {
           setSaveError(err instanceof ApiError ? err.message : 'Failed to save changes');
           if (err instanceof ApiError && err.status === 409) {
-            const current = (err.details as { current?: { version?: number } } | undefined)?.current;
-            if (current?.version && stateRef.current) {
+            const details = (err.details as { current?: { version?: number } } | undefined)?.current;
+            if (details?.version && stateRef.current) {
               setConflict({
                 message: err.message,
-                current: { state: stateRef.current, version: current.version },
+                current: { state: stateRef.current, version: details.version },
               });
             }
+            queue.clear();
+          } else if (current) {
+            queue.set(current.key, current);
           }
           dirtyRef.current = true;
-          queue.clear();
         } finally {
           savingRef.current = false;
           setSaving(false);

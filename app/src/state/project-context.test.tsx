@@ -96,6 +96,7 @@ describe('project save pipeline', () => {
       TASK_ID,
       expect.objectContaining({ title: 'Edited' }),
       1,
+      undefined,
     );
     expect(getState).toHaveBeenCalledTimes(1);
   });
@@ -184,16 +185,17 @@ describe('project save pipeline', () => {
       TASK_ID,
       expect.objectContaining({ title: 'Edited' }),
       1,
+      undefined,
     );
   });
 
   it('skips polling while a save is in flight', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval'] });
     const getState = vi.spyOn(api, 'getState').mockResolvedValue({ state: makeState(), version: 1 });
-    let resolvePatch!: (v: { entity: Task; version: number }) => void;
+    let resolvePatch!: (v: { entity: { id: string } & Record<string, unknown>; version: number }) => void;
     const patchEntity = vi.spyOn(api, 'patchEntity').mockImplementation(
       () =>
-        new Promise<{ entity: Task; version: number }>((resolve) => {
+        new Promise<{ entity: { id: string } & Record<string, unknown>; version: number }>((resolve) => {
           resolvePatch = resolve;
         }),
     );

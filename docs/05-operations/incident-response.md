@@ -32,7 +32,7 @@ Solo operation: the operator is on-call 24/7. This document defines **what count
 ### 3.1 Detect & Triage (T-0)
 
 1. Alert fires (ntfy) or user reports.
-2. Confirm: check `/api/health`, provider dashboard, error logs.
+2. Confirm: check `/api/v1/health`, provider dashboard, error logs.
 3. Assign severity per matrix. **SEV-1/2 → stop work, start incident timer.**
 
 ### 3.2 Stabilize (T-0 → T-+1h)

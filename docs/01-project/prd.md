@@ -194,7 +194,7 @@ Base { id: string (UUID), createdAt: ISO, updatedAt: ISO, authorId?: string }
 | Category | Requirement | Acceptance criteria |
 |---|---|---|
 | **Performance** | UI feels instant for solo-scale data (< 5k tasks) | Interactions respond < 100ms; initial load < 2s on localhost |
-| **Availability** | Hosted SaaS; no SLA beyond operator's uptime | Health endpoint at `/api/health` |
+| **Availability** | Hosted SaaS; no SLA beyond operator's uptime | Health endpoint at `/api/v1/health` |
 | **Security** | Passwords never stored in plaintext | bcrypt (cost ≥ 10); JWT httpOnly+Secure cookies; zod validation on all inputs; rate limit auth endpoints |
 | **Privacy** | No third-party tracking/analytics in V1 | No external network calls from UI except API |
 | **Accessibility** | WCAG AA for all interactive elements | Contrast ≥ 4.5:1 body; keyboard operable; `prefers-reduced-motion` honored |

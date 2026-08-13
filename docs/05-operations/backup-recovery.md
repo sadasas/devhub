@@ -73,7 +73,7 @@ pg_restore --no-owner -d "$DATABASE_URL" devhub_YYYY-MM-DD.dump
 
 # 4. Start app, verify health + login
 docker start devhub
-curl http://localhost:3000/api/health
+curl http://localhost:3000/api/v1/health
 ```
 
 ### 4.2 Restore single project from JSON export

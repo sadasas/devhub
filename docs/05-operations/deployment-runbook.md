@@ -73,7 +73,7 @@ npm run test
 # 5. Build & smoke test
 npm run build
 npm run start          # production server on :3000
-curl http://localhost:3000/api/health   # → {"status":"ok","db":"connected","uptime":...}
+curl http://localhost:3000/api/v1/health   # → {"status":"ok","db":"connected","uptime":...}
 ```
 
 ---
@@ -140,7 +140,7 @@ MCP keys live in Postgres (`mcp_keys` table), not env — each user manages thei
 ## 7. First Deploy Checklist
 
 - [ ] Migrations applied (`npm run db:migrate` on the deployed DB)
-- [ ] `GET /api/health` → `ok`
+- [ ] `GET /api/v1/health` → `ok`
 - [ ] Register an account → login → create project → create an MCP key via the app's **API Keys** page (or `POST /api/keys`)
 - [ ] Cookie header shows `HttpOnly; SameSite=Lax; Secure`
 - [ ] `/mcp` rejects without key, works with a per-user key (curl, see [MCP Guide §7](../03-engineering/mcp-integration.md#7-troubleshooting))
