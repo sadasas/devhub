@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, MouseEvent as ReactMouseEvent } from 'react';
 import {
+  BookOpen,
   CaretRight,
   Check,
   Copy,
   DownloadSimple,
-  Eye,
   Folder,
   FolderPlus,
+  PencilSimple,
   Plugs,
   Plus,
   Trash,
@@ -18,19 +19,20 @@ import { newId } from '../../lib/utils';
 import { fromOpenApi, toOpenApi } from '../../lib/openapi';
 import type { ApiEndpoint, ApiMethod, ApiParam } from '../../lib/types';
 import { useProject } from '../../state/project-context';
-import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { InlineError } from '../../components/InlineError';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { Textarea } from '../../components/Textarea';
+import { ApiDocsView } from './ApiDocsView';
 import { ApiMethodChip } from './ApiMethodChip';
 import { CollectionModal } from './CollectionModal';
+import { EndpointDocs } from './EndpointDocs';
 import { EndpointModal } from './EndpointModal';
 
 type ApiTab = 'headers' | 'params' | 'body' | 'responses';
-type ApiView = 'edit' | 'preview';
+type ApiMode = 'workspace' | 'docs';
 type ApiSelection = { type: 'collection'; id: string } | { type: 'endpoint'; id: string } | null;
 type DeleteTarget = { kind: 'collection'; id: string; name: string } | { kind: 'endpoint'; id: string; name: string } | null;
 
@@ -43,13 +45,6 @@ function parseDefaultWidth(): number {
   const n = raw ? Number(raw) : 264;
   if (!Number.isFinite(n)) return 264;
   return Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, n));
-}
-
-function responseTone(status: number): 'success' | 'warn' | 'danger' | 'info' {
-  if (status >= 200 && status < 300) return 'success';
-  if (status >= 300 && status < 400) return 'warn';
-  if (status >= 400) return 'danger';
-  return 'info';
 }
 
 function safeFileName(name: string): string {
@@ -69,7 +64,7 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [selection, setSelection] = useState<ApiSelection>(null);
   const [tab, setTab] = useState<ApiTab>('headers');
-  const [view, setView] = useState<ApiView>(canEdit ? 'edit' : 'preview');
+  const [mode, setMode] = useState<ApiMode>(canEdit ? 'workspace' : 'docs');
   const [showCollection, setShowCollection] = useState(false);
   const [showEndpoint, setShowEndpoint] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
@@ -220,7 +215,7 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
   function onCreatedEndpoint(id: string) {
     setShowEndpoint(false);
     setSelection({ type: 'endpoint', id });
-    setView(canEdit ? 'edit' : 'preview');
+    setMode(canEdit ? 'workspace' : 'docs');
   }
 
   const toolbarButtons = (
@@ -302,6 +297,28 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
           <span className="api-toolbar-count">
             {collections.length} collection{collections.length === 1 ? '' : 's'} · {endpoints.length} endpoint{endpoints.length === 1 ? '' : 's'}
           </span>
+          <div className="sub-tabs api-mode-toggle" role="tablist" aria-label="API view mode">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === 'workspace'}
+              className={`sub-tab ${mode === 'workspace' ? 'sub-tab-active' : ''}`}
+              onClick={() => setMode('workspace')}
+            >
+              <PencilSimple size={13} aria-hidden="true" />
+              Workspace
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === 'docs'}
+              className={`sub-tab ${mode === 'docs' ? 'sub-tab-active' : ''}`}
+              onClick={() => setMode('docs')}
+            >
+              <BookOpen size={13} aria-hidden="true" />
+              Docs
+            </button>
+          </div>
         </div>
         {toolbarButtons}
       </div>
@@ -316,7 +333,18 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
         onChange={onImportFile}
       />
 
-      <div className="api-panes">
+      {mode === 'docs' ? (
+        <ApiDocsView
+          projectName={projectName}
+          projectDescription={projectDescription}
+          collections={collections}
+          endpoints={endpoints}
+          canEdit={canEdit}
+          onNewEndpoint={() => setShowEndpoint(true)}
+          onImport={() => fileInputRef.current?.click()}
+        />
+      ) : (
+        <div className="api-panes">
         <aside className="api-sidebar" style={{ width: sidebarWidth }} aria-label="API collections">
           <input
             className="api-sidebar-search"
@@ -485,7 +513,7 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
 
         <main className="api-main">
           {selectedEp ? (
-            view === 'edit' ? (
+            canEdit ? (
               <>
                 <div className="api-workbench-header">
                   <div className="api-workbench-method">
@@ -536,25 +564,15 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
                       {copied ? 'Copied' : 'Copy'}
                     </Button>
                     {canEdit && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          leftIcon={<Eye size={13} aria-hidden="true" />}
-                          onClick={() => setView('preview')}
-                        >
-                          Preview
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="api-delete-btn"
-                          aria-label="Delete endpoint"
-                          title="Delete endpoint"
-                          leftIcon={<Trash size={13} aria-hidden="true" />}
-                          onClick={() => setDeleteTarget({ kind: 'endpoint', id: selectedEp.id, name: selectedEp.name })}
-                        />
-                      </>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="api-delete-btn"
+                        aria-label="Delete endpoint"
+                        title="Delete endpoint"
+                        leftIcon={<Trash size={13} aria-hidden="true" />}
+                        onClick={() => setDeleteTarget({ kind: 'endpoint', id: selectedEp.id, name: selectedEp.name })}
+                      />
                     )}
                   </div>
                 </div>
@@ -794,116 +812,7 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
                 </div>
               </>
             ) : (
-              <div className="api-preview">
-                <div className="api-workbench-header">
-                  <div className="api-workbench-method">
-                    <ApiMethodChip method={selectedEp.method} />
-                    <code className="api-path-view">{selectedEp.path}</code>
-                  </div>
-                  <div className="api-workbench-actions">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="btn-icon"
-                      aria-label="Copy path"
-                      title="Copy path"
-                      leftIcon={
-                        copied ? (
-                          <Check size={13} weight="bold" aria-hidden="true" />
-                        ) : (
-                          <Copy size={13} aria-hidden="true" />
-                        )
-                      }
-                      onClick={() => void copy(selectedEp.path)}
-                    >
-                      {copied ? 'Copied' : 'Copy'}
-                    </Button>
-                    {canEdit && (
-                      <Button variant="ghost" size="sm" leftIcon={<Eye size={13} aria-hidden="true" />} onClick={() => setView('edit')}>
-                        Edit
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                <h2 className="preview-title">{selectedEp.name}</h2>
-                {selectedEp.description && (
-                  <div className="preview-block">
-                    <div className="preview-label">Description</div>
-                    <p className="preview-body">{selectedEp.description}</p>
-                  </div>
-                )}
-                {selectedEp.params.length > 0 && (
-                  <div className="preview-block">
-                    <div className="preview-label">Parameters</div>
-                    <table className="preview-table">
-                      <thead>
-                        <tr>
-                          <th>Name</th>
-                          <th>In</th>
-                          <th>Required</th>
-                          <th>Description</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedEp.params.map((p) => (
-                          <tr key={`${p.in}-${p.name}`}>
-                            <td className="preview-mono">{p.name}</td>
-                            <td className="preview-mono">{p.in}</td>
-                            <td>{p.required ? 'yes' : ''}</td>
-                            <td>{p.description}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-                {selectedEp.headers.length > 0 && (
-                  <div className="preview-block">
-                    <div className="preview-label">Headers</div>
-                    <table className="preview-table">
-                      <thead>
-                        <tr>
-                          <th>Key</th>
-                          <th>Value</th>
-                          <th>Description</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedEp.headers.map((h) => (
-                          <tr key={h.key || h.description}>
-                            <td className="preview-mono">{h.key}</td>
-                            <td className="preview-mono">{h.value}</td>
-                            <td>{h.description}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-                {selectedEp.body && (
-                  <div className="preview-block">
-                    <div className="preview-label">Request body</div>
-                    <pre className="preview-pre">{selectedEp.body}</pre>
-                  </div>
-                )}
-                {selectedEp.responses.length > 0 && (
-                  <div className="preview-block">
-                    <div className="preview-label">Responses</div>
-                    <div className="preview-resps">
-                      {selectedEp.responses.map((r) => (
-                        <div key={r.status} className="preview-resp">
-                          <div className="preview-resp-head">
-                            <Badge tone={responseTone(r.status)}>{r.status}</Badge>
-                            {r.contentType && <span className="preview-mime">{r.contentType}</span>}
-                            {r.description && <span className="preview-body">{r.description}</span>}
-                          </div>
-                          {r.body && <pre className="preview-pre">{r.body}</pre>}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <EndpointDocs endpoint={selectedEp} />
             )
           ) : selectedColl ? (
             <div className="api-col-view">
@@ -979,7 +888,8 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
             emptyWorkbench
           )}
         </main>
-      </div>
+        </div>
+      )}
 
       {showCollection && <CollectionModal onClose={() => setShowCollection(false)} onCreated={onCreatedCollection} />}
       {showEndpoint && (

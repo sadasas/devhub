@@ -23,7 +23,7 @@ export function Modal({ open, title, onClose, children, footer, width = 'md' }: 
 
   useEffect(() => {
     if (!open) return;
-    dialogRef.current?.scrollTo(0, 0);
+    dialogRef.current?.scrollTo?.(0, 0);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCloseRef.current();
     };

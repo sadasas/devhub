@@ -3,13 +3,20 @@ import { useEffect, useState } from 'react';
 export interface DocsTocItem {
   id: string;
   label: string;
+  children?: DocsTocItem[];
+}
+
+function flatten(items: DocsTocItem[]): string[] {
+  return items.flatMap((item) => [item.id, ...flatten(item.children ?? [])]);
 }
 
 export function DocsToc({ items }: { items: DocsTocItem[] }) {
-  const [active, setActive] = useState(items[0]?.id ?? '');
+  const firstId = flatten(items)[0] ?? '';
+  const [active, setActive] = useState(firstId);
 
   useEffect(() => {
-    setActive(items.length > 0 ? items[0]!.id : '');
+    const ids = flatten(items);
+    setActive(ids[0] ?? '');
     if (typeof IntersectionObserver === 'undefined') return;
     const observer = new IntersectionObserver(
       (entries) => {
@@ -19,8 +26,8 @@ export function DocsToc({ items }: { items: DocsTocItem[] }) {
       },
       { rootMargin: '-88px 0px -70% 0px', threshold: 0 },
     );
-    for (const item of items) {
-      const el = document.getElementById(item.id);
+    for (const id of ids) {
+      const el = document.getElementById(id);
       if (el) observer.observe(el);
     }
     return () => observer.disconnect();
@@ -45,6 +52,27 @@ export function DocsToc({ items }: { items: DocsTocItem[] }) {
             >
               {item.label}
             </a>
+            {item.children && item.children.length > 0 && (
+              <ul className="docs-toc-children">
+                {item.children.map((child) => (
+                  <li key={child.id}>
+                    <a
+                      href={`#${child.id}`}
+                      className={active === child.id ? 'docs-toc-link docs-toc-link-active' : 'docs-toc-link'}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        document.getElementById(child.id)?.scrollIntoView({
+                          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+                          block: 'start',
+                        });
+                      }}
+                    >
+                      {child.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
           </li>
         ))}
       </ul>

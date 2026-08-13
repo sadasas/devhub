@@ -102,21 +102,28 @@ describe('ApiPage', () => {
     expect(screen.queryByRole('dialog')).not.toBeTruthy();
   });
 
-  it('shows editor then preview for a selected endpoint', () => {
+  it('shows editor in workspace and full docs view in docs mode', () => {
     mocks.state = makeState({ apiCollections: [collection], apiEndpoints: [endpoint] });
     renderPage();
+
+    expect(screen.getByRole('tab', { name: 'Workspace' }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByRole('tab', { name: 'Docs' }).getAttribute('aria-selected')).toBe('false');
 
     fireEvent.click(screen.getByText('Get user'));
     expect(screen.getByLabelText('HTTP method')).toBeTruthy();
     expect((screen.getByLabelText('Endpoint path') as HTMLInputElement).value).toBe('/users/:id');
+    expect(screen.queryByRole('button', { name: 'Preview' })).not.toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Docs' }));
 
+    expect(screen.getByRole('heading', { name: 'Demo Project API' })).toBeTruthy();
+    expect(screen.getAllByText('1 collection · 1 endpoint').length).toBeGreaterThan(0);
+    expect(screen.getByText('GET Get user')).toBeTruthy();
+    expect(screen.getByText('The users API')).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Get user' })).toBeTruthy();
     expect(screen.getByText('Returns a single user by id')).toBeTruthy();
     expect(screen.getByText('Parameters')).toBeTruthy();
-    expect(screen.getByText('id')).toBeTruthy();
-    expect(screen.getByText('include')).toBeTruthy();
     expect(screen.getByText('X-Api-Key')).toBeTruthy();
     expect(screen.getByText('abc')).toBeTruthy();
     expect(screen.getByText('200')).toBeTruthy();
@@ -124,15 +131,23 @@ describe('ApiPage', () => {
     expect(screen.getByText('Found')).toBeTruthy();
     expect(screen.getByText('Not found')).toBeTruthy();
     expect(screen.getByText('{"kind":"ok"}')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Ungrouped' })).toBeTruthy();
+    expect(screen.queryByLabelText('HTTP method')).not.toBeTruthy();
   });
 
-  it('forces read-only preview for viewer role', () => {
+  it('forces docs mode for viewer role', () => {
     mocks.canEdit = false;
     mocks.state = makeState({ apiCollections: [collection], apiEndpoints: [endpoint] });
     renderPage();
 
+    expect(screen.getByRole('tab', { name: 'Docs' }).getAttribute('aria-selected')).toBe('true');
     expect(screen.queryByRole('button', { name: 'New endpoint' })).not.toBeTruthy();
     expect(screen.queryByRole('button', { name: 'New collection' })).not.toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Demo Project API' })).toBeTruthy();
+    expect(screen.getByText('Returns a single user by id')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Workspace' }));
+
     expect(screen.getByText('Pick an endpoint from the sidebar to view its documentation.')).toBeTruthy();
 
     fireEvent.click(screen.getByText('Get user'));
@@ -142,6 +157,16 @@ describe('ApiPage', () => {
     expect(screen.queryByLabelText('Endpoint path')).not.toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeTruthy();
     expect(screen.getByText('Returns a single user by id')).toBeTruthy();
+  });
+
+  it('shows docs empty state with actions when there is no API data', () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Docs' }));
+
+    expect(screen.getByText('No API documentation yet')).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: 'New endpoint' }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('button', { name: 'Import OpenAPI' }).length).toBeGreaterThan(0);
   });
 
   it('shows collection view and lists its endpoints', () => {
