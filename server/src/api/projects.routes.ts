@@ -15,6 +15,7 @@ import {
   getTeamWithRole,
   type ProjectWithRole,
 } from './authz.js';
+import { normalizeTabs, publicTabsSchema } from './sharing.js';
 
 const createProjectSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(200),
@@ -28,6 +29,7 @@ const updateProjectSchema = z.object({
   description: z.string().max(5_000).optional(),
   status: projectStatus.optional(),
   visibility: z.enum(['private', 'public']).optional(),
+  publicTabs: publicTabsSchema.optional(),
   prd: prdPatchSchema.optional(),
 });
 
@@ -40,9 +42,10 @@ const importProjectSchema = exportDocumentSchema.extend({
   teamId: z.string().uuid().optional(),
 });
 
-interface ProjectRow extends Omit<ProjectWithRole, 'role' | 'prd'> {
+interface ProjectRow extends Omit<ProjectWithRole, 'role' | 'prd' | 'public_tabs'> {
   role: string;
   prd: Record<string, unknown> | null;
+  public_tabs: unknown;
 }
 
 function projectJson(row: ProjectRow) {
@@ -53,6 +56,7 @@ function projectJson(row: ProjectRow) {
     status: row.status,
     visibility: row.visibility,
     version: row.version,
+    tabs: normalizeTabs(row.public_tabs),
     prd: normalizePrd(row.prd),
     teamId: row.team_id,
     teamName: row.team_name,
@@ -94,7 +98,7 @@ projectsRouter.use(requireAuth);
 projectsRouter.get('/', async (req, res) => {
   const userId = getUserId(req);
   const result = await pool.query(
-    `SELECT p.id, p.name, p.description, p.status, p.version, p.prd, p.visibility,
+    `SELECT p.id, p.name, p.description, p.status, p.version, p.prd, p.visibility, p.public_tabs,
             p.created_at, p.updated_at, p.team_id, t.name AS team_name, tm.role
      FROM projects p
      JOIN team_members tm ON tm.team_id = p.team_id
@@ -155,12 +159,13 @@ projectsRouter.patch('/:projectId', async (req, res) => {
   const row = await getProjectWithRole(userId, req.params.projectId);
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
   assertWrite(row.role);
-  const { name, description, status, visibility, prd } = parseOrThrow(
+  const { name, description, status, visibility, publicTabs, prd } = parseOrThrow(
     updateProjectSchema,
     req.body,
     'Invalid project data',
   );
   if (visibility !== undefined) assertAdmin(row.role);
+  if (publicTabs !== undefined) assertAdmin(row.role);
   const mergedPrd = prd !== undefined ? JSON.stringify(mergePrd(prd, normalizePrd(row.prd))) : null;
   const updated = await pool.query<{ id: string; updated_at: Date }>(
     `UPDATE projects SET
@@ -168,11 +173,20 @@ projectsRouter.patch('/:projectId', async (req, res) => {
        description = COALESCE($3, description),
        status = COALESCE($4, status),
        visibility = COALESCE($5, visibility),
-       prd = COALESCE($6::jsonb, prd),
+       public_tabs = COALESCE($6::jsonb, public_tabs),
+       prd = COALESCE($7::jsonb, prd),
        updated_at = now()
      WHERE id = $1
      RETURNING id, updated_at`,
-    [req.params.projectId, name ?? null, description ?? null, status ?? null, visibility ?? null, mergedPrd],
+    [
+      req.params.projectId,
+      name ?? null,
+      description ?? null,
+      status ?? null,
+      visibility ?? null,
+      publicTabs ? JSON.stringify(publicTabs) : null,
+      mergedPrd,
+    ],
   );
   const updatedRow = updated.rows[0];
   if (!updatedRow) throw new ApiError(404, 'NOT_FOUND', 'Project not found');

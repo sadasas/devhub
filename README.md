@@ -4,7 +4,7 @@
 
 > **Your data stays yours.** Export or import the full state of any project as JSON, anytime.
 
-**Status:** In development (Milestone 7, v0.2.0 target). See [Roadmap](docs/01-project/roadmap.md).
+**Status:** In development (Milestone 10 — V2 features shipped, v0.4.0 target). See [Roadmap](docs/01-project/roadmap.md).
 
 **DevHub is a hosted, multi-user project-management workspace. Self-hosting is not supported; data portability is guaranteed via JSON export/import.**
 
@@ -41,7 +41,7 @@ DevHub is a project management application designed specifically for **programmi
 
 ## Features
 
-### V1 (in development)
+### Shipped (V1 + V2)
 
 | Area | Capability |
 |---|---|
@@ -58,12 +58,15 @@ DevHub is a project management application designed specifically for **programmi
 | Global | Command Palette (Ctrl+K, `?`), keyboard shortcuts (`N` for new task), export/import JSON, URL routing (react-router) |
 | Auth | Email + password, JWT httpOnly cookie, rate limiting, change password |
 | Teams | Workspaces with roles (owner/admin/editor/viewer), email invites (registered users only, 7-day expiry, accept/decline), member management, team-scoped project lists |
-| Sharing | Public read-only project pages at `/p/:projectId` — no login needed; per-project visibility toggle (owner/admin) with copy-link |
+| Sharing | Public read-only project pages at `/p/:projectId` — no login needed; per-tab visibility (choose which tabs are public) via the Share modal (owner/admin), copy link included |
 | Docs | In-app docs hub (`/docs`): overview with keyboard shortcuts, MCP integration guide, API reference |
+| Templates | Save any project as a team-scoped template; instantiate fresh projects from it (`/templates`) |
+| Release Tracker | Per-milestone task lists in the release detail view |
+| Schema Diffing | Compare two saved schema versions — tables, columns, relations added/removed |
 
-### V2 / V3 (deferred — see [Roadmap](docs/01-project/roadmap.md))
+### V3 (planned — see [Roadmap](docs/01-project/roadmap.md))
 
-Templates, release tracker improvements, project notes, PWA, multi-device sync, real-time collaboration.
+PWA, multi-device sync, real-time collaboration, team chat.
 
 ---
 
@@ -185,8 +188,9 @@ MCP keys are scoped to the user who created them: agents can only access project
 | Phase 0 | Planning, documentation suite | Done |
 | Phase 1 | V1 feature set | Done |
 | Phase 2 | Public deploy, auth hardening | Done |
+| Phase 2.5 | V2 features: templates, notes, release tracker, schema diffing, per-tab sharing (M10) | Shipped |
 | Phase 3 | Collaboration (teams, invites, roles), public sharing (`/p/:projectId`), in-app docs hub | In progress |
-| Phase 4 | Real-time sync, PWA | Planned |
+| Phase 4 | Real-time sync, PWA, team chat | Planned |
 
 ---
 

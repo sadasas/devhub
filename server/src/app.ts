@@ -12,9 +12,12 @@ import { projectsRouter } from './api/projects.routes.js';
 import { teamsRouter } from './api/teams.routes.js';
 import { keysRouter } from './api/keys.routes.js';
 import { publicRouter } from './api/public.routes.js';
+import { templatesRouter } from './api/templates.routes.js';
 import { mcpRouter } from './mcp/server.js';
 import { requireMcpKey } from './mcp/require-key.js';
 import { entityRouter } from './api/v1/entity-router.js';
+import { searchRouter } from './api/v1/search.routes.js';
+import { activityRouter } from './api/v1/activity.routes.js';
 
 export const SESSION_COOKIE = 'devhub_session';
 
@@ -74,6 +77,7 @@ const limiter = rateLimit({
   limit: 300,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  validate: { trustProxy: false },
 });
 
 const mcpLimiter = rateLimit({
@@ -81,6 +85,7 @@ const mcpLimiter = rateLimit({
   limit: 120,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  validate: { trustProxy: false },
   message: { error: { code: 'RATE_LIMITED', message: 'Too many MCP requests, try again later' } },
 });
 
@@ -142,9 +147,12 @@ export function createApp(): express.Express {
   app.use('/api/v1/auth', authRouter);
   app.use('/api/v1/projects', projectsRouter);
   app.use('/api/v1/projects', entityRouter);
+  app.use('/api/v1/projects', activityRouter);
   app.use('/api/v1/teams', teamsRouter);
   app.use('/api/v1/keys', keysRouter);
   app.use('/api/v1/public', publicRouter);
+  app.use('/api/v1/templates', templatesRouter);
+  app.use('/api/v1/search', searchRouter);
 
   app.use('/mcp', mcpLimiter);
   app.use('/mcp', requireMcpKey);

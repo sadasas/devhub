@@ -71,3 +71,8 @@ export function useAuth(): AuthContextValue {
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 }
+
+export function useOptionalAuth(): { user: User | null } {
+  const ctx = useContext(AuthContext);
+  return { user: ctx?.user ?? null };
+}

@@ -13,9 +13,12 @@ interface SaveVersionModalProps {
 }
 
 export function SaveVersionModal({ open, onClose }: SaveVersionModalProps) {
-  const { dispatch } = useProject();
+  const { state, dispatch } = useProject();
   const [version, setVersion] = useState('');
   const [notes, setNotes] = useState('');
+
+  if (!state) return null;
+  const snapshot = { tables: state.tables, relations: state.relations };
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -30,6 +33,7 @@ export function SaveVersionModal({ open, onClose }: SaveVersionModalProps) {
         version: version.trim(),
         appliedAt: ts,
         notes: notes.trim(),
+        snapshot,
       },
     });
     setVersion('');

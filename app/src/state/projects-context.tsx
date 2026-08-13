@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { api } from '../lib/api';
-import type { Project } from '../lib/types';
+import type { Project, PublicTab } from '../lib/types';
 
 interface ProjectsContextValue {
   projects: Project[] | null;
@@ -11,7 +11,7 @@ interface ProjectsContextValue {
   create: (name: string, description: string, teamId: string) => Promise<Project>;
   update: (
     projectId: string,
-    patch: Partial<Pick<Project, 'name' | 'description' | 'status' | 'visibility' | 'prd'>>,
+    patch: Partial<Pick<Project, 'name' | 'description' | 'status' | 'visibility' | 'prd'> & { publicTabs: PublicTab[] }>,
   ) => Promise<Project>;
   remove: (projectId: string) => Promise<void>;
 }
@@ -56,7 +56,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const update = useCallback(
     async (
       projectId: string,
-patch: Partial<Pick<Project, 'name' | 'description' | 'status' | 'visibility' | 'prd'>>,
+      patch: Partial<Pick<Project, 'name' | 'description' | 'status' | 'visibility' | 'prd'> & { publicTabs: PublicTab[] }>,
     ) => {
       const project = await api.patchProject(projectId, patch);
       setProjects((prev) =>

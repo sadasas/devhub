@@ -12,6 +12,7 @@ import { DocsPage } from './features/docs/DocsPage';
 import { McpDocsPage } from './features/docs/McpDocsPage';
 import { TeamPage } from './features/teams/TeamPage';
 import { InvitesPage } from './features/teams/InvitesPage';
+import { TemplatesPage } from './features/templates/TemplatesPage';
 import { ProjectPage } from './features/project/ProjectPage';
 import { PublicProjectPage } from './features/public/PublicProjectPage';
 import { Skeleton } from './components/Skeleton';
@@ -40,6 +41,7 @@ function Root() {
             <Route path="/team/:teamId" element={<TeamPage />} />
             <Route path="/invites" element={<InvitesPage />} />
             <Route path="/keys" element={<KeysPage />} />
+            <Route path="/templates" element={<TemplatesPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/docs" element={<DocsPage />} />
             <Route path="/docs/mcp" element={<McpDocsPage />} />

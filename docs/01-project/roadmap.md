@@ -54,12 +54,12 @@ Projects · Kanban with `blockedBy` dependencies · Issues · Test cases · Tech
 
 **Drivers:** Hosting decision (Railway / Render / VPS — currently TBD), production Postgres, HTTPS domain, rate-limit tuning, backup automation (cron pg_dump), monitoring (health checks, logging, alerting), privacy policy + ToS publication (already drafted in `docs/06-compliance/`), account deletion flow verification.
 
-**V2 features (deferred from V1):**
-- API Endpoint Inventory (document endpoints used by the app)
-- Project Templates
-- Release Tracker improvements (version history detail)
-- Project Notes (free-form per project)
-- Schema snapshot diffing
+**V2 features (deferred from V1) — all shipped in [M10](#10-v2-features-m10):**
+- [x] API Endpoint Inventory (document endpoints used by the app)
+- [x] Project Templates
+- [x] Release Tracker improvements (version history detail)
+- [x] Project Notes (free-form per project) — **removed in M16** (lihat DEF-005)
+- [x] Schema snapshot diffing
 
 ---
 
@@ -81,9 +81,9 @@ Every item intentionally postponed, with rationale. Items cannot return without 
 |---|---|---|---|---|
 | DEF-001 | Git CLI integration (run git commands, show branches) | V1 | Web browsers cannot spawn a git CLI; Node sidecar/Electron/Tauri rejected as over-engineering for V1 | Phase 3 (optional Tauri desktop) |
 | DEF-002 | API Endpoint Inventory | ~~removed~~ | **Reinstated:** promoted to V1 — shipped as API docs (collections + endpoints with OpenAPI import/export, ADR-019) | — |
-| DEF-003 | Project Templates | V1 | Not needed for personal workflows | V2 |
-| DEF-004 | Release Tracker (rich version history) | V1 | Milestones cover basic need | V2 |
-| DEF-005 | Project Notes | V1 | Low priority | V2 |
+| DEF-003 | Project Templates | V1 | **Shipped (M10):** team-scoped template storage (`project_templates`), save/list/instantiate | — |
+| DEF-004 | Release Tracker (rich version history) | V1 | **Shipped (M10):** per-milestone task list detail | — |
+| DEF-005 | Project Notes | V1 | **Shipped (M10):** free-form notes entity with autosave — **removed (M16):** fitur tidak terpakai (tumpang tindih dengan entity lain), entitas dihapus dari schema/API/UI; data notes lama di-drop (zod strip-mode) | — |
 | DEF-006 | Task dependencies | ~~removed~~ | **Reinstated:** promoted to V1 after lifecycle review (blocking order impossible without them) | — |
 | DEF-007 | Test case checklists | ~~removed~~ | **Reinstated:** promoted to V1 after lifecycle review (release readiness) | — |
 | DEF-008 | Milestones/Releases | ~~removed~~ | **Reinstated:** promoted to V1 after lifecycle review | — |
@@ -124,6 +124,27 @@ Audit server & platform 6-peran (lihat [dokumen audit](../04-audit-server-2026-0
 ## 9. Granular API v1 (M8)
 
 Implementasi ADR-022: seluruh permukaan API pindah ke /api/v1 (auth, teams, keys, public, projects) - permukaan /api lama dihapus. Endpoint granular per-entitas (11 entity) di server/src/api/v1/entity-router.ts dengan row-lock transaksional, If-Match/ETag opsional (409 + banner konflik), cascade server-side, dan pipeline save frontend berbasis mutation queue (coalesced + debounce + flush serial). PUT /state tetap sebagai bulk/compat. Verifikasi: server 91/91 test, app 27/27 test, lint+build hijau.
+
+---
+
+## 10. V2 Features (M10)
+
+Implementasi V2 (v0.4.0) — 51 task (V2 inti ~31h + 3 workstream baru: Global Search, Activity Timeline, E2E/CI), seluruhnya selesai di track via MCP:
+
+| Fokus | Isi |
+|---|---|
+| Sharing per-tab | Migrasi `009_project_public_tabs.sql` (kolom `public_tabs` jsonb, default 5 tab); `PATCH /projects/:id` `publicTabs` (admin only); meta publik mengembalikan `tabs`; endpoint `GET /api/v1/public/projects/:id/state` memfilter state sesuai tab publik (tanpa kebocoran data tab privat); UI: satu tombol **Share** di header proyek → modal segmented Private/Public + 5 checkbox tab + link publik dengan fallback tab pertama publik |
+| Project Templates | Migrasi `010_project_templates.sql` (tabel team-scoped); REST `POST /templates` (save dari proyek), `GET /templates`, `GET /templates/:id` (dengan state), `POST /templates/:id/instantiate` (proyek baru), `DELETE /templates/:id` (admin); halaman `/templates` + modal Save as template & Use template |
+| Project Notes | ~~Entity baru `notes` di state~~ — **diimplementasikan lalu dihapus (M16):** entitas tidak terpakai, dihapus dari schema/API/UI; data lama di-drop |
+| Release Tracker | Detail milestone menampilkan **Tasks in this release** (task via `milestoneId` + status badge + short id) |
+| Schema snapshot diffing | `schemaVersions.snapshot` (tables+relations) ditangkap saat simpan versi; tombol **Diff versions** di Schema → modal bandingkan 2 versi (tabel/kolom/relasi ditambah-dihapus, ringkasan) |
+| Code-splitting | `React.lazy` per tab proyek; chunk utama 717 kB → 427 kB; warning >500 kB hilang |
+| Global Search | `GET /api/v1/search` (member-scoped, 9 entity: tasks/issues/testCases/decisions/techEntries/notes/apiEndpoints/apiCollections/milestones; ranking title>body, prefix>substring, caps 50/20/5) — `server/src/lib/search.ts` + `search.routes.ts`; UI: hasil di CommandPalette (Ctrl+K) dengan `<mark>` highlight, debounce 250ms + AbortController; deep-link `?tab=&entity=&id=` via `useEntityDeepLink` → auto-open modal di 8 halaman |
+| Activity Timeline | Migrasi `011_activity_log.sql` (tabel server-authoritative di luar `projects.data`); `server/src/lib/activity.ts` (diff top-level, clustering merge 60s, retention 500/50); hook di `mutateProject` (created/updated/deleted + author_name, txn sama, rollback-consistent); `GET /projects/:id/activity` (member-scoped, limit/cursor); UI `ActivityList` di read-mode 8 modal detail |
+| E2E (Playwright) | Workspace `e2e/` — 14 journey (auth, project, board keyboard, save+reload, issues, done-block, public share, stack+schema, palette, ADR, invite 2-context); infra: webServer 2 proses (server :3100 + vite :5174), globalSetup TRUNCATE + owner register, X-Forwarded-For bypass limiter, `waitForSaved` via version poll (no sleeps); `140/140` dengan `--repeat-each=10`, flake 0% |
+| CI | `.github/workflows/ci.yml` — job `unit` (postgres service :5433, lint, build, server 118 test, app 68 test) merge-blocking + job `e2e` (2 shard, playwright chromium, trace/screenshot artifact on failure) |
+
+**Verifikasi:** server 118/118 test (11 file), app 68/68 test (11 file), e2e 14/14 journey (140/140 @ repeat-each=10), lint + build hijau di kedua package, CI unit+e2e merge-blocking.
 
 ---
 

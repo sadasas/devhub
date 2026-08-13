@@ -3,7 +3,9 @@ import type {
   McpKey,
   McpKeyCreated,
   Project,
+  ProjectTemplate,
   PublicProject,
+  PublicTab,
   State,
   Team,
   TeamInvitation,
@@ -102,6 +104,36 @@ export type GranularEntity =
 
 export type GranularEntityRecord = Record<string, unknown> & { id: string };
 
+export interface SearchHit {
+  entity: GranularEntity;
+  entityId: string;
+  title: string;
+  field: string;
+  snippet: string;
+  score: number;
+}
+
+export interface ProjectSearchResult {
+  projectId: string;
+  projectName: string;
+  hits: SearchHit[];
+}
+
+export type ActivityAction = 'created' | 'updated' | 'deleted';
+
+export interface ActivityEntry {
+  id: string;
+  projectId: string;
+  entity: GranularEntity;
+  entityId: string;
+  action: ActivityAction;
+  authorId: string | null;
+  authorName: string;
+  summary: string;
+  changes: Record<string, { from: unknown; to: unknown }>;
+  createdAt: string;
+}
+
 interface EntityListResult {
   items: GranularEntityRecord[];
   nextCursor: string | null;
@@ -158,7 +190,7 @@ export const api = {
   },
   patchProject: (
     projectId: string,
-    patch: Partial<Pick<Project, 'name' | 'description' | 'status' | 'visibility' | 'prd'>>,
+    patch: Partial<Pick<Project, 'name' | 'description' | 'status' | 'visibility' | 'prd'> & { publicTabs: PublicTab[] }>,
   ) =>
     request<Project>(`/projects/${encodeURIComponent(projectId)}`, {
       method: 'PATCH',
@@ -173,6 +205,31 @@ export const api = {
     request<{ projectId: string; restored: boolean }>('/projects/import', {
       method: 'POST',
       body: JSON.stringify(doc),
+    }),
+
+  saveTemplate: (projectId: string, name: string, description: string) =>
+    request<{ template: ProjectTemplate }>('/templates', {
+      method: 'POST',
+      body: JSON.stringify({ projectId, name, description }),
+    }).then((r) => r.template),
+  listTemplates: async () => {
+    const res = await request<{ templates: ProjectTemplate[] }>('/templates');
+    return res.templates;
+  },
+  getTemplate: async (templateId: string) => {
+    const res = await request<{ template: ProjectTemplate; state: State }>(
+      `/templates/${encodeURIComponent(templateId)}`,
+    );
+    return res;
+  },
+  deleteTemplate: (templateId: string) =>
+    request<{ ok: true }>(`/templates/${encodeURIComponent(templateId)}`, {
+      method: 'DELETE',
+    }),
+  instantiateTemplate: (templateId: string, name?: string, description?: string) =>
+    request<{ projectId: string }>(`/templates/${encodeURIComponent(templateId)}/instantiate`, {
+      method: 'POST',
+      body: JSON.stringify({ name, description }),
     }),
 
   getState: async (projectId: string) => {
@@ -225,6 +282,30 @@ export const api = {
       headers: version !== undefined ? { 'If-Match': `"${version}"` } : undefined,
       keepalive,
     }),
+
+  search: async (q: string, signal?: AbortSignal, limit?: number) => {
+    const qs = new URLSearchParams({ q });
+    if (limit !== undefined) qs.set('limit', String(limit));
+    const res = await request<{ results: ProjectSearchResult[] }>(`/search?${qs.toString()}`, {
+      signal,
+    });
+    return res.results;
+  },
+
+  fetchActivity: async (
+    projectId: string,
+    opts?: { entity?: GranularEntity; entityId?: string; limit?: number },
+  ) => {
+    const qs = new URLSearchParams();
+    if (opts?.entity) qs.set('entity', opts.entity);
+    if (opts?.entityId) qs.set('entityId', opts.entityId);
+    if (opts?.limit !== undefined) qs.set('limit', String(opts.limit));
+    const suffix = qs.size > 0 ? `?${qs.toString()}` : '';
+    const res = await request<{ items: ActivityEntry[] }>(
+      `/projects/${encodeURIComponent(projectId)}/activity${suffix}`,
+    );
+    return res.items;
+  },
 
   getPublicProject: async (projectId: string) => {
     const res = await request<{ project: PublicProject }>(

@@ -265,6 +265,7 @@ export interface ProjectConflict {
 }
 
 interface ProjectContextValue {
+  projectId: string;
   state: State | null;
   loading: boolean;
   error: string | null;
@@ -494,6 +495,7 @@ export function ProjectProvider({
 
   const value = useMemo(
     () => ({
+      projectId,
       state,
       loading,
       error,
@@ -507,7 +509,7 @@ export function ProjectProvider({
       retrySave,
       resolveConflict,
     }),
-    [state, loading, error, saveError, saving, lastSavedAt, role, conflict, dispatch, retrySave, resolveConflict],
+    [projectId, state, loading, error, saveError, saving, lastSavedAt, role, conflict, dispatch, retrySave, resolveConflict],
   );
 
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;

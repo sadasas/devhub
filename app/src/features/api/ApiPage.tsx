@@ -15,11 +15,13 @@ import {
   UploadSimple,
 } from '@phosphor-icons/react';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
+import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { newId } from '../../lib/utils';
 import { fromOpenApi, toOpenApi } from '../../lib/openapi';
 import type { ApiEndpoint, ApiMethod, ApiParam } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { Button } from '../../components/Button';
+import { ActivityList } from '../../components/ActivityList';
 import { EmptyState } from '../../components/EmptyState';
 import { InlineError } from '../../components/InlineError';
 import { Input } from '../../components/Input';
@@ -58,7 +60,7 @@ interface ApiPageProps {
 }
 
 export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
-  const { state, canEdit, dispatch } = useProject();
+  const { state, canEdit, dispatch, projectId } = useProject();
   const [sidebarWidth, setSidebarWidth] = useState(parseDefaultWidth);
   const [search, setSearch] = useState('');
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -81,6 +83,9 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
   useEffect(() => {
     if (selection?.type === 'endpoint') setTab('headers');
   }, [selection]);
+
+  useEntityDeepLink('apiEndpoints', (id) => setSelection({ type: 'endpoint', id }));
+  useEntityDeepLink('apiCollections', (id) => setSelection({ type: 'collection', id }));
 
   if (!state) return null;
 
@@ -513,7 +518,8 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
 
         <main className="api-main">
           {selectedEp ? (
-            canEdit ? (
+            <>
+            {canEdit ? (
               <>
                 <div className="api-workbench-header">
                   <div className="api-workbench-method">
@@ -813,7 +819,10 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
               </>
             ) : (
               <EndpointDocs endpoint={selectedEp} />
-            )
+            )}
+            <h4 className="detail-subtitle">Activity</h4>
+            <ActivityList projectId={projectId} entity="apiEndpoints" entityId={selectedEp.id} />
+            </>
           ) : selectedColl ? (
             <div className="api-col-view">
               <div className="api-workbench-header">
@@ -883,6 +892,8 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
                   <p className="api-rows-empty">No endpoints in this collection yet.</p>
                 )}
               </div>
+              <h4 className="detail-subtitle">Activity</h4>
+              <ActivityList projectId={projectId} entity="apiCollections" entityId={selectedColl.id} />
             </div>
           ) : (
             emptyWorkbench

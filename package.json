@@ -5,7 +5,8 @@
   "description": "Personal developer hub — projects, tasks, issues, tech stack, schema, decisions, releases",
   "workspaces": [
     "app",
-    "server"
+    "server",
+    "e2e"
   ],
   "scripts": {
     "dev": "concurrently -n server,app -c blue,green \"npm:dev -w server\" \"npm:dev -w app\"",
@@ -16,6 +17,9 @@
     "test": "npm run test -w server",
     "test:unit": "npm run test:unit -w server",
     "test:server": "npm run test:server -w server",
+    "test:app": "npm run test -w app",
+    "test:e2e": "npm run test:e2e -w e2e",
+    "test:e2e:headed": "npm run test:e2e:headed -w e2e",
     "db:migrate": "npm run db:migrate -w server"
   },
   "devDependencies": {

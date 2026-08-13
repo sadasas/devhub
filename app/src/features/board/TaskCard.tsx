@@ -48,6 +48,7 @@ export const TaskCard = memo(function TaskCard({
       type="button"
       className="task-card"
       draggable={canEdit}
+      data-testid="task-card"
       data-task-id={task.id}
       onClick={() => onOpen(task.id)}
       onDragStart={(e) => {

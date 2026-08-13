@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Bug, PencilSimple, Plus } from '@phosphor-icons/react';
 import { useProject } from '../../state/project-context';
+import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { ISSUE_SEVERITY, ISSUE_STATUS } from '../../lib/labels';
 import { shortId } from '../../lib/utils';
 import { Badge } from '../../components/Badge';
@@ -15,6 +16,7 @@ export function IssuesPage() {
   const { state, loading, error, canEdit } = useProject();
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  useEntityDeepLink('issues', setEditingId);
 
   if (loading) {
     return (

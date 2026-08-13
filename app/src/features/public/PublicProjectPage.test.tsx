@@ -18,6 +18,7 @@ function makeMeta(over: Partial<PublicProject> = {}): PublicProject {
     description: 'A public demo',
     status: 'active',
     visibility: 'public',
+    tabs: ['board', 'issues', 'stack', 'milestones', 'about'],
     prd: {
       purpose: '',
       goals: '',
@@ -37,7 +38,7 @@ function makeState(over: Partial<State> = {}): State {
     tasks: [],
     issues: [],
     testCases: [],
-    techEntries: [],
+techEntries: [],
     tables: [],
     relations: [],
     schemaVersions: [],
@@ -49,9 +50,9 @@ function makeState(over: Partial<State> = {}): State {
   };
 }
 
-function renderPage() {
+function renderPage(entries: string[] = [`/p/${PROJECT_ID}`]) {
   return render(
-    <MemoryRouter initialEntries={[`/p/${PROJECT_ID}`]}>
+    <MemoryRouter initialEntries={entries}>
       <PublicProjectPage />
     </MemoryRouter>,
   );
@@ -176,5 +177,57 @@ describe('PublicProjectPage', () => {
     expect(
       await screen.findByText('Cannot reach the server. Is it running?'),
     ).toBeDefined();
+  });
+
+  it('renders only the tabs the owner shared publicly', async () => {
+    vi.spyOn(api, 'getPublicProject').mockResolvedValue(
+      makeMeta({ tabs: ['board', 'milestones'] }),
+    );
+    vi.spyOn(api, 'getPublicState').mockResolvedValue({ state: makeState(), version: 1 });
+
+    renderPage();
+    await screen.findByRole('heading', { name: 'Demo Project' });
+
+    const nav = screen.getByRole('tablist', { name: 'Public project sections' });
+    const tabNames = Array.from(nav.querySelectorAll('[role="tab"]')).map(
+      (el) => el.textContent?.trim(),
+    );
+    expect(tabNames).toEqual(['Board', 'Milestones']);
+  });
+
+  it('falls back to the first public tab when the requested tab is not shared', async () => {
+    vi.spyOn(api, 'getPublicProject').mockResolvedValue(
+      makeMeta({ tabs: ['milestones'] }),
+    );
+    vi.spyOn(api, 'getPublicState').mockResolvedValue({ state: makeState(), version: 1 });
+
+    renderPage([`/p/${PROJECT_ID}?tab=issues`]);
+    await screen.findByRole('heading', { name: 'Demo Project' });
+
+    expect(screen.getByRole('tab', { name: 'Milestones' }).getAttribute('aria-selected')).toBe(
+      'true',
+    );
+  });
+
+  it('shows only the stat cards that belong to public tabs on About', async () => {
+    vi.spyOn(api, 'getPublicProject').mockResolvedValue(
+      makeMeta({ tabs: ['about', 'stack'] }),
+    );
+    vi.spyOn(api, 'getPublicState').mockResolvedValue(
+      {
+        state: makeState({
+          tasks: [{ id: 't1', title: 'Task', status: 'todo', priority: 'medium', labels: [], blockedBy: [], description: '', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' }],
+          techEntries: [{ id: 'e1', name: 'React', version: '19', category: 'frontend', status: 'current', notes: '', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' }],
+        }),
+        version: 1,
+      },
+    );
+
+    renderPage([`/p/${PROJECT_ID}?tab=about`]);
+    await screen.findByRole('heading', { name: 'Demo Project' });
+
+    expect(await screen.findByText('Stack entries')).toBeDefined();
+    expect(screen.getByText('Test cases')).toBeDefined();
+    expect(screen.queryByText('Tasks')).toBeNull();
   });
 });

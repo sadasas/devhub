@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router';
 import type { Task, TaskStatus } from '../../lib/types';
 import { isTaskCompletable } from '../../lib/utils';
 import { useProject } from '../../state/project-context';
+import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { Button } from '../../components/Button';
 import { Skeleton } from '../../components/Skeleton';
 import { TaskCard } from './TaskCard';
@@ -49,6 +50,7 @@ export function BoardPage() {
   const [doneBlockedMsg, setDoneBlockedMsg] = useState<string | null>(null);
   const doneBlockedTimer = useRef<number | undefined>(undefined);
   const openTask = useCallback((id: string) => setEditId(id), []);
+  useEntityDeepLink('tasks', openTask);
 
   useEffect(() => () => window.clearTimeout(doneBlockedTimer.current), []);
 
@@ -194,6 +196,7 @@ export function BoardPage() {
       <div
         key={key}
         className="kanban-col"
+        data-testid={`kanban-col-${key}`}
         onDragOver={(e) => {
           e.preventDefault();
           e.dataTransfer.dropEffect = 'move';

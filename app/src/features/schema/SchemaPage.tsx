@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { FloppyDisk, Graph, LinkSimple, List, PencilSimple, Plus, Trash } from '@phosphor-icons/react';
+import { FloppyDisk, GitDiff, Graph, LinkSimple, List, PencilSimple, Plus, Trash } from '@phosphor-icons/react';
 import { formatDate, relationLabel as formatRelation, shortId } from '../../lib/utils';
 import type { Relation } from '../../lib/types';
 import { useProject } from '../../state/project-context';
@@ -12,6 +12,7 @@ import { ERD } from './ERD';
 import { NewRelationModal } from './NewRelationModal';
 import { NewTableModal } from './NewTableModal';
 import { SaveVersionModal } from './SaveVersionModal';
+import { DiffVersionModal } from './DiffVersionModal';
 import { TableModal } from './TableModal';
 import { InlineError } from '../../components/InlineError';
 
@@ -37,6 +38,7 @@ export function SchemaPage() {
   const [newRelationOpen, setNewRelationOpen] = useState(false);
   const [confirmRel, setConfirmRel] = useState<Relation | null>(null);
   const [saveVersionOpen, setSaveVersionOpen] = useState(false);
+  const [diffOpen, setDiffOpen] = useState(false);
 
   if (loading) {
     return (
@@ -221,6 +223,16 @@ export function SchemaPage() {
       <div className="versions-section">
         <div className="data-list-header">
           <span className="data-list-count">Schema versions</span>
+          {state.schemaVersions.filter((v) => v.snapshot).length >= 2 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              leftIcon={<GitDiff size={13} aria-hidden="true" />}
+              onClick={() => setDiffOpen(true)}
+            >
+              Diff versions
+            </Button>
+          )}
           {canEdit && (
             <Button
               variant="ghost"
@@ -257,6 +269,7 @@ export function SchemaPage() {
       <TableModal tableId={tableId} onClose={() => setTableId(null)} />
       <NewRelationModal open={newRelationOpen} onClose={() => setNewRelationOpen(false)} />
       <SaveVersionModal open={saveVersionOpen} onClose={() => setSaveVersionOpen(false)} />
+      <DiffVersionModal open={diffOpen} versions={state.schemaVersions} onClose={() => setDiffOpen(false)} />
       <Modal
         open={confirmRel !== null}
         title="Delete relation"

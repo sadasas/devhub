@@ -95,11 +95,17 @@ export const relationSchema = z.object({
   onDelete: onDelete,
 });
 
+export const schemaSnapshotSchema = z.object({
+  tables: z.array(tableSchema),
+  relations: z.array(relationSchema),
+});
+
 export const schemaVersionSchema = z.object({
   ...baseFields,
   version: z.string().min(1).max(100),
   appliedAt: isoDate,
   notes: z.string().max(5_000).default(''),
+  snapshot: schemaSnapshotSchema.optional(),
 });
 
 export const decisionStatus = z.enum(['proposed', 'accepted', 'rejected', 'superseded']);
@@ -192,6 +198,7 @@ export type TechEntry = z.infer<typeof techEntrySchema>;
 export type Table = z.infer<typeof tableSchema>;
 export type Column = z.infer<typeof columnSchema>;
 export type Relation = z.infer<typeof relationSchema>;
+export type SchemaSnapshot = z.infer<typeof schemaSnapshotSchema>;
 export type SchemaVersion = z.infer<typeof schemaVersionSchema>;
 export type Decision = z.infer<typeof decisionSchema>;
 export type Milestone = z.infer<typeof milestoneSchema>;

@@ -1,0 +1,18 @@
+{
+  "name": "e2e",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.57.0",
+    "@types/pg": "^8.15.6",
+    "pg": "^8.16.3",
+    "typescript": "^5.9.3"
+  }
+}

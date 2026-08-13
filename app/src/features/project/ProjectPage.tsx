@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react';
+import { lazy, Suspense, useRef, useState } from 'react';
 import {
   ArrowLeft,
+  BookmarkSimple,
   Bug,
   ChartBar,
   Check,
@@ -9,12 +10,11 @@ import {
   Copy,
   Database,
   DownloadSimple,
-  GlobeSimple,
   Info,
-  LinkSimple,
   Plugs,
   Rocket,
   Scales,
+  ShareNetwork,
   Stack,
   Trash,
   UploadSimple,
@@ -34,17 +34,20 @@ import { EmptyState } from '../../components/EmptyState';
 import { Modal } from '../../components/Modal';
 import { SaveBanner } from '../../components/SaveBanner';
 import { Skeleton } from '../../components/Skeleton';
-import { BoardPage } from '../board/BoardPage';
-import { DecisionsPage } from '../decisions/DecisionsPage';
-import { IssuesPage } from '../issues/IssuesPage';
-import { ReleasesPage } from '../releases/ReleasesPage';
-import { SchemaPage } from '../schema/SchemaPage';
-import { StackPage } from '../stack/StackPage';
-import { StatsPage } from '../stats/StatsPage';
-import { TestsPage } from '../tests/TestsPage';
-import { AboutPage } from './AboutPage';
-import { ApiPage } from '../api/ApiPage';
+import { ShareModal } from './ShareModal';
 import { InlineError } from '../../components/InlineError';
+import { SaveTemplateModal } from '../templates/SaveTemplateModal';
+
+const BoardPageLazy = lazy(() => import('../board/BoardPage').then((m) => ({ default: m.BoardPage })));
+const IssuesPageLazy = lazy(() => import('../issues/IssuesPage').then((m) => ({ default: m.IssuesPage })));
+const TestsPageLazy = lazy(() => import('../tests/TestsPage').then((m) => ({ default: m.TestsPage })));
+const StackPageLazy = lazy(() => import('../stack/StackPage').then((m) => ({ default: m.StackPage })));
+const SchemaPageLazy = lazy(() => import('../schema/SchemaPage').then((m) => ({ default: m.SchemaPage })));
+const DecisionsPageLazy = lazy(() => import('../decisions/DecisionsPage').then((m) => ({ default: m.DecisionsPage })));
+const ReleasesPageLazy = lazy(() => import('../releases/ReleasesPage').then((m) => ({ default: m.ReleasesPage })));
+const ApiPageLazy = lazy(() => import('../api/ApiPage').then((m) => ({ default: m.ApiPage })));
+const StatsPageLazy = lazy(() => import('../stats/StatsPage').then((m) => ({ default: m.StatsPage })));
+const AboutPageLazy = lazy(() => import('./AboutPage').then((m) => ({ default: m.AboutPage })));
 
 export type ProjectTab =
   | 'board'
@@ -73,7 +76,7 @@ const TABS: { id: ProjectTab; label: string; icon: ReactNode }[] = [
 
 export function ProjectPage() {
   const { projectId = '' } = useParams<{ projectId: string }>();
-  const { projects, refresh, remove, update } = useProjects();
+  const { projects, refresh, remove } = useProjects();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
@@ -94,15 +97,14 @@ export function ProjectPage() {
   const [importDoc, setImportDoc] = useState<ExportDocument | null>(null);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
-  const [toggleError, setToggleError] = useState<string | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { copied: pidCopied, copy: copyPid } = useCopyFeedback();
-  const { copied: linkCopied, copy: copyLink } = useCopyFeedback();
-  const [toggling, setToggling] = useState(false);
 
   const project = projects?.find((p) => p.id === projectId);
 
-  if (!project) {
+if (!project) {
     return (
       <div className="page">
         {projects === null ? (
@@ -198,25 +200,6 @@ export function ProjectPage() {
     }
   }
 
-  async function onToggleVisibility() {
-    if (!project) return;
-    setToggleError(null);
-    setToggling(true);
-    try {
-      const visibility = project.visibility === 'public' ? 'private' : 'public';
-      await update(projectId, { visibility });
-    } catch (err) {
-      setToggleError(err instanceof ApiError ? err.message : 'Failed to update visibility.');
-    } finally {
-      setToggling(false);
-    }
-  }
-
-  async function onCopyPublicLink() {
-    if (!project) return;
-    await copyLink(`${window.location.origin}/p/${projectId}`);
-  }
-
   return (
     <ProjectProvider key={projectId} projectId={projectId} role={role}>
       <div className="page">
@@ -278,27 +261,20 @@ export function ProjectPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                disabled={toggling}
-                leftIcon={<GlobeSimple size={13} aria-hidden="true" />}
-                onClick={() => void onToggleVisibility()}
+                leftIcon={<ShareNetwork size={13} aria-hidden="true" />}
+                onClick={() => setShareOpen(true)}
               >
-                {project.visibility === 'public' ? 'Public' : 'Private'}
+                {project.visibility === 'public' ? 'Share · Public' : 'Share · Private'}
               </Button>
             )}
-            {isAdmin && project.visibility === 'public' && (
+            {role !== 'viewer' && (
               <Button
                 variant="ghost"
                 size="sm"
-                leftIcon={
-                  linkCopied ? (
-                    <Check size={12} weight="bold" aria-hidden="true" />
-                  ) : (
-                    <LinkSimple size={13} aria-hidden="true" />
-                  )
-                }
-                onClick={() => void onCopyPublicLink()}
+                leftIcon={<BookmarkSimple size={13} aria-hidden="true" />}
+                onClick={() => setSaveTemplateOpen(true)}
               >
-                {linkCopied ? 'Copied' : 'Copy link'}
+                Save as template
               </Button>
             )}
             {isAdmin && (
@@ -320,8 +296,6 @@ export function ProjectPage() {
             onChange={onImportFile}
           />
         </header>
-
-        {toggleError && <InlineError>{toggleError}</InlineError>}
 
         <nav className="tabs" role="tablist" aria-label="Project sections">
           {TABS.map((t) => (
@@ -350,27 +324,37 @@ export function ProjectPage() {
           aria-labelledby={`project-tab-${tab}`}
           tabIndex={0}
         >
-          {tab === 'board' ? (
-            <BoardPage />
-          ) : tab === 'issues' ? (
-            <IssuesPage />
-          ) : tab === 'tests' ? (
-            <TestsPage />
-          ) : tab === 'stack' ? (
-            <StackPage />
-          ) : tab === 'schema' ? (
-            <SchemaPage />
-          ) : tab === 'decisions' ? (
-            <DecisionsPage />
-          ) : tab === 'releases' ? (
-            <ReleasesPage />
-          ) : tab === 'api' ? (
-            <ApiPage projectName={project.name} projectDescription={project.description ?? ''} />
-          ) : tab === 'stats' ? (
-            <StatsPage />
-          ) : tab === 'about' ? (
-            <AboutPage project={project} />
-          ) : null}
+          <Suspense
+            fallback={
+              <div className="tab-panel-loading" aria-hidden="true">
+                <Skeleton style={{ width: '100%', height: 28 }} />
+                <Skeleton style={{ width: '100%', height: 140 }} />
+                <Skeleton style={{ width: '100%', height: 140 }} />
+              </div>
+            }
+          >
+            {tab === 'board' ? (
+              <BoardPageLazy />
+            ) : tab === 'issues' ? (
+              <IssuesPageLazy />
+            ) : tab === 'tests' ? (
+              <TestsPageLazy />
+            ) : tab === 'stack' ? (
+              <StackPageLazy />
+            ) : tab === 'schema' ? (
+              <SchemaPageLazy />
+            ) : tab === 'decisions' ? (
+              <DecisionsPageLazy />
+            ) : tab === 'releases' ? (
+              <ReleasesPageLazy />
+            ) : tab === 'api' ? (
+              <ApiPageLazy projectName={project.name} projectDescription={project.description ?? ''} />
+            ) : tab === 'stats' ? (
+              <StatsPageLazy />
+            ) : tab === 'about' ? (
+              <AboutPageLazy project={project} />
+            ) : null}
+          </Suspense>
         </section>
 
         <Modal
@@ -424,6 +408,14 @@ export function ProjectPage() {
           </p>
           {importError && <InlineError className="mt-10">{importError}</InlineError>}
         </Modal>
+
+        <ShareModal projectId={projectId} open={shareOpen} onClose={() => setShareOpen(false)} />
+        <SaveTemplateModal
+          open={saveTemplateOpen}
+          projectId={projectId}
+          projectName={project.name}
+          onClose={() => setSaveTemplateOpen(false)}
+        />
       </div>
     </ProjectProvider>
   );

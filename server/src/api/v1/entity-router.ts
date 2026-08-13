@@ -21,6 +21,12 @@ import {
   type State,
 } from '../../schema/state.js';
 import { getProjectWithRole, assertWrite, type TeamRole } from '../authz.js';
+import {
+  insertActivity,
+  pruneActivity,
+  entitySummary,
+  type ActivityDraft,
+} from '../../lib/activity.js';
 
 interface EntityConfig {
   key: keyof State;
@@ -84,7 +90,7 @@ async function mutateProject(
   userId: string,
   projectId: string,
   ifMatch: string | undefined,
-  fn: (state: State) => void,
+  fn: (state: State) => ActivityDraft | void,
 ): Promise<{ version: number; state: State }> {
   const client = await pool.connect();
   try {
@@ -111,11 +117,25 @@ async function mutateProject(
     const parsed = stateSchema.safeParse(row.data);
     if (!parsed.success) throw new ApiError(500, 'INTERNAL', 'Stored state is invalid');
     const state = parsed.data;
-    fn(state);
+    const activity = fn(state);
     const updated = await client.query<{ version: number }>(
       'UPDATE projects SET data = $2::jsonb, version = version + 1, updated_at = now() WHERE id = $1 RETURNING version',
       [projectId, JSON.stringify(state)],
     );
+    if (activity) {
+      const authorResult = await client.query<{ displayName: string }>(
+        'SELECT display_name AS "displayName" FROM users WHERE id = $1',
+        [userId],
+      );
+      const authorName = authorResult.rows[0]?.displayName ?? '';
+      await insertActivity(client, {
+        projectId,
+        draft: activity,
+        authorId: userId,
+        authorName,
+      });
+      await pruneActivity(client, projectId);
+    }
     await client.query('COMMIT');
     const version = updated.rows[0]?.version;
     if (!version) throw new ApiError(500, 'INTERNAL', 'Failed to persist state');
@@ -177,6 +197,13 @@ function buildEntityRouter(entities: EntityConfig[]): Router {
           throw new ApiError(400, 'VALIDATION_ERROR', `${cfg.label} already exists: ${id}`);
         }
         items.push(entity);
+        return {
+          entity: cfg.key,
+          entityId: id,
+          action: 'created',
+          summary: entitySummary(cfg.key, entity),
+          after: entity,
+        } satisfies ActivityDraft;
       });
       res.status(201);
       respondEntity(res, version, entity);
@@ -200,7 +227,17 @@ function buildEntityRouter(entities: EntityConfig[]): Router {
         const items = itemsOf(state, cfg.key);
         const idx = items.findIndex((i) => i.id === req.params.entityId);
         if (idx === -1) throw new ApiError(404, 'NOT_FOUND', `${cfg.label} not found: ${req.params.entityId}`);
-        items[idx] = { ...items[idx]!, ...patch, updatedAt: nowIso() } as EntityRow;
+        const before = items[idx]!;
+        const after = { ...before, ...patch, updatedAt: nowIso() } as EntityRow;
+        items[idx] = after;
+        return {
+          entity: cfg.key,
+          entityId: req.params.entityId,
+          action: 'updated',
+          summary: entitySummary(cfg.key, before),
+          before,
+          after,
+        } satisfies ActivityDraft;
       });
       const item = itemsOf(state, cfg.key).find((i) => i.id === req.params.entityId)!;
       respondEntity(res, version, item);
@@ -212,8 +249,16 @@ function buildEntityRouter(entities: EntityConfig[]): Router {
         const items = itemsOf(state, cfg.key);
         const idx = items.findIndex((i) => i.id === req.params.entityId);
         if (idx === -1) throw new ApiError(404, 'NOT_FOUND', `${cfg.label} not found: ${req.params.entityId}`);
+        const before = items[idx]!;
         items.splice(idx, 1);
         cfg.onDelete?.(state, req.params.entityId);
+        return {
+          entity: cfg.key,
+          entityId: req.params.entityId,
+          action: 'deleted',
+          summary: entitySummary(cfg.key, before),
+          before,
+        } satisfies ActivityDraft;
       });
       res.set('ETag', `"${version}"`);
       res.json({ ok: true, version });

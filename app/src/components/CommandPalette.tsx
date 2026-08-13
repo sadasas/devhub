@@ -1,15 +1,35 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { SquaresFour, FolderSimple, Key, BookOpen, UserCircle, Plus, ArrowUp, ArrowDown, ArrowRight } from '@phosphor-icons/react';
+import { SquaresFour, FolderSimple, Key, BookOpen, UserCircle, Plus, ArrowUp, ArrowDown, ArrowRight, MagnifyingGlass } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router';
 import { useProjects } from '../state/projects-context';
 import { useFocusTrap } from '../hooks/useFocusTrap';
+import { useSearchResults } from '../hooks/useSearchResults';
+import { entityDeepLink } from '../lib/deep-link';
 
 interface PaletteCommand {
   id: string;
   group: string;
   label: string;
   icon: ReactNode;
+  labelNode?: ReactNode;
+  disabled?: boolean;
+  skipFilter?: boolean;
   run: () => void;
+}
+
+function highlight(text: string, query: string): ReactNode {
+  const q = query.trim().toLowerCase();
+  if (!q) return text;
+  const lower = text.toLowerCase();
+  const index = lower.indexOf(q);
+  if (index === -1) return text;
+  return (
+    <>
+      {text.slice(0, index)}
+      <mark>{text.slice(index, index + q.length)}</mark>
+      {text.slice(index + q.length)}
+    </>
+  );
 }
 
 export function CommandPalette() {
@@ -26,6 +46,9 @@ export function CommandPalette() {
   useEffect(() => {
     stateRef.current = { filtered, index };
   });
+
+  const search = useSearchResults(query);
+  const q = query.trim();
 
   const commands = useMemo<PaletteCommand[]>(() => {
     const list: PaletteCommand[] = [
@@ -92,13 +115,60 @@ export function CommandPalette() {
         },
       });
     }
+    if (q.length >= 2) {
+      const labelNode = (title: string, snippet: string) => (
+        <span className="palette-item-label">
+          <span className="palette-item-title">{highlight(title, q)}</span>
+          <span className="palette-item-snippet"> {snippet}</span>
+        </span>
+      );
+      if (search.loading) {
+        list.push({
+          id: 'search-loading',
+          group: 'Search',
+          label: 'Searching…',
+          icon: <MagnifyingGlass size={16} />,
+          disabled: true,
+          run: () => {},
+        });
+      } else if (search.error) {
+        list.push({
+          id: 'search-error',
+          group: 'Search',
+          label: search.error,
+          icon: <MagnifyingGlass size={16} />,
+          disabled: true,
+          run: () => {},
+        });
+      } else {
+        for (const projectResult of search.results) {
+          const group = `Results · ${projectResult.projectName}`;
+          for (const hit of projectResult.hits) {
+            list.push({
+              id: `search-${projectResult.projectId}-${hit.entity}-${hit.entityId}`,
+              group,
+              label: hit.title || hit.snippet,
+              labelNode: labelNode(hit.title || hit.snippet, hit.snippet),
+              skipFilter: true,
+              icon: <MagnifyingGlass size={16} />,
+              run: () => {
+                setOpen(false);
+                navigate(entityDeepLink(projectResult.projectId, hit.entity, hit.entityId));
+              },
+            });
+          }
+        }
+      }
+    }
     return list;
-  }, [projects, navigate]);
+  }, [projects, navigate, q, search.loading, search.error, search.results]);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return q ? commands.filter((c) => c.label.toLowerCase().includes(q)) : commands;
-  }, [commands, query]);
+    const lower = q.toLowerCase();
+    return q
+      ? commands.filter((c) => c.disabled || c.skipFilter || c.label.toLowerCase().includes(lower))
+      : commands;
+  }, [commands, q]);
 
   useEffect(() => {
     setIndex(0);
@@ -160,7 +230,7 @@ export function CommandPalette() {
           className="palette-input"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Type a command or project name…"
+          placeholder="Type a command or search tasks, issues, decisions…"
           aria-label="Search commands"
           role="combobox"
           aria-expanded="true"
@@ -183,13 +253,15 @@ export function CommandPalette() {
                       id={`palette-option-${c.id}`}
                       type="button"
                       role="option"
+                      disabled={c.disabled}
                       aria-selected={isActive}
+                      aria-disabled={c.disabled || undefined}
                       className={isActive ? 'palette-item palette-item-active' : 'palette-item'}
                       onMouseEnter={() => setIndex(flat - 1)}
                       onClick={() => c.run()}
                     >
                       {c.icon}
-                      <span className="palette-item-label">{c.label}</span>
+                      {c.labelNode ?? <span className="palette-item-label">{c.label}</span>}
                       <span className="palette-item-hint">{isActive ? '↵' : ''}</span>
                     </button>
                   );

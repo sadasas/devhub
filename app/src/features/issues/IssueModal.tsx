@@ -6,6 +6,7 @@ import type { State, Issue, IssueSeverity, IssueStatus } from '../../lib/types';
 import type { UpdatePatch } from '../../state/project-context';
 import { useProject } from '../../state/project-context';
 import { Badge } from '../../components/Badge';
+import { ActivityList } from '../../components/ActivityList';
 import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { DetailEmpty, DetailList, DetailRow } from '../../components/DetailList';
@@ -19,7 +20,7 @@ interface IssueModalProps {
 }
 
 export function IssueModal({ issueId, onClose }: IssueModalProps) {
-  const { state, dispatch, canEdit } = useProject();
+  const { state, dispatch, canEdit, projectId } = useProject();
   const [editing, setEditing] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const editSnapshot = useRef<State | null>(null);
@@ -204,6 +205,8 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
                 )}
               </DetailRow>
             </DetailList>
+            <h4 className="detail-subtitle">Activity</h4>
+            <ActivityList projectId={projectId} entity="issues" entityId={issue.id} />
             <p className="field-helper">Updated {formatRelative(issue.updatedAt)}</p>
           </>
         )}

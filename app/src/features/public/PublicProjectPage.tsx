@@ -23,6 +23,8 @@ import { Skeleton } from '../../components/Skeleton';
 
 type PublicTab = 'board' | 'issues' | 'stack' | 'milestones' | 'about';
 
+const ALL_PUBLIC_TABS: PublicTab[] = ['board', 'issues', 'stack', 'milestones', 'about'];
+
 const TABS: { id: PublicTab; label: string; icon: ReactNode }[] = [
   { id: 'board', label: 'Board', icon: <Columns size={15} /> },
   { id: 'issues', label: 'Issues', icon: <Bug size={15} /> },
@@ -46,7 +48,6 @@ export function PublicProjectPage() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
-  const tab: PublicTab = TABS.some((t) => t.id === tabParam) ? (tabParam as PublicTab) : 'board';
   const setTab = (next: PublicTab) => {
     setSearchParams(
       (prev) => {
@@ -92,6 +93,13 @@ export function PublicProjectPage() {
       cancelled = true;
     };
   }, [projectId]);
+
+  const allowedTabs =
+    project && project.tabs.length > 0 ? project.tabs : ALL_PUBLIC_TABS;
+  const tab: PublicTab =
+    TABS.some((t) => t.id === tabParam) && allowedTabs.includes(tabParam as PublicTab)
+      ? (tabParam as PublicTab)
+      : allowedTabs[0] ?? 'board';
 
   return (
     <div className="public-root">
@@ -152,7 +160,7 @@ export function PublicProjectPage() {
             </div>
 
             <nav className="tabs" role="tablist" aria-label="Public project sections">
-              {TABS.map((t) => (
+              {TABS.filter((t) => allowedTabs.includes(t.id)).map((t) => (
                 <button
                   key={t.id}
                   type="button"
@@ -180,7 +188,7 @@ export function PublicProjectPage() {
               {tab === 'issues' && <PublicIssues state={state} />}
               {tab === 'stack' && <PublicStack state={state} />}
               {tab === 'milestones' && <PublicMilestones state={state} />}
-              {tab === 'about' && <PublicAbout project={project} state={state} />}
+              {tab === 'about' && <PublicAbout project={project} state={state} tabs={allowedTabs} />}
             </div>
           </>
         )}
@@ -428,15 +436,16 @@ const PRD_SECTIONS: { key: keyof PublicProject['prd']; label: string }[] = [
   { key: 'outOfScope', label: 'Out of scope' },
 ];
 
-function PublicAbout({ project, state }: { project: PublicProject; state: State }) {
+function PublicAbout({ project, state, tabs }: { project: PublicProject; state: State; tabs: PublicTab[] }) {
   const stats = computeProjectStats(state);
-  const counts = [
-    { label: 'Tasks', value: state.tasks.length },
-    { label: 'Open issues', value: stats.openIssues },
-    { label: 'Test cases', value: state.testCases.length },
-    { label: 'Stack entries', value: state.techEntries.length },
-    { label: 'Milestones', value: state.milestones.length },
-  ];
+  const tabCounts: Record<PublicTab, { label: string; value: number }> = {
+    board: { label: 'Tasks', value: state.tasks.length },
+    issues: { label: 'Open issues', value: stats.openIssues },
+    milestones: { label: 'Milestones', value: state.milestones.length },
+    stack: { label: 'Stack entries', value: state.techEntries.length },
+    about: { label: 'Test cases', value: state.testCases.length },
+  };
+  const counts = ALL_PUBLIC_TABS.filter((t) => tabs.includes(t)).map((t) => tabCounts[t]);
 
   return (
     <div className="about-body">

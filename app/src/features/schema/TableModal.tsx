@@ -5,6 +5,7 @@ import type { State, Column } from '../../lib/types';
 import type { UpdatePatch } from '../../state/project-context';
 import { useProject } from '../../state/project-context';
 import { Badge } from '../../components/Badge';
+import { ActivityList } from '../../components/ActivityList';
 import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { DetailEmpty, DetailList, DetailRow } from '../../components/DetailList';
@@ -18,7 +19,7 @@ interface TableModalProps {
 }
 
 export function TableModal({ tableId, onClose }: TableModalProps) {
-  const { state, dispatch, canEdit } = useProject();
+  const { state, dispatch, canEdit, projectId } = useProject();
   const [editing, setEditing] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const editSnapshot = useRef<State | null>(null);
@@ -255,6 +256,8 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                 )}
               </DetailRow>
             </DetailList>
+            <h4 className="detail-subtitle">Activity</h4>
+            <ActivityList projectId={projectId} entity="tables" entityId={table.id} />
             <p className="field-helper">Updated {formatRelative(table.updatedAt)}</p>
           </>
         )}

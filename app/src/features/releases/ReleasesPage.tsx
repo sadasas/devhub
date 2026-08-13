@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { MILESTONE_STATUS } from '../../lib/labels';
 import { formatDate, shortId } from '../../lib/utils';
 import { useProject } from '../../state/project-context';
+import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
@@ -15,6 +16,7 @@ export function ReleasesPage() {
   const { state, loading, error, canEdit } = useProject();
   const [openNew, setOpenNew] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  useEntityDeepLink('milestones', setEditId);
 
   if (loading) {
     return (

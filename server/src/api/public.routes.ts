@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { ApiError } from '../app.js';
 import { logger } from '../lib/logger.js';
-import { stateSchema } from '../schema/state.js';
+import { stateSchema, type State } from '../schema/state.js';
 import { normalizePrd } from '../schema/prd.js';
 import { getPublicProject, type PublicProjectRow } from './authz.js';
+import { normalizeTabs, publicStateKeys } from './sharing.js';
 
 export const publicRouter = Router();
 
@@ -15,6 +16,7 @@ function publicProjectJson(row: PublicProjectRow) {
     status: row.status,
     visibility: row.visibility,
     version: row.version,
+    tabs: normalizeTabs(row.public_tabs),
     prd: normalizePrd(row.prd),
     teamName: row.team_name,
     createdAt: row.created_at.toISOString(),
@@ -40,5 +42,10 @@ publicRouter.get('/projects/:projectId/state', async (req, res) => {
     });
     throw new ApiError(500, 'INTERNAL', 'Stored state is invalid');
   }
-  res.json({ state: parsed.data, version: row.version });
+  const allowed = publicStateKeys(normalizeTabs(row.public_tabs));
+  const filtered = { ...parsed.data } as Record<string, unknown>;
+  for (const key of Object.keys(filtered) as Array<keyof State>) {
+    if (!allowed.has(key)) filtered[key] = [];
+  }
+  res.json({ state: filtered as State, version: row.version });
 });

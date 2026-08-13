@@ -25,6 +25,7 @@ const loginLimiter = rateLimit({
   limit: 10,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  validate: { trustProxy: false },
   message: { error: { code: 'RATE_LIMITED', message: 'Too many login attempts, try again later' } },
 });
 
@@ -33,6 +34,7 @@ const registerLimiter = rateLimit({
   limit: 5,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  validate: { trustProxy: false },
   message: { error: { code: 'RATE_LIMITED', message: 'Too many registrations from this IP' } },
 });
 
@@ -41,6 +43,7 @@ const passwordLimiter = rateLimit({
   limit: 10,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  validate: { trustProxy: false },
   message: { error: { code: 'RATE_LIMITED', message: 'Too many password attempts, try again later' } },
 });
 

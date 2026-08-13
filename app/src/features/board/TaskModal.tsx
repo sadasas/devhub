@@ -11,6 +11,7 @@ import type { State, Task, TaskPriority, TaskStatus, TestCaseStatus } from '../.
 import type { UpdatePatch } from '../../state/project-context';
 import { useProject, wouldCreateCycle } from '../../state/project-context';
 import { Badge } from '../../components/Badge';
+import { ActivityList } from '../../components/ActivityList';
 import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { DetailEmpty, DetailList, DetailRow } from '../../components/DetailList';
@@ -27,7 +28,7 @@ interface TaskModalProps {
 }
 
 export function TaskModal({ taskId, onClose }: TaskModalProps) {
-  const { state, dispatch, canEdit } = useProject();
+  const { state, dispatch, canEdit, projectId } = useProject();
   const [editing, setEditing] = useState(false);
   const [cycleWarn, setCycleWarn] = useState<string | null>(null);
   const [doneWarn, setDoneWarn] = useState<string | null>(null);
@@ -374,6 +375,8 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 )}
               </DetailRow>
             </DetailList>
+            <h4 className="detail-subtitle">Activity</h4>
+            <ActivityList projectId={projectId} entity="tasks" entityId={task.id} />
             <p className="field-helper">Updated {formatRelative(task.updatedAt)}</p>
           </>
         )}

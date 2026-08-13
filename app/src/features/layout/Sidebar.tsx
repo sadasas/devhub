@@ -1,4 +1,4 @@
-import { BookOpen, EnvelopeSimple, FolderSimple, Key, Plus, SignOut, SquaresFour, UsersThree } from '@phosphor-icons/react';
+import { BookOpen, BookmarkSimple, EnvelopeSimple, FolderSimple, Key, Plus, SignOut, SquaresFour, UsersThree } from '@phosphor-icons/react';
 import { useMemo, useState } from 'react';
 import { NavLink, type NavLinkProps } from 'react-router';
 import { useAuth } from '../../state/auth-context';
@@ -53,6 +53,10 @@ export function Sidebar() {
         <NavLink to="/keys" className={itemClass()} aria-label="API Keys">
           <Key size={15} weight="duotone" aria-hidden="true" />
           <span>API Keys</span>
+        </NavLink>
+        <NavLink to="/templates" className={itemClass()} aria-label="Project Templates">
+          <BookmarkSimple size={15} weight="duotone" aria-hidden="true" />
+          <span>Templates</span>
         </NavLink>
         <NavLink to="/docs" className={itemClass()} aria-label="Docs">
           <BookOpen size={15} weight="duotone" aria-hidden="true" />

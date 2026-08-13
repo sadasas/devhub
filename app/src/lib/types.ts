@@ -14,6 +14,7 @@ export type OnDelete = 'cascade' | 'setNull' | 'restrict';
 export type DecisionStatus = 'proposed' | 'accepted' | 'rejected' | 'superseded';
 export type MilestoneStatus = 'planned' | 'inProgress' | 'released';
 export type ProjectStatus = 'active' | 'archived';
+export type PublicTab = 'board' | 'issues' | 'stack' | 'milestones' | 'about';
 
 export interface Base {
   id: string;
@@ -86,10 +87,16 @@ export interface Relation extends Base {
   onDelete: OnDelete;
 }
 
+export interface SchemaSnapshot {
+  tables: Table[];
+  relations: Relation[];
+}
+
 export interface SchemaVersion extends Base {
   version: string;
   appliedAt: string;
   notes: string;
+  snapshot?: SchemaSnapshot | null;
 }
 
 export interface Decision extends Base {
@@ -190,6 +197,7 @@ export interface Project {
   description: string;
   status: ProjectStatus;
   visibility: 'private' | 'public';
+  tabs: PublicTab[];
   prd: ProjectPrd;
   teamId: string;
   teamName: string;
@@ -204,6 +212,7 @@ export interface PublicProject {
   description: string;
   status: ProjectStatus;
   visibility: 'private' | 'public';
+  tabs: PublicTab[];
   prd: ProjectPrd;
   teamName: string;
   createdAt: string;
@@ -226,6 +235,16 @@ export interface TeamMember {
   email: string;
   role: TeamRole;
   joinedAt: string;
+}
+
+export interface ProjectTemplate {
+  id: string;
+  teamId: string;
+  teamName: string;
+  name: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Invitation {

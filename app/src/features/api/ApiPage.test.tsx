@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import type { ApiCollection, ApiEndpoint, State } from '../../lib/types';
 import { ApiPage } from './ApiPage';
 
@@ -28,7 +29,7 @@ function makeState(over: Partial<State> = {}): State {
     tasks: [],
     issues: [],
     testCases: [],
-    techEntries: [],
+techEntries: [],
     tables: [],
     relations: [],
     schemaVersions: [],
@@ -70,7 +71,11 @@ const endpoint: ApiEndpoint = {
 };
 
 function renderPage() {
-  return render(<ApiPage projectName="Demo Project" projectDescription="A public demo" />);
+  return render(
+    <MemoryRouter>
+      <ApiPage projectName="Demo Project" projectDescription="A public demo" />
+    </MemoryRouter>,
+  );
 }
 
 describe('ApiPage', () => {

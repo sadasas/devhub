@@ -19,7 +19,7 @@ export function SaveBanner() {
 
   if (conflict) {
     return createPortal(
-      <div className="save-toast conflict-banner" role="alert">
+      <div className="save-toast conflict-banner" role="alert" data-testid="save-banner">
         <Warning size={13} weight="bold" aria-hidden="true" />
         <span>{conflict.message}</span>
         <Button variant="ghost" size="sm" onClick={resolveConflict}>
@@ -32,7 +32,7 @@ export function SaveBanner() {
 
   if (saveError) {
     return createPortal(
-      <div className="save-toast save-banner" role="alert">
+      <div className="save-toast save-banner" role="alert" data-testid="save-banner">
         <Warning size={13} weight="bold" aria-hidden="true" />
         <span>Save failed: {saveError} — your changes are kept locally.</span>
         <Button variant="ghost" size="sm" onClick={retrySave} loading={saving}>
@@ -46,7 +46,7 @@ export function SaveBanner() {
   if (!saving && !showSaved) return null;
 
   return createPortal(
-    <div className="save-toast save-status" role="status">
+    <div className="save-toast save-status" role="status" data-testid="save-banner">
       {saving ? (
         'Saving…'
       ) : (

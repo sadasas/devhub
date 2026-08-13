@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Trash } from '@phosphor-icons/react';
-import { MILESTONE_STATUS } from '../../lib/labels';
-import { formatRelative } from '../../lib/utils';
+import { MILESTONE_STATUS, TASK_STATUS } from '../../lib/labels';
+import { formatRelative, shortId } from '../../lib/utils';
 import type { State, Milestone, MilestoneStatus } from '../../lib/types';
 import type { UpdatePatch } from '../../state/project-context';
 import { useProject } from '../../state/project-context';
 import { Badge } from '../../components/Badge';
+import { ActivityList } from '../../components/ActivityList';
 import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { DetailEmpty, DetailList, DetailRow } from '../../components/DetailList';
@@ -19,7 +20,7 @@ interface MilestoneModalProps {
 }
 
 export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
-  const { state, dispatch, canEdit } = useProject();
+  const { state, dispatch, canEdit, projectId } = useProject();
   const [editing, setEditing] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const editSnapshot = useRef<State | null>(null);
@@ -33,6 +34,8 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
     ? state?.milestones.find((m) => m.id === milestoneId)
     : undefined;
   if (!state || !milestone) return null;
+
+  const milestoneTasks = state.tasks.filter((t) => t.milestoneId === milestone.id);
 
   const update = (patch: UpdatePatch<Milestone>) => {
     dispatch({ type: 'milestone/update', id: milestone.id, patch });
@@ -181,6 +184,28 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
                 {milestone.changelog.trim() ? milestone.changelog : <DetailEmpty>No changelog.</DetailEmpty>}
               </DetailRow>
             </DetailList>
+            <h4 className="detail-subtitle">Activity</h4>
+            <ActivityList projectId={projectId} entity="milestones" entityId={milestone.id} />
+            <h4 className="detail-subtitle">
+              Tasks in this release · {milestoneTasks.length}
+            </h4>
+            {milestoneTasks.length === 0 ? (
+              <p className="field-helper">No tasks assigned to this milestone.</p>
+            ) : (
+              <ul className="release-task-list">
+                {milestoneTasks.map((t) => (
+                  <li key={t.id} className="release-task-row">
+                    <span className="release-task-title">{t.title}</span>
+                    <span className="release-task-side">
+                      <Badge tone={TASK_STATUS[t.status].tone}>
+                        {TASK_STATUS[t.status].label}
+                      </Badge>
+                      <span className="data-row-meta font-mono">#{shortId(t.id)}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
             <p className="field-helper">Updated {formatRelative(milestone.updatedAt)}</p>
           </>
         )}
