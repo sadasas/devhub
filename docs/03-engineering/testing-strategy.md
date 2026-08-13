@@ -85,6 +85,8 @@ Playwright against a locally built app + test DB:
 3. Ctrl+K palette → navigate to Schema tab
 4. Create issue → link task → board shows dependency
 5. MCP: call `create_task` via HTTP → UI (polling) shows it
+6. Whiteboard (M11): create whiteboard → draw stroke → saved → reload → stroke persists
+7. Whiteboard flowchart (M11): draw shape + edge (snap ke node) → drag node → edge ikut bergeser
 
 ---
 

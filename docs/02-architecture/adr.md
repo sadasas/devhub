@@ -4,7 +4,7 @@
 |---|---|
 | **Document status** | Active (living document) |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-12 |
+| **Last updated** | 2026-08-13 |
 
 ---
 
@@ -49,6 +49,9 @@
 | [ADR-016](#adr-016) | URL-based routing with react-router v7 | Accepted | 2026-08-11 |
 | [ADR-017](#adr-017) | Public read-only project sharing (`/p/:projectId`) | Accepted | 2026-08-12 |
 | [ADR-019](#adr-019) | API docs: collections + endpoints with OpenAPI import/export | Accepted | 2026-08-12 |
+| [ADR-021](#adr-021) | Product positioning: hosted SaaS | Accepted | 2026-08-13 |
+| [ADR-022](#adr-022) | Granular REST API per entity (design), replacing coarse PUT /state | Accepted | 2026-08-13 |
+| [ADR-023](#adr-023) | Whiteboard entity terpadu: brainstorming + flowchart + entity ref cards | Proposed | 2026-08-13 |
 
 ---
 
@@ -233,6 +236,25 @@
   - **Versioning policy**: when implemented, current routes move behind `/api/v1` with `/api` aliases kept for the M7 client; old aliases deprecated one minor release later.
 - **Consequences:** Positive — partial writes, smaller conflict surface, cache-friendly reads, one canonical validation layer. Negative — more routes to test, frontend migration is incremental (project context keeps full-state polling; only hot write paths move to granular endpoints), and release scope grows post-M7.
 - **Alternatives:** Keep only `PUT /state` (rejected: whole-document rewrites and payload growth, audit S2); per-entity CRUD without versioning (rejected: reintroduces lost updates); CRDTs per entity (rejected: overkill for current collaboration scale); GraphQL layer (rejected: new runtime dependency and tooling for a REST-shaped product).
+
+### ADR-023
+**Whiteboard entity terpadu: brainstorming + flowchart + entity ref cards**
+
+- **Status:** Proposed (2026-08-13) — implementasi dijadwalkan M11 v0.5.0 (workstream baru di samping Sync & Offline)
+- **Context:** Permintaan fitur "drawing untuk brainstorming" + "flowchart editor" untuk proyek DevHub. Analisis dua agent (Senior PM + Software Architect) menyimpulkan: kedua kebutuhan adalah **satu kontinum** (sketsa kasar → diagram rapi di kanvas yang sama), bukan dua domain; constraint `docs/04-audit-ui-ux.md:54` (A1: batasi 10 tab) membuat 2 entity/tab baru melanggar 2×; kanvas engine (pan/zoom/pointer/viewport) ≈ 70% kerumitan teknis dan dibangun sekali; pelajaran DEF-005 (roadmap.md:86 — fitur freeform tanpa semantik mati) mendorong satu entity terpadu dengan semantik node/edge yang bisa tumbuh. Library diagram (tldraw/Excalidraw) dievaluasi: melanggar ADR-007 (nol runtime dep selain @phosphor-icons/react), menambah 1–2 MB bundle, dan model data menjadi milik library — tanpa keuntungan untuk fitur ref/tagging (fitur data-model, bukan rendering). User juga meminta elemen yang **menampilkan entity DevHub secara live** (mis. kartu task sebagai sumber riset di kanvas).
+- **Decision:**
+  - Satu entity `whiteboards: Whiteboard[]` di state JSONB (ADR-002, `.default([])`, tanpa migrasi DB) — tab **Whiteboard** (tab ke-11, deviasi A1 yang dicatat) di project page.
+  - Elemen = `z.discriminatedUnion('type')` dengan **id saja** (bukan Base penuh — elemen bukan entity, ADR-009): `stroke` {tool pen|eraser, color hex, width, points ≤2.000 + thinning 2px saat draw}, `sticky` {x,y,w,h,color,text ≤500}, `text` {x,y,color,fontSize,text ≤1.000}, `shape` {rect|diamond|ellipse, x,y,w,h,color,fill?,strokeWidth,label ≤200}, `edge` {x1,y1,x2,y2,color,width,arrowhead, sourceNodeId?/targetNodeId? nullable — endpoint direkomputasi ulang saat render dari bbox node}, `ref` {entity: tasks|issues (V1), entityId — kartu live menampilkan judul+status dari state project, klik → deep-link ke modal}.
+  - Caps: **1.000 elemen/board, 2.000 titik/stroke, 5 board/project**, koordinat ±100.000.
+  - Eraser = **deletion tool** (elemen yang dipersist selalu `tool:'pen'`).
+  - Canvas **hand-built SVG** (nol dependency baru): view `{x,y,s}` + `<g transform>` (pola `ERD.tsx`), draft layer ref-based (tanpa re-render semua elemen), commit **1× per gesture** (pointerup) → pipeline save existing (debounce 800ms + If-Match queue, ADR-014/022).
+  - Edge V1 = **free-hand + snap-ke-node** (toleransi 12px); port-based connector, snap grid, multi-select, auto-layout, per-element PATCH → V2.
+  - Activity: diff `elements` sebagai **summary-count** (`Elements: 37 → 41`) bukan JSON raksasa; clustering 60s existing tetap berlaku.
+  - Search: collector kustom — `name` (weight 3) + `sticky.text`/`text.text`/`shape.label`/judul task di `ref` (weight 1); tanpa noise hex/uuid.
+  - Public share read-only: tab whiteboard di `/p/:id` (sharing.ts + PublicProjectPage, renderer reuse).
+  - Supersedes rencana lama "FlowchartsTab M14 T4 / New flowchart M15 T5" (`docs/04-audit-ui-ux.md:268`).
+- **Consequences:** Positive — satu kanvas untuk brainstorming & diagram alir; ref cards menghidupkan kanvas (task live, deep-link); granular API/activity/search/export/import/MCP `project_state` otomatis ikut (backward compatible); nol dependency baru. Negative — payload `projects.data` membesar (skenario sedang ~2.8× baseline, cap membatasi); tab ke-11 melanggar A1 (dicatat sebagai deviasi; solusi Overview/overflow tetap backlog); konflik If-Match lebih sering saat kanvas aktif (banner existing menangani); undo/redo terbatas in-memory (snapshot cap 30).
+- **Alternatives:** Dua entity `whiteboards` + `flowcharts` terpisah (ditolak: 2 tab = A1 dilanggar 2×, duplikasi kanvas engine ~3.5h + integrasi 2×, transisi sketsa→alur putus); library tldraw/Excalidraw (ditolak: ADR-007, bundle +1–2 MB, data model milik library, ref cards tetap harus custom); tagging refs terpisah tanpa elemen `ref` (ditolak: user butuh tampilan live, bukan sekadar label).
 
 ---
 

@@ -148,4 +148,19 @@ Implementasi V2 (v0.4.0) — 51 task (V2 inti ~31h + 3 workstream baru: Global S
 
 ---
 
+## 11. Whiteboard (M11 — workstream baru)
+
+M11 v0.5.0 diperluas menjadi **dua workstream**: Sync & Offline (7 task existing) **+ Whiteboard (13 task, ~54.5h)** — lihat [ADR-023](../02-architecture/adr.md#adr-023). Keputusan kunci: satu entity `whiteboards` terpadu (brainstorming + flowchart + entity ref cards), bukan dua entity terpisah.
+
+| Fokus | Isi |
+|---|---|
+| Entity `whiteboards` | JSONB di `projects.data` (tanpa migrasi DB, `.default([])` backward compatible); elemen `z.discriminatedUnion`: `stroke` (cap 2.000 titik + thinning 2px), `sticky`, `text`, `shape` (rect/diamond/ellipse), `edge` (free-hand + snap-ke-node 12px, `sourceNodeId`/`targetNodeId` nullable, endpoint direkomputasi saat render), `ref` (kartu live tasks/issues: judul + status dari state project, klik → deep-link modal); caps 1.000 elemen/board, 5 board/project |
+| Canvas | Hand-built SVG nol dependency (ADR-007, pola `ERD.tsx`): view pan/zoom wheel + `<g transform>`, draft layer ref-based, commit 1× per gesture → pipeline save existing (debounce 800ms + If-Match queue); eraser = deletion tool; undo/redo in-memory (snapshot 30) + shortcut Ctrl+Z/Y, Delete, Esc, Space-pan |
+| Toolset | Pen, warna (palet design tokens), eraser, sticky notes, text (floating popover), shapes, edge/arrow (arrowhead `<marker>` hand-built), select (drag-move, delete, cleanup edge), pan/zoom |
+| Integrasi | Granular CRUD/If-Match/activity/search/export/import/MCP `project_state` otomatis ikut; activity diff `elements` = summary-count; search collector kustom (name 3×, teks sticky/text/shape.label/ref 1× — tanpa noise hex/uuid); tab ke-11 (deviasi A1 tercatat); public share read-only `/p/:id` |
+| Tests | Server: schema round-trip (cegah silent strip), CRUD, activity, search; App: reducer/geometry murni + interaksi jsdom (stub rect/pointer capture); E2E: 2 journey (draw→save→reload; drag node → edge ikut) |
+| Defer V2 | Port-based connector + port UI, snap grid/alignment, multi-select, auto-layout, per-element PATCH, refs entity lain (testCases/milestones), MCP whiteboard tools, gzip compression middleware di server |
+
+---
+
 *End of Roadmap.*
