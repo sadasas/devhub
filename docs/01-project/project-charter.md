@@ -75,7 +75,7 @@ DevHub is developed as a **hosted SaaS** for software projects of any size — f
 
 ### 5.2 Out of Scope (deferred)
 
-Git CLI integration, API endpoint inventory, templates, project notes, PWA offline, multi-device sync, real-time collaboration, billing/payments.
+Git CLI integration, API endpoint inventory, templates, PWA offline, multi-device sync, real-time collaboration, billing/payments.
 
 ---
 

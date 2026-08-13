@@ -219,7 +219,7 @@ Base { id: string (UUID), createdAt: ISO, updatedAt: ISO, authorId?: string }
 
 ## 6. Out of Scope (V1)
 
-See [Charter §5.2](project-charter.md#52-out-of-scope-deferred). Highlights: Git CLI integration, API endpoint inventory, templates, project notes, PWA, sync, collaboration, billing.
+See [Charter §5.2](project-charter.md#52-out-of-scope-deferred). Highlights: Git CLI integration, API endpoint inventory, templates, PWA, sync, collaboration, billing.
 
 ---
 
