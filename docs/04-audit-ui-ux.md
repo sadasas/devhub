@@ -37,7 +37,7 @@ Skor keseluruhan **8.5/10**. Tidak ada temuan critical. Sistem design token inte
 | --- | --- | --- | --- |
 | U1 | Medium-High | Alur onboarding: modal "New project" tidak menjelaskan bahwa team wajib dibuat dulu; error "Select a team first." muncul belakangan | **DIPERBAIKI**: helper + disabled state + empty state dashboard "Create a team first" |
 | U2 | Medium | Autosave tidak memberi feedback sukses — pengguna tidak tahu kapan data tersimpan (state `saving` ada tapi tidak dirender) | **DIPERBAIKI**: indikator "Saving…" + "All changes saved" (lihat G3) |
-| U3 | Low-Medium | CommandPalette hanya navigasi, tidak ada aksi; PRD G-1 hanya mewajibkan navigasi | **DIPERBAIKI (parsial)**: aksi "New project" ditambah (`/?new=1`); aksi New task/issue memerlukan hoisting modal → tercatat di backlog |
+| U3 | Low-Medium | CommandPalette hanya navigasi, tidak ada aksi; PRD G-1 hanya mewajibkan navigasi | **DIPERBAIKI**: aksi "New project" (`/?new=1`) + 9 aksi create per-entitas saat berada di dalam proyek via deep-link read-once `?tab=X&new=[value]` (`useNewParam`); viewer tidak melihat command create (lihat Batch 9) |
 | U4 | Low | Arrow ←/→ pada task card memindah status/milestone tanpa konfirmasi/undo | **CATATAN**: perilaku dipertahankan + hint visual ditambah (edit langsung adalah nilai inti autosave; undo penuh = fitur terpisah di backlog) |
 | U5 | Low | Shortcut `n` (new task) tidak terlihat di UI | **DIPERBAIKI**: hint "← → move · n new task" di toolbar board |
 | U6 | Low | Urutan priority select (low→urgent) vs StatsPage (urgent→low) tidak konsisten | **DIPERBAIKI**: satu sumber `TASK_PRIORITY_ORDER` di `labels.ts`, dipakai TaskModal, NewTaskModal, StatsPage |
@@ -258,11 +258,27 @@ Permintaan: "update semua doc, project bukan lagi self-hosted web" + penggunaan 
 
 ---
 
+## Batch 9 — Command palette: aksi create per entitas (M15)
+
+Permintaan: "di command pallete hanya bisa create projek" — palette hanya punya aksi "New project"; scope yang dipilih: **"Semua yang bisa create"** (9 entitas). Batch ini mencatat desain; implementasi code M15 T1–T5/T7 menyusul.
+
+- **Keputusan**: pola deep-link read-once `?tab=X&new=[value]` (precedent `DashboardPage ?new=1` + `useEntityDeepLink`). Hook baru `app/src/hooks/useNewParam.ts` membaca `new`, memicu callback sekali, lalu membersihkan param (`replace`). Palette (global, di luar ProjectContext) mendeteksi project aktif via `matchPath('/project/:projectId')`; command create hanya tampil di dalam project + gate role viewer (`role !== 'viewer'`).
+- **9 command**: New task (`?tab=board&new=1`), New issue (`?tab=issues&new=1`), New test case (`?tab=tests&new=1`), New decision (`?tab=decisions&new=1`), New milestone (`?tab=releases&new=1`), New tech entry (`?tab=stack&new=1`), New API collection (`?tab=api&new=1`), New API endpoint (`?tab=api&new=endpoint` — ApiPage punya dua state create, dipisah via nilai param). *(Catatan M16: entitas Notes dihapus — command New note tidak jadi dibangun.)*
+- **Tab wiring**: tiap halaman menambah `useNewParam` (gated `canEdit`) — BoardPage `setNewTaskAt({})`, IssuesPage/TestsPage `setCreating(true)`, DecisionsPage/ReleasesPage `setOpenNew(true)`, StackPage `setCreating(true)`, ApiPage dual (collection/endpoint). *(NotesPage tidak ada lagi sejak M16.)*
+- **Integrasi M14**: FlowchartsTab (M14 T4) ikut membaca `new=1` + command "New flowchart" (M15 T5, blocked by M14 T4).
+- **Resolusi backlog**: #2 (DevHub 4defd8dd) dan #3 (0345ac4c) — close-out di sini; discoverability via palette kosong menampilkan semua command; tanpa footer-hint baru.
+- **File (rencana)**: `app/src/hooks/useNewParam.ts` (baru), `app/src/components/CommandPalette.tsx`, 7 halaman tab (board/issues/tests/decisions/releases/stack/api), `DocsPage.tsx` (tip Ctrl+K), `technical-design.md`, docs ini.
+
+### Verifikasi (batch ini)
+- Docs-only: tidak ada perubahan code pada batch ini (implementasi M15 T1–T7 menyusul); lint/build tidak dijalankan karena tidak ada file code berubah.
+
+---
+
 ## Backlog (tidak dikerjakan dalam sesi ini)
 
 1. **Undo untuk perubahan board** (arrow move / drag) — edit langsung + autosave = tidak ada undo; pertimbangkan snapshot ringan atau shortcut `Ctrl+Z` di level project.
-2. **Aksi New task / New issue di CommandPalette** — butuh hoisting modal (task/issue memerlukan konteks project; bisa buka ke `/project/:id?tab=board&new=1`).
-3. **Penemuan hotkey**: hint board sudah ada; evaluasi daftar hotkey global di palette footer ("n new task" dsb) bila shortcut bertambah.
+2. **Aksi New task / New issue di CommandPalette** — butuh hoisting modal (task/issue memerlukan konteks project; bisa buka ke `/project/:id?tab=board&new=1`). → **SELESAI (M15)**: 9 aksi create per entitas via deep-link read-once `?tab=X&new=[value]` (lihat Batch 9); backlog DevHub 4defd8dd ditutup.
+3. **Penemuan hotkey**: hint board sudah ada; evaluasi daftar hotkey global di palette footer ("n new task" dsb) bila shortcut bertambah. → **SELESAI (M15)**: DocsPage tip Ctrl+K diperbarui; palette kosong menampilkan semua command (discoverability alami); tanpa footer-hint baru (backlog DevHub 0345ac4c ditutup).
 4. **Chunk splitting** (>500 kB) — di luar lingkup UI/UX, tercatat untuk performa.
 5. **Mode baca di workbench API**: pola read-mode modal detail belum merata ke editor API (Edit/Preview toggle sudah ada di sana, tapi preview adalah render JSON, bukan tampilan read yang rapi).
 6. **Keamanan: MCP API key ter-commit di `opencode.json:8`** (commit `aac5a5d`) — key `devhub_CnEa…` asli; catatan saja per keputusan user, rekomendasi: revoke + regenerate + `.gitignore` sebelum menambah config baru.

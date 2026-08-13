@@ -6,6 +6,24 @@ import { useFocusTrap } from '../hooks/useFocusTrap';
 
 type ModalWidth = 'sm' | 'md' | 'lg';
 
+let scrollLockDepth = 0;
+let scrollRestore: string | null = null;
+
+function lockBodyScroll() {
+  if (scrollLockDepth === 0) scrollRestore = document.body.style.overflow;
+  scrollLockDepth += 1;
+  document.body.style.overflow = 'hidden';
+}
+
+function unlockBodyScroll() {
+  scrollLockDepth -= 1;
+  if (scrollLockDepth <= 0) {
+    scrollLockDepth = 0;
+    document.body.style.overflow = scrollRestore ?? '';
+    scrollRestore = null;
+  }
+}
+
 interface ModalProps {
   open: boolean;
   title: string;
@@ -28,11 +46,10 @@ export function Modal({ open, title, onClose, children, footer, width = 'md' }: 
       if (e.key === 'Escape') onCloseRef.current();
     };
     document.addEventListener('keydown', onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    lockBodyScroll();
     return () => {
       document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
+      unlockBodyScroll();
     };
   }, [open, dialogRef]);
 

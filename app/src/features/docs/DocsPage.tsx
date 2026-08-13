@@ -84,7 +84,8 @@ export function DocsPage() {
               <p className="docs-step-note">
                 Tip: press <kbd className="docs-kbd">Ctrl</kbd> <kbd className="docs-kbd">K</kbd> anywhere
                 to search commands and projects, or press <kbd className="docs-kbd">?</kbd> to open the
-                palette.
+                palette. Inside a project, the palette also offers create actions for every entity — new
+                task, issue, test case, decision, milestone, tech entry, API collection or endpoint.
               </p>
             </section>
           </div>

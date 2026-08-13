@@ -70,7 +70,7 @@ This document specifies the technical architecture for DevHub V1: system context
 | `Layout` | Sidebar + content shell |
 | `Dashboard` | Project cards: progress, open issues, outdated deps, nearest milestone |
 | Feature tabs | `Board`, `Issues`, `TestCases`, `Stack`, `Schema` (with ERD), `Decisions`, `Releases`, `Stats` |
-| `CommandPalette` | Ctrl+K global command palette + keyboard shortcuts |
+| `CommandPalette` | Ctrl+K global command palette + keyboard shortcuts + create actions (deep-link `?tab=X&new=1`) |
 | `components/` | Design-system primitives: Button, Input, Badge, Modal, Skeleton, EmptyState, Toast |
 | `styles/` | `tokens.css` (CSS variables), `global.css` |
 
