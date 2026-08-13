@@ -1,6 +1,6 @@
 # Terms of Service — DevHub
 
-**Effective date:** *(to be set at Phase 2 public deploy)*
+**Effective date:** 2026-08-13
 **Last updated:** 2026-08-09
 
 ---

@@ -3,7 +3,7 @@
 - **Tanggal**: 2026-08-13
 - **Lingkup**: `app/src` (React 19 + Vite + TypeScript) — komponen, halaman, state, styling, aksesibilitas
 - **Metode**: audit statis 4 peran berurutan — UI Designer → UX Researcher → UX Architect → UI Finish-Gate Reviewer; verifikasi lint (`oxlint`) + build (`tsc -b && vite build`) sebelum/sesudah
-- **Status**: selaras dengan PRD (`docs/01-project/prd.md`) — dark-only, keyboard-first, WCAG AA, self-hosted solo dev
+- **Status**: selaras dengan PRD (`docs/01-project/prd.md`) — dark-only, keyboard-first, WCAG AA, hosted SaaS (lihat [ADR-021](02-architecture/adr.md#adr-021))
 
 ## Ringkasan eksekutif
 
@@ -223,6 +223,41 @@ Permintaan: "redesign tab about, pastikan edit prd itu modal" (tingkat: full red
 
 ---
 
+## Batch 7 — Markdown di semua input PRD (Edit | Preview per field)
+
+Permintaan: "di about, buat fitur higligh perpoint" → diklarifikasi menjadi dukungan markdown penuh di input PRD, tanpa perubahan storage (PRD tetap teks di `projects.prd` jsonb; markdown hanya lapisan tampilan; MCP/AI membaca teks mentah).
+
+- **`lib/markdown.tsx` (baru)** — `parseLines(text)` mengelompokkan baris menjadi blok: `-` / `*` / `•` → `<ul>`, `1.` / `1)` → `<ol>` (penomoran lanjut), lainnya → `<p>`; baris kosong memisahkan; grup list sejenis berturut-turut digabung. `renderInline(text)` memformat `**bold**`, `_italic_`, `` `code` `` — React escaping otomatis, tanpa `dangerouslySetInnerHTML`. `MarkdownBlocks` merender blok sebagai `.md-blocks`/`.md-list`.
+- **`EditPrdModal.tsx`** — keenam field (Description + 5 section PRD) kini punya toggle mini **Edit | Preview** di kanan label (`.md-toggle`, komponen lokal `PrdField`; tooltip: `Markdown: "- bullet, 1. numbered, **bold**, _italic_, code`"); mode Preview merender `MarkdownBlocks` dalam kotak `.md-preview` ("Nothing to preview." bila kosong); hint eksplisit di atas form; `dirty`/alur save tidak berubah.
+- **`AboutPage.tsx`** — body kelima kartu PRD dirender markdown (kosong → "Not set yet."); description hero diformat inline (`renderInline`).
+- **global.css** — `.field-label-row`, `.md-toggle`/`.md-toggle-btn(.active)` (mini segmented, active accent-dim/accent), `.md-preview`/`.md-preview-empty`, `.md-blocks`, `.md-list` (`::marker` accent), `.md-code`.
+- **MCP** — deskripsi tool `update_prd` ditambah: "All text fields support markdown: "- bullet, 1. numbered, **bold**, _italic_, `code`", …" (agent AI mendapat tahu; data tetap teks mentah); dokumen `/docs/mcp` mendapat Callout markdown di step "Get your project ID".
+- Catatan: `markdown.tsx` menambah 2 warning oxlint react(only-export-components) (pola sama dengan 6 warning existing di state·context).
+
+### Verifikasi (batch ini)
+- `npm run lint -w app` — bersih dari error (8 warning only-export-components, 2 baru di markdown.tsx)
+- `npm run build -w app` — tsc + vite sukses (696.40 kB chunk / gzip 181.86 kB; 1 warning chunk >500kB pre-existing)
+- `npm run build -w server` — tsc sukses
+
+---
+
+## Batch 8 — Reposisi produk ke SaaS (copy & dokumentasi)
+
+Permintaan: "update semua doc, project bukan lagi self-hosted web" + penggunaan skill Brand Guardian (audit copy produk) dan Visual Storyteller (narasi/copy). Produk kini **hosted SaaS universal** (tanpa segmentasi persona di copy user-facing; fokus fitur & masalah yang dijawab); ADR lama tidak diedit.
+
+- **Keputusan**: ADR-021 "Product positioning: hosted SaaS" — supersedes ADR-001, menegaskan ADR-010; glossary: *hosted SaaS / operator / workspace*.
+- **Copy user-facing** (universal, tanpa "solo developers"/"small teams"): AuthPage brand panel ("The memory of your projects." + "everything your project needs, in one workspace." + "Your data stays yours — export or import anytime."), `index.html` meta, DocsPage overview ("the technical memory of what you build"), McpDocsPage ("hosted endpoint", "DevHub is reachable").
+- **README**: hero 2 blockquote (fitur + data portability), umbrella "DevHub is a hosted, multi-user project-management workspace. Self-hosting is not supported; data portability is guaranteed via JSON export/import.", roadmap tabel Phase 1–2 Done, footer "built by developers, for developers".
+- **PRD/charter/roadmap**: status "Active", G-3 "register/login … so that my data is private", Availability "Hosted SaaS; no SLA beyond operator's uptime", stakeholder "Users of the service", open question #3 Resolved, tabel keputusan charter §11 ditandai Superseded (Build to sell? Yes — lihat ADR-021).
+- **Arsitektur/ops/compliance**: security-design (C1 "Only authorized members", password reset "contact the operator"), api-guide (team-scoped), technical-design (komentar authorId), monitoring (privacy-first philosophy), incident-response (operator on-call), privacy & ToS (effective date 2026-08-13, "small hosted SaaS service", "managed hosting platform", MCP "connects only at your configuration").
+
+### Verifikasi (batch ini)
+- `npm run lint -w app` — bersih (8 warning: 6 pre-existing react(only-export-components) + 2 markdown.tsx)
+- `npm run build -w app` — tsc + vite sukses (696.44 kB chunk / gzip 181.86 kB)
+- Server tidak berubah pada batch ini (copy hanya di app + docs).
+
+---
+
 ## Backlog (tidak dikerjakan dalam sesi ini)
 
 1. **Undo untuk perubahan board** (arrow move / drag) — edit langsung + autosave = tidak ada undo; pertimbangkan snapshot ringan atau shortcut `Ctrl+Z` di level project.
@@ -230,3 +265,4 @@ Permintaan: "redesign tab about, pastikan edit prd itu modal" (tingkat: full red
 3. **Penemuan hotkey**: hint board sudah ada; evaluasi daftar hotkey global di palette footer ("n new task" dsb) bila shortcut bertambah.
 4. **Chunk splitting** (>500 kB) — di luar lingkup UI/UX, tercatat untuk performa.
 5. **Mode baca di workbench API**: pola read-mode modal detail belum merata ke editor API (Edit/Preview toggle sudah ada di sana, tapi preview adalah render JSON, bukan tampilan read yang rapi).
+6. **Keamanan: MCP API key ter-commit di `opencode.json:8`** (commit `aac5a5d`) — key `devhub_CnEa…` asli; catatan saja per keputusan user, rekomendasi: revoke + regenerate + `.gitignore` sebelum menambah config baru.

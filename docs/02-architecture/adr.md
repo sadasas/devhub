@@ -191,7 +191,7 @@
   - Route `/p/:projectId` in the app renders a read-only shell (board, issues, stack, milestones, about) outside the auth gate; the gate stays for every other route.
   - Visibility toggling is `PATCH /api/projects/:projectId { visibility }`, restricted to owner/admin (`assertAdmin`); the ProjectPage header shows the toggle and a copy-public-link button.
 - **Consequences:** Positive — shareable public URLs with zero runner overhead. Negative — anyone with the link can read public project state (intended); MCP and member REST access are unchanged; prod hosting needs SPA fallback for `/p/*` too (Phase 2).
-- **Alternatives considered:** Reusing `/project/:projectId` for anonymous viewers (rejected: couples public shell with the member flow); a per-project secret token (rejected: overhead without real gain for a self-hosted tool); read-only team invites (rejected: still requires accounts).
+- **Alternatives considered:** Reusing `/project/:projectId` for anonymous viewers (rejected: couples public shell with the member flow); a per-project secret token (rejected: overhead without real gain for a hosted SaaS tool); read-only team invites (rejected: still requires accounts).
 
 ### ADR-019
 **API docs: collections + endpoints with OpenAPI import/export**
@@ -206,6 +206,18 @@
   - **Documentation only:** no request sending or mocking — Postman-style runner explicitly out of scope.
 - **Consequences:** Positive — lifecycle completes (schema defines the model, tasks build the API, endpoints document it); exports feed Swagger UI/Redoc/Postman; agents can read and document the API via MCP. Negative — one new UI dependency (`yaml`); imported documents are reduced (paths keep example values only, not the full schema objects).
 - **Alternatives considered:** External tool (Postman/Redoc) (rejected: extra account, duplicate state, no agent access); request runner UI (rejected: large scope, contradicts DEF-002 rationale); storing the raw OpenAPI blob (rejected: not queryable per-endpoint, no MCP granularity).
+
+### ADR-021
+**Product positioning: hosted SaaS**
+
+- **Status:** Accepted (2026-08-13)
+- **Context:** DevHub shipped V1 with a personal-tool positioning — solo developer, self-hosted, monetization explicitly deferred (ADR-001). The product grew multi-user foundations (teams, roles, invites — ADR-010, ADR-017), public registration is live, and projects can be shared publicly. The "self" positioning no longer matches the running service and contradicts user-facing copy ("local-first", "self-hosted").
+- **Decision:**
+  - DevHub is positioned as a **hosted, multi-user SaaS** project-management workspace for software projects — from solo projects to small teams.
+  - **Self-hosting is not supported**; data portability is guaranteed via full project JSON export/import.
+  - All user-facing copy and documentation use the SaaS glossary: *hosted SaaS*, *operator* (service owner), *workspace*. The terms *self-hosted*, *local-first*, and *single-user* no longer describe the product.
+- **Consequences:** Positive — one coherent story across login page, README, docs, and legal text (ToS/Privacy); supersedes the self-hosted assumptions of ADR-001. Negative — user-data promises now sit on the operator's infrastructure: privacy policy and ToS §5 (data ownership) become load-bearing; requires operational discipline (backups, restore runbook).
+- **Alternatives:** Keep self-hosted positioning (rejected: contradicts the running service and public sharing); hybrid self-hosted + SaaS (rejected: doubles the ops surface for an early-stage product); persona-specific "solo dev" (rejected: the product supports teams; copy should not narrow it).
 
 ---
 

@@ -2882,6 +2882,94 @@ input[type='checkbox'] {
 }
 
 /* ============================================================
+   Markdown (PRD editor + About) 
+   ============================================================ */
+
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.md-toggle {
+  display: inline-flex;
+  padding: 2px;
+  background: var(--bg-inset);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+}
+
+.md-toggle-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.md-toggle-btn:hover {
+  color: var(--text-secondary);
+}
+
+.md-toggle-btn.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.md-preview {
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-input);
+  background: var(--bg-inset);
+  padding: 10px 12px;
+  min-height: 42px;
+  font-size: 13.5px;
+}
+
+.md-preview-empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.md-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.md-blocks p {
+  margin: 0;
+}
+
+.md-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.md-list li::marker {
+  color: var(--accent);
+}
+
+.md-code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--bg-inset);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  padding: 1px 4px;
+}
+
+/* ============================================================
    Public view — read-only project sharing
    ============================================================ */
 

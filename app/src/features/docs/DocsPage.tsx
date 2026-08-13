@@ -27,7 +27,7 @@ export function DocsPage() {
       <header className="page-header">
         <div>
           <h1 className="page-title">Docs</h1>
-          <p className="page-subtitle">Everything you need to run DevHub, from integrations to the API.</p>
+          <p className="page-subtitle">Everything you need to get the most out of DevHub, from integrations to the API.</p>
         </div>
       </header>
 
@@ -38,17 +38,17 @@ export function DocsPage() {
             <section id="docs-overview" className="docs-section">
               <h2 className="docs-section-title">Overview</h2>
               <p className="docs-step-desc">
-                DevHub is a self-hosted project management tool built for solo developers. It keeps your
-                tasks, issues, decisions, and schema in one place, and lets AI coding agents read and
-                update projects through MCP or the REST API. Projects can also be shared publicly as a
-                read-only view at <code className="inline-code">/p/:projectId</code> — no login required.
+                DevHub is a project-management workspace for software projects. It keeps your tasks,
+                issues, decisions, and schema in one place — the technical memory of what you build —
+                and lets AI coding agents read and update projects through MCP or the REST API.
+                Projects can also be shared publicly as a read-only view at <code className="inline-code">/p/:projectId</code> — no login required.
               </p>
             </section>
 
             <section id="docs-mcp" className="docs-section">
               <h2 className="docs-section-title">MCP Integration</h2>
               <p className="docs-step-desc">
-                Connect opencode and other AI agents to your DevHub server so they can create tasks, file
+                Connect opencode and other AI agents to your DevHub workspace so they can create tasks, file
                 issues, and track decisions directly from your editor.
               </p>
               <button type="button" className="docs-card" onClick={() => navigate('/docs/mcp')}>

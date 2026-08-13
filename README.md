@@ -1,8 +1,12 @@
 # DevHub
 
-> Developer-grade project management for programming projects. Track tasks, bugs, test cases, your tech stack, database schema, architectural decisions, releases, and velocity — all in one local-first tool built for a single developer.
+> Developer-grade project management for programming projects. Track tasks, bugs, test cases, your tech stack, database schema, architectural decisions, releases, and velocity — everything your project needs, in one workspace.
+
+> **Your data stays yours.** Export or import the full state of any project as JSON, anytime.
 
 **Status:** In development (Milestone 7, v0.2.0 target). See [Roadmap](docs/01-project/roadmap.md).
+
+**DevHub is a hosted, multi-user project-management workspace. Self-hosting is not supported; data portability is guaranteed via JSON export/import.**
 
 ---
 
@@ -23,7 +27,7 @@
 
 ## Overview
 
-DevHub is a project management application designed specifically for **programming projects** and **solo developers**. Unlike general-purpose PM tools (Linear, Jira, ClickUp) that assume teams, DevHub captures the *technical memory* of a project:
+DevHub is a project management application designed specifically for **programming projects**. Unlike general-purpose PM tools (Linear, Jira, ClickUp) that assume teams, DevHub captures the *technical memory* of a project:
 
 - **Tech Stack Ledger** — what versions of what dependencies you use, and when a major upgrade is due.
 - **Database Schema Manager** — define tables, columns, and relations, with a visual ERD and schema versioning.
@@ -31,7 +35,7 @@ DevHub is a project management application designed specifically for **programmi
 - **Decision Log (ADR)** — why you chose this library or architecture, so you remember in 6 months.
 - **Dev-style tracking** — tasks with estimates, issues with reproduction steps, test case checklists, milestones with changelogs.
 
-**Target user:** solo developer building one or more side projects, wanting a lightweight but *technically deep* tracker.
+**Target user:** developers building software projects who want a lightweight but *technically deep* tracker.
 
 ---
 
@@ -180,8 +184,8 @@ MCP keys are scoped to the user who created them: agents can only access project
 | Phase | Scope | Status |
 |---|---|---|
 | Phase 0 | Planning, documentation suite | Done |
-| Phase 1 | V1 feature set (local-first, single-user) | Done |
-| Phase 2 | Public deploy, auth hardening, V2 features | Planned |
+| Phase 1 | V1 feature set | Done |
+| Phase 2 | Public deploy, auth hardening | Done |
 | Phase 3 | Collaboration (teams, invites, roles), public sharing (`/p/:projectId`), in-app docs hub | In progress |
 | Phase 4 | Real-time sync, PWA | Planned |
 
@@ -189,8 +193,8 @@ MCP keys are scoped to the user who created them: agents can only access project
 
 ## License
 
-TBD. Intended: open source (MIT) with sponsored development, or proprietary — decision deferred to Phase 2. See [Project Charter — Licensing](docs/01-project/project-charter.md).
+TBD. Intended: open source (MIT) with sponsored development, or proprietary — decision deferred. See [Project Charter — Licensing](docs/01-project/project-charter.md).
 
 ---
 
-*DevHub — built by a solo developer, for solo developers. Data stays yours.*
+*DevHub — built by developers, for developers. Your data stays yours.*

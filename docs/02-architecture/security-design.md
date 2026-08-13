@@ -14,7 +14,7 @@
 
 | Objective | Description |
 |---|---|
-| C1 — Confidentiality | Only the owner can read project data |
+| C1 — Confidentiality | Only authorized members can read project data |
 | C2 — Integrity | State changes are validated; no unauthorized mutation |
 | C3 — Availability | Auth abuse mitigated; health monitoring |
 | C4 — Privacy | Minimal data collection; no third-party tracking |
@@ -42,7 +42,7 @@
 
 - Algorithm: bcryptjs, cost factor **12** (≥ 10 minimum enforced in code).
 - Policy: min length 8, max 72 (bcrypt input limit); email normalized (lowercase, trimmed) + unique constraint.
-- No password reset in V1 (owner-only; note in ToS). Password change endpoint added in Phase 2.
+- No self-service password reset yet (contact the operator; noted in ToS).
 
 ### 3.2 JWT session
 
@@ -69,7 +69,7 @@
 - Middleware `requireAuth` verifies JWT (signature + expiry), attaches `req.userId`.
 - **Every** project query includes `WHERE id = $1 AND owner_id = $2`. No cross-user data access.
 - `PUT /state`: payload validated by zod schema of the full state model; rejects unknown keys, wrong types, dangling references (`blockedBy` pointing to missing task, etc.).
-- No horizontal privilege escalation paths in V1 (single owner per project).
+- No horizontal privilege escalation paths (project members are gated by role).
 
 ---
 

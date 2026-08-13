@@ -53,7 +53,7 @@ const TOC_ITEMS: DocsTocItem[] = [
 
 const PREREQS = [
   { strong: 'opencode is installed', desc: 'This guide uses opencode, but any MCP client works with the same server.' },
-  { strong: 'The DevHub server is running', desc: 'Check /api/health returns ok before continuing.' },
+  { strong: 'DevHub is reachable', desc: 'Check /api/health returns ok before continuing.' },
   { strong: 'You are logged in', desc: 'API keys are per-user, so you need an active account.' },
 ];
 
@@ -148,6 +148,12 @@ export function McpDocsPage() {
                   want the agent to manage — its ID is shown at the top of the page, next to the project
                   name, with a copy button.
                 </p>
+                <Callout>
+                  The <code className="inline-code">update_prd</code> tool supports markdown in its text
+                  fields: <code className="inline-code">-</code> bullets, <code className="inline-code">1.</code>{' '}
+                  numbered lists, <strong>bold</strong>, <em>italic</em>, and{' '}
+                  <code className="inline-code">`code`</code> — rendered on the project About tab.
+                </Callout>
               </div>
             </section>
 
@@ -174,8 +180,7 @@ export function McpDocsPage() {
                 </p>
                 <CodeBlock lang="JSON" file="opencode.json" code={OPENCODE_CONFIG} />
                 <Callout>
-                  For production, point the url at your deployed server, e.g.
-                  https://devhub.example.com/mcp.
+                  For production, use the hosted endpoint, e.g. https://devhub.example.com/mcp.
                 </Callout>
               </div>
             </section>
@@ -229,7 +234,7 @@ export function McpDocsPage() {
                       <span className="row-title-text">Cannot connect</span>
                     </div>
                     <div className="data-row-sub">
-                      The DevHub server is not running. Start it and check /api/health returns ok.
+                      DevHub is not reachable. Make sure the service is up and /api/health returns ok.
                     </div>
                   </div>
                 </div>

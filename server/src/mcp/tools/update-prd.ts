@@ -17,7 +17,7 @@ export function registerUpdatePrd(server: McpServer): void {
     {
       title: 'Update project PRD',
       description:
-        'Edit the product brief (PRD) of a DevHub project: purpose, goals, features, scope or out-of-scope. Only the sections you provide change; pass an empty string to clear a section. Read the current PRD first with project_state.',
+        'Edit the product brief (PRD) of a DevHub project: purpose, goals, features, scope or out-of-scope. Only the sections you provide change; pass an empty string to clear a section. Read the current PRD first with project_state. All text fields support markdown: "- bullet, 1. numbered, **bold**, _italic_, `code`", which the app renders on the About tab.',
       inputSchema,
     },
     async (args) => {

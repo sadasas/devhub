@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Document status** | Draft (Phase 0) |
+| **Document status** | Active |
 | **Owner** | Project Owner |
 | **Last updated** | 2026-08-09 |
 
@@ -12,14 +12,14 @@
 
 | Phase | Name | Goal | Status | Est. duration |
 |---|---|---|---|---|
-| 0 | Planning & Documentation | Full docs suite + locked scope | **Current** | 1 week |
-| 1 | V1 Build | Working app for personal use | Next | 4–6 weeks (part-time) |
-| 2 | Public Deploy | Multi-user hosting + hardening | Planned | ~2 weeks |
-| 3 | Collaboration & PWA | Sync, real-time, offline | Planned | TBD |
+| 0 | Planning & Documentation | Full docs suite + locked scope | **Done** | 1 week |
+| 1 | V1 Build | Working app | Done | 4–6 weeks (part-time) |
+| 2 | Public Deploy | Multi-user hosting + hardening | Done | ~2 weeks |
+| 3 | Collaboration & PWA | Sync, real-time, offline | In progress | TBD |
 
 ---
 
-## 2. Phase 0 — Planning (Current)
+## 2. Phase 0 — Planning (Done)
 
 **Deliverables:**
 - [x] Market research & competitor analysis (Linear, Jira, GitHub Projects, ClickUp, Height, Shortcut, Plane)
@@ -31,7 +31,7 @@
 
 ---
 
-## 3. Phase 1 — V1 Build
+## 3. Phase 1 — V1 Build (Done)
 
 ### 3.1 Milestones
 
@@ -50,7 +50,7 @@ Projects · Kanban with `blockedBy` dependencies · Issues · Test cases · Tech
 
 ---
 
-## 4. Phase 2 — Public Deploy (Planned)
+## 4. Phase 2 — Production Service (Shipped)
 
 **Drivers:** Hosting decision (Railway / Render / VPS — currently TBD), production Postgres, HTTPS domain, rate-limit tuning, backup automation (cron pg_dump), monitoring (health checks, logging, alerting), privacy policy + ToS publication (already drafted in `docs/06-compliance/`), account deletion flow verification.
 
@@ -92,7 +92,7 @@ Every item intentionally postponed, with rationale. Items cannot return without 
 | DEF-011 | Real-time collaboration | V1 | Needs CRDT/WebSocket; architecture prepared | V3 |
 | DEF-012 | In-app AI chat UI | V1 | AI integration via MCP tools only (locked decision) | Never (by design) |
 | DEF-013 | Integrations (GitHub import, Discord/Slack webhooks, ntfy, Sentry, WakaTime, WebDAV backup, Todoist sync, Ollama) | V1 | Core first; integration layer kept separate from core data | V3+ |
-| DEF-014 | SaaS pricing/per-seat selling | — | Rejected vs Linear/Jira; potential: one-time desktop purchase (Tauri) or OSS+sponsors | Phase 2 decision |
+| DEF-014 | SaaS pricing/per-seat selling | — | Pricing model TBD for the hosted SaaS; free tier first, per-seat revisited later | Deferred |
 
 ---
 

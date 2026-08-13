@@ -46,16 +46,16 @@ export function AuthPage() {
           <Logo size={20} />
           <span>DevHub</span>
         </div>
-        <div className="auth-brand-copy">
+<div className="auth-brand-copy">
           <h1>The memory of your projects.</h1>
           <p>
-            Tasks, bugs, tech stack, database schema, ADRs and releases — one local-first hub for
-            solo developers.
+            Tasks, bugs, tech stack, database schema, ADRs and releases — everything your project
+            needs, in one workspace.
           </p>
         </div>
         <p className="auth-brand-foot">
-          <TerminalWindow size={12} weight="duotone" /> Built for solo devs. Self-hosted. Your data,
-          your rules.
+          <TerminalWindow size={12} weight="duotone" /> Your data stays yours — export or import
+          anytime.
         </p>
       </aside>
 

@@ -85,7 +85,7 @@ POST /api/projects
 201 → { "id": "p-1", "ownerId": "a1b2", "name": "DevHub", "description": "...", "status": "active", "createdAt": "...", "updatedAt": "..." }
 ```
 
-**Security:** every project is owner-scoped; accessing another user's project returns `404` (not `403`, to avoid resource enumeration).
+**Security:** every project is team-scoped; accessing a project you are not a member of returns `404` (not `403`, to avoid resource enumeration).
 
 ---
 

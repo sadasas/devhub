@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| **Document status** | Draft (Phase 0) |
+| **Document status** | Active |
 | **Version** | 1.0 |
 | **Owner** | Project Owner |
 | **Last updated** | 2026-08-09 |
@@ -18,7 +18,7 @@ This PRD defines the functional and non-functional requirements for DevHub V1. I
 
 ### 1.2 Product Summary
 
-DevHub is a web-based project management application for programming projects used by a single developer. It combines lightweight task/issue tracking with developer-specific modules — tech stack ledger, database schema + ERD, ADR decision log, test cases, and velocity stats — into one self-hosted application.
+DevHub is a hosted SaaS project management application for programming projects. It combines lightweight task/issue tracking with developer-specific modules — tech stack ledger, database schema + ERD, ADR decision log, test cases, and velocity stats — into one hosted application. Self-hosting is not supported; data portability is guaranteed via JSON export/import.
 
 ### 1.3 Personas
 
@@ -106,7 +106,7 @@ DevHub is a web-based project management application for programming projects us
 |---|---|---|
 | G-1 | As a Solo Dev, I can open a command palette with Ctrl+K, so that I can navigate and create without mouse. | P0 |
 | G-2 | As a Solo Dev, I can use keyboard shortcuts for common actions. | P0 |
-| G-3 | As a Solo Dev, I can register/login with email + password, so that my data is private when deployed. | P0 |
+| G-3 | As a user, I can register/login with email + password, so that my data is private. | P0 |
 
 ### 2.11 AI Agent (MCP) (M)
 
@@ -194,7 +194,7 @@ Base { id: string (UUID), createdAt: ISO, updatedAt: ISO, authorId?: string }
 | Category | Requirement | Acceptance criteria |
 |---|---|---|
 | **Performance** | UI feels instant for solo-scale data (< 5k tasks) | Interactions respond < 100ms; initial load < 2s on localhost |
-| **Availability** | Self-hosted; no SLA beyond owner's uptime | Health endpoint at `/api/health` |
+| **Availability** | Hosted SaaS; no SLA beyond operator's uptime | Health endpoint at `/api/health` |
 | **Security** | Passwords never stored in plaintext | bcrypt (cost ≥ 10); JWT httpOnly+Secure cookies; zod validation on all inputs; rate limit auth endpoints |
 | **Privacy** | No third-party tracking/analytics in V1 | No external network calls from UI except API |
 | **Accessibility** | WCAG AA for all interactive elements | Contrast ≥ 4.5:1 body; keyboard operable; `prefers-reduced-motion` honored |
@@ -227,9 +227,9 @@ See [Charter §5.2](project-charter.md#52-out-of-scope-deferred). Highlights: Gi
 
 | # | Question | Owner | Status |
 |---|---|---|---|
-| 1 | Hosting platform (Railway / Render / VPS)? | Owner | Deferred to Phase 2 |
-| 2 | License (MIT / proprietary)? | Owner | Deferred to Phase 2 |
-| 3 | Public registration open or invite-only? | Owner | Default: open, revisit at Phase 2 |
+| 1 | Hosting platform (Railway / Render / VPS)? | Owner | Deferred |
+| 2 | License (MIT / proprietary)? | Owner | Deferred |
+| 3 | Public registration open or invite-only? | Owner | Resolved: open registration (live on Auth page) |
 | 4 | Domain name? | Owner | Deferred |
 
 ---

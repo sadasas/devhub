@@ -1,6 +1,6 @@
 # Privacy Policy — DevHub
 
-**Effective date:** *(to be set at Phase 2 public deploy)*
+**Effective date:** 2026-08-13
 **Last updated:** 2026-08-09
 
 ---
@@ -9,7 +9,7 @@
 
 DevHub ("the Service", "we", "our") provides project management tools for programming projects. This Privacy Policy explains what data we collect, why we collect it, how it is used, and the rights you have over it.
 
-The Service is operated by the DevHub project owner ("the Operator"). This is a small, self-hosted service; our philosophy is **minimal data collection and maximal data ownership by the user**.
+The Service is operated by the DevHub project owner ("the Operator"). This is a small hosted SaaS service; our philosophy is **minimal data collection and maximal data ownership by the user**.
 
 ---
 
@@ -47,7 +47,7 @@ All content you create inside the Service: projects, tasks, issues, test cases, 
 
 - To operate, secure, and improve the Service.
 - To respond to abuse or legal process (limited, see §7).
-- We do **not** use your project data to train AI models, and we do not share it with AI providers. The optional MCP integration connects only at your configuration, using your API key, to the server you point it at.
+- We do **not** use your project data to train AI models, and we do not share it with AI providers. The optional MCP integration connects only at your configuration, using your API key.
 
 ---
 
@@ -63,7 +63,7 @@ We use one functional cookie only. No advertising or tracking cookies. You may b
 
 ## 5. Data Storage & Security
 
-- Data is stored on servers operated by the chosen hosting provider (VPS or managed platform; location listed in the service status page).
+- Data is stored on servers operated by the chosen managed hosting platform (location listed in the service status page).
 - Passwords are hashed with bcrypt; sessions use signed JWTs; connections are encrypted with HTTPS.
 - While we take reasonable technical and organizational measures, **no transmission or storage is 100% secure**; the Service is operated by a small team, not a large enterprise.
 

@@ -6,6 +6,7 @@ import { formatDate } from '../../lib/utils';
 import { PROJECT_STATUS, TEAM_ROLE } from '../../lib/labels';
 import { computeProjectStats } from '../../lib/stats';
 import { PRD_SECTIONS } from '../../lib/prd';
+import { MarkdownBlocks, renderInline } from '../../lib/markdown';
 import { Button } from '../../components/Button';
 import { Badge } from '../../components/Badge';
 import { InlineError } from '../../components/InlineError';
@@ -60,8 +61,8 @@ export function AboutPage({ project }: { project: Project }) {
       </div>
 
       <div className="about-hero">
-        <p className={`about-description${project.description ? '' : ' about-description-empty'}`}>
-          {project.description || 'No description yet.'}
+        <p className={`about-description${project.description.trim() ? '' : ' about-description-empty'}`}>
+          {project.description.trim() ? renderInline(project.description) : 'No description yet.'}
         </p>
         <p className="about-meta">
           <span className="about-meta-chip">Team: {project.teamName}</span>
@@ -94,9 +95,13 @@ export function AboutPage({ project }: { project: Project }) {
                 <s.icon size={14} weight="bold" aria-hidden="true" />
                 <span className="about-card-title">{s.label}</span>
               </h3>
-              <p className={`about-card-body${value ? '' : ' about-card-empty'}`}>
-                {value || 'Not set yet.'}
-              </p>
+              {value.trim() ? (
+                <div className="about-card-body">
+                  <MarkdownBlocks text={value} />
+                </div>
+              ) : (
+                <p className="about-card-empty">Not set yet.</p>
+              )}
             </section>
           );
         })}

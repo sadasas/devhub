@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| **Document status** | Draft (Phase 0) |
-| **Owner** | Solo developer (Project Owner) |
+| **Document status** | Active |
+| **Owner** | Project Owner (operator) |
 | **Documentation standard** | Enterprise project documentation |
 | **Last updated** | 2026-08-09 |
 | **Related documents** | [PRD](prd.md) · [Roadmap](roadmap.md) · [Technical Design](../02-architecture/technical-design.md) |
@@ -12,15 +12,15 @@
 
 ## 1. Executive Summary
 
-DevHub is a project management application purpose-built for **programming projects** and **single developers**. Where general-purpose tools (Linear, Jira, ClickUp) assume teams and process, DevHub preserves the *technical memory* of a project: tech stack versions, database schema, architectural decisions, test case checklists, and developer-velocity stats.
+DevHub is a project management application purpose-built for **programming projects**. Where general-purpose tools (Linear, Jira, ClickUp) assume teams and process, DevHub preserves the *technical memory* of a project: tech stack versions, database schema, architectural decisions, test case checklists, and developer-velocity stats.
 
-DevHub is developed as a **personal tool first** and doubles as a **portfolio showcase**. Sale or open-sourcing is explicitly deferred; the architecture is designed so both remain possible without rework.
+DevHub is developed as a **hosted SaaS** for software projects of any size — from solo projects to small teams.
 
 ---
 
 ## 2. Vision
 
-> A developer's project memory. Track what you build, why you built it that way, and how fast you build it — without paying for a team-focused SaaS or running a second job of setup.
+> A developer's project memory. Track what you build, why you built it that way, and how fast you build it — without team-focused pricing or self-hosting setup overhead.
 
 **Problem statement:** Existing project management tools ignore the technical layer of software projects. No mainstream tool answers: *"Which dependency is outdated?"*, *"Why did we choose this DB?"*, *"What does our schema look like now?"*, *"Are we faster than last quarter?"*. Solo developers lose this information constantly; DevHub preserves it by design.
 
@@ -35,7 +35,7 @@ DevHub is developed as a **personal tool first** and doubles as a **portfolio sh
 | G1 | Ship a working, usable V1 for personal use | All 8 project tabs functional; zero critical bugs at release |
 | G2 | Capture technical memory | Tech stack, schema, ADRs, test cases all editable and exportable |
 | G3 | Enable AI agent collaboration | MCP server functional; agent can plan tasks and update status |
-| G4 | Zero-ops personal hosting | Docker-based deploy documented; restore from backup verified |
+| G4 | Zero-ops SaaS hosting | Docker-based deploy documented; restore from backup verified |
 
 ### 3.2 Objectives
 
@@ -59,7 +59,7 @@ DevHub is developed as a **personal tool first** and doubles as a **portfolio sh
 |---|---|---|
 | Project Owner | Sole developer, end user | Daily use for side projects; technical memory; portfolio |
 | AI agents (opencode, etc.) | System stakeholder | Read/update project state via MCP |
-| Future users (Phase 2+, if public) | Consumers | Signup, basic privacy, no data loss |
+| Users of the service | Consumers | Signup, basic privacy, no data loss |
 
 ---
 
@@ -88,8 +88,8 @@ Git CLI integration, API endpoint inventory, templates, project notes, PWA offli
 | Constraint | Zero external UI runtime dependencies except `@phosphor-icons/react` |
 | Constraint | Node.js ≥ 22, npm ≥ 10 |
 | Constraint | Windows dev environment (pwsh); deployment targets Linux containers |
-| **TBD** | Hosting platform (Railway / Render / VPS) — decision deferred to Phase 2 |
-| **TBD** | Domain name, pricing (if ever), license — deferred to Phase 2 |
+| **TBD** | Hosting platform (Railway / Render / VPS) — decision deferred |
+| **TBD** | Domain name, pricing (if ever), license — deferred |
 
 ---
 
@@ -123,10 +123,10 @@ Git CLI integration, API endpoint inventory, templates, project notes, PWA offli
 
 | Item | Estimate |
 |---|---|
-| Phase 0 — Planning + docs | 1 week (current) |
-| Phase 1 — V1 build | ~4–6 weeks (part-time) |
-| Phase 2 — Public deploy | ~2 weeks |
-| Hosting cost | $0 (local) → ~$5–6/mo VPS (Phase 2, optional) |
+| Phase 0 — Planning + docs | 1 week (done) |
+| Phase 1 — V1 build | ~4–6 weeks (part-time, done) |
+| Phase 2 — Production service | ~2 weeks |
+| Hosting cost | ~$5–6/mo (managed hosting) |
 | Third-party services | $0 |
 
 ---
@@ -142,9 +142,9 @@ Git CLI integration, API endpoint inventory, templates, project notes, PWA offli
 
 | Question | Decision | Status |
 |---|---|---|
-| Build to sell? | **No** for V1. Personal tool + portfolio. | Locked |
-| Future monetization | One-time-purchase desktop (Tauri) or OSS + sponsors; SaaS per-seat rejected vs Linear/Jira | Considered (deferred) |
-| Target user | Self (solo dev); possibly public later | Locked: public deploy in Phase 2 |
+| Build to sell? | **Yes** — hosted SaaS. (Superseded; see [ADR-021](../02-architecture/adr.md#adr-021)) | Superseded |
+| Future monetization | Pricing model TBD for the hosted SaaS; free tier first, per-seat revisited later | Considered (deferred) |
+| Target user | Developers building software projects (solo to small teams) | Locked: SaaS multi-user |
 | Collaboration | Architecturally prepared (Base fields + sync provider), actual sync V3 | Locked |
 
 ---

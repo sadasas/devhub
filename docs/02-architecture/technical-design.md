@@ -119,7 +119,7 @@ interface Base {
   id: string;              // UUID v4
   createdAt: string;       // ISO 8601
   updatedAt: string;       // ISO 8601 — enables last-write-wins merge in Phase 3
-  authorId?: string;       // 'me' for solo; user id in multi-user phase
+  authorId?: string;       // user id (self = own id)
 }
 ```
 
@@ -281,7 +281,7 @@ Full spec: [MCP Integration Guide](../03-engineering/mcp-integration.md).
 | Mechanism | Now (V1) | Later (V3) |
 |---|---|---|
 | `Base.updatedAt` on all entities | Traceability | Last-write-wins merge across devices |
-| `Base.authorId` | `'me'` in solo data | Author attribution in shared teams |
+| `Base.authorId` | Current user id | Author attribution in shared teams |
 | API server | Single region | Stateless server → multiple instances behind LB |
 | State payload | Whole-document PUT | Patch/delta updates (WebSocket) |
 | Auth | ~~Single user~~ Teams shipped: invites (email-only, 7-day TTL), roles owner/admin/editor/viewer | Real-time presence, granular per-project roles |

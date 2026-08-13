@@ -12,7 +12,7 @@
 
 ## 1. Scope & Model
 
-Solo operation: the owner is on-call 24/7. This document defines **what counts as an incident, how to respond, and how to learn**. No pagers — alerting lands on the phone via ntfy (see [Monitoring](monitoring.md)).
+Solo operation: the operator is on-call 24/7. This document defines **what counts as an incident, how to respond, and how to learn**. No pagers — alerting lands on the phone via ntfy (see [Monitoring](monitoring.md)).
 
 ---
 

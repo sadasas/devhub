@@ -69,7 +69,7 @@ Rules:
 | Auth abuse | rate-limit hits spike | Manual log review; consider IP block |
 | High error rate | `ERROR` count > threshold/5min | Investigate logs |
 
-Single channel: **ntfy.sh** topic `devhub-alerts` (free, privacy-friendly, aligns with local-first philosophy).
+Single channel: **ntfy.sh** topic `devhub-alerts` (free, privacy-friendly, aligns with the privacy-first philosophy).
 
 ---
 
