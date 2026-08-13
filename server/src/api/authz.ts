@@ -13,6 +13,7 @@ export interface ProjectWithRole {
   description: string;
   status: string;
   visibility: string;
+  version: number;
   prd: Record<string, unknown> | null;
   data: unknown;
   team_id: string;
@@ -44,7 +45,7 @@ export async function getProjectWithRole(
 ): Promise<ProjectWithRole | undefined> {
   if (!isUuid(projectId)) return undefined;
   const result = await pool.query(
-    `SELECT p.id, p.name, p.description, p.status, p.prd, p.data, p.visibility,
+    `SELECT p.id, p.name, p.description, p.status, p.version, p.prd, p.data, p.visibility,
             p.created_at, p.updated_at, p.team_id, t.name AS team_name, tm.role
      FROM projects p
      JOIN team_members tm ON tm.team_id = p.team_id
@@ -76,6 +77,7 @@ export interface PublicProjectRow {
   description: string;
   status: string;
   visibility: string;
+  version: number;
   prd: Record<string, unknown> | null;
   data: unknown;
   team_name: string;
@@ -88,7 +90,7 @@ export async function getPublicProject(
 ): Promise<PublicProjectRow | undefined> {
   if (!isUuid(projectId)) return undefined;
   const result = await pool.query(
-    `SELECT p.id, p.name, p.description, p.status, p.visibility, p.prd, p.data,
+    `SELECT p.id, p.name, p.description, p.status, p.visibility, p.version, p.prd, p.data,
             p.created_at, p.updated_at, t.name AS team_name
      FROM projects p
      JOIN teams t ON t.id = p.team_id

@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
+import { applyDefined, findEntity, nowIso, textContent } from '../entity.js';
 
 const inputSchema = z.object({
   projectId: z.string().describe('UUID of the target project'),
@@ -27,30 +27,27 @@ export function registerUpdateTask(server: McpServer): void {
     },
     async (args) => {
       const state = await loadState(args.projectId);
-      const task = state.tasks.find((t) => t.id === args.taskId);
-      if (!task) {
-        throw new McpError(ErrorCode.InvalidParams, `Task not found: ${args.taskId}`);
-      }
-      if (args.title !== undefined) task.title = args.title.trim();
-      if (args.status !== undefined) task.status = args.status;
-      if (args.priority !== undefined) task.priority = args.priority;
-      if (args.estimate !== undefined) task.estimate = args.estimate;
-      if (args.actualHours !== undefined) task.actualHours = args.actualHours;
-      if (args.labels !== undefined) task.labels = args.labels;
-      if (args.milestoneId !== undefined) task.milestoneId = args.milestoneId;
-      if (args.description !== undefined) task.description = args.description;
-      task.updatedAt = new Date().toISOString();
+      const task = findEntity(state.tasks, args.taskId, 'Task');
+      applyDefined(task, {
+        title: args.title?.trim(),
+        status: args.status,
+        priority: args.priority,
+        estimate: args.estimate,
+        actualHours: args.actualHours,
+        labels: args.labels,
+        milestoneId: args.milestoneId,
+        description: args.description,
+      });
+      task.updatedAt = nowIso();
       await saveState(args.projectId, state);
       return {
         content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              { id: task.id, title: task.title, status: task.status, actualHours: task.actualHours ?? null },
-              null,
-              2,
-            ),
-          },
+          textContent({
+            id: task.id,
+            title: task.title,
+            status: task.status,
+            actualHours: task.actualHours ?? null,
+          }),
         ],
       };
     },

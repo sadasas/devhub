@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
+import { newId, nowIso, textContent, toolError } from '../entity.js';
 
 const columnSchema = z.object({
   name: z.string().min(1).max(200),
@@ -24,28 +24,26 @@ export function registerAddTable(server: McpServer): void {
   server.registerTool(
     'add_table',
     {
-      title: 'Add a database table',
+      title: 'Add a table',
       description:
-        'Add a table to the DevHub project schema with columns (name, type, nullable, primaryKey, default, comment) and optional indexes.',
+        'Add a table to the DevHub project schema with columns (name, type, nullable, primary key, default, comment) and optional indexes.',
       inputSchema,
     },
     async (args) => {
       const state = await loadState(args.projectId);
-      if (state.tables.some((t) => t.name === args.name.trim())) {
-        return {
-          isError: true,
-          content: [{ type: 'text', text: `Table already exists: ${args.name.trim()}` }],
-        };
+      const name = args.name.trim();
+      if (state.tables.some((t) => t.name === name)) {
+        return toolError(`Table already exists: ${name}`);
       }
-      const now = new Date().toISOString();
+      const now = nowIso();
       const table = {
-        id: randomUUID(),
+        id: newId(),
         createdAt: now,
         updatedAt: now,
-        name: args.name.trim(),
+        name,
         comment: args.comment,
         columns: args.columns.map((c) => ({
-          id: randomUUID(),
+          id: newId(),
           name: c.name.trim(),
           type: c.type.trim(),
           nullable: c.nullable,
@@ -59,14 +57,7 @@ export function registerAddTable(server: McpServer): void {
       await saveState(args.projectId, state);
       return {
         content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              { id: table.id, name: table.name, columns: table.columns.length, updatedAt: now },
-              null,
-              2,
-            ),
-          },
+          textContent({ id: table.id, name: table.name, columns: table.columns.length, updatedAt: now }),
         ],
       };
     },

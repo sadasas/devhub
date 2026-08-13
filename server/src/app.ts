@@ -1,7 +1,12 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
+import cors from 'cors';
+import { randomUUID } from 'node:crypto';
 import { config } from './config.js';
+import { logger } from './lib/logger.js';
+import { pool } from './db/pool.js';
 import { authRouter } from './api/auth.routes.js';
 import { projectsRouter } from './api/projects.routes.js';
 import { teamsRouter } from './api/teams.routes.js';
@@ -11,6 +16,14 @@ import { mcpRouter } from './mcp/server.js';
 import { requireMcpKey } from './mcp/require-key.js';
 
 export const SESSION_COOKIE = 'devhub_session';
+
+declare global {
+  namespace Express {
+    interface Request {
+      id?: string;
+    }
+  }
+}
 
 export class ApiError extends Error {
   constructor(
@@ -29,7 +42,7 @@ export function notFoundHandler(_req: Request, res: Response): void {
 
 export function errorHandler(
   err: unknown,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction,
 ): void {
@@ -48,7 +61,10 @@ export function errorHandler(
     });
     return;
   }
-  console.error('Unhandled error:', err);
+  logger.error('Unhandled error', {
+    requestId: req.id,
+    error: err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : err,
+  });
   res.status(500).json({ error: { code: 'INTERNAL', message: 'Internal server error' } });
 }
 
@@ -67,18 +83,59 @@ const mcpLimiter = rateLimit({
   message: { error: { code: 'RATE_LIMITED', message: 'Too many MCP requests, try again later' } },
 });
 
+function requestLogger(req: Request, res: Response, next: NextFunction): void {
+  const id = randomUUID();
+  req.id = id;
+  res.setHeader('X-Request-Id', id);
+  const start = process.hrtime.bigint();
+  res.on('finish', () => {
+    const durationMs = Number(process.hrtime.bigint() - start) / 1e6;
+    logger.info('http request', {
+      requestId: id,
+      method: req.method,
+      path: req.originalUrl,
+      status: res.statusCode,
+      durationMs: Math.round(durationMs * 10) / 10,
+    });
+  });
+  next();
+}
+
 export function createApp(): express.Express {
   const app = express();
   app.disable('x-powered-by');
   if (config.NODE_ENV === 'test' || config.TRUST_PROXY) {
     app.set('trust proxy', true);
   }
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      strictTransportSecurity: config.NODE_ENV === 'production' ? { maxAge: 15_552_000 } : false,
+    }),
+  );
+  if (config.CORS_ORIGIN.length > 0) {
+    app.use(
+      cors({
+        origin: config.CORS_ORIGIN,
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      }),
+    );
+  }
+  app.use(requestLogger);
   app.use(express.json({ limit: '10mb' }));
   app.use(cookieParser());
   app.use('/api', limiter);
 
-  app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok', uptime: process.uptime() });
+  app.get('/api/health', async (_req, res) => {
+    try {
+      await pool.query('SELECT 1');
+      res.json({ status: 'ok', db: 'connected', uptime: process.uptime() });
+    } catch {
+      res.status(503).json({ status: 'degraded', db: 'unreachable', uptime: process.uptime() });
+    }
   });
 
   app.use('/api/auth', authRouter);

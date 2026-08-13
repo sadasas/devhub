@@ -244,14 +244,6 @@ export function McpDocsPage() {
             <section className="docs-next">
               <h2 className="docs-section-title">Next steps</h2>
               <div className="docs-next-grid">
-                <button type="button" className="docs-card" onClick={() => navigate('/docs/api')}>
-                  <ArrowSquareOut size={18} weight="duotone" aria-hidden="true" />
-                  <span className="docs-card-text">
-                    <span className="docs-card-title">API Reference</span>
-                    <span className="docs-card-sub">Explore the REST endpoints behind the tools</span>
-                  </span>
-                  <ArrowSquareOut size={14} className="docs-card-arrow" aria-hidden="true" />
-                </button>
                 <button type="button" className="docs-card" onClick={() => navigate('/keys')}>
                   <Key size={18} weight="duotone" aria-hidden="true" />
                   <span className="docs-card-text">

@@ -1,6 +1,6 @@
 /* DevHub client-side types.
-   Mirror of the authoritative contract: docs/04-api/openapi.yaml
-   and server/src/schema/state.ts (zod). Keep in sync manually. */
+   Mirror of the authoritative contract: server/src/schema/state.ts (zod) and
+   the role enums in server/src/api/authz.ts. Keep in sync manually. */
 
 export type TaskStatus = 'todo' | 'inProgress' | 'review' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';

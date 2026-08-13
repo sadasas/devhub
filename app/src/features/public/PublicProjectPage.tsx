@@ -74,7 +74,7 @@ export function PublicProjectPage() {
       .then(([meta, data]) => {
         if (!cancelled) {
           setProject(meta);
-          setState(data);
+          setState(data.state);
         }
       })
       .catch((err: unknown) => {

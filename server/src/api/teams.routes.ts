@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { pool } from '../db/pool.js';
 import { requireAuth, getUserId } from '../auth/middleware/requireAuth.js';
 import { ApiError } from '../app.js';
+import { withTransaction, parseOrThrow, getUserEmail } from '../lib/db.js';
 import { assertAdmin, assertOwner, getTeamWithRole, isUuid, type TeamRole } from './authz.js';
 
 const INVITE_ROLES: ReadonlySet<TeamRole> = new Set(['admin', 'editor', 'viewer']);
@@ -63,16 +64,11 @@ teamsRouter.get('/', async (req, res) => {
 
 teamsRouter.post('/', async (req, res) => {
   const userId = getUserId(req);
-  const parsed = createTeamSchema.safeParse(req.body);
-  if (!parsed.success) {
-    throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid team data', parsed.error.issues);
-  }
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
+  const { name } = parseOrThrow(createTeamSchema, req.body, 'Invalid team data');
+  const result = await withTransaction(pool, async (client) => {
     const inserted = await client.query<{ id: string; created_at: Date; updated_at: Date }>(
       'INSERT INTO teams (name, created_by) VALUES ($1, $2) RETURNING id, created_at, updated_at',
-      [parsed.data.name, userId],
+      [name, userId],
     );
     const id = inserted.rows[0]?.id;
     if (!id) throw new ApiError(500, 'INTERNAL', 'Failed to create team');
@@ -80,30 +76,23 @@ teamsRouter.post('/', async (req, res) => {
       'INSERT INTO team_members (team_id, user_id, role) VALUES ($1, $2, $3)',
       [id, userId, 'owner'],
     );
-    await client.query('COMMIT');
-    res.status(201).json({
-      team: {
-        id,
-        name: parsed.data.name,
-        role: 'owner',
-        memberCount: 1,
-        createdAt: inserted.rows[0]!.created_at.toISOString(),
-        updatedAt: inserted.rows[0]!.updated_at.toISOString(),
-      },
-    });
-  } catch (err) {
-    await client.query('ROLLBACK').catch(() => {});
-    throw err;
-  } finally {
-    client.release();
-  }
+    return { id, name, createdAt: inserted.rows[0]!.created_at, updatedAt: inserted.rows[0]!.updated_at };
+  });
+  res.status(201).json({
+    team: {
+      id: result.id,
+      name: result.name,
+      role: 'owner',
+      memberCount: 1,
+      createdAt: result.createdAt.toISOString(),
+      updatedAt: result.updatedAt.toISOString(),
+    },
+  });
 });
 
 teamsRouter.get('/invitations', async (req, res) => {
   const userId = getUserId(req);
-  const me = await pool.query<{ email: string }>('SELECT email FROM users WHERE id = $1', [userId]);
-  const email = me.rows[0]?.email;
-  if (!email) throw new ApiError(401, 'UNAUTHORIZED', 'Authentication required');
+  const email = await getUserEmail(userId);
   const result = await pool.query(
     `SELECT i.id, i.team_id, i.role, i.created_at, i.expires_at, t.name AS team_name
      FROM invitations i
@@ -149,13 +138,10 @@ teamsRouter.patch('/:teamId', async (req, res) => {
   const row = await getTeamWithRole(userId, req.params.teamId);
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Team not found');
   assertAdmin(row.role);
-  const parsed = renameTeamSchema.safeParse(req.body);
-  if (!parsed.success) {
-    throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid team data', parsed.error.issues);
-  }
+  const { name } = parseOrThrow(renameTeamSchema, req.body, 'Invalid team data');
   await pool.query('UPDATE teams SET name = $2, updated_at = now() WHERE id = $1', [
     row.id,
-    parsed.data.name,
+    name,
   ]);
   res.json({ ok: true });
 });
@@ -196,10 +182,7 @@ teamsRouter.patch('/:teamId/members/:userId', async (req, res) => {
   if (!isUuid(req.params.userId)) throw new ApiError(404, 'NOT_FOUND', 'Member not found');
   const row = await getTeamWithRole(userId, req.params.teamId);
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Team not found');
-  const parsed = memberRoleSchema.safeParse(req.body);
-  if (!parsed.success) {
-    throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid member data', parsed.error.issues);
-  }
+  const { role: newRole } = parseOrThrow(memberRoleSchema, req.body, 'Invalid member data');
   const target = await pool.query<{ role: string }>(
     'SELECT role FROM team_members WHERE team_id = $1 AND user_id = $2',
     [row.id, req.params.userId],
@@ -208,11 +191,9 @@ teamsRouter.patch('/:teamId/members/:userId', async (req, res) => {
   if (target.rows[0].role === 'owner') {
     throw new ApiError(400, 'VALIDATION_ERROR', 'The team owner cannot be modified');
   }
-  if (parsed.data.role === 'owner') {
+  if (newRole === 'owner') {
     assertOwner(row.role);
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
+    await withTransaction(pool, async (client) => {
       await client.query(
         "UPDATE team_members SET role = 'admin' WHERE team_id = $1 AND role = 'owner'",
         [row.id],
@@ -221,19 +202,13 @@ teamsRouter.patch('/:teamId/members/:userId', async (req, res) => {
         'UPDATE team_members SET role = $3 WHERE team_id = $1 AND user_id = $2',
         [row.id, req.params.userId, 'owner'],
       );
-      await client.query('COMMIT');
-    } catch (err) {
-      await client.query('ROLLBACK').catch(() => {});
-      throw err;
-    } finally {
-      client.release();
-    }
+    });
   } else {
     assertAdmin(row.role);
     await pool.query('UPDATE team_members SET role = $3 WHERE team_id = $1 AND user_id = $2', [
       row.id,
       req.params.userId,
-      parsed.data.role,
+      newRole,
     ]);
   }
   res.json({ ok: true });
@@ -288,11 +263,7 @@ teamsRouter.post('/:teamId/invitations', async (req, res) => {
   const row = await getTeamWithRole(userId, req.params.teamId);
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Team not found');
   assertAdmin(row.role);
-  const parsed = inviteSchema.safeParse(req.body);
-  if (!parsed.success) {
-    throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid invitation data', parsed.error.issues);
-  }
-  const { email, role } = parsed.data;
+  const { email, role } = parseOrThrow(inviteSchema, req.body, 'Invalid invitation data');
   const target = await pool.query<{ id: string }>('SELECT id FROM users WHERE email = $1', [email]);
   if (!target.rows[0]) {
     throw new ApiError(400, 'VALIDATION_ERROR', 'No DevHub account exists for this email');
@@ -340,9 +311,7 @@ teamsRouter.post('/:teamId/invitations/:invitationId/accept', async (req, res) =
   if (!isUuid(req.params.invitationId)) {
     throw new ApiError(404, 'NOT_FOUND', 'Invitation not found or expired');
   }
-  const me = await pool.query<{ email: string }>('SELECT email FROM users WHERE id = $1', [userId]);
-  const email = me.rows[0]?.email;
-  if (!email) throw new ApiError(401, 'UNAUTHORIZED', 'Authentication required');
+  const email = await getUserEmail(userId);
   const inv = await pool.query<{ team_id: string; role: TeamRole; team_name: string }>(
     `SELECT i.team_id, i.role, t.name AS team_name
      FROM invitations i
@@ -355,9 +324,7 @@ teamsRouter.post('/:teamId/invitations/:invitationId/accept', async (req, res) =
   if (!INVITE_ROLES.has(role)) {
     throw new ApiError(500, 'INTERNAL', 'Invitation role is invalid');
   }
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
+  await withTransaction(pool, async (client) => {
     await client.query(
       `INSERT INTO team_members (team_id, user_id, role)
        VALUES ($1, $2, $3)
@@ -368,13 +335,7 @@ teamsRouter.post('/:teamId/invitations/:invitationId/accept', async (req, res) =
       `UPDATE invitations SET status = 'accepted' WHERE id = $1`,
       [req.params.invitationId],
     );
-    await client.query('COMMIT');
-  } catch (err) {
-    await client.query('ROLLBACK').catch(() => {});
-    throw err;
-  } finally {
-    client.release();
-  }
+  });
   res.json({ ok: true, teamId, teamName });
 });
 
@@ -383,9 +344,7 @@ teamsRouter.delete('/:teamId/invitations/:invitationId', async (req, res) => {
   if (!isUuid(req.params.invitationId)) {
     throw new ApiError(404, 'NOT_FOUND', 'Invitation not found');
   }
-  const me = await pool.query<{ email: string }>('SELECT email FROM users WHERE id = $1', [userId]);
-  const email = me.rows[0]?.email;
-  if (!email) throw new ApiError(401, 'UNAUTHORIZED', 'Authentication required');
+  const email = await getUserEmail(userId);
   const inv = await pool.query<{ email: string; team_id: string }>(
     'SELECT email, team_id FROM invitations WHERE id = $1 AND team_id = $2',
     [req.params.invitationId, req.params.teamId],

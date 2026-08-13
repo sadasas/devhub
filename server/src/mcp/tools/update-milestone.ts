@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
+import { applyDefined, findEntity, nowIso, textContent } from '../entity.js';
 
 const inputSchema = z.object({
   projectId: z.string().describe('UUID of the target project'),
@@ -24,27 +24,24 @@ export function registerUpdateMilestone(server: McpServer): void {
     },
     async (args) => {
       const state = await loadState(args.projectId);
-      const milestone = state.milestones.find((m) => m.id === args.milestoneId);
-      if (!milestone) {
-        throw new McpError(ErrorCode.InvalidParams, `Milestone not found: ${args.milestoneId}`);
-      }
-      if (args.name !== undefined) milestone.name = args.name;
-      if (args.version !== undefined) milestone.version = args.version;
-      if (args.targetDate !== undefined) milestone.targetDate = args.targetDate;
-      if (args.status !== undefined) milestone.status = args.status;
-      if (args.changelog !== undefined) milestone.changelog = args.changelog;
-      milestone.updatedAt = new Date().toISOString();
+      const milestone = findEntity(state.milestones, args.milestoneId, 'Milestone');
+      applyDefined(milestone, {
+        name: args.name?.trim(),
+        version: args.version,
+        targetDate: args.targetDate,
+        status: args.status,
+        changelog: args.changelog,
+      });
+      milestone.updatedAt = nowIso();
       await saveState(args.projectId, state);
       return {
         content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              { id: milestone.id, name: milestone.name, status: milestone.status, version: milestone.version },
-              null,
-              2,
-            ),
-          },
+          textContent({
+            id: milestone.id,
+            name: milestone.name,
+            status: milestone.status,
+            version: milestone.version,
+          }),
         ],
       };
     },

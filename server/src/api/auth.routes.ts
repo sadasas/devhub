@@ -8,6 +8,7 @@ import { signToken, JWT_TTL_SECONDS } from '../auth/jwt.js';
 import { requireAuth, getUserId } from '../auth/middleware/requireAuth.js';
 import { SESSION_COOKIE, ApiError } from '../app.js';
 import { config } from '../config.js';
+import { withTransaction, parseOrThrow } from '../lib/db.js';
 
 const registerSchema = z.object({
   email: z.string().trim().toLowerCase().email('Invalid email').max(254),
@@ -43,8 +44,8 @@ const passwordLimiter = rateLimit({
   message: { error: { code: 'RATE_LIMITED', message: 'Too many password attempts, try again later' } },
 });
 
-function setSessionCookie(res: Response, userId: string): void {
-  res.cookie(SESSION_COOKIE, signToken(userId), {
+function setSessionCookie(res: Response, userId: string, version: number): void {
+  res.cookie(SESSION_COOKIE, signToken(userId, version), {
     httpOnly: true,
     sameSite: 'lax',
     secure: config.COOKIE_SECURE,
@@ -56,62 +57,52 @@ function setSessionCookie(res: Response, userId: string): void {
 export const authRouter = Router();
 
 authRouter.post('/register', registerLimiter, async (req, res) => {
-  const parsed = registerSchema.safeParse(req.body);
-  if (!parsed.success) {
-    throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid registration data', parsed.error.issues);
-  }
-  const { email, password } = parsed.data;
+  const { email, password } = parseOrThrow(registerSchema, req.body, 'Invalid registration data');
   const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
   if (existing.rowCount && existing.rowCount > 0) {
     throw new ApiError(409, 'CONFLICT', 'Email already registered');
   }
   const passwordHash = await hashPassword(password);
-  const client = await pool.connect();
+  let userId: string;
   try {
-    await client.query('BEGIN');
-    const result = await client.query<{ id: string }>(
-      'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id',
-      [email, passwordHash],
-    );
-    const userId = result.rows[0]?.id;
-    if (!userId) throw new ApiError(500, 'INTERNAL', 'Failed to create user');
-    await client.query(
-      `WITH t AS (
-         INSERT INTO teams (name, created_by) VALUES ('Personal', $1) RETURNING id
-       )
-       INSERT INTO team_members (team_id, user_id, role)
-       SELECT id, $1, 'owner' FROM t`,
-      [userId],
-    );
-    await client.query('COMMIT');
-    setSessionCookie(res, userId);
-    res.status(201).json({ id: userId, email });
+    userId = await withTransaction(pool, async (client) => {
+      const result = await client.query<{ id: string }>(
+        'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id',
+        [email, passwordHash],
+      );
+      const id = result.rows[0]?.id;
+      if (!id) throw new ApiError(500, 'INTERNAL', 'Failed to create user');
+      await client.query(
+        `WITH t AS (
+           INSERT INTO teams (name, created_by) VALUES ('Personal', $1) RETURNING id
+         )
+         INSERT INTO team_members (team_id, user_id, role)
+         SELECT id, $1, 'owner' FROM t`,
+        [id],
+      );
+      return id;
+    });
   } catch (err) {
-    await client.query('ROLLBACK').catch(() => {});
     if ((err as { code?: string })?.code === '23505') {
       throw new ApiError(409, 'CONFLICT', 'Email already registered');
     }
     throw err;
-  } finally {
-    client.release();
   }
+  setSessionCookie(res, userId, 1);
+  res.status(201).json({ id: userId, email });
 });
 
 authRouter.post('/login', loginLimiter, async (req, res) => {
-  const parsed = loginSchema.safeParse(req.body);
-  if (!parsed.success) {
-    throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid login data', parsed.error.issues);
-  }
-  const { email, password } = parsed.data;
-  const result = await pool.query<{ id: string; password_hash: string }>(
-    'SELECT id, password_hash FROM users WHERE email = $1',
+  const { email, password } = parseOrThrow(loginSchema, req.body, 'Invalid login data');
+  const result = await pool.query<{ id: string; password_hash: string; jwt_version: number }>(
+    'SELECT id, password_hash, jwt_version FROM users WHERE email = $1',
     [email],
   );
   const user = result.rows[0];
   if (!user || !(await verifyPassword(password, user.password_hash))) {
     throw new ApiError(401, 'UNAUTHORIZED', 'Invalid email or password');
   }
-  setSessionCookie(res, user.id);
+  setSessionCookie(res, user.id, user.jwt_version);
   res.json({ id: user.id, email });
 });
 
@@ -127,11 +118,11 @@ const changePasswordSchema = z
 
 authRouter.patch('/password', passwordLimiter, requireAuth, async (req, res) => {
   const userId = getUserId(req);
-  const parsed = changePasswordSchema.safeParse(req.body);
-  if (!parsed.success) {
-    throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid password data', parsed.error.issues);
-  }
-  const { currentPassword, newPassword } = parsed.data;
+  const { currentPassword, newPassword } = parseOrThrow(
+    changePasswordSchema,
+    req.body,
+    'Invalid password data',
+  );
   const result = await pool.query<{ password_hash: string }>(
     'SELECT password_hash FROM users WHERE id = $1',
     [userId],
@@ -141,10 +132,13 @@ authRouter.patch('/password', passwordLimiter, requireAuth, async (req, res) => 
     throw new ApiError(401, 'INVALID_PASSWORD', 'Current password is incorrect');
   }
   const passwordHash = await hashPassword(newPassword);
-  await pool.query('UPDATE users SET password_hash = $2, updated_at = now() WHERE id = $1', [
-    userId,
-    passwordHash,
-  ]);
+  const updated = await pool.query<{ jwt_version: number }>(
+    'UPDATE users SET password_hash = $2, jwt_version = jwt_version + 1, updated_at = now() WHERE id = $1 RETURNING jwt_version',
+    [userId, passwordHash],
+  );
+  const newVersion = updated.rows[0]?.jwt_version;
+  if (!newVersion) throw new ApiError(401, 'UNAUTHORIZED', 'User not found');
+  setSessionCookie(res, userId, newVersion);
   res.json({ ok: true });
 });
 
@@ -175,11 +169,7 @@ authRouter.get('/me', requireAuth, async (req, res) => {
 
 authRouter.patch('/profile', requireAuth, async (req, res) => {
   const userId = getUserId(req);
-  const parsed = profileSchema.safeParse(req.body);
-  if (!parsed.success) {
-    throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid profile data', parsed.error.issues);
-  }
-  const { displayName, bio } = parsed.data;
+  const { displayName, bio } = parseOrThrow(profileSchema, req.body, 'Invalid profile data');
   const result = await pool.query<ProfileRow>(
     `UPDATE users
      SET display_name = COALESCE($2, display_name),

@@ -60,6 +60,7 @@ describe('public project routes', () => {
             },
           ],
         },
+        version: 1,
       });
     expect(seed.status).toBe(200);
 

@@ -4,7 +4,7 @@
 |---|---|
 | **Document status** | Active |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-09 |
+| **Last updated** | 2026-08-13 |
 
 ---
 
@@ -103,6 +103,21 @@ Every item intentionally postponed, with rationale. Items cannot return without 
 3. Tag release `vX.Y.Z` (SemVer); milestone changelog updated in-app.
 4. Backup taken before any deploy (see [Backup & Recovery](../05-operations/backup-recovery.md)).
 5. Post-release: monitor health endpoint; update docs if behaviors changed.
+
+---
+
+## 8. Server Audit 2026-08 (M7)
+
+Audit server & platform 6-peran (lihat [dokumen audit](../04-audit-server-2026-08.md)) menghasilkan 12 temuan (1 critical, 4 high) — seluruhnya di-track di DevHub sebagai issues + 6 task fix di milestone M7:
+
+| Batch | Lingkup | Status |
+|---|---|---|
+| B1 | CORS+topologi, helmet, health+logging, migrasi 008 (version/CHECK/UNIQUE/jwt_version), optimistic locking 409, JWT versioning, runbook | ✅ Done |
+| B2 | Hapus dokumen OpenAPI (openapi.yaml, api-guide, ApiDocsPage, `/docs/api`) — DevHub internal | ✅ Done |
+| B3 | Lint server, helper transaksi/parse, envelope respons, advisory lock migrasi, state GET 500 | ✅ Done |
+| B4 | Helper mutasi entitas MCP + refactor 18 tools | ✅ Done |
+| — | Audit keamanan penuh (threat model, auth, MCP, npm audit, XSS, secrets scan) → `docs/04-audit-security-2026-08.md`; key MCP ter-commit dirotasi | ✅ Done |
+| — | ADR-022 + desain granular API (`/api/v1`) | ✅ Done (ADR Proposed) |
 
 ---
 

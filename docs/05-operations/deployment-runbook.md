@@ -143,7 +143,7 @@ MCP keys live in Postgres (`mcp_keys` table), not env — each user manages thei
 - [ ] `GET /api/health` → `ok`
 - [ ] Register an account → login → create project → create an MCP key via the app's **API Keys** page (or `POST /api/keys`)
 - [ ] Cookie header shows `HttpOnly; SameSite=Lax; Secure`
-- [ ] `/mcp` rejects without key, works with a per-user key (curl, see [API Guide §7](../04-api/api-guide.md#7-mcp-examples))
+- [ ] `/mcp` rejects without key, works with a per-user key (curl, see [MCP Guide §7](../03-engineering/mcp-integration.md#7-troubleshooting))
 - [ ] Backup cron in place (next section)
 
 ---

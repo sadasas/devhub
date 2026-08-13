@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
+import { newId, nowIso, textContent, toolError } from '../entity.js';
 
 const inputSchema = z.object({
   projectId: z.string().describe('UUID of the target project'),
@@ -14,22 +14,18 @@ export function registerAddApiCollection(server: McpServer): void {
     'add_api_collection',
     {
       title: 'Add an API collection',
-      description:
-        'Add an API collection (a named group of endpoints, e.g. "Users API") to the DevHub project API documentation.',
+      description: 'Add an API collection (a named group of endpoints, e.g. "Users API") to the DevHub project API documentation.',
       inputSchema,
     },
     async (args) => {
       const state = await loadState(args.projectId);
       const name = args.name.trim();
       if (state.apiCollections.some((c) => c.name === name)) {
-        return {
-          isError: true,
-          content: [{ type: 'text', text: `API collection already exists: ${name}` }],
-        };
+        return toolError(`API collection already exists: ${name}`);
       }
-      const now = new Date().toISOString();
+      const now = nowIso();
       const collection = {
-        id: randomUUID(),
+        id: newId(),
         createdAt: now,
         updatedAt: now,
         name,
@@ -39,10 +35,7 @@ export function registerAddApiCollection(server: McpServer): void {
       await saveState(args.projectId, state);
       return {
         content: [
-          {
-            type: 'text',
-            text: JSON.stringify({ id: collection.id, name, updatedAt: now }, null, 2),
-          },
+          textContent({ id: collection.id, name: collection.name, updatedAt: now }),
         ],
       };
     },

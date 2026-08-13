@@ -1,6 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { loadProjectSnapshot } from '../state-db.js';
+import { textContent } from '../entity.js';
 
 const inputSchema = z.object({
   projectId: z.string().describe('UUID of the project to inspect'),
@@ -100,7 +101,7 @@ export function registerProjectState(server: McpServer): void {
           notes: v.notes,
         })),
       };
-      return { content: [{ type: 'text', text: JSON.stringify(summary, null, 2) }] };
+      return { content: [textContent(summary)] };
     },
   );
 }

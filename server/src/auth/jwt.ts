@@ -7,10 +7,11 @@ export interface JwtPayload {
   sub: string;
   iat: number;
   exp: number;
+  v: number;
 }
 
-export function signToken(userId: string): string {
-  return jwt.sign({}, config.JWT_SECRET, {
+export function signToken(userId: string, version: number): string {
+  return jwt.sign({ v: version }, config.JWT_SECRET, {
     subject: userId,
     expiresIn: JWT_TTL_SECONDS,
     algorithm: 'HS256',
@@ -25,6 +26,7 @@ export function verifyToken(token: string): JwtPayload | null {
       sub: decoded.sub,
       iat: decoded.iat as number,
       exp: decoded.exp as number,
+      v: typeof decoded.v === 'number' ? decoded.v : 0,
     };
   } catch {
     return null;

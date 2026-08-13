@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
+import { newId, nowIso, textContent } from '../entity.js';
 
 const inputSchema = z.object({
   projectId: z.string().describe('UUID of the target project'),
@@ -21,12 +21,13 @@ export function registerCreateTask(server: McpServer): void {
     {
       title: 'Create a task',
       description: 'Add a task to a DevHub project board with status, priority, estimate and labels.',
-      inputSchema,    },
+      inputSchema,
+    },
     async (args) => {
       const state = await loadState(args.projectId);
-      const now = new Date().toISOString();
+      const now = nowIso();
       const task = {
-        id: randomUUID(),
+        id: newId(),
         createdAt: now,
         updatedAt: now,
         title: args.title.trim(),
@@ -41,14 +42,7 @@ export function registerCreateTask(server: McpServer): void {
       };
       state.tasks.push(task);
       await saveState(args.projectId, state);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({ id: task.id, title: task.title, status: task.status }, null, 2),
-          },
-        ],
-      };
+      return { content: [textContent({ id: task.id, title: task.title, status: task.status })] };
     },
   );
 }

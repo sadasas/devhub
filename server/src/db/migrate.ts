@@ -3,8 +3,11 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
 import { Pool } from 'pg';
 import { loadConfig } from '../config.js';
+import { logger } from '../lib/logger.js';
 
 const MIGRATIONS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations');
+
+const MIGRATION_LOCK_KEY = 727_403_101; // hashtext('devhub_migrations')
 
 export async function migrate(pool: Pool): Promise<string[]> {
   await pool.query(`
@@ -27,19 +30,26 @@ export async function migrate(pool: Pool): Promise<string[]> {
   const executed: string[] = [];
   const client = await pool.connect();
   try {
-    for (const file of files) {
-      if (applied.has(file)) continue;
-      const sql = await readFile(path.join(MIGRATIONS_DIR, file), 'utf8');
-      await client.query('BEGIN');
-      try {
-        await client.query(sql);
-        await client.query('INSERT INTO schema_migrations (name) VALUES ($1)', [file]);
-        await client.query('COMMIT');
-        executed.push(file);
-      } catch (err) {
-        await client.query('ROLLBACK');
-        throw err;
+    // Advisory lock: pastikan hanya satu instance yang apply migrasi
+    // (multi-instance deploy bisa start bersamaan dan double-apply).
+    await client.query('SELECT pg_advisory_lock($1)', [MIGRATION_LOCK_KEY]);
+    try {
+      for (const file of files) {
+        if (applied.has(file)) continue;
+        const sql = await readFile(path.join(MIGRATIONS_DIR, file), 'utf8');
+        await client.query('BEGIN');
+        try {
+          await client.query(sql);
+          await client.query('INSERT INTO schema_migrations (name) VALUES ($1)', [file]);
+          await client.query('COMMIT');
+          executed.push(file);
+        } catch (err) {
+          await client.query('ROLLBACK');
+          throw err;
+        }
       }
+    } finally {
+      await client.query('SELECT pg_advisory_unlock($1)', [MIGRATION_LOCK_KEY]).catch(() => {});
     }
   } finally {
     client.release();
@@ -53,9 +63,9 @@ async function main() {
   try {
     const executed = await migrate(pool);
     if (executed.length === 0) {
-      console.log('No pending migrations.');
+      logger.info('No pending migrations.');
     } else {
-      console.log(`Applied migrations: ${executed.join(', ')}`);
+      logger.info(`Applied migrations: ${executed.join(', ')}`);
     }
   } finally {
     await pool.end();
@@ -64,7 +74,7 @@ async function main() {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   void main().catch((err) => {
-    console.error('Migration failed:', err);
+    logger.error('Migration failed', { error: err instanceof Error ? err.message : err });
     process.exit(1);
   });
 }

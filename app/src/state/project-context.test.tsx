@@ -41,8 +41,10 @@ function Probe() {
     <div>
       <button onClick={() => ctx.dispatch(editAction())}>edit</button>
       <button onClick={() => ctx.retrySave()}>retry</button>
+      <button onClick={() => ctx.resolveConflict()}>resolve</button>
       <span data-testid="title">{ctx.state?.tasks[0]?.title ?? 'none'}</span>
       <span data-testid="save-error">{ctx.saveError ?? ''}</span>
+      <span data-testid="conflict">{ctx.conflict ? 'conflict' : ''}</span>
     </div>
   );
 }
@@ -69,8 +71,8 @@ describe('project save pipeline', () => {
 
   it('persists the latest edits after the debounce', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval'] });
-    const getState = vi.spyOn(api, 'getState').mockResolvedValue(makeState());
-    const putState = vi.spyOn(api, 'putState').mockResolvedValue({ ok: true });
+    const getState = vi.spyOn(api, 'getState').mockResolvedValue({ state: makeState(), version: 1 });
+    const putState = vi.spyOn(api, 'putState').mockResolvedValue({ ok: true, version: 2 });
 
     renderProvider();
     await flush();
@@ -88,17 +90,48 @@ describe('project save pipeline', () => {
     expect(putState).toHaveBeenCalledWith(
       PROJECT_ID,
       expect.objectContaining({ tasks: [expect.objectContaining({ title: 'Edited' })] }),
+      1,
     );
     expect(getState).toHaveBeenCalledTimes(1);
   });
 
+  it('surfaces a 409 conflict and resolves to the server version', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval'] });
+    vi.spyOn(api, 'getState').mockResolvedValue({ state: makeState(), version: 1 });
+    const serverState = makeState();
+    serverState.tasks[0]!.title = 'Server wins';
+    vi.spyOn(api, 'putState').mockRejectedValue(
+      new ApiError(409, 'CONFLICT', 'conflicted', {
+        current: { state: serverState, version: 2 },
+      }),
+    );
+
+    renderProvider();
+    await flush();
+    expect(screen.getByTestId('title').textContent).toBe('Original');
+
+    fireEvent.click(screen.getByRole('button', { name: 'edit' }));
+    await act(async () => {
+      vi.advanceTimersByTime(800);
+    });
+    await flush();
+
+    expect(screen.getByTestId('conflict').textContent).toBe('conflict');
+
+    fireEvent.click(screen.getByRole('button', { name: 'resolve' }));
+    await flush();
+
+    expect(screen.getByTestId('title').textContent).toBe('Server wins');
+    expect(screen.getByTestId('conflict').textContent).toBe('');
+  });
+
   it('keeps local edits when a save fails and retry succeeds', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval'] });
-    vi.spyOn(api, 'getState').mockResolvedValue(makeState());
+    vi.spyOn(api, 'getState').mockResolvedValue({ state: makeState(), version: 1 });
     const putState = vi
       .spyOn(api, 'putState')
       .mockRejectedValueOnce(new ApiError(500, 'INTERNAL', 'boom'))
-      .mockResolvedValue({ ok: true });
+      .mockResolvedValue({ ok: true, version: 2 });
 
     renderProvider();
     await flush();
@@ -125,8 +158,8 @@ describe('project save pipeline', () => {
 
   it('flushes a pending save on unmount', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval'] });
-    vi.spyOn(api, 'getState').mockResolvedValue(makeState());
-    const putState = vi.spyOn(api, 'putState').mockResolvedValue({ ok: true });
+    vi.spyOn(api, 'getState').mockResolvedValue({ state: makeState(), version: 1 });
+    const putState = vi.spyOn(api, 'putState').mockResolvedValue({ ok: true, version: 2 });
 
     const { unmount } = renderProvider();
     await flush();
@@ -138,16 +171,17 @@ describe('project save pipeline', () => {
     expect(putState).toHaveBeenCalledWith(
       PROJECT_ID,
       expect.objectContaining({ tasks: [expect.objectContaining({ title: 'Edited' })] }),
+      1,
     );
   });
 
   it('skips polling while a save is in flight', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval'] });
-    const getState = vi.spyOn(api, 'getState').mockResolvedValue(makeState());
-    let resolvePut!: (v: { ok: true }) => void;
+    const getState = vi.spyOn(api, 'getState').mockResolvedValue({ state: makeState(), version: 1 });
+    let resolvePut!: (v: { ok: true; version: number }) => void;
     const putState = vi.spyOn(api, 'putState').mockImplementation(
       () =>
-        new Promise<{ ok: true }>((resolve) => {
+        new Promise<{ ok: true; version: number }>((resolve) => {
           resolvePut = resolve;
         }),
     );
@@ -168,7 +202,7 @@ describe('project save pipeline', () => {
     expect(getState).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      resolvePut({ ok: true });
+      resolvePut({ ok: true, version: 2 });
     });
     await flush();
   });

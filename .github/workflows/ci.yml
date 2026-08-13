@@ -21,7 +21,7 @@ jobs:
       - run: npm run test -w app
 
   server:
-    name: Server — build + tests
+    name: Server — lint + build + tests
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -46,5 +46,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run lint -w server
       - run: npm run build -w server
       - run: npm run test -w server

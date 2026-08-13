@@ -6,7 +6,7 @@
 | **Version** | 1.0 |
 | **Owner** | Project Owner |
 | **Last updated** | 2026-08-10 |
-| **Related documents** | [TDD §7](../02-architecture/technical-design.md#7-ai-agent-integration-mcp) · [ADR-006](../02-architecture/adr.md#adr-006) · [API Guide](../04-api/api-guide.md) |
+| **Related documents** | [TDD §7](../02-architecture/technical-design.md#7-ai-agent-integration-mcp) · [ADR-006](../02-architecture/adr.md#adr-006) |
 
 ---
 
@@ -182,7 +182,7 @@ curl -s -X POST http://localhost:3000/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"curl","version":"1"}}}'
 ```
 
-Then `tools/list`, then `tools/call` with a tool name + arguments. Full examples in [API Guide §6](../04-api/api-guide.md#6-mcp-examples).
+Then `tools/list`, then `tools/call` with a tool name + arguments. Full examples in [§7 Testing the MCP Server](#7-testing-the-mcp-server). Server-side contract: `server/src/mcp/tools/`.
 
 ---
 

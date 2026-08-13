@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
+import { newId, nowIso, textContent } from '../entity.js';
 
 const inputSchema = z.object({
   projectId: z.string().describe('UUID of the target project'),
@@ -57,10 +57,10 @@ export function registerPlanProject(server: McpServer): void {
       const state = await loadState(args.projectId);
       const { tasks, milestones, decisions, today } = parsePlan(args.brief);
 
-      const now = new Date().toISOString();
+      const now = nowIso();
       const taskResults = tasks.map((t) => {
         const task = {
-          id: randomUUID(),
+          id: newId(),
           createdAt: now,
           updatedAt: now,
           title: t.title,
@@ -78,7 +78,7 @@ export function registerPlanProject(server: McpServer): void {
 
       const milestoneResults = milestones.map((m) => {
         const milestone = {
-          id: randomUUID(),
+          id: newId(),
           createdAt: now,
           updatedAt: now,
           name: m.name,
@@ -93,7 +93,7 @@ export function registerPlanProject(server: McpServer): void {
 
       const decisionResults = decisions.map((title) => {
         const decision = {
-          id: randomUUID(),
+          id: newId(),
           createdAt: now,
           updatedAt: now,
           title,
@@ -111,14 +111,11 @@ export function registerPlanProject(server: McpServer): void {
       await saveState(args.projectId, state);
       return {
         content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              { createdTasks: taskResults, createdMilestones: milestoneResults, createdDecisions: decisionResults },
-              null,
-              2,
-            ),
-          },
+          textContent({
+            createdTasks: taskResults,
+            createdMilestones: milestoneResults,
+            createdDecisions: decisionResults,
+          }),
         ],
       };
     },

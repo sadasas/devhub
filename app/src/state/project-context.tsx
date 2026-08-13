@@ -197,6 +197,11 @@ export function projectReducer(state: State, action: ProjectAction): State {
 const SAVE_DEBOUNCE_MS = 800;
 const POLL_INTERVAL_MS = 5000;
 
+export interface ProjectConflict {
+  message: string;
+  current: { state: State; version: number };
+}
+
 interface ProjectContextValue {
   state: State | null;
   loading: boolean;
@@ -206,8 +211,10 @@ interface ProjectContextValue {
   lastSavedAt: number | null;
   role: TeamRole;
   canEdit: boolean;
+  conflict: ProjectConflict | null;
   dispatch: (action: ProjectAction) => void;
   retrySave: () => void;
+  resolveConflict: () => void;
 }
 
 const ProjectContext = createContext<ProjectContextValue | null>(null);
@@ -227,8 +234,10 @@ export function ProjectProvider({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
+  const [conflict, setConflict] = useState<ProjectConflict | null>(null);
   const stateRef = useRef<State | null>(null);
   const lastSavedRef = useRef<State | null>(null);
+  const versionRef = useRef(0);
   const dirtyRef = useRef(false);
   const savingRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -243,12 +252,19 @@ export function ProjectProvider({
     savingRef.current = true;
     setSaving(true);
     try {
-      await api.putState(projectId, snapshot);
+      const res = await api.putState(projectId, snapshot, versionRef.current);
+      versionRef.current = res.version;
       lastSavedRef.current = snapshot;
       setSaveError(null);
       setLastSavedAt(Date.now());
     } catch (err) {
       setSaveError(err instanceof ApiError ? err.message : 'Failed to save changes');
+      if (err instanceof ApiError && err.status === 409) {
+        const current = (err.details as { current?: { state?: State; version?: number } } | undefined)?.current;
+        if (current?.state && current.version) {
+          setConflict({ message: err.message, current: { state: current.state, version: current.version } });
+        }
+      }
       dirtyRef.current = true;
     } finally {
       savingRef.current = false;
@@ -264,14 +280,24 @@ export function ProjectProvider({
       }
       if (pendingFlushRef.current) return pendingFlushRef.current;
       dirtyRef.current = false;
-      const p = (opts?.keepalive ? api.putState(projectId, snapshot, true) : api.putState(projectId, snapshot))
-        .then(() => {
+      const p = (opts?.keepalive
+        ? api.putState(projectId, snapshot, versionRef.current, true)
+        : api.putState(projectId, snapshot, versionRef.current)
+      )
+        .then((res) => {
+          versionRef.current = res.version;
           lastSavedRef.current = snapshot;
           setSaveError(null);
           setLastSavedAt(Date.now());
         })
         .catch((err) => {
           setSaveError(err instanceof ApiError ? err.message : 'Failed to save changes');
+          if (err instanceof ApiError && err.status === 409) {
+            const current = (err.details as { current?: { state?: State; version?: number } } | undefined)?.current;
+            if (current?.state && current.version) {
+              setConflict({ message: err.message, current: { state: current.state, version: current.version } });
+            }
+          }
           dirtyRef.current = true;
         })
         .finally(() => {
@@ -298,6 +324,19 @@ export function ProjectProvider({
     void runSave();
   }, [runSave]);
 
+  const resolveConflict = useCallback(() => {
+    setConflict((cur) => {
+      if (!cur) return null;
+      stateRef.current = cur.current.state;
+      lastSavedRef.current = cur.current.state;
+      versionRef.current = cur.current.version;
+      dirtyRef.current = false;
+      setState(cur.current.state);
+      setSaveError(null);
+      return null;
+    });
+  }, []);
+
   const dispatch = useCallback(
     (action: ProjectAction) => {
       if (!canEditRef.current) return;
@@ -316,7 +355,9 @@ export function ProjectProvider({
     let cancelled = false;
     setState(null);
     lastSavedRef.current = null;
+    versionRef.current = 0;
     dirtyRef.current = false;
+    setConflict(null);
     setLoading(true);
     setError(null);
     setSaveError(null);
@@ -325,11 +366,12 @@ export function ProjectProvider({
       await flushPendingSave();
       if (cancelled) return;
       try {
-        const s = await api.getState(projectId);
+        const loaded = await api.getState(projectId);
         if (cancelled) return;
-        stateRef.current = s;
-        lastSavedRef.current = s;
-        setState(s);
+        stateRef.current = loaded.state;
+        lastSavedRef.current = loaded.state;
+        versionRef.current = loaded.version;
+        setState(loaded.state);
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof ApiError ? err.message : 'Failed to load project state');
@@ -348,10 +390,11 @@ export function ProjectProvider({
           if (cancelled) return;
           if (dirtyRef.current || savingRef.current) return;
           const cur = stateRef.current;
-          if (cur && JSON.stringify(fresh) !== JSON.stringify(cur)) {
-            stateRef.current = fresh;
-            lastSavedRef.current = fresh;
-            setState(fresh);
+          if (cur && JSON.stringify(fresh.state) !== JSON.stringify(cur)) {
+            stateRef.current = fresh.state;
+            lastSavedRef.current = fresh.state;
+            versionRef.current = fresh.version;
+            setState(fresh.state);
           }
         })
         .catch(() => {
@@ -383,10 +426,12 @@ export function ProjectProvider({
       lastSavedAt,
       role,
       canEdit: role !== 'viewer',
+      conflict,
       dispatch,
       retrySave,
+      resolveConflict,
     }),
-    [state, loading, error, saveError, saving, lastSavedAt, role, dispatch, retrySave],
+    [state, loading, error, saveError, saving, lastSavedAt, role, conflict, dispatch, retrySave, resolveConflict],
   );
 
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;

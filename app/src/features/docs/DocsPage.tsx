@@ -61,22 +61,6 @@ export function DocsPage() {
               </button>
             </section>
 
-            <section id="docs-api" className="docs-section">
-              <h2 className="docs-section-title">API Reference</h2>
-              <p className="docs-step-desc">
-                Every REST endpoint DevHub exposes, grouped by resource: auth, API keys, projects, teams,
-                and the MCP transport.
-              </p>
-              <button type="button" className="docs-card" onClick={() => navigate('/docs/api')}>
-                <ArrowSquareOut size={18} weight="duotone" aria-hidden="true" />
-                <span className="docs-card-text">
-                  <span className="docs-card-title">Browse endpoints</span>
-                  <span className="docs-card-sub">Methods, auth requirements, and payload notes</span>
-                </span>
-                <ArrowSquareOut size={14} className="docs-card-arrow" aria-hidden="true" />
-              </button>
-            </section>
-
             <section id="docs-shortcuts" className="docs-section">
               <h2 className="docs-section-title">Keyboard Shortcuts</h2>
               <p className="docs-step-desc">

@@ -39,7 +39,7 @@ export async function saveState(projectId: string, state: State): Promise<void> 
     throw new McpError(ErrorCode.InvalidParams, `No write access to project ${projectId}`);
   }
   const result = await pool.query(
-    'UPDATE projects SET data = $2::jsonb, updated_at = now() WHERE id = $1 RETURNING id',
+    'UPDATE projects SET data = $2::jsonb, version = version + 1, updated_at = now() WHERE id = $1 RETURNING id',
     [projectId, JSON.stringify(state)],
   );
   if (!result.rows[0]) {

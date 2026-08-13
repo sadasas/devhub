@@ -1,6 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { updatePrd } from '../state-db.js';
+import { textContent } from '../entity.js';
 
 const inputSchema = z.object({
   projectId: z.string().describe('UUID of the target project'),
@@ -28,7 +29,7 @@ export function registerUpdatePrd(server: McpServer): void {
         scope: args.scope,
         outOfScope: args.outOfScope,
       });
-      return { content: [{ type: 'text', text: JSON.stringify(prd, null, 2) }] };
+      return { content: [textContent(prd)] };
     },
   );
 }

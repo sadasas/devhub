@@ -1532,6 +1532,12 @@ a:hover {
   color: var(--text-muted);
 }
 
+.conflict-banner {
+  border-color: rgba(234, 179, 8, 0.4);
+  background: var(--status-warn-dim);
+  color: var(--status-warn);
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -3910,4 +3916,117 @@ input[type='checkbox'] {
   .api-col-labels .api-param-grid {
     display: none;
   }
+}
+
+/* ============================================================
+   API docs view
+   ============================================================ */
+
+.api-mode-toggle {
+  margin-left: 8px;
+}
+
+.api-docs-overview {
+  margin-bottom: 10px;
+}
+
+.api-docs-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.api-docs-group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 14px;
+}
+
+.api-docs-endpoint {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-card);
+}
+
+.api-docs-endpoint-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.api-docs-endpoint-anchor[id] {
+  scroll-margin-top: 88px;
+}
+
+.api-docs-empty {
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+/* ============================================================
+   Docs table of contents
+   ============================================================ */
+
+.docs-toc {
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.docs-toc-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.docs-toc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.docs-toc-link {
+  display: block;
+  padding: 4px 8px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+}
+
+.docs-toc-link:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.docs-toc-link-active {
+  color: var(--text-primary);
+  background: var(--accent-dim);
+}
+
+.docs-toc-children {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+  margin: 2px 0 4px 12px;
+  padding: 0 0 0 8px;
+  border-left: 1px solid var(--border-hairline);
 }

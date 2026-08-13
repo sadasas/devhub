@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
+import { applyDefined, findEntity, nowIso, textContent } from '../entity.js';
 
 const inputSchema = z.object({
   projectId: z.string().describe('UUID of the target project'),
@@ -25,28 +25,20 @@ export function registerUpdateTestCase(server: McpServer): void {
     },
     async (args) => {
       const state = await loadState(args.projectId);
-      const testCase = state.testCases.find((t) => t.id === args.testCaseId);
-      if (!testCase) {
-        throw new McpError(ErrorCode.InvalidParams, `Test case not found: ${args.testCaseId}`);
-      }
-      if (args.name !== undefined) testCase.name = args.name.trim();
-      if (args.taskId !== undefined) testCase.taskId = args.taskId;
-      if (args.issueId !== undefined) testCase.issueId = args.issueId;
-      if (args.steps !== undefined) testCase.steps = args.steps;
-      if (args.expected !== undefined) testCase.expected = args.expected;
-      if (args.status !== undefined) testCase.status = args.status;
-      testCase.updatedAt = new Date().toISOString();
+      const testCase = findEntity(state.testCases, args.testCaseId, 'Test case');
+      applyDefined(testCase, {
+        name: args.name?.trim(),
+        taskId: args.taskId,
+        issueId: args.issueId,
+        steps: args.steps,
+        expected: args.expected,
+        status: args.status,
+      });
+      testCase.updatedAt = nowIso();
       await saveState(args.projectId, state);
       return {
         content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              { id: testCase.id, name: testCase.name, status: testCase.status, taskId: testCase.taskId ?? null },
-              null,
-              2,
-            ),
-          },
+          textContent({ id: testCase.id, name: testCase.name, status: testCase.status, taskId: testCase.taskId ?? null }),
         ],
       };
     },

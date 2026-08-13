@@ -219,6 +219,20 @@
 - **Consequences:** Positive — one coherent story across login page, README, docs, and legal text (ToS/Privacy); supersedes the self-hosted assumptions of ADR-001. Negative — user-data promises now sit on the operator's infrastructure: privacy policy and ToS §5 (data ownership) become load-bearing; requires operational discipline (backups, restore runbook).
 - **Alternatives:** Keep self-hosted positioning (rejected: contradicts the running service and public sharing); hybrid self-hosted + SaaS (rejected: doubles the ops surface for an early-stage product); persona-specific "solo dev" (rejected: the product supports teams; copy should not narrow it).
 
+### ADR-022
+**Granular REST API per entity (design), replacing coarse PUT /state**
+
+- **Status:** Proposed (2026-08-13) — design agreed, implementation deferred to the next release (post-M7).
+- **Context:** The server audit 2026-08 (`docs/04-audit-server-2026-08.md`) found the coarse `PUT /api/projects/:projectId/state` (whole-document replace) to be a scalability ceiling: every save rewrites the entire JSONB document, read-modify-write races are only mitigated (not eliminated) by optimistic version locking (now `version` + 409), payloads grow with project size, and there is no way to write a single task without shipping the whole state. MCP tools already operate per-entity against a full-document read; the REST surface should offer the same granularity to UI and integrations.
+- **Decision:** Design (not yet implement) a granular entity API mounted at a versioned prefix:
+  - **Prefix /api/v1**: `GET|POST /api/v1/projects/:projectId/{tasks|issues|testCases|milestones|techEntries|decisions|tables|relations|schemaVersions|apiCollections|apiEndpoints}`, `GET|PATCH|DELETE .../{entityId}`. List responses support `?after=&limit=` cursor pagination; write payloads reuse the zod entity schemas from `server/src/schema/state.ts` (single source of truth).
+  - **Conflicts**: `If-Match: <version>` + `ETag` on reads; `409 CONFLICT` with `details.current` (same envelope as today's state PUT). The whole-state `PUT /state` stays as a bulk/compat endpoint that also bumps `version`.
+  - **Cascade rules move server-side** (frontend currently unlinks relations/issues/milestones in the reducer): deleting a table removes its relations, deleting a milestone clears `task.milestoneId`, deleting a task clears `issue.linkedTaskId`.
+  - **MCP stays full-document** (`loadState` → mutate → `saveState`): the agent loop keeps a coherent snapshot model; granular REST is for UI/humans and integrations.
+  - **Versioning policy**: when implemented, current routes move behind `/api/v1` with `/api` aliases kept for the M7 client; old aliases deprecated one minor release later.
+- **Consequences:** Positive — partial writes, smaller conflict surface, cache-friendly reads, one canonical validation layer. Negative — more routes to test, frontend migration is incremental (project context keeps full-state polling; only hot write paths move to granular endpoints), and release scope grows post-M7.
+- **Alternatives:** Keep only `PUT /state` (rejected: whole-document rewrites and payload growth, audit S2); per-entity CRUD without versioning (rejected: reintroduces lost updates); CRDTs per entity (rejected: overkill for current collaboration scale); GraphQL layer (rejected: new runtime dependency and tooling for a REST-shaped product).
+
 ---
 
 *End of ADR Log. New decisions append below; existing entries never edited.*

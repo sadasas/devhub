@@ -4,8 +4,10 @@ import { z } from 'zod';
 import { pool } from '../db/pool.js';
 import { requireAuth, getUserId } from '../auth/middleware/requireAuth.js';
 import { ApiError } from '../app.js';
+import { logger } from '../lib/logger.js';
 import { stateSchema, projectStatus, emptyState, exportDocumentSchema, type Milestone, type State } from '../schema/state.js';
 import { prdSchema, prdPatchSchema, mergePrd, normalizePrd } from '../schema/prd.js';
+import { parseOrThrow } from '../lib/db.js';
 import {
   assertAdmin,
   assertWrite,
@@ -31,6 +33,7 @@ const updateProjectSchema = z.object({
 
 const putStateSchema = z.object({
   state: stateSchema,
+  version: z.number().int().positive(),
 });
 
 const importProjectSchema = exportDocumentSchema.extend({
@@ -49,6 +52,7 @@ function projectJson(row: ProjectRow) {
     description: row.description,
     status: row.status,
     visibility: row.visibility,
+    version: row.version,
     prd: normalizePrd(row.prd),
     teamId: row.team_id,
     teamName: row.team_name,
@@ -90,7 +94,7 @@ projectsRouter.use(requireAuth);
 projectsRouter.get('/', async (req, res) => {
   const userId = getUserId(req);
   const result = await pool.query(
-    `SELECT p.id, p.name, p.description, p.status, p.prd, p.visibility,
+    `SELECT p.id, p.name, p.description, p.status, p.version, p.prd, p.visibility,
             p.created_at, p.updated_at, p.team_id, t.name AS team_name, tm.role
      FROM projects p
      JOIN team_members tm ON tm.team_id = p.team_id
@@ -120,11 +124,11 @@ projectsRouter.get('/stats', async (req, res) => {
 
 projectsRouter.post('/', async (req, res) => {
   const userId = getUserId(req);
-  const parsed = createProjectSchema.safeParse(req.body);
-  if (!parsed.success) {
-    throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid project data', parsed.error.issues);
-  }
-  const { name, description, teamId, prd } = parsed.data;
+  const { name, description, teamId, prd } = parseOrThrow(
+    createProjectSchema,
+    req.body,
+    'Invalid project data',
+  );
   const team = await getTeamWithRole(userId, teamId);
   if (!team) throw new ApiError(404, 'NOT_FOUND', 'Team not found');
   assertWrite(team.role);
@@ -151,11 +155,11 @@ projectsRouter.patch('/:projectId', async (req, res) => {
   const row = await getProjectWithRole(userId, req.params.projectId);
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
   assertWrite(row.role);
-  const parsed = updateProjectSchema.safeParse(req.body);
-  if (!parsed.success) {
-    throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid project data', parsed.error.issues);
-  }
-  const { name, description, status, visibility, prd } = parsed.data;
+  const { name, description, status, visibility, prd } = parseOrThrow(
+    updateProjectSchema,
+    req.body,
+    'Invalid project data',
+  );
   if (visibility !== undefined) assertAdmin(row.role);
   const mergedPrd = prd !== undefined ? JSON.stringify(mergePrd(prd, normalizePrd(row.prd))) : null;
   const updated = await pool.query<{ id: string; updated_at: Date }>(
@@ -194,11 +198,14 @@ projectsRouter.get('/:projectId/state', async (req, res) => {
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
   const parsed = stateSchema.safeParse(row.data);
   if (!parsed.success) {
-    console.error(`State validation failed for project ${req.params.projectId}:`, parsed.error.issues);
-    res.json(emptyState);
-    return;
+    logger.error('State validation failed on read', {
+      requestId: req.id,
+      projectId: req.params.projectId,
+      issues: parsed.error.issues,
+    });
+    throw new ApiError(500, 'INTERNAL', 'Stored state is invalid');
   }
-  res.json({ state: parsed.data });
+  res.json({ state: parsed.data, version: row.version });
 });
 
 projectsRouter.put('/:projectId/state', async (req, res) => {
@@ -206,15 +213,24 @@ projectsRouter.put('/:projectId/state', async (req, res) => {
   const row = await getProjectWithRole(userId, req.params.projectId);
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
   assertWrite(row.role);
-  const parsed = putStateSchema.safeParse(req.body);
-  if (!parsed.success) {
-    throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid state payload', parsed.error.issues);
+  const { state, version } = parseOrThrow(putStateSchema, req.body, 'Invalid state payload');
+  const updated = await pool.query<{ id: string; version: number }>(
+    `UPDATE projects SET data = $2::jsonb, version = version + 1, updated_at = now()
+     WHERE id = $1 AND version = $3
+     RETURNING id, version`,
+    [req.params.projectId, JSON.stringify(state), version],
+  );
+  if (!updated.rows[0]) {
+    const fresh = await getProjectWithRole(userId, req.params.projectId);
+    const currentParsed = stateSchema.safeParse(fresh?.data);
+    throw new ApiError(409, 'CONFLICT', 'The project was modified by someone else. Reload to see the latest version.', {
+      current: {
+        version: fresh?.version ?? null,
+        state: currentParsed.success ? currentParsed.data : emptyState,
+      },
+    });
   }
-  await pool.query('UPDATE projects SET data = $2::jsonb, updated_at = now() WHERE id = $1', [
-    req.params.projectId,
-    JSON.stringify(parsed.data.state),
-  ]);
-  res.json({ ok: true });
+  res.json({ ok: true, version: updated.rows[0].version });
 });
 
 projectsRouter.get('/:projectId/export', async (req, res) => {
@@ -242,18 +258,18 @@ projectsRouter.get('/:projectId/export', async (req, res) => {
 
 projectsRouter.post('/import', async (req, res) => {
   const userId = getUserId(req);
-  const parsed = importProjectSchema.safeParse(req.body);
-  if (!parsed.success) {
-    throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid export document', parsed.error.issues);
-  }
-  const { meta, state, teamId } = parsed.data;
+  const { meta, state, teamId } = parseOrThrow(
+    importProjectSchema,
+    req.body,
+    'Invalid export document',
+  );
   const existing = await getProjectWithRole(userId, meta.projectId);
   if (existing) {
     assertWrite(existing.role);
-    await pool.query('UPDATE projects SET data = $2::jsonb, updated_at = now() WHERE id = $1', [
-      meta.projectId,
-      JSON.stringify(state),
-    ]);
+    await pool.query(
+      'UPDATE projects SET data = $2::jsonb, version = version + 1, updated_at = now() WHERE id = $1',
+      [meta.projectId, JSON.stringify(state)],
+    );
     res.json({ projectId: meta.projectId, restored: true });
     return;
   }

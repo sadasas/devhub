@@ -72,7 +72,7 @@ describe('PublicProjectPage', () => {
       updatedAt: '2026-01-01T00:00:00.000Z',
     }));
     vi.spyOn(api, 'getPublicProject').mockResolvedValue(makeMeta());
-    vi.spyOn(api, 'getPublicState').mockResolvedValue(makeState({ tasks }));
+    vi.spyOn(api, 'getPublicState').mockResolvedValue({ state: makeState({ tasks }), version: 1 });
 
     const { container } = renderPage();
     const heading = await screen.findByRole('heading', { name: 'Demo Project' });
@@ -89,7 +89,7 @@ describe('PublicProjectPage', () => {
     const base = { id: 't', priority: 'medium' as const, labels: [], blockedBy: [], description: '', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' };
     vi.spyOn(api, 'getPublicProject').mockResolvedValue(makeMeta());
     vi.spyOn(api, 'getPublicState').mockResolvedValue(
-      makeState({
+      { state: makeState({
         milestones: [
           { id: 'm1', name: 'Alpha', version: '1.0.0', status: 'planned', targetDate: '2026-03-01', changelog: '', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
         ],
@@ -98,7 +98,7 @@ describe('PublicProjectPage', () => {
           { ...base, id: 't2', title: 'Milestoned done', status: 'done', milestoneId: 'm1' },
           { ...base, id: 't3', title: 'Unassigned task', status: 'inProgress', milestoneId: null },
         ],
-      }),
+      }), version: 1 },
     );
 
     renderPage();
@@ -117,7 +117,7 @@ describe('PublicProjectPage', () => {
   it('shows issue description and reproduction on the Issues tab', async () => {
     vi.spyOn(api, 'getPublicProject').mockResolvedValue(makeMeta());
     vi.spyOn(api, 'getPublicState').mockResolvedValue(
-      makeState({
+      { state: makeState({
         issues: [
           {
             id: 'i1',
@@ -132,7 +132,7 @@ describe('PublicProjectPage', () => {
             updatedAt: '2026-01-01T00:00:00.000Z',
           },
         ],
-      }),
+      }), version: 1 },
     );
 
     renderPage();

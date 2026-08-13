@@ -1,5 +1,4 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import {
   apiHeaderSchema,
@@ -8,6 +7,7 @@ import {
   apiResponseSchema,
 } from '../../schema/state.js';
 import { loadState, saveState } from '../state-db.js';
+import { newId, nowIso, textContent, toolError } from '../entity.js';
 
 const inputSchema = z.object({
   projectId: z.string().describe('UUID of the target project'),
@@ -34,14 +34,11 @@ export function registerAddApiEndpoint(server: McpServer): void {
     async (args) => {
       const state = await loadState(args.projectId);
       if (args.collectionId != null && !state.apiCollections.some((c) => c.id === args.collectionId)) {
-        return {
-          isError: true,
-          content: [{ type: 'text', text: `API collection not found: ${args.collectionId}` }],
-        };
+        return toolError(`API collection not found: ${args.collectionId}`);
       }
-      const now = new Date().toISOString();
+      const now = nowIso();
       const endpoint = {
-        id: randomUUID(),
+        id: newId(),
         createdAt: now,
         updatedAt: now,
         collectionId: args.collectionId ?? null,
@@ -58,14 +55,7 @@ export function registerAddApiEndpoint(server: McpServer): void {
       await saveState(args.projectId, state);
       return {
         content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              { id: endpoint.id, method: endpoint.method, path: endpoint.path, updatedAt: now },
-              null,
-              2,
-            ),
-          },
+          textContent({ id: endpoint.id, method: endpoint.method, path: endpoint.path, updatedAt: now }),
         ],
       };
     },

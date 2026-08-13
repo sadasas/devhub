@@ -11,9 +11,6 @@ export function DocsNav() {
       <NavLink to="/docs/mcp" className={tabClass}>
         MCP Integration
       </NavLink>
-      <NavLink to="/docs/api" className={tabClass}>
-        API Reference
-      </NavLink>
     </nav>
   );
 }

@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
+import { newId, nowIso, textContent, toolError } from '../entity.js';
 
 const inputSchema = z.object({
   projectId: z.string().describe('UUID of the target project'),
@@ -23,18 +23,17 @@ export function registerAddTech(server: McpServer): void {
     },
     async (args) => {
       const state = await loadState(args.projectId);
-      if (state.techEntries.some((t) => t.name.toLowerCase() === args.name.trim().toLowerCase())) {
-        return {
-          isError: true,
-          content: [{ type: 'text', text: `Tech entry already exists: ${args.name.trim()}` }],
-        };
+      const name = args.name.trim();
+      const duplicate = state.techEntries.find((t) => t.name.toLowerCase() === name.toLowerCase());
+      if (duplicate) {
+        return toolError(`Tech entry already exists: ${name}`);
       }
-      const now = new Date().toISOString();
+      const now = nowIso();
       const entry = {
-        id: randomUUID(),
+        id: newId(),
         createdAt: now,
         updatedAt: now,
-        name: args.name.trim(),
+        name,
         version: args.version.trim(),
         category: args.category,
         status: args.status,
@@ -44,14 +43,7 @@ export function registerAddTech(server: McpServer): void {
       await saveState(args.projectId, state);
       return {
         content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              { id: entry.id, name: entry.name, version: entry.version, status: entry.status, updatedAt: now },
-              null,
-              2,
-            ),
-          },
+          textContent({ id: entry.id, name: entry.name, version: entry.version, status: entry.status, updatedAt: now }),
         ],
       };
     },

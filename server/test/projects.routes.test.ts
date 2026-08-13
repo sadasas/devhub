@@ -124,16 +124,46 @@ describe('projects routes', () => {
       .put(`/api/projects/${projectId}/state`)
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp())
-      .send({ state });
+      .send({ state, version: 1 });
     expect(put.status).toBe(200);
+    expect(put.body.version).toBe(2);
 
     const get = await request(app)
       .get(`/api/projects/${projectId}/state`)
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp());
     expect(get.status).toBe(200);
+    expect(get.body.version).toBe(2);
     expect(get.body.state.tasks).toHaveLength(1);
     expect(get.body.state.tasks[0].title).toBe('Shipped task');
+  });
+
+  it('rejects stale state writes with 409', async () => {
+    const cookie = await register('conflict@test.dev');
+    const projectId = await createProject(cookie);
+
+    const first = await request(app)
+      .put(`/api/projects/${projectId}/state`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ state: emptyState, version: 1 });
+    expect(first.status).toBe(200);
+
+    const stale = await request(app)
+      .put(`/api/projects/${projectId}/state`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ state: emptyState, version: 1 });
+    expect(stale.status).toBe(409);
+    expect(stale.body.error.code).toBe('CONFLICT');
+    expect(stale.body.error.details.current.version).toBe(2);
+
+    const retry = await request(app)
+      .put(`/api/projects/${projectId}/state`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ state: emptyState, version: stale.body.error.details.current.version });
+    expect(retry.status).toBe(200);
   });
 
   it('patches a single PRD section without wiping the others', async () => {

@@ -160,8 +160,7 @@ The full enterprise-grade documentation suite lives in `docs/`:
 |---|---|
 | Project | [Project Charter](docs/01-project/project-charter.md) · [PRD](docs/01-project/prd.md) · [Roadmap](docs/01-project/roadmap.md) |
 | Architecture | [Technical Design](docs/02-architecture/technical-design.md) · [ADR Log](docs/02-architecture/adr.md) · [Security Design](docs/02-architecture/security-design.md) |
-| Engineering | [Coding Standards](docs/03-engineering/coding-standards.md) · [Git Workflow](docs/03-engineering/git-workflow.md) · [Code Review](docs/03-engineering/code-review.md) · [Testing Strategy](docs/03-engineering/testing-strategy.md) · [MCP Integration](docs/03-engineering/mcp-integration.md) |
-| API | [OpenAPI Spec](docs/04-api/openapi.yaml) · [API Guide](docs/04-api/api-guide.md) |
+| Engineering | [Coding Standards](docs/03-engineering/coding-standards.md) · [Git Workflow](docs/03-engineering/git-workflow.md) · [Code Review](docs/03-engineering/code-review.md) · [Testing Strategy](docs/03-engineering/testing-strategy.md) · [MCP Integration](docs/03-engineering/mcp-integration.md) · [Server Audit 2026-08](docs/04-audit-server-2026-08.md) |
 | Operations | [Deployment Runbook](docs/05-operations/deployment-runbook.md) · [Backup & Recovery](docs/05-operations/backup-recovery.md) · [Monitoring](docs/05-operations/monitoring.md) · [Incident Response](docs/05-operations/incident-response.md) |
 | Compliance | [Privacy Policy](docs/06-compliance/privacy-policy.md) · [Terms of Service](docs/06-compliance/terms-of-service.md) |
 

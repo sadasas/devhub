@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { ApiError } from '../app.js';
-import { stateSchema, emptyState } from '../schema/state.js';
+import { logger } from '../lib/logger.js';
+import { stateSchema } from '../schema/state.js';
 import { normalizePrd } from '../schema/prd.js';
 import { getPublicProject, type PublicProjectRow } from './authz.js';
 
@@ -13,6 +14,7 @@ function publicProjectJson(row: PublicProjectRow) {
     description: row.description,
     status: row.status,
     visibility: row.visibility,
+    version: row.version,
     prd: normalizePrd(row.prd),
     teamName: row.team_name,
     createdAt: row.created_at.toISOString(),
@@ -31,9 +33,12 @@ publicRouter.get('/projects/:projectId/state', async (req, res) => {
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
   const parsed = stateSchema.safeParse(row.data);
   if (!parsed.success) {
-    console.error(`State validation failed for public project ${req.params.projectId}:`, parsed.error.issues);
-    res.json({ state: emptyState });
-    return;
+    logger.error('State validation failed on public read', {
+      requestId: req.id,
+      projectId: req.params.projectId,
+      issues: parsed.error.issues,
+    });
+    throw new ApiError(500, 'INTERNAL', 'Stored state is invalid');
   }
-  res.json({ state: parsed.data });
+  res.json({ state: parsed.data, version: row.version });
 });

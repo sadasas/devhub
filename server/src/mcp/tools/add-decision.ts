@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
+import { newId, nowIso, textContent } from '../entity.js';
 
 const inputSchema = z.object({
   projectId: z.string().describe('UUID of the target project'),
@@ -18,16 +18,16 @@ export function registerAddDecision(server: McpServer): void {
   server.registerTool(
     'add_decision',
     {
-      title: 'Add an ADR decision',
+      title: 'Add a decision',
       description:
         'Record an architecture decision (ADR) in a DevHub project: context, options considered, the decision and its consequences.',
       inputSchema,
     },
     async (args) => {
       const state = await loadState(args.projectId);
-      const now = new Date().toISOString();
+      const now = nowIso();
       const decision = {
-        id: randomUUID(),
+        id: newId(),
         createdAt: now,
         updatedAt: now,
         title: args.title.trim(),
@@ -41,12 +41,7 @@ export function registerAddDecision(server: McpServer): void {
       state.decisions.push(decision);
       await saveState(args.projectId, state);
       return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({ id: decision.id, title: decision.title, status: decision.status }, null, 2),
-          },
-        ],
+        content: [textContent({ id: decision.id, title: decision.title, status: decision.status })],
       };
     },
   );

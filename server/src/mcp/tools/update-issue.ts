@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
+import { applyDefined, findEntity, nowIso, textContent } from '../entity.js';
 
 const inputSchema = z.object({
   projectId: z.string().describe('UUID of the target project'),
@@ -11,7 +11,7 @@ const inputSchema = z.object({
   status: z.enum(['open', 'reproduced', 'fixing', 'resolved', 'wontfix']).optional(),
   description: z.string().optional(),
   reproduction: z.string().optional(),
-  linkedTaskId: z.string().uuid().nullable().optional().describe('UUID of a related task, or null to clear'),
+  linkedTaskId: z.string().uuid().nullable().optional(),
 });
 
 export function registerUpdateIssue(server: McpServer): void {
@@ -25,28 +25,26 @@ export function registerUpdateIssue(server: McpServer): void {
     },
     async (args) => {
       const state = await loadState(args.projectId);
-      const issue = state.issues.find((i) => i.id === args.issueId);
-      if (!issue) {
-        throw new McpError(ErrorCode.InvalidParams, `Issue not found: ${args.issueId}`);
-      }
-      if (args.title !== undefined) issue.title = args.title.trim();
-      if (args.severity !== undefined) issue.severity = args.severity;
-      if (args.status !== undefined) issue.status = args.status;
-      if (args.description !== undefined) issue.description = args.description;
-      if (args.reproduction !== undefined) issue.reproduction = args.reproduction;
-      if (args.linkedTaskId !== undefined) issue.linkedTaskId = args.linkedTaskId;
-      issue.updatedAt = new Date().toISOString();
+      const issue = findEntity(state.issues, args.issueId, 'Issue');
+      applyDefined(issue, {
+        title: args.title?.trim(),
+        severity: args.severity,
+        status: args.status,
+        description: args.description,
+        reproduction: args.reproduction,
+        linkedTaskId: args.linkedTaskId,
+      });
+      issue.updatedAt = nowIso();
       await saveState(args.projectId, state);
       return {
         content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              { id: issue.id, title: issue.title, status: issue.status, severity: issue.severity, linkedTaskId: issue.linkedTaskId ?? null },
-              null,
-              2,
-            ),
-          },
+          textContent({
+            id: issue.id,
+            title: issue.title,
+            status: issue.status,
+            severity: issue.severity,
+            linkedTaskId: issue.linkedTaskId ?? null,
+          }),
         ],
       };
     },

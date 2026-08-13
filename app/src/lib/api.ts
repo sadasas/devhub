@@ -145,13 +145,15 @@ export const api = {
     }),
 
   getState: async (projectId: string) => {
-    const res = await request<{ state: State }>(`/projects/${encodeURIComponent(projectId)}/state`);
-    return res.state;
+    const res = await request<{ state: State; version: number }>(
+      `/projects/${encodeURIComponent(projectId)}/state`,
+    );
+    return { state: res.state, version: res.version };
   },
-  putState: (projectId: string, state: State, keepalive = false) =>
-    request<{ ok: true }>(`/projects/${encodeURIComponent(projectId)}/state`, {
+  putState: (projectId: string, state: State, version: number, keepalive = false) =>
+    request<{ ok: true; version: number }>(`/projects/${encodeURIComponent(projectId)}/state`, {
       method: 'PUT',
-      body: JSON.stringify({ state }),
+      body: JSON.stringify({ state, version }),
       keepalive,
     }),
 
@@ -162,10 +164,10 @@ export const api = {
     return res.project;
   },
   getPublicState: async (projectId: string) => {
-    const res = await request<{ state: State }>(
+    const res = await request<{ state: State; version: number }>(
       `/public/projects/${encodeURIComponent(projectId)}/state`,
     );
-    return res.state;
+    return { state: res.state, version: res.version };
   },
 
   listKeys: async () => {

@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
+import { newId, nowIso, textContent } from '../entity.js';
 
 const inputSchema = z.object({
   projectId: z.string().describe('UUID of the target project'),
@@ -24,9 +24,9 @@ export function registerAddTestCase(server: McpServer): void {
     },
     async (args) => {
       const state = await loadState(args.projectId);
-      const now = new Date().toISOString();
+      const now = nowIso();
       const testCase = {
-        id: randomUUID(),
+        id: newId(),
         createdAt: now,
         updatedAt: now,
         name: args.name.trim(),
@@ -39,16 +39,7 @@ export function registerAddTestCase(server: McpServer): void {
       state.testCases.push(testCase);
       await saveState(args.projectId, state);
       return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              { id: testCase.id, name: testCase.name, status: testCase.status, taskId: testCase.taskId ?? null },
-              null,
-              2,
-            ),
-          },
-        ],
+        content: [textContent({ id: testCase.id, name: testCase.name, status: testCase.status, taskId: testCase.taskId ?? null })],
       };
     },
   );

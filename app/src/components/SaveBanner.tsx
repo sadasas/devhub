@@ -7,7 +7,7 @@ import { Button } from './Button';
 const SAVED_VISIBLE_MS = 2000;
 
 export function SaveBanner() {
-  const { saveError, saving, retrySave, lastSavedAt } = useProject();
+  const { saveError, saving, retrySave, lastSavedAt, conflict, resolveConflict } = useProject();
   const [showSaved, setShowSaved] = useState(false);
 
   useEffect(() => {
@@ -16,6 +16,19 @@ export function SaveBanner() {
     const t = setTimeout(() => setShowSaved(false), SAVED_VISIBLE_MS);
     return () => clearTimeout(t);
   }, [lastSavedAt]);
+
+  if (conflict) {
+    return createPortal(
+      <div className="save-toast conflict-banner" role="alert">
+        <Warning size={13} weight="bold" aria-hidden="true" />
+        <span>{conflict.message}</span>
+        <Button variant="ghost" size="sm" onClick={resolveConflict}>
+          Load latest
+        </Button>
+      </div>,
+      document.body,
+    );
+  }
 
   if (saveError) {
     return createPortal(

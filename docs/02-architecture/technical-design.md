@@ -6,7 +6,7 @@
 | **Version** | 1.0 |
 | **Owner** | Project Owner |
 | **Last updated** | 2026-08-10 |
-| **Related documents** | [PRD](../01-project/prd.md) · [ADR Log](adr.md) · [Security Design](security-design.md) · [API Guide](../04-api/api-guide.md) |
+| **Related documents** | [PRD](../01-project/prd.md) · [ADR Log](adr.md) · [Security Design](security-design.md) · [MCP Guide](../03-engineering/mcp-integration.md) |
 
 ---
 
@@ -200,7 +200,7 @@ Base URL: `/api`. All endpoints JSON. Auth via httpOnly cookie `devhub_session`.
 
 **Note:** all project state mutations (`PUT /state`, MCP write tools, import restore) require a member role of `owner`/`admin`/`editor`; `viewer` is read-only at both the API and MCP layers.
 
-Versioning contract, request/response examples, and error format: [API Guide](../04-api/api-guide.md) + [OpenAPI spec](../04-api/openapi.yaml).
+Versioning contract, request/response examples, and error format: see the in-app API reference (`app/src/features/api/`), the server route contracts under `server/src/api/`, and the zod schemas in `server/src/schema/`.
 
 ---
 
