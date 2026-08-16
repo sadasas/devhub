@@ -88,6 +88,11 @@ const TABS: { id: ProjectTab; label: string; icon: ReactNode }[] = [
 // ProjectProvider mount effect (provider is in its effect deps).
 const projectStorage = offlineProvider();
 
+function ProjectPresenceStatus({ tab }: { tab: ProjectTab }) {
+  usePresenceStatus(viewingStatus(tab));
+  return null;
+}
+
 export function ProjectPage() {
   const { projectId = '' } = useParams<{ projectId: string }>();
   const { projects, refresh, remove } = useProjects();
@@ -96,7 +101,6 @@ export function ProjectPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const tab: ProjectTab = TABS.some((t) => t.id === tabParam) ? (tabParam as ProjectTab) : 'board';
-  usePresenceStatus(viewingStatus(tab));
   const setTab = (next: ProjectTab) => {
     setSearchParams(
       (prev) => {
@@ -218,6 +222,7 @@ if (!project) {
 
   return (
     <ProjectProvider key={projectId} projectId={projectId} role={role} provider={projectStorage}>
+      <ProjectPresenceStatus tab={tab} />
       <div className="page">
         <header className="project-header">
           <div className="project-heading">
