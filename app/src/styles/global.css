@@ -4716,7 +4716,9 @@ input[type='checkbox'] {
 .chat-skeleton-lines span:first-child { width: 60%; }
 .chat-skeleton-lines span:last-child { width: 40%; }
 .chat-offline-strip { display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-family: var(--font-mono); font-size: 11px; color: var(--status-warn); background: var(--status-warn-dim); border-top: 1px solid var(--border-hairline); }
-.chat-composer { display: flex; align-items: flex-end; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border-hairline); background: var(--bg-overlay); }
+.chat-composer { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-top: 1px solid var(--border-hairline); background: var(--bg-overlay); }
+.chat-composer-row { display: flex; align-items: flex-end; gap: 8px; width: 100%; }
+.chat-composer-hint { font-size: 10.5px; color: var(--text-muted); padding: 0 2px; }
 .chat-input { flex: 1 1 auto; resize: none; min-height: 44px; max-height: 160px; overflow-y: auto; field-sizing: content; }
 .chat-input:focus { outline: none; box-shadow: 0 0 0 2px var(--accent-ring); }
 .chat-sentinel { height: 1px; flex-shrink: 0; }

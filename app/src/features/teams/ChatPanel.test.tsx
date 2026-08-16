@@ -298,7 +298,7 @@ describe('ChatPanel', () => {
     const input = screen.getByLabelText('Message');
     fireEvent.change(input, { target: { value: '@t' } });
 
-    expect(await screen.findByText('Type at least 2 characters')).toBeTruthy();
+    expect(await screen.findByText(/keep typing/i)).toBeTruthy();
     expect(api.search).not.toHaveBeenCalled();
   });
 
@@ -780,6 +780,54 @@ describe('ChatPanel', () => {
     await waitFor(() => expect(document.querySelectorAll('.chat-msg')).toHaveLength(1));
     sockets[0]!.onMessageNew?.('t1', saved);
     expect(document.querySelectorAll('.chat-msg')).toHaveLength(1);
+  });
+
+  it('keeps the unread divider when a live message arrives while the drawer is open', async () => {
+    idb.getMeta.mockImplementation((key: string) =>
+      key === 'chatLastRead:t1'
+        ? Promise.resolve('2026-01-01T00:00:00.000Z')
+        : Promise.resolve(null),
+    );
+    api.listMessages.mockResolvedValue({
+      messages: [message({ id: 'm1', content: 'lama', createdAt: '2026-01-02T00:00:00.000Z' })],
+      nextCursor: null,
+    });
+    renderPanel();
+    await screen.findByText('lama');
+    expect(screen.getByText('New messages')).toBeTruthy();
+    sockets[0]!.onMessageNew?.('t1', message({ id: 'm-live', authorId: 'u2', authorName: 'Budi', content: 'baru', createdAt: new Date().toISOString() }));
+    await screen.findByText('baru');
+    expect(document.querySelectorAll('.chat-unread-divider')).toHaveLength(1);
+    const lastReadWrites = idb.putMeta.mock.calls.filter((c) => c[0] === 'chatLastRead:t1');
+    expect(lastReadWrites).toHaveLength(1);
+    expect(lastReadWrites[0]).toEqual(['chatLastRead:t1', '2026-01-02T00:00:00.000Z']);
+  });
+
+  it('shows the @ hint when the draft is empty and keeps mention search hints', async () => {
+    renderPanel();
+    await screen.findByText('No messages yet');
+    expect(screen.getByText(/type @/i)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'halo' } });
+    expect(screen.queryByText(/type @/i)).toBeNull();
+    fireEvent.change(screen.getByLabelText('Message'), { target: { value: '@' } });
+    expect(screen.getByText(/keep typing/i)).toBeTruthy();
+  });
+
+  it('scrolls to the bottom after sending', async () => {
+    const many = Array.from({ length: 30 }, (_, i) =>
+      message({ id: `p${i}`, content: `pesan ${i}`, createdAt: `2026-01-01T00:00:${String(i).padStart(2, '0')}.000Z` }),
+    );
+    api.listMessages.mockResolvedValue({ messages: many, nextCursor: null });
+    api.sendMessage.mockResolvedValueOnce(message({ id: 'saved1', content: 'Halo tim' }));
+    renderPanel();
+    await screen.findByText('pesan 0');
+    const list = document.querySelector('.chat-list') as HTMLElement;
+    Object.defineProperty(list, 'scrollHeight', { value: 1500, configurable: true });
+    Object.defineProperty(list, 'clientHeight', { value: 400, configurable: true });
+    list.scrollTop = 0;
+    fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'Halo tim' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+    await waitFor(() => expect(list.scrollTop).toBe(1500));
   });
 });
 

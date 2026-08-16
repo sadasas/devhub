@@ -257,7 +257,6 @@ const socketRef = useRef<TeamChatSocket | null>(null);
 
   const onMessageNew = useCallback((_teamId: string, message: ChatMessage) => {
     if (messagesRef.current.some((m) => m.id === message.id)) return;
-    void putMeta(chatLastReadKey(teamId), message.createdAt).catch(() => {});
     const tempIdx = messagesRef.current.findIndex(
       (m) => m.id.startsWith('local-') && m.content === message.content && m.authorId === message.authorId,
     );
@@ -434,6 +433,10 @@ async function onSend() {
     setMessages(messagesRef.current);
     setDraft('');
     refsRef.current = [];
+    requestAnimationFrame(() => {
+      const list = listRef.current;
+      if (list) list.scrollTop = list.scrollHeight;
+    });
     try {
       const saved = await api.sendMessage(teamId, content, refs);
       const next = messagesRef.current.map((m) => (m.id === temp.id ? saved : m));
@@ -738,7 +741,7 @@ return (
         {mention && (
           <div className="mention-popup" role="listbox" aria-label="Mention search">
             {mention.query.length < 2 ? (
-              <div className="mention-hint">Type at least 2 characters</div>
+              <div className="mention-hint">Keep typing — search tasks, issues & more</div>
             ) : mentionLoading ? (
               <div className="mention-hint">Searching…</div>
             ) : mentionResults.length === 0 ? (
@@ -769,6 +772,10 @@ return (
             )}
           </div>
         )}
+        {!draft && (
+          <span className="chat-composer-hint">Tip: type @ to link a task, issue or milestone</span>
+        )}
+        <div className="chat-composer-row">
         <textarea
           className="chat-input"
           aria-label="Message"
@@ -828,6 +835,7 @@ return (
         >
           <PaperPlaneTilt size={14} aria-hidden="true" />
         </Button>
+        </div>
       </div>
     </div>
   );
