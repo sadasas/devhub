@@ -5,6 +5,7 @@ import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { columnLabel, diffSnapshots } from './schema-diff';
+import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 
 interface DiffVersionModalProps {
   open: boolean;
@@ -22,6 +23,7 @@ export function DiffVersionModal({ open, versions, onClose }: DiffVersionModalPr
   );
   const [fromId, setFromId] = useState<string>('');
   const [toId, setToId] = useState<string>('');
+  usePresenceStatus('Viewing schema diff', open);
 
   const from = sorted.find((v) => v.id === fromId) ?? sorted[1] ?? sorted[0];
   const to = sorted.find((v) => v.id === toId) ?? sorted[0];

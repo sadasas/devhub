@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from 'react';
 import { ApiError } from '../../lib/api';
 import { EMPTY_PRD, PRD_SECTIONS } from '../../lib/prd';
 import { MarkdownBlocks } from '../../lib/markdown';
+import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import type { Project, ProjectPrd } from '../../lib/types';
 import { useProjects } from '../../state/projects-context';
 import { Button } from '../../components/Button';
@@ -91,6 +92,7 @@ function PrdField({
 
 export function EditPrdModal({ open, onClose, project }: EditPrdModalProps) {
   const { update } = useProjects();
+  usePresenceStatus('Editing project brief', open);
   const descriptionId = useId();
   const [description, setDescription] = useState('');
   const [draft, setDraft] = useState<ProjectPrd>(project.prd);

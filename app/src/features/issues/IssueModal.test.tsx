@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import type { Issue, State } from '../../lib/types';
 import { IssueModal } from './IssueModal';
 
 vi.mock('../../state/project-context', () => ({
-  useProject: () => ({ state: mockState, dispatch: mockDispatch, canEdit: true, projectId: 'p1' }),
+  useProject: () => ({ state: mockState, dispatch: mockDispatch, canEdit: true, projectId: 'p1', setStatus: vi.fn() }),
 }));
 
 const ISSUE_ID = '11111111-1111-4111-8111-111111111111';
@@ -82,7 +83,7 @@ describe('IssueModal linked task select', () => {
   });
 
   it('links a task from the searchable select', () => {
-    render(<IssueModal issueId={ISSUE_ID} onClose={vi.fn()} />);
+    render(<MemoryRouter><IssueModal issueId={ISSUE_ID} onClose={vi.fn()} /></MemoryRouter>);
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
     fireEvent.click(screen.getByRole('button', { name: 'Linked task' }));
     fireEvent.change(screen.getByRole('combobox', { name: 'Search Linked task' }), { target: { value: 'invites' } });
@@ -96,7 +97,7 @@ describe('IssueModal linked task select', () => {
 
   it('unlinks the task via the None row', () => {
     mockState.issues = [makeIssue({ linkedTaskId: TASK_A })];
-    render(<IssueModal issueId={ISSUE_ID} onClose={vi.fn()} />);
+    render(<MemoryRouter><IssueModal issueId={ISSUE_ID} onClose={vi.fn()} /></MemoryRouter>);
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
     fireEvent.click(screen.getByRole('button', { name: 'Linked task' }));
     fireEvent.click(screen.getByRole('option', { name: 'None' }));

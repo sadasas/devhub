@@ -5,6 +5,7 @@ import { ApiError } from '../../lib/api';
 import type { Project, PublicTab } from '../../lib/types';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { useProjects } from '../../state/projects-context';
+import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { Button } from '../../components/Button';
 import { InlineError } from '../../components/InlineError';
 import { Modal } from '../../components/Modal';
@@ -28,6 +29,7 @@ interface ShareModalProps {
 
 export function ShareModal({ projectId, open, onClose }: ShareModalProps) {
   const { projects, update } = useProjects();
+  usePresenceStatus('Sharing project', open);
   const project: Project | undefined = projects?.find((p) => p.id === projectId);
   const { copied, copy } = useCopyFeedback();
   const [vis, setVis] = useState<'private' | 'public'>('private');

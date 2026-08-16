@@ -4,6 +4,7 @@ import { newId, formatRelative } from '../../lib/utils';
 import type { State, Column } from '../../lib/types';
 import type { UpdatePatch } from '../../state/project-context';
 import { useProject } from '../../state/project-context';
+import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { Badge } from '../../components/Badge';
 import { ActivityList } from '../../components/ActivityList';
 import { Button } from '../../components/Button';
@@ -30,6 +31,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
   }, [tableId]);
 
   const table = tableId ? state?.tables.find((t) => t.id === tableId) : undefined;
+  usePresenceStatus('Editing table', table !== null);
   if (!state || !table) return null;
 
   const update = (patch: UpdatePatch<typeof table>) => {

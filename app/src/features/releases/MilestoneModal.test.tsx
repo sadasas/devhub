@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import type { State, Task } from '../../lib/types';
 import { MilestoneModal } from './MilestoneModal';
 
 vi.mock('../../state/project-context', () => ({
-  useProject: () => ({ state: mockState, dispatch: mockDispatch, canEdit: false }),
+  useProject: () => ({ state: mockState, dispatch: mockDispatch, canEdit: false, setStatus: vi.fn() }),
 }));
 
 const MILESTONE_ID = '44444444-4444-4444-8444-444444444444';
@@ -72,7 +73,7 @@ describe('MilestoneModal', () => {
   });
 
   it('lists the tasks shipped in this release', () => {
-    render(<MilestoneModal milestoneId={MILESTONE_ID} onClose={vi.fn()} />);
+    render(<MemoryRouter><MilestoneModal milestoneId={MILESTONE_ID} onClose={vi.fn()} /></MemoryRouter>);
     expect(screen.getByText(/Tasks in this release/)).toBeTruthy();
     expect(screen.getByText('Ship chat')).toBeTruthy();
     expect(screen.getByText('Add invites')).toBeTruthy();
@@ -81,7 +82,7 @@ describe('MilestoneModal', () => {
 
   it('shows a hint when no tasks are assigned', () => {
     mockState = makeState([]);
-    render(<MilestoneModal milestoneId={MILESTONE_ID} onClose={vi.fn()} />);
+    render(<MemoryRouter><MilestoneModal milestoneId={MILESTONE_ID} onClose={vi.fn()} /></MemoryRouter>);
     expect(screen.getByText('No tasks assigned to this milestone.')).toBeTruthy();
   });
 });

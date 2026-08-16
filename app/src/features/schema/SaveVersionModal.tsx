@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { newId, nowIso } from '../../lib/utils';
 import { useProject } from '../../state/project-context';
+import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
@@ -14,6 +15,7 @@ interface SaveVersionModalProps {
 
 export function SaveVersionModal({ open, onClose }: SaveVersionModalProps) {
   const { state, dispatch } = useProject();
+  usePresenceStatus('Snapshotting schema', open);
   const [version, setVersion] = useState('');
   const [notes, setNotes] = useState('');
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { newId, nowIso } from '../../lib/utils';
 import { useProject } from '../../state/project-context';
+import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
@@ -14,6 +15,7 @@ interface NewTableModalProps {
 
 export function NewTableModal({ open, onClose }: NewTableModalProps) {
   const { dispatch } = useProject();
+  usePresenceStatus('Creating table', open);
   const [name, setName] = useState('');
   const [comment, setComment] = useState('');
 

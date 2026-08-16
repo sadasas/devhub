@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { newId, nowIso } from '../../lib/utils';
 import type { TechEntryCategory, TechStatus } from '../../lib/types';
 import { useProject } from '../../state/project-context';
+import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
@@ -15,6 +16,7 @@ interface NewTechModalProps {
 
 export function NewTechModal({ open, onClose }: NewTechModalProps) {
   const { dispatch } = useProject();
+  usePresenceStatus('Creating tech entry', open);
   const [name, setName] = useState('');
   const [version, setVersion] = useState('');
   const [category, setCategory] = useState<TechEntryCategory>('frontend');

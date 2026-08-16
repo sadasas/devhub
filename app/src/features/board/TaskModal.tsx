@@ -10,6 +10,7 @@ import { formatRelative, isTaskCompletable, linkedTestCases, parseLabels } from 
 import type { State, Task, TaskPriority, TaskStatus, TestCaseStatus } from '../../lib/types';
 import type { UpdatePatch } from '../../state/project-context';
 import { useProject, wouldCreateCycle } from '../../state/project-context';
+import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { Badge } from '../../components/Badge';
 import { ActivityList } from '../../components/ActivityList';
 import { Button } from '../../components/Button';
@@ -44,6 +45,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
   }, [taskId]);
 
   const task = state?.tasks.find((t) => t.id === taskId);
+  usePresenceStatus('Editing task', task !== null);
   if (!task) return null;
 
   const update = (patch: UpdatePatch<Task>) =>

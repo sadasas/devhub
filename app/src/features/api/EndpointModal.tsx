@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useProject } from '../../state/project-context';
+import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { newId, nowIso } from '../../lib/utils';
 import type { ApiCollection, ApiMethod } from '../../lib/types';
 import { Button } from '../../components/Button';
@@ -15,6 +16,7 @@ interface EndpointModalProps {
 
 export function EndpointModal({ onClose, onCreated, collections }: EndpointModalProps) {
   const { dispatch } = useProject();
+  usePresenceStatus('Creating API endpoint');
   const [name, setName] = useState('');
   const [method, setMethod] = useState<ApiMethod>('GET');
   const [path, setPath] = useState('/');

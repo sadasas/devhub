@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import type { State } from '../../lib/types';
 import { NewRelationModal } from './NewRelationModal';
 
 vi.mock('../../state/project-context', () => ({
-  useProject: () => ({ state: mockState, dispatch: mockDispatch }),
+  useProject: () => ({ state: mockState, dispatch: mockDispatch, setStatus: vi.fn() }),
 }));
 
 const TABLE_A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
@@ -65,7 +66,7 @@ describe('NewRelationModal chained selects', () => {
   });
 
   it('builds a relation from four chained searchable selects', () => {
-    render(<NewRelationModal open onClose={vi.fn()} />);
+    render(<MemoryRouter><NewRelationModal open onClose={vi.fn()} /></MemoryRouter>);
     fireEvent.click(screen.getByRole('button', { name: 'From table' }));
     fireEvent.click(screen.getByRole('option', { name: 'users' }));
     fireEvent.click(screen.getByRole('button', { name: 'From column' }));
@@ -83,7 +84,7 @@ describe('NewRelationModal chained selects', () => {
   });
 
   it('resets the from column when the from table changes', () => {
-    render(<NewRelationModal open onClose={vi.fn()} />);
+    render(<MemoryRouter><NewRelationModal open onClose={vi.fn()} /></MemoryRouter>);
     fireEvent.click(screen.getByRole('button', { name: 'From table' }));
     fireEvent.click(screen.getByRole('option', { name: 'users' }));
     fireEvent.click(screen.getByRole('button', { name: 'From column' }));

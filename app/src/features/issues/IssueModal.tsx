@@ -5,6 +5,7 @@ import { formatRelative } from '../../lib/utils';
 import type { State, Issue, IssueSeverity, IssueStatus } from '../../lib/types';
 import type { UpdatePatch } from '../../state/project-context';
 import { useProject } from '../../state/project-context';
+import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { Badge } from '../../components/Badge';
 import { ActivityList } from '../../components/ActivityList';
 import { Button } from '../../components/Button';
@@ -32,6 +33,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
   }, [issueId]);
 
   const issue = issueId ? state?.issues.find((i) => i.id === issueId) : undefined;
+  usePresenceStatus('Editing issue', issue !== null);
   if (!state || !issue) return null;
 
   const update = (patch: UpdatePatch<Issue>) => {

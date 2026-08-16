@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { newId, nowIso } from '../../lib/utils';
 import type { TestCaseStatus } from '../../lib/types';
 import { useProject } from '../../state/project-context';
+import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
@@ -16,6 +17,7 @@ interface NewTestModalProps {
 
 export function NewTestModal({ open, onClose }: NewTestModalProps) {
   const { state, dispatch } = useProject();
+  usePresenceStatus('Creating test case', open);
   const [name, setName] = useState('');
   const [status, setStatus] = useState<TestCaseStatus>('pending');
   const [taskId, setTaskId] = useState('');

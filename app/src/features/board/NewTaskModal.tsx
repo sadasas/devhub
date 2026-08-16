@@ -4,6 +4,7 @@ import { newId, nowIso, parseLabels } from '../../lib/utils';
 import { TASK_PRIORITY, TASK_PRIORITY_ORDER } from '../../lib/labels';
 import type { TaskPriority, TaskStatus } from '../../lib/types';
 import { useProject } from '../../state/project-context';
+import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
@@ -18,6 +19,7 @@ interface NewTaskModalProps {
 
 export function NewTaskModal({ open, status, milestoneId, onClose }: NewTaskModalProps) {
   const { state, dispatch } = useProject();
+  usePresenceStatus('Creating task', open);
   const [title, setTitle] = useState('');
   const [priority, setPriority] = useState<TaskPriority>('medium');
   const [estimate, setEstimate] = useState('');

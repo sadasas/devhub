@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useProject } from '../../state/project-context';
+import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { newId, nowIso } from '../../lib/utils';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
@@ -14,6 +15,7 @@ interface NewWhiteboardModalProps {
 
 export function NewWhiteboardModal({ onClose }: NewWhiteboardModalProps) {
   const { state, dispatch } = useProject();
+  usePresenceStatus('Creating whiteboard');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const atCap = (state?.whiteboards.length ?? 0) >= MAX_BOARDS;

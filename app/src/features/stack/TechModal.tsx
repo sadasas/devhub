@@ -5,6 +5,7 @@ import { formatRelative } from '../../lib/utils';
 import type { State, TechEntry, TechEntryCategory, TechStatus } from '../../lib/types';
 import type { UpdatePatch } from '../../state/project-context';
 import { useProject } from '../../state/project-context';
+import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { Badge } from '../../components/Badge';
 import { ActivityList } from '../../components/ActivityList';
 import { Button } from '../../components/Button';
@@ -31,6 +32,7 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
   }, [entryId]);
 
   const entry = entryId ? state?.techEntries.find((t) => t.id === entryId) : undefined;
+  usePresenceStatus('Editing tech entry', entry !== null);
   if (!state || !entry) return null;
 
   const update = (patch: UpdatePatch<TechEntry>) => {

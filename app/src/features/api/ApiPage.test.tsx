@@ -20,6 +20,7 @@ vi.mock('../../state/project-context', () => ({
     role: 'editor',
     canEdit: mocks.canEdit,
     dispatch: mocks.dispatch,
+    setStatus: vi.fn(),
     retrySave: vi.fn(),
   }),
 }));

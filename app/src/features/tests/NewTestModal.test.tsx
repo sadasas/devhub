@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import type { State } from '../../lib/types';
 import { NewTestModal } from './NewTestModal';
 
 vi.mock('../../state/project-context', () => ({
-  useProject: () => ({ state: mockState, dispatch: mockDispatch }),
+  useProject: () => ({ state: mockState, dispatch: mockDispatch, setStatus: vi.fn() }),
 }));
 
 const TASK_A = '55555555-5555-4555-8555-555555555555';
@@ -66,7 +67,7 @@ describe('NewTestModal linked selects', () => {
   });
 
   it('links a task and issue from the searchable selects', () => {
-    render(<NewTestModal open onClose={vi.fn()} />);
+    render(<MemoryRouter><NewTestModal open onClose={vi.fn()} /></MemoryRouter>);
     fireEvent.click(screen.getByRole('button', { name: 'Linked task' }));
     fireEvent.click(screen.getByRole('option', { name: 'Ship chat' }));
     fireEvent.click(screen.getByRole('button', { name: 'Linked issue' }));

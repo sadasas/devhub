@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import type { State, TestCase } from '../../lib/types';
 import { TestModal } from './TestModal';
 
 vi.mock('../../state/project-context', () => ({
-  useProject: () => ({ state: mockState, dispatch: mockDispatch, canEdit: true, projectId: 'p1' }),
+  useProject: () => ({ state: mockState, dispatch: mockDispatch, canEdit: true, projectId: 'p1', setStatus: vi.fn() }),
 }));
 
 const TEST_ID = '33333333-3333-4333-8333-333333333333';
@@ -69,7 +70,7 @@ describe('TestModal linked selects', () => {
   });
 
   it('links a task when editing', () => {
-    render(<TestModal testId={TEST_ID} onClose={vi.fn()} />);
+    render(<MemoryRouter><TestModal testId={TEST_ID} onClose={vi.fn()} /></MemoryRouter>);
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
     fireEvent.click(screen.getByRole('button', { name: 'Linked task' }));
     fireEvent.click(screen.getByRole('option', { name: 'Ship chat' }));
@@ -82,7 +83,7 @@ describe('TestModal linked selects', () => {
 
   it('unlinks a task via the None row', () => {
     mockState.testCases = [makeTestCase({ taskId: TASK_A })];
-    render(<TestModal testId={TEST_ID} onClose={vi.fn()} />);
+    render(<MemoryRouter><TestModal testId={TEST_ID} onClose={vi.fn()} /></MemoryRouter>);
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
     fireEvent.click(screen.getByRole('button', { name: 'Linked task' }));
     fireEvent.click(screen.getByRole('option', { name: 'None' }));

@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import type { State, Task } from '../../lib/types';
 import { TaskModal } from './TaskModal';
 
 vi.mock('../../state/project-context', () => ({
-  useProject: () => ({ state: mockState, dispatch: mockDispatch, canEdit: true, projectId: 'p1' }),
+  useProject: () => ({ state: mockState, dispatch: mockDispatch, canEdit: true, projectId: 'p1', setStatus: vi.fn() }),
   wouldCreateCycle: () => false,
 }));
 
@@ -78,7 +79,7 @@ describe('TaskModal milestone select', () => {
   });
 
   it('assigns a milestone from the searchable select', () => {
-    render(<TaskModal taskId={TASK_ID} onClose={vi.fn()} />);
+    render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
     fireEvent.click(screen.getByRole('button', { name: 'Milestone' }));
     fireEvent.change(screen.getByRole('combobox', { name: 'Search Milestone' }), { target: { value: '0.3' } });
@@ -93,7 +94,7 @@ describe('TaskModal milestone select', () => {
   it('unassigns the milestone via the None row', () => {
     mockState = makeState();
     mockState.tasks = [makeTask({ milestoneId: MILESTONE_A })];
-    render(<TaskModal taskId={TASK_ID} onClose={vi.fn()} />);
+    render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
     fireEvent.click(screen.getByRole('button', { name: 'Milestone' }));
     fireEvent.click(screen.getByRole('option', { name: 'None' }));

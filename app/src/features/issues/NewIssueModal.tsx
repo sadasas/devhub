@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { newId, nowIso } from '../../lib/utils';
 import type { IssueSeverity } from '../../lib/types';
 import { useProject } from '../../state/project-context';
+import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
@@ -15,6 +16,7 @@ interface NewIssueModalProps {
 
 export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
   const { dispatch } = useProject();
+  usePresenceStatus('Creating issue', open);
   const [title, setTitle] = useState('');
   const [severity, setSeverity] = useState<IssueSeverity>('medium');
   const [description, setDescription] = useState('');

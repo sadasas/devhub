@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useProject } from '../../state/project-context';
+import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { newId, nowIso } from '../../lib/utils';
 import type { DecisionStatus } from '../../lib/types';
 import { Button } from '../../components/Button';
@@ -13,6 +14,7 @@ interface NewDecisionModalProps {
 
 export function NewDecisionModal({ onClose }: NewDecisionModalProps) {
   const { dispatch } = useProject();
+  usePresenceStatus('Creating decision');
   const [title, setTitle] = useState('');
   const [status, setStatus] = useState<DecisionStatus>('proposed');
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));

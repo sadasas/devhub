@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useProject } from '../../state/project-context';
+import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { newId, nowIso } from '../../lib/utils';
 import type { MilestoneStatus } from '../../lib/types';
 import { Button } from '../../components/Button';
@@ -13,6 +14,7 @@ interface NewMilestoneModalProps {
 
 export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
   const { dispatch } = useProject();
+  usePresenceStatus('Creating milestone');
   const [name, setName] = useState('');
   const [version, setVersion] = useState('');
   const [targetDate, setTargetDate] = useState('');

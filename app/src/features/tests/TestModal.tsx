@@ -5,6 +5,7 @@ import { formatRelative } from '../../lib/utils';
 import type { State, TestCase, TestCaseStatus } from '../../lib/types';
 import type { UpdatePatch } from '../../state/project-context';
 import { useProject } from '../../state/project-context';
+import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { Badge } from '../../components/Badge';
 import { ActivityList } from '../../components/ActivityList';
 import { Button } from '../../components/Button';
@@ -32,6 +33,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
   }, [testId]);
 
   const test = testId ? state?.testCases.find((t) => t.id === testId) : undefined;
+  usePresenceStatus('Editing test case', test !== null);
   if (!state || !test) return null;
 
   const update = (patch: UpdatePatch<TestCase>) => {

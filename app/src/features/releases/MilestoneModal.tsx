@@ -5,6 +5,7 @@ import { formatRelative, shortId } from '../../lib/utils';
 import type { State, Milestone, MilestoneStatus } from '../../lib/types';
 import type { UpdatePatch } from '../../state/project-context';
 import { useProject } from '../../state/project-context';
+import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { Badge } from '../../components/Badge';
 import { ActivityList } from '../../components/ActivityList';
 import { Button } from '../../components/Button';
@@ -33,6 +34,7 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
   const milestone = milestoneId
     ? state?.milestones.find((m) => m.id === milestoneId)
     : undefined;
+  usePresenceStatus('Editing milestone', milestone !== null);
   if (!state || !milestone) return null;
 
   const milestoneTasks = state.tasks.filter((t) => t.milestoneId === milestone.id);

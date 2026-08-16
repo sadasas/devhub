@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { newId, nowIso } from '../../lib/utils';
 import type { OnDelete, RelationCardinality } from '../../lib/types';
 import { useProject } from '../../state/project-context';
+import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
 import { InlineError } from '../../components/InlineError';
@@ -15,6 +16,7 @@ interface NewRelationModalProps {
 
 export function NewRelationModal({ open, onClose }: NewRelationModalProps) {
   const { state, dispatch } = useProject();
+  usePresenceStatus('Creating relation', open);
   const [fromTableId, setFromTableId] = useState('');
   const [fromColumnId, setFromColumnId] = useState('');
   const [toTableId, setToTableId] = useState('');

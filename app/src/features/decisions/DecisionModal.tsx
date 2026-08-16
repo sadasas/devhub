@@ -5,6 +5,7 @@ import { formatRelative } from '../../lib/utils';
 import type { State, Decision, DecisionStatus } from '../../lib/types';
 import type { UpdatePatch } from '../../state/project-context';
 import { useProject } from '../../state/project-context';
+import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { Badge } from '../../components/Badge';
 import { ActivityList } from '../../components/ActivityList';
 import { Button } from '../../components/Button';
@@ -33,6 +34,7 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
   const decision = decisionId
     ? state?.decisions.find((d) => d.id === decisionId)
     : undefined;
+  usePresenceStatus('Editing decision', decision !== null);
   if (!state || !decision) return null;
 
   const update = (patch: UpdatePatch<Decision>) => {

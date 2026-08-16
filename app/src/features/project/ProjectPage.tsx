@@ -27,6 +27,7 @@ import { offlineProvider } from '../../lib/idb-provider';
 import { PROJECT_STATUS, TEAM_ROLE } from '../../lib/labels';
 import { formatDate } from '../../lib/utils';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
+import { usePresenceStatus, viewingStatus } from '../../hooks/usePresenceStatus';
 import { ProjectProvider } from '../../state/project-context';
 import { useProjects } from '../../state/projects-context';
 import { useAuth } from '../../state/auth-context';
@@ -95,6 +96,7 @@ export function ProjectPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const tab: ProjectTab = TABS.some((t) => t.id === tabParam) ? (tabParam as ProjectTab) : 'board';
+  usePresenceStatus(viewingStatus(tab));
   const setTab = (next: ProjectTab) => {
     setSearchParams(
       (prev) => {
