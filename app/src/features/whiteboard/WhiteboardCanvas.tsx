@@ -20,7 +20,6 @@ import { newId } from '../../lib/utils';
 import {
   clampPopover,
   elementBounds,
-  panBy,
   refCardLayout,
   refCardRect,
   screenToWorld,
@@ -105,7 +104,11 @@ function useView(panEnabled: boolean) {
   const onPointerMove = (e: ReactPointerEvent<SVGSVGElement>) => {
     const start = dragStartRef.current;
     if (!start) return;
-    setView((v) => panBy(v, e.clientX - start.pointerX, e.clientY - start.pointerY));
+    setView((v) => ({
+      ...v,
+      x: start.x + (e.clientX - start.pointerX),
+      y: start.y + (e.clientY - start.pointerY),
+    }));
   };
 
   const endDrag = () => {
@@ -394,6 +397,7 @@ export function WhiteboardCanvas({ board, tool, history }: WhiteboardCanvasProps
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [dragOffset, setDragOffset] = useState<DragOffset | null>(null);
   const dragRef = useRef<{ startWorld: Point; originals: Map<string, WhiteboardElement> } | null>(null);
+  const panDragRef = useRef(false);
   const [edgeDraft, setEdgeDraft] = useState<EdgeDraft | null>(null);
   const edgeDraftRef = useRef<EdgeDraft | null>(null);
   const [refPending, setRefPending] = useState<Point | null>(null);
@@ -703,6 +707,7 @@ export function WhiteboardCanvas({ board, tool, history }: WhiteboardCanvasProps
     if (spaceHeld || (tool === 'select' && !elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects))) {
       setSelectedIds([]);
       setDragOffset(null);
+      panDragRef.current = true;
       view.onPointerDown(e);
       return;
     }
@@ -758,7 +763,7 @@ export function WhiteboardCanvas({ board, tool, history }: WhiteboardCanvasProps
   };
 
   const handlePointerMove = (e: ReactPointerEvent<SVGSVGElement>) => {
-    if (spaceHeld) {
+    if (spaceHeld || panDragRef.current) {
       view.onPointerMove(e);
       return;
     }
@@ -783,7 +788,8 @@ export function WhiteboardCanvas({ board, tool, history }: WhiteboardCanvasProps
   };
 
   const handlePointerUp = (_e: ReactPointerEvent<SVGSVGElement>) => {
-    if (spaceHeld) {
+    if (spaceHeld || panDragRef.current) {
+      panDragRef.current = false;
       view.onPointerUp();
       return;
     }
@@ -806,7 +812,8 @@ export function WhiteboardCanvas({ board, tool, history }: WhiteboardCanvasProps
   };
 
   const handlePointerCancel = (_e: ReactPointerEvent<SVGSVGElement>) => {
-    if (spaceHeld) {
+    if (spaceHeld || panDragRef.current) {
+      panDragRef.current = false;
       view.onPointerCancel();
       return;
     }

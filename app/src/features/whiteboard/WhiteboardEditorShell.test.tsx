@@ -807,4 +807,32 @@ describe('whiteboard editor shell', () => {
     const undone = (dispatch.mock.calls[1]![0] as { patch: { elements: WhiteboardElement[] } }).patch.elements;
     expect(undone).toHaveLength(0);
   });
+
+  it('pans the canvas when dragging empty space with the select tool', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      ...BOARD,
+      elements: [{ id: 'a', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' }],
+    };
+    renderShell(board);
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    // World = client - 16; (184,184) is empty space, not the sticky at (0,0,100,60).
+    fireEvent.pointerDown(svg, { button: 0, clientX: 200, clientY: 200 });
+    fireEvent.pointerMove(svg, { clientX: 210, clientY: 210 });
+    fireEvent.pointerMove(svg, { clientX: 240, clientY: 240 });
+    fireEvent.pointerUp(svg, { clientX: 240, clientY: 240 });
+
+    const g = document.querySelector('svg.wb-svg > g') as SVGGraphicsElement;
+    // Absolute-from-start pan: two moves totaling +40,+40 land exactly at 56,56
+    // (a cumulative-delta bug would accumulate to 66,66).
+    expect(g.getAttribute('transform')).toContain('translate(56 56)');
+    expect(dispatch).not.toHaveBeenCalled();
+  });
 });
