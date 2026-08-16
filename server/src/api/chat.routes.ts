@@ -8,8 +8,10 @@ import { getTeamWithRole, assertAdmin, isUuid } from './authz.js';
 import {
   messageCreateSchema,
   readStateSchema,
+  resolveRefsSchema,
   messageJson,
   insertMessage,
+  resolveRefs,
   type MessageRow,
 } from '../lib/chat.js';
 import { broadcastTeamMessage } from '../realtime/broadcast.js';
@@ -68,6 +70,15 @@ chatRouter.post('/:teamId/messages', async (req, res) => {
     message,
   });
   res.status(201).json({ message });
+});
+
+chatRouter.post('/:teamId/messages/resolve-refs', async (req, res) => {
+  const userId = getUserId(req);
+  await requireTeam(userId, req.params.teamId as string);
+  const { refs } = parseOrThrow(resolveRefsSchema, req.body, 'Invalid refs');
+
+  const resolved = await resolveRefs(pool, req.params.teamId as string, refs);
+  res.json({ refs: resolved });
 });
 
 chatRouter.delete('/:teamId/messages/:messageId', async (req, res) => {
