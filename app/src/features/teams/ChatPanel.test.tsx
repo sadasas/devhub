@@ -132,7 +132,7 @@ describe('ChatPanel', () => {
     });
   });
 
-  it('removes the pending bubble when sending fails', async () => {
+  it('keeps the failed bubble with Retry and Dismiss actions when sending fails', async () => {
     api.sendMessage.mockRejectedValue(new Error('boom'));
     renderPanel();
     await screen.findByText('No messages yet');
@@ -142,9 +142,11 @@ describe('ChatPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
 
     await waitFor(() => {
-      expect(screen.queryByText('Gagal')).toBeNull();
+      expect(screen.getByText('Gagal').closest('.chat-msg')?.className).toContain('chat-msg-failed');
     });
     expect(screen.getByText(/failed to send message/i)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Dismiss' })).toBeTruthy();
   });
 
   it('appends messages pushed over the websocket', async () => {
@@ -235,7 +237,7 @@ describe('ChatPanel', () => {
     await waitFor(() => {
       expect(screen.getByText('Halo tim').className).not.toContain('chat-msg-pending');
     });
-    expect(idb.putMeta).toHaveBeenLastCalledWith('chatQueue:t1', []);
+    expect(idb.putMeta).toHaveBeenCalledWith('chatQueue:t1', []);
   });
 
   it('refetches the list after the websocket rejoins the team room', async () => {
@@ -564,6 +566,157 @@ describe('ChatPanel', () => {
 
     const chip = await screen.findByRole('button', { name: title });
     expect(chip.textContent).toBe(title);
+  });
+
+  it('shows a single date divider for same-day messages', async () => {
+    const noon = new Date();
+    noon.setHours(12, 0, 0, 0);
+    api.listMessages.mockResolvedValueOnce({
+      messages: [
+        message({ id: 'm1', content: 'satu', createdAt: new Date(noon.getTime() - 60_000).toISOString() }),
+        message({ id: 'm2', content: 'dua', createdAt: noon.toISOString() }),
+      ],
+      nextCursor: null,
+    });
+    renderPanel();
+    await screen.findByText('dua');
+    expect(document.querySelectorAll('.chat-date-divider').length).toBe(1);
+    expect(document.querySelector('.chat-date-divider')?.textContent).toContain('Today');
+  });
+
+  it('shows a date divider when the day changes between messages', async () => {
+    const noon = new Date();
+    noon.setHours(12, 0, 0, 0);
+    const yesterday = new Date(noon);
+    yesterday.setDate(yesterday.getDate() - 1);
+    api.listMessages.mockResolvedValueOnce({
+      messages: [
+        message({ id: 'm2', content: 'hari ini', createdAt: noon.toISOString() }),
+        message({ id: 'm1', content: 'kemarin', createdAt: yesterday.toISOString() }),
+      ],
+      nextCursor: null,
+    });
+    renderPanel();
+    await screen.findByText('hari ini');
+    const dividers = document.querySelectorAll('.chat-date-divider');
+    expect(dividers.length).toBe(2);
+    expect(dividers[0]?.textContent).toContain('Yesterday');
+    expect(dividers[1]?.textContent).toContain('Today');
+  });
+
+  it('shows smart times for today, yesterday, and older messages', async () => {
+    const noon = new Date();
+    noon.setHours(12, 0, 0, 0);
+    const yesterday = new Date(noon);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const old = new Date(noon);
+    old.setDate(old.getDate() - 5);
+    const hhmm = new Date(noon).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    api.listMessages.mockResolvedValueOnce({
+      messages: [
+        message({ id: 'm3', content: 'sekarang', createdAt: noon.toISOString() }),
+        message({ id: 'm2', content: 'kemarin', createdAt: yesterday.toISOString() }),
+        message({ id: 'm1', content: 'lama', createdAt: old.toISOString() }),
+      ],
+      nextCursor: null,
+    });
+    renderPanel();
+    await screen.findByText('sekarang');
+    const times = document.querySelectorAll('.chat-msg-time');
+    expect(times[0]?.textContent).toBe(new Date(old.toISOString()).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }));
+    expect(times[1]?.textContent).toBe('Yesterday');
+    expect(times[2]?.textContent).toBe(hhmm);
+  });
+
+  it('retries a failed message with the same content', async () => {
+    api.sendMessage
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValueOnce(message({ id: 'm9', content: 'Halo tim' }));
+    renderPanel();
+    const input = await screen.findByLabelText('Message');
+    fireEvent.change(input, { target: { value: 'Halo tim' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+    await screen.findByText('Halo tim');
+    await waitFor(() => {
+      const bubble = screen.getByText('Halo tim').closest('.chat-msg');
+      expect(bubble?.className).toContain('chat-msg-failed');
+    });
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Dismiss' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await waitFor(() => expect(api.sendMessage).toHaveBeenCalledTimes(2));
+    expect(api.sendMessage).toHaveBeenLastCalledWith('t1', 'Halo tim', []);
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull());
+  });
+
+  it('dismisses a failed message', async () => {
+    api.sendMessage.mockRejectedValueOnce(new Error('boom'));
+    renderPanel();
+    const input = await screen.findByLabelText('Message');
+    fireEvent.change(input, { target: { value: 'Gagal' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+    await screen.findByText('Gagal');
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Dismiss' })).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    await waitFor(() => expect(screen.queryByText('Gagal')).toBeNull());
+  });
+
+  it('shows the offline strip when messages are queued', async () => {
+    idb.getMeta.mockImplementation((key: string) => {
+      if (key === 'chatQueue:t1') {
+        return Promise.resolve([
+          { clientId: 'local-9', teamId: 't1', content: 'Sisa', refs: [], authorId: 'u1', authorName: 'Ana', createdAt: '2026-01-01T00:00:00.000Z' },
+        ]);
+      }
+      return Promise.resolve(null);
+    });
+    api.sendMessage.mockRejectedValue(new ApiError(0, 'NETWORK', 'Cannot reach the server. Is it running?'));
+    renderPanel();
+    expect(await screen.findByText(/Waiting for connection/)).toBeTruthy();
+  });
+
+  it('shows the unread divider for messages newer than the last read time', async () => {
+    idb.getMeta.mockImplementation((key: string) => {
+      if (key === 'chatLastRead:t1') return Promise.resolve('2026-01-01T00:00:00.000Z');
+      return Promise.resolve(null);
+    });
+    api.listMessages.mockResolvedValueOnce({
+      messages: [message({ id: 'm1', content: 'baru', createdAt: '2026-01-02T00:00:00.000Z' })],
+      nextCursor: null,
+    });
+    renderPanel();
+    await screen.findByText('baru');
+    expect(screen.getByText('New messages')).toBeTruthy();
+    expect(document.querySelector('.chat-unread-divider')).toBeTruthy();
+  });
+
+  it('shows the scroll-to-bottom button when scrolled up', async () => {
+    api.listMessages.mockResolvedValueOnce({
+      messages: Array.from({ length: 30 }, (_, i) => message({ id: `m${i}`, content: `pesan ${i}` })),
+      nextCursor: null,
+    });
+    renderPanel();
+    await screen.findByText('pesan 0');
+    expect(screen.queryByRole('button', { name: 'Scroll to bottom' })).toBeNull();
+    const list = document.querySelector('.chat-list') as HTMLDivElement;
+    Object.defineProperty(list, 'scrollHeight', { value: 1500 });
+    Object.defineProperty(list, 'clientHeight', { value: 400 });
+    list.scrollTop = 500;
+    fireEvent.scroll(list);
+    expect(screen.getByRole('button', { name: 'Scroll to bottom' })).toBeTruthy();
+  });
+
+  it('copies a message to the clipboard', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    api.listMessages.mockResolvedValueOnce({
+      messages: [message({ id: 'm1', content: 'Hello world' })],
+      nextCursor: null,
+    });
+    renderPanel();
+    await screen.findByText('Hello world');
+    fireEvent.click(screen.getByRole('button', { name: 'Copy message' }));
+    expect(writeText).toHaveBeenCalledWith('Hello world');
   });
 });
 

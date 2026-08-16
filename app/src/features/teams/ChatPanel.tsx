@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
   Bug,
@@ -6,6 +6,7 @@ import {
   CheckSquare,
   ClockCounterClockwise,
   Columns,
+  Copy,
   FolderSimple,
   Graph,
   ListChecks,
@@ -22,14 +23,16 @@ import { buildMentionToken, parseChatRefs } from '../../lib/chat-tokens';
 import { entityDeepLink } from '../../lib/deep-link';
 import { getMeta, putMeta } from '../../lib/idb';
 import { realtimeWsUrl, TeamChatSocket, type TeamChatSocketOptions } from '../../lib/realtime-client';
+import { avatarColor, initialsOf } from '../../lib/avatar';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { InlineError } from '../../components/InlineError';
-import { Skeleton } from '../../components/Skeleton';
 
 const PAGE_SIZE = 30;
 const MENTION_DEBOUNCE_MS = 250;
 const MENTION_RESULT_LIMIT = 10;
+const GROUP_GAP_MS = 5 * 60_000;
+const SCROLL_FAB_THRESHOLD = 400;
 
 const ENTITY_LABELS: Record<string, string> = {
   tasks: 'Task',
@@ -76,19 +79,28 @@ const ENTITY_ICONS: Record<string, typeof CheckSquare> = {
   schemaVersions: Graph,
 };
 
-const AVATAR_HUES = ['#34c38e', '#e8b955', '#6ea8fe', '#2dd4bf', '#f4706d', '#a1a1aa'];
-
-function avatarHue(authorId: string): string {
-  let hash = 0;
-  for (let i = 0; i < authorId.length; i += 1) {
-    hash = (hash * 31 + authorId.charCodeAt(i)) | 0;
-  }
-  return AVATAR_HUES[Math.abs(hash) % AVATAR_HUES.length] ?? AVATAR_HUES[0]!;
+function dayLabel(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((startOf(today) - startOf(d)) / 86_400_000);
+  if (diff <= 0) return 'Today';
+  if (diff === 1) return 'Yesterday';
+  return d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
 }
 
-function hexToRgb(hex: string): string {
-  const n = parseInt(hex.slice(1), 16);
-  return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`;
+function formatChatTime(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((startOf(today) - startOf(d)) / 86_400_000);
+  if (diff <= 0) return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  if (diff === 1) return 'Yesterday';
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+}
+
+function chatLastReadKey(teamId: string): string {
+  return `chatLastRead:${teamId}`;
 }
 
 interface QueuedChatMessage {
@@ -118,6 +130,10 @@ export function ChatPanel({ teamId, userId, userDisplayName }: ChatPanelProps) {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [failedIds, setFailedIds] = useState<string[]>([]);
+  const [queuedCount, setQueuedCount] = useState(0);
+  const [lastReadAt, setLastReadAt] = useState<string | null>(null);
+  const [showFab, setShowFab] = useState(false);
 
 const socketRef = useRef<TeamChatSocket | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -181,6 +197,9 @@ const socketRef = useRef<TeamChatSocket | null>(null);
       setMessages(messagesRef.current);
       setNextCursor(res.nextCursor);
       setLoadError(null);
+      const saved = await getMeta<string>(chatLastReadKey(teamId)).catch(() => null);
+      if (typeof saved === 'string') setLastReadAt(saved);
+      void putMeta(chatLastReadKey(teamId), new Date().toISOString()).catch(() => {});
       requestAnimationFrame(() => {
         const list = listRef.current;
         if (list) list.scrollTop = list.scrollHeight;
@@ -221,6 +240,17 @@ const socketRef = useRef<TeamChatSocket | null>(null);
     return () => observer.disconnect();
   }, [loadMore]);
 
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const onScroll = () => {
+      setShowFab(list.scrollHeight - list.scrollTop - list.clientHeight > SCROLL_FAB_THRESHOLD);
+    };
+    onScroll();
+    list.addEventListener('scroll', onScroll);
+    return () => list.removeEventListener('scroll', onScroll);
+  }, [messages]);
+
   const onMessageNew = useCallback((_teamId: string, message: ChatMessage) => {
     if (messagesRef.current.some((m) => m.id === message.id)) return;
     const merged = [...messagesRef.current, message];
@@ -240,6 +270,7 @@ const socketRef = useRef<TeamChatSocket | null>(null);
   }, []);
 
   const saveChatQueue = useCallback(() => {
+    setQueuedCount(queuedRef.current.length);
     void putMeta(chatQueueKey(teamId), queuedRef.current).catch(() => {});
   }, [teamId]);
 
@@ -285,6 +316,7 @@ const socketRef = useRef<TeamChatSocket | null>(null);
       }));
       messagesRef.current = [...messagesRef.current, ...restored];
       setMessages(messagesRef.current);
+      setQueuedCount(queue.length);
       if (typeof navigator === 'undefined' || navigator.onLine) void flushQueue();
     })();
     return () => {
@@ -407,12 +439,55 @@ async function onSend() {
         ];
         saveChatQueue();
       } else {
-        messagesRef.current = messagesRef.current.filter((m) => m.id !== temp.id);
-        setMessages(messagesRef.current);
+        setFailedIds((ids) => [...ids, temp.id]);
         setSendError(err instanceof ApiError ? err.message : 'Failed to send message');
       }
     } finally {
       setSending(false);
+    }
+  }
+
+  async function onRetry(message: ChatMessage) {
+    if (sending) return;
+    setSending(true);
+    try {
+      const saved = await api.sendMessage(teamId, message.content, message.refs);
+      messagesRef.current = messagesRef.current.map((m) => (m.id === message.id ? saved : m));
+      setMessages(messagesRef.current);
+      setFailedIds((ids) => ids.filter((id) => id !== message.id));
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 0) {
+        queuedRef.current = [
+          ...queuedRef.current,
+          {
+            clientId: message.id,
+            teamId,
+            content: message.content,
+            refs: message.refs,
+            authorId: message.authorId ?? '',
+            authorName: message.authorName,
+            createdAt: message.createdAt,
+          },
+        ];
+        saveChatQueue();
+        setFailedIds((ids) => ids.filter((id) => id !== message.id));
+      }
+    } finally {
+      setSending(false);
+    }
+  }
+
+  function onDismiss(message: ChatMessage) {
+    messagesRef.current = messagesRef.current.filter((m) => m.id !== message.id);
+    setMessages(messagesRef.current);
+    setFailedIds((ids) => ids.filter((id) => id !== message.id));
+  }
+
+  async function onCopy(message: ChatMessage) {
+    try {
+      await navigator.clipboard?.writeText(message.content);
+    } catch {
+      /* clipboard best-effort */
     }
   }
 
@@ -458,14 +533,53 @@ async function onDelete(message: ChatMessage) {
     });
   }
 
-  return (
+  const rows = useMemo(() => {
+    if (!messages) return null;
+    const out: Array<{ kind: 'divider'; label: string } | { kind: 'unread' } | { kind: 'msg'; m: ChatMessage }> = [];
+    let prevDate = '';
+    let unreadPlaced = false;
+    for (const m of messages) {
+      const date = dayLabel(m.createdAt);
+      if (date !== prevDate) {
+        out.push({ kind: 'divider', label: date });
+        prevDate = date;
+      }
+      if (!unreadPlaced && lastReadAt && new Date(m.createdAt) > new Date(lastReadAt)) {
+        out.push({ kind: 'unread' });
+        unreadPlaced = true;
+      }
+      out.push({ kind: 'msg', m });
+    }
+    return out;
+  }, [messages, lastReadAt]);
+
+return (
     <div className="chat-panel">
       <div className="chat-list" ref={listRef}>
-<div className="chat-sentinel" ref={sentinelRef} />
+        <div className="chat-sentinel" ref={sentinelRef} />
         {messages === null ? (
           <>
-            <Skeleton />
-            <Skeleton />
+            <div className="chat-skeleton-row">
+              <span className="chat-skeleton-avatar" />
+              <span className="chat-skeleton-lines">
+                <span />
+                <span />
+              </span>
+            </div>
+            <div className="chat-skeleton-row">
+              <span className="chat-skeleton-avatar" />
+              <span className="chat-skeleton-lines">
+                <span />
+                <span />
+              </span>
+            </div>
+            <div className="chat-skeleton-row">
+              <span className="chat-skeleton-avatar" />
+              <span className="chat-skeleton-lines">
+                <span />
+                <span />
+              </span>
+            </div>
           </>
         ) : messages.length === 0 ? (
           <div className="page-empty">
@@ -476,55 +590,127 @@ async function onDelete(message: ChatMessage) {
             />
           </div>
         ) : (
-          messages.map((m, i) => {
-            const prev = messages[i - 1];
-            const isGroupStart = !prev || prev.authorId !== m.authorId;
+          rows!.map((row: { kind: string; label?: string; m?: ChatMessage }) => {
+            if (row.kind === 'divider') {
+              return (
+                <div key={row.label} className="chat-date-divider" role="separator">
+                  {row.label}
+                </div>
+              );
+            }
+            if (row.kind === 'unread') {
+              return (
+                <div key="unread" className="chat-unread-divider" role="separator">
+                  New messages
+                </div>
+              );
+            }
+            const m = row.m as ChatMessage;
+            const idx = messages.findIndex((x) => x.id === m.id);
+            const prev = idx > 0 ? messages[idx - 1] : undefined;
+            const isGroupStart =
+              !prev ||
+              prev.authorId !== m.authorId ||
+              new Date(m.createdAt).getTime() - new Date(prev.createdAt).getTime() > GROUP_GAP_MS;
             const own = m.authorId === userId;
             const pending = m.id.startsWith('local-');
-            const hue = avatarHue(m.authorId ?? '');
+            const failed = failedIds.includes(m.id);
+            const color = avatarColor(m.authorId ?? '');
             return (
               <div
                 key={m.id}
-                className={`chat-msg${own ? ' chat-msg-own' : ''}${pending ? ' chat-msg-pending' : ''}`}
+                className={`chat-msg${own ? ' chat-msg-own' : ''}${pending ? ' chat-msg-pending' : ''}${failed ? ' chat-msg-failed' : ''}`}
               >
-                {isGroupStart && !own && (
-                  <span
-                    className="chat-avatar"
-                    style={{ background: `rgba(${hexToRgb(hue)},0.18)`, color: hue }}
-                    aria-hidden="true"
-                  >
-                    {(m.authorName || '?').charAt(0).toUpperCase()}
-                  </span>
-                )}
+                <div className="chat-rail">
+                  {isGroupStart ? (
+                    <span
+                      className="chat-avatar"
+                      style={{
+                        background: `color-mix(in srgb, ${color} 18%, transparent)`,
+                        color,
+                      }}
+                      aria-hidden="true"
+                    >
+                      {initialsOf(m.authorName || 'Former member')}
+                    </span>
+                  ) : (
+                    <span className="chat-rail-time">
+                      {new Date(m.createdAt).toLocaleTimeString(undefined, {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                  )}
+                </div>
                 <div className="chat-msg-body">
                   {isGroupStart && (
                     <div className="chat-msg-header">
-                      {!own && <span>{m.authorName || 'Former member'}</span>}
+                      <span className={own ? 'chat-author chat-author-own' : 'chat-author'}>
+                        {m.authorName || 'Former member'}
+                      </span>
                       {pending && <ClockCounterClockwise size={10} aria-hidden="true" />}
-                      <span className="chat-msg-time">{new Date(m.createdAt).toLocaleString()}</span>
-                      {own && !pending && (
-                        <button
-                          type="button"
-                          className="chat-msg-delete"
-                          aria-label="Delete message"
-                          title="Delete message"
-                          onClick={() => void onDelete(m)}
-                        >
-                          <Trash size={12} aria-hidden="true" />
-                        </button>
-                      )}
+                      <span className="chat-msg-time">{formatChatTime(m.createdAt)}</span>
                     </div>
                   )}
                   <div className="chat-msg-text">{renderContent(m.content)}</div>
+                  {failed && (
+                    <div className="chat-msg-actions-inline">
+                      <Button variant="ghost" size="sm" onClick={() => void onRetry(m)}>
+                        Retry
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => onDismiss(m)}>
+                        Dismiss
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                <div className="chat-msg-actions">
+                  <button
+                    type="button"
+                    className="chat-msg-action"
+                    aria-label="Copy message"
+                    title="Copy message"
+                    onClick={() => void onCopy(m)}
+                  >
+                    <Copy size={12} aria-hidden="true" />
+                  </button>
+                  {own && !pending && (
+                    <button
+                      type="button"
+                      className="chat-msg-action"
+                      aria-label="Delete message"
+                      title="Delete message"
+                      onClick={() => void onDelete(m)}
+                    >
+                      <Trash size={12} aria-hidden="true" />
+                    </button>
+                  )}
                 </div>
               </div>
             );
           })
         )}
+        {showFab && messages && messages.length > 0 && (
+          <button
+            type="button"
+            className="chat-scroll-fab"
+            aria-label="Scroll to bottom"
+            title="Scroll to bottom"
+            onClick={() => listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })}
+          >
+            <PaperPlaneTilt size={16} aria-hidden="true" />
+          </button>
+        )}
       </div>
       {loadError && <InlineError>{loadError}</InlineError>}
       {sendError && <InlineError>{sendError}</InlineError>}
-<div className="chat-composer">
+      <div className="chat-composer">
+        {queuedCount > 0 && (
+          <div className="chat-offline-strip" role="status">
+            <ClockCounterClockwise size={12} aria-hidden="true" />
+            Waiting for connection — {queuedCount} message{queuedCount === 1 ? '' : 's'} queued
+          </div>
+        )}
         {mention && (
           <div className="mention-popup" role="listbox" aria-label="Mention search">
             {mention.query.length < 2 ? (
@@ -547,7 +733,7 @@ async function onDelete(message: ChatMessage) {
                   <span
                     className="mention-entity-badge"
                     style={{
-                      background: `rgba(${hexToRgb(ENTITY_TINT[hit.entity] ?? '#a1a1aa')},0.18)`,
+                      background: `color-mix(in srgb, ${ENTITY_TINT[hit.entity] ?? '#a1a1aa'} 18%, transparent)`,
                       color: ENTITY_TINT[hit.entity] ?? '#a1a1aa',
                     }}
                   >
