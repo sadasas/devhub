@@ -690,6 +690,39 @@ describe('ChatPanel', () => {
     expect(document.querySelector('.chat-unread-divider')).toBeTruthy();
   });
 
+  it('does not show the unread divider for the sender\'s own new message', async () => {
+    idb.getMeta.mockImplementation((key: string) => {
+      if (key === 'chatLastRead:t1') return Promise.resolve('2026-01-01T00:00:00.000Z');
+      return Promise.resolve(null);
+    });
+    api.listMessages.mockResolvedValueOnce({ messages: [], nextCursor: null });
+    const saved = message({ id: 'm-sent', content: 'Halo tim', createdAt: '2030-01-01T00:00:00.000Z' });
+    api.sendMessage.mockResolvedValueOnce(saved);
+    renderPanel();
+    await screen.findByText('No messages yet');
+    fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'Halo tim' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+    await screen.findByText('Halo tim');
+    expect(screen.queryByText('New messages')).toBeNull();
+  });
+
+  it('does not flag messages arriving while the drawer is open', async () => {
+    idb.getMeta.mockImplementation((key: string) => {
+      if (key === 'chatLastRead:t1') return Promise.resolve('2026-01-01T00:00:00.000Z');
+      return Promise.resolve(null);
+    });
+    api.listMessages.mockResolvedValueOnce({
+      messages: [message({ id: 'm1', content: 'lama', createdAt: '2026-01-02T00:00:00.000Z' })],
+      nextCursor: null,
+    });
+    renderPanel();
+    await screen.findByText('lama');
+    expect(screen.getByText('New messages')).toBeTruthy();
+    sockets[0]!.onMessageNew?.('t1', message({ id: 'm-live', authorId: 'u2', authorName: 'Budi', content: 'baru live', createdAt: new Date().toISOString() }));
+    await screen.findByText('baru live');
+    expect(document.querySelectorAll('.chat-unread-divider').length).toBe(1);
+  });
+
   it('shows the scroll-to-bottom button when scrolled up', async () => {
     api.listMessages.mockResolvedValueOnce({
       messages: Array.from({ length: 30 }, (_, i) => message({ id: `m${i}`, content: `pesan ${i}` })),

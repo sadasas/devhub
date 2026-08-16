@@ -133,6 +133,7 @@ export function ChatPanel({ teamId, userId, userDisplayName }: ChatPanelProps) {
   const [failedIds, setFailedIds] = useState<string[]>([]);
   const [queuedCount, setQueuedCount] = useState(0);
   const [lastReadAt, setLastReadAt] = useState<string | null>(null);
+  const [openedAt, setOpenedAt] = useState<string | null>(null);
   const [showFab, setShowFab] = useState(false);
 
 const socketRef = useRef<TeamChatSocket | null>(null);
@@ -197,9 +198,12 @@ const socketRef = useRef<TeamChatSocket | null>(null);
       setMessages(messagesRef.current);
       setNextCursor(res.nextCursor);
       setLoadError(null);
+      const openedAt = new Date().toISOString();
       const saved = await getMeta<string>(chatLastReadKey(teamId)).catch(() => null);
       if (typeof saved === 'string') setLastReadAt(saved);
-      void putMeta(chatLastReadKey(teamId), new Date().toISOString()).catch(() => {});
+      setOpenedAt(openedAt);
+      const newest = messagesRef.current.at(-1)?.createdAt ?? openedAt;
+      void putMeta(chatLastReadKey(teamId), newest).catch(() => {});
       requestAnimationFrame(() => {
         const list = listRef.current;
         if (list) list.scrollTop = list.scrollHeight;
@@ -253,6 +257,7 @@ const socketRef = useRef<TeamChatSocket | null>(null);
 
   const onMessageNew = useCallback((_teamId: string, message: ChatMessage) => {
     if (messagesRef.current.some((m) => m.id === message.id)) return;
+    void putMeta(chatLastReadKey(teamId), message.createdAt).catch(() => {});
     const tempIdx = messagesRef.current.findIndex(
       (m) => m.id.startsWith('local-') && m.content === message.content && m.authorId === message.authorId,
     );
@@ -272,7 +277,7 @@ const socketRef = useRef<TeamChatSocket | null>(null);
         list.scrollTop = list.scrollHeight;
       }
     });
-  }, []);
+  }, [teamId]);
 
   const onMessageSent = useCallback((_teamId: string, message: ChatMessage) => {
     messagesRef.current = messagesRef.current.map((m) => (m.id.startsWith('local-') ? message : m));
@@ -557,14 +562,20 @@ async function onDelete(message: ChatMessage) {
         out.push({ kind: 'divider', label: date });
         prevDate = date;
       }
-      if (!unreadPlaced && lastReadAt && new Date(m.createdAt) > new Date(lastReadAt)) {
+      if (
+        !unreadPlaced &&
+        lastReadAt &&
+        openedAt &&
+        new Date(m.createdAt) > new Date(lastReadAt) &&
+        new Date(m.createdAt) <= new Date(openedAt)
+      ) {
         out.push({ kind: 'unread' });
         unreadPlaced = true;
       }
       out.push({ kind: 'msg', m });
     }
     return out;
-  }, [messages, lastReadAt]);
+  }, [messages, lastReadAt, openedAt]);
 
 return (
     <div className="chat-panel">
