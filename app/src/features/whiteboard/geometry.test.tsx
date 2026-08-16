@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import type { Whiteboard } from '../../lib/types';
 import {
+  clampPopover,
   elementBounds,
   panBy,
   refCardLayout,
@@ -281,5 +282,36 @@ describe('WhiteboardCanvas', () => {
     expect(screen.getByRole('group', { name: /Whiteboard Plan/ }).getAttribute('aria-label')).toBe(
       'Whiteboard Plan — 2 elements',
     );
+  });
+});
+
+describe('clampPopover', () => {
+  const containerW = 800;
+  const containerH = 600;
+
+  it('flips above the anchor when the popover would overflow the bottom edge', () => {
+    const raw = { x: 100, y: 570 };
+    const pos = clampPopover(raw, containerW, containerH, 220, 180);
+    expect(pos.y).toBe(380);
+    expect(pos.x).toBe(100);
+  });
+
+  it('keeps the popover below the anchor when it fits', () => {
+    const raw = { x: 100, y: 120 };
+    const pos = clampPopover(raw, containerW, containerH, 220, 180);
+    expect(pos.y).toBe(120);
+  });
+
+  it('clamps to the right and left edges with an 8px margin', () => {
+    const right = clampPopover({ x: 700, y: 100 }, containerW, containerH, 220, 180);
+    expect(right.x).toBe(572);
+    const left = clampPopover({ x: -5, y: 100 }, containerW, containerH, 220, 180);
+    expect(left.x).toBe(8);
+  });
+
+  it('falls back to the margin when the container is smaller than the popover', () => {
+    const pos = clampPopover({ x: 50, y: 50 }, 100, 100, 220, 180);
+    expect(pos.x).toBe(8);
+    expect(pos.y).toBe(8);
   });
 });

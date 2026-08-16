@@ -243,6 +243,30 @@ describe('whiteboard editor shell', () => {
     expect(remaining[0]).toMatchObject({ id: 's1', text: 'Hi' });
   });
 
+  it('keeps the edit popover usable when placing an element at the bottom-right corner', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const view = renderShell(BOARD);
+    const rerender = () => view.rerender(<MemoryRouter><WhiteboardEditorShell board={BOARD} onBack={() => {}} /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: 'Sticky note — 5' }));
+
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    fireEvent.pointerDown(svg, { button: 0, clientX: 700, clientY: 500 });
+    fireEvent.pointerUp(svg, { clientX: 700, clientY: 500 });
+    rerender();
+
+    expect(screen.getByRole('dialog', { name: 'Edit sticky' })).not.toBeNull();
+
+    fireEvent.keyDown(screen.getByRole('dialog', { name: 'Edit sticky' }), { key: 'Escape' });
+    rerender();
+    expect(screen.queryByRole('dialog', { name: 'Edit sticky' })).toBeNull();
+  });
+
   it('selects a node on click and moves it with a single dispatched update', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({

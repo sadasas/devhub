@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import {
   CornersOut,
   MagnifyingGlassMinus,
@@ -18,6 +18,7 @@ import { useNavigate } from 'react-router';
 import { entityDeepLink } from '../../lib/deep-link';
 import { newId } from '../../lib/utils';
 import {
+  clampPopover,
   elementBounds,
   panBy,
   refCardLayout,
@@ -365,6 +366,26 @@ export function WhiteboardCanvas({ board, tool, history }: WhiteboardCanvasProps
   const [draft, setDraft] = useState<DraftStroke | null>(null);
   const draftRef = useRef<DraftStroke | null>(null);
   const [popover, setPopover] = useState<PopoverState | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
+  const [popoverPos, setPopoverPos] = useState<{ x: number; y: number } | null>(null);
+  useLayoutEffect(() => {
+    if (!popover) {
+      setPopoverPos(null);
+      return;
+    }
+    const raw = worldToScreen(view.view, popover.wx, popover.wy + 50);
+    const node = popoverRef.current;
+    const host = node?.parentElement;
+    if (node && host) {
+      const pr = node.getBoundingClientRect();
+      const cr = host.getBoundingClientRect();
+      if (pr.width > 0 && pr.height > 0 && cr.width > 0 && cr.height > 0) {
+        setPopoverPos(clampPopover(raw, cr.width, cr.height, pr.width, pr.height));
+        return;
+      }
+    }
+    setPopoverPos(raw);
+  }, [popover, view.view]);
   const placeStartRef = useRef<{ clientX: number; clientY: number } | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [dragOffset, setDragOffset] = useState<DragOffset | null>(null);
@@ -943,9 +964,9 @@ export function WhiteboardCanvas({ board, tool, history }: WhiteboardCanvasProps
       <span className="wb-hint">Scroll to zoom · drag to pan</span>
       {popover &&
         (() => {
-          const pos = worldToScreen(view.view, popover.wx, popover.wy + 50);
+          const pos = popoverPos ?? worldToScreen(view.view, popover.wx, popover.wy + 50);
           return (
-            <div className="wb-popover" style={{ left: pos.x, top: pos.y }}>
+            <div ref={popoverRef} className="wb-popover" style={{ left: pos.x, top: pos.y }}>
               <WhiteboardPopover
                 el={popover.el}
                 onPatch={patchElement}

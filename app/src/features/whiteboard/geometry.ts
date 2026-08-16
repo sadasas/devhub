@@ -265,6 +265,24 @@ export function elementBounds(el: Partial<WhiteboardElement> & { kind: string })
   }
 }
 
+export function clampPopover(
+  raw: { x: number; y: number },
+  containerW: number,
+  containerH: number,
+  w: number,
+  h: number,
+): { x: number; y: number } {
+  const MARGIN = 8;
+  const maxX = Math.max(MARGIN, containerW - w - MARGIN);
+  const maxY = Math.max(MARGIN, containerH - h - MARGIN);
+  const x = Math.min(Math.max(raw.x, MARGIN), maxX);
+  const fitsBelow = raw.y + h <= containerH - MARGIN;
+  const y = fitsBelow
+    ? Math.min(Math.max(raw.y, MARGIN), maxY)
+    : Math.max(MARGIN, raw.y - h - 10);
+  return { x, y };
+}
+
 export function wrapText(text: string, maxChars: number, maxLines: number): string[] {
   const words = text.split(/\s+/).filter((w) => w.length > 0);
   if (words.length === 0) return [];
