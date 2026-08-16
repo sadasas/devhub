@@ -10,6 +10,7 @@ import { pool } from './db/pool.js';
 import { authRouter } from './api/auth.routes.js';
 import { projectsRouter } from './api/projects.routes.js';
 import { teamsRouter } from './api/teams.routes.js';
+import { chatRouter } from './api/chat.routes.js';
 import { keysRouter } from './api/keys.routes.js';
 import { publicRouter } from './api/public.routes.js';
 import { templatesRouter } from './api/templates.routes.js';
@@ -149,6 +150,7 @@ export function createApp(): express.Express {
   app.use('/api/v1/projects', entityRouter);
   app.use('/api/v1/projects', activityRouter);
   app.use('/api/v1/teams', teamsRouter);
+  app.use('/api/v1/teams', chatRouter);
   app.use('/api/v1/keys', keysRouter);
   app.use('/api/v1/public', publicRouter);
   app.use('/api/v1/templates', templatesRouter);

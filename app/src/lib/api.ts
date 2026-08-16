@@ -1,4 +1,6 @@
 import type {
+  ChatMessage,
+  ChatRef,
   Invitation,
   McpKey,
   McpKeyCreated,
@@ -389,4 +391,37 @@ export const api = {
       `/teams/${encodeURIComponent(teamId)}/invitations/${encodeURIComponent(invitationId)}`,
       { method: 'DELETE' },
     ),
+  listMessages: async (teamId: string, opts: { limit?: number; before?: string } = {}) => {
+    const params = new URLSearchParams();
+    if (opts.limit !== undefined) params.set('limit', String(opts.limit));
+    if (opts.before) params.set('before', opts.before);
+    const qs = params.toString();
+    const res = await request<{ messages: ChatMessage[]; nextCursor: string | null }>(
+      `/teams/${encodeURIComponent(teamId)}/messages${qs ? `?${qs}` : ''}`,
+    );
+    return res;
+  },
+  sendMessage: async (teamId: string, content: string, refs: ChatRef[] = []) => {
+    const res = await request<{ message: ChatMessage }>(
+      `/teams/${encodeURIComponent(teamId)}/messages`,
+      { method: 'POST', body: JSON.stringify({ content, refs }) },
+    );
+    return res.message;
+  },
+  deleteMessage: (teamId: string, messageId: string) =>
+    request<{ ok: true }>(
+      `/teams/${encodeURIComponent(teamId)}/messages/${encodeURIComponent(messageId)}`,
+      { method: 'DELETE' },
+    ),
+  setMessagesRead: (teamId: string, lastReadAt: string) =>
+    request<{ ok: true }>(`/teams/${encodeURIComponent(teamId)}/messages/read`, {
+      method: 'PUT',
+      body: JSON.stringify({ lastReadAt }),
+    }),
+  getUnreadCount: async (teamId: string) => {
+    const res = await request<{ unread: number }>(
+      `/teams/${encodeURIComponent(teamId)}/messages/unread`,
+    );
+    return res.unread;
+  },
 };

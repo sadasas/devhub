@@ -1,5 +1,5 @@
 import type { GranularEntity } from './api';
-import type { State } from './types';
+import type { ChatMessage, State } from './types';
 
 /* ------------------------------------------------------------------ */
 /* Wire protocol (mirror of server/src/realtime/broadcast.ts)          */
@@ -203,6 +203,136 @@ export class RealtimeSocket {
       this.opts.onSync?.(msg as StateSync);
     } else if (type === 'presence') {
       this.opts.onPresence?.(msg as PresenceUpdate);
+    }
+  }
+
+  private startPing(): void {
+    this.stopPing();
+    this.pingTimer = setInterval(() => {
+      if (this.ws?.readyState === 1) {
+        this.ws.send(JSON.stringify({ type: 'ping' }));
+      }
+    }, PING_INTERVAL_MS);
+  }
+
+  private stopPing(): void {
+    if (this.pingTimer !== null) {
+      clearInterval(this.pingTimer);
+      this.pingTimer = null;
+    }
+  }
+
+  private onSocketClose(): void {
+    this.stopPing();
+    if (this.closed) {
+      this.opts.onClose?.();
+      return;
+    }
+    this.scheduleReconnect();
+  }
+
+  private scheduleReconnect(): void {
+    if (this.closed || this.reconnectTimer !== null) return;
+    const delay = RECONNECT_BACKOFF_MS[Math.min(this.attempt, RECONNECT_BACKOFF_MS.length - 1)];
+    this.attempt += 1;
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.connect();
+    }, delay);
+  }
+
+  close(): void {
+    this.closed = true;
+    this.stopPing();
+    if (this.reconnectTimer !== null) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    this.ws?.close();
+    this.ws = null;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Team chat socket (M13) — join team:{id}, message:new / message:sent */
+/* ------------------------------------------------------------------ */
+
+export interface TeamChatHandlers {
+  onJoinedTeam?: () => void;
+  onMessageNew?: (teamId: string, message: ChatMessage) => void;
+  onMessageSent?: (teamId: string, message: ChatMessage) => void;
+}
+
+export interface TeamChatSocketOptions extends TeamChatHandlers {
+  wsUrl: string;
+  teamId: string;
+  WebSocketCtor?: new (url: string) => MinimalWebSocket;
+  onClose?: () => void;
+}
+
+export class TeamChatSocket {
+  private readonly opts: TeamChatSocketOptions;
+  private ws: MinimalWebSocket | null = null;
+  private closed = false;
+  private attempt = 0;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private pingTimer: ReturnType<typeof setInterval> | null = null;
+
+  constructor(opts: TeamChatSocketOptions) {
+    this.opts = opts;
+    this.connect();
+  }
+
+  private connect(): void {
+    if (this.closed) return;
+    const inTest = import.meta.env.MODE === 'test';
+    const Ctor =
+      this.opts.WebSocketCtor ??
+      (!inTest && typeof globalThis.WebSocket === 'function' ? globalThis.WebSocket : null);
+    if (!Ctor) return;
+
+    let ws: MinimalWebSocket;
+    try {
+      ws = new Ctor(this.opts.wsUrl);
+    } catch {
+      this.scheduleReconnect();
+      return;
+    }
+    this.ws = ws;
+
+    ws.addEventListener('open', () => {
+      this.attempt = 0;
+      ws.send(JSON.stringify({ type: 'joinTeam', teamId: this.opts.teamId }));
+      this.startPing();
+    });
+    ws.addEventListener('message', (event: MessageEvent) => {
+      this.handleMessage(event);
+    });
+    ws.addEventListener('close', () => {
+      this.onSocketClose();
+    });
+    ws.addEventListener('error', () => {
+      /* close event follows */
+    });
+  }
+
+  private handleMessage(event: MessageEvent): void {
+    let msg: unknown;
+    try {
+      msg = JSON.parse(String(event.data));
+    } catch {
+      return;
+    }
+    if (typeof msg !== 'object' || msg === null) return;
+    const type = (msg as { type?: unknown }).type;
+    if (type === 'joinedTeam') {
+      this.opts.onJoinedTeam?.();
+    } else if (type === 'message:new') {
+      const m = msg as { teamId: string; message: ChatMessage };
+      this.opts.onMessageNew?.(m.teamId, m.message);
+    } else if (type === 'message:sent') {
+      const m = msg as { teamId: string; message: ChatMessage };
+      this.opts.onMessageSent?.(m.teamId, m.message);
     }
   }
 

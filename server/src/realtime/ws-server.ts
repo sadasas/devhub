@@ -3,9 +3,10 @@ import { WebSocket, WebSocketServer, type RawData } from 'ws';
 import { z } from 'zod';
 import { SESSION_COOKIE } from '../app.js';
 import { verifySession } from '../auth/jwt.js';
-import { getProjectWithRole } from '../api/authz.js';
+import { getProjectWithRole, getTeamWithRole } from '../api/authz.js';
 import { pool } from '../db/pool.js';
 import { logger } from '../lib/logger.js';
+import { chatRefSchema, insertMessage, messageJson } from '../lib/chat.js';
 import type { RoomRegistry } from './rooms.js';
 
 declare module 'ws' {
@@ -30,6 +31,13 @@ export interface RealtimeServerOptions {
 
 const wsMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('join'), projectId: z.string().uuid() }),
+  z.object({ type: z.literal('joinTeam'), teamId: z.string().uuid() }),
+  z.object({
+    type: z.literal('chat:send'),
+    teamId: z.string().uuid(),
+    content: z.string().trim().min(1).max(4000),
+    refs: z.array(chatRefSchema).max(10).default([]),
+  }),
   z.object({ type: z.literal('leave') }),
   z.object({ type: z.literal('ping') }),
 ]);
@@ -119,7 +127,11 @@ export function createRealtimeServer(
       }
       const parsed = wsMessageSchema.safeParse(message);
       if (!parsed.success) {
-        sendError(socket, 4000, 'Bad message: expected {type:"join"|"leave"|"ping"}');
+        sendError(
+          socket,
+          4000,
+          'Bad message: expected {type:"join"|"joinTeam"|"chat:send"|"leave"|"ping"}',
+        );
         return;
       }
       const msg = parsed.data;
@@ -139,6 +151,52 @@ export function createRealtimeServer(
           if (projectId !== room) void broadcastPresence(rooms, projectId);
         }
         send(socket, { type: 'left' });
+        return;
+      }
+      if (msg.type === 'joinTeam') {
+        void (async () => {
+          let team: Awaited<ReturnType<typeof getTeamWithRole>>;
+          try {
+            team = await getTeamWithRole(userId, msg.teamId);
+          } catch (err) {
+            logger.error('ws-jointeam-db-error', { error: err instanceof Error ? err.message : err });
+            sendError(socket, 500, 'Internal error');
+            return;
+          }
+          if (!team) {
+            sendError(socket, 403, 'You do not have access to this team');
+            return;
+          }
+          rooms.join(`team:${msg.teamId}`, socket);
+          send(socket, { type: 'joinedTeam', teamId: msg.teamId });
+        })();
+        return;
+      }
+      if (msg.type === 'chat:send') {
+        void (async () => {
+          let team: Awaited<ReturnType<typeof getTeamWithRole>>;
+          try {
+            team = await getTeamWithRole(userId, msg.teamId);
+          } catch (err) {
+            logger.error('ws-chat-db-error', { error: err instanceof Error ? err.message : err });
+            sendError(socket, 500, 'Internal error');
+            return;
+          }
+          if (!team) {
+            sendError(socket, 403, 'You do not have access to this team');
+            return;
+          }
+          try {
+            const row = await insertMessage(pool, msg.teamId, userId, msg.content, msg.refs);
+            const message = messageJson(row);
+            const payload = { type: 'message:new', teamId: msg.teamId, message };
+            rooms.broadcast(`team:${msg.teamId}`, payload, socket);
+            send(socket, { type: 'message:sent', teamId: msg.teamId, message });
+          } catch (err) {
+            logger.error('ws-chat-insert-error', { error: err instanceof Error ? err.message : err });
+            sendError(socket, 500, 'Internal error');
+          }
+        })();
         return;
       }
       void (async () => {

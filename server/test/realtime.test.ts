@@ -5,7 +5,8 @@ import request from 'supertest';
 import { WebSocket, type RawData } from 'ws';
 import { createRealtimeServer, WS_CLOSE, WS_PATH, type RealtimeServer } from '../src/realtime/ws-server.js';
 import { RoomRegistry } from '../src/realtime/rooms.js';
-import { app, createProject, getFirstTeamId, inviteUser, register, uniqueIp } from './helpers.js';
+import { attachRoomRegistry } from '../src/realtime/broadcast.js';
+import { app, createProject, createTeam, getFirstTeamId, inviteUser, register, uniqueIp } from './helpers.js';
 import { resetDb } from './setup.js';
 
 let httpServer: Server;
@@ -15,6 +16,7 @@ const rooms = new RoomRegistry();
 
 beforeAll(async () => {
   await resetDb();
+  attachRoomRegistry(rooms);
   httpServer = createServer(app);
   realtime = createRealtimeServer(httpServer, rooms);
   await new Promise<void>((resolve) => httpServer.listen(0, resolve));
@@ -430,5 +432,143 @@ describe('realtime WS server', () => {
 
     ws.close();
     await waitClose(ws);
+  });
+
+  it('joins a team room as a member and rejects outsiders', async () => {
+    const ownerCookie = await register(`ws-tm1-${uniqueIp()}@test.dev`);
+    const outsiderCookie = await register(`ws-tm2-${uniqueIp()}@test.dev`);
+    const teamId = await createTeam(ownerCookie, 'Chat team');
+
+    const ws = await openWs(ownerCookie);
+    await nextMessage(ws);
+    ws.send(JSON.stringify({ type: 'joinTeam', teamId }));
+    const joined = await nextMessage(ws);
+    expect(joined.type).toBe('joinedTeam');
+    expect(joined.teamId).toBe(teamId);
+    expect(rooms.size(`team:${teamId}`)).toBe(1);
+
+    const outsider = await openWs(outsiderCookie);
+    await nextMessage(outsider);
+    outsider.send(JSON.stringify({ type: 'joinTeam', teamId }));
+    const error = await nextMessage(outsider);
+    expect(error.type).toBe('error');
+    expect(error.code).toBe(403);
+    expect(outsider.readyState).toBe(WebSocket.OPEN);
+
+    ws.close();
+    outsider.close();
+    await Promise.allSettled([waitClose(ws), waitClose(outsider)]);
+  });
+
+  it('persists chat messages and broadcasts to the team room', async () => {
+    const ownerCookie = await register(`ws-cs1-${uniqueIp()}@test.dev`);
+    const memberCookie = await register(`ws-cs2-${uniqueIp()}@test.dev`);
+    const teamId = await createTeam(ownerCookie, 'Chat team 2');
+    await inviteUser(ownerCookie, memberCookie, teamId);
+
+    const sender = await openWs(ownerCookie);
+    await nextMessage(sender);
+    sender.send(JSON.stringify({ type: 'joinTeam', teamId }));
+    await nextMessage(sender);
+
+    const member = await openWs(memberCookie);
+    await nextMessage(member);
+    member.send(JSON.stringify({ type: 'joinTeam', teamId }));
+    await nextMessage(member);
+
+    const sentPromise = nextOfType(sender, 'message:sent');
+    const newPromise = nextOfType(member, 'message:new');
+    sender.send(
+      JSON.stringify({ type: 'chat:send', teamId, content: 'Hello from ws', refs: [] }),
+    );
+
+    const sent = await sentPromise;
+    expect(sent.type).toBe('message:sent');
+    expect((sent.message as { content: string }).content).toBe('Hello from ws');
+    expect((sent.message as { id: string }).id).toEqual(expect.any(String));
+
+    const received = await newPromise;
+    expect(received.type).toBe('message:new');
+    expect((received.message as { content: string }).content).toBe('Hello from ws');
+
+    const list = await request(app)
+      .get(`/api/v1/teams/${teamId}/messages`)
+      .set('Cookie', ownerCookie)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(list.status).toBe(200);
+    expect(list.body.messages).toHaveLength(1);
+    expect(list.body.messages[0].content).toBe('Hello from ws');
+
+    sender.close();
+    member.close();
+    await Promise.allSettled([waitClose(sender), waitClose(member)]);
+  });
+
+  it('rejects invalid chat payloads without persisting', async () => {
+    const cookie = await register(`ws-cs3-${uniqueIp()}@test.dev`);
+    const teamId = await createTeam(cookie, 'Chat team 3');
+    const ws = await openWs(cookie);
+    await nextMessage(ws);
+    ws.send(JSON.stringify({ type: 'joinTeam', teamId }));
+    await nextMessage(ws);
+
+    ws.send(JSON.stringify({ type: 'chat:send', teamId, content: '' }));
+    const e1 = await nextMessage(ws);
+    expect(e1.type).toBe('error');
+    expect(e1.code).toBe(4000);
+
+    ws.send(JSON.stringify({ type: 'chat:send', teamId, content: 'x'.repeat(4001) }));
+    const e2 = await nextMessage(ws);
+    expect(e2.type).toBe('error');
+    expect(e2.code).toBe(4000);
+
+    ws.send(
+      JSON.stringify({
+        type: 'chat:send',
+        teamId,
+        content: 'bad ref',
+        refs: [{ entity: 'bogus', entityId: crypto.randomUUID() }],
+      }),
+    );
+    const e3 = await nextMessage(ws);
+    expect(e3.type).toBe('error');
+    expect(e3.code).toBe(4000);
+
+    const list = await request(app)
+      .get(`/api/v1/teams/${teamId}/messages`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(list.status).toBe(200);
+    expect(list.body.messages).toHaveLength(0);
+
+    ws.close();
+    await waitClose(ws);
+  });
+
+  it('broadcasts REST-sent messages to the team room', async () => {
+    const ownerCookie = await register(`ws-cs4-${uniqueIp()}@test.dev`);
+    const memberCookie = await register(`ws-cs5-${uniqueIp()}@test.dev`);
+    const teamId = await createTeam(ownerCookie, 'Chat team 4');
+    await inviteUser(ownerCookie, memberCookie, teamId);
+
+    const member = await openWs(memberCookie);
+    await nextMessage(member);
+    member.send(JSON.stringify({ type: 'joinTeam', teamId }));
+    await nextMessage(member);
+
+    const newPromise = nextOfType(member, 'message:new');
+    const post = await request(app)
+      .post(`/api/v1/teams/${teamId}/messages`)
+      .set('Cookie', ownerCookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ content: 'REST broadcast', refs: [] });
+    expect(post.status).toBe(201);
+
+    const received = await newPromise;
+    expect(received.type).toBe('message:new');
+    expect((received.message as { content: string }).content).toBe('REST broadcast');
+
+    member.close();
+    await waitClose(member);
   });
 });

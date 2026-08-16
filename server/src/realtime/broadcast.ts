@@ -51,3 +51,7 @@ export function broadcastSync(projectId: string, version: number): void {
     version,
   } satisfies StateSync);
 }
+
+export function broadcastTeamMessage(teamId: string, payload: unknown): void {
+  registry?.broadcast(`team:${teamId}`, payload);
+}

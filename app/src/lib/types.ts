@@ -353,6 +353,21 @@ export interface TeamInvitation {
   expiresAt: string;
 }
 
+export interface ChatRef {
+  entity: string;
+  entityId: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  teamId: string;
+  authorId: string | null;
+  authorName: string;
+  content: string;
+  refs: ChatRef[];
+  createdAt: string;
+}
+
 export interface User {
   id: string;
   email: string;
