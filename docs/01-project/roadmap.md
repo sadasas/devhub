@@ -159,7 +159,30 @@ Workstream Whiteboard awalnya direncanakan sebagai workstream kedua M11 v0.5.0; 
 | Toolset | Pen, warna (palet design tokens), eraser, sticky notes, text (floating popover), shapes, edge/arrow (arrowhead `<marker>` hand-built), select (drag-move, delete, cleanup edge), pan/zoom |
 | Integrasi | Granular CRUD/If-Match/activity/search/export/import/MCP `project_state` otomatis ikut; activity diff `elements` = summary-count; search collector kustom (name 3×, teks sticky/text/shape.label/ref 1× — tanpa noise hex/uuid); tab ke-11 (deviasi A1 tercatat); public share read-only `/p/:id` |
 | Tests | Server: schema round-trip (cegah silent strip), CRUD, activity, search; App: reducer/geometry murni + interaksi jsdom (stub rect/pointer capture); E2E: 2 journey (draw→save→reload; drag node → edge ikut) |
-| Defer V2 | Port-based connector + port UI, snap grid/alignment, multi-select, auto-layout, per-element PATCH, refs entity lain (testCases/milestones), MCP whiteboard tools, gzip compression middleware di server |
+| Defer V2 | Port-based connector + port UI (visual handles tetap defer), auto-layout, per-element PATCH, MCP whiteboard tools, gzip compression middleware di server. ~~Snap grid/alignment~~, ~~refs entity lain~~ → dikerjakan di M18 (ADR-026) |
+
+---
+
+## 11b. Whiteboard Diagramming v2 (M18 — ADR-026)
+
+M18 v0.12.0 (12 task, ~30h) — riset kebutuhan lintas-skenario (flowchart, backend architecture, mind map, wireframe, swimlane, deployment) menutup 12 gap dengan satu set schema extension zod (tanpa migrasi DB). Lihat [ADR-026](../02-architecture/adr.md#adr-026).
+
+| Task | Isi |
+|---|---|
+| Schema & types | `shapeType` +cylinder/parallelogram/hexagon/roundedRect; edge +`label ≤200` +`arrowStyle` enum (compat: `arrowhead:true` → derived solid); text +`w?`; kind baru `boundary` (container visual dashed + label); mirror `app/src/lib/types.ts`; search collector +edge.label/boundary.label; round-trip + strip test server |
+| Render label + popover edge | Fix bug label shape (tidak dirender); edge label midpoint + halo; popover edge (label/color/arrowStyle, double-click) |
+| Orthogonal routing | `orthogonalPath()` pure di `edges.ts` (Manhattan 3/4/5 segmen sesuai port, render-time — tidak disimpan di schema); arrowhead ikut segmen terakhir; hit-test polyline; preview draft edge |
+| Snap + alignment + distribute | Snap drag ke grid 32px (radius 8); alignment guides 4px saat drag; toolbar seleksi: Distribute H/V |
+| Copy/paste + duplicate | Ctrl+C/V + Ctrl+D; clipboard internal JSON, `newId()`, remap edge dalam seleksi, drop edge lintas seleksi, offset +24, cap 1000 guard |
+| Boundary container | Tool B, drag-to-size, render selalu di belakang, bukan target edge, popover label/color |
+| Shape + arrowhead styles | Render 4 shape baru (`shapePath`); marker none/open/solid/diamond/circle (default solid utk edge baru) |
+| Z-order + resize | Bring forward/Send backward di toolbar seleksi; resize handle bottom-right (shape/sticky/boundary, min size, ikut snap) |
+| Text wrap | text `w?` → render multiline via wrapToWidth; popover Shift+Enter newline |
+| Ref entity lain | RefPicker multi-entity (testCases/milestones/techEntries/decisions/tables/apiCollections/apiEndpoints); refDataMap meta per entity; `entityDeepLink` sudah support semua |
+| Export PNG/SVG | Serialize SVG `viewBox` = bounds elemen + margin 32; PNG via canvas 2×; tombol Export (member-only) |
+| Docs & verifikasi | ADR-026 + roadmap; server+app test suite; lint; build; e2e journey labeled edge + copy/paste |
+
+Semua fitur edit di-gate `canEdit`/`readOnly` (public share aman). Port handles visual & auto-layout tetap defer.
 
 ---
 
@@ -175,6 +198,19 @@ M12 v0.6.0 — real-time collaboration: server push state-diff ke member proyek 
 | Polling fallback-only (done) | ADR-025 — `RealtimeSocket` expose `onOpen`/`onClose`; interval 5s `GET /projects/:id/state` di `project-context.tsx` di-skip saat socket connected (`wsConnectedRef`); polling kembali aktif otomatis saat WS putus (safety net missed-diff, mode test) |
 | Presence (done) | Frame `{type:'presence', projectId, users:[{userId,name}]}` pada join/leave/close (display_name dari `users`); klien: state `presence` di ProjectContext + `PresenceChip` di header ("N online" + tooltip) |
 | Test suite | Server: auth handshake (no-cookie/tamper/stale jwt_version), join member/non-member, leave, ping/pong, registry; App: reducer apply-diff, reconnect |
+
+---
+
+## 13. MCP activity logging (M13.12)
+
+M13.12 — mutasi via MCP kini tercatat di activity feed (list aktivitas per item + feed project), paritas penuh dengan REST. Sebelumnya `saveState` MCP hanya `UPDATE projects.data` tanpa menulis `activity_log` (ADR-027).
+
+| Task | Isi |
+|---|---|
+| Diff generik | `diffStateDrafts()` di `server/src/lib/activity.ts` — diff by-id 12 koleksi state (created/deleted/updated), summary identik REST (`entitySummary`), skip no-op update (hanya bump `updatedAt`) |
+| saveState transaksional | `server/src/mcp/state-db.ts` — BEGIN…COMMIT/ROLLBACK + `FOR UPDATE`; `insertActivity` per draft (author = pemilik MCP key, cluster-merge 60s tetap jalan) + `pruneActivity`; post-commit `broadcastActivity` per entry (live-activity parity) |
+| Tests | `server/test/mcp-activity.test.ts` — create/update/delete via `/mcp` → baris activity benar (entity/action/summary/authorName), filter per-item `?entity=&entityId=`, no-op update tanpa baris baru |
+| Verifikasi | `npm run test:server` + `build -w server`; DevHub M13.12 + issue |
 
 ---
 

@@ -1,4 +1,5 @@
 import type { PoolClient } from 'pg';
+import type { State } from '../schema/state.js';
 import { newId } from './ids.js';
 
 export type ActivityAction = 'created' | 'updated' | 'deleted';
@@ -55,6 +56,76 @@ const COUNT_DIFF_FIELDS: Record<string, string[]> = {
 
 export function entityLabel(entity: string): string {
   return ENTITY_LABELS[entity] ?? entity;
+}
+
+const STATE_COLLECTIONS: (keyof State)[] = [
+  'tasks',
+  'issues',
+  'testCases',
+  'techEntries',
+  'tables',
+  'relations',
+  'schemaVersions',
+  'decisions',
+  'milestones',
+  'apiCollections',
+  'apiEndpoints',
+  'whiteboards',
+];
+
+type StateRow = Record<string, unknown> & { id: string };
+
+/**
+ * Derives per-entity activity drafts by diffing two full project states
+ * (used by the MCP `saveState` path, which writes the whole state at once).
+ * Summaries match the REST entity-router drafts exactly; `updated` drafts
+ * whose field diff is empty (e.g. only an `updatedAt` bump) are skipped.
+ */
+export function diffStateDrafts(before: State, after: State): ActivityDraft[] {
+  const drafts: ActivityDraft[] = [];
+  for (const entity of STATE_COLLECTIONS) {
+    const prevItems = (before[entity] as unknown as StateRow[] | undefined) ?? [];
+    const nextItems = (after[entity] as unknown as StateRow[] | undefined) ?? [];
+    const prevById = new Map(prevItems.map((i) => [i.id, i]));
+    const nextById = new Map(nextItems.map((i) => [i.id, i]));
+    for (const [id, item] of nextById) {
+      if (!prevById.has(id)) {
+        drafts.push({
+          entity,
+          entityId: id,
+          action: 'created',
+          summary: entitySummary(entity, item),
+          after: item,
+        });
+      }
+    }
+    for (const [id, item] of prevById) {
+      if (!nextById.has(id)) {
+        drafts.push({
+          entity,
+          entityId: id,
+          action: 'deleted',
+          summary: entitySummary(entity, item),
+          before: item,
+        });
+      }
+    }
+    for (const [id, prev] of prevById) {
+      const next = nextById.get(id);
+      if (!next) continue;
+      if (JSON.stringify(prev) === JSON.stringify(next)) continue;
+      if (Object.keys(diffEntities(prev, next, entity)).length === 0) continue;
+      drafts.push({
+        entity,
+        entityId: id,
+        action: 'updated',
+        summary: entitySummary(entity, prev, prev, next),
+        before: prev,
+        after: next,
+      });
+    }
+  }
+  return drafts;
 }
 
 function fieldCount(entity: string, key: string, value: unknown): number | null {
