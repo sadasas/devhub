@@ -1,18 +1,61 @@
-import { Users } from '@phosphor-icons/react';
+import { useEffect, useRef, useState } from 'react';
+import { CaretDown, Users } from '@phosphor-icons/react';
 import { useProject } from '../state/project-context';
+
+const LISTBOX_ID = 'presence-listbox';
 
 export function PresenceChip() {
   const { presence } = useProject();
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
+
   if (presence.length === 0) return null;
   const names = presence
     .map((u) => u.name || 'User')
-    .filter((name, idx, arr) => arr.indexOf(name) === idx)
-    .join(', ');
+    .filter((name, idx, arr) => arr.indexOf(name) === idx);
+
   return (
-    <span className="badge badge-info" title={names} data-testid="presence-chip">
-      <span className="badge-dot" aria-hidden="true" />
-      <Users size={11} aria-hidden="true" />
-      {presence.length} online
+    <span className="presence-chip-wrap" ref={wrapRef}>
+      <button
+        type="button"
+        className="badge badge-info presence-chip"
+        data-testid="presence-chip"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={LISTBOX_ID}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="badge-dot" aria-hidden="true" />
+        <Users size={11} aria-hidden="true" />
+        {presence.length} online
+        <CaretDown size={10} aria-hidden="true" />
+      </button>
+      {open && (
+        <div className="presence-popover" id={LISTBOX_ID} role="listbox" aria-label="Online users">
+          {names.map((name) => (
+            <div key={name} className="presence-popover-item" role="option">
+              <span className="badge-dot" aria-hidden="true" />
+              {name}
+            </div>
+          ))}
+        </div>
+      )}
     </span>
   );
 }
