@@ -8,7 +8,16 @@ import {
   useState,
 } from 'react';
 import type { ReactNode } from 'react';
-import { ApiError, api, type GranularEntity } from '../lib/api';
+import { ApiError, type GranularEntity } from '../lib/api';
+import {
+  apiProvider,
+  isQueuedStorageProvider,
+  type PendingMutation,
+  type StorageProvider,
+} from '../lib/storage-provider';
+import { reconcileQueue } from '../lib/sync-service';
+import { RealtimeSocket, applyStateDiff, realtimeWsUrl } from '../lib/realtime-client';
+import type { PresenceUpdate, PresenceUser, RealtimeHandlers, StateDiff } from '../lib/realtime-client';
 import { nowIso } from '../lib/utils';
 import type {
   ApiCollection,
@@ -24,6 +33,7 @@ import type {
   TechEntry,
   TestCase,
   TeamRole,
+  Whiteboard,
 } from '../lib/types';
 
 /* ------------------------------------------------------------------ */
@@ -63,7 +73,10 @@ export type ProjectAction =
   | { type: 'apiCollection/remove'; id: string }
   | { type: 'apiEndpoint/add'; endpoint: ApiEndpoint }
   | { type: 'apiEndpoint/update'; id: string; patch: UpdatePatch<ApiEndpoint> }
-  | { type: 'apiEndpoint/remove'; id: string };
+  | { type: 'apiEndpoint/remove'; id: string }
+  | { type: 'whiteboard/add'; whiteboard: Whiteboard }
+  | { type: 'whiteboard/update'; id: string; patch: UpdatePatch<Whiteboard> }
+  | { type: 'whiteboard/remove'; id: string };
 
 /* ------------------------------------------------------------------ */
 /* Reducer — sole mutator of project state                             */
@@ -92,6 +105,10 @@ export function projectReducer(state: State, action: ProjectAction): State {
         issues: state.issues.map((i) =>
           i.linkedTaskId === action.id ? { ...i, linkedTaskId: null, updatedAt: nowIso() } : i,
         ),
+        whiteboards: state.whiteboards.map((w) => ({
+          ...w,
+          elements: w.elements.filter((el) => !(el.kind === 'ref' && el.entity === 'tasks' && el.entityId === action.id)),
+        })),
       };
 
     case 'issue/add':
@@ -99,7 +116,14 @@ export function projectReducer(state: State, action: ProjectAction): State {
     case 'issue/update':
       return { ...state, issues: updateIn<Issue>(state.issues, action.id, action.patch) };
     case 'issue/remove':
-      return { ...state, issues: state.issues.filter((i) => i.id !== action.id) };
+      return {
+        ...state,
+        issues: state.issues.filter((i) => i.id !== action.id),
+        whiteboards: state.whiteboards.map((w) => ({
+          ...w,
+          elements: w.elements.filter((el) => !(el.kind === 'ref' && el.entity === 'issues' && el.entityId === action.id)),
+        })),
+      };
 
     case 'testCase/add':
       return { ...state, testCases: [action.testCase, ...state.testCases] };
@@ -185,6 +209,19 @@ export function projectReducer(state: State, action: ProjectAction): State {
         apiEndpoints: state.apiEndpoints.filter((e) => e.id !== action.id),
       };
 
+    case 'whiteboard/add':
+      return { ...state, whiteboards: [action.whiteboard, ...state.whiteboards] };
+    case 'whiteboard/update':
+      return {
+        ...state,
+        whiteboards: updateIn<Whiteboard>(state.whiteboards, action.id, action.patch),
+      };
+    case 'whiteboard/remove':
+      return {
+        ...state,
+        whiteboards: state.whiteboards.filter((w) => w.id !== action.id),
+      };
+
     default:
       return state;
   }
@@ -206,6 +243,7 @@ const ENTITY_FOR_ACTION: Record<string, GranularEntity> = {
   milestone: 'milestones',
   apiCollection: 'apiCollections',
   apiEndpoint: 'apiEndpoints',
+  whiteboard: 'whiteboards',
 };
 
 const PAYLOAD_KEY: Record<string, string> = {
@@ -220,15 +258,8 @@ const PAYLOAD_KEY: Record<string, string> = {
   milestone: 'milestone',
   apiCollection: 'collection',
   apiEndpoint: 'endpoint',
+  whiteboard: 'whiteboard',
 };
-
-interface PendingMutation {
-  key: string;
-  entity: GranularEntity;
-  op: 'create' | 'update' | 'delete';
-  id: string;
-  payload?: Record<string, unknown>;
-}
 
 function actionToMutation(action: ProjectAction): PendingMutation | null {
   const [head, verb] = action.type.split('/') as [string, string];
@@ -264,6 +295,25 @@ export interface ProjectConflict {
   current: { state: State; version: number };
 }
 
+interface ProviderError {
+  message: string;
+  status?: number;
+  details?: unknown;
+}
+
+function asProviderError(err: unknown): ProviderError {
+  if (err instanceof ApiError) return err;
+  if (err && typeof err === 'object') {
+    const candidate = err as { message?: unknown; status?: unknown; details?: unknown };
+    return {
+      message: typeof candidate.message === 'string' ? candidate.message : 'Failed to save changes',
+      status: typeof candidate.status === 'number' ? candidate.status : undefined,
+      details: candidate.details,
+    };
+  }
+  return { message: 'Failed to save changes' };
+}
+
 interface ProjectContextValue {
   projectId: string;
   state: State | null;
@@ -275,6 +325,9 @@ interface ProjectContextValue {
   role: TeamRole;
   canEdit: boolean;
   conflict: ProjectConflict | null;
+  isOffline: boolean;
+  pendingCount: number;
+  presence: PresenceUser[];
   dispatch: (action: ProjectAction) => void;
   retrySave: () => void;
   resolveConflict: () => void;
@@ -285,10 +338,14 @@ const ProjectContext = createContext<ProjectContextValue | null>(null);
 export function ProjectProvider({
   projectId,
   role,
+  provider = apiProvider,
+  createRealtime,
   children,
 }: {
   projectId: string;
   role: TeamRole;
+  provider?: StorageProvider;
+  createRealtime?: (handlers: RealtimeHandlers) => RealtimeSocket;
   children: ReactNode;
 }) {
   const [state, setState] = useState<State | null>(null);
@@ -298,6 +355,11 @@ export function ProjectProvider({
   const [saving, setSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const [conflict, setConflict] = useState<ProjectConflict | null>(null);
+  const [isOffline, setIsOffline] = useState(
+    () => typeof navigator !== 'undefined' && navigator.onLine === false,
+  );
+  const [pendingCount, setPendingCount] = useState(0);
+  const [presence, setPresence] = useState<PresenceUser[]>([]);
   const stateRef = useRef<State | null>(null);
   const lastSavedRef = useRef<State | null>(null);
   const versionRef = useRef(0);
@@ -309,6 +371,10 @@ export function ProjectProvider({
   const canEditRef = useRef(role !== 'viewer');
   canEditRef.current = role !== 'viewer';
 
+  const emitPendingCount = useCallback(() => {
+    setPendingCount(mutationsRef.current.size);
+  }, []);
+
   const flushMutations = useCallback(
     async (opts?: { keepalive?: boolean }): Promise<void> => {
       if (!canEditRef.current) return;
@@ -318,57 +384,103 @@ export function ProjectProvider({
         setSaving(true);
         const queue = mutationsRef.current;
         let current: PendingMutation | undefined;
+        let drainFailed = false;
+        let reconcileAttempts = 0;
         try {
           while (queue.size > 0) {
             const entry = [...queue.entries()][0]!;
             queue.delete(entry[0]);
             current = entry[1];
-            if (current.op === 'create') {
-              const res = await api.createEntity(projectId, current.entity, current.payload!);
-              versionRef.current = res.version;
-            } else if (current.op === 'update') {
-              const res = await api.patchEntity(
-                projectId,
-                current.entity,
-                current.id,
-                current.payload!,
-                versionRef.current,
-                opts?.keepalive,
-              );
-              versionRef.current = res.version;
-            } else {
-              const res = await api.deleteEntity(
-                projectId,
-                current.entity,
-                current.id,
-                versionRef.current,
-                opts?.keepalive,
-              );
-              versionRef.current = res.version;
+                        let opError: unknown = null;
+            try {
+              if (current.op === 'create') {
+                const res = await provider.createEntity(projectId, current.entity, current.payload!);
+                versionRef.current = res.version;
+              } else if (current.op === 'update') {
+                const res = await provider.updateEntity(
+                  projectId,
+                  current.entity,
+                  current.id,
+                  current.payload!,
+                  versionRef.current,
+                  opts?.keepalive,
+                );
+                versionRef.current = res.version;
+              } else {
+                const res = await provider.deleteEntity(
+                  projectId,
+                  current.entity,
+                  current.id,
+                  versionRef.current,
+                  opts?.keepalive,
+                );
+                versionRef.current = res.version;
+              }
+              if (isQueuedStorageProvider(provider)) {
+                void provider.removePendingMutation(projectId, current.key).catch(() => {});
+              }
+              current = undefined;
+              setIsOffline(false);
+            } catch (err) {
+              opError = err;
             }
-            current = undefined;
-          }
-          lastSavedRef.current = stateRef.current;
-          setSaveError(null);
-          setLastSavedAt(Date.now());
-        } catch (err) {
-          setSaveError(err instanceof ApiError ? err.message : 'Failed to save changes');
-          if (err instanceof ApiError && err.status === 409) {
-            const details = (err.details as { current?: { version?: number } } | undefined)?.current;
-            if (details?.version && stateRef.current) {
-              setConflict({
-                message: err.message,
-                current: { state: stateRef.current, version: details.version },
-              });
+            if (opError) {
+              drainFailed = true;
+              const e = asProviderError(opError);
+              setSaveError(e.message);
+              if (e.status === 0) setIsOffline(true);
+              if (e.status === 409) {
+                const pending = current ? [...queue.values(), current] : [...queue.values()];
+                let fresh: { state: State; version: number } | null = null;
+                try {
+                  fresh = await provider.loadState(projectId);
+                } catch {
+                  fresh = null;
+                }
+                if (fresh) {
+                  const { keep, dropped } = reconcileQueue(pending, fresh.state, stateRef.current);
+                  queue.clear();
+                  for (const key of dropped) {
+                    if (isQueuedStorageProvider(provider)) {
+                      void provider.removePendingMutation(projectId, key).catch(() => {});
+                    }
+                  }
+                  if (keep.length > 0 && reconcileAttempts < 3) {
+                    for (const m of keep) queue.set(m.key, m);
+                    versionRef.current = fresh.version;
+                    reconcileAttempts += 1;
+                    drainFailed = false;
+                    continue;
+                  }
+                } else {
+                  queue.clear();
+                }
+                if (isQueuedStorageProvider(provider)) {
+                  void provider.clearPendingMutations(projectId).catch(() => {});
+                }
+                const details = (e.details as { current?: { version?: number } } | undefined)?.current;
+                if (details?.version && stateRef.current) {
+                  setConflict({
+                    message: e.message,
+                    current: { state: stateRef.current, version: details.version },
+                  });
+                }
+              } else if (current) {
+                queue.set(current.key, current);
+              }
+              dirtyRef.current = true;
+              break;
             }
-            queue.clear();
-          } else if (current) {
-            queue.set(current.key, current);
           }
-          dirtyRef.current = true;
         } finally {
+          if (!drainFailed) {
+            lastSavedRef.current = stateRef.current;
+            setSaveError(null);
+            setLastSavedAt(Date.now());
+          }
           savingRef.current = false;
           setSaving(false);
+          emitPendingCount();
         }
       })();
       pendingFlushRef.current = p;
@@ -377,7 +489,7 @@ export function ProjectProvider({
       });
       return p;
     },
-    [projectId],
+    [projectId, provider, emitPendingCount],
   );
 
   const scheduleSave = useCallback(() => {
@@ -398,18 +510,23 @@ export function ProjectProvider({
   const resolveConflict = useCallback(async () => {
     setConflict(null);
     mutationsRef.current.clear();
+    emitPendingCount();
+    if (isQueuedStorageProvider(provider)) {
+      void provider.clearPendingMutations(projectId).catch(() => {});
+    }
     dirtyRef.current = false;
     setSaveError(null);
     try {
-      const fresh = await api.getState(projectId);
+      const fresh = await provider.loadState(projectId);
       stateRef.current = fresh.state;
       lastSavedRef.current = fresh.state;
       versionRef.current = fresh.version;
       setState(fresh.state);
+      setIsOffline(false);
     } catch {
       /* keep the local state; polling will retry */
     }
-  }, [projectId]);
+  }, [projectId, provider, emitPendingCount]);
 
   const dispatch = useCallback(
     (action: ProjectAction) => {
@@ -421,19 +538,27 @@ export function ProjectProvider({
         return next;
       });
       const mutation = actionToMutation(action);
-      if (mutation) mutationsRef.current.set(mutation.key, mutation);
+      if (mutation) {
+        mutationsRef.current.set(mutation.key, mutation);
+        emitPendingCount();
+        if (isQueuedStorageProvider(provider)) {
+          void provider.enqueuePendingMutation(projectId, mutation).catch(() => {});
+        }
+      }
       scheduleSave();
     },
-    [scheduleSave],
+    [projectId, provider, scheduleSave, emitPendingCount],
   );
 
   useEffect(() => {
     let cancelled = false;
     setState(null);
+    setPresence([]);
     lastSavedRef.current = null;
     versionRef.current = 0;
     dirtyRef.current = false;
     mutationsRef.current.clear();
+    emitPendingCount();
     setConflict(null);
     setLoading(true);
     setError(null);
@@ -443,12 +568,13 @@ export function ProjectProvider({
       await flushMutations();
       if (cancelled) return;
       try {
-        const loaded = await api.getState(projectId);
+        const loaded = await provider.loadState(projectId);
         if (cancelled) return;
         stateRef.current = loaded.state;
         lastSavedRef.current = loaded.state;
         versionRef.current = loaded.version;
         setState(loaded.state);
+        setIsOffline(false);
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof ApiError ? err.message : 'Failed to load project state');
@@ -456,13 +582,32 @@ export function ProjectProvider({
       } finally {
         if (!cancelled) setLoading(false);
       }
+
+      if (cancelled || !isQueuedStorageProvider(provider)) return;
+      const pending = await provider.listPendingMutations(projectId).catch(() => []);
+      if (cancelled) return;
+      for (const m of pending) mutationsRef.current.set(m.key, m);
+      emitPendingCount();
+      if (pending.length === 0) return;
+      await flushMutations();
+      if (cancelled) return;
+      try {
+        const synced = await provider.loadState(projectId);
+        if (cancelled) return;
+        stateRef.current = synced.state;
+        lastSavedRef.current = synced.state;
+        versionRef.current = synced.version;
+        setState(synced.state);
+      } catch {
+        /* the replay failed loudly or the conflict banner took over; polling will retry */
+      }
     })();
 
     const interval = setInterval(() => {
       if (document.visibilityState !== 'visible') return;
       if (dirtyRef.current || savingRef.current || mutationsRef.current.size > 0) return;
-      api
-        .getState(projectId)
+      provider
+        .loadState(projectId)
         .then((fresh) => {
           if (cancelled) return;
           if (dirtyRef.current || savingRef.current || mutationsRef.current.size > 0) return;
@@ -484,14 +629,80 @@ export function ProjectProvider({
     };
     window.addEventListener('pagehide', onPageHide);
 
+    const onOnline = () => {
+      setIsOffline(false);
+      if (dirtyRef.current || mutationsRef.current.size > 0) void flushMutations();
+    };
+    window.addEventListener('online', onOnline);
+
+    const onOffline = () => {
+      setIsOffline(true);
+    };
+    window.addEventListener('offline', onOffline);
+
+    const resyncFromServer = async () => {
+      try {
+        const fresh = await provider.loadState(projectId);
+        if (cancelled) return;
+        stateRef.current = fresh.state;
+        lastSavedRef.current = fresh.state;
+        versionRef.current = fresh.version;
+        setState(fresh.state);
+      } catch {
+        /* keep the local state; polling will retry */
+      }
+    };
+
+        const handleDiff = (diff: StateDiff) => {
+      if (cancelled || diff.version <= versionRef.current || !stateRef.current) return;
+      const ownKeys = new Set(mutationsRef.current.keys());
+      const next = applyStateDiff(stateRef.current, diff, ownKeys);
+      if (next === stateRef.current) return;
+      stateRef.current = next;
+      setState(next);
+      if (mutationsRef.current.size === 0) versionRef.current = diff.version;
+    };
+
+    const onPresence = (presenceUpdate: PresenceUpdate) => {
+      if (cancelled || presenceUpdate.projectId !== projectId) return;
+      setPresence(presenceUpdate.users);
+    };
+
+    const socket = createRealtime
+      ? createRealtime({
+          onJoined: () => {
+            void resyncFromServer();
+          },
+          onSync: () => {
+            void resyncFromServer();
+          },
+          onDiff: handleDiff,
+          onPresence,
+        })
+      : new RealtimeSocket({
+          wsUrl: realtimeWsUrl(),
+          projectId,
+          onJoined: () => {
+            void resyncFromServer();
+          },
+          onSync: () => {
+            void resyncFromServer();
+          },
+          onDiff: handleDiff,
+          onPresence,
+        });
+
     return () => {
       cancelled = true;
+      socket.close();
       clearInterval(interval);
       window.removeEventListener('pagehide', onPageHide);
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
       if (timerRef.current) clearTimeout(timerRef.current);
       void flushMutations();
     };
-  }, [projectId, flushMutations]);
+  }, [projectId, flushMutations, provider, emitPendingCount, createRealtime]);
 
   const value = useMemo(
     () => ({
@@ -505,11 +716,14 @@ export function ProjectProvider({
       role,
       canEdit: role !== 'viewer',
       conflict,
+      isOffline,
+      pendingCount,
+      presence,
       dispatch,
       retrySave,
       resolveConflict,
     }),
-    [projectId, state, loading, error, saveError, saving, lastSavedAt, role, conflict, dispatch, retrySave, resolveConflict],
+    [projectId, state, loading, error, saveError, saving, lastSavedAt, role, conflict, isOffline, pendingCount, presence, dispatch, retrySave, resolveConflict],
   );
 
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;

@@ -14,10 +14,16 @@ export interface FieldSpec {
   weight: number;
 }
 
+export interface ExtraText {
+  text: string;
+  weight: number;
+}
+
 interface EntitySpec {
   key: keyof State;
   titleField: string;
   fields: FieldSpec[];
+  extraCollector?: (item: Record<string, unknown>, state: State) => ExtraText[];
 }
 
 export const SEARCH_ENTITIES: EntitySpec[] = [
@@ -93,6 +99,34 @@ export const SEARCH_ENTITIES: EntitySpec[] = [
       { path: 'name', weight: 3 },
       { path: 'changelog', weight: 1 },
     ],
+  },
+  {
+    key: 'whiteboards',
+    titleField: 'name',
+    fields: [
+      { path: 'name', weight: 3 },
+      { path: 'description', weight: 1 },
+    ],
+    extraCollector: (item, state) => {
+      const out: ExtraText[] = [];
+      const elements = Array.isArray(item.elements) ? item.elements : [];
+      for (const el of elements as Array<Record<string, unknown>>) {
+        if (el.kind === 'sticky' || el.kind === 'text') {
+          if (typeof el.text === 'string' && el.text) out.push({ text: el.text, weight: 1 });
+        } else if (el.kind === 'shape') {
+          if (typeof el.label === 'string' && el.label) out.push({ text: el.label, weight: 1 });
+        } else if (el.kind === 'ref') {
+          const entity = el.entity === 'issues' ? 'issues' : 'tasks';
+          const entityId = typeof el.entityId === 'string' ? el.entityId : '';
+          if (entityId) {
+            const rows = (state[entity] ?? []) as Array<{ id: string; title?: string }>;
+            const title = rows.find((r) => r.id === entityId)?.title;
+            if (title) out.push({ text: title, weight: 1 });
+          }
+        }
+      }
+      return out;
+    },
   },
 ];
 
@@ -171,6 +205,24 @@ export function searchState(state: State, query: string, perEntityLimit = ENTITY
             entityId,
             title,
             field: field.path,
+            snippet: best.snippet,
+            score: best.score,
+          });
+        }
+      }
+      if (spec.extraCollector) {
+        const extra = spec.extraCollector(item, state);
+        let best: { score: number; snippet: string } | null = null;
+        for (const candidate of extra) {
+          const result = scoreString(candidate.text, q, candidate.weight);
+          if (result && (!best || result.score > best.score)) best = result;
+        }
+        if (best) {
+          entityHits.push({
+            entity: spec.key,
+            entityId,
+            title,
+            field: 'elements',
             snippet: best.snippet,
             score: best.score,
           });

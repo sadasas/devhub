@@ -12,6 +12,7 @@ const ENTITY_TAB: Record<string, string> = {
   milestones: 'releases',
   apiCollections: 'api',
   apiEndpoints: 'api',
+  whiteboards: 'whiteboard',
 };
 
 export function entityTab(entity: GranularEntity): string {

@@ -208,4 +208,51 @@ describe('activity log API v1', () => {
       .set('X-Forwarded-For', uniqueIp());
     expect(badLimit.status).toBe(400);
   });
+
+  it('summarises whiteboard element changes with a count diff instead of a JSON dump', async () => {
+    const cookie = await register('activity-whiteboard@test.dev');
+    const projectId = await createProject(cookie);
+    const boardId = uid();
+
+    const stroke = (id: string, x: number) => ({
+      id,
+      kind: 'stroke',
+      tool: 'pen',
+      color: '#e4e4e7',
+      width: 2,
+      thinning: 2,
+      points: [
+        [x, 0],
+        [x, 10],
+      ],
+    });
+
+    const created = await request(app)
+      .post(`${API}/projects/${projectId}/whiteboards`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({
+        id: boardId,
+        name: 'Plan',
+        elements: [stroke(uid(), 0), stroke(uid(), 10), stroke(uid(), 20)],
+      });
+    expect(created.status).toBe(201);
+
+    const patched = await request(app)
+      .patch(`${API}/projects/${projectId}/whiteboards/${boardId}`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({
+        elements: [stroke(uid(), 0), stroke(uid(), 10), stroke(uid(), 20), stroke(uid(), 30), stroke(uid(), 40)],
+      });
+    expect(patched.status).toBe(200);
+
+    const items = await fetchActivity(cookie, projectId, `?entity=whiteboards&entityId=${boardId}`);
+    expect(items).toHaveLength(2);
+    const upd = items.find((i) => i.action === 'updated');
+    expect(upd).toBeDefined();
+    expect(upd!.summary).toContain('elements: 3 → 5');
+    expect(upd!.changes.elements).toEqual({ from: 3, to: 5 });
+    expect(JSON.stringify(upd!.changes.elements)).not.toContain('"kind"');
+  });
 });

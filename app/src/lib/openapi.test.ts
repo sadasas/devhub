@@ -68,6 +68,7 @@ function fixtureState(): State {
         responses: [{ status: 204, contentType: '', description: 'No content', body: '' }],
       },
     ],
+    whiteboards: [],
   };
 }
 

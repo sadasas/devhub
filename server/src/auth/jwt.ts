@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { config } from '../config.js';
+import { pool } from '../db/pool.js';
 
 export const JWT_TTL_SECONDS = 24 * 60 * 60; // 24h
 
@@ -31,4 +32,17 @@ export function verifyToken(token: string): JwtPayload | null {
   } catch {
     return null;
   }
+}
+
+export async function verifySession(token: string | undefined): Promise<string | null> {
+  if (!token) return null;
+  const payload = verifyToken(token);
+  if (!payload) return null;
+  const result = await pool.query<{ jwt_version: number }>(
+    'SELECT jwt_version FROM users WHERE id = $1',
+    [payload.sub],
+  );
+  const user = result.rows[0];
+  if (!user || user.jwt_version !== payload.v) return null;
+  return payload.sub;
 }

@@ -176,6 +176,94 @@ export const apiEndpointSchema = z.object({
 
 export const projectStatus = z.enum(['active', 'archived']);
 
+export const whiteboardCoord = z.number().min(-100_000).max(100_000);
+
+export const whiteboardElementId = z.string().uuid();
+
+const whiteboardStrokeSchema = z.object({
+  id: whiteboardElementId,
+  kind: z.literal('stroke'),
+  tool: z.enum(['pen', 'eraser']),
+  color: z.string().max(20).default('#e4e4e7'),
+  width: z.number().min(0.5).max(100).default(2),
+  thinning: z.number().min(0).max(20).default(2),
+  points: z.array(z.tuple([whiteboardCoord, whiteboardCoord])).min(2).max(2000),
+});
+
+const whiteboardStickySchema = z.object({
+  id: whiteboardElementId,
+  kind: z.literal('sticky'),
+  x: whiteboardCoord,
+  y: whiteboardCoord,
+  w: z.number().min(20).max(2000),
+  h: z.number().min(20).max(2000),
+  color: z.string().max(20).default('#e8b955'),
+  text: z.string().max(500).default(''),
+});
+
+const whiteboardTextSchema = z.object({
+  id: whiteboardElementId,
+  kind: z.literal('text'),
+  x: whiteboardCoord,
+  y: whiteboardCoord,
+  color: z.string().max(20).default('#e4e4e7'),
+  fontSize: z.number().min(8).max(200).default(16),
+  text: z.string().max(1000).default(''),
+});
+
+const whiteboardShapeSchema = z.object({
+  id: whiteboardElementId,
+  kind: z.literal('shape'),
+  shapeType: z.enum(['rect', 'diamond', 'ellipse']),
+  x: whiteboardCoord,
+  y: whiteboardCoord,
+  w: z.number().min(1).max(10_000),
+  h: z.number().min(1).max(10_000),
+  color: z.string().max(20).default('#6ea8fe'),
+  fill: z.boolean().default(false),
+  strokeWidth: z.number().min(0.5).max(100).default(2),
+  label: z.string().max(200).default(''),
+});
+
+const whiteboardEdgeSchema = z.object({
+  id: whiteboardElementId,
+  kind: z.literal('edge'),
+  x1: whiteboardCoord,
+  y1: whiteboardCoord,
+  x2: whiteboardCoord,
+  y2: whiteboardCoord,
+  color: z.string().max(20).default('#e4e4e7'),
+  width: z.number().min(0.5).max(100).default(2),
+  arrowhead: z.boolean().default(false),
+  sourceNodeId: whiteboardElementId.nullable().optional(),
+  targetNodeId: whiteboardElementId.nullable().optional(),
+});
+
+const whiteboardRefSchema = z.object({
+  id: whiteboardElementId,
+  kind: z.literal('ref'),
+  entity: z.enum(['tasks', 'issues']),
+  entityId: z.string().uuid(),
+  x: whiteboardCoord,
+  y: whiteboardCoord,
+});
+
+export const whiteboardElementSchema = z.discriminatedUnion('kind', [
+  whiteboardStrokeSchema,
+  whiteboardStickySchema,
+  whiteboardTextSchema,
+  whiteboardShapeSchema,
+  whiteboardEdgeSchema,
+  whiteboardRefSchema,
+]);
+
+export const whiteboardSchema = z.object({
+  ...baseFields,
+  name: z.string().min(1).max(100).default('Whiteboard'),
+  description: z.string().max(2_000).default(''),
+  elements: z.array(whiteboardElementSchema).max(1000).default([]),
+});
+
 export const stateSchema = z.object({
   tasks: z.array(taskSchema).default([]),
   issues: z.array(issueSchema).default([]),
@@ -188,6 +276,7 @@ export const stateSchema = z.object({
   milestones: z.array(milestoneSchema).default([]),
   apiCollections: z.array(apiCollectionSchema).default([]),
   apiEndpoints: z.array(apiEndpointSchema).default([]),
+  whiteboards: z.array(whiteboardSchema).max(5).default([]),
 });
 
 export type State = z.infer<typeof stateSchema>;
@@ -209,6 +298,14 @@ export type ApiParamIn = z.infer<typeof apiParamIn>;
 export type ApiHeader = z.infer<typeof apiHeaderSchema>;
 export type ApiParam = z.infer<typeof apiParamSchema>;
 export type ApiResponse = z.infer<typeof apiResponseSchema>;
+export type WhiteboardElement = z.infer<typeof whiteboardElementSchema>;
+export type WhiteboardStroke = z.infer<typeof whiteboardStrokeSchema>;
+export type WhiteboardSticky = z.infer<typeof whiteboardStickySchema>;
+export type WhiteboardText = z.infer<typeof whiteboardTextSchema>;
+export type WhiteboardShape = z.infer<typeof whiteboardShapeSchema>;
+export type WhiteboardEdge = z.infer<typeof whiteboardEdgeSchema>;
+export type WhiteboardRef = z.infer<typeof whiteboardRefSchema>;
+export type Whiteboard = z.infer<typeof whiteboardSchema>;
 
 export const emptyState: State = {
   tasks: [],
@@ -222,6 +319,7 @@ export const emptyState: State = {
   milestones: [],
   apiCollections: [],
   apiEndpoints: [],
+  whiteboards: [],
 };
 
 export const exportDocumentSchema = z.object({

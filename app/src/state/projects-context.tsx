@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { api } from '../lib/api';
+import { isNetworkError } from '../lib/idb-provider';
+import { getMeta, putMeta } from '../lib/idb';
 import type { Project, PublicTab } from '../lib/types';
 
 interface ProjectsContextValue {
@@ -28,8 +30,19 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       const list = await api.listProjects();
       setProjects(list);
       setError(null);
+      void putMeta('projects', list).catch(() => { /* best-effort cache */ });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load projects');
+      if (isNetworkError(err)) {
+        const cached = await getMeta<Project[]>('projects').catch(() => undefined);
+        if (cached) {
+          setProjects(cached);
+          setError(null);
+        } else {
+          setError(err instanceof Error ? err.message : 'Failed to load projects');
+        }
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to load projects');
+      }
     } finally {
       setLoading(false);
     }

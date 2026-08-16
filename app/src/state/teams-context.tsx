@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { api } from '../lib/api';
+import { isNetworkError } from '../lib/idb-provider';
+import { getMeta, putMeta } from '../lib/idb';
 import type { Invitation, Team, TeamRole } from '../lib/types';
 
 interface TeamsContextValue {
@@ -31,8 +33,19 @@ export function TeamsProvider({ children }: { children: ReactNode }) {
       setTeams(teamList);
       setInvitations(inviteList);
       setError(null);
+      void putMeta('teams', teamList).catch(() => { /* best-effort cache */ });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load teams');
+      if (isNetworkError(err)) {
+        const cached = await getMeta<Team[]>('teams').catch(() => undefined);
+        if (cached) {
+          setTeams(cached);
+          setError(null);
+        } else {
+          setError(err instanceof Error ? err.message : 'Failed to load teams');
+        }
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to load teams');
+      }
     } finally {
       setLoading(false);
     }

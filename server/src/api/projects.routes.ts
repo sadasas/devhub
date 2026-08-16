@@ -16,6 +16,7 @@ import {
   type ProjectWithRole,
 } from './authz.js';
 import { normalizeTabs, publicTabsSchema } from './sharing.js';
+import { broadcastSync } from '../realtime/broadcast.js';
 
 const createProjectSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(200),
@@ -245,6 +246,7 @@ projectsRouter.put('/:projectId/state', async (req, res) => {
     });
   }
   res.json({ ok: true, version: updated.rows[0].version });
+  broadcastSync(req.params.projectId, updated.rows[0].version);
 });
 
 projectsRouter.get('/:projectId/export', async (req, res) => {

@@ -37,6 +37,7 @@ techEntries: [],
     milestones: [],
     apiCollections: [],
     apiEndpoints: [],
+    whiteboards: [],
     ...over,
   };
 }

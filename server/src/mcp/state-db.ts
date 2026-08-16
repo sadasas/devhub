@@ -4,6 +4,7 @@ import { stateSchema, type State } from '../schema/state.js';
 import { mergePrd, normalizePrd, type Prd, type PrdPatch } from '../schema/prd.js';
 import { getMcpUserId } from './context.js';
 import { getProjectWithRole } from '../api/authz.js';
+import { broadcastSync } from '../realtime/broadcast.js';
 
 async function findRow(projectId: string) {
   const row = await getProjectWithRole(getMcpUserId(), projectId);
@@ -38,13 +39,14 @@ export async function saveState(projectId: string, state: State): Promise<void> 
   if (row.role === 'viewer') {
     throw new McpError(ErrorCode.InvalidParams, `No write access to project ${projectId}`);
   }
-  const result = await pool.query(
-    'UPDATE projects SET data = $2::jsonb, version = version + 1, updated_at = now() WHERE id = $1 RETURNING id',
+  const result = await pool.query<{ id: string; version: number }>(
+    'UPDATE projects SET data = $2::jsonb, version = version + 1, updated_at = now() WHERE id = $1 RETURNING id, version',
     [projectId, JSON.stringify(state)],
   );
   if (!result.rows[0]) {
     throw new McpError(ErrorCode.InvalidParams, `Project not found: ${projectId}`);
   }
+  broadcastSync(projectId, result.rows[0].version);
 }
 
 export async function loadProjectSnapshot(projectId: string): Promise<{ state: State; meta: { name: string; description: string; status: string; prd: Prd } }> {

@@ -100,7 +100,8 @@ export type GranularEntity =
   | 'decisions'
   | 'milestones'
   | 'apiCollections'
-  | 'apiEndpoints';
+  | 'apiEndpoints'
+  | 'whiteboards';
 
 export type GranularEntityRecord = Record<string, unknown> & { id: string };
 
@@ -140,7 +141,7 @@ interface EntityListResult {
   version: number;
 }
 
-interface EntityResult {
+export interface EntityResult {
   entity: GranularEntityRecord;
   version: number;
 }

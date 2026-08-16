@@ -42,13 +42,32 @@ const ENTITY_LABELS: Record<string, string> = {
   milestones: 'Milestone',
   apiCollections: 'API collection',
   apiEndpoints: 'API endpoint',
+  whiteboards: 'Whiteboard',
+};
+
+/**
+ * Entities whose diffed array fields should be recorded as element counts
+ * instead of raw (truncated) JSON — avoids noisy 300-char dumps in activity.
+ */
+const COUNT_DIFF_FIELDS: Record<string, string[]> = {
+  whiteboards: ['elements'],
 };
 
 export function entityLabel(entity: string): string {
   return ENTITY_LABELS[entity] ?? entity;
 }
 
-export function entitySummary(entity: string, row: Record<string, unknown> | undefined): string {
+function fieldCount(entity: string, key: string, value: unknown): number | null {
+  if (!COUNT_DIFF_FIELDS[entity]?.includes(key)) return null;
+  return Array.isArray(value) ? value.length : 0;
+}
+
+export function entitySummary(
+  entity: string,
+  row: Record<string, unknown> | undefined,
+  before?: Record<string, unknown> | undefined,
+  after?: Record<string, unknown> | undefined,
+): string {
   if (!row) return entityLabel(entity);
   const title =
     typeof row.title === 'string' && row.title
@@ -58,7 +77,17 @@ export function entitySummary(entity: string, row: Record<string, unknown> | und
         : typeof row.version === 'string' && row.version
           ? `v${row.version}`
           : '';
-  return title ? String(title) : entityLabel(entity);
+  let summary = title ? String(title) : entityLabel(entity);
+  if (before && after) {
+    for (const key of COUNT_DIFF_FIELDS[entity] ?? []) {
+      const from = fieldCount(entity, key, before[key]);
+      const to = fieldCount(entity, key, after[key]);
+      if (from !== null && from !== to) {
+        summary += `, ${key}: ${from} → ${to}`;
+      }
+    }
+  }
+  return summary;
 }
 
 function truncate(value: unknown): unknown {
@@ -85,6 +114,7 @@ const SKIP_FIELDS = new Set(['id', 'createdAt', 'updatedAt']);
 export function diffEntities(
   before: Record<string, unknown> | undefined,
   after: Record<string, unknown> | undefined,
+  entity?: string,
 ): Record<string, { from: unknown; to: unknown }> {
   if (!before || !after) return {};
   const changes: Record<string, { from: unknown; to: unknown }> = {};
@@ -94,7 +124,9 @@ export function diffEntities(
     const a = before[key];
     const b = after[key];
     if (normalize(a) === normalize(b)) continue;
-    changes[key] = { from: truncate(a), to: truncate(b) };
+    const from = fieldCount(entity ?? '', key, a);
+    const to = fieldCount(entity ?? '', key, b);
+    changes[key] = from !== null ? { from, to } : { from: truncate(a), to: truncate(b) };
   }
   return changes;
 }
@@ -115,7 +147,7 @@ export async function insertActivity(
   },
 ): Promise<void> {
   const { projectId, draft, authorId, authorName } = params;
-  const changes = diffEntities(draft.before, draft.after);
+  const changes = diffEntities(draft.before, draft.after, draft.entity);
   const now = new Date();
 
   if (draft.action === 'updated') {

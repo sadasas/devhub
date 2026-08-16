@@ -6,6 +6,7 @@ import {
   ChartBar,
   Check,
   CheckSquare,
+  ChalkboardSimple,
   Columns,
   Copy,
   Database,
@@ -22,6 +23,7 @@ import {
 import type { ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { ApiError, api } from '../../lib/api';
+import { offlineProvider } from '../../lib/idb-provider';
 import { PROJECT_STATUS, TEAM_ROLE } from '../../lib/labels';
 import { formatDate } from '../../lib/utils';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
@@ -34,6 +36,8 @@ import { EmptyState } from '../../components/EmptyState';
 import { Modal } from '../../components/Modal';
 import { SaveBanner } from '../../components/SaveBanner';
 import { Skeleton } from '../../components/Skeleton';
+import { SyncStatusChip } from '../../components/SyncStatusChip';
+import { PresenceChip } from '../../components/PresenceChip';
 import { ShareModal } from './ShareModal';
 import { InlineError } from '../../components/InlineError';
 import { SaveTemplateModal } from '../templates/SaveTemplateModal';
@@ -48,6 +52,7 @@ const ReleasesPageLazy = lazy(() => import('../releases/ReleasesPage').then((m) 
 const ApiPageLazy = lazy(() => import('../api/ApiPage').then((m) => ({ default: m.ApiPage })));
 const StatsPageLazy = lazy(() => import('../stats/StatsPage').then((m) => ({ default: m.StatsPage })));
 const AboutPageLazy = lazy(() => import('./AboutPage').then((m) => ({ default: m.AboutPage })));
+const WhiteboardPageLazy = lazy(() => import('../whiteboard/WhiteboardPage').then((m) => ({ default: m.WhiteboardPage })));
 
 export type ProjectTab =
   | 'board'
@@ -59,7 +64,8 @@ export type ProjectTab =
   | 'releases'
   | 'api'
   | 'stats'
-  | 'about';
+  | 'about'
+  | 'whiteboard';
 
 const TABS: { id: ProjectTab; label: string; icon: ReactNode }[] = [
   { id: 'board', label: 'Board', icon: <Columns size={15} /> },
@@ -72,7 +78,12 @@ const TABS: { id: ProjectTab; label: string; icon: ReactNode }[] = [
   { id: 'api', label: 'API', icon: <Plugs size={15} /> },
   { id: 'stats', label: 'Stats', icon: <ChartBar size={15} /> },
   { id: 'about', label: 'About', icon: <Info size={15} /> },
+  { id: 'whiteboard', label: 'Whiteboard', icon: <ChalkboardSimple size={15} /> },
 ];
+
+// Stable module-level instance: a fresh provider per render would re-run the
+// ProjectProvider mount effect (provider is in its effect deps).
+const projectStorage = offlineProvider();
 
 export function ProjectPage() {
   const { projectId = '' } = useParams<{ projectId: string }>();
@@ -201,7 +212,7 @@ if (!project) {
   }
 
   return (
-    <ProjectProvider key={projectId} projectId={projectId} role={role}>
+    <ProjectProvider key={projectId} projectId={projectId} role={role} provider={projectStorage}>
       <div className="page">
         <header className="project-header">
           <div className="project-heading">
@@ -215,6 +226,8 @@ if (!project) {
               <Badge tone={PROJECT_STATUS[project.status].tone}>
                 {PROJECT_STATUS[project.status].label}
               </Badge>
+              <SyncStatusChip />
+              <PresenceChip />
             </div>
             <p className="page-subtitle">
               {project.description || 'No description.'} · created {formatDate(project.createdAt)}
@@ -353,6 +366,8 @@ if (!project) {
               <StatsPageLazy />
             ) : tab === 'about' ? (
               <AboutPageLazy project={project} />
+            ) : tab === 'whiteboard' ? (
+              <WhiteboardPageLazy />
             ) : null}
           </Suspense>
         </section>

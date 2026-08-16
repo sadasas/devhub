@@ -4342,3 +4342,35 @@ input[type='checkbox'] {
 .diff-row-removed { background: var(--status-danger-dim); }
 .diff-empty { font-size: 13px; color: var(--text-muted); }
 .tab-panel-loading { display:flex; flex-direction:column; gap:12px; }
+/* Whiteboard — list + editor shell */
+.wb-card { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: start; }
+.wb-card-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 0; background: none; border: none; text-align: left; font: inherit; color: inherit; cursor: pointer; border-radius: var(--radius-sm); }
+.wb-card-main:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent-ring); }
+.wb-shell { display: flex; flex-direction: column; gap: 16px; }
+.wb-canvas { position: relative; height: calc(100dvh - 340px); min-height: 480px; border: 1px solid var(--border-hairline); border-radius: var(--radius-card); background: var(--bg-inset); overflow: hidden; user-select: none; }
+.wb-svg { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+.wb-svg.dragging { cursor: grabbing; }
+.wb-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.wb-hint { position: absolute; left: 10px; bottom: 10px; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-muted); pointer-events: none; letter-spacing: 0.02em; }
+.wb-sep { width: 1px; height: 18px; background: var(--border-strong); }
+.wb-popover { position: absolute; z-index: 5; width: 220px; padding: 12px; background: var(--bg-overlay); border: 1px solid var(--border-strong); border-radius: var(--radius-card); box-shadow: var(--shadow-raised); font-size: 12.5px; }
+.fp-colors { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; }
+.fp-color { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--border-strong); cursor: pointer; padding: 0; }
+.fp-color-active { box-shadow: 0 0 0 2px var(--accent-ring); }
+.fp-segmented { display: flex; gap: 4px; margin-bottom: 8px; }
+.fp-seg { flex: 1; padding: 4px 6px; font-size: 11px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: none; color: var(--text-secondary); cursor: pointer; }
+.fp-seg-active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.fp-check { display: flex; gap: 6px; align-items: center; margin: 8px 0; font-size: 12px; }
+.fp-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.fp-btn { padding: 5px 10px; font-size: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); background: none; color: var(--text-secondary); cursor: pointer; }
+.fp-btn-ghost:hover { color: var(--text-primary); }
+.fp-btn-primary { background: var(--accent); border-color: var(--accent); color: var(--text-on-accent); font-weight: 600; }
+.ref-picker { display: flex; flex-direction: column; gap: 10px; max-height: 60vh; }
+.ref-picker-list { margin: 0; padding: 0; list-style: none; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.ref-picker-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 8px 10px; text-align: left; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--text-primary); cursor: pointer; }
+.ref-picker-row-active { background: var(--accent-dim); border-color: var(--accent); }
+.ref-picker-title { font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ref-picker-status { flex-shrink: 0; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-muted); }
+.ref-picker-empty { padding: 12px 0; font-size: 12.5px; color: var(--text-muted); }
+.wb-delete-btn { position: absolute; top: 10px; right: 10px; z-index: 5; width: 30px; height: 30px; padding: 0; display: flex; align-items: center; justify-content: center; background: var(--bg-overlay); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--status-danger); cursor: pointer; box-shadow: var(--shadow-raised); }
+.wb-delete-btn:hover { background: var(--status-danger-dim); border-color: var(--status-danger); }

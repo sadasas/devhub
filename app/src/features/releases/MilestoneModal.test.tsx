@@ -50,6 +50,7 @@ function makeState(tasks: Task[]): State {
     ],
     apiCollections: [],
     apiEndpoints: [],
+    whiteboards: [],
   };
 }
 

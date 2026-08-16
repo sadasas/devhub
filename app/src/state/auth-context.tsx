@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { api, setUnauthorizedHandler } from '../lib/api';
+import { isNetworkError } from '../lib/idb-provider';
+import { getMeta, putMeta } from '../lib/idb';
 import type { User } from '../lib/types';
 
 interface AuthContextValue {
@@ -23,10 +25,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     api
       .me()
       .then((u) => {
-        if (!cancelled) setUser(u);
+        if (!cancelled) {
+          setUser(u);
+          void putMeta('user', u).catch(() => { /* best-effort cache */ });
+        }
       })
-      .catch(() => {
-        /* not authenticated — fine */
+      .catch((err) => {
+        /* not authenticated — fine; offline — bootstrap from cache */
+        if (!cancelled && isNetworkError(err)) {
+          void getMeta<User>('user')
+            .then((cached) => {
+              if (!cancelled && cached) setUser(cached);
+            })
+            .catch(() => { /* no cached session */ });
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeAll } from 'vitest';
 import request from 'supertest';
 import { app, uniqueIp, register, createProject, inviteUser, getFirstTeamId } from './helpers.js';
+import { resetDb } from './setup.js';
 
 const API = '/api/v1';
 
@@ -9,6 +10,9 @@ function uid() {
 }
 
 describe('granular entity API v1', () => {
+  beforeAll(async () => {
+    await resetDb();
+  });
   it('creates, lists, patches and deletes a task with version bumps and ETags', async () => {
     const cookie = await register('v1-task@test.dev');
     const projectId = await createProject(cookie);
@@ -63,6 +67,109 @@ describe('granular entity API v1', () => {
       .set('X-Forwarded-For', uniqueIp());
     expect(state.body.state.tasks).toHaveLength(0);
     expect(state.body.version).toBe(4);
+  });
+
+  it('round-trips a whiteboard with a discriminated element union and enforces caps', async () => {
+    const cookie = await register('v1-board@test.dev');
+    const projectId = await createProject(cookie);
+
+    const taskCreated = await request(app)
+      .post(`${API}/projects/${projectId}/tasks`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ id: uid(), title: 'Referenced', status: 'todo', priority: 'medium', labels: [], blockedBy: [] });
+    expect(taskCreated.status).toBe(201);
+    const taskId = taskCreated.body.entity.id;
+
+    const strokeId = uid();
+    const boxId = uid();
+    const elements = [
+      { id: strokeId, kind: 'stroke', tool: 'pen', color: '#34c38e', width: 3, thinning: 2, points: [[0, 0], [10, 20], [40, 20]] },
+      { id: uid(), kind: 'sticky', x: 100, y: 100, w: 200, h: 120, color: '#e8b955', text: 'Note' },
+      { id: uid(), kind: 'text', x: 50, y: 50, color: '#e4e4e7', fontSize: 16, text: 'Hello' },
+      { id: boxId, kind: 'shape', shapeType: 'diamond', x: 0, y: 0, w: 120, h: 80, color: '#6ea8fe', fill: true, strokeWidth: 2, label: 'Decide' },
+      { id: uid(), kind: 'edge', x1: 10, y1: 10, x2: 300, y2: 200, color: '#e4e4e7', width: 2, arrowhead: true, sourceNodeId: strokeId, targetNodeId: boxId },
+      { id: uid(), kind: 'ref', entity: 'tasks', entityId: taskId, x: 400, y: 400 },
+    ];
+
+    const created = await request(app)
+      .post(`${API}/projects/${projectId}/whiteboards`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ id: uid(), name: 'Plan', description: 'board', elements });
+    expect(created.status).toBe(201);
+    expect(created.body.version).toBe(3);
+    expect(created.body.entity.elements).toHaveLength(6);
+    const kinds = (created.body.entity.elements as Array<{ kind: string }>).map((e) => e.kind);
+    expect(kinds).toEqual(['stroke', 'sticky', 'text', 'shape', 'edge', 'ref']);
+    const boardId = created.body.entity.id;
+
+    const list = await request(app)
+      .get(`${API}/projects/${projectId}/whiteboards`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(list.status).toBe(200);
+    expect(list.body.items).toHaveLength(1);
+
+    const patched = await request(app)
+      .patch(`${API}/projects/${projectId}/whiteboards/${boardId}`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ name: 'Renamed' });
+    expect(patched.status).toBe(200);
+    expect(patched.body.entity.name).toBe('Renamed');
+    expect(patched.body.version).toBe(4);
+
+    const tooMany = [...Array(1001)].map((_, i) => ({
+      id: uid(),
+      kind: 'text' as const,
+      x: i,
+      y: i,
+      color: '#e4e4e7',
+      fontSize: 16,
+      text: 'x',
+    }));
+    const rejected = await request(app)
+      .post(`${API}/projects/${projectId}/whiteboards`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ id: uid(), name: 'Burst', elements: tooMany });
+    expect(rejected.status).toBe(400);
+
+    const shortStroke = await request(app)
+      .post(`${API}/projects/${projectId}/whiteboards`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ id: uid(), name: 'OnePoint', elements: [{ id: uid(), kind: 'stroke', tool: 'pen', points: [[0, 0]] }] });
+    expect(shortStroke.status).toBe(400);
+
+    const deleted = await request(app)
+      .delete(`${API}/projects/${projectId}/whiteboards/${boardId}`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(deleted.status).toBe(200);
+    expect(deleted.body).toEqual({ ok: true, version: 5 });
+  });
+
+  it('enforces the five-board cap per project', async () => {
+    const cookie = await register('v1-boardcap@test.dev');
+    const projectId = await createProject(cookie);
+
+    for (let i = 0; i < 5; i += 1) {
+      const res = await request(app)
+        .post(`${API}/projects/${projectId}/whiteboards`)
+        .set('Cookie', cookie)
+        .set('X-Forwarded-For', uniqueIp())
+        .send({ id: uid(), name: `Board ${i}`, elements: [] });
+      expect(res.status).toBe(201);
+    }
+
+    const sixth = await request(app)
+      .post(`${API}/projects/${projectId}/whiteboards`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ id: uid(), name: 'Sixth', elements: [] });
+    expect(sixth.status).toBe(400);
   });
 
   it('creates nested tables with columns and cascades relations on table delete', async () => {

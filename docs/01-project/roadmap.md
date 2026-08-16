@@ -148,9 +148,9 @@ Implementasi V2 (v0.4.0) — 51 task (V2 inti ~31h + 3 workstream baru: Global S
 
 ---
 
-## 11. Whiteboard (M11 — workstream baru)
+## 11. Whiteboard (M17 — milestone sendiri, ADR-023)
 
-M11 v0.5.0 diperluas menjadi **dua workstream**: Sync & Offline (7 task existing) **+ Whiteboard (13 task, ~54.5h)** — lihat [ADR-023](../02-architecture/adr.md#adr-023). Keputusan kunci: satu entity `whiteboards` terpadu (brainstorming + flowchart + entity ref cards), bukan dua entity terpisah.
+Workstream Whiteboard awalnya direncanakan sebagai workstream kedua M11 v0.5.0; saat M11 rilis (Sync & Offline saja, 2026-08-14), whiteboard dipindah ke **milestone M17 v0.11.0** (13 task, ~54.5h) — lihat [ADR-023](../02-architecture/adr.md#adr-023). Keputusan kunci: satu entity `whiteboards` terpadu (brainstorming + flowchart + entity ref cards), bukan dua entity terpisah.
 
 | Fokus | Isi |
 |---|---|
@@ -160,6 +160,20 @@ M11 v0.5.0 diperluas menjadi **dua workstream**: Sync & Offline (7 task existing
 | Integrasi | Granular CRUD/If-Match/activity/search/export/import/MCP `project_state` otomatis ikut; activity diff `elements` = summary-count; search collector kustom (name 3×, teks sticky/text/shape.label/ref 1× — tanpa noise hex/uuid); tab ke-11 (deviasi A1 tercatat); public share read-only `/p/:id` |
 | Tests | Server: schema round-trip (cegah silent strip), CRUD, activity, search; App: reducer/geometry murni + interaksi jsdom (stub rect/pointer capture); E2E: 2 journey (draw→save→reload; drag node → edge ikut) |
 | Defer V2 | Port-based connector + port UI, snap grid/alignment, multi-select, auto-layout, per-element PATCH, refs entity lain (testCases/milestones), MCP whiteboard tools, gzip compression middleware di server |
+
+---
+
+## 12. WebSocket real-time (M12)
+
+M12 v0.6.0 — real-time collaboration: server push state-diff ke member proyek online + presence. Runtime dep `ws` dicatat di [ADR-024](../02-architecture/adr.md#adr-024) (room registry generik + auth cookie JWT di handshake).
+
+| Task | Isi |
+|---|---|
+| WS server (done) | `server/src/realtime/`: `rooms.ts` (RoomRegistry generik — `join/leave/leaveAll/size/broadcast`, key `project:{id}`) + `ws-server.ts` (`/ws`, auth `verifySession` di handshake — close 4001; protokol `join`/`leave`/`ping`↔`hello`/`joined`/`pong`/`error`; join diverifikasi `getProjectWithRole`, role dijawab server; heartbeat 30s; shutdown tutup semua client); `index.ts` refactor `http.createServer` eksplisit |
+| Broadcast state-diff (done) | `server/src/realtime/broadcast.ts` — `attachRoomRegistry` + `broadcastDiff` (ops granular `created`/`updated`/`deleted` + after) / `broadcastSync` (bulk PUT /state + saveState MCP); entity-router POST/PATCH/DELETE + projects.routes PUT /state + mcp/state-db di-hook (ADR-024 follow-up) |
+| Client WS (done) | `app/src/lib/realtime-client.ts` — `RealtimeSocket` (connect `/ws`, join, ping 25s, reconnect backoff 1→15s, MODE!=test), `applyStateDiff` pure (skip op sendiri via pending queue + gating version), `realtimeWsUrl`; `ProjectProvider` wiring (apply diff, resync saat joined/state:sync); proxy `/ws` di vite dev |
+| Presence (done) | Frame `{type:'presence', projectId, users:[{userId,name}]}` pada join/leave/close (display_name dari `users`); klien: state `presence` di ProjectContext + `PresenceChip` di header ("N online" + tooltip) |
+| Test suite | Server: auth handshake (no-cookie/tamper/stale jwt_version), join member/non-member, leave, ping/pong, registry; App: reducer apply-diff, reconnect |
 
 ---
 

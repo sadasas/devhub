@@ -18,6 +18,7 @@ import {
   milestoneSchema,
   apiCollectionSchema,
   apiEndpointSchema,
+  whiteboardSchema,
   type State,
 } from '../../schema/state.js';
 import { getProjectWithRole, assertWrite, type TeamRole } from '../authz.js';
@@ -27,6 +28,7 @@ import {
   entitySummary,
   type ActivityDraft,
 } from '../../lib/activity.js';
+import { broadcastDiff } from '../../realtime/broadcast.js';
 
 interface EntityConfig {
   key: keyof State;
@@ -51,8 +53,17 @@ const ENTITIES: EntityConfig[] = [
     state.issues = state.issues.map((iss) =>
       iss.linkedTaskId === id ? { ...iss, linkedTaskId: null } : iss,
     );
+    state.whiteboards = state.whiteboards.map((w) => ({
+      ...w,
+      elements: w.elements.filter((el) => !(el.kind === 'ref' && el.entity === 'tasks' && el.entityId === id)),
+    }));
   }),
-  mk('issues', 'Issue', issueSchema),
+  mk('issues', 'Issue', issueSchema, (state, id) => {
+    state.whiteboards = state.whiteboards.map((w) => ({
+      ...w,
+      elements: w.elements.filter((el) => !(el.kind === 'ref' && el.entity === 'issues' && el.entityId === id)),
+    }));
+  }),
   mk('testCases', 'Test case', testCaseSchema),
   mk('techEntries', 'Tech entry', techEntrySchema),
   mk('tables', 'Table', tableSchema, (state, id) => {
@@ -72,6 +83,7 @@ const ENTITIES: EntityConfig[] = [
     );
   }),
   mk('apiEndpoints', 'API endpoint', apiEndpointSchema),
+  mk('whiteboards', 'Whiteboard', whiteboardSchema),
 ];
 
 type EntityRow = { id: string; createdAt: string; updatedAt: string } & Record<string, unknown>;
@@ -118,6 +130,12 @@ async function mutateProject(
     if (!parsed.success) throw new ApiError(500, 'INTERNAL', 'Stored state is invalid');
     const state = parsed.data;
     const activity = fn(state);
+    const after = stateSchema.safeParse(state);
+    if (!after.success) {
+      throw new ApiError(400, 'BAD_REQUEST', 'Mutation would violate state limits', {
+        issues: after.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
+      });
+    }
     const updated = await client.query<{ version: number }>(
       'UPDATE projects SET data = $2::jsonb, version = version + 1, updated_at = now() WHERE id = $1 RETURNING version',
       [projectId, JSON.stringify(state)],
@@ -205,6 +223,12 @@ function buildEntityRouter(entities: EntityConfig[]): Router {
           after: entity,
         } satisfies ActivityDraft;
       });
+      broadcastDiff(req.params.projectId, {
+        type: 'state:diff',
+        projectId: req.params.projectId,
+        version,
+        ops: [{ entity: cfg.key, id, op: 'created', after: entity }],
+      });
       res.status(201);
       respondEntity(res, version, entity);
     });
@@ -234,12 +258,18 @@ function buildEntityRouter(entities: EntityConfig[]): Router {
           entity: cfg.key,
           entityId: req.params.entityId,
           action: 'updated',
-          summary: entitySummary(cfg.key, before),
+          summary: entitySummary(cfg.key, before, before, after),
           before,
           after,
         } satisfies ActivityDraft;
       });
       const item = itemsOf(state, cfg.key).find((i) => i.id === req.params.entityId)!;
+      broadcastDiff(req.params.projectId, {
+        type: 'state:diff',
+        projectId: req.params.projectId,
+        version,
+        ops: [{ entity: cfg.key, id: req.params.entityId, op: 'updated', after: item }],
+      });
       respondEntity(res, version, item);
     });
 
@@ -259,6 +289,12 @@ function buildEntityRouter(entities: EntityConfig[]): Router {
           summary: entitySummary(cfg.key, before),
           before,
         } satisfies ActivityDraft;
+      });
+      broadcastDiff(req.params.projectId, {
+        type: 'state:diff',
+        projectId: req.params.projectId,
+        version,
+        ops: [{ entity: cfg.key, id: req.params.entityId, op: 'deleted' }],
       });
       res.set('ETag', `"${version}"`);
       res.json({ ok: true, version });

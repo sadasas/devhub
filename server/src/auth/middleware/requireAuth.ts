@@ -1,7 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { SESSION_COOKIE, ApiError } from '../../app.js';
-import { verifyToken } from '../jwt.js';
-import { pool } from '../../db/pool.js';
+import { verifySession } from '../jwt.js';
 
 declare global {
   namespace Express {
@@ -17,19 +16,11 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
     if (!token) {
       throw new ApiError(401, 'UNAUTHORIZED', 'Authentication required');
     }
-    const payload = verifyToken(token);
-    if (!payload) {
+    const userId = await verifySession(token);
+    if (!userId) {
       throw new ApiError(401, 'UNAUTHORIZED', 'Session expired or invalid');
     }
-    const result = await pool.query<{ jwt_version: number }>(
-      'SELECT jwt_version FROM users WHERE id = $1',
-      [payload.sub],
-    );
-    const user = result.rows[0];
-    if (!user || user.jwt_version !== payload.v) {
-      throw new ApiError(401, 'UNAUTHORIZED', 'Session expired or invalid');
-    }
-    req.userId = payload.sub;
+    req.userId = userId;
     next();
   } catch (err) {
     next(err);

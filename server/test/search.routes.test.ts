@@ -224,4 +224,77 @@ describe('global search API v1', () => {
     expect(res.status).toBe(200);
     expect(res.body.results).toHaveLength(0);
   });
+
+  it('indexes whiteboard text elements and referenced entity titles without uuid or hex noise', async () => {
+    const cookie = await register('search-whiteboard@test.dev');
+    const projectId = await createProject(cookie);
+    const boardId = await addEntity(cookie, projectId, 'whiteboards', {
+      name: 'Brainstorm board',
+      elements: [
+        {
+          id: newId(),
+          kind: 'sticky',
+          x: 0,
+          y: 0,
+          w: 200,
+          h: 120,
+          color: '#e8b955',
+          text: 'Meeting notes for Q3',
+        },
+        {
+          id: newId(),
+          kind: 'text',
+          x: 0,
+          y: 0,
+          color: '#e4e4e7',
+          fontSize: 16,
+          text: 'Ship the sync service',
+        },
+        {
+          id: newId(),
+          kind: 'shape',
+          shapeType: 'rect',
+          x: 0,
+          y: 0,
+          w: 100,
+          h: 60,
+          color: '#6ea8fe',
+          fill: false,
+          strokeWidth: 2,
+          label: 'Decide approach',
+        },
+        {
+          id: newId(),
+          kind: 'ref',
+          entity: 'tasks',
+          entityId: '11111111-1111-4111-8111-111111111111',
+          x: 0,
+          y: 0,
+        },
+      ],
+    });
+    const taskId = await addEntity(cookie, projectId, 'tasks', {
+      id: '11111111-1111-4111-8111-111111111111',
+      title: 'Alpha ref task',
+      status: 'todo',
+      priority: 'medium',
+      labels: [],
+      blockedBy: [],
+    });
+    expect(taskId).toBe('11111111-1111-4111-8111-111111111111');
+
+    const viaSticky = await search(cookie, 'meeting');
+    expect(viaSticky.status).toBe(200);
+    const stickyHits = viaSticky.body.results.flatMap((r: { hits: unknown[] }) => r.hits);
+    expect(stickyHits.some((h: { entityId: string }) => h.entityId === boardId)).toBe(true);
+
+    const viaRef = await search(cookie, 'ref task');
+    expect(viaRef.status).toBe(200);
+    const refHits = viaRef.body.results.flatMap((r: { hits: unknown[] }) => r.hits);
+    expect(refHits.some((h: { entityId: string }) => h.entityId === boardId)).toBe(true);
+
+    const noNoise = await search(cookie, '#e4e4e7');
+    expect(noNoise.status).toBe(200);
+    expect(noNoise.body.results).toHaveLength(0);
+  });
 });

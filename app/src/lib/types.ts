@@ -157,6 +157,92 @@ export interface ApiEndpoint extends Base {
   responses: ApiResponse[];
 }
 
+export type WhiteboardElementKind = 'stroke' | 'sticky' | 'text' | 'shape' | 'edge' | 'ref';
+export type WhiteboardStrokeTool = 'pen' | 'eraser';
+export type WhiteboardShapeType = 'rect' | 'diamond' | 'ellipse';
+
+export interface WhiteboardStroke {
+  id: string;
+  kind: 'stroke';
+  tool: WhiteboardStrokeTool;
+  color: string;
+  width: number;
+  thinning: number;
+  points: Array<[number, number]>;
+}
+
+export interface WhiteboardSticky {
+  id: string;
+  kind: 'sticky';
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  color: string;
+  text: string;
+}
+
+export interface WhiteboardText {
+  id: string;
+  kind: 'text';
+  x: number;
+  y: number;
+  color: string;
+  fontSize: number;
+  text: string;
+}
+
+export interface WhiteboardShape {
+  id: string;
+  kind: 'shape';
+  shapeType: WhiteboardShapeType;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  color: string;
+  fill: boolean;
+  strokeWidth: number;
+  label: string;
+}
+
+export interface WhiteboardEdge {
+  id: string;
+  kind: 'edge';
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  color: string;
+  width: number;
+  arrowhead: boolean;
+  sourceNodeId?: string | null;
+  targetNodeId?: string | null;
+}
+
+export interface WhiteboardRef {
+  id: string;
+  kind: 'ref';
+  entity: 'tasks' | 'issues';
+  entityId: string;
+  x: number;
+  y: number;
+}
+
+export type WhiteboardElement =
+  | WhiteboardStroke
+  | WhiteboardSticky
+  | WhiteboardText
+  | WhiteboardShape
+  | WhiteboardEdge
+  | WhiteboardRef;
+
+export interface Whiteboard extends Base {
+  name: string;
+  description: string;
+  elements: WhiteboardElement[];
+}
+
 export interface State {
   tasks: Task[];
   issues: Issue[];
@@ -169,6 +255,7 @@ export interface State {
   milestones: Milestone[];
   apiCollections: ApiCollection[];
   apiEndpoints: ApiEndpoint[];
+  whiteboards: Whiteboard[];
 }
 
 export interface ExportMeta {
