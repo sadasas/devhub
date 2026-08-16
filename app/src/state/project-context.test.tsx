@@ -1061,4 +1061,49 @@ describe('realtime state:diff integration', () => {
 
     expect(ws.sent.filter((m) => m.includes('"status"'))).toHaveLength(0);
   });
+
+  it('skips the 5s poll while the socket is connected', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval'] });
+    const getState = vi.spyOn(api, 'getState').mockResolvedValue({ state: makeState(), version: 1 });
+
+    renderRealtime();
+    await flush();
+    expect(getState).toHaveBeenCalledTimes(1);
+
+    const ws = FakeWs.instances[0]!;
+    act(() => {
+      ws.open();
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(5000);
+    });
+
+    expect(getState).toHaveBeenCalledTimes(1);
+  });
+
+  it('resumes the 5s poll after the socket drops', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval'] });
+    const getState = vi.spyOn(api, 'getState').mockResolvedValue({ state: makeState(), version: 1 });
+
+    renderRealtime();
+    await flush();
+
+    const ws = FakeWs.instances[0]!;
+    act(() => {
+      ws.open();
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(5000);
+    });
+    expect(getState).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      ws.close();
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(5000);
+    });
+
+    expect(getState).toHaveBeenCalledTimes(2);
+  });
 });

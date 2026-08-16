@@ -169,6 +169,21 @@ describe('RealtimeSocket', () => {
     socket.close();
   });
 
+  it('fires onOpen on connect and onClose on drop', () => {
+    const onOpen = vi.fn();
+    const onClose = vi.fn();
+    const socket = makeSocket({ onOpen, onClose });
+    const ws = FakeWebSocket.instances[0]!;
+
+    ws.open();
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
+
+    ws.drop();
+    expect(onClose).toHaveBeenCalledTimes(1);
+    socket.close();
+  });
+
   it('dispatches server messages to the callbacks', () => {
     const onDiff = vi.fn();
     const onSync = vi.fn();

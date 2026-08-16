@@ -124,6 +124,10 @@ export function realtimeWsUrl(apiBase: string = API_BASE): string {
 /* ------------------------------------------------------------------ */
 
 export interface RealtimeHandlers {
+  /** Fired when the socket opens (before the join frame is sent). */
+  onOpen?: () => void;
+  /** Fired whenever the socket closes (dropped or explicitly closed). */
+  onClose?: () => void;
   onJoined?: () => void;
   onDiff?: (diff: StateDiff) => void;
   onSync?: (sync: StateSync) => void;
@@ -142,7 +146,6 @@ export interface RealtimeSocketOptions extends RealtimeHandlers {
   wsUrl: string;
   projectId: string;
   WebSocketCtor?: new (url: string) => MinimalWebSocket;
-  onClose?: () => void;
 }
 
 const RECONNECT_BACKOFF_MS = [1_000, 2_000, 4_000, 8_000, 15_000];
@@ -181,6 +184,7 @@ export class RealtimeSocket {
 
     ws.addEventListener('open', () => {
       this.attempt = 0;
+      this.opts.onOpen?.();
       ws.send(JSON.stringify({ type: 'join', projectId: this.opts.projectId }));
       this.startPing();
     });
@@ -235,10 +239,9 @@ export class RealtimeSocket {
 
   private onSocketClose(): void {
     this.stopPing();
-    if (this.closed) {
-      this.opts.onClose?.();
-      return;
-    }
+    this.ws = null;
+    this.opts.onClose?.();
+    if (this.closed) return;
     this.scheduleReconnect();
   }
 

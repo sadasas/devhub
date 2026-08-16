@@ -278,6 +278,19 @@
 - **Follow-up (2026-08-14, task M12 2):** broadcast protokol state-diff ditambahkan via `server/src/realtime/broadcast.ts` — bridge `attachRoomRegistry` + `broadcastDiff`/`broadcastSync` (no-op aman bila registry null). Setiap POST/PATCH/DELETE granular (`entity-router.ts`) → frame `{type:'state:diff', projectId, version, ops:[{entity, id, op:'created'|'updated'|'deleted', after?}]}` (after = entity lengkap untuk created/updated); PUT `/state` bulk + `saveState` MCP → frame kasar `{type:'state:sync', projectId, version}` (klien refetch). Server tidak mengecualikan socket penulis 1:1 (penulis HTTP ≠ socket WS; klien memfilter operasinya sendiri). Import restore tidak di-broadcast (jarang, tanpa version RETURNING).
 - **Follow-up (2026-08-14, task M12 3):** presence — `RoomRegistry.members(room)` (daftar socket per room) + `leaveAll` mengembalikan daftar room yang ditinggal. `ws-server.ts` `broadcastPresence`: kumpulkan `socket.userId` per room `project:{id}` → `SELECT id, display_name FROM users WHERE id = ANY($1::uuid[])` → frame `{type:'presence', projectId, users:[{userId, name}]}` (display_name kosong bila belum diisi). Broadcast pada join sukses, leave, dan close (best-effort: error DB di-log, koneksi tetap hidup). Klien: `PresenceUpdate`/`onPresence` di `realtime-client.ts`, state `presence` di `project-context.tsx`, chip `PresenceChip.tsx` di header ProjectPage (badge-info "N online" + tooltip nama, dedupe).
 
+### ADR-025
+**Realtime sync: WS primary, polling fallback hanya saat socket disconnected**
+
+- **Status:** Accepted (2026-08-17) — M12 follow-up
+- **Context:** Setelah M12 selesai, semua jalur tulis (entity-router POST/PATCH/DELETE, `PUT /state`, MCP `saveState`) sudah di-broadcast sebagai `state:diff`/`state:sync` (ADR-024 follow-up), dan `RealtimeSocket` punya reconnect backoff + resync-on-join. Namun `ProjectProvider` masih menjalankan `setInterval` 5 detik (`POLL_INTERVAL_MS`) `GET /api/v1/projects/:id/state` tanpa syarat — Network tab menampilkan request berulang tiap 5 detik walau WS terhubung: trafik redundan (setiap perubahan di-push lalu di-poll ulang). Polling awalnya jaring pengaman untuk missed-diff, tapi kini berjalan paralel dengan push.
+- **Decision:**
+  - WS jadi **primary**: `RealtimeSocket` mengekspos `onOpen`/`onClose` (dipanggil di event `open` dan `onSocketClose`; `onClose` hanya saat socket pernah terbuka, tidak pada never-connected).
+  - `ProjectProvider` menyimpan status koneksi di `wsConnectedRef` (ref, bukan state — dibaca interval tanpa re-render); interval polling 5 detik **di-skip saat socket connected** (`if (wsConnectedRef.current) return;`).
+  - Saat WS re-connect, `onJoined` → `resyncFromServer()` sudah menutup gap, sehingga tidak ada state yang terlewat.
+  - Polling kembali aktif **otomatis** saat socket putus — tetap jadi fallback untuk missed-broadcast / half-open connection / mode test (MODE=test tidak connect, polling tetap berjalan seperti sebelum).
+- **Consequences:** Positive — nol trafik polling saat operasi normal; tetap tangguh saat WS down; diff kecil dan terlokalisir (guard tunggal di interval + 2 callback). Negative — bila broadcast hilang selagi socket terlihat connected (crash server antara commit DB dan broadcast), perubahan baru terserap saat reconnect/resync berikutnya (risiko kecil; sifat ini sudah ada sejak resync-on-join).
+- **Alternatives:** Hapus polling total (ditolak: kehilangan jaring pengaman missed-diff tanpa kondisi apa pun); poll interval panjang 30–60s (ditolak: masih ada trafik periodik, guard saat disconnected lebih eksplisit dan nol-request saat normal).
+
 ---
 
 *End of ADR Log. New decisions append below; existing entries never edited.*

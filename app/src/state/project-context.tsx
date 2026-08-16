@@ -374,6 +374,7 @@ export function ProjectProvider({
   const pendingFlushRef = useRef<Promise<void> | null>(null);
   const canEditRef = useRef(role !== 'viewer');
   canEditRef.current = role !== 'viewer';
+  const wsConnectedRef = useRef(false);
 
   const emitPendingCount = useCallback(() => {
     setPendingCount(mutationsRef.current.size);
@@ -561,6 +562,7 @@ export function ProjectProvider({
 
   useEffect(() => {
     let cancelled = false;
+    wsConnectedRef.current = false;
     setState(null);
     setPresence([]);
     lastSavedRef.current = null;
@@ -614,6 +616,7 @@ export function ProjectProvider({
 
     const interval = setInterval(() => {
       if (document.visibilityState !== 'visible') return;
+      if (wsConnectedRef.current) return;
       if (dirtyRef.current || savingRef.current || mutationsRef.current.size > 0) return;
       provider
         .loadState(projectId)
@@ -684,6 +687,12 @@ export function ProjectProvider({
 
     const socket = createRealtime
       ? createRealtime({
+          onOpen: () => {
+            wsConnectedRef.current = true;
+          },
+          onClose: () => {
+            wsConnectedRef.current = false;
+          },
           onJoined: () => {
             void resyncFromServer();
           },
@@ -697,6 +706,12 @@ export function ProjectProvider({
       : new RealtimeSocket({
           wsUrl: realtimeWsUrl(),
           projectId,
+          onOpen: () => {
+            wsConnectedRef.current = true;
+          },
+          onClose: () => {
+            wsConnectedRef.current = false;
+          },
           onJoined: () => {
             void resyncFromServer();
           },
