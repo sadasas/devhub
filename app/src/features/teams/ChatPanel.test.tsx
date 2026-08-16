@@ -8,6 +8,7 @@ const api = vi.hoisted(() => ({
   listMessages: vi.fn(),
   sendMessage: vi.fn(),
   deleteMessage: vi.fn(),
+  search: vi.fn(),
 }));
 
 const sockets = vi.hoisted(() => [] as TeamChatSocketOptions[]);
@@ -87,6 +88,7 @@ beforeEach(() => {
   api.listMessages.mockReset().mockResolvedValue({ messages: [], nextCursor: null });
   api.sendMessage.mockReset();
   api.deleteMessage.mockReset();
+  api.search.mockReset().mockResolvedValue([]);
   idb.getMeta.mockReset().mockResolvedValue(null);
   idb.putMeta.mockReset().mockResolvedValue(undefined);
   sockets.length = 0;
@@ -251,6 +253,170 @@ describe('ChatPanel', () => {
     });
     expect(api.sendMessage).toHaveBeenCalledWith('t1', 'Sisa', []);
     expect(idb.putMeta).toHaveBeenCalledWith('chatQueue:t1', []);
+  });
+
+  it('shows mention suggestions when typing an @ query', async () => {
+    api.search.mockResolvedValue([
+      {
+        projectId: 'p1',
+        projectName: 'Demo',
+        hits: [
+          { entity: 'tasks', entityId: 't1', title: 'Build login', field: 'title', snippet: '', score: 1 },
+        ],
+      },
+    ]);
+    renderPanel();
+    await screen.findByText('No messages yet');
+
+    const input = screen.getByLabelText('Message');
+    fireEvent.change(input, { target: { value: '@ta' } });
+
+    expect(await screen.findByRole('option', { name: /Build login/ })).toBeTruthy();
+    expect(screen.getByText('Task')).toBeTruthy();
+    expect(api.search).toHaveBeenCalledWith('ta', expect.anything(), 10);
+  });
+
+  it('shows a hint for short queries without searching', async () => {
+    renderPanel();
+    await screen.findByText('No messages yet');
+
+    const input = screen.getByLabelText('Message');
+    fireEvent.change(input, { target: { value: '@t' } });
+
+    expect(await screen.findByText('Type at least 2 characters')).toBeTruthy();
+    expect(api.search).not.toHaveBeenCalled();
+  });
+
+  it('inserts the selected mention with Enter after ArrowDown', async () => {
+    api.search.mockResolvedValue([
+      {
+        projectId: 'p1',
+        projectName: 'Demo',
+        hits: [
+          { entity: 'tasks', entityId: 't1', title: 'Build login', field: 'title', snippet: '', score: 1 },
+        ],
+      },
+    ]);
+    renderPanel();
+    await screen.findByText('No messages yet');
+
+    const input = screen.getByLabelText('Message');
+    fireEvent.change(input, { target: { value: '@ta' } });
+    await screen.findByRole('option', { name: /Build login/ });
+
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect((input as HTMLTextAreaElement).value).toBe('@[Build login](tasks:t1) ');
+    expect(screen.queryByRole('listbox', { name: 'Mention search' })).toBeNull();
+  });
+
+  it('inserts the mention when an option is clicked', async () => {
+    api.search.mockResolvedValue([
+      {
+        projectId: 'p1',
+        projectName: 'Demo',
+        hits: [
+          { entity: 'issues', entityId: 'i9', title: 'Flaky test', field: 'title', snippet: '', score: 1 },
+        ],
+      },
+    ]);
+    renderPanel();
+    await screen.findByText('No messages yet');
+
+    const input = screen.getByLabelText('Message');
+    fireEvent.change(input, { target: { value: 'lihat @fla' } });
+    fireEvent.click(await screen.findByRole('option', { name: /Flaky test/ }));
+
+    expect((input as HTMLTextAreaElement).value).toBe('lihat @[Flaky test](issues:i9) ');
+  });
+
+  it('sends the mention token and its refs, then resets the refs', async () => {
+    const saved = message({ id: 'm2', content: 'Cek @[Build login](tasks:t1) yuk' });
+    api.sendMessage.mockResolvedValue(saved);
+    api.search.mockResolvedValue([
+      {
+        projectId: 'p1',
+        projectName: 'Demo',
+        hits: [
+          { entity: 'tasks', entityId: 't1', title: 'Build login', field: 'title', snippet: '', score: 1 },
+        ],
+      },
+    ]);
+    renderPanel();
+    await screen.findByText('No messages yet');
+
+    const input = screen.getByLabelText('Message');
+    fireEvent.change(input, { target: { value: '@bu' } });
+    fireEvent.click(await screen.findByRole('option', { name: /Build login/ }));
+    fireEvent.change(input, { target: { value: 'Cek @[Build login](tasks:t1) yuk' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+
+    expect(await screen.findByText('Cek @[Build login](tasks:t1) yuk')).toBeTruthy();
+    expect(api.sendMessage).toHaveBeenCalledWith('t1', 'Cek @[Build login](tasks:t1) yuk', [
+      { entity: 'tasks', entityId: 't1' },
+    ]);
+
+    fireEvent.change(input, { target: { value: 'lagi' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+    await waitFor(() => {
+      expect(api.sendMessage).toHaveBeenCalledTimes(2);
+    });
+    expect(api.sendMessage).toHaveBeenLastCalledWith('t1', 'lagi', []);
+  });
+
+  it('closes the mention popup with Escape without inserting', async () => {
+    api.search.mockResolvedValue([
+      {
+        projectId: 'p1',
+        projectName: 'Demo',
+        hits: [
+          { entity: 'tasks', entityId: 't1', title: 'Build login', field: 'title', snippet: '', score: 1 },
+        ],
+      },
+    ]);
+    renderPanel();
+    await screen.findByText('No messages yet');
+
+    const input = screen.getByLabelText('Message');
+    fireEvent.change(input, { target: { value: '@ta' } });
+    await screen.findByRole('option', { name: /Build login/ });
+
+    fireEvent.keyDown(input, { key: 'Escape' });
+
+    expect(screen.queryByRole('listbox', { name: 'Mention search' })).toBeNull();
+    expect((input as HTMLTextAreaElement).value).toBe('@ta');
+  });
+
+  it('deduplicates refs for repeated inserts of the same entity', async () => {
+    const saved = message({ id: 'm2', content: 'x' });
+    api.sendMessage.mockResolvedValue(saved);
+    api.search.mockResolvedValue([
+      {
+        projectId: 'p1',
+        projectName: 'Demo',
+        hits: [
+          { entity: 'tasks', entityId: 't1', title: 'Build login', field: 'title', snippet: '', score: 1 },
+        ],
+      },
+    ]);
+    renderPanel();
+    await screen.findByText('No messages yet');
+
+    const input = screen.getByLabelText('Message');
+    fireEvent.change(input, { target: { value: '@bu' } });
+    fireEvent.click(await screen.findByRole('option', { name: /Build login/ }));
+    fireEvent.change(input, { target: { value: '@[Build login](tasks:t1) @bu' } });
+    fireEvent.click(await screen.findByRole('option', { name: /Build login/ }));
+    fireEvent.change(input, { target: { value: 'x' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+
+    await waitFor(() => {
+      expect(api.sendMessage).toHaveBeenCalledTimes(1);
+    });
+    expect(api.sendMessage).toHaveBeenCalledWith('t1', 'x', [
+      { entity: 'tasks', entityId: 't1' },
+    ]);
   });
 });
 

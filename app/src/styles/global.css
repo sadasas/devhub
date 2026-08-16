@@ -533,6 +533,56 @@ a:hover {
   color: var(--text-primary);
 }
 
+.presence-popover-user + .presence-popover-user {
+  margin-top: 2px;
+}
+
+.presence-activity-list {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 0 8px 0 24px;
+}
+
+.presence-activity-row {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 2px 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.presence-activity-summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  color: var(--text-primary);
+}
+
+.presence-activity-time {
+  margin-left: auto;
+  flex: 0 0 auto;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.presence-activity-loading {
+  padding: 2px 8px 6px 24px;
+}
+
+.presence-activity-empty {
+  padding: 0 8px 6px 24px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.presence-popover .inline-error {
+  margin: 0 8px 6px 24px;
+  font-size: 11px;
+}
+
 /* ============================================================
    Primitives — Modal
    ============================================================ */
@@ -4574,3 +4624,11 @@ input[type='checkbox'] {
 .chat-composer { display: flex; align-items: flex-end; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border-hairline); background: var(--bg-overlay); }
 .chat-input { flex: 1 1 auto; resize: none; min-height: 64px; }
 .chat-sentinel { height: 1px; flex-shrink: 0; }
+
+.chat-composer { position: relative; }
+.mention-popup { position: absolute; bottom: calc(100% + 8px); left: 0; right: 0; max-height: 200px; overflow-y: auto; background: var(--bg-overlay); border: 1px solid var(--border-strong); border-radius: var(--radius-card); box-shadow: var(--shadow-raised); z-index: 5; padding: 6px; }
+.mention-option { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; border-radius: var(--radius-sm); cursor: pointer; text-align: left; font-size: 12.5px; color: var(--text-primary); background: none; border: none; }
+.mention-option-active { background: var(--accent-dim); }
+.mention-option-title { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mention-entity-badge { flex-shrink: 0; font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 1px 5px; }
+.mention-hint { padding: 8px; font-size: 12px; color: var(--text-muted); }

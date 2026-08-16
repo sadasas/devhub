@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { PaperPlaneTilt, Trash } from '@phosphor-icons/react';
-import { ApiError, api } from '../../lib/api';
+import { ApiError, api, type SearchHit } from '../../lib/api';
 import type { ChatMessage, ChatRef } from '../../lib/types';
+import { buildMentionToken } from '../../lib/chat-tokens';
 import { getMeta, putMeta } from '../../lib/idb';
 import { realtimeWsUrl, TeamChatSocket, type TeamChatSocketOptions } from '../../lib/realtime-client';
 import { Button } from '../../components/Button';
@@ -10,6 +11,23 @@ import { InlineError } from '../../components/InlineError';
 import { Skeleton } from '../../components/Skeleton';
 
 const PAGE_SIZE = 30;
+const MENTION_DEBOUNCE_MS = 250;
+const MENTION_RESULT_LIMIT = 10;
+
+const ENTITY_LABELS: Record<string, string> = {
+  tasks: 'Task',
+  issues: 'Issue',
+  testCases: 'Test',
+  decisions: 'Decision',
+  techEntries: 'Tech',
+  apiEndpoints: 'Endpoint',
+  apiCollections: 'Collection',
+  milestones: 'Milestone',
+  whiteboards: 'Board',
+  tables: 'Table',
+  relations: 'Relation',
+  schemaVersions: 'Schema',
+};
 
 interface QueuedChatMessage {
   clientId: string;
@@ -39,13 +57,19 @@ export function ChatPanel({ teamId, userId, userDisplayName }: ChatPanelProps) {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
 
-  const socketRef = useRef<TeamChatSocket | null>(null);
+const socketRef = useRef<TeamChatSocket | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const loadingMoreRef = useRef(false);
   const messagesRef = useRef<ChatMessage[]>([]);
   const queuedRef = useRef<QueuedChatMessage[]>([]);
   const flushingRef = useRef(false);
+  const refsRef = useRef<ChatRef[]>([]);
+
+  const [mention, setMention] = useState<{ start: number; query: string } | null>(null);
+  const [mentionResults, setMentionResults] = useState<SearchHit[]>([]);
+  const [mentionLoading, setMentionLoading] = useState(false);
+  const [mentionIndex, setMentionIndex] = useState(0);
 
   const loadFirstPage = useCallback(async () => {
     try {
@@ -172,7 +196,7 @@ export function ChatPanel({ teamId, userId, userDisplayName }: ChatPanelProps) {
     return () => window.removeEventListener('online', onOnline);
   }, [flushQueue]);
 
-  useEffect(() => {
+useEffect(() => {
     const opts: TeamChatSocketOptions = {
       wsUrl: realtimeWsUrl(),
       teamId,
@@ -191,25 +215,76 @@ export function ChatPanel({ teamId, userId, userDisplayName }: ChatPanelProps) {
     };
   }, [teamId, onMessageNew, onMessageSent, flushQueue, loadFirstPage]);
 
-  async function onSend() {
+  useEffect(() => {
+    if (!mention || mention.query.length < 2) {
+      setMentionResults([]);
+      setMentionLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      setMentionLoading(true);
+      api
+        .search(mention.query, controller.signal, MENTION_RESULT_LIMIT)
+        .then((res) => {
+          const hits = res.flatMap((p) => p.hits);
+          setMentionResults(hits.slice(0, MENTION_RESULT_LIMIT));
+        })
+        .catch(() => {
+          if (!controller.signal.aborted) setMentionResults([]);
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setMentionLoading(false);
+        });
+    }, MENTION_DEBOUNCE_MS);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [mention]);
+
+  useEffect(() => {
+    setMentionIndex(0);
+  }, [mentionResults]);
+
+  function insertMention(hit: SearchHit) {
+    if (!mention) return;
+    const token = buildMentionToken(hit.title, hit.entity, hit.entityId);
+    const newDraft =
+      draft.slice(0, mention.start) +
+      token +
+      ' ' +
+      draft.slice(mention.start + mention.query.length + 1);
+    setDraft(newDraft);
+    setMention(null);
+    setMentionResults([]);
+    setMentionIndex(0);
+    if (!refsRef.current.some((r) => r.entity === hit.entity && r.entityId === hit.entityId)) {
+      refsRef.current = [...refsRef.current, { entity: hit.entity, entityId: hit.entityId }];
+    }
+  }
+
+async function onSend() {
     const content = draft.trim();
     if (!content || sending) return;
     setSending(true);
     setSendError(null);
+    const refs = refsRef.current;
     const temp: ChatMessage = {
       id: `local-${Date.now()}`,
       teamId,
       authorId: userId,
       authorName: userDisplayName,
       content,
-      refs: [],
+      refs,
       createdAt: new Date().toISOString(),
     };
     messagesRef.current = [...messagesRef.current, temp];
     setMessages(messagesRef.current);
     setDraft('');
+    refsRef.current = [];
     try {
-      const saved = await api.sendMessage(teamId, content, []);
+      const saved = await api.sendMessage(teamId, content, refs);
       messagesRef.current = messagesRef.current.map((m) => (m.id === temp.id ? saved : m));
       setMessages(messagesRef.current);
     } catch (err) {
@@ -220,7 +295,7 @@ export function ChatPanel({ teamId, userId, userDisplayName }: ChatPanelProps) {
             clientId: temp.id,
             teamId,
             content,
-            refs: [],
+            refs,
             authorId: userId,
             authorName: userDisplayName,
             createdAt: temp.createdAt,
@@ -292,15 +367,75 @@ export function ChatPanel({ teamId, userId, userDisplayName }: ChatPanelProps) {
       </div>
       {loadError && <InlineError>{loadError}</InlineError>}
       {sendError && <InlineError>{sendError}</InlineError>}
-      <div className="chat-composer">
+<div className="chat-composer">
+        {mention && (
+          <div className="mention-popup" role="listbox" aria-label="Mention search">
+            {mention.query.length < 2 ? (
+              <div className="mention-hint">Type at least 2 characters</div>
+            ) : mentionLoading ? (
+              <div className="mention-hint">Searching…</div>
+            ) : mentionResults.length === 0 ? (
+              <div className="mention-hint">No matches</div>
+            ) : (
+              mentionResults.map((hit, i) => (
+                <button
+                  type="button"
+                  key={`${hit.entity}:${hit.entityId}`}
+                  className={`mention-option${i === mentionIndex ? ' mention-option-active' : ''}`}
+                  role="option"
+                  aria-selected={i === mentionIndex}
+                  onMouseEnter={() => setMentionIndex(i)}
+                  onClick={() => insertMention(hit)}
+                >
+                  <span className="mention-entity-badge">{ENTITY_LABELS[hit.entity] ?? hit.entity}</span>
+                  <span className="mention-option-title">{hit.title}</span>
+                </button>
+              ))
+            )}
+          </div>
+        )}
         <textarea
           className="chat-input"
           aria-label="Message"
           placeholder="Type a message…"
           rows={1}
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => {
+            const value = e.target.value;
+            setDraft(value);
+            const match = value.match(/(?:^|\s)(@[^\s@]*)$/);
+            if (match) {
+              setMention({ start: match.index! + match[0].indexOf('@'), query: match[1]?.slice(1) ?? '' });
+            } else {
+              setMention(null);
+            }
+          }}
           onKeyDown={(e) => {
+            if (mention) {
+              if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setMentionIndex((i) => Math.min(i + 1, mentionResults.length - 1));
+                return;
+              }
+              if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setMentionIndex((i) => Math.max(i - 1, 0));
+                return;
+              }
+              if (e.key === 'Enter' && !e.shiftKey) {
+                const hit = mentionResults[mentionIndex];
+                if (hit) {
+                  e.preventDefault();
+                  insertMention(hit);
+                  return;
+                }
+              }
+              if (e.key === 'Escape') {
+                e.preventDefault();
+                setMention(null);
+                return;
+              }
+            }
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
               void onSend();

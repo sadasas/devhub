@@ -23,7 +23,17 @@ interface EntitySpec {
   key: keyof State;
   titleField: string;
   fields: FieldSpec[];
+  deriveTitle?: (item: Record<string, unknown>, state: State) => string;
   extraCollector?: (item: Record<string, unknown>, state: State) => ExtraText[];
+}
+
+function relationsDeriveTitle(item: Record<string, unknown>, state: State): string {
+  const fromTableId = String(item.fromTableId ?? '');
+  const toTableId = String(item.toTableId ?? '');
+  const tables = (state.tables ?? []) as Array<{ id: string; name?: string }>;
+  const fromName = tables.find((t) => t.id === fromTableId)?.name ?? fromTableId;
+  const toName = tables.find((t) => t.id === toTableId)?.name ?? toTableId;
+  return `${fromName}.${String(item.fromColumnId ?? '')} → ${toName}.${String(item.toColumnId ?? '')}`;
 }
 
 export const SEARCH_ENTITIES: EntitySpec[] = [
@@ -128,6 +138,27 @@ export const SEARCH_ENTITIES: EntitySpec[] = [
       return out;
     },
   },
+  {
+    key: 'tables',
+    titleField: 'name',
+    fields: [{ path: 'name', weight: 3 }],
+  },
+  {
+    key: 'relations',
+    titleField: 'name',
+    fields: [],
+    deriveTitle: relationsDeriveTitle,
+    extraCollector: (item, state) => {
+      const derived = relationsDeriveTitle(item, state);
+      return derived ? [{ text: derived, weight: 3 }] : [];
+    },
+  },
+  {
+    key: 'schemaVersions',
+    titleField: 'version',
+    fields: [{ path: 'version', weight: 3 }],
+    deriveTitle: (item) => (typeof item.version === 'string' ? item.version : ''),
+  },
 ];
 
 export const DEFAULT_LIMIT = 50;
@@ -189,7 +220,11 @@ export function searchState(state: State, query: string, perEntityLimit = ENTITY
     const items = (state[spec.key] ?? []) as unknown as Array<Record<string, unknown>>;
     const entityHits: SearchHit[] = [];
     for (const item of items) {
-      const title = typeof item[spec.titleField] === 'string' ? (item[spec.titleField] as string) : '';
+      const title = spec.deriveTitle
+        ? spec.deriveTitle(item, state)
+        : typeof item[spec.titleField] === 'string'
+          ? (item[spec.titleField] as string)
+          : '';
       const entityId = typeof item.id === 'string' ? item.id : '';
       for (const field of spec.fields) {
         const strings: string[] = [];

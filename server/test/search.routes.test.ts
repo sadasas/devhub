@@ -297,4 +297,44 @@ describe('global search API v1', () => {
     expect(noNoise.status).toBe(200);
     expect(noNoise.body.results).toHaveLength(0);
   });
+
+  it('searches tables, relations, and schema versions with derived titles', async () => {
+    const cookie = await register('search-derived@test.dev');
+    const projectId = await createProject(cookie, 'Search derived');
+    const tb1 = await addEntity(cookie, projectId, 'tables', { name: 'users', columns: [] });
+    const tb2 = await addEntity(cookie, projectId, 'tables', { name: 'projects', columns: [] });
+    const col1 = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const col2 = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    await addEntity(cookie, projectId, 'relations', {
+      fromTableId: tb1,
+      fromColumnId: col1,
+      toTableId: tb2,
+      toColumnId: col2,
+      cardinality: '1:N',
+      onDelete: 'cascade',
+    });
+    await addEntity(cookie, projectId, 'schemaVersions', {
+      version: 'v0.1.0',
+      notes: '',
+      appliedAt: '2026-01-01T00:00:00.000Z',
+    });
+
+    const viaVersion = await search(cookie, 'v0.1');
+    expect(viaVersion.status).toBe(200);
+    const versionHits = viaVersion.body.results.flatMap((r: { hits: unknown[] }) => r.hits);
+    expect(
+      versionHits.some((h: { entity: string; title: string }) => h.entity === 'schemaVersions' && h.title === 'v0.1.0'),
+    ).toBe(true);
+
+    const viaTable = await search(cookie, 'users');
+    expect(viaTable.status).toBe(200);
+    const tableHits = viaTable.body.results.flatMap((r: { hits: unknown[] }) => r.hits);
+    expect(tableHits.some((h: { entity: string; title: string }) => h.entity === 'tables' && h.title === 'users')).toBe(true);
+    expect(
+      tableHits.some(
+        (h: { entity: string; title: string }) =>
+          h.entity === 'relations' && h.title === `users.${col1} → projects.${col2}`,
+      ),
+    ).toBe(true);
+  });
 });
