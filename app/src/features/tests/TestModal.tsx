@@ -33,7 +33,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
   }, [testId]);
 
   const test = testId ? state?.testCases.find((t) => t.id === testId) : undefined;
-  usePresenceStatus('Editing test case', test !== null);
+  usePresenceStatus('Editing test case', test != null);
   if (!state || !test) return null;
 
   const update = (patch: UpdatePatch<TestCase>) => {

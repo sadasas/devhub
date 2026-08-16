@@ -32,7 +32,7 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
   }, [entryId]);
 
   const entry = entryId ? state?.techEntries.find((t) => t.id === entryId) : undefined;
-  usePresenceStatus('Editing tech entry', entry !== null);
+  usePresenceStatus('Editing tech entry', entry != null);
   if (!state || !entry) return null;
 
   const update = (patch: UpdatePatch<TechEntry>) => {

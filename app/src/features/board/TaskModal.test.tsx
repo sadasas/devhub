@@ -4,8 +4,10 @@ import { MemoryRouter } from 'react-router';
 import type { State, Task } from '../../lib/types';
 import { TaskModal } from './TaskModal';
 
+const { setStatusMock } = vi.hoisted(() => ({ setStatusMock: vi.fn() }));
+
 vi.mock('../../state/project-context', () => ({
-  useProject: () => ({ state: mockState, dispatch: mockDispatch, canEdit: true, projectId: 'p1', setStatus: vi.fn() }),
+  useProject: () => ({ state: mockState, dispatch: mockDispatch, canEdit: true, projectId: 'p1', setStatus: setStatusMock }),
   wouldCreateCycle: () => false,
 }));
 
@@ -71,11 +73,30 @@ const mockDispatch = vi.fn();
 describe('TaskModal milestone select', () => {
   beforeEach(() => {
     mockDispatch.mockReset();
+    setStatusMock.mockClear();
     mockState = makeState();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it('does not announce an editing status while no task is open', () => {
+    render(<MemoryRouter><TaskModal taskId={null} onClose={vi.fn()} /></MemoryRouter>);
+    expect(setStatusMock).not.toHaveBeenCalled();
+  });
+
+  it('announces an editing status while a task is open', () => {
+    render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
+    expect(setStatusMock).toHaveBeenCalledWith('Editing task');
+  });
+
+  it('restores the viewing status when the task modal closes', () => {
+    const { rerender } = render(
+      <MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>,
+    );
+    rerender(<MemoryRouter><TaskModal taskId={null} onClose={vi.fn()} /></MemoryRouter>);
+    expect(setStatusMock).toHaveBeenLastCalledWith('Viewing Board');
   });
 
   it('assigns a milestone from the searchable select', () => {

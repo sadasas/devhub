@@ -34,7 +34,7 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
   const milestone = milestoneId
     ? state?.milestones.find((m) => m.id === milestoneId)
     : undefined;
-  usePresenceStatus('Editing milestone', milestone !== null);
+  usePresenceStatus('Editing milestone', milestone != null);
   if (!state || !milestone) return null;
 
   const milestoneTasks = state.tasks.filter((t) => t.milestoneId === milestone.id);

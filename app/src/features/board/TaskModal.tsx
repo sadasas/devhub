@@ -45,7 +45,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
   }, [taskId]);
 
   const task = state?.tasks.find((t) => t.id === taskId);
-  usePresenceStatus('Editing task', task !== null);
+  usePresenceStatus('Editing task', task != null);
   if (!task) return null;
 
   const update = (patch: UpdatePatch<Task>) =>

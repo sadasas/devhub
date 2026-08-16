@@ -34,7 +34,7 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
   const decision = decisionId
     ? state?.decisions.find((d) => d.id === decisionId)
     : undefined;
-  usePresenceStatus('Editing decision', decision !== null);
+  usePresenceStatus('Editing decision', decision != null);
   if (!state || !decision) return null;
 
   const update = (patch: UpdatePatch<Decision>) => {

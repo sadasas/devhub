@@ -33,7 +33,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
   }, [issueId]);
 
   const issue = issueId ? state?.issues.find((i) => i.id === issueId) : undefined;
-  usePresenceStatus('Editing issue', issue !== null);
+  usePresenceStatus('Editing issue', issue != null);
   if (!state || !issue) return null;
 
   const update = (patch: UpdatePatch<Issue>) => {

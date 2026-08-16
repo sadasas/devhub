@@ -31,7 +31,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
   }, [tableId]);
 
   const table = tableId ? state?.tables.find((t) => t.id === tableId) : undefined;
-  usePresenceStatus('Editing table', table !== null);
+  usePresenceStatus('Editing table', table != null);
   if (!state || !table) return null;
 
   const update = (patch: UpdatePatch<typeof table>) => {
