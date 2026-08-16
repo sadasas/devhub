@@ -494,8 +494,8 @@ describe('ChatPanel', () => {
       expect(api.resolveChatRefs).toHaveBeenCalledTimes(1);
     });
     expect(api.resolveChatRefs).toHaveBeenCalledWith('t1', [
-      { entity: 'tasks', entityId: 't1' },
       { entity: 'issues', entityId: 'i9' },
+      { entity: 'tasks', entityId: 't1' },
     ]);
   });
 
@@ -516,6 +516,54 @@ describe('ChatPanel', () => {
 
     const chip = await screen.findByRole('button', { name: 'Build login' });
     expect(chip.hasAttribute('disabled')).toBe(false);
+  });
+
+  it('shows the chat list in ascending order (oldest first)', async () => {
+    api.listMessages.mockResolvedValue({
+      messages: [
+        message({ id: 'm2', content: 'pesan baru' }),
+        message({ id: 'm1', content: 'pesan lama' }),
+      ],
+      nextCursor: null,
+    });
+    renderPanel();
+    expect(await screen.findByText('pesan lama')).toBeTruthy();
+
+    const bubbles = document.querySelectorAll('.chat-msg');
+    expect(bubbles.length).toBe(2);
+    expect(bubbles[0]!.textContent).toContain('pesan lama');
+    expect(bubbles[1]!.textContent).toContain('pesan baru');
+  });
+
+  it('prepends older messages at the top when scrolling up', async () => {
+    const first = Array.from({ length: 30 }, (_, i) => message({ id: `p${i}`, content: `pesan ${i}` }));
+    api.listMessages.mockResolvedValueOnce({ messages: first, nextCursor: 'c1' });
+    api.listMessages.mockResolvedValueOnce({
+      messages: [message({ id: 'old1', content: 'pesan lama' })],
+      nextCursor: null,
+    });
+    renderPanel();
+    expect(await screen.findByText('pesan 0')).toBeTruthy();
+
+    observers[observers.length - 1]?.([{ isIntersecting: true }]);
+    await screen.findByText('pesan lama');
+
+    const bubbles = document.querySelectorAll('.chat-msg');
+    expect(bubbles[0]!.textContent).toContain('pesan lama');
+    expect(bubbles[30]!.textContent).toContain('pesan 0');
+  });
+
+  it('renders the full ref title in the chip without truncation', async () => {
+    const title = 'Tugas berjudul sangat panjang sekali untuk menguji chip yang tidak boleh terpotong sampai ujung';
+    api.listMessages.mockResolvedValue({
+      messages: [message({ id: 'm11', content: `cek @[${title}](tasks:t1)` })],
+      nextCursor: null,
+    });
+    api.resolveChatRefs.mockResolvedValue([{ entity: 'tasks', entityId: 't1', projectId: 'p1', title }]);
+    renderPanel();
+
+    const chip = await screen.findByRole('button', { name: title });
+    expect(chip.textContent).toBe(title);
   });
 });
 

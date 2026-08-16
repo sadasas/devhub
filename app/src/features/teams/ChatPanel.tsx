@@ -177,10 +177,14 @@ const socketRef = useRef<TeamChatSocket | null>(null);
         refs: q.refs,
         createdAt: q.createdAt,
       }));
-      messagesRef.current = [...res.messages, ...restored];
+      messagesRef.current = [...[...res.messages].reverse(), ...restored];
       setMessages(messagesRef.current);
       setNextCursor(res.nextCursor);
       setLoadError(null);
+      requestAnimationFrame(() => {
+        const list = listRef.current;
+        if (list) list.scrollTop = list.scrollHeight;
+      });
     } catch (err) {
       setLoadError(err instanceof ApiError ? err.message : 'Failed to load messages');
       setMessages([]);
@@ -196,7 +200,7 @@ const socketRef = useRef<TeamChatSocket | null>(null);
     loadingMoreRef.current = true;
     try {
       const res = await api.listMessages(teamId, { limit: PAGE_SIZE, before: nextCursor });
-      const merged = [...messagesRef.current, ...res.messages];
+      const merged = [...[...res.messages].reverse(), ...messagesRef.current];
       messagesRef.current = merged;
       setMessages(merged);
       setNextCursor(res.nextCursor);
@@ -222,6 +226,12 @@ const socketRef = useRef<TeamChatSocket | null>(null);
     const merged = [...messagesRef.current, message];
     messagesRef.current = merged;
     setMessages(merged);
+    requestAnimationFrame(() => {
+      const list = listRef.current;
+      if (list && list.scrollHeight - list.scrollTop - list.clientHeight < 40) {
+        list.scrollTop = list.scrollHeight;
+      }
+    });
   }, []);
 
   const onMessageSent = useCallback((_teamId: string, message: ChatMessage) => {
@@ -451,10 +461,11 @@ async function onDelete(message: ChatMessage) {
   return (
     <div className="chat-panel">
       <div className="chat-list" ref={listRef}>
+<div className="chat-sentinel" ref={sentinelRef} />
         {messages === null ? (
           <>
-            <Skeleton style={{ width: '100%', height: 56 }} />
-            <Skeleton style={{ width: '100%', height: 56, marginTop: 8 }} />
+            <Skeleton />
+            <Skeleton />
           </>
         ) : messages.length === 0 ? (
           <div className="page-empty">
@@ -510,7 +521,6 @@ async function onDelete(message: ChatMessage) {
             );
           })
         )}
-        <div className="chat-sentinel" ref={sentinelRef} />
       </div>
       {loadError && <InlineError>{loadError}</InlineError>}
       {sendError && <InlineError>{sendError}</InlineError>}
