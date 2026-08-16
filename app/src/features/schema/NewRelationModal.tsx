@@ -6,6 +6,7 @@ import { useProject } from '../../state/project-context';
 import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
 import { InlineError } from '../../components/InlineError';
+import { SearchableSelect } from '../../components/SearchableSelect';
 
 interface NewRelationModalProps {
   open: boolean;
@@ -74,82 +75,50 @@ export function NewRelationModal({ open, onClose }: NewRelationModalProps) {
     >
       <form id="new-relation-form" className="form-stack" onSubmit={onSubmit} noValidate>
         <div className="field">
-          <label className="field-label" htmlFor="rel-from-table">
-            From table
-          </label>
-          <select
+          <SearchableSelect
             id="rel-from-table"
-            className="select"
-            value={fromTableId}
-            onChange={(e) => {
-              setFromTableId(e.target.value);
+            label="From table"
+            value={fromTableId || null}
+            options={(state?.tables ?? []).map((t) => ({ value: t.id, label: t.name }))}
+            emptyLabel="Select table"
+            onChange={(v) => {
+              setFromTableId(v ?? '');
               setFromColumnId('');
             }}
-          >
-            <option value="">Select table</option>
-            {(state?.tables ?? []).map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
+          />
         </div>
         <div className="field">
-          <label className="field-label" htmlFor="rel-from-column">
-            From column
-          </label>
-          <select
+          <SearchableSelect
             id="rel-from-column"
-            className="select"
-            value={fromColumnId}
-            onChange={(e) => setFromColumnId(e.target.value)}
-          >
-            <option value="">Select column</option>
-            {fromColumns.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name || 'unnamed'}
-              </option>
-            ))}
-          </select>
+            label="From column"
+            value={fromColumnId || null}
+            options={fromColumns.map((c) => ({ value: c.id, label: c.name || 'unnamed' }))}
+            emptyLabel="Select column"
+            onChange={(v) => setFromColumnId(v ?? '')}
+          />
         </div>
         <div className="field">
-          <label className="field-label" htmlFor="rel-to-table">
-            To table
-          </label>
-          <select
+          <SearchableSelect
             id="rel-to-table"
-            className="select"
-            value={toTableId}
-            onChange={(e) => {
-              setToTableId(e.target.value);
+            label="To table"
+            value={toTableId || null}
+            options={(state?.tables ?? []).map((t) => ({ value: t.id, label: t.name }))}
+            emptyLabel="Select table"
+            onChange={(v) => {
+              setToTableId(v ?? '');
               setToColumnId('');
             }}
-          >
-            <option value="">Select table</option>
-            {(state?.tables ?? []).map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
+          />
         </div>
         <div className="field">
-          <label className="field-label" htmlFor="rel-to-column">
-            To column
-          </label>
-          <select
+          <SearchableSelect
             id="rel-to-column"
-            className="select"
-            value={toColumnId}
-            onChange={(e) => setToColumnId(e.target.value)}
-          >
-            <option value="">Select column</option>
-            {toColumns.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name || 'unnamed'}
-              </option>
-            ))}
-          </select>
+            label="To column"
+            value={toColumnId || null}
+            options={toColumns.map((c) => ({ value: c.id, label: c.name || 'unnamed' }))}
+            emptyLabel="Select column"
+            onChange={(v) => setToColumnId(v ?? '')}
+          />
         </div>
         {fromTableId === toTableId && fromTableId !== '' && (
           <InlineError>From and to tables must be different.</InlineError>

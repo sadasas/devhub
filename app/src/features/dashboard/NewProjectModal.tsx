@@ -7,6 +7,7 @@ import { useTeams } from '../../state/teams-context';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { SearchableSelect } from '../../components/SearchableSelect';
 import { Textarea } from '../../components/Textarea';
 import { InlineError } from '../../components/InlineError';
 
@@ -93,18 +94,14 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
               You have no teams yet — create one from the sidebar, then return here to add a project.
             </p>
           ) : (
-            <select
+            <SearchableSelect
               id="new-project-team"
-              className="select"
-              value={teamId}
-              onChange={(e) => setTeamId(e.target.value)}
-            >
-              {teams?.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
+              allowEmpty={false}
+              placeholder="Select team"
+              value={teamId || null}
+              options={(teams ?? []).map((t) => ({ value: t.id, label: t.name }))}
+              onChange={(v) => setTeamId(v ?? '')}
+            />
           )}
         </div>
         {error && <InlineError>{error}</InlineError>}

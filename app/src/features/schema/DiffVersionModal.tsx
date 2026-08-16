@@ -3,6 +3,7 @@ import { Minus, Plus } from '@phosphor-icons/react';
 import type { SchemaVersion } from '../../lib/types';
 import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
+import { SearchableSelect } from '../../components/SearchableSelect';
 import { columnLabel, diffSnapshots } from './schema-diff';
 
 interface DiffVersionModalProps {
@@ -33,34 +34,28 @@ export function DiffVersionModal({ open, versions, onClose }: DiffVersionModalPr
   return (
     <Modal open={open} title="Diff schema versions" onClose={onClose} width="lg">
       <div className="diff-selects">
-        <label className="field">
-          <span className="field-label">From (older)</span>
-          <select
-            className="select"
-            value={from?.id ?? ''}
-            onChange={(e) => setFromId(e.target.value)}
-          >
-            {sorted.map((v) => (
-              <option key={v.id} value={v.id}>
-                {versionLabel(v)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span className="field-label">To (newer)</span>
-          <select
-            className="select"
-            value={to?.id ?? ''}
-            onChange={(e) => setToId(e.target.value)}
-          >
-            {sorted.map((v) => (
-              <option key={v.id} value={v.id}>
-                {versionLabel(v)}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="field">
+          <SearchableSelect
+            id="diff-from"
+            label="From (older)"
+            allowEmpty={false}
+            placeholder="Select version"
+            value={from?.id ?? null}
+            options={sorted.map((v) => ({ value: v.id, label: versionLabel(v) }))}
+            onChange={(v) => setFromId(v ?? '')}
+          />
+        </div>
+        <div className="field">
+          <SearchableSelect
+            id="diff-to"
+            label="To (newer)"
+            allowEmpty={false}
+            placeholder="Select version"
+            value={to?.id ?? null}
+            options={sorted.map((v) => ({ value: v.id, label: versionLabel(v) }))}
+            onChange={(v) => setToId(v ?? '')}
+          />
+        </div>
       </div>
 
       <div className="modal-copy" role="status">

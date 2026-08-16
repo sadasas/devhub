@@ -18,6 +18,7 @@ import { DetailEmpty, DetailList, DetailRow } from '../../components/DetailList'
 import { InlineError } from '../../components/InlineError';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { SearchableSelect } from '../../components/SearchableSelect';
 import { Textarea } from '../../components/Textarea';
 
 const STATUS_OPTIONS: TaskStatus[] = ['todo', 'inProgress', 'review', 'done'];
@@ -196,22 +197,13 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
             {doneWarn && <InlineError>{doneWarn}</InlineError>}
 
             <div className="field">
-              <label className="field-label" htmlFor="task-milestone">
-                Milestone
-              </label>
-              <select
+              <SearchableSelect
                 id="task-milestone"
-                className="select"
-                value={task.milestoneId ?? ''}
-                onChange={(e) => update({ milestoneId: e.target.value || null })}
-              >
-                <option value="">None</option>
-                {state!.milestones.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
+                label="Milestone"
+                value={task.milestoneId}
+                options={state!.milestones.map((m) => ({ value: m.id, label: m.name }))}
+                onChange={(v) => update({ milestoneId: v })}
+              />
             </div>
 
             <div className="field-row">

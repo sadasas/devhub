@@ -6,6 +6,7 @@ import { useProject } from '../../state/project-context';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { SearchableSelect } from '../../components/SearchableSelect';
 import { Textarea } from '../../components/Textarea';
 
 interface NewTestModalProps {
@@ -93,40 +94,22 @@ export function NewTestModal({ open, onClose }: NewTestModalProps) {
           </select>
         </div>
         <div className="field">
-          <label className="field-label" htmlFor="new-test-task">
-            Linked task
-          </label>
-          <select
+          <SearchableSelect
             id="new-test-task"
-            className="select"
-            value={taskId}
-            onChange={(e) => setTaskId(e.target.value)}
-          >
-            <option value="">None</option>
-            {state.tasks.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.title}
-              </option>
-            ))}
-          </select>
+            label="Linked task"
+            value={taskId || null}
+            options={state.tasks.map((t) => ({ value: t.id, label: t.title }))}
+            onChange={(v) => setTaskId(v ?? '')}
+          />
         </div>
         <div className="field">
-          <label className="field-label" htmlFor="new-test-issue">
-            Linked issue
-          </label>
-          <select
+          <SearchableSelect
             id="new-test-issue"
-            className="select"
-            value={issueId}
-            onChange={(e) => setIssueId(e.target.value)}
-          >
-            <option value="">None</option>
-            {state.issues.map((i) => (
-              <option key={i.id} value={i.id}>
-                {i.title}
-              </option>
-            ))}
-          </select>
+            label="Linked issue"
+            value={issueId || null}
+            options={state.issues.map((i) => ({ value: i.id, label: i.title }))}
+            onChange={(v) => setIssueId(v ?? '')}
+          />
         </div>
         <Textarea
           label="Steps"

@@ -5,6 +5,7 @@ import type { ApiCollection, ApiMethod } from '../../lib/types';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { SearchableSelect } from '../../components/SearchableSelect';
 
 interface EndpointModalProps {
   onClose: () => void;
@@ -101,22 +102,14 @@ export function EndpointModal({ onClose, onCreated, collections }: EndpointModal
           </div>
         </div>
         <div className="field">
-          <label className="field-label" htmlFor="endpoint-collection">
-            Collection
-          </label>
-          <select
+          <SearchableSelect
             id="endpoint-collection"
-            className="select"
-            value={collectionId}
-            onChange={(e) => setCollectionId(e.target.value)}
-          >
-            <option value="">None (ungrouped)</option>
-            {collections.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+            label="Collection"
+            value={collectionId || null}
+            options={collections.map((c) => ({ value: c.id, label: c.name }))}
+            emptyLabel="None (ungrouped)"
+            onChange={(v) => setCollectionId(v ?? '')}
+          />
         </div>
       </div>
     </Modal>

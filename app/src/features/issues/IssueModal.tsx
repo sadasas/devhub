@@ -12,6 +12,7 @@ import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { DetailEmpty, DetailList, DetailRow } from '../../components/DetailList';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { SearchableSelect } from '../../components/SearchableSelect';
 import { Textarea } from '../../components/Textarea';
 
 interface IssueModalProps {
@@ -148,22 +149,13 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
               </div>
             </div>
             <div className="field">
-              <label className="field-label" htmlFor="issue-linked-task">
-                Linked task
-              </label>
-              <select
+              <SearchableSelect
                 id="issue-linked-task"
-                className="select"
-                value={issue.linkedTaskId ?? ''}
-                onChange={(e) => update({ linkedTaskId: e.target.value || null })}
-              >
-                <option value="">None</option>
-                {state.tasks.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.title}
-                  </option>
-                ))}
-              </select>
+                label="Linked task"
+                value={issue.linkedTaskId}
+                options={state.tasks.map((t) => ({ value: t.id, label: t.title }))}
+                onChange={(v) => update({ linkedTaskId: v })}
+              />
             </div>
             <Textarea
               label="Description"

@@ -12,6 +12,7 @@ import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { DetailEmpty, DetailList, DetailRow } from '../../components/DetailList';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { SearchableSelect } from '../../components/SearchableSelect';
 import { Textarea } from '../../components/Textarea';
 
 interface TestModalProps {
@@ -124,41 +125,23 @@ export function TestModal({ testId, onClose }: TestModalProps) {
                 </select>
               </div>
               <div className="field">
-                <label className="field-label" htmlFor="test-task">
-                  Linked task
-                </label>
-                <select
+                <SearchableSelect
                   id="test-task"
-                  className="select"
-                  value={test.taskId ?? ''}
-                  onChange={(e) => update({ taskId: e.target.value || null })}
-                >
-                  <option value="">None</option>
-                  {state.tasks.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.title}
-                    </option>
-                  ))}
-                </select>
+                  label="Linked task"
+                  value={test.taskId}
+                  options={state.tasks.map((t) => ({ value: t.id, label: t.title }))}
+                  onChange={(v) => update({ taskId: v })}
+                />
               </div>
             </div>
             <div className="field">
-              <label className="field-label" htmlFor="test-issue">
-                Linked issue
-              </label>
-              <select
+              <SearchableSelect
                 id="test-issue"
-                className="select"
-                value={test.issueId ?? ''}
-                onChange={(e) => update({ issueId: e.target.value || null })}
-              >
-                <option value="">None</option>
-                {state.issues.map((i) => (
-                  <option key={i.id} value={i.id}>
-                    {i.title}
-                  </option>
-                ))}
-              </select>
+                label="Linked issue"
+                value={test.issueId}
+                options={state.issues.map((i) => ({ value: i.id, label: i.title }))}
+                onChange={(v) => update({ issueId: v })}
+              />
             </div>
             <Textarea
               label="Steps"
