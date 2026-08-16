@@ -7,13 +7,14 @@ import {
 } from '@phosphor-icons/react';
 import type {
   Issue,
+  State,
   Task,
   Whiteboard,
   WhiteboardEdge,
   WhiteboardElement,
   WhiteboardShape,
 } from '../../lib/types';
-import { useProject } from '../../state/project-context';
+import { useProjectOptional } from '../../state/project-context';
 import { useNavigate } from 'react-router';
 import { entityDeepLink } from '../../lib/deep-link';
 import { newId } from '../../lib/utils';
@@ -70,6 +71,9 @@ interface WhiteboardCanvasProps {
   board: Whiteboard;
   tool: WbTool;
   history: WhiteboardHistory;
+  readOnly?: boolean;
+  readOnlyState?: State | null;
+  readOnlyProjectId?: string;
 }
 
 const DOT_STEP = 32;
@@ -87,6 +91,7 @@ const TOOL_CURSOR: Record<WbTool, string> = {
 };
 const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 3;
+const noopDispatch = () => {};
 const DEFAULT_EDGE_COLOR = '#e4e4e7';
 const DEFAULT_EDGE_WIDTH = 2;
 
@@ -370,8 +375,10 @@ interface PopoverState {
   el: WhiteboardElement;
 }
 
-export function WhiteboardCanvas({ board, tool, history }: WhiteboardCanvasProps) {
-  const { canEdit, dispatch, projectId, state } = useProject();
+export function WhiteboardCanvas({ board, tool, history, readOnly = false, readOnlyState = null, readOnlyProjectId }: WhiteboardCanvasProps) {
+  const proj = useProjectOptional(null);
+  const { canEdit, dispatch, projectId, state } =
+    proj ?? { canEdit: false, dispatch: noopDispatch, projectId: readOnlyProjectId ?? '', state: readOnlyState };
   const navigate = useNavigate();
 
   const openRef = useCallback(
@@ -771,7 +778,9 @@ export function WhiteboardCanvas({ board, tool, history }: WhiteboardCanvasProps
         nextSel = [hit.id];
       }
       setSelectedIds(nextSel);
-      dragRef.current = { startWorld: pt, originals: new Map(board.elements.map((el) => [el.id, el])) };
+      if (!readOnly) {
+        dragRef.current = { startWorld: pt, originals: new Map(board.elements.map((el) => [el.id, el])) };
+      }
       setDragOffset(null);
       return;
     }
@@ -924,6 +933,7 @@ export function WhiteboardCanvas({ board, tool, history }: WhiteboardCanvasProps
       return;
     }
     if (hit.kind === 'edge' || hit.kind === 'stroke') return;
+    if (readOnly) return;
     setPopover({ id: hit.id, kind: hit.kind, wx: hit.x, wy: hit.y, el: hit });
   };
 

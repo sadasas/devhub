@@ -59,6 +59,16 @@ async function seedState(cookie: string, projectId: string): Promise<void> {
             notes: '',
           },
         ],
+        whiteboards: [
+          {
+            id: '66666666-6666-4666-8666-666666666666',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+            name: 'Public board',
+            description: '',
+            elements: [],
+          },
+        ],
       },
       version: 1,
     });
@@ -94,7 +104,7 @@ describe('public project routes', () => {
       .get(`/api/v1/public/projects/${projectId}`)
       .set('X-Forwarded-For', uniqueIp());
     expect(res.status).toBe(200);
-    expect(res.body.project.tabs).toEqual(['board', 'issues', 'stack', 'milestones', 'about']);
+    expect(res.body.project.tabs).toEqual(['board', 'issues', 'stack', 'milestones', 'about', 'whiteboard']);
   });
 
   it('filters the public state to the shared tabs only', async () => {
@@ -118,6 +128,29 @@ describe('public project routes', () => {
     expect(res.body.state.issues).toHaveLength(0);
     expect(res.body.state.techEntries).toHaveLength(0);
     expect(res.body.state.decisions).toHaveLength(0);
+  });
+
+  it('shares the whiteboard tab in the public state', async () => {
+    const cookie = await register('pub-wb@test.dev');
+    const projectId = await createProject(cookie);
+    await seedState(cookie, projectId);
+
+    const restrict = await request(app)
+      .patch(`/api/v1/projects/${projectId}`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ visibility: 'public', publicTabs: ['whiteboard'] });
+    expect(restrict.status).toBe(200);
+    expect(restrict.body.tabs).toEqual(['whiteboard']);
+
+    const res = await request(app)
+      .get(`/api/v1/public/projects/${projectId}/state`)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(res.status).toBe(200);
+    expect(res.body.state.whiteboards).toHaveLength(1);
+    expect(res.body.state.whiteboards[0].name).toBe('Public board');
+    expect(res.body.state.tasks).toHaveLength(0);
+    expect(res.body.state.issues).toHaveLength(0);
   });
 
   it('rejects publicTabs changes from non-admin members', async () => {

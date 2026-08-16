@@ -14,7 +14,7 @@ export type OnDelete = 'cascade' | 'setNull' | 'restrict';
 export type DecisionStatus = 'proposed' | 'accepted' | 'rejected' | 'superseded';
 export type MilestoneStatus = 'planned' | 'inProgress' | 'released';
 export type ProjectStatus = 'active' | 'archived';
-export type PublicTab = 'board' | 'issues' | 'stack' | 'milestones' | 'about';
+export type PublicTab = 'board' | 'issues' | 'stack' | 'milestones' | 'about' | 'whiteboard';
 
 export interface Base {
   id: string;

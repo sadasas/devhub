@@ -22,6 +22,7 @@ const useProjectMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../../state/project-context', () => ({
   useProject: useProjectMock,
+  useProjectOptional: useProjectMock,
 }));
 
 beforeEach(() => {

@@ -735,6 +735,10 @@ export function useProject(): ProjectContextValue {
   return ctx;
 }
 
+export function useProjectOptional(fallback: ProjectContextValue | null): ProjectContextValue | null {
+  return useContext(ProjectContext) ?? fallback;
+}
+
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
 /* ------------------------------------------------------------------ */

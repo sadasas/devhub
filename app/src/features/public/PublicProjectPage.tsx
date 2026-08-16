@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Bug, Columns, Flag, Info, ListChecks, Rocket, SquaresFour, Stack } from '@phosphor-icons/react';
+import { Bug, ChalkboardSimple, Columns, Flag, Info, ListChecks, Rocket, SquaresFour, Stack } from '@phosphor-icons/react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { ApiError, api } from '../../lib/api';
-import type { PublicProject, State, Task } from '../../lib/types';
+import type { PublicProject, PublicTab, State, Task } from '../../lib/types';
 import {
   ISSUE_STATUS,
   MILESTONE_STATUS,
@@ -20,16 +20,16 @@ import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { InlineError } from '../../components/InlineError';
 import { Skeleton } from '../../components/Skeleton';
+import { PublicWhiteboards } from './PublicWhiteboards';
 
-type PublicTab = 'board' | 'issues' | 'stack' | 'milestones' | 'about';
-
-const ALL_PUBLIC_TABS: PublicTab[] = ['board', 'issues', 'stack', 'milestones', 'about'];
+const ALL_PUBLIC_TABS: PublicTab[] = ['board', 'issues', 'stack', 'milestones', 'about', 'whiteboard'];
 
 const TABS: { id: PublicTab; label: string; icon: ReactNode }[] = [
   { id: 'board', label: 'Board', icon: <Columns size={15} /> },
   { id: 'issues', label: 'Issues', icon: <Bug size={15} /> },
   { id: 'stack', label: 'Stack', icon: <Stack size={15} /> },
   { id: 'milestones', label: 'Milestones', icon: <Rocket size={15} /> },
+  { id: 'whiteboard', label: 'Whiteboard', icon: <ChalkboardSimple size={15} /> },
   { id: 'about', label: 'About', icon: <Info size={15} /> },
 ];
 
@@ -40,6 +40,7 @@ const EMPTY_MESSAGE: Record<Exclude<PublicTab, 'about'>, string> = {
   issues: 'No issues yet.',
   stack: 'No stack entries yet.',
   milestones: 'No milestones yet.',
+  whiteboard: 'No whiteboards yet.',
 };
 
 export function PublicProjectPage() {
@@ -188,6 +189,7 @@ export function PublicProjectPage() {
               {tab === 'issues' && <PublicIssues state={state} />}
               {tab === 'stack' && <PublicStack state={state} />}
               {tab === 'milestones' && <PublicMilestones state={state} />}
+              {tab === 'whiteboard' && <PublicWhiteboards state={state} projectId={projectId} />}
               {tab === 'about' && <PublicAbout project={project} state={state} tabs={allowedTabs} />}
             </div>
           </>
@@ -443,6 +445,7 @@ function PublicAbout({ project, state, tabs }: { project: PublicProject; state: 
     issues: { label: 'Open issues', value: stats.openIssues },
     milestones: { label: 'Milestones', value: state.milestones.length },
     stack: { label: 'Stack entries', value: state.techEntries.length },
+    whiteboard: { label: 'Whiteboards', value: state.whiteboards.length },
     about: { label: 'Test cases', value: state.testCases.length },
   };
   const counts = ALL_PUBLIC_TABS.filter((t) => tabs.includes(t)).map((t) => tabCounts[t]);

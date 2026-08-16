@@ -8,6 +8,7 @@ const useProjectMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../../state/project-context', () => ({
   useProject: useProjectMock,
+  useProjectOptional: useProjectMock,
 }));
 
 function renderShell(board: Whiteboard, onBack: () => void = () => {}) {

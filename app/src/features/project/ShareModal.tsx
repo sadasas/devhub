@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Bug, Check, Columns, Info, LinkSimple, Rocket, Stack, Warning } from '@phosphor-icons/react';
+import { Bug, ChalkboardSimple, Check, Columns, Info, LinkSimple, Rocket, Stack, Warning } from '@phosphor-icons/react';
 import { ApiError } from '../../lib/api';
 import type { Project, PublicTab } from '../../lib/types';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
@@ -9,7 +9,7 @@ import { Button } from '../../components/Button';
 import { InlineError } from '../../components/InlineError';
 import { Modal } from '../../components/Modal';
 
-const ALL_TABS: PublicTab[] = ['board', 'issues', 'milestones', 'stack', 'about'];
+const ALL_TABS: PublicTab[] = ['board', 'issues', 'milestones', 'stack', 'about', 'whiteboard'];
 
 const TAB_META: { id: PublicTab; label: string; icon: ReactNode; description: string }[] = [
   { id: 'board', label: 'Board', icon: <Columns size={16} aria-hidden="true" />, description: 'Kanban board with tasks' },
@@ -17,6 +17,7 @@ const TAB_META: { id: PublicTab; label: string; icon: ReactNode; description: st
   { id: 'milestones', label: 'Milestones', icon: <Rocket size={16} aria-hidden="true" />, description: 'Releases and version history' },
   { id: 'stack', label: 'Stack', icon: <Stack size={16} aria-hidden="true" />, description: 'Tech stack ledger' },
   { id: 'about', label: 'About', icon: <Info size={16} aria-hidden="true" />, description: 'PRD and project summary' },
+  { id: 'whiteboard', label: 'Whiteboard', icon: <ChalkboardSimple size={16} aria-hidden="true" />, description: 'Whiteboard boards' },
 ];
 
 interface ShareModalProps {

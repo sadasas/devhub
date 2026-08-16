@@ -231,4 +231,108 @@ describe('PublicProjectPage', () => {
     expect(screen.getByText('Test cases')).toBeDefined();
     expect(screen.queryByText('Tasks')).toBeNull();
   });
+
+  it('shows the Whiteboard tab and its empty state when shared', async () => {
+    vi.spyOn(api, 'getPublicProject').mockResolvedValue(
+      makeMeta({ tabs: ['whiteboard'] }),
+    );
+    vi.spyOn(api, 'getPublicState').mockResolvedValue({ state: makeState(), version: 1 });
+
+    renderPage([`/p/${PROJECT_ID}?tab=whiteboard`]);
+    await screen.findByRole('heading', { name: 'Demo Project' });
+
+    expect(screen.getByText('No whiteboards yet.')).toBeDefined();
+    expect(screen.queryByText('Delete board')).toBeNull();
+  });
+
+  it('lists shared whiteboards with their element counts', async () => {
+    const sticky = (id: string) => ({
+      id,
+      kind: 'sticky' as const,
+      x: 0,
+      y: 0,
+      w: 200,
+      h: 120,
+      color: '#e8b955',
+      text: 'A',
+    });
+    vi.spyOn(api, 'getPublicProject').mockResolvedValue(
+      makeMeta({ tabs: ['whiteboard'] }),
+    );
+    vi.spyOn(api, 'getPublicState').mockResolvedValue(
+      {
+        state: makeState({
+          whiteboards: [
+            {
+              id: 'wb1',
+              name: 'Roadmap',
+              description: 'Q3 plans',
+              elements: [sticky('s1'), sticky('s2'), sticky('s3')],
+              createdAt: '2026-01-01T00:00:00.000Z',
+              updatedAt: '2026-01-02T00:00:00.000Z',
+            },
+            {
+              id: 'wb2',
+              name: 'Brainstorm',
+              description: '',
+              elements: [],
+              createdAt: '2026-01-01T00:00:00.000Z',
+              updatedAt: '2026-01-02T00:00:00.000Z',
+            },
+          ],
+        }),
+        version: 1,
+      },
+    );
+
+    renderPage([`/p/${PROJECT_ID}?tab=whiteboard`]);
+    await screen.findByRole('heading', { name: 'Demo Project' });
+
+    expect(screen.getByText('Roadmap')).toBeDefined();
+    expect(screen.getByText('Q3 plans')).toBeDefined();
+    expect(screen.getByText('3 elements')).toBeDefined();
+    expect(screen.getByText('Brainstorm')).toBeDefined();
+    expect(screen.getByText('No description.')).toBeDefined();
+    expect(screen.getByText('0 elements')).not.toBeNull();
+  });
+
+  it('opens a shared whiteboard in read-only mode and goes back to the list', async () => {
+    vi.spyOn(api, 'getPublicProject').mockResolvedValue(
+      makeMeta({ tabs: ['whiteboard'] }),
+    );
+    vi.spyOn(api, 'getPublicState').mockResolvedValue(
+      {
+        state: makeState({
+          whiteboards: [
+            {
+              id: 'wb1',
+              name: 'Roadmap',
+              description: '',
+              elements: [
+                { id: 's1', kind: 'sticky' as const, x: 0, y: 0, w: 200, h: 120, color: '#e8b955', text: 'Plan note' },
+              ],
+              createdAt: '2026-01-01T00:00:00.000Z',
+              updatedAt: '2026-01-02T00:00:00.000Z',
+            },
+          ],
+        }),
+        version: 1,
+      },
+    );
+
+    renderPage([`/p/${PROJECT_ID}?tab=whiteboard`]);
+    await screen.findByRole('heading', { name: 'Demo Project' });
+    fireEvent.click(screen.getByRole('button', { name: /Roadmap/ }));
+
+    await waitFor(() => {
+      expect(document.querySelector('svg.wb-svg')).not.toBeNull();
+    });
+    expect(screen.getByText('Plan note')).toBeDefined();
+    expect(screen.queryByRole('button', { name: 'Delete selected' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Pen — 2' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back to boards' }));
+    expect(screen.getByRole('button', { name: /Roadmap/ })).toBeDefined();
+    expect(document.querySelector('svg.wb-svg')).toBeNull();
+  });
 });

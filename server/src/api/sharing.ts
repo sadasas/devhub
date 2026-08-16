@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { State } from '../schema/state.js';
 
-export const PUBLIC_TABS = ['board', 'issues', 'stack', 'milestones', 'about'] as const;
+export const PUBLIC_TABS = ['board', 'issues', 'stack', 'milestones', 'about', 'whiteboard'] as const;
 export type PublicTab = (typeof PUBLIC_TABS)[number];
 
 export const publicTabsSchema = z.array(z.enum(PUBLIC_TABS));
@@ -17,6 +17,7 @@ export const TAB_STATE_KEYS: Record<PublicTab, keyof State | undefined> = {
   milestones: 'milestones',
   stack: 'techEntries',
   about: 'testCases',
+  whiteboard: 'whiteboards',
 };
 
 export function normalizeTabs(value: unknown): PublicTab[] {
