@@ -29,6 +29,7 @@ import { formatDate } from '../../lib/utils';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { ProjectProvider } from '../../state/project-context';
 import { useProjects } from '../../state/projects-context';
+import { useAuth } from '../../state/auth-context';
 import type { ExportDocument } from '../../lib/types';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
@@ -41,6 +42,7 @@ import { PresenceChip } from '../../components/PresenceChip';
 import { ShareModal } from './ShareModal';
 import { InlineError } from '../../components/InlineError';
 import { SaveTemplateModal } from '../templates/SaveTemplateModal';
+import { ProjectChatWidget } from './ProjectChatWidget';
 
 const BoardPageLazy = lazy(() => import('../board/BoardPage').then((m) => ({ default: m.BoardPage })));
 const IssuesPageLazy = lazy(() => import('../issues/IssuesPage').then((m) => ({ default: m.IssuesPage })));
@@ -88,6 +90,7 @@ const projectStorage = offlineProvider();
 export function ProjectPage() {
   const { projectId = '' } = useParams<{ projectId: string }>();
   const { projects, refresh, remove } = useProjects();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
@@ -431,6 +434,7 @@ if (!project) {
           projectName={project.name}
           onClose={() => setSaveTemplateOpen(false)}
         />
+        {project && user && <ProjectChatWidget teamId={project.teamId} teamName={project.teamName} />}
       </div>
     </ProjectProvider>
   );

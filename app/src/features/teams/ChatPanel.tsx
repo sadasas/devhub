@@ -1,6 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { PaperPlaneTilt, Trash } from '@phosphor-icons/react';
+import {
+  Bug,
+  ChalkboardSimple,
+  CheckSquare,
+  ClockCounterClockwise,
+  Columns,
+  FolderSimple,
+  Graph,
+  ListChecks,
+  PaperPlaneTilt,
+  Plugs,
+  Rocket,
+  Scales,
+  Stack,
+  Trash,
+} from '@phosphor-icons/react';
 import { ApiError, api, type SearchHit } from '../../lib/api';
 import type { ChatMessage, ChatRef, ChatResolvedRef } from '../../lib/types';
 import { buildMentionToken, parseChatRefs } from '../../lib/chat-tokens';
@@ -30,6 +45,51 @@ const ENTITY_LABELS: Record<string, string> = {
   relations: 'Relation',
   schemaVersions: 'Schema',
 };
+
+const ENTITY_TINT: Record<string, string> = {
+  tasks: '#34c38e',
+  issues: '#f4706d',
+  testCases: '#e8b955',
+  decisions: '#6ea8fe',
+  techEntries: '#2dd4bf',
+  apiEndpoints: '#f4706d',
+  apiCollections: '#e8b955',
+  milestones: '#6ea8fe',
+  whiteboards: '#2dd4bf',
+  tables: '#a1a1aa',
+  relations: '#a1a1aa',
+  schemaVersions: '#a1a1aa',
+};
+
+const ENTITY_ICONS: Record<string, typeof CheckSquare> = {
+  tasks: CheckSquare,
+  issues: Bug,
+  testCases: ListChecks,
+  decisions: Scales,
+  techEntries: Stack,
+  apiEndpoints: Plugs,
+  apiCollections: FolderSimple,
+  milestones: Rocket,
+  whiteboards: ChalkboardSimple,
+  tables: Columns,
+  relations: Graph,
+  schemaVersions: Graph,
+};
+
+const AVATAR_HUES = ['#34c38e', '#e8b955', '#6ea8fe', '#2dd4bf', '#f4706d', '#a1a1aa'];
+
+function avatarHue(authorId: string): string {
+  let hash = 0;
+  for (let i = 0; i < authorId.length; i += 1) {
+    hash = (hash * 31 + authorId.charCodeAt(i)) | 0;
+  }
+  return AVATAR_HUES[Math.abs(hash) % AVATAR_HUES.length] ?? AVATAR_HUES[0]!;
+}
+
+function hexToRgb(hex: string): string {
+  const n = parseInt(hex.slice(1), 16);
+  return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`;
+}
 
 interface QueuedChatMessage {
   clientId: string;
@@ -367,6 +427,8 @@ async function onDelete(message: ChatMessage) {
       const key = `${entity}:${entityId}`;
       const resolved = resolvedRefs.get(key);
       const label = resolved?.title ?? `#${entityId.slice(0, 6)}`;
+      const EntityIcon = ENTITY_ICONS[entity] ?? CheckSquare;
+      const tint = ENTITY_TINT[entity] ?? '#a1a1aa';
       return (
         <button
           type="button"
@@ -379,6 +441,7 @@ async function onDelete(message: ChatMessage) {
             navigate(entityDeepLink(resolved.projectId, entity as Parameters<typeof entityDeepLink>[1], entityId));
           }}
         >
+          <EntityIcon size={10} weight="bold" aria-hidden="true" style={{ color: tint }} />
           {label}
         </button>
       );
@@ -402,29 +465,50 @@ async function onDelete(message: ChatMessage) {
             />
           </div>
         ) : (
-          messages.map((m) => (
-            <div
-              key={m.id}
-              className={`chat-msg${m.authorId === userId ? ' chat-msg-own' : ''}${m.id.startsWith('local-') ? ' chat-msg-pending' : ''}`}
-            >
-              <div className="chat-msg-header">
-                <span>{m.authorName || 'Former member'}</span>
-                <span className="chat-msg-time">{new Date(m.createdAt).toLocaleString()}</span>
-                {m.authorId === userId && !m.id.startsWith('local-') && (
-                  <button
-                    type="button"
-                    className="chat-msg-delete"
-                    aria-label="Delete message"
-                    title="Delete message"
-                    onClick={() => void onDelete(m)}
+          messages.map((m, i) => {
+            const prev = messages[i - 1];
+            const isGroupStart = !prev || prev.authorId !== m.authorId;
+            const own = m.authorId === userId;
+            const pending = m.id.startsWith('local-');
+            const hue = avatarHue(m.authorId ?? '');
+            return (
+              <div
+                key={m.id}
+                className={`chat-msg${own ? ' chat-msg-own' : ''}${pending ? ' chat-msg-pending' : ''}`}
+              >
+                {isGroupStart && !own && (
+                  <span
+                    className="chat-avatar"
+                    style={{ background: `rgba(${hexToRgb(hue)},0.18)`, color: hue }}
+                    aria-hidden="true"
                   >
-                    <Trash size={12} aria-hidden="true" />
-                  </button>
+                    {(m.authorName || '?').charAt(0).toUpperCase()}
+                  </span>
                 )}
+                <div className="chat-msg-body">
+                  {isGroupStart && (
+                    <div className="chat-msg-header">
+                      {!own && <span>{m.authorName || 'Former member'}</span>}
+                      {pending && <ClockCounterClockwise size={10} aria-hidden="true" />}
+                      <span className="chat-msg-time">{new Date(m.createdAt).toLocaleString()}</span>
+                      {own && !pending && (
+                        <button
+                          type="button"
+                          className="chat-msg-delete"
+                          aria-label="Delete message"
+                          title="Delete message"
+                          onClick={() => void onDelete(m)}
+                        >
+                          <Trash size={12} aria-hidden="true" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  <div className="chat-msg-text">{renderContent(m.content)}</div>
+                </div>
               </div>
-              <div className="chat-msg-text">{renderContent(m.content)}</div>
-            </div>
-          ))
+            );
+          })
         )}
         <div className="chat-sentinel" ref={sentinelRef} />
       </div>
@@ -450,7 +534,15 @@ async function onDelete(message: ChatMessage) {
                   onMouseEnter={() => setMentionIndex(i)}
                   onClick={() => insertMention(hit)}
                 >
-                  <span className="mention-entity-badge">{ENTITY_LABELS[hit.entity] ?? hit.entity}</span>
+                  <span
+                    className="mention-entity-badge"
+                    style={{
+                      background: `rgba(${hexToRgb(ENTITY_TINT[hit.entity] ?? '#a1a1aa')},0.18)`,
+                      color: ENTITY_TINT[hit.entity] ?? '#a1a1aa',
+                    }}
+                  >
+                    {ENTITY_LABELS[hit.entity] ?? hit.entity}
+                  </span>
                   <span className="mention-option-title">{hit.title}</span>
                 </button>
               ))
@@ -461,6 +553,7 @@ async function onDelete(message: ChatMessage) {
           className="chat-input"
           aria-label="Message"
           placeholder="Type a message…"
+          title="Enter to send · Shift+Enter for new line"
           rows={1}
           value={draft}
           onChange={(e) => {

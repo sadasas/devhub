@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowLeft, Chats, Envelope, Trash, UsersThree } from '@phosphor-icons/react';
-import { useNavigate, useParams, useSearchParams } from 'react-router';
+import { ArrowLeft, Envelope, Trash, UsersThree } from '@phosphor-icons/react';
+import { useNavigate, useParams } from 'react-router';
 import { ApiError, api } from '../../lib/api';
 import { TEAM_ROLE } from '../../lib/labels';
 import type { TeamInvitation, TeamMember, TeamRole } from '../../lib/types';
@@ -13,61 +13,17 @@ import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { Skeleton } from '../../components/Skeleton';
 import { InviteModal } from './InviteModal';
-import { ChatPanel } from './ChatPanel';
 import { InlineError } from '../../components/InlineError';
 
 const CHANGEABLE_ROLES: TeamRole[] = ['admin', 'editor', 'viewer'];
 const ALL_ROLES: TeamRole[] = [...CHANGEABLE_ROLES, 'owner'];
-
-type TeamTab = 'members' | 'chat';
 
 export function TeamPage() {
   const { teamId = '' } = useParams<{ teamId: string }>();
   const { teams, refresh, deleteTeam, renameTeam } = useTeams();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const team = teams?.find((t) => t.id === teamId);
-
-  const tabParam = searchParams.get('tab');
-  const tab: TeamTab = tabParam === 'chat' ? 'chat' : 'members';
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  const setTab = (next: TeamTab) => {
-    setSearchParams(
-      (prev) => {
-        const p = new URLSearchParams(prev);
-        p.set('tab', next);
-        return p;
-      },
-      { replace: true },
-    );
-  };
-
-  useEffect(() => {
-    if (tab === 'chat') return;
-    let cancelled = false;
-    const poll = async () => {
-      try {
-        const unread = await api.getUnreadCount(teamId);
-        if (!cancelled) setUnreadCount(unread);
-      } catch {
-        /* badge is best-effort */
-      }
-    };
-    void poll();
-    const timer = setInterval(() => void poll(), 30_000);
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
-  }, [tab, teamId]);
-
-  useEffect(() => {
-    if (tab !== 'chat') return;
-    setUnreadCount(0);
-    void api.setMessagesRead(teamId, new Date().toISOString()).catch(() => {});
-  }, [tab, teamId]);
 
   const [members, setMembers] = useState<TeamMember[] | null>(null);
   const [pendingInvites, setPendingInvites] = useState<TeamInvitation[] | null>(null);
@@ -246,40 +202,10 @@ export function TeamPage() {
         </div>
       </header>
 
-      <nav className="tabs" role="tablist" aria-label="Team sections">
-        <button
-          type="button"
-          role="tab"
-          id="team-tab-members"
-          aria-selected={tab === 'members'}
-          aria-controls="team-tabpanel"
-          className="tab"
-          onClick={() => setTab('members')}
-        >
-          <UsersThree size={15} aria-hidden="true" />
-          Members
-        </button>
-        <button
-          type="button"
-          role="tab"
-          id="team-tab-chat"
-          aria-selected={tab === 'chat'}
-          aria-controls="team-tabpanel"
-          className="tab"
-          onClick={() => setTab('chat')}
-        >
-          <Chats size={15} aria-hidden="true" />
-          Chat
-          {unreadCount > 0 && <Badge tone="warn">{unreadCount}</Badge>}
-        </button>
-      </nav>
-
       {loadError && <InlineError>{loadError}</InlineError>}
       {actionError && <InlineError>{actionError}</InlineError>}
 
-      {tab === 'members' ? (
-        <>
-          <section className="tab-panel" role="tabpanel" aria-labelledby="team-tab-members">
+      <section className="tab-panel" role="tabpanel" aria-labelledby="team-tab-members">
             {members === null ? (
           <>
             <Skeleton style={{ width: '100%', height: 48 }} />
@@ -379,14 +305,6 @@ export function TeamPage() {
             Leave team
           </Button>
         </div>
-      )}
-        </>
-      ) : (
-        <section className="tab-panel" role="tabpanel" aria-labelledby="team-tab-chat">
-          {user ? (
-            <ChatPanel teamId={teamId} userId={user.id} userDisplayName={user.displayName} />
-          ) : null}
-        </section>
       )}
 
       <InviteModal
