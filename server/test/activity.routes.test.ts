@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { app, uniqueIp, register, createProject, inviteUser, getFirstTeamId } from './helpers.js';
+import { resetDb } from './setup.js';
 
 const API = '/api/v1';
 
@@ -31,6 +32,10 @@ async function fetchActivity(cookie: string, projectId: string, query = ''): Pro
 }
 
 describe('activity log API v1', () => {
+  beforeAll(async () => {
+    await resetDb();
+  });
+
   it('records created, updated and deleted entries with summary and changes', async () => {
     const cookie = await register('activity-lifecycle@test.dev');
     const projectId = await createProject(cookie);
@@ -207,6 +212,45 @@ describe('activity log API v1', () => {
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp());
     expect(badLimit.status).toBe(400);
+  });
+
+  it('filters activity by authorId', async () => {
+    const owner = await register('activity-author-owner@test.dev');
+    const editor = await register('activity-author-editor@test.dev');
+    const teamId = await getFirstTeamId(owner);
+    await inviteUser(owner, editor, teamId, 'editor');
+    const projectId = await createProject(owner);
+    const taskId = uid();
+
+    await request(app)
+      .post(`${API}/projects/${projectId}/tasks`)
+      .set('Cookie', owner)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ id: taskId, title: 'Author filter', status: 'todo', priority: 'medium', labels: [], blockedBy: [] });
+
+    await request(app)
+      .patch(`${API}/projects/${projectId}/tasks/${taskId}`)
+      .set('Cookie', editor)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ status: 'done' });
+
+    const all = await fetchActivity(owner, projectId);
+    const ownerId = all.find((i) => i.action === 'created')!.authorId!;
+    const editorId = all.find((i) => i.action === 'updated')!.authorId!;
+
+    const byOwner = await fetchActivity(owner, projectId, `?authorId=${ownerId}`);
+    expect(byOwner).toHaveLength(1);
+    expect(byOwner[0]!.action).toBe('created');
+
+    const byEditor = await fetchActivity(owner, projectId, `?authorId=${editorId}`);
+    expect(byEditor).toHaveLength(1);
+    expect(byEditor[0]!.action).toBe('updated');
+
+    const badAuthor = await request(app)
+      .get(`${API}/projects/${projectId}/activity?authorId=not-a-uuid`)
+      .set('Cookie', owner)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(badAuthor.status).toBe(400);
   });
 
   it('summarises whiteboard element changes with a count diff instead of a JSON dump', async () => {

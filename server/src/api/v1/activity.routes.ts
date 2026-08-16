@@ -10,6 +10,7 @@ import type { ActivityEntry } from '../../lib/activity.js';
 const querySchema = z.object({
   entity: z.string().min(1).max(100).optional(),
   entityId: z.string().uuid().optional(),
+  authorId: z.string().uuid().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
   before: z.string().datetime().optional(),
 });
@@ -33,6 +34,10 @@ activityRouter.get('/:projectId/activity', async (req, res) => {
   if (query.entityId) {
     params.push(query.entityId);
     conditions.push(`entity_id = $${params.length}`);
+  }
+  if (query.authorId) {
+    params.push(query.authorId);
+    conditions.push(`author_id = $${params.length}`);
   }
   if (query.before) {
     params.push(query.before);

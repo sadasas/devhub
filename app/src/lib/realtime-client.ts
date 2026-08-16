@@ -1,4 +1,4 @@
-import type { GranularEntity } from './api';
+import type { ActivityEntry, GranularEntity } from './api';
 import type { ChatMessage, State } from './types';
 
 /* ------------------------------------------------------------------ */
@@ -34,6 +34,12 @@ export interface PresenceUpdate {
   type: 'presence';
   projectId: string;
   users: PresenceUser[];
+}
+
+export interface ActivityNew {
+  type: 'activity:new';
+  projectId: string;
+  entry: ActivityEntry;
 }
 
 /* ------------------------------------------------------------------ */
@@ -120,6 +126,7 @@ export interface RealtimeHandlers {
   onDiff?: (diff: StateDiff) => void;
   onSync?: (sync: StateSync) => void;
   onPresence?: (presence: PresenceUpdate) => void;
+  onActivity?: (msg: ActivityNew) => void;
 }
 
 export interface MinimalWebSocket {
@@ -203,6 +210,8 @@ export class RealtimeSocket {
       this.opts.onSync?.(msg as StateSync);
     } else if (type === 'presence') {
       this.opts.onPresence?.(msg as PresenceUpdate);
+    } else if (type === 'activity:new') {
+      this.opts.onActivity?.(msg as ActivityNew);
     }
   }
 

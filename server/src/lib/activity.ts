@@ -145,7 +145,7 @@ export async function insertActivity(
     authorId: string | null;
     authorName: string;
   },
-): Promise<void> {
+): Promise<ActivityEntry | null> {
   const { projectId, draft, authorId, authorName } = params;
   const changes = diffEntities(draft.before, draft.after, draft.entity);
   const now = new Date();
@@ -173,15 +173,27 @@ export async function insertActivity(
         'UPDATE activity_log SET changes = $2::jsonb, created_at = now() WHERE id = $1',
         [last.id, JSON.stringify(merged)],
       );
-      return;
+      return {
+        id: last.id,
+        projectId,
+        entity: draft.entity,
+        entityId: draft.entityId,
+        action: draft.action,
+        authorId,
+        authorName,
+        summary: draft.summary,
+        changes: merged,
+        createdAt: now.toISOString(),
+      };
     }
   }
 
+  const id = newId();
   await client.query(
     `INSERT INTO activity_log (id, project_id, entity, entity_id, action, author_id, author_name, summary, changes)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)`,
     [
-      newId(),
+      id,
       projectId,
       draft.entity,
       draft.entityId,
@@ -192,6 +204,18 @@ export async function insertActivity(
       JSON.stringify(changes),
     ],
   );
+  return {
+    id,
+    projectId,
+    entity: draft.entity,
+    entityId: draft.entityId,
+    action: draft.action,
+    authorId,
+    authorName,
+    summary: draft.summary,
+    changes,
+    createdAt: now.toISOString(),
+  };
 }
 
 export async function pruneActivity(client: PoolClient, projectId: string): Promise<void> {

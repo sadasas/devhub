@@ -174,7 +174,8 @@ describe('RealtimeSocket', () => {
     const onSync = vi.fn();
     const onJoined = vi.fn();
     const onPresence = vi.fn();
-    const socket = makeSocket({ onDiff, onSync, onJoined, onPresence });
+    const onActivity = vi.fn();
+    const socket = makeSocket({ onDiff, onSync, onJoined, onPresence, onActivity });
     const ws = FakeWebSocket.instances[0]!;
     ws.open();
     ws.emit(JSON.stringify({ type: 'joined', projectId: 'p1', role: 'editor', teamId: 'team1' }));
@@ -183,6 +184,13 @@ describe('RealtimeSocket', () => {
     ws.emit(
       JSON.stringify({ type: 'presence', projectId: 'p1', users: [{ userId: 'u1', name: 'One' }] }),
     );
+    ws.emit(
+      JSON.stringify({
+        type: 'activity:new',
+        projectId: 'p1',
+        entry: { id: 'a1', entity: 'tasks', action: 'created', summary: 'RT activity' },
+      }),
+    );
     expect(onJoined).toHaveBeenCalledTimes(1);
     expect(onDiff).toHaveBeenCalledTimes(1);
     expect(onSync).toHaveBeenCalledTimes(1);
@@ -190,6 +198,11 @@ describe('RealtimeSocket', () => {
       type: 'presence',
       projectId: 'p1',
       users: [{ userId: 'u1', name: 'One' }],
+    });
+    expect(onActivity).toHaveBeenCalledWith({
+      type: 'activity:new',
+      projectId: 'p1',
+      entry: { id: 'a1', entity: 'tasks', action: 'created', summary: 'RT activity' },
     });
     socket.close();
   });

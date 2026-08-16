@@ -27,8 +27,9 @@ import {
   pruneActivity,
   entitySummary,
   type ActivityDraft,
+  type ActivityEntry,
 } from '../../lib/activity.js';
-import { broadcastDiff } from '../../realtime/broadcast.js';
+import { broadcastActivity, broadcastDiff } from '../../realtime/broadcast.js';
 
 interface EntityConfig {
   key: keyof State;
@@ -140,13 +141,14 @@ async function mutateProject(
       'UPDATE projects SET data = $2::jsonb, version = version + 1, updated_at = now() WHERE id = $1 RETURNING version',
       [projectId, JSON.stringify(state)],
     );
+    let activityEntry: ActivityEntry | null = null;
     if (activity) {
       const authorResult = await client.query<{ displayName: string }>(
         'SELECT display_name AS "displayName" FROM users WHERE id = $1',
         [userId],
       );
       const authorName = authorResult.rows[0]?.displayName ?? '';
-      await insertActivity(client, {
+      activityEntry = await insertActivity(client, {
         projectId,
         draft: activity,
         authorId: userId,
@@ -157,6 +159,7 @@ async function mutateProject(
     await client.query('COMMIT');
     const version = updated.rows[0]?.version;
     if (!version) throw new ApiError(500, 'INTERNAL', 'Failed to persist state');
+    if (activityEntry) broadcastActivity(projectId, activityEntry);
     return { version, state };
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});

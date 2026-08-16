@@ -17,7 +17,7 @@ import {
 } from '../lib/storage-provider';
 import { reconcileQueue } from '../lib/sync-service';
 import { RealtimeSocket, applyStateDiff, realtimeWsUrl } from '../lib/realtime-client';
-import type { PresenceUpdate, PresenceUser, RealtimeHandlers, StateDiff } from '../lib/realtime-client';
+import type { ActivityNew, PresenceUpdate, PresenceUser, RealtimeHandlers, StateDiff } from '../lib/realtime-client';
 import { nowIso } from '../lib/utils';
 import type {
   ApiCollection,
@@ -328,6 +328,7 @@ interface ProjectContextValue {
   isOffline: boolean;
   pendingCount: number;
   presence: PresenceUser[];
+  subscribeActivity: (cb: (msg: ActivityNew) => void) => () => void;
   dispatch: (action: ProjectAction) => void;
   retrySave: () => void;
   resolveConflict: () => void;
@@ -360,6 +361,7 @@ export function ProjectProvider({
   );
   const [pendingCount, setPendingCount] = useState(0);
   const [presence, setPresence] = useState<PresenceUser[]>([]);
+  const activitySubscribersRef = useRef(new Set<(msg: ActivityNew) => void>());
   const stateRef = useRef<State | null>(null);
   const lastSavedRef = useRef<State | null>(null);
   const versionRef = useRef(0);
@@ -673,6 +675,11 @@ export function ProjectProvider({
       setPresence(presenceUpdate.users);
     };
 
+    const onActivity = (msg: ActivityNew) => {
+      if (cancelled || msg.projectId !== projectId) return;
+      for (const cb of activitySubscribersRef.current) cb(msg);
+    };
+
     const socket = createRealtime
       ? createRealtime({
           onJoined: () => {
@@ -683,6 +690,7 @@ export function ProjectProvider({
           },
           onDiff: handleDiff,
           onPresence,
+          onActivity,
         })
       : new RealtimeSocket({
           wsUrl: realtimeWsUrl(),
@@ -695,6 +703,7 @@ export function ProjectProvider({
           },
           onDiff: handleDiff,
           onPresence,
+          onActivity,
         });
 
     return () => {
@@ -708,6 +717,16 @@ export function ProjectProvider({
       void flushMutations();
     };
   }, [projectId, flushMutations, provider, emitPendingCount, createRealtime]);
+
+  const subscribeActivity = useCallback(
+    (cb: (msg: ActivityNew) => void) => {
+      activitySubscribersRef.current.add(cb);
+      return () => {
+        activitySubscribersRef.current.delete(cb);
+      };
+    },
+    [],
+  );
 
   const value = useMemo(
     () => ({
@@ -724,11 +743,12 @@ export function ProjectProvider({
       isOffline,
       pendingCount,
       presence,
+      subscribeActivity,
       dispatch,
       retrySave,
       resolveConflict,
     }),
-    [projectId, state, loading, error, saveError, saving, lastSavedAt, role, conflict, isOffline, pendingCount, presence, dispatch, retrySave, resolveConflict],
+    [projectId, state, loading, error, saveError, saving, lastSavedAt, role, conflict, isOffline, pendingCount, presence, subscribeActivity, dispatch, retrySave, resolveConflict],
   );
 
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;

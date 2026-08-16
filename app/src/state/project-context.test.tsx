@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import { useEffect, useState } from 'react';
 import { ApiError, api } from '../lib/api';
 import {
   apiProvider,
@@ -41,6 +42,13 @@ function makeState(): State {
 
 function editAction(): ProjectAction {
   return { type: 'task/update', id: 't1', patch: { title: 'Edited' } };
+}
+
+function ActivityProbe() {
+  const { subscribeActivity } = useProject();
+  const [count, setCount] = useState(0);
+  useEffect(() => subscribeActivity(() => setCount((c) => c + 1)), [subscribeActivity]);
+  return <span data-testid="activity-count">{count}</span>;
 }
 
 function Probe() {
@@ -86,6 +94,7 @@ function Probe() {
       <span data-testid="pending">{ctx.pendingCount}</span>
       <span data-testid="offline">{ctx.isOffline ? 'offline' : 'online'}</span>
       <span data-testid="presence">{ctx.presence.length}</span>
+      <ActivityProbe />
     </div>
   );
 }
@@ -878,6 +887,61 @@ describe('realtime state:diff integration', () => {
     });
 
     expect(screen.getByTestId('presence').textContent).toBe('0');
+  });
+
+  it('notifies activity subscribers from activity:new frames', async () => {
+    vi.spyOn(api, 'getState').mockResolvedValue({ state: makeState(), version: 1 });
+
+    renderRealtime();
+    await flush();
+
+    const ws = FakeWs.instances[0]!;
+    void ws.open();
+    expect(screen.getByTestId('activity-count').textContent).toBe('0');
+
+    act(() => {
+      ws.emit(
+        JSON.stringify({
+          type: 'activity:new',
+          projectId: PROJECT_ID,
+          entry: {
+            id: 'a1',
+            projectId: PROJECT_ID,
+            entity: 'tasks',
+            entityId: TASK_ID,
+            action: 'updated',
+            authorId: 'u1',
+            authorName: 'One',
+            summary: 'Original',
+            changes: {},
+            createdAt: '2026-01-01T00:00:00.000Z',
+          },
+        }),
+      );
+    });
+
+    expect(screen.getByTestId('activity-count').textContent).toBe('1');
+  });
+
+  it('ignores activity frames for another project', async () => {
+    vi.spyOn(api, 'getState').mockResolvedValue({ state: makeState(), version: 1 });
+
+    renderRealtime();
+    await flush();
+
+    const ws = FakeWs.instances[0]!;
+    void ws.open();
+    act(() => {
+      ws.emit(
+        JSON.stringify({
+          type: 'activity:new',
+          projectId: 'other-project',
+          entry: { id: 'a1', entity: 'tasks', action: 'created', summary: 'X' },
+        }),
+      );
+    });
+
+    expect(screen.getByTestId('activity-count').textContent).toBe('0');
   });
 
   it('skips diffs whose version is not newer than the loaded version', async () => {

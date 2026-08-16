@@ -297,11 +297,12 @@ export const api = {
 
   fetchActivity: async (
     projectId: string,
-    opts?: { entity?: GranularEntity; entityId?: string; limit?: number },
+    opts?: { entity?: GranularEntity; entityId?: string; authorId?: string; limit?: number },
   ) => {
     const qs = new URLSearchParams();
     if (opts?.entity) qs.set('entity', opts.entity);
     if (opts?.entityId) qs.set('entityId', opts.entityId);
+    if (opts?.authorId) qs.set('authorId', opts.authorId);
     if (opts?.limit !== undefined) qs.set('limit', String(opts.limit));
     const suffix = qs.size > 0 ? `?${qs.toString()}` : '';
     const res = await request<{ items: ActivityEntry[] }>(

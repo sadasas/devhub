@@ -55,3 +55,11 @@ export function broadcastSync(projectId: string, version: number): void {
 export function broadcastTeamMessage(teamId: string, payload: unknown): void {
   registry?.broadcast(`team:${teamId}`, payload);
 }
+
+export function broadcastActivity(projectId: string, entry: unknown): void {
+  registry?.broadcast(`project:${projectId}`, {
+    type: 'activity:new',
+    projectId,
+    entry,
+  });
+}

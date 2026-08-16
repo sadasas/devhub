@@ -237,6 +237,54 @@ describe('realtime state broadcast', () => {
     ws.close();
   });
 
+  it('broadcasts an activity:new frame after an entity mutation', async () => {
+    const cookie = await register(`br-act-${uniqueIp()}@test.dev`);
+    const projectId = await createProject(cookie, 'BR activity');
+    const ws = await joinProject(cookie, projectId);
+    const activityPromise = nextOfType(ws, 'activity:new');
+
+    const res = await request(httpServer)
+      .post(`/api/v1/projects/${projectId}/tasks`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({
+        id: newId(),
+        title: 'Activity broadcast',
+        status: 'todo',
+        priority: 'medium',
+        labels: [],
+        blockedBy: [],
+        description: '',
+      });
+    expect(res.status).toBe(201);
+
+    const frame = await activityPromise;
+    expect(frame).toMatchObject({
+      type: 'activity:new',
+      projectId,
+      entry: {
+        entity: 'tasks',
+        action: 'created',
+        summary: 'Activity broadcast',
+      },
+    });
+    const entry = frame.entry as Record<string, unknown>;
+    expect(entry.authorId).not.toBeNull();
+    expect(typeof entry.id).toBe('string');
+    expect(typeof entry.createdAt).toBe('string');
+
+    const updatePromise = nextOfType(ws, 'activity:new');
+    await request(httpServer)
+      .patch(`/api/v1/projects/${projectId}/tasks/${res.body.entity.id}`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ status: 'done' });
+    const updated = await updatePromise;
+    expect(updated.entry).toMatchObject({ entity: 'tasks', action: 'updated' });
+
+    ws.close();
+  });
+
   it('does not broadcast to users without membership', async () => {
     const ownerCookie = await register(`br-owner-${uniqueIp()}@test.dev`);
     const outsiderCookie = await register(`br-outsider-${uniqueIp()}@test.dev`);
