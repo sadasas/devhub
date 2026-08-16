@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { PaperPlaneTilt, Trash } from '@phosphor-icons/react';
 import { ApiError, api } from '../../lib/api';
-import type { ChatMessage } from '../../lib/types';
+import type { ChatMessage, ChatRef } from '../../lib/types';
+import { getMeta, putMeta } from '../../lib/idb';
 import { realtimeWsUrl, TeamChatSocket, type TeamChatSocketOptions } from '../../lib/realtime-client';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
@@ -10,10 +11,24 @@ import { Skeleton } from '../../components/Skeleton';
 
 const PAGE_SIZE = 30;
 
+interface QueuedChatMessage {
+  clientId: string;
+  teamId: string;
+  content: string;
+  refs: ChatRef[];
+  authorId: string;
+  authorName: string;
+  createdAt: string;
+}
+
 interface ChatPanelProps {
   teamId: string;
   userId: string;
   userDisplayName: string;
+}
+
+function chatQueueKey(teamId: string): string {
+  return `chatQueue:${teamId}`;
 }
 
 export function ChatPanel({ teamId, userId, userDisplayName }: ChatPanelProps) {
@@ -29,12 +44,23 @@ export function ChatPanel({ teamId, userId, userDisplayName }: ChatPanelProps) {
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const loadingMoreRef = useRef(false);
   const messagesRef = useRef<ChatMessage[]>([]);
+  const queuedRef = useRef<QueuedChatMessage[]>([]);
+  const flushingRef = useRef(false);
 
   const loadFirstPage = useCallback(async () => {
     try {
       const res = await api.listMessages(teamId, { limit: PAGE_SIZE });
-      messagesRef.current = res.messages;
-      setMessages(res.messages);
+      const restored: ChatMessage[] = queuedRef.current.map((q) => ({
+        id: q.clientId,
+        teamId: q.teamId,
+        authorId: q.authorId,
+        authorName: q.authorName,
+        content: q.content,
+        refs: q.refs,
+        createdAt: q.createdAt,
+      }));
+      messagesRef.current = [...res.messages, ...restored];
+      setMessages(messagesRef.current);
       setNextCursor(res.nextCursor);
       setLoadError(null);
     } catch (err) {
@@ -85,10 +111,75 @@ export function ChatPanel({ teamId, userId, userDisplayName }: ChatPanelProps) {
     setMessages(messagesRef.current);
   }, []);
 
+  const saveChatQueue = useCallback(() => {
+    void putMeta(chatQueueKey(teamId), queuedRef.current).catch(() => {});
+  }, [teamId]);
+
+  const flushQueue = useCallback(async () => {
+    if (flushingRef.current || queuedRef.current.length === 0) return;
+    flushingRef.current = true;
+    try {
+      for (const item of [...queuedRef.current]) {
+        try {
+          const saved = await api.sendMessage(item.teamId, item.content, item.refs);
+          messagesRef.current = messagesRef.current.map((m) =>
+            m.id === item.clientId ? saved : m,
+          );
+          setMessages(messagesRef.current);
+          queuedRef.current = queuedRef.current.filter((q) => q.clientId !== item.clientId);
+          saveChatQueue();
+        } catch {
+          break;
+        }
+      }
+      if (queuedRef.current.length === 0) {
+        await loadFirstPage();
+      }
+    } finally {
+      flushingRef.current = false;
+    }
+  }, [loadFirstPage, saveChatQueue]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const queue = await getMeta<QueuedChatMessage[]>(chatQueueKey(teamId)).catch(() => null);
+      if (cancelled || !queue || queue.length === 0) return;
+      queuedRef.current = queue;
+      const restored: ChatMessage[] = queue.map((q) => ({
+        id: q.clientId,
+        teamId: q.teamId,
+        authorId: q.authorId,
+        authorName: q.authorName,
+        content: q.content,
+        refs: q.refs,
+        createdAt: q.createdAt,
+      }));
+      messagesRef.current = [...messagesRef.current, ...restored];
+      setMessages(messagesRef.current);
+      if (typeof navigator === 'undefined' || navigator.onLine) void flushQueue();
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [teamId, flushQueue]);
+
+  useEffect(() => {
+    const onOnline = () => {
+      void flushQueue();
+    };
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
+  }, [flushQueue]);
+
   useEffect(() => {
     const opts: TeamChatSocketOptions = {
       wsUrl: realtimeWsUrl(),
       teamId,
+      onJoinedTeam: () => {
+        void flushQueue();
+        void loadFirstPage();
+      },
       onMessageNew,
       onMessageSent,
     };
@@ -98,7 +189,7 @@ export function ChatPanel({ teamId, userId, userDisplayName }: ChatPanelProps) {
       socket.close();
       socketRef.current = null;
     };
-  }, [teamId, onMessageNew, onMessageSent]);
+  }, [teamId, onMessageNew, onMessageSent, flushQueue, loadFirstPage]);
 
   async function onSend() {
     const content = draft.trim();
@@ -122,9 +213,25 @@ export function ChatPanel({ teamId, userId, userDisplayName }: ChatPanelProps) {
       messagesRef.current = messagesRef.current.map((m) => (m.id === temp.id ? saved : m));
       setMessages(messagesRef.current);
     } catch (err) {
-      messagesRef.current = messagesRef.current.filter((m) => m.id !== temp.id);
-      setMessages(messagesRef.current);
-      setSendError(err instanceof ApiError ? err.message : 'Failed to send message');
+      if (err instanceof ApiError && err.status === 0) {
+        queuedRef.current = [
+          ...queuedRef.current,
+          {
+            clientId: temp.id,
+            teamId,
+            content,
+            refs: [],
+            authorId: userId,
+            authorName: userDisplayName,
+            createdAt: temp.createdAt,
+          },
+        ];
+        saveChatQueue();
+      } else {
+        messagesRef.current = messagesRef.current.filter((m) => m.id !== temp.id);
+        setMessages(messagesRef.current);
+        setSendError(err instanceof ApiError ? err.message : 'Failed to send message');
+      }
     } finally {
       setSending(false);
     }

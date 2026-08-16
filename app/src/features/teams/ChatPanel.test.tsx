@@ -12,10 +12,29 @@ const api = vi.hoisted(() => ({
 
 const sockets = vi.hoisted(() => [] as TeamChatSocketOptions[]);
 
+const idb = vi.hoisted(() => ({
+  getMeta: vi.fn(),
+  putMeta: vi.fn(),
+}));
+
+const { ApiError } = vi.hoisted(() => {
+  class ApiError extends Error {
+    status: number;
+    constructor(status: number, code: string, message: string) {
+      super(message);
+      this.status = status;
+      void code;
+    }
+  }
+  return { ApiError };
+});
+
 vi.mock('../../lib/api', () => ({
   api,
-  ApiError: class ApiError extends Error {},
+  ApiError,
 }));
+
+vi.mock('../../lib/idb', () => idb);
 
 vi.mock('../../lib/realtime-client', () => ({
   realtimeWsUrl: () => 'ws://test/ws',
@@ -68,6 +87,8 @@ beforeEach(() => {
   api.listMessages.mockReset().mockResolvedValue({ messages: [], nextCursor: null });
   api.sendMessage.mockReset();
   api.deleteMessage.mockReset();
+  idb.getMeta.mockReset().mockResolvedValue(null);
+  idb.putMeta.mockReset().mockResolvedValue(undefined);
   sockets.length = 0;
   observers.length = 0;
   stubIntersectionObserver();
@@ -156,5 +177,81 @@ describe('ChatPanel', () => {
     expect(screen.getByText('punyanya')).toBeTruthy();
     expect(api.deleteMessage).toHaveBeenCalledWith('t1', 'own');
   });
+
+  it('keeps the optimistic bubble queued when sending fails with a network error', async () => {
+    api.sendMessage.mockRejectedValue(new ApiError(0, 'NETWORK', 'Cannot reach the server. Is it running?'));
+    renderPanel();
+    await screen.findByText('No messages yet');
+
+    const input = screen.getByLabelText('Message');
+    fireEvent.change(input, { target: { value: 'Halo tim' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+
+    const textNode = await screen.findByText('Halo tim');
+    await waitFor(() => {
+      expect(textNode.closest('.chat-msg')!.className).toContain('chat-msg-pending');
+    });
+    expect(idb.putMeta).toHaveBeenCalledWith('chatQueue:t1', [expect.objectContaining({ clientId: expect.stringMatching(/^local-/), content: 'Halo tim' })]);
+    expect(screen.queryByText(/failed to send/i)).toBeNull();
+  });
+
+  it('flushes the queued message when the browser comes back online', async () => {
+    const saved = message({ id: 'm2', content: 'Halo tim' });
+    api.sendMessage
+      .mockRejectedValueOnce(new ApiError(0, 'NETWORK', 'Cannot reach the server. Is it running?'))
+      .mockResolvedValueOnce(saved);
+    api.listMessages
+      .mockResolvedValueOnce({ messages: [], nextCursor: null })
+      .mockResolvedValue({ messages: [saved], nextCursor: null });
+    renderPanel();
+    await screen.findByText('No messages yet');
+
+    const input = screen.getByLabelText('Message');
+    fireEvent.change(input, { target: { value: 'Halo tim' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+    await waitFor(() => {
+      expect(idb.putMeta).toHaveBeenCalledWith('chatQueue:t1', [expect.anything()]);
+    });
+
+    window.dispatchEvent(new Event('online'));
+    await waitFor(() => {
+      expect(api.sendMessage).toHaveBeenCalledTimes(2);
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Halo tim').className).not.toContain('chat-msg-pending');
+    });
+    expect(idb.putMeta).toHaveBeenLastCalledWith('chatQueue:t1', []);
+  });
+
+  it('refetches the list after the websocket rejoins the team room', async () => {
+    renderPanel();
+    await screen.findByText('No messages yet');
+    expect(api.listMessages).toHaveBeenCalledTimes(1);
+
+    sockets[0]!.onJoinedTeam?.();
+    await waitFor(() => {
+      expect(api.listMessages).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('restores queued messages as pending bubbles on mount and flushes them', async () => {
+    const saved = message({ id: 'm5', content: 'Sisa' });
+    idb.getMeta.mockResolvedValue([
+      { clientId: 'local-123', teamId: 't1', content: 'Sisa', refs: [], authorId: 'u1', authorName: 'Ana', createdAt: '2026-01-01T00:00:00.000Z' },
+    ]);
+    api.sendMessage.mockResolvedValue(saved);
+    api.listMessages
+      .mockResolvedValueOnce({ messages: [], nextCursor: null })
+      .mockResolvedValue({ messages: [saved], nextCursor: null });
+    renderPanel();
+
+    const bubble = await screen.findByText('Sisa');
+    await waitFor(() => {
+      expect(bubble.className).not.toContain('chat-msg-pending');
+    });
+    expect(api.sendMessage).toHaveBeenCalledWith('t1', 'Sisa', []);
+    expect(idb.putMeta).toHaveBeenCalledWith('chatQueue:t1', []);
+  });
 });
+
 
