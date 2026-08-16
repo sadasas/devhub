@@ -1,6 +1,7 @@
 import type {
   ChatMessage,
   ChatRef,
+  ChatResolvedRef,
   Invitation,
   McpKey,
   McpKeyCreated,
@@ -408,6 +409,13 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ content, refs }) },
     );
     return res.message;
+  },
+  resolveChatRefs: async (teamId: string, refs: ChatRef[]) => {
+    const res = await request<{ refs: ChatResolvedRef[] }>(
+      `/teams/${encodeURIComponent(teamId)}/messages/resolve-refs`,
+      { method: 'POST', body: JSON.stringify({ refs }) },
+    );
+    return res.refs;
   },
   deleteMessage: (teamId: string, messageId: string) =>
     request<{ ok: true }>(

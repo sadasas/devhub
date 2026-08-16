@@ -368,6 +368,13 @@ export interface ChatMessage {
   createdAt: string;
 }
 
+export interface ChatResolvedRef {
+  entity: string;
+  entityId: string;
+  projectId: string | null;
+  title: string | null;
+}
+
 export interface User {
   id: string;
   email: string;

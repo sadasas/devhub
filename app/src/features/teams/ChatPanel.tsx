@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { PaperPlaneTilt, Trash } from '@phosphor-icons/react';
 import { ApiError, api, type SearchHit } from '../../lib/api';
-import type { ChatMessage, ChatRef } from '../../lib/types';
-import { buildMentionToken } from '../../lib/chat-tokens';
+import type { ChatMessage, ChatRef, ChatResolvedRef } from '../../lib/types';
+import { buildMentionToken, parseChatRefs } from '../../lib/chat-tokens';
+import { entityDeepLink } from '../../lib/deep-link';
 import { getMeta, putMeta } from '../../lib/idb';
 import { realtimeWsUrl, TeamChatSocket, type TeamChatSocketOptions } from '../../lib/realtime-client';
 import { Button } from '../../components/Button';
@@ -70,6 +72,38 @@ const socketRef = useRef<TeamChatSocket | null>(null);
   const [mentionResults, setMentionResults] = useState<SearchHit[]>([]);
   const [mentionLoading, setMentionLoading] = useState(false);
   const [mentionIndex, setMentionIndex] = useState(0);
+
+  const navigate = useNavigate();
+  const resolvedRefsRef = useRef<Map<string, ChatResolvedRef>>(new Map());
+  const [resolvedRefs, setResolvedRefs] = useState<Map<string, ChatResolvedRef>>(
+    () => new Map(),
+  );
+
+  const resolveRefsFor = useCallback(async (list: ChatMessage[]) => {
+    const missing = new Map<string, ChatRef>();
+    for (const m of list) {
+      for (const ref of parseChatRefs(m.content)) {
+        const key = `${ref.entity}:${ref.entityId}`;
+        if (!resolvedRefsRef.current.has(key)) missing.set(key, ref);
+      }
+    }
+    if (missing.size === 0) return;
+    const refs = Array.from(missing.values());
+    try {
+      const resolved = await api.resolveChatRefs(teamId, refs);
+      const next = new Map(resolvedRefsRef.current);
+      for (const r of resolved) next.set(`${r.entity}:${r.entityId}`, r);
+      resolvedRefsRef.current = next;
+      setResolvedRefs(next);
+    } catch {
+      /* chips fall back to #shortId labels */
+    }
+  }, [teamId]);
+
+  useEffect(() => {
+    if (!messages) return;
+    void resolveRefsFor(messages);
+  }, [messages, resolveRefsFor]);
 
   const loadFirstPage = useCallback(async () => {
     try {
@@ -312,7 +346,7 @@ async function onSend() {
     }
   }
 
-  async function onDelete(message: ChatMessage) {
+async function onDelete(message: ChatMessage) {
     try {
       await api.deleteMessage(teamId, message.id);
       messagesRef.current = messagesRef.current.filter((m) => m.id !== message.id);
@@ -320,6 +354,35 @@ async function onSend() {
     } catch {
       /* keep message; user can retry later */
     }
+  }
+
+  function renderContent(content: string) {
+    const parts = content.split(/(@\[[^\]]+\]\([^:]+:[^)]+\))/);
+    return parts.map((part, i) => {
+      const match = part.match(/^@\[([^\]]+)\]\(([^:]+):([^)]+)\)$/);
+      if (!match) return part;
+      const title = match[1] ?? '';
+      const entity = match[2] ?? '';
+      const entityId = match[3] ?? '';
+      const key = `${entity}:${entityId}`;
+      const resolved = resolvedRefs.get(key);
+      const label = resolved?.title ?? `#${entityId.slice(0, 6)}`;
+      return (
+        <button
+          type="button"
+          key={i}
+          className="chat-chip"
+          title={resolved?.projectId ? `${title} — open in project` : `${title} — not shared`}
+          disabled={!resolved?.projectId}
+          onClick={() => {
+            if (!resolved?.projectId) return;
+            navigate(entityDeepLink(resolved.projectId, entity as Parameters<typeof entityDeepLink>[1], entityId));
+          }}
+        >
+          {label}
+        </button>
+      );
+    });
   }
 
   return (
@@ -359,7 +422,7 @@ async function onSend() {
                   </button>
                 )}
               </div>
-              <div className="chat-msg-text">{m.content}</div>
+              <div className="chat-msg-text">{renderContent(m.content)}</div>
             </div>
           ))
         )}

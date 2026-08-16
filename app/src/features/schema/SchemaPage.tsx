@@ -4,6 +4,7 @@ import { FloppyDisk, GitDiff, Graph, LinkSimple, List, PencilSimple, Plus, Trash
 import { formatDate, relationLabel as formatRelation, shortId } from '../../lib/utils';
 import type { Relation } from '../../lib/types';
 import { useProject } from '../../state/project-context';
+import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
@@ -35,6 +36,7 @@ export function SchemaPage() {
   };
   const [newTableOpen, setNewTableOpen] = useState(false);
   const [tableId, setTableId] = useState<string | null>(null);
+  useEntityDeepLink('tables', setTableId);
   const [newRelationOpen, setNewRelationOpen] = useState(false);
   const [confirmRel, setConfirmRel] = useState<Relation | null>(null);
   const [saveVersionOpen, setSaveVersionOpen] = useState(false);

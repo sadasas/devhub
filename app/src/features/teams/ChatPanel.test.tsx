@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter, useLocation } from 'react-router';
 import type { ChatMessage } from '../../lib/types';
 import type { TeamChatSocketOptions } from '../../lib/realtime-client';
 import { ChatPanel } from './ChatPanel';
@@ -9,6 +10,7 @@ const api = vi.hoisted(() => ({
   sendMessage: vi.fn(),
   deleteMessage: vi.fn(),
   search: vi.fn(),
+  resolveChatRefs: vi.fn(),
 }));
 
 const sockets = vi.hoisted(() => [] as TeamChatSocketOptions[]);
@@ -79,8 +81,18 @@ function message(over: Partial<ChatMessage> = {}): ChatMessage {
   };
 }
 
-function renderPanel() {
-  return render(<ChatPanel teamId="t1" userId="u1" userDisplayName="Ana" />);
+function renderPanel(entries: string[] = ['/teams/t1']) {
+  return render(
+    <MemoryRouter initialEntries={entries}>
+      <LocationProbe />
+      <ChatPanel teamId="t1" userId="u1" userDisplayName="Ana" />
+    </MemoryRouter>,
+  );
+}
+
+function LocationProbe() {
+  const loc = useLocation();
+  return <span data-testid="loc">{loc.pathname}{loc.search}</span>;
 }
 
 beforeEach(() => {
@@ -89,6 +101,7 @@ beforeEach(() => {
   api.sendMessage.mockReset();
   api.deleteMessage.mockReset();
   api.search.mockReset().mockResolvedValue([]);
+  api.resolveChatRefs.mockReset().mockResolvedValue([]);
   idb.getMeta.mockReset().mockResolvedValue(null);
   idb.putMeta.mockReset().mockResolvedValue(undefined);
   sockets.length = 0;
@@ -352,7 +365,7 @@ describe('ChatPanel', () => {
     fireEvent.change(input, { target: { value: 'Cek @[Build login](tasks:t1) yuk' } });
     fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
 
-    expect(await screen.findByText('Cek @[Build login](tasks:t1) yuk')).toBeTruthy();
+    expect(await screen.findByRole('button', { name: '#t1' })).toBeTruthy();
     expect(api.sendMessage).toHaveBeenCalledWith('t1', 'Cek @[Build login](tasks:t1) yuk', [
       { entity: 'tasks', entityId: 't1' },
     ]);
@@ -417,6 +430,92 @@ describe('ChatPanel', () => {
     expect(api.sendMessage).toHaveBeenCalledWith('t1', 'x', [
       { entity: 'tasks', entityId: 't1' },
     ]);
+  });
+
+  it('renders refs in messages as chips with resolved titles', async () => {
+    api.listMessages.mockResolvedValue({
+      messages: [
+        message({
+          id: 'm5',
+          content: 'Cek @[Build login](tasks:t1) yuk',
+        }),
+      ],
+      nextCursor: null,
+    });
+    api.resolveChatRefs.mockResolvedValue([{ entity: 'tasks', entityId: 't1', projectId: 'p1', title: 'Build login' }]);
+    renderPanel();
+
+    const chip = await screen.findByRole('button', { name: 'Build login' });
+    expect(chip.className).toContain('chat-chip');
+    expect(chip.hasAttribute('disabled')).toBe(false);
+    expect(api.resolveChatRefs).toHaveBeenCalledWith('t1', [
+      { entity: 'tasks', entityId: 't1' },
+    ]);
+    expect(screen.getByText(/Cek/)).toBeTruthy();
+    expect(screen.getByText(/yuk/)).toBeTruthy();
+  });
+
+  it('navigates to the linked entity when a chip is clicked', async () => {
+    api.listMessages.mockResolvedValue({
+      messages: [message({ id: 'm6', content: 'lihat @[Build login](tasks:t1)' })],
+      nextCursor: null,
+    });
+    api.resolveChatRefs.mockResolvedValue([{ entity: 'tasks', entityId: 't1', projectId: 'p1', title: 'Build login' }]);
+    renderPanel(['/teams/t1']);
+
+    const chip = await screen.findByRole('button', { name: 'Build login' });
+    fireEvent.click(chip);
+    expect(screen.getByTestId('loc').textContent).toBe('/project/p1?tab=board&entity=tasks&id=t1');
+  });
+
+  it('renders a disabled fallback chip for unresolved refs', async () => {
+    api.listMessages.mockResolvedValue({
+      messages: [message({ id: 'm7', content: 'link @[Ghost](tasks:11111111-1111-4111-8111-111111111111)' })],
+      nextCursor: null,
+    });
+    renderPanel();
+
+    const chip = await screen.findByRole('button', { name: '#111111' });
+    expect(chip.hasAttribute('disabled')).toBe(true);
+  });
+
+  it('resolves refs from multiple messages in one batch', async () => {
+    api.listMessages.mockResolvedValue({
+      messages: [
+        message({ id: 'm8', content: 'a @[Build login](tasks:t1)' }),
+        message({ id: 'm9', content: 'b @[Flaky test](issues:i9)' }),
+      ],
+      nextCursor: null,
+    });
+    api.resolveChatRefs.mockResolvedValue([]);
+    renderPanel();
+
+    await waitFor(() => {
+      expect(api.resolveChatRefs).toHaveBeenCalledTimes(1);
+    });
+    expect(api.resolveChatRefs).toHaveBeenCalledWith('t1', [
+      { entity: 'tasks', entityId: 't1' },
+      { entity: 'issues', entityId: 'i9' },
+    ]);
+  });
+
+  it('renders chips for messages from other members', async () => {
+    api.listMessages.mockResolvedValue({
+      messages: [
+        message({
+          id: 'm10',
+          authorId: 'u2',
+          authorName: 'Budi',
+          content: 'lihat @[Build login](tasks:t1)',
+        }),
+      ],
+      nextCursor: null,
+    });
+    api.resolveChatRefs.mockResolvedValue([{ entity: 'tasks', entityId: 't1', projectId: 'p1', title: 'Build login' }]);
+    renderPanel();
+
+    const chip = await screen.findByRole('button', { name: 'Build login' });
+    expect(chip.hasAttribute('disabled')).toBe(false);
   });
 });
 
