@@ -539,10 +539,15 @@ export function ProjectProvider({
       });
       const mutation = actionToMutation(action);
       if (mutation) {
-        mutationsRef.current.set(mutation.key, mutation);
+        const pending = mutationsRef.current.get(mutation.key);
+        const merged =
+          pending?.op === 'create' && mutation.op === 'update'
+            ? { ...pending, payload: { ...pending.payload, ...mutation.payload } }
+            : mutation;
+        mutationsRef.current.set(mutation.key, merged);
         emitPendingCount();
         if (isQueuedStorageProvider(provider)) {
-          void provider.enqueuePendingMutation(projectId, mutation).catch(() => {});
+          void provider.enqueuePendingMutation(projectId, merged).catch(() => {});
         }
       }
       scheduleSave();

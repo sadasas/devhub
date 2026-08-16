@@ -48,6 +48,36 @@ function Probe() {
   return (
     <div>
       <button onClick={() => ctx.dispatch(editAction())}>edit</button>
+      <button
+        onClick={() =>
+          ctx.dispatch({
+            type: 'whiteboard/add',
+            whiteboard: {
+              id: 'wb1',
+              createdAt: '',
+              updatedAt: '',
+              name: 'Board',
+              description: '',
+              elements: [],
+            },
+          })
+        }
+      >
+        wb-add
+      </button>
+      <button
+        onClick={() =>
+          ctx.dispatch({
+            type: 'whiteboard/update',
+            id: 'wb1',
+            patch: {
+              elements: [{ id: 'el1', kind: 'text', x: 0, y: 0, color: '#e4e4e7', fontSize: 16, text: '' }],
+            },
+          })
+        }
+      >
+        wb-edit
+      </button>
       <button onClick={() => ctx.retrySave()}>retry</button>
       <button onClick={() => void ctx.resolveConflict()}>resolve</button>
       <span data-testid="title">{ctx.state?.tasks[0]?.title ?? 'none'}</span>
@@ -110,6 +140,36 @@ describe('project save pipeline', () => {
       undefined,
     );
     expect(getState).toHaveBeenCalledTimes(1);
+  });
+
+  it('merges an update into a pending create for the same entity id', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval'] });
+    vi.spyOn(api, 'getState').mockResolvedValue({ state: makeState(), version: 1 });
+    const createEntity = vi
+      .spyOn(api, 'createEntity')
+      .mockResolvedValue({ entity: { id: 'wb1' }, version: 2 });
+
+    renderProvider();
+    await flush();
+
+    fireEvent.click(screen.getByRole('button', { name: 'wb-add' }));
+    fireEvent.click(screen.getByRole('button', { name: 'wb-edit' }));
+
+    await act(async () => {
+      vi.advanceTimersByTime(800);
+    });
+    await flush();
+
+    expect(createEntity).toHaveBeenCalledTimes(1);
+    expect(createEntity).toHaveBeenCalledWith(
+      PROJECT_ID,
+      'whiteboards',
+      expect.objectContaining({
+        id: 'wb1',
+        name: 'Board',
+        elements: expect.arrayContaining([expect.objectContaining({ id: 'el1', kind: 'text' })]),
+      }),
+    );
   });
 
   it('drops local edits on a 409 when the server is newer (LWW) and resolves to the server version', async () => {
