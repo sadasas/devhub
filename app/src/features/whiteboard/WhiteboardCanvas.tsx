@@ -22,6 +22,7 @@ import {
   elementBounds,
   refCardLayout,
   refCardRect,
+  rectsIntersect,
   screenToWorld,
   truncateToWidth,
   worldToScreen,
@@ -75,6 +76,7 @@ const DOT_STEP = 32;
 
 const TOOL_CURSOR: Record<WbTool, string> = {
   select: 'grab',
+  marquee: 'crosshair',
   pen: 'crosshair',
   eraser: 'crosshair',
   text: 'text',
@@ -413,6 +415,8 @@ export function WhiteboardCanvas({ board, tool, history }: WhiteboardCanvasProps
   const panDragRef = useRef(false);
   const [edgeDraft, setEdgeDraft] = useState<EdgeDraft | null>(null);
   const edgeDraftRef = useRef<EdgeDraft | null>(null);
+  const [marquee, setMarquee] = useState<{ x1: number; y1: number; x2: number; y2: number; shift: boolean } | null>(null);
+  const marqueeRef = useRef<{ x1: number; y1: number; x2: number; y2: number; shift: boolean } | null>(null);
   const [refPending, setRefPending] = useState<Point | null>(null);
   const [collapsedRefs, setCollapsedRefs] = useState<ReadonlySet<string>>(() => new Set());
 
@@ -549,6 +553,8 @@ export function WhiteboardCanvas({ board, tool, history }: WhiteboardCanvasProps
       if (e.key === 'Escape') {
         setSelectedIds([]);
         setDragOffset(null);
+        marqueeRef.current = null;
+        setMarquee(null);
       }
     };
     const onKeyUp = (e: KeyboardEvent) => {
@@ -566,10 +572,12 @@ export function WhiteboardCanvas({ board, tool, history }: WhiteboardCanvasProps
   }, [selectedIds, removeSelection]);
 
   useEffect(() => {
-    if (tool !== 'select') {
+    if (tool !== 'select' && tool !== 'marquee') {
       setPopover(null);
       setSelectedIds([]);
       setDragOffset(null);
+      marqueeRef.current = null;
+      setMarquee(null);
     }
   }, [tool]);
 
@@ -784,6 +792,12 @@ export function WhiteboardCanvas({ board, tool, history }: WhiteboardCanvasProps
       setEdgeDraft(d);
       return;
     }
+    if (tool === 'marquee') {
+      const m = { x1: pt.x, y1: pt.y, x2: pt.x, y2: pt.y, shift: e.shiftKey };
+      marqueeRef.current = m;
+      setMarquee(m);
+      return;
+    }
     if (tool === 'ref') {
       setRefPending(pt);
       return;
@@ -813,12 +827,37 @@ export function WhiteboardCanvas({ board, tool, history }: WhiteboardCanvasProps
       setEdgeDraft(next);
       return;
     }
+    if (tool === 'marquee') {
+      const m = marqueeRef.current;
+      if (!m) return;
+      const pt = worldAt(e);
+      const next = { ...m, x2: pt.x, y2: pt.y };
+      marqueeRef.current = next;
+      setMarquee(next);
+      return;
+    }
   };
 
   const handlePointerUp = (_e: ReactPointerEvent<SVGSVGElement>) => {
     if (spaceHeld || panDragRef.current) {
       panDragRef.current = false;
       view.onPointerUp();
+      return;
+    }
+    if (tool === 'marquee') {
+      const m = marqueeRef.current;
+      marqueeRef.current = null;
+      setMarquee(null);
+      if (!m) return;
+      const rect: Rect = {
+        x: Math.min(m.x1, m.x2),
+        y: Math.min(m.y1, m.y2),
+        w: Math.abs(m.x2 - m.x1),
+        h: Math.abs(m.y2 - m.y1),
+      };
+      const hits = board.elements.filter((el) => rectsIntersect(boundsFor(el), rect));
+      setSelectedIds(m.shift ? Array.from(new Set([...selectedIds, ...hits.map((el) => el.id)])) : hits.map((el) => el.id));
+      setDragOffset(null);
       return;
     }
     if (tool === 'select') {
@@ -861,6 +900,11 @@ export function WhiteboardCanvas({ board, tool, history }: WhiteboardCanvasProps
     if (tool === 'edge') {
       edgeDraftRef.current = null;
       setEdgeDraft(null);
+      return;
+    }
+    if (tool === 'marquee') {
+      marqueeRef.current = null;
+      setMarquee(null);
       return;
     }
   };
@@ -965,6 +1009,25 @@ export function WhiteboardCanvas({ board, tool, history }: WhiteboardCanvasProps
                     </g>
                   )}
                 </g>
+              );
+            })()}
+          {marquee &&
+            (() => {
+              const rx = Math.min(marquee.x1, marquee.x2);
+              const ry = Math.min(marquee.y1, marquee.y2);
+              return (
+                <rect
+                  x={rx}
+                  y={ry}
+                  width={Math.abs(marquee.x2 - marquee.x1)}
+                  height={Math.abs(marquee.y2 - marquee.y1)}
+                  fill="rgba(110,168,254,0.08)"
+                  stroke="var(--accent)"
+                  strokeWidth={1.5}
+                  strokeDasharray="5 4"
+                  pointerEvents="none"
+                  data-testid="wb-marquee"
+                />
               );
             })()}
         </g>

@@ -1036,4 +1036,155 @@ describe('whiteboard editor shell', () => {
 
     expect(dispatch).not.toHaveBeenCalled();
   });
+
+  it('selects elements intersecting the marquee box', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      ...BOARD,
+      elements: [
+        { id: 'a', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' },
+        { id: 'b', kind: 'sticky', x: 200, y: 0, w: 100, h: 60, color: '#e8b955', text: 'B' },
+        { id: 'c', kind: 'sticky', x: 400, y: 0, w: 100, h: 60, color: '#e8b955', text: 'C' },
+      ],
+    };
+    renderShell(board);
+    fireEvent.click(screen.getByRole('button', { name: 'Select area — 9' }));
+
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    expect(screen.queryByRole('button', { name: 'Delete selected' })).toBeNull();
+
+    // Marquee world (0,0) → (200,60): touches a and b, not c.
+    fireEvent.pointerDown(svg, { button: 0, clientX: 16, clientY: 16 });
+    fireEvent.pointerMove(svg, { clientX: 216, clientY: 76 });
+    fireEvent.pointerUp(svg, { clientX: 216, clientY: 76 });
+
+    expect(screen.getByRole('button', { name: 'Delete selected' })).not.toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }));
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const action = dispatch.mock.calls[0]![0] as { patch: { elements: { id: string }[] } };
+    expect(action.patch.elements.map((el) => el.id)).toEqual(['c']);
+  });
+
+  it('marquee selection replaces the previous selection', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      ...BOARD,
+      elements: [
+        { id: 'a', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' },
+        { id: 'b', kind: 'sticky', x: 200, y: 0, w: 100, h: 60, color: '#e8b955', text: 'B' },
+        { id: 'c', kind: 'sticky', x: 400, y: 0, w: 100, h: 60, color: '#e8b955', text: 'C' },
+      ],
+    };
+    renderShell(board);
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    // Select a with the select tool first.
+    fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+    fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
+    fireEvent.click(screen.getByRole('button', { name: 'Select area — 9' }));
+
+    // Marquee world (250,0) → (350,60): only b.
+    fireEvent.pointerDown(svg, { button: 0, clientX: 266, clientY: 16 });
+    fireEvent.pointerMove(svg, { clientX: 366, clientY: 76 });
+    fireEvent.pointerUp(svg, { clientX: 366, clientY: 76 });
+    fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }));
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const action = dispatch.mock.calls[0]![0] as { patch: { elements: { id: string }[] } };
+    expect(action.patch.elements.map((el) => el.id)).toEqual(['a', 'c']);
+  });
+
+  it('shift-marquee adds to the existing selection', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      ...BOARD,
+      elements: [
+        { id: 'a', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' },
+        { id: 'b', kind: 'sticky', x: 200, y: 0, w: 100, h: 60, color: '#e8b955', text: 'B' },
+        { id: 'c', kind: 'sticky', x: 400, y: 0, w: 100, h: 60, color: '#e8b955', text: 'C' },
+      ],
+    };
+    renderShell(board);
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    // Select a by clicking it, then shift+marquee over b.
+    fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+    fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
+    fireEvent.click(screen.getByRole('button', { name: 'Select area — 9' }));
+    // jsdom does not apply modifier keys from the PointerEvent init dict, so
+    // define shiftKey on the constructed event directly.
+    const shiftDown = new PointerEvent('pointerdown', {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+      clientX: 266,
+      clientY: 16,
+    });
+    Object.defineProperty(shiftDown, 'shiftKey', { value: true });
+    svg.dispatchEvent(shiftDown);
+    fireEvent.pointerMove(svg, { clientX: 366, clientY: 76 });
+    fireEvent.pointerUp(svg, { clientX: 366, clientY: 76 });
+    fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }));
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const action = dispatch.mock.calls[0]![0] as { patch: { elements: { id: string }[] } };
+    expect(action.patch.elements.map((el) => el.id)).toEqual(['c']);
+  });
+
+  it('shows the marquee preview while dragging and clears it on release', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    renderShell(BOARD);
+    fireEvent.click(screen.getByRole('button', { name: 'Select area — 9' }));
+
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    expect(document.querySelector('[data-testid="wb-marquee"]')).toBeNull();
+
+    fireEvent.pointerDown(svg, { button: 0, clientX: 16, clientY: 16 });
+    fireEvent.pointerMove(svg, { clientX: 116, clientY: 76 });
+    expect(document.querySelector('[data-testid="wb-marquee"]')).not.toBeNull();
+
+    fireEvent.pointerUp(svg, { clientX: 116, clientY: 76 });
+    expect(document.querySelector('[data-testid="wb-marquee"]')).toBeNull();
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('activates the select area tool with the digit 9 shortcut', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    renderShell(BOARD);
+    const btn = screen.getByRole('button', { name: 'Select area — 9' });
+    expect(btn.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.keyDown(window, { key: '9' });
+    expect(btn.getAttribute('aria-pressed')).toBe('true');
+  });
 });

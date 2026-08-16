@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowClockwise, ArrowCounterClockwise, ArrowLeft, BoundingBox, Cards, Cursor, Eraser, FlowArrow, Note, PenNib, TextT } from '@phosphor-icons/react';
+import { ArrowClockwise, ArrowCounterClockwise, ArrowLeft, BoundingBox, Cards, Cursor, Eraser, FlowArrow, Note, PenNib, Selection, TextT } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 import type { Whiteboard } from '../../lib/types';
 import { WhiteboardCanvas } from './WhiteboardCanvas';
@@ -14,6 +14,7 @@ interface WhiteboardEditorShellProps {
 
 const TOOLS = [
   { id: 'select', name: 'Select', icon: Cursor, shortcut: SHORTCUTS.select },
+  { id: 'marquee', name: 'Select area', icon: Selection, shortcut: SHORTCUTS.marquee },
   { id: 'pen', name: 'Pen', icon: PenNib, shortcut: SHORTCUTS.pen },
   { id: 'eraser', name: 'Eraser', icon: Eraser, shortcut: SHORTCUTS.eraser },
   { id: 'text', name: 'Text', icon: TextT, shortcut: SHORTCUTS.text },
@@ -23,7 +24,7 @@ const TOOLS = [
   { id: 'ref', name: 'Entity ref card', icon: Cards, shortcut: SHORTCUTS.ref },
 ] as const;
 
-const ACTIVE_TOOLS: ReadonlySet<string> = new Set(['select', 'pen', 'eraser', 'text', 'sticky', 'shape', 'edge', 'ref']);
+const ACTIVE_TOOLS: ReadonlySet<string> = new Set(['select', 'marquee', 'pen', 'eraser', 'text', 'sticky', 'shape', 'edge', 'ref']);
 
 export function WhiteboardEditorShell({ board, onBack }: WhiteboardEditorShellProps) {
   const [tool, setTool] = useState<WbTool>('select');
@@ -53,6 +54,8 @@ export function WhiteboardEditorShell({ board, onBack }: WhiteboardEditorShellPr
       }
       if (key === SHORTCUTS.select && ACTIVE_TOOLS.has('select')) {
         setTool('select');
+      } else if (key === SHORTCUTS.marquee && ACTIVE_TOOLS.has('marquee')) {
+        setTool('marquee');
       } else if (key === SHORTCUTS.pen && ACTIVE_TOOLS.has('pen')) {
         setTool('pen');
       } else if (key === SHORTCUTS.eraser && ACTIVE_TOOLS.has('eraser')) {

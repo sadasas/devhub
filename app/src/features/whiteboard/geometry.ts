@@ -265,6 +265,10 @@ export function elementBounds(el: Partial<WhiteboardElement> & { kind: string })
   }
 }
 
+export function rectsIntersect(a: Rect, b: Rect): boolean {
+  return a.x <= b.x + b.w && a.x + a.w >= b.x && a.y <= b.y + b.h && a.y + a.h >= b.y;
+}
+
 export function clampPopover(
   raw: { x: number; y: number },
   containerW: number,

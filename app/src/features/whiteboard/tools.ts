@@ -2,7 +2,7 @@ import { newId } from '../../lib/utils';
 import type { WhiteboardRef, WhiteboardShape, WhiteboardSticky, WhiteboardStroke, WhiteboardText } from '../../lib/types';
 
 /** Tools that draw on the canvas. `select` pans/zooms (and later selects). */
-export type WbTool = 'select' | 'pen' | 'eraser' | 'text' | 'sticky' | 'shape' | 'edge' | 'ref';
+export type WbTool = 'select' | 'marquee' | 'pen' | 'eraser' | 'text' | 'sticky' | 'shape' | 'edge' | 'ref';
 
 export const PEN_COLOR = '#e4e4e7';
 export const ERASER_COLOR = '#8a8a93';

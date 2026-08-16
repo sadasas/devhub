@@ -18,6 +18,7 @@ export const SHORTCUTS = {
   shape: '6',
   edge: '7',
   ref: '8',
+  marquee: '9',
   pan: 'Space',
   delete: 'Delete',
   deleteAlt: 'Backspace',
