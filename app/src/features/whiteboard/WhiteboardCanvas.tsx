@@ -841,13 +841,18 @@ export function WhiteboardCanvas({ board, tool, history }: WhiteboardCanvasProps
     const rect = e.currentTarget.getBoundingClientRect();
     const pt = screenToWorld(view.view, e.clientX - rect.left, e.clientY - rect.top);
     const hit = elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects);
-    if (!hit || hit.kind !== 'ref') return;
-    const b = boundsFor(hit);
-    const t = REF_LAYOUT.toggle;
-    if (pointInRect(pt, { x: b.x + b.w - t.rightOff, y: b.y + t.topOff, w: t.w, h: t.h })) return;
-    const rows = state?.[hit.entity] as Array<{ id: string }> | undefined;
-    if (!rows?.some((r) => r.id === hit.entityId)) return;
-    openRef(hit.entity, hit.entityId);
+    if (!hit) return;
+    if (hit.kind === 'ref') {
+      const b = boundsFor(hit);
+      const t = REF_LAYOUT.toggle;
+      if (pointInRect(pt, { x: b.x + b.w - t.rightOff, y: b.y + t.topOff, w: t.w, h: t.h })) return;
+      const rows = state?.[hit.entity] as Array<{ id: string }> | undefined;
+      if (!rows?.some((r) => r.id === hit.entityId)) return;
+      openRef(hit.entity, hit.entityId);
+      return;
+    }
+    if (hit.kind === 'edge' || hit.kind === 'stroke') return;
+    setPopover({ id: hit.id, kind: hit.kind, wx: hit.x, wy: hit.y, el: hit });
   };
 
   const worldViewport = (() => {

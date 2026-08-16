@@ -603,6 +603,74 @@ describe('whiteboard editor shell', () => {
     expect(screen.getByTestId('loc').textContent).toBe('/');
   });
 
+  it('opens the edit popover when a sticky is double-clicked', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      ...BOARD,
+      elements: [{ id: 'a', kind: 'sticky', x: 0, y: 0, w: 200, h: 120, color: '#e8b955', text: 'A' }],
+    };
+    renderShell(board);
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    fireEvent.doubleClick(svg, { clientX: 20, clientY: 20 });
+
+    expect(screen.getByRole('dialog', { name: 'Edit sticky' })).not.toBeNull();
+    fireEvent.keyDown(screen.getByRole('dialog', { name: 'Edit sticky' }), { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'Edit sticky' })).toBeNull();
+  });
+
+  it('opens the edit popover when a shape is double-clicked', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      ...BOARD,
+      elements: [
+        { id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 200, h: 120, color: '#e8b955', fill: true, strokeWidth: 2, label: '' },
+      ],
+    };
+    renderShell(board);
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    fireEvent.doubleClick(svg, { clientX: 20, clientY: 20 });
+
+    expect(screen.getByRole('dialog', { name: 'Edit shape' })).not.toBeNull();
+  });
+
+  it('does not open a popover when an edge is double-clicked', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      ...BOARD,
+      elements: [
+        { id: 'a', kind: 'sticky', x: 0, y: 0, w: 200, h: 120, color: '#e8b955', text: 'A' },
+        { id: 'b', kind: 'sticky', x: 300, y: 0, w: 200, h: 120, color: '#e8b955', text: 'B' },
+        { id: 'e1', kind: 'edge', sourceNodeId: 'a', targetNodeId: 'b', arrowhead: true, x1: 200, y1: 60, x2: 300, y2: 60, color: '#8b5cf6', width: 2 },
+      ],
+    };
+    renderShell(board);
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    fireEvent.doubleClick(svg, { clientX: 266, clientY: 76 });
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
   it('shows all task data on an expanded ref card and toggles it collapsed with the corner button', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
