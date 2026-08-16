@@ -13,6 +13,7 @@ import {
   wrapText,
   wrapToWidth,
   worldToScreen,
+  worldViewportRect,
   zoomAtPoint,
   type RefCardData,
 } from './geometry';
@@ -36,6 +37,11 @@ describe('geometry', () => {
     const world = screenToWorld(VIEW, 260, 130);
     expect(world).toEqual({ x: 80, y: 40 });
     expect(worldToScreen(VIEW, world.x, world.y)).toEqual({ x: 260, y: 130 });
+  });
+
+  it('maps a container rect into world coordinates for culling', () => {
+    expect(worldViewportRect({ x: 16, y: 16, s: 1 }, 800, 600)).toEqual({ x: -16, y: -16, w: 800, h: 600 });
+    expect(worldViewportRect(VIEW, 800, 600)).toEqual({ x: -50, y: -25, w: 400, h: 300 });
   });
 
   it('keeps the world point under the cursor fixed when zooming about a point', () => {

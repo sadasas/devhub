@@ -27,6 +27,7 @@ import {
   screenToWorld,
   truncateToWidth,
   worldToScreen,
+  worldViewportRect,
   zoomAtPoint,
   CHIP_CHAR_W,
   REF_LAYOUT,
@@ -91,6 +92,7 @@ const TOOL_CURSOR: Record<WbTool, string> = {
 };
 const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 3;
+const MAX_ELEMENTS = 1000;
 const noopDispatch = () => {};
 const DEFAULT_EDGE_COLOR = '#e4e4e7';
 const DEFAULT_EDGE_WIDTH = 2;
@@ -151,14 +153,28 @@ function shapePath(shape: WhiteboardShape): string {
   }
 }
 
-function offsetRect(rect: Rect, offset: { dx: number; dy: number } | null | undefined): Rect {
-  if (!offset) return rect;
-  return { x: rect.x + offset.dx, y: rect.y + offset.dy, w: rect.w, h: rect.h };
-}
-
 interface DragOffset {
   dx: number;
   dy: number;
+}
+
+/** Applies the drag offset to an edge's endpoints when its nodes are selected. */
+function shiftEndpoints(
+  ep: EdgeEndpoints | null,
+  offset: DragOffset | null,
+  selected: ReadonlySet<string> | null,
+  el: WhiteboardEdge,
+): EdgeEndpoints | null {
+  if (!ep || !offset) return ep;
+  const off1 = el.sourceNodeId && selected?.has(el.sourceNodeId) ? offset : null;
+  const off2 = el.targetNodeId && selected?.has(el.targetNodeId) ? offset : null;
+  if (!off1 && !off2) return ep;
+  return {
+    x1: ep.x1 + (off1 ? off1.dx : 0),
+    y1: ep.y1 + (off1 ? off1.dy : 0),
+    x2: ep.x2 + (off2 ? off2.dx : 0),
+    y2: ep.y2 + (off2 ? off2.dy : 0),
+  };
 }
 
 interface EdgeDraft {
@@ -427,6 +443,19 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   const [refPending, setRefPending] = useState<Point | null>(null);
   const [collapsedRefs, setCollapsedRefs] = useState<ReadonlySet<string>>(() => new Set());
 
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const [viewport, setViewport] = useState<Rect | null>(null);
+  useLayoutEffect(() => {
+    const el = view.ref.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) {
+      setViewport(null);
+      return;
+    }
+    setViewport(worldViewportRect(view.view, rect.width, rect.height));
+  }, [view.view]);
+
   const toggleCollapse = useCallback((id: string) => {
     setCollapsedRefs((prev) => {
       const next = new Set(prev);
@@ -502,6 +531,11 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     [refRects],
   );
 
+  const visibleElements = useMemo(() => {
+    if (!viewport) return board.elements;
+    return board.elements.filter((el) => rectsIntersect(boundsFor(el), viewport));
+  }, [board.elements, boundsFor, viewport]);
+
   const derivedEdges = useMemo(() => {
     const map = new Map<string, EdgeEndpoints>();
     for (const el of board.elements) {
@@ -509,10 +543,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       const src = byId.get(el.sourceNodeId);
       const dst = byId.get(el.targetNodeId);
       if (!src || !dst) continue;
-      const srcOff = selectedIds.includes(el.sourceNodeId) ? dragOffset : null;
-      const dstOff = selectedIds.includes(el.targetNodeId) ? dragOffset : null;
-      const sb = offsetRect(boundsFor(src), srcOff);
-      const tb = offsetRect(boundsFor(dst), dstOff);
+      const sb = boundsFor(src);
+      const tb = boundsFor(dst);
       const sc = { x: sb.x + sb.w / 2, y: sb.y + sb.h / 2 };
       const tc = { x: tb.x + tb.w / 2, y: tb.y + tb.h / 2 };
       const p1 = el.sourcePort ? portPoint(sb, el.sourcePort) : portToward(sb, tc);
@@ -520,7 +552,15 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       map.set(el.id, { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y });
     }
     return map;
-  }, [board.elements, byId, boundsFor, selectedIds, dragOffset]);
+  }, [board.elements, byId, boundsFor]);
+
+  const edgeDraftHover = useMemo(() => {
+    if (!edgeDraft) return null;
+    const fromEl = board.elements.find((el) => el.id === edgeDraft.fromId);
+    if (!fromEl) return null;
+    const hover = elementsAtPoint(board.elements, edgeDraft.cur, EDGE_TOUCH_TOLERANCE, refRects);
+    return { fromEl, hover };
+  }, [board.elements, edgeDraft, refRects]);
 
   const removeSelection = useCallback(() => {
     if (selectedIds.length === 0) return;
@@ -631,6 +671,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       });
       return;
     }
+    if (board.elements.length >= MAX_ELEMENTS) return;
     history.record();
     dispatch({
       type: 'whiteboard/update',
@@ -652,6 +693,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     if (!rect) return;
     const pt = screenToWorld(view.view, start.clientX - rect.left, start.clientY - rect.top);
     const placed = tool === 'sticky' ? buildSticky(pt.x, pt.y) : tool === 'shape' ? buildShape(pt.x, pt.y) : buildText(pt.x, pt.y);
+    if (board.elements.length >= MAX_ELEMENTS) return;
     history.record();
     dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...board.elements, placed] } });
     setPopover({ id: placed.id, kind: placed.kind === 'shape' ? 'shape' : placed.kind === 'text' ? 'text' : 'sticky', wx: pt.x, wy: pt.y, el: placed });
@@ -728,6 +770,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       sourcePort,
       targetPort,
     };
+    if (board.elements.length >= MAX_ELEMENTS) return;
     history.record();
     dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...board.elements, edge] } });
   };
@@ -736,6 +779,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     const pt = refPending;
     setRefPending(null);
     if (!pt) return;
+    if (board.elements.length >= MAX_ELEMENTS) return;
     history.record();
     dispatch({
       type: 'whiteboard/update',
@@ -937,14 +981,6 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     setPopover({ id: hit.id, kind: hit.kind, wx: hit.x, wy: hit.y, el: hit });
   };
 
-  const worldViewport = (() => {
-    if (!view.ref.current) return null;
-    const rect = view.ref.current.getBoundingClientRect();
-    const tl = screenToWorld(view.view, 0, 0);
-    const br = screenToWorld(view.view, rect.width, rect.height);
-    return { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y };
-  })();
-
   return (
     <div className="wb-canvas" role="group" aria-label={`Whiteboard ${board.name} — ${board.elements.length} elements`} tabIndex={0}>
       <svg
@@ -963,20 +999,22 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
           </pattern>
         </defs>
         <rect
-          x={worldViewport?.x ?? 0}
-          y={worldViewport?.y ?? 0}
-          width={worldViewport?.w ?? 1000}
-          height={worldViewport?.h ?? 800}
+          x={viewport?.x ?? 0}
+          y={viewport?.y ?? 0}
+          width={viewport?.w ?? 1000}
+          height={viewport?.h ?? 800}
           fill="url(#wb-dots)"
         />
         <g transform={`translate(${view.view.x} ${view.view.y}) scale(${view.view.s})`}>
-          {board.elements.map((el) => (
+          {visibleElements.map((el) => (
             <ElementView
               key={el.id}
               el={el}
-              selected={selectedIds.includes(el.id)}
-              offset={selectedIds.includes(el.id) ? dragOffset : null}
-              derivedEndpoints={derivedEdges.get(el.id) ?? null}
+              selected={selectedSet.has(el.id)}
+              offset={selectedSet.has(el.id) ? dragOffset : null}
+              derivedEndpoints={
+                el.kind === 'edge' ? shiftEndpoints(derivedEdges.get(el.id) ?? null, dragOffset, selectedSet, el) : null
+              }
               refData={el.kind === 'ref' ? (refDataMap.get(el.id) ?? null) : undefined}
               collapsed={el.kind === 'ref' ? collapsedRefs.has(el.id) : undefined}
               bounds={el.kind === 'ref' ? refRects.get(el.id) : undefined}
@@ -1000,10 +1038,9 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
               />
             ))}
           {edgeDraft &&
+            edgeDraftHover &&
             (() => {
-              const fromEl = board.elements.find((el) => el.id === edgeDraft.fromId);
-              if (!fromEl) return null;
-              const hover = elementsAtPoint(board.elements, edgeDraft.cur, EDGE_TOUCH_TOLERANCE, refRects);
+              const { hover } = edgeDraftHover;
               const ep =
                 hover && hover.id !== edgeDraft.fromId
                   ? edgeEndpoints(edgeDraft.fromBounds, boundsFor(hover), edgeDraft.cur)

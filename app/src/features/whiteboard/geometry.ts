@@ -269,6 +269,13 @@ export function rectsIntersect(a: Rect, b: Rect): boolean {
   return a.x <= b.x + b.w && a.x + a.w >= b.x && a.y <= b.y + b.h && a.y + a.h >= b.y;
 }
 
+/** World-space viewport rect for a canvas of w×h pixels under a view transform. */
+export function worldViewportRect(view: ViewState, w: number, h: number): Rect {
+  const tl = screenToWorld(view, 0, 0);
+  const br = screenToWorld(view, w, h);
+  return { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y };
+}
+
 export function clampPopover(
   raw: { x: number; y: number },
   containerW: number,

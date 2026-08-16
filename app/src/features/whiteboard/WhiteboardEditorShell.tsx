@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowClockwise, ArrowCounterClockwise, ArrowLeft, BoundingBox, Cards, Cursor, Eraser, FlowArrow, Note, PenNib, Selection, TextT } from '@phosphor-icons/react';
+import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import type { Whiteboard } from '../../lib/types';
 import { WhiteboardCanvas } from './WhiteboardCanvas';
@@ -11,6 +12,10 @@ interface WhiteboardEditorShellProps {
   board: Whiteboard;
   onBack: () => void;
 }
+
+const WARN_ELEMENTS = 800;
+const MAX_ELEMENTS = 1000;
+const ADD_TOOLS: ReadonlySet<string> = new Set(['pen', 'text', 'sticky', 'shape', 'edge', 'ref']);
 
 const TOOLS = [
   { id: 'select', name: 'Select', icon: Cursor, shortcut: SHORTCUTS.select },
@@ -31,6 +36,9 @@ export function WhiteboardEditorShell({ board, onBack }: WhiteboardEditorShellPr
   const history = useWhiteboardHistory(board.id, board.elements);
   const historyRef = useRef(history);
   historyRef.current = history;
+  const elementCount = board.elements.length;
+  const nearCap = elementCount >= WARN_ELEMENTS;
+  const atCap = elementCount >= MAX_ELEMENTS;
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -56,25 +64,25 @@ export function WhiteboardEditorShell({ board, onBack }: WhiteboardEditorShellPr
         setTool('select');
       } else if (key === SHORTCUTS.marquee && ACTIVE_TOOLS.has('marquee')) {
         setTool('marquee');
-      } else if (key === SHORTCUTS.pen && ACTIVE_TOOLS.has('pen')) {
+      } else if (!atCap && key === SHORTCUTS.pen && ACTIVE_TOOLS.has('pen')) {
         setTool('pen');
       } else if (key === SHORTCUTS.eraser && ACTIVE_TOOLS.has('eraser')) {
         setTool('eraser');
-      } else if (key === SHORTCUTS.text && ACTIVE_TOOLS.has('text')) {
+      } else if (!atCap && key === SHORTCUTS.text && ACTIVE_TOOLS.has('text')) {
         setTool('text');
-      } else if (key === SHORTCUTS.sticky && ACTIVE_TOOLS.has('sticky')) {
+      } else if (!atCap && key === SHORTCUTS.sticky && ACTIVE_TOOLS.has('sticky')) {
         setTool('sticky');
-      } else if (key === SHORTCUTS.shape && ACTIVE_TOOLS.has('shape')) {
+      } else if (!atCap && key === SHORTCUTS.shape && ACTIVE_TOOLS.has('shape')) {
         setTool('shape');
-      } else if (key === SHORTCUTS.edge && ACTIVE_TOOLS.has('edge')) {
+      } else if (!atCap && key === SHORTCUTS.edge && ACTIVE_TOOLS.has('edge')) {
         setTool('edge');
-      } else if (key === SHORTCUTS.ref && ACTIVE_TOOLS.has('ref')) {
+      } else if (!atCap && key === SHORTCUTS.ref && ACTIVE_TOOLS.has('ref')) {
         setTool('ref');
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  }, [atCap]);
 
   return (
     <div className="wb-shell">
@@ -85,13 +93,14 @@ export function WhiteboardEditorShell({ board, onBack }: WhiteboardEditorShellPr
         <div className="sub-tabs" role="toolbar" aria-label="Whiteboard tools">
           {TOOLS.map((item) => {
             const active = ACTIVE_TOOLS.has(item.id) && tool === item.id;
+            const blocked = atCap && ADD_TOOLS.has(item.id);
             return (
               <button
                 key={item.name}
                 type="button"
                 className={`sub-tab${active ? ' sub-tab-active' : ''}`}
-                disabled={!ACTIVE_TOOLS.has(item.id)}
-                title={item.name}
+                disabled={!ACTIVE_TOOLS.has(item.id) || blocked}
+                title={blocked ? `${item.name} — element limit reached` : item.name}
                 aria-label={`${item.name} — ${item.shortcut}`}
                 aria-pressed={active}
                 onClick={() => {
@@ -124,6 +133,16 @@ export function WhiteboardEditorShell({ board, onBack }: WhiteboardEditorShellPr
             <ArrowClockwise size={15} aria-hidden="true" />
           </button>
         </div>
+        {nearCap && (
+          <div className={`wb-cap-banner${atCap ? ' wb-cap-banner-danger' : ''}`} role="alert">
+            <Badge tone={atCap ? 'danger' : 'warn'}>{elementCount}/1000 elements</Badge>
+            <span>
+              {atCap
+                ? 'Element limit reached — delete elements to add more.'
+                : 'Approaching the element limit — delete elements to keep editing.'}
+            </span>
+          </div>
+        )}
       </div>
 
       <WhiteboardCanvas board={board} tool={tool} history={history} />

@@ -1188,4 +1188,163 @@ describe('whiteboard editor shell', () => {
     fireEvent.keyDown(window, { key: '9' });
     expect(btn.getAttribute('aria-pressed')).toBe('true');
   });
+
+  it('shows the element limit warning banner at 800 elements', () => {
+    const board = {
+      ...BOARD,
+      elements: Array.from({ length: 800 }, (_, i) => ({
+        id: `s${i}`,
+        kind: 'sticky' as const,
+        x: i * 10,
+        y: 0,
+        w: 100,
+        h: 60,
+        color: '#e8b955',
+        text: '',
+      })),
+    };
+    renderShell(board);
+    const alert = screen.getByRole('alert');
+    expect(alert.textContent).toContain('800/1000 elements');
+    expect(alert.textContent).toContain('Approaching the element limit');
+  });
+
+  it('hides the element limit banner below 800 elements', () => {
+    const board = {
+      ...BOARD,
+      elements: Array.from({ length: 799 }, (_, i) => ({
+        id: `s${i}`,
+        kind: 'sticky' as const,
+        x: i * 10,
+        y: 0,
+        w: 100,
+        h: 60,
+        color: '#e8b955',
+        text: '',
+      })),
+    };
+    renderShell(board);
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('blocks adding elements at 1000 elements and shows the danger banner', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board = {
+      ...BOARD,
+      elements: Array.from({ length: 1000 }, (_, i) => ({
+        id: `s${i}`,
+        kind: 'sticky' as const,
+        x: i * 10,
+        y: 0,
+        w: 100,
+        h: 60,
+        color: '#e8b955',
+        text: '',
+      })),
+    };
+    renderShell(board);
+    const alert = screen.getByRole('alert');
+    expect(alert.textContent).toContain('1000/1000 elements');
+    expect(alert.textContent).toContain('Element limit reached');
+    expect(screen.getByRole('button', { name: 'Pen — 2' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: 'Sticky note — 5' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: 'Shape — 6' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: 'Select — 1' }).hasAttribute('disabled')).toBe(false);
+    expect(screen.getByRole('button', { name: 'Eraser — 3' }).hasAttribute('disabled')).toBe(false);
+
+    // The shortcut is blocked too, and the canvas guard rejects placement.
+    const stickyBtn = screen.getByRole('button', { name: 'Sticky note — 5' });
+    expect(stickyBtn.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.keyDown(window, { key: '5' });
+    expect(stickyBtn.getAttribute('aria-pressed')).toBe('false');
+
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 120 });
+    fireEvent.pointerUp(svg, { clientX: 100, clientY: 120 });
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('still allows drawing at 999 elements', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board = {
+      ...BOARD,
+      elements: Array.from({ length: 999 }, (_, i) => ({
+        id: `s${i}`,
+        kind: 'sticky' as const,
+        x: i * 10,
+        y: 0,
+        w: 100,
+        h: 60,
+        color: '#e8b955',
+        text: '',
+      })),
+    };
+    renderShell(board);
+    fireEvent.click(screen.getByRole('button', { name: 'Pen — 2' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 30 });
+    fireEvent.pointerMove(svg, { clientX: 40, clientY: 50 });
+    fireEvent.pointerMove(svg, { clientX: 60, clientY: 70 });
+    fireEvent.pointerUp(svg, { clientX: 60, clientY: 70 });
+    expect(dispatch).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps edge endpoints stable while dragging an unconnected node', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      id: 'wb1',
+      createdAt: '',
+      updatedAt: '',
+      name: 'Board',
+      description: '',
+      elements: [
+        { id: 'a', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' },
+        { id: 'b', kind: 'sticky', x: 200, y: 0, w: 100, h: 60, color: '#e8b955', text: 'B' },
+        { id: 'c', kind: 'sticky', x: 400, y: 0, w: 100, h: 60, color: '#e8b955', text: 'C' },
+        {
+          id: 'e1',
+          kind: 'edge',
+          sourceNodeId: 'b',
+          targetNodeId: 'c',
+          sourcePort: 'right',
+          targetPort: 'left',
+          x1: 300,
+          y1: 30,
+          x2: 400,
+          y2: 30,
+          arrowhead: true,
+          color: '#8b5cf6',
+          width: 2,
+        },
+      ],
+    };
+    renderShell(board);
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+    fireEvent.pointerMove(svg, { clientX: 80, clientY: 120 });
+    const line = document.querySelector('svg.wb-svg line') as SVGLineElement;
+    expect(line.getAttribute('x1')).toBe('300');
+    expect(line.getAttribute('y1')).toBe('30');
+    expect(line.getAttribute('x2')).toBe('400');
+    expect(line.getAttribute('y2')).toBe('30');
+    fireEvent.pointerUp(svg, { clientX: 80, clientY: 120 });
+  });
 });

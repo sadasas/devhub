@@ -125,6 +125,11 @@ export function elementsAtPoint(
   for (let i = elements.length - 1; i >= 0; i -= 1) {
     const el = elements[i]!;
     if (el.kind === 'edge') {
+      const minX = Math.min(el.x1, el.x2) - tolerance;
+      const maxX = Math.max(el.x1, el.x2) + tolerance;
+      const minY = Math.min(el.y1, el.y2) - tolerance;
+      const maxY = Math.max(el.y1, el.y2) + tolerance;
+      if (pt.x < minX || pt.x > maxX || pt.y < minY || pt.y > maxY) continue;
       if (distToSegment(pt, { x: el.x1, y: el.y1 }, { x: el.x2, y: el.y2 }) <= tolerance) return el;
       continue;
     }
