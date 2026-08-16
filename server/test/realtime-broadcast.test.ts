@@ -369,4 +369,37 @@ describe('realtime state broadcast', () => {
 
     ws.close();
   });
+
+  it('reflects status frames in the presence broadcast', async () => {
+    const cookie = await register(`br-status-${uniqueIp()}@test.dev`);
+    const projectId = await createProject(cookie, 'BR status');
+    const ws = await joinProject(cookie, projectId);
+    await nextOfType(ws, 'presence').catch(() => {});
+
+    const activePromise = nextOfType(ws, 'presence');
+    ws.send(JSON.stringify({ type: 'status', activity: 'Editing task' }));
+    const active = await activePromise;
+    expect(active).toMatchObject({ type: 'presence', projectId });
+    expect((active.users as Record<string, unknown>[])[0]).toMatchObject({ activity: 'Editing task' });
+
+    const idlePromise = nextOfType(ws, 'presence');
+    ws.send(JSON.stringify({ type: 'status', activity: null }));
+    const idle = await idlePromise;
+    expect((idle.users as Record<string, unknown>[])[0]).toMatchObject({ activity: null });
+
+    ws.close();
+  });
+
+  it('rejects a status activity longer than 200 characters', async () => {
+    const cookie = await register(`br-statuslen-${uniqueIp()}@test.dev`);
+    const projectId = await createProject(cookie, 'BR status len');
+    const ws = await joinProject(cookie, projectId);
+    await nextOfType(ws, 'presence').catch(() => {});
+
+    ws.send(JSON.stringify({ type: 'status', activity: 'x'.repeat(201) }));
+    const error = await nextMessage(ws);
+    expect(error.code).toBe(4000);
+
+    ws.close();
+  });
 });

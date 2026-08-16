@@ -13,6 +13,7 @@ declare module 'ws' {
   interface WebSocket {
     isAlive?: boolean;
     userId?: string;
+    activity?: string | null;
   }
 }
 
@@ -40,6 +41,7 @@ const wsMessageSchema = z.discriminatedUnion('type', [
   }),
   z.object({ type: z.literal('leave') }),
   z.object({ type: z.literal('ping') }),
+  z.object({ type: z.literal('status'), activity: z.string().trim().max(200).nullable() }),
 ]);
 
 export interface RealtimeServer {
@@ -86,7 +88,13 @@ async function broadcastPresence(rooms: RoomRegistry, projectId: string): Promis
     rooms.broadcast(`project:${projectId}`, {
       type: 'presence',
       projectId,
-      users: userIds.map((userId) => ({ userId, name: byId.get(userId) ?? '' })),
+      users: userIds.map((userId) => ({
+        userId,
+        name: byId.get(userId) ?? '',
+        activity: rooms
+          .members(`project:${projectId}`)
+          .find((s) => s.userId === userId)?.activity ?? null,
+      })),
     });
   } catch (err) {
     logger.error('ws-presence-db-error', { error: err instanceof Error ? err.message : err });
@@ -130,7 +138,7 @@ export function createRealtimeServer(
         sendError(
           socket,
           4000,
-          'Bad message: expected {type:"join"|"joinTeam"|"chat:send"|"leave"|"ping"}',
+          'Bad message: expected {type:"join"|"joinTeam"|"chat:send"|"leave"|"ping"|"status"}',
         );
         return;
       }
@@ -197,6 +205,14 @@ export function createRealtimeServer(
             sendError(socket, 500, 'Internal error');
           }
         })();
+        return;
+      }
+      if (msg.type === 'status') {
+        socket.activity = msg.activity;
+        for (const room of rooms.roomsOf(socket)) {
+          const projectId = room.replace(/^project:/, '');
+          if (projectId !== room) void broadcastPresence(rooms, projectId);
+        }
         return;
       }
       void (async () => {

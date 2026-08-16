@@ -51,6 +51,11 @@ function ActivityProbe() {
   return <span data-testid="activity-count">{count}</span>;
 }
 
+function ReplaceProbe() {
+  const ctx = useProject();
+  return <button onClick={() => ctx.dispatch({ type: 'replace', state: makeState() })}>replace</button>;
+}
+
 function Probe() {
   const ctx = useProject();
   return (
@@ -759,6 +764,7 @@ describe('whiteboard reducer', () => {
 class FakeWs {
   static instances: FakeWs[] = [];
   readyState = 0;
+  sent: string[] = [];
   private listeners = new Map<string, Set<(event: MessageEvent) => void>>();
 
   constructor(_url: string) {
@@ -771,7 +777,9 @@ class FakeWs {
     this.listeners.set(type, set);
   }
 
-  send(_data: string): void {}
+  send(data: string): void {
+    this.sent.push(data);
+  }
 
   close(): void {
     this.readyState = 3;
@@ -1008,5 +1016,63 @@ describe('realtime state:diff integration', () => {
 
     expect(screen.getByTestId('title').textContent).toBe('Rejoined');
     expect(getState).toHaveBeenCalledTimes(2);
+  });
+
+  it('sends a status frame with the current action on dispatch', async () => {
+    vi.spyOn(api, 'getState').mockResolvedValue({ state: makeState(), version: 1 });
+    vi.spyOn(api, 'patchEntity').mockResolvedValue({ entity: { ...TASK, title: 'Edited', createdAt: '', updatedAt: '' }, version: 2 });
+
+    renderRealtime();
+    await flush();
+
+    const ws = FakeWs.instances[0]!;
+    void ws.open();
+
+    fireEvent.click(screen.getByRole('button', { name: 'edit' }));
+
+    expect(ws.sent).toContain(JSON.stringify({ type: 'status', activity: 'Editing task' }));
+  });
+
+  it('clears the status frame after 45 seconds of idle', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval'] });
+    vi.spyOn(api, 'getState').mockResolvedValue({ state: makeState(), version: 1 });
+    vi.spyOn(api, 'patchEntity').mockResolvedValue({ entity: { ...TASK, title: 'Edited', createdAt: '', updatedAt: '' }, version: 2 });
+
+    renderRealtime();
+    await flush();
+
+    const ws = FakeWs.instances[0]!;
+    void ws.open();
+
+    fireEvent.click(screen.getByRole('button', { name: 'edit' }));
+    expect(ws.sent).toContain(JSON.stringify({ type: 'status', activity: 'Editing task' }));
+
+    act(() => {
+      vi.advanceTimersByTime(45_000);
+    });
+
+    expect(ws.sent).toContain(JSON.stringify({ type: 'status', activity: null }));
+  });
+
+  it('does not send a status frame for replace actions', async () => {
+    vi.spyOn(api, 'getState').mockResolvedValue({ state: makeState(), version: 1 });
+
+    render(
+      <ProjectProvider
+        projectId={PROJECT_ID}
+        role="owner"
+        createRealtime={(handlers) => new RealtimeSocket({ wsUrl: 'ws://x', projectId: PROJECT_ID, WebSocketCtor: FakeWs, ...handlers })}
+      >
+        <ReplaceProbe />
+      </ProjectProvider>,
+    );
+    await flush();
+
+    const ws = FakeWs.instances[0]!;
+    void ws.open();
+
+    fireEvent.click(screen.getByRole('button', { name: 'replace' }));
+
+    expect(ws.sent.filter((m) => m.includes('"status"'))).toHaveLength(0);
   });
 });

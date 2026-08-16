@@ -364,6 +364,8 @@ export function ProjectProvider({
   const activitySubscribersRef = useRef(new Set<(msg: ActivityNew) => void>());
   const stateRef = useRef<State | null>(null);
   const lastSavedRef = useRef<State | null>(null);
+  const socketRef = useRef<RealtimeSocket | null>(null);
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const versionRef = useRef(0);
   const dirtyRef = useRef(false);
   const mutationsRef = useRef<Map<string, PendingMutation>>(new Map());
@@ -552,6 +554,14 @@ export function ProjectProvider({
           void provider.enqueuePendingMutation(projectId, merged).catch(() => {});
         }
       }
+      const status = actionStatusText(action);
+      if (status) {
+        socketRef.current?.sendStatus(status);
+        if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = setTimeout(() => {
+          socketRef.current?.sendStatus(null);
+        }, STATUS_IDLE_MS);
+      }
       scheduleSave();
     },
     [projectId, provider, scheduleSave, emitPendingCount],
@@ -705,9 +715,15 @@ export function ProjectProvider({
           onPresence,
           onActivity,
         });
+    socketRef.current = socket;
 
     return () => {
       cancelled = true;
+      socketRef.current = null;
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = null;
+      }
       socket.close();
       clearInterval(interval);
       window.removeEventListener('pagehide', onPageHide);
@@ -765,7 +781,39 @@ export function useProjectOptional(fallback: ProjectContextValue | null): Projec
 }
 
 /* ------------------------------------------------------------------ */
-/* Helpers                                                             */
+/* Presence status — what the user is currently doing                   */
+/* ------------------------------------------------------------------ */
+
+const STATUS_IDLE_MS = 45_000;
+
+const ENTITY_STATUS_LABELS: Record<string, string> = {
+  task: 'task',
+  issue: 'issue',
+  testCase: 'test case',
+  tech: 'tech entry',
+  table: 'table',
+  relation: 'relation',
+  schemaVersion: 'schema snapshot',
+  decision: 'decision',
+  milestone: 'milestone',
+  apiCollection: 'API collection',
+  apiEndpoint: 'API endpoint',
+  whiteboard: 'whiteboard',
+};
+
+function actionStatusText(action: ProjectAction): string | null {
+  if (action.type === 'replace') return null;
+  const [entity, verb] = action.type.split('/') as [string, string];
+  const label = ENTITY_STATUS_LABELS[entity] ?? entity;
+  if (entity === 'schemaVersion' && verb === 'add') return 'Snapshotting schema';
+  if (verb === 'add') return `Adding ${label}`;
+  if (verb === 'update') return `Editing ${label}`;
+  if (verb === 'remove') return `Deleting ${label}`;
+  return null;
+}
+
+/* ------------------------------------------------------------------ */
+/* Context                                                             */
 /* ------------------------------------------------------------------ */
 
 export function wouldCreateCycle(tasks: Task[], taskId: string, blockedBy: string[]): boolean {

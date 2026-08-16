@@ -207,6 +207,25 @@ describe('RealtimeSocket', () => {
     socket.close();
   });
 
+  it('sends a status frame while connected', () => {
+    const socket = makeSocket();
+    const ws = FakeWebSocket.instances[0]!;
+    ws.open();
+    socket.sendStatus('Editing task');
+    expect(ws.sent).toContain(JSON.stringify({ type: 'status', activity: 'Editing task' }));
+    socket.sendStatus(null);
+    expect(ws.sent).toContain(JSON.stringify({ type: 'status', activity: null }));
+    socket.close();
+  });
+
+  it('does not send a status frame before the socket is open', () => {
+    const socket = makeSocket();
+    const ws = FakeWebSocket.instances[0]!;
+    socket.sendStatus('Editing task');
+    expect(ws.sent).toHaveLength(0);
+    socket.close();
+  });
+
   it('sends a ping every 25 seconds while open', () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval'] });
     const socket = makeSocket();

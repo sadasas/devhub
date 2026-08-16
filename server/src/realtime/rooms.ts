@@ -49,6 +49,18 @@ export class RoomRegistry {
     return left;
   }
 
+  /**
+   * Room keys the socket is currently a member of (read-only snapshot).
+   * Used to re-broadcast presence after a status update.
+   */
+  roomsOf(socket: WebSocket): string[] {
+    const rooms: string[] = [];
+    for (const [room, members] of this.rooms) {
+      if (members.has(socket)) rooms.push(room);
+    }
+    return rooms;
+  }
+
   size(room: string): number {
     return this.rooms.get(room)?.size ?? 0;
   }

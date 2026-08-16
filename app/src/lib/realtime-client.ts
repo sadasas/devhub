@@ -28,6 +28,8 @@ export interface StateSync {
 export interface PresenceUser {
   userId: string;
   name: string;
+  /** Current user activity (e.g. 'Editing task'), null when idle. */
+  activity?: string | null;
 }
 
 export interface PresenceUpdate {
@@ -259,6 +261,13 @@ export class RealtimeSocket {
     }
     this.ws?.close();
     this.ws = null;
+  }
+
+  /** Announces the current user activity to the server (null = idle). */
+  sendStatus(activity: string | null): void {
+    if (this.ws?.readyState === 1) {
+      this.ws.send(JSON.stringify({ type: 'status', activity }));
+    }
   }
 }
 
