@@ -218,6 +218,8 @@ export interface WhiteboardEdge {
   arrowhead: boolean;
   sourceNodeId?: string | null;
   targetNodeId?: string | null;
+  sourcePort?: 'top' | 'right' | 'bottom' | 'left' | null;
+  targetPort?: 'top' | 'right' | 'bottom' | 'left' | null;
 }
 
 export interface WhiteboardRef {

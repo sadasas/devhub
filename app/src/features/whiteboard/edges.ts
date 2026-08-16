@@ -28,6 +28,47 @@ export function edgePorts(bounds: Rect): Point[] {
   ];
 }
 
+export type PortSide = 'top' | 'right' | 'bottom' | 'left';
+
+export function portPoint(bounds: Rect, side: PortSide): Point {
+  const cx = bounds.x + bounds.w / 2;
+  const cy = bounds.y + bounds.h / 2;
+  switch (side) {
+    case 'top':
+      return { x: cx, y: bounds.y };
+    case 'right':
+      return { x: bounds.x + bounds.w, y: cy };
+    case 'bottom':
+      return { x: cx, y: bounds.y + bounds.h };
+    case 'left':
+      return { x: bounds.x, y: cy };
+  }
+}
+
+export function portSideToward(bounds: Rect, targetCenter: Point): PortSide {
+  const cx = bounds.x + bounds.w / 2;
+  const cy = bounds.y + bounds.h / 2;
+  const dx = targetCenter.x - cx;
+  const dy = targetCenter.y - cy;
+  if (Math.abs(dx) >= Math.abs(dy)) return dx > 0 ? 'right' : 'left';
+  return dy > 0 ? 'bottom' : 'top';
+}
+
+export function nearestPortSide(pt: Point, bounds: Rect, snap = EDGE_SNAP): PortSide | null {
+  const ports: PortSide[] = ['top', 'right', 'bottom', 'left'];
+  let best: PortSide | null = null;
+  let bestDist = snap;
+  for (const side of ports) {
+    const p = portPoint(bounds, side);
+    const d = Math.hypot(p.x - pt.x, p.y - pt.y);
+    if (d <= bestDist) {
+      bestDist = d;
+      best = side;
+    }
+  }
+  return best;
+}
+
 export function portToward(bounds: Rect, target: Point): Point {
   const cx = bounds.x + bounds.w / 2;
   const cy = bounds.y + bounds.h / 2;

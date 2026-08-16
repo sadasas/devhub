@@ -386,7 +386,93 @@ describe('whiteboard editor shell', () => {
       y1: 60,
       x2: 300,
       y2: 60,
+      sourcePort: 'right',
+      targetPort: 'left',
     });
+  });
+
+  it('locks edge ports to the side the mouse aims at when connecting diagonally', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      ...BOARD,
+      elements: [
+        { id: 'a', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' },
+        { id: 'b', kind: 'sticky', x: 300, y: 300, w: 100, h: 60, color: '#e8b955', text: 'B' },
+      ],
+    };
+    renderShell(board);
+    fireEvent.click(screen.getByRole('button', { name: 'Edge — 7' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+    fireEvent.pointerMove(svg, { clientX: 356, clientY: 361 });
+    fireEvent.pointerUp(svg, { clientX: 356, clientY: 361 });
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const action = dispatch.mock.calls[0]![0] as {
+      patch: { elements: Array<Record<string, unknown>> };
+    };
+    const edge = action.patch.elements.find((el) => el.kind === 'edge');
+    expect(edge).toBeDefined();
+    expect(edge).toMatchObject({
+      kind: 'edge',
+      sourceNodeId: 'a',
+      targetNodeId: 'b',
+      sourcePort: 'bottom',
+      targetPort: 'bottom',
+    });
+  });
+
+  it('keeps edge ports on the locked side when a connected shape moves', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      ...BOARD,
+      elements: [
+        { id: 'a', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' },
+        { id: 'b', kind: 'sticky', x: 200, y: 0, w: 100, h: 60, color: '#e8b955', text: 'B' },
+        {
+          id: 'e1',
+          kind: 'edge',
+          x1: 100,
+          y1: 30,
+          x2: 200,
+          y2: 30,
+          color: '#e4e4e7',
+          width: 2,
+          arrowhead: true,
+          sourceNodeId: 'a',
+          targetNodeId: 'b',
+          sourcePort: 'right',
+          targetPort: 'left',
+        },
+      ],
+    };
+    renderShell(board);
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    fireEvent.pointerDown(svg, { button: 0, clientX: 266, clientY: 46 });
+    fireEvent.pointerMove(svg, { clientX: 116, clientY: 246 });
+
+    const lines = svg.querySelectorAll('line');
+    const edgeLine = Array.from(lines).find((l) => l.getAttribute('x1') === '100' && l.getAttribute('y1') === '30');
+    expect(edgeLine).toBeDefined();
+    expect(edgeLine!.getAttribute('x2')).toBe('50');
+    expect(edgeLine!.getAttribute('y2')).toBe('230');
+
+    fireEvent.pointerUp(svg, { clientX: 116, clientY: 246 });
+    expect(dispatch).toHaveBeenCalledTimes(1);
   });
 
   it('selects the edge tool with the digit 7 shortcut', () => {

@@ -237,6 +237,8 @@ const whiteboardEdgeSchema = z.object({
   arrowhead: z.boolean().default(false),
   sourceNodeId: whiteboardElementId.nullable().optional(),
   targetNodeId: whiteboardElementId.nullable().optional(),
+  sourcePort: z.enum(['top', 'right', 'bottom', 'left']).nullable().optional(),
+  targetPort: z.enum(['top', 'right', 'bottom', 'left']).nullable().optional(),
 });
 
 const whiteboardRefSchema = z.object({

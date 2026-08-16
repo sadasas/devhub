@@ -38,10 +38,14 @@ import {
   EDGE_TOUCH_TOLERANCE,
   edgeEndpoints,
   elementsAtPoint,
+  nearestPortSide,
   pointInRect,
+  portPoint,
+  portSideToward,
   portToward,
   type EdgeEndpoints,
   type Point,
+  type PortSide,
 } from './edges';
 import {
   buildRef,
@@ -483,8 +487,8 @@ export function WhiteboardCanvas({ board, tool, history }: WhiteboardCanvasProps
       const tb = offsetRect(boundsFor(dst), dstOff);
       const sc = { x: sb.x + sb.w / 2, y: sb.y + sb.h / 2 };
       const tc = { x: tb.x + tb.w / 2, y: tb.y + tb.h / 2 };
-      const p1 = portToward(sb, tc);
-      const p2 = portToward(tb, sc);
+      const p1 = el.sourcePort ? portPoint(sb, el.sourcePort) : portToward(sb, tc);
+      const p2 = el.targetPort ? portPoint(tb, el.targetPort) : portToward(tb, sc);
       map.set(el.id, { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y });
     }
     return map;
@@ -657,7 +661,11 @@ export function WhiteboardCanvas({ board, tool, history }: WhiteboardCanvasProps
     if (!fromEl) return;
     const target = elementsAtPoint(board.elements, d.cur, EDGE_TOUCH_TOLERANCE, refRects);
     if (!target || target.id === d.fromId) return;
-    const ep = edgeEndpoints(boundsFor(fromEl), boundsFor(target), d.cur);
+    const fromBounds = boundsFor(fromEl);
+    const toBounds = boundsFor(target);
+    const sourcePort: PortSide = portSideToward(fromBounds, d.cur);
+    const targetPort: PortSide = nearestPortSide(d.cur, toBounds) ?? portSideToward(toBounds, d.cur);
+    const ep = edgeEndpoints(fromBounds, toBounds, d.cur);
     const edge: WhiteboardEdge = {
       id: newId(),
       kind: 'edge',
@@ -670,6 +678,8 @@ export function WhiteboardCanvas({ board, tool, history }: WhiteboardCanvasProps
       arrowhead: true,
       sourceNodeId: fromEl.id,
       targetNodeId: target.id,
+      sourcePort,
+      targetPort,
     };
     history.record();
     dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...board.elements, edge] } });
