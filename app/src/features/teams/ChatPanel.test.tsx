@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router';
 import type { ChatMessage } from '../../lib/types';
 import type { TeamChatSocketOptions } from '../../lib/realtime-client';
@@ -717,6 +717,36 @@ describe('ChatPanel', () => {
     await screen.findByText('Hello world');
     fireEvent.click(screen.getByRole('button', { name: 'Copy message' }));
     expect(writeText).toHaveBeenCalledWith('Hello world');
+  });
+
+  it('does not duplicate a message when the websocket echo arrives before the POST resolves', async () => {
+    const saved = message({ id: 'm9', content: 'Halo tim' });
+    let resolvePost!: (m: ChatMessage) => void;
+    api.sendMessage.mockReturnValue(new Promise((r) => { resolvePost = r; }));
+    renderPanel();
+    await screen.findByText('No messages yet');
+    fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'Halo tim' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+    await screen.findByText('Halo tim');
+    sockets[0]!.onMessageNew?.('t1', saved);
+    await act(async () => { resolvePost(saved); });
+    await waitFor(() => {
+      expect(document.querySelectorAll('.chat-msg')).toHaveLength(1);
+    });
+    expect(screen.getByText('Halo tim').closest('.chat-msg')?.className).not.toContain('chat-msg-pending');
+  });
+
+  it('does not duplicate a message when the websocket echo arrives after the POST resolves', async () => {
+    const saved = message({ id: 'm9', content: 'Halo tim' });
+    api.sendMessage.mockResolvedValueOnce(saved);
+    renderPanel();
+    await screen.findByText('No messages yet');
+    fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'Halo tim' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+    await screen.findByText('Halo tim');
+    await waitFor(() => expect(document.querySelectorAll('.chat-msg')).toHaveLength(1));
+    sockets[0]!.onMessageNew?.('t1', saved);
+    expect(document.querySelectorAll('.chat-msg')).toHaveLength(1);
   });
 });
 

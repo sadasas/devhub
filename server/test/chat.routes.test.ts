@@ -140,7 +140,7 @@ describe('chat routes', () => {
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp());
     expect(unread.status).toBe(200);
-    expect(unread.body.unread).toBe(2);
+    expect(unread.body.unread).toBe(1);
 
     const read = await request(app)
       .put(`/api/v1/teams/${teamId}/messages/read`)
@@ -153,27 +153,37 @@ describe('chat routes', () => {
       .get(`/api/v1/teams/${teamId}/messages/unread`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp());
-    expect(after.body.unread).toBe(1);
+    expect(after.body.unread).toBe(0);
 
     const editorUnread = await request(app)
       .get(`/api/v1/teams/${teamId}/messages/unread`)
       .set('Cookie', editor)
       .set('X-Forwarded-For', uniqueIp());
-    expect(editorUnread.body.unread).toBe(2);
+    expect(editorUnread.body.unread).toBe(1);
   });
 
-  it('filters to the team when counting unread', async () => {
+it('filters to the team when counting unread and excludes own messages', async () => {
     const owner = await register('multi@test.dev');
+    const editor = await register('multi-editor@test.dev');
     const teamA = await createTeam(owner, 'A');
     const teamB = await createTeam(owner, 'B');
-    await sendMessage(owner, teamA, 'a1');
+    await inviteUser(owner, editor, teamA, 'editor');
+    await sendMessage(editor, teamA, 'a1');
     await sendMessage(owner, teamB, 'b1');
 
     const unreadA = await request(app)
       .get(`/api/v1/teams/${teamA}/messages/unread`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp());
+    expect(unreadA.status).toBe(200);
     expect(unreadA.body.unread).toBe(1);
+
+    const unreadB = await request(app)
+      .get(`/api/v1/teams/${teamB}/messages/unread`)
+      .set('Cookie', owner)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(unreadB.status).toBe(200);
+    expect(unreadB.body.unread).toBe(0);
   });
 
   it('resolves entity refs from team projects', async () => {

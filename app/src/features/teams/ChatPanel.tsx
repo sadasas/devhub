@@ -253,6 +253,16 @@ const socketRef = useRef<TeamChatSocket | null>(null);
 
   const onMessageNew = useCallback((_teamId: string, message: ChatMessage) => {
     if (messagesRef.current.some((m) => m.id === message.id)) return;
+    const tempIdx = messagesRef.current.findIndex(
+      (m) => m.id.startsWith('local-') && m.content === message.content && m.authorId === message.authorId,
+    );
+    if (tempIdx >= 0) {
+      const merged = [...messagesRef.current];
+      merged[tempIdx] = message;
+      messagesRef.current = merged;
+      setMessages(merged);
+      return;
+    }
     const merged = [...messagesRef.current, message];
     messagesRef.current = merged;
     setMessages(merged);
@@ -421,7 +431,10 @@ async function onSend() {
     refsRef.current = [];
     try {
       const saved = await api.sendMessage(teamId, content, refs);
-      messagesRef.current = messagesRef.current.map((m) => (m.id === temp.id ? saved : m));
+      const next = messagesRef.current.map((m) => (m.id === temp.id ? saved : m));
+      messagesRef.current = next.filter(
+        (m, i) => m.id !== saved.id || next.findIndex((x) => x.id === saved.id) === i,
+      );
       setMessages(messagesRef.current);
     } catch (err) {
       if (err instanceof ApiError && err.status === 0) {

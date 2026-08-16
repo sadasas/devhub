@@ -121,8 +121,8 @@ chatRouter.get('/:teamId/messages/unread', async (req, res) => {
     `SELECT count(*)::int AS unread
      FROM team_messages m
      LEFT JOIN team_message_reads r ON r.team_id = m.team_id AND r.user_id = $2
-     WHERE m.team_id = $1 AND m.created_at > COALESCE(r.last_read_at, 'epoch'::timestamptz)`,
-    [req.params.teamId, userId],
+     WHERE m.team_id = $1 AND m.author_id <> $3 AND m.created_at > COALESCE(r.last_read_at, 'epoch'::timestamptz)`,
+    [req.params.teamId, userId, userId],
   );
   res.json({ unread: result.rows[0]?.unread ?? 0 });
 });
