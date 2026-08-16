@@ -54,6 +54,19 @@ beforeEach(() => {
     value: vi.fn(),
     configurable: true,
   });
+  Object.defineProperty(Element.prototype, 'requestFullscreen', {
+    value: vi.fn().mockResolvedValue(undefined),
+    configurable: true,
+  });
+  Object.defineProperty(Document.prototype, 'exitFullscreen', {
+    value: vi.fn().mockResolvedValue(undefined),
+    configurable: true,
+  });
+  Object.defineProperty(document, 'fullscreenElement', {
+    value: null,
+    writable: true,
+    configurable: true,
+  });
 });
 
 describe('whiteboard editor shell', () => {
@@ -1346,5 +1359,38 @@ describe('whiteboard editor shell', () => {
     expect(line.getAttribute('x2')).toBe('400');
     expect(line.getAttribute('y2')).toBe('30');
     fireEvent.pointerUp(svg, { clientX: 80, clientY: 120 });
+  });
+
+  it('toggles browser fullscreen with the toolbar button and the F key', () => {
+    renderShell(BOARD);
+    const shell = document.querySelector('.wb-shell') as HTMLElement;
+    const requestFullscreen = Element.prototype.requestFullscreen as ReturnType<typeof vi.fn>;
+    const exitFullscreen = Document.prototype.exitFullscreen as ReturnType<typeof vi.fn>;
+
+    screen.getByRole('button', { name: 'Fullscreen — F' }).click();
+    expect(requestFullscreen).toHaveBeenCalledTimes(1);
+
+    Object.defineProperty(document, 'fullscreenElement', { value: shell, writable: true, configurable: true });
+    fireEvent(document, new Event('fullscreenchange'));
+    const exitBtn = screen.getByRole('button', { name: 'Exit fullscreen — F' });
+    expect(exitBtn.getAttribute('aria-pressed')).toBe('true');
+
+    fireEvent.keyDown(window, { key: 'f' });
+    expect(exitFullscreen).toHaveBeenCalledTimes(1);
+
+    Object.defineProperty(document, 'fullscreenElement', { value: null, writable: true, configurable: true });
+    fireEvent(document, new Event('fullscreenchange'));
+    screen.getByRole('button', { name: 'Fullscreen — F' });
+  });
+
+  it('does not toggle fullscreen while typing', () => {
+    renderShell(BOARD);
+    const requestFullscreen = Element.prototype.requestFullscreen as ReturnType<typeof vi.fn>;
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    input.focus();
+    fireEvent.keyDown(input, { key: 'f' });
+    expect(requestFullscreen).not.toHaveBeenCalled();
+    input.remove();
   });
 });

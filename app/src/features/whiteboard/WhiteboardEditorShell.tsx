@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowClockwise, ArrowCounterClockwise, ArrowLeft, BoundingBox, Cards, Cursor, Eraser, FlowArrow, Note, PenNib, Selection, TextT } from '@phosphor-icons/react';
+import { ArrowClockwise, ArrowCounterClockwise, ArrowLeft, ArrowsInSimple, ArrowsOutSimple, BoundingBox, Cards, Cursor, Eraser, FlowArrow, Note, PenNib, Selection, TextT } from '@phosphor-icons/react';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import type { Whiteboard } from '../../lib/types';
@@ -36,15 +36,36 @@ export function WhiteboardEditorShell({ board, onBack }: WhiteboardEditorShellPr
   const history = useWhiteboardHistory(board.id, board.elements);
   const historyRef = useRef(history);
   historyRef.current = history;
+  const shellRef = useRef<HTMLDivElement | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const elementCount = board.elements.length;
   const nearCap = elementCount >= WARN_ELEMENTS;
   const atCap = elementCount >= MAX_ELEMENTS;
+
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) {
+      void document.exitFullscreen();
+    } else {
+      void shellRef.current?.requestFullscreen();
+    }
+  };
+
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(document.fullscreenElement === shellRef.current);
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (isTypingTarget(e.target) || isModalOrPaletteOpen()) return;
       const key = e.key;
       const mod = e.ctrlKey || e.metaKey;
+      if (key === 'f' || key === 'F') {
+        e.preventDefault();
+        toggleFullscreen();
+        return;
+      }
       if (mod && key === 'z' && !e.shiftKey) {
         e.preventDefault();
         historyRef.current.undo();
@@ -85,7 +106,7 @@ export function WhiteboardEditorShell({ board, onBack }: WhiteboardEditorShellPr
   }, [atCap]);
 
   return (
-    <div className="wb-shell">
+    <div className="wb-shell" ref={shellRef}>
       <div className="board-toolbar">
         <Button variant="ghost" size="sm" className="back-btn" onClick={onBack} aria-label="Back to boards">
           <ArrowLeft size={14} aria-hidden="true" />
@@ -131,6 +152,21 @@ export function WhiteboardEditorShell({ board, onBack }: WhiteboardEditorShellPr
             onClick={history.redo}
           >
             <ArrowClockwise size={15} aria-hidden="true" />
+          </button>
+          <span className="wb-sep" aria-hidden="true" />
+          <button
+            type="button"
+            className="sub-tab"
+            title={isFullscreen ? 'Exit fullscreen (F)' : 'Fullscreen (F)'}
+            aria-label={isFullscreen ? 'Exit fullscreen — F' : 'Fullscreen — F'}
+            aria-pressed={isFullscreen}
+            onClick={toggleFullscreen}
+          >
+            {isFullscreen ? (
+              <ArrowsInSimple size={15} aria-hidden="true" />
+            ) : (
+              <ArrowsOutSimple size={15} aria-hidden="true" />
+            )}
           </button>
         </div>
         {nearCap && (
