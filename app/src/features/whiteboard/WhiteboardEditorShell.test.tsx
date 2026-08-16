@@ -671,6 +671,22 @@ describe('whiteboard editor shell', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
+  it('shows the cursor of the selected tool on the canvas', () => {
+    renderShell(BOARD);
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    expect(svg.style.cursor).toBe('grab');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Text — 4' }));
+    expect(svg.style.cursor).toBe('text');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Pen — 2' }));
+    expect(svg.style.cursor).toBe('crosshair');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    expect(svg.style.cursor).toBe('grab');
+  });
+
   it('shows all task data on an expanded ref card and toggles it collapsed with the corner button', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({

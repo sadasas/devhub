@@ -70,6 +70,17 @@ interface WhiteboardCanvasProps {
 }
 
 const DOT_STEP = 32;
+
+const TOOL_CURSOR: Record<WbTool, string> = {
+  select: 'grab',
+  pen: 'crosshair',
+  eraser: 'crosshair',
+  text: 'text',
+  sticky: 'crosshair',
+  shape: 'crosshair',
+  edge: 'crosshair',
+  ref: 'crosshair',
+};
 const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 3;
 const DEFAULT_EDGE_COLOR = '#e4e4e7';
@@ -868,6 +879,7 @@ export function WhiteboardCanvas({ board, tool, history }: WhiteboardCanvasProps
       <svg
         ref={view.ref}
         className={`wb-svg ${view.dragging ? 'dragging' : ''}`}
+        style={{ cursor: view.dragging || spaceHeld ? 'grabbing' : TOOL_CURSOR[tool] }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
