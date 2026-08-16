@@ -919,4 +919,121 @@ describe('whiteboard editor shell', () => {
     expect(g.getAttribute('transform')).toContain('translate(56 56)');
     expect(dispatch).not.toHaveBeenCalled();
   });
+
+  it('eraser removes pen stroke points along its path', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      ...BOARD,
+      elements: [
+        {
+          id: 's1',
+          kind: 'stroke',
+          tool: 'pen',
+          color: '#e4e4e7',
+          width: 2,
+          thinning: 2,
+          points: [
+            [0, 20],
+            [10, 20],
+            [20, 20],
+            [30, 20],
+            [40, 20],
+          ],
+        },
+      ],
+    };
+    renderShell(board);
+    fireEvent.click(screen.getByRole('button', { name: 'Eraser — 3' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    // Eraser drag from world (20,20) to (30,20) — client coords add 16.
+    fireEvent.pointerDown(svg, { button: 0, clientX: 36, clientY: 36 });
+    fireEvent.pointerMove(svg, { clientX: 46, clientY: 36 });
+    fireEvent.pointerUp(svg, { clientX: 46, clientY: 36 });
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const action = dispatch.mock.calls[0]![0] as {
+      type: 'whiteboard/update';
+      id: string;
+      patch: { elements: unknown[] };
+    };
+    expect(action.patch.elements).toHaveLength(1);
+    const stroke = action.patch.elements[0] as { kind: string; tool: string; points: Array<[number, number]> };
+    expect(stroke.kind).toBe('stroke');
+    expect(stroke.tool).toBe('pen');
+    expect(stroke.points).toEqual([
+      [0, 20],
+      [10, 20],
+      [40, 20],
+    ]);
+  });
+
+  it('eraser removes a pen stroke entirely when fewer than two points remain', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      ...BOARD,
+      elements: [
+        {
+          id: 's1',
+          kind: 'stroke',
+          tool: 'pen',
+          color: '#e4e4e7',
+          width: 2,
+          thinning: 2,
+          points: [
+            [0, 0],
+            [4, 0],
+          ],
+        },
+      ],
+    };
+    renderShell(board);
+    fireEvent.click(screen.getByRole('button', { name: 'Eraser — 3' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    // Eraser drag over both points: world (0,0) → (4,0).
+    fireEvent.pointerDown(svg, { button: 0, clientX: 16, clientY: 16 });
+    fireEvent.pointerMove(svg, { clientX: 20, clientY: 16 });
+    fireEvent.pointerUp(svg, { clientX: 20, clientY: 16 });
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const action = dispatch.mock.calls[0]![0] as {
+      type: 'whiteboard/update';
+      id: string;
+      patch: { elements: unknown[] };
+    };
+    expect(action.patch.elements).toHaveLength(0);
+  });
+
+  it('eraser does not dispatch when nothing is erased', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    renderShell(BOARD);
+    fireEvent.click(screen.getByRole('button', { name: 'Eraser — 3' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    // Eraser drag over empty space: world (100,100) → (110,100).
+    fireEvent.pointerDown(svg, { button: 0, clientX: 116, clientY: 116 });
+    fireEvent.pointerMove(svg, { clientX: 126, clientY: 116 });
+    fireEvent.pointerUp(svg, { clientX: 126, clientY: 116 });
+
+    expect(dispatch).not.toHaveBeenCalled();
+  });
 });

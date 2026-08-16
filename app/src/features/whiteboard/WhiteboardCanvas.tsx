@@ -37,6 +37,7 @@ import {
   EDGE_TOUCH_TOLERANCE,
   edgeEndpoints,
   elementsAtPoint,
+  eraseStrokes,
   nearestPortSide,
   pointInRect,
   portPoint,
@@ -54,6 +55,7 @@ import {
   buildText,
   drawColor,
   drawWidth,
+  ERASER_WIDTH,
   shouldCommitStroke,
   type WbTool,
 } from './tools';
@@ -599,6 +601,21 @@ export function WhiteboardCanvas({ board, tool, history }: WhiteboardCanvasProps
     draftRef.current = null;
     setDraft(null);
     if (!current || !shouldCommitStroke(current.points)) return;
+    if (current.tool === 'eraser') {
+      const result = eraseStrokes(
+        board.elements,
+        current.points.map(([x, y]) => ({ x, y })),
+        ERASER_WIDTH,
+      );
+      if (!result.changed) return;
+      history.record();
+      dispatch({
+        type: 'whiteboard/update',
+        id: board.id,
+        patch: { elements: result.elements },
+      });
+      return;
+    }
     history.record();
     dispatch({
       type: 'whiteboard/update',
@@ -911,16 +928,23 @@ export function WhiteboardCanvas({ board, tool, history }: WhiteboardCanvasProps
               bounds={el.kind === 'ref' ? refRects.get(el.id) : undefined}
             />
           ))}
-          {draft && (
-            <polyline
-              points={draft.points.map((p) => `${p[0]},${p[1]}`).join(' ')}
-              fill="none"
-              stroke={drawColor(draft.tool)}
-              strokeWidth={drawWidth(draft.tool)}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          )}
+          {draft &&
+            (draft.tool === 'eraser' ? (
+              <g>
+                {draft.points.map((p, i) => (
+                  <circle key={i} cx={p[0]} cy={p[1]} r={ERASER_WIDTH / 2} fill="rgba(138,138,147,0.35)" />
+                ))}
+              </g>
+            ) : (
+              <polyline
+                points={draft.points.map((p) => `${p[0]},${p[1]}`).join(' ')}
+                fill="none"
+                stroke={drawColor(draft.tool)}
+                strokeWidth={drawWidth(draft.tool)}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            ))}
           {edgeDraft &&
             (() => {
               const fromEl = board.elements.find((el) => el.id === edgeDraft.fromId);

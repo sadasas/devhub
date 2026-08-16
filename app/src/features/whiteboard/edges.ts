@@ -133,3 +133,31 @@ export function elementsAtPoint(
   }
   return null;
 }
+
+export function eraseStrokes(
+  elements: WhiteboardElement[],
+  eraserPoints: Point[],
+  radius: number,
+): { elements: WhiteboardElement[]; changed: boolean } {
+  let changed = false;
+  const next: WhiteboardElement[] = [];
+  for (const el of elements) {
+    if (el.kind !== 'stroke' || el.tool !== 'pen') {
+      next.push(el);
+      continue;
+    }
+    const kept = el.points.filter(([px, py]) => {
+      for (const ep of eraserPoints) {
+        if (Math.hypot(px - ep.x, py - ep.y) <= radius) return false;
+      }
+      return true;
+    });
+    if (kept.length === el.points.length) {
+      next.push(el);
+      continue;
+    }
+    changed = true;
+    if (kept.length >= 2) next.push({ ...el, points: kept });
+  }
+  return { elements: next, changed };
+}
