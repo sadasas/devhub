@@ -44,6 +44,9 @@ import { ShareModal } from './ShareModal';
 import { InlineError } from '../../components/InlineError';
 import { SaveTemplateModal } from '../templates/SaveTemplateModal';
 import { ProjectChatWidget } from './ProjectChatWidget';
+import { ProjectTabNav } from './ProjectTabNav';
+import { DeletedItemsBanner } from './DeletedItemsBanner';
+import { useTabUnread } from '../../hooks/useTabUnread';
 
 const BoardPageLazy = lazy(() => import('../board/BoardPage').then((m) => ({ default: m.BoardPage })));
 const IssuesPageLazy = lazy(() => import('../issues/IssuesPage').then((m) => ({ default: m.IssuesPage })));
@@ -91,6 +94,34 @@ const projectStorage = offlineProvider();
 function ProjectPresenceStatus({ tab }: { tab: ProjectTab }) {
   usePresenceStatus(viewingStatus(tab));
   return null;
+}
+
+function ProjectUnreadArea({
+  projectId,
+  userId,
+  tab,
+  onSelect,
+}: {
+  projectId: string;
+  userId: string;
+  tab: ProjectTab;
+  onSelect: (next: ProjectTab) => void;
+}) {
+  const { unread, deleted, dismissedUntil, dismissDeleted } = useTabUnread(
+    projectId,
+    userId,
+    tab,
+  );
+  return (
+    <>
+      <ProjectTabNav tabs={TABS} active={tab} onSelect={(id) => onSelect(id as ProjectTab)} unread={unread} />
+      <DeletedItemsBanner
+        items={deleted}
+        dismissedUntil={dismissedUntil}
+        onDismiss={dismissDeleted}
+      />
+    </>
+  );
 }
 
 export function ProjectPage() {
@@ -320,23 +351,12 @@ if (!project) {
           />
         </header>
 
-        <nav className="tabs" role="tablist" aria-label="Project sections">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              id={`project-tab-${t.id}`}
-              aria-selected={tab === t.id}
-              aria-controls="project-tabpanel"
-              className={`tab ${tab === t.id ? 'tab-active' : ''}`}
-              onClick={() => setTab(t.id)}
-            >
-              {t.icon}
-              {t.label}
-            </button>
-          ))}
-        </nav>
+        <ProjectUnreadArea
+          projectId={projectId}
+          userId={user?.id ?? ''}
+          tab={tab}
+          onSelect={setTab}
+        />
 
         <SaveBanner />
 
