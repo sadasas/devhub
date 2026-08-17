@@ -318,6 +318,48 @@ describe('whiteboard editor shell', () => {
     expect(keptB).toMatchObject({ x: 300, y: 0 });
   });
 
+  it('drags all marquee-selected elements when grabbing one of them', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      ...BOARD,
+      elements: [
+        { id: 'a', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' },
+        { id: 'b', kind: 'sticky', x: 200, y: 0, w: 100, h: 60, color: '#e8b955', text: 'B' },
+      ],
+    };
+    renderShell(board);
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    // Marquee world (0,0) → (300,60): touches both a and b.
+    fireEvent.click(screen.getByRole('button', { name: 'Select area — 9' }));
+    fireEvent.pointerDown(svg, { button: 0, clientX: 16, clientY: 16 });
+    fireEvent.pointerMove(svg, { clientX: 316, clientY: 76 });
+    fireEvent.pointerUp(svg, { clientX: 316, clientY: 76 });
+    expect(screen.getByRole('button', { name: 'Delete selected' })).not.toBeNull();
+
+    // Switch to select and drag a → the multi-selection is kept and both move.
+    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    fireEvent.pointerDown(svg, { button: 0, clientX: 50, clientY: 30 });
+    fireEvent.pointerMove(svg, { clientX: 100, clientY: 80 });
+    fireEvent.pointerUp(svg, { clientX: 100, clientY: 80 });
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const action = dispatch.mock.calls[0]![0] as {
+      patch: { elements: Array<Record<string, unknown>> };
+    };
+    const moved = Object.fromEntries(
+      action.patch.elements.map((el) => [el.id as string, { x: el.x as number, y: el.y as number }]),
+    );
+    expect(moved['a']).toEqual({ x: 50, y: 50 });
+    expect(moved['b']).toEqual({ x: 250, y: 50 });
+  });
+
   it('removes a selected node together with its incident edges', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({

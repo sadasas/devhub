@@ -28,7 +28,7 @@ test.describe('due dates + calendar (M19)', () => {
     const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     await page.locator(`[data-date="${todayIso}"]`).click();
     await expect(page.getByRole('dialog')).toBeVisible();
-    await expect(page.getByRole('dialog')).toContainText('No tasks due on this day.');
+    await expect(page.getByRole('dialog')).toContainText('No tasks due');
     await page.getByRole('button', { name: /Add task/ }).click();
     await expect(page.getByRole('heading', { name: 'New task' })).toBeVisible();
     await page.locator('form#new-task-form').getByLabel('Title').fill(title);

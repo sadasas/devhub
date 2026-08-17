@@ -5,6 +5,8 @@ import { DueCalendar } from './DueCalendar';
 
 const mocks = vi.hoisted(() => ({ dispatch: vi.fn(), setStatus: vi.fn() }));
 
+const MILESTONE_A = '44444444-4444-4444-8444-444444444444';
+
 vi.mock('../../state/project-context', () => ({
   useProject: () => ({ state: mockState, dispatch: mocks.dispatch, canEdit: true, setStatus: mocks.setStatus }),
 }));
@@ -117,7 +119,109 @@ describe('DueCalendar', () => {
   it('shows an empty state for days without tasks', () => {
     renderCalendar();
     fireEvent.click(document.querySelector('[data-date="2026-08-21"]')!);
-    expect(screen.getByText('No tasks due on this day.')).toBeTruthy();
+    expect(screen.getByText('No tasks due')).toBeTruthy();
+    expect(screen.getByText('Tasks dropped on this day appear here.')).toBeTruthy();
+  });
+
+  it('shows a summary count and rich rows with priority, milestone and estimate', () => {
+    mockState.tasks = [
+      {
+        id: '55555555-5555-4555-8555-555555555555',
+        title: 'Ship calendar',
+        status: 'inProgress',
+        priority: 'high',
+        labels: [],
+        blockedBy: [],
+        dueDate: '2026-08-20',
+        milestoneId: MILESTONE_A,
+        estimate: 4,
+        description: '',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+      {
+        id: '66666666-6666-4666-8666-666666666666',
+        title: 'Ship docs',
+        status: 'done',
+        priority: 'low',
+        labels: [],
+        blockedBy: [],
+        dueDate: '2026-08-20',
+        estimate: 2,
+        description: '',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ];
+    renderCalendar();
+    fireEvent.click(document.querySelector('[data-date="2026-08-20"]')!);
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('2 tasks · 1 done')).toBeTruthy();
+    expect(within(dialog).getByText('High')).toBeTruthy();
+    expect(within(dialog).getByText('V0.2.0')).toBeTruthy();
+    expect(within(dialog).getByText('4h')).toBeTruthy();
+    expect(within(dialog).getByText('In Progress')).toBeTruthy();
+    expect(dialog.querySelectorAll('.due-day-row').length).toBe(2);
+    expect(dialog.querySelector('.data-row')).toBeNull();
+  });
+
+  it('sorts day tasks by status order (done last)', () => {
+    mockState.tasks = [
+      {
+        id: '55555555-5555-4555-8555-555555555555',
+        title: 'Aaa todo',
+        status: 'todo',
+        priority: 'medium',
+        labels: [],
+        blockedBy: [],
+        dueDate: '2026-08-20',
+        description: '',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+      {
+        id: '66666666-6666-4666-8666-666666666666',
+        title: 'Bbb done',
+        status: 'done',
+        priority: 'medium',
+        labels: [],
+        blockedBy: [],
+        dueDate: '2026-08-20',
+        description: '',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+      {
+        id: '77777777-7777-4777-8777-777777777777',
+        title: 'Ccc in progress',
+        status: 'inProgress',
+        priority: 'medium',
+        labels: [],
+        blockedBy: [],
+        dueDate: '2026-08-20',
+        description: '',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ];
+    renderCalendar();
+    fireEvent.click(document.querySelector('[data-date="2026-08-20"]')!);
+    const titles = within(screen.getByRole('dialog'))
+      .getAllByRole('button')
+      .map((b) => b.textContent ?? '');
+    const todo = titles.findIndex((t) => t.includes('Aaa todo'));
+    const inProgress = titles.findIndex((t) => t.includes('Ccc in progress'));
+    const done = titles.findIndex((t) => t.includes('Bbb done'));
+    expect(todo).toBeGreaterThan(-1);
+    expect(inProgress).toBeGreaterThan(todo);
+    expect(done).toBeGreaterThan(inProgress);
+  });
+
+  it('renders milestone chips in the day modal', () => {
+    renderCalendar();
+    fireEvent.click(document.querySelector('[data-date="2026-08-25"]')!);
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('◆ V0.2.0')).toBeTruthy();
   });
 
   it('opens the task modal from the day popup row', () => {

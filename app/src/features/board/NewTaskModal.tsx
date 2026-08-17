@@ -81,7 +81,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, onClose }: Ne
       open={open}
       title="New task"
       onClose={onClose}
-      width="sm"
+      width="md"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>

@@ -816,7 +816,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       let nextSel: string[];
       if (e.shiftKey) {
         nextSel = selectedIds.includes(hit.id) ? selectedIds.filter((id) => id !== hit.id) : [...selectedIds, hit.id];
-      } else if (selectedIds.length === 1 && selectedIds[0] === hit.id) {
+      } else if (selectedIds.includes(hit.id)) {
         nextSel = selectedIds;
       } else {
         nextSel = [hit.id];

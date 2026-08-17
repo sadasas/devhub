@@ -1,11 +1,15 @@
 import { useMemo, useState } from 'react';
-import { CaretLeft, CaretRight, Plus } from '@phosphor-icons/react';
+import { CalendarBlank, CaretLeft, CaretRight, Plus } from '@phosphor-icons/react';
 import { addDaysIso, inMonth, isoOf, monthMatrix, monthName, parseIso, weekDays } from '../../lib/calendar';
 import { dueBucket, dueLabel, dueTone, todayIso } from '../../lib/due-dates';
-import { TASK_STATUS } from '../../lib/labels';
+import { TASK_PRIORITY, TASK_STATUS } from '../../lib/labels';
+import { startLabel } from '../../lib/start-dates';
+import { formatDate, shortId } from '../../lib/utils';
+import type { Task } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
+import { EmptyState } from '../../components/EmptyState';
 import { Modal } from '../../components/Modal';
 
 interface DueCalendarProps {
@@ -16,6 +20,8 @@ interface DueCalendarProps {
 const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const MAX_CHIPS_PER_CELL = 3;
+
+const STATUS_ORDER: Task['status'][] = ['todo', 'inProgress', 'review', 'done'];
 
 const dayHeader = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
@@ -35,12 +41,12 @@ export function DueCalendar({ onOpenTask, onQuickCreate }: DueCalendarProps) {
   const cells = useMemo(() => (weekMode ? weekDays(anchor) : monthMatrix(year, month).flat()), [weekMode, anchor, year, month]);
 
   const tasksByDay = useMemo(() => {
-    const map = new Map<string, { id: string; title: string; status: string }[]>();
+    const map = new Map<string, Task[]>();
     for (const t of state?.tasks ?? []) {
       if (!t.dueDate) continue;
       if (hideCompleted && t.status === 'done') continue;
       const list = map.get(t.dueDate) ?? [];
-      list.push({ id: t.id, title: t.title, status: t.status });
+      list.push(t);
       map.set(t.dueDate, list);
     }
     return map;
@@ -265,7 +271,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate }: DueCalendarProps) {
         open={dayPopup !== null}
         title={dayPopup ? dayHeader.format(parseIso(dayPopup)) : ''}
         onClose={() => setDayPopup(null)}
-        width="sm"
+        width="md"
         footer={
           <>
             <Button variant="ghost" onClick={() => setDayPopup(null)}>
@@ -286,34 +292,91 @@ export function DueCalendar({ onOpenTask, onQuickCreate }: DueCalendarProps) {
           </>
         }
       >
-        {dayPopup && (tasksByDay.get(dayPopup)?.length ? (
-          <div className="data-list">
-            {tasksByDay
-              .get(dayPopup)!
-              .slice()
-              .sort((a, b) => a.title.localeCompare(b.title))
-              .map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  className="data-row"
-                  onClick={() => {
-                    onOpenTask(t.id);
-                    setDayPopup(null);
-                  }}
-                >
-                  <span className="data-row-main">
-                    <span className="data-row-title">{t.title}</span>
-                    <Badge tone={TASK_STATUS[t.status as keyof typeof TASK_STATUS].tone}>
-                      {TASK_STATUS[t.status as keyof typeof TASK_STATUS].label}
-                    </Badge>
-                  </span>
-                </button>
-              ))}
-          </div>
-        ) : (
-          <p className="modal-copy modal-copy-muted">No tasks due on this day.</p>
-        ))}
+        {dayPopup &&
+          (() => {
+            const dayTasks = (tasksByDay.get(dayPopup) ?? []).slice().sort((a, b) => {
+              const order = STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status);
+              if (order !== 0) return order;
+              return a.title.localeCompare(b.title);
+            });
+            const dayMilestones = milestonesByDay.get(dayPopup) ?? [];
+            const done = dayTasks.filter((t) => t.status === 'done').length;
+            const milestoneChips =
+              dayMilestones.length > 0 ? (
+                <div className="detail-chips mb-12">
+                  {dayMilestones.map((m) => (
+                    <span
+                      key={m.id}
+                      className="task-label"
+                      title={`${m.name}${m.version ? ` ${m.version}` : ''}`}
+                    >
+                      ◆ {m.name}
+                    </span>
+                  ))}
+                </div>
+              ) : null;
+            if (dayTasks.length === 0) {
+              return (
+                <>
+                  {milestoneChips}
+                  <EmptyState
+                    icon={<CalendarBlank size={22} />}
+                    title="No tasks due"
+                    description="Tasks dropped on this day appear here."
+                  />
+                </>
+              );
+            }
+            return (
+              <>
+                <h4 className="detail-subtitle">
+                  {dayTasks.length} task{dayTasks.length === 1 ? '' : 's'}
+                  {done > 0 ? ` · ${done} done` : ''}
+                </h4>
+                {milestoneChips}
+                <div className="due-day-list">
+                  {dayTasks.map((t) => {
+                    const milestone = t.milestoneId
+                      ? (state?.milestones.find((m) => m.id === t.milestoneId) ?? null)
+                      : null;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        className="due-day-row"
+                        onClick={() => {
+                          onOpenTask(t.id);
+                          setDayPopup(null);
+                        }}
+                      >
+                        <span className="due-day-row-main">
+                          <span className="due-day-row-title">
+                            <Badge tone={TASK_PRIORITY[t.priority].tone}>
+                              {TASK_PRIORITY[t.priority].label}
+                            </Badge>
+                            <span className="row-title-text">{t.title}</span>
+                          </span>
+                          <span className="due-day-row-meta">
+                            {t.startDate && (
+                              <span className="task-start" title={formatDate(t.startDate)}>
+                                {startLabel(t.startDate)}
+                              </span>
+                            )}
+                            {milestone && <span className="task-label">{milestone.name}</span>}
+                            {t.estimate != null && <span className="tabular">{t.estimate}h</span>}
+                            <span className="due-day-row-id">#{shortId(t.id)}</span>
+                          </span>
+                        </span>
+                        <span className="due-day-row-side">
+                          <Badge tone={TASK_STATUS[t.status].tone}>{TASK_STATUS[t.status].label}</Badge>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            );
+          })()}
       </Modal>
     </div>
   );
