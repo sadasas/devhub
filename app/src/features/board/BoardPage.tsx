@@ -399,9 +399,6 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
             onChange={setSort}
           />
         )}
-        <span className="board-hints" aria-hidden="true">
-          ← → move · n new item
-        </span>
       </div>
 
       {doneBlockedMsg && <InlineError className="mb-12">{doneBlockedMsg}</InlineError>}

@@ -2231,13 +2231,6 @@ a:hover {
   margin-bottom: 0;
 }
 
-.board-hints {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-
 .sub-tabs {
   display: inline-flex;
   gap: 4px;
