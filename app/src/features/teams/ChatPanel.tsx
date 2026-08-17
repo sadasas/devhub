@@ -202,8 +202,6 @@ const socketRef = useRef<TeamChatSocket | null>(null);
       const saved = await getMeta<string>(chatLastReadKey(teamId)).catch(() => null);
       if (typeof saved === 'string') setLastReadAt(saved);
       setOpenedAt(openedAt);
-      const newest = messagesRef.current.at(-1)?.createdAt ?? openedAt;
-      void putMeta(chatLastReadKey(teamId), newest).catch(() => {});
       requestAnimationFrame(() => {
         const list = listRef.current;
         if (list) list.scrollTop = list.scrollHeight;
@@ -217,6 +215,13 @@ const socketRef = useRef<TeamChatSocket | null>(null);
   useEffect(() => {
     void loadFirstPage();
   }, [loadFirstPage]);
+
+  useEffect(() => {
+    return () => {
+      const newest = messagesRef.current.at(-1)?.createdAt;
+      if (newest) void putMeta(chatLastReadKey(teamId), newest).catch(() => {});
+    };
+  }, [teamId]);
 
   const loadMore = useCallback(async () => {
     if (!nextCursor || loadingMoreRef.current) return;
@@ -276,7 +281,7 @@ const socketRef = useRef<TeamChatSocket | null>(null);
         list.scrollTop = list.scrollHeight;
       }
     });
-  }, [teamId]);
+  }, []);
 
   const onMessageSent = useCallback((_teamId: string, message: ChatMessage) => {
     messagesRef.current = messagesRef.current.map((m) => (m.id.startsWith('local-') ? message : m));

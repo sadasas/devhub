@@ -799,6 +799,24 @@ describe('ChatPanel', () => {
     await screen.findByText('baru');
     expect(document.querySelectorAll('.chat-unread-divider')).toHaveLength(1);
     const lastReadWrites = idb.putMeta.mock.calls.filter((c) => c[0] === 'chatLastRead:t1');
+    expect(lastReadWrites).toHaveLength(0);
+  });
+
+  it('writes the read boundary when the drawer closes', async () => {
+    idb.getMeta.mockImplementation((key: string) =>
+      key === 'chatLastRead:t1'
+        ? Promise.resolve('2026-01-01T00:00:00.000Z')
+        : Promise.resolve(null),
+    );
+    api.listMessages.mockResolvedValue({
+      messages: [message({ id: 'm1', content: 'lama', createdAt: '2026-01-02T00:00:00.000Z' })],
+      nextCursor: null,
+    });
+    const { unmount } = renderPanel();
+    await screen.findByText('lama');
+    expect(screen.getByText('New messages')).toBeTruthy();
+    unmount();
+    const lastReadWrites = idb.putMeta.mock.calls.filter((c) => c[0] === 'chatLastRead:t1');
     expect(lastReadWrites).toHaveLength(1);
     expect(lastReadWrites[0]).toEqual(['chatLastRead:t1', '2026-01-02T00:00:00.000Z']);
   });
