@@ -112,4 +112,36 @@ describe('useTabUnread', () => {
     expect(result.current.dismissedUntil).not.toBeNull();
     expect(localStorage.getItem(DISMISS_KEY)).not.toBeNull();
   });
+
+  it('exposes the unread entity ids per tab from fetched activity', async () => {
+    localStorage.setItem(KEY, JSON.stringify({ board: '2099-01-01T01:00:00.000Z' }));
+    fetchActivityMock.mockResolvedValue([
+      activity({ id: 'a1', entity: 'tasks', entityId: 't1', createdAt: '2099-01-02T00:00:00.000Z' }),
+      activity({ id: 'a2', entity: 'tasks', entityId: 't2', createdAt: '2098-12-30T00:00:00.000Z' }),
+      activity({ id: 'a3', entity: 'issues', entityId: 'i9', createdAt: '2099-01-02T00:00:00.000Z' }),
+    ]);
+    const { result } = renderHook(() => useTabUnread('p1', 'u1', 'issues'));
+    await waitFor(() => expect(result.current.unreadIds.board?.has('t1')).toBe(true));
+    expect(result.current.unreadIds.board?.has('t2')).toBe(false);
+    expect(result.current.unreadIds.issues?.has('i9')).toBe(true);
+  });
+
+  it('adds live entity ids for other tabs and clears them when the tab is visited', async () => {
+    fetchActivityMock.mockResolvedValue([]);
+    let cb: (msg: { entry: ReturnType<typeof activity> }) => void = () => {};
+    subscribeMock.mockImplementation((fn: typeof cb) => {
+      cb = fn;
+      return () => {};
+    });
+    const { result, rerender } = renderHook(({ tab }) => useTabUnread('p1', 'u1', tab), {
+      initialProps: { tab: 'issues' },
+    });
+    await act(async () => {});
+    act(() => cb({ entry: activity({ entity: 'tasks', entityId: 't1' }) }));
+    expect(result.current.unreadIds.board?.has('t1')).toBe(true);
+
+    rerender({ tab: 'board' });
+    await act(async () => {});
+    expect(result.current.unreadIds.board?.has('t1')).toBe(false);
+  });
 });

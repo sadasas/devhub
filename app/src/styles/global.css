@@ -4831,3 +4831,12 @@ input[type='checkbox'] {
   font-size: 10.5px;
   color: var(--text-muted);
 }
+
+.unread-dot {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  display: inline-block;
+  background: var(--accent);
+  border-radius: 50%;
+}

@@ -11,6 +11,7 @@ interface TaskCardProps {
   onOpen: (taskId: string) => void;
   showStatus?: boolean;
   showMilestone?: boolean;
+  unread?: boolean;
 }
 
 export const TaskCard = memo(function TaskCard({
@@ -18,6 +19,7 @@ export const TaskCard = memo(function TaskCard({
   onOpen,
   showStatus = false,
   showMilestone = false,
+  unread = false,
 }: TaskCardProps) {
   const { state, canEdit } = useProject();
   const blockers =
@@ -94,6 +96,12 @@ export const TaskCard = memo(function TaskCard({
         <span className="task-card-id font-mono" title={task.id}>
           #{shortId(task.id)}
         </span>
+        {unread && (
+          <>
+            <span className="unread-dot" aria-hidden="true" />
+            <span className="sr-only">Unread</span>
+          </>
+        )}
       </div>
 
       <span className="sr-only">

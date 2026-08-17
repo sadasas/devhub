@@ -31,7 +31,7 @@ import { usePresenceStatus, viewingStatus } from '../../hooks/usePresenceStatus'
 import { ProjectProvider } from '../../state/project-context';
 import { useProjects } from '../../state/projects-context';
 import { useAuth } from '../../state/auth-context';
-import type { ExportDocument } from '../../lib/types';
+import type { ExportDocument, Project } from '../../lib/types';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
@@ -101,13 +101,15 @@ function ProjectUnreadArea({
   userId,
   tab,
   onSelect,
+  project,
 }: {
   projectId: string;
   userId: string;
   tab: ProjectTab;
   onSelect: (next: ProjectTab) => void;
+  project: Project;
 }) {
-  const { unread, deleted, dismissedUntil, dismissDeleted } = useTabUnread(
+  const { unread, unreadIds, deleted, dismissedUntil, dismissDeleted } = useTabUnread(
     projectId,
     userId,
     tab,
@@ -120,6 +122,47 @@ function ProjectUnreadArea({
         dismissedUntil={dismissedUntil}
         onDismiss={dismissDeleted}
       />
+      <section
+        className="tab-panel"
+        role="tabpanel"
+        id="project-tabpanel"
+        aria-labelledby={`project-tab-${tab}`}
+        tabIndex={0}
+      >
+        <Suspense
+          fallback={
+            <div className="tab-panel-loading" aria-hidden="true">
+              <Skeleton style={{ width: '100%', height: 28 }} />
+              <Skeleton style={{ width: '100%', height: 140 }} />
+              <Skeleton style={{ width: '100%', height: 140 }} />
+            </div>
+          }
+        >
+          {tab === 'board' ? (
+            <BoardPageLazy unreadIds={unreadIds.board} />
+          ) : tab === 'issues' ? (
+            <IssuesPageLazy unreadIds={unreadIds.issues} />
+          ) : tab === 'tests' ? (
+            <TestsPageLazy />
+          ) : tab === 'stack' ? (
+            <StackPageLazy />
+          ) : tab === 'schema' ? (
+            <SchemaPageLazy />
+          ) : tab === 'decisions' ? (
+            <DecisionsPageLazy />
+          ) : tab === 'releases' ? (
+            <ReleasesPageLazy />
+          ) : tab === 'api' ? (
+            <ApiPageLazy projectName={project.name} projectDescription={project.description ?? ''} />
+          ) : tab === 'stats' ? (
+            <StatsPageLazy />
+          ) : tab === 'about' ? (
+            <AboutPageLazy project={project} />
+          ) : tab === 'whiteboard' ? (
+            <WhiteboardPageLazy />
+          ) : null}
+        </Suspense>
+      </section>
     </>
   );
 }
@@ -356,51 +399,10 @@ if (!project) {
           userId={user?.id ?? ''}
           tab={tab}
           onSelect={setTab}
+          project={project}
         />
 
         <SaveBanner />
-
-        <section
-          className="tab-panel"
-          role="tabpanel"
-          id="project-tabpanel"
-          aria-labelledby={`project-tab-${tab}`}
-          tabIndex={0}
-        >
-          <Suspense
-            fallback={
-              <div className="tab-panel-loading" aria-hidden="true">
-                <Skeleton style={{ width: '100%', height: 28 }} />
-                <Skeleton style={{ width: '100%', height: 140 }} />
-                <Skeleton style={{ width: '100%', height: 140 }} />
-              </div>
-            }
-          >
-            {tab === 'board' ? (
-              <BoardPageLazy />
-            ) : tab === 'issues' ? (
-              <IssuesPageLazy />
-            ) : tab === 'tests' ? (
-              <TestsPageLazy />
-            ) : tab === 'stack' ? (
-              <StackPageLazy />
-            ) : tab === 'schema' ? (
-              <SchemaPageLazy />
-            ) : tab === 'decisions' ? (
-              <DecisionsPageLazy />
-            ) : tab === 'releases' ? (
-              <ReleasesPageLazy />
-            ) : tab === 'api' ? (
-              <ApiPageLazy projectName={project.name} projectDescription={project.description ?? ''} />
-            ) : tab === 'stats' ? (
-              <StatsPageLazy />
-            ) : tab === 'about' ? (
-              <AboutPageLazy project={project} />
-            ) : tab === 'whiteboard' ? (
-              <WhiteboardPageLazy />
-            ) : null}
-          </Suspense>
-        </section>
 
         <Modal
           open={confirmOpen}

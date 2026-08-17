@@ -13,7 +13,7 @@ import { IssueModal } from './IssueModal';
 import { NewIssueModal } from './NewIssueModal';
 import { InlineError } from '../../components/InlineError';
 
-export function IssuesPage() {
+export function IssuesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { state, loading, error, canEdit } = useProject();
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -98,6 +98,12 @@ return (
                   <div className="data-row-meta">
                     {linked && <span>linked: {linked.title}</span>}
                     <span>#{shortId(issue.id)}</span>
+                    {unreadIds?.has(issue.id) && (
+                      <>
+                        <span className="unread-dot" aria-hidden="true" />
+                        <span className="sr-only">Unread</span>
+                      </>
+                    )}
                   </div>
                 </button>
                 <div className="data-row-side">

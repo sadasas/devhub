@@ -30,7 +30,7 @@ interface NewTaskTarget {
   milestoneId?: string | null;
 }
 
-export function BoardPage() {
+export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { state, loading, error, dispatch, canEdit } = useProject();
   const [searchParams, setSearchParams] = useSearchParams();
   const viewParam = searchParams.get('view');
@@ -214,7 +214,7 @@ export function BoardPage() {
         <div className={`kanban-col-body ${overKey === dropKey ? 'kanban-drop-active' : ''}`}>
           {tasks.length === 0 && <p className="kanban-col-empty">Drop tasks here</p>}
           {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} onOpen={openTask} showStatus={view === 'milestone'} showMilestone={view === 'status'} />
+            <TaskCard key={task.id} task={task} onOpen={openTask} showStatus={view === 'milestone'} showMilestone={view === 'status'} unread={unreadIds?.has(task.id)} />
           ))}
         </div>
         <div className="kanban-col-add">
