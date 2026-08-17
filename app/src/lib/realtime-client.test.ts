@@ -59,6 +59,20 @@ describe('applyStateDiff', () => {
     expect(next.tasks[1]!.title).toBe('New');
   });
 
+  it('does not duplicate a created op whose id already exists (ws echo of own create)', () => {
+    const state = makeState();
+    state.tasks.push(task('t2', 'New'));
+    const next = applyStateDiff(state, diff([{ entity: 'tasks', id: 't2', op: 'created', after: task('t2', 'New') }]), new Set());
+    expect(next).toBe(state);
+    expect(next.tasks).toHaveLength(2);
+  });
+
+  it('appends a created op with a brand new id', () => {
+    const next = applyStateDiff(makeState(), diff([{ entity: 'tasks', id: 't9', op: 'created', after: task('t9', 'Fresh') }]), new Set());
+    expect(next.tasks).toHaveLength(2);
+    expect(next.tasks[1]!.id).toBe('t9');
+  });
+
   it('replaces updated ops in place, preserving the index', () => {
     const state = makeState();
     state.tasks.push(task('t2', 'Second'));

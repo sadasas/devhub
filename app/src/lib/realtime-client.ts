@@ -86,6 +86,7 @@ export function applyStateDiff(state: State, diff: StateDiff, ownKeys: ReadonlyS
 
     const items = next[op.entity] as { id: string }[];
     if (op.op === 'created') {
+      if (items.some((it) => it.id === op.id)) continue;
       next = { ...next, [op.entity]: [...items, op.after as { id: string }] };
     } else if (op.op === 'updated') {
       const idx = items.findIndex((it) => it.id === op.id);
