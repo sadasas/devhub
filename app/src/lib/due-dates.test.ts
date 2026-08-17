@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dueBucket, dueColumnDate, dueLabel, dueTone, todayIso } from './due-dates';
+import { dueBucket, dueColumnDate, dueLabel, dueTone, taskDueChip, todayIso } from './due-dates';
 
 describe('dueBucket', () => {
   const TODAY = '2026-08-17';
@@ -88,5 +88,48 @@ describe('todayIso', () => {
   it('returns the local date as YYYY-MM-DD', () => {
     const iso = todayIso();
     expect(iso).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe('taskDueChip', () => {
+  const TODAY = '2026-08-17';
+
+  it('labels a done-on-time task as success', () => {
+    expect(
+      taskDueChip(
+        { status: 'done', dueDate: '2026-08-20', completedAt: '2026-08-15T09:00:00.000Z' },
+        TODAY,
+      ),
+    ).toEqual({ label: 'Done on time', tone: 'success' });
+  });
+
+  it('treats same-day completion as on time', () => {
+    expect(
+      taskDueChip(
+        { status: 'done', dueDate: '2026-08-15', completedAt: '2026-08-15T23:59:00.000Z' },
+        TODAY,
+      ),
+    ).toEqual({ label: 'Done on time', tone: 'success' });
+  });
+
+  it('labels a done-late task with a fixed day count', () => {
+    expect(
+      taskDueChip(
+        { status: 'done', dueDate: '2026-08-10', completedAt: '2026-08-13T10:00:00.000Z' },
+        TODAY,
+      ),
+    ).toEqual({ label: 'Done late 3d', tone: 'warn' });
+  });
+
+  it('falls back to active overdue for done tasks without completedAt', () => {
+    expect(
+      taskDueChip({ status: 'done', dueDate: '2026-08-16', completedAt: null }, TODAY),
+    ).toEqual({ label: 'Overdue 1d', tone: 'danger' });
+  });
+
+  it('keeps active labeling for open tasks', () => {
+    expect(
+      taskDueChip({ status: 'todo', dueDate: '2026-08-16', completedAt: null }, TODAY),
+    ).toEqual({ label: 'Overdue 1d', tone: 'danger' });
   });
 });

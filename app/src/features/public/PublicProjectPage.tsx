@@ -13,7 +13,7 @@ import {
   TECH_STATUS,
 } from '../../lib/labels';
 import { formatDate, linkedTestCases } from '../../lib/utils';
-import { dueBucket, dueLabel, dueTone } from '../../lib/due-dates';
+import { dueBucket, taskDueChip } from '../../lib/due-dates';
 import { computeProjectStats } from '../../lib/stats';
 import { useAuth } from '../../state/auth-context';
 import { Badge } from '../../components/Badge';
@@ -236,12 +236,12 @@ function PublicTaskCard({
       </div>
       <div className="task-card-meta">
         <span className="task-meta-left">
-          {task.dueDate && (
+          {task.dueDate && taskDueChip(task).label && (
             <span
-              className={`task-due task-due-${dueTone(dueBucket(task.dueDate))}`}
+              className={`task-due task-due-${taskDueChip(task).tone}`}
               title={formatDate(task.dueDate)}
             >
-              {dueLabel(task.dueDate)}
+              {taskDueChip(task).label}
             </span>
           )}
           {testCases.length > 0 && (

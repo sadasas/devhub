@@ -766,6 +766,70 @@ describe('whiteboard reducer', () => {
   });
 });
 
+describe('completedAt derivation', () => {
+  it('sets completedAt when a task status moves to done', () => {
+    const next = projectReducer(makeState(), {
+      type: 'task/update',
+      id: 't1',
+      patch: { status: 'done' },
+    });
+    expect(next.tasks[0]!.completedAt).not.toBeNull();
+  });
+
+  it('clears completedAt when status leaves done', () => {
+    const state = makeState();
+    state.tasks[0] = {
+      ...state.tasks[0]!,
+      status: 'done',
+      completedAt: '2026-01-02T00:00:00.000Z',
+    };
+    const next = projectReducer(state, {
+      type: 'task/update',
+      id: 't1',
+      patch: { status: 'review' },
+    });
+    expect(next.tasks[0]!.completedAt).toBeNull();
+  });
+
+  it('keeps completedAt when re-setting status to done', () => {
+    const state = makeState();
+    state.tasks[0] = {
+      ...state.tasks[0]!,
+      status: 'done',
+      completedAt: '2026-01-02T00:00:00.000Z',
+    };
+    const next = projectReducer(state, {
+      type: 'task/update',
+      id: 't1',
+      patch: { status: 'done' },
+    });
+    expect(next.tasks[0]!.completedAt).toBe('2026-01-02T00:00:00.000Z');
+  });
+
+  it('respects an explicit completedAt in the patch', () => {
+    const next = projectReducer(makeState(), {
+      type: 'task/update',
+      id: 't1',
+      patch: { status: 'done', completedAt: '2026-01-05T00:00:00.000Z' },
+    });
+    expect(next.tasks[0]!.completedAt).toBe('2026-01-05T00:00:00.000Z');
+  });
+
+  it('sets completedAt when adding a done task', () => {
+    const next = projectReducer(makeState(), {
+      type: 'task/add',
+      task: {
+        ...TASK,
+        id: 't2',
+        status: 'done',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    });
+    expect(next.tasks[0]!.completedAt).not.toBeNull();
+  });
+});
+
 class FakeWs {
   static instances: FakeWs[] = [];
   readyState = 0;

@@ -34,6 +34,7 @@ export interface Task extends Base {
   milestoneId?: string | null;
   dueDate?: string | null;
   startDate?: string | null;
+  completedAt?: string | null;
   description: string;
 }
 

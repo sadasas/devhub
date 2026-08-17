@@ -24,6 +24,12 @@ const inputSchema = z.object({
     .nullable()
     .optional()
     .describe('Optional start date (YYYY-MM-DD)'),
+  completedAt: z
+    .string()
+    .refine((v) => !Number.isNaN(Date.parse(v)), { message: 'Must be a valid ISO date string' })
+    .nullable()
+    .optional()
+    .describe('Optional completion time — auto-set to now when status is done'),
   description: z.string().default(''),
 });
 
@@ -52,6 +58,7 @@ export function registerCreateTask(server: McpServer): void {
         milestoneId: args.milestoneId,
         dueDate: args.dueDate,
         startDate: args.startDate,
+        completedAt: args.completedAt ?? (args.status === 'done' ? nowIso() : null),
         description: args.description,
       };
       state.tasks.push(task);

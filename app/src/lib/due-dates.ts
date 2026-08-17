@@ -1,3 +1,5 @@
+import type { Task } from './types';
+
 export type DueBucket =
   | 'overdue'
   | 'today'
@@ -7,7 +9,7 @@ export type DueBucket =
   | 'later'
   | 'none';
 
-export type DueTone = 'danger' | 'warn' | 'neutral';
+export type DueTone = 'danger' | 'warn' | 'neutral' | 'success';
 
 const DAY_MS = 86_400_000;
 
@@ -78,4 +80,22 @@ export function dueTone(bucket: DueBucket): DueTone {
     default:
       return 'neutral';
   }
+}
+
+export interface DueChip {
+  label: string;
+  tone: DueTone;
+}
+
+export function taskDueChip(
+  task: Pick<Task, 'status' | 'dueDate' | 'completedAt'>,
+  today = todayIso(),
+): DueChip {
+  if (task.status === 'done' && task.completedAt && task.dueDate) {
+    const doneDay = task.completedAt.slice(0, 10);
+    if (doneDay <= task.dueDate) return { label: 'Done on time', tone: 'success' };
+    const days = dayIndex(doneDay) - dayIndex(task.dueDate);
+    return { label: `Done late ${days}d`, tone: 'warn' };
+  }
+  return { label: dueLabel(task.dueDate, today), tone: dueTone(dueBucket(task.dueDate, today)) };
 }

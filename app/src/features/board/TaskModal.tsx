@@ -7,7 +7,7 @@ import {
   TEST_CASE_STATUS,
 } from '../../lib/labels';
 import { formatRelative, isTaskCompletable, linkedTestCases, parseLabels } from '../../lib/utils';
-import { dueBucket, dueLabel, dueTone } from '../../lib/due-dates';
+import { taskDueChip } from '../../lib/due-dates';
 import { startAfterDue, startLabel } from '../../lib/start-dates';
 import type { State, Task, TaskPriority, TaskStatus, TestCaseStatus } from '../../lib/types';
 import type { UpdatePatch } from '../../state/project-context';
@@ -340,8 +340,8 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               </DetailRow>
               <DetailRow label="Due date">
                 {task.dueDate ? (
-                  <span className={`task-due task-due-${dueTone(dueBucket(task.dueDate))}`}>
-                    {dueLabel(task.dueDate)}
+                  <span className={`task-due task-due-${taskDueChip(task).tone}`}>
+                    {taskDueChip(task).label}
                   </span>
                 ) : (
                   <DetailEmpty />

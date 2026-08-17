@@ -26,6 +26,7 @@ export const taskSchema = z.object({
   milestoneId: z.string().uuid().nullable().optional(),
   dueDate: isoDate.nullable().optional(),
   startDate: isoDate.nullable().optional(),
+  completedAt: isoDate.nullable().optional(),
   description: z.string().max(10_000).default(''),
 });
 

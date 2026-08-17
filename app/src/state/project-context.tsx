@@ -95,9 +95,29 @@ export function projectReducer(state: State, action: ProjectAction): State {
       return action.state;
 
     case 'task/add':
-      return { ...state, tasks: [action.task, ...state.tasks] };
-    case 'task/update':
-      return { ...state, tasks: updateIn<Task>(state.tasks, action.id, action.patch) };
+      return {
+        ...state,
+        tasks: [
+          {
+            ...action.task,
+            completedAt:
+              action.task.completedAt ?? (action.task.status === 'done' ? nowIso() : null),
+          },
+          ...state.tasks,
+        ],
+      };
+    case 'task/update': {
+      const prev = state.tasks.find((t) => t.id === action.id);
+      let patch = action.patch;
+      if (prev && patch.status !== undefined && patch.completedAt === undefined) {
+        if (patch.status === 'done' && prev.status !== 'done') {
+          patch = { ...patch, completedAt: nowIso() };
+        } else if (patch.status !== 'done') {
+          patch = { ...patch, completedAt: null };
+        }
+      }
+      return { ...state, tasks: updateIn<Task>(state.tasks, action.id, patch) };
+    }
     case 'task/remove':
       return {
         ...state,

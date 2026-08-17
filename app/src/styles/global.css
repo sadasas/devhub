@@ -1849,6 +1849,12 @@ a:hover {
   color: var(--text-muted);
 }
 
+.task-due-success {
+  color: var(--status-success);
+  border-color: var(--status-success);
+  background: var(--status-success-dim);
+}
+
 .task-start {
   display: inline-flex;
   align-items: center;

@@ -279,4 +279,23 @@ M21 v0.16.0 — setiap tab list mendapat **sort control** (dropdown: pilih key +
 
 ---
 
+## 17. Completion-Aware Overdue (M22 — ADR-031)
+
+M22 v0.16.1 — task yang sudah `done` tidak lagi tampil "Overdue" (danger) membabi-buta. Field baru `completedAt` (zod-only, tanpa migrasi DB — precedent M19/M20) dicatat saat task pindah ke `done`; label chip jadi sadar status: `Done on time` (success) bila `completedAt ≤ dueDate`, `Done late Nd` (warn) bila `completedAt > dueDate` (N = hari keterlambatan, **fixed** di `completedAt`, tidak bertambah). Task aktif tetap `Overdue Nd` (danger) / `Due …` seperti eksisting.
+
+| # | Item | Detail |
+|---|------|--------|
+| P1.1 Schema | `taskSchema` + `completedAt: isoDate.nullable().optional()`; mirror `lib/types.ts`; round-trip/strip/invalid test server |
+| P1.2 MCP | `create_task`/`update_task` + `completedAt` opsional; derivasi otomatis server-side: status→done tanpa completedAt → `nowIso()`, keluar done → `null` (paritas reducer app) + tes |
+| P1.3 Reducer | `project-context.tsx` `task/update`: `patch.status='done'` (prev ≠ done, tanpa patch.completedAt) → `completedAt=nowIso()`; keluar done → `null`; `task/add` status done → set juga + tes |
+| P1.4 Lib | `due-dates.ts` + `taskDueChip(task)` → `{label, tone}`: `Done on time` (success) · `Done late Nd` (warn) · aktif → `dueLabel`/`dueTone` eksisting |
+| P1.5 UI | Chip TaskCard + DetailRow TaskModal + PublicProjectPage pakai `taskDueChip`; CSS `.task-due-success`; view By Due & bucket **tidak berubah** (done-late tetap kolom Overdue chip warn, done-on-time tetap kolom tanggalnya) |
+| P1.6 Verifikasi | Tests (app: due-dates, project-context, TaskCard; server: completedAt + MCP), lint, build hijau |
+
+**Selesai (2026-08-17):** P1.1–P1.6 ✅ — `completedAt` aktif di schema/UI/MCP dengan derivasi otomatis (reducer + MCP), chip `Done on time` (success) / `Done late Nd` (warn, fixed), task aktif tidak berubah, view By Due & bucket tetap.
+
+**Verifikasi:** server 189 + app 501 tests, lint, build hijau.
+
+---
+
 *End of Roadmap.*

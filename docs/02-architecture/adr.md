@@ -366,3 +366,18 @@
   - **Skip:** Stats, About, editor Whiteboard (bukan list). Tidak ada perubahan server/schema/zod.
 - **Consequences:** Positive — urutan jadi bisa dijelaskan & di-share (URL); pola dropdown reusable mencegah 9 implementasi berbeda; comparator terpusat memudahkan key baru (startDate dari M20 langsung bisa); zero server work (view state murni). Negative — satu kontrol per toolbar menambah padat header list; URL param bertambah (dibersihkan otomatis saat key default); sort per-kolom kanban hanya memengaruhi urutan dalam kolom, bukan antar kolom (di luar scope).
 - **Alternatives:** Segmented toggle asc/desc terpisah + menu key (ditolak: dua klik lebih banyak, dua kontrol per toolbar); localStorage (ditolak: tidak shareable, tidak konsisten dengan precedent `?view=`/`?schemaView=`); server-side sort param (ditolak: state JSONB sudah dimuat penuh client-side, sort server menambah round-trip tanpa manfaat); library sort/table (ditolak: policy no new runtime deps, ADR-007).
+
+---
+
+### ADR-031
+**Completion-aware overdue — field `completedAt` + chip `Done on time` / `Done late Nd`**
+
+- **Status:** Accepted (2026-08-17) — M22 v0.16.1
+- **Context:** `dueBucket`/`dueLabel` (M19) murni berbasis tanggal: task berstatus `done` yang jatuh tempo sudah lewat tetap menampilkan "Overdue Nd" ber-tone danger — salah sinyal (pekerjaan selesai, tidak ada aksi lagi), dan task yang selesai tepat waktu tidak mendapat penanda apa pun. Untuk membedakan "selesai tepat waktu vs telat" dibutuhkan timestamp penyelesaian; `updatedAt` tidak bisa diandalkan (berubah pada edit apa pun setelah done). `completedAt` adalah primitif standar (Linear/Asana/Todoist mencatat completion time).
+- **Decision:**
+  - **Schema (zod, state JSONB — tanpa migrasi DB, precedent ADR-028/ADR-029):** `taskSchema` + `completedAt: isoDate.nullable().optional()`; mirror `lib/types.ts`; round-trip test.
+  - **Derivasi otomatis (bukan manual):** choke point reducer app (`task/update`) dan jalur MCP (`update_task`/`create_task`): status → `done` tanpa `completedAt` eksplisit → set `nowIso()`; status keluar `done` → `null`. Satu sumber kebenaran, semua jalur UI (modal, drag, arrow-key) konsisten tanpa perubahan per-situs.
+  - **Label & tone:** chip task sadar status via `taskDueChip(task)` — `Done on time` (success) bila `completedAt ≤ dueDate`; `Done late Nd` (warn, `completedAt` date − `dueDate` date, **fixed** tidak bertambah) bila `completedAt > dueDate`; task aktif tidak berubah (`Overdue Nd` danger, `Due …`). N = 0 saat sama hari → on time.
+  - **View By Due Date & bucket eksisting tidak berubah:** done-late tetap di kolom Overdue (chip warn), done-on-time tetap di kolom tanggalnya (chip success) — tanpa perubahan struktur view.
+- **Consequences:** Positive — sinyal overdue akurat per status (done-late warn bukan danger); primitif `completedAt` membuka filter/stat "selesai tepat waktu vs telat" di masa depan; derivasi terpusat menjamin konsistensi UI/MCP. Negative — satu field lagi di task schema (backward-compatible, nullable); pengguna yang mengedit task setelah done tidak menggeser label late (completedAt tetap, sesuai semantik "kapan selesai"); tanpa completedAt (task lama) label fallback ke perilaku aktif berbasis `dueDate` vs hari ini.
+- **Alternatives:** Tanpa schema change — `done` + `dueDate` vs hari ini (ditolak: task on-time yang selesai beberapa hari lalu salah label "late"); `updatedAt` sebagai proxy completion (ditolak: berubah oleh edit lain); kolom terpisah "Done late" di view By Due (ditolak: perubahan struktur view tanpa manfaat, chip warn sudah cukup); hard-block dueDate sebelum completedAt (ditolak: tidak perlu, label sudah mengkomunikasikan).

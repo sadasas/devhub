@@ -59,6 +59,28 @@ describe('TaskCard', () => {
     expect(document.querySelector('.task-due')).toBeNull();
   });
 
+  it('renders a success chip for a done-on-time task', () => {
+    render(
+      <TaskCard
+        task={task({ status: 'done', dueDate: '2026-08-20', completedAt: '2026-08-14T09:00:00.000Z' })}
+        onOpen={() => {}}
+      />,
+    );
+    expect(screen.getByText('Done on time')).toBeTruthy();
+    expect(document.querySelector('.task-due-success')).toBeTruthy();
+  });
+
+  it('renders a warn chip for a done-late task', () => {
+    render(
+      <TaskCard
+        task={task({ status: 'done', dueDate: '2026-08-10', completedAt: '2026-08-13T09:00:00.000Z' })}
+        onOpen={() => {}}
+      />,
+    );
+    expect(screen.getByText('Done late 3d')).toBeTruthy();
+    expect(document.querySelector('.task-due-warn')).toBeTruthy();
+  });
+
   it('renders a start chip for tasks with a start date', () => {
     render(<TaskCard task={task({ startDate: '2026-08-14' })} onOpen={() => {}} />);
     expect(screen.getByText(/Starts Aug 14/)).toBeTruthy();

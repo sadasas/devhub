@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { LinkSimple, ListChecks } from '@phosphor-icons/react';
 import { TASK_PRIORITY, TASK_STATUS } from '../../lib/labels';
 import { formatDate, linkedTestCases, shortId } from '../../lib/utils';
-import { dueBucket, dueLabel, dueTone } from '../../lib/due-dates';
+import { taskDueChip } from '../../lib/due-dates';
 import { startLabel } from '../../lib/start-dates';
 import type { Task } from '../../lib/types';
 import { useProject } from '../../state/project-context';
@@ -32,6 +32,7 @@ export const TaskCard = memo(function TaskCard({
     ? state?.milestones.find((m) => m.id === task.milestoneId)
     : undefined;
   const testCases = linkedTestCases(task.id, state?.testCases ?? []);
+  const dueChip = taskDueChip(task);
 
   const chipRows = (showStatus || showMilestone) && (
     <div className="task-card-labels">
@@ -71,9 +72,12 @@ export const TaskCard = memo(function TaskCard({
 
       <div className="task-card-meta">
         <span className="task-meta-left">
-          {task.dueDate && (
-            <span className={`task-due task-due-${dueTone(dueBucket(task.dueDate))}`} title={formatDate(task.dueDate)}>
-              {dueLabel(task.dueDate)}
+          {task.dueDate && dueChip.label && (
+            <span
+              className={`task-due task-due-${dueChip.tone}`}
+              title={formatDate(task.dueDate)}
+            >
+              {dueChip.label}
             </span>
           )}
           {task.startDate && (

@@ -25,6 +25,12 @@ const inputSchema = z.object({
     .nullable()
     .optional()
     .describe('Set or clear the start date (YYYY-MM-DD, or null)'),
+  completedAt: z
+    .string()
+    .refine((v) => !Number.isNaN(Date.parse(v)), { message: 'Must be a valid ISO date string' })
+    .nullable()
+    .optional()
+    .describe('Completion time — auto-set to now when status moves to done, cleared when leaving done'),
   description: z.string().optional(),
 });
 
@@ -40,6 +46,14 @@ export function registerUpdateTask(server: McpServer): void {
     async (args) => {
       const state = await loadState(args.projectId);
       const task = findEntity(state.tasks, args.taskId, 'Task');
+      let completedAt = args.completedAt;
+      if (completedAt === undefined && args.status !== undefined) {
+        if (args.status === 'done') {
+          if (task.status !== 'done') completedAt = nowIso();
+        } else {
+          completedAt = null;
+        }
+      }
       applyDefined(task, {
         title: args.title?.trim(),
         status: args.status,
@@ -50,6 +64,7 @@ export function registerUpdateTask(server: McpServer): void {
         milestoneId: args.milestoneId,
         dueDate: args.dueDate,
         startDate: args.startDate,
+        completedAt,
         description: args.description,
       });
       task.updatedAt = nowIso();
