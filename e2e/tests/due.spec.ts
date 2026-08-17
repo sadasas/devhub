@@ -17,7 +17,8 @@ test.describe('due dates + calendar (M19)', () => {
     await page.getByRole('tab', { name: 'Calendar' }).click();
     await expect(page.locator('.due-cal-grid')).toBeVisible();
     await expect(page.locator('.due-cal-grid')).toHaveCSS('display', 'grid');
-    await expect(page.locator('.due-cal-cell').first()).toHaveCSS('min-height', '96px');
+    await expect(page.locator('.due-cal-cell').first()).toHaveCSS('min-height', '112px');
+    await expect(page.locator('.due-cal-cell').first()).toHaveCSS('overflow', 'hidden');
     const widths = await page.locator('.due-cal-cell').evaluateAll((els) => els.map((e) => e.offsetWidth));
     expect(new Set(widths).size).toBe(1);
     const heights = await page.locator('.due-cal-cell').evaluateAll((els) => els.map((e) => e.offsetHeight));

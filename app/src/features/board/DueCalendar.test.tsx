@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import type { State } from '../../lib/types';
+import type { State, Task } from '../../lib/types';
 import { DueCalendar } from './DueCalendar';
 
 const mocks = vi.hoisted(() => ({ dispatch: vi.fn(), setStatus: vi.fn() }));
@@ -195,5 +195,76 @@ describe('DueCalendar', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: 'Hide completed' }));
     const cell = document.querySelector('[data-date="2026-08-20"]');
     expect(cell?.textContent).not.toContain('Ship calendar');
+  });
+
+  it('caps chips at 3 per cell and shows a +N more chip', () => {
+    const tasks: Task[] = Array.from({ length: 7 }, (_, i) => ({
+      id: `aaaaaaa${i}-aaaa-4aaa-8aaa-aaaaaaaaaa${i}a`,
+      title: `Task ${i}`,
+      status: 'todo',
+      priority: 'low',
+      labels: [],
+      blockedBy: [],
+      dueDate: '2026-08-20',
+      description: '',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }));
+    mockState.tasks = tasks;
+    renderCalendar();
+    const cell = document.querySelector('[data-date="2026-08-20"]')!;
+    expect(cell.querySelectorAll('.due-cal-task').length).toBe(3);
+    expect(screen.getByText('+4 more')).toBeTruthy();
+  });
+
+  it('groups multiple milestones into a single row', () => {
+    mockState.milestones = [
+      {
+        id: '44444444-4444-4444-8444-444444444444',
+        name: 'V0.2.0',
+        version: '0.2.0',
+        status: 'planned',
+        targetDate: '2026-08-25',
+        changelog: '',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+      {
+        id: '99999999-9999-4999-8999-999999999999',
+        name: 'V0.3.0',
+        version: '0.3.0',
+        status: 'planned',
+        targetDate: '2026-08-25',
+        changelog: '',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ];
+    renderCalendar();
+    const cell = document.querySelector('[data-date="2026-08-25"]')!;
+    const container = cell.querySelector('.due-cal-milestones');
+    expect(container).toBeTruthy();
+    expect(container!.querySelectorAll('.due-cal-milestone').length).toBe(2);
+  });
+
+  it('opens the day popup with all tasks from the +N more chip', () => {
+    const tasks: Task[] = Array.from({ length: 7 }, (_, i) => ({
+      id: `bbbbbb${i}-bbbb-4bbb-8bbb-bbbbbbbbbbb${i}`,
+      title: `Overflow task ${i}`,
+      status: 'todo',
+      priority: 'low',
+      labels: [],
+      blockedBy: [],
+      dueDate: '2026-08-20',
+      description: '',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }));
+    mockState.tasks = tasks;
+    renderCalendar();
+    fireEvent.click(screen.getByText('+4 more'));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('Overflow task 0')).toBeTruthy();
+    expect(within(dialog).getByText('Overflow task 6')).toBeTruthy();
   });
 });

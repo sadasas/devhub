@@ -4931,12 +4931,12 @@ input[type='checkbox'] {
 
 .due-cal-month {
   grid-template-columns: repeat(7, 1fr);
-  grid-template-rows: repeat(6, minmax(96px, 1fr));
+  grid-template-rows: repeat(6, 112px);
 }
 
 .due-cal-week {
   grid-template-columns: repeat(7, 1fr);
-  grid-template-rows: minmax(96px, 1fr);
+  grid-template-rows: 112px;
 }
 
 .due-cal-head {
@@ -4950,7 +4950,8 @@ input[type='checkbox'] {
 
 .due-cal-cell {
   min-width: 0;
-  min-height: 96px;
+  min-height: 112px;
+  overflow: hidden;
   padding: 6px;
   background: var(--bg-elevated);
   display: flex;
@@ -4983,6 +4984,12 @@ input[type='checkbox'] {
   font-size: 11px;
   color: var(--text-muted);
   font-family: var(--font-mono);
+}
+
+.due-cal-milestones {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .due-cal-milestone {
@@ -5037,6 +5044,21 @@ input[type='checkbox'] {
   white-space: nowrap;
   min-width: 0;
   flex: 1 1 auto;
+}
+
+.due-cal-more {
+  border: none;
+  background: none;
+  padding: 0 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.due-cal-more:hover {
+  color: var(--text-secondary);
+  text-decoration: underline;
 }
 
 .due-cal-strip {

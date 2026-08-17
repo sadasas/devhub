@@ -15,6 +15,8 @@ interface DueCalendarProps {
 
 const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+const MAX_CHIPS_PER_CELL = 3;
+
 const dayHeader = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
 export function DueCalendar({ onOpenTask, onQuickCreate }: DueCalendarProps) {
@@ -126,12 +128,20 @@ export function DueCalendar({ onOpenTask, onQuickCreate }: DueCalendarProps) {
         onDrop={onDrop(date)}
       >
         <span className="due-cal-daynum">{date.slice(8)}</span>
-        {milestones.map((m) => (
-          <span key={m.id} className="due-cal-milestone" title={`${m.name}${m.version ? ` ${m.version}` : ''}`}>
-            ◆
+        {milestones.length > 0 && (
+          <span className="due-cal-milestones">
+            {milestones.map((m) => (
+              <span
+                key={m.id}
+                className="due-cal-milestone"
+                title={`${m.name}${m.version ? ` ${m.version}` : ''}`}
+              >
+                ◆
+              </span>
+            ))}
           </span>
-        ))}
-        {tasks.map((t) => (
+        )}
+        {tasks.slice(0, MAX_CHIPS_PER_CELL).map((t) => (
           <button
             key={t.id}
             type="button"
@@ -152,6 +162,19 @@ export function DueCalendar({ onOpenTask, onQuickCreate }: DueCalendarProps) {
             <span className="due-cal-task-title">{t.title}</span>
           </button>
         ))}
+        {tasks.length > MAX_CHIPS_PER_CELL && (
+          <button
+            type="button"
+            className="due-cal-more"
+            title={`${tasks.length} tasks due — open day list`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setDayPopup(date);
+            }}
+          >
+            +{tasks.length - MAX_CHIPS_PER_CELL} more
+          </button>
+        )}
       </div>
     );
   };
