@@ -11,6 +11,7 @@ const inputSchema = z.object({
   description: z.string().default(''),
   reproduction: z.string().default(''),
   linkedTaskId: z.string().uuid().optional(),
+  pinned: z.boolean().default(false).describe('Pin the issue so it floats to the top of lists'),
 });
 
 export function registerAddIssue(server: McpServer): void {
@@ -35,6 +36,7 @@ export function registerAddIssue(server: McpServer): void {
         description: args.description,
         reproduction: args.reproduction,
         linkedTaskId: args.linkedTaskId ?? null,
+        pinned: args.pinned,
       };
       state.issues.push(issue);
       await saveState(args.projectId, state);

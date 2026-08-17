@@ -11,6 +11,7 @@ import type { Issue } from '../../lib/types';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
+import { PinButton } from '../../components/PinButton';
 import { Skeleton } from '../../components/Skeleton';
 import { SortControl } from '../../components/SortControl';
 import { IssueModal } from './IssueModal';
@@ -35,7 +36,7 @@ const ISSUE_SORT_SPECS: SortSpec<Issue>[] = [
 ];
 
 export function IssuesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
-  const { state, loading, error, canEdit } = useProject();
+  const { state, loading, error, canEdit, dispatch } = useProject();
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   useEntityDeepLink('issues', setEditingId);
@@ -69,7 +70,7 @@ export function IssuesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   if (!state) return null;
 
   const sortSpec = ISSUE_SORT_SPECS.find((s) => s.key === sortValue?.key) ?? null;
-  const issues = applySort(state.issues, sortSpec, sortValue?.dir ?? 'asc');
+  const issues = applySort(state.issues, sortSpec, sortValue?.dir ?? 'asc', (i) => !!i.pinned);
 
   return (
     <div>
@@ -138,6 +139,19 @@ return (
                 </button>
                 <div className="data-row-side">
                   <Badge tone={ISSUE_STATUS[issue.status].tone}>{ISSUE_STATUS[issue.status].label}</Badge>
+                  {canEdit && (
+                    <PinButton
+                      pinned={!!issue.pinned}
+                      label="issue"
+                      onToggle={() =>
+                        dispatch({
+                          type: 'issue/update',
+                          id: issue.id,
+                          patch: { pinned: !issue.pinned },
+                        })
+                      }
+                    />
+                  )}
                   {canEdit && (
                     <Button
                       variant="ghost"

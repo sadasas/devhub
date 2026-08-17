@@ -12,6 +12,7 @@ const inputSchema = z.object({
   options: z.array(z.string()).max(20).default([]),
   decision: z.string().default(''),
   consequences: z.string().default(''),
+  pinned: z.boolean().default(false).describe('Pin the decision so it floats to the top of lists'),
 });
 
 export function registerAddDecision(server: McpServer): void {
@@ -37,6 +38,7 @@ export function registerAddDecision(server: McpServer): void {
         options: args.options,
         decision: args.decision,
         consequences: args.consequences,
+        pinned: args.pinned,
       };
       state.decisions.push(decision);
       await saveState(args.projectId, state);

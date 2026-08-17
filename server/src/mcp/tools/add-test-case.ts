@@ -11,6 +11,7 @@ const inputSchema = z.object({
   steps: z.string().default('').describe('Steps to verify the behavior'),
   expected: z.string().default('').describe('Expected result'),
   status: z.enum(['pass', 'fail', 'pending']).default('pending'),
+  pinned: z.boolean().default(false).describe('Pin the test case so it floats to the top of lists'),
 });
 
 export function registerAddTestCase(server: McpServer): void {
@@ -35,6 +36,7 @@ export function registerAddTestCase(server: McpServer): void {
         steps: args.steps,
         expected: args.expected,
         status: args.status,
+        pinned: args.pinned,
       };
       state.testCases.push(testCase);
       await saveState(args.projectId, state);

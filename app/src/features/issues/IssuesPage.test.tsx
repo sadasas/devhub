@@ -1,10 +1,11 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { IssuesPage } from './IssuesPage';
 import type { Issue } from '../../lib/types';
 
 const useProjectMock = vi.hoisted(() => vi.fn());
+const dispatchMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../../state/project-context', () => ({
   useProject: useProjectMock,
@@ -35,6 +36,7 @@ function renderPage(unreadIds?: ReadonlySet<string>) {
 describe('IssuesPage', () => {
   beforeEach(() => {
     useProjectMock.mockReset();
+    dispatchMock.mockReset();
     useProjectMock.mockReturnValue({
       state: {
         issues: [issue(), issue({ id: 'i2', title: 'Second issue' })],
@@ -43,6 +45,7 @@ describe('IssuesPage', () => {
       loading: false,
       error: null,
       canEdit: true,
+      dispatch: dispatchMock,
     });
   });
 
@@ -55,5 +58,32 @@ describe('IssuesPage', () => {
   it('renders no unread dots without unreadIds', () => {
     renderPage();
     expect(document.querySelectorAll('.unread-dot').length).toBe(0);
+  });
+
+  it('toggles pinned via dispatch', () => {
+    renderPage();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Pin issue' })[0]!);
+    expect(dispatchMock).toHaveBeenCalledWith({
+      type: 'issue/update',
+      id: 'i1',
+      patch: { pinned: true },
+    });
+  });
+
+  it('renders pinned issues first', () => {
+    useProjectMock.mockReturnValue({
+      state: {
+        issues: [issue(), issue({ id: 'i2', title: 'Second issue', pinned: true })],
+        tasks: [],
+      },
+      loading: false,
+      error: null,
+      canEdit: true,
+      dispatch: dispatchMock,
+    });
+    renderPage();
+    const first = screen.getAllByText('Second issue')[0]!;
+    expect((first.closest('.data-row') as HTMLElement).textContent).toContain('Second issue');
+    expect(screen.getAllByRole('button', { name: 'Unpin issue' }).length).toBe(1);
   });
 });

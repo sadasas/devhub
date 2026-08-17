@@ -1,10 +1,11 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TestsPage } from './TestsPage';
 import type { TestCase } from '../../lib/types';
 
 const useProjectMock = vi.hoisted(() => vi.fn());
+const dispatchMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../../state/project-context', () => ({
   useProject: useProjectMock,
@@ -34,6 +35,7 @@ function renderPage(unreadIds?: ReadonlySet<string>) {
 describe('TestsPage', () => {
   beforeEach(() => {
     useProjectMock.mockReset();
+    dispatchMock.mockReset();
     useProjectMock.mockReturnValue({
       state: {
         testCases: [testCase(), testCase({ id: 'tc2', name: 'Regression' })],
@@ -43,6 +45,7 @@ describe('TestsPage', () => {
       loading: false,
       error: null,
       canEdit: true,
+      dispatch: dispatchMock,
     });
   });
 
@@ -55,5 +58,32 @@ describe('TestsPage', () => {
   it('renders no unread dots without unreadIds', () => {
     renderPage();
     expect(document.querySelectorAll('.unread-dot').length).toBe(0);
+  });
+
+  it('toggles pinned via dispatch', () => {
+    renderPage();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Pin test case' })[0]!);
+    expect(dispatchMock).toHaveBeenCalledWith({
+      type: 'testCase/update',
+      id: 'tc1',
+      patch: { pinned: true },
+    });
+  });
+
+  it('renders pinned test cases first', () => {
+    useProjectMock.mockReturnValue({
+      state: {
+        testCases: [testCase(), testCase({ id: 'tc2', name: 'Regression', pinned: true })],
+        tasks: [],
+        issues: [],
+      },
+      loading: false,
+      error: null,
+      canEdit: true,
+      dispatch: dispatchMock,
+    });
+    renderPage();
+    const first = screen.getAllByText('Regression')[0]!;
+    expect((first.closest('.data-row') as HTMLElement).textContent).toContain('Regression');
   });
 });

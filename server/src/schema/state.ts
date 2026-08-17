@@ -27,6 +27,7 @@ export const taskSchema = z.object({
   dueDate: isoDate.nullable().optional(),
   startDate: isoDate.nullable().optional(),
   completedAt: isoDate.nullable().optional(),
+  pinned: z.boolean().default(false),
   description: z.string().max(10_000).default(''),
 });
 
@@ -41,6 +42,7 @@ export const issueSchema = z.object({
   description: z.string().max(10_000).default(''),
   reproduction: z.string().max(10_000).default(''),
   linkedTaskId: z.string().uuid().nullable().optional(),
+  pinned: z.boolean().default(false),
 });
 
 export const testCaseStatus = z.enum(['pass', 'fail', 'pending']);
@@ -53,6 +55,7 @@ export const testCaseSchema = z.object({
   steps: z.string().max(10_000).default(''),
   expected: z.string().max(5_000).default(''),
   status: testCaseStatus,
+  pinned: z.boolean().default(false),
 });
 
 export const techEntryCategory = z.enum(['frontend', 'backend', 'database', 'tooling']);
@@ -122,6 +125,7 @@ export const decisionSchema = z.object({
   decision: z.string().max(20_000).default(''),
   consequences: z.string().max(10_000).default(''),
   date: isoDate,
+  pinned: z.boolean().default(false),
 });
 
 export const milestoneStatus = z.enum(['planned', 'inProgress', 'released']);
@@ -212,12 +216,13 @@ const whiteboardTextSchema = z.object({
   color: z.string().max(20).default('#e4e4e7'),
   fontSize: z.number().min(8).max(200).default(16),
   text: z.string().max(1000).default(''),
+  w: z.number().min(20).max(2000).nullable().optional(),
 });
 
 const whiteboardShapeSchema = z.object({
   id: whiteboardElementId,
   kind: z.literal('shape'),
-  shapeType: z.enum(['rect', 'diamond', 'ellipse']),
+  shapeType: z.enum(['rect', 'diamond', 'ellipse', 'cylinder', 'parallelogram', 'hexagon', 'roundedRect']),
   x: whiteboardCoord,
   y: whiteboardCoord,
   w: z.number().min(1).max(10_000),
@@ -238,10 +243,23 @@ const whiteboardEdgeSchema = z.object({
   color: z.string().max(20).default('#e4e4e7'),
   width: z.number().min(0.5).max(100).default(2),
   arrowhead: z.boolean().default(false),
+  label: z.string().max(200).default(''),
+  arrowStyle: z.enum(['none', 'open', 'solid', 'diamond', 'circle']).default('none'),
   sourceNodeId: whiteboardElementId.nullable().optional(),
   targetNodeId: whiteboardElementId.nullable().optional(),
   sourcePort: z.enum(['top', 'right', 'bottom', 'left']).nullable().optional(),
   targetPort: z.enum(['top', 'right', 'bottom', 'left']).nullable().optional(),
+});
+
+const whiteboardBoundarySchema = z.object({
+  id: whiteboardElementId,
+  kind: z.literal('boundary'),
+  x: whiteboardCoord,
+  y: whiteboardCoord,
+  w: z.number().min(20).max(2000),
+  h: z.number().min(20).max(2000),
+  color: z.string().max(20).default('#6ea8fe'),
+  label: z.string().max(200).default(''),
 });
 
 const whiteboardRefSchema = z.object({
@@ -259,6 +277,7 @@ export const whiteboardElementSchema = z.discriminatedUnion('kind', [
   whiteboardTextSchema,
   whiteboardShapeSchema,
   whiteboardEdgeSchema,
+  whiteboardBoundarySchema,
   whiteboardRefSchema,
 ]);
 

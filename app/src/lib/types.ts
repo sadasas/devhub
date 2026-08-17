@@ -35,6 +35,7 @@ export interface Task extends Base {
   dueDate?: string | null;
   startDate?: string | null;
   completedAt?: string | null;
+  pinned?: boolean;
   description: string;
 }
 
@@ -45,6 +46,7 @@ export interface Issue extends Base {
   description: string;
   reproduction: string;
   linkedTaskId?: string | null;
+  pinned?: boolean;
 }
 
 export interface TestCase extends Base {
@@ -54,6 +56,7 @@ export interface TestCase extends Base {
   steps: string;
   expected: string;
   status: TestCaseStatus;
+  pinned?: boolean;
 }
 
 export interface TechEntry extends Base {
@@ -110,6 +113,7 @@ export interface Decision extends Base {
   decision: string;
   consequences: string;
   date: string;
+  pinned?: boolean;
 }
 
 export interface Milestone extends Base {
@@ -160,9 +164,17 @@ export interface ApiEndpoint extends Base {
   responses: ApiResponse[];
 }
 
-export type WhiteboardElementKind = 'stroke' | 'sticky' | 'text' | 'shape' | 'edge' | 'ref';
+export type WhiteboardElementKind = 'stroke' | 'sticky' | 'text' | 'shape' | 'edge' | 'boundary' | 'ref';
 export type WhiteboardStrokeTool = 'pen' | 'eraser';
-export type WhiteboardShapeType = 'rect' | 'diamond' | 'ellipse';
+export type WhiteboardShapeType =
+  | 'rect'
+  | 'diamond'
+  | 'ellipse'
+  | 'cylinder'
+  | 'parallelogram'
+  | 'hexagon'
+  | 'roundedRect';
+export type WhiteboardArrowStyle = 'none' | 'open' | 'solid' | 'diamond' | 'circle';
 
 export interface WhiteboardStroke {
   id: string;
@@ -193,6 +205,7 @@ export interface WhiteboardText {
   color: string;
   fontSize: number;
   text: string;
+  w?: number | null;
 }
 
 export interface WhiteboardShape {
@@ -219,10 +232,23 @@ export interface WhiteboardEdge {
   color: string;
   width: number;
   arrowhead: boolean;
+  label: string;
+  arrowStyle: WhiteboardArrowStyle;
   sourceNodeId?: string | null;
   targetNodeId?: string | null;
   sourcePort?: 'top' | 'right' | 'bottom' | 'left' | null;
   targetPort?: 'top' | 'right' | 'bottom' | 'left' | null;
+}
+
+export interface WhiteboardBoundary {
+  id: string;
+  kind: 'boundary';
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  color: string;
+  label: string;
 }
 
 export interface WhiteboardRef {
@@ -240,6 +266,7 @@ export type WhiteboardElement =
   | WhiteboardText
   | WhiteboardShape
   | WhiteboardEdge
+  | WhiteboardBoundary
   | WhiteboardRef;
 
 export interface Whiteboard extends Base {

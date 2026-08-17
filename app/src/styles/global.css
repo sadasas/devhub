@@ -1813,6 +1813,29 @@ a:hover {
   color: var(--text-primary);
 }
 
+.task-card-wrap {
+  position: relative;
+}
+
+.task-card-pin {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.task-card-wrap:hover .task-card-pin,
+.task-card-pin:focus-visible,
+.task-card-pin.pin-btn-active {
+  opacity: 1;
+}
+
+.task-card-pin.pin-btn-active {
+  color: var(--accent);
+}
+
 .task-card {
   display: flex;
   flex-direction: column;

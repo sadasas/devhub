@@ -11,6 +11,7 @@ import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { PencilSimple, Plus, Scales } from '@phosphor-icons/react';
+import { PinButton } from '../../components/PinButton';
 import { Skeleton } from '../../components/Skeleton';
 import { SortControl } from '../../components/SortControl';
 import { DecisionModal } from './DecisionModal';
@@ -29,7 +30,7 @@ const DECISION_SORT_SPECS: SortSpec<Decision>[] = [
 ];
 
 export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
-  const { state, loading, error, canEdit } = useProject();
+  const { state, loading, error, canEdit, dispatch } = useProject();
   const [openNew, setOpenNew] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   useEntityDeepLink('decisions', setEditId);
@@ -61,8 +62,10 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
 
   const sortSpec = DECISION_SORT_SPECS.find((s) => s.key === sortValue?.key) ?? null;
   const decisions = sortSpec
-    ? applySort(state.decisions, sortSpec, sortValue?.dir ?? 'asc')
-    : [...state.decisions].sort((a, b) => b.date.localeCompare(a.date));
+    ? applySort(state.decisions, sortSpec, sortValue?.dir ?? 'asc', (d) => !!d.pinned)
+    : [...state.decisions]
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned));
 
   return (
     <div>
@@ -126,6 +129,15 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
                 </div>
               </button>
               <div className="data-row-side">
+                {canEdit && (
+                  <PinButton
+                    pinned={!!d.pinned}
+                    label="decision"
+                    onToggle={() =>
+                      dispatch({ type: 'decision/update', id: d.id, patch: { pinned: !d.pinned } })
+                    }
+                  />
+                )}
                 {canEdit && (
                   <Button
                     size="sm"

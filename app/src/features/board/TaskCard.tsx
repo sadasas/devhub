@@ -7,6 +7,7 @@ import { startLabel } from '../../lib/start-dates';
 import type { Task } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { Badge } from '../../components/Badge';
+import { PinButton } from '../../components/PinButton';
 
 interface TaskCardProps {
   task: Task;
@@ -23,7 +24,7 @@ export const TaskCard = memo(function TaskCard({
   showMilestone = false,
   unread = false,
 }: TaskCardProps) {
-  const { state, canEdit } = useProject();
+  const { state, canEdit, dispatch } = useProject();
   const blockers =
     task.blockedBy
       ?.map((id) => state?.tasks.find((t) => t.id === id))
@@ -49,18 +50,19 @@ export const TaskCard = memo(function TaskCard({
   );
 
   return (
-    <button
-      type="button"
-      className="task-card"
-      draggable={canEdit}
-      data-testid="task-card"
-      data-task-id={task.id}
-      onClick={() => onOpen(task.id)}
-      onDragStart={(e) => {
-        e.dataTransfer.setData('text/plain', task.id);
-        e.dataTransfer.effectAllowed = 'move';
-      }}
-    >
+    <div className="task-card-wrap">
+      <button
+        type="button"
+        className="task-card"
+        draggable={canEdit}
+        data-testid="task-card"
+        data-task-id={task.id}
+        onClick={() => onOpen(task.id)}
+        onDragStart={(e) => {
+          e.dataTransfer.setData('text/plain', task.id);
+          e.dataTransfer.effectAllowed = 'move';
+        }}
+      >
       <div className="task-card-top">
         <span className="task-card-title">{task.title}</span>
         <Badge tone={TASK_PRIORITY[task.priority].tone}>{TASK_PRIORITY[task.priority].label}</Badge>
@@ -123,6 +125,14 @@ export const TaskCard = memo(function TaskCard({
       <span className="sr-only">
         {TASK_STATUS[task.status].label} task. Drag to move between columns, or move with arrow keys when focused.
       </span>
-    </button>
+      </button>
+      {canEdit && (
+        <PinButton
+          pinned={!!task.pinned}
+          label="task"
+          onToggle={() => dispatch({ type: 'task/update', id: task.id, patch: { pinned: !task.pinned } })}
+        />
+      )}
+    </div>
   );
 });

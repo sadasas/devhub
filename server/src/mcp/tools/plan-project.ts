@@ -70,6 +70,7 @@ export function registerPlanProject(server: McpServer): void {
           actualHours: undefined,
           labels: [] as string[],
           blockedBy: [] as string[],
+          pinned: false,
           description: '',
         };
         state.tasks.push(task);
@@ -103,6 +104,7 @@ export function registerPlanProject(server: McpServer): void {
           options: [] as string[],
           decision: '',
           consequences: '',
+          pinned: false,
         };
         state.decisions.push(decision);
         return { id: decision.id, title: decision.title };

@@ -77,4 +77,19 @@ describe('applySort', () => {
     applySort(items, spec('name'), 'desc');
     expect(items.map((i) => i.id)).toEqual(before);
   });
+
+  it('floats pinned-first items to the top with a spec', () => {
+    const pinned = (i: Item) => i.id === 2 || i.id === 3;
+    expect(applySort(items, spec('name'), 'asc', pinned).map((i) => i.id)).toEqual([2, 3, 1]);
+  });
+
+  it('floats pinned-first items to the top without a spec', () => {
+    const pinned = (i: Item) => i.id === 3;
+    expect(applySort(items, null, 'asc', pinned).map((i) => i.id)).toEqual([3, 1, 2]);
+  });
+
+  it('keeps the spec order stable within the pinned group', () => {
+    const pinned = (i: Item) => i.id === 1 || i.id === 3;
+    expect(applySort(items, spec('num'), 'asc', pinned).map((i) => i.id)).toEqual([3, 1, 2]);
+  });
 });

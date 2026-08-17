@@ -273,6 +273,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
         state.tasks.filter((t) => t.status === col.status),
         sortSpec,
         sortValue?.dir ?? 'asc',
+        (t) => !!t.pinned,
       ),
       col.status,
       (e) => handleDropStatus(col.status, e),
@@ -286,6 +287,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       state.tasks.filter((t) => t.milestoneId === mId),
       sortSpec,
       sortValue?.dir ?? 'asc',
+      (t) => !!t.pinned,
     );
     const done = tasks.filter((t) => t.status === 'done').length;
     const progress = tasks.length > 0 ? Math.round((done / tasks.length) * 100) : 0;

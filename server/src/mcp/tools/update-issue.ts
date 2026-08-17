@@ -12,6 +12,7 @@ const inputSchema = z.object({
   description: z.string().optional(),
   reproduction: z.string().optional(),
   linkedTaskId: z.string().uuid().nullable().optional(),
+  pinned: z.boolean().optional().describe('Pin or unpin the issue'),
 });
 
 export function registerUpdateIssue(server: McpServer): void {
@@ -33,6 +34,7 @@ export function registerUpdateIssue(server: McpServer): void {
         description: args.description,
         reproduction: args.reproduction,
         linkedTaskId: args.linkedTaskId,
+        pinned: args.pinned,
       });
       issue.updatedAt = nowIso();
       await saveState(args.projectId, state);

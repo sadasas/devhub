@@ -30,6 +30,7 @@ const inputSchema = z.object({
     .nullable()
     .optional()
     .describe('Optional completion time — auto-set to now when status is done'),
+  pinned: z.boolean().default(false).describe('Pin the task so it floats to the top of lists'),
   description: z.string().default(''),
 });
 
@@ -59,6 +60,7 @@ export function registerCreateTask(server: McpServer): void {
         dueDate: args.dueDate,
         startDate: args.startDate,
         completedAt: args.completedAt ?? (args.status === 'done' ? nowIso() : null),
+        pinned: args.pinned,
         description: args.description,
       };
       state.tasks.push(task);

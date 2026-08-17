@@ -298,4 +298,23 @@ M22 v0.16.1 — task yang sudah `done` tidak lagi tampil "Overdue" (danger) memb
 
 ---
 
+## 18. Pinned Items (M13.7 — ADR-032)
+
+M13.7 v0.13.7 — task/issue/test case/decision mendapat field `pinned: boolean` (default `false`, zod-only tanpa migrasi DB — precedent ADR-028/029/031); item pinned mengapung ke atas list/kolom (stable sort, kompatibel dengan SortControl M21). Pin/unpin adalah PATCH biasa → realtime + activity gratis via broadcastDiff.
+
+| # | Item | Detail |
+|---|------|--------|
+| P1.1 Schema | `pinned: z.boolean().default(false)` di task/issue/testCase/decision schema; mirror `lib/types.ts`; round-trip/default/strip test server |
+| P1.2 MCP | `create_task`/`update_task`/`add_issue`/`update_issue`/`add_test_case`/`update_test_case`/`add_decision` + param `pinned` + tes |
+| P1.3 Komponen | `PinButton.tsx` (icon PushPin, `aria-pressed`, `stopPropagation`) + CSS `.task-card-wrap`/`.task-card-pin` (hover reveal) |
+| P1.4 Sort | `applySort(items, spec, dir, pinnedFirst?)` — pinned-first stable (berlaku juga tanpa spec) |
+| P1.5 Integrasi | Board (pin di task card, kolom By Status/Milestone pinned-first), Issues/Tests/Decisions (pin di `.data-row-side`, list pinned-first) |
+| P1.6 Verifikasi | Tests (server round-trip + MCP 5 skenario, app PinButton/sort/TaskCard/3 page), lint, build hijau |
+
+**Selesai (2026-08-18):** P1.1–P1.6 ✅ — `pinned` aktif di schema/UI/MCP, PinButton di card + row list, pinned-first stable di 4 tab, default `false` untuk entity lama.
+
+**Verifikasi:** server + app test suite, lint, build hijau.
+
+---
+
 *End of Roadmap.*

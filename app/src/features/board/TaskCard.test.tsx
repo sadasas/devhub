@@ -1,9 +1,11 @@
 import { render, screen } from '@testing-library/react';
+import { fireEvent } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TaskCard } from './TaskCard';
 import type { Task } from '../../lib/types';
 
 const useProjectMock = vi.hoisted(() => vi.fn());
+const dispatchMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../../state/project-context', () => ({
   useProject: useProjectMock,
@@ -27,7 +29,8 @@ function task(over: Partial<Task> = {}): Task {
 describe('TaskCard', () => {
   beforeEach(() => {
     useProjectMock.mockReset();
-    useProjectMock.mockReturnValue({ state: null, canEdit: true });
+    dispatchMock.mockReset();
+    useProjectMock.mockReturnValue({ state: null, canEdit: true, dispatch: dispatchMock });
   });
 
   it('renders an unread dot for unread tasks', () => {
@@ -90,5 +93,23 @@ describe('TaskCard', () => {
   it('omits the start chip when there is no start date', () => {
     render(<TaskCard task={task()} onOpen={() => {}} />);
     expect(document.querySelector('.task-start')).toBeNull();
+  });
+
+  it('renders a pin button and toggles pinned via dispatch', () => {
+    render(<TaskCard task={task({ pinned: true })} onOpen={() => {}} />);
+    const pin = screen.getByRole('button', { name: 'Unpin task' });
+    expect(pin.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(pin);
+    expect(dispatchMock).toHaveBeenCalledWith({
+      type: 'task/update',
+      id: 't1',
+      patch: { pinned: false },
+    });
+  });
+
+  it('omits the pin button for read-only users', () => {
+    useProjectMock.mockReturnValue({ state: null, canEdit: false, dispatch: dispatchMock });
+    render(<TaskCard task={task()} onOpen={() => {}} />);
+    expect(screen.queryByRole('button', { name: /Pin task/ })).toBeNull();
   });
 });

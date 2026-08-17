@@ -12,6 +12,7 @@ const inputSchema = z.object({
   steps: z.string().optional(),
   expected: z.string().optional(),
   status: z.enum(['pass', 'fail', 'pending']).optional(),
+  pinned: z.boolean().optional().describe('Pin or unpin the test case'),
 });
 
 export function registerUpdateTestCase(server: McpServer): void {
@@ -33,6 +34,7 @@ export function registerUpdateTestCase(server: McpServer): void {
         steps: args.steps,
         expected: args.expected,
         status: args.status,
+        pinned: args.pinned,
       });
       testCase.updatedAt = nowIso();
       await saveState(args.projectId, state);

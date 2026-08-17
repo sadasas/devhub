@@ -27,11 +27,18 @@ export function applySort<T>(
   items: readonly T[],
   spec: SortSpec<T> | null,
   dir: SortDir,
+  pinnedFirst?: (item: T) => boolean,
 ): T[] {
-  if (!spec) return [...items];
+  if (!spec && !pinnedFirst) return [...items];
   const factor = dir === 'desc' ? -1 : 1;
   const s = spec as SortSpec<unknown>;
   return [...items].sort((a, b) => {
+    if (pinnedFirst) {
+      const pa = pinnedFirst(a);
+      const pb = pinnedFirst(b);
+      if (pa !== pb) return pa ? -1 : 1;
+    }
+    if (!spec) return 0;
     const va = spec.get(a);
     const vb = spec.get(b);
     const na = va == null;

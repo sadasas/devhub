@@ -31,6 +31,7 @@ const inputSchema = z.object({
     .nullable()
     .optional()
     .describe('Completion time — auto-set to now when status moves to done, cleared when leaving done'),
+  pinned: z.boolean().optional().describe('Pin or unpin the task'),
   description: z.string().optional(),
 });
 
@@ -65,6 +66,7 @@ export function registerUpdateTask(server: McpServer): void {
         dueDate: args.dueDate,
         startDate: args.startDate,
         completedAt,
+        pinned: args.pinned,
         description: args.description,
       });
       task.updatedAt = nowIso();

@@ -11,6 +11,7 @@ import type { TestCase } from '../../lib/types';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
+import { PinButton } from '../../components/PinButton';
 import { Skeleton } from '../../components/Skeleton';
 import { SortControl } from '../../components/SortControl';
 import { NewTestModal } from './NewTestModal';
@@ -29,7 +30,7 @@ const TEST_SORT_SPECS: SortSpec<TestCase>[] = [
 ];
 
 export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
-  const { state, loading, error, canEdit } = useProject();
+  const { state, loading, error, canEdit, dispatch } = useProject();
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   useEntityDeepLink('testCases', setEditingId);
@@ -63,7 +64,7 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   if (!state) return null;
 
   const sortSpec = TEST_SORT_SPECS.find((s) => s.key === sortValue?.key) ?? null;
-  const tests = applySort(state.testCases, sortSpec, sortValue?.dir ?? 'asc');
+  const tests = applySort(state.testCases, sortSpec, sortValue?.dir ?? 'asc', (t) => !!t.pinned);
 
   return (
     <div>
@@ -135,6 +136,19 @@ return (
                   <Badge tone={TEST_CASE_STATUS[test.status].tone}>
                     {TEST_CASE_STATUS[test.status].label}
                   </Badge>
+                  {canEdit && (
+                    <PinButton
+                      pinned={!!test.pinned}
+                      label="test case"
+                      onToggle={() =>
+                        dispatch({
+                          type: 'testCase/update',
+                          id: test.id,
+                          patch: { pinned: !test.pinned },
+                        })
+                      }
+                    />
+                  )}
                   {canEdit && (
                     <Button
                       variant="ghost"

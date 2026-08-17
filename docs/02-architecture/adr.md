@@ -381,3 +381,18 @@
   - **View By Due Date & bucket eksisting tidak berubah:** done-late tetap di kolom Overdue (chip warn), done-on-time tetap di kolom tanggalnya (chip success) — tanpa perubahan struktur view.
 - **Consequences:** Positive — sinyal overdue akurat per status (done-late warn bukan danger); primitif `completedAt` membuka filter/stat "selesai tepat waktu vs telat" di masa depan; derivasi terpusat menjamin konsistensi UI/MCP. Negative — satu field lagi di task schema (backward-compatible, nullable); pengguna yang mengedit task setelah done tidak menggeser label late (completedAt tetap, sesuai semantik "kapan selesai"); tanpa completedAt (task lama) label fallback ke perilaku aktif berbasis `dueDate` vs hari ini.
 - **Alternatives:** Tanpa schema change — `done` + `dueDate` vs hari ini (ditolak: task on-time yang selesai beberapa hari lalu salah label "late"); `updatedAt` sebagai proxy completion (ditolak: berubah oleh edit lain); kolom terpisah "Done late" di view By Due (ditolak: perubahan struktur view tanpa manfaat, chip warn sudah cukup); hard-block dueDate sebelum completedAt (ditolak: tidak perlu, label sudah mengkomunikasikan).
+
+---
+
+### ADR-032
+**Pinned items — shared server-side field `pinned`**
+
+- **Status:** Accepted (2026-08-18) — M13.7 v0.13.7 (keputusan DevHub `293c719d`, 2026-08-16)
+- **Context:** Pengguna ingin menandai item penting agar mengapung ke atas list/kolom. Alternatif per-user (localStorage) membuat pin tidak terlihat rekan satu tim dan tidak sinkron lintas perangkat; pendekatan server-side memanfaatkan infrastruktur yang sudah ada.
+- **Decision:**
+  - **Schema (zod, state JSONB — tanpa migrasi DB, precedent ADR-028/029/031):** `pinned: z.boolean().default(false)` di task/issue/testCase/decision schema; mirror `lib/types.ts`; entity lama parse `false`.
+  - **PATCH normal:** pin/unpin adalah update entity biasa → `entity-router` + `broadcastDiff` realtime + activity log gratis, tanpa jalur khusus.
+  - **MCP parity (ADR-027):** `create_task`/`update_task`/`add_issue`/`update_issue`/`add_test_case`/`update_test_case`/`add_decision` menerima `pinned`.
+  - **UI:** `PinButton` (icon `PushPin`, `aria-pressed`, `stopPropagation`) di task card (Board) dan `.data-row-side` (Issues/Tests/Decisions); pinned-first **stable** sort via `applySort(items, spec, dir, pinnedFirst?)` (M21) — berlaku juga saat tanpa sort spec; dalam grup pinned urutan mengikuti spec/urutan eksisting.
+- **Consequences:** Positive — satu field shared, semua member melihat pin yang sama; sinkron lintas perangkat via PATCH yang sudah ada; rapid toggle ter-cluster di activity log; kompatibel dengan SortControl M21. Negative — member lain bisa mem-pin/unpin item (sesuai desain kolaboratif, gate `canEdit` tetap berlaku); tanpa UI dedikasi untuk "unpin semua" (defer); icon hover-reveal di task card kurang discoverable untuk pengguna baru (dikompensasi aria-label + title).
+- **Alternatives:** Per-user pins di localStorage (ditolak: invisible ke rekan tim, tidak sinkron perangkat); field `pinnedAt` timestamp (ditolak: boolean cukup, urutan antar-pinned tidak perlu presisi); pinned per-entity terpisah non-shared (ditolak: kompleksitas tanpa manfaat).
