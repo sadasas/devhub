@@ -214,4 +214,48 @@ M13.12 — mutasi via MCP kini tercatat di activity feed (list aktivitas per ite
 
 ---
 
+## 14. Calendar & Due Dates (M19 — ADR-028)
+
+M19 v0.14.0 (11 task, ~24h) — riset platform (Linear/Plane/Todoist/Height/LinCal) menutup gap: DevHub belum punya `dueDate` di task; milestone sudah punya `targetDate`. Keputusan kunci: kalender = **view ke-3 di Board** (`?view=due`), BUKAN tab ke-12 (audit A1); `dueDate` zod-only tanpa migrasi DB (precedent M17). Lihat [ADR-028](../02-architecture/adr.md#adr-028).
+
+| Task | Isi |
+|---|---|
+| P1.1 Schema | `taskSchema` + `dueDate: isoDate.nullable().optional()`; mirror `lib/types.ts`; round-trip/strip test server |
+| P1.2 UI dasar | Input tanggal `TaskModal`/`NewTaskModal`; chip tanggal task card warna Linear (merah due hari ini/overdue, oranye ≤7 hari, abu-abu normal) |
+| P1.3 Board view | View ketiga **By Due Date** (`?view=due`): kolom Overdue · Today · Tomorrow · This Week · Next Week · Later · No date; drag antar kolom = set/ubah dueDate (granular PATCH → realtime/activity gratis); sort within column |
+| P1.4 MCP | `create_task`/`update_task` + `dueDate` (ISO) + tes |
+| P1.5 Docs P1 | DocsPage, README, lint/test/build |
+| P2.1 Grid | Month grid hand-built (ADR-007, Monday-start, today highlight, nav prev/next/today, toggle week view) |
+| P2.2 Interaksi | Klik sel → quick-create dueDate preset; drag chip antar hari → PATCH; drop-zone bawah = hapus dueDate; strip Unscheduled (pola LinCal) |
+| P2.3 Marker | Diamond milestone di `targetDate`; toggle tampilkan completed |
+| P2.4 A11y | Keyboard nav bulan saat sel fokus; deep-link `?view=due`; public share read-only (gate `canEdit`) |
+| P2.5 Verifikasi | Tests (server round-trip, app grid/geometry, e2e journey), ADR-028 + roadmap ini |
+| Riset | Riset platform → keputusan (ADR-028); defer natural-language dates, recurring, filter engine, reschedule dependensi |
+
+**Phase 1 selesai (2026-08-17):** P1.1–P1.5 ✅ — `dueDate` aktif di schema/UI/MCP, view By Due Date + chip warna ship.
+
+**Phase 2 selesai (2026-08-17):** P2.1–P2.5 ✅ — calendar month/week grid (sub-tab Buckets | Calendar, `?view=due&cal=1`), quick-create per hari, drag reschedule + drop-zone hapus dueDate, strip Unscheduled, diamond milestone + hide completed, keyboard nav (arrows/PageUp/PageDown/Enter), public share `?view=due` read-only; fix WS created-op dedupe (duplikat task saat broadcast tiba setelah POST resolve); e2e journey `due.spec.ts` (quick-create → drag → reload persist).
+
+**Verifikasi:** server + app test suite, lint, build hijau; e2e journey drag reschedule + quick-create (phase 2).
+
+---
+
+## 15. Task Start Date (M20 — ADR-029)
+
+M20 v0.15.0 — mirror pola `dueDate` M19: task mendapat `startDate` (ISO `YYYY-MM-DD`, nullable) tanpa migrasi DB (zod-only, precedent ADR-028). Tidak ada view baru; start date tampil sebagai chip neutral di task card + input di modal edit/create.
+
+| # | Item | Detail |
+|---|------|--------|
+| P1.1 Schema | `taskSchema` + `startDate: isoDate.nullable().optional()`; mirror `lib/types.ts`; round-trip/strip/invalid test server | 
+| P1.2 MCP | `create_task`/`update_task` + `startDate` (ISO, null untuk clear) + tes |
+| P1.3 UI | Input "Start date" (type=date) di `TaskModal`/`NewTaskModal`; chip `Starts <date>` di `TaskCard` (class `.task-start`, neutral); `DetailRow` di read-mode; label `startDate` → "Start date" di activity |
+| P1.4 Warning | Soft warning UI "Start date is after the due date." (`startAfterDue`) — tanpa block server |
+| P1.5 Verifikasi | Tests (server round-trip + MCP, app helper `start-dates`, modal, card), lint, build |
+
+**Selesai (2026-08-17):** P1.1–P1.5 ✅ — `startDate` aktif di schema/UI/MCP, chip "Starts" + soft warning tanggal, activity label.
+
+**Verifikasi:** server + app test suite, lint, build hijau.
+
+---
+
 *End of Roadmap.*

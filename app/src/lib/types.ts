@@ -32,6 +32,8 @@ export interface Task extends Base {
   labels: string[];
   blockedBy: string[];
   milestoneId?: string | null;
+  dueDate?: string | null;
+  startDate?: string | null;
   description: string;
 }
 

@@ -1,7 +1,9 @@
 import { memo } from 'react';
 import { LinkSimple, ListChecks } from '@phosphor-icons/react';
 import { TASK_PRIORITY, TASK_STATUS } from '../../lib/labels';
-import { linkedTestCases, shortId } from '../../lib/utils';
+import { formatDate, linkedTestCases, shortId } from '../../lib/utils';
+import { dueBucket, dueLabel, dueTone } from '../../lib/due-dates';
+import { startLabel } from '../../lib/start-dates';
 import type { Task } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { Badge } from '../../components/Badge';
@@ -69,6 +71,16 @@ export const TaskCard = memo(function TaskCard({
 
       <div className="task-card-meta">
         <span className="task-meta-left">
+          {task.dueDate && (
+            <span className={`task-due task-due-${dueTone(dueBucket(task.dueDate))}`} title={formatDate(task.dueDate)}>
+              {dueLabel(task.dueDate)}
+            </span>
+          )}
+          {task.startDate && (
+            <span className="task-start" title={formatDate(task.startDate)}>
+              {startLabel(task.startDate)}
+            </span>
+          )}
           {(task.estimate != null || task.actualHours != null) && (
             <span className="tabular" title="actual / estimate (hours)">
               {task.actualHours ?? 0}/{task.estimate ?? '—'}h

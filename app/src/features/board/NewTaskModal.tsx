@@ -1,23 +1,27 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { newId, nowIso, parseLabels } from '../../lib/utils';
 import { TASK_PRIORITY, TASK_PRIORITY_ORDER } from '../../lib/labels';
+import { startAfterDue } from '../../lib/start-dates';
 import type { TaskPriority, TaskStatus } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { Button } from '../../components/Button';
+import { InlineError } from '../../components/InlineError';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { SearchableSelect } from '../../components/SearchableSelect';
 import { Textarea } from '../../components/Textarea';
 
 interface NewTaskModalProps {
   open: boolean;
   status: TaskStatus | null;
   milestoneId?: string | null;
+  dueDate?: string | null;
   onClose: () => void;
 }
 
-export function NewTaskModal({ open, status, milestoneId, onClose }: NewTaskModalProps) {
+export function NewTaskModal({ open, status, milestoneId, dueDate, onClose }: NewTaskModalProps) {
   const { state, dispatch } = useProject();
   usePresenceStatus('Creating task', open);
   const [title, setTitle] = useState('');
@@ -25,6 +29,17 @@ export function NewTaskModal({ open, status, milestoneId, onClose }: NewTaskModa
   const [estimate, setEstimate] = useState('');
   const [labels, setLabels] = useState('');
   const [description, setDescription] = useState('');
+  const [milestone, setMilestone] = useState<string | null>(milestoneId ?? null);
+  const [dueDateInput, setDueDateInput] = useState('');
+  const [startDateInput, setStartDateInput] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      setMilestone(milestoneId ?? null);
+      setDueDateInput(dueDate ?? '');
+      setStartDateInput('');
+    }
+  }, [open, milestoneId, dueDate]);
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -44,7 +59,9 @@ export function NewTaskModal({ open, status, milestoneId, onClose }: NewTaskModa
         estimate: estimate !== '' && !Number.isNaN(parsedEstimate) ? Math.max(0, parsedEstimate) : undefined,
         labels: parseLabels(labels),
         blockedBy: [],
-        milestoneId,
+        milestoneId: milestone,
+        dueDate: dueDateInput === '' ? null : dueDateInput,
+        startDate: startDateInput === '' ? null : startDateInput,
         description: description.trim(),
       },
     });
@@ -53,6 +70,9 @@ export function NewTaskModal({ open, status, milestoneId, onClose }: NewTaskModa
     setEstimate('');
     setLabels('');
     setDescription('');
+    setMilestone(null);
+    setDueDateInput('');
+    setStartDateInput('');
     onClose();
   }
 
@@ -108,17 +128,34 @@ export function NewTaskModal({ open, status, milestoneId, onClose }: NewTaskModa
           onChange={(e) => setEstimate(e.target.value)}
         />
         <Input
+          label="Due date"
+          type="date"
+          value={dueDateInput}
+          onChange={(e) => setDueDateInput(e.target.value)}
+        />
+        <Input
+          label="Start date"
+          type="date"
+          value={startDateInput}
+          onChange={(e) => setStartDateInput(e.target.value)}
+        />
+        {startAfterDue(startDateInput, dueDateInput) && (
+          <InlineError>Start date is after the due date.</InlineError>
+        )}
+        <Input
           label="Labels"
           placeholder="comma, separated"
           value={labels}
           onChange={(e) => setLabels(e.target.value)}
         />
         {state && state.milestones.length > 0 && (
-          <p className="field-helper">
-            {milestoneId
-              ? `Milestone: ${state.milestones.find((m) => m.id === milestoneId)?.name ?? 'Unknown'}`
-              : 'No milestone assigned — can be set in the task editor.'}
-          </p>
+          <SearchableSelect
+            id="new-task-milestone"
+            label="Milestone"
+            value={milestone}
+            options={state.milestones.map((m) => ({ value: m.id, label: m.name }))}
+            onChange={setMilestone}
+          />
         )}
         <Textarea
           label="Description"

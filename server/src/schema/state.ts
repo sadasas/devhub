@@ -24,6 +24,8 @@ export const taskSchema = z.object({
   labels: z.array(z.string().max(50)).max(20).default([]),
   blockedBy: z.array(z.string().uuid()).default([]),
   milestoneId: z.string().uuid().nullable().optional(),
+  dueDate: isoDate.nullable().optional(),
+  startDate: isoDate.nullable().optional(),
   description: z.string().max(10_000).default(''),
 });
 

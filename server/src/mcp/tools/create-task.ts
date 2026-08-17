@@ -12,6 +12,18 @@ const inputSchema = z.object({
   actualHours: z.number().int().min(0).optional(),
   labels: z.array(z.string()).max(20).default([]),
   milestoneId: z.string().uuid().nullable().optional().describe('Optional milestone to group this task under'),
+  dueDate: z
+    .string()
+    .refine((v) => !Number.isNaN(Date.parse(v)), { message: 'Must be a valid ISO date string' })
+    .nullable()
+    .optional()
+    .describe('Optional due date (YYYY-MM-DD)'),
+  startDate: z
+    .string()
+    .refine((v) => !Number.isNaN(Date.parse(v)), { message: 'Must be a valid ISO date string' })
+    .nullable()
+    .optional()
+    .describe('Optional start date (YYYY-MM-DD)'),
   description: z.string().default(''),
 });
 
@@ -38,6 +50,8 @@ export function registerCreateTask(server: McpServer): void {
         labels: args.labels,
         blockedBy: [] as string[],
         milestoneId: args.milestoneId,
+        dueDate: args.dueDate,
+        startDate: args.startDate,
         description: args.description,
       };
       state.tasks.push(task);

@@ -7,6 +7,8 @@ import {
   TEST_CASE_STATUS,
 } from '../../lib/labels';
 import { formatRelative, isTaskCompletable, linkedTestCases, parseLabels } from '../../lib/utils';
+import { dueBucket, dueLabel, dueTone } from '../../lib/due-dates';
+import { startAfterDue, startLabel } from '../../lib/start-dates';
 import type { State, Task, TaskPriority, TaskStatus, TestCaseStatus } from '../../lib/types';
 import type { UpdatePatch } from '../../state/project-context';
 import { useProject, wouldCreateCycle } from '../../state/project-context';
@@ -66,6 +68,9 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
   };
 
   const otherTasks = state!.tasks.filter((t) => t.id !== task.id);
+  const dateWarn = startAfterDue(task.startDate, task.dueDate)
+    ? 'Start date is after the due date.'
+    : null;
   const testCases = linkedTestCases(task.id, state!.testCases);
   const blockerNames = task.blockedBy
     .map((id) => state!.tasks.find((t) => t.id === id)?.title)
@@ -208,6 +213,21 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               />
             </div>
 
+            <Input
+              label="Due date"
+              type="date"
+              value={task.dueDate?.slice(0, 10) ?? ''}
+              onChange={(e) => update({ dueDate: e.target.value === '' ? null : e.target.value })}
+            />
+
+            <Input
+              label="Start date"
+              type="date"
+              value={task.startDate?.slice(0, 10) ?? ''}
+              onChange={(e) => update({ startDate: e.target.value === '' ? null : e.target.value })}
+            />
+            {dateWarn && <InlineError>{dateWarn}</InlineError>}
+
             <div className="field-row">
               <Input
                 label="Estimate (hours)"
@@ -317,6 +337,22 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               </DetailRow>
               <DetailRow label="Milestone">
                 {milestone ? milestone.name : <DetailEmpty />}
+              </DetailRow>
+              <DetailRow label="Due date">
+                {task.dueDate ? (
+                  <span className={`task-due task-due-${dueTone(dueBucket(task.dueDate))}`}>
+                    {dueLabel(task.dueDate)}
+                  </span>
+                ) : (
+                  <DetailEmpty />
+                )}
+              </DetailRow>
+              <DetailRow label="Start date">
+                {task.startDate ? (
+                  <span className="task-due task-due-neutral">{startLabel(task.startDate)}</span>
+                ) : (
+                  <DetailEmpty />
+                )}
               </DetailRow>
               <DetailRow label="Estimate">
                 {task.estimate != null ? `${task.estimate}h` : <DetailEmpty />}

@@ -33,6 +33,8 @@ const FIELD_LABELS: Record<string, string> = {
   issueId: 'Linked issue',
   version: 'Version',
   targetDate: 'Target date',
+  dueDate: 'Due date',
+  startDate: 'Start date',
   status2: 'Status',
 };
 

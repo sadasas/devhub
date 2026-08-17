@@ -40,4 +40,33 @@ describe('TaskCard', () => {
     render(<TaskCard task={task()} onOpen={() => {}} />);
     expect(document.querySelector('.unread-dot')).toBeNull();
   });
+
+  it('renders a due chip with a tone for tasks with a due date', () => {
+    render(<TaskCard task={task({ dueDate: '2026-08-20' })} onOpen={() => {}} />);
+    expect(screen.getByText(/Due Aug 20/)).toBeTruthy();
+    expect(document.querySelector('.task-due-warn')).toBeTruthy();
+  });
+
+  it('renders an overdue chip in danger tone', () => {
+    const past = new Date(Date.now() - 3 * 86_400_000).toISOString().slice(0, 10);
+    render(<TaskCard task={task({ dueDate: past })} onOpen={() => {}} />);
+    expect(document.querySelector('.task-due-danger')).toBeTruthy();
+    expect(screen.getByText(/Overdue/)).toBeTruthy();
+  });
+
+  it('omits the due chip when there is no due date', () => {
+    render(<TaskCard task={task()} onOpen={() => {}} />);
+    expect(document.querySelector('.task-due')).toBeNull();
+  });
+
+  it('renders a start chip for tasks with a start date', () => {
+    render(<TaskCard task={task({ startDate: '2026-08-14' })} onOpen={() => {}} />);
+    expect(screen.getByText(/Starts Aug 14/)).toBeTruthy();
+    expect(document.querySelector('.task-start')).toBeTruthy();
+  });
+
+  it('omits the start chip when there is no start date', () => {
+    render(<TaskCard task={task()} onOpen={() => {}} />);
+    expect(document.querySelector('.task-start')).toBeNull();
+  });
 });

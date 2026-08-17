@@ -28,6 +28,8 @@ import { PROJECT_STATUS, TEAM_ROLE } from '../../lib/labels';
 import { formatDate } from '../../lib/utils';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { usePresenceStatus, viewingStatus } from '../../hooks/usePresenceStatus';
+import { useTabShortcuts } from '../../hooks/useTabShortcuts';
+import { useNewItemShortcut } from '../../hooks/useNewItemShortcut';
 import { ProjectProvider } from '../../state/project-context';
 import { useProjects } from '../../state/projects-context';
 import { useAuth } from '../../state/auth-context';
@@ -189,6 +191,19 @@ export function ProjectPage() {
       { replace: true },
     );
   };
+  const project = projects?.find((p) => p.id === projectId);
+  useTabShortcuts(TABS.map((t) => t.id), tab, setTab);
+  useNewItemShortcut(tab, project?.role !== undefined && project.role !== 'viewer', (activeTab, value) => {
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        p.set('tab', activeTab);
+        p.set('new', value);
+        return p;
+      },
+      { replace: true },
+    );
+  });
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -199,8 +214,6 @@ export function ProjectPage() {
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { copied: pidCopied, copy: copyPid } = useCopyFeedback();
-
-  const project = projects?.find((p) => p.id === projectId);
 
 if (!project) {
     return (

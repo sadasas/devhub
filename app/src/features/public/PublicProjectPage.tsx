@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Bug, ChalkboardSimple, Columns, Flag, Info, ListChecks, Rocket, SquaresFour, Stack } from '@phosphor-icons/react';
+import { Bug, CalendarBlank, ChalkboardSimple, Columns, Flag, Info, ListChecks, Rocket, SquaresFour, Stack } from '@phosphor-icons/react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { ApiError, api } from '../../lib/api';
 import type { PublicProject, PublicTab, State, Task } from '../../lib/types';
@@ -13,6 +13,7 @@ import {
   TECH_STATUS,
 } from '../../lib/labels';
 import { formatDate, linkedTestCases } from '../../lib/utils';
+import { dueBucket, dueLabel, dueTone } from '../../lib/due-dates';
 import { computeProjectStats } from '../../lib/stats';
 import { useAuth } from '../../state/auth-context';
 import { Badge } from '../../components/Badge';
@@ -199,7 +200,7 @@ export function PublicProjectPage() {
   );
 }
 
-type BoardView = 'status' | 'milestone';
+type BoardView = 'status' | 'milestone' | 'due';
 
 function PublicTaskCard({
   task,
@@ -235,6 +236,14 @@ function PublicTaskCard({
       </div>
       <div className="task-card-meta">
         <span className="task-meta-left">
+          {task.dueDate && (
+            <span
+              className={`task-due task-due-${dueTone(dueBucket(task.dueDate))}`}
+              title={formatDate(task.dueDate)}
+            >
+              {dueLabel(task.dueDate)}
+            </span>
+          )}
           {testCases.length > 0 && (
             <span
               className="task-tests"
@@ -318,6 +327,39 @@ function PublicBoard({ state }: { state: State }) {
     );
   });
 
+  const DUE_BUCKETS_PUBLIC: { bucket: ReturnType<typeof dueBucket>; label: string }[] = [
+    { bucket: 'overdue', label: 'Overdue' },
+    { bucket: 'today', label: 'Today' },
+    { bucket: 'tomorrow', label: 'Tomorrow' },
+    { bucket: 'thisWeek', label: 'This Week' },
+    { bucket: 'nextWeek', label: 'Next Week' },
+    { bucket: 'later', label: 'Later' },
+    { bucket: 'none', label: 'No Date' },
+  ];
+
+  const dueCols = DUE_BUCKETS_PUBLIC.map(({ bucket, label }) => {
+    const tasks = state.tasks
+      .filter((t) => dueBucket(t.dueDate) === bucket)
+      .sort((a, b) => (a.dueDate ?? '9999-99-99').localeCompare(b.dueDate ?? '9999-99-99'));
+    return (
+      <div key={bucket} className="kanban-col">
+        <div className="kanban-col-header">
+          <span className="kanban-col-label">{label}</span>
+          <span className="kanban-col-count tabular">{tasks.length}</span>
+        </div>
+        <div className="kanban-col-body">
+          {tasks.length === 0 ? (
+            <p className="kanban-col-empty">No tasks</p>
+          ) : (
+            tasks.map((task) => (
+              <PublicTaskCard key={task.id} task={task} state={state} showMilestone />
+            ))
+          )}
+        </div>
+      </div>
+    );
+  });
+
   return (
     <div>
       <div className="sub-tabs" role="tablist" aria-label="Board view">
@@ -341,8 +383,20 @@ function PublicBoard({ state }: { state: State }) {
           <Flag size={13} aria-hidden="true" />
           By Milestone
         </button>
+        <button
+          type="button"
+          role="tab"
+          className={`sub-tab ${view === 'due' ? 'sub-tab-active' : ''}`}
+          onClick={() => setView('due')}
+          aria-selected={view === 'due'}
+        >
+          <CalendarBlank size={13} aria-hidden="true" />
+          By Due Date
+        </button>
       </div>
-      <div className="kanban">{view === 'status' ? statusCols : milestoneCols}</div>
+      <div className="kanban">
+        {view === 'status' ? statusCols : view === 'milestone' ? milestoneCols : dueCols}
+      </div>
     </div>
   );
 }

@@ -13,6 +13,18 @@ const inputSchema = z.object({
   actualHours: z.number().int().min(0).optional(),
   labels: z.array(z.string()).max(20).optional(),
   milestoneId: z.string().uuid().nullable().optional().describe('Move task to another milestone, or null to unassign'),
+  dueDate: z
+    .string()
+    .refine((v) => !Number.isNaN(Date.parse(v)), { message: 'Must be a valid ISO date string' })
+    .nullable()
+    .optional()
+    .describe('Set or clear the due date (YYYY-MM-DD, or null)'),
+  startDate: z
+    .string()
+    .refine((v) => !Number.isNaN(Date.parse(v)), { message: 'Must be a valid ISO date string' })
+    .nullable()
+    .optional()
+    .describe('Set or clear the start date (YYYY-MM-DD, or null)'),
   description: z.string().optional(),
 });
 
@@ -36,6 +48,8 @@ export function registerUpdateTask(server: McpServer): void {
         actualHours: args.actualHours,
         labels: args.labels,
         milestoneId: args.milestoneId,
+        dueDate: args.dueDate,
+        startDate: args.startDate,
         description: args.description,
       });
       task.updatedAt = nowIso();

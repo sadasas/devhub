@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Plus, SquaresFour, Flag } from '@phosphor-icons/react';
+import { Plus, SquaresFour, Flag, CalendarBlank } from '@phosphor-icons/react';
 import { useSearchParams } from 'react-router';
 import type { Task, TaskStatus } from '../../lib/types';
 import { isTaskCompletable } from '../../lib/utils';
+import { dueBucket, dueColumnDate, type DueBucket } from '../../lib/due-dates';
 import { useProject } from '../../state/project-context';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { useNewParam } from '../../hooks/useNewParam';
@@ -11,6 +12,7 @@ import { Skeleton } from '../../components/Skeleton';
 import { TaskCard } from './TaskCard';
 import { TaskModal } from './TaskModal';
 import { NewTaskModal } from './NewTaskModal';
+import { DueCalendar } from './DueCalendar';
 import { InlineError } from '../../components/InlineError';
 
 const COLUMNS: { status: TaskStatus; label: string }[] = [
@@ -20,7 +22,17 @@ const COLUMNS: { status: TaskStatus; label: string }[] = [
   { status: 'done', label: 'Done' },
 ];
 
-type BoardView = 'status' | 'milestone';
+type BoardView = 'status' | 'milestone' | 'due';
+
+const DUE_BUCKETS: { bucket: DueBucket; label: string }[] = [
+  { bucket: 'overdue', label: 'Overdue' },
+  { bucket: 'today', label: 'Today' },
+  { bucket: 'tomorrow', label: 'Tomorrow' },
+  { bucket: 'thisWeek', label: 'This Week' },
+  { bucket: 'nextWeek', label: 'Next Week' },
+  { bucket: 'later', label: 'Later' },
+  { bucket: 'none', label: 'No Date' },
+];
 
 const milestoneOrder = (m: { status: string; targetDate?: string | null }): number =>
   m.status === 'planned' ? 0 : m.status === 'inProgress' ? 1 : 2;
@@ -28,13 +40,28 @@ const milestoneOrder = (m: { status: string; targetDate?: string | null }): numb
 interface NewTaskTarget {
   status?: TaskStatus;
   milestoneId?: string | null;
+  dueDate?: string | null;
 }
 
 export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { state, loading, error, dispatch, canEdit } = useProject();
   const [searchParams, setSearchParams] = useSearchParams();
   const viewParam = searchParams.get('view');
-  const view: BoardView = viewParam === 'milestone' ? 'milestone' : 'status';
+  const view: BoardView =
+    viewParam === 'milestone' ? 'milestone' : viewParam === 'due' ? 'due' : 'status';
+  const calParam = searchParams.get('cal');
+  const calMode = view === 'due' && calParam === '1';
+  const setCal = (on: boolean) => {
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        if (on) p.set('cal', '1');
+        else p.delete('cal');
+        return p;
+      },
+      { replace: true },
+    );
+  };
   const setView = (next: BoardView) => {
     setSearchParams(
       (prev) => {
@@ -63,22 +90,6 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   };
 
   useEffect(() => {
-    if (!canEdit || editId || newTaskAt) return;
-    const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      const typing =
-        target?.tagName === 'INPUT' ||
-        target?.tagName === 'TEXTAREA' ||
-        target?.isContentEditable;
-      if (e.key !== 'n' || e.ctrlKey || e.metaKey || e.altKey || typing) return;
-      e.preventDefault();
-      setNewTaskAt({});
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [canEdit, editId, newTaskAt]);
-
-  useEffect(() => {
     if (!canEdit || editId || newTaskAt || !state) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
@@ -90,6 +101,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       if (!task) return;
       e.preventDefault();
       const dir = e.key === 'ArrowRight' ? 1 : -1;
+      if (view === 'due') return;
       if (view === 'status') {
         const i = COLUMNS.findIndex((c) => c.status === task.status);
         const next = COLUMNS[(i + dir + COLUMNS.length) % COLUMNS.length]!.status;
@@ -274,6 +286,33 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     );
   });
 
+  function handleDropDue(bucket: DueBucket, e: React.DragEvent) {
+    const id = e.dataTransfer.getData('text/plain');
+    const task = state?.tasks.find((t) => t.id === id);
+    const dueDate = dueColumnDate(bucket);
+    if (task && task.dueDate !== dueDate) {
+      dispatch({ type: 'task/update', id, patch: { dueDate } });
+    }
+    setOverKey(null);
+  }
+
+  const dueCols = DUE_BUCKETS.map(({ bucket, label }) => {
+    const tasks = state.tasks
+      .filter((t) => dueBucket(t.dueDate) === bucket)
+      .sort((a, b) => (a.dueDate ?? '9999-99-99').localeCompare(b.dueDate ?? '9999-99-99'));
+    return renderColumn(
+      bucket,
+      <>
+        <span className="kanban-col-label">{label}</span>
+        <span className="kanban-col-count tabular">{tasks.length}</span>
+      </>,
+      tasks,
+      bucket,
+      (e) => handleDropDue(bucket, e),
+      () => setNewTaskAt({ dueDate: dueColumnDate(bucket) }),
+    );
+  });
+
   return (
     <div>
       <div className="board-toolbar">
@@ -298,21 +337,64 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
             <Flag size={13} aria-hidden="true" />
             By Milestone
           </button>
+          <button
+            type="button"
+            role="tab"
+            className={`sub-tab ${view === 'due' ? 'sub-tab-active' : ''}`}
+            onClick={() => setView('due')}
+            aria-selected={view === 'due'}
+          >
+            <CalendarBlank size={13} aria-hidden="true" />
+            By Due Date
+          </button>
         </div>
+        {view === 'due' && (
+          <div className="sub-tabs" role="tablist" aria-label="Due date view">
+            <button
+              type="button"
+              role="tab"
+              className={`sub-tab ${!calMode ? 'sub-tab-active' : ''}`}
+              onClick={() => setCal(false)}
+              aria-selected={!calMode}
+            >
+              Buckets
+            </button>
+            <button
+              type="button"
+              role="tab"
+              className={`sub-tab ${calMode ? 'sub-tab-active' : ''}`}
+              onClick={() => setCal(true)}
+              aria-selected={calMode}
+            >
+              Calendar
+            </button>
+          </div>
+        )}
         <span className="board-hints" aria-hidden="true">
-          ← → move · n new task
+          ← → move · n new item
         </span>
       </div>
 
       {doneBlockedMsg && <InlineError className="mb-12">{doneBlockedMsg}</InlineError>}
 
-      <div className="kanban">{view === 'status' ? statusColumns : milestoneCols}</div>
+      <div className="kanban">
+        {view === 'status' ? (
+          statusColumns
+        ) : view === 'milestone' ? (
+          milestoneCols
+        ) : calMode ? (
+          <DueCalendar onOpenTask={openTask} onQuickCreate={(dueDate) => setNewTaskAt({ dueDate })} />
+        ) : (
+          dueCols
+        )}
+      </div>
 
       <TaskModal taskId={editId} onClose={() => setEditId(null)} />
       <NewTaskModal
         open={newTaskAt !== null}
         status={newTaskAt?.status ?? null}
         milestoneId={newTaskAt?.milestoneId}
+        dueDate={newTaskAt?.dueDate}
         onClose={() => setNewTaskAt(null)}
       />
     </div>

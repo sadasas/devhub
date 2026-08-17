@@ -318,3 +318,35 @@
   - **`server/src/mcp/state-db.ts` `saveState`** — diubah menjadi transaksi (`pool.connect()` + `BEGIN`…`COMMIT`/`ROLLBACK`, `SELECT data, version ... FOR UPDATE`): parse state lama → `diffStateDrafts(prev, next)` → `UPDATE projects SET data, version+1` → per draft `insertActivity(client, {projectId, draft, authorId: getMcpUserId(), authorName})` (cluster-merge 60s tetap berlaku untuk edit MCP beruntun) → `pruneActivity`. Post-commit: `broadcastSync(version)` (existing) + `broadcastActivity(projectId, entry)` per entry — paritas live-activity dengan REST.
 - **Consequences:** Positive - paritas penuh REST vs MCP di activity feed; satu choke point menutup semua 15 tool termasuk `plan_project` (multi-entity dalam satu panggilan); tanpa perubahan client (ActivityList sudah merender author apa pun). Negative - biaya diff JSON per entity per panggilan `saveState` (kecil — sebanding full-state `UPDATE` yang sudah ada); `saveState` tetap tanpa optimistic locking (perilaku lama, tidak berubah).
 - **Alternatives:** Draft eksplisit per tool (ditolak: 15 tool harus disentuh, `plan_project` multi-entity jadi rumit); MCP memanggil ulang REST `mutateProject` (ditolak: refactor invasif, MCP diizinkan mengedit state penuh).
+
+---
+
+### ADR-028
+**Due date pada task + Calendar sebagai view di Board (bukan tab ke-12)**
+
+- **Status:** Accepted (2026-08-17) — M19 v0.14.0
+- **Context:** Riset platform (Linear/Plane/Todoist/Height/LinCal, M19): Linear tidak punya calendar view (gap diisi LinCal pihak ketiga) tapi due date first-class — icon warna merah = due hari ini/overdue, oranye ≤7 hari, abu-abu normal; filter Overdue/1d/1w/3m/no-date; sort by due date. Plane (OSS, analogi struktur terdekat) menjadikan Calendar salah satu dari 5 **layout** (List/Board/Calendar/Table/Timeline) — bukan halaman terpisah — dan hanya menampilkan item ber-due-date. LinCal (kalender Linear pihak ketiga): klik sel → quick-create dengan due date preset, drag reschedule, drop ke bottom bar = hapus due date, strip Unscheduled. Todoist natural-language date parsing (defer — jalur AI DevHub via MCP). DevHub saat ini: task **tanpa** `dueDate`; milestone punya `targetDate`; zod strip-mode mengharuskan schema extension + round-trip test (precedent M17 whiteboard); audit A1 membatasi jumlah tab (sudah 11 dengan whiteboard sebagai deviasi tercatat) — tab ke-12 dihindari.
+- **Decision:**
+  - **Schema (zod, state JSONB — tanpa migrasi DB, backward-compatible):** `taskSchema` + `dueDate: isoDate.nullable().optional()`; mirror `lib/types.ts` app; test round-trip (cegah silent strip).
+  - **UI:** chip tanggal di task card dengan warna mengikuti pola Linear (merah = due hari ini/overdue, oranye = ≤7 hari, abu-abu = normal); input tanggal di `TaskModal`/`NewTaskModal`; sort within column by due date.
+  - **View:** kalender = **view ke-3 di Board** (`?view=due`) — kolom Overdue · Today · Tomorrow · This Week · Next Week · Later · No date; drag antar kolom = set/ubah `dueDate` (drag native HTML5, precedent kanban) → granular PATCH (realtime + activity gratis via M12/M13.12).
+  - **MCP:** `create_task`/`update_task` menerima `dueDate` (ISO `YYYY-MM-DD`).
+  - **Phase 2 (M19 P2):** month grid hand-built (ADR-007, tanpa dependency baru; Monday-start, today highlight, nav prev/next/today, toggle week view); klik sel → quick-create dengan dueDate preset; drag chip antar hari → PATCH; drop-zone bawah = hapus dueDate; strip Unscheduled (pola LinCal); diamond milestone di `targetDate`; toggle tampilkan completed; deep-link `?view=due`; public share read-only aman (gate `canEdit`).
+  - **Defer:** natural-language date parsing (Todoist-style), recurring dates, filter engine, shortcut per-item (`Shift+D`), dependensi reschedule otomatis (ClickUp-style).
+- **Consequences:** Positive — tanpa tab baru (audit A1); primitif `dueDate` membuka sort/filter/stats masa depan; view di Board konsisten dengan pola Plane layouts dan workflow keyboard-first; PATCH granular → realtime/presence/activity tanpa kerja ekstra. Negative — task lama tanpa dueDate memerlukan kolom "No date" yang tetap tampil; kalender bulan + drag = kompleksitas baru di BoardPage (dibatasi phase 2); chip warna perlu kontras a11y (WCAG AA).
+- **Alternatives:** Tab ke-12 Calendar (ditolak: audit A1, tab sudah 11); modal/panel kalender terpisah (ditolak: kurang discoverable); library kalender react-big-calendar/FullCalendar (ditolak: policy no new runtime deps, ADR-007 — bundle besar, data model milik library); natural-language parser (ditolak: overkill untuk solo dev + jalur AI sudah via MCP).
+
+---
+
+### ADR-029
+**Start date pada task (mirror pola `dueDate` M19)**
+
+- **Status:** Accepted (2026-08-17) — M20 v0.15.0
+- **Context:** Setelah M19 menambahkan `dueDate`, task belum punya `startDate` — gap untuk timeline kerja (kapan pekerjaan mulai vs kapan harus selesai). Riset platform M19 (Linear/Plane/Todoist/Height) menunjukkan start date sebagai primitif standar task. Tidak ada view/tab baru — cukup field + chip.
+- **Decision:**
+  - **Schema (zod, state JSONB — tanpa migrasi DB, backward-compatible, precedent ADR-028):** `taskSchema` + `startDate: isoDate.nullable().optional()`; mirror `lib/types.ts` app; round-trip test (cegah silent strip).
+  - **MCP:** `create_task`/`update_task` menerima `startDate` (ISO `YYYY-MM-DD`, `null` untuk clear).
+  - **UI:** input type=date di `TaskModal` (edit + `DetailRow` read-mode) dan `NewTaskModal`; chip neutral `Starts <date>` (class `.task-start`, gaya baseline `.task-due`) di `TaskCard`; label activity `startDate` → "Start date".
+  - **Warning (soft, UI-only):** `startAfterDue(startDate, dueDate)` → InlineError "Start date is after the due date." saat start > due. Tanpa block di server (M19 tidak memvalidasi relasi tanggal; hard-block menambah kompleksitas tanpa kebutuhan pengguna).
+- **Consequences:** Positive — primitif `startDate` membuka sort/filter/timeline masa depan; konsisten dengan pola M19 (zod-only, granular PATCH → realtime/activity gratis); warning non-blocking tidak menghalangi workflow. Negative — tanpa hard validation, data start > due tetap bisa tersimpan; chip tambahan menambah padatnya card meta (dibatasi satu chip neutral kecil).
+- **Alternatives:** Hard-block startDate > dueDate di schema/MCP (ditolak: perlu error handling khusus di semua jalur, bertentangan dengan sifat soft M19); ekstensi view Timeline sekaligus (ditolak: scope M20 = primitif field saja, timeline menyusul); natural-language parsing (ditolak: sudah di-defer ADR-028).
