@@ -32,6 +32,7 @@ export function useTabUnread(
   const lastReadRef = useRef<Record<string, string>>({});
   const activeTabRef = useRef(activeTab);
   activeTabRef.current = activeTab;
+  const prevTabRef = useRef(activeTab);
 
   const [unread, setUnread] = useState<Record<string, number>>({});
   const [unreadIds, setUnreadIds] = useState<Record<string, ReadonlySet<string>>>({});
@@ -41,7 +42,14 @@ export function useTabUnread(
   );
 
   useEffect(() => {
-    lastReadRef.current = readUnreadMap(storageKey);
+    const map = readUnreadMap(storageKey);
+    const prev = prevTabRef.current;
+    prevTabRef.current = activeTab;
+    if (prev && prev !== activeTab) {
+      map[prev] = new Date().toISOString();
+      writeUnreadMap(storageKey, map);
+    }
+    lastReadRef.current = map;
     let cancelled = false;
     void (async () => {
       try {
@@ -52,13 +60,14 @@ export function useTabUnread(
         const dels: ActivityEntry[] = [];
         for (const entry of items) {
           const tab = tabOfEntity(entry.entity);
-          const last = lastReadRef.current[tab];
+          const last = map[tab];
           if (!last || new Date(entry.createdAt).getTime() > new Date(last).getTime()) {
             counts[tab] = (counts[tab] ?? 0) + 1;
             (ids[tab] ??= new Set()).add(entry.entityId);
           }
           if (entry.action === 'deleted') dels.push(entry);
         }
+        delete counts[activeTab];
         setUnread(counts);
         setUnreadIds(Object.fromEntries(Object.entries(ids).map(([t, s]) => [t, s])));
         setDeleted(dels.slice(0, MAX_DELETED));
@@ -69,15 +78,7 @@ export function useTabUnread(
     return () => {
       cancelled = true;
     };
-  }, [projectId, storageKey]);
-
-  useEffect(() => {
-    const map = { ...lastReadRef.current, [activeTab]: new Date().toISOString() };
-    lastReadRef.current = map;
-    writeUnreadMap(storageKey, map);
-    setUnread((prev) => (prev[activeTab] ? { ...prev, [activeTab]: 0 } : prev));
-    setUnreadIds((prev) => (prev[activeTab] ? { ...prev, [activeTab]: new Set() } : prev));
-  }, [activeTab, storageKey]);
+  }, [projectId, storageKey, activeTab]);
 
   const dismissDeleted = useCallback(() => {
     const now = new Date().toISOString();

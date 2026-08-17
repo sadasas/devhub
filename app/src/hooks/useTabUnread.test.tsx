@@ -49,23 +49,24 @@ describe('useTabUnread', () => {
     ]);
     const { result } = renderHook(() => useTabUnread('p1', 'u1', 'board'));
     await waitFor(() =>
-      expect(result.current.unread).toEqual({ board: 1, issues: 1, whiteboard: 1 }),
+      expect(result.current.unread).toEqual({ issues: 1, whiteboard: 1 }),
     );
   });
 
-  it('persists the last read boundary when the active tab changes', async () => {
+  it('writes the last read boundary for the tab being left', async () => {
     fetchActivityMock.mockResolvedValue([]);
     const { rerender } = renderHook(({ tab }) => useTabUnread('p1', 'u1', tab), {
       initialProps: { tab: 'board' },
     });
     await act(async () => {});
     const first = JSON.parse(localStorage.getItem(KEY) ?? '{}');
-    expect(typeof first.board).toBe('string');
+    expect(first.board).toBeUndefined();
 
     rerender({ tab: 'issues' });
     await act(async () => {});
     const second = JSON.parse(localStorage.getItem(KEY) ?? '{}');
-    expect(typeof second.issues).toBe('string');
+    expect(typeof second.board).toBe('string');
+    expect(second.issues).toBeUndefined();
   });
 
   it('increments live activity on other tabs and ignores the active tab', async () => {
@@ -142,6 +143,16 @@ describe('useTabUnread', () => {
 
     rerender({ tab: 'board' });
     await act(async () => {});
-    expect(result.current.unreadIds.board?.has('t1')).toBe(false);
+    expect(result.current.unreadIds.board?.has('t1') ?? false).toBe(false);
+  });
+
+  it('keeps the stored boundary for the active tab so dots appear on it', async () => {
+    localStorage.setItem(KEY, JSON.stringify({ issues: '2099-01-01T01:00:00.000Z' }));
+    fetchActivityMock.mockResolvedValue([
+      activity({ id: 'a1', entity: 'issues', entityId: 'i9', createdAt: '2099-01-02T00:00:00.000Z' }),
+    ]);
+    const { result } = renderHook(() => useTabUnread('p1', 'u1', 'issues'));
+    await waitFor(() => expect(result.current.unreadIds.issues?.has('i9')).toBe(true));
+    expect(result.current.unread.issues ?? 0).toBe(0);
   });
 });
