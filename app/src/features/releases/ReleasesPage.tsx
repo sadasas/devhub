@@ -13,7 +13,7 @@ import { MilestoneModal } from './MilestoneModal';
 import { NewMilestoneModal } from './NewMilestoneModal';
 import { InlineError } from '../../components/InlineError';
 
-export function ReleasesPage() {
+export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { state, loading, error, canEdit } = useProject();
   const [openNew, setOpenNew] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -100,6 +100,12 @@ export function ReleasesPage() {
                     {m.targetDate ? formatDate(m.targetDate) : 'No target date'}
                   </span>
                   <span>#{shortId(m.id)}</span>
+                  {unreadIds?.has(m.id) && (
+                    <>
+                      <span className="unread-dot" aria-hidden="true" />
+                      <span className="sr-only">Unread</span>
+                    </>
+                  )}
                 </div>
                 {milestoneTasks(m.id).length > 0 && (
                   <div className="milestone-progress">

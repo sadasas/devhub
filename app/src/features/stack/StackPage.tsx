@@ -29,7 +29,7 @@ function loadView(): StackView {
   }
 }
 
-export function StackPage() {
+export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { state, loading, error, canEdit } = useProject();
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -148,6 +148,12 @@ export function StackPage() {
                 <div className="data-row-meta">
                   <span>v{entry.version}</span>
                   <span>#{shortId(entry.id)}</span>
+                  {unreadIds?.has(entry.id) && (
+                    <>
+                      <span className="unread-dot" aria-hidden="true" />
+                      <span className="sr-only">Unread</span>
+                    </>
+                  )}
                 </div>
               </button>
               <div className="data-row-side">

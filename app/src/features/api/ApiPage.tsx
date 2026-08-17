@@ -58,9 +58,10 @@ function safeFileName(name: string): string {
 interface ApiPageProps {
   projectName: string;
   projectDescription: string;
+  unreadIds?: ReadonlySet<string>;
 }
 
-export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
+export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageProps) {
   const { state, canEdit, dispatch, projectId } = useProject();
   const [sidebarWidth, setSidebarWidth] = useState(parseDefaultWidth);
   const [search, setSearch] = useState('');
@@ -400,6 +401,12 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
                           <Folder size={14} className="api-tree-folder" aria-hidden="true" />
                           <span className="api-tree-item-title">{c.name}</span>
                           <span className="api-tree-count">{endpointCount(c.id)}</span>
+                          {unreadIds?.has(c.id) && (
+                            <>
+                              <span className="unread-dot" aria-hidden="true" />
+                              <span className="sr-only">Unread</span>
+                            </>
+                          )}
                         </button>
                         {canEdit && (
                           <button
@@ -428,6 +435,12 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
                                 >
                                   <ApiMethodChip method={e.method} />
                                   <span className="api-tree-item-title">{e.name}</span>
+                                  {unreadIds?.has(e.id) && (
+                                    <>
+                                      <span className="unread-dot" aria-hidden="true" />
+                                      <span className="sr-only">Unread</span>
+                                    </>
+                                  )}
                                 </button>
                                 {canEdit && (
                                   <button
@@ -486,6 +499,12 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
                               >
                                 <ApiMethodChip method={e.method} />
                                 <span className="api-tree-item-title">{e.name}</span>
+                                {unreadIds?.has(e.id) && (
+                                  <>
+                                    <span className="unread-dot" aria-hidden="true" />
+                                    <span className="sr-only">Unread</span>
+                                  </>
+                                )}
                               </button>
                               {canEdit && (
                                 <button
@@ -888,6 +907,12 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
                       <div className="api-col-list-main">
                         <span className="api-tree-item-title">{e.name}</span>
                         <span className="api-tree-item-path">{e.path}</span>
+                        {unreadIds?.has(e.id) && (
+                          <>
+                            <span className="unread-dot" aria-hidden="true" />
+                            <span className="sr-only">Unread</span>
+                          </>
+                        )}
                       </div>
                     </button>
                   ))}

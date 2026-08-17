@@ -143,23 +143,27 @@ function ProjectUnreadArea({
           ) : tab === 'issues' ? (
             <IssuesPageLazy unreadIds={unreadIds.issues} />
           ) : tab === 'tests' ? (
-            <TestsPageLazy />
+            <TestsPageLazy unreadIds={unreadIds.tests} />
           ) : tab === 'stack' ? (
-            <StackPageLazy />
+            <StackPageLazy unreadIds={unreadIds.stack} />
           ) : tab === 'schema' ? (
-            <SchemaPageLazy />
+            <SchemaPageLazy unreadIds={unreadIds.schema} />
           ) : tab === 'decisions' ? (
-            <DecisionsPageLazy />
+            <DecisionsPageLazy unreadIds={unreadIds.decisions} />
           ) : tab === 'releases' ? (
-            <ReleasesPageLazy />
+            <ReleasesPageLazy unreadIds={unreadIds.releases} />
           ) : tab === 'api' ? (
-            <ApiPageLazy projectName={project.name} projectDescription={project.description ?? ''} />
+            <ApiPageLazy
+              projectName={project.name}
+              projectDescription={project.description ?? ''}
+              unreadIds={unreadIds.api}
+            />
           ) : tab === 'stats' ? (
             <StatsPageLazy />
           ) : tab === 'about' ? (
             <AboutPageLazy project={project} />
           ) : tab === 'whiteboard' ? (
-            <WhiteboardPageLazy />
+            <WhiteboardPageLazy unreadIds={unreadIds.whiteboard} />
           ) : null}
         </Suspense>
       </section>

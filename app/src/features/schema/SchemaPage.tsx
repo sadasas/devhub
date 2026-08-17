@@ -19,7 +19,7 @@ import { InlineError } from '../../components/InlineError';
 
 type SchemaView = 'tables' | 'erd';
 
-export function SchemaPage() {
+export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { state, loading, error, dispatch, canEdit } = useProject();
   const [searchParams, setSearchParams] = useSearchParams();
   const viewParam = searchParams.get('schemaView');
@@ -161,6 +161,12 @@ export function SchemaPage() {
                         {t.indexes.length} index{t.indexes.length === 1 ? '' : 'es'}
                       </span>
                       <span>#{shortId(t.id)}</span>
+                      {unreadIds?.has(t.id) && (
+                        <>
+                          <span className="unread-dot" aria-hidden="true" />
+                          <span className="sr-only">Unread</span>
+                        </>
+                      )}
                     </div>
                   </button>
                   <div className="data-row-side">
@@ -199,7 +205,13 @@ export function SchemaPage() {
                     <div className="data-row-meta">
                       <span>{r.cardinality}</span>
                       <span>on delete: {r.onDelete}</span>
-                      <span>#{shortId(r.id)}</span>
+<span>#{shortId(r.id)}</span>
+                      {unreadIds?.has(r.id) && (
+                        <>
+                          <span className="unread-dot" aria-hidden="true" />
+                          <span className="sr-only">Unread</span>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="data-row-side">
@@ -255,8 +267,14 @@ export function SchemaPage() {
             {[...state.schemaVersions]
               .sort((a, b) => b.appliedAt.localeCompare(a.appliedAt))
               .map((v) => (
-                <div className="version-row" key={v.id}>
+<div className="version-row" key={v.id}>
                   <Badge tone="accent">{v.version}</Badge>
+                  {unreadIds?.has(v.id) && (
+                    <>
+                      <span className="unread-dot" aria-hidden="true" />
+                      <span className="sr-only">Unread</span>
+                    </>
+                  )}
                   <div className="version-main">
                     <div className="version-notes">{v.notes || 'No notes.'}</div>
                     <div className="version-date">applied {formatDate(v.appliedAt)}</div>

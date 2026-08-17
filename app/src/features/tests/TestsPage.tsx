@@ -13,7 +13,7 @@ import { NewTestModal } from './NewTestModal';
 import { TestModal } from './TestModal';
 import { InlineError } from '../../components/InlineError';
 
-export function TestsPage() {
+export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { state, loading, error, canEdit } = useProject();
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -99,6 +99,12 @@ return (
                     {linkedTask && <span>task: {linkedTask.title}</span>}
                     {linkedIssue && <span>issue: {linkedIssue.title}</span>}
                     <span>#{shortId(test.id)}</span>
+                    {unreadIds?.has(test.id) && (
+                      <>
+                        <span className="unread-dot" aria-hidden="true" />
+                        <span className="sr-only">Unread</span>
+                      </>
+                    )}
                   </div>
                 </button>
                 <div className="data-row-side">

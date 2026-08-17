@@ -72,10 +72,14 @@ const endpoint: ApiEndpoint = {
   updatedAt: '2026-08-12T00:00:00.000Z',
 };
 
-function renderPage() {
+function renderPage(unreadIds?: ReadonlySet<string>) {
   return render(
     <MemoryRouter>
-      <ApiPage projectName="Demo Project" projectDescription="A public demo" />
+      <ApiPage
+        projectName="Demo Project"
+        projectDescription="A public demo"
+        unreadIds={unreadIds}
+      />
     </MemoryRouter>,
   );
 }
@@ -186,5 +190,26 @@ describe('ApiPage', () => {
     expect(screen.getByText('The users API')).toBeTruthy();
     expect(screen.getAllByText('Get user')).toHaveLength(2);
     expect(screen.getAllByText('/users/:id').length).toBeGreaterThan(0);
+  });
+
+  it('marks collections and endpoints with an unread dot for ids in unreadIds', () => {
+    mocks.state = makeState({
+      apiCollections: [collection],
+      apiEndpoints: [{ ...endpoint, collectionId: 'c1' }],
+    });
+    renderPage(new Set(['c1', 'e1']));
+
+    expect(screen.getAllByText('Unread').length).toBe(2);
+    expect(document.querySelectorAll('.unread-dot').length).toBe(2);
+  });
+
+  it('renders no unread dots without unreadIds', () => {
+    mocks.state = makeState({
+      apiCollections: [collection],
+      apiEndpoints: [{ ...endpoint, collectionId: 'c1' }],
+    });
+    renderPage();
+
+    expect(document.querySelectorAll('.unread-dot').length).toBe(0);
   });
 });

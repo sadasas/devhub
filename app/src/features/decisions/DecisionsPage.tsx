@@ -13,7 +13,7 @@ import { DecisionModal } from './DecisionModal';
 import { NewDecisionModal } from './NewDecisionModal';
 import { InlineError } from '../../components/InlineError';
 
-export function DecisionsPage() {
+export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { state, loading, error, canEdit } = useProject();
   const [openNew, setOpenNew] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -91,6 +91,12 @@ export function DecisionsPage() {
                   <span>{d.options.length} option(s)</span>
                   <span># {d.date}</span>
                   <span>#{shortId(d.id)}</span>
+                  {unreadIds?.has(d.id) && (
+                    <>
+                      <span className="unread-dot" aria-hidden="true" />
+                      <span className="sr-only">Unread</span>
+                    </>
+                  )}
                 </div>
               </button>
               <div className="data-row-side">

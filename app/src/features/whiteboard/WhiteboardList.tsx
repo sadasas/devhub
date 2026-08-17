@@ -15,9 +15,10 @@ const MAX_BOARDS = 5;
 interface WhiteboardListProps {
   onOpen?: (id: string) => void;
   loading?: boolean;
+  unreadIds?: ReadonlySet<string>;
 }
 
-export function WhiteboardList({ onOpen, loading = false }: WhiteboardListProps) {
+export function WhiteboardList({ onOpen, loading = false, unreadIds }: WhiteboardListProps) {
   const { state, error, canEdit, dispatch } = useProject();
   const [openNew, setOpenNew] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -79,6 +80,7 @@ export function WhiteboardList({ onOpen, loading = false }: WhiteboardListProps)
               key={board.id}
               board={board}
               canEdit={canEdit}
+              unread={unreadIds?.has(board.id)}
               onOpen={onOpen ? () => onOpen(board.id) : undefined}
               onDelete={canEdit ? () => setDeleteId(board.id) : undefined}
             />

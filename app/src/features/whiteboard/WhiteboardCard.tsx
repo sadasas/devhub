@@ -7,11 +7,12 @@ import type { Whiteboard } from '../../lib/types';
 interface WhiteboardCardProps {
   board: Whiteboard;
   canEdit: boolean;
+  unread?: boolean;
   onOpen?: () => void;
   onDelete?: () => void;
 }
 
-export function WhiteboardCard({ board, canEdit, onOpen, onDelete }: WhiteboardCardProps) {
+export function WhiteboardCard({ board, canEdit, unread = false, onOpen, onDelete }: WhiteboardCardProps) {
   return (
     <div className="project-card wb-card">
       <button type="button" className="wb-card-main" onClick={onOpen}>
@@ -23,6 +24,12 @@ export function WhiteboardCard({ board, canEdit, onOpen, onDelete }: WhiteboardC
           </Badge>
           <span className="project-card-updated">{formatRelative(board.updatedAt)}</span>
           <span className="project-card-updated">#{shortId(board.id)}</span>
+          {unread && (
+            <>
+              <span className="unread-dot" aria-hidden="true" />
+              <span className="sr-only">Unread</span>
+            </>
+          )}
         </span>
       </button>
       {canEdit && (

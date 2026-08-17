@@ -5,7 +5,7 @@ import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { WhiteboardList } from './WhiteboardList';
 import { WhiteboardEditorShell } from './WhiteboardEditorShell';
 
-export function WhiteboardPage() {
+export function WhiteboardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { state, loading } = useProject();
   const [searchParams, setSearchParams] = useSearchParams();
   const [openId, setOpenId] = useEntityOpenParam(searchParams, setSearchParams);
@@ -20,7 +20,7 @@ export function WhiteboardPage() {
   }, [searchParams, setSearchParams]);
 
   if (loading || !state) {
-    return <WhiteboardList loading />;
+    return <WhiteboardList loading unreadIds={unreadIds} />;
   }
 
   if (openId && searchParams.get('new') !== '1') {
@@ -44,7 +44,7 @@ export function WhiteboardPage() {
     setSearchParams(next);
   }
 
-  return <WhiteboardList onOpen={setOpenId} />;
+  return <WhiteboardList onOpen={setOpenId} unreadIds={unreadIds} />;
 }
 
 interface OpenParamHook {
