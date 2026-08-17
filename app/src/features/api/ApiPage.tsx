@@ -16,6 +16,7 @@ import {
 } from '@phosphor-icons/react';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
+import { useNewParam } from '../../hooks/useNewParam';
 import { newId } from '../../lib/utils';
 import { fromOpenApi, toOpenApi } from '../../lib/openapi';
 import type { ApiEndpoint, ApiMethod, ApiParam } from '../../lib/types';
@@ -86,6 +87,8 @@ export function ApiPage({ projectName, projectDescription }: ApiPageProps) {
 
   useEntityDeepLink('apiEndpoints', (id) => setSelection({ type: 'endpoint', id }));
   useEntityDeepLink('apiCollections', (id) => setSelection({ type: 'collection', id }));
+  useNewParam(() => setShowCollection(true), '1', canEdit);
+  useNewParam(() => setShowEndpoint(true), 'endpoint', canEdit);
 
   if (!state) return null;
 

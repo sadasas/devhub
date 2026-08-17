@@ -5,6 +5,7 @@ import type { Task, TaskStatus } from '../../lib/types';
 import { isTaskCompletable } from '../../lib/utils';
 import { useProject } from '../../state/project-context';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
+import { useNewParam } from '../../hooks/useNewParam';
 import { Button } from '../../components/Button';
 import { Skeleton } from '../../components/Skeleton';
 import { TaskCard } from './TaskCard';
@@ -51,6 +52,7 @@ export function BoardPage() {
   const doneBlockedTimer = useRef<number | undefined>(undefined);
   const openTask = useCallback((id: string) => setEditId(id), []);
   useEntityDeepLink('tasks', openTask);
+  useNewParam(() => setNewTaskAt({}), '1', canEdit);
 
   useEffect(() => () => window.clearTimeout(doneBlockedTimer.current), []);
 

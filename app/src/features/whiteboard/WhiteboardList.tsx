@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ChalkboardSimple, Plus } from '@phosphor-icons/react';
 import { useProject } from '../../state/project-context';
+import { useNewParam } from '../../hooks/useNewParam';
 import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { EmptyState } from '../../components/EmptyState';
@@ -20,6 +21,7 @@ export function WhiteboardList({ onOpen, loading = false }: WhiteboardListProps)
   const { state, error, canEdit, dispatch } = useProject();
   const [openNew, setOpenNew] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  useNewParam(() => setOpenNew(true), '1', canEdit);
 
   if (loading || !state) {
     return (

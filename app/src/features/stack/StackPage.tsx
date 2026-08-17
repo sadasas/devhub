@@ -3,6 +3,7 @@ import { ListBullets, PencilSimple, Plus, ShareNetwork, Stack } from '@phosphor-
 import type { TechEntryCategory } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
+import { useNewParam } from '../../hooks/useNewParam';
 import { TECH_CATEGORY, TECH_STATUS } from '../../lib/labels';
 import { shortId } from '../../lib/utils';
 import { Badge } from '../../components/Badge';
@@ -34,6 +35,7 @@ export function StackPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [view, setView] = useState<StackView>(loadView);
   useEntityDeepLink('techEntries', setEditingId);
+  useNewParam(() => setCreating(true), '1', canEdit);
 
   const switchView = (next: StackView) => {
     setView(next);

@@ -5,7 +5,7 @@ import { CommandPalette } from './CommandPalette';
 import type { ProjectSearchResult } from '../lib/api';
 
 const mocks = vi.hoisted(() => ({
-  projects: [] as { id: string; name: string }[],
+  projects: [] as { id: string; name: string; role?: string }[],
   searchResults: [] as ProjectSearchResult[],
   searchLoading: false,
   searchError: null as string | null,
@@ -23,14 +23,14 @@ vi.mock('../hooks/useSearchResults', () => ({
   }),
 }));
 
-function renderPalette() {
+function renderPalette(initialEntry = '/') {
   let location = '';
   function Probe() {
     location = useLocation().pathname + useLocation().search;
     return null;
   }
   const view = render(
-    <MemoryRouter initialEntries={['/']}>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <Probe />
       <CommandPalette />
     </MemoryRouter>,
@@ -169,5 +169,95 @@ describe('CommandPalette', () => {
     openPalette();
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(view.queryByRole('combobox')).not.toBeTruthy();
+  });
+
+  it('shows no per-entity create commands outside a project', () => {
+    mocks.projects = [{ id: 'p1', name: 'Alpha', role: 'editor' }];
+    renderPalette('/');
+    openPalette();
+    expect(screen.queryByRole('option', { name: /New task/ })).not.toBeTruthy();
+    expect(screen.getByRole('option', { name: /New project/ })).toBeTruthy();
+  });
+
+  it('lists the per-entity create commands inside a project', () => {
+    mocks.projects = [{ id: 'p1', name: 'Alpha', role: 'editor' }];
+    renderPalette('/project/p1?tab=board');
+    openPalette();
+    for (const label of [
+      'New task',
+      'New issue',
+      'New test case',
+      'New decision',
+      'New milestone',
+      'New tech entry',
+      'New API collection',
+      'New API endpoint',
+      'New whiteboard',
+    ]) {
+      expect(screen.getByRole('option', { name: new RegExp(label) })).toBeTruthy();
+    }
+  });
+
+  it('hides per-entity create commands for viewers', () => {
+    mocks.projects = [{ id: 'p1', name: 'Alpha', role: 'viewer' }];
+    renderPalette('/project/p1?tab=board');
+    openPalette();
+    expect(screen.queryByRole('option', { name: /New task/ })).not.toBeTruthy();
+    expect(screen.getByRole('option', { name: /New project/ })).toBeTruthy();
+  });
+
+  it('navigates to the create deep link on command click', () => {
+    mocks.projects = [{ id: 'p1', name: 'Alpha', role: 'editor' }];
+    const { getLocation } = renderPalette('/project/p1?tab=board');
+    openPalette();
+    fireEvent.click(screen.getByRole('option', { name: /New task/ }));
+    expect(getLocation()).toBe('/project/p1?tab=board&new=1');
+  });
+
+  it('distinguishes API collection and endpoint by param value', () => {
+    mocks.projects = [{ id: 'p1', name: 'Alpha', role: 'editor' }];
+    const { getLocation } = renderPalette('/project/p1?tab=api');
+    openPalette();
+    fireEvent.click(screen.getByRole('option', { name: /New API endpoint/ }));
+    expect(getLocation()).toBe('/project/p1?tab=api&new=endpoint');
+  });
+
+  it('preserves existing search params when navigating to a create command', () => {
+    mocks.projects = [{ id: 'p1', name: 'Alpha', role: 'editor' }];
+    const { getLocation } = renderPalette('/project/p1?tab=issues&entity=tasks&id=t1');
+    openPalette();
+    fireEvent.click(screen.getByRole('option', { name: /New issue/ }));
+    expect(getLocation()).toBe('/project/p1?tab=issues&entity=tasks&id=t1&new=1');
+  });
+
+  it('navigates to the whiteboard create deep link', () => {
+    mocks.projects = [{ id: 'p1', name: 'Alpha', role: 'editor' }];
+    const { getLocation } = renderPalette('/project/p1?tab=whiteboard');
+    openPalette();
+    fireEvent.click(screen.getByRole('option', { name: /New whiteboard/ }));
+    expect(getLocation()).toBe('/project/p1?tab=whiteboard&new=1');
+  });
+
+  it('keeps open-editor params for the whiteboard create command', () => {
+    mocks.projects = [{ id: 'p1', name: 'Alpha', role: 'editor' }];
+    const { getLocation } = renderPalette('/project/p1?tab=whiteboard&view=board&id=wb1');
+    openPalette();
+    fireEvent.click(screen.getByRole('option', { name: /New whiteboard/ }));
+    expect(getLocation()).toBe('/project/p1?tab=whiteboard&view=board&id=wb1&new=1');
+  });
+
+  it('resets selection on reopen — Enter never runs a stale command', () => {
+    mocks.projects = [
+      { id: 'p1', name: 'Alpha', role: 'editor' },
+      { id: 'p2', name: 'Beta', role: 'editor' },
+    ];
+    const { getLocation } = renderPalette('/project/p1?tab=board');
+    openPalette();
+    fireEvent.keyDown(window, { key: 'ArrowDown' });
+    fireEvent.keyDown(window, { key: 'ArrowDown' });
+    fireEvent.keyDown(window, { key: 'Escape' });
+    openPalette();
+    fireEvent.keyDown(window, { key: 'Enter' });
+    expect(getLocation()).toBe('/');
   });
 });

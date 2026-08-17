@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { SquaresFour, FolderSimple, Key, BookOpen, UserCircle, Plus, ArrowUp, ArrowDown, ArrowRight, MagnifyingGlass } from '@phosphor-icons/react';
-import { useNavigate } from 'react-router';
+import { SquaresFour, FolderSimple, Key, BookOpen, UserCircle, Plus, ArrowUp, ArrowDown, ArrowRight, MagnifyingGlass, Columns, Bug, CheckSquare, Scales, Rocket, Stack, Plugs, ChalkboardSimple } from '@phosphor-icons/react';
+import { matchPath, useLocation, useNavigate } from 'react-router';
 import { useProjects } from '../state/projects-context';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { useSearchResults } from '../hooks/useSearchResults';
@@ -34,6 +34,7 @@ function highlight(text: string, query: string): ReactNode {
 
 export function CommandPalette() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { projects } = useProjects();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -43,9 +44,6 @@ export function CommandPalette() {
   const openRef = useRef(open);
   openRef.current = open;
   const stateRef = useRef({ filtered: [] as PaletteCommand[], index: 0 });
-  useEffect(() => {
-    stateRef.current = { filtered, index };
-  });
 
   const search = useSearchResults(query);
   const q = query.trim();
@@ -103,6 +101,38 @@ export function CommandPalette() {
         },
       },
     ];
+    const activeMatch = matchPath('/project/:projectId', location.pathname);
+    const projectId = activeMatch?.params.projectId;
+    const project = projectId ? projects?.find((p) => p.id === projectId) : undefined;
+    if (project && project.role !== 'viewer') {
+      const createIn = (tab: string, value = '1') => {
+        const params = new URLSearchParams(location.search);
+        params.set('tab', tab);
+        params.set('new', value);
+        setOpen(false);
+        navigate(`/project/${project.id}?${params.toString()}`);
+      };
+      const createCommands: { id: string; label: string; icon: ReactNode; tab: string; value?: string }[] = [
+        { id: 'new-task', label: 'New task', icon: <Columns size={16} />, tab: 'board' },
+        { id: 'new-issue', label: 'New issue', icon: <Bug size={16} />, tab: 'issues' },
+        { id: 'new-test-case', label: 'New test case', icon: <CheckSquare size={16} />, tab: 'tests' },
+        { id: 'new-decision', label: 'New decision', icon: <Scales size={16} />, tab: 'decisions' },
+        { id: 'new-milestone', label: 'New milestone', icon: <Rocket size={16} />, tab: 'releases' },
+        { id: 'new-tech-entry', label: 'New tech entry', icon: <Stack size={16} />, tab: 'stack' },
+        { id: 'new-api-collection', label: 'New API collection', icon: <Plugs size={16} />, tab: 'api' },
+        { id: 'new-api-endpoint', label: 'New API endpoint', icon: <Plugs size={16} />, tab: 'api', value: 'endpoint' },
+        { id: 'new-whiteboard', label: 'New whiteboard', icon: <ChalkboardSimple size={16} />, tab: 'whiteboard' },
+      ];
+      for (const c of createCommands) {
+        list.push({
+          id: c.id,
+          group: 'Create',
+          label: c.label,
+          icon: c.icon,
+          run: () => createIn(c.tab, c.value),
+        });
+      }
+    }
     for (const p of projects ?? []) {
       list.push({
         id: p.id,
@@ -161,7 +191,7 @@ export function CommandPalette() {
       }
     }
     return list;
-  }, [projects, navigate, q, search.loading, search.error, search.results]);
+  }, [projects, navigate, location, q, search.loading, search.error, search.results]);
 
   const filtered = useMemo(() => {
     const lower = q.toLowerCase();
@@ -169,6 +199,7 @@ export function CommandPalette() {
       ? commands.filter((c) => c.disabled || c.skipFilter || c.label.toLowerCase().includes(lower))
       : commands;
   }, [commands, q]);
+  stateRef.current = { filtered, index };
 
   useEffect(() => {
     setIndex(0);
@@ -178,11 +209,17 @@ export function CommandPalette() {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
+        if (!openRef.current) {
+          setQuery('');
+          setIndex(0);
+        }
         setOpen((o) => !o);
         return;
       }
       if (e.key === '?' && !openRef.current) {
         e.preventDefault();
+        setQuery('');
+        setIndex(0);
         setOpen(true);
         return;
       }
@@ -207,8 +244,6 @@ export function CommandPalette() {
 
   useEffect(() => {
     if (open) {
-      setQuery('');
-      setIndex(0);
       requestAnimationFrame(() => inputRef.current?.focus());
     }
   }, [open]);

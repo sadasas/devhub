@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useSearchParams } from 'react-router';
 import { useProject } from '../../state/project-context';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
@@ -10,11 +11,19 @@ export function WhiteboardPage() {
   const [openId, setOpenId] = useEntityOpenParam(searchParams, setSearchParams);
   useEntityDeepLink('whiteboards', setOpenId);
 
+  useEffect(() => {
+    if (searchParams.get('new') !== '1') return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('view');
+    next.delete('id');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
   if (loading || !state) {
     return <WhiteboardList loading />;
   }
 
-  if (openId) {
+  if (openId && searchParams.get('new') !== '1') {
     const board = state.whiteboards.find((b) => b.id === openId);
     if (board) {
       return (
