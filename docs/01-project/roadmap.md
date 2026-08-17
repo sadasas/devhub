@@ -258,4 +258,25 @@ M20 v0.15.0 — mirror pola `dueDate` M19: task mendapat `startDate` (ISO `YYYY-
 
 ---
 
+## 16. Sortable Lists (M21 — ADR-030)
+
+M21 v0.16.0 — setiap tab list mendapat **sort control** (dropdown: pilih key + toggle arah). Saat ini semua list pakai urutan state-array atau comparator hardcoded (`.sort()` inline per page); tidak ada sort UI sama sekali. Murni client-side view state (URL param) — tanpa perubahan server/schema.
+
+| # | Item | Detail |
+|---|------|--------|
+| P1.1 Komponen | `SortControl.tsx` — dropdown reusable (pola popover `PresenceChip`, tanpa dependency baru): trigger `btn btn-ghost btn-sm` + `ArrowUpDown` + label key + `CaretDown`; menu pilih key + toggle Ascending/Descending (`SortAscending`/`SortDescending`); outside-click + Escape + arrow-key nav; `aria-haspopup="menu"`/`aria-expanded` |
+| P1.2 Lib | `lib/sort.ts` — comparator helpers (`byString`/`byNumber`/`byDate`/`byPriority`/`bySeverity`/`byStatus`/`byTitle`) + `applySort<T>(items, key, dir, getValue)`; semua `.sort()` hardcoded pindah ke sini |
+| P1.3 Persistence | URL param `?sort=<key>&dir=<asc|desc>` via `setSearchParams(…, {replace:true})` — precedent `?view=` (Board) / `?schemaView=` (Schema) |
+| P1.4 Board | Sort di kolom By Status & By Milestone: priority, estimate, title, createdAt, dueDate (default: none = state order); view By Due tetap sort dueDate asc |
+| P1.5 Issues & Tests | Issues: severity, status, createdAt, title; Tests: status, name, createdAt (default: none) |
+| P1.6 Stack/Schema/Decisions/Releases | Comparator hardcoded jadi param: Stack (category, name, status, version), Schema tables (name, createdAt) + versions (appliedAt), Decisions (date, status, title), Releases (targetDate, name, version) — default = urutan eksisting |
+| P1.7 API & Whiteboard | API: collections + endpoints per collection (name, method, path); Whiteboard: updatedAt, name, createdAt (default: updatedAt desc) |
+| P1.8 Verifikasi | Tests (`sort.test.ts` comparators, `SortControl.test.tsx` menu/aria, assertion per page yang berubah), lint, build hijau |
+
+**Status:** Direncanakan (2026-08-17) — implementasi menyusul (backlog DevHub M21). Skip: Stats, About, editor Whiteboard (bukan list).
+
+**Verifikasi (target):** app test suite, lint, build hijau.
+
+---
+
 *End of Roadmap.*
