@@ -4,7 +4,8 @@ import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import type { Whiteboard } from '../../lib/types';
 import { WhiteboardCanvas } from './WhiteboardCanvas';
-import { SHORTCUTS, isModalOrPaletteOpen, isTypingTarget } from './shortcuts';
+import { SHORTCUTS } from './shortcuts';
+import { isModalOrPaletteOpen, isTypingTarget } from '../../lib/keys';
 import type { WbTool } from './tools';
 import { useWhiteboardHistory } from './useWhiteboardHistory';
 
@@ -59,6 +60,7 @@ export function WhiteboardEditorShell({ board, onBack }: WhiteboardEditorShellPr
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (isTypingTarget(e.target) || isModalOrPaletteOpen()) return;
+      if (e.altKey) return;
       const key = e.key;
       const mod = e.ctrlKey || e.metaKey;
       if (key === 'f' || key === 'F') {

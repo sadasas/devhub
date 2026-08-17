@@ -223,6 +223,20 @@ export function CommandPalette() {
         setOpen(true);
         return;
       }
+      if (e.key === '/' && !openRef.current) {
+        const target = e.target as HTMLElement | null;
+        const typing =
+          target?.tagName === 'INPUT' ||
+          target?.tagName === 'TEXTAREA' ||
+          target?.isContentEditable;
+        if (!typing) {
+          e.preventDefault();
+          setQuery('');
+          setIndex(0);
+          setOpen(true);
+        }
+        return;
+      }
       if (!openRef.current) return;
       if (e.key === 'Escape') {
         e.preventDefault();

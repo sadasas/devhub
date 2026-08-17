@@ -171,6 +171,20 @@ describe('CommandPalette', () => {
     expect(view.queryByRole('combobox')).not.toBeTruthy();
   });
 
+  it('opens with / when not typing', () => {
+    renderPalette();
+    fireEvent.keyDown(window, { key: '/' });
+    expect(screen.getByRole('combobox', { name: 'Search commands' })).toBeTruthy();
+  });
+
+  it('does not open with / while typing in an input', () => {
+    const { view } = renderPalette();
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    fireEvent.keyDown(input, { key: '/' });
+    expect(view.queryByRole('combobox')).not.toBeTruthy();
+  });
+
   it('shows no per-entity create commands outside a project', () => {
     mocks.projects = [{ id: 'p1', name: 'Alpha', role: 'editor' }];
     renderPalette('/');

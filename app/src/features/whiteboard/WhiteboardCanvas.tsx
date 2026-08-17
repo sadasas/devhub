@@ -63,7 +63,7 @@ import {
   type WbTool,
 } from './tools';
 import { ISSUE_SEVERITY, ISSUE_STATUS, TASK_PRIORITY, TASK_STATUS } from '../../lib/labels';
-import { isModalOrPaletteOpen, isTypingTarget } from './shortcuts';
+import { isModalOrPaletteOpen, isTypingTarget } from '../../lib/keys';
 import { WhiteboardPopover } from './WhiteboardPopover';
 import { RefPicker } from './RefPicker';
 import type { WhiteboardHistory } from './useWhiteboardHistory';

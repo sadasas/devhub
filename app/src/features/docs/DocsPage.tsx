@@ -13,10 +13,13 @@ const DOC_NAV_ITEMS = [
 const SHORTCUTS = [
   { keys: ['Ctrl', 'K'], desc: 'Open or close the command palette' },
   { keys: ['?'], desc: 'Open the command palette (when it is closed)' },
+  { keys: ['/'], desc: 'Open the command palette (when not typing)' },
   { keys: ['↑', '↓'], desc: 'Move through palette results' },
   { keys: ['Enter'], desc: 'Run the selected palette command' },
   { keys: ['Esc'], desc: 'Close the palette or the active modal' },
-  { keys: ['N'], desc: 'Create a new task on the board (edit access required, not while typing)' },
+  { keys: ['Alt', '1-9', '0'], desc: 'Switch to a project tab (Board … About)' },
+  { keys: ['[', ']'], desc: 'Switch to the previous / next project tab' },
+  { keys: ['N'], desc: 'Create a new item in the active tab (edit access required, not while typing)' },
 ];
 
 export function DocsPage() {
