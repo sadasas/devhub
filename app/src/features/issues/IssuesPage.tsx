@@ -3,15 +3,36 @@ import { Bug, PencilSimple, Plus } from '@phosphor-icons/react';
 import { useProject } from '../../state/project-context';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { useNewParam } from '../../hooks/useNewParam';
+import { useSortParam } from '../../hooks/useSortParam';
 import { ISSUE_SEVERITY, ISSUE_STATUS } from '../../lib/labels';
+import { applySort, type SortSpec } from '../../lib/sort';
 import { shortId } from '../../lib/utils';
+import type { Issue } from '../../lib/types';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/Skeleton';
+import { SortControl } from '../../components/SortControl';
 import { IssueModal } from './IssueModal';
 import { NewIssueModal } from './NewIssueModal';
 import { InlineError } from '../../components/InlineError';
+
+const ISSUE_SORT_SPECS: SortSpec<Issue>[] = [
+  {
+    key: 'severity',
+    label: 'Severity',
+    get: (i) => i.severity,
+    order: ['critical', 'high', 'medium', 'low'],
+  },
+  {
+    key: 'status',
+    label: 'Status',
+    get: (i) => i.status,
+    order: ['open', 'reproduced', 'fixing', 'resolved', 'wontfix'],
+  },
+  { key: 'createdAt', label: 'Created', get: (i) => i.createdAt },
+  { key: 'title', label: 'Title', get: (i) => i.title },
+];
 
 export function IssuesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { state, loading, error, canEdit } = useProject();
@@ -19,6 +40,7 @@ export function IssuesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   useEntityDeepLink('issues', setEditingId);
   useNewParam(() => setCreating(true), '1', canEdit);
+  const { value: sortValue, setSort } = useSortParam();
 
   if (loading) {
     return (
@@ -46,7 +68,8 @@ export function IssuesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
 
   if (!state) return null;
 
-  const issues = state.issues;
+  const sortSpec = ISSUE_SORT_SPECS.find((s) => s.key === sortValue?.key) ?? null;
+  const issues = applySort(state.issues, sortSpec, sortValue?.dir ?? 'asc');
 
   return (
     <div>
@@ -54,11 +77,18 @@ export function IssuesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
         <span className="data-list-count">
           {issues.length} {issues.length === 1 ? 'issue' : 'issues'}
         </span>
-        {canEdit && (
-          <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
-            New issue
-          </Button>
-        )}
+        <span className="data-list-actions">
+          <SortControl
+            options={ISSUE_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
+            value={sortValue}
+            onChange={setSort}
+          />
+          {canEdit && (
+            <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
+              New issue
+            </Button>
+          )}
+        </span>
       </div>
 
       {issues.length === 0 ? (

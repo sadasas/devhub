@@ -4,14 +4,30 @@ import { formatDate, shortId } from '../../lib/utils';
 import { useProject } from '../../state/project-context';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { useNewParam } from '../../hooks/useNewParam';
+import { useSortParam } from '../../hooks/useSortParam';
+import { applySort, type SortSpec } from '../../lib/sort';
+import type { Milestone } from '../../lib/types';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { CalendarBlank, PencilSimple, Plus, Rocket } from '@phosphor-icons/react';
 import { Skeleton } from '../../components/Skeleton';
+import { SortControl } from '../../components/SortControl';
 import { MilestoneModal } from './MilestoneModal';
 import { NewMilestoneModal } from './NewMilestoneModal';
 import { InlineError } from '../../components/InlineError';
+
+const MILESTONE_SORT_SPECS: SortSpec<Milestone>[] = [
+  { key: 'targetDate', label: 'Target date', get: (m) => m.targetDate ?? null },
+  { key: 'name', label: 'Name', get: (m) => m.name },
+  { key: 'version', label: 'Version', get: (m) => m.version ?? null },
+];
+
+const defaultMilestoneSort = (a: Milestone, b: Milestone): number => {
+  if (a.status === 'released' && b.status !== 'released') return 1;
+  if (b.status === 'released' && a.status !== 'released') return -1;
+  return (a.targetDate ?? '9999-99-99').localeCompare(b.targetDate ?? '9999-99-99');
+};
 
 export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { state, loading, error, canEdit } = useProject();
@@ -19,6 +35,7 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
   const [editId, setEditId] = useState<string | null>(null);
   useEntityDeepLink('milestones', setEditId);
   useNewParam(() => setOpenNew(true), '1', canEdit);
+  const { value: sortValue, setSort } = useSortParam();
 
   if (loading) {
     return (
@@ -43,11 +60,10 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
 
   if (!state) return null;
 
-  const milestones = [...state.milestones].sort((a, b) => {
-    if (a.status === 'released' && b.status !== 'released') return 1;
-    if (b.status === 'released' && a.status !== 'released') return -1;
-    return (a.targetDate ?? '9999-99-99').localeCompare(b.targetDate ?? '9999-99-99');
-  });
+  const sortSpec = MILESTONE_SORT_SPECS.find((s) => s.key === sortValue?.key) ?? null;
+  const milestones = sortSpec
+    ? applySort(state.milestones, sortSpec, sortValue?.dir ?? 'asc')
+    : [...state.milestones].sort(defaultMilestoneSort);
 
   const milestoneTasks = (id: string) => state.tasks.filter((t) => t.milestoneId === id);
 
@@ -57,11 +73,18 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
         <span className="data-list-count">
           {milestones.length} milestone{milestones.length === 1 ? '' : 's'}
         </span>
-        {canEdit && (
-          <Button size="sm" onClick={() => setOpenNew(true)}>
-            <Plus size={14} aria-hidden="true" /> New milestone
-          </Button>
-        )}
+        <span className="data-list-actions">
+          <SortControl
+            options={MILESTONE_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
+            value={sortValue}
+            onChange={setSort}
+          />
+          {canEdit && (
+            <Button size="sm" onClick={() => setOpenNew(true)}>
+              <Plus size={14} aria-hidden="true" /> New milestone
+            </Button>
+          )}
+        </span>
       </div>
 
       {milestones.length === 0 ? (

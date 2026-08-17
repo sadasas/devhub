@@ -4,11 +4,15 @@ import { useSearchParams } from 'react-router';
 import type { Task, TaskStatus } from '../../lib/types';
 import { isTaskCompletable } from '../../lib/utils';
 import { dueBucket, dueColumnDate, type DueBucket } from '../../lib/due-dates';
+import { TASK_PRIORITY_ORDER } from '../../lib/labels';
+import { applySort, type SortSpec } from '../../lib/sort';
 import { useProject } from '../../state/project-context';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { useNewParam } from '../../hooks/useNewParam';
+import { useSortParam } from '../../hooks/useSortParam';
 import { Button } from '../../components/Button';
 import { Skeleton } from '../../components/Skeleton';
+import { SortControl } from '../../components/SortControl';
 import { TaskCard } from './TaskCard';
 import { TaskModal } from './TaskModal';
 import { NewTaskModal } from './NewTaskModal';
@@ -36,6 +40,14 @@ const DUE_BUCKETS: { bucket: DueBucket; label: string }[] = [
 
 const milestoneOrder = (m: { status: string; targetDate?: string | null }): number =>
   m.status === 'planned' ? 0 : m.status === 'inProgress' ? 1 : 2;
+
+const TASK_SORT_SPECS: SortSpec<Task>[] = [
+  { key: 'priority', label: 'Priority', get: (t) => t.priority, order: TASK_PRIORITY_ORDER },
+  { key: 'estimate', label: 'Estimate', get: (t) => t.estimate ?? null },
+  { key: 'title', label: 'Title', get: (t) => t.title },
+  { key: 'createdAt', label: 'Created', get: (t) => t.createdAt },
+  { key: 'dueDate', label: 'Due date', get: (t) => t.dueDate ?? null },
+];
 
 interface NewTaskTarget {
   status?: TaskStatus;
@@ -72,6 +84,8 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       { replace: true },
     );
   };
+  const { value: sortValue, setSort } = useSortParam();
+  const sortSpec = TASK_SORT_SPECS.find((s) => s.key === sortValue?.key) ?? null;
   const [overKey, setOverKey] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [newTaskAt, setNewTaskAt] = useState<NewTaskTarget | null>(null);
@@ -255,7 +269,11 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           {state.tasks.filter((t) => t.status === col.status).length}
         </span>
       </>,
-      state.tasks.filter((t) => t.status === col.status),
+      applySort(
+        state.tasks.filter((t) => t.status === col.status),
+        sortSpec,
+        sortValue?.dir ?? 'asc',
+      ),
       col.status,
       (e) => handleDropStatus(col.status, e),
       () => setNewTaskAt({ status: col.status }),
@@ -264,7 +282,11 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
 
   const milestoneCols = milestoneColumns.map((m) => {
     const mId = m?.id ?? null;
-    const tasks = state.tasks.filter((t) => t.milestoneId === mId);
+    const tasks = applySort(
+      state.tasks.filter((t) => t.milestoneId === mId),
+      sortSpec,
+      sortValue?.dir ?? 'asc',
+    );
     const done = tasks.filter((t) => t.status === 'done').length;
     const progress = tasks.length > 0 ? Math.round((done / tasks.length) * 100) : 0;
     const key = mId ?? 'unassigned';
@@ -369,6 +391,13 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
               Calendar
             </button>
           </div>
+        )}
+        {view !== 'due' && (
+          <SortControl
+            options={TASK_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
+            value={sortValue}
+            onChange={setSort}
+          />
         )}
         <span className="board-hints" aria-hidden="true">
           ← → move · n new item

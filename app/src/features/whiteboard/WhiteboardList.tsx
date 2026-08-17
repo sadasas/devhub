@@ -2,15 +2,25 @@ import { useState } from 'react';
 import { ChalkboardSimple, Plus } from '@phosphor-icons/react';
 import { useProject } from '../../state/project-context';
 import { useNewParam } from '../../hooks/useNewParam';
+import { useSortParam } from '../../hooks/useSortParam';
+import { applySort, type SortSpec } from '../../lib/sort';
+import type { Whiteboard } from '../../lib/types';
 import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { EmptyState } from '../../components/EmptyState';
 import { InlineError } from '../../components/InlineError';
 import { Skeleton } from '../../components/Skeleton';
+import { SortControl } from '../../components/SortControl';
 import { WhiteboardCard } from './WhiteboardCard';
 import { NewWhiteboardModal } from './NewWhiteboardModal';
 
 const MAX_BOARDS = 5;
+
+const BOARD_SORT_SPECS: SortSpec<Whiteboard>[] = [
+  { key: 'updatedAt', label: 'Updated', get: (b) => b.updatedAt },
+  { key: 'name', label: 'Name', get: (b) => b.name },
+  { key: 'createdAt', label: 'Created', get: (b) => b.createdAt },
+];
 
 interface WhiteboardListProps {
   onOpen?: (id: string) => void;
@@ -23,6 +33,7 @@ export function WhiteboardList({ onOpen, loading = false, unreadIds }: Whiteboar
   const [openNew, setOpenNew] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   useNewParam(() => setOpenNew(true), '1', canEdit);
+  const { value: sortValue, setSort } = useSortParam();
 
   if (loading || !state) {
     return (
@@ -42,7 +53,12 @@ export function WhiteboardList({ onOpen, loading = false, unreadIds }: Whiteboar
     return <InlineError>{error}</InlineError>;
   }
 
-  const boards = [...state.whiteboards].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const boardSortSpec = BOARD_SORT_SPECS.find((s) => s.key === sortValue?.key) ?? null;
+  const boards = applySort(
+    state.whiteboards,
+    boardSortSpec,
+    sortValue ? sortValue.dir : 'desc',
+  );
   const atCap = boards.length >= MAX_BOARDS;
   const deleting = deleteId ? state.whiteboards.find((b) => b.id === deleteId) : undefined;
 
@@ -53,11 +69,18 @@ export function WhiteboardList({ onOpen, loading = false, unreadIds }: Whiteboar
           {boards.length} whiteboard{boards.length === 1 ? '' : 's'}
           {atCap && <span className="field-helper"> — {MAX_BOARDS} boards per project, delete one to add another</span>}
         </span>
-        {canEdit && !atCap && (
-          <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setOpenNew(true)}>
-            New board
-          </Button>
-        )}
+        <span className="data-list-actions">
+          <SortControl
+            options={BOARD_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
+            value={sortValue}
+            onChange={setSort}
+          />
+          {canEdit && !atCap && (
+            <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setOpenNew(true)}>
+              New board
+            </Button>
+          )}
+        </span>
       </div>
 
       {boards.length === 0 ? (

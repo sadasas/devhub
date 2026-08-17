@@ -17,9 +17,11 @@ import {
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { useNewParam } from '../../hooks/useNewParam';
+import { useSortParam } from '../../hooks/useSortParam';
+import { applySort, type SortSpec } from '../../lib/sort';
 import { newId } from '../../lib/utils';
 import { fromOpenApi, toOpenApi } from '../../lib/openapi';
-import type { ApiEndpoint, ApiMethod, ApiParam } from '../../lib/types';
+import type { ApiCollection, ApiEndpoint, ApiMethod, ApiParam } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { Button } from '../../components/Button';
 import { ActivityList } from '../../components/ActivityList';
@@ -27,6 +29,7 @@ import { EmptyState } from '../../components/EmptyState';
 import { InlineError } from '../../components/InlineError';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { SortControl } from '../../components/SortControl';
 import { Textarea } from '../../components/Textarea';
 import { ApiDocsView } from './ApiDocsView';
 import { ApiMethodChip } from './ApiMethodChip';
@@ -38,6 +41,22 @@ type ApiTab = 'headers' | 'params' | 'body' | 'responses';
 type ApiMode = 'workspace' | 'docs';
 type ApiSelection = { type: 'collection'; id: string } | { type: 'endpoint'; id: string } | null;
 type DeleteTarget = { kind: 'collection'; id: string; name: string } | { kind: 'endpoint'; id: string; name: string } | null;
+
+const API_COLLECTION_SORT_SPECS: SortSpec<ApiCollection>[] = [
+  { key: 'name', label: 'Name', get: (c) => c.name },
+  { key: 'createdAt', label: 'Created', get: (c) => c.createdAt },
+];
+
+const API_ENDPOINT_SORT_SPECS: SortSpec<ApiEndpoint>[] = [
+  { key: 'name', label: 'Name', get: (e) => e.name },
+  {
+    key: 'method',
+    label: 'Method',
+    get: (e) => e.method,
+    order: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  },
+  { key: 'path', label: 'Path', get: (e) => e.path },
+];
 
 const SIDEBAR_MIN = 220;
 const SIDEBAR_MAX = 360;
@@ -90,27 +109,38 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
   useEntityDeepLink('apiCollections', (id) => setSelection({ type: 'collection', id }));
   useNewParam(() => setShowCollection(true), '1', canEdit);
   useNewParam(() => setShowEndpoint(true), 'endpoint', canEdit);
+  const { value: sortValue, setSort } = useSortParam();
+  const collectionSortSpec = API_COLLECTION_SORT_SPECS.find((s) => s.key === sortValue?.key) ?? null;
+  const endpointSortSpec = API_ENDPOINT_SORT_SPECS.find((s) => s.key === sortValue?.key) ?? null;
 
   if (!state) return null;
 
   const query = search.trim().toLowerCase();
-  const visibleCollections = query
-    ? collections.filter(
-        (c) =>
-          c.name.toLowerCase().includes(query) ||
-          endpoints.some(
-            (e) =>
-              e.collectionId === c.id &&
-              (e.name.toLowerCase().includes(query) || e.path.toLowerCase().includes(query)),
-          ),
-      )
-    : collections;
+  const visibleCollections = applySort(
+    query
+      ? collections.filter(
+          (c) =>
+            c.name.toLowerCase().includes(query) ||
+            endpoints.some(
+              (e) =>
+                e.collectionId === c.id &&
+                (e.name.toLowerCase().includes(query) || e.path.toLowerCase().includes(query)),
+            ),
+        )
+      : collections,
+    collectionSortSpec,
+    sortValue?.dir ?? 'asc',
+  );
   const ungrouped = endpoints.filter((e) => !e.collectionId);
-  const visibleUngrouped = query
-    ? ungrouped.filter(
-        (e) => e.name.toLowerCase().includes(query) || e.path.toLowerCase().includes(query),
-      )
-    : ungrouped;
+  const visibleUngrouped = applySort(
+    query
+      ? ungrouped.filter(
+          (e) => e.name.toLowerCase().includes(query) || e.path.toLowerCase().includes(query),
+        )
+      : ungrouped,
+    endpointSortSpec,
+    sortValue?.dir ?? 'asc',
+  );
 
   function matchesEndpoint(e: ApiEndpoint): boolean {
     return e.name.toLowerCase().includes(query) || e.path.toLowerCase().includes(query);
@@ -329,6 +359,13 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
             </button>
           </div>
         </div>
+        {mode === 'workspace' && (
+          <SortControl
+            options={API_COLLECTION_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
+            value={sortValue}
+            onChange={setSort}
+          />
+        )}
         {toolbarButtons}
       </div>
 
@@ -372,7 +409,11 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
               <div className="api-tree">
                 {visibleCollections.map((c) => {
                   const isOpen = !collapsed[c.id];
-                  const epList = endpoints.filter((e) => e.collectionId === c.id && (!query || matchesEndpoint(e)));
+                  const epList = applySort(
+                    endpoints.filter((e) => e.collectionId === c.id && (!query || matchesEndpoint(e))),
+                    endpointSortSpec,
+                    sortValue?.dir ?? 'asc',
+                  );
                   return (
                     <div key={c.id} className="api-tree-group">
                       <div

@@ -3,15 +3,30 @@ import { CheckSquare, PencilSimple, Plus } from '@phosphor-icons/react';
 import { useProject } from '../../state/project-context';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { useNewParam } from '../../hooks/useNewParam';
+import { useSortParam } from '../../hooks/useSortParam';
 import { TEST_CASE_STATUS } from '../../lib/labels';
+import { applySort, type SortSpec } from '../../lib/sort';
 import { shortId } from '../../lib/utils';
+import type { TestCase } from '../../lib/types';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/Skeleton';
+import { SortControl } from '../../components/SortControl';
 import { NewTestModal } from './NewTestModal';
 import { TestModal } from './TestModal';
 import { InlineError } from '../../components/InlineError';
+
+const TEST_SORT_SPECS: SortSpec<TestCase>[] = [
+  {
+    key: 'status',
+    label: 'Status',
+    get: (t) => t.status,
+    order: ['pending', 'pass', 'fail'],
+  },
+  { key: 'name', label: 'Name', get: (t) => t.name },
+  { key: 'createdAt', label: 'Created', get: (t) => t.createdAt },
+];
 
 export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { state, loading, error, canEdit } = useProject();
@@ -19,6 +34,7 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   useEntityDeepLink('testCases', setEditingId);
   useNewParam(() => setCreating(true), '1', canEdit);
+  const { value: sortValue, setSort } = useSortParam();
 
   if (loading) {
     return (
@@ -46,7 +62,8 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
 
   if (!state) return null;
 
-  const tests = state.testCases;
+  const sortSpec = TEST_SORT_SPECS.find((s) => s.key === sortValue?.key) ?? null;
+  const tests = applySort(state.testCases, sortSpec, sortValue?.dir ?? 'asc');
 
   return (
     <div>
@@ -54,11 +71,18 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
         <span className="data-list-count">
           {tests.length} {tests.length === 1 ? 'test case' : 'test cases'}
         </span>
-        {canEdit && (
-          <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
-            New test case
-          </Button>
-        )}
+        <span className="data-list-actions">
+          <SortControl
+            options={TEST_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
+            value={sortValue}
+            onChange={setSort}
+          />
+          {canEdit && (
+            <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
+              New test case
+            </Button>
+          )}
+        </span>
       </div>
 
       {tests.length === 0 ? (

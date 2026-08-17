@@ -273,9 +273,9 @@ M21 v0.16.0 — setiap tab list mendapat **sort control** (dropdown: pilih key +
 | P1.7 API & Whiteboard | API: collections + endpoints per collection (name, method, path); Whiteboard: updatedAt, name, createdAt (default: updatedAt desc) |
 | P1.8 Verifikasi | Tests (`sort.test.ts` comparators, `SortControl.test.tsx` menu/aria, assertion per page yang berubah), lint, build hijau |
 
-**Status:** Direncanakan (2026-08-17) — implementasi menyusul (backlog DevHub M21). Skip: Stats, About, editor Whiteboard (bukan list).
+**Selesai (2026-08-18):** P1.1–P1.8 ✅ — `SortControl` dropdown reusable (trigger ghost + icon arah + menu key + toggle Ascending/Descending, Escape/outside-click, aria menu); `lib/sort.ts` comparator terpusat (string/number/date, null-last, enum order); `useSortParam` persist `?sort=<key>&dir=<asc|desc>` (replace, param custom `sortv` untuk schema versions); 9 tab ter-wire (Board sort dalam kolom By Status/Milestone, Issues, Tests, Stack, Schema tables+versions, Decisions, Releases, API collections+endpoints+ungrouped, Whiteboard); semua `.sort()` hardcoded pindah ke `applySort`; default tiap tab = urutan eksisting. Skip: Stats, About, editor Whiteboard (bukan list).
 
-**Verifikasi (target):** app test suite, lint, build hijau.
+**Verifikasi:** app 522 tests (16 baru: sort.ts 8, SortControl 8), lint, build hijau.
 
 ---
 

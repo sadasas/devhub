@@ -4,14 +4,29 @@ import { shortId } from '../../lib/utils';
 import { useProject } from '../../state/project-context';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { useNewParam } from '../../hooks/useNewParam';
+import { useSortParam } from '../../hooks/useSortParam';
+import { applySort, type SortSpec } from '../../lib/sort';
+import type { Decision } from '../../lib/types';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { PencilSimple, Plus, Scales } from '@phosphor-icons/react';
 import { Skeleton } from '../../components/Skeleton';
+import { SortControl } from '../../components/SortControl';
 import { DecisionModal } from './DecisionModal';
 import { NewDecisionModal } from './NewDecisionModal';
 import { InlineError } from '../../components/InlineError';
+
+const DECISION_SORT_SPECS: SortSpec<Decision>[] = [
+  { key: 'date', label: 'Date', get: (d) => d.date },
+  {
+    key: 'status',
+    label: 'Status',
+    get: (d) => d.status,
+    order: ['proposed', 'accepted', 'rejected', 'superseded'],
+  },
+  { key: 'title', label: 'Title', get: (d) => d.title },
+];
 
 export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { state, loading, error, canEdit } = useProject();
@@ -19,6 +34,7 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
   const [editId, setEditId] = useState<string | null>(null);
   useEntityDeepLink('decisions', setEditId);
   useNewParam(() => setOpenNew(true), '1', canEdit);
+  const { value: sortValue, setSort } = useSortParam();
 
   if (loading) {
     return (
@@ -43,7 +59,10 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
 
   if (!state) return null;
 
-  const decisions = [...state.decisions].sort((a, b) => b.date.localeCompare(a.date));
+  const sortSpec = DECISION_SORT_SPECS.find((s) => s.key === sortValue?.key) ?? null;
+  const decisions = sortSpec
+    ? applySort(state.decisions, sortSpec, sortValue?.dir ?? 'asc')
+    : [...state.decisions].sort((a, b) => b.date.localeCompare(a.date));
 
   return (
     <div>
@@ -51,11 +70,18 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
         <span className="data-list-count">
           {decisions.length} decision{decisions.length === 1 ? '' : 's'}
         </span>
-        {canEdit && (
-          <Button size="sm" onClick={() => setOpenNew(true)}>
-            <Plus size={14} aria-hidden="true" /> New decision
-          </Button>
-        )}
+        <span className="data-list-actions">
+          <SortControl
+            options={DECISION_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
+            value={sortValue}
+            onChange={setSort}
+          />
+          {canEdit && (
+            <Button size="sm" onClick={() => setOpenNew(true)}>
+              <Plus size={14} aria-hidden="true" /> New decision
+            </Button>
+          )}
+        </span>
       </div>
 
       {decisions.length === 0 ? (

@@ -2,13 +2,16 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { FloppyDisk, GitDiff, Graph, LinkSimple, List, PencilSimple, Plus, Trash } from '@phosphor-icons/react';
 import { formatDate, relationLabel as formatRelation, shortId } from '../../lib/utils';
-import type { Relation } from '../../lib/types';
+import type { Relation, SchemaVersion, Table } from '../../lib/types';
+import { applySort, type SortSpec } from '../../lib/sort';
 import { useProject } from '../../state/project-context';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
+import { useSortParam } from '../../hooks/useSortParam';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
 import { Skeleton } from '../../components/Skeleton';
+import { SortControl } from '../../components/SortControl';
 import { ERD } from './ERD';
 import { NewRelationModal } from './NewRelationModal';
 import { NewTableModal } from './NewTableModal';
@@ -18,6 +21,15 @@ import { TableModal } from './TableModal';
 import { InlineError } from '../../components/InlineError';
 
 type SchemaView = 'tables' | 'erd';
+
+const TABLE_SORT_SPECS: SortSpec<Table>[] = [
+  { key: 'name', label: 'Name', get: (t) => t.name },
+  { key: 'createdAt', label: 'Created', get: (t) => t.createdAt },
+];
+
+const VERSION_SORT_SPECS: SortSpec<SchemaVersion>[] = [
+  { key: 'appliedAt', label: 'Applied', get: (v) => v.appliedAt },
+];
 
 export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { state, loading, error, dispatch, canEdit } = useProject();
@@ -34,6 +46,10 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       { replace: true },
     );
   };
+  const { value: sortValue, setSort } = useSortParam();
+  const { value: versionSortValue, setSort: setVersionSort } = useSortParam('sortv');
+  const tableSortSpec = TABLE_SORT_SPECS.find((s) => s.key === sortValue?.key) ?? null;
+  const versionSortSpec = VERSION_SORT_SPECS.find((s) => s.key === versionSortValue?.key) ?? null;
   const [newTableOpen, setNewTableOpen] = useState(false);
   const [tableId, setTableId] = useState<string | null>(null);
   useEntityDeepLink('tables', setTableId);
@@ -81,6 +97,11 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           versions
         </span>
         <div className="data-list-actions">
+          <SortControl
+            options={TABLE_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
+            value={sortValue}
+            onChange={setSort}
+          />
           {canEdit && view === 'erd' && (
             <Button
               variant="ghost"
@@ -140,9 +161,7 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           </div>
         ) : (
           <div className="data-list">
-            {[...state.tables]
-              .sort((a, b) => a.name.localeCompare(b.name))
-.map((t) => (
+            {applySort(state.tables, tableSortSpec, sortValue?.dir ?? 'asc').map((t) => (
                 <div key={t.id} className="data-row">
                   <button
                     type="button"
@@ -237,6 +256,11 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       <div className="versions-section">
         <div className="data-list-header">
           <span className="data-list-count">Schema versions</span>
+          <SortControl
+            options={VERSION_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
+            value={versionSortValue}
+            onChange={setVersionSort}
+          />
           {state.schemaVersions.filter((v) => v.snapshot).length >= 2 && (
             <Button
               variant="ghost"
@@ -264,9 +288,8 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           </p>
         ) : (
           <div>
-            {[...state.schemaVersions]
-              .sort((a, b) => b.appliedAt.localeCompare(a.appliedAt))
-              .map((v) => (
+            {applySort(state.schemaVersions, versionSortSpec, versionSortValue?.dir ?? 'asc').map(
+              (v) => (
 <div className="version-row" key={v.id}>
                   <Badge tone="accent">{v.version}</Badge>
                   {unreadIds?.has(v.id) && (

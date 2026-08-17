@@ -1,21 +1,36 @@
 import { useState } from 'react';
 import { ListBullets, PencilSimple, Plus, ShareNetwork, Stack } from '@phosphor-icons/react';
-import type { TechEntryCategory } from '../../lib/types';
+import type { TechEntry, TechEntryCategory } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { useNewParam } from '../../hooks/useNewParam';
+import { useSortParam } from '../../hooks/useSortParam';
 import { TECH_CATEGORY, TECH_STATUS } from '../../lib/labels';
+import { applySort, type SortSpec } from '../../lib/sort';
 import { shortId } from '../../lib/utils';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/Skeleton';
+import { SortControl } from '../../components/SortControl';
 import { NewTechModal } from './NewTechModal';
 import { TechModal } from './TechModal';
 import { StackGraph } from './StackGraph';
 import { InlineError } from '../../components/InlineError';
 
 const CATEGORY_ORDER: TechEntryCategory[] = ['frontend', 'backend', 'database', 'tooling'];
+
+const TECH_SORT_SPECS: SortSpec<TechEntry>[] = [
+  { key: 'category', label: 'Category', get: (e) => e.category, order: CATEGORY_ORDER },
+  { key: 'name', label: 'Name', get: (e) => e.name },
+  {
+    key: 'status',
+    label: 'Status',
+    get: (e) => e.status,
+    order: ['current', 'updateAvailable', 'majorUpgrade'],
+  },
+  { key: 'version', label: 'Version', get: (e) => e.version || null },
+];
 
 type StackView = 'list' | 'graph';
 
@@ -36,6 +51,7 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const [view, setView] = useState<StackView>(loadView);
   useEntityDeepLink('techEntries', setEditingId);
   useNewParam(() => setCreating(true), '1', canEdit);
+  const { value: sortValue, setSort } = useSortParam();
 
   const switchView = (next: StackView) => {
     setView(next);
@@ -73,11 +89,14 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   if (!state) return null;
 
   const entries = state.techEntries;
-  const sorted = [...entries].sort(
-    (a, b) =>
-      CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category) ||
-      a.name.localeCompare(b.name),
-  );
+  const sortSpec = TECH_SORT_SPECS.find((s) => s.key === sortValue?.key) ?? null;
+  const sorted = sortSpec
+    ? applySort(entries, sortSpec, sortValue?.dir ?? 'asc')
+    : [...entries].sort(
+        (a, b) =>
+          CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category) ||
+          a.name.localeCompare(b.name),
+      );
 
   return (
     <div>
@@ -109,6 +128,13 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
             </button>
           </div>
         </div>
+        {view === 'list' && (
+          <SortControl
+            options={TECH_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
+            value={sortValue}
+            onChange={setSort}
+          />
+        )}
         {canEdit && (
           <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
             New entry
