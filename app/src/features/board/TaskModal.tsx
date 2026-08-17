@@ -6,7 +6,7 @@ import {
   TASK_STATUS,
   TEST_CASE_STATUS,
 } from '../../lib/labels';
-import { formatRelative, isTaskCompletable, linkedTestCases, parseLabels } from '../../lib/utils';
+import { formatDate, formatRelative, isTaskCompletable, linkedTestCases, parseLabels } from '../../lib/utils';
 import { taskDueChip } from '../../lib/due-dates';
 import { startAfterDue, startLabel } from '../../lib/start-dates';
 import type { State, Task, TaskPriority, TaskStatus, TestCaseStatus } from '../../lib/types';
@@ -340,12 +340,18 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               </DetailRow>
               <DetailRow label="Due date">
                 {task.dueDate ? (
-                  <span className={`task-due task-due-${taskDueChip(task).tone}`}>
-                    {taskDueChip(task).label}
+                  <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                    <span className={`task-due task-due-${taskDueChip(task).tone}`}>
+                      {taskDueChip(task).label}
+                    </span>
+                    <span className="text-muted">{formatDate(task.dueDate)}</span>
                   </span>
                 ) : (
                   <DetailEmpty />
                 )}
+              </DetailRow>
+              <DetailRow label="Done date">
+                {task.completedAt ? formatDate(task.completedAt) : <DetailEmpty />}
               </DetailRow>
               <DetailRow label="Start date">
                 {task.startDate ? (

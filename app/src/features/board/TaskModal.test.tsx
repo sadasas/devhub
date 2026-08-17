@@ -125,4 +125,23 @@ describe('TaskModal milestone select', () => {
       patch: { milestoneId: null },
     });
   });
+
+  it('shows the due date and the done date for a done task', () => {
+    mockState.tasks = [
+      makeTask({
+        status: 'done',
+        dueDate: '2026-08-10',
+        completedAt: '2026-08-13T12:00:00.000Z',
+      }),
+    ];
+    render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
+    expect(screen.getByText('Done late 3d')).toBeTruthy();
+    expect(screen.getByText('Aug 10, 2026')).toBeTruthy();
+    expect(screen.getByText('Aug 13, 2026')).toBeTruthy();
+  });
+
+  it('omits the done date when the task is not done', () => {
+    render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
+    expect(screen.queryByText(/^Aug \d{1,2}, 2026$/)).toBeNull();
+  });
 });
