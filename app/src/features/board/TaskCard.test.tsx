@@ -45,8 +45,9 @@ describe('TaskCard', () => {
   });
 
   it('renders a due chip with a tone for tasks with a due date', () => {
-    render(<TaskCard task={task({ dueDate: '2026-08-20' })} onOpen={() => {}} />);
-    expect(screen.getByText(/Due Aug 20/)).toBeTruthy();
+    const future = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
+    render(<TaskCard task={task({ dueDate: future })} onOpen={() => {}} />);
+    expect(screen.getByText(/^Due [A-Z][a-z]{2} \d{1,2}$/)).toBeTruthy();
     expect(document.querySelector('.task-due-warn')).toBeTruthy();
   });
 
