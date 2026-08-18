@@ -91,7 +91,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const [editId, setEditId] = useState<string | null>(null);
   const [newTaskAt, setNewTaskAt] = useState<NewTaskTarget | null>(null);
   const [doneBlockedMsg, setDoneBlockedMsg] = useState<string | null>(null);
-  const [members, setMembers] = useState<Record<string, string>>({});
+  const [members, setMembers] = useState<Record<string, { email: string; displayName?: string }>>({});
   const doneBlockedTimer = useRef<number | undefined>(undefined);
   const openTask = useCallback((id: string) => setEditId(id), []);
   useEntityDeepLink('tasks', openTask);
@@ -106,7 +106,13 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     api
       .listMembers(teamId)
       .then((list) => {
-        if (!cancelled) setMembers(Object.fromEntries(list.map((m) => [m.id, m.email])));
+        if (!cancelled) {
+          setMembers(
+            Object.fromEntries(
+              list.map((m) => [m.id, { email: m.email, displayName: m.displayName ?? '' }]),
+            ),
+          );
+        }
       })
       .catch(() => {
         if (!cancelled) setMembers({});

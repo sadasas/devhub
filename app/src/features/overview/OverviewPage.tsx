@@ -177,11 +177,11 @@ export function OverviewPage({ project }: { project: Project }) {
   const { state, loading, error, canEdit, teamId } = useProject();
   const [editOpen, setEditOpen] = useState(false);
   const [membersLoaded, setMembersLoaded] = useState(false);
-  const [memberEmails, setMemberEmails] = useState<Record<string, string>>({});
+  const [memberNames, setMemberNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!teamId) {
-      setMemberEmails({});
+      setMemberNames({});
       setMembersLoaded(true);
       return;
     }
@@ -190,13 +190,13 @@ export function OverviewPage({ project }: { project: Project }) {
       .listMembers(teamId)
       .then((list) => {
         if (!cancelled) {
-          setMemberEmails(Object.fromEntries(list.map((m) => [m.id, m.email])));
+          setMemberNames(Object.fromEntries(list.map((m) => [m.id, m.displayName || m.email])));
           setMembersLoaded(true);
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setMemberEmails({});
+          setMemberNames({});
           setMembersLoaded(true);
         }
       });
@@ -277,7 +277,7 @@ export function OverviewPage({ project }: { project: Project }) {
     if (!s) {
       s = {
         id: key,
-        email: key ? (memberEmails[key] ?? 'Unknown') : 'Unassigned',
+        email: key ? (memberNames[key] ?? 'Unknown') : 'Unassigned',
         open: 0,
         done: 0,
         est: 0,

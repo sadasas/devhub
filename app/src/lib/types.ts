@@ -353,6 +353,7 @@ export interface Team {
 export interface TeamMember {
   id: string;
   email: string;
+  displayName?: string;
   role: TeamRole;
   joinedAt: string;
 }

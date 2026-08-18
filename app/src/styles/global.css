@@ -1817,11 +1817,16 @@ a:hover {
   position: relative;
 }
 
+.card-pinned .task-card-top {
+  padding-right: 26px;
+  transition: padding-right var(--duration-fast) var(--ease-out);
+}
+
 .task-card-pin {
   position: absolute;
   top: 6px;
   right: 6px;
-  z-index: 1;
+  z-index: 2;
   opacity: 0;
   transition: opacity var(--duration-fast) var(--ease-out);
 }
@@ -1869,15 +1874,35 @@ a:hover {
 
 .task-card-top {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
 }
 
 .task-card-title {
   font-size: 13px;
   font-weight: 500;
   line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.task-avatar {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.task-assignee-name {
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .task-card-labels {
@@ -1900,6 +1925,8 @@ a:hover {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  flex-wrap: wrap;
+  row-gap: 4px;
   font-size: 11px;
   color: var(--text-muted);
 }
@@ -1907,7 +1934,16 @@ a:hover {
 .task-meta-left {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.task-meta-right {
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .task-blockers {
@@ -1916,6 +1952,7 @@ a:hover {
   gap: 3px;
   color: var(--status-warn);
   font-family: var(--font-mono);
+  flex-shrink: 0;
 }
 
 .task-tests {
@@ -1924,6 +1961,7 @@ a:hover {
   gap: 3px;
   color: var(--status-info);
   font-family: var(--font-mono);
+  flex-shrink: 0;
 }
 
 .task-due {
@@ -1965,19 +2003,6 @@ a:hover {
   align-items: center;
   gap: 3px;
   font-family: var(--font-mono);
-  border: 1px solid transparent;
-  border-radius: 4px;
-  padding: 1px 5px;
-  color: var(--text-muted);
-  background: var(--bg-overlay);
-}
-
-.task-assignee {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
   color: var(--text-muted);
 }
 
@@ -1985,21 +2010,14 @@ a:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
   color: #fff;
   text-transform: uppercase;
   flex: 0 0 auto;
-}
-
-.task-assignee-name {
-  max-width: 80px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .task-card-id {

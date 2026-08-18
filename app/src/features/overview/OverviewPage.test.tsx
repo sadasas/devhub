@@ -63,7 +63,7 @@ const PROJECT: Project = {
   description: 'A project workspace.',
   status: 'active',
   visibility: 'private',
-  tabs: ['board', 'overview', 'whiteboard'],
+  tabs: ['board', 'about', 'whiteboard'],
   prd: {
     purpose: 'Purpose text',
     goals: '',

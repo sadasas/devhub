@@ -113,20 +113,36 @@ describe('TaskCard', () => {
     expect(screen.queryByRole('button', { name: /Pin task/ })).toBeNull();
   });
 
-  it('renders an assignee chip when the member map knows the assignee', () => {
+  it('renders an assignee avatar and username when the member map knows the assignee', () => {
     render(
       <TaskCard
         task={task({ assigneeId: 'm1' })}
-        members={{ m1: 'adit@test.dev' }}
+        members={{ m1: { email: 'adit@test.dev', displayName: 'Adit S' } }}
         onOpen={() => {}}
       />,
     );
-    expect(screen.getByText('adit')).toBeTruthy();
+    expect(document.querySelector('.task-assignee-name')?.textContent).toBe('Adit S');
     expect(document.querySelector('.task-assignee-avatar')).toBeTruthy();
   });
 
-  it('omits the assignee chip when the assignee is unknown or missing', () => {
-    render(<TaskCard task={task({ assigneeId: 'm9' })} members={{ m1: 'adit@test.dev' }} onOpen={() => {}} />);
-    expect(document.querySelector('.task-assignee')).toBeNull();
+  it('falls back to the email when the assignee has no display name', () => {
+    render(
+      <TaskCard
+        task={task({ assigneeId: 'm1' })}
+        members={{ m1: { email: 'adit@test.dev' } }}
+        onOpen={() => {}}
+      />,
+    );
+    expect(document.querySelector('.task-assignee-name')?.textContent).toBe('adit@test.dev');
+  });
+
+  it('omits the assignee avatar when the assignee is unknown or missing', () => {
+    render(<TaskCard task={task({ assigneeId: 'm9' })} members={{ m1: { email: 'adit@test.dev' } }} onOpen={() => {}} />);
+    expect(document.querySelector('.task-avatar')).toBeNull();
+  });
+
+  it('renders a compact priority badge', () => {
+    render(<TaskCard task={task({ priority: 'urgent' })} onOpen={() => {}} />);
+    expect(screen.getByText('Urg')).toBeTruthy();
   });
 });

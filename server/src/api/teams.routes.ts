@@ -160,7 +160,7 @@ teamsRouter.get('/:teamId/members', async (req, res) => {
   const row = await getTeamWithRole(userId, req.params.teamId);
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Team not found');
   const result = await pool.query(
-    `SELECT u.id, u.email, tm.role, tm.joined_at
+    `SELECT u.id, u.email, u.display_name AS "displayName", tm.role, tm.joined_at
      FROM team_members tm
      JOIN users u ON u.id = tm.user_id
      WHERE tm.team_id = $1
@@ -171,6 +171,7 @@ teamsRouter.get('/:teamId/members', async (req, res) => {
     members: result.rows.map((m) => ({
       id: m.id,
       email: m.email,
+      displayName: m.displayName ?? '',
       role: m.role,
       joinedAt: m.joined_at.toISOString(),
     })),

@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { LinkSimple, ListChecks } from '@phosphor-icons/react';
-import { TASK_PRIORITY, TASK_STATUS } from '../../lib/labels';
+import { TASK_PRIORITY, TASK_PRIORITY_SHORT, TASK_STATUS } from '../../lib/labels';
 import { formatDate, linkedTestCases, shortId } from '../../lib/utils';
 import { taskDueChip } from '../../lib/due-dates';
 import { startLabel } from '../../lib/start-dates';
@@ -10,10 +10,15 @@ import { useProject } from '../../state/project-context';
 import { Badge } from '../../components/Badge';
 import { PinButton } from '../../components/PinButton';
 
+interface MemberInfo {
+  email: string;
+  displayName?: string;
+}
+
 interface TaskCardProps {
   task: Task;
   onOpen: (taskId: string) => void;
-  members?: Record<string, string>;
+  members?: Record<string, MemberInfo>;
   showStatus?: boolean;
   showMilestone?: boolean;
   unread?: boolean;
@@ -28,7 +33,8 @@ export const TaskCard = memo(function TaskCard({
   unread = false,
 }: TaskCardProps) {
   const { state, canEdit, dispatch } = useProject();
-  const assigneeEmail = task.assigneeId ? members?.[task.assigneeId] : undefined;
+  const assignee = task.assigneeId ? members?.[task.assigneeId] : undefined;
+  const assigneeName = assignee ? (assignee.displayName || assignee.email) : undefined;
   const blockers =
     task.blockedBy
       ?.map((id) => state?.tasks.find((t) => t.id === id))
@@ -54,10 +60,10 @@ export const TaskCard = memo(function TaskCard({
   );
 
   return (
-    <div className="task-card-wrap">
+    <div className={`task-card-wrap${task.pinned ? ' card-pinned' : ''}`}>
       <button
         type="button"
-        className="task-card"
+        className={`task-card task-card-priority-${task.priority}`}
         draggable={canEdit}
         data-testid="task-card"
         data-task-id={task.id}
@@ -67,80 +73,92 @@ export const TaskCard = memo(function TaskCard({
           e.dataTransfer.effectAllowed = 'move';
         }}
       >
-      <div className="task-card-top">
-        <span className="task-card-title">{task.title}</span>
-        <Badge tone={TASK_PRIORITY[task.priority].tone}>{TASK_PRIORITY[task.priority].label}</Badge>
-      </div>
-
-      {(chipRows && task.labels.length > 0) || showStatus || (showMilestone && milestone) ? (
-        chipRows
-      ) : null}
-
-      <div className="task-card-meta">
-        <span className="task-meta-left">
-          {task.dueDate && dueChip.label && (
-            <span
-              className={`task-due task-due-${dueChip.tone}`}
-              title={formatDate(task.dueDate)}
-            >
-              {dueChip.label}
-            </span>
-          )}
-          {task.startDate && (
-            <span className="task-start" title={formatDate(task.startDate)}>
-              {startLabel(task.startDate)}
-            </span>
-          )}
-          {(task.estimate != null || task.actualHours != null) && (
-            <span className="tabular" title="actual / estimate (hours)">
-              {task.actualHours ?? 0}/{task.estimate ?? '—'}h
-            </span>
-          )}
-          {blockers.length > 0 && (
-            <span
-              className="task-blockers"
-              title={`Blocked by: ${blockers.map((b) => b.title).join(', ')}`}
-            >
-              <LinkSimple size={11} weight="bold" aria-hidden="true" />
-              {blockers.length}
-            </span>
-          )}
-          {testCases.length > 0 && (
-            <span
-              className="task-tests"
-              title={testCases.map((tc) => `${tc.name} (${tc.status})`).join(', ')}
-            >
-              <ListChecks size={11} weight="bold" aria-hidden="true" />
-              {testCases.length}
-            </span>
-          )}
-          {assigneeEmail && task.assigneeId && (
-            <span className="task-assignee" title={assigneeEmail}>
+        <div className="task-card-top">
+          {assigneeName && task.assigneeId && (
+            <span className="task-avatar" title={assigneeName}>
               <span
                 className="task-assignee-avatar"
                 style={{ backgroundColor: avatarColor(task.assigneeId) }}
                 aria-hidden="true"
               >
-                {initialsOf(assigneeEmail)}
+                {initialsOf(assigneeName)}
               </span>
-              <span className="task-assignee-name">{assigneeEmail.split('@')[0]}</span>
+              <span className="task-assignee-name">{assigneeName}</span>
+              <span className="sr-only">{assigneeName}</span>
             </span>
           )}
-        </span>
-        <span className="task-card-id font-mono" title={task.id}>
-          #{shortId(task.id)}
-        </span>
-        {unread && (
-          <>
-            <span className="unread-dot" aria-hidden="true" />
-            <span className="sr-only">Unread</span>
-          </>
-        )}
-      </div>
+          <Badge
+            tone={TASK_PRIORITY[task.priority].tone}
+            title={`${TASK_PRIORITY[task.priority].label} priority`}
+          >
+            {TASK_PRIORITY_SHORT[task.priority]}
+          </Badge>
+        </div>
 
-      <span className="sr-only">
-        {TASK_STATUS[task.status].label} task. Drag to move between columns, or move with arrow keys when focused.
-      </span>
+        <div className="task-card-title" title={task.title}>
+          {task.title}
+        </div>
+
+        {(chipRows && task.labels.length > 0) || showStatus || (showMilestone && milestone) ? (
+          chipRows
+        ) : null}
+
+        <div className="task-card-meta">
+          <span className="task-meta-left">
+            {task.dueDate && dueChip.label && (
+              <span
+                className={`task-due task-due-${dueChip.tone}`}
+                title={formatDate(task.dueDate)}
+              >
+                {dueChip.label}
+              </span>
+            )}
+            {task.startDate && (
+              <span className="task-start" title={formatDate(task.startDate)}>
+                {startLabel(task.startDate)}
+              </span>
+            )}
+            {(task.estimate != null || task.actualHours != null) && (
+              <span className="tabular" title="actual / estimate (hours)">
+                {task.actualHours ?? 0}/{task.estimate ?? '—'}h
+              </span>
+            )}
+          </span>
+          <span className="task-meta-right">
+            {blockers.length > 0 && (
+              <span
+                className="task-blockers"
+                title={`Blocked by: ${blockers.map((b) => b.title).join(', ')}`}
+              >
+                <LinkSimple size={11} weight="bold" aria-hidden="true" />
+                {blockers.length}
+              </span>
+            )}
+            {testCases.length > 0 && (
+              <span
+                className="task-tests"
+                title={testCases.map((tc) => `${tc.name} (${tc.status})`).join(', ')}
+              >
+                <ListChecks size={11} weight="bold" aria-hidden="true" />
+                {testCases.length}
+              </span>
+            )}
+            <span className="task-card-id font-mono" title={task.id}>
+              #{shortId(task.id)}
+            </span>
+            {unread && (
+              <>
+                <span className="unread-dot" aria-hidden="true" />
+                <span className="sr-only">Unread</span>
+              </>
+            )}
+          </span>
+        </div>
+
+        <span className="sr-only">
+          {TASK_STATUS[task.status].label} task with {TASK_PRIORITY[task.priority].label} priority.
+          Drag to move between columns, or move with arrow keys when focused.
+        </span>
       </button>
       {canEdit && (
         <PinButton

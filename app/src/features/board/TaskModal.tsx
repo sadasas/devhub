@@ -231,7 +231,10 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 id="task-assignee"
                 label="Assignee"
                 value={task.assigneeId ?? null}
-                options={members.map((m) => ({ value: m.id, label: m.email }))}
+                options={members.map((m) => ({
+                  value: m.id,
+                  label: m.displayName || m.email,
+                }))}
                 onChange={(v) => update({ assigneeId: v })}
               />
             </div>

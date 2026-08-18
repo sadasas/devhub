@@ -9,7 +9,7 @@ async function memberRoles(teamId: string, cookie: string) {
     .set('Cookie', cookie)
     .set('X-Forwarded-For', uniqueIp());
   expect(res.status).toBe(200);
-  return res.body.members as Array<{ id: string; email: string; role: string }>;
+  return res.body.members as Array<{ id: string; email: string; displayName: string; role: string }>;
 }
 
 describe('teams routes', () => {
@@ -91,6 +91,7 @@ describe('teams routes', () => {
     expect(members).toHaveLength(2);
     expect(members.find((m) => m.email === 'editor@test.dev')?.role).toBe('editor');
     expect(members.find((m) => m.email === 'owner@test.dev')?.role).toBe('owner');
+    expect(members[0]?.displayName).toBe('');
   });
 
   it('rejects invitations without an existing account', async () => {
