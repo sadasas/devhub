@@ -317,4 +317,22 @@ M13.7 v0.13.7 — task/issue/test case/decision mendapat field `pinned: boolean`
 
 ---
 
+## 19. Overview Tab — merge Stats + About (M23 — ADR-033)
+
+M23 v0.16.2 — tab `stats` + `about` digabung jadi satu tab **Overview** (icon `Gauge`); 11 tab → 10 (audit A1). Struktur: header (Edit PRD) → hero (description + meta) → 8 counter tile terdedupe → Charts (donut + bars + next milestone) → Product brief (5 PRD cards), dipisah hairline divider `.overview-group`. Legacy redirect `?tab=stats|about → overview`. Public share tetap counters + PRD (tanpa charts).
+
+| # | Item | Detail |
+|---|------|--------|
+| P1.1 Komponen | `OverviewPage.tsx` (merge Stats+About; Donut/Bars/StatCard; dedupe counter: Tasks `done/total`, Milestones `released/total`); hapus `StatsPage.tsx`/`AboutPage.tsx`; CSS `.overview-group*` (~10 baris) |
+| P1.2 Wiring | `ProjectTab` + `overview`; legacy redirect; `OverviewPageLazy project={project}`; presence label; TabSkeleton case overview |
+| P1.3 Public | Label "Overview" + Gauge (id tetap `about`) di PublicProjectPage + ShareModal; tanpa charts |
+| P1.4 Empty | `EmptyState` "Nothing to chart yet" bila tasks & issues kosong; counter 0 = data; PRD "Not set yet." |
+| P1.5 Verifikasi | Update test (useTabShortcuts/useNewItemShortcut), tsc, lint, build; docs ADR-033 + roadmap |
+
+**Selesai (2026-08-18):** P1.1–P1.5 ✅ — tab Overview aktif (Gauge), redirect lama jalan, public tanpa charts, counter terdedupe, charts + PRD dalam satu alur baca.
+
+**Verifikasi:** app test suite (39 terkait hijau), lint; build penuh diblokir WIP whiteboard sesi lain (tsc error di WhiteboardCanvas/geometry — bukan M23).
+
+---
+
 *End of Roadmap.*

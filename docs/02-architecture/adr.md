@@ -396,3 +396,20 @@
   - **UI:** `PinButton` (icon `PushPin`, `aria-pressed`, `stopPropagation`) di task card (Board) dan `.data-row-side` (Issues/Tests/Decisions); pinned-first **stable** sort via `applySort(items, spec, dir, pinnedFirst?)` (M21) — berlaku juga saat tanpa sort spec; dalam grup pinned urutan mengikuti spec/urutan eksisting.
 - **Consequences:** Positive — satu field shared, semua member melihat pin yang sama; sinkron lintas perangkat via PATCH yang sudah ada; rapid toggle ter-cluster di activity log; kompatibel dengan SortControl M21. Negative — member lain bisa mem-pin/unpin item (sesuai desain kolaboratif, gate `canEdit` tetap berlaku); tanpa UI dedikasi untuk "unpin semua" (defer); icon hover-reveal di task card kurang discoverable untuk pengguna baru (dikompensasi aria-label + title).
 - **Alternatives:** Per-user pins di localStorage (ditolak: invisible ke rekan tim, tidak sinkron perangkat); field `pinnedAt` timestamp (ditolak: boolean cukup, urutan antar-pinned tidak perlu presisi); pinned per-entity terpisah non-shared (ditolak: kompleksitas tanpa manfaat).
+
+---
+
+### ADR-033
+**Gabung tab Stats + About → satu tab "Overview" (11 tab → 10)**
+
+- **Status:** Accepted (2026-08-18) — M23 v0.16.2
+- **Context:** Stats (chart/kpi) dan About (deskripsi, counter, PRD) adalah dua tab kecil dengan konten tumpang tindih (open issues, milestones, task totals muncul di keduanya). Audit A1 membatasi jumlah tab; 11 tab sudah di batas. Pengguna harus pindah tab untuk melihat "sehat vs kenapa proyek ini ada" — keduanya bagian dari satu pertanyaan "overview proyek". Riset desain (UI Designer pass) menyimpulkan struktur terbaik: identity → size → health → narrative.
+- **Decision:**
+  - **Satu tab `overview`** (label "Overview", icon `Gauge` — phosphor, diverifikasi tersedia) menggantikan `stats` + `about` di ProjectPage. `StatsPage.tsx`/`AboutPage.tsx` dihapus; `OverviewPage.tsx` baru di `features/overview/`.
+  - **Legacy redirect:** `?tab=stats` dan `?tab=about` dipetakan ke `overview` (URL bookmark/shared tidak 404).
+  - **Struktur:** header (Edit PRD, gate `canEdit`) → hero (description + meta chips, reuse `.about-hero`) → 8 counter tile **terdedupe** (Tasks `done/total`, Open issues, Outdated deps, Test cases, Stack, Tables, Decisions, Milestones `released/total`) → group **Charts** (donut status + bars priority/severity/hours, `stat-note` next milestone) → group **Product brief** (5 PRD cards). Zona dipisah hairline divider `.overview-group` (~10 baris CSS baru); heading h2 per group, h3 per card (hierarki a11y).
+  - **Empty state baru:** chart zone → `EmptyState` "Nothing to chart yet" bila tasks & issues kosong; counter 0 = data, PRD kosong tetap "Not set yet."
+  - **Public share TIDAK mendapat charts:** tab publik tetap id `'about'` (PublicTab), label "Overview" + Gauge; konten publik tetap counters + PRD (telemetry internal — outdated deps/hours — tidak diekspos; bundle publik tanpa SVG chart).
+  - **Tab count 11 → 10** (audit A1: deviasi whiteboard tetap satu-satunya).
+- **Consequences:** Positive — satu tempat untuk "status + alasan" proyek; dedupe konten; tab lebih sedikit (A1); URL lama tetap jalan via redirect; public surface tidak berubah kontennya. Negative — `?tab=stats/about` lama tidak lagi mengaktifkan tab terpisah (redirect ke overview); peta shortcut Alt+digit bergeser (Alt+9 = Overview, Alt+0 = Whiteboard); pengguna yang mencari label "Stats"/"About" harus belajar label baru.
+- **Alternatives:** Pertahankan 2 tab (ditolak: 11 tab di batas A1, konten tumpang tindih); merge ke "About" tanpa rename (ditolak: label "About" menyembunyikan statistik — pengguna pencari Stats tidak menemukan apa pun); public ikut charts (ditolak: telemetry internal + beban a11y di surface publik); layout bento asimetris (ditolak: grid existing `auto-fit` sudah cukup, tanpa CSS baru yang signifikan).

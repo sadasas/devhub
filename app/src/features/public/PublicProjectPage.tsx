@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Bug, CalendarBlank, ChalkboardSimple, Columns, Flag, Info, ListChecks, Rocket, SquaresFour, Stack } from '@phosphor-icons/react';
+import { Bug, CalendarBlank, ChalkboardSimple, Columns, Flag, Gauge, ListChecks, Rocket, SquaresFour, Stack } from '@phosphor-icons/react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { ApiError, api } from '../../lib/api';
 import type { PublicProject, PublicTab, State, Task } from '../../lib/types';
@@ -31,7 +31,7 @@ const TABS: { id: PublicTab; label: string; icon: ReactNode }[] = [
   { id: 'stack', label: 'Stack', icon: <Stack size={15} /> },
   { id: 'milestones', label: 'Milestones', icon: <Rocket size={15} /> },
   { id: 'whiteboard', label: 'Whiteboard', icon: <ChalkboardSimple size={15} /> },
-  { id: 'about', label: 'About', icon: <Info size={15} /> },
+  { id: 'about', label: 'Overview', icon: <Gauge size={15} /> },
 ];
 
 const BOARD_STATUSES = ['todo', 'inProgress', 'review', 'done'] as const;

@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useTabShortcuts } from './useTabShortcuts';
 
-const TABS = ['board', 'issues', 'tests', 'stack', 'schema', 'decisions', 'releases', 'api', 'stats', 'about', 'whiteboard'];
+const TABS = ['board', 'issues', 'tests', 'stack', 'schema', 'decisions', 'releases', 'api', 'overview', 'whiteboard'];
 
 function setup(active = 'board') {
   const selected: string[] = [];
@@ -35,7 +35,7 @@ describe('useTabShortcuts', () => {
   it('maps Alt+0 to the tenth tab', () => {
     const { onSelect } = setup();
     press('0', { altKey: true });
-    expect(onSelect).toHaveBeenCalledWith('about');
+    expect(onSelect).toHaveBeenCalledWith('whiteboard');
   });
 
   it('does not switch on plain digits or with ctrl/meta/shift modifiers', () => {

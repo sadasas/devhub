@@ -3,7 +3,6 @@ import {
   ArrowLeft,
   BookmarkSimple,
   Bug,
-  ChartBar,
   Check,
   CheckSquare,
   ChalkboardSimple,
@@ -11,7 +10,7 @@ import {
   Copy,
   Database,
   DownloadSimple,
-  Info,
+  Gauge,
   Plugs,
   Rocket,
   Scales,
@@ -58,8 +57,7 @@ const SchemaPageLazy = lazy(() => import('../schema/SchemaPage').then((m) => ({ 
 const DecisionsPageLazy = lazy(() => import('../decisions/DecisionsPage').then((m) => ({ default: m.DecisionsPage })));
 const ReleasesPageLazy = lazy(() => import('../releases/ReleasesPage').then((m) => ({ default: m.ReleasesPage })));
 const ApiPageLazy = lazy(() => import('../api/ApiPage').then((m) => ({ default: m.ApiPage })));
-const StatsPageLazy = lazy(() => import('../stats/StatsPage').then((m) => ({ default: m.StatsPage })));
-const AboutPageLazy = lazy(() => import('./AboutPage').then((m) => ({ default: m.AboutPage })));
+const OverviewPageLazy = lazy(() => import('../overview/OverviewPage').then((m) => ({ default: m.OverviewPage })));
 const WhiteboardPageLazy = lazy(() => import('../whiteboard/WhiteboardPage').then((m) => ({ default: m.WhiteboardPage })));
 
 export type ProjectTab =
@@ -71,8 +69,7 @@ export type ProjectTab =
   | 'decisions'
   | 'releases'
   | 'api'
-  | 'stats'
-  | 'about'
+  | 'overview'
   | 'whiteboard';
 
 const TABS: { id: ProjectTab; label: string; icon: ReactNode }[] = [
@@ -84,8 +81,7 @@ const TABS: { id: ProjectTab; label: string; icon: ReactNode }[] = [
   { id: 'decisions', label: 'Decisions', icon: <Scales size={15} /> },
   { id: 'releases', label: 'Releases', icon: <Rocket size={15} /> },
   { id: 'api', label: 'API', icon: <Plugs size={15} /> },
-  { id: 'stats', label: 'Stats', icon: <ChartBar size={15} /> },
-  { id: 'about', label: 'About', icon: <Info size={15} /> },
+  { id: 'overview', label: 'Overview', icon: <Gauge size={15} /> },
   { id: 'whiteboard', label: 'Whiteboard', icon: <ChalkboardSimple size={15} /> },
 ];
 
@@ -126,23 +122,19 @@ function TabSkeleton({ tab }: { tab: ProjectTab }) {
     );
   }
 
-  if (tab === 'stats') {
-    return (
-      <div className="stats-grid" aria-hidden="true">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="data-row" />
-        ))}
-      </div>
-    );
-  }
-
-  if (tab === 'about') {
+  if (tab === 'overview') {
     return (
       <div aria-hidden="true">
         <Skeleton style={{ width: 220, height: 20, marginBottom: 16 }} />
         <Skeleton style={{ width: '100%', height: 14, marginBottom: 8 }} />
         <Skeleton style={{ width: '70%', height: 14, marginBottom: 24 }} />
-        <Skeleton style={{ width: '100%', height: 120 }} />
+        <div className="stats-grid">
+          <Skeleton className="data-row" />
+          <Skeleton className="data-row" />
+          <Skeleton className="data-row" />
+          <Skeleton className="data-row" />
+        </div>
+        <Skeleton style={{ width: '100%', height: 200, marginTop: 22 }} />
       </div>
     );
   }
@@ -236,10 +228,8 @@ function ProjectUnreadArea({
               projectDescription={project.description ?? ''}
               unreadIds={unreadIds.api}
             />
-          ) : tab === 'stats' ? (
-            <StatsPageLazy />
-          ) : tab === 'about' ? (
-            <AboutPageLazy project={project} />
+          ) : tab === 'overview' ? (
+            <OverviewPageLazy project={project} />
           ) : tab === 'whiteboard' ? (
             <WhiteboardPageLazy unreadIds={unreadIds.whiteboard} />
           ) : null}
@@ -256,7 +246,8 @@ export function ProjectPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
-  const tab: ProjectTab = TABS.some((t) => t.id === tabParam) ? (tabParam as ProjectTab) : 'board';
+  const legacyTab = tabParam === 'stats' || tabParam === 'about' ? 'overview' : tabParam;
+  const tab: ProjectTab = TABS.some((t) => t.id === legacyTab) ? (legacyTab as ProjectTab) : 'board';
   const setTab = (next: ProjectTab) => {
     setSearchParams(
       (prev) => {

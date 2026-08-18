@@ -12,8 +12,7 @@ const TAB_LABELS: Record<ProjectTab, string> = {
   decisions: 'Decisions',
   releases: 'Releases',
   api: 'API',
-  stats: 'Stats',
-  about: 'About',
+  overview: 'Overview',
   whiteboard: 'Whiteboard',
 };
 

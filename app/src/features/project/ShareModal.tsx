@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Bug, ChalkboardSimple, Check, Columns, Info, LinkSimple, Rocket, Stack, Warning } from '@phosphor-icons/react';
+import { Bug, ChalkboardSimple, Check, Columns, Gauge, LinkSimple, Rocket, Stack, Warning } from '@phosphor-icons/react';
 import { ApiError } from '../../lib/api';
 import type { Project, PublicTab } from '../../lib/types';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
@@ -17,7 +17,7 @@ const TAB_META: { id: PublicTab; label: string; icon: ReactNode; description: st
   { id: 'issues', label: 'Issues', icon: <Bug size={16} aria-hidden="true" />, description: 'Bug and issue tracker' },
   { id: 'milestones', label: 'Milestones', icon: <Rocket size={16} aria-hidden="true" />, description: 'Releases and version history' },
   { id: 'stack', label: 'Stack', icon: <Stack size={16} aria-hidden="true" />, description: 'Tech stack ledger' },
-  { id: 'about', label: 'About', icon: <Info size={16} aria-hidden="true" />, description: 'PRD and project summary' },
+  { id: 'about', label: 'Overview', icon: <Gauge size={16} aria-hidden="true" />, description: 'PRD, counters and project summary' },
   { id: 'whiteboard', label: 'Whiteboard', icon: <ChalkboardSimple size={16} aria-hidden="true" />, description: 'Whiteboard boards' },
 ];
 

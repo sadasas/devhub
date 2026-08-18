@@ -2495,6 +2495,34 @@ input[type='checkbox'] {
   gap: 16px;
 }
 
+.overview-group {
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-hairline);
+}
+
+.overview-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.overview-group-title {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.overview-group-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
 .stat-card {
   display: flex;
   flex-direction: column;
@@ -5265,4 +5293,19 @@ input[type='checkbox'] {
 .due-cal-strip-empty {
   font-size: 12px;
   color: var(--text-muted);
+}
+
+
+/* Whiteboard labels (M18 T2) */
+
+.wb-shape-label {
+  user-select: none;
+}
+
+.wb-edge-label {
+  user-select: none;
+  paint-order: stroke;
+  stroke: var(--bg-base);
+  stroke-width: 4px;
+  stroke-linejoin: round;
 }

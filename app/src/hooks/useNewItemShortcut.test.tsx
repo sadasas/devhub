@@ -39,7 +39,7 @@ describe('useNewItemShortcut', () => {
     expect(onActivate).toHaveBeenCalledWith('api', 'endpoint');
   });
 
-  it.each(['schema', 'stats', 'about'])('ignores n on the %s tab', (tab) => {
+  it.each(['schema', 'overview'])('ignores n on the %s tab', (tab) => {
     const { onActivate } = setup(tab);
     press('n');
     expect(onActivate).not.toHaveBeenCalled();
