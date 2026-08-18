@@ -15,6 +15,7 @@ import { Modal } from '../../components/Modal';
 interface DueCalendarProps {
   onOpenTask: (taskId: string) => void;
   onQuickCreate: (dueDate: string) => void;
+  taskFilter?: (t: Task) => boolean;
 }
 
 const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -25,7 +26,7 @@ const STATUS_ORDER: Task['status'][] = ['todo', 'inProgress', 'review', 'done'];
 
 const dayHeader = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
-export function DueCalendar({ onOpenTask, onQuickCreate }: DueCalendarProps) {
+export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter }: DueCalendarProps) {
   const { state, canEdit, dispatch } = useProject();
   const [anchor, setAnchor] = useState(todayIso());
   const [weekMode, setWeekMode] = useState(false);
@@ -45,12 +46,13 @@ export function DueCalendar({ onOpenTask, onQuickCreate }: DueCalendarProps) {
     for (const t of state?.tasks ?? []) {
       if (!t.dueDate) continue;
       if (hideCompleted && t.status === 'done') continue;
+      if (taskFilter && !taskFilter(t)) continue;
       const list = map.get(t.dueDate) ?? [];
       list.push(t);
       map.set(t.dueDate, list);
     }
     return map;
-  }, [state, hideCompleted]);
+  }, [state, hideCompleted, taskFilter]);
 
   const milestonesByDay = useMemo(() => {
     const map = new Map<string, { id: string; name: string; version: string | null }[]>();
@@ -66,9 +68,9 @@ export function DueCalendar({ onOpenTask, onQuickCreate }: DueCalendarProps) {
   const unscheduled = useMemo(
     () =>
       (state?.tasks ?? [])
-        .filter((t) => !t.dueDate && !(hideCompleted && t.status === 'done'))
+        .filter((t) => !t.dueDate && !(hideCompleted && t.status === 'done') && (!taskFilter || taskFilter(t)))
         .sort((a, b) => a.title.localeCompare(b.title)),
-    [state, hideCompleted],
+    [state, hideCompleted, taskFilter],
   );
 
   const nav = (dir: number) => {

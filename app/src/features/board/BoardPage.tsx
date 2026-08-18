@@ -7,6 +7,7 @@ import { dueBucket, dueColumnDate, type DueBucket } from '../../lib/due-dates';
 import { TASK_PRIORITY_ORDER } from '../../lib/labels';
 import { applySort, type SortSpec } from '../../lib/sort';
 import { useProject } from '../../state/project-context';
+import { useOptionalAuth } from '../../state/auth-context';
 import { api } from '../../lib/api';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { useNewParam } from '../../hooks/useNewParam';
@@ -86,6 +87,20 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     );
   };
   const { value: sortValue, setSort } = useSortParam();
+  const { user } = useOptionalAuth();
+  const mineParam = searchParams.get('mine');
+  const mineOnly = mineParam === '1';
+  const setMine = (on: boolean) => {
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        if (on) p.set('mine', '1');
+        else p.delete('mine');
+        return p;
+      },
+      { replace: true },
+    );
+  };
   const sortSpec = TASK_SORT_SPECS.find((s) => s.key === sortValue?.key) ?? null;
   const [overKey, setOverKey] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
@@ -201,6 +216,10 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
 
   if (!state) return null;
 
+  const userId = user?.id ?? null;
+  const filteredTasks =
+    mineOnly && userId ? state.tasks.filter((t) => t.assigneeId === userId) : state.tasks;
+
   const milestoneColumns = [
     ...[...state.milestones].sort((a, b) => {
       const order = milestoneOrder(a) - milestoneOrder(b);
@@ -293,11 +312,11 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       <>
         <span className="kanban-col-label">{col.label}</span>
         <span className="kanban-col-count tabular">
-          {state.tasks.filter((t) => t.status === col.status).length}
+          {filteredTasks.filter((t) => t.status === col.status).length}
         </span>
       </>,
       applySort(
-        state.tasks.filter((t) => t.status === col.status),
+        filteredTasks.filter((t) => t.status === col.status),
         sortSpec,
         sortValue?.dir ?? 'asc',
         (t) => !!t.pinned,
@@ -311,7 +330,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const milestoneCols = milestoneColumns.map((m) => {
     const mId = m?.id ?? null;
     const tasks = applySort(
-      state.tasks.filter((t) => t.milestoneId === mId),
+      filteredTasks.filter((t) => t.milestoneId === mId),
       sortSpec,
       sortValue?.dir ?? 'asc',
       (t) => !!t.pinned,
@@ -348,7 +367,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   }
 
   const dueCols = DUE_BUCKETS.map(({ bucket, label }) => {
-    const tasks = state.tasks
+    const tasks = filteredTasks
       .filter((t) => dueBucket(t.dueDate) === bucket)
       .sort((a, b) => (a.dueDate ?? '9999-99-99').localeCompare(b.dueDate ?? '9999-99-99'));
     return renderColumn(
@@ -421,13 +440,28 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
             </button>
           </div>
         )}
-        {view !== 'due' && (
-          <SortControl
-            options={TASK_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
-            value={sortValue}
-            onChange={setSort}
-          />
-        )}
+        <div className="board-toolbar-actions">
+          {view !== 'due' && (
+            <SortControl
+              options={TASK_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
+              value={sortValue}
+              onChange={setSort}
+            />
+          )}
+          {userId && (
+            <label
+              className="toolbar-check"
+              title={mineOnly ? 'Show all tasks' : 'Show only tasks assigned to me'}
+            >
+              <input
+                type="checkbox"
+                checked={mineOnly}
+                onChange={(e) => setMine(e.target.checked)}
+              />
+              Only my tasks
+            </label>
+          )}
+        </div>
       </div>
 
       {doneBlockedMsg && <InlineError className="mb-12">{doneBlockedMsg}</InlineError>}
@@ -438,7 +472,11 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
         ) : view === 'milestone' ? (
           milestoneCols
         ) : calMode ? (
-          <DueCalendar onOpenTask={openTask} onQuickCreate={(dueDate) => setNewTaskAt({ dueDate })} />
+          <DueCalendar
+              onOpenTask={openTask}
+              onQuickCreate={(dueDate) => setNewTaskAt({ dueDate })}
+              taskFilter={mineOnly && userId ? (t) => t.assigneeId === userId : undefined}
+            />
         ) : (
           dueCols
         )}

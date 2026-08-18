@@ -185,4 +185,13 @@ describe('TaskModal milestone select', () => {
       patch: { assigneeId: null },
     });
   });
+
+  it('shows the auto actual hours in read mode and hides the manual input in edit mode', () => {
+    mockState.tasks = [makeTask({ status: 'done', actualHours: 24.5 })];
+    render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
+    expect(screen.getByText('24.5h')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    expect(screen.queryByLabelText('Actual (hours)')).toBeNull();
+    expect(screen.getByLabelText('Estimate (hours)')).toBeTruthy();
+  });
 });

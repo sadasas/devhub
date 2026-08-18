@@ -18,7 +18,7 @@ import {
 import { reconcileQueue } from '../lib/sync-service';
 import { RealtimeSocket, applyStateDiff, realtimeWsUrl } from '../lib/realtime-client';
 import type { ActivityNew, PresenceUpdate, PresenceUser, RealtimeHandlers, StateDiff } from '../lib/realtime-client';
-import { nowIso } from '../lib/utils';
+import { deriveActualHours, nowIso } from '../lib/utils';
 import type {
   ApiCollection,
   ApiEndpoint,
@@ -94,18 +94,30 @@ export function projectReducer(state: State, action: ProjectAction): State {
     case 'replace':
       return action.state;
 
-    case 'task/add':
+    case 'task/add': {
+      const completedAt =
+        action.task.completedAt ?? (action.task.status === 'done' ? nowIso() : null);
+      const actualHours =
+        action.task.actualHours ??
+        (completedAt
+          ? deriveActualHours({
+              completedAt,
+              createdAt: action.task.createdAt,
+              startDate: action.task.startDate,
+            })
+          : undefined);
       return {
         ...state,
         tasks: [
           {
             ...action.task,
-            completedAt:
-              action.task.completedAt ?? (action.task.status === 'done' ? nowIso() : null),
+            completedAt,
+            actualHours,
           },
           ...state.tasks,
         ],
       };
+    }
     case 'task/update': {
       const prev = state.tasks.find((t) => t.id === action.id);
       let patch = action.patch;
@@ -115,6 +127,21 @@ export function projectReducer(state: State, action: ProjectAction): State {
         } else if (patch.status !== 'done') {
           patch = { ...patch, completedAt: null };
         }
+      }
+      if (
+        prev &&
+        patch.status === 'done' &&
+        prev.status !== 'done' &&
+        patch.actualHours === undefined
+      ) {
+        patch = {
+          ...patch,
+          actualHours: deriveActualHours({
+            completedAt: patch.completedAt ?? nowIso(),
+            createdAt: prev.createdAt,
+            startDate: patch.startDate ?? prev.startDate,
+          }),
+        };
       }
       return { ...state, tasks: updateIn<Task>(state.tasks, action.id, patch) };
     }

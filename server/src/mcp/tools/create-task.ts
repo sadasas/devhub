@@ -2,6 +2,8 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
 import { newId, nowIso, textContent } from '../entity.js';
+import { hours } from '../../schema/state.js';
+import { deriveActualHours } from '../../lib/hours.js';
 
 const inputSchema = z.object({
   projectId: z.string().describe('UUID of the target project'),
@@ -9,7 +11,7 @@ const inputSchema = z.object({
   status: z.enum(['todo', 'inProgress', 'review', 'done']).default('todo'),
   priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
   estimate: z.number().int().min(0).optional().describe('Estimated hours'),
-  actualHours: z.number().int().min(0).optional(),
+  actualHours: hours.optional().describe('Actual hours spent (auto-derived when status is done)'),
   labels: z.array(z.string()).max(20).default([]),
   milestoneId: z.string().uuid().nullable().optional().describe('Optional milestone to group this task under'),
   dueDate: z
@@ -51,6 +53,12 @@ export function registerCreateTask(server: McpServer): void {
     async (args) => {
       const state = await loadState(args.projectId);
       const now = nowIso();
+      const completedAt = args.completedAt ?? (args.status === 'done' ? now : null);
+      const actualHours =
+        args.actualHours ??
+        (completedAt
+          ? deriveActualHours({ completedAt, createdAt: now, startDate: args.startDate })
+          : undefined);
       const task = {
         id: newId(),
         createdAt: now,
@@ -59,13 +67,13 @@ export function registerCreateTask(server: McpServer): void {
         status: args.status,
         priority: args.priority,
         estimate: args.estimate,
-        actualHours: args.actualHours,
+        actualHours,
         labels: args.labels,
         blockedBy: [] as string[],
         milestoneId: args.milestoneId,
         dueDate: args.dueDate,
         startDate: args.startDate,
-        completedAt: args.completedAt ?? (args.status === 'done' ? nowIso() : null),
+        completedAt,
         pinned: args.pinned,
         assigneeId: args.assigneeId ?? null,
         description: args.description,

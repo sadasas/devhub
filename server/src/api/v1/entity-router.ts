@@ -5,6 +5,7 @@ import { requireAuth, getUserId } from '../../auth/middleware/requireAuth.js';
 import { ApiError } from '../../app.js';
 import { parseOrThrow } from '../../lib/db.js';
 import { newId, nowIso } from '../../lib/ids.js';
+import { deriveActualHours } from '../../lib/hours.js';
 import {
   stateSchema,
   taskSchema,
@@ -91,6 +92,27 @@ type EntityRow = { id: string; createdAt: string; updatedAt: string } & Record<s
 
 function itemsOf(state: State, key: keyof State): EntityRow[] {
   return state[key] as unknown as EntityRow[];
+}
+
+function deriveTaskPatch(
+  before: EntityRow,
+  patch: Record<string, unknown>,
+): Record<string, unknown> {
+  const after: Record<string, unknown> = { ...patch };
+  const wasDone = before.status === 'done';
+  if (patch.status === 'done' && !wasDone) {
+    if (after.completedAt === undefined) after.completedAt = nowIso();
+    if (after.completedAt != null && after.actualHours === undefined && typeof before.createdAt === 'string') {
+      after.actualHours = deriveActualHours({
+        completedAt: String(after.completedAt),
+        createdAt: before.createdAt,
+        startDate: (after.startDate ?? before.startDate) as string | null | undefined,
+      });
+    }
+  } else if (patch.status !== undefined && patch.status !== 'done' && wasDone) {
+    after.completedAt = null;
+  }
+  return after;
 }
 
 function sorted(items: EntityRow[]): EntityRow[] {
@@ -212,6 +234,16 @@ function buildEntityRouter(entities: EntityConfig[]): Router {
       const id = (payload.id as string | undefined) ?? newId();
       const now = nowIso();
       const entity = { id, createdAt: now, updatedAt: now, ...payload } as EntityRow;
+      if (cfg.key === 'tasks' && entity.status === 'done') {
+        if (entity.completedAt === undefined) entity.completedAt = now;
+        if (entity.completedAt != null && entity.actualHours === undefined) {
+          entity.actualHours = deriveActualHours({
+            completedAt: String(entity.completedAt),
+            createdAt: now,
+            startDate: entity.startDate as string | null | undefined,
+          });
+        }
+      }
       const { version } = await mutateProject(userId, req.params.projectId, parseIfMatch(req), (state) => {
         const items = itemsOf(state, cfg.key);
         if (items.some((i) => i.id === id)) {
@@ -255,7 +287,11 @@ function buildEntityRouter(entities: EntityConfig[]): Router {
         const idx = items.findIndex((i) => i.id === req.params.entityId);
         if (idx === -1) throw new ApiError(404, 'NOT_FOUND', `${cfg.label} not found: ${req.params.entityId}`);
         const before = items[idx]!;
-        const after = { ...before, ...patch, updatedAt: nowIso() } as EntityRow;
+        const after = {
+          ...before,
+          ...(cfg.key === 'tasks' ? deriveTaskPatch(before, patch) : patch),
+          updatedAt: nowIso(),
+        } as EntityRow;
         items[idx] = after;
         return {
           entity: cfg.key,

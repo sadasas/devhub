@@ -371,4 +371,34 @@ describe('DueCalendar', () => {
     expect(within(dialog).getByText('Overflow task 0')).toBeTruthy();
     expect(within(dialog).getByText('Overflow task 6')).toBeTruthy();
   });
+
+  it('hides day chips and unscheduled tasks rejected by taskFilter', () => {
+    render(
+      <DueCalendar
+        onOpenTask={vi.fn()}
+        onQuickCreate={vi.fn()}
+        taskFilter={(t) => t.assigneeId === 'u1'}
+      />,
+    );
+    const cell = document.querySelector('[data-date="2026-08-20"]');
+    expect(cell?.textContent).not.toContain('Ship calendar');
+    expect(screen.queryByText('No date task')).toBeNull();
+  });
+
+  it('keeps day chips and unscheduled tasks accepted by taskFilter', () => {
+    mockState.tasks = [
+      { ...mockState.tasks[0]!, assigneeId: 'u1' },
+      { ...mockState.tasks[1]!, assigneeId: 'u1' },
+    ];
+    render(
+      <DueCalendar
+        onOpenTask={vi.fn()}
+        onQuickCreate={vi.fn()}
+        taskFilter={(t) => t.assigneeId === 'u1'}
+      />,
+    );
+    const cell = document.querySelector('[data-date="2026-08-20"]');
+    expect(cell?.textContent).toContain('Ship calendar');
+    expect(screen.getByText('No date task')).toBeTruthy();
+  });
 });

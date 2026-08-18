@@ -830,6 +830,148 @@ describe('completedAt derivation', () => {
   });
 });
 
+describe('actualHours derivation', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function freezeNow(iso: string): void {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(iso));
+  }
+
+  it('computes actualHours from startDate day start when moving to done', () => {
+    const state = makeState();
+    state.tasks[0] = {
+      ...state.tasks[0]!,
+      startDate: '2026-01-03',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    };
+    freezeNow('2026-01-05T06:00:00.000Z');
+    const next = projectReducer(state, {
+      type: 'task/update',
+      id: 't1',
+      patch: { status: 'done' },
+    });
+    expect(next.tasks[0]!.actualHours).toBe(54);
+  });
+
+  it('falls back to createdAt when no startDate', () => {
+    freezeNow('2026-01-05T06:00:00.000Z');
+    const next = projectReducer(makeState(), {
+      type: 'task/update',
+      id: 't1',
+      patch: { status: 'done' },
+    });
+    expect(next.tasks[0]!.actualHours).toBe(102);
+  });
+
+  it('rounds to 1 decimal', () => {
+    const state = makeState();
+    state.tasks[0] = {
+      ...state.tasks[0]!,
+      startDate: '2026-01-03',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    };
+    freezeNow('2026-01-05T06:15:00.000Z');
+    const next = projectReducer(state, {
+      type: 'task/update',
+      id: 't1',
+      patch: { status: 'done' },
+    });
+    expect(next.tasks[0]!.actualHours).toBe(54.3);
+  });
+
+  it('clamps to 0 when completedAt predates the base', () => {
+    const state = makeState();
+    state.tasks[0] = {
+      ...state.tasks[0]!,
+      startDate: '2026-01-05',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    };
+    const next = projectReducer(state, {
+      type: 'task/update',
+      id: 't1',
+      patch: { status: 'done', completedAt: '2026-01-04T00:00:00.000Z' },
+    });
+    expect(next.tasks[0]!.actualHours).toBe(0);
+  });
+
+  it('respects an explicit completedAt in the patch', () => {
+    const state = makeState();
+    state.tasks[0] = {
+      ...state.tasks[0]!,
+      startDate: '2026-01-03',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    };
+    const next = projectReducer(state, {
+      type: 'task/update',
+      id: 't1',
+      patch: { status: 'done', completedAt: '2026-01-04T12:00:00.000Z' },
+    });
+    expect(next.tasks[0]!.actualHours).toBe(36);
+  });
+
+  it('respects an explicit actualHours in the patch', () => {
+    freezeNow('2026-01-05T06:00:00.000Z');
+    const next = projectReducer(makeState(), {
+      type: 'task/update',
+      id: 't1',
+      patch: { status: 'done', actualHours: 2.5 },
+    });
+    expect(next.tasks[0]!.actualHours).toBe(2.5);
+  });
+
+  it('keeps actualHours when leaving done', () => {
+    const state = makeState();
+    state.tasks[0] = {
+      ...state.tasks[0]!,
+      status: 'done',
+      completedAt: '2026-01-02T00:00:00.000Z',
+      actualHours: 24,
+    };
+    const next = projectReducer(state, {
+      type: 'task/update',
+      id: 't1',
+      patch: { status: 'review' },
+    });
+    expect(next.tasks[0]!.actualHours).toBe(24);
+    expect(next.tasks[0]!.completedAt).toBeNull();
+  });
+
+  it('does not recompute when re-setting status to done', () => {
+    const state = makeState();
+    state.tasks[0] = {
+      ...state.tasks[0]!,
+      status: 'done',
+      completedAt: '2026-01-02T00:00:00.000Z',
+      actualHours: 24,
+    };
+    freezeNow('2026-01-05T06:00:00.000Z');
+    const next = projectReducer(state, {
+      type: 'task/update',
+      id: 't1',
+      patch: { status: 'done' },
+    });
+    expect(next.tasks[0]!.actualHours).toBe(24);
+  });
+
+  it('computes actualHours when adding a done task without explicit values', () => {
+    freezeNow('2026-01-01T03:00:00.000Z');
+    const next = projectReducer(makeState(), {
+      type: 'task/add',
+      task: {
+        ...TASK,
+        id: 't2',
+        status: 'done',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    });
+    expect(next.tasks[0]!.actualHours).toBe(3);
+  });
+});
+
 class FakeWs {
   static instances: FakeWs[] = [];
   readyState = 0;

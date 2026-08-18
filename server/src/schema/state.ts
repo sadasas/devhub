@@ -4,6 +4,13 @@ export const isoDate = z.string().refine((v) => !Number.isNaN(Date.parse(v)), {
   message: 'Must be a valid ISO date string',
 });
 
+export const hours = z
+  .number()
+  .nonnegative()
+  .refine((v) => Math.abs(v * 10 - Math.round(v * 10)) < 1e-9, {
+    message: 'Must have at most 1 decimal place',
+  });
+
 export const baseFields = {
   id: z.string().uuid(),
   createdAt: isoDate,
@@ -20,7 +27,7 @@ export const taskSchema = z.object({
   status: taskStatus,
   priority: taskPriority,
   estimate: z.number().int().nonnegative().optional(),
-  actualHours: z.number().int().nonnegative().optional(),
+  actualHours: hours.optional(),
   labels: z.array(z.string().max(50)).max(20).default([]),
   blockedBy: z.array(z.string().uuid()).default([]),
   milestoneId: z.string().uuid().nullable().optional(),
@@ -266,7 +273,7 @@ const whiteboardBoundarySchema = z.object({
 const whiteboardRefSchema = z.object({
   id: whiteboardElementId,
   kind: z.literal('ref'),
-  entity: z.enum(['tasks', 'issues']),
+  entity: z.enum(['tasks', 'issues', 'testCases', 'milestones', 'techEntries', 'decisions', 'tables', 'apiCollections', 'apiEndpoints']),
   entityId: z.string().uuid(),
   x: whiteboardCoord,
   y: whiteboardCoord,

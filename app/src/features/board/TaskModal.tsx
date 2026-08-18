@@ -254,28 +254,16 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
             />
             {dateWarn && <InlineError>{dateWarn}</InlineError>}
 
-            <div className="field-row">
-              <Input
-                label="Estimate (hours)"
-                type="number"
-                min={0}
-                value={task.estimate ?? ''}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  update({ estimate: v === '' ? undefined : Math.max(0, Number(v)) });
-                }}
-              />
-              <Input
-                label="Actual (hours)"
-                type="number"
-                min={0}
-                value={task.actualHours ?? ''}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  update({ actualHours: v === '' ? undefined : Math.max(0, Number(v)) });
-                }}
-              />
-            </div>
+            <Input
+              label="Estimate (hours)"
+              type="number"
+              min={0}
+              value={task.estimate ?? ''}
+              onChange={(e) => {
+                const v = e.target.value;
+                update({ estimate: v === '' ? undefined : Math.max(0, Number(v)) });
+              }}
+            />
 
             <Input
               label="Labels"
