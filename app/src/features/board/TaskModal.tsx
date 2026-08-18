@@ -7,9 +7,10 @@ import {
   TEST_CASE_STATUS,
 } from '../../lib/labels';
 import { formatDate, formatRelative, isTaskCompletable, linkedTestCases, parseLabels } from '../../lib/utils';
+import { api } from '../../lib/api';
 import { taskDueChip } from '../../lib/due-dates';
 import { startAfterDue, startLabel } from '../../lib/start-dates';
-import type { State, Task, TaskPriority, TaskStatus, TestCaseStatus } from '../../lib/types';
+import type { State, Task, TaskPriority, TaskStatus, TeamMember, TestCaseStatus } from '../../lib/types';
 import type { UpdatePatch } from '../../state/project-context';
 import { useProject, wouldCreateCycle } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
@@ -32,12 +33,24 @@ interface TaskModalProps {
 }
 
 export function TaskModal({ taskId, onClose }: TaskModalProps) {
-  const { state, dispatch, canEdit, projectId } = useProject();
+  const { state, dispatch, canEdit, projectId, teamId } = useProject();
   const [editing, setEditing] = useState(false);
   const [cycleWarn, setCycleWarn] = useState<string | null>(null);
   const [doneWarn, setDoneWarn] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [members, setMembers] = useState<TeamMember[]>([]);
   const editSnapshot = useRef<State | null>(null);
+
+  useEffect(() => {
+    if (teamId) {
+      api
+        .listMembers(teamId)
+        .then(setMembers)
+        .catch(() => setMembers([]));
+    } else {
+      setMembers([]);
+    }
+  }, [teamId]);
 
   useEffect(() => {
     setEditing(false);
@@ -210,6 +223,16 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 value={task.milestoneId}
                 options={state!.milestones.map((m) => ({ value: m.id, label: m.name }))}
                 onChange={(v) => update({ milestoneId: v })}
+              />
+            </div>
+
+            <div className="field">
+              <SearchableSelect
+                id="task-assignee"
+                label="Assignee"
+                value={task.assigneeId ?? null}
+                options={members.map((m) => ({ value: m.id, label: m.email }))}
+                onChange={(v) => update({ assigneeId: v })}
               />
             </div>
 

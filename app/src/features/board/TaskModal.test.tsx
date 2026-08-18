@@ -4,11 +4,19 @@ import { MemoryRouter } from 'react-router';
 import type { State, Task } from '../../lib/types';
 import { TaskModal } from './TaskModal';
 
-const { setStatusMock } = vi.hoisted(() => ({ setStatusMock: vi.fn() }));
+const { setStatusMock, listMembersMock, fetchActivityMock } = vi.hoisted(() => ({
+  setStatusMock: vi.fn(),
+  listMembersMock: vi.fn(),
+  fetchActivityMock: vi.fn(),
+}));
 
 vi.mock('../../state/project-context', () => ({
-  useProject: () => ({ state: mockState, dispatch: mockDispatch, canEdit: true, projectId: 'p1', setStatus: setStatusMock }),
+  useProject: () => ({ state: mockState, dispatch: mockDispatch, canEdit: true, projectId: 'p1', teamId: 'team1', setStatus: setStatusMock }),
   wouldCreateCycle: () => false,
+}));
+
+vi.mock('../../lib/api', () => ({
+  api: { listMembers: listMembersMock, fetchActivity: fetchActivityMock },
 }));
 
 const TASK_ID = '55555555-5555-4555-8555-555555555555';
@@ -74,6 +82,13 @@ describe('TaskModal milestone select', () => {
   beforeEach(() => {
     mockDispatch.mockReset();
     setStatusMock.mockClear();
+    listMembersMock.mockReset();
+    fetchActivityMock.mockReset();
+    fetchActivityMock.mockResolvedValue({ items: [] });
+    listMembersMock.mockResolvedValue([
+      { id: 'm1', email: 'adit@test.dev', role: 'editor', joinedAt: '2026-01-01T00:00:00.000Z' },
+      { id: 'm2', email: 'rani@test.dev', role: 'viewer', joinedAt: '2026-01-01T00:00:00.000Z' },
+    ]);
     mockState = makeState();
   });
 
@@ -143,5 +158,31 @@ describe('TaskModal milestone select', () => {
   it('omits the done date when the task is not done', () => {
     render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
     expect(screen.queryByText(/^Aug \d{1,2}, 2026$/)).toBeNull();
+  });
+
+  it('assigns a member from the assignee select', async () => {
+    render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Assignee' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Search Assignee' }), { target: { value: 'adit' } });
+    fireEvent.click(await screen.findByRole('option', { name: /adit@test\.dev/ }));
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: 'task/update',
+      id: TASK_ID,
+      patch: { assigneeId: 'm1' },
+    });
+  });
+
+  it('clears the assignee via the None row', () => {
+    mockState.tasks = [makeTask({ assigneeId: 'm1' })];
+    render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Assignee' }));
+    fireEvent.click(screen.getByRole('option', { name: 'None' }));
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: 'task/update',
+      id: TASK_ID,
+      patch: { assigneeId: null },
+    });
   });
 });

@@ -1972,6 +1972,36 @@ a:hover {
   background: var(--bg-overlay);
 }
 
+.task-assignee {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.task-assignee-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: 600;
+  color: #fff;
+  text-transform: uppercase;
+  flex: 0 0 auto;
+}
+
+.task-assignee-name {
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .task-card-id {
   font-size: 10px;
 }
@@ -2521,6 +2551,106 @@ input[type='checkbox'] {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-muted);
+}
+
+.member-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.member-row {
+  display: grid;
+  grid-template-columns: 20px 150px minmax(120px, 1fr) 150px 48px;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 4px;
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+.member-row-head {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.member-row-unassigned {
+  opacity: 0.65;
+}
+
+.member-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: 600;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+.member-avatar-unassigned {
+  background: var(--bg-inset);
+  color: var(--text-muted);
+}
+
+.member-name {
+  font-size: 12.5px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.member-bar-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.member-bar-track {
+  display: flex;
+  height: 8px;
+  width: 100%;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--bg-inset);
+}
+
+.member-bar-fill {
+  height: 100%;
+  transition: width var(--duration-fast) var(--ease-out);
+}
+
+.member-bar-open {
+  background: var(--status-info);
+}
+
+.member-bar-done {
+  background: var(--status-success);
+}
+
+.member-nums {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.member-overdue {
+  color: var(--status-danger);
+  font-weight: 600;
+}
+
+.member-pct {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: right;
 }
 
 .stat-card {
@@ -5308,4 +5438,37 @@ input[type='checkbox'] {
   stroke: var(--bg-base);
   stroke-width: 4px;
   stroke-linejoin: round;
+}
+
+
+/* Whiteboard selection bar (M18 T4) */
+
+.wb-selection-bar {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-input);
+}
+
+.wb-selection-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.wb-selection-btn:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
 }

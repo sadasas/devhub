@@ -4,6 +4,7 @@ import { TASK_PRIORITY, TASK_STATUS } from '../../lib/labels';
 import { formatDate, linkedTestCases, shortId } from '../../lib/utils';
 import { taskDueChip } from '../../lib/due-dates';
 import { startLabel } from '../../lib/start-dates';
+import { avatarColor, initialsOf } from '../../lib/avatar';
 import type { Task } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { Badge } from '../../components/Badge';
@@ -12,6 +13,7 @@ import { PinButton } from '../../components/PinButton';
 interface TaskCardProps {
   task: Task;
   onOpen: (taskId: string) => void;
+  members?: Record<string, string>;
   showStatus?: boolean;
   showMilestone?: boolean;
   unread?: boolean;
@@ -20,11 +22,13 @@ interface TaskCardProps {
 export const TaskCard = memo(function TaskCard({
   task,
   onOpen,
+  members,
   showStatus = false,
   showMilestone = false,
   unread = false,
 }: TaskCardProps) {
   const { state, canEdit, dispatch } = useProject();
+  const assigneeEmail = task.assigneeId ? members?.[task.assigneeId] : undefined;
   const blockers =
     task.blockedBy
       ?.map((id) => state?.tasks.find((t) => t.id === id))
@@ -108,6 +112,18 @@ export const TaskCard = memo(function TaskCard({
             >
               <ListChecks size={11} weight="bold" aria-hidden="true" />
               {testCases.length}
+            </span>
+          )}
+          {assigneeEmail && task.assigneeId && (
+            <span className="task-assignee" title={assigneeEmail}>
+              <span
+                className="task-assignee-avatar"
+                style={{ backgroundColor: avatarColor(task.assigneeId) }}
+                aria-hidden="true"
+              >
+                {initialsOf(assigneeEmail)}
+              </span>
+              <span className="task-assignee-name">{assigneeEmail.split('@')[0]}</span>
             </span>
           )}
         </span>

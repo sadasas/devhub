@@ -7,6 +7,7 @@ import { dueBucket, dueColumnDate, type DueBucket } from '../../lib/due-dates';
 import { TASK_PRIORITY_ORDER } from '../../lib/labels';
 import { applySort, type SortSpec } from '../../lib/sort';
 import { useProject } from '../../state/project-context';
+import { api } from '../../lib/api';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { useNewParam } from '../../hooks/useNewParam';
 import { useSortParam } from '../../hooks/useSortParam';
@@ -56,7 +57,7 @@ interface NewTaskTarget {
 }
 
 export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
-  const { state, loading, error, dispatch, canEdit } = useProject();
+  const { state, loading, error, dispatch, canEdit, teamId } = useProject();
   const [searchParams, setSearchParams] = useSearchParams();
   const viewParam = searchParams.get('view');
   const view: BoardView =
@@ -90,10 +91,30 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const [editId, setEditId] = useState<string | null>(null);
   const [newTaskAt, setNewTaskAt] = useState<NewTaskTarget | null>(null);
   const [doneBlockedMsg, setDoneBlockedMsg] = useState<string | null>(null);
+  const [members, setMembers] = useState<Record<string, string>>({});
   const doneBlockedTimer = useRef<number | undefined>(undefined);
   const openTask = useCallback((id: string) => setEditId(id), []);
   useEntityDeepLink('tasks', openTask);
   useNewParam(() => setNewTaskAt({}), '1', canEdit);
+
+  useEffect(() => {
+    if (!teamId) {
+      setMembers({});
+      return;
+    }
+    let cancelled = false;
+    api
+      .listMembers(teamId)
+      .then((list) => {
+        if (!cancelled) setMembers(Object.fromEntries(list.map((m) => [m.id, m.email])));
+      })
+      .catch(() => {
+        if (!cancelled) setMembers({});
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [teamId]);
 
   useEffect(() => () => window.clearTimeout(doneBlockedTimer.current), []);
 
@@ -240,7 +261,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
         <div className={`kanban-col-body ${overKey === dropKey ? 'kanban-drop-active' : ''}`}>
           {tasks.length === 0 && <p className="kanban-col-empty">Drop tasks here</p>}
           {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} onOpen={openTask} showStatus={view === 'milestone'} showMilestone={view === 'status'} unread={unreadIds?.has(task.id)} />
+            <TaskCard key={task.id} task={task} onOpen={openTask} members={members} showStatus={view === 'milestone'} showMilestone={view === 'status'} unread={unreadIds?.has(task.id)} />
           ))}
         </div>
         <div className="kanban-col-add">

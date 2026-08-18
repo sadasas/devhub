@@ -336,6 +336,7 @@ function asProviderError(err: unknown): ProviderError {
 
 interface ProjectContextValue {
   projectId: string;
+  teamId: string;
   state: State | null;
   loading: boolean;
   error: string | null;
@@ -360,12 +361,14 @@ const ProjectContext = createContext<ProjectContextValue | null>(null);
 export function ProjectProvider({
   projectId,
   role,
+  teamId = '',
   provider = apiProvider,
   createRealtime,
   children,
 }: {
   projectId: string;
   role: TeamRole;
+  teamId?: string;
   provider?: StorageProvider;
   createRealtime?: (handlers: RealtimeHandlers) => RealtimeSocket;
   children: ReactNode;
@@ -774,6 +777,7 @@ export function ProjectProvider({
   const value = useMemo(
     () => ({
       projectId,
+      teamId,
       state,
       loading,
       error,
@@ -792,7 +796,7 @@ export function ProjectProvider({
       retrySave,
       resolveConflict,
     }),
-    [projectId, state, loading, error, saveError, saving, lastSavedAt, role, conflict, isOffline, pendingCount, presence, subscribeActivity, setStatus, dispatch, retrySave, resolveConflict],
+    [projectId, teamId, state, loading, error, saveError, saving, lastSavedAt, role, conflict, isOffline, pendingCount, presence, subscribeActivity, setStatus, dispatch, retrySave, resolveConflict],
   );
 
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;

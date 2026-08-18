@@ -1,9 +1,12 @@
 import type { ReactNode } from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChartBar, PencilSimple } from '@phosphor-icons/react';
 import type { Project } from '../../lib/types';
 import { useProject } from '../../state/project-context';
+import { api } from '../../lib/api';
 import { formatDate } from '../../lib/utils';
+import { todayIso } from '../../lib/due-dates';
+import { avatarColor, initialsOf } from '../../lib/avatar';
 import { PROJECT_STATUS, TEAM_ROLE } from '../../lib/labels';
 import { TASK_STATUS, TASK_PRIORITY, TASK_PRIORITY_ORDER, ISSUE_SEVERITY } from '../../lib/labels';
 import { computeProjectStats } from '../../lib/stats';
@@ -114,9 +117,93 @@ function OverviewGroupHead({ title, count }: { title: string; count?: string }) 
   );
 }
 
+interface MemberStat {
+  id: string | null;
+  email: string;
+  open: number;
+  done: number;
+  est: number;
+  overdue: number;
+}
+
+function MemberBars({ open, done, max }: { open: number; done: number; max: number }) {
+  const openPct = max > 0 ? (open / max) * 100 : 0;
+  const donePct = max > 0 ? (done / max) * 100 : 0;
+  return (
+    <div
+      className="member-bar-track"
+      role="img"
+      aria-label={`${open} open, ${done} done tasks`}
+    >
+      <div className="member-bar-fill member-bar-open" style={{ width: `${openPct}%` }} />
+      <div className="member-bar-fill member-bar-done" style={{ width: `${donePct}%` }} />
+    </div>
+  );
+}
+
+function MemberRow({ stat, max }: { stat: MemberStat; max: number }) {
+  const total = stat.open + stat.done;
+  const pct = total > 0 ? Math.round((stat.done / total) * 100) : 0;
+  const unassigned = stat.id === null;
+  return (
+    <div className={`member-row${unassigned ? ' member-row-unassigned' : ''}`}>
+      {stat.id ? (
+        <span className="member-avatar" style={{ backgroundColor: avatarColor(stat.id) }} aria-hidden="true">
+          {initialsOf(stat.email)}
+        </span>
+      ) : (
+        <span className="member-avatar member-avatar-unassigned" aria-hidden="true">
+          —
+        </span>
+      )}
+      <span className="member-name" title={stat.email}>
+        {stat.email}
+      </span>
+      <div className="member-bar-wrap">
+        <MemberBars open={stat.open} done={stat.done} max={max} />
+      </div>
+      <span className="member-nums tabular">
+        <span>{stat.open}</span>
+        <span>{stat.done}</span>
+        <span>{stat.est}h</span>
+        <span className={stat.overdue > 0 ? 'member-overdue' : ''}>{stat.overdue}</span>
+      </span>
+      <span className="member-pct tabular">{pct}%</span>
+    </div>
+  );
+}
+
 export function OverviewPage({ project }: { project: Project }) {
-  const { state, loading, error, canEdit } = useProject();
+  const { state, loading, error, canEdit, teamId } = useProject();
   const [editOpen, setEditOpen] = useState(false);
+  const [membersLoaded, setMembersLoaded] = useState(false);
+  const [memberEmails, setMemberEmails] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!teamId) {
+      setMemberEmails({});
+      setMembersLoaded(true);
+      return;
+    }
+    let cancelled = false;
+    api
+      .listMembers(teamId)
+      .then((list) => {
+        if (!cancelled) {
+          setMemberEmails(Object.fromEntries(list.map((m) => [m.id, m.email])));
+          setMembersLoaded(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMemberEmails({});
+          setMembersLoaded(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [teamId]);
 
   if (loading) {
     return (
@@ -181,6 +268,34 @@ export function OverviewPage({ project }: { project: Project }) {
   }));
   const estimateHours = state.tasks.reduce((sum, t) => sum + (t.estimate ?? 0), 0);
   const actualHours = state.tasks.reduce((sum, t) => sum + (t.actualHours ?? 0), 0);
+
+  const today = todayIso();
+  const memberMap = new Map<string | null, MemberStat>();
+  for (const t of state.tasks) {
+    const key = t.assigneeId ?? null;
+    let s = memberMap.get(key);
+    if (!s) {
+      s = {
+        id: key,
+        email: key ? (memberEmails[key] ?? 'Unknown') : 'Unassigned',
+        open: 0,
+        done: 0,
+        est: 0,
+        overdue: 0,
+      };
+      memberMap.set(key, s);
+    }
+    if (t.status === 'done') s.done += 1;
+    else s.open += 1;
+    s.est += t.estimate ?? 0;
+    if (t.dueDate && t.status !== 'done' && t.dueDate < today) s.overdue += 1;
+  }
+  const memberStats = [...memberMap.values()].sort((a, b) => {
+    if (a.id === null) return 1;
+    if (b.id === null) return -1;
+    return b.open - a.open;
+  });
+  const maxMemberTotal = Math.max(1, ...memberStats.map((s) => s.open + s.done));
 
   return (
     <div className="about-body">
@@ -272,6 +387,38 @@ export function OverviewPage({ project }: { project: Project }) {
           />
         )}
       </section>
+
+      {state.tasks.length > 0 && (
+        <section className="overview-group" aria-label="Members">
+          <OverviewGroupHead title="Members" count={`${memberStats.filter((s) => s.id !== null).length} assigned`} />
+          {!membersLoaded ? (
+            <div className="member-list" aria-hidden="true">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="member-row">
+                  <Skeleton className="skeleton-row" style={{ width: 120, height: 14 }} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="member-list">
+              <div className="member-row member-row-head" aria-hidden="true">
+                <span className="member-name">Member</span>
+                <div className="member-bar-wrap" />
+                <span className="member-nums tabular">
+                  <span>Open</span>
+                  <span>Done</span>
+                  <span>Est</span>
+                  <span>Late</span>
+                </span>
+                <span className="member-pct tabular">Done</span>
+              </div>
+              {memberStats.map((s) => (
+                <MemberRow key={s.id ?? 'unassigned'} stat={s} max={maxMemberTotal} />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="overview-group" aria-label="Product brief">
         <OverviewGroupHead title="Product brief" count={`${prdSetCount}/${PRD_SECTIONS.length} set`} />

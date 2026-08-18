@@ -335,4 +335,22 @@ M23 v0.16.2 — tab `stats` + `about` digabung jadi satu tab **Overview** (icon 
 
 ---
 
+## 20. Member Stats & Assignee (M24 — ADR-034)
+
+M24 v0.16.3 — task mendapat field `assigneeId` (zod-only, tanpa migrasi DB — precedent M19-M23) sebagai prasyarat statistik member; Overview mendapat group **Members** (list rows: avatar+inisial, bar stacked open/done, open·done·est h·overdue·% completion, row Unassigned). Riset platform (Linear user views/cycle sidebar, Asana dashboards "Tasks by owner" + Workload View, Jira workload pie) — semua berbasis field assignee; DevHub sebelumnya hanya punya `authorId` (pencipta).
+
+| # | Item | Detail |
+|---|------|--------|
+| P1.1 Schema | `taskSchema` + `assigneeId: z.string().uuid().nullable().optional()`; mirror `lib/types.ts`; round-trip/null/strip test server |
+| P1.2 MCP | `create_task`/`update_task` + `assigneeId` (null = clear) + tes |
+| P1.3 Picker | TaskModal edit "Assignee" — `SearchableSelect` dari `api.teamMembers(project.teamId)` + opsi None; TaskCard chip avatar+inisial (reuse `lib/avatar`) |
+| P1.4 Overview | Group **Members** (rows, hairline divide — kontras vs Charts cards): `MemberBars` stacked open(`--status-info`)/done(`--status-success`), kolom mono tabular open·done·est h·overdue(danger bila >0)·% completion; sort open desc; row Unassigned terakhir (muted); member-only (public tanpa stats); loading skeleton rows |
+| P1.5 Verifikasi | Tests (server 2 file, app: TaskModal picker, TaskCard chip, Overview aggregation, MemberBars), lint, build hijau |
+
+**Selesai (2026-08-18):** P1.1–P1.5 ✅ — `assigneeId` aktif di schema/UI/MCP (zod-only, null-clear); TaskModal picker (SearchableSelect + api.teamMembers) + chip avatar TaskCard; Overview group **Members** (rows: avatar, MemberBars stacked open/done, open·done·est·late·%, sort open desc, Unassigned muted, skeleton); public tanpa Members.
+
+**Verifikasi:** server 202 + app 569 tests, lint hijau; build penuh masih diblokir WIP whiteboard sesi lain (tsc error di WhiteboardCanvas/geometry — bukan M24).
+
+---
+
 *End of Roadmap.*

@@ -27,6 +27,7 @@ export const taskSchema = z.object({
   dueDate: isoDate.nullable().optional(),
   startDate: isoDate.nullable().optional(),
   completedAt: isoDate.nullable().optional(),
+  assigneeId: z.string().uuid().nullable().optional(),
   pinned: z.boolean().default(false),
   description: z.string().max(10_000).default(''),
 });

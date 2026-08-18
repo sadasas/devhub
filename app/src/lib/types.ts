@@ -35,6 +35,7 @@ export interface Task extends Base {
   dueDate?: string | null;
   startDate?: string | null;
   completedAt?: string | null;
+  assigneeId?: string | null;
   pinned?: boolean;
   description: string;
 }

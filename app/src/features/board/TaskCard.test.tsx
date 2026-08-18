@@ -112,4 +112,21 @@ describe('TaskCard', () => {
     render(<TaskCard task={task()} onOpen={() => {}} />);
     expect(screen.queryByRole('button', { name: /Pin task/ })).toBeNull();
   });
+
+  it('renders an assignee chip when the member map knows the assignee', () => {
+    render(
+      <TaskCard
+        task={task({ assigneeId: 'm1' })}
+        members={{ m1: 'adit@test.dev' }}
+        onOpen={() => {}}
+      />,
+    );
+    expect(screen.getByText('adit')).toBeTruthy();
+    expect(document.querySelector('.task-assignee-avatar')).toBeTruthy();
+  });
+
+  it('omits the assignee chip when the assignee is unknown or missing', () => {
+    render(<TaskCard task={task({ assigneeId: 'm9' })} members={{ m1: 'adit@test.dev' }} onOpen={() => {}} />);
+    expect(document.querySelector('.task-assignee')).toBeNull();
+  });
 });

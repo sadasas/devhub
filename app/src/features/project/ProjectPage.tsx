@@ -379,7 +379,13 @@ if (!project) {
   }
 
   return (
-    <ProjectProvider key={projectId} projectId={projectId} role={role} provider={projectStorage}>
+    <ProjectProvider
+      key={projectId}
+      projectId={projectId}
+      role={role}
+      teamId={project.teamId}
+      provider={projectStorage}
+    >
       <ProjectPresenceStatus tab={tab} />
       <div className="page">
         <header className="project-header">
