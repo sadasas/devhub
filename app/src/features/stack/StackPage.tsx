@@ -128,18 +128,20 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
             </button>
           </div>
         </div>
-        {view === 'list' && (
-          <SortControl
-            options={TECH_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
-            value={sortValue}
-            onChange={setSort}
-          />
-        )}
-        {canEdit && (
-          <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
-            New entry
-          </Button>
-        )}
+        <span className="data-list-actions">
+          {view === 'list' && (
+            <SortControl
+              options={TECH_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
+              value={sortValue}
+              onChange={setSort}
+            />
+          )}
+          {canEdit && (
+            <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
+              New entry
+            </Button>
+          )}
+        </span>
       </div>
 
       {entries.length === 0 ? (
