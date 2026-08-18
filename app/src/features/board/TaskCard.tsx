@@ -162,6 +162,7 @@ export const TaskCard = memo(function TaskCard({
       </button>
       {canEdit && (
         <PinButton
+          className="task-card-pin"
           pinned={!!task.pinned}
           label="task"
           onToggle={() => dispatch({ type: 'task/update', id: task.id, patch: { pinned: !task.pinned } })}

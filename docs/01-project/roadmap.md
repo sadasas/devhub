@@ -349,6 +349,8 @@ M24 v0.16.3 — task mendapat field `assigneeId` (zod-only, tanpa migrasi DB —
 
 **Selesai (2026-08-18):** P1.1–P1.5 ✅ — `assigneeId` aktif di schema/UI/MCP (zod-only, null-clear); TaskModal picker (SearchableSelect + api.teamMembers) + chip avatar TaskCard; Overview group **Members** (rows: avatar, MemberBars stacked open/done, open·done·est·late·%, sort open desc, Unassigned muted, skeleton); public tanpa Members.
 
+**M24.1 (2026-08-19):** Redesign UI Overview Members (riset Linear/GitHub/Asana/ClickUp) — grid `20px minmax(100px,1fr) minmax(120px,1.4fr) 152px 48px` (bar dominan), kolom angka mono tabular **rata kanan** (Open · Done · Est h · Late · % Done — unit `h` di header), bar stacked **rasio per-row** (segmen = open/done member itu sendiri, `min-width:2px`, tooltip `X open · Y done`), row hover subtle, padding 6px. Fix head row alignment (spacer avatar — label geser 1 kolom, "Member" terpotong "M…") + `.member-nums` 34/34/42/34px gap 2px. Fix pin TaskCard (regresi `a5fdc17`): PinButton terima prop `className`, TaskCard oper `task-card-pin` → overlay top-right pulih (bukan flow di bawah kartu).
+
 **Verifikasi:** server 202 + app 569 tests, lint hijau; build penuh masih diblokir WIP whiteboard sesi lain (tsc error di WhiteboardCanvas/geometry — bukan M24).
 
 ---

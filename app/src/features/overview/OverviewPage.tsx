@@ -126,22 +126,30 @@ interface MemberStat {
   overdue: number;
 }
 
-function MemberBars({ open, done, max }: { open: number; done: number; max: number }) {
-  const openPct = max > 0 ? (open / max) * 100 : 0;
-  const donePct = max > 0 ? (done / max) * 100 : 0;
+function MemberBars({ open, done }: { open: number; done: number }) {
+  const total = open + done;
+  const openPct = total > 0 ? (open / total) * 100 : 0;
+  const donePct = total > 0 ? (done / total) * 100 : 0;
   return (
     <div
       className="member-bar-track"
       role="img"
       aria-label={`${open} open, ${done} done tasks`}
+      title={`${open} open · ${done} done`}
     >
-      <div className="member-bar-fill member-bar-open" style={{ width: `${openPct}%` }} />
-      <div className="member-bar-fill member-bar-done" style={{ width: `${donePct}%` }} />
+      <div
+        className="member-bar-fill member-bar-open"
+        style={{ width: `${openPct}%`, minWidth: open > 0 ? 2 : 0 }}
+      />
+      <div
+        className="member-bar-fill member-bar-done"
+        style={{ width: `${donePct}%`, minWidth: done > 0 ? 2 : 0 }}
+      />
     </div>
   );
 }
 
-function MemberRow({ stat, max }: { stat: MemberStat; max: number }) {
+function MemberRow({ stat }: { stat: MemberStat }) {
   const total = stat.open + stat.done;
   const pct = total > 0 ? Math.round((stat.done / total) * 100) : 0;
   const unassigned = stat.id === null;
@@ -160,13 +168,13 @@ function MemberRow({ stat, max }: { stat: MemberStat; max: number }) {
         {stat.email}
       </span>
       <div className="member-bar-wrap">
-        <MemberBars open={stat.open} done={stat.done} max={max} />
+        <MemberBars open={stat.open} done={stat.done} />
       </div>
       <span className="member-nums tabular">
         <span>{stat.open}</span>
         <span>{stat.done}</span>
-        <span>{stat.est}h</span>
-        <span className={stat.overdue > 0 ? 'member-overdue' : ''}>{stat.overdue}</span>
+        <span>{stat.est}</span>
+        <span className={stat.overdue > 0 ? 'member-overdue' : undefined}>{stat.overdue}</span>
       </span>
       <span className="member-pct tabular">{pct}%</span>
     </div>
@@ -295,7 +303,6 @@ export function OverviewPage({ project }: { project: Project }) {
     if (b.id === null) return -1;
     return b.open - a.open;
   });
-  const maxMemberTotal = Math.max(1, ...memberStats.map((s) => s.open + s.done));
 
   return (
     <div className="about-body">
@@ -402,18 +409,19 @@ export function OverviewPage({ project }: { project: Project }) {
           ) : (
             <div className="member-list">
               <div className="member-row member-row-head" aria-hidden="true">
+                <span aria-hidden="true" />
                 <span className="member-name">Member</span>
                 <div className="member-bar-wrap" />
                 <span className="member-nums tabular">
                   <span>Open</span>
                   <span>Done</span>
-                  <span>Est</span>
+                  <span>Est h</span>
                   <span>Late</span>
                 </span>
-                <span className="member-pct tabular">Done</span>
+                <span className="member-pct tabular">% Done</span>
               </div>
               {memberStats.map((s) => (
-                <MemberRow key={s.id ?? 'unassigned'} stat={s} max={maxMemberTotal} />
+                <MemberRow key={s.id ?? 'unassigned'} stat={s} />
               ))}
             </div>
           )}

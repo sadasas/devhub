@@ -120,6 +120,42 @@ describe('OverviewPage members', () => {
     expect(rows[0]!.querySelector('.member-overdue')).toBeTruthy();
   });
 
+  it('labels the numeric columns Est h and % Done in the header', async () => {
+    render(<MemoryRouter><OverviewPage project={PROJECT} /></MemoryRouter>);
+    await screen.findByText('adit@test.dev');
+    const head = document.querySelector('.member-row-head');
+    expect(head?.textContent).toContain('Est h');
+    expect(head?.textContent).toContain('% Done');
+  });
+
+  it('aligns the header cells with the data row columns', async () => {
+    render(<MemoryRouter><OverviewPage project={PROJECT} /></MemoryRouter>);
+    await screen.findByText('adit@test.dev');
+    const head = document.querySelector('.member-row-head');
+    expect(head?.children.length).toBe(5);
+    expect(head?.children[1]?.textContent).toBe('Member');
+    expect(head?.children[3]?.textContent).toContain('Est h');
+  });
+
+  it('shows the stacked bar tooltip with open and done counts', async () => {
+    render(<MemoryRouter><OverviewPage project={PROJECT} /></MemoryRouter>);
+    await screen.findByText('adit@test.dev');
+    const track = document.querySelector('.member-bar-track');
+    expect(track?.getAttribute('title')).toBe('2 open · 1 done');
+  });
+
+  it('scales bar segments to each member own ratio, not the busiest', async () => {
+    render(<MemoryRouter><OverviewPage project={PROJECT} /></MemoryRouter>);
+    await screen.findByText('adit@test.dev');
+    const tracks = document.querySelectorAll('.member-bar-track');
+    const aditFills = tracks[0]!.querySelectorAll('.member-bar-fill');
+    expect(parseFloat((aditFills[0] as HTMLElement).style.width)).toBeCloseTo(66.67, 1);
+    expect(parseFloat((aditFills[1] as HTMLElement).style.width)).toBeCloseTo(33.33, 1);
+    const unassignedFills = tracks[2]!.querySelectorAll('.member-bar-fill');
+    expect(parseFloat((unassignedFills[0] as HTMLElement).style.width)).toBe(100);
+    expect(parseFloat((unassignedFills[1] as HTMLElement).style.width)).toBe(0);
+  });
+
   it('skips the members section when there are no tasks', async () => {
     const state = makeState();
     state.tasks = [];

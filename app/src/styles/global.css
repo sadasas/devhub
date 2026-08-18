@@ -2604,11 +2604,16 @@ input[type='checkbox'] {
 
 .member-row {
   display: grid;
-  grid-template-columns: 20px 150px minmax(120px, 1fr) 150px 48px;
+  grid-template-columns: 20px minmax(100px, 1fr) minmax(120px, 1.4fr) 152px 48px;
   align-items: center;
   gap: 10px;
-  padding: 7px 4px;
+  padding: 6px 4px;
   border-bottom: 1px solid var(--border-hairline);
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.member-row:not(.member-row-head):hover {
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .member-row-head {
@@ -2679,8 +2684,8 @@ input[type='checkbox'] {
 
 .member-nums {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
+  grid-template-columns: 34px 34px 42px 34px;
+  gap: 2px;
   font-size: 11px;
   color: var(--text-muted);
   text-align: right;
