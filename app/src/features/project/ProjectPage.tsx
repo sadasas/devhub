@@ -93,6 +93,90 @@ const TABS: { id: ProjectTab; label: string; icon: ReactNode }[] = [
 // ProjectProvider mount effect (provider is in its effect deps).
 const projectStorage = offlineProvider();
 
+function TabSkeleton({ tab }: { tab: ProjectTab }) {
+  if (tab === 'board') {
+    return (
+      <div className="kanban" aria-hidden="true">
+        {['Todo', 'In Progress', 'Review', 'Done'].map((label) => (
+          <div key={label} className="kanban-col">
+            <div className="kanban-col-header">
+              <span>{label}</span>
+            </div>
+            <div className="kanban-col-body">
+              <Skeleton style={{ height: 84, width: '100%' }} />
+              <Skeleton style={{ height: 84, width: '100%' }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (tab === 'whiteboard') {
+    return (
+      <div className="project-grid" aria-hidden="true">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="project-card">
+            <Skeleton className="skeleton-row" />
+            <Skeleton className="skeleton-row skeleton-row-sm" />
+            <Skeleton className="skeleton-row skeleton-row-sm" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (tab === 'stats') {
+    return (
+      <div className="stats-grid" aria-hidden="true">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="data-row" />
+        ))}
+      </div>
+    );
+  }
+
+  if (tab === 'about') {
+    return (
+      <div aria-hidden="true">
+        <Skeleton style={{ width: 220, height: 20, marginBottom: 16 }} />
+        <Skeleton style={{ width: '100%', height: 14, marginBottom: 8 }} />
+        <Skeleton style={{ width: '70%', height: 14, marginBottom: 24 }} />
+        <Skeleton style={{ width: '100%', height: 120 }} />
+      </div>
+    );
+  }
+
+  if (tab === 'api') {
+    return (
+      <div aria-hidden="true">
+        <div className="data-list">
+          <div className="data-row">
+            <Skeleton style={{ height: 16, width: '70%' }} />
+          </div>
+          <div className="data-row">
+            <Skeleton style={{ height: 16, width: '50%' }} />
+          </div>
+        </div>
+        <Skeleton style={{ height: 320, width: '100%' }} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="data-list" aria-hidden="true">
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="data-row">
+          <div className="data-row-main">
+            <Skeleton className="skeleton-row" />
+            <Skeleton className="skeleton-row skeleton-row-sm" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ProjectPresenceStatus({ tab }: { tab: ProjectTab }) {
   usePresenceStatus(viewingStatus(tab));
   return null;
@@ -131,15 +215,7 @@ function ProjectUnreadArea({
         aria-labelledby={`project-tab-${tab}`}
         tabIndex={0}
       >
-        <Suspense
-          fallback={
-            <div className="tab-panel-loading" aria-hidden="true">
-              <Skeleton style={{ width: '100%', height: 28 }} />
-              <Skeleton style={{ width: '100%', height: 140 }} />
-              <Skeleton style={{ width: '100%', height: 140 }} />
-            </div>
-          }
-        >
+        <Suspense fallback={<TabSkeleton tab={tab} />}>
           {tab === 'board' ? (
             <BoardPageLazy unreadIds={unreadIds.board} />
           ) : tab === 'issues' ? (
