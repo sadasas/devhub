@@ -123,8 +123,9 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
                   id="milestone-version"
                   className="input"
                   placeholder="0.1.0"
+                  inputMode="decimal"
                   value={milestone.version ?? ''}
-                  onChange={(e) => update({ version: e.target.value.trim() || null })}
+                  onChange={(e) => update({ version: e.target.value.replace(/[^0-9.]/g, '').trim() || null })}
                 />
               </div>
               <div className="field">
@@ -174,7 +175,7 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
               </DetailRow>
               <DetailRow label="Version">
                 <span className="font-mono">
-                  {milestone.version ? `v${milestone.version}` : <DetailEmpty />}
+                  {milestone.version ? `v${milestone.version.replace(/^v/i, '')}` : <DetailEmpty />}
                 </span>
               </DetailRow>
               <DetailRow label="Target date">

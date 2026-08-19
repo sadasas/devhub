@@ -6,6 +6,7 @@ import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { useNewParam } from '../../hooks/useNewParam';
 import { useSortParam } from '../../hooks/useSortParam';
 import { applySort, type SortSpec } from '../../lib/sort';
+import { compareVersions } from '../../lib/compare-version';
 import type { Milestone } from '../../lib/types';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
@@ -20,7 +21,7 @@ import { InlineError } from '../../components/InlineError';
 const MILESTONE_SORT_SPECS: SortSpec<Milestone>[] = [
   { key: 'targetDate', label: 'Target date', get: (m) => m.targetDate ?? null },
   { key: 'name', label: 'Name', get: (m) => m.name },
-  { key: 'version', label: 'Version', get: (m) => m.version ?? null },
+  { key: 'version', label: 'Version', get: (m) => m.version ?? null, compare: compareVersions },
 ];
 
 const defaultMilestoneSort = (a: Milestone, b: Milestone): number => {
@@ -89,18 +90,19 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
 
       {milestones.length === 0 ? (
         <EmptyState
-          icon={<Rocket size={22} />}
-          title="No milestones yet"
-          description="Group work into releases and keep a changelog of what shipped with each."
-          action={
-            canEdit && (
-              <Button size="sm" onClick={() => setOpenNew(true)}>
-                <Plus size={14} /> New milestone
-              </Button>
-            )
-          }
-        />
-      ) : (
+            icon={<Rocket size={22} />}
+            title="No milestones yet"
+            description="Group work into releases and keep a changelog of what shipped with each."
+            action={
+              canEdit && (
+                <Button size="sm" onClick={() => setOpenNew(true)}>
+                  <Plus size={14} /> New milestone
+                </Button>
+              )
+            }
+          />
+        )
+      : (
         <div className="data-list">
           {milestones.map((m) => (
             <div key={m.id} className="data-row">
@@ -114,7 +116,7 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
                     {MILESTONE_STATUS[m.status].label}
                   </Badge>
                   <span className="row-title-text">{m.name}</span>
-                  {m.version && <span className="data-row-meta">v{m.version}</span>}
+                  {m.version && <span className="data-row-meta">v{m.version.replace(/^v/i, '')}</span>}
                 </div>
                 {m.changelog && <div className="data-row-sub">{m.changelog}</div>}
                 <div className="data-row-meta">

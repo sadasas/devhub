@@ -31,7 +31,7 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
         createdAt: ts,
         updatedAt: ts,
         name: name.trim(),
-        version: version.trim() || null,
+        version: version.trim().replace(/^v+/i, '') || null,
         targetDate: targetDate || null,
         status,
         changelog: changelog.trim(),
@@ -74,8 +74,9 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
               id="milestone-version"
               className="input"
               placeholder="0.1.0"
+              inputMode="decimal"
               value={version}
-              onChange={(e) => setVersion(e.target.value)}
+              onChange={(e) => setVersion(e.target.value.replace(/[^0-9.]/g, ''))}
             />
           </div>
           <div className="field">
