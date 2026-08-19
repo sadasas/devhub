@@ -179,6 +179,7 @@ Base { id: string (UUID), createdAt: ISO, updatedAt: ISO, authorId?: string }
 | `add_issue` | (projectId, issue) → issue |
 | `update_issue` | (projectId, issueId, {status, severity, linkedTaskId}) → issue |
 | `add_decision` | (projectId, adr) → adr |
+| `add_milestone` | (projectId, name, {status, version, targetDate, changelog}) → milestone |
 | `update_milestone` | (projectId, milestoneId, {changelog, status}) → milestone |
 | `add_table` | (projectId, name, columns[]) → table |
 | `add_relation` | (projectId, tableIds, columnIds, cardinality) → relation (duplicates rejected) |

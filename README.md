@@ -175,7 +175,7 @@ DevHub exposes a **remote MCP server** so AI coding agents (opencode, Claude, Cu
 
 - Protocol: Model Context Protocol, streamable HTTP transport.
 - Auth: per-user API key (Bearer token). Each DevHub user creates their own key in the app under **API Keys** (or via `POST /api/keys`) — no shared server-wide secret.
-- Tools: `project_state`, `update_prd`, `plan_project`, `create_task`, `update_task`, `add_issue`, `update_issue`, `add_decision`, `update_milestone`, `add_table`, `add_relation`, `delete_relation`, `add_tech`, `add_test_case`, `update_test_case`.
+- Tools: `project_state`, `update_prd`, `plan_project`, `create_task`, `update_task`, `add_issue`, `update_issue`, `add_decision`, `add_milestone`, `update_milestone`, `add_table`, `add_relation`, `delete_relation`, `add_tech`, `add_test_case`, `update_test_case`.
 
 MCP keys are scoped to the user who created them: agents can only access projects in teams that user belongs to, with the same role rules as the REST API (viewers are read-only — write tools are rejected). A step-by-step guide is available in the app under **Docs** (sidebar, `/docs/mcp`). See [MCP Integration](docs/03-engineering/mcp-integration.md) for the full specification and example agent workflows.
 

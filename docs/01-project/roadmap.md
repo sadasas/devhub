@@ -4,7 +4,7 @@
 |---|---|
 | **Document status** | Active |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-13 |
+| **Last updated** | 2026-08-19 |
 
 ---
 
@@ -352,6 +352,25 @@ M24 v0.16.3 — task mendapat field `assigneeId` (zod-only, tanpa migrasi DB —
 **M24.1 (2026-08-19):** Redesign UI Overview Members (riset Linear/GitHub/Asana/ClickUp) — grid `20px minmax(100px,1fr) minmax(120px,1.4fr) 152px 48px` (bar dominan), kolom angka mono tabular **rata kanan** (Open · Done · Est h · Late · % Done — unit `h` di header), bar stacked **rasio per-row** (segmen = open/done member itu sendiri, `min-width:2px`, tooltip `X open · Y done`), row hover subtle, padding 6px. Fix head row alignment (spacer avatar — label geser 1 kolom, "Member" terpotong "M…") + `.member-nums` 34/34/42/34px gap 2px. Fix pin TaskCard (regresi `a5fdc17`): PinButton terima prop `className`, TaskCard oper `task-card-pin` → overlay top-right pulih (bukan flow di bawah kartu).
 
 **Verifikasi:** server 202 + app 569 tests, lint hijau; build penuh masih diblokir WIP whiteboard sesi lain (tsc error di WhiteboardCanvas/geometry — bukan M24).
+
+---
+
+## 21. Profile Redesign (M26 — v0.17.0)
+
+M26 v0.17.0 — redesign halaman `/profile` (ProfilePage + ProfileEditModal + CSS `.profile-*`/`.account-section` di `global.css`), tetap dalam design system yang ada (`tokens.css`, accent emerald, radius card 8px, hairline border). Riset awal: page lama 1 kolom datar (kartu identitas + form password terpisah tanpa hierarki); acuan pola redesign terbaru `KeysPage` (header + data-list + skeleton + EmptyState).
+
+| # | Item | Detail |
+|---|------|--------|
+| P1.1 Identity hero | Card full-width: avatar inisial 72px + accent ring (`--accent-ring`), nama 24px, email (bila displayName ada), bio, `Joined` dengan ikon Calendar; empty-state bio jadi tombol inline "Add a bio — tell your team what you build." → buka edit modal; tombol Edit profile kanan atas |
+| P1.2 Stats row | 3 tile (Teams / Projects / Active API keys) dari `useTeams`/`useProjects`/`api.listKeys` (filter `!revokedAt`); skeleton saat loading (`.skeleton-row-sm`), nilai `—` bila fetch keys gagal (silent fail); grid 3 kolom → 1 kolom <900px |
+| P1.3 Settings grid | 2 kolom (`minmax(0,1.6fr) + minmax(0,1fr)`, stack <900px): panel **Security** (form ganti password, `max-width` 440px, hint "Change your password regularly.") + panel **Account** (rows Email / Member since / Account ID `font-mono` + `title` attr; link API keys & MCP guide dengan ArrowRight) |
+| P1.4 Modal | ProfileEditModal: helper bio jadi char counter `n / 500 characters`; logika dirty/save tidak berubah |
+| P1.5 Tests | `ProfilePage.test.tsx` baru (8 kasus, pola `KeysPage.test.tsx`): identitas, stats (teams/projects/keys aktif + revoked excluded), error keys → `—`, empty-bio → modal, save edit → `updateProfile` + tutup modal, mismatch password error, sukses ganti password, Account ID + link |
+| P1.6 MCP | Tool baru `add_milestone` (projectId, name, status? default `planned`, version?, targetDate?, changelog?) — milestone M26 dibuat lewat tool ini; test `mcp-milestone.test.ts` (4 kasus: default planned, lengkap, empty name `-32602`, round-trip add→update); docs tabel tools di `mcp-integration.md`/`README.md`/`prd.md`/`technical-design.md` |
+
+**Selesai (2026-08-19):** P1.1–P1.6 ✅ — page `/profile` terstruktur ulang (hero → stats → settings grid), modal dengan char counter, 8 test baru ProfilePage, tool MCP `add_milestone` (21 tools total) + 4 test, docs sinkron.
+
+**Verifikasi:** server 236 + app 660 tests, lint hijau, build app + server hijau.
 
 ---
 

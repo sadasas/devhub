@@ -237,6 +237,7 @@ Versioning contract, request/response examples, and error format: see the in-app
 | `add_issue` | Creates an issue |
 | `update_issue` | Updates an issue (status, severity, title, description, reproduction, linked task) |
 | `add_decision` | Creates an ADR decision entry |
+| `add_milestone` | Creates a milestone (default status `planned`) |
 | `update_milestone` | Updates milestone status/changelog |
 | `add_table` | Creates a schema table with columns/indexes |
 | `add_relation` | Creates a schema relation between two tables (rejects identical duplicates) |

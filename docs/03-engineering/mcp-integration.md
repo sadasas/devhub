@@ -49,6 +49,7 @@ Every tool: inputs validated by zod; response includes `updatedAt` of the mutate
 | `add_issue` | `projectId`, issue fields (title, severity, status?, description?, reproduction?, linkedTaskId?) | Created issue | Yes |
 | `update_issue` | `projectId`, `issueId`, `{ title?, severity?, status?, description?, reproduction?, linkedTaskId? }` | Updated issue | Yes |
 | `add_decision` | `projectId`, ADR fields (title, context, options[], decision, consequences, status?, date?) | Created decision | Yes |
+| `add_milestone` | `projectId`, `name`, `{ status?, version?, targetDate?, changelog? }` | Created milestone | Yes |
 | `update_milestone` | `projectId`, `milestoneId`, `{ status?, changelog? }` | Updated milestone | Yes |
 | `add_table` | `projectId`, `name`, `columns[]` (name, type, nullable?, primaryKey?, default?, comment?), `indexes[]?`, `comment?` | Created table (+ column ids) | Yes |
 | `add_relation` | `projectId`, `fromTableId`, `fromColumnId`, `toTableId`, `toColumnId`, `cardinality?`, `onDelete?` | Created relation (rejects identical duplicates) | Yes |

@@ -85,7 +85,7 @@ export function ProfileEditModal({ open, onClose }: ProfileEditModalProps) {
           helper={
             bio.trim() === ''
               ? 'No bio yet — add a short line about what you build.'
-              : 'Max 500 characters.'
+              : `${bio.length} / 500 characters`
           }
         />
         {saveError && <InlineError>{saveError}</InlineError>}

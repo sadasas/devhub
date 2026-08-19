@@ -12,6 +12,7 @@ import { registerUpdateIssue } from './tools/update-issue.js';
 import { registerAddTestCase } from './tools/add-test-case.js';
 import { registerUpdateTestCase } from './tools/update-test-case.js';
 import { registerAddDecision } from './tools/add-decision.js';
+import { registerAddMilestone } from './tools/add-milestone.js';
 import { registerUpdateMilestone } from './tools/update-milestone.js';
 import { registerAddTable } from './tools/add-table.js';
 import { registerAddRelation } from './tools/add-relation.js';
@@ -51,6 +52,7 @@ mcpRouter.post('/', async (req, res) => {
   registerAddTestCase(mcpServer);
   registerUpdateTestCase(mcpServer);
   registerAddDecision(mcpServer);
+  registerAddMilestone(mcpServer);
   registerUpdateMilestone(mcpServer);
   registerAddTable(mcpServer);
   registerAddRelation(mcpServer);
