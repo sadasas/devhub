@@ -53,6 +53,9 @@
 | [ADR-022](#adr-022) | Granular REST API per entity (design), replacing coarse PUT /state | Accepted | 2026-08-13 |
 | [ADR-023](#adr-023) | Whiteboard entity terpadu: brainstorming + flowchart + entity ref cards | Accepted | 2026-08-14 |
 | [ADR-024](#adr-024) | WebSocket real-time: `ws` dependency + generic room registry | Accepted | 2026-08-14 |
+| [ADR-036](#adr-036) | Envelope respons API: resource tunggal bare, koleksi dibungkus (unifikasi ditunda ke v2) | Accepted | 2026-08-19 |
+| [ADR-037](#adr-037) | Scope MCP: read/append-only, transport stateless POST-only, truncation project_state | Accepted | 2026-08-19 |
+| [ADR-038](#adr-038) | Pengecualian produk: viewer boleh menulis chat; fail-closed public sharing; strip unknown fields | Accepted | 2026-08-19 |
 
 ---
 
@@ -413,3 +416,48 @@
   - **Tab count 11 → 10** (audit A1: deviasi whiteboard tetap satu-satunya).
 - **Consequences:** Positive — satu tempat untuk "status + alasan" proyek; dedupe konten; tab lebih sedikit (A1); URL lama tetap jalan via redirect; public surface tidak berubah kontennya. Negative — `?tab=stats/about` lama tidak lagi mengaktifkan tab terpisah (redirect ke overview); peta shortcut Alt+digit bergeser (Alt+9 = Overview, Alt+0 = Whiteboard); pengguna yang mencari label "Stats"/"About" harus belajar label baru.
 - **Alternatives:** Pertahankan 2 tab (ditolak: 11 tab di batas A1, konten tumpang tindih); merge ke "About" tanpa rename (ditolak: label "About" menyembunyikan statistik — pengguna pencari Stats tidak menemukan apa pun); public ikut charts (ditolak: telemetry internal + beban a11y di surface publik); layout bento asimetris (ditolak: grid existing `auto-fit` sudah cukup, tanpa CSS baru yang signifikan).
+
+---
+
+### ADR-036
+**Envelope respons API: resource tunggal bare, koleksi dibungkus (unifikasi ditunda ke v2)**
+
+- **Status:** Accepted (2026-08-19) - audit 2026-08b, REST-1
+- **Context:** Audit menemukan envelope respons tidak konsisten antar route: resource tunggal kadang bare (`GET/POST/PATCH /projects`, `GET /auth/me`, `POST /keys`), kadang dibungkus (`{team}`, `{template}`). Koleksi sudah konsisten dibungkus (`{projects}`, `{teams}`, `{keys}`, `{messages}`). Integrator tidak bisa menebak bentuk tanpa membaca per-endpoint. Perubahan bentuk respons = breaking change untuk semua client (app + MCP + agent eksternal).
+- **Decision:**
+  - Konvensi eksplisit: **resource tunggal = bare object, koleksi = dibungkus** (dokumentasikan di ADR ini sebagai kontrak saat ini).
+  - Unifikasi (semua resource tunggal dibungkus `{project}`/`{user}`/`{key}`) **ditunda ke v2** - perubahan breaking dijadwalkan bersama deprecation PUT /state (ADR-022) dan diberi header deprecation.
+  - Error shape tetap seragam: `{ error: { code, message, details? } }` (sudah konsisten).
+- **Consequences:** Positive - kontrak sekarang terdokumentasi, klien baru tidak menebak; tidak ada churn breaking sekarang. Negative - inkonsistensi tetap ada sampai v2; konvensi ganda harus dijaga di code review.
+- **Alternatives:** Langsung unifikasi semua route (ditolak: breaking tanpa jalur migrasi); dokumentasi OpenAPI penuh (ditolak: ADR-022/audit menghapus OpenAPI docs - keputusan user).
+
+---
+
+### ADR-037
+**Scope MCP: read/append-only, transport stateless POST-only, truncation project_state**
+
+- **Status:** Accepted (2026-08-19) - audit 2026-08b, MCP-5/MCP-6/MCP-7
+- **Context:** Permukaan tool MCP asimetris vs REST (tidak ada delete task/issue/decision, tidak ada update_decision/update_table); GET /mcp mengembalikan 404 (Streamable HTTP spec mengharapkan SSE atau 405); project_state mengembalikan seluruh koleksi tanpa batas (boros token untuk project besar).
+- **Decision:**
+  - **Scope MCP = read/append-only** (satu-satunya tool destructive: `delete_relation` untuk perbaikan skema). Agent yang membuat kesalahan memperbaikinya via update tool; tool delete task/issue/decision ditunda sampai ada kebutuhan nyata (dokumentasi resmi: docs/03-engineering/mcp-integration.md).
+  - **Transport stateless POST-only**: GET /mcp menjawab `405 + Allow: POST` (bukan 404). SSE tidak didukung - instance server per-request dengan `close()` di finally; keamanan lebih sederhana (tanpa session server-side), cocok dengan beban tool-call saat ini.
+  - **project_state default `limit: 200` per koleksi** (`limit: 0` = semua; `counts` selalu mencerminkan state penuh).
+- **Consequences:** Positive - permukaan MCP dapat dijelaskan dan diaudit; diagnostik klien tidak menyesatkan; token cost project_state terkendali. Negative - agent tidak bisa menghapus entity (bila dibutuhkan, tambah tool delete + test); klien berbasis SSE tidak kompatibel.
+- **Alternatives:** Menambah 6 tool delete + update_decision/update_table (ditolak: scope creep, setiap tool butuh test + dokumentasi; belum ada permintaan); mendukung SSE (ditolak: kompleksitas session state tanpa manfaat untuk agent tool-call); project_state selalu full (ditolak: ratusan KB JSON per panggilan).
+
+---
+
+### ADR-038
+**Pengecualian produk: viewer boleh menulis chat; fail-closed public sharing; strip unknown fields**
+
+- **Status:** Accepted (2026-08-19) - audit 2026-08b, AUTHZ-1/PUB-2/REST-7
+- **Context:** Tiga temuan audit yang diselesaikan sebagai keputusan produk/dokumentasi, bukan perubahan kode:
+  - AUTHZ-1: viewer bisa menulis chat team (HTTP + WS) padahal model role menyatakan "viewer read-only".
+  - PUB-2: default `public_tabs` fail-open (6 tab publik saat tidak di-set) + `normalizeTabs` parse-error -> semua tab publik.
+  - REST-7: unknown fields pada state PUT di-strip diam-diam oleh zod (tanpa error).
+- **Decision:**
+  - **Viewer boleh menulis chat** - chat dianggap kanal sosial, bukan project state; pengecualian didokumentasikan di matriks role (docs/02-architecture/team-collaboration-design.md). Akses tulis lain (state, PRD, template, keys) tetap diblokir untuk viewer.
+  - **Public sharing fail-closed**: `normalizeTabs` mengembalikan `[]` untuk nilai invalid; default kolom `public_tabs` diubah ke `[]` (migrasi 015); proyek yang di-publish tanpa `publicTabs` eksplisit tidak menampilkan tab apa pun sampai admin memilihnya via ShareModal.
+  - **Unknown fields di-strip** - perilaku zod `z.object` default dipertahankan dan didokumentasikan sebagai kontrak (bukan di-refactor ke `.strict()`; forward-compat klien lebih penting). PRD publik digate di belakang tab `about` (PUB-1).
+- **Consequences:** Positive - satu kesalahan konfigurasi sharing tidak lagi membuka semua data; perilaku strip tidak lagi kejutan; chat tetap ramah untuk kontributor ringan. Negative - admin harus eksplisit memilih tab publik (satu langkah lagi di ShareModal - UX dikompensasi default yang jelas); proyek lama yang di-publish tanpa tabs menjadi "kosong" sampai ShareModal diisi.
+- **Alternatives:** Blokir viewer di chat (ditolak user 2026-08-19: chat sosial, bukan state); mempertahankan fail-open (ditolak: eksposur data); `.strict()` pada jalur tulis (ditolak: memecah forward-compat klien offline-first, ADR-009).

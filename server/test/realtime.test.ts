@@ -77,7 +77,9 @@ describe('realtime WS server', () => {
     });
   }
 
-  function nextMessage(ws: WebSocket, timeoutMs = 3000): Promise<Record<string, unknown>> {
+  // Default timeout cukup longgar: presence di-debounce 1s (audit 2026-08b,
+  // REALTIME-1) dan suite berjalan paralel — 6s menghindari flake timing.
+  function nextMessage(ws: WebSocket, timeoutMs = 6000): Promise<Record<string, unknown>> {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         ws.off('message', onMessage);
@@ -91,7 +93,7 @@ describe('realtime WS server', () => {
     });
   }
 
-  function nextOfType(ws: WebSocket, type: string, timeoutMs = 3000): Promise<Record<string, unknown>> {
+  function nextOfType(ws: WebSocket, type: string, timeoutMs = 6000): Promise<Record<string, unknown>> {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         ws.off('message', onMessage);
@@ -316,10 +318,11 @@ describe('realtime WS server', () => {
     await joinedBPromise;
     const presenceB = await presenceBPromise;
     expect(presenceB.type).toBe('presence');
-    expect(presenceB.users as unknown[]).toHaveLength(2);
+    // Dedup per user (audit 2026-08b, REALTIME-1): multi-tab = satu entri presence
+    expect(presenceB.users as unknown[]).toHaveLength(1);
 
     const presenceA2 = await presenceA2Promise;
-    expect(presenceA2.users as unknown[]).toHaveLength(2);
+    expect(presenceA2.users as unknown[]).toHaveLength(1);
     expect(rooms.size(`project:${projectId}`)).toBe(2);
 
     wsA.close();

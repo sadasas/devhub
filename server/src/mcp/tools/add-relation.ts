@@ -5,10 +5,10 @@ import { newId, nowIso, textContent, toolError } from '../entity.js';
 
 const inputSchema = z.object({
   projectId: z.string().describe('UUID of the target project'),
-  fromTableId: z.string(),
-  fromColumnId: z.string(),
-  toTableId: z.string(),
-  toColumnId: z.string(),
+  fromTableId: z.string().uuid(),
+  fromColumnId: z.string().uuid(),
+  toTableId: z.string().uuid(),
+  toColumnId: z.string().uuid(),
   cardinality: z.enum(['1:1', '1:N', 'N:M']).default('1:N'),
   onDelete: z.enum(['cascade', 'setNull', 'restrict']).default('cascade'),
 });

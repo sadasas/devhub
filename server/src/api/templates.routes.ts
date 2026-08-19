@@ -6,7 +6,7 @@ import { ApiError } from '../app.js';
 import { logger } from '../lib/logger.js';
 import { stateSchema } from '../schema/state.js';
 import { parseOrThrow } from '../lib/db.js';
-import { assertAdmin, assertWrite, getProjectWithRole, getTeamWithRole } from './authz.js';
+import { assertAdmin, assertWrite, getProjectWithRole, getTeamWithRole, isUuid } from './authz.js';
 
 const saveTemplateSchema = z.object({
   projectId: z.string().uuid('Project is required'),
@@ -104,6 +104,7 @@ templatesRouter.get('/', async (req, res) => {
 
 templatesRouter.get('/:templateId', async (req, res) => {
   const userId = getUserId(req);
+  if (!isUuid(req.params.templateId)) throw new ApiError(404, 'NOT_FOUND', 'Template not found');
   const result = await pool.query<TemplateRow>(
     `${selectBase}
      JOIN team_members m ON m.team_id = t.team_id
@@ -117,6 +118,7 @@ templatesRouter.get('/:templateId', async (req, res) => {
 
 templatesRouter.delete('/:templateId', async (req, res) => {
   const userId = getUserId(req);
+  if (!isUuid(req.params.templateId)) throw new ApiError(404, 'NOT_FOUND', 'Template not found');
   const row = await pool.query<{ team_id: string }>(
     'SELECT team_id FROM project_templates WHERE id = $1',
     [req.params.templateId],
@@ -131,6 +133,7 @@ templatesRouter.delete('/:templateId', async (req, res) => {
 
 templatesRouter.post('/:templateId/instantiate', async (req, res) => {
   const userId = getUserId(req);
+  if (!isUuid(req.params.templateId)) throw new ApiError(404, 'NOT_FOUND', 'Template not found');
   const { name, description } = parseOrThrow(instantiateSchema, req.body ?? {}, 'Invalid project data');
   const row = await pool.query<TemplateRow>(
     `${selectBase} WHERE t.id = $1`,

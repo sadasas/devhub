@@ -116,7 +116,12 @@ function refTitle(item: Record<string, unknown>, entity: ChatRefEntity, state: R
 }
 
 export async function resolveRefs(db: Queryable, teamId: string, refs: ChatRef[]): Promise<ChatResolvedRef[]> {
-  const projects = await db.query('SELECT id, data FROM projects WHERE team_id = $1', [teamId]);
+  // Cap proyek yang di-scan ke yang terbaru (audit 2026-08b, DB-10): resolve-refs
+  // tidak perlu memuat state seluruh proyek team per request.
+  const projects = await db.query(
+    'SELECT id, data FROM projects WHERE team_id = $1 ORDER BY updated_at DESC LIMIT 5',
+    [teamId],
+  );
   const found = new Map<string, { projectId: string; title: string }>();
   for (const row of projects.rows as unknown as ResolvedRow[]) {
     const parsed = z

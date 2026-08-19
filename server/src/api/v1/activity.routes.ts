@@ -6,9 +6,11 @@ import { ApiError } from '../../app.js';
 import { parseOrThrow } from '../../lib/db.js';
 import { getProjectWithRole } from '../authz.js';
 import type { ActivityEntry } from '../../lib/activity.js';
+import { STATE_COLLECTIONS } from '../../lib/activity.js';
 
 const querySchema = z.object({
-  entity: z.string().min(1).max(100).optional(),
+  // Filter entity divalidasi terhadap koleksi state yang dikenal (audit 2026-08b, REST-6)
+  entity: z.enum(STATE_COLLECTIONS).optional(),
   entityId: z.string().uuid().optional(),
   authorId: z.string().uuid().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
@@ -55,5 +57,10 @@ activityRouter.get('/:projectId/activity', async (req, res) => {
     params,
   );
 
-  res.json({ items: result.rows });
+  // nextCursor untuk load-more (audit 2026-08b, REST-3) — konsisten dengan chat/entity list
+  const last = result.rows[result.rows.length - 1];
+  res.json({
+    items: result.rows,
+    nextCursor: last && result.rows.length === query.limit ? last.createdAt : null,
+  });
 });

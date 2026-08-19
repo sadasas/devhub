@@ -1,4 +1,3 @@
-import 'cookie-parser';
 import { Router } from 'express';
 import { z } from 'zod';
 import { pool } from '../db/pool.js';
@@ -17,6 +16,7 @@ import {
 } from './authz.js';
 import { normalizeTabs, publicTabsSchema } from './sharing.js';
 import { broadcastSync } from '../realtime/broadcast.js';
+import { diffStateDrafts, insertActivity, pruneActivity } from '../lib/activity.js';
 
 const createProjectSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(200),
@@ -117,7 +117,9 @@ projectsRouter.get('/stats', async (req, res) => {
     `SELECT p.id, p.data
      FROM projects p
      JOIN team_members tm ON tm.team_id = p.team_id
-     WHERE tm.user_id = $1`,
+     WHERE tm.user_id = $1
+     ORDER BY p.updated_at DESC
+     LIMIT 200`,
     [userId],
   );
   const projects = result.rows.map((row) => {
@@ -168,6 +170,8 @@ projectsRouter.patch('/:projectId', async (req, res) => {
   if (visibility !== undefined) assertAdmin(row.role);
   if (publicTabs !== undefined) assertAdmin(row.role);
   const mergedPrd = prd !== undefined ? JSON.stringify(mergePrd(prd, normalizePrd(row.prd))) : null;
+  // Metadata project juga menaikkan version (audit 2026-08b, API-8/DB-16):
+  // semua mutasi project menggeser version agar optimistic lock konsisten.
   const updated = await pool.query<{ id: string; updated_at: Date }>(
     `UPDATE projects SET
        name = COALESCE($2, name),
@@ -176,6 +180,7 @@ projectsRouter.patch('/:projectId', async (req, res) => {
        visibility = COALESCE($5, visibility),
        public_tabs = COALESCE($6::jsonb, public_tabs),
        prd = COALESCE($7::jsonb, prd),
+       version = version + 1,
        updated_at = now()
      WHERE id = $1
      RETURNING id, updated_at`,
@@ -193,6 +198,7 @@ projectsRouter.patch('/:projectId', async (req, res) => {
   if (!updatedRow) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
   const fresh = await getProjectWithRole(userId, req.params.projectId);
   res.json(projectJson(fresh!));
+  broadcastSync(req.params.projectId, fresh!.version);
 });
 
 projectsRouter.delete('/:projectId', async (req, res) => {
@@ -220,6 +226,8 @@ projectsRouter.get('/:projectId/state', async (req, res) => {
     });
     throw new ApiError(500, 'INTERNAL', 'Stored state is invalid');
   }
+  // ETag konsisten dengan granular v1 (audit 2026-08b, REST-2)
+  res.setHeader('ETag', `"${row.version}"`);
   res.json({ state: parsed.data, version: row.version });
 });
 
@@ -228,7 +236,16 @@ projectsRouter.put('/:projectId/state', async (req, res) => {
   const row = await getProjectWithRole(userId, req.params.projectId);
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
   assertWrite(row.role);
-  const { state, version } = parseOrThrow(putStateSchema, req.body, 'Invalid state payload');
+  const { state, version: bodyVersion } = parseOrThrow(putStateSchema, req.body, 'Invalid state payload');
+  // If-Match didukung sebagai alternatif version di body (audit 2026-08b, REST-2)
+  const ifMatch = req.headers['if-match'];
+  const version = typeof ifMatch === 'string' && ifMatch.trim().length > 0
+    ? Number.parseInt(ifMatch.trim().replace(/^"(.*)"$/, '$1'), 10)
+    : bodyVersion;
+  const currentParsed = stateSchema.safeParse(row.data);
+  if (!currentParsed.success) {
+    throw new ApiError(500, 'INTERNAL', 'Stored state is invalid');
+  }
   const updated = await pool.query<{ id: string; version: number }>(
     `UPDATE projects SET data = $2::jsonb, version = version + 1, updated_at = now()
      WHERE id = $1 AND version = $3
@@ -237,13 +254,32 @@ projectsRouter.put('/:projectId/state', async (req, res) => {
   );
   if (!updated.rows[0]) {
     const fresh = await getProjectWithRole(userId, req.params.projectId);
-    const currentParsed = stateSchema.safeParse(fresh?.data);
     throw new ApiError(409, 'CONFLICT', 'The project was modified by someone else. Reload to see the latest version.', {
-      current: {
-        version: fresh?.version ?? null,
-        state: currentParsed.success ? currentParsed.data : emptyState,
-      },
+      current: { version: fresh?.version ?? null },
     });
+  }
+  // Activity untuk jalur legacy (audit 2026-08b, REST-5) — setara MCP diffStateDrafts
+  const drafts = diffStateDrafts(currentParsed.data, state);
+  if (drafts.length > 0) {
+    const authorResult = await pool.query<{ displayName: string }>(
+      'SELECT display_name AS "displayName" FROM users WHERE id = $1',
+      [userId],
+    );
+    const authorName = authorResult.rows[0]?.displayName ?? '';
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      for (const draft of drafts) {
+        await insertActivity(client, { projectId: req.params.projectId, draft, authorId: userId, authorName });
+      }
+      await pruneActivity(client, req.params.projectId);
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw err;
+    } finally {
+      client.release();
+    }
   }
   res.json({ ok: true, version: updated.rows[0].version });
   broadcastSync(req.params.projectId, updated.rows[0].version);
@@ -263,6 +299,7 @@ projectsRouter.get('/:projectId/export', async (req, res) => {
       version: '0.1.0',
       exportedAt: new Date().toISOString(),
       projectId: req.params.projectId,
+      stateVersion: row.version,
     },
     state: parsed.data,
   };
@@ -282,11 +319,53 @@ projectsRouter.post('/import', async (req, res) => {
   const existing = await getProjectWithRole(userId, meta.projectId);
   if (existing) {
     assertWrite(existing.role);
+    // Restore conditional pada versi state ekspor (audit 2026-08b, REST-4/DB-11):
+    // ekspor lama (tanpa stateVersion) tetap restore unconditional untuk kompatibilitas.
+    if (meta.stateVersion !== undefined) {
+      const restored = await pool.query<{ id: string; version: number }>(
+        'UPDATE projects SET data = $2::jsonb, version = version + 1, updated_at = now() WHERE id = $1 AND version = $3 RETURNING id, version',
+        [meta.projectId, JSON.stringify(state), meta.stateVersion],
+      );
+      if (!restored.rows[0]) {
+        const fresh = await getProjectWithRole(userId, meta.projectId);
+        throw new ApiError(409, 'CONFLICT', 'Project changed since the export; reload and re-export before restoring.', {
+          current: { version: fresh?.version ?? null },
+        });
+      }
+      const existingParsed = stateSchema.safeParse(existing.data);
+      const before = existingParsed.success ? existingParsed.data : state;
+      const drafts = diffStateDrafts(before, state);
+      if (drafts.length > 0) {
+        const authorResult = await pool.query<{ displayName: string }>(
+          'SELECT display_name AS "displayName" FROM users WHERE id = $1',
+          [userId],
+        );
+        const authorName = authorResult.rows[0]?.displayName ?? '';
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          for (const draft of drafts) {
+            await insertActivity(client, { projectId: meta.projectId, draft, authorId: userId, authorName });
+          }
+          await pruneActivity(client, meta.projectId);
+          await client.query('COMMIT');
+        } catch (err) {
+          await client.query('ROLLBACK').catch(() => {});
+          throw err;
+        } finally {
+          client.release();
+        }
+      }
+      res.json({ projectId: meta.projectId, restored: true, version: restored.rows[0].version });
+      broadcastSync(meta.projectId, restored.rows[0].version);
+      return;
+    }
     await pool.query(
       'UPDATE projects SET data = $2::jsonb, version = version + 1, updated_at = now() WHERE id = $1',
       [meta.projectId, JSON.stringify(state)],
     );
     res.json({ projectId: meta.projectId, restored: true });
+    broadcastSync(meta.projectId, existing.version + 1);
     return;
   }
   let targetTeamId = teamId;

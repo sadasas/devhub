@@ -24,7 +24,7 @@
 
 ### SEC-1 — Literal MCP API key ter-commit di riwayat git (kritis, DIPERBAIKI)
 
-**Temuan**: Commit `aac5a5d` (2026-08-10, "chore(config): use literal MCP API key in opencode.json") mengubah value `"Authorization": "Bearer {env:devhub_CnEa62UZyw90pThOq82rQpB0bdbvmR-Bxv6YqnY805U}"` menjadi literal `"Bearer devhub_CnEa62UZyw90pThOq82rQpB0bdbvmR-Bxv6YqnY805U"`. Key tersebut aktif dan dipakai oleh opencode (terakhir digunakan 2026-08-13).
+**Temuan**: Commit `aac5a5d` (2026-08-10, "chore(config): use literal MCP API key in opencode.json") mengubah value `"Authorization": "Bearer {env:devhub_MCP_KEY}"` menjadi literal `"Bearer devhub_<redacted>"`. Key tersebut aktif dan dipakai oleh opencode (terakhir digunakan 2026-08-13).
 
 **Tindakan**:
 1. **Rotasi key** — key bocor (`mcp_keys` id `34b57710-a6c0-4bd0-87f4-67026318934f`) di-`revoke`; key baru dibuat (`e5c9ab66-64fb-4c59-b2e3-ea2b5a3cb6b2`, prefix `devhub_D`) — raw key baru sudah diberikan di luar dokumen ini.

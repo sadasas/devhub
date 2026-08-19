@@ -1,0 +1,33 @@
+# DevHub secret scan config — gitleaks (https://github.com/gitleaks/gitleaks)
+title = "DevHub gitleaks config"
+
+[extend]
+useDefault = true
+
+# DevHub MCP API keys: "devhub_" + 43 chars base64url (256-bit random).
+# 40+ char threshold avoids matching short word fragments.
+[[rules]]
+id = "devhub-mcp-key"
+description = "DevHub MCP API key (literal, must use {env:...} reference)"
+regex = '''devhub_[A-Za-z0-9_\-]{40,}'''
+entropy = 3.0
+secret-group = 0
+
+[[rules]]
+id = "jwt-secret-inline"
+description = "DevHub JWT_SECRET assigned inline (must come from env)"
+regex = '''JWT_SECRET\s*[:=]\s*["']?[A-Za-z0-9_\-]{24,}["']?'''
+secret-group = 0
+
+# Baseline: leak historis yang sudah dirotasi pada audit 2026-08 (SEC-1).
+# Jangan tambahkan entri baru di sini — rotasi + env reference adalah satu-satunya perbaikan.
+[allowlist]
+description = "Historical leaks from audit 2026-08 (keys rotated)"
+commits = [
+  "bce168870d74d83f28d0886ecfc027c572db0ae8",
+  "eef09e604637f3271be3fed22b67769428e19efd",
+  "aac5a5d8a4479c04a10e6c4e1c1a4b69b2ba11fa",
+  "8555af8a0760e839fea09bc97e48345770ef871f",
+  "d8a66f279cad0d23b427f05daedf67a96b83e0d8",
+  "fe9f5ab80bdcc6dec10230d26abf4c8dba9a490d",
+]

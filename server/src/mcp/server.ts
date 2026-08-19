@@ -20,8 +20,19 @@ import { registerAddTech } from './tools/add-tech.js';
 import { registerAddApiCollection } from './tools/add-api-collection.js';
 import { registerAddApiEndpoint } from './tools/add-api-endpoint.js';
 import { registerUpdateApiEndpoint } from './tools/update-api-endpoint.js';
+import { registerCreateWhiteboard } from './tools/create-whiteboard.js';
+import { registerUpdateWhiteboard } from './tools/update-whiteboard.js';
 
 export const mcpRouter = Router();
+
+// MCP stateless POST-only (audit 2026-08b, MCP-5): GET/SSE tidak didukung —
+// 405 dengan Allow header, bukan 404 yang menyesatkan.
+mcpRouter.get('/', (_req, res) => {
+  res.setHeader('Allow', 'POST');
+  res.status(405).json({
+    error: { code: 'METHOD_NOT_ALLOWED', message: 'MCP streamable HTTP supports POST only (stateless mode)' },
+  });
+});
 
 mcpRouter.post('/', async (req, res) => {
   const userId = req.userId;
@@ -48,6 +59,8 @@ mcpRouter.post('/', async (req, res) => {
   registerAddApiCollection(mcpServer);
   registerAddApiEndpoint(mcpServer);
   registerUpdateApiEndpoint(mcpServer);
+  registerCreateWhiteboard(mcpServer);
+  registerUpdateWhiteboard(mcpServer);
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,

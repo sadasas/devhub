@@ -484,7 +484,7 @@ function PublicMilestones({ state }: { state: State }) {
   );
 }
 
-const PRD_SECTIONS: { key: keyof PublicProject['prd']; label: string }[] = [
+const PRD_SECTIONS: { key: keyof NonNullable<PublicProject['prd']>; label: string }[] = [
   { key: 'purpose', label: 'Purpose' },
   { key: 'goals', label: 'Goals' },
   { key: 'features', label: 'Features' },
@@ -524,17 +524,18 @@ function PublicAbout({ project, state, tabs }: { project: PublicProject; state: 
         ))}
       </div>
 
-      {PRD_SECTIONS.map((s) => {
-        const value = project.prd[s.key];
-        return (
-          <section key={s.key} className="about-section">
-            <h3 className="about-section-title">{s.label}</h3>
-            <p className={`about-section-body${value ? '' : ' about-section-body-empty'}`}>
-              {value || 'Not set yet.'}
-            </p>
-          </section>
-        );
-      })}
+      {project.prd &&
+        PRD_SECTIONS.map((s) => {
+          const value = project.prd?.[s.key];
+          return (
+            <section key={s.key} className="about-section">
+              <h3 className="about-section-title">{s.label}</h3>
+              <p className={`about-section-body${value ? '' : ' about-section-body-empty'}`}>
+                {value || 'Not set yet.'}
+              </p>
+            </section>
+          );
+        })}
     </div>
   );
 }

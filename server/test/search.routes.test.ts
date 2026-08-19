@@ -228,6 +228,12 @@ describe('global search API v1', () => {
   it('indexes whiteboard text elements and referenced entity titles without uuid or hex noise', async () => {
     const cookie = await register('search-whiteboard@test.dev');
     const projectId = await createProject(cookie);
+    const milestoneId = await addEntity(cookie, projectId, 'milestones', {
+      id: '22222222-2222-4222-8222-222222222222',
+      name: 'Beta milestone ref',
+      version: 'v0.2.0',
+      status: 'planned',
+    });
     const boardId = await addEntity(cookie, projectId, 'whiteboards', {
       name: 'Brainstorm board',
       elements: [
@@ -271,6 +277,14 @@ describe('global search API v1', () => {
           x: 0,
           y: 0,
         },
+        {
+          id: newId(),
+          kind: 'ref',
+          entity: 'milestones',
+          entityId: milestoneId,
+          x: 0,
+          y: 0,
+        },
       ],
     });
     const taskId = await addEntity(cookie, projectId, 'tasks', {
@@ -292,6 +306,11 @@ describe('global search API v1', () => {
     expect(viaRef.status).toBe(200);
     const refHits = viaRef.body.results.flatMap((r: { hits: unknown[] }) => r.hits);
     expect(refHits.some((h: { entityId: string }) => h.entityId === boardId)).toBe(true);
+
+    const viaMilestoneRef = await search(cookie, 'beta milestone');
+    expect(viaMilestoneRef.status).toBe(200);
+    const milestoneRefHits = viaMilestoneRef.body.results.flatMap((r: { hits: unknown[] }) => r.hits);
+    expect(milestoneRefHits.some((h: { entityId: string }) => h.entityId === boardId)).toBe(true);
 
     const noNoise = await search(cookie, '#e4e4e7');
     expect(noNoise.status).toBe(200);

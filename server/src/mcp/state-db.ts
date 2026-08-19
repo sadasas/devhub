@@ -2,7 +2,7 @@ import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { pool } from '../db/pool.js';
 import { stateSchema, type State } from '../schema/state.js';
 import { mergePrd, normalizePrd, type Prd, type PrdPatch } from '../schema/prd.js';
-import { getMcpUserId } from './context.js';
+import { getMcpUserId, setLoadedStateVersion, getLoadedStateVersion } from './context.js';
 import { getProjectWithRole } from '../api/authz.js';
 import { broadcastActivity, broadcastSync } from '../realtime/broadcast.js';
 import { diffStateDrafts, insertActivity, pruneActivity, type ActivityEntry } from '../lib/activity.js';
@@ -15,6 +15,7 @@ async function findRow(projectId: string) {
     name: row.name,
     description: row.description,
     status: row.status,
+    version: row.version,
     prd: row.prd,
     data: row.data,
   };
@@ -29,6 +30,7 @@ export async function loadState(projectId: string): Promise<State> {
   if (!parsed.success) {
     throw new McpError(ErrorCode.InternalError, `Stored state is invalid for project ${projectId}`);
   }
+  setLoadedStateVersion(row.version);
   return parsed.data;
 }
 
@@ -40,16 +42,32 @@ export async function saveState(projectId: string, state: State): Promise<void> 
   if (row.role === 'viewer') {
     throw new McpError(ErrorCode.InvalidParams, `No write access to project ${projectId}`);
   }
+  const after = stateSchema.safeParse(state);
+  if (!after.success) {
+    throw new McpError(
+      ErrorCode.InvalidParams,
+      `Mutation would violate state limits: ${after.error.issues
+        .map((i) => `${i.path.join('.')} (${i.message})`)
+        .join('; ')}`,
+    );
+  }
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const locked = await client.query<{ data: unknown }>(
-      'SELECT data FROM projects WHERE id = $1 FOR UPDATE',
+    const locked = await client.query<{ data: unknown; version: number }>(
+      'SELECT data, version FROM projects WHERE id = $1 FOR UPDATE',
       [projectId],
     );
     const current = locked.rows[0];
     if (!current) {
       throw new McpError(ErrorCode.InvalidParams, `Project not found: ${projectId}`);
+    }
+    const loadedVersion = getLoadedStateVersion();
+    if (loadedVersion !== undefined && current.version !== loadedVersion) {
+      throw new McpError(
+        ErrorCode.InvalidRequest,
+        `Project changed since it was loaded (version ${loadedVersion} -> ${current.version}); reload the state and retry`,
+      );
     }
     const parsed = stateSchema.safeParse(current.data);
     if (!parsed.success) {
@@ -121,7 +139,7 @@ export async function updatePrd(projectId: string, patch: PrdPatch): Promise<Prd
   }
   const merged = mergePrd(patch, normalizePrd(row.prd));
   const result = await pool.query(
-    'UPDATE projects SET prd = $2::jsonb, updated_at = now() WHERE id = $1 RETURNING id',
+    'UPDATE projects SET prd = $2::jsonb, version = version + 1, updated_at = now() WHERE id = $1 RETURNING id',
     [projectId, JSON.stringify(merged)],
   );
   if (!result.rows[0]) {

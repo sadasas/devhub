@@ -339,7 +339,9 @@ const POLL_INTERVAL_MS = 5000;
 
 export interface ProjectConflict {
   message: string;
-  current: { state: State; version: number };
+  current: { version: number };
+  /** State lokal pengguna saat konflik (bukan state server) — audit 2026-08b, CLIENT-2 */
+  localState: State;
 }
 
 interface ProviderError {
@@ -517,7 +519,8 @@ export function ProjectProvider({
                 if (details?.version && stateRef.current) {
                   setConflict({
                     message: e.message,
-                    current: { state: stateRef.current, version: details.version },
+                    current: { version: details.version },
+                    localState: stateRef.current,
                   });
                 }
               } else if (current) {

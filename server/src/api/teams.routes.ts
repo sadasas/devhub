@@ -151,6 +151,16 @@ teamsRouter.delete('/:teamId', async (req, res) => {
   const row = await getTeamWithRole(userId, req.params.teamId);
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Team not found');
   assertOwner(row.role);
+  const hasProjects = await pool.query('SELECT 1 AS id FROM projects WHERE team_id = $1 LIMIT 1', [
+    row.id,
+  ]);
+  if (hasProjects.rows[0]) {
+    throw new ApiError(
+      409,
+      'CONFLICT',
+      'Team still has projects; delete or move them before deleting the team',
+    );
+  }
   await pool.query('DELETE FROM teams WHERE id = $1', [row.id]);
   res.json({ ok: true });
 });
@@ -293,7 +303,13 @@ teamsRouter.post('/:teamId/invitations', async (req, res) => {
      VALUES ($1, $2, $3, now() + ($4 || ' milliseconds')::interval, $5)
      RETURNING id, created_at, expires_at`,
     [row.id, email, role, String(INVITATION_TTL_MS), userId],
-  );
+  ).catch((err: unknown) => {
+    // Partial unique (team_id, email) WHERE status = 'pending' (migrasi 014) — DB-9/API-6
+    if (typeof err === 'object' && err !== null && (err as { code?: unknown }).code === '23505') {
+      throw new ApiError(400, 'VALIDATION_ERROR', 'An invitation for this email is already pending');
+    }
+    throw err;
+  });
   const inv = inserted.rows[0];
   res.status(201).json({
     invitation: {
@@ -309,7 +325,7 @@ teamsRouter.post('/:teamId/invitations', async (req, res) => {
 
 teamsRouter.post('/:teamId/invitations/:invitationId/accept', async (req, res) => {
   const userId = getUserId(req);
-  if (!isUuid(req.params.invitationId)) {
+  if (!isUuid(req.params.invitationId) || !isUuid(req.params.teamId)) {
     throw new ApiError(404, 'NOT_FOUND', 'Invitation not found or expired');
   }
   const email = await getUserEmail(userId);
@@ -317,8 +333,8 @@ teamsRouter.post('/:teamId/invitations/:invitationId/accept', async (req, res) =
     `SELECT i.team_id, i.role, t.name AS team_name
      FROM invitations i
      JOIN teams t ON t.id = i.team_id
-     WHERE i.id = $1 AND i.email = $2 AND i.status = 'pending' AND i.expires_at > now()`,
-    [req.params.invitationId, email],
+     WHERE i.id = $1 AND i.email = $2 AND i.team_id = $3 AND i.status = 'pending' AND i.expires_at > now()`,
+    [req.params.invitationId, email, req.params.teamId],
   );
   if (!inv.rows[0]) throw new ApiError(404, 'NOT_FOUND', 'Invitation not found or expired');
   const { team_id: teamId, role, team_name: teamName } = inv.rows[0];
@@ -342,7 +358,7 @@ teamsRouter.post('/:teamId/invitations/:invitationId/accept', async (req, res) =
 
 teamsRouter.delete('/:teamId/invitations/:invitationId', async (req, res) => {
   const userId = getUserId(req);
-  if (!isUuid(req.params.invitationId)) {
+  if (!isUuid(req.params.invitationId) || !isUuid(req.params.teamId)) {
     throw new ApiError(404, 'NOT_FOUND', 'Invitation not found');
   }
   const email = await getUserEmail(userId);

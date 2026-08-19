@@ -4,7 +4,18 @@ import type { State } from '../schema/state.js';
 export const PUBLIC_TABS = ['board', 'issues', 'stack', 'milestones', 'about', 'whiteboard'] as const;
 export type PublicTab = (typeof PUBLIC_TABS)[number];
 
-export const publicTabsSchema = z.array(z.enum(PUBLIC_TABS));
+export const publicTabsSchema = z.array(z.enum(PUBLIC_TABS)).max(PUBLIC_TABS.length);
+
+/**
+ * Fail-closed (audit 2026-08b, PUB-2): nilai yang tidak dikenal atau tidak
+ * valid → TIDAK ADA tab yang terbuka, bukan semua. Tab yang tidak dikenal
+ * lebih aman tidak ditampilkan daripada ditampilkan semua.
+ */
+export function normalizeTabs(value: unknown): PublicTab[] {
+  const parsed = publicTabsSchema.safeParse(value);
+  if (!parsed.success) return [];
+  return [...new Set(parsed.data)];
+}
 
 /**
  * Setiap tab publik memetakan ke kunci state yang ditampilkan.
@@ -19,12 +30,6 @@ export const TAB_STATE_KEYS: Record<PublicTab, keyof State | undefined> = {
   about: 'testCases',
   whiteboard: 'whiteboards',
 };
-
-export function normalizeTabs(value: unknown): PublicTab[] {
-  const parsed = publicTabsSchema.safeParse(value);
-  if (!parsed.success) return [...PUBLIC_TABS];
-  return [...new Set(parsed.data)];
-}
 
 /** Kunci state yang boleh dikirim saat visibility public. */
 export function publicStateKeys(tabs: PublicTab[]): Set<keyof State> {

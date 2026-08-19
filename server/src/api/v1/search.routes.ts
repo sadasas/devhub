@@ -27,7 +27,8 @@ searchRouter.get('/', async (req, res) => {
      FROM projects p
      JOIN team_members tm ON tm.team_id = p.team_id
      WHERE tm.user_id = $1
-     ORDER BY p.updated_at DESC`,
+     ORDER BY p.updated_at DESC
+     LIMIT 100`,
     [userId],
   );
   const results: Array<{ projectId: string; projectName: string; hits: SearchHit[] }> = [];

@@ -2,20 +2,20 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
 import { applyDefined, findEntity, nowIso, textContent } from '../entity.js';
-import { hours } from '../../schema/state.js';
+import { hours, LIMITS } from '../../schema/state.js';
 import { deriveActualHours } from '../../lib/hours.js';
 
 const inputSchema = z.object({
   projectId: z.string().describe('UUID of the target project'),
   taskId: z.string().describe('UUID of the task to update'),
-  title: z.string().min(1).max(500).optional(),
+  title: z.string().min(1).max(LIMITS.TASK_TITLE).optional(),
   status: z.enum(['todo', 'inProgress', 'review', 'done']).optional(),
   priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
   estimate: z.number().int().min(0).optional(),
   actualHours: hours
         .optional()
         .describe('Actual hours spent — auto-derived from startDate/createdAt when status moves to done'),
-  labels: z.array(z.string()).max(20).optional(),
+  labels: z.array(z.string().max(50)).max(20).optional(),
   milestoneId: z.string().uuid().nullable().optional().describe('Move task to another milestone, or null to unassign'),
   dueDate: z
     .string()
@@ -42,7 +42,7 @@ const inputSchema = z.object({
     .nullable()
     .optional()
     .describe('Set or clear the assignee (team member id, or null)'),
-  description: z.string().optional(),
+  description: z.string().max(LIMITS.TASK_DESCRIPTION).optional(),
 });
 
 export function registerUpdateTask(server: McpServer): void {

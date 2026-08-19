@@ -2,15 +2,16 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
 import { applyDefined, findEntity, nowIso, textContent } from '../entity.js';
+import { LIMITS } from '../../schema/state.js';
 
 const inputSchema = z.object({
   projectId: z.string().describe('UUID of the target project'),
   testCaseId: z.string().describe('UUID of the test case to update'),
-  name: z.string().min(1).max(300).optional(),
+  name: z.string().min(1).max(LIMITS.TESTCASE_NAME).optional(),
   taskId: z.string().uuid().nullable().optional().describe('UUID of the related task, or null to clear'),
   issueId: z.string().uuid().nullable().optional().describe('UUID of the related issue, or null to clear'),
-  steps: z.string().optional(),
-  expected: z.string().optional(),
+  steps: z.string().max(LIMITS.TESTCASE_STEPS).optional(),
+  expected: z.string().max(LIMITS.TESTCASE_EXPECTED).optional(),
   status: z.enum(['pass', 'fail', 'pending']).optional(),
   pinned: z.boolean().optional().describe('Pin or unpin the test case'),
 });

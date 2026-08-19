@@ -37,6 +37,9 @@
 | Ubah nama team | ✅ | ✅ | ❌ | ❌ |
 | Hapus team | ✅ | ❌ | ❌ | ❌ |
 | Hapus/diturunkan owner | ❌ | ❌ | ❌ | ❌ |
+| Kirim pesan chat team (HTTP + WS) | ✅ | ✅ | ✅ | ✅* |
+
+> **\* Pengecualian produk (ADR-038, audit 2026-08b AUTHZ-1):** viewer **boleh menulis chat team** — chat adalah kanal sosial, bukan project state. Pengecualian ini berlaku untuk `POST /:teamId/messages` (REST) dan `chat:send` (WebSocket). Semua akses tulis lain (state, PRD, template, keys, invite) tetap diblokir untuk viewer.
 
 ---
 

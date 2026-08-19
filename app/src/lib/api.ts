@@ -161,7 +161,8 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
   login: (email: string, password: string) =>
-    request<User>('/auth/login', {
+    // Server hanya mengirim {id, email}; profil lengkap via /auth/me (audit 2026-08b, CLIENT-3)
+    request<{ id: string; email: string }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
@@ -221,7 +222,8 @@ export const api = {
     return res.templates;
   },
   getTemplate: async (templateId: string) => {
-    const res = await request<{ template: ProjectTemplate; state: State }>(
+    // Server mengembalikan state DI DALAM template (audit 2026-08b, CLIENT-1)
+    const res = await request<{ template: ProjectTemplate & { state: State } }>(
       `/templates/${encodeURIComponent(templateId)}`,
     );
     return res;
@@ -393,14 +395,20 @@ export const api = {
       `/teams/${encodeURIComponent(teamId)}/invitations/${encodeURIComponent(invitationId)}`,
       { method: 'DELETE' },
     ),
-  listMessages: async (teamId: string, opts: { limit?: number; before?: string } = {}) => {
+  listMessages: async (
+    teamId: string,
+    opts: { limit?: number; before?: string; beforeId?: string } = {},
+  ) => {
     const params = new URLSearchParams();
     if (opts.limit !== undefined) params.set('limit', String(opts.limit));
     if (opts.before) params.set('before', opts.before);
+    if (opts.beforeId) params.set('beforeId', opts.beforeId);
     const qs = params.toString();
-    const res = await request<{ messages: ChatMessage[]; nextCursor: string | null }>(
-      `/teams/${encodeURIComponent(teamId)}/messages${qs ? `?${qs}` : ''}`,
-    );
+    const res = await request<{
+      messages: ChatMessage[];
+      nextCursor: string | null;
+      nextCursorId?: string | null;
+    }>(`/teams/${encodeURIComponent(teamId)}/messages${qs ? `?${qs}` : ''}`);
     return res;
   },
   sendMessage: async (teamId: string, content: string, refs: ChatRef[] = []) => {

@@ -5,7 +5,7 @@ import { findIndexIn, textContent } from '../entity.js';
 
 const inputSchema = z.object({
   projectId: z.string().describe('UUID of the target project'),
-  relationId: z.string(),
+  relationId: z.string().uuid(),
 });
 
 export function registerDeleteRelation(server: McpServer): void {

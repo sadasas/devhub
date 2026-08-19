@@ -19,6 +19,9 @@ import { broadcastTeamMessage } from '../realtime/broadcast.js';
 const listQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(30),
   before: z.string().datetime().optional(),
+  // Tie-breaker cursor (audit 2026-08b, API-5): hindari lewat/duplikat saat
+  // dua pesan berbagi created_at yang identik.
+  beforeId: z.string().uuid().optional(),
 });
 
 export const chatRouter = Router();
@@ -34,11 +37,16 @@ async function requireTeam(userId: string, teamId: string) {
 chatRouter.get('/:teamId/messages', async (req, res) => {
   const userId = getUserId(req);
   await requireTeam(userId, req.params.teamId as string);
-  const { limit, before } = parseOrThrow(listQuerySchema, req.query, 'Invalid query');
+  const { limit, before, beforeId } = parseOrThrow(listQuerySchema, req.query, 'Invalid query');
 
   const conditions: string[] = ['team_id = $1'];
   const params: unknown[] = [req.params.teamId];
-  if (before) {
+  if (before && beforeId) {
+    params.push(before, beforeId);
+    conditions.push(
+      `(created_at < $${params.length - 1}::timestamptz OR (created_at = $${params.length - 1}::timestamptz AND id < $${params.length}))`,
+    );
+  } else if (before) {
     params.push(before);
     conditions.push(`created_at < $${params.length}::timestamptz`);
   }
@@ -54,7 +62,11 @@ chatRouter.get('/:teamId/messages', async (req, res) => {
 
   const messages = result.rows.map(messageJson);
   const last = messages[messages.length - 1];
-  res.json({ messages, nextCursor: last && messages.length === limit ? last.createdAt : null });
+  res.json({
+    messages,
+    nextCursor: last && messages.length === limit ? last.createdAt : null,
+    nextCursorId: last && messages.length === limit ? last.id : null,
+  });
 });
 
 chatRouter.post('/:teamId/messages', async (req, res) => {

@@ -126,6 +126,7 @@ function chatQueueKey(teamId: string): string {
 export function ChatPanel({ teamId, userId, userDisplayName }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[] | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [nextCursorId, setNextCursorId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
@@ -197,6 +198,7 @@ const socketRef = useRef<TeamChatSocket | null>(null);
       messagesRef.current = [...[...res.messages].reverse(), ...restored];
       setMessages(messagesRef.current);
       setNextCursor(res.nextCursor);
+      setNextCursorId(res.nextCursorId ?? null);
       setLoadError(null);
       const openedAt = new Date().toISOString();
       const saved = await getMeta<string>(chatLastReadKey(teamId)).catch(() => null);
@@ -227,17 +229,22 @@ const socketRef = useRef<TeamChatSocket | null>(null);
     if (!nextCursor || loadingMoreRef.current) return;
     loadingMoreRef.current = true;
     try {
-      const res = await api.listMessages(teamId, { limit: PAGE_SIZE, before: nextCursor });
+      const res = await api.listMessages(teamId, {
+        limit: PAGE_SIZE,
+        before: nextCursor,
+        ...(nextCursorId ? { beforeId: nextCursorId } : {}),
+      });
       const merged = [...[...res.messages].reverse(), ...messagesRef.current];
       messagesRef.current = merged;
       setMessages(merged);
       setNextCursor(res.nextCursor);
+      setNextCursorId(res.nextCursorId ?? null);
     } catch {
       /* keep current list; retry on next sentinel hit */
     } finally {
       loadingMoreRef.current = false;
     }
-  }, [teamId, nextCursor]);
+  }, [teamId, nextCursor, nextCursorId]);
 
   useEffect(() => {
     const el = sentinelRef.current;

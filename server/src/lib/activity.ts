@@ -73,6 +73,8 @@ const STATE_COLLECTIONS: (keyof State)[] = [
   'whiteboards',
 ];
 
+export { STATE_COLLECTIONS };
+
 type StateRow = Record<string, unknown> & { id: string };
 
 /**

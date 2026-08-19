@@ -39,6 +39,14 @@ keysRouter.post('/', async (req, res) => {
     throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid key data', parsed.error.issues);
   }
   const { raw, keyHash, prefix } = generateMcpKey();
+  // Cap key aktif per user (audit 2026-08b, KEYS-1)
+  const active = await pool.query<{ count: string }>(
+    'SELECT count(*)::int AS count FROM mcp_keys WHERE user_id = $1 AND revoked_at IS NULL',
+    [userId],
+  );
+  if (Number(active.rows[0]?.count ?? 0) >= 10) {
+    throw new ApiError(400, 'VALIDATION_ERROR', 'Maximum of 10 active API keys reached; revoke one first');
+  }
   const result = await pool.query<{ id: string }>(
     'INSERT INTO mcp_keys (user_id, name, key_hash, prefix) VALUES ($1, $2, $3, $4) RETURNING id',
     [userId, parsed.data.name, keyHash, prefix],

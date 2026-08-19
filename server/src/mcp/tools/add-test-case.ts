@@ -2,14 +2,15 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
 import { newId, nowIso, textContent } from '../entity.js';
+import { LIMITS } from '../../schema/state.js';
 
 const inputSchema = z.object({
   projectId: z.string().describe('UUID of the target project'),
-  name: z.string().min(1).max(300).describe('Name of the test case'),
+  name: z.string().min(1).max(LIMITS.TESTCASE_NAME).describe('Name of the test case'),
   taskId: z.string().uuid().optional().describe('UUID of the related task, if any'),
   issueId: z.string().uuid().optional().describe('UUID of the related issue, if any'),
-  steps: z.string().default('').describe('Steps to verify the behavior'),
-  expected: z.string().default('').describe('Expected result'),
+  steps: z.string().max(LIMITS.TESTCASE_STEPS).default('').describe('Steps to verify the behavior'),
+  expected: z.string().max(LIMITS.TESTCASE_EXPECTED).default('').describe('Expected result'),
   status: z.enum(['pass', 'fail', 'pending']).default('pending'),
   pinned: z.boolean().default(false).describe('Pin the test case so it floats to the top of lists'),
 });

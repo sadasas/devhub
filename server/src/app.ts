@@ -1,6 +1,6 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
 import cookieParser from 'cookie-parser';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import helmet from 'helmet';
 import cors from 'cors';
 import { randomUUID } from 'node:crypto';
@@ -16,6 +16,7 @@ import { publicRouter } from './api/public.routes.js';
 import { templatesRouter } from './api/templates.routes.js';
 import { mcpRouter } from './mcp/server.js';
 import { requireMcpKey } from './mcp/require-key.js';
+import { hashMcpKey } from './mcp/keys.js';
 import { entityRouter } from './api/v1/entity-router.js';
 import { searchRouter } from './api/v1/search.routes.js';
 import { activityRouter } from './api/v1/activity.routes.js';
@@ -61,10 +62,35 @@ export function errorHandler(
     ? ((err as { status?: unknown }).status ?? (err as { statusCode?: unknown }).statusCode)
     : undefined;
   if (typeof status === 'number' && status >= 400 && status < 500) {
+    const tooLarge = (err as { type?: unknown }).type === 'entity.too.large' || status === 413;
     res.status(status).json({
-      error: { code: 'BAD_REQUEST', message: (err as Error)?.message ?? 'Invalid request' },
+      error: {
+        code: tooLarge ? 'PAYLOAD_TOO_LARGE' : 'BAD_REQUEST',
+        message: tooLarge ? 'Request payload too large' : ((err as Error)?.message ?? 'Invalid request'),
+      },
     });
     return;
+  }
+  // Mapping SQLSTATE PostgreSQL → HTTP (audit 2026-08b, DB-4):
+  // mencegah 500 mentah untuk 22P02 (bad uuid), 23503 (FK), 23505 (unique), 23514 (CHECK).
+  const pgCode = typeof err === 'object' && err !== null ? (err as { code?: unknown }).code : undefined;
+  if (typeof pgCode === 'string' && /^[0-9A-Z]{5}$/.test(pgCode)) {
+    const map: Record<string, { status: number; code: string; message: string }> = {
+      '22P02': { status: 404, code: 'NOT_FOUND', message: 'Invalid identifier' },
+      '23503': { status: 409, code: 'CONFLICT', message: 'Referenced record is still in use' },
+      '23505': { status: 409, code: 'CONFLICT', message: 'Duplicate value violates a unique constraint' },
+      '23514': { status: 400, code: 'VALIDATION_ERROR', message: 'Value violates a database constraint' },
+    };
+    const mapped = map[pgCode];
+    if (mapped) {
+      logger.warn('PostgreSQL error mapped to HTTP', {
+        requestId: req.id,
+        pgCode,
+        path: req.path,
+      });
+      res.status(mapped.status).json({ error: mapped });
+      return;
+    }
   }
   logger.error('Unhandled error', {
     requestId: req.id,
@@ -90,6 +116,21 @@ const mcpLimiter = rateLimit({
   message: { error: { code: 'RATE_LIMITED', message: 'Too many MCP requests, try again later' } },
 });
 
+// Limiter per-key MCP (audit 2026-08b, MCP-4): membatasi per API key, bukan hanya per IP.
+const mcpKeyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 500,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  validate: { trustProxy: false },
+  keyGenerator: (req) => {
+    const auth = req.headers.authorization ?? '';
+    const key = auth.startsWith('Bearer ') ? hashMcpKey(auth.slice(7)) : '';
+    return key ? `key:${key}` : `ip:${ipKeyGenerator(req.ip ?? 'unknown')}`;
+  },
+  message: { error: { code: 'RATE_LIMITED', message: 'Too many MCP requests for this key, try again later' } },
+});
+
 function requestLogger(req: Request, res: Response, next: NextFunction): void {
   const id = randomUUID();
   req.id = id;
@@ -100,7 +141,7 @@ function requestLogger(req: Request, res: Response, next: NextFunction): void {
     logger.info('http request', {
       requestId: id,
       method: req.method,
-      path: req.originalUrl,
+      path: req.path,
       status: res.statusCode,
       durationMs: Math.round(durationMs * 10) / 10,
     });
@@ -158,6 +199,7 @@ export function createApp(): express.Express {
 
   app.use('/mcp', mcpLimiter);
   app.use('/mcp', requireMcpKey);
+  app.use('/mcp', mcpKeyLimiter);
   app.use('/mcp', mcpRouter);
 
   app.use(notFoundHandler);

@@ -14,6 +14,12 @@ const res = await request(app)
 }
 
 async function seedState(cookie: string, projectId: string): Promise<void> {
+  // Baca version saat ini dulu — PATCH project ikut menaikkan version (audit 2026-08b, API-8)
+  const current = await request(app)
+    .get(`/api/v1/projects/${projectId}/state`)
+    .set('Cookie', cookie)
+    .set('X-Forwarded-For', uniqueIp());
+  expect(current.status).toBe(200);
   const res = await request(app)
     .put(`/api/v1/projects/${projectId}/state`)
     .set('Cookie', cookie)
@@ -70,7 +76,7 @@ async function seedState(cookie: string, projectId: string): Promise<void> {
           },
         ],
       },
-      version: 1,
+      version: current.body.version,
     });
   expect(res.status).toBe(200);
 }
@@ -95,7 +101,7 @@ describe('public project routes', () => {
     expect(res.body.project.role).toBeUndefined();
   });
 
-  it('exposes the default public tabs in the public meta', async () => {
+  it('keeps tabs closed when visibility is public without explicit publicTabs (fail-closed)', async () => {
     const cookie = await register('pub-tabs@test.dev');
     const projectId = await createProject(cookie);
     await makePublic(cookie, projectId);
@@ -104,7 +110,8 @@ describe('public project routes', () => {
       .get(`/api/v1/public/projects/${projectId}`)
       .set('X-Forwarded-For', uniqueIp());
     expect(res.status).toBe(200);
-    expect(res.body.project.tabs).toEqual(['board', 'issues', 'stack', 'milestones', 'about', 'whiteboard']);
+    // Audit 2026-08b PUB-2: tanpa publicTabs eksplisit, tidak ada tab yang terbuka
+    expect(res.body.project.tabs).toEqual([]);
   });
 
   it('filters the public state to the shared tabs only', async () => {
@@ -184,6 +191,18 @@ describe('public project routes', () => {
     const cookie = await register('pub-state@test.dev');
     const projectId = await createProject(cookie);
     await makePublic(cookie, projectId);
+    const restrict = await request(app)
+      .patch(`/api/v1/projects/${projectId}`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ visibility: 'public', publicTabs: ['board'] });
+    expect(restrict.status).toBe(200);
+    const currentVersion = (
+      await request(app)
+        .get(`/api/v1/projects/${projectId}/state`)
+        .set('Cookie', cookie)
+        .set('X-Forwarded-For', uniqueIp())
+    ).body.version as number;
 
     const seed = await request(app)
       .put(`/api/v1/projects/${projectId}/state`)
@@ -207,7 +226,7 @@ describe('public project routes', () => {
             },
           ],
         },
-        version: 1,
+        version: currentVersion,
       });
     expect(seed.status).toBe(200);
 

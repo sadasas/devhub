@@ -2,15 +2,16 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
 import { applyDefined, findEntity, nowIso, textContent } from '../entity.js';
+import { isoDate, LIMITS } from '../../schema/state.js';
 
 const inputSchema = z.object({
   projectId: z.string().describe('UUID of the target project'),
   milestoneId: z.string().describe('UUID of the milestone to update'),
-  name: z.string().min(1).optional(),
-  version: z.string().nullable().optional(),
-  targetDate: z.string().nullable().optional().describe('YYYY-MM-DD'),
+  name: z.string().min(1).max(LIMITS.MILESTONE_NAME).optional(),
+  version: z.string().max(LIMITS.MILESTONE_VERSION).nullable().optional(),
+  targetDate: isoDate.nullable().optional().describe('YYYY-MM-DD'),
   status: z.enum(['planned', 'inProgress', 'released']).optional(),
-  changelog: z.string().optional().describe('What shipped with this release'),
+  changelog: z.string().max(LIMITS.MILESTONE_CHANGELOG).optional().describe('What shipped with this release'),
 });
 
 export function registerUpdateMilestone(server: McpServer): void {

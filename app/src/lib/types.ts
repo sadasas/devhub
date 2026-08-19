@@ -252,10 +252,21 @@ export interface WhiteboardBoundary {
   label: string;
 }
 
+export type WhiteboardRefEntity =
+  | 'tasks'
+  | 'issues'
+  | 'testCases'
+  | 'milestones'
+  | 'techEntries'
+  | 'decisions'
+  | 'tables'
+  | 'apiCollections'
+  | 'apiEndpoints';
+
 export interface WhiteboardRef {
   id: string;
   kind: 'ref';
-  entity: 'tasks' | 'issues';
+  entity: WhiteboardRefEntity;
   entityId: string;
   x: number;
   y: number;
@@ -333,7 +344,7 @@ export interface PublicProject {
   status: ProjectStatus;
   visibility: 'private' | 'public';
   tabs: PublicTab[];
-  prd: ProjectPrd;
+  prd: ProjectPrd | null;
   teamName: string;
   createdAt: string;
   updatedAt: string;

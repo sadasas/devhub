@@ -90,6 +90,7 @@ describe('granular entity API v1', () => {
       { id: boxId, kind: 'shape', shapeType: 'diamond', x: 0, y: 0, w: 120, h: 80, color: '#6ea8fe', fill: true, strokeWidth: 2, label: 'Decide' },
       { id: uid(), kind: 'edge', x1: 10, y1: 10, x2: 300, y2: 200, color: '#e4e4e7', width: 2, arrowhead: true, sourceNodeId: strokeId, targetNodeId: boxId },
       { id: uid(), kind: 'ref', entity: 'tasks', entityId: taskId, x: 400, y: 400 },
+      { id: uid(), kind: 'ref', entity: 'milestones', entityId: '22222222-2222-4222-8222-222222222222', x: 420, y: 400 },
     ];
 
     const created = await request(app)
@@ -99,9 +100,12 @@ describe('granular entity API v1', () => {
       .send({ id: uid(), name: 'Plan', description: 'board', elements });
     expect(created.status).toBe(201);
     expect(created.body.version).toBe(3);
-    expect(created.body.entity.elements).toHaveLength(6);
+    expect(created.body.entity.elements).toHaveLength(7);
     const kinds = (created.body.entity.elements as Array<{ kind: string }>).map((e) => e.kind);
-    expect(kinds).toEqual(['stroke', 'sticky', 'text', 'shape', 'edge', 'ref']);
+    expect(kinds).toEqual(['stroke', 'sticky', 'text', 'shape', 'edge', 'ref', 'ref']);
+    const refs = (created.body.entity.elements as Array<Record<string, unknown>>).filter((e) => e.kind === 'ref');
+    expect(refs.some((r) => r.entity === 'tasks')).toBe(true);
+    expect(refs.some((r) => r.entity === 'milestones')).toBe(true);
     const boardId = created.body.entity.id;
 
     const list = await request(app)
@@ -149,6 +153,65 @@ describe('granular entity API v1', () => {
       .set('X-Forwarded-For', uniqueIp());
     expect(deleted.status).toBe(200);
     expect(deleted.body).toEqual({ ok: true, version: 5 });
+  });
+
+  it('keeps omitted fields untouched on partial PATCH (no zod default injection)', async () => {
+    const cookie = await register('v1-partial@test.dev');
+    const projectId = await createProject(cookie);
+
+    const taskCreated = await request(app)
+      .post(`${API}/projects/${projectId}/tasks`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({
+        id: uid(),
+        title: 'Labeled',
+        status: 'inProgress',
+        priority: 'high',
+        labels: ['backend'],
+        blockedBy: [],
+        pinned: true,
+        description: 'keep me',
+      });
+    expect(taskCreated.status).toBe(201);
+    const taskId = taskCreated.body.entity.id;
+
+    const taskPatched = await request(app)
+      .patch(`${API}/projects/${projectId}/tasks/${taskId}`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ title: 'Renamed only' });
+    expect(taskPatched.status).toBe(200);
+    expect(taskPatched.body.entity.title).toBe('Renamed only');
+    expect(taskPatched.body.entity.status).toBe('inProgress');
+    expect(taskPatched.body.entity.labels).toEqual(['backend']);
+    expect(taskPatched.body.entity.pinned).toBe(true);
+    expect(taskPatched.body.entity.description).toBe('keep me');
+
+    const boardCreated = await request(app)
+      .post(`${API}/projects/${projectId}/whiteboards`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ id: uid(), name: 'Plan', description: 'board', elements: [] });
+    expect(boardCreated.status).toBe(201);
+    const boardId = boardCreated.body.entity.id;
+
+    const boardPatched = await request(app)
+      .patch(`${API}/projects/${projectId}/whiteboards/${boardId}`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ elements: [{ id: uid(), kind: 'text', x: 0, y: 0, color: '#e4e4e7', fontSize: 16, text: 'x' }] });
+    expect(boardPatched.status).toBe(200);
+    expect(boardPatched.body.entity.name).toBe('Plan');
+    expect(boardPatched.body.entity.description).toBe('board');
+    expect(boardPatched.body.entity.elements).toHaveLength(1);
+
+    const boardRefetched = await request(app)
+      .get(`${API}/projects/${projectId}/whiteboards/${boardId}`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(boardRefetched.body.entity.name).toBe('Plan');
+    expect(boardRefetched.body.entity.description).toBe('board');
   });
 
   it('enforces the five-board cap per project', async () => {

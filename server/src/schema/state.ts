@@ -1,5 +1,34 @@
 import { z } from 'zod';
 
+/**
+ * Batas tunggal untuk field teks/array — dipakai oleh stateSchema dan skema
+ * input tool MCP agar tidak ada drift (audit 2026-08b, MCP-2).
+ */
+export const LIMITS = {
+  TASK_TITLE: 500,
+  TASK_DESCRIPTION: 10_000,
+  ISSUE_TITLE: 500,
+  ISSUE_DESCRIPTION: 10_000,
+  ISSUE_REPRODUCTION: 10_000,
+  TESTCASE_NAME: 300,
+  TESTCASE_STEPS: 10_000,
+  TESTCASE_EXPECTED: 5_000,
+  DECISION_TITLE: 300,
+  DECISION_CONTEXT: 20_000,
+  DECISION_OPTION: 1_000,
+  DECISION_OPTIONS: 20,
+  DECISION_TEXT: 20_000,
+  DECISION_CONSEQUENCES: 10_000,
+  MILESTONE_NAME: 300,
+  MILESTONE_VERSION: 100,
+  MILESTONE_CHANGELOG: 20_000,
+  BRIEF: 50_000,
+  WHITEBOARD_NAME: 100,
+  WHITEBOARD_DESCRIPTION: 2_000,
+  WHITEBOARD_ELEMENTS: 1_000,
+  WHITEBOARDS_PER_PROJECT: 5,
+} as const;
+
 export const isoDate = z.string().refine((v) => !Number.isNaN(Date.parse(v)), {
   message: 'Must be a valid ISO date string',
 });
@@ -23,7 +52,7 @@ export const taskPriority = z.enum(['low', 'medium', 'high', 'urgent']);
 
 export const taskSchema = z.object({
   ...baseFields,
-  title: z.string().min(1).max(500),
+  title: z.string().min(1).max(LIMITS.TASK_TITLE),
   status: taskStatus,
   priority: taskPriority,
   estimate: z.number().int().nonnegative().optional(),
@@ -36,7 +65,7 @@ export const taskSchema = z.object({
   completedAt: isoDate.nullable().optional(),
   assigneeId: z.string().uuid().nullable().optional(),
   pinned: z.boolean().default(false),
-  description: z.string().max(10_000).default(''),
+  description: z.string().max(LIMITS.TASK_DESCRIPTION).default(''),
 });
 
 export const issueSeverity = z.enum(['critical', 'high', 'medium', 'low']);
@@ -44,11 +73,11 @@ export const issueStatus = z.enum(['open', 'reproduced', 'fixing', 'resolved', '
 
 export const issueSchema = z.object({
   ...baseFields,
-  title: z.string().min(1).max(500),
+  title: z.string().min(1).max(LIMITS.ISSUE_TITLE),
   severity: issueSeverity,
   status: issueStatus,
-  description: z.string().max(10_000).default(''),
-  reproduction: z.string().max(10_000).default(''),
+  description: z.string().max(LIMITS.ISSUE_DESCRIPTION).default(''),
+  reproduction: z.string().max(LIMITS.ISSUE_REPRODUCTION).default(''),
   linkedTaskId: z.string().uuid().nullable().optional(),
   pinned: z.boolean().default(false),
 });
@@ -57,11 +86,11 @@ export const testCaseStatus = z.enum(['pass', 'fail', 'pending']);
 
 export const testCaseSchema = z.object({
   ...baseFields,
-  name: z.string().min(1).max(300),
+  name: z.string().min(1).max(LIMITS.TESTCASE_NAME),
   taskId: z.string().uuid().nullable().optional(),
   issueId: z.string().uuid().nullable().optional(),
-  steps: z.string().max(10_000).default(''),
-  expected: z.string().max(5_000).default(''),
+  steps: z.string().max(LIMITS.TESTCASE_STEPS).default(''),
+  expected: z.string().max(LIMITS.TESTCASE_EXPECTED).default(''),
   status: testCaseStatus,
   pinned: z.boolean().default(false),
 });
@@ -126,12 +155,12 @@ export const decisionStatus = z.enum(['proposed', 'accepted', 'rejected', 'super
 
 export const decisionSchema = z.object({
   ...baseFields,
-  title: z.string().min(1).max(300),
+  title: z.string().min(1).max(LIMITS.DECISION_TITLE),
   status: decisionStatus,
-  context: z.string().max(20_000).default(''),
-  options: z.array(z.string().max(1_000)).max(20).default([]),
-  decision: z.string().max(20_000).default(''),
-  consequences: z.string().max(10_000).default(''),
+  context: z.string().max(LIMITS.DECISION_CONTEXT).default(''),
+  options: z.array(z.string().max(LIMITS.DECISION_OPTION)).max(LIMITS.DECISION_OPTIONS).default([]),
+  decision: z.string().max(LIMITS.DECISION_TEXT).default(''),
+  consequences: z.string().max(LIMITS.DECISION_CONSEQUENCES).default(''),
   date: isoDate,
   pinned: z.boolean().default(false),
 });
@@ -140,11 +169,11 @@ export const milestoneStatus = z.enum(['planned', 'inProgress', 'released']);
 
 export const milestoneSchema = z.object({
   ...baseFields,
-  name: z.string().min(1).max(300),
-  version: z.string().max(100).nullable().optional(),
+  name: z.string().min(1).max(LIMITS.MILESTONE_NAME),
+  version: z.string().max(LIMITS.MILESTONE_VERSION).nullable().optional(),
   targetDate: isoDate.nullable().optional(),
   status: milestoneStatus,
-  changelog: z.string().max(20_000).default(''),
+  changelog: z.string().max(LIMITS.MILESTONE_CHANGELOG).default(''),
 });
 
 export const apiMethod = z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']);
@@ -291,23 +320,23 @@ export const whiteboardElementSchema = z.discriminatedUnion('kind', [
 
 export const whiteboardSchema = z.object({
   ...baseFields,
-  name: z.string().min(1).max(100).default('Whiteboard'),
-  description: z.string().max(2_000).default(''),
-  elements: z.array(whiteboardElementSchema).max(1000).default([]),
+  name: z.string().min(1).max(LIMITS.WHITEBOARD_NAME).default('Whiteboard'),
+  description: z.string().max(LIMITS.WHITEBOARD_DESCRIPTION).default(''),
+  elements: z.array(whiteboardElementSchema).max(LIMITS.WHITEBOARD_ELEMENTS).default([]),
 });
 
 export const stateSchema = z.object({
-  tasks: z.array(taskSchema).default([]),
-  issues: z.array(issueSchema).default([]),
-  testCases: z.array(testCaseSchema).default([]),
-  techEntries: z.array(techEntrySchema).default([]),
-  tables: z.array(tableSchema).default([]),
-  relations: z.array(relationSchema).default([]),
-  schemaVersions: z.array(schemaVersionSchema).default([]),
-  decisions: z.array(decisionSchema).default([]),
-  milestones: z.array(milestoneSchema).default([]),
-  apiCollections: z.array(apiCollectionSchema).default([]),
-  apiEndpoints: z.array(apiEndpointSchema).default([]),
+  tasks: z.array(taskSchema).max(5_000).default([]),
+  issues: z.array(issueSchema).max(5_000).default([]),
+  testCases: z.array(testCaseSchema).max(5_000).default([]),
+  techEntries: z.array(techEntrySchema).max(500).default([]),
+  tables: z.array(tableSchema).max(500).default([]),
+  relations: z.array(relationSchema).max(500).default([]),
+  schemaVersions: z.array(schemaVersionSchema).max(100).default([]),
+  decisions: z.array(decisionSchema).max(2_000).default([]),
+  milestones: z.array(milestoneSchema).max(500).default([]),
+  apiCollections: z.array(apiCollectionSchema).max(500).default([]),
+  apiEndpoints: z.array(apiEndpointSchema).max(5_000).default([]),
   whiteboards: z.array(whiteboardSchema).max(5).default([]),
 });
 
@@ -360,6 +389,8 @@ export const exportDocumentSchema = z.object({
     version: z.string(),
     exportedAt: isoDate,
     projectId: z.string().uuid(),
+    // Versi state saat ekspor — dipakai import restore untuk optimistic lock (audit 2026-08b, REST-4)
+    stateVersion: z.number().int().positive().optional(),
   }),
   state: stateSchema,
 });

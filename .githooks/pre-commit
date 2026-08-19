@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Pre-commit secret scan — blokir commit yang mengandung literal DevHub secrets
+# (MCP API key, JWT_SECRET inline). Instalasi: git config core.hooksPath .githooks
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+CONFIG="$ROOT/.gitleaks.toml"
+
+GITLEAKS="${GITLEAKS:-gitleaks}"
+if ! command -v "$GITLEAKS" >/dev/null 2>&1; then
+  for candidate in "$LOCALAPPDATA/Programs/gitleaks/gitleaks.exe" /usr/local/bin/gitleaks /opt/homebrew/bin/gitleaks; do
+    if [ -x "$candidate" ]; then GITLEAKS="$candidate"; break; fi
+  done
+fi
+if ! command -v "$GITLEAKS" >/dev/null 2>&1 && [ ! -x "$GITLEAKS" ]; then
+  echo "gitleaks: not found — skipping secret scan. Install from https://github.com/gitleaks/gitleaks (or set GITLEAKS=path)" >&2
+  exit 0
+fi
+
+echo "gitleaks: scanning staged changes for secrets..."
+"$GITLEAKS" protect --source "$ROOT" --config "$CONFIG" --staged --no-banner

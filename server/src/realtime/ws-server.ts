@@ -1,7 +1,8 @@
-import type { Server } from 'node:http';
+import type { IncomingMessage, Server } from 'node:http';
 import { WebSocket, WebSocketServer, type RawData } from 'ws';
 import { z } from 'zod';
 import { SESSION_COOKIE } from '../app.js';
+import { config } from '../config.js';
 import { verifySession } from '../auth/jwt.js';
 import { getProjectWithRole, getTeamWithRole } from '../api/authz.js';
 import { pool } from '../db/pool.js';
@@ -21,9 +22,16 @@ export const WS_PATH = '/ws';
 
 export const WS_CLOSE = {
   UNAUTHORIZED: 4001,
+  INTERNAL: 1011,
 } as const;
 
 const HEARTBEAT_MS = 30_000;
+/** Payload maksimum per pesan klien (audit 2026-08b, WS-2). */
+const MAX_PAYLOAD = 16 * 1024;
+/** Debounce broadcast presence per room (audit 2026-08b, REALTIME-1). */
+const PRESENCE_DEBOUNCE_MS = 1_000;
+/** Sliding window chat:send via WS (audit 2026-08b, WS-2). */
+const CHAT_THROTTLE = { windowMs: 10_000, max: 10 };
 
 export interface RealtimeServerOptions {
   /** Heartbeat interval in ms; injectable for tests. Default 30s. */
@@ -59,6 +67,21 @@ function parseSessionCookie(header: string | undefined): string | undefined {
   return undefined;
 }
 
+/**
+ * Origin check (audit 2026-08b, WS-1): browser cross-site hijacking diblokir
+ * di level handshake. Klien non-browser (tanpa Origin) diizinkan — auth tetap
+ * lewat cookie sesi. Sama-origin default; allowlist CORS_ORIGIN bila di-set.
+ */
+function isOriginAllowed(origin: string | undefined, req: IncomingMessage): boolean {
+  if (!origin) return true;
+  if (config.CORS_ORIGIN.length > 0) return config.CORS_ORIGIN.includes(origin);
+  try {
+    return new URL(origin).host === req.headers.host;
+  } catch {
+    return false;
+  }
+}
+
 function send(socket: WebSocket, message: unknown): void {
   if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(message));
 }
@@ -68,17 +91,19 @@ function sendError(socket: WebSocket, code: number, message: string): void {
 }
 
 /**
- * Broadcasts a presence snapshot to a project room: every authenticated
- * member socket's userId, with display names resolved from the users
- * table. Best-effort — DB failures log and skip rather than kill the
- * connection.
+ * Broadcasts a presence snapshot to a project room: unique authenticated
+ * members' userIds (satu user multi-tab = satu entri), dengan display names
+ * dari users table. Debounce per room (REALTIME-1). Best-effort — kegagalan
+ * DB hanya log, tidak mematikan koneksi.
  */
 async function broadcastPresence(rooms: RoomRegistry, projectId: string): Promise<void> {
-  const userIds = rooms
-    .members(`project:${projectId}`)
-    .map((s) => s.userId)
-    .filter((id): id is string => Boolean(id));
-  if (userIds.length === 0) return;
+  const members = rooms.members(`project:${projectId}`);
+  const unique = new Map<string, WebSocket>();
+  for (const s of members) {
+    if (s.userId && !unique.has(s.userId)) unique.set(s.userId, s);
+  }
+  if (unique.size === 0) return;
+  const userIds = [...unique.keys()];
   try {
     const result = await pool.query<{ id: string; display_name: string }>(
       'SELECT id, display_name FROM users WHERE id = ANY($1::uuid[])',
@@ -91,9 +116,7 @@ async function broadcastPresence(rooms: RoomRegistry, projectId: string): Promis
       users: userIds.map((userId) => ({
         userId,
         name: byId.get(userId) ?? '',
-        activity: rooms
-          .members(`project:${projectId}`)
-          .find((s) => s.userId === userId)?.activity ?? null,
+        activity: unique.get(userId)?.activity ?? null,
       })),
     });
   } catch (err) {
@@ -101,12 +124,47 @@ async function broadcastPresence(rooms: RoomRegistry, projectId: string): Promis
   }
 }
 
+const presenceTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+function schedulePresence(rooms: RoomRegistry, projectId: string): void {
+  if (presenceTimers.has(projectId)) return;
+  const timer = setTimeout(() => {
+    presenceTimers.delete(projectId);
+    void broadcastPresence(rooms, projectId);
+  }, PRESENCE_DEBOUNCE_MS);
+  timer.unref?.();
+  presenceTimers.set(projectId, timer);
+}
+
+/** Sliding-window throttle per (user, team) untuk chat:send via WS. */
+const chatSendTimes = new Map<string, number[]>();
+
+function chatThrottled(userId: string, teamId: string): boolean {
+  const key = `${userId}:${teamId}`;
+  const now = Date.now();
+  const window = chatSendTimes.get(key) ?? [];
+  const recent = window.filter((t) => now - t < CHAT_THROTTLE.windowMs);
+  if (recent.length >= CHAT_THROTTLE.max) {
+    chatSendTimes.set(key, recent);
+    return true;
+  }
+  recent.push(now);
+  chatSendTimes.set(key, recent);
+  return false;
+}
+
 export function createRealtimeServer(
   httpServer: Server,
   rooms: RoomRegistry,
   options: RealtimeServerOptions = {},
 ): RealtimeServer {
-  const wss = new WebSocketServer({ server: httpServer, path: WS_PATH });
+  const wss = new WebSocketServer({
+    server: httpServer,
+    path: WS_PATH,
+    maxPayload: MAX_PAYLOAD,
+    verifyClient: (info: { origin?: string; req: IncomingMessage }) =>
+      isOriginAllowed(info.origin, info.req),
+  });
 
   wss.on('connection', (socket, req) => {
     socket.isAlive = true;
@@ -114,18 +172,11 @@ export function createRealtimeServer(
       socket.isAlive = true;
     });
 
-    void (async () => {
-      const userId = await verifySession(parseSessionCookie(req.headers.cookie));
-      if (!userId) {
-        logger.info('ws-auth-rejected', { ip: req.socket.remoteAddress });
-        socket.close(WS_CLOSE.UNAUTHORIZED, 'UNAUTHORIZED');
-        return;
-      }
-      socket.userId = userId;
-      send(socket, { type: 'hello', userId });
-    })();
+    // Pesan yang tiba sebelum autentikasi selesai di-buffer (race join-before-hello).
+    const queued: RawData[] = [];
+    let authenticated = false;
 
-    socket.on('message', (data: RawData) => {
+    const handleRawMessage = (data: RawData): void => {
       let message: unknown;
       try {
         message = JSON.parse(data.toString());
@@ -156,7 +207,7 @@ export function createRealtimeServer(
         const roomsLeft = rooms.leaveAll(socket);
         for (const room of roomsLeft) {
           const projectId = room.replace(/^project:/, '');
-          if (projectId !== room) void broadcastPresence(rooms, projectId);
+          if (projectId !== room) schedulePresence(rooms, projectId);
         }
         send(socket, { type: 'left' });
         return;
@@ -181,6 +232,10 @@ export function createRealtimeServer(
         return;
       }
       if (msg.type === 'chat:send') {
+        if (chatThrottled(userId, msg.teamId)) {
+          sendError(socket, 429, 'Too many chat messages, slow down');
+          return;
+        }
         void (async () => {
           let team: Awaited<ReturnType<typeof getTeamWithRole>>;
           try {
@@ -211,7 +266,7 @@ export function createRealtimeServer(
         socket.activity = msg.activity;
         for (const room of rooms.roomsOf(socket)) {
           const projectId = room.replace(/^project:/, '');
-          if (projectId !== room) void broadcastPresence(rooms, projectId);
+          if (projectId !== room) schedulePresence(rooms, projectId);
         }
         return;
       }
@@ -235,15 +290,43 @@ export function createRealtimeServer(
           role: project.role,
           teamId: project.team_id,
         });
-        void broadcastPresence(rooms, msg.projectId);
+        schedulePresence(rooms, msg.projectId);
       })();
+    };
+
+    // Autentikasi dengan try/catch (audit 2026-08b, WS-1): kegagalan DB saat
+    // verifySession tidak boleh menjadi unhandled rejection.
+    void (async () => {
+      try {
+        const userId = await verifySession(parseSessionCookie(req.headers.cookie));
+        if (!userId) {
+          logger.info('ws-auth-rejected', { ip: req.socket.remoteAddress });
+          socket.close(WS_CLOSE.UNAUTHORIZED, 'UNAUTHORIZED');
+          return;
+        }
+        socket.userId = userId;
+        authenticated = true;
+        send(socket, { type: 'hello', userId });
+        for (const data of queued.splice(0)) handleRawMessage(data);
+      } catch (err) {
+        logger.error('ws-auth-error', { error: err instanceof Error ? err.message : err });
+        socket.close(WS_CLOSE.INTERNAL, 'INTERNAL');
+      }
+    })();
+
+    socket.on('message', (data: RawData) => {
+      if (!authenticated) {
+        queued.push(data);
+        return;
+      }
+      handleRawMessage(data);
     });
 
     socket.on('close', () => {
       const roomsLeft = rooms.leaveAll(socket);
       for (const room of roomsLeft) {
         const projectId = room.replace(/^project:/, '');
-        if (projectId !== room) void broadcastPresence(rooms, projectId);
+        if (projectId !== room) schedulePresence(rooms, projectId);
       }
     });
 
@@ -268,6 +351,8 @@ export function createRealtimeServer(
     wss,
     close() {
       clearInterval(heartbeat);
+      for (const timer of presenceTimers.values()) clearTimeout(timer);
+      presenceTimers.clear();
       for (const socket of wss.clients) socket.close(1001, 'Server shutting down');
       wss.close();
       return wss.clients.size;

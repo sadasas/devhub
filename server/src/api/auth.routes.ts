@@ -1,4 +1,3 @@
-import 'cookie-parser';
 import { Router, type Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
@@ -46,6 +45,14 @@ const passwordLimiter = rateLimit({
   validate: { trustProxy: false },
   message: { error: { code: 'RATE_LIMITED', message: 'Too many password attempts, try again later' } },
 });
+
+// Dummy hash untuk login timing (audit 2026-08b, AUTH-1): email yang tidak
+// terdaftar tetap menjalankan bcrypt.compare sehingga waktu respons seragam.
+let dummyHash: string | null = null;
+async function getDummyHash(): Promise<string> {
+  if (!dummyHash) dummyHash = await hashPassword('dummy-password-for-timing');
+  return dummyHash;
+}
 
 function setSessionCookie(res: Response, userId: string, version: number): void {
   res.cookie(SESSION_COOKIE, signToken(userId, version), {
@@ -102,7 +109,8 @@ authRouter.post('/login', loginLimiter, async (req, res) => {
     [email],
   );
   const user = result.rows[0];
-  if (!user || !(await verifyPassword(password, user.password_hash))) {
+  const valid = await verifyPassword(password, user?.password_hash ?? (await getDummyHash()));
+  if (!user || !valid) {
     throw new ApiError(401, 'UNAUTHORIZED', 'Invalid email or password');
   }
   setSessionCookie(res, user.id, user.jwt_version);

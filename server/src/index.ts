@@ -10,6 +10,14 @@ import { attachRoomRegistry } from './realtime/broadcast.js';
 
 async function main() {
   await migrate(pool);
+  // Peringatan boot (audit 2026-08b, CFG-1): di belakang reverse proxy,
+  // TRUST_PROXY=true wajib agar rate limit & trust proxy memakai IP client.
+  if (config.NODE_ENV === 'production' && !config.TRUST_PROXY) {
+    logger.warn(
+      'TRUST_PROXY=false in production — jika server berada di belakang reverse proxy, ' +
+        'rate limiting akan memakai IP proxy (semua pengguna berbagi satu bucket). Set TRUST_PROXY=true.',
+    );
+  }
   const app = createApp();
   const server = http.createServer(app);
   const registry = new RoomRegistry();
@@ -30,6 +38,19 @@ async function main() {
   };
   process.on('SIGINT', () => void shutdown('SIGINT'));
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
+
+  // Fail-fast untuk rejection/exception tak tertangkap (audit 2026-08b, WS-1):
+  // Node ≥15 crash default pada unhandledRejection, tapi tanpa log konteks.
+  process.on('unhandledRejection', (reason) => {
+    logger.error('Unhandled promise rejection', {
+      error: reason instanceof Error ? reason.stack ?? reason.message : reason,
+    });
+    process.exit(1);
+  });
+  process.on('uncaughtException', (err) => {
+    logger.error('Uncaught exception', { error: err.stack ?? err.message });
+    process.exit(1);
+  });
 }
 
 void main().catch((err) => {

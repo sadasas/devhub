@@ -14,7 +14,9 @@ test.describe('public share', () => {
       priority: 'medium',
     });
 
-    const res = await ctx.patch(`/api/v1/projects/${projectId}`, { data: { visibility: 'public' } });
+    const res = await ctx.patch(`/api/v1/projects/${projectId}`, {
+      data: { visibility: 'public', publicTabs: ['board', 'issues', 'stack', 'milestones', 'about', 'whiteboard'] },
+    });
     if (!res.ok()) throw new Error(`make public failed (${res.status()}): ${await res.text()}`);
 
     const anon = await withApiRoutes(

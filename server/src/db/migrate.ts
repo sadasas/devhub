@@ -21,12 +21,6 @@ export async function migrate(pool: Pool): Promise<string[]> {
     .filter((f) => f.endsWith('.sql'))
     .sort();
 
-  const applied = new Set(
-    (await pool.query<{ name: string }>('SELECT name FROM schema_migrations')).rows.map(
-      (r) => r.name,
-    ),
-  );
-
   const executed: string[] = [];
   const client = await pool.connect();
   try {
@@ -34,6 +28,13 @@ export async function migrate(pool: Pool): Promise<string[]> {
     // (multi-instance deploy bisa start bersamaan dan double-apply).
     await client.query('SELECT pg_advisory_lock($1)', [MIGRATION_LOCK_KEY]);
     try {
+      // Snapshot `applied` dibaca SETELAH lock diakuisisi (audit 2026-08b, DB-7):
+      // instance kedua yang menunggu lock tidak boleh memakai snapshot basi.
+      const applied = new Set(
+        (await client.query<{ name: string }>('SELECT name FROM schema_migrations')).rows.map(
+          (r) => r.name,
+        ),
+      );
       for (const file of files) {
         if (applied.has(file)) continue;
         const sql = await readFile(path.join(MIGRATIONS_DIR, file), 'utf8');

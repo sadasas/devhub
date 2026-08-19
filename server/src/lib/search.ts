@@ -126,11 +126,12 @@ export const SEARCH_ENTITIES: EntitySpec[] = [
         } else if (el.kind === 'shape') {
           if (typeof el.label === 'string' && el.label) out.push({ text: el.label, weight: 1 });
         } else if (el.kind === 'ref') {
-          const entity = el.entity === 'issues' ? 'issues' : 'tasks';
+          const entity = typeof el.entity === 'string' ? el.entity : '';
           const entityId = typeof el.entityId === 'string' ? el.entityId : '';
-          if (entityId) {
-            const rows = (state[entity] ?? []) as Array<{ id: string; title?: string }>;
-            const title = rows.find((r) => r.id === entityId)?.title;
+          if (entityId && entity in state) {
+            const rows = (state[entity as keyof State] ?? []) as Array<{ id: string; title?: string; name?: string }>;
+            const row = rows.find((r) => r.id === entityId);
+            const title = row?.title ?? row?.name;
             if (title) out.push({ text: title, weight: 1 });
           }
         }

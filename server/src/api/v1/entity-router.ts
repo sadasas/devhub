@@ -4,7 +4,7 @@ import { pool } from '../../db/pool.js';
 import { requireAuth, getUserId } from '../../auth/middleware/requireAuth.js';
 import { ApiError } from '../../app.js';
 import { parseOrThrow } from '../../lib/db.js';
-import { newId, nowIso } from '../../lib/ids.js';
+import { nowIso } from '../../lib/ids.js';
 import { deriveActualHours } from '../../lib/hours.js';
 import {
   stateSchema,
@@ -54,6 +54,12 @@ const ENTITIES: EntityConfig[] = [
   mk('tasks', 'Task', taskSchema, (state, id) => {
     state.issues = state.issues.map((iss) =>
       iss.linkedTaskId === id ? { ...iss, linkedTaskId: null } : iss,
+    );
+    state.testCases = state.testCases.map((tc) =>
+      tc.taskId === id ? { ...tc, taskId: null } : tc,
+    );
+    state.tasks = state.tasks.map((t) =>
+      t.blockedBy.includes(id) ? { ...t, blockedBy: t.blockedBy.filter((b) => b !== id) } : t,
     );
     state.whiteboards = state.whiteboards.map((w) => ({
       ...w,
@@ -231,7 +237,8 @@ function buildEntityRouter(entities: EntityConfig[]): Router {
     router.post(`/:projectId/${cfg.key}`, async (req, res) => {
       const userId = getUserId(req);
       const payload = parseOrThrow(cfg.createSchema, req.body, `Invalid ${cfg.label.toLowerCase()} data`);
-      const id = (payload.id as string | undefined) ?? newId();
+      // id wajib client-generated (baseFields.id uuid) — pola offline-first
+      const id = payload.id as string;
       const now = nowIso();
       const entity = { id, createdAt: now, updatedAt: now, ...payload } as EntityRow;
       if (cfg.key === 'tasks' && entity.status === 'done') {
@@ -282,6 +289,10 @@ function buildEntityRouter(entities: EntityConfig[]): Router {
     router.patch(`/:projectId/${cfg.key}/:entityId`, async (req, res) => {
       const userId = getUserId(req);
       const patch = parseOrThrow(cfg.patchSchema, req.body, `Invalid ${cfg.label.toLowerCase()} data`);
+      const presentKeys = new Set(Object.keys((req.body ?? {}) as Record<string, unknown>));
+      const filteredPatch = Object.fromEntries(
+        Object.entries(patch).filter(([key]) => presentKeys.has(key)),
+      );
       const { version, state } = await mutateProject(userId, req.params.projectId, parseIfMatch(req), (state) => {
         const items = itemsOf(state, cfg.key);
         const idx = items.findIndex((i) => i.id === req.params.entityId);
@@ -289,7 +300,7 @@ function buildEntityRouter(entities: EntityConfig[]): Router {
         const before = items[idx]!;
         const after = {
           ...before,
-          ...(cfg.key === 'tasks' ? deriveTaskPatch(before, patch) : patch),
+          ...(cfg.key === 'tasks' ? deriveTaskPatch(before, filteredPatch) : filteredPatch),
           updatedAt: nowIso(),
         } as EntityRow;
         items[idx] = after;

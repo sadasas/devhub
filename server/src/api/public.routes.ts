@@ -9,6 +9,7 @@ import { normalizeTabs, publicStateKeys } from './sharing.js';
 export const publicRouter = Router();
 
 function publicProjectJson(row: PublicProjectRow) {
+  const tabs = normalizeTabs(row.public_tabs);
   return {
     id: row.id,
     name: row.name,
@@ -16,8 +17,9 @@ function publicProjectJson(row: PublicProjectRow) {
     status: row.status,
     visibility: row.visibility,
     version: row.version,
-    tabs: normalizeTabs(row.public_tabs),
-    prd: normalizePrd(row.prd),
+    tabs,
+    // PRD hanya boleh tampil bila tab 'about' di-publish (audit 2026-08b, PUB-1)
+    prd: tabs.includes('about') ? normalizePrd(row.prd) : null,
     teamName: row.team_name,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),

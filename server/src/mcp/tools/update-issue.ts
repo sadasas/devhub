@@ -2,15 +2,16 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
 import { applyDefined, findEntity, nowIso, textContent } from '../entity.js';
+import { LIMITS } from '../../schema/state.js';
 
 const inputSchema = z.object({
   projectId: z.string().describe('UUID of the target project'),
   issueId: z.string().describe('UUID of the issue to update'),
-  title: z.string().min(1).max(500).optional(),
+  title: z.string().min(1).max(LIMITS.ISSUE_TITLE).optional(),
   severity: z.enum(['critical', 'high', 'medium', 'low']).optional(),
   status: z.enum(['open', 'reproduced', 'fixing', 'resolved', 'wontfix']).optional(),
-  description: z.string().optional(),
-  reproduction: z.string().optional(),
+  description: z.string().max(LIMITS.ISSUE_DESCRIPTION).optional(),
+  reproduction: z.string().max(LIMITS.ISSUE_REPRODUCTION).optional(),
   linkedTaskId: z.string().uuid().nullable().optional(),
   pinned: z.boolean().optional().describe('Pin or unpin the issue'),
 });

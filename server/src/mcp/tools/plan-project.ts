@@ -2,11 +2,13 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
 import { newId, nowIso, textContent } from '../entity.js';
+import { LIMITS } from '../../schema/state.js';
 
 const inputSchema = z.object({
   projectId: z.string().describe('UUID of the target project'),
   brief: z
     .string()
+    .max(LIMITS.BRIEF)
     .describe(
       'Plan outline. Each non-empty line becomes a task. Line syntax:\n- "- <title> :: <estimate hours>" creates a task with an estimate\n- "# Milestone: <name> :: <version> :: <YYYY-MM-DD>" creates a milestone\n- "## Decision: <title>" creates a proposed decision',
     ),
@@ -21,24 +23,28 @@ function parsePlan(brief: string) {
     const line = raw.trim();
     if (!line || line === '---') continue;
     if (line.startsWith('## ')) {
-      decisions.push(line.slice(3).trim());
+      decisions.push(line.slice(3).trim().slice(0, LIMITS.DECISION_TITLE));
       continue;
     }
     if (line.startsWith('# ')) {
       const parts = line.slice(2).split('::').map((p) => p.trim());
       milestones.push({
-        name: parts[0] ?? 'Milestone',
-        version: parts[1] ? parts[1] : null,
+        name: (parts[0] || 'Milestone').slice(0, LIMITS.MILESTONE_NAME),
+        version: parts[1] ? parts[1].slice(0, LIMITS.MILESTONE_VERSION) : null,
         targetDate: parts[2] ? parts[2] : null,
       });
       continue;
     }
     const body = line.startsWith('-') ? line.slice(1).trim() : line;
     const parts = body.split('::').map((p) => p.trim());
-    const estimate = parts[1] ? Number.parseInt(parts[1], 10) : undefined;
+    const parsedEstimate = parts[1] ? Number.parseInt(parts[1], 10) : undefined;
+    const estimate =
+      parsedEstimate !== undefined && Number.isFinite(parsedEstimate) && parsedEstimate >= 0
+        ? parsedEstimate
+        : undefined;
     tasks.push({
-      title: parts[0] ?? body,
-      estimate: estimate && Number.isFinite(estimate) ? estimate : undefined,
+      title: (parts[0] || body).slice(0, LIMITS.TASK_TITLE),
+      estimate,
     });
   }
   return { tasks, milestones, decisions, today };

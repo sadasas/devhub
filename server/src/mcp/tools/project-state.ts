@@ -5,6 +5,13 @@ import { textContent } from '../entity.js';
 
 const inputSchema = z.object({
   projectId: z.string().describe('UUID of the project to inspect'),
+  limit: z
+    .number()
+    .int()
+    .min(0)
+    .max(10_000)
+    .default(200)
+    .describe('Max rows per collection returned (0 = all). Counts always reflect the full state.'),
 });
 
 export function registerProjectState(server: McpServer): void {
@@ -18,6 +25,7 @@ export function registerProjectState(server: McpServer): void {
     },
     async (args) => {
       const { state, meta } = await loadProjectSnapshot(args.projectId);
+      const cap = args.limit > 0 ? args.limit : Number.POSITIVE_INFINITY;
       const summary = {
         projectId: args.projectId,
         project: {
@@ -37,7 +45,7 @@ export function registerProjectState(server: McpServer): void {
           decisions: state.decisions.length,
           milestones: state.milestones.length,
         },
-        tasks: state.tasks.map((t) => ({
+        tasks: state.tasks.slice(0, cap).map((t) => ({
           id: t.id,
           title: t.title,
           status: t.status,
@@ -47,21 +55,21 @@ export function registerProjectState(server: McpServer): void {
           labels: t.labels,
           blockedBy: t.blockedBy,
         })),
-        issues: state.issues.map((i) => ({
+        issues: state.issues.slice(0, cap).map((i) => ({
           id: i.id,
           title: i.title,
           severity: i.severity,
           status: i.status,
           linkedTaskId: i.linkedTaskId,
         })),
-        milestones: state.milestones.map((m) => ({
+        milestones: state.milestones.slice(0, cap).map((m) => ({
           id: m.id,
           name: m.name,
           version: m.version,
           status: m.status,
           targetDate: m.targetDate,
         })),
-        techEntries: state.techEntries.map((t) => ({
+        techEntries: state.techEntries.slice(0, cap).map((t) => ({
           id: t.id,
           name: t.name,
           version: t.version,
@@ -69,8 +77,8 @@ export function registerProjectState(server: McpServer): void {
           status: t.status,
           notes: t.notes,
         })),
-        decisions: state.decisions.map((d) => ({ id: d.id, title: d.title, status: d.status, date: d.date })),
-        tables: state.tables.map((t) => ({
+        decisions: state.decisions.slice(0, cap).map((d) => ({ id: d.id, title: d.title, status: d.status, date: d.date })),
+        tables: state.tables.slice(0, cap).map((t) => ({
           id: t.id,
           name: t.name,
           comment: t.comment,
@@ -85,7 +93,7 @@ export function registerProjectState(server: McpServer): void {
             comment: c.comment,
           })),
         })),
-        relations: state.relations.map((r) => ({
+        relations: state.relations.slice(0, cap).map((r) => ({
           id: r.id,
           fromTableId: r.fromTableId,
           fromColumnId: r.fromColumnId,
@@ -94,7 +102,7 @@ export function registerProjectState(server: McpServer): void {
           cardinality: r.cardinality,
           onDelete: r.onDelete,
         })),
-        schemaVersions: state.schemaVersions.map((v) => ({
+        schemaVersions: state.schemaVersions.slice(0, cap).map((v) => ({
           id: v.id,
           version: v.version,
           appliedAt: v.appliedAt,
