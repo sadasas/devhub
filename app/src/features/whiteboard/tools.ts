@@ -1,8 +1,8 @@
 import { newId } from '../../lib/utils';
 import type { WhiteboardBoundary, WhiteboardRef, WhiteboardRefEntity, WhiteboardShape, WhiteboardSticky, WhiteboardStroke, WhiteboardText } from '../../lib/types';
 
-/** Tools that draw on the canvas. `select` pans/zooms (and later selects). */
-export type WbTool = 'select' | 'marquee' | 'pen' | 'eraser' | 'text' | 'sticky' | 'shape' | 'edge' | 'ref' | 'boundary';
+/** Tools that draw on the canvas. `select` pans/zooms (and later selects); `view` pans/zooms only. */
+export type WbTool = 'view' | 'select' | 'marquee' | 'pen' | 'eraser' | 'text' | 'sticky' | 'shape' | 'edge' | 'ref' | 'boundary';
 
 export const PEN_COLOR = '#e4e4e7';
 export const ERASER_COLOR = '#8a8a93';

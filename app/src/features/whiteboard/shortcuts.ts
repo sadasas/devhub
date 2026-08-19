@@ -10,6 +10,7 @@
  *   INPUT/TEXTAREA/contentEditable element.
  */
 export const SHORTCUTS = {
+  view: 'v',
   select: '1',
   pen: '2',
   eraser: '3',

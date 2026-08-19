@@ -109,6 +109,7 @@ interface WhiteboardCanvasProps {
 const DOT_STEP = 32;
 
 const TOOL_CURSOR: Record<WbTool, string> = {
+  view: 'grab',
   select: 'grab',
   marquee: 'crosshair',
   pen: 'crosshair',
@@ -562,7 +563,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   const [snapOn, setSnapOn] = useState(true);
   const snap = useCallback((v: number) => (snapOn ? snapToGrid(v) : v), [snapOn]);
   const [canvasSize, setCanvasSize] = useState({ w: 800, h: 600 });
-  const panEnabled = tool === 'select' || spaceHeld;
+  const panEnabled = tool === 'select' || tool === 'view' || spaceHeld;
   const view = useView(panEnabled);
 
   useEffect(() => {
@@ -1116,7 +1117,11 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   const handlePointerDown = (e: ReactPointerEvent<SVGSVGElement>) => {
     if (e.button !== 0) return;
     const pt = worldAt(e);
-    if (spaceHeld || (tool === 'select' && !elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects))) {
+    if (
+      tool === 'view' ||
+      spaceHeld ||
+      (tool === 'select' && !elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects))
+    ) {
       setSelectedIds([]);
       setDragOffset(null);
       panDragRef.current = true;
@@ -1393,6 +1398,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   };
 
   const handleDoubleClick = (e: ReactMouseEvent<SVGSVGElement>) => {
+    if (tool === 'view' || tool === 'marquee') return;
     const rect = e.currentTarget.getBoundingClientRect();
     const pt = screenToWorld(view.view, e.clientX - rect.left, e.clientY - rect.top);
     const hit = elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects);

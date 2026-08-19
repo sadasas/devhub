@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowClockwise, ArrowCounterClockwise, ArrowLeft, ArrowsInSimple, ArrowsOutSimple, BoundingBox, Cards, Cursor, Eraser, Export, FlowArrow, FrameCorners, Note, PenNib, Selection, TextT } from '@phosphor-icons/react';
+import { ArrowClockwise, ArrowCounterClockwise, ArrowLeft, ArrowsInSimple, ArrowsOutSimple, BoundingBox, Cards, Cursor, Eraser, Export, FlowArrow, FrameCorners, HandPointing, Note, PenNib, Selection, TextT } from '@phosphor-icons/react';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import type { State, Whiteboard } from '../../lib/types';
@@ -22,6 +22,7 @@ const MAX_ELEMENTS = 1000;
 const ADD_TOOLS: ReadonlySet<string> = new Set(['pen', 'text', 'sticky', 'shape', 'edge', 'ref', 'boundary']);
 
 const TOOLS = [
+  { id: 'view', name: 'View only', icon: HandPointing, shortcut: SHORTCUTS.view },
   { id: 'select', name: 'Select', icon: Cursor, shortcut: SHORTCUTS.select },
   { id: 'marquee', name: 'Select area', icon: Selection, shortcut: SHORTCUTS.marquee },
   { id: 'pen', name: 'Pen', icon: PenNib, shortcut: SHORTCUTS.pen },
@@ -34,7 +35,7 @@ const TOOLS = [
   { id: 'boundary', name: 'Boundary', icon: FrameCorners, shortcut: SHORTCUTS.boundary },
 ] as const;
 
-const ACTIVE_TOOLS: ReadonlySet<string> = new Set(['select', 'marquee', 'pen', 'eraser', 'text', 'sticky', 'shape', 'edge', 'ref', 'boundary']);
+const ACTIVE_TOOLS: ReadonlySet<string> = new Set(['view', 'select', 'marquee', 'pen', 'eraser', 'text', 'sticky', 'shape', 'edge', 'ref', 'boundary']);
 
 export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditorShellProps) {
   const [tool, setTool] = useState<WbTool>('select');
@@ -106,7 +107,9 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
         historyRef.current.redo();
         return;
       }
-      if (key === SHORTCUTS.select && ACTIVE_TOOLS.has('select')) {
+      if (key === SHORTCUTS.view && ACTIVE_TOOLS.has('view')) {
+        setTool('view');
+      } else if (key === SHORTCUTS.select && ACTIVE_TOOLS.has('select')) {
         setTool('select');
       } else if (key === SHORTCUTS.marquee && ACTIVE_TOOLS.has('marquee')) {
         setTool('marquee');

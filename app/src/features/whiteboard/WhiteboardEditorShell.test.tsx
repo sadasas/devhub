@@ -1816,6 +1816,36 @@ renderShell(board);
     expect(screen.getByRole('button', { name: 'Boundary — b' }).getAttribute('aria-pressed')).toBe('true');
   });
 
+  it('activates the view-only tool with the V shortcut', () => {
+    renderShell(BOARD);
+    fireEvent.keyDown(window, { key: 'v' });
+    expect(screen.getByRole('button', { name: 'View only — v' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('view-only mode pans instead of selecting or editing elements', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const boardWithSticky: Whiteboard = {
+      ...BOARD,
+      elements: [{ id: 's1', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' }],
+    };
+    renderShell(boardWithSticky);
+    fireEvent.click(screen.getByRole('button', { name: 'View only — v' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    fireEvent.pointerDown(svg, { button: 0, clientX: 30, clientY: 30 });
+    fireEvent.pointerMove(svg, { clientX: 60, clientY: 60 });
+    fireEvent.pointerUp(svg, { clientX: 60, clientY: 60 });
+
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(screen.queryByRole('group', { name: 'Selection actions' })).toBeNull();
+  });
+
   it('places a boundary by drag-to-size with snapped coordinates', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
