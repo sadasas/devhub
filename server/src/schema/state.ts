@@ -26,7 +26,7 @@ export const LIMITS = {
   WHITEBOARD_NAME: 100,
   WHITEBOARD_DESCRIPTION: 2_000,
   WHITEBOARD_ELEMENTS: 1_000,
-  WHITEBOARDS_PER_PROJECT: 5,
+  WHITEBOARDS_PER_PROJECT: 50,
 } as const;
 
 export const isoDate = z.string().refine((v) => !Number.isNaN(Date.parse(v)), {
@@ -337,7 +337,7 @@ export const stateSchema = z.object({
   milestones: z.array(milestoneSchema).max(500).default([]),
   apiCollections: z.array(apiCollectionSchema).max(500).default([]),
   apiEndpoints: z.array(apiEndpointSchema).max(5_000).default([]),
-  whiteboards: z.array(whiteboardSchema).max(5).default([]),
+  whiteboards: z.array(whiteboardSchema).max(LIMITS.WHITEBOARDS_PER_PROJECT).default([]),
 });
 
 export type State = z.infer<typeof stateSchema>;

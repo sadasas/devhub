@@ -824,6 +824,23 @@ a:hover {
   }
 }
 
+/* Ukuran bar skeleton yang dipakai halaman list (data-row).
+   .skeleton sendiri tanpa dimensi — kombinasi kelas ini yang memberi bentuk. */
+.skeleton-row {
+  height: 13px;
+  width: 55%;
+}
+
+.skeleton-row-sm {
+  height: 11px;
+  width: 38%;
+}
+
+.skeleton-row-xs {
+  height: 11px;
+  width: 20%;
+}
+
 /* ============================================================
    Primitives — Empty state
    ============================================================ */
@@ -3094,6 +3111,221 @@ input[type='checkbox'] {
 }
 
 /* ============================================================
+   API keys page — status, copy prefix, guide (redesign 2026-08b)
+   ============================================================ */
+
+.key-status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--status-success);
+  box-shadow: 0 0 0 2px var(--status-success-dim);
+  vertical-align: 1px;
+}
+
+.key-prefix {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.key-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.key-copy-btn:hover {
+  color: var(--text-primary);
+}
+
+.key-copy-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.key-copy-btn:disabled:hover {
+  color: var(--text-muted);
+}
+
+.key-copy-btn:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 1px;
+}
+
+.key-last-used {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.key-last-used svg {
+  color: var(--text-muted);
+}
+
+.key-last-used em {
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.field-helper--warn {
+  color: var(--status-warn);
+}
+
+.keys-guide {
+  display: grid;
+  gap: 14px;
+  margin-top: 28px;
+  max-width: 760px;
+}
+
+.keys-guide-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.auth-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-input);
+  background: var(--bg-elevated);
+}
+
+.auth-banner svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--accent);
+}
+
+.auth-banner p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.auth-banner code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-inset);
+  color: var(--text-primary);
+}
+
+.keys-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.keys-guide-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-card);
+  background: var(--bg-elevated);
+}
+
+.keys-guide-card h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.keys-guide-card p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.code-block {
+  position: relative;
+  padding: 10px 12px;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-input);
+  background: var(--bg-inset);
+}
+
+.code-block pre {
+  margin: 0;
+  overflow-x: auto;
+}
+
+.code-block code {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+
+.code-copy-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--bg-overlay);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
+}
+
+.code-copy-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.code-copy-btn:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 1px;
+}
+
+.keys-guide-link {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.keys-guide-link:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+/* ============================================================
    Docs
    ============================================================ */
 
@@ -5003,6 +5235,10 @@ input[type='checkbox'] {
 .wb-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
 .wb-hint { position: absolute; left: 10px; bottom: 10px; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-muted); pointer-events: none; letter-spacing: 0.02em; }
 .wb-sep { width: 1px; height: 18px; background: var(--border-strong); }
+.wb-export-wrap { position: relative; }
+.wb-export-menu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 20; display: flex; flex-direction: column; min-width: 140px; padding: 4px; background: var(--bg-overlay); border: 1px solid var(--border-strong); border-radius: var(--radius-card); box-shadow: var(--shadow-raised); }
+.wb-export-item { padding: 6px 10px; font-size: 12.5px; text-align: left; background: none; border: none; border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; }
+.wb-export-item:hover { background: var(--bg-elevated); color: var(--text-primary); }
 .wb-popover { position: absolute; z-index: 5; width: 220px; padding: 12px; background: var(--bg-overlay); border: 1px solid var(--border-strong); border-radius: var(--radius-card); box-shadow: var(--shadow-raised); font-size: 12.5px; }
 .fp-colors { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; }
 .fp-color { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--border-strong); cursor: pointer; padding: 0; }
@@ -5010,8 +5246,11 @@ input[type='checkbox'] {
 .fp-segmented { display: flex; gap: 4px; margin-bottom: 8px; }
 .fp-seg { flex: 1; padding: 4px 6px; font-size: 11px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: none; color: var(--text-secondary); cursor: pointer; }
 .fp-seg-active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.fp-segmented-wrap { flex-wrap: wrap; }
+.fp-segmented-wrap .fp-seg { flex: 0 0 calc(50% - 2px); white-space: nowrap; }
 .fp-check { display: flex; gap: 6px; align-items: center; margin: 8px 0; font-size: 12px; }
 .fp-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.fp-hint { display: block; margin-top: 4px; font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); }
 .fp-btn { padding: 5px 10px; font-size: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); background: none; color: var(--text-secondary); cursor: pointer; }
 .fp-btn-ghost:hover { color: var(--text-primary); }
 .fp-btn-primary { background: var(--accent); border-color: var(--accent); color: var(--text-on-accent); font-weight: 600; }

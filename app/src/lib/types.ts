@@ -433,6 +433,8 @@ export interface McpKey {
   createdAt: string;
   lastUsedAt: string | null;
   revokedAt: string | null;
+  /** Bisa di-reveal ulang (key disimpan terenkripsi); false = key lama */
+  revealable: boolean;
 }
 
 export interface McpKeyCreated extends McpKey {

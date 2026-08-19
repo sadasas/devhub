@@ -2,6 +2,7 @@ import { describe, expect, it, beforeAll } from 'vitest';
 import request from 'supertest';
 import { app, uniqueIp, register, createProject, inviteUser, getFirstTeamId } from './helpers.js';
 import { resetDb } from './setup.js';
+import { LIMITS } from '../src/schema/state.js';
 
 const API = '/api/v1';
 
@@ -214,11 +215,12 @@ describe('granular entity API v1', () => {
     expect(boardRefetched.body.entity.description).toBe('board');
   });
 
-  it('enforces the five-board cap per project', async () => {
+  it('enforces the per-project whiteboard cap', async () => {
     const cookie = await register('v1-boardcap@test.dev');
     const projectId = await createProject(cookie);
 
-    for (let i = 0; i < 5; i += 1) {
+    const cap = LIMITS.WHITEBOARDS_PER_PROJECT;
+    for (let i = 0; i < cap; i += 1) {
       const res = await request(app)
         .post(`${API}/projects/${projectId}/whiteboards`)
         .set('Cookie', cookie)
@@ -227,12 +229,12 @@ describe('granular entity API v1', () => {
       expect(res.status).toBe(201);
     }
 
-    const sixth = await request(app)
+    const over = await request(app)
       .post(`${API}/projects/${projectId}/whiteboards`)
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp())
-      .send({ id: uid(), name: 'Sixth', elements: [] });
-    expect(sixth.status).toBe(400);
+      .send({ id: uid(), name: 'Over cap', elements: [] });
+    expect(over.status).toBe(400);
   });
 
   it('creates nested tables with columns and cascades relations on table delete', async () => {

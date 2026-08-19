@@ -48,12 +48,12 @@ export async function createTeam(cookie: string, name = 'Test team'): Promise<st
   return (res.body.team as { id: string }).id;
 }
 
-export async function createKey(cookie: string): Promise<string> {
+export async function createKey(cookie: string, name = 'test-key'): Promise<string> {
   const res = await request(app)
     .post('/api/v1/keys')
     .set('Cookie', cookie)
     .set('X-Forwarded-For', uniqueIp())
-    .send({});
+    .send({ name });
   expect(res.status).toBe(201);
   return res.body.key as string;
 }

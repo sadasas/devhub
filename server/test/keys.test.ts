@@ -46,23 +46,55 @@ describe('API keys', () => {
     const listed = await request(app).get('/api/v1/keys').set('Cookie', cookie);
     expect(listed.status).toBe(200);
     expect(listed.body.keys).toHaveLength(1);
-    expect(listed.body.keys[0]).toMatchObject({ id, name: 'cli', prefix });
+    expect(listed.body.keys[0]).toMatchObject({ id, name: 'cli', prefix, revealable: true });
     expect(listed.body.keys[0].revokedAt).toBeNull();
     expect(listed.body.keys[0].lastUsedAt).toBeNull();
     expect(JSON.stringify(listed.body)).not.toContain(key);
   });
 
-  it('creates a key without a name', async () => {
+  it('requires a name when creating a key', async () => {
     const cookie = await register('b@test.dev');
     const res = await request(app).post('/api/v1/keys').set('Cookie', cookie).send({});
-    expect(res.status).toBe(201);
-    expect(res.body.name).toBe('');
-    expect(res.body.key).toMatch(/^devhub_/);
+    expect(res.status).toBe(400);
+
+    const blank = await request(app).post('/api/v1/keys').set('Cookie', cookie).send({ name: '   ' });
+    expect(blank.status).toBe(400);
+  });
+
+  it('reveals the full key back to its owner', async () => {
+    const cookie = await register('b@test.dev');
+    const created = await request(app).post('/api/v1/keys').set('Cookie', cookie).send({ name: 'reveal' });
+    expect(created.status).toBe(201);
+    const { id, key } = created.body;
+
+    const revealed = await request(app).get(`/api/v1/keys/${id}/reveal`).set('Cookie', cookie);
+    expect(revealed.status).toBe(200);
+    expect(revealed.body.key).toBe(key);
+  });
+
+  it('cannot reveal another user key', async () => {
+    const cookieA = await register('b@test.dev');
+    const created = await request(app).post('/api/v1/keys').set('Cookie', cookieA).send({ name: 'mine' });
+    const id = created.body.id as string;
+
+    const cookieB = await register('c@test.dev');
+    const revealed = await request(app).get(`/api/v1/keys/${id}/reveal`).set('Cookie', cookieB);
+    expect(revealed.status).toBe(404);
+  });
+
+  it('cannot reveal a revoked key', async () => {
+    const cookie = await register('b@test.dev');
+    const created = await request(app).post('/api/v1/keys').set('Cookie', cookie).send({ name: 'revoked' });
+    const id = created.body.id as string;
+
+    await request(app).delete(`/api/v1/keys/${id}`).set('Cookie', cookie);
+    const revealed = await request(app).get(`/api/v1/keys/${id}/reveal`).set('Cookie', cookie);
+    expect(revealed.status).toBe(400);
   });
 
   it('revokes a key (soft delete)', async () => {
     const cookie = await register('c@test.dev');
-    const created = await request(app).post('/api/v1/keys').set('Cookie', cookie).send({});
+    const created = await request(app).post('/api/v1/keys').set('Cookie', cookie).send({ name: 'x' });
     const id = created.body.id as string;
 
     const revoked = await request(app).delete(`/api/v1/keys/${id}`).set('Cookie', cookie);
@@ -95,7 +127,7 @@ describe('API keys', () => {
 
   it('cannot revoke another user key', async () => {
     const cookieA = await register('e@test.dev');
-    const created = await request(app).post('/api/v1/keys').set('Cookie', cookieA).send({});
+    const created = await request(app).post('/api/v1/keys').set('Cookie', cookieA).send({ name: 'x' });
     const id = created.body.id as string;
 
     const cookieB = await register('f@test.dev');

@@ -54,7 +54,7 @@ describe('MCP auth and ownership', () => {
 
   it('rejects a revoked key', async () => {
     const cookie = await register('revoked@test.dev');
-    const created = await request(app).post('/api/v1/keys').set('Cookie', cookie).send({});
+    const created = await request(app).post('/api/v1/keys').set('Cookie', cookie).send({ name: 'x' });
     const id = created.body.id as string;
     const key = created.body.key as string;
 

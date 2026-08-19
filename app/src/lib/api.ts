@@ -331,13 +331,17 @@ export const api = {
     const res = await request<{ keys: McpKey[] }>('/keys');
     return res.keys;
   },
-  createKey: (name?: string) =>
+  createKey: (name: string) =>
     request<McpKeyCreated>('/keys', {
       method: 'POST',
-      body: JSON.stringify({ name: name ?? '' }),
+      body: JSON.stringify({ name }),
     }),
   revokeKey: (keyId: string) =>
     request<{ ok: true }>(`/keys/${encodeURIComponent(keyId)}`, { method: 'DELETE' }),
+  revealKey: async (keyId: string) => {
+    const res = await request<{ key: string }>(`/keys/${encodeURIComponent(keyId)}/reveal`);
+    return res.key;
+  },
 
   listTeams: async () => {
     const res = await request<{ teams: Team[] }>('/teams');
