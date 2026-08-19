@@ -19,6 +19,7 @@ export const SHORTCUTS = {
   edge: '7',
   ref: '8',
   marquee: '9',
+  boundary: 'b',
   pan: 'Space',
   delete: 'Delete',
   deleteAlt: 'Backspace',

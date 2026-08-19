@@ -180,11 +180,13 @@ export type WhiteboardArrowStyle = 'none' | 'open' | 'solid' | 'diamond' | 'circ
 export interface WhiteboardStroke {
   id: string;
   kind: 'stroke';
-  tool: WhiteboardStrokeTool;
+  tool: 'pen' | 'eraser';
   color: string;
   width: number;
   thinning: number;
-  points: Array<[number, number]>;
+  points: [number, number][];
+  locked?: boolean;
+  groupId?: string | null;
 }
 
 export interface WhiteboardSticky {
@@ -196,6 +198,9 @@ export interface WhiteboardSticky {
   h: number;
   color: string;
   text: string;
+  rotation?: number;
+  locked?: boolean;
+  groupId?: string | null;
 }
 
 export interface WhiteboardText {
@@ -207,6 +212,9 @@ export interface WhiteboardText {
   fontSize: number;
   text: string;
   w?: number | null;
+  rotation?: number;
+  locked?: boolean;
+  groupId?: string | null;
 }
 
 export interface WhiteboardShape {
@@ -221,6 +229,9 @@ export interface WhiteboardShape {
   fill: boolean;
   strokeWidth: number;
   label: string;
+  rotation?: number;
+  locked?: boolean;
+  groupId?: string | null;
 }
 
 export interface WhiteboardEdge {
@@ -235,6 +246,9 @@ export interface WhiteboardEdge {
   arrowhead: boolean;
   label: string;
   arrowStyle: WhiteboardArrowStyle;
+  dash?: 'solid' | 'dashed' | 'dotted';
+  locked?: boolean;
+  groupId?: string | null;
   sourceNodeId?: string | null;
   targetNodeId?: string | null;
   sourcePort?: 'top' | 'right' | 'bottom' | 'left' | null;
@@ -250,6 +264,8 @@ export interface WhiteboardBoundary {
   h: number;
   color: string;
   label: string;
+  locked?: boolean;
+  groupId?: string | null;
 }
 
 export type WhiteboardRefEntity =
@@ -270,6 +286,8 @@ export interface WhiteboardRef {
   entityId: string;
   x: number;
   y: number;
+  locked?: boolean;
+  groupId?: string | null;
 }
 
 export type WhiteboardElement =

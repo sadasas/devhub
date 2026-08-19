@@ -3,12 +3,101 @@ import {
   EDGE_SNAP,
   EDGE_TOUCH_TOLERANCE,
   edgeEndpoints,
+  edgeHitsPoint,
   edgePorts,
+  effectiveArrowStyle,
   elementsAtPoint,
+  orthogonalPath,
+  pathMidpoint,
   pointInRect,
   portToward,
   snapPointToBounds,
 } from './edges';
+
+describe('orthogonalPath', () => {
+  it('routes opposite horizontal ports with 3 segments', () => {
+    const path = orthogonalPath({ x1: 100, y1: 50, x2: 400, y2: 150 }, 'right', 'left');
+    expect(path[0]).toEqual({ x: 100, y: 50 });
+    expect(path[path.length - 1]).toEqual({ x: 400, y: 150 });
+    // Middle vertical segment: (b.x, a.y) → (b.x, b.y)
+    const bend = path[1]!;
+    expect(bend.y).toBe(50);
+    const mid = path[2]!;
+    expect(mid.x).toBe(400 - 24);
+    expect(mid.y).toBe(150);
+    // Manhattan: only axis-aligned runs
+    for (let i = 1; i < path.length; i += 1) {
+      expect(path[i]!.x === path[i - 1]!.x || path[i]!.y === path[i - 1]!.y).toBe(true);
+    }
+  });
+
+  it('routes same-direction ports with a 5-segment U-bend', () => {
+    const path = orthogonalPath({ x1: 100, y1: 50, x2: 400, y2: 50 }, 'right', 'right');
+    expect(path[0]).toEqual({ x: 100, y: 50 });
+    expect(path[path.length - 1]).toEqual({ x: 400, y: 50 });
+    expect(path.length).toBeGreaterThanOrEqual(5);
+    // U-bend dips below the shared row
+    expect(Math.min(...path.map((p) => p.y))).toBe(50);
+    expect(Math.max(...path.map((p) => p.y))).toBeGreaterThan(50);
+  });
+
+  it('routes perpendicular ports with a corner', () => {
+    const path = orthogonalPath({ x1: 100, y1: 50, x2: 400, y2: 300 }, 'right', 'bottom');
+    expect(path[0]).toEqual({ x: 100, y: 50 });
+    expect(path[path.length - 1]).toEqual({ x: 400, y: 300 });
+  });
+
+  it('collapses colinear runs', () => {
+    const path = orthogonalPath({ x1: 0, y1: 0, x2: 100, y2: 0 }, 'right', 'left');
+    // Same row: straight run, no redundant bends
+    for (const p of path) expect(p.y).toBe(0);
+  });
+});
+
+describe('pathMidpoint', () => {
+  it('returns the middle of a straight run', () => {
+    expect(pathMidpoint([{ x: 0, y: 0 }, { x: 100, y: 0 }])).toEqual({ x: 50, y: 0 });
+  });
+});
+
+describe('edgeHitsPoint', () => {
+  const edge = {
+    id: 'e1',
+    kind: 'edge' as const,
+    x1: 100,
+    y1: 50,
+    x2: 400,
+    y2: 50,
+    color: '#e4e4e7',
+    width: 2,
+    arrowhead: true,
+    label: '',
+    arrowStyle: 'solid' as const,
+    sourcePort: 'right' as const,
+    targetPort: 'right' as const,
+  };
+
+  it('hits the U-bend path but not the straight chord', () => {
+    const path = orthogonalPath({ x1: edge.x1, y1: edge.y1, x2: edge.x2, y2: edge.y2 }, edge.sourcePort!, edge.targetPort!);
+    const deep = path.find((p) => p.y > 50)!;
+    expect(edgeHitsPoint(edge, { x: deep.x, y: deep.y }, 4)).toBe(true);
+    expect(edgeHitsPoint(edge, { x: 250, y: 50 }, 4)).toBe(false);
+    expect(elementsAtPoint([edge], { x: deep.x, y: deep.y }, 4)).toBe(edge);
+  });
+});
+
+describe('effectiveArrowStyle', () => {
+  it('prefers an explicit arrowStyle', () => {
+    expect(effectiveArrowStyle({ arrowhead: false, arrowStyle: 'diamond' })).toBe('diamond');
+    expect(effectiveArrowStyle({ arrowhead: true, arrowStyle: 'open' })).toBe('open');
+  });
+  it('derives solid from legacy arrowhead', () => {
+    expect(effectiveArrowStyle({ arrowhead: true, arrowStyle: 'none' })).toBe('solid');
+  });
+  it('defaults to none', () => {
+    expect(effectiveArrowStyle({ arrowhead: false, arrowStyle: 'none' })).toBe('none');
+  });
+});
 
 const RECT = { x: 0, y: 0, w: 100, h: 50 };
 
@@ -63,7 +152,7 @@ describe('whiteboard edges', () => {
   });
 
   it('hit-tests edges by segment distance', () => {
-    const edge = { id: 'e1', kind: 'edge', x1: 0, y1: 0, x2: 100, y2: 0, color: '#e4e4e7', width: 2, arrowhead: true } as const;
+    const edge = { id: 'e1', kind: 'edge', x1: 0, y1: 0, x2: 100, y2: 0, color: '#e4e4e7', width: 2, arrowhead: true, label: '', arrowStyle: 'solid' } as const;
     const hit = elementsAtPoint([edge], { x: 50, y: 4 }, 8);
     expect(hit?.id).toBe('e1');
     expect(elementsAtPoint([edge], { x: 50, y: 20 }, 8)).toBeNull();

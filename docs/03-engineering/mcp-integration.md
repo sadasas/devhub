@@ -60,6 +60,8 @@ Every tool: inputs validated by zod; response includes `updatedAt` of the mutate
 | `add_api_collection` | `projectId`, `name`, `description?` | Created collection (rejects duplicate names) | Yes |
 | `add_api_endpoint` | `projectId`, `method`, `path`, `name`, `collectionId?`, `description?`, `headers[]?`, `params[]?`, `body?`, `responses[]?` | Created endpoint | Yes |
 | `update_api_endpoint` | `projectId`, `endpointId`, `{ collectionId?, method?, path?, name?, description?, headers[]?, params[]?, body?, responses[]? }` | Updated endpoint | Yes |
+| `create_whiteboard` | `projectId`, `name`, `description?`, `elements[]?` (id optional — server-assigned; kinds: stroke/sticky/text/shape/edge/boundary/ref) | Created board (id, name, elementCount) | Yes |
+| `update_whiteboard` | `projectId`, `whiteboardId`, `{ name?, description?, elements[]? }` — elements replaced wholesale | Updated board | Yes |
 
 **Conventions:**
 - Tool names are registered with a server prefix in the client (`devhub_project_state`, etc.).

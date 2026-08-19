@@ -24,6 +24,8 @@
 
 ## 2. Backup Methods
 
+> **⚠️ Ad-hoc DB scripts must never target the dev DB.** The pool reads `DATABASE_URL` (dev, :5432); the test DB (`DATABASE_URL_TEST`, :5433) is only selected inside the vitest bootstrap (`vitest.config.ts`). Any standalone script that imports `server/src/db/pool.ts` runs against **dev**. Before any destructive query from a script: set `NODE_ENV=test` + `DATABASE_URL_TEST` (or override `DATABASE_URL`) **before** importing the pool, and assert the resolved DB name ends with `_test`. Prefer reusing `server/test/setup.ts resetDb()` inside vitest when possible.
+
 ### 2.1 Postgres logical dump (primary)
 
 ```bash

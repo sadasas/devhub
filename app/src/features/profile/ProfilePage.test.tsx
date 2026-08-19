@@ -52,6 +52,10 @@ function renderPage() {
   );
 }
 
+function openTab(name: RegExp) {
+  fireEvent.click(screen.getByRole('tab', { name }));
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   authMock.useAuth.mockReturnValue({ user, setUser: vi.fn() });
@@ -132,34 +136,87 @@ describe('ProfilePage', () => {
     expect(setUser).toHaveBeenCalledWith({ ...user, displayName: 'New Name' });
   });
 
+  it('switches sections via tabs', () => {
+    renderPage();
+
+    expect(screen.getByRole('tab', { name: /profile/i }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByText('Active API keys')).not.toBeNull();
+
+    openTab(/security/i);
+    expect(screen.getByRole('tab', { name: /security/i }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByRole('button', { name: /change password/i })).not.toBeNull();
+    expect(screen.queryByText('Active API keys')).toBeNull();
+
+    openTab(/account/i);
+    expect(screen.getByRole('tab', { name: /account/i }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByText('u1')).not.toBeNull();
+    expect(screen.queryByRole('button', { name: /change password/i })).toBeNull();
+  });
+
+  it('opens the change password modal from the security tab', () => {
+    renderPage();
+    openTab(/security/i);
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /change password/i }));
+
+    expect(screen.getByRole('dialog')).not.toBeNull();
+    expect(screen.getAllByText('Change password').length).toBeGreaterThan(0);
+    expect(screen.getByLabelText(/current password/i)).not.toBeNull();
+  });
+
   it('rejects password change when confirmation does not match', () => {
     renderPage();
+    openTab(/security/i);
+    fireEvent.click(screen.getByRole('button', { name: /change password/i }));
 
     fireEvent.change(screen.getByLabelText(/current password/i), { target: { value: 'old-pass' } });
     fireEvent.change(screen.getByLabelText(/^new password/i), { target: { value: 'new-pass-1' } });
     fireEvent.change(screen.getByLabelText(/confirm new password/i), { target: { value: 'new-pass-2' } });
-    fireEvent.click(screen.getByRole('button', { name: /change password/i }));
+    fireEvent.click(screen.getByRole('button', { name: /update password/i }));
 
     expect(screen.getByText('New password and confirmation do not match.')).not.toBeNull();
     expect(apiMock.changePassword).not.toHaveBeenCalled();
   });
 
-  it('reports success after changing the password', async () => {
+  it('reports success after changing the password and keeps the modal open', async () => {
     renderPage();
+    openTab(/security/i);
+    fireEvent.click(screen.getByRole('button', { name: /change password/i }));
 
     fireEvent.change(screen.getByLabelText(/current password/i), { target: { value: 'old-pass' } });
     fireEvent.change(screen.getByLabelText(/^new password/i), { target: { value: 'new-pass-1' } });
     fireEvent.change(screen.getByLabelText(/confirm new password/i), { target: { value: 'new-pass-1' } });
-    fireEvent.click(screen.getByRole('button', { name: /change password/i }));
+    fireEvent.click(screen.getByRole('button', { name: /update password/i }));
 
     expect(await screen.findByText(/Password updated/i)).not.toBeNull();
     expect(apiMock.changePassword).toHaveBeenCalledWith('old-pass', 'new-pass-1');
+    expect(screen.getByRole('button', { name: /done/i })).not.toBeNull();
   });
 
-  it('shows the account ID in monospace and links to related pages', () => {
+  it('reveals the new password with the show/hide toggle', () => {
+    renderPage();
+    openTab(/security/i);
+    fireEvent.click(screen.getByRole('button', { name: /change password/i }));
+
+    const newInput = screen.getByLabelText(/^new password/i);
+    expect(newInput).toHaveProperty('type', 'password');
+
+    fireEvent.click(screen.getAllByRole('button', { name: /show password/i })[0]!);
+    expect(newInput).toHaveProperty('type', 'text');
+
+    fireEvent.click(screen.getByRole('button', { name: /hide password/i }));
+    expect(newInput).toHaveProperty('type', 'password');
+  });
+
+  it('shows account details in the Account tab and links in the Profile tab', () => {
     renderPage();
 
+    openTab(/account/i);
     expect(screen.getByText('u1')).not.toBeNull();
+    expect(screen.getAllByText('you@devhub.dev').length).toBeGreaterThan(0);
+
+    openTab(/profile/i);
     expect(screen.getByRole('link', { name: /API keys/i })).not.toBeNull();
     expect(screen.getByRole('link', { name: /MCP guide/i })).not.toBeNull();
   });

@@ -1,36 +1,60 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import {
+  AlignBottom,
+  AlignCenterHorizontal,
+  AlignCenterVertical,
+  AlignLeft,
+  AlignRight,
+  AlignTop,
+  ArrowDown,
+  ArrowUp,
+  Columns,
   CornersOut,
+  Intersect,
+  LockSimple,
+  LockSimpleOpen,
+  MagnetStraight,
   MagnifyingGlassMinus,
   MagnifyingGlassPlus,
+  Rows,
   Trash,
+  Union,
 } from '@phosphor-icons/react';
 import type {
-  Issue,
   State,
-  Task,
   Whiteboard,
   WhiteboardEdge,
   WhiteboardElement,
-  WhiteboardShape,
+  WhiteboardRefEntity,
 } from '../../lib/types';
 import { useProjectOptional } from '../../state/project-context';
 import { useNavigate } from 'react-router';
 import { entityDeepLink } from '../../lib/deep-link';
 import { newId } from '../../lib/utils';
 import {
+  alignmentGuides,
+  alignSelection,
   clampPopover,
+  distributeSelection,
   elementBounds,
+  rectsIntersect,
   refCardLayout,
   refCardRect,
-  rectsIntersect,
   screenToWorld,
+  shapePath,
+  snapToGrid,
   truncateToWidth,
+  textLineHeight,
+  unionBounds,
   worldToScreen,
   worldViewportRect,
+  wrapTextLines,
+  wrapToWidth,
   zoomAtPoint,
   CHIP_CHAR_W,
   REF_LAYOUT,
+  type AlignMode,
+  type Guide,
   type Rect,
   type RefCardBlock,
   type RefCardData,
@@ -39,9 +63,13 @@ import {
 import {
   EDGE_TOUCH_TOLERANCE,
   edgeEndpoints,
+  edgeMidpoint,
+  effectiveArrowStyle,
   elementsAtPoint,
   eraseStrokes,
   nearestPortSide,
+  orthogonalPath,
+  pathMidpoint,
   pointInRect,
   portPoint,
   portSideToward,
@@ -51,6 +79,7 @@ import {
   type PortSide,
 } from './edges';
 import {
+  buildBoundary,
   buildRef,
   buildShape,
   buildSticky,
@@ -62,10 +91,10 @@ import {
   shouldCommitStroke,
   type WbTool,
 } from './tools';
-import { ISSUE_SEVERITY, ISSUE_STATUS, TASK_PRIORITY, TASK_STATUS } from '../../lib/labels';
 import { isModalOrPaletteOpen, isTypingTarget } from '../../lib/keys';
 import { WhiteboardPopover } from './WhiteboardPopover';
 import { RefPicker } from './RefPicker';
+import { buildRefDataMap } from './ref-data';
 import type { WhiteboardHistory } from './useWhiteboardHistory';
 
 interface WhiteboardCanvasProps {
@@ -89,10 +118,14 @@ const TOOL_CURSOR: Record<WbTool, string> = {
   shape: 'crosshair',
   edge: 'crosshair',
   ref: 'crosshair',
+  boundary: 'crosshair',
 };
 const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 3;
 const MAX_ELEMENTS = 1000;
+const NO_BOUNDARY: ReadonlySet<string> = new Set(['boundary']);
+const RESIZEABLE_KINDS: ReadonlySet<string> = new Set(['shape', 'sticky', 'boundary', 'text']);
+const RESIZE_MIN = 20;
 const noopDispatch = () => {};
 const DEFAULT_EDGE_COLOR = '#e4e4e7';
 const DEFAULT_EDGE_WIDTH = 2;
@@ -139,18 +172,6 @@ function useView(panEnabled: boolean) {
   };
 
   return { view, setView, dragging, onPointerDown, onPointerMove, onPointerUp: endDrag, onPointerCancel: endDrag, ref: svgRef };
-}
-
-function shapePath(shape: WhiteboardShape): string {
-  const { x, y, w, h } = shape;
-  switch (shape.shapeType) {
-    case 'diamond':
-      return `M ${x + w / 2} ${y} L ${x + w} ${y + h / 2} L ${x + w / 2} ${y + h} L ${x} ${y + h / 2} Z`;
-    case 'ellipse':
-      return `M ${x + w / 2} ${y} a ${w / 2} ${h / 2} 0 1 0 0.01 0 Z`;
-    default:
-      return `M ${x} ${y} h ${w} v ${h} h ${-w} Z`;
-  }
 }
 
 interface DragOffset {
@@ -233,59 +254,193 @@ const ElementView = memo(function ElementView({
         );
       }
       case 'sticky': {
+        const fontSize = 12;
+        const lineHeight = textLineHeight(fontSize);
+        const maxLines = Math.max(1, Math.floor((el.h - 8) / lineHeight));
+        const innerW = Math.max(24, el.w - 12);
+        const lines = wrapTextLines(el.text, fontSize, innerW)
+          .slice(0, maxLines)
+          .map((line) => truncateToWidth(line, fontSize, innerW));
+        const rot = el.rotation ? `rotate(${el.rotation}, ${el.x + el.w / 2}, ${el.y + el.h / 2})` : undefined;
         return (
-          <g>
+          <g transform={rot}>
             <rect x={el.x} y={el.y} width={el.w} height={el.h} rx={4} fill={el.color} fillOpacity={0.85} />
-            {el.text &&
-              (() => {
-                const fontSize = 12;
-                const maxChars = Math.max(8, Math.floor((el.w - 12) / (fontSize * 0.6)));
-                const lines = el.text.split('\n').slice(0, 6).map((line) => (line.length > maxChars ? `${line.slice(0, maxChars)}…` : line));
-                return lines.map((line, i) => (
-                  <text key={i} x={el.x + 6} y={el.y + 14 + i * Math.ceil(fontSize * 1.35)} fontSize={fontSize} fill="rgba(6,5,4,0.85)">
-                    {line}
-                  </text>
-                ));
-              })()}
+            {lines.length > 0 &&
+              lines.map((line, i) => (
+                <text
+                  key={i}
+                  x={el.x + 6}
+                  y={el.y + 14 + i * lineHeight}
+                  fontSize={fontSize}
+                  fill="rgba(6,5,4,0.85)"
+                >
+                  {line}
+                </text>
+              ))}
           </g>
         );
       }
-      case 'text':
+      case 'text': {
+        const fontSize = el.fontSize;
+        const rot = el.rotation ? `rotate(${el.rotation}, ${el.x}, ${el.y})` : undefined;
+        if (el.w) {
+          const lines = wrapTextLines(el.text, fontSize, el.w);
+          return (
+            <g transform={rot}>
+              <text x={el.x} y={el.y} fontSize={fontSize} fill={el.color}>
+                {lines.map((line, i) => (
+                  <tspan key={i} x={el.x} dy={i === 0 ? 0 : textLineHeight(fontSize)}>
+                    {line}
+                  </tspan>
+                ))}
+              </text>
+            </g>
+          );
+        }
         return (
-          <text x={el.x} y={el.y} fontSize={el.fontSize} fill={el.color}>
-            {el.text}
-          </text>
+          <g transform={rot}>
+            <text x={el.x} y={el.y} fontSize={fontSize} fill={el.color}>
+              {el.text}
+            </text>
+          </g>
         );
-      case 'shape':
+      }
+      case 'shape': {
+        const labelLines = el.label ? wrapToWidth(el.label, 12, Math.max(24, el.w - 12), 4) : [];
+        const rot = el.rotation ? `rotate(${el.rotation}, ${el.x + el.w / 2}, ${el.y + el.h / 2})` : undefined;
         return (
-          <path
-            d={shapePath(el)}
-            fill={el.fill ? el.color : 'none'}
-            fillOpacity={el.fill ? 0.15 : undefined}
-            stroke={el.color}
-            strokeWidth={el.strokeWidth}
-          />
+          <g transform={rot}>
+            <path
+              d={shapePath(el)}
+              fill={el.fill ? el.color : 'none'}
+              fillOpacity={el.fill ? 0.15 : undefined}
+              stroke={el.color}
+              strokeWidth={el.strokeWidth}
+            />
+            {labelLines.length > 0 && (
+              <text
+                className="wb-shape-label"
+                x={el.x + el.w / 2}
+                y={el.y + el.h / 2}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fontSize={12}
+                fill={el.color}
+                pointerEvents="none"
+              >
+                {labelLines.map((line, i) => (
+                  <tspan key={i} x={el.x + el.w / 2} dy={i === 0 ? 0 : 14}>
+                    {line}
+                  </tspan>
+                ))}
+              </text>
+            )}
+          </g>
         );
+      }
       case 'edge': {
         const ep = derivedEndpoints ?? { x1: el.x1, y1: el.y1, x2: el.x2, y2: el.y2 };
-        const dx = ep.x2 - ep.x1;
-        const dy = ep.y2 - ep.y1;
-        const deg = Math.atan2(dy, dx) * (180 / Math.PI);
-        const hasSpan = dx !== 0 || dy !== 0;
+        const path =
+          el.sourcePort && el.targetPort
+            ? orthogonalPath({ x1: ep.x1, y1: ep.y1, x2: ep.x2, y2: ep.y2 }, el.sourcePort, el.targetPort)
+            : null;
+        const points = path ?? [
+          { x: ep.x1, y: ep.y1 },
+          { x: ep.x2, y: ep.y2 },
+        ];
+        const last = points[points.length - 1]!;
+        const prev = points[points.length - 2] ?? last;
+        const deg = Math.atan2(last.y - prev.y, last.x - prev.x) * (180 / Math.PI);
+        const hasSpan = last.x !== prev.x || last.y !== prev.y;
+        const linePoints = points.map((p) => `${p.x},${p.y}`).join(' ');
+        const mid = pathMidpoint(points);
+        const arrowStyle = effectiveArrowStyle(el);
+        const dashArray = (el.dash ?? 'solid') === 'dashed' ? '8 5' : (el.dash ?? 'solid') === 'dotted' ? '2 4' : undefined;
+        const arrow =
+          arrowStyle !== 'none' && hasSpan ? (
+            <g transform={`translate(${last.x},${last.y}) rotate(${deg})`}>
+              {arrowStyle === 'open' ? (
+                <polygon points="-8,-4 0,0 -8,4" fill="none" stroke={el.color} strokeWidth={el.width} />
+              ) : arrowStyle === 'solid' ? (
+                <polygon points="-8,-4 0,0 -8,4" fill={el.color} stroke={el.color} strokeWidth={el.width} />
+              ) : arrowStyle === 'diamond' ? (
+                <polygon points="-8,0 0,-5 8,0 0,5" fill={el.color} stroke="none" />
+              ) : (
+                <circle r={4} fill={el.color} stroke="none" />
+              )}
+            </g>
+          ) : null;
         return (
           <g>
-            <line x1={ep.x1} y1={ep.y1} x2={ep.x2} y2={ep.y2} stroke={el.color} strokeWidth={el.width} />
+            <polyline
+              points={linePoints}
+              fill="none"
+              stroke={el.color}
+              strokeWidth={el.width}
+              strokeDasharray={dashArray}
+            />
             {selected && (
-              <line x1={ep.x1} y1={ep.y1} x2={ep.x2} y2={ep.y2} stroke="var(--accent)" strokeWidth={el.width + 3} strokeOpacity={0.3} />
+              <polyline
+                points={linePoints}
+                fill="none"
+                stroke="var(--accent)"
+                strokeWidth={el.width + 3}
+                strokeOpacity={0.3}
+              />
             )}
-            {el.arrowhead && hasSpan && (
-              <g transform={`translate(${ep.x2},${ep.y2}) rotate(${deg})`}>
-                <polygon points="-8,-4 0,0 -8,4" fill="none" stroke={el.color} strokeWidth={el.width} />
-              </g>
+            {arrow}
+            {el.label && (
+              <text
+                className="wb-edge-label"
+                x={mid.x}
+                y={mid.y}
+                textAnchor="middle"
+                fontSize={11}
+                fill={el.color}
+                pointerEvents="none"
+              >
+                {el.label}
+              </text>
             )}
           </g>
         );
       }
+      case 'boundary':
+        return (
+          <g>
+            <rect
+              x={el.x}
+              y={el.y}
+              width={el.w}
+              height={el.h}
+              rx={8}
+              fill={el.color}
+              fillOpacity={0.05}
+              stroke={el.color}
+              strokeWidth={1.5}
+              strokeDasharray="6 4"
+            />
+            {el.label && (() => {
+              const chipW = Math.min(el.label.length * 7.5 + 12, Math.max(20, el.w - 12));
+              return (
+                <g transform={`translate(${el.x + 6}, ${el.y + 6})`}>
+                  <rect
+                    x={-4}
+                    y={-16}
+                    width={chipW}
+                    height={18}
+                    rx={5}
+                    fill={el.color}
+                    fillOpacity={0.25}
+                  />
+                  <text x={0} y={0} fontSize={12} fill="#e4e4e7">
+                    {truncateToWidth(el.label, 12, chipW - 12)}
+                  </text>
+                </g>
+              );
+            })()}
+          </g>
+        );
       case 'ref': {
         const missing = !refData;
         const isCollapsed = missing || collapsed;
@@ -385,7 +540,7 @@ interface DraftStroke {
 
 interface PopoverState {
   id: string;
-  kind: 'text' | 'sticky' | 'shape';
+  kind: 'text' | 'sticky' | 'shape' | 'edge' | 'boundary';
   wx: number;
   wy: number;
   el: WhiteboardElement;
@@ -398,14 +553,30 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   const navigate = useNavigate();
 
   const openRef = useCallback(
-    (entity: 'tasks' | 'issues', entityId: string) => {
+    (entity: WhiteboardRefEntity, entityId: string) => {
       navigate(entityDeepLink(projectId, entity, entityId));
     },
     [navigate, projectId],
   );
   const [spaceHeld, setSpaceHeld] = useState(false);
+  const [snapOn, setSnapOn] = useState(true);
+  const snap = useCallback((v: number) => (snapOn ? snapToGrid(v) : v), [snapOn]);
+  const [canvasSize, setCanvasSize] = useState({ w: 800, h: 600 });
   const panEnabled = tool === 'select' || spaceHeld;
   const view = useView(panEnabled);
+
+  useEffect(() => {
+    const el = view.ref.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const update = () => {
+      const r = el.getBoundingClientRect();
+      setCanvasSize({ w: r.width, h: r.height });
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [view.ref]);
   const isPlaceTool = tool === 'text' || tool === 'sticky' || tool === 'shape';
 
   const [draft, setDraft] = useState<DraftStroke | null>(null);
@@ -440,8 +611,13 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   const edgeDraftRef = useRef<EdgeDraft | null>(null);
   const [marquee, setMarquee] = useState<{ x1: number; y1: number; x2: number; y2: number; shift: boolean } | null>(null);
   const marqueeRef = useRef<{ x1: number; y1: number; x2: number; y2: number; shift: boolean } | null>(null);
+  const [boundaryDraft, setBoundaryDraft] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
+  const [guides, setGuides] = useState<Guide[] | null>(null);
   const [refPending, setRefPending] = useState<Point | null>(null);
   const [collapsedRefs, setCollapsedRefs] = useState<ReadonlySet<string>>(() => new Set());
+  const [clipboard, setClipboard] = useState<WhiteboardElement[] | null>(null);
+  const [resizePreview, setResizePreview] = useState<{ w: number; h: number } | null>(null);
+  const resizeRef = useRef<{ startWorld: Point; startW: number; startH: number; startX: number; startY: number } | null>(null);
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const [viewport, setViewport] = useState<Rect | null>(null);
@@ -467,52 +643,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
 
   const byId = useMemo(() => new Map(board.elements.map((el) => [el.id, el])), [board.elements]);
 
-  const refDataMap = useMemo(() => {
-    const m = new Map<string, RefCardData | null>();
-    const tasks = state?.tasks ?? [];
-    const issues = state?.issues ?? [];
-    const milestones = state?.milestones ?? [];
-    const testCases = state?.testCases ?? [];
-    for (const el of board.elements) {
-      if (el.kind !== 'ref') continue;
-      const row = (el.entity === 'tasks' ? tasks : issues).find((r) => r.id === el.entityId);
-      if (!row) {
-        m.set(el.id, null);
-        continue;
-      }
-      if (el.entity === 'tasks') {
-        const t = row as Task;
-        const milestone = t.milestoneId ? milestones.find((ms) => ms.id === t.milestoneId) : undefined;
-        const blockers = (t.blockedBy ?? []).filter((id) => tasks.some((x) => x.id === id)).length;
-        const tests = testCases.filter((tc) => tc.taskId === t.id).length;
-        const counts: string[] = [];
-        if (blockers > 0) counts.push(`${blockers} blocked`);
-        if (tests > 0) counts.push(`${tests} tests`);
-        m.set(el.id, {
-          title: t.title,
-          meta: `${TASK_STATUS[t.status].label} · ${TASK_PRIORITY[t.priority].label}`,
-          sub: milestone ? milestone.name : undefined,
-          labels: t.labels ?? [],
-          hours: t.estimate != null || t.actualHours != null ? `${t.actualHours ?? 0}/${t.estimate ?? '—'}h` : undefined,
-          counts,
-          description: t.description ?? '',
-        });
-      } else {
-        const iss = row as Issue;
-        const linked = iss.linkedTaskId ? tasks.find((t) => t.id === iss.linkedTaskId) : undefined;
-        m.set(el.id, {
-          title: iss.title,
-          meta: `${ISSUE_SEVERITY[iss.severity].label} · ${ISSUE_STATUS[iss.status].label}`,
-          sub: linked ? linked.title : undefined,
-          labels: [],
-          hours: undefined,
-          counts: [],
-          description: iss.description ?? '',
-        });
-      }
-    }
-    return m;
-  }, [board.elements, state]);
+  const refDataMap = useMemo(() => buildRefDataMap(board.elements, state), [board.elements, state]);
 
   const refRects = useMemo(() => {
     const m = new Map<string, Rect>();
@@ -532,8 +663,10 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   );
 
   const visibleElements = useMemo(() => {
-    if (!viewport) return board.elements;
-    return board.elements.filter((el) => rectsIntersect(boundsFor(el), viewport));
+    const sortBack = (els: WhiteboardElement[]) =>
+      [...els].sort((a, b) => Number(b.kind === 'boundary') - Number(a.kind === 'boundary'));
+    if (!viewport) return sortBack(board.elements);
+    return sortBack(board.elements.filter((el) => rectsIntersect(boundsFor(el), viewport)));
   }, [board.elements, boundsFor, viewport]);
 
   const derivedEdges = useMemo(() => {
@@ -558,16 +691,18 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     if (!edgeDraft) return null;
     const fromEl = board.elements.find((el) => el.id === edgeDraft.fromId);
     if (!fromEl) return null;
-    const hover = elementsAtPoint(board.elements, edgeDraft.cur, EDGE_TOUCH_TOLERANCE, refRects);
+    const hover = elementsAtPoint(board.elements, edgeDraft.cur, EDGE_TOUCH_TOLERANCE, refRects, NO_BOUNDARY);
     return { fromEl, hover };
   }, [board.elements, edgeDraft, refRects]);
 
   const removeSelection = useCallback(() => {
     if (selectedIds.length === 0) return;
     const sel = new Set(selectedIds);
+    const lockedIds = new Set(board.elements.filter((el) => el.locked).map((el) => el.id));
     const next = board.elements.filter((el) => {
+      if (lockedIds.has(el.id)) return true;
       if (sel.has(el.id)) return false;
-      if (el.kind === 'edge' && ((el.sourceNodeId && sel.has(el.sourceNodeId)) || (el.targetNodeId && sel.has(el.targetNodeId)))) {
+      if (el.kind === 'edge' && ((el.sourceNodeId && sel.has(el.sourceNodeId) && !lockedIds.has(el.sourceNodeId)) || (el.targetNodeId && sel.has(el.targetNodeId) && !lockedIds.has(el.targetNodeId)))) {
         return false;
       }
       return true;
@@ -583,9 +718,186 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     setDragOffset(null);
   }, [board.id, board.elements, dispatch, history, selectedIds]);
 
+  const reorderSelection = useCallback(
+    (dir: 1 | -1) => {
+      if (selectedIds.length === 0) return;
+      const sel = new Set(selectedIds);
+      const next = [...board.elements];
+      if (dir === 1) {
+        for (let i = next.length - 2; i >= 0; i -= 1) {
+          if (sel.has(next[i]!.id) && !next[i]!.locked && !sel.has(next[i + 1]!.id) && !next[i + 1]!.locked) {
+            [next[i], next[i + 1]] = [next[i + 1]!, next[i]!];
+          }
+        }
+      } else {
+        for (let i = 1; i < next.length; i += 1) {
+          if (sel.has(next[i]!.id) && !next[i]!.locked && !sel.has(next[i - 1]!.id) && !next[i - 1]!.locked) {
+            [next[i], next[i - 1]] = [next[i - 1]!, next[i]!];
+          }
+        }
+      }
+      if (next.every((el, i) => el.id === board.elements[i]?.id)) return;
+      history.record();
+      dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
+    },
+    [board.elements, board.id, dispatch, history, selectedIds],
+  );
+
+  const copiedElements = useCallback(() => {
+    const sel = new Set(selectedIds);
+    return board.elements.filter((el) => {
+      if (!sel.has(el.id)) return false;
+      if (el.kind === 'edge') {
+        return Boolean(el.sourceNodeId && sel.has(el.sourceNodeId) && el.targetNodeId && sel.has(el.targetNodeId));
+      }
+      return true;
+    });
+  }, [board.elements, selectedIds]);
+
+  const copySelection = useCallback(() => {
+    if (selectedIds.length === 0) return;
+    setClipboard(copiedElements());
+  }, [copiedElements, selectedIds]);
+
+  const applyPaste = useCallback(
+    (source: WhiteboardElement[], offset: number) => {
+      if (source.length === 0) return;
+      if (board.elements.length + source.length > MAX_ELEMENTS) return;
+      const idMap = new Map<string, string>();
+      const pasted = source.map((el) => {
+        const next = { ...el, id: newId() };
+        idMap.set(el.id, next.id);
+        return next;
+      });
+      const placed = pasted.map((el) => {
+        if (el.kind === 'edge') {
+          return {
+            ...el,
+            sourceNodeId: el.sourceNodeId ? (idMap.get(el.sourceNodeId) ?? el.sourceNodeId) : el.sourceNodeId,
+            targetNodeId: el.targetNodeId ? (idMap.get(el.targetNodeId) ?? el.targetNodeId) : el.targetNodeId,
+          };
+        }
+        if (el.kind === 'stroke') return el;
+        return { ...el, x: el.x + offset, y: el.y + offset };
+      });
+      history.record();
+      dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...board.elements, ...placed] } });
+      setSelectedIds(placed.map((el) => el.id));
+      setClipboard(placed);
+    },
+    [board.elements, board.id, dispatch, history],
+  );
+
+  const pasteElements = useCallback(
+    (offset: number) => {
+      if (!clipboard || clipboard.length === 0) return;
+      applyPaste(clipboard, offset);
+    },
+    [applyPaste, clipboard],
+  );
+
+  const onDistribute = useCallback(
+    (axis: 'x' | 'y') => () => {
+      const moves = distributeSelection(
+        board.elements.map((el) => ({ id: el.id, ...elementBounds(el) })),
+        selectedIds,
+        axis,
+      );
+      if (moves.size === 0) return;
+      const next = board.elements.map((el) => {
+        const pos = moves.get(el.id);
+        if (pos === undefined || el.locked) return el;
+        if (el.kind === 'edge' || el.kind === 'stroke') return el;
+        return { ...el, ...(axis === 'x' ? { x: pos } : { y: pos }) };
+      });
+      history.record();
+      dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
+    },
+    [board.elements, board.id, dispatch, history, selectedIds],
+  );
+
+  const onAlign = useCallback(
+    (mode: AlignMode) => () => {
+      const moves = alignSelection(
+        board.elements.map((el) => ({ id: el.id, ...elementBounds(el) })),
+        selectedIds,
+        mode,
+      );
+      if (moves.size === 0) return;
+      const next = board.elements.map((el) => {
+        const pos = moves.get(el.id);
+        if (pos === undefined || el.locked) return el;
+        if (el.kind === 'edge' || el.kind === 'stroke') return el;
+        return { ...el, x: pos.x, y: pos.y };
+      });
+      history.record();
+      dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
+    },
+    [board.elements, board.id, dispatch, history, selectedIds],
+  );
+
+  const onToggleLock = useCallback(() => {
+    if (selectedIds.length === 0) return;
+    const sel = new Set(selectedIds);
+    const selected = board.elements.filter((el) => sel.has(el.id) && el.kind !== 'stroke');
+    if (selected.length === 0) return;
+    const target = !selected.some((el) => el.locked);
+    const next = board.elements.map((el) =>
+      sel.has(el.id) && el.kind !== 'stroke' ? ({ ...el, locked: target } as WhiteboardElement) : el,
+    );
+    history.record();
+    dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
+  }, [board.elements, board.id, dispatch, history, selectedIds]);
+
+  const onGroup = useCallback(() => {
+    const members = board.elements.filter((el) => selectedIds.includes(el.id) && !el.groupId && el.kind !== 'stroke');
+    if (members.length < 2) return;
+    const gid = newId();
+    const next = board.elements.map((el) => (members.includes(el) ? ({ ...el, groupId: gid } as WhiteboardElement) : el));
+    history.record();
+    dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
+  }, [board.elements, board.id, dispatch, history, selectedIds]);
+
+  const onUngroup = useCallback(() => {
+    const gids = new Set(
+      board.elements.filter((el) => selectedIds.includes(el.id) && el.groupId).map((el) => el.groupId) as string[],
+    );
+    if (gids.size === 0) return;
+    const next = board.elements.map((el) =>
+      el.groupId && gids.has(el.groupId) ? ({ ...el, groupId: null } as WhiteboardElement) : el,
+    );
+    history.record();
+    dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
+  }, [board.elements, board.id, dispatch, history, selectedIds]);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (isTypingTarget(e.target) || isModalOrPaletteOpen()) return;
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && e.key.toLowerCase() === 'c') {
+        if (selectedIds.length === 0) return;
+        e.preventDefault();
+        copySelection();
+        return;
+      }
+      if (mod && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        setSelectedIds(board.elements.filter((el) => !el.locked).map((el) => el.id));
+        return;
+      }
+      if (mod && e.key.toLowerCase() === 'v') {
+        e.preventDefault();
+        pasteElements(24);
+        return;
+      }
+      if (mod && e.key.toLowerCase() === 'd') {
+        if (selectedIds.length === 0) return;
+        e.preventDefault();
+        const src = copiedElements();
+        setClipboard(src);
+        applyPaste(src, 24);
+        return;
+      }
       if (e.code === 'Space' || e.key === ' ') {
         e.preventDefault();
         setSpaceHeld(true);
@@ -616,13 +928,15 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlur);
     };
-  }, [selectedIds, removeSelection]);
+  }, [selectedIds, removeSelection, copySelection, pasteElements, copiedElements, applyPaste, board.elements]);
 
   useEffect(() => {
     if (tool !== 'select' && tool !== 'marquee') {
       setPopover(null);
       setSelectedIds([]);
       setDragOffset(null);
+      resizeRef.current = null;
+      setResizePreview(null);
       marqueeRef.current = null;
       setMarquee(null);
     }
@@ -722,12 +1036,21 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
 
   const commitDrag = () => {
     dragRef.current = null;
+    setGuides(null);
     const off = dragOffset;
     setDragOffset(null);
     if (!off || (off.dx === 0 && off.dy === 0)) return;
     const sel = new Set(selectedIds);
+    const moveIds = new Set(selectedIds);
+    const groupIds = new Set(
+      board.elements.filter((el) => sel.has(el.id) && el.groupId).map((el) => el.groupId) as string[],
+    );
+    for (const el of board.elements) {
+      if (el.groupId && groupIds.has(el.groupId)) moveIds.add(el.id);
+    }
     const next = board.elements.map((el) => {
-      if (!sel.has(el.id)) return el;
+      if (el.locked) return el;
+      if (!moveIds.has(el.id)) return el;
       if (el.kind === 'stroke') {
         return { ...el, points: el.points.map(([x, y]) => [x + off.dx, y + off.dy] as [number, number]) };
       }
@@ -748,7 +1071,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     if (!d) return;
     const fromEl = board.elements.find((el) => el.id === d.fromId);
     if (!fromEl) return;
-    const target = elementsAtPoint(board.elements, d.cur, EDGE_TOUCH_TOLERANCE, refRects);
+    const target = elementsAtPoint(board.elements, d.cur, EDGE_TOUCH_TOLERANCE, refRects, NO_BOUNDARY);
     if (!target || target.id === d.fromId) return;
     const fromBounds = boundsFor(fromEl);
     const toBounds = boundsFor(target);
@@ -765,6 +1088,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       color: DEFAULT_EDGE_COLOR,
       width: DEFAULT_EDGE_WIDTH,
       arrowhead: true,
+      label: '',
+      arrowStyle: 'solid',
       sourceNodeId: fromEl.id,
       targetNodeId: target.id,
       sourcePort,
@@ -775,7 +1100,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...board.elements, edge] } });
   };
 
-  const placeRef = (entity: 'tasks' | 'issues', entityId: string) => {
+  const placeRef = (entity: WhiteboardRefEntity, entityId: string) => {
     const pt = refPending;
     setRefPending(null);
     if (!pt) return;
@@ -800,6 +1125,17 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     }
     e.currentTarget.setPointerCapture(e.pointerId);
     if (tool === 'select') {
+      const resizeTargetEl = selectedIds.length === 1 ? board.elements.find((el) => el.id === selectedIds[0] && RESIZEABLE_KINDS.has(el.kind) && !el.locked) : undefined;
+      if (resizeTargetEl) {
+        const b = boundsFor(resizeTargetEl);
+        const off = dragOffset ?? { dx: 0, dy: 0 };
+        const hx = b.x + b.w + off.dx;
+        const hy = b.y + b.h + off.dy;
+        if (Math.abs(pt.x - hx) <= 6 && Math.abs(pt.y - hy) <= 6) {
+          resizeRef.current = { startWorld: pt, startW: b.w, startH: b.h, startX: b.x, startY: b.y };
+          return;
+        }
+      }
       const hit = elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects);
       if (!hit) {
         view.onPointerDown(e);
@@ -838,11 +1174,16 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       return;
     }
     if (tool === 'edge') {
-      const hit = elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects);
+      const hit = elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects, NO_BOUNDARY);
       if (!hit || hit.kind === 'edge') return;
       const d: EdgeDraft = { fromId: hit.id, fromBounds: boundsFor(hit), cur: pt };
       edgeDraftRef.current = d;
       setEdgeDraft(d);
+      return;
+    }
+    if (tool === 'boundary') {
+      e.currentTarget.setPointerCapture(e.pointerId);
+      setBoundaryDraft({ x1: pt.x, y1: pt.y, x2: pt.x, y2: pt.y });
       return;
     }
     if (tool === 'marquee') {
@@ -863,9 +1204,48 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       return;
     }
     if (tool === 'select') {
-      if (!dragRef.current) return;
       const pt = worldAt(e);
-      setDragOffset({ dx: pt.x - dragRef.current.startWorld.x, dy: pt.y - dragRef.current.startWorld.y });
+      if (resizeRef.current) {
+        const r = resizeRef.current;
+        const dx = pt.x - r.startWorld.x;
+        const dy = pt.y - r.startWorld.y;
+        const w = Math.max(RESIZE_MIN, snap(r.startW + dx));
+        const h = Math.max(RESIZE_MIN, snap(r.startH + dy));
+        const target = selectedIds.length === 1 ? board.elements.find((el) => el.id === selectedIds[0]) : undefined;
+        if (target?.kind === 'text') {
+          const wrapW = Math.min(w, 2000);
+          setResizePreview({
+            w: wrapW,
+            h: wrapTextLines(target.text, target.fontSize, wrapW).length * textLineHeight(target.fontSize) + 2,
+          });
+          return;
+        }
+        setResizePreview({ w, h });
+        return;
+      }
+      if (!dragRef.current) return;
+      let dx = pt.x - dragRef.current.startWorld.x;
+      let dy = pt.y - dragRef.current.startWorld.y;
+      const sel = new Set(selectedIds);
+      const moving = selectedIds
+        .map((id) => board.elements.find((el) => el.id === id))
+        .filter((el): el is WhiteboardElement => Boolean(el));
+      if (moving.length > 0) {
+        const bounds = unionBounds(moving.map(boundsFor));
+        const snappedX = snap(bounds.x + dx) - bounds.x;
+        const snappedY = snap(bounds.y + dy) - bounds.y;
+        const others = board.elements
+          .filter((el) => !sel.has(el.id))
+          .map(boundsFor);
+        const { guides, dx: gdx, dy: gdy } = alignmentGuides(
+          { x: bounds.x + snappedX, y: bounds.y + snappedY, w: bounds.w, h: bounds.h },
+          others,
+        );
+        setGuides(guides.length > 0 ? guides : null);
+        dx = snappedX + gdx;
+        dy = snappedY + gdy;
+      }
+      setDragOffset({ dx, dy });
       return;
     }
     if (tool === 'pen' || tool === 'eraser') {
@@ -887,6 +1267,14 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       const next = { ...m, x2: pt.x, y2: pt.y };
       marqueeRef.current = next;
       setMarquee(next);
+      return;
+    }
+    if (tool === 'boundary') {
+      const d = boundaryDraft;
+      if (!d) return;
+      const pt = worldAt(e);
+      const next = { ...d, x2: snap(pt.x), y2: snap(pt.y) };
+      setBoundaryDraft(next);
       return;
     }
   };
@@ -914,6 +1302,25 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       return;
     }
     if (tool === 'select') {
+      if (resizeRef.current) {
+        const preview = resizePreview;
+        resizeRef.current = null;
+        setResizePreview(null);
+        const targetId = selectedIds.length === 1 ? selectedIds[0] : null;
+        if (preview && targetId) {
+          history.record();
+          const target = board.elements.find((el) => el.id === targetId);
+          const patch = target?.kind === 'text' ? { w: preview.w } : { w: preview.w, h: preview.h };
+          dispatch({
+            type: 'whiteboard/update',
+            id: board.id,
+            patch: {
+              elements: board.elements.map((el) => (el.id === targetId ? { ...el, ...patch } : el)),
+            },
+          });
+        }
+        return;
+      }
       commitDrag();
       return;
     }
@@ -929,6 +1336,22 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       commitEdge();
       return;
     }
+    if (tool === 'boundary') {
+      const d = boundaryDraft;
+      setBoundaryDraft(null);
+      if (!d) return;
+      const x = Math.min(d.x1, d.x2);
+      const y = Math.min(d.y1, d.y2);
+      const w = Math.abs(d.x2 - d.x1);
+      const h = Math.abs(d.y2 - d.y1);
+      if (w < 40 || h < 40) return;
+      if (board.elements.length >= MAX_ELEMENTS) return;
+      history.record();
+      const boundary = buildBoundary(x, y, w, h);
+      dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...board.elements, boundary] } });
+      setSelectedIds([boundary.id]);
+      return;
+    }
   };
 
   const handlePointerCancel = (_e: ReactPointerEvent<SVGSVGElement>) => {
@@ -940,6 +1363,9 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     if (tool === 'select') {
       dragRef.current = null;
       setDragOffset(null);
+      setGuides(null);
+      resizeRef.current = null;
+      setResizePreview(null);
       return;
     }
     if (tool === 'pen' || tool === 'eraser') {
@@ -960,6 +1386,10 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       setMarquee(null);
       return;
     }
+    if (tool === 'boundary') {
+      setBoundaryDraft(null);
+      return;
+    }
   };
 
   const handleDoubleClick = (e: ReactMouseEvent<SVGSVGElement>) => {
@@ -976,9 +1406,13 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       openRef(hit.entity, hit.entityId);
       return;
     }
-    if (hit.kind === 'edge' || hit.kind === 'stroke') return;
+    if (hit.kind === 'stroke') return;
     if (readOnly) return;
-    setPopover({ id: hit.id, kind: hit.kind, wx: hit.x, wy: hit.y, el: hit });
+    const anchor =
+      hit.kind === 'edge'
+        ? edgeMidpoint({ x1: hit.x1, y1: hit.y1, x2: hit.x2, y2: hit.y2 })
+        : { x: hit.x, y: hit.y };
+    setPopover({ id: hit.id, kind: hit.kind, wx: anchor.x, wy: anchor.y, el: hit });
   };
 
   return (
@@ -1041,23 +1475,136 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
             edgeDraftHover &&
             (() => {
               const { hover } = edgeDraftHover;
-              const ep =
+              const snap =
                 hover && hover.id !== edgeDraft.fromId
-                  ? edgeEndpoints(edgeDraft.fromBounds, boundsFor(hover), edgeDraft.cur)
-                  : { ...edgeEndpoints(edgeDraft.fromBounds, edgeDraft.fromBounds, edgeDraft.cur), x2: edgeDraft.cur.x, y2: edgeDraft.cur.y };
-              const deg = Math.atan2(ep.y2 - ep.y1, ep.x2 - ep.x1) * (180 / Math.PI);
-              const hasSpan = ep.x2 !== ep.x1 || ep.y2 !== ep.y1;
+                  ? {
+                      fromBounds: edgeDraft.fromBounds,
+                      toBounds: boundsFor(hover),
+                    }
+                  : null;
+              const ep = snap
+                ? edgeEndpoints(snap.fromBounds, snap.toBounds, edgeDraft.cur)
+                : { ...edgeEndpoints(edgeDraft.fromBounds, edgeDraft.fromBounds, edgeDraft.cur), x2: edgeDraft.cur.x, y2: edgeDraft.cur.y };
+              const sourcePort = portSideToward(edgeDraft.fromBounds, edgeDraft.cur);
+              const targetPort = snap
+                ? (nearestPortSide(edgeDraft.cur, snap.toBounds) ?? portSideToward(snap.toBounds, edgeDraft.cur))
+                : null;
+              const path = targetPort
+                ? orthogonalPath({ x1: ep.x1, y1: ep.y1, x2: ep.x2, y2: ep.y2 }, sourcePort, targetPort)
+                : null;
+              const pts = path ?? [
+                { x: ep.x1, y: ep.y1 },
+                { x: ep.x2, y: ep.y2 },
+              ];
+              const last = pts[pts.length - 1]!;
+              const prev = pts[pts.length - 2] ?? last;
+              const deg = Math.atan2(last.y - prev.y, last.x - prev.x) * (180 / Math.PI);
+              const hasSpan = last.x !== prev.x || last.y !== prev.y;
               return (
                 <g>
-                  <line x1={ep.x1} y1={ep.y1} x2={ep.x2} y2={ep.y2} stroke="var(--accent)" strokeWidth={1.5} strokeDasharray="5 4" />
+                  <polyline
+                    points={pts.map((p) => `${p.x},${p.y}`).join(' ')}
+                    fill="none"
+                    stroke="var(--accent)"
+                    strokeWidth={1.5}
+                    strokeDasharray="5 4"
+                  />
                   {hasSpan && (
-                    <g transform={`translate(${ep.x2},${ep.y2}) rotate(${deg})`}>
+                    <g transform={`translate(${last.x},${last.y}) rotate(${deg})`}>
                       <polygon points="-8,-4 0,0 -8,4" fill="none" stroke="var(--accent)" strokeWidth={1.5} />
                     </g>
                   )}
                 </g>
               );
             })()}
+          {boundaryDraft &&
+            (() => {
+              const x = Math.min(boundaryDraft.x1, boundaryDraft.x2);
+              const y = Math.min(boundaryDraft.y1, boundaryDraft.y2);
+              const w = Math.abs(boundaryDraft.x2 - boundaryDraft.x1);
+              const h = Math.abs(boundaryDraft.y2 - boundaryDraft.y1);
+              return (
+                <rect
+                  x={x}
+                  y={y}
+                  width={w}
+                  height={h}
+                  rx={8}
+                  fill="rgba(110,168,254,0.05)"
+                  stroke="var(--accent)"
+                  strokeWidth={1.5}
+                  strokeDasharray="6 4"
+                  pointerEvents="none"
+                  data-testid="wb-boundary-draft"
+                />
+              );
+            })()}
+          {(resizeRef.current || null) && resizePreview && resizeRef.current && (
+            <rect
+              x={resizeRef.current.startX}
+              y={resizeRef.current.startY}
+              width={resizePreview.w}
+              height={resizePreview.h}
+              fill="none"
+              stroke="var(--accent)"
+              strokeWidth={1.5}
+              strokeDasharray="4 3"
+              pointerEvents="none"
+              data-testid="wb-resize-preview"
+            />
+          )}
+          {(() => {
+            const target =
+              selectedIds.length === 1
+                ? (board.elements.find((el) => el.id === selectedIds[0] && RESIZEABLE_KINDS.has(el.kind)) ?? null)
+                : null;
+            if (!target || readOnly) return null;
+            const b = boundsFor(target);
+            const off = dragOffset ?? { dx: 0, dy: 0 };
+            return (
+              <rect
+                x={b.x + b.w + off.dx - 5}
+                y={b.y + b.h + off.dy - 5}
+                width={10}
+                height={10}
+                fill="var(--accent)"
+                stroke="var(--bg-base)"
+                strokeWidth={1.5}
+                style={{ cursor: 'nwse-resize' }}
+                data-testid="wb-resize-handle"
+              />
+            );
+          })()}
+          {guides &&
+            guides.map((g, i) =>
+              g.axis === 'x' ? (
+                <line
+                  key={`gx${i}`}
+                  x1={g.coord}
+                  y1={g.min}
+                  x2={g.coord}
+                  y2={g.max}
+                  stroke="var(--status-info)"
+                  strokeWidth={1}
+                  strokeDasharray="4 3"
+                  pointerEvents="none"
+                  data-testid="wb-guide"
+                />
+              ) : (
+                <line
+                  key={`gy${i}`}
+                  x1={g.min}
+                  y1={g.coord}
+                  x2={g.max}
+                  y2={g.coord}
+                  stroke="var(--status-info)"
+                  strokeWidth={1}
+                  strokeDasharray="4 3"
+                  pointerEvents="none"
+                  data-testid="wb-guide"
+                />
+              ),
+            )}
           {marquee &&
             (() => {
               const rx = Math.min(marquee.x1, marquee.x2);
@@ -1117,19 +1664,226 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         >
           <CornersOut size={15} aria-hidden="true" />
         </button>
+        {canEdit && (
+          <button
+            type="button"
+            className={`erd-zoom-btn${snapOn ? ' erd-zoom-btn-active' : ''}`}
+            title={snapOn ? 'Snap to grid: on' : 'Snap to grid: off'}
+            aria-label={snapOn ? 'Snap to grid: on' : 'Snap to grid: off'}
+            aria-pressed={snapOn}
+            onClick={() => setSnapOn((v) => !v)}
+          >
+            <MagnetStraight size={15} aria-hidden="true" />
+          </button>
+        )}
       </div>
       {canEdit && selectedIds.length > 0 && (
-        <button
-          type="button"
-          className="wb-delete-btn"
-          title="Delete selected (Del)"
-          aria-label="Delete selected"
-          onClick={removeSelection}
-        >
-          <Trash size={15} aria-hidden="true" />
-        </button>
+        <div className="wb-selection-bar" role="group" aria-label="Selection actions">
+          {(() => {
+            const hasLocked = board.elements.some((el) => selectedIds.includes(el.id) && el.locked);
+            return (
+              <>
+                <button
+                  type="button"
+                  className="wb-selection-btn"
+                  title={hasLocked ? 'Unlock selection' : 'Lock selection'}
+                  aria-label={hasLocked ? 'Unlock selection' : 'Lock selection'}
+                  aria-pressed={hasLocked}
+                  onClick={onToggleLock}
+                >
+                  {hasLocked ? (
+                    <LockSimpleOpen size={15} aria-hidden="true" />
+                  ) : (
+                    <LockSimple size={15} aria-hidden="true" />
+                  )}
+                </button>
+                <span className="wb-sep" aria-hidden="true" />
+                {(() => {
+                  const hasGroup = board.elements.some((el) => selectedIds.includes(el.id) && el.groupId);
+                  return (
+                    <button
+                      type="button"
+                      className="wb-selection-btn"
+                      title={hasGroup ? 'Ungroup selection' : 'Group selection'}
+                      aria-label={hasGroup ? 'Ungroup selection' : 'Group selection'}
+                      onClick={hasGroup ? onUngroup : onGroup}
+                    >
+                      {hasGroup ? (
+                        <Intersect size={15} aria-hidden="true" />
+                      ) : (
+                        <Union size={15} aria-hidden="true" />
+                      )}
+                    </button>
+                  );
+                })()}
+                <span className="wb-sep" aria-hidden="true" />
+              </>
+            );
+          })()}
+          {selectedIds.length >= 2 && (
+            <>
+              <button
+                type="button"
+                className="wb-selection-btn"
+                title="Align left"
+                aria-label="Align left"
+                onClick={onAlign('left')}
+              >
+                <AlignLeft size={15} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="wb-selection-btn"
+                title="Align center horizontally"
+                aria-label="Align center horizontally"
+                onClick={onAlign('centerX')}
+              >
+                <AlignCenterHorizontal size={15} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="wb-selection-btn"
+                title="Align right"
+                aria-label="Align right"
+                onClick={onAlign('right')}
+              >
+                <AlignRight size={15} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="wb-selection-btn"
+                title="Align top"
+                aria-label="Align top"
+                onClick={onAlign('top')}
+              >
+                <AlignTop size={15} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="wb-selection-btn"
+                title="Align middle vertically"
+                aria-label="Align middle vertically"
+                onClick={onAlign('middleY')}
+              >
+                <AlignCenterVertical size={15} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="wb-selection-btn"
+                title="Align bottom"
+                aria-label="Align bottom"
+                onClick={onAlign('bottom')}
+              >
+                <AlignBottom size={15} aria-hidden="true" />
+              </button>
+              <span className="wb-sep" aria-hidden="true" />
+            </>
+          )}
+          {selectedIds.length >= 3 && (
+            <>
+              <button
+                type="button"
+                className="wb-selection-btn"
+                title="Distribute horizontally"
+                aria-label="Distribute horizontally"
+                onClick={onDistribute('x')}
+              >
+                <Columns size={15} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="wb-selection-btn"
+                title="Distribute vertically"
+                aria-label="Distribute vertically"
+                onClick={onDistribute('y')}
+              >
+                <Rows size={15} aria-hidden="true" />
+              </button>
+            </>
+          )}
+          <button
+            type="button"
+            className="wb-selection-btn"
+            title="Bring forward"
+            aria-label="Bring forward"
+            onClick={() => reorderSelection(1)}
+          >
+            <ArrowUp size={15} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="wb-selection-btn"
+            title="Send backward"
+            aria-label="Send backward"
+            onClick={() => reorderSelection(-1)}
+          >
+            <ArrowDown size={15} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="wb-selection-btn"
+            title="Delete selected (Del)"
+            aria-label="Delete selected"
+            onClick={removeSelection}
+          >
+            <Trash size={15} aria-hidden="true" />
+          </button>
+        </div>
       )}
       <span className="wb-hint">Scroll to zoom · drag to pan</span>
+      {board.elements.length > 0 && (
+        (() => {
+          const bounds = unionBounds(board.elements.map((el) => elementBounds(el)));
+          const vp = worldViewportRect(view.view, canvasSize.w, canvasSize.h);
+          const PAD = 6;
+          const MW = 168;
+          const MH = 110;
+          const scale = Math.min((MW - PAD * 2) / Math.max(1, bounds.w), (MH - PAD * 2) / Math.max(1, bounds.h));
+          const ox = PAD - bounds.x * scale;
+          const oy = PAD - bounds.y * scale;
+          const vpMini = {
+            x: ox + vp.x * scale,
+            y: oy + vp.y * scale,
+            w: vp.w * scale,
+            h: vp.h * scale,
+          };
+          const onMiniClick = (e: ReactMouseEvent<SVGSVGElement>) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const wx = (e.clientX - rect.left - ox) / scale;
+            const wy = (e.clientY - rect.top - oy) / scale;
+            view.setView((v) => ({ ...v, x: wx - canvasSize.w / 2, y: wy - canvasSize.h / 2 }));
+          };
+          return (
+            <div className="wb-minimap" role="group" aria-label="Minimap">
+              <svg width={MW} height={MH} onClick={onMiniClick}>
+                {board.elements.map((el) => {
+                  const b = elementBounds(el);
+                  if (b.w <= 0 || b.h <= 0) return null;
+                  return (
+                    <rect
+                      key={el.id}
+                      x={ox + b.x * scale}
+                      y={oy + b.y * scale}
+                      width={Math.max(1, b.w * scale)}
+                      height={Math.max(1, b.h * scale)}
+                      fill="rgba(110,168,254,0.35)"
+                    />
+                  );
+                })}
+                <rect
+                  x={vpMini.x}
+                  y={vpMini.y}
+                  width={vpMini.w}
+                  height={vpMini.h}
+                  fill="rgba(228,228,231,0.08)"
+                  stroke="#e4e4e7"
+                  strokeWidth={1}
+                />
+              </svg>
+            </div>
+          );
+        })()
+      )}
       {popover &&
         (() => {
           const pos = popoverPos ?? worldToScreen(view.view, popover.wx, popover.wy + 50);
@@ -1146,8 +1900,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         })()}
       <RefPicker
         open={refPending !== null}
-        tasks={state?.tasks ?? []}
-        issues={state?.issues ?? []}
+        state={state}
         onPick={placeRef}
         onClose={() => setRefPending(null)}
       />

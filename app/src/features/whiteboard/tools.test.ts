@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  BOUNDARY_COLOR,
   ERASER_COLOR,
   ERASER_WIDTH,
   PEN_COLOR,
@@ -14,6 +15,7 @@ import {
   TEXT_COLOR,
   TEXT_FONT_SIZE,
   THINNING,
+  buildBoundary,
   buildShape,
   buildSticky,
   buildStroke,
@@ -92,9 +94,28 @@ describe('whiteboard tools', () => {
     });
   });
 
+  it('buildShape accepts the new M18 shape types', () => {
+    for (const shapeType of ['cylinder', 'parallelogram', 'hexagon', 'roundedRect'] as const) {
+      expect(buildShape(0, 0, '#6ea8fe', shapeType).shapeType).toBe(shapeType);
+    }
+  });
+
   it('buildStroke accepts explicit color and width', () => {
     const stroke = buildStroke('pen', [[0, 0], [1, 1]], '#f4706d', 5);
     expect(stroke.color).toBe('#f4706d');
     expect(stroke.width).toBe(5);
   });
+  it('builds a boundary with defaults', () => {
+    const b = buildBoundary(10, 20, 300, 200);
+    expect(b).toMatchObject({
+      kind: 'boundary',
+      x: 10,
+      y: 20,
+      w: 300,
+      h: 200,
+      color: BOUNDARY_COLOR,
+      label: '',
+    });
+  });
+
 });

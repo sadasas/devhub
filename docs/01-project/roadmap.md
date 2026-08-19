@@ -159,7 +159,7 @@ Workstream Whiteboard awalnya direncanakan sebagai workstream kedua M11 v0.5.0; 
 | Toolset | Pen, warna (palet design tokens), eraser, sticky notes, text (floating popover), shapes, edge/arrow (arrowhead `<marker>` hand-built), select (drag-move, delete, cleanup edge), pan/zoom |
 | Integrasi | Granular CRUD/If-Match/activity/search/export/import/MCP `project_state` otomatis ikut; activity diff `elements` = summary-count; search collector kustom (name 3×, teks sticky/text/shape.label/ref 1× — tanpa noise hex/uuid); tab ke-11 (deviasi A1 tercatat); public share read-only `/p/:id` |
 | Tests | Server: schema round-trip (cegah silent strip), CRUD, activity, search; App: reducer/geometry murni + interaksi jsdom (stub rect/pointer capture); E2E: 2 journey (draw→save→reload; drag node → edge ikut) |
-| Defer V2 | Port-based connector + port UI (visual handles tetap defer), auto-layout, per-element PATCH, MCP whiteboard tools, gzip compression middleware di server. ~~Snap grid/alignment~~, ~~refs entity lain~~ → dikerjakan di M18 (ADR-026) |
+| Defer V2 | Port-based connector + port UI (visual handles tetap defer), auto-layout, per-element PATCH, gzip compression middleware di server. ~~Snap grid/alignment~~, ~~refs entity lain~~, ~~MCP whiteboard tools~~ → dikerjakan (Snap/refs di M18 ADR-026; MCP tools di 11c) |
 
 ---
 
@@ -169,20 +169,39 @@ M18 v0.12.0 (12 task, ~30h) — riset kebutuhan lintas-skenario (flowchart, back
 
 | Task | Isi |
 |---|---|
-| Schema & types | `shapeType` +cylinder/parallelogram/hexagon/roundedRect; edge +`label ≤200` +`arrowStyle` enum (compat: `arrowhead:true` → derived solid); text +`w?`; kind baru `boundary` (container visual dashed + label); mirror `app/src/lib/types.ts`; search collector +edge.label/boundary.label; round-trip + strip test server |
-| Render label + popover edge | Fix bug label shape (tidak dirender); edge label midpoint + halo; popover edge (label/color/arrowStyle, double-click) |
-| Orthogonal routing | `orthogonalPath()` pure di `edges.ts` (Manhattan 3/4/5 segmen sesuai port, render-time — tidak disimpan di schema); arrowhead ikut segmen terakhir; hit-test polyline; preview draft edge |
-| Snap + alignment + distribute | Snap drag ke grid 32px (radius 8); alignment guides 4px saat drag; toolbar seleksi: Distribute H/V |
-| Copy/paste + duplicate | Ctrl+C/V + Ctrl+D; clipboard internal JSON, `newId()`, remap edge dalam seleksi, drop edge lintas seleksi, offset +24, cap 1000 guard |
-| Boundary container | Tool B, drag-to-size, render selalu di belakang, bukan target edge, popover label/color |
-| Shape + arrowhead styles | Render 4 shape baru (`shapePath`); marker none/open/solid/diamond/circle (default solid utk edge baru) |
-| Z-order + resize | Bring forward/Send backward di toolbar seleksi; resize handle bottom-right (shape/sticky/boundary, min size, ikut snap) |
-| Text wrap | text `w?` → render multiline via wrapToWidth; popover Shift+Enter newline |
-| Ref entity lain | RefPicker multi-entity (testCases/milestones/techEntries/decisions/tables/apiCollections/apiEndpoints); refDataMap meta per entity; `entityDeepLink` sudah support semua |
-| Export PNG/SVG | Serialize SVG `viewBox` = bounds elemen + margin 32; PNG via canvas 2×; tombol Export (member-only) |
-| Docs & verifikasi | ADR-026 + roadmap; server+app test suite; lint; build; e2e journey labeled edge + copy/paste |
+| Schema & types | ✅ `shapeType` +cylinder/parallelogram/hexagon/roundedRect; edge +`label ≤200` +`arrowStyle` enum (compat: `arrowhead:true` → derived solid); text +`w?`; kind baru `boundary` (container visual dashed + label); mirror `app/src/lib/types.ts`; search collector +edge.label/boundary.label; round-trip + strip test server |
+| Render label + popover edge | ✅ Fix bug label shape (tidak dirender); edge label midpoint + halo; popover edge (label/color/arrowStyle, double-click) |
+| Orthogonal routing | ✅ `orthogonalPath()` pure di `edges.ts` (Manhattan 3/4/5 segmen sesuai port, render-time — tidak disimpan di schema); arrowhead ikut segmen terakhir; hit-test polyline; preview draft edge |
+| Snap + alignment + distribute | ✅ Snap drag ke grid 32px (radius 8); alignment guides 4px saat drag; toolbar seleksi: Distribute H/V |
+| Copy/paste + duplicate | ✅ Ctrl+C/V + Ctrl+D; clipboard internal JSON, `newId()`, remap edge dalam seleksi, drop edge lintas seleksi, offset +24, cap 1000 guard |
+| Boundary container | ✅ Tool B, drag-to-size, render selalu di belakang, bukan target edge, popover label/color |
+| Shape + arrowhead styles | ✅ Render 4 shape baru (`shapePath`); marker none/open/solid/diamond/circle (default solid utk edge baru) |
+| Z-order + resize | ✅ Bring forward/Send backward di toolbar seleksi; resize handle bottom-right (shape/sticky/boundary, min size, ikut snap) |
+| Text wrap | ✅ text `w?` → render multiline via wrapToWidth; popover Shift+Enter newline |
+| Ref entity lain | ✅ RefPicker multi-entity (testCases/milestones/techEntries/decisions/tables/apiCollections/apiEndpoints); refDataMap meta per entity; `entityDeepLink` sudah support semua |
+| Export PNG/SVG | ✅ `export.ts` murni: `serializeWhiteboard` (viewBox = bounds elemen + margin 32, per-kind serialize: stroke/sticky/text wrap/shape label/edge orthogonal + arrowhead + label/boundary dashed/ref card expand+collapse); PNG via canvas 2×; tombol Export di toolbar shell (member-only, disabled saat kosong, menu PNG/SVG); `buildRefDataMap` diekstrak ke `ref-data.ts` (dipakai canvas + export) |
+| Docs & verifikasi | ✅ ADR-026 + roadmap; server+app test suite; lint; build; e2e journey labeled edge + copy/paste (journey ke-3 `whiteboard.spec.ts`) |
+
+**Verifikasi:** app 630/630 test (68 file), server 218/218 test (27 file), e2e whiteboard 3/3 journey, lint + build hijau.
+
+**Bug fix (ditemukan saat e2e M18):** zod v4 `.partial()` menerapkan `.default()` untuk key yang tidak dikirim — PATCH parsial (mis. `{elements}`) mereset field defaulted lain (mis. nama board → "Whiteboard"). Diperbaiki di `entity-router.ts` PATCH: merge hanya key yang hadir di request body + regression test (v1-granular: partial PATCH task/whiteboard mempertahankan field lain).
 
 Semua fitur edit di-gate `canEdit`/`readOnly` (public share aman). Port handles visual & auto-layout tetap defer.
+
+---
+
+## 11c. MCP Whiteboard Tools (ADR-023 follow-up)
+
+Menutup deferral ADR-023 ("MCP whiteboard tools"): agent AI kini bisa membuat & mengisi board whiteboard melalui MCP — 2 tool baru (total 20):
+
+| Tool | Isi |
+|---|---|
+| `create_whiteboard` | `projectId`, `name ≤100`, `description? ≤2000`, `elements[]? ≤1000` — elemen tanpa `id` otomatis diberi UUID server; validasi `whiteboardElementSchema` (discriminated union 7 kind: stroke/sticky/text/shape/edge/boundary/ref); cap 5 board/project → toolError |
+| `update_whiteboard` | `projectId`, `whiteboardId`, `{ name?, description?, elements[]? }` — `elements` = full replacement (per-element PATCH tetap defer); no-op update tidak menulis activity row (diff kosong) |
+
+- `LIMITS` schema + `WHITEBOARD_*` (anti-drift, pola audit MCP-2); `whiteboardSchema` di-state.ts kini memakai `LIMITS`.
+- Integrasi otomatis tanpa kerja ekstra: `saveState` transaksional (activity diff + broadcastSync) + viewer gate.
+- Verifikasi: server test suite (mcp-whiteboard.test.ts, 11 test: create/empty/rename/replace/no-op/caps 5-board/1000-elemen/malformed/unknown/viewer), lint, build hijau.
 
 ---
 
@@ -361,16 +380,15 @@ M26 v0.17.0 — redesign halaman `/profile` (ProfilePage + ProfileEditModal + CS
 
 | # | Item | Detail |
 |---|------|--------|
-| P1.1 Identity hero | Card full-width: avatar inisial 72px + accent ring (`--accent-ring`), nama 24px, email (bila displayName ada), bio, `Joined` dengan ikon Calendar; empty-state bio jadi tombol inline "Add a bio — tell your team what you build." → buka edit modal; tombol Edit profile kanan atas |
-| P1.2 Stats row | 3 tile (Teams / Projects / Active API keys) dari `useTeams`/`useProjects`/`api.listKeys` (filter `!revokedAt`); skeleton saat loading (`.skeleton-row-sm`), nilai `—` bila fetch keys gagal (silent fail); grid 3 kolom → 1 kolom <900px |
-| P1.3 Settings grid | 2 kolom (`minmax(0,1.6fr) + minmax(0,1fr)`, stack <900px): panel **Security** (form ganti password, `max-width` 440px, hint "Change your password regularly.") + panel **Account** (rows Email / Member since / Account ID `font-mono` + `title` attr; link API keys & MCP guide dengan ArrowRight) |
-| P1.4 Modal | ProfileEditModal: helper bio jadi char counter `n / 500 characters`; logika dirty/save tidak berubah |
-| P1.5 Tests | `ProfilePage.test.tsx` baru (8 kasus, pola `KeysPage.test.tsx`): identitas, stats (teams/projects/keys aktif + revoked excluded), error keys → `—`, empty-bio → modal, save edit → `updateProfile` + tutup modal, mismatch password error, sukses ganti password, Account ID + link |
-| P1.6 MCP | Tool baru `add_milestone` (projectId, name, status? default `planned`, version?, targetDate?, changelog?) — milestone M26 dibuat lewat tool ini; test `mcp-milestone.test.ts` (4 kasus: default planned, lengkap, empty name `-32602`, round-trip add→update); docs tabel tools di `mcp-integration.md`/`README.md`/`prd.md`/`technical-design.md` |
+| P1.1 Identity hero | Band flat (non-box, hairline bawah): avatar inisial 80px + accent ring + inset highlight, nama 28px, email (bila displayName ada), bio, meta chip `Joined <date>` (pill hairline); tombol Edit profile kanan atas; empty-state bio jadi tombol inline "Add a bio — tell your team what you build." → buka edit modal |
+| P1.2 Tabs | Hero + tab `Profile / Security / Account` (pola `.sub-tabs` existing, `role="tablist"`/`tab` + `aria-selected`, URL `?tab=` via `useSearchParams` default `profile`): **Profile** = stats strip (3 item: Teams/Projects/Active API keys, ikon duotone flat + angka tabular, divider vertikal) + related links (API keys/MCP guide); **Security** = action row Password + desc + tombol Change password → modal; **Account** = rows Email/Member since/Account ID (`font-mono` + `title`); stats dari `useTeams`/`useProjects`/`api.listKeys` (filter `!revokedAt`), skeleton saat loading, `—` bila gagal |
+| P1.3 Modal | ChangePasswordModal baru (reset via `useEffect([open])`, `width="sm"`, footer Cancel + "Update password", disabled bila field kosong, sukses → state sukses role=status + tombol Done; toggle show/hide Eye/EyeSlash di field New + Confirm via prop `rightSlot` baru di `Input`); ProfileEditModal: bio char counter `n / 500 characters` |
+| P1.4 Tests | `ProfilePage.test.tsx` (11 kasus, pola `KeysPage.test.tsx`): identitas, stats (teams/projects/keys aktif + revoked excluded), error keys → `—`, empty-bio → modal, save edit, switch tab + `aria-selected`, buka modal via tab Security, mismatch password error, sukses ganti password + modal tetap terbuka, toggle reveal, Account ID + links |
+| P1.5 MCP | Tool baru `add_milestone` (projectId, name, status? default `planned`, version?, targetDate?, changelog?) — milestone M26 dibuat lewat tool ini; test `mcp-milestone.test.ts` (4 kasus: default planned, lengkap, empty name `-32602`, round-trip add→update); docs tabel tools di `mcp-integration.md`/`README.md`/`prd.md`/`technical-design.md` |
 
-**Selesai (2026-08-19):** P1.1–P1.6 ✅ — page `/profile` terstruktur ulang (hero → stats → settings grid), modal dengan char counter, 8 test baru ProfilePage, tool MCP `add_milestone` (21 tools total) + 4 test, docs sinkron.
+**Selesai (2026-08-19):** P1.1–P1.5 ✅ — page `/profile` = hero band + tab Profile/Security/Account (URL `?tab=`), stats + links di Profile, change password di modal (toggle show/hide), account rows di tab Account; 11 test baru ProfilePage, tool MCP `add_milestone` (21 tools total) + 4 test, docs sinkron.
 
-**Verifikasi:** server 236 + app 660 tests, lint hijau, build app + server hijau.
+**Verifikasi:** server 236 + app 663 tests, lint hijau, build app + server hijau.
 
 ---
 

@@ -1,8 +1,8 @@
 import { newId } from '../../lib/utils';
-import type { WhiteboardRef, WhiteboardShape, WhiteboardSticky, WhiteboardStroke, WhiteboardText } from '../../lib/types';
+import type { WhiteboardBoundary, WhiteboardRef, WhiteboardRefEntity, WhiteboardShape, WhiteboardSticky, WhiteboardStroke, WhiteboardText } from '../../lib/types';
 
 /** Tools that draw on the canvas. `select` pans/zooms (and later selects). */
-export type WbTool = 'select' | 'marquee' | 'pen' | 'eraser' | 'text' | 'sticky' | 'shape' | 'edge' | 'ref';
+export type WbTool = 'select' | 'marquee' | 'pen' | 'eraser' | 'text' | 'sticky' | 'shape' | 'edge' | 'ref' | 'boundary';
 
 export const PEN_COLOR = '#e4e4e7';
 export const ERASER_COLOR = '#8a8a93';
@@ -13,6 +13,7 @@ export const THINNING = 2;
 export const STICKY_COLOR = '#e8b955';
 export const TEXT_COLOR = '#e4e4e7';
 export const SHAPE_COLOR = '#6ea8fe';
+export const BOUNDARY_COLOR = '#6ea8fe';
 
 export const STICKY_W = 200;
 export const STICKY_H = 120;
@@ -62,11 +63,16 @@ export function buildText(x: number, y: number, color: string = TEXT_COLOR): Whi
   return { id: newId(), kind: 'text', x, y, color, fontSize: TEXT_FONT_SIZE, text: '' };
 }
 
-export function buildShape(x: number, y: number, color: string = SHAPE_COLOR): WhiteboardShape {
+export function buildShape(
+  x: number,
+  y: number,
+  color: string = SHAPE_COLOR,
+  shapeType: WhiteboardShape['shapeType'] = 'rect',
+): WhiteboardShape {
   return {
     id: newId(),
     kind: 'shape',
-    shapeType: 'rect',
+    shapeType,
     x,
     y,
     w: SHAPE_W,
@@ -78,6 +84,10 @@ export function buildShape(x: number, y: number, color: string = SHAPE_COLOR): W
   };
 }
 
-export function buildRef(x: number, y: number, entity: 'tasks' | 'issues', entityId: string): WhiteboardRef {
+export function buildRef(x: number, y: number, entity: WhiteboardRefEntity, entityId: string): WhiteboardRef {
   return { id: newId(), kind: 'ref', entity, entityId, x, y };
+}
+
+export function buildBoundary(x: number, y: number, w: number, h: number, color: string = BOUNDARY_COLOR): WhiteboardBoundary {
+  return { id: newId(), kind: 'boundary', x, y, w, h, color, label: '' };
 }

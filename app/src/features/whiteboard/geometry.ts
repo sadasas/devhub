@@ -1,4 +1,4 @@
-import type { WhiteboardElement } from '../../lib/types';
+import type { WhiteboardElement, WhiteboardShape } from '../../lib/types';
 
 export interface ViewState {
   x: number;
@@ -226,6 +226,41 @@ function approxTextWidth(text: string, fontSize: number, weight = 400): number {
   return measureTextWidth(text, fontSize, weight);
 }
 
+export function shapePath(shape: WhiteboardShape): string {
+  const { x, y, w, h } = shape;
+  switch (shape.shapeType) {
+    case 'diamond':
+      return `M ${x + w / 2} ${y} L ${x + w} ${y + h / 2} L ${x + w / 2} ${y + h} L ${x} ${y + h / 2} Z`;
+    case 'ellipse':
+      return `M ${x + w / 2} ${y} a ${w / 2} ${h / 2} 0 1 0 0.01 0 Z`;
+    case 'cylinder': {
+      const ry = Math.max(2, h * 0.2);
+      const cy = y + ry;
+      return `M ${x} ${cy} a ${w / 2} ${ry} 0 0 0 ${w} 0 v ${h - 2 * ry} a ${w / 2} ${ry} 0 0 1 ${-w} 0 Z`;
+    }
+    case 'parallelogram':
+      return `M ${x + w * 0.25} ${y} L ${x + w} ${y} L ${x + w * 0.75} ${y + h} L ${x} ${y + h} Z`;
+    case 'hexagon':
+      return `M ${x + w / 2} ${y} L ${x + w} ${y + h * 0.25} L ${x + w} ${y + h * 0.75} L ${x + w / 2} ${y + h} L ${x} ${y + h * 0.75} L ${x} ${y + h * 0.25} Z`;
+    case 'roundedRect': {
+      const r = Math.min(w, h) / 4;
+      return `M ${x + r} ${y} h ${w - 2 * r} a ${r} ${r} 0 0 1 ${r} ${r} v ${h - 2 * r} a ${r} ${r} 0 0 1 ${-r} ${r} h ${-(w - 2 * r)} a ${r} ${r} 0 0 1 ${-r} ${-r} v ${-(h - 2 * r)} a ${r} ${r} 0 0 1 ${r} ${-r} Z`;
+    }
+    default:
+      return `M ${x} ${y} h ${w} v ${h} h ${-w} Z`;
+  }
+}
+
+/** Line height used when rendering wrapped text elements (matches sticky line spacing). */
+export function textLineHeight(fontSize: number): number {
+  return Math.ceil(fontSize * 1.35);
+}
+
+/** Wraps text to maxWidth line by line, preserving explicit newlines (Shift+Enter). */
+export function wrapTextLines(text: string, fontSize: number, maxWidth: number): string[] {
+  return text.split('\n').flatMap((line) => wrapToWidth(line, fontSize, maxWidth));
+}
+
 export function elementBounds(el: Partial<WhiteboardElement> & { kind: string }): Rect {
   switch (el.kind) {
     case 'stroke': {
@@ -246,10 +281,19 @@ export function elementBounds(el: Partial<WhiteboardElement> & { kind: string })
     }
     case 'sticky':
     case 'shape':
+    case 'boundary':
       return { x: el.x ?? 0, y: el.y ?? 0, w: el.w ?? 0, h: el.h ?? 0 };
     case 'text': {
-      const w = approxTextWidth(el.text ?? '', el.fontSize ?? 16);
-      return { x: el.x ?? 0, y: (el.y ?? 0) - (el.fontSize ?? 16), w, h: (el.fontSize ?? 16) + 4 };
+      const fontSize = el.fontSize ?? 16;
+      const x = el.x ?? 0;
+      const y = (el.y ?? 0) - fontSize;
+      const wrapW = el.w ?? 0;
+      if (wrapW > 0) {
+        const lines = wrapTextLines(el.text ?? '', fontSize, wrapW);
+        return { x, y, w: wrapW, h: lines.length * textLineHeight(fontSize) + 2 };
+      }
+      const w = approxTextWidth(el.text ?? '', fontSize);
+      return { x, y, w, h: fontSize + 4 };
     }
     case 'edge': {
       const x1 = el.x1 ?? 0;
@@ -267,6 +311,125 @@ export function elementBounds(el: Partial<WhiteboardElement> & { kind: string })
 
 export function rectsIntersect(a: Rect, b: Rect): boolean {
   return a.x <= b.x + b.w && a.x + a.w >= b.x && a.y <= b.y + b.h && a.y + a.h >= b.y;
+}
+
+export function unionBounds(rects: Rect[]): Rect {
+  if (rects.length === 0) return { x: 0, y: 0, w: 0, h: 0 };
+  const minX = Math.min(...rects.map((r) => r.x));
+  const minY = Math.min(...rects.map((r) => r.y));
+  const maxX = Math.max(...rects.map((r) => r.x + r.w));
+  const maxY = Math.max(...rects.map((r) => r.y + r.h));
+  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+}
+
+export const SNAP_STEP = 32;
+export const SNAP_RADIUS = 8;
+export const ALIGN_RADIUS = 4;
+
+export function snapToGrid(value: number, step = SNAP_STEP, radius = SNAP_RADIUS): number {
+  const mod = value % step;
+  if (Math.abs(mod) <= radius) return value - mod;
+  if (Math.abs(mod - step) <= radius) return value - mod + step;
+  return value;
+}
+
+export interface Guide {
+  axis: 'x' | 'y';
+  coord: number;
+  min: number;
+  max: number;
+}
+
+function rectEdges(rect: Rect): { x: number[]; y: number[] } {
+  const cx = rect.x + rect.w / 2;
+  const cy = rect.y + rect.h / 2;
+  return {
+    x: [rect.x, cx, rect.x + rect.w],
+    y: [rect.y, cy, rect.y + rect.h],
+  };
+}
+
+/** Alignment guides between the moving selection bounds and other element bounds. */
+export function alignmentGuides(bounds: Rect, others: Rect[]): { guides: Guide[]; dx: number; dy: number } {
+  const moving = rectEdges(bounds);
+  const guides: Guide[] = [];
+  let dx = 0;
+  let dy = 0;
+  for (const other of others) {
+    const edges = rectEdges(other);
+    for (const mx of moving.x) {
+      for (const ox of edges.x) {
+        const d = ox - mx;
+        if (Math.abs(d) <= ALIGN_RADIUS && (dx === 0 || Math.abs(d) < Math.abs(dx))) dx = d;
+        if (Math.abs(d) <= ALIGN_RADIUS) {
+          guides.push({ axis: 'x', coord: ox, min: Math.min(bounds.y, other.y), max: Math.max(bounds.y + bounds.h, other.y + other.h) });
+        }
+      }
+    }
+    for (const my of moving.y) {
+      for (const oy of edges.y) {
+        const d = oy - my;
+        if (Math.abs(d) <= ALIGN_RADIUS && (dy === 0 || Math.abs(d) < Math.abs(dy))) dy = d;
+        if (Math.abs(d) <= ALIGN_RADIUS) {
+          guides.push({ axis: 'y', coord: oy, min: Math.min(bounds.x, other.x), max: Math.max(bounds.x + bounds.w, other.x + other.w) });
+        }
+      }
+    }
+  }
+  return { guides, dx, dy };
+}
+
+/** Spreads selected elements evenly between the first and last along an axis. */
+export function distributeSelection(
+  elements: Array<{ id: string; x: number; y: number; w: number; h: number }>,
+  ids: string[],
+  axis: 'x' | 'y',
+): Map<string, number> {
+  const sel = elements.filter((el) => ids.includes(el.id));
+  if (sel.length < 3) return new Map();
+  const sorted = [...sel].sort((a, b) => (axis === 'x' ? a.x - b.x : a.y - b.y));
+  const first = sorted[0]!;
+  const last = sorted[sorted.length - 1]!;
+  const firstPos = axis === 'x' ? first.x : first.y;
+  const lastPos = axis === 'x' ? last.x : last.y;
+  const gap = (lastPos - firstPos) / (sorted.length - 1);
+  const out = new Map<string, number>();
+  for (let i = 1; i < sorted.length - 1; i += 1) {
+    const el = sorted[i]!;
+    out.set(el.id, firstPos + gap * i);
+  }
+  return out;
+}
+
+export type AlignMode = 'left' | 'centerX' | 'right' | 'top' | 'middleY' | 'bottom';
+
+/** Aligns selected elements against the selection's bounding box along one axis. */
+export function alignSelection(
+  elements: Array<{ id: string; x: number; y: number; w: number; h: number }>,
+  ids: string[],
+  mode: AlignMode,
+): Map<string, { x: number; y: number }> {
+  const sel = elements.filter((el) => ids.includes(el.id));
+  if (sel.length < 2) return new Map();
+  const minX = Math.min(...sel.map((el) => el.x));
+  const maxX = Math.max(...sel.map((el) => el.x + el.w));
+  const minY = Math.min(...sel.map((el) => el.y));
+  const maxY = Math.max(...sel.map((el) => el.y + el.h));
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+  const out = new Map<string, { x: number; y: number }>();
+  for (const el of sel) {
+    let nx = el.x;
+    let ny = el.y;
+    if (mode === 'left') nx = minX;
+    else if (mode === 'centerX') nx = cx - el.w / 2;
+    else if (mode === 'right') nx = maxX - el.w;
+    if (mode === 'top') ny = minY;
+    else if (mode === 'middleY') ny = cy - el.h / 2;
+    else if (mode === 'bottom') ny = maxY - el.h;
+    out.set(el.id, { x: nx, y: ny });
+  }
+  return out;
 }
 
 /** World-space viewport rect for a canvas of w×h pixels under a view transform. */

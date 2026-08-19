@@ -12,7 +12,7 @@ const ELEMENTS_DESCRIPTION =
   '{ kind: "text", x: 0, y: 0, color: "#e4e4e7", fontSize: 16, text: "title" }, ' +
   '{ kind: "shape", shapeType: "rect", x: 0, y: 0, w: 120, h: 80, color: "#6ea8fe", fill: false, strokeWidth: 2, label: "" }, ' +
   '{ kind: "boundary", x: 0, y: 0, w: 300, h: 200, color: "#6ea8fe", label: "" }, ' +
-  '{ kind: "edge", x1: 0, y1: 0, x2: 200, y2: 0, color: "#8b5cf6", width: 2, arrowhead: true, arrowStyle: "solid", label: "", sourceNodeId: null, targetNodeId: null }, ' +
+  '{ kind: "edge", x1: 0, y1: 0, x2: 200, y2: 0, color: "#8b5cf6", width: 2, arrowhead: true, arrowStyle: "solid", dash: "solid", label: "", sourceNodeId: null, targetNodeId: null }, ' +
   '{ kind: "ref", entity: "tasks", entityId: "<task-uuid>", x: 0, y: 0 }';
 
 const inputSchema = z.object({

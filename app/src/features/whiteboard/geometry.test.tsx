@@ -1,16 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import type { Whiteboard } from '../../lib/types';
+import type { Whiteboard, WhiteboardShape, WhiteboardShapeType } from '../../lib/types';
 import {
+  alignmentGuides,
+  alignSelection,
   clampPopover,
+  distributeSelection,
   elementBounds,
   panBy,
   refCardLayout,
   refCardRect,
   screenToWorld,
+  shapePath,
+  snapToGrid,
   TEXT_LINE_H,
+  textLineHeight,
   wrapText,
+  wrapTextLines,
   wrapToWidth,
   worldToScreen,
   worldViewportRect,
@@ -18,6 +25,90 @@ import {
   type RefCardData,
 } from './geometry';
 import { WhiteboardCanvas } from './WhiteboardCanvas';
+
+
+describe('snapToGrid', () => {
+  it('snaps within radius and keeps values outside', () => {
+    expect(snapToGrid(34)).toBe(32);
+    expect(snapToGrid(39)).toBe(32);
+    expect(snapToGrid(41)).toBe(41);
+    expect(snapToGrid(30)).toBe(32);
+    expect(snapToGrid(23)).toBe(23);
+    expect(snapToGrid(63)).toBe(64);
+  });
+});
+
+describe('alignmentGuides', () => {
+  it('finds guides within 4px and returns the snap delta', () => {
+    const moving = { x: 100, y: 100, w: 40, h: 20 };
+    const other = { x: 200, y: 102, w: 40, h: 20 };
+    const { guides, dy } = alignmentGuides(moving, [other]);
+    expect(guides.length).toBeGreaterThan(0);
+    expect(dy).toBe(2);
+    expect(guides.some((g) => g.axis === 'y' && g.coord === 102)).toBe(true);
+  });
+
+  it('returns no guides beyond the radius', () => {
+    const moving = { x: 100, y: 100, w: 40, h: 20 };
+    const other = { x: 200, y: 130, w: 40, h: 20 };
+    const { guides, dx, dy } = alignmentGuides(moving, [other]);
+    expect(guides).toHaveLength(0);
+    expect(dx).toBe(0);
+    expect(dy).toBe(0);
+  });
+});
+
+describe('alignSelection', () => {
+  const els = [
+    { id: 'a', x: 10, y: 20, w: 20, h: 10 },
+    { id: 'b', x: 60, y: 60, w: 30, h: 20 },
+  ];
+  it('aligns left to the selection min-x', () => {
+    const out = alignSelection(els, ['a', 'b'], 'left');
+    expect(out.get('b')).toEqual({ x: 10, y: 60 });
+  });
+  it('aligns right to the selection max-x edge', () => {
+    const out = alignSelection(els, ['a', 'b'], 'right');
+    expect(out.get('a')).toEqual({ x: 70, y: 20 });
+  });
+  it('centers horizontally on the bounding box center', () => {
+    const out = alignSelection(els, ['a', 'b'], 'centerX');
+    expect(out.get('a')!.x).toBeCloseTo(40);
+    expect(out.get('b')!.x).toBeCloseTo(35);
+  });
+  it('aligns top / middle / bottom on y', () => {
+    const top = alignSelection(els, ['a', 'b'], 'top');
+    expect(top.get('b')).toEqual({ x: 60, y: 20 });
+    const bottom = alignSelection(els, ['a', 'b'], 'bottom');
+    expect(bottom.get('a')).toEqual({ x: 10, y: 70 });
+    const middle = alignSelection(els, ['a', 'b'], 'middleY');
+    expect(middle.get('a')!.y).toBeCloseTo(45);
+    expect(middle.get('b')!.y).toBeCloseTo(40);
+  });
+  it('requires at least 2 selected', () => {
+    expect(alignSelection(els, ['a'], 'left').size).toBe(0);
+  });
+});
+
+describe('distributeSelection', () => {
+  const els = [
+    { id: 'a', x: 0, y: 0, w: 10, h: 10 },
+    { id: 'b', x: 30, y: 0, w: 10, h: 10 },
+    { id: 'c', x: 90, y: 0, w: 10, h: 10 },
+  ];
+  it('spreads selected elements evenly on x', () => {
+    const out = distributeSelection(els, ['a', 'b', 'c'], 'x');
+    expect(out.get('b')).toBe(45);
+  });
+  it('spreads on y', () => {
+    const ys = els.map((e) => ({ ...e, y: e.x, x: 0 }));
+    const out = distributeSelection(ys, ['a', 'b', 'c'], 'y');
+    expect(out.get('b')).toBe(45);
+  });
+  it('requires at least 3 selected', () => {
+    expect(distributeSelection(els, ['a', 'b'], 'x').size).toBe(0);
+  });
+});
 
 const useProjectMock = vi.hoisted(() => vi.fn());
 
@@ -121,6 +212,8 @@ describe('geometry', () => {
     const edge = elementBounds({
       id: 'e',
       kind: 'edge',
+          label: '',
+          arrowStyle: 'solid',
       x1: 0,
       y1: 0,
       x2: 100,
@@ -159,6 +252,48 @@ describe('geometry', () => {
     expect(wrapText('one two three four', 10, 2)).toEqual(['one two', 'three four']);
     expect(wrapText('a '.repeat(50).trim(), 10, 2)).toHaveLength(2);
     expect(wrapText('short', 10, 3)).toEqual(['short']);
+  });
+
+  it('wraps text elements per line, preserving explicit newlines', () => {
+    const lines = wrapTextLines('first line\nsecond line', 16, 200);
+    expect(lines).toEqual(['first line', 'second line']);
+    const wrapped = wrapTextLines('one two three four five six seven eight', 16, 90);
+    expect(wrapped.length).toBeGreaterThan(1);
+    expect(wrapped.join(' ')).toBe('one two three four five six seven eight');
+    expect(wrapTextLines('', 16, 100)).toEqual([]);
+  });
+
+  it('sizes wrapped text elements by their wrap width and line count', () => {
+    const el = {
+      id: 't1',
+      kind: 'text' as const,
+      x: 30,
+      y: 40,
+      color: '#e4e4e7',
+      fontSize: 16,
+      text: 'alpha beta gamma delta epsilon zeta eta theta',
+      w: 80,
+    };
+    const bounds = elementBounds(el);
+    expect(bounds.x).toBe(30);
+    expect(bounds.y).toBe(24);
+    expect(bounds.w).toBe(80);
+    expect(bounds.h).toBeGreaterThan(20);
+    expect(bounds.h).toBe(wrapTextLines(el.text, 16, 80).length * textLineHeight(16) + 2);
+  });
+
+  it('keeps single-line bounds for text without a wrap width', () => {
+    const bounds = elementBounds({
+      id: 't2',
+      kind: 'text',
+      x: 30,
+      y: 40,
+      color: '#e4e4e7',
+      fontSize: 16,
+      text: 'Hi',
+    });
+    expect(bounds.w).toBeGreaterThan(0);
+    expect(bounds.h).toBe(20);
   });
 
   it('exposes the text line height used by sticky labels', () => {
@@ -290,6 +425,53 @@ describe('WhiteboardCanvas', () => {
       'Whiteboard Plan — 2 elements',
     );
   });
+
+  it('renders wrapped text as tspans when a wrap width is set and a single line otherwise', () => {
+    const board: Whiteboard = {
+      id: 'wb1',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      authorId: null,
+      name: 'Plan',
+      description: '',
+      elements: [
+        {
+          id: 't1',
+          kind: 'text',
+          x: 10,
+          y: 20,
+          color: '#e4e4e7',
+          fontSize: 16,
+          text: 'alpha beta gamma delta epsilon zeta eta theta',
+          w: 80,
+        },
+        {
+          id: 't2',
+          kind: 'text',
+          x: 10,
+          y: 60,
+          color: '#e4e4e7',
+          fontSize: 16,
+          text: 'plain',
+        },
+      ],
+    };
+    render(
+      <MemoryRouter>
+        <WhiteboardCanvas
+          board={board}
+          tool="select"
+          history={{ canUndo: false, canRedo: false, record: () => {}, undo: () => {}, redo: () => {} }}
+        />
+      </MemoryRouter>,
+    );
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    const tspans = svg.querySelectorAll('text tspan');
+    expect(tspans.length).toBeGreaterThanOrEqual(1);
+    const single = Array.from(svg.querySelectorAll('text')).filter((t) => t.textContent === 'plain');
+    expect(single).toHaveLength(1);
+    expect(single[0]!.querySelector('tspan')).toBeNull();
+  });
 });
 
 describe('clampPopover', () => {
@@ -321,4 +503,47 @@ describe('clampPopover', () => {
     expect(pos.x).toBe(8);
     expect(pos.y).toBe(8);
   });
+describe('shapePath', () => {
+  const shape = (shapeType: WhiteboardShapeType): WhiteboardShape => ({
+    id: 's1',
+    kind: 'shape',
+    shapeType,
+    x: 0,
+    y: 0,
+    w: 100,
+    h: 60,
+    color: '#6ea8fe',
+    fill: false,
+    strokeWidth: 2,
+    label: '',
+  });
+  it('keeps the legacy shapes', () => {
+    expect(shapePath(shape('rect'))).toMatch(/^M 0 0 h 100 v 60 h -100 Z/);
+    expect(shapePath(shape('diamond'))).toContain('M 50 0 L 100 30');
+    expect(shapePath(shape('ellipse'))).toContain('a 50 30 0 1 0 0.01 0');
+  });
+  it('draws a parallelogram with a skew', () => {
+    const d = shapePath(shape('parallelogram'));
+    expect(d).toContain('M 25 0 L 100 0');
+    expect(d).toContain('L 75 60 L 0 60');
+    expect(d.endsWith('Z')).toBe(true);
+  });
+  it('draws a hexagon with six points', () => {
+    const d = shapePath(shape('hexagon'));
+    expect(d).toContain('M 50 0 L 100 15');
+    expect(d).toContain('L 100 45 L 50 60 L 0 45 L 0 15');
+    expect(d.endsWith('Z')).toBe(true);
+  });
+  it('draws a rounded rect with arcs', () => {
+    const d = shapePath(shape('roundedRect'));
+    expect(d).toMatch(/a 15 15 0 0 1 15 15/);
+    expect(d.endsWith('Z')).toBe(true);
+  });
+  it('draws a cylinder with elliptical caps', () => {
+    const d = shapePath(shape('cylinder'));
+    expect(d).toContain('a 50 12 0 0 0 100 0');
+    expect(d).toContain('a 50 12 0 0 1 -100 0');
+  });
+});
+
 });

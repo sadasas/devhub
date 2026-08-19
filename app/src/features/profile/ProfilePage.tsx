@@ -1,29 +1,31 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import {
   ArrowRight,
   CalendarBlank,
   FolderSimple,
+  IdentificationBadge,
   Key,
   LockKey,
   PencilSimple,
-  User,
+  UserCircle,
   UsersThree,
 } from '@phosphor-icons/react';
-import { ApiError, api } from '../../lib/api';
+import { api } from '../../lib/api';
 import { formatDate } from '../../lib/utils';
 import { initialsOf } from '../../lib/initials';
 import type { McpKey } from '../../lib/types';
 import { Button } from '../../components/Button';
-import { InlineError } from '../../components/InlineError';
-import { Input } from '../../components/Input';
 import { Skeleton } from '../../components/Skeleton';
+import { ChangePasswordModal } from './ChangePasswordModal';
 import { ProfileEditModal } from './ProfileEditModal';
 import { useAuth } from '../../state/auth-context';
 import { useProjects } from '../../state/projects-context';
 import { useTeams } from '../../state/teams-context';
 
-function StatTile({
+type ProfileTab = 'profile' | 'security' | 'account';
+
+function StatItem({
   icon,
   label,
   value,
@@ -37,18 +39,16 @@ function StatTile({
   error: boolean;
 }) {
   return (
-    <div className="profile-stat-tile">
-      <span className="profile-stat-icon" aria-hidden="true">
+    <div className="profile-stat">
+      <span className="profile-stat-label">
         {icon}
+        {label}
       </span>
-      <span className="profile-stat-meta">
-        {loading ? (
-          <Skeleton className="skeleton-row-sm" style={{ width: 44, height: 20 }} />
-        ) : (
-          <span className="profile-stat-value">{error ? '—' : value}</span>
-        )}
-        <span className="profile-stat-label">{label}</span>
-      </span>
+      {loading ? (
+        <Skeleton className="skeleton-row-sm" style={{ width: 44, height: 22 }} />
+      ) : (
+        <span className="profile-stat-value">{error ? '—' : value}</span>
+      )}
     </div>
   );
 }
@@ -60,12 +60,16 @@ export function ProfilePage() {
   const [keys, setKeys] = useState<McpKey[] | null>(null);
   const [keysError, setKeysError] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [changing, setChanging] = useState(false);
-  const [changeError, setChangeError] = useState<string | null>(null);
-  const [changeSuccess, setChangeSuccess] = useState(false);
+  const [changeOpen, setChangeOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const tabParam = searchParams.get('tab');
+  const tab: ProfileTab =
+    tabParam === 'security' || tabParam === 'account' ? tabParam : 'profile';
+
+  function setTab(next: ProfileTab) {
+    setSearchParams(next === 'profile' ? {} : { tab: next }, { replace: true });
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -87,28 +91,6 @@ export function ProfilePage() {
   const name = user.displayName.trim() || user.email;
   const hasDisplayName = user.displayName.trim() !== '';
   const activeKeys = keys?.filter((k) => !k.revokedAt).length ?? 0;
-
-  async function onChangePassword(e: React.FormEvent) {
-    e.preventDefault();
-    setChangeError(null);
-    setChangeSuccess(false);
-    if (newPassword !== confirmPassword) {
-      setChangeError('New password and confirmation do not match.');
-      return;
-    }
-    setChanging(true);
-    try {
-      await api.changePassword(currentPassword, newPassword);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setChangeSuccess(true);
-    } catch (err) {
-      setChangeError(err instanceof ApiError ? err.message : 'Failed to change password.');
-    } finally {
-      setChanging(false);
-    }
-  }
 
   return (
     <div className="page">
@@ -137,10 +119,12 @@ export function ProfilePage() {
               Add a bio — tell your team what you build.
             </button>
           )}
-          <p className="profile-hero-joined">
-            <CalendarBlank size={13} weight="duotone" aria-hidden="true" />
-            Joined {formatDate(user.createdAt)}
-          </p>
+          <div className="profile-hero-meta">
+            <span className="profile-chip">
+              <CalendarBlank size={12} weight="duotone" aria-hidden="true" />
+              Joined {formatDate(user.createdAt)}
+            </span>
+          </div>
         </div>
         <div className="profile-hero-actions">
           <Button
@@ -153,82 +137,95 @@ export function ProfilePage() {
         </div>
       </section>
 
-      <section className="profile-stats" aria-label="Account statistics">
-        <StatTile
-          icon={<UsersThree size={16} weight="duotone" aria-hidden="true" />}
-          label="Teams"
-          value={teams?.length ?? 0}
-          loading={teams === null}
-          error={false}
-        />
-        <StatTile
-          icon={<FolderSimple size={16} weight="duotone" aria-hidden="true" />}
-          label="Projects"
-          value={projects?.length ?? 0}
-          loading={projects === null}
-          error={false}
-        />
-        <StatTile
-          icon={<Key size={16} weight="duotone" aria-hidden="true" />}
-          label="Active API keys"
-          value={activeKeys}
-          loading={keys === null && !keysError}
-          error={keysError}
-        />
-      </section>
+      <div className="sub-tabs" role="tablist" aria-label="Profile sections">
+        <button
+          type="button"
+          role="tab"
+          className={`sub-tab ${tab === 'profile' ? 'sub-tab-active' : ''}`}
+          onClick={() => setTab('profile')}
+          aria-selected={tab === 'profile'}
+        >
+          <UserCircle size={13} aria-hidden="true" />
+          Profile
+        </button>
+        <button
+          type="button"
+          role="tab"
+          className={`sub-tab ${tab === 'security' ? 'sub-tab-active' : ''}`}
+          onClick={() => setTab('security')}
+          aria-selected={tab === 'security'}
+        >
+          <LockKey size={13} aria-hidden="true" />
+          Security
+        </button>
+        <button
+          type="button"
+          role="tab"
+          className={`sub-tab ${tab === 'account' ? 'sub-tab-active' : ''}`}
+          onClick={() => setTab('account')}
+          aria-selected={tab === 'account'}
+        >
+          <IdentificationBadge size={13} aria-hidden="true" />
+          Account
+        </button>
+      </div>
 
-      <div className="settings-grid">
-        <section className="settings-panel" aria-label="Security">
-          <h2 className="settings-panel-title">
-            <LockKey size={13} aria-hidden="true" />
-            Security
-          </h2>
-          <p className="settings-panel-hint">Change your password regularly.</p>
-          <form className="form-stack" onSubmit={(e) => void onChangePassword(e)}>
-            <Input
-              label="Current password"
-              type="password"
-              autoComplete="current-password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              required
+      {tab === 'profile' && (
+        <section className="profile-tab-panel" aria-label="Profile statistics">
+          <div className="profile-stats">
+            <StatItem
+              icon={<UsersThree size={16} weight="duotone" aria-hidden="true" />}
+              label="Teams"
+              value={teams?.length ?? 0}
+              loading={teams === null}
+              error={false}
             />
-            <Input
-              label="New password"
-              type="password"
-              autoComplete="new-password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              helper="At least 8 characters and different from the current password."
-              required
+            <StatItem
+              icon={<FolderSimple size={16} weight="duotone" aria-hidden="true" />}
+              label="Projects"
+              value={projects?.length ?? 0}
+              loading={projects === null}
+              error={false}
             />
-            <Input
-              label="Confirm new password"
-              type="password"
-              autoComplete="new-password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
+            <StatItem
+              icon={<Key size={16} weight="duotone" aria-hidden="true" />}
+              label="Active API keys"
+              value={activeKeys}
+              loading={keys === null && !keysError}
+              error={keysError}
             />
-            {changeError && <InlineError>{changeError}</InlineError>}
-            {changeSuccess && (
-              <p className="field-helper" role="status">
-                Password updated. Use it on your next login.
-              </p>
-            )}
-            <div>
-              <Button type="submit" loading={changing}>
-                Change password
-              </Button>
-            </div>
-          </form>
+          </div>
+          <nav className="settings-links" aria-label="Related pages">
+            <Link to="/keys">
+              API keys
+              <ArrowRight size={12} aria-hidden="true" />
+            </Link>
+            <Link to="/docs/mcp">
+              MCP guide
+              <ArrowRight size={12} aria-hidden="true" />
+            </Link>
+          </nav>
         </section>
+      )}
 
-        <section className="settings-panel" aria-label="Account">
-          <h2 className="settings-panel-title">
-            <User size={13} aria-hidden="true" />
-            Account
-          </h2>
+      {tab === 'security' && (
+        <section className="profile-tab-panel" aria-label="Security">
+          <div className="settings-action">
+            <div className="settings-action-main">
+              <span className="settings-action-title">Password</span>
+              <span className="settings-action-desc">
+                Use at least 8 characters, different from your current one.
+              </span>
+            </div>
+            <Button variant="secondary" onClick={() => setChangeOpen(true)}>
+              Change password
+            </Button>
+          </div>
+        </section>
+      )}
+
+      {tab === 'account' && (
+        <section className="profile-tab-panel" aria-label="Account details">
           <dl className="settings-rows">
             <div className="settings-row">
               <dt>Email</dt>
@@ -245,20 +242,11 @@ export function ProfilePage() {
               </dd>
             </div>
           </dl>
-          <nav className="settings-links" aria-label="Related pages">
-            <Link to="/keys">
-              API keys
-              <ArrowRight size={12} aria-hidden="true" />
-            </Link>
-            <Link to="/docs/mcp">
-              MCP guide
-              <ArrowRight size={12} aria-hidden="true" />
-            </Link>
-          </nav>
         </section>
-      </div>
+      )}
 
       <ProfileEditModal open={editOpen} onClose={() => setEditOpen(false)} />
+      <ChangePasswordModal open={changeOpen} onClose={() => setChangeOpen(false)} />
     </div>
   );
 }

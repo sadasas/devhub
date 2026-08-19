@@ -54,6 +54,7 @@ const EDGE_EL = {
   width: 2,
   arrowhead: true,
   arrowStyle: 'solid',
+  dash: 'dashed',
   label: 'flow',
   sourceNodeId: null,
   targetNodeId: null,
@@ -121,17 +122,17 @@ describe('MCP whiteboard tools', () => {
     expect(state.whiteboards[0]?.elements).toEqual([]);
   });
 
-  it('rejects a sixth board (five per project cap)', async () => {
+  it('rejects a 51st board (fifty per project cap)', async () => {
     const cookie = await register('wb-cap@test.dev');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
-    for (let i = 1; i <= 5; i += 1) {
+    for (let i = 1; i <= 50; i += 1) {
       await toolCall(key, 'create_whiteboard', { projectId, name: `Board ${i}` });
     }
-    const sixth = await toolCall(key, 'create_whiteboard', { projectId, name: 'Board 6' });
-    expect(sixth.body.result?.isError).toBe(true);
-    expect(sixth.body.result?.content?.[0]?.text).toContain('Whiteboard limit reached');
+    const fiftyFirst = await toolCall(key, 'create_whiteboard', { projectId, name: 'Board 51' });
+    expect(fiftyFirst.body.result?.isError).toBe(true);
+    expect(fiftyFirst.body.result?.content?.[0]?.text).toContain('Whiteboard limit reached');
   });
 
   it('rejects more than 1000 elements', async () => {
@@ -209,6 +210,7 @@ describe('MCP whiteboard tools', () => {
     const state = await fetchState(cookie, projectId);
     expect(state.whiteboards[0]?.elements).toHaveLength(1);
     expect(state.whiteboards[0]?.elements[0]?.kind).toBe('edge');
+    expect(state.whiteboards[0]?.elements[0]).toMatchObject({ dash: 'dashed', arrowStyle: 'solid' });
   });
 
   it('does not log a no-op update', async () => {

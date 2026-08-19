@@ -232,6 +232,8 @@ const whiteboardStrokeSchema = z.object({
   width: z.number().min(0.5).max(100).default(2),
   thinning: z.number().min(0).max(20).default(2),
   points: z.array(z.tuple([whiteboardCoord, whiteboardCoord])).min(2).max(2000),
+  locked: z.boolean().default(false),
+  groupId: z.string().uuid().nullable().default(null),
 });
 
 const whiteboardStickySchema = z.object({
@@ -243,6 +245,9 @@ const whiteboardStickySchema = z.object({
   h: z.number().min(20).max(2000),
   color: z.string().max(20).default('#e8b955'),
   text: z.string().max(500).default(''),
+  rotation: z.number().min(-360).max(360).default(0),
+  locked: z.boolean().default(false),
+  groupId: z.string().uuid().nullable().default(null),
 });
 
 const whiteboardTextSchema = z.object({
@@ -254,6 +259,9 @@ const whiteboardTextSchema = z.object({
   fontSize: z.number().min(8).max(200).default(16),
   text: z.string().max(1000).default(''),
   w: z.number().min(20).max(2000).nullable().optional(),
+  rotation: z.number().min(-360).max(360).default(0),
+  locked: z.boolean().default(false),
+  groupId: z.string().uuid().nullable().default(null),
 });
 
 const whiteboardShapeSchema = z.object({
@@ -268,6 +276,9 @@ const whiteboardShapeSchema = z.object({
   fill: z.boolean().default(false),
   strokeWidth: z.number().min(0.5).max(100).default(2),
   label: z.string().max(200).default(''),
+  rotation: z.number().min(-360).max(360).default(0),
+  locked: z.boolean().default(false),
+  groupId: z.string().uuid().nullable().default(null),
 });
 
 const whiteboardEdgeSchema = z.object({
@@ -282,6 +293,9 @@ const whiteboardEdgeSchema = z.object({
   arrowhead: z.boolean().default(false),
   label: z.string().max(200).default(''),
   arrowStyle: z.enum(['none', 'open', 'solid', 'diamond', 'circle']).default('none'),
+  dash: z.enum(['solid', 'dashed', 'dotted']).default('solid'),
+  locked: z.boolean().default(false),
+  groupId: z.string().uuid().nullable().default(null),
   sourceNodeId: whiteboardElementId.nullable().optional(),
   targetNodeId: whiteboardElementId.nullable().optional(),
   sourcePort: z.enum(['top', 'right', 'bottom', 'left']).nullable().optional(),
@@ -297,6 +311,8 @@ const whiteboardBoundarySchema = z.object({
   h: z.number().min(20).max(2000),
   color: z.string().max(20).default('#6ea8fe'),
   label: z.string().max(200).default(''),
+  locked: z.boolean().default(false),
+  groupId: z.string().uuid().nullable().default(null),
 });
 
 const whiteboardRefSchema = z.object({
@@ -306,6 +322,8 @@ const whiteboardRefSchema = z.object({
   entityId: z.string().uuid(),
   x: whiteboardCoord,
   y: whiteboardCoord,
+  locked: z.boolean().default(false),
+  groupId: z.string().uuid().nullable().default(null),
 });
 
 export const whiteboardElementSchema = z.discriminatedUnion('kind', [

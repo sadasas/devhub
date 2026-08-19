@@ -14,7 +14,7 @@ import { SortControl } from '../../components/SortControl';
 import { WhiteboardCard } from './WhiteboardCard';
 import { NewWhiteboardModal } from './NewWhiteboardModal';
 
-const MAX_BOARDS = 5;
+const MAX_BOARDS = 50;
 
 const BOARD_SORT_SPECS: SortSpec<Whiteboard>[] = [
   { key: 'updatedAt', label: 'Updated', get: (b) => b.updatedAt },

@@ -1,22 +1,25 @@
-import { useEffect, useRef, useState } from 'react';
-import { ArrowClockwise, ArrowCounterClockwise, ArrowLeft, ArrowsInSimple, ArrowsOutSimple, BoundingBox, Cards, Cursor, Eraser, FlowArrow, Note, PenNib, Selection, TextT } from '@phosphor-icons/react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowClockwise, ArrowCounterClockwise, ArrowLeft, ArrowsInSimple, ArrowsOutSimple, BoundingBox, Cards, Cursor, Eraser, Export, FlowArrow, FrameCorners, Note, PenNib, Selection, TextT } from '@phosphor-icons/react';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
-import type { Whiteboard } from '../../lib/types';
+import type { State, Whiteboard } from '../../lib/types';
 import { WhiteboardCanvas } from './WhiteboardCanvas';
 import { SHORTCUTS } from './shortcuts';
 import { isModalOrPaletteOpen, isTypingTarget } from '../../lib/keys';
 import type { WbTool } from './tools';
 import { useWhiteboardHistory } from './useWhiteboardHistory';
+import { buildRefDataMap } from './ref-data';
+import { downloadWhiteboardPdf, downloadWhiteboardPng, downloadWhiteboardSvg } from './export';
 
 interface WhiteboardEditorShellProps {
   board: Whiteboard;
+  state: State;
   onBack: () => void;
 }
 
 const WARN_ELEMENTS = 800;
 const MAX_ELEMENTS = 1000;
-const ADD_TOOLS: ReadonlySet<string> = new Set(['pen', 'text', 'sticky', 'shape', 'edge', 'ref']);
+const ADD_TOOLS: ReadonlySet<string> = new Set(['pen', 'text', 'sticky', 'shape', 'edge', 'ref', 'boundary']);
 
 const TOOLS = [
   { id: 'select', name: 'Select', icon: Cursor, shortcut: SHORTCUTS.select },
@@ -28,20 +31,40 @@ const TOOLS = [
   { id: 'shape', name: 'Shape', icon: BoundingBox, shortcut: SHORTCUTS.shape },
   { id: 'edge', name: 'Edge', icon: FlowArrow, shortcut: SHORTCUTS.edge },
   { id: 'ref', name: 'Entity ref card', icon: Cards, shortcut: SHORTCUTS.ref },
+  { id: 'boundary', name: 'Boundary', icon: FrameCorners, shortcut: SHORTCUTS.boundary },
 ] as const;
 
-const ACTIVE_TOOLS: ReadonlySet<string> = new Set(['select', 'marquee', 'pen', 'eraser', 'text', 'sticky', 'shape', 'edge', 'ref']);
+const ACTIVE_TOOLS: ReadonlySet<string> = new Set(['select', 'marquee', 'pen', 'eraser', 'text', 'sticky', 'shape', 'edge', 'ref', 'boundary']);
 
-export function WhiteboardEditorShell({ board, onBack }: WhiteboardEditorShellProps) {
+export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditorShellProps) {
   const [tool, setTool] = useState<WbTool>('select');
   const history = useWhiteboardHistory(board.id, board.elements);
   const historyRef = useRef(history);
   historyRef.current = history;
   const shellRef = useRef<HTMLDivElement | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement | null>(null);
+  const refDataMap = useMemo(() => buildRefDataMap(board.elements, state), [board.elements, state]);
   const elementCount = board.elements.length;
   const nearCap = elementCount >= WARN_ELEMENTS;
   const atCap = elementCount >= MAX_ELEMENTS;
+
+  useEffect(() => {
+    if (!exportOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!exportMenuRef.current?.contains(e.target as Node)) setExportOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setExportOpen(false);
+    };
+    window.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [exportOpen]);
 
   const toggleFullscreen = () => {
     if (document.fullscreenElement) {
@@ -101,6 +124,8 @@ export function WhiteboardEditorShell({ board, onBack }: WhiteboardEditorShellPr
         setTool('edge');
       } else if (!atCap && key === SHORTCUTS.ref && ACTIVE_TOOLS.has('ref')) {
         setTool('ref');
+      } else if (!atCap && key === SHORTCUTS.boundary && ACTIVE_TOOLS.has('boundary')) {
+        setTool('boundary');
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -170,6 +195,57 @@ export function WhiteboardEditorShell({ board, onBack }: WhiteboardEditorShellPr
               <ArrowsOutSimple size={15} aria-hidden="true" />
             )}
           </button>
+          <span className="wb-export-wrap">
+            <button
+              type="button"
+              className="sub-tab"
+              disabled={elementCount === 0}
+              title={elementCount === 0 ? 'Export — the board is empty' : 'Export PNG/SVG'}
+              aria-label="Export diagram"
+              aria-haspopup="menu"
+              aria-expanded={exportOpen}
+              onClick={() => setExportOpen((open) => !open)}
+            >
+              <Export size={15} aria-hidden="true" />
+            </button>
+            {exportOpen && (
+              <div ref={exportMenuRef} className="wb-export-menu" role="menu" aria-label="Export diagram">
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="wb-export-item"
+                  onClick={() => {
+                    setExportOpen(false);
+                    downloadWhiteboardPng(board, refDataMap);
+                  }}
+                >
+                  PNG image
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="wb-export-item"
+                  onClick={() => {
+                    setExportOpen(false);
+                    downloadWhiteboardSvg(board, refDataMap);
+                  }}
+                >
+                  SVG image
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="wb-export-item"
+                  onClick={() => {
+                    setExportOpen(false);
+                    downloadWhiteboardPdf(board, refDataMap);
+                  }}
+                >
+                  PDF document
+                </button>
+              </div>
+            )}
+          </span>
         </div>
         {nearCap && (
           <div className={`wb-cap-banner${atCap ? ' wb-cap-banner-danger' : ''}`} role="alert">

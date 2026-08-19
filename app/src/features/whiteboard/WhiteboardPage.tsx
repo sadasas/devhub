@@ -29,6 +29,7 @@ export function WhiteboardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> 
       return (
         <WhiteboardEditorShell
           board={board}
+          state={state}
           onBack={() => {
             const next = new URLSearchParams(searchParams);
             next.delete('view');
