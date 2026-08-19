@@ -8,6 +8,7 @@ import { requireAuth, getUserId } from '../auth/middleware/requireAuth.js';
 import { SESSION_COOKIE, ApiError } from '../app.js';
 import { config } from '../config.js';
 import { withTransaction, parseOrThrow } from '../lib/db.js';
+import { computeUserStats } from '../lib/user-stats.js';
 
 const registerSchema = z.object({
   email: z.string().trim().toLowerCase().email('Invalid email').max(254),
@@ -176,6 +177,11 @@ authRouter.get('/me', requireAuth, async (req, res) => {
   const user = result.rows[0];
   if (!user) throw new ApiError(401, 'UNAUTHORIZED', 'User not found');
   res.json(toUser(user));
+});
+
+authRouter.get('/me/stats', requireAuth, async (req, res) => {
+  const userId = getUserId(req);
+  res.json(await computeUserStats(userId));
 });
 
 authRouter.patch('/profile', requireAuth, async (req, res) => {

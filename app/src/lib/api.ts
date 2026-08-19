@@ -15,6 +15,7 @@ import type {
   TeamMember,
   TeamRole,
   User,
+  UserStats,
 } from './types';
 import type { ProjectStats } from './stats';
 import type { ExportDocument } from './types';
@@ -178,6 +179,7 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(patch),
     }),
+  meStats: () => request<UserStats>('/auth/me/stats'),
 
   listProjects: async () => {
     const res = await request<{ projects: Project[] }>('/projects');

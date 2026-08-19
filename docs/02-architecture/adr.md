@@ -56,6 +56,7 @@
 | [ADR-036](#adr-036) | Envelope respons API: resource tunggal bare, koleksi dibungkus (unifikasi ditunda ke v2) | Accepted | 2026-08-19 |
 | [ADR-037](#adr-037) | Scope MCP: read/append-only, transport stateless POST-only, truncation project_state | Accepted | 2026-08-19 |
 | [ADR-038](#adr-038) | Pengecualian produk: viewer boleh menulis chat; fail-closed public sharing; strip unknown fields | Accepted | 2026-08-19 |
+| [ADR-039](#adr-039) | User stats endpoint: `GET /auth/me/stats` dari `activity_log` (GitHub-style profile stats) | Accepted | 2026-08-20 |
 
 ---
 
@@ -461,3 +462,18 @@
   - **Unknown fields di-strip** - perilaku zod `z.object` default dipertahankan dan didokumentasikan sebagai kontrak (bukan di-refactor ke `.strict()`; forward-compat klien lebih penting). PRD publik digate di belakang tab `about` (PUB-1).
 - **Consequences:** Positive - satu kesalahan konfigurasi sharing tidak lagi membuka semua data; perilaku strip tidak lagi kejutan; chat tetap ramah untuk kontributor ringan. Negative - admin harus eksplisit memilih tab publik (satu langkah lagi di ShareModal - UX dikompensasi default yang jelas); proyek lama yang di-publish tanpa tabs menjadi "kosong" sampai ShareModal diisi.
 - **Alternatives:** Blokir viewer di chat (ditolak user 2026-08-19: chat sosial, bukan state); mempertahankan fail-open (ditolak: eksposur data); `.strict()` pada jalur tulis (ditolak: memecah forward-compat klien offline-first, ADR-009).
+
+---
+
+### ADR-039
+**User stats endpoint: `GET /auth/me/stats` — agregasi per-user dari `activity_log`**
+
+- **Status:** Accepted (2026-08-20) - M27
+- **Context:** Profil butuh statistik gaya GitHub (total kontribusi, contribution heatmap 365 hari, tasks completed, issues resolved, streaks). Entity di `projects.data` punya `authorId` namun **client-supplied dan selalu null** — server tidak men-stamp-nya (entity-router dan MCP tidak mengirim), jadi tidak bisa dipakai untuk hitungan per-user. Satu-satunya jejak per-user yang dicap server adalah `activity_log.author_id` (+ `author_name`), dicatat untuk semua REST create/update/delete dan MCP saveState.
+- **Decision:**
+  - Endpoint baru `GET /api/v1/auth/me/stats` (auth-required, bare object per ADR-036) di `auth.routes.ts`, dihitung `lib/user-stats.ts`.
+  - Daily counts 365 hari (zero-filled via `generate_series`); `totalContributions` = jumlah window, `activeDays`, `currentStreak` (run berakhir hari ini; bila hari ini kosong mundur ke kemarin), `longestStreak`.
+  - `taskCompletions` = `entity='tasks' AND action='updated' AND changes @> '{"status":{"to":"done"}}'`; `issuesResolved` analog dengan status `resolved`. Menangkap transisi status dari activity — akurat untuk "kamu menyelesaikan N task", bukan status akhir.
+  - Index baru migrasi 017 `(author_id, created_at DESC)` untuk performa agregasi.
+- **Consequences:** Positive - statistik berbasis jejak server-authoritative, konsisten untuk REST + MCP, tanpa field baru di `projects.data`. Negative - angka dibatasi pruning activity (500/project, 50/entity) dan cluster-merge per menit → mencerminkan aktivitas terbaru, bukan audit all-time; heatmap tidak mencakup periode sebelum fitur activity (migrasi 011) atau sebelum user bergabung.
+- **Alternatives:** Menghitung dari `authorId` di `projects.data` (ditolak: tidak dapat diandalkan, null di semua jalur); scan `projects.data` per assignee untuk "tasks done by me" (ditolak: atribusi ke assignee ≠ kontributor, butuh scan semua project); loop `fetchActivity` per-project × N (ditolak: N request, limit 100/item, tidak scalable).

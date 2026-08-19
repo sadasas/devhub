@@ -458,3 +458,19 @@ export interface McpKey {
 export interface McpKeyCreated extends McpKey {
   key: string;
 }
+
+/** Statistik profil gaya GitHub (ADR-039), dihitung server dari activity_log. */
+export interface ActivityDay {
+  date: string;
+  count: number;
+}
+
+export interface UserStats {
+  totalContributions: number;
+  taskCompletions: number;
+  issuesResolved: number;
+  activeDays: number;
+  currentStreak: number;
+  longestStreak: number;
+  days: ActivityDay[];
+}

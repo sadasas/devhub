@@ -63,6 +63,7 @@ DevHub is a project management application designed specifically for **programmi
 | Templates | Save any project as a team-scoped template; instantiate fresh projects from it (`/templates`) |
 | Release Tracker | Per-milestone task lists in the release detail view |
 | Schema Diffing | Compare two saved schema versions — tables, columns, relations added/removed |
+| Profile | Two-column profile: identity card (avatar, bio, role, joined date) + GitHub-style stats — contribution heatmap (365 days), tasks completed, issues resolved, active days, current/longest streak (`/profile`) |
 
 ### V3 (planned — see [Roadmap](docs/01-project/roadmap.md))
 

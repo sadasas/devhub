@@ -18,6 +18,7 @@ const apiMock = vi.hoisted(() => {
     listKeys: vi.fn(),
     changePassword: vi.fn(),
     updateProfile: vi.fn(),
+    meStats: vi.fn(),
     ApiError,
   };
 });
@@ -44,6 +45,17 @@ const user: User = {
   createdAt: '2026-08-01T10:00:00.000Z',
 };
 
+// Nilai sengaja menghindari 1/2/3 agar tidak bentrok dengan statistik teams/projects/keys
+const statsMock = {
+  totalContributions: 44,
+  taskCompletions: 7,
+  issuesResolved: 8,
+  activeDays: 30,
+  currentStreak: 4,
+  longestStreak: 12,
+  days: [],
+};
+
 function renderPage() {
   return render(
     <MemoryRouter>
@@ -63,6 +75,7 @@ beforeEach(() => {
   projectsMock.useProjects.mockReturnValue({ projects: [] });
   apiMock.listKeys.mockResolvedValue([]);
   apiMock.changePassword.mockResolvedValue(undefined);
+  apiMock.meStats.mockResolvedValue(statsMock);
 });
 
 describe('ProfilePage', () => {
@@ -98,6 +111,29 @@ describe('ProfilePage', () => {
     renderPage();
 
     expect(await screen.findByText('—')).not.toBeNull();
+  });
+
+  it('shows GitHub-style activity stats: contributions, tasks completed and streaks', async () => {
+    renderPage();
+
+    expect(await screen.findByText(/contributions in the last year/i)).not.toBeNull();
+    expect(screen.getByText('44')).not.toBeNull();
+    expect(screen.getByText('Tasks completed')).not.toBeNull();
+    expect(screen.getByText('Issues resolved')).not.toBeNull();
+    expect(screen.getByText('Current streak')).not.toBeNull();
+    expect(screen.getByText('4d')).not.toBeNull();
+    expect(screen.getByText('Longest streak')).not.toBeNull();
+    expect(screen.getByText('12d')).not.toBeNull();
+  });
+
+  it('falls back to dash placeholders when stats fail to load', async () => {
+    apiMock.meStats.mockRejectedValue(new Error('offline'));
+
+    renderPage();
+
+    expect(await screen.findByText('Tasks completed')).not.toBeNull();
+    expect(screen.getAllByText('—').length).toBeGreaterThan(1);
+    expect(screen.queryByText(/contributions in the last year/i)).toBeNull();
   });
 
   it('opens the edit modal from the empty bio affordance', () => {

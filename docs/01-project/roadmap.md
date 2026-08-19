@@ -392,4 +392,45 @@ M26 v0.17.0 — redesign halaman `/profile` (ProfilePage + ProfileEditModal + CS
 
 ---
 
+## 22. Whiteboard Tools (M26b — v0.20.x)
+
+Sekuel whiteboard setelah M17/M18 (v0.11/0.12): kenaikan limit + serangkaian tool editing & navigasi + perbaikan render, diikuti fitur Releases (filter version + input mask). Schema extension zod-only (tanpa migrasi DB — precedent M17-M25); `LIMITS.WHITEBOARDS_PER_PROJECT` 5 → 50 (stateSchema `.max` ikut sinkron, single-source).
+
+| # | Item | Detail |
+|---|------|--------|
+| W1 Limit boards | `LIMITS.WHITEBOARDS_PER_PROJECT: 50` + `MAX_BOARDS` UI + test MCP (board ke-51 ditolak); stateSchema `.max(LIMITS...)` (lapis kedua yang sempat hardcode 5) |
+| W2 Render fixes | Sticky auto-wrap proporsional tinggi (`wrapTextLines` + `truncateToWidth`, ganti potong mentah 6 baris/27 char); chip label boundary kontras (font 12, `fillOpacity .25`, teks primary, faktor ukuran 7.5px/char) + clamp ke lebar boundary tanpa truncate normal; sinkron `export.ts` (SVG) |
+| W3 Align | `alignSelection` pure di `geometry.ts` (6 arah: left/centerX/right/top/middleY/bottom) + tombol di selection bar (≥2 elemen) |
+| W4 Templates | Modal New Board + picker (blank/kanban/CI-CD/roadmap/release-train/gitflow); preset elemen frontend (`templates.ts`), tanpa schema |
+| W5 Schema batch-2 | `edge.dash` (solid/dashed/dotted), `rotation` (shape/sticky/text, preset 0/90/180/270 + input), `locked` (semua kind; move/resize/delete/distribute/align/reorder skip), `groupId` (drag member = seluruh grup; Group/Ungroup di selection bar) — zod-only, MCP desc ikut |
+| W6 Batch-3 | Minimap (klik untuk pan), Ctrl+A select all (skip locked), snap toggle (`MagnetStraight`), export PDF (print dialog); tombol zoom UI mendapat style + state aktif |
+| W7 View only | Tool `view` (shortcut `V`, ikon `HandPointing`, posisi pertama toolbar): pan + zoom murni — klik tidak menyeleksi, drag tidak mengedit, double-click popover nonaktif; `TOOL_CURSOR` grab |
+| W8 Releases version | Input version hanya `[0-9.]` (New/MilestoneModal; `inputMode="decimal"`); normalisasi prefix `v` saat tampil (fix `vv0.20.0`); **sort Version semver-aware** (`compareVersions` numeric per segmen di `lib/compare-version.ts`, `SortSpec.compare` opsional). Filter by version dicoba lalu dihapus (tidak dipakai) |
+
+**Selesai (2026-08-19):** W1–W7 ✅ (v0.20.0 + v0.20.1) — commit `97a35fd` & `0e9c3a8`; milestone "Whiteboard tools" v0.20.0 released (16 task). W8 (v0.20.2) in progress.
+
+**Verifikasi:** app 663+ tests, server 236 tests, lint + `tsc -b` + build hijau (per commit).
+
+---
+
+## 23. Profile Stats — GitHub-style (M27 — ADR-039)
+
+M27 v0.21.0 — `/profile` di-redesign dua kolom (sidebar kartu identitas sticky + konten tab) dan tab **Profile** mendapat statistik gaya GitHub: **contribution heatmap** 7×53 (365 hari), total "N contributions in the last year", tile Tasks completed / Issues resolved / Active days / Current streak / Longest streak, plus kartu "Your teams" & "Your projects" dari data yang sudah ada. Riset platform: GitHub (heatmap + sidebar stats), Linear (profil/account split), shadcn Settings Profile 4 + Starwind (layout sidebar dua kolom). Data dari endpoint server baru `GET /api/v1/auth/me/stats` (ADR-039) yang menghitung dari `activity_log.author_id` (dicap server) — `authorId` entity di `projects.data` client-supplied dan tidak bisa diandalkan.
+
+| # | Item | Detail |
+|---|------|--------|
+| P1.1 Server | `lib/user-stats.ts` `computeUserStats` — query daily `activity_log` (generate_series 365 hari, zero-filled), `taskCompletions` (`entity='tasks' AND action='updated' AND changes @> '{"status":{"to":"done"}}'`), `issuesResolved` (status `resolved`); `computeStreaks` (current = run berakhir hari ini/kemarin, longest); endpoint `GET /auth/me/stats` di `auth.routes.ts` (bare object, ADR-036) |
+| P1.2 DB | Migrasi 017: index `activity_log (author_id, created_at DESC)` untuk agregasi per-user |
+| P1.3 App API | `UserStats`/`ActivityDay` di `lib/types.ts`; `api.meStats()` |
+| P1.4 Komponen | `ProfileStats.tsx` — heatmap CSS grid (level 0–4 skala accent emerald: `rgba(52,195,142, .22/.45/.72)` + `--accent`, cell 10px + tooltip + aria-label + tabIndex, label bulan + Mon/Wed/Fri, legend Less/More), header total, tile 5 statistik (skeleton loading, `—` bila error) |
+| P1.5 Layout | `ProfilePage.tsx` + CSS `.profile-*` — grid `280px 1fr` (collapse ≤860px), sidebar sticky: avatar 88px (`avatarColor(id)`), nama/email/bio + "Add a bio", chip Joined + role tertinggi (teams), tombol Edit full-width; tab Profile = heatmap + stats tiles (Teams/Projects/API keys tetap) + kartu Your teams/Your projects (link `/team/:id`, `/project/:id`) + related links; Security/Account dalam kartu `.profile-panel` |
+| P1.6 Tests | Server `stats.routes.test.ts` (6 kasus: 401, window 365 hari zero, counts per user, isolasi user, streak current/longest, streak dengan hari ini); app `ProfilePage.test.tsx` +2 (stats GitHub render, fallback `—`) |
+| P1.7 Docs | ADR-039 (sumber data `activity_log`, caveat pruning, index 017), roadmap M27, README row fitur |
+
+**Selesai (2026-08-20):** P1.1–P1.7 ✅ — endpoint `me/stats` + index 017 + 6 test server; ProfilePage dua kolom (sidebar sticky + tab konten) + heatmap emerald + 5 tile statistik + kartu teams/projects; app 674 + server 242 tests hijau, lint + build hijau.
+
+**Verifikasi:** server 242 + app 674 tests, lint, build app + server hijau.
+
+---
+
 *End of Roadmap.*
