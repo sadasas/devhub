@@ -4,7 +4,7 @@
 |---|---|
 | **Document status** | Active |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-19 |
+| **Last updated** | 2026-08-20 |
 
 ---
 
@@ -430,6 +430,22 @@ M27 v0.21.0 — `/profile` di-redesign dua kolom (sidebar kartu identitas sticky
 **Selesai (2026-08-20):** P1.1–P1.7 ✅ — endpoint `me/stats` + index 017 + 6 test server; ProfilePage dua kolom (sidebar sticky + tab konten) + heatmap emerald + 5 tile statistik + kartu teams/projects; app 674 + server 242 tests hijau, lint + build hijau.
 
 **Verifikasi:** server 242 + app 674 tests, lint, build app + server hijau.
+
+---
+
+## 24. Bundle Optimization & Route Skeletons (M28 — ADR-040)
+
+M28 v0.21.1 — entry bundle `index-*.js` 558 kB raw / 148 kB gz di atas budget ~200 kB gz. Semua halaman top-level diimpor statis di `App.tsx` (≈96 modul ikon ikut di entry; `@phosphor-icons/react@2.1.10` tidak punya subpath per-weight). Keputusan: **route-level `React.lazy`** + **per-route contentful skeletons**. Lihat [ADR-040](../02-architecture/adr.md#adr-040).
+
+| # | Item | Detail |
+|---|------|--------|
+| P1.1 Code splitting | 10 halaman top-level + `CommandPalette` pindah ke `React.lazy` + `<Suspense>` per route di `App.tsx` (pola existing `ProjectPage.tsx`); `AuthPage`/`Layout` tetap eager; `Splash` hanya untuk auth bootstrap; icon ter-dedupe ke shared chunk per-icon |
+| P1.2 Skeletons | `components/PageSkeletons.tsx` — 10 skeleton meniru layout asli (project-grid, kanban, data-list, docs-grid, profile-layout) memakai CSS class existing; `role="status"` + `aria-busy`, blok `aria-hidden`; CSS baru `.skeleton-btn`/`.skeleton-tab`/`.skeleton-avatar`; duplikasi kecil dengan TabSkeleton ProjectPage disengaja (anti-entry-chunk) |
+| P1.3 Verifikasi | Build: entry 558 → 263 kB raw (148 → 80 kB gz); app 672 tests hijau, lint hijau, SW precache 76 aset |
+
+**Selesai (2026-08-20):** P1.1–P1.3 ✅ — entry 263 kB raw / 80 kB gz, tiap route punya skeleton sesuai layout; ADR-040 + milestone M28 v0.21.1 tercatat di DevHub.
+
+**Verifikasi:** app 672 tests, lint, build app hijau (server tidak tersentuh).
 
 ---
 

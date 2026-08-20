@@ -55,7 +55,7 @@ DevHub is a project management application designed specifically for **programmi
 | Releases | Milestones with target dates, changelogs |
 | API Docs | Collections + endpoints inventory (headers, params, body, responses), read-only docs preview, MCP tools, OpenAPI 3.0.3 import/export (YAML/JSON) |
 | Stats | Estimates vs actuals, velocity, issue aging — SVG charts |
-| Global | Command Palette (Ctrl+K, `?`, `/`), keyboard shortcuts (`N` new item per tab, `Alt+1-9/0` + `[`/`]` tab switch), export/import JSON, URL routing (react-router) |
+| Global | Command Palette (Ctrl+K, `?`, `/`), keyboard shortcuts (`N` new item per tab, `Alt+1-9/0` + `[`/`]` tab switch), export/import JSON, URL routing (react-router) — route-level code splitting with contentful per-page loading skeletons |
 | Auth | Email + password, JWT httpOnly cookie, rate limiting, change password |
 | Teams | Workspaces with roles (owner/admin/editor/viewer), email invites (registered users only, 7-day expiry, accept/decline), member management, team-scoped project lists |
 | Sharing | Public read-only project pages at `/p/:projectId` — no login needed; per-tab visibility (choose which tabs are public) via the Share modal (owner/admin), copy link included |

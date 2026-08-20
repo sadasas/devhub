@@ -56,9 +56,11 @@ async function getDummyHash(): Promise<string> {
 }
 
 function setSessionCookie(res: Response, userId: string, version: number): void {
+  // Deploy lintas-situs (FE di Vercel, BE di Render) mewajibkan SameSite=None + Secure
+  // agar cookie sesi ikut dikirim pada fetch/XHR/WS lintas-origin. Produksi = cross-site.
   res.cookie(SESSION_COOKIE, signToken(userId, version), {
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: config.NODE_ENV === 'production' ? 'none' : 'lax',
     secure: config.COOKIE_SECURE,
     maxAge: JWT_TTL_SECONDS * 1000,
     path: '/',

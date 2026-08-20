@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: devhub-api
+    runtime: node
+    nodeVersion: 22.13.0
+    plan: free
+    buildCommand: npm ci && npm run build -w server
+    startCommand: npm run start -w server
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
+    # Deploy efisien (opsi A): Render hanya auto-deploy saat file backend berubah.
+    # Perubahan render.yaml selalu diproses blueprint (tidak terpengaruh filter).
+    buildFilter:
+      paths:
+        - server/**
+        - package.json
+        - package-lock.json
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: TRUST_PROXY
+        value: "true"
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false

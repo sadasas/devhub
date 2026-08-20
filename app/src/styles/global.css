@@ -841,6 +841,24 @@ a:hover {
   width: 20%;
 }
 
+/* Bentuk khusus skeleton halaman (page skeletons): tombol aksi header,
+   pil tab, dan avatar bulat. */
+.skeleton-btn {
+  height: 32px;
+  width: 96px;
+}
+
+.skeleton-tab {
+  height: 36px;
+  width: 84px;
+}
+
+.skeleton-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+}
+
 /* ============================================================
    Primitives — Empty state
    ============================================================ */
