@@ -4,6 +4,7 @@ COPY package.json package-lock.json ./
 COPY server/package.json server/package.json
 RUN npm ci --workspace=server --include-workspace-root
 COPY server/tsconfig.json server/tsconfig.json
+COPY server/scripts server/scripts
 COPY server/src server/src
 RUN npm run build --workspace=server
 
