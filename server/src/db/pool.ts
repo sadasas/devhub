@@ -12,7 +12,7 @@ export function createPool(env: NodeJS.ProcessEnv = process.env): Pool {
   const isProduction = cfg.NODE_ENV === 'production';
   return new Pool({
     connectionString: cfg.DATABASE_URL,
-    max: 20,
+    max: cfg.PG_POOL_MAX,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 5_000,
     options: '-c statement_timeout=30000',

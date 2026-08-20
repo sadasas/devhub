@@ -14,12 +14,13 @@
 
 | Option | Cost | Notes |
 |---|---|---|
-| **Render (free web service) + Neon (free Postgres)** | **$0** | **Decision (2026-08-20).** **Backend only** (API + MCP + WS). Free tier: 750 instance hrs/mo, 512 MB RAM, 0.1 CPU, 100 GB bandwidth, inbound WebSockets supported. Caveats: spins down after 15 min idle (30–60 s cold start), no persistent disk (stateless by design — state lives in Postgres). |
+| **Suga (free container) + Neon (free Postgres)** | **$0** | **Decision (2026-08-20).** **Backend only** (API + MCP + WS). Suga free: 1 project, always-on container, 0.1 vCPU / 256 MiB, 1 GB storage, no credit card, auto-build from GitHub on push, HTTPS/CDN/WAF via Cloudflare. Caveat: 256 MiB is tight → `PG_POOL_MAX=6` (see §6). |
 | Railway | ~$5–7/mo | $5 one-time credit only; no permanent free tier |
+| Render | $0 or $7/mo | Free web service exists but card verification was required in practice (2026-08-20) — kept as fallback |
 | VPS (Hetzner/DigitalOcean) | ~$5–6/mo | Full control; needs Caddy/Nginx, fail2ban, systemd — kept as fallback |
-| **Decision** | — | **Render + Neon (free) for the backend.** The SPA (`app/dist`) is hosted separately on a static host (e.g. Cloudflare Pages / Vercel / Caddy `file_server`). All options still work via env vars |
+| **Decision** | — | **Suga + Neon (free) for the backend.** The SPA (`app/dist`) is hosted separately on a static host (Vercel). All options still work via env vars |
 
-Provider-specific steps are marked `[Render]` / `[Railway]` / `[VPS]`.
+Provider-specific steps are marked `[Suga]` / `[Railway]` / `[VPS]`.
 
 ---
 
@@ -116,35 +117,35 @@ devhub.example.com {
 
 ### 5.4 Managed platforms
 
-- `[Render]` — **backend deploy path (2026-08-20):**
+- `[Suga]` — **backend deploy path (2026-08-20):**
   1. **Neon (database):** create a free project at [neon.tech](https://neon.tech) → copy the **direct** connection string (`postgresql://user:password@ep-….neon.tech/dbname`). Do **not** use the pooled (PgBouncer) string — DevHub uses advisory locks (migrations) and `FOR UPDATE` row locks, which break under transaction pooling.
-  2. **Render:** push repo to GitHub → New → Blueprint → pick the repo (blueprint `render.yaml` at repo root auto-configures: free web service, build `npm ci && npm run build -w server`, start `npm run start -w server`, health check `/api/v1/health`, `autoDeploy: true`).
-  3. Set env vars in the dashboard: `DATABASE_URL` (Neon direct string), `JWT_SECRET` (see §3), and `CORS_ORIGIN=https://<app>.vercel.app` (SPA origin — used for both REST CORS and the WebSocket origin allowlist in `ws-server.ts`).
-  4. First deploy: migrations run automatically at boot (`index.ts` calls `migrate()`), then smoke-test §7.
-  5. API base is reachable at `https://devhub-api.onrender.com` (blueprint service name; TLS auto-provisioned).
+  2. **Suga:** sign up at [suga.app](https://suga.app) (no credit card) → create a Project → add a **Container** → choose **Build from GitHub** → install the Suga GitHub App and grant `sadasas/devhub` → pick branch `main` → Dockerfile path `/Dockerfile` with build context at repo root (the repo `Dockerfile` builds only the `server/` workspace; `app/`/`e2e/` never enter the image).
+  3. **Networking:** set the container port the app listens on (3000) and enable **Public HTTPS** on it — Suga provisions a TLS URL like `https://<hash>.suga.run` (Cloudflare CDN + WAF + DDoS included).
+  4. **Env vars** (mark secrets Sensitive): `DATABASE_URL` (Neon direct), `JWT_SECRET`, `NODE_ENV=production`, `COOKIE_SECURE=true`, `TRUST_PROXY=true`, `CORS_ORIGIN=https://<app>.vercel.app`, `PORT=3000`, `PG_POOL_MAX=6`.
+  5. **Resources:** 0.1 vCPU / 256 MiB (free max). First deploy: migrations run automatically at boot (`index.ts` calls `migrate()`), then smoke-test §7.
+  6. API base is reachable at `https://<hash>.suga.run`; auto-build on push to `main` is on by default (deduped by commit SHA).
 - `[Vercel]` — **frontend deploy path (2026-08-20):**
   1. `vercel.json` at repo root already sets `rootDirectory: app`, build `npm run build` (→ `dist`), and an SPA rewrite (every non-file path → `index.html`, so `/project/*`, `/p/*` deep-link correctly).
-  2. Vercel dashboard: Import repo → framework Vite → set env `VITE_API_URL=https://devhub-api.onrender.com/api/v1` (build-time; the SPA uses it for `fetch` and derives the WebSocket URL `wss://devhub-api.onrender.com/ws` from it).
+  2. Vercel dashboard: Import repo → framework Vite → set env `VITE_API_URL=https://<hash>.suga.run/api/v1` (build-time; the SPA uses it for `fetch` and derives the WebSocket URL `wss://<hash>.suga.run/ws` from it).
   3. Auto-deploy is on by default: every push to `main` rebuilds the SPA; PRs get preview URLs (previews hit the local backend via `npm run dev` unless you add their origin to `CORS_ORIGIN`).
 - `[Railway]` connect repo → set env vars → deploy; add managed Postgres, bind `DATABASE_URL`.
-- `[Render]` (with Render Postgres instead of Neon): same pattern, but the free Render Postgres **expires after ~30 days** — Neon is preferred for a free long-lived DB.
+- `[Render]` (fallback) same pattern as Suga with `render.yaml`; free Render Postgres **expires after ~30 days** — Neon is preferred for a free long-lived DB.
 
 ### 5.5 Auto-deploy & monorepo scoping
 
-One push to `main` can trigger deploys on Vercel (frontend) and Render (backend). To avoid wasteful rebuilds when only one side changes, both platforms are configured with **path-based deploy filters** (Option A):
+One push to `main` can trigger deploys on Vercel (frontend) and Suga (backend):
 
 | Change in push | Deploys |
 |---|---|
-| `server/**`, `package.json`, `package-lock.json` | **Render only** |
-| `app/**` (or a lockfile change affecting app deps) | **Vercel only** |
-| both of the above | **both** |
-| `docs/`, `.github/`, `e2e/`, `README.md`, etc. | **neither** |
+| `app/**` (or a lockfile change affecting app deps) | **Vercel only** (built-in monorepo skip keeps it off when `app/` is untouched) |
+| any push touching `server/**` or root `package.json`/`package-lock.json` | **Suga** (auto-build on push to the watched branch; deduped by commit SHA) |
+| `docs/`, `.github/`, `e2e/`, `README.md`, etc. | **neither** (Vercel skips; Suga may still rebuild — see below) |
 
-- **Render:** `render.yaml` sets `buildFilter.paths: [server/**, package.json, package-lock.json]` (paths are repo-root-relative; the root directory stays the repo root because build/start use `-w server`). Render blueprint sync always processes `render.yaml` changes regardless of the filter. Service previews for PRs are skipped too when the PR only touches filtered-out files.
-- **Vercel:** the built-in monorepo feature **"Skip unaffected projects"** is enabled by default for npm-workspaces repos (root `package.json` declares `workspaces`, all package names are unique, the app has no internal workspace deps). Verify it's still on under Project Settings → Root Directory → **Skip deployment**. It does not consume concurrent build slots (unlike an `ignoredBuildStep`).
+- **Vercel:** the built-in monorepo feature **"Skip unaffected projects"** is enabled by default for npm-workspaces repos (root `package.json` declares `workspaces`, all package names are unique, the app has no internal workspace deps). Verify it's on under Project Settings → Root Directory → **Skip deployment**. It does not consume concurrent build slots.
+- **Suga:** auto-build on push to the watched branch is on by default and has **no path filters**. The backend build is fast (`npm ci` + `tsc`, ~1–2 min) and deduped by commit SHA, so a docs-only push that also triggers a Suga rebuild is acceptable. If you want to avoid even that, watch a dedicated **release branch** instead of `main` (Suga supports per-environment branches — merge to it only when you intend to deploy the backend).
 - **Ordering when both change:** deploys are independent and parallel — keep API changes additive/backward-compatible; when a release couples FE+BE, deploy the backend first, verify `/api/v1/health`, then push the frontend.
 - **CI:** enable branch protection on `main` requiring `.github/workflows/ci.yml` (unit + e2e) to pass before merge, so broken code never reaches the auto-deploys.
-- **Verify the filters once:** push a docs-only commit (expect no deploys), then a `server/`-only commit (expect Render deploy only), then an `app/`-only commit (expect Vercel deploy only). Check each service's Events/Deployments timeline.
+- **Verify once:** push a docs-only commit (expect Vercel to skip; Suga may show a rebuild), then a `server/`-only commit (Suga deploys only), then an `app/`-only commit (Vercel deploys only). Check each service's deploy timeline.
 
 ---
 
@@ -154,16 +155,17 @@ One push to `main` can trigger deploys on Vercel (frontend) and Render (backend)
 |---|---|---|
 | `DATABASE_URL` | Yes | Postgres connection string |
 | `JWT_SECRET` | Yes | ≥ 32 chars random |
-| `PORT` | No | Default 3000 |
+| `PORT` | No | Default 3000 (set explicitly on Suga) |
+| `PG_POOL_MAX` | No | Max pg pool connections (default 20; set **6** on memory-constrained hosts like Suga free) |
 | `NODE_ENV` | No | `production` for prod behaviors |
 | `COOKIE_SECURE` | No | `true` behind TLS (forced in production) |
 | `TRUST_PROXY` | No | `true` when behind a reverse proxy — required so rate limiting and client IPs work correctly (otherwise every request appears to come from the proxy IP) |
 | `CORS_ORIGIN` | FE split | Comma-separated origins allowed for cross-origin REST + WS (e.g. `https://<app>.vercel.app`). Empty = same-origin only |
-| `VITE_API_URL` (Vercel build env) | FE split | `https://devhub-api.onrender.com/api/v1` — SPA fetch base + WebSocket origin (see `realtime-client.ts`) |
+| `VITE_API_URL` (Vercel build env) | FE split | `https://<hash>.suga.run/api/v1` — SPA fetch base + WebSocket origin (see `realtime-client.ts`) |
 
 MCP keys live in Postgres (`mcp_keys` table), not env — each user manages their own via the app's **API Keys** page (`POST /api/keys`).
 
-**Cookie / cross-site:** FE (Vercel) and BE (Render) are different origins, so the session cookie is sent with `SameSite=None; Secure` in production (`auth.routes.ts` sets `sameSite: none` when `NODE_ENV=production`). Development keeps `SameSite=Lax` (HTTP, same-origin).
+**Cookie / cross-site:** FE (Vercel) and BE (Suga) are different origins, so the session cookie is sent with `SameSite=None; Secure` in production (`auth.routes.ts` sets `sameSite: none` when `NODE_ENV=production`). Development keeps `SameSite=Lax` (HTTP, same-origin).
 
 **SPA fallback:** the server exposes the API only (no static hosting). Host the built `app/dist` behind a static server (Cloudflare Pages, Vercel, Caddy `file_server`, nginx, etc.) and route every non-file path — including `/project/*`, `/team/*`, `/docs/*`, and `/p/*` — to `index.html` so client-side routes (including public project pages) deep-link correctly (Vercel: handled by `vercel.json` rewrite). With the SPA on a different origin than the API, set `CORS_ORIGIN` to the SPA origin (dev proxy in `app/vite.config.ts` handles local development).
 
@@ -171,13 +173,14 @@ MCP keys live in Postgres (`mcp_keys` table), not env — each user manages thei
 
 ---
 
-## 6b. Free-tier caveats (Render + Neon)
+## 6b. Free-tier caveats (Suga + Neon)
 
-- **Sleep/cold start:** free web service spins down after 15 min without inbound traffic (HTTP or WS); next request takes 30–60 s. Acceptable for a personal hub. Optional keep-alive (external ping every ~10 min, e.g. UptimeRobot) keeps it warm — note it consumes instance hours, but a sleeping service consumes none, so total stays under 750 hrs/mo either way.
-- **No persistent disk:** ephemeral filesystem — the backend stores nothing on disk (state is in Postgres), so this is a non-issue.
+- **Tight memory:** Suga free caps at **256 MiB** — a service that exceeds it is OOM-killed and restarted (state is safe: everything lives in Postgres). Keep `PG_POOL_MAX=6` and watch the memory metric/logs; if OOMs appear, reduce the pool further or raise memory when you move off free.
+- **Always-on:** Suga free containers do not spin down (unlike Render) — no cold starts, WebSocket connections stay up.
+- **1 project / 1 environment:** free tier supports a single project with one environment (production). No preview environments on free.
+- **Builds from GitHub only:** free services can build from your GitHub repo or approved templates — not arbitrary registry images (fine for DevHub; `Dockerfile` at repo root).
 - **Neon caps:** 0.5 GB storage, compute suspends after ~5 min idle (cold DB start ~300–500 ms), no automatic backups — see [Backup & Recovery](backup-recovery.md) for periodic `pg_dump`.
-- **WebSockets:** supported on free tier; a sleeping service is woken by a new WS connection like any request.
-- **Cross-site cookie:** with FE on Vercel and BE on Render, the session cookie is `SameSite=None; Secure` (see §6). If you ever move to a same-origin deployment (VPS + Caddy serving the SPA and API on one domain), production still works — `SameSite=None; Secure` behaves correctly for same-site requests too.
+- **Cross-site cookie:** with FE on Vercel and BE on Suga, the session cookie is `SameSite=None; Secure` (see §6). If you ever move to a same-origin deployment (VPS + Caddy serving the SPA and API on one domain), production still works — `SameSite=None; Secure` behaves correctly for same-site requests too.
 
 ---
 

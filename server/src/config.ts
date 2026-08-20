@@ -14,6 +14,7 @@ const envSchema = z.object({
       'JWT_SECRET must be replaced with a unique random string before running',
     ),
   PORT: z.coerce.number().int().positive().default(3000),
+  PG_POOL_MAX: z.coerce.number().int().min(1).max(50).default(20),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   COOKIE_SECURE: z
     .string()
