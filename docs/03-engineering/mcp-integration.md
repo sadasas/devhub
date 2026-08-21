@@ -163,6 +163,29 @@ The browser UI polls `GET /api/projects/:id/state` every 5s while the tab is vis
 5. add_decision({title:"why fixed this way", context, decision})
 ```
 
+### 5.3 Agent auto-sync rules (AGENTS.md + skill)
+
+Agar setiap sesi AI otomatis menyinkronkan kerjanya ke DevHub, sediakan dua file di repo user:
+
+1. **`AGENTS.md`** (root repo) — aturan wajib yang dibaca opencode tiap sesi:
+   - Keputusan arsitektural/tradeoff difinalisasi → `add_decision` (saat keputusan fix)
+   - Rencana kerja disusun / mulai implementasi → `create_task` (awal sesi)
+   - Pekerjaan selesai & terverifikasi (lint/test/build hijau atau committed) → `update_task` status `done` (sebelum tutup sesi)
+   - Flowchart/diagram dirancang → `create_whiteboard` / `update_whiteboard`
+2. **`.opencode/skills/devhub-sync/SKILL.md`** — pedoman eksekusi: skema payload tiap tool, kriteria keputusan layak-ADR (anti-spam), kesalahan umum.
+
+Contoh lengkap kedua file terdokumentasi di halaman aplikasi **Docs → MCP Integration → "Automate your workflow"** (`/docs/mcp#mcp-agentsync`) dan bisa disalin dari sana.
+
+**Resolusi project target (dinamis, tanpa UUID di file):**
+
+1. User menyebut project di sesi → pakai itu.
+2. Env var `DEVHUB_PROJECT_ID` terisi → pakai itu.
+3. Tidak ada → agent bertanya sekali di awal sesi, lalu konsisten.
+
+Env yang perlu diset user: `DEVHUB_MCP_KEY` (wajib, lihat §4.0) dan `DEVHUB_PROJECT_ID` (opsional).
+
+**Prinsip non-blocking:** jika MCP tidak terjangkau (server mati / key invalid), agent mencatat sebagai pending dan melanjutkan pekerjaan utama — sinkronisasi tidak boleh memblokir.
+
 ---
 
 ## 6. Server-Side Implementation Notes

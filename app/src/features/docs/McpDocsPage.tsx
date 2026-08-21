@@ -52,8 +52,52 @@ const TOC_ITEMS: DocsTocItem[] = [
   { id: 'mcp-config', label: 'Create opencode.json' },
   { id: 'mcp-restart', label: 'Restart opencode' },
   { id: 'mcp-verify', label: 'Verify the connection' },
+  { id: 'mcp-agentsync', label: 'Automate your workflow' },
   { id: 'mcp-troubleshooting', label: 'Troubleshooting' },
 ];
+
+const AGENTS_SNIPPET = `# DevHub Agent Sync Protocol
+
+Aturan ini berlaku ketika MCP server devhub terkonfigurasi dan dapat dijangkau.
+Jika tidak terjangkau, catat sebagai pending dan lanjutkan kerja utama.
+
+## Resolusi project target (berjenjang)
+1. User menyebut project di sesi -> pakai itu.
+2. Env var DEVHUB_PROJECT_ID terisi -> pakai itu.
+3. Tidak keduanya -> tanya user sekali di awal sesi kerja, lalu konsisten.
+
+## Sinkronisasi wajib
+| Kejadian                                | Tool DevHub                     | Moment                |
+| --------------------------------------- | ------------------------------- | --------------------- |
+| Keputusan arsitektural/tradeoff fix     | add_decision                    | Saat keputusan fix    |
+| Rencana kerja disusun / mulai implement | create_task                     | Awal sesi kerja       |
+| Pekerjaan selesai & terverifikasi       | update_task status done         | Sebelum tutup sesi    |
+| Flowchart / diagram dirancang           | create_whiteboard/update_...    | Saat desain dibuat    |
+
+## Aturan perilaku
+- Hanya keputusan selevel ADR yang dicatat — pilihan kosmetik tidak.
+- Task granular per unit kerja yang bisa diverifikasi.
+- Verifikasi dengan project_state (default cap 200 baris — pakai limit: 0).`;
+
+const AGENTSYNC_ENV_EXAMPLE = `$env:DEVHUB_MCP_KEY = "devhub_your_key_here"      # wajib — auth MCP
+$env:DEVHUB_PROJECT_ID = "<your-project-uuid>" # opsional — target sync default
+
+# Linux/macOS:
+export DEVHUB_MCP_KEY="devhub_your_key_here"
+export DEVHUB_PROJECT_ID="<your-project-uuid>"`;
+
+const AGENTSYNC_DECISION_EXAMPLE = `add_decision {
+  projectId: "<your-project-uuid>",
+  title: "Pakai pointer events untuk drag touch",
+  status: "accepted",
+  context: "HTML5 drag-and-drop tidak berfungsi di perangkat touch",
+  options: [
+    "Library DnD eksternal — fitur lengkap tapi tambah dependensi",
+    "Pointer events long-press — tanpa dependensi baru"
+  ],
+  decision: "Pointer events long-press, reuse handler drop existing",
+  consequences: "Tanpa dependensi baru; perlu hit-test manual per kolom"
+}`;
 
 const PREREQS = [
   { strong: 'opencode is installed', desc: 'This guide uses opencode, but any MCP client works with the same server.' },
@@ -216,6 +260,39 @@ export function McpDocsPage() {
                     </li>
                   ))}
                 </ul>
+              </div>
+            </section>
+
+            <section id="mcp-agentsync" className="docs-step">
+              <span className="docs-step-num">07</span>
+              <div className="docs-step-content">
+                <h2 className="docs-step-title">Automate your workflow (agent auto-sync)</h2>
+                <p className="docs-step-desc">
+                  Once the MCP server is connected, teach your AI agent to keep DevHub in sync
+                  automatically: decisions become ADRs, planned work becomes tasks, finished work is
+                  marked done, and flowcharts are saved as whiteboards. Add these rules to your repo's{' '}
+                  <code className="inline-code">AGENTS.md</code> so every opencode session follows them.
+                </p>
+                <CodeBlock lang="Markdown" file="AGENTS.md" code={AGENTS_SNIPPET} />
+                <p className="docs-step-desc">
+                  The agent resolves which project to sync to dynamically: a project you mention in the
+                  session wins, then the <code className="inline-code">DEVHUB_PROJECT_ID</code> env var,
+                  otherwise it asks you once. Set both variables alongside your key:
+                </p>
+                <CodeBlock lang="PowerShell" code={AGENTSYNC_ENV_EXAMPLE} />
+                <Callout>
+                  Only architecture-level decisions belong here (structure, dependencies, patterns,
+                  hosting, security) — not cosmetic choices. One decision = one{' '}
+                  <code className="inline-code">add_decision</code> call, made when the decision is
+                  final.
+                </Callout>
+                <p className="docs-step-desc">Example of what the agent records:</p>
+                <CodeBlock lang="JSON" code={AGENTSYNC_DECISION_EXAMPLE} />
+                <Callout>
+                  Tip: <code className="inline-code">project_state</code> returns at most 200 rows per
+                  collection by default — pass <code className="inline-code">limit: 0</code> to see
+                  everything.
+                </Callout>
               </div>
             </section>
 
