@@ -268,6 +268,45 @@ export function ProfileSkeleton() {
   );
 }
 
+export function AdminSkeleton() {
+  return (
+    <PageShell label="Admin">
+      <HeaderBlock />
+      <div className="stats-grid" aria-hidden="true">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="stat-card">
+            <Skeleton className="skeleton-row-sm" style={{ width: 80 }} />
+            <Skeleton style={{ width: 64, height: 26, marginTop: 8 }} />
+          </div>
+        ))}
+      </div>
+      <nav className="tabs" aria-hidden="true">
+        {[0, 1, 2].map((i) => (
+          <span key={i} className="skeleton-tab" />
+        ))}
+      </nav>
+      <section className="tab-panel" aria-hidden="true">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="data-row" style={i ? { marginTop: 8 } : undefined}>
+            <div className="data-row-main">
+              <span className="data-row-title">
+                <Skeleton className="skeleton-row" style={{ width: '40%' }} />
+                <Skeleton className="skeleton-row-xs" />
+              </span>
+              <span className="data-row-meta">
+                <Skeleton className="skeleton-row-sm" />
+              </span>
+            </div>
+            <div className="data-row-side">
+              <Skeleton className="skeleton-row-sm" style={{ width: 88 }} />
+            </div>
+          </div>
+        ))}
+      </section>
+    </PageShell>
+  );
+}
+
 export function DocsSkeleton() {
   return <DocsSkeletonBase label="Docs" />;
 }

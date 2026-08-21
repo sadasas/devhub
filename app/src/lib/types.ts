@@ -441,6 +441,47 @@ export interface User {
   email: string;
   displayName: string;
   bio: string;
+  role: 'user' | 'admin';
+  createdAt: string;
+}
+
+export interface AdminStats {
+  users: number;
+  teams: number;
+  projects: number;
+  activeKeys: number;
+  activity24h: number;
+  activity7d: number;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  displayName: string;
+  role: 'user' | 'admin';
+  teamCount: number;
+  createdAt: string;
+  lastActiveAt: string | null;
+}
+
+export interface AdminTeam {
+  id: string;
+  name: string;
+  ownerEmail: string | null;
+  memberCount: number;
+  projectCount: number;
+  createdAt: string;
+}
+
+export interface AdminActivityEntry {
+  id: string;
+  entity: string;
+  entityId: string;
+  action: string;
+  authorName: string;
+  summary: string;
+  projectId: string;
+  projectName: string;
   createdAt: string;
 }
 

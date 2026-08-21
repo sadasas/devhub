@@ -1,4 +1,8 @@
 import type {
+  AdminActivityEntry,
+  AdminStats,
+  AdminTeam,
+  AdminUser,
   ChatMessage,
   ChatRef,
   ChatResolvedRef,
@@ -446,5 +450,28 @@ export const api = {
       `/teams/${encodeURIComponent(teamId)}/messages/unread`,
     );
     return res.unread;
+  },
+
+  adminStats: () => request<AdminStats>('/admin/stats'),
+  listAdminUsers: async (opts: { query?: string; limit?: number; offset?: number } = {}) => {
+    const params = new URLSearchParams();
+    if (opts.query) params.set('query', opts.query);
+    if (opts.limit !== undefined) params.set('limit', String(opts.limit));
+    if (opts.offset !== undefined) params.set('offset', String(opts.offset));
+    const qs = params.toString();
+    return request<{ users: AdminUser[]; total: number }>(`/admin/users${qs ? `?${qs}` : ''}`);
+  },
+  setAdminUserRole: (userId: string, role: 'user' | 'admin') =>
+    request<{ id: string; email: string; role: 'user' | 'admin' }>(
+      `/admin/users/${encodeURIComponent(userId)}/role`,
+      { method: 'PATCH', body: JSON.stringify({ role }) },
+    ),
+  listAdminTeams: async () => {
+    const res = await request<{ teams: AdminTeam[] }>('/admin/teams');
+    return res.teams;
+  },
+  listAdminActivity: async () => {
+    const res = await request<{ activity: AdminActivityEntry[] }>('/admin/activity');
+    return res.activity;
   },
 };

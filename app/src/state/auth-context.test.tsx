@@ -28,7 +28,7 @@ vi.mock('../lib/idb', () => ({
 
 import { api } from '../lib/api';
 
-const USER = { id: 'u1', email: 'a@b.c', displayName: 'A', bio: '', createdAt: '2026-01-01T00:00:00.000Z' };
+const USER = { id: 'u1', email: 'a@b.c', displayName: 'A', bio: '', role: 'user' as const, createdAt: '2026-01-01T00:00:00.000Z' };
 
 function Probe() {
   const { user, loading } = useAuth();

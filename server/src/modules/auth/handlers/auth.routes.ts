@@ -173,8 +173,8 @@ authRouter.post('/logout', (req, res) => {
 
 authRouter.get('/me', requireAuth, async (req, res) => {
   const userId = getUserId(req);
-  const result = await pool.query<{ id: string; email: string; display_name: string; bio: string; created_at: string }>(
-    'SELECT id, email, display_name, bio, created_at FROM users WHERE id = $1',
+  const result = await pool.query<{ id: string; email: string; display_name: string; bio: string; role: string; created_at: string }>(
+    'SELECT id, email, display_name, bio, role, created_at FROM users WHERE id = $1',
     [userId],
   );
   const user = result.rows[0];
@@ -196,7 +196,7 @@ authRouter.patch('/profile', requireAuth, async (req, res) => {
          bio = COALESCE($3, bio),
          updated_at = now()
      WHERE id = $1
-     RETURNING id, email, display_name, bio, created_at`,
+     RETURNING id, email, display_name, bio, role, created_at`,
     [userId, displayName ?? null, bio ?? null],
   );
   const user = result.rows[0];
@@ -209,6 +209,7 @@ interface ProfileRow {
   email: string;
   display_name: string;
   bio: string;
+  role: string;
   created_at: string;
 }
 
@@ -218,6 +219,7 @@ function toUser(row: ProfileRow) {
     email: row.email,
     displayName: row.display_name,
     bio: row.bio,
+    role: row.role,
     createdAt: row.created_at,
   };
 }
