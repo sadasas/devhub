@@ -94,14 +94,14 @@ CREATE INDEX IF NOT EXISTS idx_projects_team_id ON projects (team_id);
 
 ## 4. API Server
 
-### 4.1 Baru — `server/src/api/authz.ts`
+### 4.1 Baru — `server/src/modules/authorization/application/authz.ts` (dulu `server/src/api/authz.ts`)
 
 - `getProjectWithRole(userId, projectId)` → `{ row, role } | undefined`
   via join `projects ⨝ team_members`.
 - `assertRole(role, required)` → `ApiError(403, 'FORBIDDEN')` jika viewer.
-- Dipakai REST **dan** MCP (`mcp/state-db.ts`).
+- Dipakai REST **dan** MCP (`modules/mcp/application/state-db.ts`).
 
-### 4.2 Baru — `server/src/api/teams.routes.ts` (semua `requireAuth`)
+### 4.2 Baru — `server/src/modules/teams/handlers/teams.routes.ts` (dulu `server/src/api/teams.routes.ts`) (semua `requireAuth`)
 
 | Method | Path | Role | Keterangan |
 |---|---|---|---|
@@ -118,7 +118,7 @@ CREATE INDEX IF NOT EXISTS idx_projects_team_id ON projects (team_id);
 | POST | `/api/teams/invitations/:invitationId/accept` | login | Terima → insert `team_members` + status `accepted` |
 | DELETE | `/api/teams/invitations/:invitationId` | login | Tolak/withdraw (invitee sendiri, atau admin team) |
 
-### 4.3 Ubah — `server/src/api/projects.routes.ts`
+### 4.3 Ubah — `server/src/modules/projects/handlers/projects.routes.ts` (dulu `server/src/api/projects.routes.ts`)
 
 - `getOwnedProject` → `getProjectWithRole`
 - `GET /` → project semua team user, tambah field `teamId`, `role`
@@ -127,7 +127,7 @@ CREATE INDEX IF NOT EXISTS idx_projects_team_id ON projects (team_id);
 - `PATCH /:id`, `DELETE /:id`, `PUT /:id/state`, `POST /import` → editor+
 - `POST /import` → body bertambah `teamId` untuk restore-ke-proyek-baru
 
-### 4.4 Ubah — `server/src/mcp/state-db.ts`
+### 4.4 Ubah — `server/src/modules/mcp/application/state-db.ts` (dulu `server/src/mcp/state-db.ts`)
 
 - `findRow` → join `team_members` (reuse authz)
 - `saveState` → tolak viewer (throw `McpError`)

@@ -167,7 +167,7 @@ The browser UI polls `GET /api/projects/:id/state` every 5s while the tab is vis
 
 ## 6. Server-Side Implementation Notes
 
-- `server/src/mcp/tools/*.ts`: one file per tool exporting `{ name, schema, handler }`; registered in `server.ts`.
+- `server/src/modules/mcp/application/tools/*.ts`: one file per tool exporting `{ name, schema, handler }`; registered in `modules/mcp/handlers/server.ts`.
 - Tools reuse the same service functions as REST routes — single source of truth.
 - Rate limit `/mcp` (e.g., 120 req/min/key).
 - Tool responses never include password hashes, cookies, or secrets.
@@ -185,7 +185,7 @@ curl -s -X POST http://localhost:3000/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"curl","version":"1"}}}'
 ```
 
-Then `tools/list`, then `tools/call` with a tool name + arguments. Full examples in [§7 Testing the MCP Server](#7-testing-the-mcp-server). Server-side contract: `server/src/mcp/tools/`.
+Then `tools/list`, then `tools/call` with a tool name + arguments. Full examples in [§7 Testing the MCP Server](#7-testing-the-mcp-server). Server-side contract: `server/src/modules/mcp/application/tools/`.
 
 ---
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { app, uniqueIp, register, createProject } from './helpers.js';
-import { newId } from '../src/lib/ids.js';
+import { newId } from '../src/shared/ids.js';
 
 const API = '/api/v1';
 

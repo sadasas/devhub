@@ -4,7 +4,7 @@
 |---|---|
 | **Document status** | Active |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-20 |
+| **Last updated** | 2026-08-21 |
 
 ---
 
@@ -446,6 +446,23 @@ M28 v0.21.1 — entry bundle `index-*.js` 558 kB raw / 148 kB gz di atas budget 
 **Selesai (2026-08-20):** P1.1–P1.3 ✅ — entry 263 kB raw / 80 kB gz, tiap route punya skeleton sesuai layout; ADR-040 + milestone M28 v0.21.1 tercatat di DevHub.
 
 **Verifikasi:** app 672 tests, lint, build app hijau (server tidak tersentuh).
+
+---
+
+## 25. Server Modular Restructure (M29 — ADR-041)
+
+Restrukturisasi `server/src/` dari layered-by-technology (`api/`, `lib/`, `schema/`, …) menjadi **modular monolith ala big tech**: kode dikelompokkan per bounded context (`modules/<domain>`), tiap modul berlapis DDD (`handlers/application/domain/infrastructure`). Riset + keputusan di [ADR-041](../02-architecture/adr.md#adr-041); peta struktur lengkap di [Technical Design §3.2](../02-architecture/technical-design.md).
+
+| Fase | Isi |
+|---|---|
+| F1 Fondasi | `shared/` baru (errors, http, db, ids, logger); `ApiError` + `SESSION_COOKIE` keluar dari `app.ts` → circular dep `lib/db → app` dan `requireAuth → app` putus |
+| F2 Move | 56 file direlokasi via `git mv` ke `modules/<domain>/…` (history terjaga); ~60 file import di-rewrite termasuk 7 file test; `chat.ts` split domain/application; `getUserEmail` → modul authorization |
+| F3 Split | `projects.routes.ts` (394 baris) → projectRepository + projectService + handler tipis; `entity-router.ts` (357) → domain/entities + application/entityService (`mutateProject`) + handler tipis; `teams.routes.ts` (381) → teamRepository + teamService + handler tipis; dedup blok transaksi activity → `recordActivity()` di modul activity; urutan error dipertahankan (404→403→400) |
+| F4 Docs | technical-design §3.2 (struktur + aturan dependency), ADR-041, path di coding-standards + mcp-integration, roadmap ini |
+
+**Catatan:** path server lama yang disebut di seksi historis §8–24 (`server/src/api/…`, `lib/…`, `schema/…`, `mcp/…`, `realtime/…`) kini sudah pindah ke `modules/<domain>/…` — seksi historis dibiarkan apa adanya sebagai catatan masa lalu; peta pemetaan lengkap ada di ADR-041.
+
+**Verifikasi:** server 242/242 test (30 file), lint + build hijau; `db/migrations/` tak berubah sehingga postbuild.mjs aman; tanpa perubahan perilaku API (refactor murni struktural).
 
 ---
 

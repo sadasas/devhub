@@ -52,7 +52,7 @@ devhub/
 ## 3. TypeScript Rules
 
 - **Types over interfaces** for object shapes that can be composed (`type` preferred); interfaces only for class-like contracts.
-- `types.ts` in `app/src/lib` defines the 10 entities + state shape; `server/src/schema` mirrors them as zod schemas. The API contract between them must stay in sync — **any change updates both files in the same PR**.
+- `types.ts` in `app/src/lib` defines the 10 entities + state shape; `server/src/modules/projects/domain` (state.ts) mirrors them as zod schemas. The API contract between them must stay in sync — **any change updates both files in the same PR**.
 - Enums: use `as const` string unions (`type TaskStatus = 'todo' | 'inProgress' | 'review' | 'done'`) — not TS `enum`.
 - Never import server code into `app/` (or vice versa) across the package boundary; share types by duplication + sync rule (or a `shared/` package in Phase 2 if drift becomes painful).
 - Dates: ISO 8601 strings (`new Date().toISOString()`), stored as strings; no JS `Date` objects in state.
@@ -153,7 +153,7 @@ enum TaskStatus { Todo, InProgress, Review, Done }
 - All handlers async; central error middleware; never throw into Express default handler.
 - SQL: parameterized queries only; transactions for multi-statement ops (e.g., import).
 - Routes: kebab-case paths; consistent error codes (see §7).
-- MCP tools: one file per tool in `server/src/mcp/tools/`, each exporting `{ name, schema, handler }`. MCP auth: per-user keys (`server/src/mcp/require-key.ts` + `keys.ts`); every tool DB access scoped by `owner_id` via `state-db.ts`.
+- MCP tools: one file per tool in `server/src/modules/mcp/application/tools/`, each exporting `{ name, schema, handler }`. MCP auth: per-user keys (`server/src/modules/mcp/handlers/require-key.ts` + `modules/keys/infrastructure/keys.ts`); every tool DB access scoped by user via `modules/mcp/application/state-db.ts`. Server layout: modular monolith per bounded context — see ADR-041.
 
 ---
 

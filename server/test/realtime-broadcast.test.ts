@@ -3,13 +3,13 @@ import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { WebSocket, type RawData } from 'ws';
-import { createRealtimeServer, WS_PATH, type RealtimeServer } from '../src/realtime/ws-server.js';
-import { RoomRegistry } from '../src/realtime/rooms.js';
-import { attachRoomRegistry, broadcastDiff, type StateDiff } from '../src/realtime/broadcast.js';
-import { emptyState } from '../src/schema/state.js';
+import { createRealtimeServer, WS_PATH, type RealtimeServer } from '../src/modules/realtime/handlers/ws-server.js';
+import { RoomRegistry } from '../src/modules/realtime/infrastructure/rooms.js';
+import { attachRoomRegistry, broadcastDiff, type StateDiff } from '../src/modules/realtime/infrastructure/broadcast.js';
+import { emptyState } from '../src/modules/projects/domain/state.js';
 import { app, createKey, createProject, register, uniqueIp } from './helpers.js';
 import { resetDb } from './setup.js';
-import { newId } from '../src/lib/ids.js';
+import { newId } from '../src/shared/ids.js';
 
 let httpServer: Server;
 let realtime: RealtimeServer;

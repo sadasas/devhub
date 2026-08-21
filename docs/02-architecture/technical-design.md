@@ -82,16 +82,46 @@ This document specifies the technical architecture for DevHub V1: system context
 
 ### 3.2 API Server (`server/`)
 
+Backend disusun sebagai **modular monolith** ala big tech: kode dikelompokkan per bounded context (`modules/<domain>`), bukan per lapisan teknis. Setiap modul berlapis DDD:
+
+```
+server/src/
+├── index.ts / app.ts / config.ts     # composition root (middleware, mount router)
+├── shared/                           # cross-cutting tanpa business logic
+│   ├── errors.ts                     #   ApiError
+│   ├── http.ts                       #   SESSION_COOKIE
+│   ├── db.ts                         #   withTransaction, parseOrThrow
+│   ├── ids.ts                        #   newId, nowIso
+│   └── logger.ts
+├── db/                               # pg Pool + migrations/*.sql
+└── modules/
+    ├── auth/            # handlers/ · application/user-stats · infrastructure/jwt+password · middleware/
+    ├── authorization/   # application/authz (role checks, dipakai lintas modul)
+    ├── projects/        # handlers/(routes+v1/entity-router) · application/(projectService, entityService) · domain/(state, prd, sharing, hours, entities) · infrastructure/projectRepository
+    ├── teams/           # handlers/(teams+chat) · application/(teamService, chat) · domain/chat · infrastructure/teamRepository
+    ├── activity/        # handlers/v1/activity · application/activity (+recordActivity)
+    ├── search/          # handlers/v1/search · application/search
+    ├── keys/            # handlers/keys · infrastructure/keys+key-crypto
+    ├── templates/       # handlers/templates
+    ├── public/          # handlers/public
+    ├── mcp/             # handlers/(server, require-key) · application/(state-db, context, tools/*) · domain/entity
+    └── realtime/        # handlers/ws-server · infrastructure/(rooms, broadcast)
+```
+
+**Aturan dependency:** `handlers → application → domain ← infrastructure`. Domain murni (zod + fungsi murni, tanpa express/pg). `shared/` boleh diimpor siapa saja; antar-modul hanya lewat domain/application publiknya.
+
 | Component | Responsibility |
 |---|---|
-| `api/auth` | register / login / logout; JWT issuance; httpOnly cookie management |
-| `api/projects` | CRUD for projects (user-scoped) |
-| `api/keys` | per-user MCP API keys: create / list / revoke |
-| `api/state` | `GET/PUT /api/projects/:id/state` — full JSONB state payload, zod-validated |
-| `api/export-import` | JSON export / import for a project |
-| `db` | pg Pool + migrations (users, projects) |
-| `middleware` | auth guard, rate limiting, error handler, request logging |
-| `mcp` | Model Context Protocol server (streamable HTTP) + tool implementations |
+| `modules/auth` | register / login / logout; JWT issuance; httpOnly cookie management |
+| `modules/projects` | CRUD project, state JSONB (GET/PUT), export/import, granular entity v1 |
+| `modules/teams` | CRUD team, member & role management, invitations, team chat |
+| `modules/keys` | per-user MCP API keys: create / list / revoke |
+| `modules/mcp` | Model Context Protocol server (streamable HTTP) + tool implementations |
+| `modules/realtime` | WebSocket server, room registry, broadcast diff/activity/sync |
+| `modules/activity` | activity log: diff state → entries, prune, stats feed |
+| `modules/search` | cross-entity search dalam satu project |
+| `shared/` | ApiError, db helpers, logger, id util — tanpa business logic |
+| `db` | pg Pool + migrations (users, teams, projects, invitations, mcp_keys, activity_log, team_messages) |
 
 ### 3.3 Database (PostgreSQL)
 

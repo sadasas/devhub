@@ -2,7 +2,7 @@ import { describe, expect, it, beforeAll } from 'vitest';
 import request from 'supertest';
 import { app, uniqueIp, register, createProject, inviteUser, getFirstTeamId } from './helpers.js';
 import { resetDb } from './setup.js';
-import { LIMITS } from '../src/schema/state.js';
+import { LIMITS } from '../src/modules/projects/domain/state.js';
 
 const API = '/api/v1';
 

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { app, createProject, register, uniqueIp } from './helpers.js';
 import { resetDb } from './setup.js';
-import { newId } from '../src/lib/ids.js';
+import { newId } from '../src/shared/ids.js';
 
 async function createTask(
   cookie: string,

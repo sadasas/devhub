@@ -3,7 +3,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
 import { Pool } from 'pg';
 import { loadConfig } from '../config.js';
-import { logger } from '../lib/logger.js';
+import { logger } from '../shared/logger.js';
 
 const MIGRATIONS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations');
 

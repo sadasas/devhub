@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { app, createProject, register, uniqueIp } from './helpers.js';
 import { resetDb } from './setup.js';
-import { emptyState } from '../src/schema/state.js';
+import { emptyState } from '../src/modules/projects/domain/state.js';
 
 const ASSIGNEE = '77777777-7777-4777-8777-777777777777';
 

@@ -3,9 +3,9 @@ import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { WebSocket, type RawData } from 'ws';
-import { createRealtimeServer, WS_CLOSE, WS_PATH, type RealtimeServer } from '../src/realtime/ws-server.js';
-import { RoomRegistry } from '../src/realtime/rooms.js';
-import { attachRoomRegistry } from '../src/realtime/broadcast.js';
+import { createRealtimeServer, WS_CLOSE, WS_PATH, type RealtimeServer } from '../src/modules/realtime/handlers/ws-server.js';
+import { RoomRegistry } from '../src/modules/realtime/infrastructure/rooms.js';
+import { attachRoomRegistry } from '../src/modules/realtime/infrastructure/broadcast.js';
 import { app, createProject, createTeam, getFirstTeamId, inviteUser, register, uniqueIp } from './helpers.js';
 import { resetDb } from './setup.js';
 

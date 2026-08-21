@@ -58,6 +58,7 @@
 | [ADR-038](#adr-038) | Pengecualian produk: viewer boleh menulis chat; fail-closed public sharing; strip unknown fields | Accepted | 2026-08-19 |
 | [ADR-039](#adr-039) | User stats endpoint: `GET /auth/me/stats` dari `activity_log` (GitHub-style profile stats) | Accepted | 2026-08-20 |
 | [ADR-040](#adr-040) | Route-level code splitting + per-route contentful skeletons | Accepted | 2026-08-20 |
+| [ADR-041](#adr-041) | Server modular monolith: struktur DDD per bounded context (`modules/<domain>`) | Accepted | 2026-08-21 |
 
 ---
 
@@ -493,3 +494,20 @@
   - Duplikasi kecil antara `PageSkeletons` dan `TabSkeleton` ProjectPage **disengaja** — mengimpor TabSkeleton ke App.tsx akan menarik chunk ProjectPage ke entry.
 - **Consequences:** Positive - entry 558 → 263 kB raw (148 → 80 kB gz); tiap halaman + ikonnya pindah ke chunk sendiri; ikon ter-dedupe ke shared chunk per-icon (CaretDown.es, ArrowLeft.es, …); first-load jauh di bawah budget. Negative - flash skeleton singkat saat chunk pertama dimuat (sekali saja; selanjutnya di-cache + service worker); skeleton ~10 komponen kecil harus dirawat agar tidak ketinggalan layout halaman.
 - **Alternatives:** Refactor import ikon ke per-weight (ditolak: versi paket tidak mendukung subpath); `manualChunks` vendor react/react-router (ditunda: hanya caching, tidak mengecilkan first-paint); `unplugin-icons` + `phosphor-src` (ditolak: dependency baru + API `<Icon name>` berbeda dari named imports eksisting).
+
+---
+
+### ADR-041
+**Server modular monolith: struktur DDD per bounded context (`modules/<domain>`)**
+
+- **Status:** Accepted (2026-08-21)
+- **Context:** Struktur `server/src/` sejak V1 disusun layered-by-technology (`api/`, `auth/`, `db/`, `lib/`, `mcp/`, `realtime/`, `schema/`). Audit internal saat riset struktur menemukan empat masalah: (1) **`lib/` grab-bag** — service domain (`activity`, `chat`, `search`, `user-stats`) bercampur utility murni (`ids`, `logger`), tidak ada sinyal kepemilikan; (2) **business logic tersebar di route files dengan SQL inline** — `projects.routes.ts` 394 baris, `teams.routes.ts` 381, `entity-router.ts` 357, sulit dites terpisah dan duplikat (blok transaksi activity terduplikasi di PUT /state dan import); (3) **circular dependency** `lib/db.ts → app.ts` dan `requireAuth → app.ts` (ApiError + SESSION_COOKIE hidup di app.ts); (4) **tanpa boundary modul** — semua file bebas mengimpor semua. Riset praktik big tech untuk backend: monorepo Google/Meta dikelompokkan per domain bisnis dengan OWNERS per folder; Shopify memeluk modular monolith (Rails engines + Packwerk untuk boundary dependency); konvensi Nx (`apps/`+`libs/`) menyarankan grouping by business scope, bukan technical type; DDD/hexagonal menuntut domain murni tanpa dependensi framework.
+- **Decision:**
+  - Restrukturisasi penuh ke **modular monolith per bounded context**: `server/src/modules/<domain>/{handlers,application,domain,infrastructure}` untuk 11 modul (auth, authorization, projects, teams, activity, search, keys, templates, public, mcp, realtime).
+  - **Aturan dependency:** `handlers → application → domain ← infrastructure`. Domain murni (zod + fungsi murni, tanpa express/pg). `shared/` (errors, http, db, ids, logger) boleh diimpor siapa saja; antar-modul hanya melalui domain/application publiknya.
+  - **ApiError + SESSION_COOKIE keluar dari `app.ts`** → `shared/errors.ts` + `shared/http.ts`; circular dep putus. `getUserEmail` pindah ke modul authorization.
+  - **Tiga file besar dipecah:** `projects.routes.ts` → `infrastructure/projectRepository.ts` (SQL) + `application/projectService.ts` (orkestrasi) + handler tipis; `entity-router.ts` → `domain/entities.ts` (config entity murni) + `application/entityService.ts` (`mutateProject` transaksional) + handler tipis; `teams.routes.ts` → `teamRepository` + `teamService` + handler tipis. Handler kini hanya HTTP concern (parse req, status code, header); urutan error dipertahankan (404→403→400 — validasi body pindah ke service setelah auth check).
+  - **Dedup:** blok transaksi activity (BEGIN → insertActivity per draft → pruneActivity → COMMIT) yang terduplikasi di PUT /state dan import diekstrak jadi `recordActivity()` di modul activity.
+  - `db/migrations/` tidak berubah (postbuild.mjs aman); 25 tool MCP direlokasi utuh sebagai use cases (`modules/mcp/application/tools/`).
+- **Consequences:** Positive — kepemilikan kode jelas per domain (siap CODEOWNERS per folder ala big tech); business logic terpisah dari HTTP sehingga bisa dites tanpa supertest; duplikasi hilang; boundary siap ekstraksi microservice bila suatu saat dibutuhkan; navigasi cepat ("cari logika team? modules/teams"). Negative — diff besar sekali jalan (56 file rename + ~60 file import rewrite); path di dokumen historis roadmap §8–24 tidak lagi akurat (dicatat, tidak diedit); developer baru harus paham aturan dependency layer.
+- **Alternatives:** Pertahankan struktur layered + rapikan `lib/` saja (ditolak: tidak menyelesaikan SQL-inline dan tersebarnya logic); repository pattern penuh dengan interface + impl per entity (ditolak: boilerplate tanpa manfaat — codebase langsung pakai pg pool, satu implementasi); ekstraksi microservice sekarang (ditolak: skala belum membutuhkan; modular monolith adalah titik tengah yang bisa diekstrak nanti).

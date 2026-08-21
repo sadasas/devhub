@@ -3,10 +3,10 @@ import { createApp } from './app.js';
 import { config } from './config.js';
 import { pool } from './db/pool.js';
 import { migrate } from './db/migrate.js';
-import { logger } from './lib/logger.js';
-import { RoomRegistry } from './realtime/rooms.js';
-import { createRealtimeServer } from './realtime/ws-server.js';
-import { attachRoomRegistry } from './realtime/broadcast.js';
+import { logger } from './shared/logger.js';
+import { RoomRegistry } from './modules/realtime/infrastructure/rooms.js';
+import { createRealtimeServer } from './modules/realtime/handlers/ws-server.js';
+import { attachRoomRegistry } from './modules/realtime/infrastructure/broadcast.js';
 
 async function main() {
   await migrate(pool);

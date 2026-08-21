@@ -5,40 +5,28 @@ import helmet from 'helmet';
 import cors from 'cors';
 import { randomUUID } from 'node:crypto';
 import { config } from './config.js';
-import { logger } from './lib/logger.js';
+import { logger } from './shared/logger.js';
+import { ApiError } from './shared/errors.js';
 import { pool } from './db/pool.js';
-import { authRouter } from './api/auth.routes.js';
-import { projectsRouter } from './api/projects.routes.js';
-import { teamsRouter } from './api/teams.routes.js';
-import { chatRouter } from './api/chat.routes.js';
-import { keysRouter } from './api/keys.routes.js';
-import { publicRouter } from './api/public.routes.js';
-import { templatesRouter } from './api/templates.routes.js';
-import { mcpRouter } from './mcp/server.js';
-import { requireMcpKey } from './mcp/require-key.js';
-import { hashMcpKey } from './mcp/keys.js';
-import { entityRouter } from './api/v1/entity-router.js';
-import { searchRouter } from './api/v1/search.routes.js';
-import { activityRouter } from './api/v1/activity.routes.js';
-
-export const SESSION_COOKIE = 'devhub_session';
+import { authRouter } from './modules/auth/handlers/auth.routes.js';
+import { projectsRouter } from './modules/projects/handlers/projects.routes.js';
+import { teamsRouter } from './modules/teams/handlers/teams.routes.js';
+import { chatRouter } from './modules/teams/handlers/chat.routes.js';
+import { keysRouter } from './modules/keys/handlers/keys.routes.js';
+import { publicRouter } from './modules/public/handlers/public.routes.js';
+import { templatesRouter } from './modules/templates/handlers/templates.routes.js';
+import { mcpRouter } from './modules/mcp/handlers/server.js';
+import { requireMcpKey } from './modules/mcp/handlers/require-key.js';
+import { hashMcpKey } from './modules/keys/infrastructure/keys.js';
+import { entityRouter } from './modules/projects/handlers/v1/entity-router.js';
+import { searchRouter } from './modules/search/handlers/v1/search.routes.js';
+import { activityRouter } from './modules/activity/handlers/v1/activity.routes.js';
 
 declare global {
   namespace Express {
     interface Request {
       id?: string;
     }
-  }
-}
-
-export class ApiError extends Error {
-  constructor(
-    public status: number,
-    public code: string,
-    message: string,
-    public details?: unknown,
-  ) {
-    super(message);
   }
 }
 
