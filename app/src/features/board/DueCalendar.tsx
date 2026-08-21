@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarBlank, CaretLeft, CaretRight, Plus } from '@phosphor-icons/react';
 import { addDaysIso, inMonth, isoOf, monthMatrix, monthName, parseIso, weekDays } from '../../lib/calendar';
 import { dueBucket, dueLabel, dueTone, todayIso } from '../../lib/due-dates';
@@ -11,11 +11,14 @@ import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { Modal } from '../../components/Modal';
+import { registerDrop } from '../../lib/drop-registry';
+import { useTouchDrag } from '../../hooks/useTouchDrag';
 
 interface DueCalendarProps {
   onOpenTask: (taskId: string) => void;
   onQuickCreate: (dueDate: string) => void;
   taskFilter?: (t: Task) => boolean;
+  onTouchDrop?: (taskId: string, dropKey: string | null) => void;
 }
 
 const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -26,7 +29,47 @@ const STATUS_ORDER: Task['status'][] = ['todo', 'inProgress', 'review', 'done'];
 
 const dayHeader = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
-export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter }: DueCalendarProps) {
+interface CalTaskChipProps {
+  task: Task;
+  date?: string;
+  onOpenTask: (taskId: string) => void;
+  onTouchDrop?: (taskId: string, dropKey: string | null) => void;
+}
+
+function CalTaskChip({ task, date, onOpenTask, onTouchDrop }: CalTaskChipProps) {
+  const { canEdit } = useProject();
+  const ref = useRef<HTMLButtonElement>(null);
+  const handleTouchDrop = useCallback(
+    (dropKey: string | null) => onTouchDrop?.(task.id, dropKey),
+    [task.id, onTouchDrop],
+  );
+  useTouchDrag(ref, { enabled: canEdit && !!onTouchDrop, onDrop: handleTouchDrop });
+  const title = date ? `${task.title} · ${dueLabel(date, todayIso())}` : undefined;
+  const dotTone = date ? dueTone(dueBucket(date, todayIso())) : 'neutral';
+  return (
+    <button
+      ref={ref}
+      type="button"
+      className="due-cal-task"
+      draggable={canEdit}
+      title={title}
+      onClick={(e) => {
+        e.stopPropagation();
+        onOpenTask(task.id);
+      }}
+      onDragStart={(e) => {
+        e.stopPropagation();
+        e.dataTransfer.setData('text/plain', task.id);
+        e.dataTransfer.effectAllowed = 'move';
+      }}
+    >
+      <span className={`due-cal-dot due-cal-dot-${dotTone}`} aria-hidden="true" />
+      <span className="due-cal-task-title">{task.title}</span>
+    </button>
+  );
+}
+
+export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop }: DueCalendarProps) {
   const { state, canEdit, dispatch } = useProject();
   const [anchor, setAnchor] = useState(todayIso());
   const [weekMode, setWeekMode] = useState(false);
@@ -87,24 +130,37 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter }: DueCalend
     setFocused(addDaysIso(base, dir));
   };
 
+  const moveToDate = useCallback(
+    (taskId: string, date: string | null) => {
+      if (!canEdit) return;
+      const task = state?.tasks.find((t) => t.id === taskId);
+      if (task && task.dueDate !== date) {
+        dispatch({ type: 'task/update', id: taskId, patch: { dueDate: date } });
+      }
+    },
+    [canEdit, state, dispatch],
+  );
+
+  useEffect(() => {
+    const unregisters = cells.map((date) =>
+      registerDrop(`date:${date}`, (id) => moveToDate(id, date)),
+    );
+    unregisters.push(registerDrop('clear', (id) => moveToDate(id, null)));
+    return () => {
+      for (const unregister of unregisters) unregister();
+    };
+  }, [cells, moveToDate]);
+
   const onDrop = (date: string) => (e: React.DragEvent) => {
     e.preventDefault();
-    if (!canEdit) return;
     const id = e.dataTransfer.getData('text/plain');
-    const task = state?.tasks.find((t) => t.id === id);
-    if (task && task.dueDate !== date) {
-      dispatch({ type: 'task/update', id, patch: { dueDate: date } });
-    }
+    if (id) moveToDate(id, date);
   };
 
   const onClearDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    if (!canEdit) return;
     const id = e.dataTransfer.getData('text/plain');
-    const task = state?.tasks.find((t) => t.id === id);
-    if (task && task.dueDate !== null) {
-      dispatch({ type: 'task/update', id, patch: { dueDate: null } });
-    }
+    if (id) moveToDate(id, null);
   };
 
   const cell = (date: string) => {
@@ -117,6 +173,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter }: DueCalend
         key={date}
         className={`due-cal-cell${dimmed ? ' due-cal-dim' : ''}${isToday ? ' due-cal-today' : ''}`}
         data-date={date}
+        data-drop-key={`date:${date}`}
         tabIndex={focused === date ? 0 : -1}
         onFocus={() => setFocused(date)}
         onKeyDown={(e) => {
@@ -150,25 +207,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter }: DueCalend
           </span>
         )}
         {tasks.slice(0, MAX_CHIPS_PER_CELL).map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            className="due-cal-task"
-            draggable={canEdit}
-            title={`${t.title} · ${dueLabel(date, today)}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenTask(t.id);
-            }}
-            onDragStart={(e) => {
-              e.stopPropagation();
-              e.dataTransfer.setData('text/plain', t.id);
-              e.dataTransfer.effectAllowed = 'move';
-            }}
-          >
-            <span className={`due-cal-dot due-cal-dot-${dueTone(dueBucket(date, today))}`} aria-hidden="true" />
-            <span className="due-cal-task-title">{t.title}</span>
-          </button>
+          <CalTaskChip key={t.id} task={t} date={date} onOpenTask={onOpenTask} onTouchDrop={onTouchDrop} />
         ))}
         {tasks.length > MAX_CHIPS_PER_CELL && (
           <button
@@ -243,6 +282,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter }: DueCalend
 
       <div
         className="due-cal-strip"
+        data-drop-key="clear"
         onDragOver={(e) => {
           e.preventDefault();
           e.dataTransfer.dropEffect = 'move';
@@ -252,20 +292,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter }: DueCalend
         <span className="due-cal-strip-label">No date</span>
         {unscheduled.length === 0 && <span className="due-cal-strip-empty">Drop tasks here to clear their due date</span>}
         {unscheduled.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            className="due-cal-task"
-            draggable={canEdit}
-            onClick={() => onOpenTask(t.id)}
-            onDragStart={(e) => {
-              e.dataTransfer.setData('text/plain', t.id);
-              e.dataTransfer.effectAllowed = 'move';
-            }}
-          >
-            <span className="due-cal-dot due-cal-dot-neutral" aria-hidden="true" />
-            <span className="due-cal-task-title">{t.title}</span>
-          </button>
+          <CalTaskChip key={t.id} task={t} onOpenTask={onOpenTask} onTouchDrop={onTouchDrop} />
         ))}
       </div>
 

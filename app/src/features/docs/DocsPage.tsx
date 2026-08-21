@@ -1,9 +1,9 @@
 import { BookOpen, ArrowSquareOut } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router';
 import { DocsNav } from './DocsNav';
-import { DocsToc } from './DocsToc';
+import { DocsToc, DocsTocMobile, type DocsTocItem } from './DocsToc';
 
-const DOC_NAV_ITEMS = [
+const DOC_NAV_ITEMS: DocsTocItem[] = [
   { id: 'docs-overview', label: 'Overview' },
   { id: 'docs-mcp', label: 'MCP Integration' },
   { id: 'docs-api', label: 'API Reference' },
@@ -36,6 +36,7 @@ export function DocsPage() {
 
       <div className="docs-grid">
         <div className="docs-main">
+          <DocsTocMobile items={DOC_NAV_ITEMS} />
           <DocsNav />
           <div className="docs-body">
             <section id="docs-overview" className="docs-section">

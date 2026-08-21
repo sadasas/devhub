@@ -130,7 +130,7 @@ describe('ApiPage', () => {
 
     expect(screen.getByRole('heading', { name: 'Demo Project API' })).toBeTruthy();
     expect(screen.getAllByText('1 collection · 1 endpoint').length).toBeGreaterThan(0);
-    expect(screen.getByText('GET Get user')).toBeTruthy();
+    expect(screen.getAllByText('GET Get user').length).toBeGreaterThan(0);
     expect(screen.getByText('The users API')).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Get user' })).toBeTruthy();
     expect(screen.getByText('Returns a single user by id')).toBeTruthy();

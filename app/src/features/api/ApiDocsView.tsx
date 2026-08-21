@@ -2,7 +2,7 @@ import { Folder, Plugs, Plus, UploadSimple } from '@phosphor-icons/react';
 import type { ApiCollection, ApiEndpoint } from '../../lib/types';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
-import { DocsToc, type DocsTocItem } from '../docs/DocsToc';
+import { DocsToc, DocsTocMobile, type DocsTocItem } from '../docs/DocsToc';
 import { EndpointDocs } from './EndpointDocs';
 
 interface ApiDocsViewProps {
@@ -76,6 +76,7 @@ export function ApiDocsView({
   return (
     <div className="api-docs docs-grid">
       <div className="docs-main">
+        <DocsTocMobile items={tocItems} />
         <section id="api-overview" className="docs-section api-docs-overview">
           <h2 className="preview-title">{projectName} API</h2>
           {projectDescription && <p className="preview-body mt-8">{projectDescription}</p>}

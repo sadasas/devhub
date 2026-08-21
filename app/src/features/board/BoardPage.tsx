@@ -9,6 +9,7 @@ import { applySort, type SortSpec } from '../../lib/sort';
 import { useProject } from '../../state/project-context';
 import { useOptionalAuth } from '../../state/auth-context';
 import { api } from '../../lib/api';
+import { registerDrop, getDropHandler } from '../../lib/drop-registry';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { useNewParam } from '../../hooks/useNewParam';
 import { useSortParam } from '../../hooks/useSortParam';
@@ -109,6 +110,9 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const [members, setMembers] = useState<Record<string, { email: string; displayName?: string }>>({});
   const doneBlockedTimer = useRef<number | undefined>(undefined);
   const openTask = useCallback((id: string) => setEditId(id), []);
+  const handleTouchDrop = useCallback((taskId: string, dropKey: string | null) => {
+    getDropHandler(dropKey)?.(taskId);
+  }, []);
   useEntityDeepLink('tasks', openTask);
   useNewParam(() => setNewTaskAt({}), '1', canEdit);
 
@@ -229,33 +233,36 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     null,
   ];
 
-  function handleDropStatus(status: TaskStatus, e: React.DragEvent) {
-    const id = e.dataTransfer.getData('text/plain');
+  function moveTaskStatus(id: string, status: TaskStatus) {
+    if (!canEdit) return;
     const task = state?.tasks.find((t) => t.id === id);
-    if (!task) {
-      setOverKey(null);
-      return;
-    }
+    if (!task) return;
     if (status === 'done' && task.status !== 'done' && !isTaskCompletable(task, state!.testCases)) {
       showDoneBlocked(
         `"${task.title}" still has test cases that are not all passed. Finish them before moving to Done.`,
       );
-      setOverKey(null);
       return;
     }
     if (task.status !== status) {
       dispatch({ type: 'task/update', id, patch: { status } });
     }
-    setOverKey(null);
   }
 
-  function handleDropMilestone(milestoneId: string | null, e: React.DragEvent) {
-    const id = e.dataTransfer.getData('text/plain');
+  function moveTaskMilestone(id: string, milestoneId: string | null) {
+    if (!canEdit) return;
     const task = state?.tasks.find((t) => t.id === id);
     if (task && task.milestoneId !== milestoneId) {
       dispatch({ type: 'task/update', id, patch: { milestoneId } });
     }
-    setOverKey(null);
+  }
+
+  function moveTaskDue(id: string, bucket: DueBucket) {
+    if (!canEdit) return;
+    const task = state?.tasks.find((t) => t.id === id);
+    const dueDate = dueColumnDate(bucket);
+    if (task && task.dueDate !== dueDate) {
+      dispatch({ type: 'task/update', id, patch: { dueDate } });
+    }
   }
 
   function renderColumn(
@@ -263,9 +270,10 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     header: React.ReactNode,
     tasks: Task[],
     dropKey: string | null,
-    onDrop: (e: React.DragEvent) => void,
+    onDrop: (taskId: string) => void,
     onAdd: () => void,
   ) {
+    registerDrop(dropKey ?? '', onDrop);
     return (
       <div
         key={key}
@@ -279,14 +287,19 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
         onDragLeave={() => setOverKey((cur) => (cur === dropKey ? null : cur))}
         onDrop={(e) => {
           e.preventDefault();
-          onDrop(e);
+          setOverKey(null);
+          const id = e.dataTransfer.getData('text/plain');
+          if (id) onDrop(id);
         }}
       >
         <div className="kanban-col-header">{header}</div>
-        <div className={`kanban-col-body ${overKey === dropKey ? 'kanban-drop-active' : ''}`}>
+        <div
+          className={`kanban-col-body ${overKey === dropKey ? 'kanban-drop-active' : ''}`}
+          data-drop-key={dropKey ?? ''}
+        >
           {tasks.length === 0 && <p className="kanban-col-empty">Drop tasks here</p>}
           {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} onOpen={openTask} members={members} showStatus={view === 'milestone'} showMilestone={view === 'status'} unread={unreadIds?.has(task.id)} />
+            <TaskCard key={task.id} task={task} onOpen={openTask} members={members} showStatus={view === 'milestone'} showMilestone={view === 'status'} unread={unreadIds?.has(task.id)} onTouchDrop={handleTouchDrop} />
           ))}
         </div>
         <div className="kanban-col-add">
@@ -322,7 +335,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
         (t) => !!t.pinned,
       ),
       col.status,
-      (e) => handleDropStatus(col.status, e),
+      (id) => moveTaskStatus(id, col.status),
       () => setNewTaskAt({ status: col.status }),
     ),
   );
@@ -351,20 +364,10 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       </>,
       tasks,
       key,
-      (e) => handleDropMilestone(mId, e),
+      (id) => moveTaskMilestone(id, mId),
       () => setNewTaskAt({ milestoneId: mId }),
     );
   });
-
-  function handleDropDue(bucket: DueBucket, e: React.DragEvent) {
-    const id = e.dataTransfer.getData('text/plain');
-    const task = state?.tasks.find((t) => t.id === id);
-    const dueDate = dueColumnDate(bucket);
-    if (task && task.dueDate !== dueDate) {
-      dispatch({ type: 'task/update', id, patch: { dueDate } });
-    }
-    setOverKey(null);
-  }
 
   const dueCols = DUE_BUCKETS.map(({ bucket, label }) => {
     const tasks = filteredTasks
@@ -378,7 +381,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       </>,
       tasks,
       bucket,
-      (e) => handleDropDue(bucket, e),
+      (id) => moveTaskDue(id, bucket),
       () => setNewTaskAt({ dueDate: dueColumnDate(bucket) }),
     );
   });
@@ -476,6 +479,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
               onOpenTask={openTask}
               onQuickCreate={(dueDate) => setNewTaskAt({ dueDate })}
               taskFilter={mineOnly && userId ? (t) => t.assigneeId === userId : undefined}
+              onTouchDrop={handleTouchDrop}
             />
         ) : (
           dueCols

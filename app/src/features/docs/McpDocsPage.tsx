@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { Button } from '../../components/Button';
 import { DocsNav } from './DocsNav';
-import { DocsToc, type DocsTocItem } from './DocsToc';
+import { DocsToc, DocsTocMobile, type DocsTocItem } from './DocsToc';
 import { Callout } from './Callout';
 
 const ENV_EXAMPLE = '$env:DEVHUB_MCP_KEY = "devhub_your_key_here"';
@@ -108,6 +108,7 @@ export function McpDocsPage() {
 
       <div className="docs-grid">
         <div className="docs-main">
+          <DocsTocMobile items={TOC_ITEMS} />
           <DocsNav />
           <div className="docs-body">
             <section id="mcp-prereq" className="docs-prereq">

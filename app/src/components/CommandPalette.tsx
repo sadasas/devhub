@@ -5,6 +5,7 @@ import { useProjects } from '../state/projects-context';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { useSearchResults } from '../hooks/useSearchResults';
 import { entityDeepLink } from '../lib/deep-link';
+import { onOpenPalette } from '../lib/palette-events';
 
 interface PaletteCommand {
   id: string;
@@ -217,10 +218,17 @@ export function CommandPalette() {
         return;
       }
       if (e.key === '?' && !openRef.current) {
-        e.preventDefault();
-        setQuery('');
-        setIndex(0);
-        setOpen(true);
+        const target = e.target as HTMLElement | null;
+        const typing =
+          target?.tagName === 'INPUT' ||
+          target?.tagName === 'TEXTAREA' ||
+          target?.isContentEditable;
+        if (!typing) {
+          e.preventDefault();
+          setQuery('');
+          setIndex(0);
+          setOpen(true);
+        }
         return;
       }
       if (e.key === '/' && !openRef.current) {
@@ -261,6 +269,16 @@ export function CommandPalette() {
       requestAnimationFrame(() => inputRef.current?.focus());
     }
   }, [open]);
+
+  useEffect(
+    () =>
+      onOpenPalette(() => {
+        setQuery('');
+        setIndex(0);
+        setOpen(true);
+      }),
+    [],
+  );
 
   if (!open) return null;
 

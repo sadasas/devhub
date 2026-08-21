@@ -274,6 +274,90 @@ Permintaan: "di command pallete hanya bisa create projek" — palette hanya puny
 
 ---
 
+## Batch 10 — Audit mobile support (2026-08-21)
+
+**Permintaan**: "audit ui ux agar support mobile device". **Menutup item DevHub `232b47c6-108c-41c8-80af-6e4a02f5b267`.** Scope: seluruh `app/src` pada viewport mobile (360–860px), perangkat touch (pointer: coarse), dan iOS Safari (zoom-on-focus, rubber-banding). Metode: audit statis per area — shell/layout, komponen & hooks, halaman standalone — dengan verifikasi akhir lint + build.
+
+### Temuan (ringkas)
+
+| ID | Severity | Temuan | Lokasi |
+| --- | --- | --- | --- |
+| M1 | Critical | `.layout` `grid-template-columns: 232px 1fr` tanpa breakpoint — seluruh app tidak terpakai di ≤860px (konten ~64px di 360px) | `global.css:994-998` |
+| M2 | Critical | Kanban DnD hanya HTML5 Drag-and-Drop — tidak berfungsi di touch; fallback arrow-key & modal edit tidak discoverable | `board/TaskCard.tsx:67-74`, `BoardPage.tsx:232-283`, `DueCalendar.tsx:90-250` |
+| M3 | Critical | Pin task `opacity: 0` sampai hover — tidak terlihat/tidak terpakai di touch (tidak ada `@media (hover: none)`; pola sudah ada untuk chat di `global.css:5862`) | `global.css:1860-1873` |
+| M4 | Major | Semua input/textarea/select 13–14px → iOS auto-zoom saat fokus | `global.css:244, 372, 2953` |
+| M5 | Major | Touch targets <36px hampir merata (btn-sm/btn-icon 28px, sidebar-add-btn 18px, key-copy-btn 20px, wb-selection-btn 26px, fp-color 20px, due-cal-task ~15px) | `global.css:126-141, 1109-1122, 3181-3194, 5829, 6136-6151, 6331-6342` |
+| M6 | Major | CommandPalette hanya via keyboard (Ctrl+K / ? / /); shortcut `?` tanpa guard isTypingTarget → membuka palette saat mengetik `?` (termasuk di iOS keyboard) | `CommandPalette.tsx:208-257` |
+| M7 | Major | Overflow horizontal: `.project-actions`/`.page-header`/`.data-list-header`/`.api-toolbar`/`.sub-tabs` tidak wrap; `.member-row` ~480px intrinsik; `.preview-table` + `.preview-mono` nowrap tanpa wrapper scroll; toolbar whiteboard + `.wb-selection-bar` terpotong | `global.css:1653-1658, 1270-1276, 2217-2223, 4849-4855, 2666-2674, 5453-5484, 6319-6329` |
+| M8 | Major | Whiteboard: zoom hanya wheel (tanpa pinch), scroll trap (`touch-action: none` + `min-height: 480px` pada layar pendek), hint teks mouse-only | `WhiteboardCanvas.tsx:143-151, 1839`; `global.css:5814-5815` |
+| M9 | Minor | Docs TOC `display: none` <1020px tanpa pengganti; popover sort/presence tidak di-clamp viewport; grid min-track `.stats-grid` 300px/`.about-cards` 320px; SaveBanner (error persisten) menutupi aksi header; `.detail-row` label 110px ketat di 360px; grid kv/param API orphan baris ke-2; kalender due-date 6×112px; `.ss-hint` dead code | berbagai |
+
+**Keputusan desain** (hasil konfirmasi user): navigasi mobile = **drawer + top bar** (bukan bottom tab bar); scope = **semua temuan** (termasuk minor).
+
+### Rencana eksekusi
+
+1. **Fase 1 — Mobile shell (M1)**: breakpoint ≤860px — `.layout` 1 kolom, `.sidebar` jadi off-canvas drawer (fixed 260px, `translateX(-100%)` ↔ `.sidebar-open` + backdrop), top bar mobile (hamburger + logo + tombol CommandPalette), tutup drawer saat route berubah/Escape/tap backdrop + scroll-lock body; `.page` padding → 16px.
+2. **Fase 2 — Touch interaction (M2/M3)**: drag pointer-based (long-press) untuk board & due-calendar, reuse `handleDropStatus`; menu "Move to…" per kartu; `@media (hover: none)` untuk pin + hit area ≥36px.
+3. **Fase 3 — Whiteboard (M8)**: pinch zoom (2-pointer, zoom di centroid), perbaikan scroll trap (`overscroll-behavior` + tinggi canvas `min()`), `.wb-selection-bar`/toolbar scroll, hint text update.
+4. **Fase 4 — iOS zoom & touch targets (M4/M5)**: `@media (hover: none)` — input 16px, kontrol ≥36px tanpa merusak densitas desktop.
+5. **Fase 5 — Overflow (M7)**: `flex-wrap` + guards grid; `.preview-table` wrapper scroll; `.member-row` responsif; grid API kv/param eksplisit.
+6. **Fase 6 — Minor (M9)**: guard `?` palette, TOC docs via `<details>`, clamp popover, SaveBanner posisi mobile, `.detail-row` kolom tunggal ≤480px, dsb.
+7. **Verifikasi**: `npm run lint -w app`, `npm run test:app`, `npm run build -w app`; cek manual viewport 375/390/768px (drawer, long-press drag, pin, zoom iOS, pinch whiteboard).
+
+### Status
+
+- [x] Audit selesai (temuan di atas)
+- [x] Fase 1 — Mobile shell
+- [x] Fase 2 — Touch interaction
+- [x] Fase 3 — Whiteboard
+- [x] Fase 4 — iOS zoom & touch targets
+- [x] Fase 5 — Overflow
+- [x] Fase 6 — Minor
+- [x] Verifikasi akhir
+
+### Perubahan yang diterapkan
+
+**Baru**
+- `lib/palette-events.ts` — event `devhub:open-palette` (`openPalette`/`onOpenPalette`) agar palette bisa dibuka dari tombol top bar.
+- `lib/drop-registry.ts` — registry `registerDrop(key, handler)`/`getDropHandler(key)` untuk drop target kanban/kalender.
+- `hooks/useTouchDrag.ts` — long-press drag berbasis pointer events untuk touch: tekan 180ms → drag, highlight kolom via `kanban-drop-active`, auto-scroll `.kanban` di tepi viewport, drop via `elementFromPoint` + `[data-drop-key]`, suppress click setelah drag, guard `(hover: hover)` (desktop tetap HTML5 DnD).
+- `features/docs/DocsToc.tsx` — tambah `DocsTocMobile` (collapsible `<details>`, tampil ≤1020px) + refactor `TocLinks`/`jumpTo` bersama.
+
+**`features/layout/Layout.tsx`** — top bar mobile (hamburger `aria-expanded` + logo + tombol palette), drawer state, tutup saat ganti route/Escape/tap backdrop, scroll-lock body saat drawer terbuka.
+
+**`features/board/BoardPage.tsx`** — handler drop direfaktor jadi taskId-based (`moveTaskStatus`/`moveTaskMilestone`/`moveTaskDue`, semua gate `canEdit`); `renderColumn` menerima `(taskId) => void` + register ke drop registry; `data-drop-key` pada `.kanban-col-body`; `onTouchDrop` dipass ke TaskCard & DueCalendar.
+
+**`features/board/TaskCard.tsx`** — ref + `useTouchDrag`; prop `onTouchDrop`; sr-only hint menyebut touch ("press and hold, then drag").
+
+**`features/board/DueCalendar.tsx`** — chip diekstrak jadi `CalTaskChip` (dengan `useTouchDrag`); `data-drop-key={`date:${date}`}` per sel + `clear` pada strip "No date"; handler `moveToDate` didaftarkan ke registry per sel.
+
+**`features/whiteboard/WhiteboardCanvas.tsx`** — pinch zoom 2-pointer di `useView` (zoom di centroid via `zoomAtPoint` + translate mengikuti centroid; `stopPropagation` menekan handler tool saat pinch); hint "Scroll or pinch to zoom · drag to pan".
+
+**`components/CommandPalette.tsx`** — listener `onOpenPalette` (trigger dari top bar); shortcut `?` kini di-guard `isTypingTarget` sama seperti `/`.
+
+**`styles/global.css`**
+- Mobile shell ≤860px: `.layout` 1 kolom, `.topbar` sticky, `.sidebar-drawer` off-canvas 264px (`translateX(-100%)` ↔ `.sidebar-open` + shadow), `.nav-backdrop`, `.page` padding 20px 16px.
+- Blok `@media (hover: none)`: input/select/textarea/ss-input/palette-input → 16px (anti iOS zoom); btn-sm/btn-icon/sidebar-signout/back-btn/sub-tab/erd-zoom-btn/wb-selection-btn/wb-delete-btn ≥36px; key-copy/code-copy/project-id-copy/fp-color ≥32px; ss-trigger/ss-option/palette-item/sort-menu-row ≥40px; due-cal-task ≥24px; `.task-card-pin { opacity: 1 }`.
+- Wrap/overflow: `.page-header`, `.project-header`, `.project-actions`, `.project-title-row`, `.data-list-header`, `.api-toolbar` → `flex-wrap`; `.sub-tabs` → `overflow-x: auto` + max-width; `.preview-table` → `display: block; overflow-x: auto`.
+- Grid guards: `.stats-grid`/`.about-cards`/`.keys-guide-grid`/`.project-grid` → `minmax(min(Npx, 100%), 1fr)`.
+- Whiteboard: `.wb-canvas` + `overscroll-behavior: contain`; ≤860px tinggi `62dvh` min 320px (anti scroll-trap); `.wb-selection-bar` → `flex-wrap`.
+- ≤700px: `.save-toast` full-width top; `.member-row` collapse (avatar+name+pct).
+- ≤480px: `.detail-row` 1 kolom; `.detail-col-caption/.detail-col-row` 2 kolom (type/default disembunyikan).
+- Docs TOC mobile: `.docs-toc-mobile` collapsible ≤1020px.
+- API ≤900px: penempatan eksplisit baris ke-2 grid kv/param (tidak ada orphan).
+
+### Verifikasi (batch ini)
+- `npx tsc -b` — bersih
+- `npm run lint -w app` — bersih dari error (warning pre-existing only-export-components + exhaustive-deps WhiteboardCanvas)
+- `npm run test -w app` — 672/672 lolos (1 kegagalan flaky IndexedDB pada run pertama, lolos saat re-run)
+- `npm run build -w app` — sukses (chunk terbesar index 267.78 kB / gzip 80.92 kB)
+
+### Catatan
+- Menu "Move to…" per kartu tidak dibuat terpisah — jalur alternatif yang sudah ada: Edit status di TaskModal + arrow-key (desktop) + long-press drag (touch).
+- `.ss-hint` dibiarkan (dead code tanpa dampak mobile; slot hint SearchableSelect).
+
+---
+
 ## Backlog (tidak dikerjakan dalam sesi ini)
 
 1. **Undo untuk perubahan board** (arrow move / drag) — edit langsung + autosave = tidak ada undo; pertimbangkan snapshot ringan atau shortcut `Ctrl+Z` di level project.

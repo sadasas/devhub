@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useCallback, useRef } from 'react';
 import { LinkSimple, ListChecks } from '@phosphor-icons/react';
 import { TASK_PRIORITY, TASK_PRIORITY_SHORT, TASK_STATUS } from '../../lib/labels';
 import { formatDate, linkedTestCases, shortId } from '../../lib/utils';
@@ -9,6 +9,7 @@ import type { Task } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { Badge } from '../../components/Badge';
 import { PinButton } from '../../components/PinButton';
+import { useTouchDrag } from '../../hooks/useTouchDrag';
 
 interface MemberInfo {
   email: string;
@@ -22,6 +23,7 @@ interface TaskCardProps {
   showStatus?: boolean;
   showMilestone?: boolean;
   unread?: boolean;
+  onTouchDrop?: (taskId: string, dropKey: string | null) => void;
 }
 
 export const TaskCard = memo(function TaskCard({
@@ -31,8 +33,15 @@ export const TaskCard = memo(function TaskCard({
   showStatus = false,
   showMilestone = false,
   unread = false,
+  onTouchDrop,
 }: TaskCardProps) {
   const { state, canEdit, dispatch } = useProject();
+  const cardRef = useRef<HTMLButtonElement>(null);
+  const handleTouchDrop = useCallback(
+    (dropKey: string | null) => onTouchDrop?.(task.id, dropKey),
+    [task.id, onTouchDrop],
+  );
+  useTouchDrag(cardRef, { enabled: canEdit && !!onTouchDrop, onDrop: handleTouchDrop });
   const assignee = task.assigneeId ? members?.[task.assigneeId] : undefined;
   const assigneeName = assignee ? (assignee.displayName || assignee.email) : undefined;
   const blockers =
@@ -62,6 +71,7 @@ export const TaskCard = memo(function TaskCard({
   return (
     <div className={`task-card-wrap${task.pinned ? ' card-pinned' : ''}`}>
       <button
+        ref={cardRef}
         type="button"
         className={`task-card task-card-priority-${task.priority}`}
         draggable={canEdit}
@@ -157,7 +167,7 @@ export const TaskCard = memo(function TaskCard({
 
         <span className="sr-only">
           {TASK_STATUS[task.status].label} task with {TASK_PRIORITY[task.priority].label} priority.
-          Drag to move between columns, or move with arrow keys when focused.
+          Drag to move between columns. On touch: press and hold, then drag. Move with arrow keys when focused.
         </span>
       </button>
       {canEdit && (

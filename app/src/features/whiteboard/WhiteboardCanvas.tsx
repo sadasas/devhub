@@ -136,6 +136,8 @@ function useView(panEnabled: boolean) {
   const [dragging, setDragging] = useState(false);
   const dragStartRef = useRef<{ pointerX: number; pointerY: number; x: number; y: number } | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const viewRef = useRef(view);
+  viewRef.current = view;
 
   useEffect(() => {
     const el = svgRef.current;
@@ -148,6 +150,77 @@ function useView(panEnabled: boolean) {
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
+  // Pinch zoom — two-finger touch gestures take over pan/tool interactions.
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const pointers = new Map<number, { x: number; y: number }>();
+    let pinchStart: { dist: number; cx: number; cy: number; view: ViewState } | null = null;
+    let pinching = false;
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.pointerType === 'mouse') return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointers.size >= 2) {
+        e.stopPropagation();
+        if (!pinching) {
+          const pts = [...pointers.values()];
+          const a = pts[0];
+          const b = pts[1];
+          if (!a || !b) return;
+          const rect = el.getBoundingClientRect();
+          pinchStart = {
+            dist: Math.hypot(a.x - b.x, a.y - b.y),
+            cx: (a.x + b.x) / 2 - rect.left,
+            cy: (a.y + b.y) / 2 - rect.top,
+            view: viewRef.current,
+          };
+          pinching = true;
+          dragStartRef.current = null;
+          setDragging(false);
+        }
+      }
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (!pointers.has(e.pointerId)) return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (!pinching || !pinchStart || pointers.size < 2) return;
+      e.stopPropagation();
+      const pts = [...pointers.values()];
+      const a = pts[0];
+      const b = pts[1];
+      if (!a || !b) return;
+      const rect = el.getBoundingClientRect();
+      const dist = Math.hypot(a.x - b.x, a.y - b.y);
+      const cx = (a.x + b.x) / 2 - rect.left;
+      const cy = (a.y + b.y) / 2 - rect.top;
+      if (pinchStart.dist <= 0) return;
+      const factor = dist / pinchStart.dist;
+      const base = zoomAtPoint(pinchStart.view, pinchStart.cx, pinchStart.cy, factor, MIN_ZOOM, MAX_ZOOM);
+      setView({ ...base, x: base.x + (cx - pinchStart.cx), y: base.y + (cy - pinchStart.cy) });
+    };
+
+    const endPointer = (e: PointerEvent) => {
+      pointers.delete(e.pointerId);
+      if (pinching && pointers.size < 2) {
+        pinching = false;
+        pinchStart = null;
+      }
+    };
+
+    el.addEventListener('pointerdown', onPointerDown);
+    el.addEventListener('pointermove', onPointerMove);
+    el.addEventListener('pointerup', endPointer);
+    el.addEventListener('pointercancel', endPointer);
+    return () => {
+      el.removeEventListener('pointerdown', onPointerDown);
+      el.removeEventListener('pointermove', onPointerMove);
+      el.removeEventListener('pointerup', endPointer);
+      el.removeEventListener('pointercancel', endPointer);
+    };
   }, []);
 
   const onPointerDown = (e: ReactPointerEvent<SVGSVGElement>) => {
@@ -1836,7 +1909,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
           </button>
         </div>
       )}
-      <span className="wb-hint">Scroll to zoom · drag to pan</span>
+      <span className="wb-hint">Scroll or pinch to zoom · drag to pan</span>
       {board.elements.length > 0 && (
         (() => {
           const bounds = unionBounds(board.elements.map((el) => elementBounds(el)));
