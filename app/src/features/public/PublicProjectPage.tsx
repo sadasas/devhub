@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Bug, CalendarBlank, ChalkboardSimple, Columns, Flag, Gauge, ListChecks, Rocket, SquaresFour, Stack } from '@phosphor-icons/react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { ApiError, api } from '../../lib/api';
+import { getErrorMessage } from '../../lib/errors';
 import type { PublicProject, PublicTab, State, Task } from '../../lib/types';
 import {
   ISSUE_STATUS,
@@ -85,7 +86,7 @@ export function PublicProjectPage() {
         if (err instanceof ApiError && err.status === 404) {
           setNotFound(true);
         } else {
-          setError(err instanceof ApiError ? err.message : 'Failed to load project.');
+          setError(getErrorMessage(err, 'Failed to load project.'));
         }
       })
       .finally(() => {

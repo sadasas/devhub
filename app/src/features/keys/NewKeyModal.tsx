@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Check, Copy } from '@phosphor-icons/react';
-import { ApiError, api } from '../../lib/api';
+import { api } from '../../lib/api';
+import { getErrorMessage } from '../../lib/errors';
 import type { McpKeyCreated } from '../../lib/types';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { Button } from '../../components/Button';
@@ -59,7 +60,7 @@ export function NewKeyModal({ open, onClose, onCreated, activeCount = 0 }: NewKe
       setCreated(key);
       setStep('reveal');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to create key.');
+      setError(getErrorMessage(err, 'Failed to create key.'));
     } finally {
       setSubmitting(false);
     }

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { ArrowRight, TerminalWindow } from '@phosphor-icons/react';
-import { ApiError } from '../../lib/api';
+import {} from '../../lib/api';
+import { getErrorMessage } from '../../lib/errors';
 import { useAuth } from '../../state/auth-context';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
@@ -34,7 +35,7 @@ export function AuthPage() {
         await login(email.trim(), password);
       }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Something went wrong. Try again.');
+      setError(getErrorMessage(err, 'Something went wrong. Try again.'));
       setSubmitting(false);
     }
   }

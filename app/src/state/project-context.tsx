@@ -9,6 +9,7 @@ import {
 } from 'react';
 import type { ReactNode } from 'react';
 import { ApiError, type GranularEntity } from '../lib/api';
+import { getErrorMessage } from '../lib/errors';
 import {
   apiProvider,
   isQueuedStorageProvider,
@@ -641,7 +642,7 @@ export function ProjectProvider({
         setIsOffline(false);
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof ApiError ? err.message : 'Failed to load project state');
+          setError(getErrorMessage(err, 'Failed to load project state'));
         }
       } finally {
         if (!cancelled) setLoading(false);

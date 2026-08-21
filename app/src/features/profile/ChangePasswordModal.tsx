@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle, Eye, EyeSlash } from '@phosphor-icons/react';
-import { ApiError, api } from '../../lib/api';
+import { api } from '../../lib/api';
+import { getErrorMessage } from '../../lib/errors';
 import { Button } from '../../components/Button';
 import { InlineError } from '../../components/InlineError';
 import { Input } from '../../components/Input';
@@ -70,7 +71,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
       await api.changePassword(currentPassword, newPassword);
       setChangeSuccess(true);
     } catch (err) {
-      setChangeError(err instanceof ApiError ? err.message : 'Failed to change password.');
+      setChangeError(getErrorMessage(err, 'Failed to change password.'));
     } finally {
       setChanging(false);
     }

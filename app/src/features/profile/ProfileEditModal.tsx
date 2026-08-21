@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { ApiError, api } from '../../lib/api';
+import { api } from '../../lib/api';
+import { getErrorMessage } from '../../lib/errors';
 import { Button } from '../../components/Button';
 import { InlineError } from '../../components/InlineError';
 import { Input } from '../../components/Input';
@@ -44,7 +45,7 @@ export function ProfileEditModal({ open, onClose }: ProfileEditModalProps) {
       setUser(updated);
       onClose();
     } catch (err) {
-      setSaveError(err instanceof ApiError ? err.message : 'Failed to save profile.');
+      setSaveError(getErrorMessage(err, 'Failed to save profile.'));
       setSaving(false);
     }
   }

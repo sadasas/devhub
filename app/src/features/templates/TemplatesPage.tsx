@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { BookmarkSimple, Copy } from '@phosphor-icons/react';
-import { ApiError, api } from '../../lib/api';
+import { api } from '../../lib/api';
+import { getErrorMessage } from '../../lib/errors';
 import type { ProjectTemplate } from '../../lib/types';
 import { formatDate } from '../../lib/utils';
 import { useTeams } from '../../state/teams-context';
@@ -37,7 +38,7 @@ export function TemplatesPage() {
         if (!cancelled) setTemplates(list);
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'Failed to load templates.');
+        if (!cancelled) setError(getErrorMessage(err, 'Failed to load templates.'));
       });
     return () => {
       cancelled = true;
@@ -59,7 +60,7 @@ export function TemplatesPage() {
       setTemplates((prev) => (prev ?? []).filter((t) => t.id !== deleteTarget.id));
       setDeleteTarget(null);
     } catch (err) {
-      setDeleteError(err instanceof ApiError ? err.message : 'Failed to delete template.');
+      setDeleteError(getErrorMessage(err, 'Failed to delete template.'));
     } finally {
       setDeleting(false);
     }

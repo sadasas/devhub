@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { ApiError, api } from '../../lib/api';
+import { api } from '../../lib/api';
+import { getErrorMessage } from '../../lib/errors';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
@@ -39,7 +40,7 @@ export function SaveTemplateModal({ open, projectId, projectName, onClose }: Sav
       setSaved(true);
       setSubmitting(false);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to save template.');
+      setError(getErrorMessage(err, 'Failed to save template.'));
       setSubmitting(false);
     }
   }

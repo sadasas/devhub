@@ -6,6 +6,7 @@ import { TeamsProvider } from './state/teams-context';
 import { AuthPage } from './features/auth/AuthPage';
 import { Layout } from './features/layout/Layout';
 import {
+  AdminSkeleton,
   DashboardSkeleton,
   DocsSkeleton,
   InvitesSkeleton,
@@ -17,6 +18,8 @@ import {
   TeamSkeleton,
   TemplatesSkeleton,
 } from './components/PageSkeletons';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { RouteBoundary } from './components/RouteBoundary';
 import { Skeleton } from './components/Skeleton';
 
 const DashboardPageLazy = lazy(() => import('./features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })));
@@ -27,6 +30,7 @@ const McpDocsPageLazy = lazy(() => import('./features/docs/McpDocsPage').then((m
 const TeamPageLazy = lazy(() => import('./features/teams/TeamPage').then((m) => ({ default: m.TeamPage })));
 const InvitesPageLazy = lazy(() => import('./features/teams/InvitesPage').then((m) => ({ default: m.InvitesPage })));
 const TemplatesPageLazy = lazy(() => import('./features/templates/TemplatesPage').then((m) => ({ default: m.TemplatesPage })));
+const AdminPageLazy = lazy(() => import('./features/admin/AdminPage').then((m) => ({ default: m.AdminPage })));
 const ProjectPageLazy = lazy(() => import('./features/project/ProjectPage').then((m) => ({ default: m.ProjectPage })));
 const PublicProjectPageLazy = lazy(() => import('./features/public/PublicProjectPage').then((m) => ({ default: m.PublicProjectPage })));
 const CommandPaletteLazy = lazy(() => import('./components/CommandPalette').then((m) => ({ default: m.CommandPalette })));
@@ -53,81 +57,91 @@ function Root() {
             <Route
               path="/"
               element={
-                <Suspense fallback={<DashboardSkeleton />}>
+                <RouteBoundary fallback={<DashboardSkeleton />}>
                   <DashboardPageLazy />
-                </Suspense>
+                </RouteBoundary>
               }
             />
             <Route
               path="/project/:projectId"
               element={
-                <Suspense fallback={<ProjectSkeleton />}>
+                <RouteBoundary fallback={<ProjectSkeleton />}>
                   <ProjectPageLazy />
-                </Suspense>
+                </RouteBoundary>
               }
             />
             <Route
               path="/team/:teamId"
               element={
-                <Suspense fallback={<TeamSkeleton />}>
+                <RouteBoundary fallback={<TeamSkeleton />}>
                   <TeamPageLazy />
-                </Suspense>
+                </RouteBoundary>
               }
             />
             <Route
               path="/invites"
               element={
-                <Suspense fallback={<InvitesSkeleton />}>
+                <RouteBoundary fallback={<InvitesSkeleton />}>
                   <InvitesPageLazy />
-                </Suspense>
+                </RouteBoundary>
               }
             />
             <Route
               path="/keys"
               element={
-                <Suspense fallback={<KeysSkeleton />}>
+                <RouteBoundary fallback={<KeysSkeleton />}>
                   <KeysPageLazy />
-                </Suspense>
+                </RouteBoundary>
               }
             />
             <Route
               path="/templates"
               element={
-                <Suspense fallback={<TemplatesSkeleton />}>
+                <RouteBoundary fallback={<TemplatesSkeleton />}>
                   <TemplatesPageLazy />
-                </Suspense>
+                </RouteBoundary>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <RouteBoundary fallback={<AdminSkeleton />}>
+                  <AdminPageLazy />
+                </RouteBoundary>
               }
             />
             <Route
               path="/profile"
               element={
-                <Suspense fallback={<ProfileSkeleton />}>
+                <RouteBoundary fallback={<ProfileSkeleton />}>
                   <ProfilePageLazy />
-                </Suspense>
+                </RouteBoundary>
               }
             />
             <Route
               path="/docs"
               element={
-                <Suspense fallback={<DocsSkeleton />}>
+                <RouteBoundary fallback={<DocsSkeleton />}>
                   <DocsPageLazy />
-                </Suspense>
+                </RouteBoundary>
               }
             />
             <Route
               path="/docs/mcp"
               element={
-                <Suspense fallback={<McpDocsSkeleton />}>
+                <RouteBoundary fallback={<McpDocsSkeleton />}>
                   <McpDocsPageLazy />
-                </Suspense>
+                </RouteBoundary>
               }
             />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
-        <Suspense fallback={null}>
-          <CommandPaletteLazy />
-        </Suspense>
+        <ErrorBoundary>
+          <Suspense fallback={null}>
+            <CommandPaletteLazy />
+          </Suspense>
+        </ErrorBoundary>
       </ProjectsProvider>
     </TeamsProvider>
   );
@@ -136,19 +150,21 @@ function Root() {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route
-            path="/p/:projectId"
-            element={
-              <Suspense fallback={<PublicProjectSkeleton />}>
-                <PublicProjectPageLazy />
-              </Suspense>
-            }
-          />
-          <Route path="/*" element={<Root />} />
-        </Routes>
-      </BrowserRouter>
+      <ErrorBoundary>
+        <BrowserRouter>
+          <Routes>
+            <Route
+              path="/p/:projectId"
+              element={
+                <RouteBoundary fallback={<PublicProjectSkeleton />}>
+                  <PublicProjectPageLazy />
+                </RouteBoundary>
+              }
+            />
+            <Route path="/*" element={<Root />} />
+          </Routes>
+        </BrowserRouter>
+      </ErrorBoundary>
     </AuthProvider>
   );
 }

@@ -21,7 +21,8 @@ import {
 } from '@phosphor-icons/react';
 import type { ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
-import { ApiError, api } from '../../lib/api';
+import { api } from '../../lib/api';
+import { getErrorMessage } from '../../lib/errors';
 import { offlineProvider } from '../../lib/idb-provider';
 import { PROJECT_STATUS, TEAM_ROLE } from '../../lib/labels';
 import { formatDate } from '../../lib/utils';
@@ -324,7 +325,7 @@ if (!project) {
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setDeleteError(err instanceof ApiError ? err.message : 'Failed to export project.');
+      setDeleteError(getErrorMessage(err, 'Failed to export project.'));
     }
   }
 
@@ -361,7 +362,7 @@ if (!project) {
       await refresh();
       navigate(`/project/${result.projectId}`);
     } catch (err) {
-      setImportError(err instanceof ApiError ? err.message : 'Failed to import project.');
+      setImportError(getErrorMessage(err, 'Failed to import project.'));
       setImporting(false);
     }
   }
@@ -373,7 +374,7 @@ if (!project) {
       await remove(projectId);
       navigate('/');
     } catch (err) {
-      setDeleteError(err instanceof ApiError ? err.message : 'Failed to delete project.');
+      setDeleteError(getErrorMessage(err, 'Failed to delete project.'));
       setDeleting(false);
     }
   }

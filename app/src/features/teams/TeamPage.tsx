@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, Envelope, Trash, UsersThree } from '@phosphor-icons/react';
 import { useNavigate, useParams } from 'react-router';
-import { ApiError, api } from '../../lib/api';
+import { api } from '../../lib/api';
+import { getErrorMessage } from '../../lib/errors';
 import { TEAM_ROLE } from '../../lib/labels';
 import type { TeamInvitation, TeamMember, TeamRole } from '../../lib/types';
 import { useTeams } from '../../state/teams-context';
@@ -47,7 +48,7 @@ export function TeamPage() {
       setMembers(list);
       setLoadError(null);
     } catch (err) {
-      setLoadError(err instanceof ApiError ? err.message : 'Failed to load members');
+      setLoadError(getErrorMessage(err, 'Failed to load members'));
     }
   }, [teamId]);
 
@@ -81,7 +82,7 @@ export function TeamPage() {
       setMembers((prev) => (prev ? prev.map((m) => (m.id === member.id ? { ...m, role } : m)) : prev));
       if (role === 'owner') await refresh();
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : 'Failed to change role');
+      setActionError(getErrorMessage(err, 'Failed to change role'));
     } finally {
       setBusyId(null);
     }
@@ -94,7 +95,7 @@ export function TeamPage() {
       await api.declineInvitation(teamId, inv.id);
       setPendingInvites((prev) => (prev ? prev.filter((i) => i.id !== inv.id) : prev));
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : 'Failed to withdraw invitation');
+      setActionError(getErrorMessage(err, 'Failed to withdraw invitation'));
     } finally {
       setBusyId(null);
     }
@@ -108,7 +109,7 @@ export function TeamPage() {
       setMembers((prev) => (prev ? prev.filter((m) => m.id !== member.id) : prev));
       await refresh();
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : 'Failed to remove member');
+      setActionError(getErrorMessage(err, 'Failed to remove member'));
     } finally {
       setBusyId(null);
     }
@@ -123,7 +124,7 @@ export function TeamPage() {
       await refresh();
       navigate('/');
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : 'Failed to leave team');
+      setActionError(getErrorMessage(err, 'Failed to leave team'));
       setDeleting(false);
     }
   }
@@ -135,7 +136,7 @@ export function TeamPage() {
       await deleteTeam(teamId);
       navigate('/');
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : 'Failed to delete team');
+      setActionError(getErrorMessage(err, 'Failed to delete team'));
       setDeleting(false);
     }
   }
@@ -148,7 +149,7 @@ export function TeamPage() {
       await renameTeam(teamId, renameValue.trim());
       setRenameOpen(false);
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : 'Failed to rename team');
+      setActionError(getErrorMessage(err, 'Failed to rename team'));
     } finally {
       setRenaming(false);
     }

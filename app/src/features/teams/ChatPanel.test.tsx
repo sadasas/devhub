@@ -195,6 +195,29 @@ describe('ChatPanel', () => {
     expect(api.deleteMessage).toHaveBeenCalledWith('t1', 'own');
   });
 
+  it('shows a retryable inline error when deleting fails', async () => {
+    api.listMessages.mockResolvedValue({
+      messages: [message({ id: 'own', authorId: 'u1', content: 'punyaku' })],
+      nextCursor: null,
+    });
+    api.deleteMessage.mockRejectedValue(new ApiError(500, 'INTERNAL', 'boom'));
+
+    renderPanel();
+    expect(await screen.findByText('punyaku')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete message' }));
+
+    expect(await screen.findByText(/Not deleted/)).toBeTruthy();
+    expect(screen.getByText('punyaku')).toBeTruthy();
+
+    api.deleteMessage.mockResolvedValue({ ok: true });
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await waitFor(() => {
+      expect(screen.queryByText('punyaku')).toBeNull();
+    });
+    expect(api.deleteMessage).toHaveBeenCalledTimes(2);
+  });
+
   it('keeps the optimistic bubble queued when sending fails with a network error', async () => {
     api.sendMessage.mockRejectedValue(new ApiError(0, 'NETWORK', 'Cannot reach the server. Is it running?'));
     renderPanel();

@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react';
-import { ApiError } from '../../lib/api';
+import {} from '../../lib/api';
+import { getErrorMessage } from '../../lib/errors';
 import { EMPTY_PRD, PRD_SECTIONS } from '../../lib/prd';
 import { MarkdownBlocks } from '../../lib/markdown';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
@@ -121,7 +122,7 @@ export function EditPrdModal({ open, onClose, project }: EditPrdModalProps) {
       await update(project.id, { description, prd: draft });
       onClose();
     } catch (err) {
-      setSaveError(err instanceof ApiError ? err.message : 'Failed to save changes.');
+      setSaveError(getErrorMessage(err, 'Failed to save changes.'));
       setSaving(false);
     }
   }

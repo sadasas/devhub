@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { ApiError } from '../../lib/api';
+import {} from '../../lib/api';
+import { getErrorMessage } from '../../lib/errors';
 import { TEAM_ROLE } from '../../lib/labels';
 import type { TeamRole } from '../../lib/types';
 import { useTeams } from '../../state/teams-context';
@@ -36,7 +37,7 @@ export function InviteModal({ teamId, open, onClose, onInvited }: InviteModalPro
       onClose();
       onInvited();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to send invitation.');
+      setError(getErrorMessage(err, 'Failed to send invitation.'));
       setSubmitting(false);
     }
   }

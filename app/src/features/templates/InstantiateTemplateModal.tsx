@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router';
-import { ApiError, api } from '../../lib/api';
+import { api } from '../../lib/api';
+import { getErrorMessage } from '../../lib/errors';
 import type { ProjectTemplate } from '../../lib/types';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
@@ -37,7 +38,7 @@ export function InstantiateTemplateModal({ open, template, onClose }: Instantiat
       onClose();
       navigate(`/project/${result.projectId}`);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to create project from template.');
+      setError(getErrorMessage(err, 'Failed to create project from template.'));
       setSubmitting(false);
     }
   }

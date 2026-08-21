@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { Check, CircleNotch, Clock, Copy, Key, Plus } from '@phosphor-icons/react';
-import { ApiError, api } from '../../lib/api';
+import { api } from '../../lib/api';
+import { getErrorMessage } from '../../lib/errors';
 import type { McpKey, McpKeyCreated } from '../../lib/types';
 import { formatDate, formatRelative } from '../../lib/utils';
 import { Badge } from '../../components/Badge';
@@ -79,7 +80,7 @@ export function KeysPage() {
         if (!cancelled) setKeys(list);
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : 'Failed to load API keys.');
+        if (!cancelled) setError(getErrorMessage(err, 'Failed to load API keys.'));
       });
     return () => {
       cancelled = true;
@@ -109,7 +110,7 @@ export function KeysPage() {
       );
       setRevokeTarget(null);
     } catch (err) {
-      setRevokeError(err instanceof ApiError ? err.message : 'Failed to revoke key.');
+      setRevokeError(getErrorMessage(err, 'Failed to revoke key.'));
     } finally {
       setRevoking(false);
     }
@@ -126,7 +127,7 @@ export function KeysPage() {
     } catch (err) {
       setCopyError({
         id: key.id,
-        message: err instanceof ApiError ? err.message : 'Failed to copy key.',
+        message: getErrorMessage(err, 'Failed to copy key.'),
       });
     } finally {
       setCopyLoadingId(null);

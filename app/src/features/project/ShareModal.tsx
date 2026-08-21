@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Bug, ChalkboardSimple, Check, Columns, Gauge, LinkSimple, Rocket, Stack, Warning } from '@phosphor-icons/react';
-import { ApiError } from '../../lib/api';
+import {} from '../../lib/api';
+import { getErrorMessage } from '../../lib/errors';
 import type { Project, PublicTab } from '../../lib/types';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { useProjects } from '../../state/projects-context';
@@ -58,7 +59,7 @@ export function ShareModal({ projectId, open, onClose }: ShareModalProps) {
       if (patch.visibility !== undefined) setStartVis(patch.visibility);
       if (patch.visibility === undefined) setVis(updated.visibility);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to save sharing settings.');
+      setError(getErrorMessage(err, 'Failed to save sharing settings.'));
     } finally {
       setSaving(false);
     }

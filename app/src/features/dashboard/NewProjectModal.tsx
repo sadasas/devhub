@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router';
-import { ApiError } from '../../lib/api';
+import {} from '../../lib/api';
+import { getErrorMessage } from '../../lib/errors';
 import { useProjects } from '../../state/projects-context';
 import { useTeams } from '../../state/teams-context';
 import { Button } from '../../components/Button';
@@ -47,7 +48,7 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
       onClose();
       navigate(`/project/${project.id}`);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to create project.');
+      setError(getErrorMessage(err, 'Failed to create project.'));
       setSubmitting(false);
     }
   }

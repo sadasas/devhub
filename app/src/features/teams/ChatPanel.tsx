@@ -18,6 +18,7 @@ import {
   Trash,
 } from '@phosphor-icons/react';
 import { ApiError, api, type SearchHit } from '../../lib/api';
+import { getErrorMessage } from '../../lib/errors';
 import type { ChatMessage, ChatRef, ChatResolvedRef } from '../../lib/types';
 import { buildMentionToken, parseChatRefs } from '../../lib/chat-tokens';
 import { entityDeepLink } from '../../lib/deep-link';
@@ -132,6 +133,7 @@ export function ChatPanel({ teamId, userId, userDisplayName }: ChatPanelProps) {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [failedIds, setFailedIds] = useState<string[]>([]);
+  const [deleteFailedIds, setDeleteFailedIds] = useState<string[]>([]);
   const [queuedCount, setQueuedCount] = useState(0);
   const [lastReadAt, setLastReadAt] = useState<string | null>(null);
   const [openedAt, setOpenedAt] = useState<string | null>(null);
@@ -209,7 +211,7 @@ const socketRef = useRef<TeamChatSocket | null>(null);
         if (list) list.scrollTop = list.scrollHeight;
       });
     } catch (err) {
-      setLoadError(err instanceof ApiError ? err.message : 'Failed to load messages');
+      setLoadError(getErrorMessage(err, 'Failed to load messages'));
       setMessages([]);
     }
   }, [teamId]);
@@ -473,7 +475,7 @@ async function onSend() {
         saveChatQueue();
       } else {
         setFailedIds((ids) => [...ids, temp.id]);
-        setSendError(err instanceof ApiError ? err.message : 'Failed to send message');
+        setSendError(getErrorMessage(err, 'Failed to send message'));
       }
     } finally {
       setSending(false);
@@ -529,9 +531,14 @@ async function onDelete(message: ChatMessage) {
       await api.deleteMessage(teamId, message.id);
       messagesRef.current = messagesRef.current.filter((m) => m.id !== message.id);
       setMessages(messagesRef.current);
+      setDeleteFailedIds((ids) => ids.filter((id) => id !== message.id));
     } catch {
-      /* keep message; user can retry later */
+      setDeleteFailedIds((ids) => (ids.includes(message.id) ? ids : [...ids, message.id]));
     }
+  }
+
+  function onDismissDeleteFailure(message: ChatMessage) {
+    setDeleteFailedIds((ids) => ids.filter((id) => id !== message.id));
   }
 
   function renderContent(content: string) {
@@ -654,6 +661,7 @@ return (
             const own = m.authorId === userId;
             const pending = m.id.startsWith('local-');
             const failed = failedIds.includes(m.id);
+            const deleteFailed = deleteFailedIds.includes(m.id);
             const color = avatarColor(m.authorId ?? '');
             return (
               <div
@@ -698,6 +706,17 @@ return (
                         Retry
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => onDismiss(m)}>
+                        Dismiss
+                      </Button>
+                    </div>
+                  )}
+                  {deleteFailed && (
+                    <div className="chat-msg-actions-inline" role="alert">
+                      Not deleted —{' '}
+                      <Button variant="ghost" size="sm" onClick={() => void onDelete(m)}>
+                        Retry
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => onDismissDeleteFailure(m)}>
                         Dismiss
                       </Button>
                     </div>
