@@ -59,6 +59,7 @@
 | [ADR-039](#adr-039) | User stats endpoint: `GET /auth/me/stats` dari `activity_log` (GitHub-style profile stats) | Accepted | 2026-08-20 |
 | [ADR-040](#adr-040) | Route-level code splitting + per-route contentful skeletons | Accepted | 2026-08-20 |
 | [ADR-041](#adr-041) | Server modular monolith: struktur DDD per bounded context (`modules/<domain>`) | Accepted | 2026-08-21 |
+| [ADR-042](#adr-042) | FE hosting pindah Vercel → Cloudflare Workers static assets (Workers Builds) | Accepted | 2026-08-21 |
 
 ---
 
@@ -511,3 +512,18 @@
   - `db/migrations/` tidak berubah (postbuild.mjs aman); 25 tool MCP direlokasi utuh sebagai use cases (`modules/mcp/application/tools/`).
 - **Consequences:** Positive — kepemilikan kode jelas per domain (siap CODEOWNERS per folder ala big tech); business logic terpisah dari HTTP sehingga bisa dites tanpa supertest; duplikasi hilang; boundary siap ekstraksi microservice bila suatu saat dibutuhkan; navigasi cepat ("cari logika team? modules/teams"). Negative — diff besar sekali jalan (56 file rename + ~60 file import rewrite); path di dokumen historis roadmap §8–24 tidak lagi akurat (dicatat, tidak diedit); developer baru harus paham aturan dependency layer.
 - **Alternatives:** Pertahankan struktur layered + rapikan `lib/` saja (ditolak: tidak menyelesaikan SQL-inline dan tersebarnya logic); repository pattern penuh dengan interface + impl per entity (ditolak: boilerplate tanpa manfaat — codebase langsung pakai pg pool, satu implementasi); ekstraksi microservice sekarang (ditolak: skala belum membutuhkan; modular monolith adalah titik tengah yang bisa diekstrak nanti).
+
+---
+
+### ADR-042
+**FE hosting pindah Vercel → Cloudflare Workers static assets (Workers Builds)**
+
+- **Status:** Accepted (2026-08-21)
+- **Context:** SPA (`app/`) sejak split-deploy di-hosting di Vercel via `vercel.json` (rootDirectory `app`, SPA rewrite). Backend sudah berjalan di belakang Cloudflare (Suga memakai CDN/WAF/TLS Cloudflare), sehingga FE dan BE berada di dua platform berbeda. Kebutuhan: satu platform untuk FE yang free, zero-config, dan konsisten dengan tooling modern. Referensi pola: template resmi Cloudflare `vite-react-template` (Vite + React + Workers static assets + wrangler).
+- **Decision:**
+  - **Cloudflare Workers static assets** (bukan Pages — Cloudflare sendiri merekomendasikan Workers untuk project baru): `app/wrangler.json` mendefinisikan Worker `devhub-app` dengan `assets.directory: ./dist` dan `not_found_handling: "single-page-application"` (pengganti rewrite SPA vercel.json; deep-link `/project/*`, `/p/*`, dst. tetap jalan). Tanpa worker script — SPA murni statis.
+  - **Deploy via Workers Builds** (integrasi Git Cloudflare, bukan GitHub Actions): connect repo → root directory `/app` → install `npm ci` → deploy `npx wrangler deploy`; build variable `VITE_API_URL` diset untuk Production & Preview; build watch paths di-scope ke `app/**`.
+  - Script `npm run deploy -w app` (`wrangler deploy`) tersedia sebagai jalur manual.
+  - `vercel.json` dihapus; backend tetap Suga + Neon (tidak berubah).
+- **Consequences:** Positive — FE & BE sama-sama di edge network Cloudflare; preview URL otomatis per PR/branch; rollback instan dari deployment history tanpa rebuild; tidak konsumsi GitHub Actions minutes; satu vendor less (Vercel dihapus). Negative — `VITE_API_URL` bake-time: ganti API URL = rebuild; deploy Workers Builds tidak menunggu CI hijau (digantikan branch protection); watch paths harus dikonfigurasi manual agar push docs/ tidak memicu build.
+- **Alternatives:** Cloudflare Pages (ditolak: pendekatan lama, template contoh memakai Workers static assets); GitHub Actions + wrangler-action (ditolak: duplikasi pipeline — Workers Builds sudah trigger dari Git); pertahankan Vercel (ditolak: dua platform untuk stack yang sama, tidak ada manfaat tambahan).
