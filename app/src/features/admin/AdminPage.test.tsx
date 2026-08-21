@@ -66,6 +66,19 @@ describe('AdminPage', () => {
     expect(screen.getByText('Active keys')).toBeDefined();
   });
 
+  it('re-fetches platform stats when Refresh is clicked', async () => {
+    const statsSpy = vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
+    vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: [], total: 0 });
+
+    renderPage();
+    await screen.findByText('No users found');
+    expect(statsSpy).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    await waitFor(() => expect(statsSpy).toHaveBeenCalledTimes(2));
+    expect(screen.getByText('Users (2)')).toBeDefined();
+  });
+
   it('changes a user role and updates the row', async () => {
     vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
     vi.spyOn(api, 'listAdminUsers').mockResolvedValue({

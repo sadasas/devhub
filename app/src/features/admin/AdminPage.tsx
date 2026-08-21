@@ -75,22 +75,19 @@ export function AdminPage() {
 
   const searchTimer = useRef<number | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadStats = useCallback(async () => {
     setStats(null);
     setStatsError(null);
-    api
-      .adminStats()
-      .then((s) => {
-        if (!cancelled) setStats(s);
-      })
-      .catch((err) => {
-        if (!cancelled) setStatsError(getErrorMessage(err, 'Failed to load stats'));
-      });
-    return () => {
-      cancelled = true;
-    };
+    try {
+      setStats(await api.adminStats());
+    } catch (err) {
+      setStatsError(getErrorMessage(err, 'Failed to load stats'));
+    }
   }, []);
+
+  useEffect(() => {
+    void loadStats();
+  }, [loadStats]);
 
   useEffect(() => {
     if (searchTimer.current !== null) window.clearTimeout(searchTimer.current);
@@ -173,11 +170,11 @@ export function AdminPage() {
   }
 
   function refresh() {
-    setStats(null);
     setTeams(null);
     setTeamsLoaded(false);
     setActivity(null);
     setActivityLoaded(false);
+    void loadStats();
     void loadUsers(query);
   }
 
