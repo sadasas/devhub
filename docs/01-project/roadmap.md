@@ -4,7 +4,7 @@
 |---|---|
 | **Document status** | Active |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-21 |
+| **Last updated** | 2026-08-22 |
 
 ---
 
@@ -92,7 +92,7 @@ Every item intentionally postponed, with rationale. Items cannot return without 
 | DEF-011 | Real-time collaboration | V1 | Needs CRDT/WebSocket; architecture prepared | V3 |
 | DEF-012 | In-app AI chat UI | V1 | AI integration via MCP tools only (locked decision) | Never (by design) |
 | DEF-013 | Integrations (GitHub import, Discord/Slack webhooks, ntfy, Sentry, WakaTime, WebDAV backup, Todoist sync, Ollama) | V1 | Core first; integration layer kept separate from core data | V3+ |
-| DEF-014 | SaaS pricing/per-seat selling | — | Pricing model TBD for the hosted SaaS; free tier first, per-seat revisited later | Deferred |
+| DEF-014 | SaaS pricing/per-seat selling | — | **Decided (ADR-043):** freemium 2-tier — Free 2 member / 3 proyek; Pro $15/bln flat per workspace (member & proyek unlimited); tanpa gating fitur lain; open core ditolak (konflik ADR-021), lisensi proprietary | Resolved |
 
 ---
 

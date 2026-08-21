@@ -5,7 +5,7 @@
 | **Document status** | Active |
 | **Owner** | Project Owner (operator) |
 | **Documentation standard** | Enterprise project documentation |
-| **Last updated** | 2026-08-09 |
+| **Last updated** | 2026-08-22 |
 | **Related documents** | [PRD](prd.md) · [Roadmap](roadmap.md) · [Technical Design](../02-architecture/technical-design.md) |
 
 ---
@@ -89,7 +89,7 @@ Git CLI integration, API endpoint inventory, templates, PWA offline, multi-devic
 | Constraint | Node.js ≥ 22, npm ≥ 10 |
 | Constraint | Windows dev environment (pwsh); deployment targets Linux containers |
 | **TBD** | Hosting platform (Railway / Render / VPS) — decision deferred |
-| **TBD** | Domain name, pricing (if ever), license — deferred |
+| Locked | Pricing: freemium 2-tier per [ADR-043](../02-architecture/adr.md#adr-043) (Free 2 member / 3 proyek · Pro $15/bln flat); license: proprietary |
 
 ---
 
@@ -143,7 +143,7 @@ Git CLI integration, API endpoint inventory, templates, PWA offline, multi-devic
 | Question | Decision | Status |
 |---|---|---|
 | Build to sell? | **Yes** — hosted SaaS. (Superseded; see [ADR-021](../02-architecture/adr.md#adr-021)) | Superseded |
-| Future monetization | Pricing model TBD for the hosted SaaS; free tier first, per-seat revisited later | Considered (deferred) |
+| Future monetization | **Freemium 2-tier** — Free (2 member / 3 proyek), Pro $15/bln flat per workspace (member & proyek unlimited); open core ditolak; agent-metering fase berikutnya. Lihat [ADR-043](../02-architecture/adr.md#adr-043) | Locked |
 | Target user | Developers building software projects (solo to small teams) | Locked: SaaS multi-user |
 | Collaboration | Architecturally prepared (Base fields + sync provider), actual sync V3 | Locked |
 

@@ -197,7 +197,7 @@ MCP keys are scoped to the user who created them: agents can only access project
 
 ## License
 
-TBD. Intended: open source (MIT) with sponsored development, or proprietary — decision deferred. See [Project Charter — Licensing](docs/01-project/project-charter.md).
+Proprietary. All rights reserved. Open-core/self-host editions are not offered — DevHub is a hosted SaaS only ([ADR-021](docs/02-architecture/adr.md#adr-021)). Business model: freemium 2-tier ([ADR-043](docs/02-architecture/adr.md#adr-043)). See [Project Charter — Licensing](docs/01-project/project-charter.md).
 
 ---
 

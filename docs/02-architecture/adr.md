@@ -60,6 +60,7 @@
 | [ADR-040](#adr-040) | Route-level code splitting + per-route contentful skeletons | Accepted | 2026-08-20 |
 | [ADR-041](#adr-041) | Server modular monolith: struktur DDD per bounded context (`modules/<domain>`) | Accepted | 2026-08-21 |
 | [ADR-042](#adr-042) | FE hosting pindah Vercel → Cloudflare Workers static assets (Workers Builds) | Accepted | 2026-08-21 |
+| [ADR-043](#adr-043) | Business model: freemium 2-tier — Free 2 member/3 proyek · Pro $15/bln flat | Accepted | 2026-08-22 |
 
 ---
 
@@ -527,3 +528,19 @@
   - `vercel.json` dihapus; backend tetap Suga + Neon (tidak berubah).
 - **Consequences:** Positive — FE & BE sama-sama di edge network Cloudflare; preview URL otomatis per PR/branch; rollback instan dari deployment history tanpa rebuild; tidak konsumsi GitHub Actions minutes; satu vendor less (Vercel dihapus). Negative — `VITE_API_URL` bake-time: ganti API URL = rebuild; deploy Workers Builds tidak menunggu CI hijau (digantikan branch protection); watch paths harus dikonfigurasi manual agar push docs/ tidak memicu build.
 - **Alternatives:** Cloudflare Pages (ditolak: pendekatan lama, template contoh memakai Workers static assets); GitHub Actions + wrangler-action (ditolak: duplikasi pipeline — Workers Builds sudah trigger dari Git); pertahankan Vercel (ditolak: dua platform untuk stack yang sama, tidak ada manfaat tambahan).
+
+---
+
+### ADR-043
+**Business model: freemium 2-tier — Free (2 member / 3 proyek) · Pro $15/bln flat per workspace**
+
+- **Status:** Accepted (2026-08-22)
+- **Context:** Pricing hosted SaaS selama ini deferred (DEF-014; charter §11 "free tier first, per-seat revisited later"). Riset pasar 2026 menunjukkan kategori PM adalah yang paling kompetitif: rata-rata $11/user/bln dengan 72% produk freemium (Linear $10/$16 per-seat, Jira $7.91/$14.54, ClickUp $7/$12, Notion $10/$15). Praktik terbaik solo-founder/dev-tools 2026: mulai dari 1–2 plan sederhana; freemium berbasis limit mengonversi lebih baik daripada time-trial untuk developer tools (median konversi B2B ~8%, top quartile 15–28%); usage-based baru layak setelah ada bukti spread pemakaian (>50 pelanggan). Diferensiator DevHub: technical memory + MCP/AI-agent native — tren monetisasi AI bergerak ke credit/metering (Jira Rovo credits, Linear Agents), tapi itu fase berikutnya.
+- **Decision:**
+  - **Freemium 2-tier; dimensi limit HANYA member + proyek** (tanpa gating fitur, tanpa limit issue):
+    - **Free** — 2 member, maks 3 proyek, semua fitur terbuka penuh.
+    - **Pro** — $15/bln flat per workspace, member & proyek unlimited.
+  - **Open core ditolak** — opsi "MIT + self-host berbayar" dihapus dari pertimbangan karena konflik dengan ADR-021 (hosted-only, self-hosting tidak didukung). Lisensi final: **proprietary**.
+  - Metering aksi MCP/agent sebagai add-on premium **ditunda** ke fase berikutnya (butuh traction + infrastruktur metering dulu).
+- **Consequences:** Positive — model bisa dijelaskan satu kalimat; free tier membatasi biaya hosting tanpa menyakitkan (pola limit-count ala Linear, bukan limit seat); harga flat menghindari price compression per-seat di kategori paling kompetitif. Negative — belum ada expansion revenue sampai tier team/agent-metering hadir; enforcement limit member/proyek harus diimplementasikan server-side sebelum pricing aktif; angka $15 adalah hipotesis yang perlu divalidasi dengan pelanggan awal.
+- **Alternatives:** Per-seat murni $8–10/user (ditolak: red ocean, terasa tidak wajar bagi user solo — value tidak naik sebanding seat); flat-rate murni tanpa free tier (ditolak: friksi adopsi tinggi untuk produk baru); hybrid agent-metering sejak awal (ditolak: kompleksitas metering prematur, belum ada data pemakaian); open core MIT + hosted berbayar (ditolak: mensyaratkan self-hostable, membalik ADR-021).
