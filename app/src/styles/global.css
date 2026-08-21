@@ -1362,6 +1362,19 @@ a:hover {
   .page {
     padding: 20px 16px 40px;
   }
+
+  /* Header rhythm konsisten antar halaman — back-btn setinggi target sentuh */
+  .back-btn {
+    min-height: 36px;
+    align-items: center;
+    padding: 0 8px;
+    margin-left: -8px;
+    margin-bottom: 2px;
+  }
+
+  .page-header {
+    margin-bottom: 16px;
+  }
 }
 
 /* ============================================================
@@ -4686,6 +4699,8 @@ input[type='checkbox'] {
 .profile-heat-layout {
   display: flex;
   align-items: stretch;
+  overflow-x: auto;
+  padding-bottom: 4px;
 }
 
 .profile-heat-days {
@@ -5076,6 +5091,8 @@ input[type='checkbox'] {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .api-toolbar-count {
@@ -5088,6 +5105,7 @@ input[type='checkbox'] {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
   flex-wrap: wrap;
 }
 
@@ -6196,7 +6214,10 @@ input[type='checkbox'] {
 .chat-launcher:active { background: var(--accent-pressed); transform: scale(0.98); }
 .chat-launcher:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent-ring); }
 .chat-launcher-badge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 10px; font-weight: 600; color: var(--status-warn); background: var(--bg-inset); border: 1px solid var(--border-strong); border-radius: var(--radius-pill); }
-.chat-drawer { position: fixed; right: 20px; bottom: 76px; width: min(400px, calc(100vw - 24px)); height: min(560px, calc(100dvh - 88px)); display: flex; flex-direction: column; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-card); box-shadow: var(--shadow-raised); z-index: 20; animation: chat-drawer-in 200ms var(--ease-out); }
+.chat-drawer { position: fixed; right: 20px; bottom: 76px; width: min(400px, calc(100vw - 24px)); height: min(560px, calc(100vh - 88px)); height: min(560px, calc(100dvh - 88px)); display: flex; flex-direction: column; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-card); box-shadow: var(--shadow-raised); z-index: 20; animation: chat-drawer-in 200ms var(--ease-out); }
+@media (max-width: 640px) {
+  .chat-drawer { left: 8px; right: 8px; bottom: 76px; width: auto; height: min(70vh, calc(100vh - 96px)); height: min(70dvh, calc(100dvh - 96px)); }
+}
 @keyframes chat-drawer-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 .chat-drawer-head { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border-hairline); }
 .chat-drawer-title { font-size: 13px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -6234,6 +6255,7 @@ input[type='checkbox'] {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .deleted-banner-copy {
@@ -6250,9 +6272,10 @@ input[type='checkbox'] {
 
 .deleted-banner-item {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 6px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 6px 8px;
   background: var(--bg-overlay);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-sm);

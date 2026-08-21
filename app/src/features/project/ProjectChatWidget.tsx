@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ChatsCircle, X } from '@phosphor-icons/react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../state/auth-context';
@@ -78,31 +79,33 @@ export function ProjectChatWidget({ teamId, teamName }: ProjectChatWidgetProps) 
           </>
         )}
       </button>
-      {open && (
-        <div
-          id="project-chat-drawer"
-          className="chat-drawer"
-          role="dialog"
-          aria-label="Team chat"
-          aria-modal="false"
-        >
-          <div className="chat-drawer-head">
-            <span className="chat-drawer-title">{teamName} — Team chat</span>
-            <button
-              type="button"
-              className="btn-icon"
-              aria-label="Close chat"
-              onClick={() => {
-                setOpen(false);
-                launcherRef.current?.focus();
-              }}
-            >
-              <X size={16} aria-hidden="true" />
-            </button>
-          </div>
-          <ChatPanel teamId={teamId} userId={user.id} userDisplayName={user.displayName} />
-        </div>
-      )}
+      {open &&
+        createPortal(
+          <div
+            id="project-chat-drawer"
+            className="chat-drawer"
+            role="dialog"
+            aria-label="Team chat"
+            aria-modal="false"
+          >
+            <div className="chat-drawer-head">
+              <span className="chat-drawer-title">{teamName} — Team chat</span>
+              <button
+                type="button"
+                className="btn-icon"
+                aria-label="Close chat"
+                onClick={() => {
+                  setOpen(false);
+                  launcherRef.current?.focus();
+                }}
+              >
+                <X size={16} aria-hidden="true" />
+              </button>
+            </div>
+            <ChatPanel teamId={teamId} userId={user.id} userDisplayName={user.displayName} />
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

@@ -358,6 +358,26 @@ Permintaan: "di command pallete hanya bisa create projek" — palette hanya puny
 
 ---
 
+## Batch 11 — Fix mobile round 2 (2026-08-21)
+
+**Permintaan**: laporan setelah review mobile Batch 10 — 6 issue.
+
+| # | Issue | Akar masalah | Perbaikan |
+| --- | --- | --- | --- |
+| 1 | Tinggi area header beda antar halaman (terlihat di Invitations) | back-btn hanya ada di beberapa halaman, tinggi 19px tidak konsisten dengan halaman tanpa back-btn | ≤860px: `.back-btn` min-height 36px + margin konsisten; `.page-header` margin-bottom seragam |
+| 2 | Statistik profile melebihi layar | Heatmap kontribusi 53 kolom minggu (`minmax(6px,1fr)` + gap) ≈ 477px intrinsik > konten mobile | `.profile-heat-layout { overflow-x: auto }` — grafik scroll horizontal |
+| 3 | Toggle Workspace/Docs API tidak wrap | `.api-toolbar-left` flex tanpa wrap (count mono panjang + sub-tabs) | `.api-toolbar-left { flex-wrap: wrap; min-width: 0 }`; `.api-toolbar-actions { flex-wrap: wrap }` |
+| 4 | Card deleted info sesak | `.deleted-banner-item` baris horizontal [badge][judul][meta] | Jadi kolom: badge entity di atas judul, meta di bawah; `.deleted-banner-head { flex-wrap: wrap }` |
+| 5 | Popup online user terpotong | `.presence-popover` absolute `right:0` 240px — saat chip wrap ke kiri, popover keluar viewport | `PresenceChip`: popover di-portal ke body + `position: fixed` ter-clamp (ukur trigger rect, clamp kiri/kanan, max-height sisa viewport, reposition saat scroll/resize) — pola SearchableSelect |
+| 6 | Popup room chat terpotong | `.chat-drawer` fixed dengan `100dvh` tanpa fallback (height invalid → auto → meluas); rawan containing-block ancestor | Drawer di-portal ke body + fallback `vh` sebelum `dvh` + ≤640px full-width (`left/right 8px`, height `min(70dvh, 100dvh-96px)`) |
+
+### Verifikasi (batch ini)
+- `npx tsc -b`, lint — bersih
+- `npm run test -w app` — 672/672 lolos
+- `npm run build -w app` — sukses
+
+---
+
 ## Backlog (tidak dikerjakan dalam sesi ini)
 
 1. **Undo untuk perubahan board** (arrow move / drag) — edit langsung + autosave = tidak ada undo; pertimbangkan snapshot ringan atau shortcut `Ctrl+Z` di level project.
