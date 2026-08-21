@@ -1270,6 +1270,10 @@ a:hover {
 @media (max-width: 860px) {
   .layout {
     grid-template-columns: 1fr;
+    /* topbar tinggi konten; main menyerap sisa tinggi — tanpa ini,
+       align-content: stretch membagi ruang kosong merata ke kedua baris
+       dan topbar membesar di halaman berkonten pendek */
+    grid-template-rows: auto 1fr;
   }
 
   .topbar {
@@ -6271,17 +6275,21 @@ input[type='checkbox'] {
 }
 
 .deleted-banner-item {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
-  padding: 6px 8px;
+  padding: 6px 84px 6px 8px;
   background: var(--bg-overlay);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-sm);
 }
 
 .deleted-banner-item-entity {
+  position: absolute;
+  top: 6px;
+  right: 6px;
   flex-shrink: 0;
   font-family: var(--font-mono);
   font-size: 10px;

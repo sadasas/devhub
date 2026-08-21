@@ -378,6 +378,24 @@ Permintaan: "di command pallete hanya bisa create projek" — palette hanya puny
 
 ---
 
+## Batch 12 — Fix topbar membesar + badge deleted banner (2026-08-21)
+
+**Permintaan**: laporan lanjutan review mobile — (1) tinggi topbar berbeda antar halaman, parah di Invitations (bukti: markup topbar identik di dua halaman); (2) badge pada card deleted info dipindah ke pojok kanan atas.
+
+### Akar masalah #1 (topbar)
+`.layout` adalah grid `min-height: 100dvh`. Saat mobile (Batch 10) kolomnya diubah jadi 1, strukturnya menjadi **2 baris implisit**: [topbar] + [main]. Default `align-content: stretch` **membagikan ruang kosong merata ke semua baris** saat total konten lebih pendek dari viewport — halaman berkonten pendek (Invitations/empty state) membuat baris topbar ikut menggembung (+ratusan px), halaman berkonten panjang tidak. Karena itu markup identik bisa tampak beda tinggi.
+
+**Fix**: ≤860px → `.layout { grid-template-rows: auto 1fr }` — baris topbar selalu setinggi konten (52px), baris main menyerap seluruh sisa ruang.
+
+### Fix #2 (deleted banner)
+Badge entity ("Task"/"Issue"/…) kini `position: absolute` di **pojok kanan atas** kartu; judul + meta tetap bertumpuk di kiri dengan `padding-right: 84px` agar tidak tertimpa badge.
+
+### Verifikasi (batch ini)
+- `npx tsc -b`, lint — bersih
+- `npm run test -w app` — 671/672 (1 flaky IndexedDB pre-existing, lolos saat isolated run); build sukses
+
+---
+
 ## Backlog (tidak dikerjakan dalam sesi ini)
 
 1. **Undo untuk perubahan board** (arrow move / drag) — edit langsung + autosave = tidak ada undo; pertimbangkan snapshot ringan atau shortcut `Ctrl+Z` di level project.
