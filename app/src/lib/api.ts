@@ -7,7 +7,7 @@ import type {
   ChatRef,
   ChatResolvedRef,
   Invitation,
-  McpKey,
+  McpKeyList,
   McpKeyCreated,
   Project,
   ProjectTemplate,
@@ -333,9 +333,13 @@ export const api = {
     return { state: res.state, version: res.version };
   },
 
-  listKeys: async () => {
-    const res = await request<{ keys: McpKey[] }>('/keys');
-    return res.keys;
+  listKeys: async (opts: { page?: number; perPage?: number } = {}) => {
+    const qs = new URLSearchParams();
+    if (opts.page !== undefined) qs.set('page', String(opts.page));
+    if (opts.perPage !== undefined) qs.set('perPage', String(opts.perPage));
+    const suffix = qs.size > 0 ? `?${qs.toString()}` : '';
+    const res = await request<McpKeyList>(`/keys${suffix}`);
+    return res;
   },
   createKey: (name: string) =>
     request<McpKeyCreated>('/keys', {

@@ -202,7 +202,7 @@ Base URL: `/api`. All endpoints JSON. Auth via httpOnly cookie `devhub_session`.
 | POST | `/api/auth/login` | No | Login, set cookie |
 | POST | `/api/auth/logout` | Yes | Clear cookie |
 | GET | `/api/auth/me` | Yes | Current user info |
-| GET | `/api/keys` | Yes | List my MCP API keys |
+| GET | `/api/keys` | Yes | List my **active** MCP API keys (`?page=&perPage=`, revoked hidden — GitHub pattern) |
 | POST | `/api/keys` | Yes | Create an MCP API key (returns raw key once) |
 | DELETE | `/api/keys/:id` | Yes | Revoke an MCP API key |
 | GET | `/api/teams` | Yes | List my teams + my role + member count |

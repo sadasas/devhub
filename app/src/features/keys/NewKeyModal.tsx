@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
+import { Link } from 'react-router';
 import { Check, Copy } from '@phosphor-icons/react';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
@@ -29,6 +30,12 @@ export function NewKeyModal({ open, onClose, onCreated, activeCount = 0 }: NewKe
   const [created, setCreated] = useState<McpKeyCreated | null>(null);
   const reportedRef = useRef(false);
   const { copied, copy, reset } = useCopyFeedback();
+  const { copied: curlCopied, copy: copyCurl } = useCopyFeedback();
+
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const curlSnippet = `curl -X POST ${origin}/mcp \\
+  -H "Authorization: Bearer $DEVHUB_MCP_KEY" \\
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'`;
 
   useEffect(() => {
     if (!open) return;
@@ -74,6 +81,10 @@ export function NewKeyModal({ open, onClose, onCreated, activeCount = 0 }: NewKe
   async function onCopyEnv() {
     if (!created) return;
     await copy(`DEVHUB_MCP_KEY="${created.key}"`);
+  }
+
+  async function onCopyCurl() {
+    await copyCurl(curlSnippet);
   }
 
   function onDone() {
@@ -163,6 +174,29 @@ export function NewKeyModal({ open, onClose, onCreated, activeCount = 0 }: NewKe
           </div>
 
           <p className="field-helper">If you lose it, you can copy it again later from the API keys list.</p>
+
+          <p className="field-helper">Next steps — test it against your MCP server:</p>
+          <div className="code-block">
+            <pre>
+              <code>{curlSnippet}</code>
+            </pre>
+            <button
+              type="button"
+              className="code-copy-btn"
+              aria-label="Copy curl test command"
+              title={curlCopied ? 'Copied' : 'Copy'}
+              onClick={() => void onCopyCurl()}
+            >
+              {curlCopied ? (
+                <Check size={13} weight="bold" aria-hidden="true" />
+              ) : (
+                <Copy size={13} aria-hidden="true" />
+              )}
+            </button>
+          </div>
+          <p className="field-helper">
+            <Link to="/docs/mcp">Full MCP integration guide →</Link>
+          </p>
         </div>
       ) : null}
     </Modal>

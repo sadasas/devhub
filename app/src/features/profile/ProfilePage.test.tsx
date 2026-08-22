@@ -74,7 +74,7 @@ beforeEach(() => {
   authMock.useAuth.mockReturnValue({ user, setUser: vi.fn() });
   teamsMock.useTeams.mockReturnValue({ teams: [] });
   projectsMock.useProjects.mockReturnValue({ projects: [] });
-  apiMock.listKeys.mockResolvedValue([]);
+  apiMock.listKeys.mockResolvedValue({ keys: [], total: 0, page: 1, perPage: 5 });
   apiMock.changePassword.mockResolvedValue(undefined);
   apiMock.meStats.mockResolvedValue(statsMock);
 });
@@ -93,10 +93,14 @@ describe('ProfilePage', () => {
   it('shows account statistics: teams, projects and active API keys', async () => {
     teamsMock.useTeams.mockReturnValue({ teams: [{ id: 't1' }, { id: 't2' }] });
     projectsMock.useProjects.mockReturnValue({ projects: [{ id: 'p1' }, { id: 'p2' }, { id: 'p3' }] });
-    apiMock.listKeys.mockResolvedValue([
-      { id: 'k1', name: 'a', prefix: 'devhub_A', createdAt: '', lastUsedAt: null, revokedAt: null, revealable: true },
-      { id: 'k2', name: 'b', prefix: 'devhub_B', createdAt: '', lastUsedAt: null, revokedAt: '2026-08-10T00:00:00.000Z', revealable: true },
-    ]);
+    apiMock.listKeys.mockResolvedValue({
+      keys: [
+        { id: 'k1', name: 'a', prefix: 'devhub_A', createdAt: '', lastUsedAt: null, revealable: true },
+      ],
+      total: 1,
+      page: 1,
+      perPage: 5,
+    });
 
     renderPage();
 

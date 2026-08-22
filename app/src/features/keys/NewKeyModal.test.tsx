@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NewKeyModal } from './NewKeyModal';
 import type { McpKeyCreated } from '../../lib/types';
@@ -27,13 +28,15 @@ const createdKey: McpKeyCreated = {
   prefix: 'devhub_N',
   key: 'devhub_ShownOnlyOnce',
   createdAt: '2026-08-19T10:00:00.000Z',
-  lastUsedAt: null,
-  revokedAt: null,
   revealable: true,
 };
 
 function renderModal(activeCount = 0, onCreated = vi.fn()) {
-  return render(<NewKeyModal open onClose={vi.fn()} onCreated={onCreated} activeCount={activeCount} />);
+  return render(
+    <MemoryRouter>
+      <NewKeyModal open onClose={vi.fn()} onCreated={onCreated} activeCount={activeCount} />
+    </MemoryRouter>,
+  );
 }
 
 beforeEach(() => {
@@ -55,6 +58,35 @@ describe('NewKeyModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     expect(onCreated).toHaveBeenCalledWith(createdKey);
+  });
+
+  it('shows next steps with a curl test command and the MCP guide link after creation', async () => {
+    apiMock.createKey.mockResolvedValue(createdKey);
+    renderModal();
+
+    fireEvent.change(screen.getByLabelText(/name/i), { target: { value: 'ci-runner' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create key' }));
+
+    expect(await screen.findByText(/Next steps/)).not.toBeNull();
+    expect(screen.getAllByText(/curl -X POST/).length).toBeGreaterThan(0);
+    const guideLink = screen.getByRole('link', { name: /Full MCP integration guide/ });
+    expect(guideLink.getAttribute('href')).toBe('/docs/mcp');
+  });
+
+  it('copies the curl test command to the clipboard', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    apiMock.createKey.mockResolvedValue(createdKey);
+    renderModal();
+
+    fireEvent.change(screen.getByLabelText(/name/i), { target: { value: 'ci-runner' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create key' }));
+    await screen.findByText(createdKey.key);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy curl test command' }));
+    await waitFor(() =>
+      expect(writeText).toHaveBeenCalledWith(expect.stringContaining('curl -X POST')),
+    );
   });
 
   it('reports the created key even when closed via the header X button', async () => {

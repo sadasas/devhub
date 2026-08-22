@@ -47,7 +47,9 @@ describe('API keys', () => {
     expect(listed.status).toBe(200);
     expect(listed.body.keys).toHaveLength(1);
     expect(listed.body.keys[0]).toMatchObject({ id, name: 'cli', prefix, revealable: true });
-    expect(listed.body.keys[0].revokedAt).toBeNull();
+    expect(listed.body.total).toBe(1);
+    expect(listed.body.page).toBe(1);
+    expect(listed.body.perPage).toBe(5);
     expect(listed.body.keys[0].lastUsedAt).toBeNull();
     expect(JSON.stringify(listed.body)).not.toContain(key);
   });
@@ -92,7 +94,7 @@ describe('API keys', () => {
     expect(revealed.status).toBe(400);
   });
 
-  it('revokes a key (soft delete)', async () => {
+  it('revokes a key (soft delete) and hides it from the list', async () => {
     const cookie = await register('c@test.dev');
     const created = await request(app).post('/api/v1/keys').set('Cookie', cookie).send({ name: 'x' });
     const id = created.body.id as string;
@@ -101,8 +103,43 @@ describe('API keys', () => {
     expect(revoked.status).toBe(200);
     expect(revoked.body).toEqual({ ok: true });
 
+    // Pola GitHub: revoked hilang dari list, soft delete tetap di DB
     const listed = await request(app).get('/api/v1/keys').set('Cookie', cookie);
-    expect(listed.body.keys[0].revokedAt).not.toBeNull();
+    expect(listed.body.keys).toHaveLength(0);
+    expect(listed.body.total).toBe(0);
+  });
+
+  it('paginates the active-key list (GitHub-style page/perPage)', async () => {
+    const cookie = await register('p@test.dev');
+    for (let i = 1; i <= 7; i += 1) {
+      const created = await request(app)
+        .post('/api/v1/keys')
+        .set('Cookie', cookie)
+        .send({ name: `key-${i}` });
+      expect(created.status).toBe(201);
+    }
+
+    const first = await request(app).get('/api/v1/keys').set('Cookie', cookie);
+    expect(first.status).toBe(200);
+    expect(first.body.keys).toHaveLength(5);
+    expect(first.body.total).toBe(7);
+    expect(first.body.page).toBe(1);
+
+    const second = await request(app).get('/api/v1/keys?page=2').set('Cookie', cookie);
+    expect(second.status).toBe(200);
+    expect(second.body.keys).toHaveLength(2);
+    expect(second.body.page).toBe(2);
+    // Urutan created_at DESC: halaman pertama berisi key terbaru
+    expect(second.body.keys.map((k: { name: string }) => k.name)).toEqual(['key-2', 'key-1']);
+  });
+
+  it('rejects invalid pagination parameters', async () => {
+    const cookie = await register('q@test.dev');
+    const badPage = await request(app).get('/api/v1/keys?page=0').set('Cookie', cookie);
+    expect(badPage.status).toBe(400);
+
+    const bigPage = await request(app).get('/api/v1/keys?perPage=99').set('Cookie', cookie);
+    expect(bigPage.status).toBe(400);
   });
 
   it('requires authentication', async () => {
@@ -135,6 +172,7 @@ describe('API keys', () => {
     expect(del.status).toBe(404);
 
     const listed = await request(app).get('/api/v1/keys').set('Cookie', cookieA);
-    expect(listed.body.keys[0].revokedAt).toBeNull();
+    expect(listed.body.keys).toHaveLength(1);
+    expect(listed.body.total).toBe(1);
   });
 });

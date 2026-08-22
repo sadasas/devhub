@@ -16,7 +16,7 @@ import { api } from '../../lib/api';
 import { formatDate } from '../../lib/utils';
 import { initialsOf } from '../../lib/initials';
 import { avatarColor } from '../../lib/avatar';
-import type { McpKey, TeamRole } from '../../lib/types';
+import type { TeamRole } from '../../lib/types';
 import { Button } from '../../components/Button';
 import { Skeleton } from '../../components/Skeleton';
 import { ChangePasswordModal } from './ChangePasswordModal';
@@ -60,7 +60,7 @@ export function ProfilePage() {
   const { user } = useAuth();
   const { teams } = useTeams();
   const { projects } = useProjects();
-  const [keys, setKeys] = useState<McpKey[] | null>(null);
+  const [activeKeys, setActiveKeys] = useState<number | null>(null);
   const [keysError, setKeysError] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [changeOpen, setChangeOpen] = useState(false);
@@ -78,8 +78,9 @@ export function ProfilePage() {
     let cancelled = false;
     api
       .listKeys()
-      .then((list) => {
-        if (!cancelled) setKeys(list);
+      .then((res) => {
+        // List hanya key aktif — total = jumlah Active API keys
+        if (!cancelled) setActiveKeys(res.total);
       })
       .catch(() => {
         if (!cancelled) setKeysError(true);
@@ -92,7 +93,6 @@ export function ProfilePage() {
   if (!user) return null;
 
   const name = user.displayName.trim() || user.email;
-  const activeKeys = keys?.filter((k) => !k.revokedAt).length ?? 0;
 
   const roleOrder: TeamRole[] = ['viewer', 'editor', 'admin', 'owner'];
   const topRole: TeamRole | null = teams?.length
@@ -215,8 +215,8 @@ export function ProfilePage() {
             <StatItem
               icon={<Key size={16} weight="duotone" aria-hidden="true" />}
               label="Active API keys"
-              value={activeKeys}
-              loading={keys === null && !keysError}
+              value={activeKeys ?? 0}
+              loading={activeKeys === null && !keysError}
               error={keysError}
             />
           </div>

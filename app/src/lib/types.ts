@@ -490,14 +490,22 @@ export interface McpKey {
   name: string;
   prefix: string;
   createdAt: string;
-  lastUsedAt: string | null;
-  revokedAt: string | null;
+  /** Tidak ada pada payload pembuatan key — baru terisi saat list */
+  lastUsedAt?: string | null;
   /** Bisa di-reveal ulang (key disimpan terenkripsi); false = key lama */
   revealable: boolean;
 }
 
 export interface McpKeyCreated extends McpKey {
   key: string;
+}
+
+/** Respons GET /api/v1/keys — hanya key aktif, dipaginasi gaya GitHub */
+export interface McpKeyList {
+  keys: McpKey[];
+  total: number;
+  page: number;
+  perPage: number;
 }
 
 /** Statistik profil gaya GitHub (ADR-039), dihitung server dari activity_log. */

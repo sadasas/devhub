@@ -5,7 +5,6 @@ import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { McpKey, McpKeyCreated } from '../../lib/types';
 import { formatDate, formatRelative } from '../../lib/utils';
-import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { InlineError } from '../../components/InlineError';
@@ -16,6 +15,8 @@ import { NewKeyModal } from './NewKeyModal';
 
 // Mirror server cap (audit 2026-08b, KEYS-1): maksimal 10 key aktif per user
 const MAX_KEYS = 10;
+// Harus sama dengan default perPage server (pola GitHub settings/tokens)
+const PER_PAGE = 5;
 
 interface RevokeTarget {
   id: string;
@@ -58,6 +59,8 @@ function KeyCopyButton({
 
 export function KeysPage() {
   const [keys, setKeys] = useState<McpKey[] | null>(null);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [newOpen, setNewOpen] = useState(false);
@@ -72,12 +75,18 @@ export function KeysPage() {
 
   useEffect(() => {
     let cancelled = false;
-    setKeys(null);
     setError(null);
     api
-      .listKeys()
-      .then((list) => {
-        if (!cancelled) setKeys(list);
+      .listKeys({ page })
+      .then((res) => {
+        if (cancelled) return;
+        // Halaman kosong (mis. key terakhir di halaman itu di-revoke) → mundur
+        if (res.keys.length === 0 && page > 1) {
+          setPage(Math.max(1, Math.ceil(res.total / res.perPage)));
+          return;
+        }
+        setKeys(res.keys);
+        setTotal(res.total);
       })
       .catch((err) => {
         if (!cancelled) setError(getErrorMessage(err, 'Failed to load API keys.'));
@@ -85,10 +94,16 @@ export function KeysPage() {
     return () => {
       cancelled = true;
     };
-  }, [attempt]);
+  }, [attempt, page]);
 
   function onCreated(key: McpKeyCreated) {
-    setKeys((prev) => [key, ...(prev ?? [])]);
+    if (page === 1) {
+      setKeys((prev) => [key, ...(prev ?? [])].slice(0, PER_PAGE));
+      setTotal((t) => t + 1);
+    } else {
+      // Key baru selalu landa di halaman pertama (urutan created_at DESC)
+      setPage(1);
+    }
   }
 
   function openRevoke(key: McpKey) {
@@ -103,11 +118,14 @@ export function KeysPage() {
     setRevoking(true);
     try {
       await api.revokeKey(revokeTarget.id);
-      setKeys((prev) =>
-        (prev ?? []).map((k) =>
-          k.id === revokeTarget.id ? { ...k, revokedAt: new Date().toISOString() } : k,
-        ),
-      );
+      // List hanya menampilkan key aktif: revoked langsung hilang dari daftar
+      const remaining = (keys ?? []).filter((k) => k.id !== revokeTarget.id);
+      if (remaining.length === 0 && page > 1) {
+        setPage((p) => p - 1);
+      } else {
+        setKeys(remaining);
+        setTotal((t) => Math.max(0, t - 1));
+      }
       setRevokeTarget(null);
     } catch (err) {
       setRevokeError(getErrorMessage(err, 'Failed to revoke key.'));
@@ -134,7 +152,7 @@ export function KeysPage() {
     }
   }
 
-  const activeCount = keys?.filter((k) => !k.revokedAt).length ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
 
   return (
     <div className="page">
@@ -180,37 +198,61 @@ export function KeysPage() {
           ))}
         </div>
       ) : keys.length === 0 ? (
-        <div className="page-empty">
-          <EmptyState
-            icon={<Key size={22} />}
-            title="No API keys yet"
-            description="Create a key to let AI coding agents read and update your projects over MCP."
-            action={
-              <>
-                <Button
-                  leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />}
-                  onClick={() => setNewOpen(true)}
-                >
-                  New key
-                </Button>
-                <Link className="btn btn-ghost btn-md" to="/docs/mcp">
-                  Read the MCP guide
-                </Link>
-              </>
-            }
-          />
-        </div>
+        <>
+          <div className="page-empty">
+            <EmptyState
+              icon={<Key size={22} />}
+              title="No API keys yet"
+              description="Create a key to let AI coding agents read and update your projects over MCP."
+              action={
+                <>
+                  <Button
+                    leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />}
+                    onClick={() => setNewOpen(true)}
+                  >
+                    New key
+                  </Button>
+                  <Link className="btn btn-ghost btn-md" to="/docs/mcp">
+                    Read the MCP guide
+                  </Link>
+                </>
+              }
+            />
+          </div>
+          <KeysGuide />
+        </>
       ) : (
         <>
           <div className="data-list-header">
             <span className="data-list-count">
-              {keys.length} key{keys.length === 1 ? '' : 's'}
-              {activeCount < MAX_KEYS ? ` · ${activeCount} of ${MAX_KEYS} active` : ''}
+              {total} of {MAX_KEYS} active key{total === 1 ? '' : 's'}
             </span>
+            {totalPages > 1 && (
+              <nav className="pager" aria-label="Pagination">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => p - 1)}
+                >
+                  Previous
+                </Button>
+                <span className="pager-status">
+                  Page {page} of {totalPages}
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next
+                </Button>
+              </nav>
+            )}
           </div>
           <div className="data-list">
             {keys.map((k) => {
-              const active = !k.revokedAt;
               const keyCopied = copied && copiedKeyId === k.id;
               const copyLoading = copyLoadingId === k.id;
               const rowCopyError = copyError?.id === k.id ? copyError.message : null;
@@ -219,17 +261,7 @@ export function KeysPage() {
                   <div className="data-row-main">
                     <div className="data-row-title">
                       <span className="row-title-text">{k.name || 'Untitled key'}</span>
-                      {active ? (
-                        <span
-                          className="key-status-dot"
-                          title="Active"
-                          aria-label="Active key"
-                        />
-                      ) : (
-                        <Badge tone="danger" dot>
-                          Revoked
-                        </Badge>
-                      )}
+                      <span className="key-status-dot" title="Active" aria-label="Active key" />
                     </div>
                     <div className="data-row-meta">
                       <span className="key-prefix">
@@ -253,23 +285,23 @@ export function KeysPage() {
                         <Clock size={12} weight="duotone" aria-hidden="true" />
                         {k.lastUsedAt ? formatRelative(k.lastUsedAt) : <em>Never</em>}
                       </span>
-                      {!active && k.revokedAt && <span>Revoked {formatDate(k.revokedAt)}</span>}
                     </div>
                     {rowCopyError && <div className="data-row-meta text-danger">{rowCopyError}</div>}
                   </div>
                   <div className="data-row-side">
-                    {active && (
-                      <Button size="sm" variant="ghost" onClick={() => openRevoke(k)}>
-                        Revoke
-                      </Button>
-                    )}
+                    <Button size="sm" variant="ghost" onClick={() => openRevoke(k)}>
+                      Revoke
+                    </Button>
                   </div>
                 </div>
               );
             })}
           </div>
 
-          <KeysGuide />
+          <p className="field-helper keys-inline-hint">
+            Authenticate MCP requests with your key — see the{' '}
+            <Link to="/docs/mcp">MCP integration guide</Link>.
+          </p>
         </>
       )}
 
@@ -277,7 +309,7 @@ export function KeysPage() {
         open={newOpen}
         onClose={() => setNewOpen(false)}
         onCreated={onCreated}
-        activeCount={activeCount}
+        activeCount={total}
       />
 
       <Modal
@@ -311,7 +343,7 @@ export function KeysPage() {
         <div className="form-stack">
           <p>
             “{revokeTarget?.name || 'Untitled key'}” ({revokeTarget?.prefix}…) will stop working
-            immediately. Agents using it get a 401 on their next call.
+            immediately and disappear from this list. Agents using it get a 401 on their next call.
           </p>
           {revokeError && <InlineError>{revokeError}</InlineError>}
         </div>

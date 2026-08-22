@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
 import { pool } from '../../../db/pool.js';
+import { parseOrThrow } from '../../../shared/db.js';
 import { requireAuth, getUserId } from '../../auth/middleware/requireAuth.js';
 import { ApiError } from '../../../shared/errors.js';
 import { generateMcpKey } from '../infrastructure/keys.js';
@@ -23,15 +24,31 @@ const revealLimiter = rateLimit({
   message: { error: { code: 'RATE_LIMITED', message: 'Too many reveal attempts, try again later' } },
 });
 
+// Pagination gaya GitHub settings/tokens (ADR: list active-only + pagination)
+const listQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  perPage: z.coerce.number().int().min(1).max(20).default(5),
+});
+
 export const keysRouter = Router();
 keysRouter.use(requireAuth);
 
+// List hanya key aktif (pola GitHub): revoked tetap di DB untuk audit,
+// tapi tidak pernah dikembalikan ke UI.
 keysRouter.get('/', async (req, res) => {
   const userId = getUserId(req);
-  const result = await pool.query(
-    `SELECT id, name, prefix, created_at, last_used_at, revoked_at, key_enc IS NOT NULL AS revealable
-     FROM mcp_keys WHERE user_id = $1 ORDER BY created_at DESC`,
+  const { page, perPage } = parseOrThrow(listQuerySchema, req.query, 'Invalid query parameters');
+  const counted = await pool.query<{ count: number }>(
+    'SELECT count(*)::int AS count FROM mcp_keys WHERE user_id = $1 AND revoked_at IS NULL',
     [userId],
+  );
+  const result = await pool.query(
+    `SELECT id, name, prefix, created_at, last_used_at, key_enc IS NOT NULL AS revealable
+     FROM mcp_keys
+     WHERE user_id = $1 AND revoked_at IS NULL
+     ORDER BY created_at DESC, id DESC
+     LIMIT $2 OFFSET $3`,
+    [userId, perPage, (page - 1) * perPage],
   );
   res.json({
     keys: result.rows.map((r) => ({
@@ -40,9 +57,11 @@ keysRouter.get('/', async (req, res) => {
       prefix: r.prefix,
       createdAt: r.created_at.toISOString(),
       lastUsedAt: r.last_used_at ? r.last_used_at.toISOString() : null,
-      revokedAt: r.revoked_at ? r.revoked_at.toISOString() : null,
       revealable: Boolean(r.revealable),
     })),
+    total: counted.rows[0]?.count ?? 0,
+    page,
+    perPage,
   });
 });
 

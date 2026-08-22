@@ -2460,6 +2460,22 @@ a:hover {
   color: var(--text-muted);
 }
 
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pager-status {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.keys-inline-hint {
+  margin-top: 14px;
+}
+
 .data-list {
   display: flex;
   flex-direction: column;
