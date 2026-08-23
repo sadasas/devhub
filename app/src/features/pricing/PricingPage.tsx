@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Check, Lightning, Sparkle } from '@phosphor-icons/react';
-import { useNavigate } from 'react-router';
+import { ArrowLeft, Check, Lightning, Sparkle } from '@phosphor-icons/react';
+import { useNavigate, useSearchParams } from 'react-router';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { BillingPackage } from '../../lib/types';
 import { Button } from '../../components/Button';
 import { InlineError } from '../../components/InlineError';
+import { SearchableSelect } from '../../components/SearchableSelect';
 import { Skeleton } from '../../components/Skeleton';
 import { useAuth } from '../../state/auth-context';
+import { useTeams } from '../../state/teams-context';
 
 function formatIdr(amount: number): string {
   return `Rp ${amount.toLocaleString('id-ID')}`;
@@ -21,9 +23,38 @@ function limitLine(pkg: BillingPackage): string {
 
 export function PricingPage() {
   const { user } = useAuth();
+  const { teams } = useTeams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const queryTeamId = searchParams.get('teamId');
+  const [selectedTeamId, setSelectedTeamId] = useState<string>(queryTeamId ?? '');
   const [packages, setPackages] = useState<BillingPackage[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (queryTeamId) setSelectedTeamId(queryTeamId);
+  }, [queryTeamId]);
+
+  const effectiveTeamId =
+    queryTeamId && teams?.some((t) => t.id === queryTeamId) ? queryTeamId : selectedTeamId;
+
+  async function onBuy(pkg: BillingPackage, priceId: string) {
+    if (!effectiveTeamId) {
+      setActionError('Pilih workspace yang akan di-upgrade.');
+      return;
+    }
+    setActionError(null);
+    setBusyKey(`${pkg.id}:${priceId}`);
+    try {
+      const result = await api.startCheckout(effectiveTeamId, pkg.id, priceId);
+      window.location.assign(result.url);
+    } catch (err) {
+      setActionError(getErrorMessage(err, 'Failed to start checkout.'));
+      setBusyKey(null);
+    }
+  }
 
   useEffect(() => {
     api
@@ -32,11 +63,22 @@ export function PricingPage() {
       .catch((err) => setError(getErrorMessage(err, 'Failed to load packages.')));
   }, []);
 
+  const onBack = () => {
+    if (queryTeamId) navigate(`/team/${queryTeamId}?tab=billing`);
+    else if (window.history.length > 1) navigate(-1);
+    else navigate('/');
+  };
+
   return (
     <div className="page">
       <header className="page-header">
         <div>
-          <h1 className="page-title">Pricing</h1>
+          <button type="button" className="back-btn" onClick={onBack}>
+            <ArrowLeft size={14} aria-hidden="true" /> Back
+          </button>
+          <h1 className="page-title" style={{ marginTop: 8 }}>
+            Pricing
+          </h1>
           <p className="page-subtitle">
             Per-workspace plans. Start free — upgrade when your workspace grows.
           </p>
@@ -44,6 +86,22 @@ export function PricingPage() {
       </header>
 
       {error && <InlineError>{error}</InlineError>}
+      {actionError && <InlineError>{actionError}</InlineError>}
+
+      {!queryTeamId && teams && teams.length > 0 && (
+        <div className="field" style={{ maxWidth: 360, marginBottom: 16 }}>
+          <label className="field-label" htmlFor="pricing-team">
+            Workspace to upgrade
+          </label>
+          <SearchableSelect
+            id="pricing-team"
+            placeholder="Pilih workspace"
+            value={selectedTeamId || null}
+            options={teams.map((t) => ({ value: t.id, label: t.name }))}
+            onChange={(v) => setSelectedTeamId(v ?? '')}
+          />
+        </div>
+      )}
 
       {packages === null && !error ? (
         <div
@@ -94,21 +152,50 @@ export function PricingPage() {
               </ul>
               {!pkg.isFree && (
                 <div className="usage-meter-list">
-                  {pkg.prices.map((price) => (
-                    <Button
-                      key={price.id}
-                      variant="primary"
-                      size="sm"
-                      disabled={!user}
-                      onClick={() =>
-                        user ? navigate(`/team/?tab=billing`) : navigate('/')
-                      }
-                    >
-                      {formatIdr(price.priceIdr)} / {price.durationDays} days
-                    </Button>
-                  ))}
+                  {pkg.prices.map((price) => {
+                    const original = (price as unknown as { originalPriceIdr?: number | null })
+                      .originalPriceIdr;
+                    const hasDiscount =
+                      typeof original === 'number' && original > price.priceIdr;
+                    const hemat = hasDiscount ? original - price.priceIdr : 0;
+                    return (
+                      <div key={price.id} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {hasDiscount && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span
+                              style={{
+                                fontSize: 13,
+                                color: 'var(--text-muted)',
+                                textDecoration: 'line-through',
+                              }}
+                            >
+                              {formatIdr(original)}
+                            </span>
+                            <span
+                              className="badge badge-success"
+                              style={{ fontSize: 11, padding: '2px 8px' }}
+                            >
+                              Hemat {formatIdr(hemat)}
+                            </span>
+                          </div>
+                        )}
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          disabled={!user}
+                          loading={busyKey === `${pkg.id}:${price.id}`}
+                          onClick={() => (user ? void onBuy(pkg, price.id) : navigate('/'))}
+                        >
+                          {formatIdr(price.priceIdr)} / {price.durationDays} days
+                        </Button>
+                      </div>
+                    );
+                  })}
                   {!user && (
                     <p className="billing-meta">Create a free account to upgrade a workspace.</p>
+                  )}
+                  {user && !effectiveTeamId && teams && teams.length > 0 && (
+                    <p className="billing-meta">Pilih workspace di atas untuk melanjutkan.</p>
                   )}
                 </div>
               )}

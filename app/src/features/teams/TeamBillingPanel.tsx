@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import { Wallet } from '@phosphor-icons/react';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
-import type { BillingPackage, BillingPayment, BillingStatus } from '../../lib/types';
+import type { BillingPayment, BillingStatus } from '../../lib/types';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { Skeleton } from '../../components/Skeleton';
@@ -23,18 +23,14 @@ interface TeamBillingPanelProps {
 export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
   const navigate = useNavigate();
   const [data, setData] = useState<BillingStatus | null>(null);
-  const [packages, setPackages] = useState<BillingPackage[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [busyKey, setBusyKey] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [status, pkgs] = await Promise.all([api.billingStatus(teamId), api.listPackages()]);
+      const status = await api.billingStatus(teamId);
       setData(status);
-      setPackages(pkgs.packages);
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to load billing.'));
     } finally {
@@ -45,18 +41,6 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
   useEffect(() => {
     void load();
   }, [load]);
-
-  async function onBuy(pkg: BillingPackage, priceId: string) {
-    setActionError(null);
-    setBusyKey(`${pkg.id}:${priceId}`);
-    try {
-      const result = await api.startCheckout(teamId, pkg.id, priceId);
-      window.location.assign(result.url);
-    } catch (err) {
-      setActionError(getErrorMessage(err, 'Failed to start checkout.'));
-      setBusyKey(null);
-    }
-  }
 
   if (loading) {
     return (
@@ -98,7 +82,7 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
       ? Math.ceil((Date.parse(expires) - Date.now()) / 86_400_000)
       : null;
 
-  const paidPackages = (packages ?? []).filter((p) => !p.isFree && p.prices.length > 0);
+
 
   function PaymentRow({ p }: { p: BillingPayment }) {
     return (
@@ -128,8 +112,6 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
           renew to keep unlimited capacity.
         </InlineError>
       )}
-      {actionError && <InlineError>{actionError}</InlineError>}
-
       <div className="billing-card">
         <h3 className="billing-card-title">Current plan</h3>
         <div className="billing-plan-row">
@@ -152,52 +134,23 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
             limit={data!.usage.projects.limit}
           />
         </div>
-      </div>
-
-      {plan === 'free' &&
-        (isAdmin ? (
-          paidPackages.length === 0 ? (
-            <p className="billing-meta">No upgrade packages are available right now.</p>
+        {plan === 'free' &&
+          (isAdmin ? (
+            <div style={{ marginTop: 16 }}>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => navigate(`/pricing?teamId=${teamId}`)}
+              >
+                View Pricing
+              </Button>
+            </div>
           ) : (
-            paidPackages.map((pkg) => (
-              <div key={pkg.id} className="billing-card">
-                <h3 className="billing-card-title">Upgrade — {pkg.name}</h3>
-                <p className="billing-meta">{limitsLine(pkg)}</p>
-                <div className="usage-meter-list">
-                  <div className="usage-meter">
-                    <span className="usage-meter-label">Members</span>
-                    <span className="usage-meter-value">2 → {pkg.maxMembers ?? 'Unlimited'}</span>
-                  </div>
-                  <div className="usage-meter">
-                    <span className="usage-meter-label">Projects</span>
-                    <span className="usage-meter-value">3 → {pkg.maxProjects ?? 'Unlimited'}</span>
-                  </div>
-                </div>
-                <div className="billing-period-actions">
-                  {pkg.prices.map((price) => (
-                    <Button
-                      key={price.id}
-                      variant="primary"
-                      size="sm"
-                      loading={busyKey === `${pkg.id}:${price.id}`}
-                      onClick={() => void onBuy(pkg, price.id)}
-                    >
-                      {formatIdr(price.priceIdr)} / {price.durationDays} days
-                    </Button>
-                  ))}
-                </div>
-                <p className="billing-meta">
-                  Payment via QRIS / Virtual Account — you will be redirected.{' '}
-                  <button type="button" className="back-btn" onClick={() => navigate('/pricing')}>
-                    Perbandingan lengkap →
-                  </button>
-                </p>
-              </div>
-            ))
-          )
-        ) : (
-          <p className="billing-meta">Contact a team admin to upgrade this workspace.</p>
-        ))}
+            <p className="billing-meta" style={{ marginTop: 12 }}>
+              Contact a team admin to upgrade this workspace.
+            </p>
+          ))}
+      </div>
 
       <div className="billing-card">
         <h3 className="billing-card-title">Payment history</h3>
@@ -215,8 +168,4 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
   );
 }
 
-function limitsLine(pkg: BillingPackage): string {
-  const m = pkg.maxMembers === null ? 'Unlimited members' : `${pkg.maxMembers} members`;
-  const p = pkg.maxProjects === null ? 'unlimited projects' : `${pkg.maxProjects} projects`;
-  return `${m} · ${p.charAt(0).toUpperCase()}${p.slice(1)}.`;
-}
+
