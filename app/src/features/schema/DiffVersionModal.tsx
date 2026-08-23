@@ -34,7 +34,7 @@ export function DiffVersionModal({ open, versions, onClose }: DiffVersionModalPr
   const empty = !from || !to || from.id === to.id;
 
   return (
-    <Modal open={open} title="Diff schema versions" onClose={onClose} width="lg">
+    <Modal open={open} title="Diff schema versions" onClose={onClose} width="lg" footer={<Button variant="ghost" onClick={onClose}>Close</Button>}>
       <div className="diff-selects">
         <div className="field">
           <SearchableSelect
@@ -118,12 +118,6 @@ export function DiffVersionModal({ open, versions, onClose }: DiffVersionModalPr
             )}
         </div>
       )}
-
-      <div className="modal-footer">
-        <Button variant="ghost" onClick={onClose}>
-          Close
-        </Button>
-      </div>
     </Modal>
   );
 }

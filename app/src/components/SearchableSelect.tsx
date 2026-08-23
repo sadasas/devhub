@@ -108,9 +108,12 @@ export function SearchableSelect({
 
   const display = selected?.label ?? (allowEmpty ? emptyLabel : placeholder ?? 'Select…');
 
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
   const select = (v: string | null) => {
     onChange(v);
     setOpen(false);
+    requestAnimationFrame(() => triggerRef.current?.focus());
   };
 
   return (
@@ -121,6 +124,7 @@ export function SearchableSelect({
         </label>
       )}
       <button
+        ref={triggerRef}
         id={id}
         type="button"
         className="ss-trigger"
@@ -155,8 +159,10 @@ export function SearchableSelect({
             } else if (e.key === 'Escape') {
               e.stopPropagation();
               setOpen(false);
+              requestAnimationFrame(() => triggerRef.current?.focus());
             } else if (e.key === 'Tab') {
               setOpen(false);
+              requestAnimationFrame(() => triggerRef.current?.focus());
             }
           }}
         >

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CornersOut, Graph, MagnifyingGlassMinus, MagnifyingGlassPlus } from '@phosphor-icons/react';
 import type { Column, Relation, Table } from '../../lib/types';
 import type { State } from '../../lib/types';
@@ -77,7 +77,7 @@ export function ERD({ state, onDeleteRelation, onNewTable }: ERDProps) {
     return () => el.removeEventListener('wheel', onWheel);
   }, []);
 
-  const zoomAt = (factor: number) => {
+  const zoomAt = useCallback((factor: number) => {
     const el = canvasRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
@@ -88,7 +88,7 @@ export function ERD({ state, onDeleteRelation, onNewTable }: ERDProps) {
       const k = s / v.s;
       return { x: cx - (cx - v.x) * k, y: cy - (cy - v.y) * k, s };
     });
-  };
+  }, []);
 
   const columnY = (table: Table, column: Column) => {
     const idx = table.columns.indexOf(column);
@@ -113,6 +113,29 @@ export function ERD({ state, onDeleteRelation, onNewTable }: ERDProps) {
     setDragging(false);
   };
 
+  const PAN_STEP = 40;
+
+  const handleCanvasKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        const dir = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
+        const vert = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+        setView((v) => ({ ...v, x: v.x - dir * PAN_STEP, y: v.y - vert * PAN_STEP }));
+      } else if (e.key === '+' || e.key === '=') {
+        e.preventDefault();
+        zoomAt(1.2);
+      } else if (e.key === '-' || e.key === '_') {
+        e.preventDefault();
+        zoomAt(1 / 1.2);
+      } else if (e.key === '0') {
+        e.preventDefault();
+        setView({ x: 16, y: 16, s: 1 });
+      }
+    },
+    [zoomAt],
+  );
+
   return (
     <div ref={canvasRef} className={`erd-canvas ${dragging ? 'dragging' : ''}`}>
       <svg
@@ -120,10 +143,12 @@ export function ERD({ state, onDeleteRelation, onNewTable }: ERDProps) {
         height="100%"
         role="group"
         aria-label={`Entity relationship diagram with ${state.tables.length} tables and ${state.relations.length} relations`}
+        tabIndex={0}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
+        onKeyDown={handleCanvasKeyDown}
       >
         <g transform={`translate(${view.x},${view.y}) scale(${view.s})`}>
           {state.relations.map((rel) => {
@@ -167,7 +192,13 @@ export function ERD({ state, onDeleteRelation, onNewTable }: ERDProps) {
           {layout.map((l) => {
             const t = l.table;
             return (
-              <g key={t.id} transform={`translate(${l.x},${l.y})`}>
+              <g
+                key={t.id}
+                transform={`translate(${l.x},${l.y})`}
+                role="group"
+                aria-label={`Table ${t.name} with ${t.columns.length} columns`}
+              >
+                <title>{t.name}</title>
                 <rect width={TABLE_W} height={l.h} rx={8} className="erd-table-body" />
                 <rect width={TABLE_W} height={HEADER_H} rx={8} className="erd-table-header" />
                 <rect y={HEADER_H - 8} width={TABLE_W} height={8} className="erd-table-header" />
@@ -175,7 +206,7 @@ export function ERD({ state, onDeleteRelation, onNewTable }: ERDProps) {
                   {truncate(t.name, 24)}
                 </text>
                 {t.columns.map((c) => (
-                  <g key={c.id} transform={`translate(0,${HEADER_H + t.columns.indexOf(c) * ROW_H})`}>
+                  <g key={c.id} transform={`translate(0,${HEADER_H + t.columns.indexOf(c) * ROW_H})`} aria-label={`${c.name} ${c.type}${c.primaryKey ? ' PK' : ''}${c.nullable ? '' : ' NOT NULL'}`}>
                     {c.primaryKey && <circle cx={10} cy={ROW_H / 2} r={2.5} className="erd-pk" />}
                     <text x={22} y={14} className="erd-col-name">
                       {truncate(c.name, 20)}
@@ -231,7 +262,7 @@ export function ERD({ state, onDeleteRelation, onNewTable }: ERDProps) {
           <CornersOut size={13} aria-hidden="true" />
         </Button>
       </div>
-      <div className="erd-hint">Scroll to zoom · drag to pan</div>
+      <div className="erd-hint">Arrow keys to pan · +/- to zoom · drag to pan</div>
     </div>
   );
 }

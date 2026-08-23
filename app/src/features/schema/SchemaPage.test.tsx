@@ -93,7 +93,7 @@ describe('SchemaPage', () => {
     expect(side?.textContent).toContain('Schema versions');
 
     fireEvent.click(screen.getByRole('tab', { name: /ERD/ }));
-    expect(await screen.findByText(/Scroll to zoom/)).toBeDefined();
+    expect(await screen.findByText(/drag to pan/)).toBeDefined();
     expect(document.querySelector('.schema-side')?.textContent).toContain('Schema versions');
   });
 });

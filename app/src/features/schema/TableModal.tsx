@@ -163,6 +163,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                       <input
                         type="checkbox"
                         checked={c.nullable}
+                        aria-label={`Nullable for column ${c.name || 'unnamed'}`}
                         onChange={(e) => updateColumn(c.id, { nullable: e.target.checked })}
                       />
                     </label>
@@ -170,6 +171,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                       <input
                         type="checkbox"
                         checked={c.primaryKey}
+                        aria-label={`Primary key for column ${c.name || 'unnamed'}`}
                         onChange={(e) => updateColumn(c.id, { primaryKey: e.target.checked })}
                       />
                     </label>

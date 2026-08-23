@@ -1379,6 +1379,24 @@ a:hover {
   .page-header {
     margin-bottom: 16px;
   }
+
+  .schema-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .schema-side {
+    order: 2;
+  }
+
+  .erd-canvas {
+    height: 360px;
+    min-height: 280px;
+  }
+
+  .field-row {
+    flex-direction: column;
+    gap: 8px;
+  }
 }
 
 /* ============================================================
@@ -1413,7 +1431,6 @@ a:hover {
   .sidebar-signout,
   .back-btn,
   .sub-tab,
-  .erd-zoom-btn,
   .wb-selection-btn,
   .wb-delete-btn {
     min-width: 36px;
@@ -1523,6 +1540,57 @@ a:hover {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+}
+
+.form-row > * {
+  flex: 1;
+  min-width: 0;
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.form-section-title {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.admin-price-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.admin-price-row > * {
+  flex: 1;
+  min-width: 0;
 }
 
 /* Read-mode detail views (modal detail read mode) */
@@ -2572,9 +2640,39 @@ a:hover {
    Schema — tables, ERD, versions
    ============================================================ */
 
+.schema-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 24px;
+  align-items: start;
+}
+
+.schema-main {
+  min-width: 0;
+}
+
+.schema-side {
+  min-width: 0;
+}
+
 .data-list-actions {
   display: flex;
   gap: 8px;
+}
+
+.field-row {
+  display: flex;
+  gap: 12px;
+}
+
+.field-row > .field {
+  flex: 1;
+  min-width: 0;
+}
+
+.schema-layout > .sub-tabs,
+.data-list-header + .sub-tabs {
+  margin-bottom: 0;
 }
 
 .board-toolbar {
@@ -2712,6 +2810,7 @@ a:hover {
 
 .erd-rel {
   cursor: pointer;
+  outline: none;
 }
 
 .erd-rel polyline {
@@ -2720,9 +2819,14 @@ a:hover {
   transition: stroke var(--duration-fast) var(--ease-out);
 }
 
-.erd-rel:hover polyline,
+.erd-rel:hover polyline {
+  stroke: var(--accent);
+}
+
 .erd-rel:focus-visible polyline {
   stroke: var(--accent);
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 3px var(--accent-ring));
 }
 
 .erd-cardinality {
@@ -2756,32 +2860,6 @@ a:hover {
   bottom: 10px;
   display: flex;
   gap: 6px;
-}
-
-.erd-zoom-btn {
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-overlay);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.erd-zoom-btn:hover {
-  color: var(--text-primary);
-  border-color: var(--border-strong);
-  background: var(--bg-elevated);
-}
-
-.erd-zoom-btn-active {
-  color: var(--accent);
-  border-color: var(--accent);
-  background: var(--accent-dim);
 }
 
 .erd-zoom .btn {
@@ -2868,6 +2946,10 @@ input[type='checkbox'] {
   font-size: 11px;
   color: var(--text-muted);
   margin-top: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .erd-rel polyline { transition: none; }
 }
 
 /* ============================================================
@@ -3709,6 +3791,15 @@ input[type='checkbox'] {
   font-weight: 600;
   color: var(--text-primary);
   margin: 0 0 6px;
+}
+
+.docs-step-subtitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 20px 0 6px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
 }
 
 .docs-step-desc {
@@ -7104,4 +7195,334 @@ input[type='checkbox'] {
 .usage-price-amount {
   color: var(--text-primary);
   font-weight: 600;
+}
+
+/* ============================================================
+   Admin — Payment table, Package cards, Revenue stats
+   ============================================================ */
+
+.admin-payment-table {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.admin-payment-header {
+  display: grid;
+  grid-template-columns: 120px 1fr 1fr 140px 100px 100px;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-strong);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.admin-payment-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 1fr 140px 100px 100px;
+  gap: 8px;
+  padding: 10px 12px;
+  align-items: center;
+  border-bottom: 1px solid var(--border-hairline);
+  font-size: 13px;
+  color: var(--text-primary);
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.admin-payment-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.admin-payment-row:last-child {
+  border-bottom: none;
+}
+
+.admin-payment-date {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.admin-payment-buyer {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-payment-team {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+
+.admin-payment-amount {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  text-align: right;
+}
+
+.admin-payment-duration {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.admin-package-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-card);
+  padding: 16px;
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.admin-package-card:hover {
+  border-color: var(--border-strong);
+}
+
+.admin-package-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-package-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.admin-package-desc {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.admin-package-limits {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.admin-package-limit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.admin-package-prices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-hairline);
+}
+
+.admin-package-price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+}
+
+.admin-package-price-duration {
+  color: var(--text-secondary);
+}
+
+.admin-package-price-amount {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.admin-package-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-hairline);
+}
+
+.stat-card-revenue {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-card);
+  padding: 18px 16px;
+  min-width: 0;
+}
+
+.stat-card-revenue .stat-card-title {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.stat-card-revenue .stat-card-value {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.badge-plan {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.badge-plan-pro {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.badge-plan-free {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+}
+
+.admin-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.admin-packages-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+  gap: 16px;
+}
+
+.admin-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.admin-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-card);
+  padding: 16px;
+}
+
+.admin-chart-donut {
+  width: 100%;
+  max-width: 200px;
+  margin: 0 auto;
+}
+
+.admin-chart-title {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.admin-chart-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.admin-chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-chart-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.admin-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-bar-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  min-width: 40px;
+  text-align: right;
+}
+
+.admin-bar-track {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-inset);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.admin-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width var(--duration-fast) var(--ease-out);
+}
+
+.admin-bar-value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  min-width: 80px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 700px) {
+  .admin-payment-header,
+  .admin-payment-row {
+    grid-template-columns: 100px 1fr 120px 80px;
+  }
+
+  .admin-payment-header > :nth-child(2),
+  .admin-payment-row > :nth-child(2) {
+    display: none;
+  }
 }
