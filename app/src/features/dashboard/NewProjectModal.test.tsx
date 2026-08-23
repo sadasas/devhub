@@ -99,14 +99,8 @@ describe('NewProjectModal team select', () => {
 
     expect(await screen.findByText('Upgrade workspace')).toBeDefined();
     expect(screen.getByText('Project limit reached on your current plan.')).toBeDefined();
-    // Paket Pro terpilih otomatis; pilih durasi → tombol Upgrade aktif.
-    const priceRow = await screen.findByRole('button', { name: /Rp 250\.000/ });
-    expect(screen.getByText(/Unlimited projects/)).toBeDefined();
-    let upgradeBtn = screen.getByRole('button', { name: /Upgrade Pro/ }) as HTMLButtonElement;
-    expect(upgradeBtn.disabled).toBe(true);
-    fireEvent.click(priceRow);
-    upgradeBtn = screen.getByRole('button', { name: /Upgrade Pro/ }) as HTMLButtonElement;
-    expect(upgradeBtn.disabled).toBe(false);
-    expect(screen.getByText(/Perbandingan lengkap/)).toBeDefined();
+    expect(screen.getByText(/Lihat opsi paket/)).toBeDefined();
+    const pricingBtn = screen.getByRole('button', { name: /Lihat Pricing/ });
+    expect(pricingBtn).toBeDefined();
   });
 });

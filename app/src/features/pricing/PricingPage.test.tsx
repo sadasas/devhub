@@ -57,7 +57,7 @@ const PACKAGES: BillingPackage[] = [
   },
 ];
 
-describe('PricingPage (dinamis dari DB)', () => {
+describe('PricingPage (single-page flow)', () => {
   beforeEach(() => {
     mockListPackages.mockReset().mockResolvedValue({ packages: PACKAGES });
   });
@@ -66,54 +66,37 @@ describe('PricingPage (dinamis dari DB)', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders packages with dynamic limits and Mulai Upgrade button', async () => {
+  it('renders both plans with dynamic limits and duration cards', async () => {
     renderPage();
 
     expect(await screen.findByText('Free')).toBeDefined();
     expect(screen.getByText('Pro')).toBeDefined();
-    expect(screen.getByText(/2 members · 3 projects/)).toBeDefined();
-    expect(screen.getByText('Unlimited members')).toBeDefined();
-    expect(screen.getByText('Unlimited projects')).toBeDefined();
-    expect(await screen.findByRole('button', { name: /Mulai Upgrade/ })).toBeDefined();
-  });
-
-  it('shows step 2 confirmation with order summary after choosing a package', async () => {
-    const { fireEvent, act } = await import('@testing-library/react');
-    renderPage();
-
-    const upgradeBtn = await screen.findByRole('button', { name: /Mulai Upgrade/ });
-    await act(async () => {
-      fireEvent.click(upgradeBtn);
-    });
-
-    expect(await screen.findByText('Konfirmasi Pembelian')).toBeDefined();
-    expect(screen.getByText('Step 2: Konfirmasi')).toBeDefined();
-    expect(screen.getByText('1 bulan')).toBeDefined();
-  });
-
-  it('shows duration cards in step 2', async () => {
-    const { fireEvent, act } = await import('@testing-library/react');
-    renderPage();
-
-    const upgradeBtn = await screen.findByRole('button', { name: /Mulai Upgrade/ });
-    await act(async () => {
-      fireEvent.click(upgradeBtn);
-    });
-
+    expect(screen.getByText(/2 members/)).toBeDefined();
+    expect(screen.getByText(/3 projects/)).toBeDefined();
+    expect(screen.getAllByText('Unlimited members').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Unlimited projects').length).toBeGreaterThanOrEqual(1);
     expect(await screen.findByText('1 bulan')).toBeDefined();
     expect(screen.getByText(/12 bulan/)).toBeDefined();
   });
 
-  it('shows a register CTA for anonymous visitors', async () => {
-    const { fireEvent, act } = await import('@testing-library/react');
+  it('shows dynamic CTA with price', async () => {
     renderPage();
-    const upgradeBtn = await screen.findByRole('button', { name: /Mulai Upgrade/ });
-    await act(async () => {
-      fireEvent.click(upgradeBtn);
-    });
 
-    expect(await screen.findByText(/Create a free account to upgrade/)).toBeDefined();
-    expect(screen.getByRole('button', { name: /Create a free account/ })).toBeDefined();
+    expect(await screen.findByRole('button', { name: /Upgrade ke Pro/ })).toBeDefined();
+  });
+
+  it('shows duration cards on the page (no step 2)', async () => {
+    renderPage();
+
+    expect(await screen.findByText('Pilih periode:')).toBeDefined();
+    expect(screen.getByText('1 bulan')).toBeDefined();
+    expect(screen.getByText(/12 bulan/)).toBeDefined();
+  });
+
+  it('shows a register CTA for anonymous visitors', async () => {
+    renderPage();
+
+    expect(await screen.findByText(/Buat akun gratis/)).toBeDefined();
   });
 
   it('renders FAQ section', async () => {
@@ -122,5 +105,18 @@ describe('PricingPage (dinamis dari DB)', () => {
     expect(await screen.findByText('Pertanyaan Umum')).toBeDefined();
     expect(screen.getByText('Bagaimana cara upgrade?')).toBeDefined();
     expect(screen.getByText('Apakah ada free trial?')).toBeDefined();
+  });
+
+  it('renders trust section', async () => {
+    renderPage();
+
+    expect(await screen.findByText(/Pembayaran aman/)).toBeDefined();
+    expect(screen.getByText(/Powered by Pakasir/)).toBeDefined();
+  });
+
+  it('renders why upgrade section', async () => {
+    renderPage();
+
+    expect(await screen.findByText('Kenapa upgrade ke Pro?')).toBeDefined();
   });
 });
