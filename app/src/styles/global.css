@@ -6755,6 +6755,46 @@ input[type='checkbox'] {
 }
 
 
+/* Billing period toggle — segmented control, jangan nempel */
+.billing-period-toggle {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.billing-period-btn {
+  appearance: none;
+  padding: 6px 14px;
+  border: 1px solid var(--border-hairline);
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.billing-period-btn:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.billing-period-btn.active,
+.billing-period-btn[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-on-accent);
+}
+
+.billing-period-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Billing & usage (M33, ADR-044) */
 
 .usage-meter {

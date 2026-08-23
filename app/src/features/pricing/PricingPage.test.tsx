@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import type { BillingPackage } from '../../lib/types';
 import { PricingPage } from './PricingPage';
 
@@ -12,7 +13,7 @@ vi.mock('../../lib/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../lib/api')>();
   return {
     ...actual,
-    api: { listPackages: mockListPackages },
+    api: { ...actual.api, listPackages: mockListPackages, startCheckout: vi.fn() },
   };
 });
 
@@ -20,9 +21,17 @@ vi.mock('../../state/auth-context', () => ({
   useAuth: () => ({ user: mockUser }),
 }));
 
-vi.mock('react-router', () => ({
-  useNavigate: () => vi.fn(),
+vi.mock('../../state/teams-context', () => ({
+  useTeams: () => ({ teams: [] }),
 }));
+
+function renderPage() {
+  return render(
+    <MemoryRouter>
+      <PricingPage />
+    </MemoryRouter>,
+  );
+}
 
 const PACKAGES: BillingPackage[] = [
   {
@@ -58,20 +67,20 @@ describe('PricingPage (dinamis dari DB)', () => {
   });
 
   it('renders packages with dynamic limits and duration prices', async () => {
-    render(<PricingPage />);
+    renderPage();
 
     expect(await screen.findByText('Free')).toBeDefined();
     expect(screen.getByText('Pro')).toBeDefined();
     expect(screen.getByText(/2 members · 3 projects/)).toBeDefined();
     expect(screen.getAllByText(/Unlimited members · Unlimited projects/)).toHaveLength(1);
-    expect(screen.getByRole('button', { name: /Rp 250\.000 \/ 30 days/ })).toBeDefined();
-    expect(screen.getByRole('button', { name: /Rp 2\.500\.000 \/ 365 days/ })).toBeDefined();
+    expect(await screen.findByRole('button', { name: /1 Month/ })).toBeDefined();
+    expect(screen.getByRole('button', { name: /Yearly/ })).toBeDefined();
   });
 
   it('shows a register CTA and disables buy buttons for anonymous visitors', async () => {
-    render(<PricingPage />);
+    renderPage();
     expect(await screen.findByText(/Create a free account to upgrade/)).toBeDefined();
-    const buy = screen.getByRole('button', { name: /Rp 250\.000 \/ 30 days/ });
+    const buy = await screen.findByRole('button', { name: /1 Month/ });
     expect((buy as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByRole('button', { name: /Create a free account/ })).toBeDefined();
   });

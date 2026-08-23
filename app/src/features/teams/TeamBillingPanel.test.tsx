@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import type { BillingPackage, BillingStatus } from '../../lib/types';
+import type { BillingStatus } from '../../lib/types';
 import { TeamBillingPanel } from './TeamBillingPanel';
 
 const mocks = vi.hoisted(() => ({ billingStatus: vi.fn(), listPackages: vi.fn(), startCheckout: vi.fn() }));
@@ -20,16 +20,6 @@ vi.mock('../../lib/api', async (importOriginal) => {
     },
   };
 });
-
-const PRO_PACKAGE: BillingPackage = {
-  id: 'pkg-pro',
-  name: 'Pro',
-  description: '',
-  isFree: false,
-  maxMembers: null,
-  maxProjects: null,
-  prices: [{ id: 'pr-30', durationDays: 30, priceIdr: 250_000 }],
-};
 
 const BASE: BillingStatus = {
   team: { id: 't1', name: 'Platform', plan: 'free', planExpiresAt: null },
@@ -51,28 +41,20 @@ function renderPanel(isAdmin = true) {
 describe('TeamBillingPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.listPackages.mockReset().mockResolvedValue({ packages: [PRO_PACKAGE] });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('renders free plan with full-usage meter and dynamic upgrade package', async () => {
+  it('renders free plan with full-usage meter and View Pricing CTA', async () => {
     vi.mocked(mocks.billingStatus).mockResolvedValue(BASE);
     renderPanel();
 
     expect(await screen.findByText('Free plan')).toBeDefined();
     expect(screen.getByText('1 / 2')).toBeDefined();
     expect(screen.getByText('3 / 3')).toBeDefined();
-    expect(screen.getByText('Upgrade — Pro')).toBeDefined();
-    expect(screen.getByText(/Unlimited members · Unlimited projects\./)).toBeDefined();
-    expect(screen.getByText('2 → Unlimited')).toBeDefined();
-    expect(screen.getByText('3 → Unlimited')).toBeDefined();
-    expect(
-      screen.getByRole('button', { name: /Rp 250\.000 \/ 30 days/ }),
-    ).toBeDefined();
-    expect(screen.getByText(/Perbandingan lengkap/)).toBeDefined();
+    expect(screen.getByRole('button', { name: /View Pricing/ })).toBeDefined();
   });
 
   it('renders pro plan as unlimited without upsell and lists payment history', async () => {
@@ -98,7 +80,7 @@ describe('TeamBillingPanel', () => {
 
     expect(await screen.findByText(/Active until/)).toBeTruthy();
     expect(screen.getAllByText('Unlimited')).toHaveLength(2);
-    expect(screen.queryByRole('button', { name: /Rp 250\.000 \/ 30 days/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /View Pricing/ })).toBeNull();
     expect(screen.getByText('Paid')).toBeDefined();
     expect(screen.getByText(/Pro · 30 days/)).toBeDefined();
   });
@@ -108,6 +90,6 @@ describe('TeamBillingPanel', () => {
     renderPanel(false);
 
     expect(await screen.findByText(/Contact a team admin to upgrade/)).toBeDefined();
-    expect(screen.queryByRole('button', { name: /Rp 250\.000 \/ 30 days/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /View Pricing/ })).toBeNull();
   });
 });

@@ -151,53 +151,56 @@ export function PricingPage() {
                 </li>
               </ul>
               {!pkg.isFree && (
-                <div className="usage-meter-list">
+                <div className="billing-period-toggle" role="group" aria-label="Pilih durasi">
                   {pkg.prices.map((price) => {
                     const original = (price as unknown as { originalPriceIdr?: number | null })
                       .originalPriceIdr;
                     const hasDiscount =
                       typeof original === 'number' && original > price.priceIdr;
                     const hemat = hasDiscount ? original - price.priceIdr : 0;
+                    const label =
+                      price.durationDays % 365 === 0
+                        ? 'Yearly'
+                        : price.durationDays % 30 === 0
+                          ? `${price.durationDays / 30} Month`
+                          : `${price.durationDays} days`;
                     return (
-                      <div key={price.id} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {hasDiscount && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span
-                              style={{
-                                fontSize: 13,
-                                color: 'var(--text-muted)',
-                                textDecoration: 'line-through',
-                              }}
-                            >
-                              {formatIdr(original)}
+                      <button
+                        key={price.id}
+                        type="button"
+                        className="billing-period-btn"
+                        disabled={!user || !!busyKey}
+                        onClick={() => (user ? void onBuy(pkg, price.id) : navigate('/'))}
+                        aria-label={`${label} — ${formatIdr(price.priceIdr)}${hasDiscount ? `, hemat ${formatIdr(hemat)}` : ''}${busyKey === `${pkg.id}:${price.id}` ? ' — memproses' : ''}`}
+                      >
+                        <span style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center' }}>
+                          {hasDiscount && (
+                            <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                              <span style={{ fontSize: 11, color: 'var(--text-muted)', textDecoration: 'line-through' }}>
+                                {formatIdr(original)}
+                              </span>
+                              <span className="badge badge-success" style={{ fontSize: 10, padding: '1px 6px' }}>
+                                Hemat {formatIdr(hemat)}
+                              </span>
                             </span>
-                            <span
-                              className="badge badge-success"
-                              style={{ fontSize: 11, padding: '2px 8px' }}
-                            >
-                              Hemat {formatIdr(hemat)}
-                            </span>
-                          </div>
-                        )}
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          disabled={!user}
-                          loading={busyKey === `${pkg.id}:${price.id}`}
-                          onClick={() => (user ? void onBuy(pkg, price.id) : navigate('/'))}
-                        >
-                          {formatIdr(price.priceIdr)} / {price.durationDays} days
-                        </Button>
-                      </div>
+                          )}
+                          <span style={{ fontSize: 13, fontWeight: 600 }}>{formatIdr(price.priceIdr)}</span>
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{label}</span>
+                        </span>
+                      </button>
                     );
                   })}
-                  {!user && (
-                    <p className="billing-meta">Create a free account to upgrade a workspace.</p>
-                  )}
-                  {user && !effectiveTeamId && teams && teams.length > 0 && (
-                    <p className="billing-meta">Pilih workspace di atas untuk melanjutkan.</p>
-                  )}
                 </div>
+              )}
+              {!pkg.isFree && !user && (
+                <p className="billing-meta" style={{ marginTop: 10 }}>
+                  Create a free account to upgrade a workspace.
+                </p>
+              )}
+              {!pkg.isFree && user && !effectiveTeamId && teams && teams.length > 0 && (
+                <p className="billing-meta" style={{ marginTop: 8 }}>
+                  Pilih workspace di atas untuk melanjutkan.
+                </p>
               )}
             </section>
           ))}
@@ -205,11 +208,7 @@ export function PricingPage() {
       )}
 
       <div className="page-footer">
-        {user ? (
-          <Button variant="ghost" onClick={() => navigate('/')}>
-            Back to dashboard
-          </Button>
-        ) : (
+        {!user && (
           <Button variant="primary" onClick={() => navigate('/')}>
             <Lightning size={14} weight="duotone" aria-hidden="true" />
             Create a free account
