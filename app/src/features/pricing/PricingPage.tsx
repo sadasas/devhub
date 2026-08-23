@@ -32,6 +32,9 @@ export function PricingPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [step, setStep] = useState<1 | 2>(1);
+  const [selectedPkg, setSelectedPkg] = useState<BillingPackage | null>(null);
+  const [selectedPriceId, setSelectedPriceId] = useState<string | null>(null);
 
   useEffect(() => {
     if (queryTeamId) setSelectedTeamId(queryTeamId);
@@ -40,20 +43,29 @@ export function PricingPage() {
   const effectiveTeamId =
     queryTeamId && teams?.some((t) => t.id === queryTeamId) ? queryTeamId : selectedTeamId;
 
-  async function onBuy(pkg: BillingPackage, priceId: string) {
+  async function onBuy() {
+    if (!selectedPkg || !selectedPriceId) return;
     if (!effectiveTeamId) {
       setActionError('Pilih workspace yang akan di-upgrade.');
       return;
     }
     setActionError(null);
-    setBusyKey(`${pkg.id}:${priceId}`);
+    setBusyKey(`${selectedPkg.id}:${selectedPriceId}`);
     try {
-      const result = await api.startCheckout(effectiveTeamId, pkg.id, priceId);
+      const result = await api.startCheckout(effectiveTeamId, selectedPkg.id, selectedPriceId);
       window.location.assign(result.url);
     } catch (err) {
       setActionError(getErrorMessage(err, 'Failed to start checkout.'));
       setBusyKey(null);
     }
+  }
+
+  function handleSelectPackage(pkg: BillingPackage) {
+    if (pkg.isFree) return;
+    setSelectedPkg(pkg);
+    setSelectedPriceId(pkg.prices[0]?.id ?? null);
+    setStep(2);
+    setActionError(null);
   }
 
   useEffect(() => {
@@ -64,10 +76,21 @@ export function PricingPage() {
   }, []);
 
   const onBack = () => {
+    if (step === 2) {
+      setStep(1);
+      return;
+    }
     if (queryTeamId) navigate(`/team/${queryTeamId}?tab=billing`);
     else if (window.history.length > 1) navigate(-1);
     else navigate('/');
   };
+
+  const selectedPrice = selectedPkg?.prices.find((p) => p.id === selectedPriceId) ?? null;
+  const originalSelected = (selectedPrice as unknown as { originalPriceIdr?: number | null })
+    ?.originalPriceIdr;
+  const hasDiscountSelected =
+    typeof originalSelected === 'number' && selectedPrice !== null && originalSelected > selectedPrice.priceIdr;
+  const hematSelected = hasDiscountSelected ? (originalSelected as number) - (selectedPrice as NonNullable<typeof selectedPrice>).priceIdr : 0;
 
   return (
     <div className="page">
@@ -88,20 +111,12 @@ export function PricingPage() {
       {error && <InlineError>{error}</InlineError>}
       {actionError && <InlineError>{actionError}</InlineError>}
 
-      {!queryTeamId && teams && teams.length > 0 && (
-        <div className="field" style={{ maxWidth: 360, marginBottom: 16 }}>
-          <label className="field-label" htmlFor="pricing-team">
-            Workspace to upgrade
-          </label>
-          <SearchableSelect
-            id="pricing-team"
-            placeholder="Pilih workspace"
-            value={selectedTeamId || null}
-            options={teams.map((t) => ({ value: t.id, label: t.name }))}
-            onChange={(v) => setSelectedTeamId(v ?? '')}
-          />
-        </div>
-      )}
+      {/* Stepper */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
+        <span className={`badge ${step === 1 ? 'badge-info' : 'badge-neutral'}`}>1. Pilih Paket</span>
+        <span style={{ color: 'var(--text-muted)' }}>→</span>
+        <span className={`badge ${step === 2 ? 'badge-info' : 'badge-neutral'}`}>2. Workspace & Durasi</span>
+      </div>
 
       {packages === null && !error ? (
         <div
@@ -121,89 +136,176 @@ export function PricingPage() {
             </div>
           ))}
         </div>
-      ) : (
+      ) : step === 1 ? (
         <div className="pricing-grid">
-          {(packages ?? []).map((pkg) => (
-            <section
-              key={pkg.id}
-              className={`pricing-card${pkg.isFree ? '' : ' pricing-card-pro'}`}
-              aria-label={`${pkg.name} plan`}
-            >
-              {!pkg.isFree && (
-                <p className="pricing-flag">
-                  <Sparkle size={12} weight="duotone" aria-hidden="true" /> Upgrade
+          {(packages ?? []).map((pkg) => {
+            const cheapest = pkg.prices[0] ?? null;
+            const originalCheapest = (cheapest as unknown as { originalPriceIdr?: number | null })
+              ?.originalPriceIdr;
+            const hasDisc =
+              cheapest !== null &&
+              typeof originalCheapest === 'number' &&
+              originalCheapest > cheapest.priceIdr;
+            const perMonthNormal = cheapest ? Math.round(cheapest.priceIdr / (cheapest.durationDays / 30)) : 0;
+            return (
+              <section
+                key={pkg.id}
+                className={`pricing-card${pkg.isFree ? '' : ' pricing-card-pro'}`}
+                aria-label={`${pkg.name} plan`}
+              >
+                {!pkg.isFree && (
+                  <p className="pricing-flag">
+                    <Sparkle size={12} weight="duotone" aria-hidden="true" /> Upgrade
+                  </p>
+                )}
+                <h2 className="pricing-plan-name">{pkg.name}</h2>
+                {pkg.description && <p className="page-subtitle">{pkg.description}</p>}
+                {!pkg.isFree && cheapest && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                      <span style={{ fontSize: 22, fontWeight: 700 }}>{formatIdr(cheapest.priceIdr)}</span>
+                      <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>/ {cheapest.durationDays} hari</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                      Biaya normal {formatIdr(perMonthNormal)} / bulan
+                    </div>
+                    {hasDisc && (
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <span style={{ fontSize: 12, color: 'var(--text-muted)', textDecoration: 'line-through' }}>
+                          {formatIdr(originalCheapest as number)}
+                        </span>
+                        <span className="badge badge-success" style={{ fontSize: 11, padding: '2px 8px' }}>
+                          Hemat {formatIdr((originalCheapest as number) - cheapest.priceIdr)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {pkg.isFree && <p style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Rp 0</p>}
+                <ul className="pricing-features">
+                  <li>
+                    <Check size={13} weight="bold" aria-hidden="true" />
+                    {limitLine(pkg)}
+                  </li>
+                  <li>
+                    <Check size={13} weight="bold" aria-hidden="true" />
+                    Every feature included
+                  </li>
+                  <li>
+                    <Check size={13} weight="bold" aria-hidden="true" />
+                    JSON export — your data stays yours
+                  </li>
+                </ul>
+                {!pkg.isFree ? (
+                  <Button variant="primary" size="sm" onClick={() => handleSelectPackage(pkg)}>
+                    Pilih Paket
+                  </Button>
+                ) : (
+                  <Button variant="ghost" size="sm" disabled>
+                    Paket saat ini
+                  </Button>
+                )}
+              </section>
+            );
+          })}
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gap: 16, maxWidth: 560 }}>
+          <div className="field">
+            <label className="field-label" htmlFor="pricing-team-step2">
+              Workspace to upgrade
+            </label>
+            <SearchableSelect
+              id="pricing-team-step2"
+              placeholder="Pilih workspace"
+              value={selectedTeamId || null}
+              options={(teams ?? []).map((t) => ({ value: t.id, label: t.name }))}
+              onChange={(v) => setSelectedTeamId(v ?? '')}
+            />
+          </div>
+
+          {selectedPkg && (
+            <>
+              <div>
+                <p style={{ fontWeight: 600, margin: '0 0 8px' }}>
+                  Durasi — {selectedPkg.name} — berapa bulan?
                 </p>
-              )}
-              <h2 className="pricing-plan-name">{pkg.name}</h2>
-              {pkg.description && <p className="page-subtitle">{pkg.description}</p>}
-              <ul className="pricing-features">
-                <li>
-                  <Check size={13} weight="bold" aria-hidden="true" />
-                  {limitLine(pkg)}
-                </li>
-                <li>
-                  <Check size={13} weight="bold" aria-hidden="true" />
-                  Every feature included
-                </li>
-                <li>
-                  <Check size={13} weight="bold" aria-hidden="true" />
-                  JSON export — your data stays yours
-                </li>
-              </ul>
-              {!pkg.isFree && (
-                <div className="billing-period-toggle" role="group" aria-label="Pilih durasi">
-                  {pkg.prices.map((price) => {
-                    const original = (price as unknown as { originalPriceIdr?: number | null })
-                      .originalPriceIdr;
-                    const hasDiscount =
-                      typeof original === 'number' && original > price.priceIdr;
-                    const hemat = hasDiscount ? original - price.priceIdr : 0;
-                    const label =
-                      price.durationDays % 365 === 0
-                        ? 'Yearly'
-                        : price.durationDays % 30 === 0
-                          ? `${price.durationDays / 30} Month`
-                          : `${price.durationDays} days`;
+                <div className="billing-period-toggle" role="group" aria-label="Pilih durasi bulan">
+                  {selectedPkg.prices.map((price) => {
+                    const months = Math.round(price.durationDays / 30);
+                    const original = (price as unknown as { originalPriceIdr?: number | null }).originalPriceIdr;
+                    const hasDisc = typeof original === 'number' && original > price.priceIdr;
+                    const isActive = selectedPriceId === price.id;
                     return (
                       <button
                         key={price.id}
                         type="button"
-                        className="billing-period-btn"
-                        disabled={!user || !!busyKey}
-                        onClick={() => (user ? void onBuy(pkg, price.id) : navigate('/'))}
-                        aria-label={`${label} — ${formatIdr(price.priceIdr)}${hasDiscount ? `, hemat ${formatIdr(hemat)}` : ''}${busyKey === `${pkg.id}:${price.id}` ? ' — memproses' : ''}`}
+                        className={`billing-period-btn${isActive ? ' active' : ''}`}
+                        aria-pressed={isActive}
+                        onClick={() => setSelectedPriceId(price.id)}
                       >
-                        <span style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center' }}>
-                          {hasDiscount && (
-                            <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                              <span style={{ fontSize: 11, color: 'var(--text-muted)', textDecoration: 'line-through' }}>
-                                {formatIdr(original)}
-                              </span>
-                              <span className="badge badge-success" style={{ fontSize: 10, padding: '1px 6px' }}>
-                                Hemat {formatIdr(hemat)}
-                              </span>
+                        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                          <span style={{ fontSize: 13, fontWeight: 600 }}>{months} Bulan</span>
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{formatIdr(price.priceIdr)}</span>
+                          {hasDisc && (
+                            <span className="badge badge-success" style={{ fontSize: 10, padding: '1px 6px' }}>
+                              Hemat {formatIdr((original as number) - price.priceIdr)}
                             </span>
                           )}
-                          <span style={{ fontSize: 13, fontWeight: 600 }}>{formatIdr(price.priceIdr)}</span>
-                          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{label}</span>
                         </span>
                       </button>
                     );
                   })}
                 </div>
+              </div>
+
+              {selectedPrice && (
+                <div className="billing-card" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {hasDiscountSelected && (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <span style={{ fontSize: 13, color: 'var(--text-muted)', textDecoration: 'line-through' }}>
+                        {formatIdr(originalSelected as number)}
+                      </span>
+                      <span className="badge badge-success" style={{ fontSize: 11, padding: '2px 8px' }}>
+                        Hemat {formatIdr(hematSelected)}
+                      </span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                    <span style={{ fontSize: 22, fontWeight: 700 }}>{formatIdr(selectedPrice.priceIdr)}</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                      / {selectedPrice.durationDays} hari
+                    </span>
+                  </div>
+                  <p className="billing-meta">
+                    Biaya normal {formatIdr(Math.round(selectedPrice.priceIdr / (selectedPrice.durationDays / 30)))} / bulan
+                    {hasDiscountSelected ? ` · Anda hemat ${formatIdr(hematSelected)}` : ''}
+                  </p>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <Button variant="ghost" size="sm" onClick={() => setStep(1)}>
+                      Kembali
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      disabled={!user || !effectiveTeamId}
+                      loading={!!busyKey}
+                      onClick={() => void onBuy()}
+                    >
+                      Bayar via QRIS/VA
+                    </Button>
+                  </div>
+                  {!effectiveTeamId && (
+                    <p className="billing-meta">Pilih workspace di atas untuk melanjutkan.</p>
+                  )}
+                </div>
               )}
-              {!pkg.isFree && !user && (
-                <p className="billing-meta" style={{ marginTop: 10 }}>
-                  Create a free account to upgrade a workspace.
-                </p>
-              )}
-              {!pkg.isFree && user && !effectiveTeamId && teams && teams.length > 0 && (
-                <p className="billing-meta" style={{ marginTop: 8 }}>
-                  Pilih workspace di atas untuk melanjutkan.
-                </p>
-              )}
-            </section>
-          ))}
+            </>
+          )}
+
+          {!user && (
+            <p className="billing-meta">Create a free account to upgrade a workspace.</p>
+          )}
         </div>
       )}
 
@@ -215,8 +317,8 @@ export function PricingPage() {
           </Button>
         )}
         <p className="billing-meta">
-          Payment via QRIS / Virtual Account (Pakasir). Upgrades apply per workspace; renewal is
-          manual — we remind you before expiry.
+          Payment via QRIS / Virtual Account (Pakasir). Upgrades apply per workspace; renewal is manual — we remind
+          you before expiry.
         </p>
       </div>
     </div>
