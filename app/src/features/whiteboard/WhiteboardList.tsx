@@ -34,6 +34,7 @@ export function WhiteboardList({ onOpen, loading = false, unreadIds }: Whiteboar
   const [deleteId, setDeleteId] = useState<string | null>(null);
   useNewParam(() => setOpenNew(true), '1', canEdit);
   const { value: sortValue, setSort } = useSortParam();
+  const effectiveSort = sortValue ?? { key: 'createdAt', dir: 'desc' as const };
 
   if (loading || !state) {
     return (
@@ -53,11 +54,11 @@ export function WhiteboardList({ onOpen, loading = false, unreadIds }: Whiteboar
     return <InlineError>{error}</InlineError>;
   }
 
-  const boardSortSpec = BOARD_SORT_SPECS.find((s) => s.key === sortValue?.key) ?? null;
+  const boardSortSpec = BOARD_SORT_SPECS.find((s) => s.key === effectiveSort.key) ?? null;
   const boards = applySort(
     state.whiteboards,
     boardSortSpec,
-    sortValue ? sortValue.dir : 'desc',
+    effectiveSort.dir,
   );
   const atCap = boards.length >= MAX_BOARDS;
   const deleting = deleteId ? state.whiteboards.find((b) => b.id === deleteId) : undefined;
@@ -72,7 +73,7 @@ export function WhiteboardList({ onOpen, loading = false, unreadIds }: Whiteboar
         <span className="data-list-actions">
           <SortControl
             options={BOARD_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
-            value={sortValue}
+            value={effectiveSort}
             onChange={setSort}
           />
           {canEdit && !atCap && (

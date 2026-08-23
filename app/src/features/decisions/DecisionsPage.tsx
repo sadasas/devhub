@@ -36,6 +36,7 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
   useEntityDeepLink('decisions', setEditId);
   useNewParam(() => setOpenNew(true), '1', canEdit);
   const { value: sortValue, setSort } = useSortParam();
+  const effectiveSort = sortValue ?? { key: 'createdAt', dir: 'desc' as const };
 
   if (loading) {
     return (
@@ -60,12 +61,8 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
 
   if (!state) return null;
 
-  const sortSpec = DECISION_SORT_SPECS.find((s) => s.key === sortValue?.key) ?? null;
-  const decisions = sortSpec
-    ? applySort(state.decisions, sortSpec, sortValue?.dir ?? 'asc', (d) => !!d.pinned)
-    : [...state.decisions]
-        .sort((a, b) => b.date.localeCompare(a.date))
-        .sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned));
+  const sortSpec = DECISION_SORT_SPECS.find((s) => s.key === effectiveSort.key) ?? null;
+  const decisions = applySort(state.decisions, sortSpec, effectiveSort.dir, (d) => !!d.pinned);
 
   return (
     <div>
@@ -76,7 +73,7 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
         <span className="data-list-actions">
           <SortControl
             options={DECISION_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
-            value={sortValue}
+            value={effectiveSort}
             onChange={setSort}
           />
           {canEdit && (

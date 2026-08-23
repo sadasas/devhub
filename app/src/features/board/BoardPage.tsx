@@ -88,6 +88,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     );
   };
   const { value: sortValue, setSort } = useSortParam();
+  const effectiveSort = sortValue ?? { key: 'createdAt', dir: 'desc' as const };
   const { user } = useOptionalAuth();
   const mineParam = searchParams.get('mine');
   const mineOnly = mineParam === '1';
@@ -102,7 +103,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       { replace: true },
     );
   };
-  const sortSpec = TASK_SORT_SPECS.find((s) => s.key === sortValue?.key) ?? null;
+  const sortSpec = TASK_SORT_SPECS.find((s) => s.key === effectiveSort.key) ?? null;
   const [overKey, setOverKey] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [newTaskAt, setNewTaskAt] = useState<NewTaskTarget | null>(null);
@@ -331,7 +332,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       applySort(
         filteredTasks.filter((t) => t.status === col.status),
         sortSpec,
-        sortValue?.dir ?? 'asc',
+        effectiveSort.dir,
         (t) => !!t.pinned,
       ),
       col.status,
@@ -345,7 +346,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     const tasks = applySort(
       filteredTasks.filter((t) => t.milestoneId === mId),
       sortSpec,
-      sortValue?.dir ?? 'asc',
+      effectiveSort.dir,
       (t) => !!t.pinned,
     );
     const done = tasks.filter((t) => t.status === 'done').length;
@@ -447,7 +448,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           {view !== 'due' && (
             <SortControl
               options={TASK_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
-              value={sortValue}
+              value={effectiveSort}
               onChange={setSort}
             />
           )}

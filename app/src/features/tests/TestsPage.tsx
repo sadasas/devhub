@@ -36,6 +36,7 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   useEntityDeepLink('testCases', setEditingId);
   useNewParam(() => setCreating(true), '1', canEdit);
   const { value: sortValue, setSort } = useSortParam();
+  const effectiveSort = sortValue ?? { key: 'createdAt', dir: 'desc' as const };
 
   if (loading) {
     return (
@@ -63,8 +64,8 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
 
   if (!state) return null;
 
-  const sortSpec = TEST_SORT_SPECS.find((s) => s.key === sortValue?.key) ?? null;
-  const tests = applySort(state.testCases, sortSpec, sortValue?.dir ?? 'asc', (t) => !!t.pinned);
+  const sortSpec = TEST_SORT_SPECS.find((s) => s.key === effectiveSort.key) ?? null;
+  const tests = applySort(state.testCases, sortSpec, effectiveSort.dir, (t) => !!t.pinned);
 
   return (
     <div>
@@ -75,7 +76,7 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
         <span className="data-list-actions">
           <SortControl
             options={TEST_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
-            value={sortValue}
+            value={effectiveSort}
             onChange={setSort}
           />
           {canEdit && (

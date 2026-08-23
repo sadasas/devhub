@@ -24,12 +24,6 @@ const MILESTONE_SORT_SPECS: SortSpec<Milestone>[] = [
   { key: 'version', label: 'Version', get: (m) => m.version ?? null, compare: compareVersions },
 ];
 
-const defaultMilestoneSort = (a: Milestone, b: Milestone): number => {
-  if (a.status === 'released' && b.status !== 'released') return 1;
-  if (b.status === 'released' && a.status !== 'released') return -1;
-  return (a.targetDate ?? '9999-99-99').localeCompare(b.targetDate ?? '9999-99-99');
-};
-
 export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { state, loading, error, canEdit } = useProject();
   const [openNew, setOpenNew] = useState(false);
@@ -37,6 +31,7 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
   useEntityDeepLink('milestones', setEditId);
   useNewParam(() => setOpenNew(true), '1', canEdit);
   const { value: sortValue, setSort } = useSortParam();
+  const effectiveSort = sortValue ?? { key: 'createdAt', dir: 'desc' as const };
 
   if (loading) {
     return (
@@ -61,10 +56,8 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
 
   if (!state) return null;
 
-  const sortSpec = MILESTONE_SORT_SPECS.find((s) => s.key === sortValue?.key) ?? null;
-  const milestones = sortSpec
-    ? applySort(state.milestones, sortSpec, sortValue?.dir ?? 'asc')
-    : [...state.milestones].sort(defaultMilestoneSort);
+  const sortSpec = MILESTONE_SORT_SPECS.find((s) => s.key === effectiveSort.key) ?? null;
+  const milestones = applySort(state.milestones, sortSpec, effectiveSort.dir);
 
   const milestoneTasks = (id: string) => state.tasks.filter((t) => t.milestoneId === id);
 
@@ -77,7 +70,7 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
         <span className="data-list-actions">
           <SortControl
             options={MILESTONE_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
-            value={sortValue}
+            value={effectiveSort}
             onChange={setSort}
           />
           {canEdit && (
