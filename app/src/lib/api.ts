@@ -1,8 +1,11 @@
 import type {
+  ActivityUnreadSummary,
   AdminActivityEntry,
   AdminStats,
   AdminTeam,
   AdminUser,
+  BillingPackage,
+  BillingStatus,
   ChatMessage,
   ChatRef,
   ChatResolvedRef,
@@ -320,6 +323,17 @@ export const api = {
     return res.items;
   },
 
+  /** Badge unread server-side (ADR M32) — agregat SQL vs watermark di DB. */
+  fetchActivityUnread: (projectId: string) =>
+    request<ActivityUnreadSummary>(`/projects/${encodeURIComponent(projectId)}/activity/unread`),
+
+  /** Tandai tab sudah dibaca; server yang menulis timestamp now(). */
+  setTabReadWatermark: (projectId: string, tab: string) =>
+    request<{ ok: true }>(
+      `/projects/${encodeURIComponent(projectId)}/read-watermarks/${encodeURIComponent(tab)}`,
+      { method: 'PUT' },
+    ),
+
   getPublicProject: async (projectId: string) => {
     const res = await request<{ project: PublicProject }>(
       `/public/projects/${encodeURIComponent(projectId)}`,
@@ -456,8 +470,7 @@ export const api = {
     return res.unread;
   },
 
-  adminStats: () => request<AdminStats>('/admin/stats'),
-  listAdminUsers: async (opts: { query?: string; limit?: number; offset?: number } = {}) => {
+  adminStats: () => request<AdminStats>('/admin/stats'),  listAdminUsers: async (opts: { query?: string; limit?: number; offset?: number } = {}) => {
     const params = new URLSearchParams();
     if (opts.query) params.set('query', opts.query);
     if (opts.limit !== undefined) params.set('limit', String(opts.limit));
@@ -478,4 +491,16 @@ export const api = {
     const res = await request<{ activity: AdminActivityEntry[] }>('/admin/activity');
     return res.activity;
   },
+
+  startCheckout: (teamId: string, packageId: string, priceId: string) =>
+    request<{ orderId: string; url: string; amount: number; packageName: string; durationDays: number }>(
+      '/billing/checkout',
+      {
+        method: 'POST',
+        body: JSON.stringify({ teamId, packageId, priceId }),
+      },
+    ),
+  listPackages: () => request<{ packages: BillingPackage[] }>('/billing/packages'),
+  billingStatus: (teamId: string) =>
+    request<BillingStatus>(`/billing/status/${encodeURIComponent(teamId)}`),
 };

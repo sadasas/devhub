@@ -370,10 +370,58 @@ export interface PublicProject {
 
 export type TeamRole = 'owner' | 'admin' | 'editor' | 'viewer';
 
+export type TeamPlan = 'free' | 'pro';
+
+export interface PackagePrice {
+  id: string;
+  durationDays: number;
+  priceIdr: number;
+}
+
+export interface BillingPackage {
+  id: string;
+  name: string;
+  description: string;
+  isFree: boolean;
+  maxMembers: number | null;
+  maxProjects: number | null;
+  prices: PackagePrice[];
+}
+
+export interface BillingPayment {
+  orderId: string;
+  packageName: string;
+  durationDays: number | null;
+  amount: number;
+  status: string;
+  createdAt: string;
+  completedAt: string | null;
+}
+
+export interface BillingUsageItem {
+  used: number;
+  limit: number | null;
+}
+
+export interface BillingStatus {
+  team: {
+    id: string;
+    name: string;
+    plan: TeamPlan;
+    planExpiresAt: string | null;
+  };
+  usage: {
+    members: BillingUsageItem;
+    projects: BillingUsageItem;
+  };
+  payments: BillingPayment[];
+}
+
 export interface Team {
   id: string;
   name: string;
   role: TeamRole;
+  plan: TeamPlan;
   memberCount: number;
   createdAt: string;
   updatedAt: string;
@@ -522,4 +570,21 @@ export interface UserStats {
   currentStreak: number;
   longestStreak: number;
   days: ActivityDay[];
+}
+
+/** Badge unread server-side (ADR M32): agregat SQL vs watermark baca di DB. */
+export interface ActivityUnreadDeleted {
+  id: string;
+  entity: string;
+  entityId: string;
+  authorName: string;
+  summary: string;
+  createdAt: string;
+}
+
+export interface ActivityUnreadSummary {
+  counts: Record<string, number>;
+  ids: Record<string, string[]>;
+  deleted: ActivityUnreadDeleted[];
+  watermarks: Record<string, string>;
 }

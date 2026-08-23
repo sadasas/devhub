@@ -16,6 +16,7 @@ const TEAMS: Team[] = [
     id: TEAM_ID,
     name: 'Team A',
     role: 'admin',
+    plan: 'free',
     memberCount: 2,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',

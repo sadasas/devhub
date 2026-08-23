@@ -11,6 +11,12 @@ process.env.NODE_ENV = 'test';
 if (process.env.JWT_SECRET === 'change-me-to-a-random-string-of-at-least-32-chars') {
   process.env.JWT_SECRET = 'devhub-test-secret-0123456789-abcdefghijklmnop';
 }
+// Billing Pakasir (M33) — sandbox defaults untuk test; bisa dioverride via env CI.
+process.env.PAKASIR_ENABLED = process.env.PAKASIR_ENABLED ?? 'true';
+process.env.PAKASIR_SANDBOX = process.env.PAKASIR_SANDBOX ?? 'true';
+process.env.PAKASIR_SLUG = process.env.PAKASIR_SLUG ?? 'devhub-test';
+process.env.PAKASIR_API_KEY = process.env.PAKASIR_API_KEY ?? 'test-key';
+process.env.APP_PUBLIC_URL = process.env.APP_PUBLIC_URL ?? 'https://app.test';
 
 export default defineConfig({
   test: {

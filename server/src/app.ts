@@ -22,6 +22,7 @@ import { entityRouter } from './modules/projects/handlers/v1/entity-router.js';
 import { searchRouter } from './modules/search/handlers/v1/search.routes.js';
 import { activityRouter } from './modules/activity/handlers/v1/activity.routes.js';
 import { adminRouter } from './modules/admin/handlers/admin.routes.js';
+import { billingPublicRouter, billingRouter } from './modules/billing/handlers/billing.routes.js';
 
 declare global {
   namespace Express {
@@ -186,6 +187,8 @@ export function createApp(): express.Express {
   app.use('/api/v1/templates', templatesRouter);
   app.use('/api/v1/search', searchRouter);
   app.use('/api/v1/admin', adminRouter);
+  app.use('/api/v1/billing', billingPublicRouter);
+  app.use('/api/v1/billing', billingRouter);
 
   app.use('/mcp', mcpLimiter);
   app.use('/mcp', requireMcpKey);

@@ -6674,3 +6674,196 @@ input[type='checkbox'] {
   background: var(--bg-elevated);
   color: var(--text-primary);
 }
+
+
+/* Pricing page (M32, ADR-043) */
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+
+.pricing-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-hairline);
+  border-radius: 8px;
+}
+
+.pricing-card-pro {
+  border-color: var(--accent);
+}
+
+.pricing-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pricing-plan-name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.pricing-price {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.pricing-period {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.pricing-features {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.pricing-features li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.pricing-features li svg {
+  flex: none;
+  color: var(--accent);
+}
+
+
+/* Billing & usage (M33, ADR-044) */
+
+.usage-meter {
+  display: grid;
+  grid-template-columns: 70px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+.usage-meter-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.usage-meter-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-hairline);
+  overflow: hidden;
+}
+
+.usage-meter-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  transition: width 160ms ease;
+}
+
+.usage-meter-fill.usage-meter-warn {
+  background: var(--status-warn, #e8b955);
+}
+
+.usage-meter-fill.usage-meter-danger {
+  background: var(--status-danger, #e5484d);
+}
+
+.usage-meter-value {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.billing-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.billing-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-hairline);
+  border-radius: 8px;
+}
+
+.billing-card-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.billing-plan-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.billing-plan-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.billing-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.billing-period-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Baris pilihan durasi/harga paket (M34) */
+.usage-price-row {
+  text-align: left;
+  width: 100%;
+}
+
+.usage-price-row:hover {
+  border-color: var(--accent);
+}
+
+.usage-price-row.usage-price-selected {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.usage-price-amount {
+  color: var(--text-primary);
+  font-weight: 600;
+}

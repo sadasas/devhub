@@ -7,6 +7,11 @@ import { parseOrThrow } from '../../../../shared/db.js';
 import { getProjectWithRole } from '../../../authorization/application/authz.js';
 import type { ActivityEntry } from '../../application/activity.js';
 import { STATE_COLLECTIONS } from '../../application/activity.js';
+import {
+  READABLE_TABS,
+  getUnreadSummary,
+  setWatermark,
+} from '../../application/unread.js';
 
 const querySchema = z.object({
   // Filter entity divalidasi terhadap koleksi state yang dikenal (audit 2026-08b, REST-6)
@@ -16,6 +21,8 @@ const querySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
   before: z.string().datetime().optional(),
 });
+
+const watermarkTabSchema = z.enum(READABLE_TABS);
 
 export const activityRouter = Router();
 
@@ -63,4 +70,23 @@ activityRouter.get('/:projectId/activity', async (req, res) => {
     items: result.rows,
     nextCursor: last && result.rows.length === query.limit ? last.createdAt : null,
   });
+});
+
+// Badge unread server-side (ADR M32): watermark dibaca dari DB, agregat SQL.
+activityRouter.get('/:projectId/activity/unread', async (req, res) => {
+  const userId = getUserId(req);
+  const row = await getProjectWithRole(userId, req.params.projectId);
+  if (!row) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
+  res.json(await getUnreadSummary(userId, req.params.projectId));
+});
+
+// Tandai tab sudah dibaca sampai sekarang (server yang menulis timestamp).
+activityRouter.put('/:projectId/read-watermarks/:tab', async (req, res) => {
+  const userId = getUserId(req);
+  const projectId = req.params.projectId;
+  const row = await getProjectWithRole(userId, projectId);
+  if (!row) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
+  const { tab } = parseOrThrow(z.object({ tab: watermarkTabSchema }), req.params, 'Invalid tab');
+  await setWatermark(userId, projectId, tab);
+  res.json({ ok: true });
 });

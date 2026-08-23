@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
-import { app, createTeam, emailOf, inviteUser, register, uniqueIp } from './helpers.js';
+import { app, createTeam, emailOf, inviteUser, register, setTeamPlan, uniqueIp } from './helpers.js';
 import { resetDb } from './setup.js';
 
 async function memberRoles(teamId: string, cookie: string) {
@@ -197,6 +197,7 @@ describe('teams routes', () => {
     await register('member@test.dev');
     const teamId = await createTeam(owner);
     await inviteUser(owner, admin, teamId, 'admin');
+    await setTeamPlan(teamId, 'pro');
 
     const invite = await request(app)
       .post(`/api/v1/teams/${teamId}/invitations`)

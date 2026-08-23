@@ -12,6 +12,7 @@ import {
   InvitesSkeleton,
   KeysSkeleton,
   McpDocsSkeleton,
+  PricingSkeleton,
   ProfileSkeleton,
   ProjectSkeleton,
   PublicProjectSkeleton,
@@ -33,6 +34,8 @@ const TemplatesPageLazy = lazy(() => import('./features/templates/TemplatesPage'
 const AdminPageLazy = lazy(() => import('./features/admin/AdminPage').then((m) => ({ default: m.AdminPage })));
 const ProjectPageLazy = lazy(() => import('./features/project/ProjectPage').then((m) => ({ default: m.ProjectPage })));
 const PublicProjectPageLazy = lazy(() => import('./features/public/PublicProjectPage').then((m) => ({ default: m.PublicProjectPage })));
+const PricingPageLazy = lazy(() => import('./features/pricing/PricingPage').then((m) => ({ default: m.PricingPage })));
+const BillingRedirectPageLazy = lazy(() => import('./features/teams/BillingRedirectPage').then((m) => ({ default: m.BillingRedirectPage })));
 const CommandPaletteLazy = lazy(() => import('./components/CommandPalette').then((m) => ({ default: m.CommandPalette })));
 
 function Splash() {
@@ -134,6 +137,14 @@ function Root() {
                 </RouteBoundary>
               }
             />
+            <Route
+              path="/pricing"
+              element={
+                <RouteBoundary fallback={<PricingSkeleton />}>
+                  <PricingPageLazy />
+                </RouteBoundary>
+              }
+            />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
@@ -158,6 +169,14 @@ export default function App() {
               element={
                 <RouteBoundary fallback={<PublicProjectSkeleton />}>
                   <PublicProjectPageLazy />
+                </RouteBoundary>
+              }
+            />
+            <Route
+              path="/billing/:teamId"
+              element={
+                <RouteBoundary fallback={<TeamSkeleton />}>
+                  <BillingRedirectPageLazy />
                 </RouteBoundary>
               }
             />

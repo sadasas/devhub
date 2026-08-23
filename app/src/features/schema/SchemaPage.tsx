@@ -143,7 +143,9 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
         </button>
       </div>
 
-      {view === 'tables' ? (
+      <div className="schema-layout">
+        <div className="schema-main">
+          {view === 'tables' ? (
         state.tables.length === 0 ? (
           <div className="page-empty">
             <div className="empty-state">
@@ -251,9 +253,11 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
             </div>
           )}
         </div>
-      )}
+          )}
+        </div>
 
-      <div className="versions-section">
+        <aside className="schema-side" aria-label="Schema versions">
+          <div className="versions-section">
         <div className="data-list-header">
           <span className="data-list-count">Schema versions</span>
           <SortControl
@@ -305,7 +309,9 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
                 </div>
               ))}
           </div>
-        )}
+          )}
+        </div>
+        </aside>
       </div>
 
       <NewTableModal open={newTableOpen} onClose={() => setNewTableOpen(false)} />

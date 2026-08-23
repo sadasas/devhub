@@ -22,7 +22,7 @@ import {
 import type { ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { api } from '../../lib/api';
-import { getErrorMessage } from '../../lib/errors';
+import { getErrorMessage, isPlanLimitError } from '../../lib/errors';
 import { offlineProvider } from '../../lib/idb-provider';
 import { PROJECT_STATUS, TEAM_ROLE } from '../../lib/labels';
 import { formatDate } from '../../lib/utils';
@@ -43,6 +43,7 @@ import { Skeleton } from '../../components/Skeleton';
 import { SyncStatusChip } from '../../components/SyncStatusChip';
 import { PresenceChip } from '../../components/PresenceChip';
 import { ShareModal } from './ShareModal';
+import { PlanLimitModal } from '../../components/PlanLimitModal';
 import { InlineError } from '../../components/InlineError';
 import { SaveTemplateModal } from '../templates/SaveTemplateModal';
 import { ProjectChatWidget } from './ProjectChatWidget';
@@ -278,6 +279,7 @@ export function ProjectPage() {
   const [importDoc, setImportDoc] = useState<ExportDocument | null>(null);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  const [limitOpen, setLimitOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -362,8 +364,14 @@ if (!project) {
       await refresh();
       navigate(`/project/${result.projectId}`);
     } catch (err) {
-      setImportError(getErrorMessage(err, 'Failed to import project.'));
-      setImporting(false);
+      if (isPlanLimitError(err)) {
+        setImportDoc(null);
+        setLimitOpen(true);
+        setImporting(false);
+      } else {
+        setImportError(getErrorMessage(err, 'Failed to import project.'));
+        setImporting(false);
+      }
     }
   }
 
@@ -548,6 +556,12 @@ if (!project) {
         </Modal>
 
         <ShareModal projectId={projectId} open={shareOpen} onClose={() => setShareOpen(false)} />
+        <PlanLimitModal
+          open={limitOpen}
+          resource="projects"
+          teamId={project.teamId}
+          onClose={() => setLimitOpen(false)}
+        />
         <SaveTemplateModal
           open={saveTemplateOpen}
           projectId={projectId}

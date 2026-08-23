@@ -315,6 +315,26 @@ export function McpDocsSkeleton() {
   return <DocsSkeletonBase label="MCP docs" />;
 }
 
+export function PricingSkeleton() {
+  return (
+    <div className="page" role="status" aria-label="Loading pricing" aria-busy="true">
+      <HeaderBlock />
+      <div aria-hidden="true" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+        {[0, 1].map((i) => (
+          <div key={i}>
+            <Skeleton style={{ width: 90, height: 20 }} />
+            <Skeleton style={{ width: 140, height: 34, marginTop: 12 }} />
+            <Skeleton className="skeleton-row" style={{ marginTop: 14 }} />
+            <Skeleton className="skeleton-row" style={{ marginTop: 8 }} />
+            <Skeleton className="skeleton-row" style={{ marginTop: 8, width: '70%' }} />
+            <Skeleton className="skeleton-row" style={{ marginTop: 8, width: '80%' }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function PublicProjectSkeleton() {
   return (
     <div className="public-root">

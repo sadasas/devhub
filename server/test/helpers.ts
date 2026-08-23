@@ -1,6 +1,7 @@
 import { expect } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../src/app.js';
+import { pool } from '../src/db/pool.js';
 
 export const app = createApp();
 
@@ -69,12 +70,39 @@ export async function createProject(cookie: string, name = 'Test project', teamI
   return res.body.id as string;
 }
 
+export async function setTeamPlan(teamId: string, plan: 'free' | 'pro'): Promise<void> {
+  if (plan === 'pro') {
+    await pool.query(
+      `UPDATE teams SET plan = 'pro',
+         plan_package_id = (SELECT id FROM billing_packages WHERE is_active AND NOT is_free ORDER BY sort_order, created_at LIMIT 1),
+         plan_expires_at = now() + interval '365 days'
+       WHERE id = $1`,
+      [teamId],
+    );
+  } else {
+    await pool.query(
+      `UPDATE teams SET plan = 'free', plan_package_id = NULL, plan_expires_at = NULL WHERE id = $1`,
+      [teamId],
+    );
+  }
+}
+
 export async function inviteUser(
   inviterCookie: string,
   inviteeCookie: string,
   teamId: string,
   role: 'admin' | 'editor' | 'viewer' = 'viewer',
 ): Promise<void> {
+  // Test role/invitation beroperasi di tim multi-member — naikkan ke Pro bila limit free
+  // akan terlampaui. Perilaku limit itu sendiri dicover dedicated di plans.routes.test.ts.
+  await pool.query(
+    `UPDATE teams SET plan = 'pro',
+       plan_package_id = (SELECT id FROM billing_packages WHERE is_active AND NOT is_free ORDER BY sort_order, created_at LIMIT 1),
+       plan_expires_at = now() + interval '365 days'
+     WHERE id = $1 AND plan = 'free'
+       AND (SELECT count(*) FROM team_members WHERE team_id = $1) >= 2`,
+    [teamId],
+  );
   const email = await emailOf(inviteeCookie);
   const invite = await request(app)
     .post(`/api/v1/teams/${teamId}/invitations`)

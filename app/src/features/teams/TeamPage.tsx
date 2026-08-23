@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowLeft, Envelope, Trash, UsersThree } from '@phosphor-icons/react';
-import { useNavigate, useParams } from 'react-router';
+import { ArrowLeft, CreditCard, Envelope, Trash, UsersThree } from '@phosphor-icons/react';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import { TEAM_ROLE } from '../../lib/labels';
@@ -14,6 +14,7 @@ import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { Skeleton } from '../../components/Skeleton';
 import { InviteModal } from './InviteModal';
+import { TeamBillingPanel } from './TeamBillingPanel';
 import { InlineError } from '../../components/InlineError';
 
 const CHANGEABLE_ROLES: TeamRole[] = ['admin', 'editor', 'viewer'];
@@ -24,6 +25,8 @@ export function TeamPage() {
   const { teams, refresh, deleteTeam, renameTeam } = useTeams();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get('tab') === 'billing' ? 'billing' : 'members';
   const team = teams?.find((t) => t.id === teamId);
 
   const [members, setMembers] = useState<TeamMember[] | null>(null);
@@ -167,6 +170,9 @@ export function TeamPage() {
             <div className="project-title-row">
               <h1 className="page-title">{team.name}</h1>
               <Badge tone={TEAM_ROLE[team.role].tone}>{TEAM_ROLE[team.role].label}</Badge>
+              <Badge tone={team.plan === 'pro' ? 'info' : 'neutral'}>
+                {team.plan === 'pro' ? 'Pro' : 'Free'}
+              </Badge>
               <Badge tone="neutral">{team.memberCount} members</Badge>
             </div>
           ) : (
@@ -206,6 +212,33 @@ export function TeamPage() {
       {loadError && <InlineError>{loadError}</InlineError>}
       {actionError && <InlineError>{actionError}</InlineError>}
 
+      <div className="sub-tabs" role="tablist" aria-label="Team sections">
+        <button
+          type="button"
+          role="tab"
+          className={`sub-tab ${tab === 'members' ? 'sub-tab-active' : ''}`}
+          onClick={() => setSearchParams({}, { replace: true })}
+          aria-selected={tab === 'members'}
+        >
+          <UsersThree size={13} aria-hidden="true" />
+          Members
+        </button>
+        <button
+          type="button"
+          role="tab"
+          className={`sub-tab ${tab === 'billing' ? 'sub-tab-active' : ''}`}
+          onClick={() => setSearchParams({ tab: 'billing' }, { replace: true })}
+          aria-selected={tab === 'billing'}
+        >
+          <CreditCard size={13} aria-hidden="true" />
+          Billing
+        </button>
+      </div>
+
+      {tab === 'billing' && <TeamBillingPanel teamId={teamId} isAdmin={isAdmin} />}
+
+      {tab === 'members' && (
+        <>
       <section className="tab-panel" role="tabpanel" aria-labelledby="team-tab-members">
             {members === null ? (
           <>
@@ -271,7 +304,7 @@ export function TeamPage() {
         )}
       </section>
 
-      {isAdmin && pendingInvites !== null && pendingInvites.length > 0 && (
+      {tab === 'members' && isAdmin && pendingInvites !== null && pendingInvites.length > 0 && (
         <section className="tab-panel mt-24">
           <h2 className="panel-title text-muted">Pending invitations</h2>
           {pendingInvites.map((inv) => (
@@ -300,12 +333,14 @@ export function TeamPage() {
         </section>
       )}
 
-      {team && team.role !== 'owner' && (
+      {team && team.role !== 'owner' && tab === 'members' && (
         <div className="page-footer">
           <Button variant="ghost" size="sm" className="text-danger" onClick={() => setLeaveOpen(true)}>
             Leave team
           </Button>
         </div>
+      )}
+      </>
       )}
 
       <InviteModal

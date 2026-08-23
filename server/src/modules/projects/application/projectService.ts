@@ -13,6 +13,7 @@ import {
   getTeamWithRole,
 } from '../../authorization/application/authz.js';
 import { recordActivity } from '../../activity/application/activity.js';
+import { assertProjectQuota } from '../../plans/application/quotaService.js';
 import {
   deleteProject as repoDeleteProject,
   findImportTeam,
@@ -101,6 +102,7 @@ export async function createProject(userId: string, input: CreateProjectInput): 
   const team = await getTeamWithRole(userId, input.teamId);
   if (!team) throw new ApiError(404, 'NOT_FOUND', 'Team not found');
   assertWrite(team.role);
+  await assertProjectQuota(input.teamId);
   const id = await insertProject(
     input.teamId,
     input.name,
@@ -288,6 +290,7 @@ export async function importProject(
   const team = await getTeamWithRole(userId, targetTeamId);
   if (!team) throw new ApiError(404, 'NOT_FOUND', 'Team not found');
   assertWrite(team.role);
+  await assertProjectQuota(targetTeamId);
   const name = `Imported ${new Date().toISOString().slice(0, 10)}`;
   const id = await insertImportedProject(targetTeamId, name, 'Imported from export document', JSON.stringify(state));
   return { projectId: id, restored: false };

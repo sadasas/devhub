@@ -466,4 +466,19 @@ Restrukturisasi `server/src/` dari layered-by-technology (`api/`, `lib/`, `schem
 
 ---
 
+## 26. Paket Dinamis dari DB (M34 — ADR-045)
+
+M34 v0.24.0 — paket langganan dikelola dari database oleh admin (bukan konstanta kode): tiap paket punya limit member/proyek sendiri (NULL = unlimited) dan baris durasi+harga bebas; Free ikut sebagai baris `is_free`; paket nonaktif bersifat grandfathered. Lihat [ADR-045](../02-architecture/adr.md#adr-045).
+
+| Fokus | Isi |
+|---|---|
+| Schema | Migration 021: `billing_packages` (+`billing_package_prices`, partial-unique satu Free), `teams.plan_package_id`, snapshot paket pada `team_payments` |
+| Resolver | Limit efektif = paket terpasang selama belum kedaluwarsa, fallback baris Free; `CASE` anti-COALESCE agar unlimited tidak tertimpa |
+| API | Checkout v2 `{packageId, priceId}`; publik `GET /billing/packages`; admin CRUD `/admin/packages` (prices full-replacement soft-deactivate; DELETE 409 bila direferensikan) |
+| Client | /pricing, PlanLimitModal (pilih paket → durasi → bayar), kartu Upgrade TeamPage — semuanya dinamis; monthly/yearly hardcoded dihapus |
+
+**Verifikasi:** server 277/277 · app suite hijau · lint OK · build server OK (`tsc -b app` ditunda — diblokir WIP sesi lain di keys/profile).
+
+---
+
 *End of Roadmap.*

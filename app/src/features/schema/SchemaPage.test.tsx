@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SchemaPage } from './SchemaPage';
@@ -84,5 +84,16 @@ describe('SchemaPage', () => {
   it('renders no unread dots without unreadIds', () => {
     renderPage();
     expect(document.querySelectorAll('.unread-dot').length).toBe(0);
+  });
+
+  it('keeps the versions panel visible in both sub-views', async () => {
+    renderPage();
+    expect(document.querySelector('.schema-layout')).not.toBeNull();
+    const side = document.querySelector('.schema-side');
+    expect(side?.textContent).toContain('Schema versions');
+
+    fireEvent.click(screen.getByRole('tab', { name: /ERD/ }));
+    expect(await screen.findByText(/Scroll to zoom/)).toBeDefined();
+    expect(document.querySelector('.schema-side')?.textContent).toContain('Schema versions');
   });
 });

@@ -24,6 +24,7 @@ vi.mock('../../state/teams-context', () => ({
         id: 't1',
         name: 'Team A',
         role: 'owner',
+        plan: 'free',
         memberCount: 2,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
@@ -65,7 +66,9 @@ describe('TeamPage', () => {
     expect(await screen.findByText('Team A')).toBeTruthy();
     expect(screen.getByText('ana@test.dev')).toBeTruthy();
     expect(screen.queryByRole('tab', { name: /Chat/ })).toBeNull();
-    expect(screen.queryByRole('tab', { name: /Members/ })).toBeNull();
+    expect(screen.getByRole('tab', { name: /Members/ })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: /Billing/ })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: /Billing/ }).getAttribute('aria-selected')).toBe('false');
     expect(screen.queryByTestId('chat-panel')).toBeNull();
   });
 

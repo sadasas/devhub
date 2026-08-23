@@ -32,6 +32,7 @@ import {
   transferOwnership,
   updateMemberRole,
 } from '../infrastructure/teamRepository.js';
+import { assertMemberQuota } from '../../plans/application/quotaService.js';
 
 const INVITE_ROLES: ReadonlySet<TeamRole> = new Set(['admin', 'editor', 'viewer']);
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -57,6 +58,7 @@ function teamJson(row: {
   id: string;
   name: string;
   role: string;
+  plan?: string;
   member_count: number | string;
   created_at: Date;
   updated_at: Date;
@@ -65,6 +67,7 @@ function teamJson(row: {
     id: row.id,
     name: row.name,
     role: row.role,
+    plan: row.plan ?? 'free',
     memberCount: Number(row.member_count),
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
@@ -83,6 +86,7 @@ export async function createTeam(userId: string, body: unknown) {
       id: result.id,
       name: result.name,
       role: 'owner',
+      plan: 'free',
       memberCount: 1,
       createdAt: result.createdAt.toISOString(),
       updatedAt: result.updatedAt.toISOString(),
@@ -112,6 +116,7 @@ export async function getTeam(userId: string, teamId: string) {
       id: row.id,
       name: row.name,
       role: row.role,
+      plan: row.plan,
       memberCount,
       createdAt: row.created_at.toISOString(),
       updatedAt: row.updated_at.toISOString(),
@@ -221,6 +226,7 @@ export async function inviteMember(userId: string, teamId: string, body: unknown
   if (await findPendingInvite(row.id, email)) {
     throw new ApiError(400, 'VALIDATION_ERROR', 'An invitation for this email is already pending');
   }
+  await assertMemberQuota(row.id);
   const inv = await insertInvitation(row.id, email, role, INVITATION_TTL_MS, userId).catch(
     (err: unknown) => {
       // Partial unique (team_id, email) WHERE status = 'pending' (migrasi 014) — DB-9/API-6
@@ -253,6 +259,7 @@ export async function acceptTeamInvitation(userId: string, teamId: string, invit
   if (!INVITE_ROLES.has(role as TeamRole)) {
     throw new ApiError(500, 'INTERNAL', 'Invitation role is invalid');
   }
+  await assertMemberQuota(team_id);
   await acceptInvitation(invitationId, team_id, userId, role);
   return { ok: true, teamId: team_id, teamName };
 }

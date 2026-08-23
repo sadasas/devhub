@@ -7,6 +7,7 @@ import { logger } from '../../../shared/logger.js';
 import { stateSchema } from '../../projects/domain/state.js';
 import { parseOrThrow } from '../../../shared/db.js';
 import { assertAdmin, assertWrite, getProjectWithRole, getTeamWithRole, isUuid } from '../../authorization/application/authz.js';
+import { assertProjectQuota } from '../../plans/application/quotaService.js';
 
 const saveTemplateSchema = z.object({
   projectId: z.string().uuid('Project is required'),
@@ -144,6 +145,7 @@ templatesRouter.post('/:templateId/instantiate', async (req, res) => {
   const team = await getTeamWithRole(userId, template.team_id);
   if (!team) throw new ApiError(404, 'NOT_FOUND', 'Template not found');
   assertWrite(team.role);
+  await assertProjectQuota(template.team_id);
   const parsed = stateSchema.safeParse(template.state);
   if (!parsed.success) {
     throw new ApiError(500, 'INTERNAL', 'Stored template state is invalid');

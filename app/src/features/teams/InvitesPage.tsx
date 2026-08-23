@@ -8,12 +8,16 @@ import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/Skeleton';
 import { InlineError } from '../../components/InlineError';
+import { PlanLimitModal } from '../../components/PlanLimitModal';
+import { isPlanLimitError } from '../../lib/errors';
 
 export function InvitesPage() {
   const { invitations, loading, error, acceptInvitation, declineInvitation, refresh } = useTeams();
   const navigate = useNavigate();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [limitOpen, setLimitOpen] = useState(false);
+  const [limitTeamId, setLimitTeamId] = useState('');
 
   async function onAccept(invitationId: string, teamId: string) {
     setBusyId(invitationId);
@@ -21,7 +25,12 @@ export function InvitesPage() {
     try {
       await acceptInvitation(teamId, invitationId);
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Failed to accept invitation');
+      if (isPlanLimitError(err)) {
+        setLimitTeamId(teamId);
+        setLimitOpen(true);
+      } else {
+        setActionError(err instanceof Error ? err.message : 'Failed to accept invitation');
+      }
     } finally {
       setBusyId(null);
     }
@@ -107,6 +116,13 @@ export function InvitesPage() {
           </Button>
         </div>
       )}
+
+      <PlanLimitModal
+        open={limitOpen}
+        resource="members"
+        teamId={limitTeamId}
+        onClose={() => setLimitOpen(false)}
+      />
     </div>
   );
 }

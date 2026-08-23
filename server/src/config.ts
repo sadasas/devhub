@@ -33,6 +33,17 @@ const envSchema = z.object({
         .map((s) => s.trim())
         .filter(Boolean),
     ),
+  PAKASIR_ENABLED: z
+    .string()
+    .default('false')
+    .transform((v) => v === 'true'),
+  PAKASIR_SANDBOX: z
+    .string()
+    .default('true')
+    .transform((v) => v === 'true'),
+  PAKASIR_SLUG: z.string().default(''),
+  PAKASIR_API_KEY: z.string().default(''),
+  APP_PUBLIC_URL: z.string().default(''),
 });
 
 export type Config = z.infer<typeof envSchema>;

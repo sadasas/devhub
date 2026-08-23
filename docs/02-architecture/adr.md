@@ -61,6 +61,8 @@
 | [ADR-041](#adr-041) | Server modular monolith: struktur DDD per bounded context (`modules/<domain>`) | Accepted | 2026-08-21 |
 | [ADR-042](#adr-042) | FE hosting pindah Vercel → Cloudflare Workers static assets (Workers Builds) | Accepted | 2026-08-21 |
 | [ADR-043](#adr-043) | Business model: freemium 2-tier — Free 2 member/3 proyek · Pro $15/bln flat | Accepted | 2026-08-22 |
+| [ADR-044](#adr-044) | Billing Pakasir: premium per-workspace unlimited-all, URL-redirect QRIS/VA, renewal manual | Accepted | 2026-08-22 |
+| [ADR-045](#adr-045) | Paket dinamis dari DB: limit per paket, durasi+harga dari DB, Free ikut dikelola admin | Accepted | 2026-08-22 |
 
 ---
 
@@ -544,3 +546,36 @@
   - Metering aksi MCP/agent sebagai add-on premium **ditunda** ke fase berikutnya (butuh traction + infrastruktur metering dulu).
 - **Consequences:** Positive — model bisa dijelaskan satu kalimat; free tier membatasi biaya hosting tanpa menyakitkan (pola limit-count ala Linear, bukan limit seat); harga flat menghindari price compression per-seat di kategori paling kompetitif. Negative — belum ada expansion revenue sampai tier team/agent-metering hadir; enforcement limit member/proyek harus diimplementasikan server-side sebelum pricing aktif; angka $15 adalah hipotesis yang perlu divalidasi dengan pelanggan awal.
 - **Alternatives:** Per-seat murni $8–10/user (ditolak: red ocean, terasa tidak wajar bagi user solo — value tidak naik sebanding seat); flat-rate murni tanpa free tier (ditolak: friksi adopsi tinggi untuk produk baru); hybrid agent-metering sejak awal (ditolak: kompleksitas metering prematur, belum ada data pemakaian); open core MIT + hosted berbayar (ditolak: mensyaratkan self-hostable, membalik ADR-021).
+
+---
+
+### ADR-044
+**Billing Pakasir: premium per-workspace unlimited-all, URL-redirect QRIS/VA, renewal manual**
+
+- **Status:** Accepted (2026-08-22) - M33 v0.23.0
+- **Context:** ADR-043 menetapkan freemium 2-tier tapi menunda mekanisme pembayaran. Riset model platform sejenis menghasilkan tiga keluarga: seat/team-capacity (Codecks 5 user·3 proyek gratis, Plane 12 seat, Shortcut 10 user), personal-capacity per-akun (Todoist Pro: proyek 5→300 tapi orang/proyek konstan 5, "cannot share Pro"), dan free-personal-forever ala Notion (individu tak pernah bayar; paywall dipicu member ke-2; Personal Pro dibunuh 2022). Owner memilih **premium melekat di workspace** dengan unlimited semuanya — kembali menegaskan semantik `teams.plan` M32 tanpa rework. Provider: **Pakasir** (payment link IDR — QRIS/VA via payment gateway berizin BI, aktivasi instan, settlement H+1) dipilih atas Stripe/LemonSqueezy karena pasar awal Indonesia dan tanpa kebutuhan entitas penagihan global.
+- **Decision:**
+  - **Free = maks 2 member · 3 proyek per workspace (konstanta produk); Pro = unlimited keduanya**, melekat di workspace yang di-upgrade (`teams.plan`).
+  - Migration 020: `teams.plan_expires_at` + tabel `team_payments` (order_id UNIQUE, period, amount, status). `plan_expires_at NULL` = grant operator permanen; pembayaran = expiry eksplisit. Plan efektif: `pro` hanya bila `expires IS NULL OR > now()`.
+  - **Checkout**: admin-only `POST /billing/checkout {teamId, period}` → baris pending + URL `app.pakasir.com/pay/{slug}/{amount}?order_id=…&redirect={APP_PUBLIC_URL}/billing/{teamId}`; harga Rp 250.000/bln (30 hari) · Rp 2.500.000/thn (365 hari).
+  - **Webhook publik** `/billing/webhook` (tanpa auth — Pakasir tidak bertanda tangan): verifikasi wajib server-to-server via `GET /transactiondetail` (status completed + amount + order_id cocok) → `markPaymentCompleted` + `extendTeamPro` = `GREATEST(COALESCE(expires, now()), now()) + N hari` (stacking). Idempoten per order_id; mismatch/tak dikenal → 200 silent.
+  - **UI**: tab Billing di TeamPage (plan card + usage meter 3-tone warn ≥80% / danger 100% + upgrade admin-only + riwayat), PlanLimitModal → tombol "Upgrade Pro" checkout langsung di 5 titik limit, landing `/billing/:teamId` polling 5 detik.
+  - Env: `PAKASIR_ENABLED` (default off) · `PAKASIR_SANDBOX` · `PAKASIR_SLUG` · `PAKASIR_API_KEY` · `APP_PUBLIC_URL`.
+- **Consequences:** Positive — pembayaran native IDR (QRIS/VA) untuk pasar awal; tanpa kewajiban compliance auto-renewal; aktivasi instan tanpa menunggu persetujuan gateway. Negative — renewal manual (risiko churn saat kedaluwarsa; mitigasi alert strip ≤7 hari); webhook butuh domain API publik + APP_PUBLIC_URL benar; kapasitas kolaborasi >2 orang belum termonetisasi (plan Tim terpisah = kandidat masa depan bila ada demand).
+- **Alternatives:** Stripe/LemonSqueezy/Paddle (USD/global/MoR — ditunda hingga pasar internasional); premium per-akun ala Todoist (ditolak owner setelah eksplorasi); trigger kolaborasi ala Notion (solo gratis unlimited — ditolak); embed QRIS/VA sendiri via transactioncreate (defer — UX mulus tapi kerja render/polling lebih besar); auto-renewal berbasis stored mandate (tidak didukung Pakasir).
+
+---
+
+### ADR-045
+**Paket dinamis dari DB: limit per paket, durasi+harga dari DB, Free ikut dikelola admin**
+
+- **Status:** Accepted (2026-08-22) - M34 v0.24.0
+- **Context:** ADR-044 meng-hardcode satu paket Pro dengan dua periode tetap (monthly/yearly) di konstanta kode. Owner meminta paket dikelola dari database oleh admin: daftar paket dinamis, tiap paket punya limit member/proyek sendiri, lama langganan dipilih SETELAH memilih paket dengan opsi durasi+harga dari DB, plan Free juga ikut dikelola admin, dan paket yang dinonaktifkan bersifat grandfathered terhadap workspace aktif.
+- **Decision:**
+  - Migration 021: tabel `billing_packages` (`is_free` partial-unique maks satu; `max_members`/`max_projects` NULL = unlimited; sort_order, is_active) + `billing_package_prices` (baris duration_days+price_idr per paket) + `teams.plan_package_id`.
+  - **Resolusi limit efektif**: LEFT JOIN paket terpasang selama belum kedaluwarsa (tanpa syarat is_active → grandfathered), fallback LATERAL ke baris Free; memakai `CASE` bukan COALESCE agar NULL-unlimited tidak tertimpa limit Free.
+  - Checkout v2: `{teamId, packageId, priceId}` — amount & durasi dibaca dari DB; payment menyimpan snapshot `package_id/package_name/duration_days`; webhook memanggil `activateTeamPackage` (stacking GREATEST).
+  - Endpoint: publik `GET /billing/packages` (aktif saja); admin CRUD `/admin/packages` — PATCH prices = full replacement dengan soft-deactivate baris lama; DELETE ditolak 409 bila masih direferensikan teams/payments.
+  - Client: /pricing, PlanLimitModal (alur pilih paket → pilih durasi → bayar), dan kartu Upgrade TeamPage semuanya merender dari endpoint DB; monthly/yearly hardcoded dihapus.
+- **Consequences:** Positive - admin mengatur harga/limit/tier tanpa deploy; Free yang bisa diedit memungkinkan eksperimen limit; grandfathered mencegah churn paksa. Negative - resolver kuota kini join dua tabel per permintaan limit; akurasi transaksi lama bergantung kolom snapshot; admin UI wajib menandai price nonaktif; verifikasi `tsc -b app` sempat terblokir WIP sesi lain (keys/profile).
+- **Alternatives:** Paket sebagai dokumen JSONB tunggal (ditolak: query limit efektif jadi rumit); hardcode tier kedua di kode (ditolak: bertentangan dengan manage-from-DB); durasi dihitung proporsional otomatis (ditolak: admin ingin kontrol harga per durasi).

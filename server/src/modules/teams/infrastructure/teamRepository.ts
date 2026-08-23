@@ -5,6 +5,7 @@ export interface TeamListRow {
   id: string;
   name: string;
   role: string;
+  plan: 'free' | 'pro';
   member_count: number | string;
   created_at: Date;
   updated_at: Date;
@@ -12,7 +13,7 @@ export interface TeamListRow {
 
 export async function listTeams(userId: string): Promise<TeamListRow[]> {
   const result = await pool.query(
-    `SELECT t.id, t.name, t.created_at, t.updated_at, tm.role,
+    `SELECT t.id, t.name, t.created_at, t.updated_at, tm.role, t.plan,
             (SELECT count(*)::int FROM team_members m WHERE m.team_id = t.id) AS member_count
      FROM teams t
      JOIN team_members tm ON tm.team_id = t.id

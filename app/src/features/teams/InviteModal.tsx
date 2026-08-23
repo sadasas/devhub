@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import {} from '../../lib/api';
-import { getErrorMessage } from '../../lib/errors';
+import { getErrorMessage, isPlanLimitError } from '../../lib/errors';
 import { TEAM_ROLE } from '../../lib/labels';
 import type { TeamRole } from '../../lib/types';
 import { useTeams } from '../../state/teams-context';
@@ -9,6 +8,7 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { InlineError } from '../../components/InlineError';
+import { PlanLimitModal, type PlanLimitResource } from '../../components/PlanLimitModal';
 
 interface InviteModalProps {
   teamId: string;
@@ -25,6 +25,8 @@ export function InviteModal({ teamId, open, onClose, onInvited }: InviteModalPro
   const [role, setRole] = useState<Exclude<TeamRole, 'owner'>>('editor');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [limitOpen, setLimitOpen] = useState(false);
+  const [limitResource, setLimitResource] = useState<PlanLimitResource>('members');
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -37,28 +39,35 @@ export function InviteModal({ teamId, open, onClose, onInvited }: InviteModalPro
       onClose();
       onInvited();
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to send invitation.'));
-      setSubmitting(false);
+      if (isPlanLimitError(err)) {
+        setLimitResource(err.details && (err.details as { resource?: string }).resource === 'projects' ? 'projects' : 'members');
+        setLimitOpen(true);
+        onClose();
+      } else {
+        setError(getErrorMessage(err, 'Failed to send invitation.'));
+        setSubmitting(false);
+      }
     }
   }
 
   return (
-    <Modal
-      open={open}
-      title="Invite member"
-      onClose={onClose}
-      width="sm"
-      footer={
-        <>
-          <Button variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" form="invite-form" loading={submitting} disabled={!email.trim()}>
-            Send invite
-          </Button>
-        </>
-      }
-    >
+    <>
+      <Modal
+        open={open}
+        title="Invite member"
+        onClose={onClose}
+        width="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" form="invite-form" loading={submitting} disabled={!email.trim()}>
+              Send invite
+            </Button>
+          </>
+        }
+      >
       <form id="invite-form" className="form-stack" onSubmit={onSubmit} noValidate>
         <p className="modal-copy">
           Invite a registered DevHub user by email. They must accept the invitation before they
@@ -92,6 +101,13 @@ export function InviteModal({ teamId, open, onClose, onInvited }: InviteModalPro
         </div>
         {error && <InlineError>{error}</InlineError>}
       </form>
-    </Modal>
+      </Modal>
+      <PlanLimitModal
+        open={limitOpen && !open}
+        resource={limitResource}
+        teamId={teamId}
+        onClose={() => setLimitOpen(false)}
+      />
+    </>
   );
 }

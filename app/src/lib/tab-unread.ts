@@ -15,6 +15,7 @@ export function deletedDismissKey(projectId: string): string {
   return `devhub:deleted-dismiss:${projectId}`;
 }
 
+/** Sisa helper lama (localStorage) — hanya dipakai untuk seeding sekali ke server. */
 export function readUnreadMap(key: string): UnreadMap {
   try {
     const raw = localStorage.getItem(key);
@@ -27,14 +28,6 @@ export function readUnreadMap(key: string): UnreadMap {
   }
 }
 
-export function writeUnreadMap(key: string, map: UnreadMap): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(map));
-  } catch {
-    /* storage is best-effort */
-  }
-}
-
 export function readDismissedUntil(key: string): string | null {
   try {
     return localStorage.getItem(key);
@@ -43,10 +36,10 @@ export function readDismissedUntil(key: string): string | null {
   }
 }
 
-export function writeDismissedUntil(key: string, iso: string): void {
+export function clearLegacyUnread(key: string): void {
   try {
-    localStorage.setItem(key, iso);
+    localStorage.removeItem(key);
   } catch {
-    /* storage is best-effort */
+    /* best-effort */
   }
 }

@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 import {} from '../../lib/api';
-import { getErrorMessage } from '../../lib/errors';
+import { getErrorMessage, isPlanLimitError } from '../../lib/errors';
+import type { PlanLimitResource } from '../../components/PlanLimitModal';
+import { PlanLimitModal } from '../../components/PlanLimitModal';
 import { useProjects } from '../../state/projects-context';
 import { useTeams } from '../../state/teams-context';
 import { Button } from '../../components/Button';
@@ -26,6 +28,8 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
   const [teamId, setTeamId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [limitOpen, setLimitOpen] = useState(false);
+  const [limitResource, setLimitResource] = useState<PlanLimitResource>('projects');
 
   useEffect(() => {
     if (open && teams && teams.length > 0) {
@@ -48,7 +52,12 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
       onClose();
       navigate(`/project/${project.id}`);
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to create project.'));
+      if (isPlanLimitError(err)) {
+        setLimitResource(err.details && (err.details as { resource?: string }).resource === 'members' ? 'members' : 'projects');
+        setLimitOpen(true);
+      } else {
+        setError(getErrorMessage(err, 'Failed to create project.'));
+      }
       setSubmitting(false);
     }
   }
@@ -107,6 +116,15 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
         </div>
         {error && <InlineError>{error}</InlineError>}
       </form>
+      <PlanLimitModal
+        open={limitOpen}
+        resource={limitResource}
+        teamId={teamId}
+        onClose={() => {
+          setLimitOpen(false);
+          onClose();
+        }}
+      />
     </Modal>
   );
 }
