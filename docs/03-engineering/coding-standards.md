@@ -147,6 +147,31 @@ enum TaskStatus { Todo, InProgress, Review, Done }
 
 ---
 
+## 9b. i18n Standards (ADR-046, M36)
+
+- Library: `react-i18next` v17; instance global di `app/src/i18n/index.ts` (`.use(initReactI18next)`, `react.useSuspense:false`). Jangan buat instance baru.
+- Bahasa: **EN default + ID**; resolusi awal: `localStorage('devhub.lang')` → browser `id*` → `en`. Persistensi hanya localStorage; `<html lang>` wajib ikut berubah (sudah ditangani `useAppLocale`).
+- Namespace per area fitur — milik eksklusif satu folder:
+  | Namespace | Folder |
+  |---|---|
+  | `common` | `src/components/*` (aksi umum, save/sort/select/presence/activity/error boundary) |
+  | `shell` | `src/features/layout`, CommandPalette |
+  | `account` | auth, dashboard, profile, keys, teams |
+  | `tracker` | board, issues, tests |
+  | `project` | stack, schema, decisions, releases, overview, project |
+  | `extras` | whiteboard, api, templates, admin, pricing, billing, public, docs |
+- Key convention: `<folder>.<elemen>[.<sub>]` (`board.column.todo`, `issues.modal.deleteConfirmTitle`). Maks 3 level.
+- **Nilai EN harus identik byte-per-byte dengan copy semula** (kapital, `…`, `—`, tanda baca) — test men-assert teks EN persis.
+- Interpolasi `{{var}}`; dilarang concat string terjemahan. Plural: kunci `_one`/`_other` + param `count`.
+- String dinamis dari server/user TIDAK diterjemahkan. Pesan error API tetap EN; hanya fallback statis client yang dilokalkan.
+- Hook tidak boleh dipanggil di default parameter — pola: prop optional → `prop ?? t('key')` di body.
+- Konstanta label di luar komponen: simpan sebagai i18n-key string, resolve saat render via `t(s.label)` (pola `TASK_SORT_SPECS` di BoardPage).
+- Komponen class: pakai `import { i18n } from '../i18n'` + `i18n.t(...)`.
+- String baru = wajib masuk **kedua** locale (`en/` dan `id/`) dalam commit yang sama; fallback EN menutup kunci ID yang hilang, tapi paritas adalah standar.
+- Test default bahasa `en` (diset di `src/test/setup.ts`) — jangan mengubah locale global di dalam test tanpa mengembalikan ke `en`.
+
+---
+
 ## 10. Server Code Standards
 
 - Express routers are thin: validate (zod) → call service → respond. Business logic in service functions.

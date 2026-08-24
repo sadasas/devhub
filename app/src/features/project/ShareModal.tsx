@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Bug, ChalkboardSimple, Check, Columns, Gauge, LinkSimple, Rocket, Stack, Warning } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import {} from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { Project, PublicTab } from '../../lib/types';
@@ -13,13 +14,13 @@ import { Modal } from '../../components/Modal';
 
 const ALL_TABS: PublicTab[] = ['board', 'issues', 'milestones', 'stack', 'about', 'whiteboard'];
 
-const TAB_META: { id: PublicTab; label: string; icon: ReactNode; description: string }[] = [
-  { id: 'board', label: 'Board', icon: <Columns size={16} aria-hidden="true" />, description: 'Kanban board with tasks' },
-  { id: 'issues', label: 'Issues', icon: <Bug size={16} aria-hidden="true" />, description: 'Bug and issue tracker' },
-  { id: 'milestones', label: 'Milestones', icon: <Rocket size={16} aria-hidden="true" />, description: 'Releases and version history' },
-  { id: 'stack', label: 'Stack', icon: <Stack size={16} aria-hidden="true" />, description: 'Tech stack ledger' },
-  { id: 'about', label: 'Overview', icon: <Gauge size={16} aria-hidden="true" />, description: 'PRD, counters and project summary' },
-  { id: 'whiteboard', label: 'Whiteboard', icon: <ChalkboardSimple size={16} aria-hidden="true" />, description: 'Whiteboard boards' },
+const TAB_META: { id: PublicTab; icon: ReactNode }[] = [
+  { id: 'board', icon: <Columns size={16} aria-hidden="true" /> },
+  { id: 'issues', icon: <Bug size={16} aria-hidden="true" /> },
+  { id: 'milestones', icon: <Rocket size={16} aria-hidden="true" /> },
+  { id: 'stack', icon: <Stack size={16} aria-hidden="true" /> },
+  { id: 'about', icon: <Gauge size={16} aria-hidden="true" /> },
+  { id: 'whiteboard', icon: <ChalkboardSimple size={16} aria-hidden="true" /> },
 ];
 
 interface ShareModalProps {
@@ -29,6 +30,7 @@ interface ShareModalProps {
 }
 
 export function ShareModal({ projectId, open, onClose }: ShareModalProps) {
+  const { t } = useTranslation('project');
   const { projects, update } = useProjects();
   usePresenceStatus('Sharing project', open);
   const project: Project | undefined = projects?.find((p) => p.id === projectId);
@@ -59,7 +61,7 @@ export function ShareModal({ projectId, open, onClose }: ShareModalProps) {
       if (patch.visibility !== undefined) setStartVis(patch.visibility);
       if (patch.visibility === undefined) setVis(updated.visibility);
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to save sharing settings.'));
+      setError(getErrorMessage(err, t('errors.saveShareFailed')));
     } finally {
       setSaving(false);
     }
@@ -81,17 +83,17 @@ export function ShareModal({ projectId, open, onClose }: ShareModalProps) {
   return (
     <Modal
       open={open}
-      title="Share project"
+      title={t('share.title')}
       onClose={onClose}
       width="sm"
       footer={
         <Button variant="ghost" onClick={onClose}>
-          Close
+          {t('share.close')}
         </Button>
       }
     >
       <div className="share-body">
-        <div className="segmented" role="group" aria-label="Who can see this project">
+        <div className="segmented" role="group" aria-label={t('share.groupAria')}>
           <button
             type="button"
             className={`segment${vis === 'private' ? ' segment-active' : ''}`}
@@ -99,7 +101,7 @@ export function ShareModal({ projectId, open, onClose }: ShareModalProps) {
             disabled={saving}
             onClick={() => onSelectVisibility('private')}
           >
-            Private
+            {t('share.private')}
           </button>
           <button
             type="button"
@@ -108,43 +110,43 @@ export function ShareModal({ projectId, open, onClose }: ShareModalProps) {
             disabled={saving}
             onClick={() => onSelectVisibility('public')}
           >
-            Public
+            {t('share.public')}
           </button>
         </div>
         <p className="share-vis-copy">
           {vis === 'private'
-            ? 'Hanya member team yang bisa melihat project ini.'
-            : 'Siapa pun dengan link ini bisa melihat tab yang kamu centang di bawah.'}
+            ? t('share.visCopyPrivate')
+            : t('share.visCopyPublic')}
         </p>
         {showWarn && (
           <p className="share-warn" role="status">
             <Warning size={13} aria-hidden="true" />
-            Link lama langsung nonaktif.
+            {t('share.warn')}
           </p>
         )}
 
         {vis === 'public' && (
           <>
             <fieldset className="share-tabs">
-              <legend className="field-label">Tab yang dibagikan</legend>
-              {TAB_META.map((t) => {
-                const isLastChecked = tabs.length === 1 && tabs.includes(t.id);
+              <legend className="field-label">{t('share.legend')}</legend>
+              {TAB_META.map((tab) => {
+                const isLastChecked = tabs.length === 1 && tabs.includes(tab.id);
                 return (
                   <label
-                    key={t.id}
+                    key={tab.id}
                     className={`share-tab-row${saving ? ' share-tab-row-disabled' : ''}`}
                   >
                     <input
                       type="checkbox"
-                      checked={tabs.includes(t.id)}
+                      checked={tabs.includes(tab.id)}
                       disabled={saving || isLastChecked}
-                      title={isLastChecked ? 'Setidaknya satu tab harus tetap publik' : undefined}
-                      onChange={() => onToggleTab(t.id)}
+                      title={isLastChecked ? t('share.lastCheckedTitle') : undefined}
+                      onChange={() => onToggleTab(tab.id)}
                     />
-                    <span className="share-tab-icon">{t.icon}</span>
+                    <span className="share-tab-icon">{tab.icon}</span>
                     <span className="share-tab-text">
-                      <span className="share-tab-label">{t.label}</span>
-                      <span className="share-tab-desc">{t.description}</span>
+                      <span className="share-tab-label">{t(`share.tab.${tab.id}.label`)}</span>
+                      <span className="share-tab-desc">{t(`share.tab.${tab.id}.description`)}</span>
                     </span>
                   </label>
                 );
@@ -152,12 +154,12 @@ export function ShareModal({ projectId, open, onClose }: ShareModalProps) {
             </fieldset>
 
             <div className="field share-link-field">
-              <span className="field-label">Link publik</span>
+              <span className="field-label">{t('share.linkLabel')}</span>
               <div className="share-link-row">
                 <input
                   className="input share-link-input font-mono"
                   readOnly
-                  aria-label="Link publik"
+                  aria-label={t('share.linkLabel')}
                   value={publicUrl}
                   onFocus={(e) => e.currentTarget.select()}
                 />
@@ -174,7 +176,7 @@ export function ShareModal({ projectId, open, onClose }: ShareModalProps) {
                   }
                   onClick={() => void copy(publicUrl)}
                 >
-                  {copied ? 'Copied' : 'Copy'}
+                  {copied ? t('actions.copied') : t('actions.copy')}
                 </Button>
               </div>
             </div>

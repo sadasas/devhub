@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   ArrowRight,
   CalendarBlank,
@@ -27,6 +28,13 @@ import { useProjects } from '../../state/projects-context';
 import { useTeams } from '../../state/teams-context';
 
 type ProfileTab = 'profile' | 'security' | 'account';
+
+const ROLE_LABEL_KEYS: Record<TeamRole, string> = {
+  owner: 'profile.role.owner',
+  admin: 'profile.role.admin',
+  editor: 'profile.role.editor',
+  viewer: 'profile.role.viewer',
+};
 
 function StatItem({
   icon,
@@ -57,6 +65,7 @@ function StatItem({
 }
 
 export function ProfilePage() {
+  const { t } = useTranslation('account');
   const { user } = useAuth();
   const { teams } = useTeams();
   const { projects } = useProjects();
@@ -101,21 +110,21 @@ export function ProfilePage() {
         'viewer',
       )
     : null;
-  const roleLabel = topRole ? topRole[0]!.toUpperCase() + topRole.slice(1) : null;
+  const roleLabel = topRole ? t(ROLE_LABEL_KEYS[topRole]) : null;
   const avatarStyle = { '--avatar-fg': avatarColor(user.id) } as React.CSSProperties;
 
   return (
     <div className="page">
       <header className="page-header">
         <div>
-          <h1 className="page-title">Profile</h1>
-          <p className="page-subtitle">Your identity on DevHub teams.</p>
+          <h1 className="page-title">{t('profile.title')}</h1>
+          <p className="page-subtitle">{t('profile.subtitle')}</p>
         </div>
       </header>
 
       <div className="profile-layout">
         <aside className="profile-side">
-          <section className="profile-card" aria-label="Profile summary">
+          <section className="profile-card" aria-label={t('profile.summaryAria')}>
             <div
               className="profile-avatar"
               aria-hidden="true"
@@ -133,13 +142,13 @@ export function ProfilePage() {
                 className="profile-bio-empty"
                 onClick={() => setEditOpen(true)}
               >
-                Add a bio — tell your team what you build.
+                {t('profile.addBio')}
               </button>
             )}
             <div className="profile-chips">
               <span className="profile-chip">
                 <CalendarBlank size={12} weight="duotone" aria-hidden="true" />
-                Joined {formatDate(user.createdAt)}
+                {t('profile.joined', { date: formatDate(user.createdAt) })}
               </span>
               {roleLabel && (
                 <span className="profile-chip">
@@ -154,13 +163,13 @@ export function ProfilePage() {
               leftIcon={<PencilSimple size={14} weight="bold" aria-hidden="true" />}
               onClick={() => setEditOpen(true)}
             >
-              Edit profile
+              {t('profile.edit')}
             </Button>
           </section>
         </aside>
 
         <main className="profile-main">
-          <div className="sub-tabs" role="tablist" aria-label="Profile sections">
+          <div className="sub-tabs" role="tablist" aria-label={t('profile.tabsAria')}>
         <button
           type="button"
           role="tab"
@@ -169,7 +178,7 @@ export function ProfilePage() {
           aria-selected={tab === 'profile'}
         >
           <UserCircle size={13} aria-hidden="true" />
-          Profile
+          {t('profile.tab.profile')}
         </button>
         <button
           type="button"
@@ -179,7 +188,7 @@ export function ProfilePage() {
           aria-selected={tab === 'security'}
         >
           <LockKey size={13} aria-hidden="true" />
-          Security
+          {t('profile.tab.security')}
         </button>
         <button
           type="button"
@@ -189,32 +198,32 @@ export function ProfilePage() {
           aria-selected={tab === 'account'}
         >
           <IdentificationBadge size={13} aria-hidden="true" />
-          Account
+          {t('profile.tab.account')}
         </button>
       </div>
 
       {tab === 'profile' && (
-        <section className="profile-tab-panel" aria-label="Profile statistics">
+        <section className="profile-tab-panel" aria-label={t('profile.statsAria')}>
           <ProfileStats />
 
           <div className="profile-stats">
             <StatItem
               icon={<UsersThree size={16} weight="duotone" aria-hidden="true" />}
-              label="Teams"
+              label={t('profile.stat.teams')}
               value={teams?.length ?? 0}
               loading={teams === null}
               error={false}
             />
             <StatItem
               icon={<FolderSimple size={16} weight="duotone" aria-hidden="true" />}
-              label="Projects"
+              label={t('profile.stat.projects')}
               value={projects?.length ?? 0}
               loading={projects === null}
               error={false}
             />
             <StatItem
               icon={<Key size={16} weight="duotone" aria-hidden="true" />}
-              label="Active API keys"
+              label={t('profile.stat.activeKeys')}
               value={activeKeys ?? 0}
               loading={activeKeys === null && !keysError}
               error={keysError}
@@ -222,23 +231,23 @@ export function ProfilePage() {
           </div>
 
           <div className="profile-collections">
-            <section className="profile-panel" aria-label="Your teams">
+            <section className="profile-panel" aria-label={t('profile.yourTeams')}>
               <h3 className="profile-panel-title">
                 <UsersThree size={13} weight="duotone" aria-hidden="true" />
-                Your teams
+                {t('profile.yourTeams')}
               </h3>
               {teams === null ? (
                 <Skeleton className="skeleton-row-sm" style={{ width: 180, height: 18 }} />
               ) : teams.length === 0 ? (
-                <p className="profile-panel-empty">No teams yet.</p>
+                <p className="profile-panel-empty">{t('profile.noTeams')}</p>
               ) : (
                 <ul className="profile-collection-list">
-                  {teams.slice(0, 5).map((t) => (
-                    <li key={t.id}>
-                      <Link to={`/team/${t.id}`} className="profile-collection-link">
-                        <span className="profile-collection-name">{t.name}</span>
+                  {teams.slice(0, 5).map((team) => (
+                    <li key={team.id}>
+                      <Link to={`/team/${team.id}`} className="profile-collection-link">
+                        <span className="profile-collection-name">{team.name}</span>
                         <span className="profile-collection-meta">
-                          {t.role} · {t.memberCount} member{t.memberCount === 1 ? '' : 's'}
+                          {team.role} · {t('profile.members', { count: team.memberCount })}
                         </span>
                         <ArrowRight size={12} aria-hidden="true" />
                       </Link>
@@ -247,22 +256,22 @@ export function ProfilePage() {
                 </ul>
               )}
             </section>
-            <section className="profile-panel" aria-label="Your projects">
+            <section className="profile-panel" aria-label={t('profile.yourProjects')}>
               <h3 className="profile-panel-title">
                 <FolderSimple size={13} weight="duotone" aria-hidden="true" />
-                Your projects
+                {t('profile.yourProjects')}
               </h3>
               {projects === null ? (
                 <Skeleton className="skeleton-row-sm" style={{ width: 180, height: 18 }} />
               ) : projects.length === 0 ? (
-                <p className="profile-panel-empty">No projects yet.</p>
+                <p className="profile-panel-empty">{t('profile.noProjects')}</p>
               ) : (
                 <ul className="profile-collection-list">
-                  {projects.slice(0, 5).map((p) => (
-                    <li key={p.id}>
-                      <Link to={`/project/${p.id}`} className="profile-collection-link">
-                        <span className="profile-collection-name">{p.name}</span>
-                        <span className="profile-collection-meta">{p.teamName}</span>
+                  {projects.slice(0, 5).map((project) => (
+                    <li key={project.id}>
+                      <Link to={`/project/${project.id}`} className="profile-collection-link">
+                        <span className="profile-collection-name">{project.name}</span>
+                        <span className="profile-collection-meta">{project.teamName}</span>
                         <ArrowRight size={12} aria-hidden="true" />
                       </Link>
                     </li>
@@ -272,13 +281,13 @@ export function ProfilePage() {
             </section>
           </div>
 
-          <nav className="settings-links" aria-label="Related pages">
+          <nav className="settings-links" aria-label={t('profile.relatedAria')}>
             <Link to="/keys">
-              API keys
+              {t('profile.links.apiKeys')}
               <ArrowRight size={12} aria-hidden="true" />
             </Link>
             <Link to="/docs/mcp">
-              MCP guide
+              {t('profile.links.mcpGuide')}
               <ArrowRight size={12} aria-hidden="true" />
             </Link>
           </nav>
@@ -286,17 +295,17 @@ export function ProfilePage() {
       )}
 
       {tab === 'security' && (
-        <section className="profile-tab-panel" aria-label="Security">
+        <section className="profile-tab-panel" aria-label={t('profile.securityPanelAria')}>
           <div className="profile-panel">
             <div className="settings-action">
               <div className="settings-action-main">
-                <span className="settings-action-title">Password</span>
+                <span className="settings-action-title">{t('profile.security.password')}</span>
                 <span className="settings-action-desc">
-                  Use at least 8 characters, different from your current one.
+                  {t('profile.security.passwordDesc')}
                 </span>
               </div>
               <Button variant="secondary" onClick={() => setChangeOpen(true)}>
-                Change password
+                {t('profile.security.changePassword')}
               </Button>
             </div>
           </div>
@@ -304,19 +313,19 @@ export function ProfilePage() {
       )}
 
       {tab === 'account' && (
-        <section className="profile-tab-panel" aria-label="Account details">
+        <section className="profile-tab-panel" aria-label={t('profile.accountPanelAria')}>
           <div className="profile-panel">
             <dl className="settings-rows">
               <div className="settings-row">
-                <dt>Email</dt>
+                <dt>{t('profile.account.email')}</dt>
                 <dd>{user.email}</dd>
               </div>
               <div className="settings-row">
-                <dt>Member since</dt>
+                <dt>{t('profile.account.memberSince')}</dt>
                 <dd>{formatDate(user.createdAt)}</dd>
               </div>
               <div className="settings-row">
-                <dt>Account ID</dt>
+                <dt>{t('profile.account.accountId')}</dt>
                 <dd className="settings-mono" title={user.id}>
                   {user.id}
                 </dd>

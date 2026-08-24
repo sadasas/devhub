@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { newId, nowIso } from '../../lib/utils';
@@ -15,8 +16,9 @@ interface EndpointModalProps {
 }
 
 export function EndpointModal({ onClose, onCreated, collections }: EndpointModalProps) {
+  const { t } = useTranslation('extras');
   const { dispatch } = useProject();
-  usePresenceStatus('Creating API endpoint');
+  usePresenceStatus(t('api.endpointModal.presence'));
   const [name, setName] = useState('');
   const [method, setMethod] = useState<ApiMethod>('GET');
   const [path, setPath] = useState('/');
@@ -49,32 +51,32 @@ export function EndpointModal({ onClose, onCreated, collections }: EndpointModal
   return (
     <Modal
       open
-      title="New endpoint"
+      title={t('api.endpointModal.title')}
       onClose={onClose}
       width="md"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t('api.endpointModal.cancel')}
           </Button>
           <Button variant="primary" onClick={submit} disabled={!name.trim() || !path.trim()}>
-            Create endpoint
+            {t('api.endpointModal.create')}
           </Button>
         </>
       }
     >
       <div className="form-stack">
         <Input
-          label="Name"
+          label={t('api.workbench.name')}
           autoFocus
-          placeholder="e.g. List users"
+          placeholder={t('api.endpointModal.namePlaceholder')}
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
         <div className="field-row">
           <div className="field">
             <label className="field-label" htmlFor="endpoint-method">
-              Method
+              {t('api.endpointModal.method')}
             </label>
             <select
               id="endpoint-method"
@@ -92,7 +94,7 @@ export function EndpointModal({ onClose, onCreated, collections }: EndpointModal
           </div>
           <div className="field field--grow">
             <label className="field-label" htmlFor="endpoint-path">
-              Path
+              {t('api.endpointModal.path')}
             </label>
             <input
               id="endpoint-path"
@@ -106,10 +108,10 @@ export function EndpointModal({ onClose, onCreated, collections }: EndpointModal
         <div className="field">
           <SearchableSelect
             id="endpoint-collection"
-            label="Collection"
+            label={t('api.endpointModal.collection')}
             value={collectionId || null}
             options={collections.map((c) => ({ value: c.id, label: c.name }))}
-            emptyLabel="None (ungrouped)"
+            emptyLabel={t('api.endpointModal.noneUngrouped')}
             onChange={(v) => setCollectionId(v ?? '')}
           />
         </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle, Eye, EyeSlash } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import { Button } from '../../components/Button';
@@ -19,11 +20,12 @@ function PasswordToggle({
   show: boolean;
   onToggle: () => void;
 }) {
+  const { t } = useTranslation('account');
   return (
     <button
       type="button"
       className="password-toggle"
-      aria-label={show ? 'Hide password' : 'Show password'}
+      aria-label={show ? t('profile.passwordToggle.hide') : t('profile.passwordToggle.show')}
       onClick={onToggle}
     >
       {show ? (
@@ -36,6 +38,7 @@ function PasswordToggle({
 }
 
 export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps) {
+  const { t } = useTranslation('account');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -63,7 +66,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
     e.preventDefault();
     setChangeError(null);
     if (newPassword !== confirmPassword) {
-      setChangeError('New password and confirmation do not match.');
+      setChangeError(t('profile.changeModal.mismatch'));
       return;
     }
     setChanging(true);
@@ -71,7 +74,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
       await api.changePassword(currentPassword, newPassword);
       setChangeSuccess(true);
     } catch (err) {
-      setChangeError(getErrorMessage(err, 'Failed to change password.'));
+      setChangeError(getErrorMessage(err, t('profile.changeModal.failed')));
     } finally {
       setChanging(false);
     }
@@ -80,16 +83,16 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
   return (
     <Modal
       open={open}
-      title="Change password"
+      title={t('profile.changeModal.title')}
       onClose={onClose}
       width="sm"
       footer={
         changeSuccess ? (
-          <Button onClick={onClose}>Done</Button>
+          <Button onClick={onClose}>{t('profile.changeModal.done')}</Button>
         ) : (
           <>
             <Button variant="ghost" onClick={onClose} disabled={changing}>
-              Cancel
+              {t('common:action.cancel')}
             </Button>
             <Button
               type="submit"
@@ -97,7 +100,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
               loading={changing}
               disabled={!canSubmit}
             >
-              Update password
+              {t('profile.changeModal.update')}
             </Button>
           </>
         )
@@ -106,7 +109,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
       {changeSuccess ? (
         <div className="change-success" role="status">
           <CheckCircle size={22} weight="duotone" aria-hidden="true" />
-          <p>Password updated. Use it on your next login.</p>
+          <p>{t('profile.changeModal.success')}</p>
         </div>
       ) : (
         <form
@@ -115,7 +118,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
           onSubmit={(e) => void onSubmit(e)}
         >
           <Input
-            label="Current password"
+            label={t('profile.changeModal.current')}
             type="password"
             autoComplete="current-password"
             value={currentPassword}
@@ -123,18 +126,18 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
             required
           />
           <Input
-            label="New password"
+            label={t('profile.changeModal.new')}
             type={showNew ? 'text' : 'password'}
             autoComplete="new-password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            helper="At least 8 characters and different from the current password."
+            helper={t('profile.changeModal.newHelper')}
             required
             className="input-with-slot"
             rightSlot={<PasswordToggle show={showNew} onToggle={() => setShowNew((v) => !v)} />}
           />
           <Input
-            label="Confirm new password"
+            label={t('profile.changeModal.confirm')}
             type={showConfirm ? 'text' : 'password'}
             autoComplete="new-password"
             value={confirmPassword}

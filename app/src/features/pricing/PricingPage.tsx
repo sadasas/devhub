@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, CaretDown, Check, Lock, Lightning, Star } from '@phosphor-icons/react';
 import { useNavigate, useSearchParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { BillingPackage, PackagePrice } from '../../lib/types';
@@ -15,54 +16,39 @@ function formatIdr(amount: number): string {
   return `Rp ${amount.toLocaleString('id-ID')}`;
 }
 
-function formatDuration(days: number): string {
+type TFunc = (key: string, opts?: Record<string, unknown>) => string;
+
+function formatDuration(t: TFunc, days: number): string {
   const months = Math.round(days / 30);
-  return months === 1 ? '1 bulan' : `${months} bulan`;
+  return t('pricing.durationMonths', { count: months });
 }
 
 function savingsPercent(original: number, discounted: number): number {
   return Math.round(((original - discounted) / original) * 100);
 }
 
-function computeBenefits(pkg: BillingPackage): string[] {
+function computeBenefits(t: TFunc, pkg: BillingPackage): string[] {
   const benefits: string[] = [];
   if (pkg.maxMembers === null) {
-    benefits.push('Unlimited members');
+    benefits.push(t('pricing.benefits.unlimitedMembers'));
   } else {
-    benefits.push(`${pkg.maxMembers} members`);
+    benefits.push(t('pricing.benefits.members', { n: pkg.maxMembers }));
   }
   if (pkg.maxProjects === null) {
-    benefits.push('Unlimited projects');
+    benefits.push(t('pricing.benefits.unlimitedProjects'));
   } else {
-    benefits.push(`${pkg.maxProjects} projects`);
+    benefits.push(t('pricing.benefits.projects', { n: pkg.maxProjects }));
   }
   return benefits;
 }
 
-const STATIC_BENEFITS = ['Semua fitur core', 'Export JSON', 'Priority support'];
+const STATIC_BENEFIT_KEYS = [
+  'pricing.benefits.coreFeatures',
+  'pricing.benefits.exportJson',
+  'pricing.benefits.prioritySupport',
+] as const;
 
-const FAQ_ITEMS = [
-  {
-    q: 'Bagaimana cara upgrade?',
-    a: 'Pilih workspace yang ingin di-upgrade, lalu pilih paket dan durasi pembayaran. Setelah bayar, plan akan aktif otomatis setelah pembayaran dikonfirmasi.',
-  },
-  {
-    q: 'Apakah ada free trial?',
-    a: 'Tidak ada free trial, tapi paket Free tersedia tanpa batas waktu.',
-  },
-  {
-    q: 'Bagaimana cara bayar?',
-    a: 'Pembayaran melalui QRIS atau Virtual Account via Pakasir. Setelah bayar, pembayaran akan dikonfirmasi otomatis.',
-  },
-  {
-    q: 'Bisa upgrade kapan saja?',
-    a: 'Ya, bisa upgrade kapan saja. Sisa hari dari plan sebelumnya akan ditambahkan ke plan baru.',
-  },
-  {
-    q: 'Apa yang terjadi jika plan expired?',
-    a: 'Workspace akan kembali ke plan Free. Data tetap aman, tapi limit akan berlaku kembali.',
-  },
-];
+const FAQ_ITEM_KEYS = ['upgrade', 'trial', 'payment', 'timing', 'expired'] as const;
 
 function DurationCard({
   price,
@@ -75,6 +61,7 @@ function DurationCard({
   pkgId: string;
   onSelect: (pkgId: string, priceId: string) => void;
 }) {
+  const { t } = useTranslation('extras');
   const original = price.originalPriceIdr;
   const hasDisc = typeof original === 'number' && original > price.priceIdr;
   return (
@@ -84,14 +71,14 @@ function DurationCard({
       aria-pressed={isActive}
       onClick={() => onSelect(pkgId, price.id)}
     >
-      <span className="pricing-duration-name">{formatDuration(price.durationDays)}</span>
+      <span className="pricing-duration-name">{formatDuration(t, price.durationDays)}</span>
       {hasDisc && (
         <span className="pricing-duration-original">{formatIdr(original)}</span>
       )}
       <span className="pricing-duration-price">{formatIdr(price.priceIdr)}</span>
       {hasDisc && (
         <span className="pricing-duration-savings">
-          Hemat {savingsPercent(original, price.priceIdr)}%
+          {t('pricing.savings', { percent: savingsPercent(original, price.priceIdr) })}
         </span>
       )}
     </button>
@@ -125,18 +112,19 @@ function PricingCard({
   teams: { id: string; name: string }[] | null;
   actionError: string | null;
 }) {
+  const { t } = useTranslation('extras');
   const selectedPrice = pkg.prices.find((p) => p.id === selectedPriceId) ?? null;
-  const benefits = computeBenefits(pkg);
+  const benefits = computeBenefits(t, pkg);
 
   return (
     <section
       className={`pricing-card${isRecommended ? ' pricing-card-pro' : ''}`}
-      aria-label={`${pkg.name} plan`}
+      aria-label={t('pricing.planAria', { name: pkg.name })}
     >
       {isRecommended && (
         <div className="pricing-pro-header">
           <p className="pricing-recommended">
-            <Star size={11} weight="fill" aria-hidden="true" /> Recommended
+            <Star size={11} weight="fill" aria-hidden="true" /> {t('pricing.recommended')}
           </p>
         </div>
       )}
@@ -147,8 +135,8 @@ function PricingCard({
       {pkg.prices.length > 0 ? (
         <>
           <div>
-            <p className="pricing-duration-label">Pilih periode:</p>
-            <div className="pricing-duration-grid" role="group" aria-label="Pilih durasi">
+            <p className="pricing-duration-label">{t('pricing.choosePeriod')}</p>
+            <div className="pricing-duration-grid" role="group" aria-label={t('pricing.chooseDurationAria')}>
               {pkg.prices.map((price) => (
                 <DurationCard
                   key={price.id}
@@ -163,15 +151,17 @@ function PricingCard({
 
           {selectedPrice && (
             <p className="pricing-total-line">
-              Total: {selectedPrice.originalPriceIdr != null && selectedPrice.originalPriceIdr > selectedPrice.priceIdr ? (
+              {t('pricing.totalLabel')}{' '}
+              {selectedPrice.originalPriceIdr != null && selectedPrice.originalPriceIdr > selectedPrice.priceIdr ? (
                 <>{formatIdr(selectedPrice.originalPriceIdr)} → </>
               ) : null}
-              {formatIdr(selectedPrice.priceIdr)} untuk {formatDuration(selectedPrice.durationDays)}
+              {formatIdr(selectedPrice.priceIdr)}{' '}
+              {t('pricing.totalFor', { duration: formatDuration(t, selectedPrice.durationDays) })}
             </p>
           )}
         </>
       ) : (
-        <p className="pricing-price">Rp 0</p>
+        <p className="pricing-price">{t('pricing.freePrice')}</p>
       )}
 
       <hr className="pricing-divider" />
@@ -183,10 +173,10 @@ function PricingCard({
             {b}
           </li>
         ))}
-        {STATIC_BENEFITS.map((b) => (
-          <li key={b}>
+        {STATIC_BENEFIT_KEYS.map((key) => (
+          <li key={key}>
             <Check size={13} weight="bold" aria-hidden="true" />
-            {b}
+            {t(key)}
           </li>
         ))}
       </ul>
@@ -197,13 +187,13 @@ function PricingCard({
         {pkg.prices.length > 0 && (
           <div className="field">
             <label className="field-label" htmlFor={`pricing-team-${pkg.id}`}>
-              Workspace
+              {t('pricing.workspace')}
             </label>
             <SearchableSelect
               id={`pricing-team-${pkg.id}`}
-              placeholder="Pilih workspace"
+              placeholder={t('pricing.workspacePlaceholder')}
               value={selectedTeamId || null}
-              options={(teams ?? []).map((t) => ({ value: t.id, label: t.name }))}
+              options={(teams ?? []).map((tm) => ({ value: tm.id, label: tm.name }))}
               onChange={(v) => onSelectTeam(v ?? '')}
             />
           </div>
@@ -222,17 +212,17 @@ function PricingCard({
             }}
           >
             {selectedPrice
-              ? `Upgrade ke ${pkg.name} — ${formatIdr(selectedPrice.priceIdr)}`
-              : `Upgrade ke ${pkg.name}`}
+              ? t('pricing.ctaWithPrice', { name: pkg.name, price: formatIdr(selectedPrice.priceIdr) })
+              : t('pricing.cta', { name: pkg.name })}
           </Button>
         ) : (
           <Button variant="ghost" size="sm" disabled>
-            Paket saat ini
+            {t('pricing.currentPlan')}
           </Button>
         )}
 
         {isRecommended && !selectedTeamId && (
-          <p className="page-subtitle">Pilih workspace di atas untuk melanjutkan.</p>
+          <p className="page-subtitle">{t('pricing.pickWorkspace')}</p>
         )}
       </div>
     </section>
@@ -240,6 +230,7 @@ function PricingCard({
 }
 
 export function PricingPage() {
+  const { t } = useTranslation('extras');
   const { user } = useAuth();
   const { teams } = useTeams();
   const navigate = useNavigate();
@@ -286,7 +277,7 @@ export function PricingPage() {
 
   async function handleBuy(pkgId: string, priceId: string) {
     if (!effectiveTeamId) {
-      setActionError({ pkgId, message: 'Pilih workspace yang akan di-upgrade.' });
+      setActionError({ pkgId, message: t('pricing.errors.pickWorkspace') });
       return;
     }
     setActionError(null);
@@ -295,7 +286,7 @@ export function PricingPage() {
       const result = await api.startCheckout(effectiveTeamId, pkgId, priceId);
       window.location.assign(result.url);
     } catch (err) {
-      setActionError({ pkgId, message: getErrorMessage(err, 'Gagal memulai checkout.') });
+      setActionError({ pkgId, message: getErrorMessage(err, t('pricing.errors.checkout')) });
       setBusyKey(null);
     }
   }
@@ -304,8 +295,8 @@ export function PricingPage() {
     api
       .listPackages()
       .then((res) => setPackages(res.packages))
-      .catch((err) => setError(getErrorMessage(err, 'Gagal memuat paket.')));
-  }, []);
+      .catch((err) => setError(getErrorMessage(err, t('pricing.errors.load'))));
+  }, [t]);
 
   const onBack = () => {
     if (queryTeamId) navigate(`/team/${queryTeamId}?tab=usage`);
@@ -318,10 +309,10 @@ export function PricingPage() {
       <header className="page-header">
         <div>
           <button type="button" className="back-btn" onClick={onBack}>
-            <ArrowLeft size={14} aria-hidden="true" /> Kembali
+            <ArrowLeft size={14} aria-hidden="true" /> {t('pricing.back')}
           </button>
-          <h1 className="page-title pricing-title">Mulai gratis, upgrade saat timmu butuh.</h1>
-          <p className="page-subtitle">Semua fitur core tersedia — limit yang berbeda.</p>
+          <h1 className="page-title pricing-title">{t('pricing.title')}</h1>
+          <p className="page-subtitle">{t('pricing.subtitle')}</p>
         </div>
       </header>
 
@@ -382,19 +373,19 @@ export function PricingPage() {
 
       {/* FAQ */}
       <div className="pricing-faq">
-        <p className="pricing-section-label">Pertanyaan Umum</p>
-        {FAQ_ITEMS.map((item, i) => (
-          <div key={i} className="pricing-faq-item">
+        <p className="pricing-section-label">{t('pricing.faqSection')}</p>
+        {FAQ_ITEM_KEYS.map((key, i) => (
+          <div key={key} className="pricing-faq-item">
             <button
               type="button"
               className="pricing-faq-trigger"
               aria-expanded={openFaq === i}
               onClick={() => setOpenFaq(openFaq === i ? null : i)}
             >
-              {item.q}
+              {t(`pricing.faq.${key}.q`)}
               <CaretDown size={14} weight="bold" aria-hidden="true" />
             </button>
-            {openFaq === i && <p className="pricing-faq-answer">{item.a}</p>}
+            {openFaq === i && <p className="pricing-faq-answer">{t(`pricing.faq.${key}.a`)}</p>}
           </div>
         ))}
       </div>
@@ -402,17 +393,17 @@ export function PricingPage() {
       {/* Trust */}
       <div className="pricing-trust">
         <Lock size={13} aria-hidden="true" />
-        <span>Pembayaran aman via QRIS / Virtual Account</span>
+        <span>{t('pricing.trust')}</span>
       </div>
       <p className="page-subtitle" style={{ textAlign: 'center' }}>
-        Powered by Pakasir
+        {t('pricing.poweredBy')}
       </p>
 
       <div className="page-footer">
         {!user && (
           <Button variant="primary" onClick={() => navigate('/')}>
             <Lightning size={14} weight="duotone" aria-hidden="true" />
-            Buat akun gratis
+            {t('pricing.createAccount')}
           </Button>
         )}
       </div>

@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 interface ColorPaletteProps {
   value: string;
   onChange: (color: string) => void;
@@ -15,9 +17,10 @@ export const PALETTE_COLORS = [
   '#06251a',
 ] as const;
 
-export function ColorPalette({ value, onChange, label = 'Color' }: ColorPaletteProps) {
+export function ColorPalette({ value, onChange, label }: ColorPaletteProps) {
+  const { t } = useTranslation('extras');
   return (
-    <div className="fp-colors" role="radiogroup" aria-label={label}>
+    <div className="fp-colors" role="radiogroup" aria-label={label ?? t('whiteboard.palette.color')}>
       {PALETTE_COLORS.map((color) => (
         <button
           key={color}

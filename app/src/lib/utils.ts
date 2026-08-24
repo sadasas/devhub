@@ -1,21 +1,42 @@
+import { i18n, getAppLocale } from '../i18n';
 import type { Task, TestCase } from './types';
 
-const shortDate = new Intl.DateTimeFormat('en-US', {
-  month: 'short',
-  day: 'numeric',
-  year: 'numeric',
-});
+const shortDateCache = new Map<string, Intl.DateTimeFormat>();
 
-const shortDateNoYear = new Intl.DateTimeFormat('en-US', {
-  month: 'short',
-  day: 'numeric',
-});
+function shortDate(): Intl.DateTimeFormat {
+  const locale = getAppLocale();
+  let fmt = shortDateCache.get(locale);
+  if (!fmt) {
+    fmt = new Intl.DateTimeFormat(locale, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+    shortDateCache.set(locale, fmt);
+  }
+  return fmt;
+}
+
+const shortDateNoYearCache = new Map<string, Intl.DateTimeFormat>();
+
+function shortDateNoYear(): Intl.DateTimeFormat {
+  const locale = getAppLocale();
+  let fmt = shortDateNoYearCache.get(locale);
+  if (!fmt) {
+    fmt = new Intl.DateTimeFormat(locale, {
+      month: 'short',
+      day: 'numeric',
+    });
+    shortDateNoYearCache.set(locale, fmt);
+  }
+  return fmt;
+}
 
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return '—';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '—';
-  return shortDate.format(d);
+  return shortDate().format(d);
 }
 
 export function formatRelative(iso: string | null | undefined): string {
@@ -24,13 +45,13 @@ export function formatRelative(iso: string | null | undefined): string {
   if (Number.isNaN(then)) return '—';
   const diffMs = Date.now() - then;
   const min = Math.floor(diffMs / 60_000);
-  if (min < 1) return 'just now';
-  if (min < 60) return `${min}m ago`;
+  if (min < 1) return i18n.t('common:time.justNow');
+  if (min < 60) return i18n.t('common:time.minAgo', { count: min });
   const h = Math.floor(min / 60);
-  if (h < 24) return `${h}h ago`;
+  if (h < 24) return i18n.t('common:time.hourAgo', { count: h });
   const d = Math.floor(h / 24);
-  if (d < 7) return `${d}d ago`;
-  return shortDateNoYear.format(new Date(then));
+  if (d < 7) return i18n.t('common:time.dayAgo', { count: d });
+  return shortDateNoYear().format(new Date(then));
 }
 
 export function newId(): string {

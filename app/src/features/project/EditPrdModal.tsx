@@ -3,14 +3,13 @@ import {} from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import { EMPTY_PRD, PRD_SECTIONS } from '../../lib/prd';
 import { MarkdownBlocks } from '../../lib/markdown';
+import { useTranslation } from 'react-i18next';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import type { Project, ProjectPrd } from '../../lib/types';
 import { useProjects } from '../../state/projects-context';
 import { Button } from '../../components/Button';
 import { InlineError } from '../../components/InlineError';
 import { Modal } from '../../components/Modal';
-
-const MD_TOOLTIP = 'Markdown: "- bullet, 1. numbered, **bold**, _italic_, `code`"';
 
 interface EditPrdModalProps {
   open: boolean;
@@ -41,30 +40,32 @@ function PrdField({
   onToggle,
   onChange,
 }: PrdFieldProps) {
+  const { t } = useTranslation('project');
+  const mdTooltip = t('prd.mdTooltip');
   return (
     <div className="field">
       <div className="field-label-row">
         <label className="field-label" htmlFor={id}>
           {label}
         </label>
-        <div className="md-toggle" role="group" aria-label={`${label} mode`}>
+        <div className="md-toggle" role="group" aria-label={t('prd.modeAria', { label })}>
           <button
             type="button"
-            title={MD_TOOLTIP}
+            title={mdTooltip}
             className={`md-toggle-btn${preview ? '' : ' active'}`}
             aria-pressed={!preview}
             onClick={() => onToggle(false)}
           >
-            Edit
+            {t('prd.edit')}
           </button>
           <button
             type="button"
-            title={MD_TOOLTIP}
+            title={mdTooltip}
             className={`md-toggle-btn${preview ? ' active' : ''}`}
             aria-pressed={preview}
             onClick={() => onToggle(true)}
           >
-            Preview
+            {t('prd.preview')}
           </button>
         </div>
       </div>
@@ -73,7 +74,7 @@ function PrdField({
           {value.trim() ? (
             <MarkdownBlocks text={value} />
           ) : (
-            <span className="md-preview-empty">Nothing to preview.</span>
+            <span className="md-preview-empty">{t('prd.nothingToPreview')}</span>
           )}
         </div>
       ) : (
@@ -92,6 +93,7 @@ function PrdField({
 }
 
 export function EditPrdModal({ open, onClose, project }: EditPrdModalProps) {
+  const { t } = useTranslation('project');
   const { update } = useProjects();
   usePresenceStatus('Editing project brief', open);
   const descriptionId = useId();
@@ -122,7 +124,7 @@ export function EditPrdModal({ open, onClose, project }: EditPrdModalProps) {
       await update(project.id, { description, prd: draft });
       onClose();
     } catch (err) {
-      setSaveError(getErrorMessage(err, 'Failed to save changes.'));
+      setSaveError(getErrorMessage(err, t('errors.prdSaveFailed')));
       setSaving(false);
     }
   }
@@ -130,33 +132,29 @@ export function EditPrdModal({ open, onClose, project }: EditPrdModalProps) {
   return (
     <Modal
       open={open}
-      title="Edit PRD"
+      title={t('prd.editTitle')}
       onClose={onClose}
       width="md"
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={saving}>
-            Cancel
+            {t('prd.cancel')}
           </Button>
           <Button type="submit" form="edit-prd-form" loading={saving} disabled={!dirty}>
-            Save PRD
+            {t('prd.save')}
           </Button>
         </>
       }
     >
       <form id="edit-prd-form" className="form-stack" onSubmit={(e) => void onSave(e)}>
-        <p className="field-helper">
-          Markdown supported in all fields — "- bullet, 1. numbered, **bold**, _italic_, `code`". Use
-          <span> </span>
-          Edit/Preview per field to check the result.
-        </p>
+        <p className="field-helper">{t('prd.helper')}</p>
         <PrdField
           id={descriptionId}
-          label="Description"
+          label={t('prd.titleLabel')}
           value={description}
           preview={previews.description ?? false}
           rows={2}
-          placeholder="A short description of the project."
+          placeholder={t('prd.titlePlaceholder')}
           onToggle={(p) => setPreviews((prev) => ({ ...prev, description: p }))}
           onChange={setDescription}
         />
@@ -164,8 +162,8 @@ export function EditPrdModal({ open, onClose, project }: EditPrdModalProps) {
           <PrdField
             key={s.key}
             id={`prd-${s.key}`}
-            label={s.label}
-            helper={s.helper}
+            label={t(`prd.section.${s.key}.label`)}
+            helper={t(`prd.section.${s.key}.helper`)}
             value={draft[s.key]}
             preview={previews[s.key] ?? false}
             onToggle={(p) => setPreviews((prev) => ({ ...prev, [s.key]: p }))}

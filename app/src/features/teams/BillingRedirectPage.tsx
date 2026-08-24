@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CheckCircle, Warning } from '@phosphor-icons/react';
 import { Link, useParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { BillingStatus } from '../../lib/types';
@@ -11,6 +12,7 @@ import { Skeleton } from '../../components/Skeleton';
 const POLL_MS = 5_000;
 
 export function BillingRedirectPage() {
+  const { t } = useTranslation('account');
   const { teamId = '' } = useParams<{ teamId: string }>();
   const [data, setData] = useState<BillingStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -23,10 +25,10 @@ export function BillingRedirectPage() {
       setError(null);
       return status;
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to load payment status.'));
+      setError(getErrorMessage(err, t('teams.payment.loadError')));
       return null;
     }
-  }, [teamId]);
+  }, [teamId, t]);
 
   useEffect(() => {
     void load();
@@ -57,8 +59,8 @@ export function BillingRedirectPage() {
     <div className="page">
       <header className="page-header">
         <div>
-          <h1 className="page-title">Payment status</h1>
-          <p className="page-subtitle">{data?.team.name ?? 'Checking your payment…'}</p>
+          <h1 className="page-title">{t('teams.payment.title')}</h1>
+          <p className="page-subtitle">{data?.team.name ?? t('teams.payment.checking')}</p>
         </div>
       </header>
 
@@ -75,24 +77,26 @@ export function BillingRedirectPage() {
         <section className="billing-card" role="status">
           <div className="billing-plan-row">
             <CheckCircle size={22} weight="duotone" aria-hidden="true" />
-            <span className="billing-plan-name">Pro is active</span>
+            <span className="billing-plan-name">{t('teams.payment.proActive')}</span>
           </div>
           <p className="billing-meta">
             {data.team.planExpiresAt
-              ? `Unlimited members & projects until ${new Date(data.team.planExpiresAt).toLocaleDateString()}.`
-              : 'Unlimited members & projects.'}
+              ? t('teams.payment.unlimitedUntil', { date: new Date(data.team.planExpiresAt).toLocaleDateString() })
+              : t('teams.payment.unlimited')}
           </p>
           {paid && (
             <p className="billing-meta">
-              Last payment: Rp {paid.amount.toLocaleString('id-ID')} ·{' '}
-              {paid.completedAt ? new Date(paid.completedAt).toLocaleDateString() : ''}
+              {t('teams.payment.lastPayment', {
+                amount: paid.amount.toLocaleString('id-ID'),
+                date: paid.completedAt ? new Date(paid.completedAt).toLocaleDateString() : '',
+              })}
             </p>
           )}
           <Button
             variant="primary"
             onClick={() => (window.location.href = `/team/${teamId}?tab=usage`)}
           >
-            Back to workspace
+            {t('teams.payment.back')}
           </Button>
         </section>
       )}
@@ -101,17 +105,16 @@ export function BillingRedirectPage() {
         <section className="billing-card" role="status" aria-busy="true">
           <div className="billing-plan-row">
             <Warning size={20} weight="duotone" aria-hidden="true" />
-            <span className="billing-plan-name">Waiting for payment confirmation</span>
+            <span className="billing-plan-name">{t('teams.payment.waiting')}</span>
           </div>
           <p className="billing-meta">
-            Complete the payment via QRIS / Virtual Account. This page checks automatically — you
-            can also come back later from the workspace Billing tab.
+            {t('teams.payment.instructions')}
           </p>
           {data.payments.some((p) => p.status === 'pending') && (
-            <p className="billing-meta">Order created {new Date().toLocaleTimeString()}</p>
+            <p className="billing-meta">{t('teams.payment.orderCreated', { time: new Date().toLocaleTimeString() })}</p>
           )}
             <Link className="back-btn" to={`/team/${teamId}?tab=usage`}>
-            Back to workspace
+            {t('teams.payment.back')}
           </Link>
         </section>
       )}

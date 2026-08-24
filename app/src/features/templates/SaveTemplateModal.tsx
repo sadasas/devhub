@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import { Button } from '../../components/Button';
@@ -16,6 +17,7 @@ interface SaveTemplateModalProps {
 }
 
 export function SaveTemplateModal({ open, projectId, projectName, onClose }: SaveTemplateModalProps) {
+  const { t } = useTranslation('extras');
   const [name, setName] = useState(projectName);
   const [description, setDescription] = useState('');
   const [saved, setSaved] = useState(false);
@@ -40,7 +42,7 @@ export function SaveTemplateModal({ open, projectId, projectName, onClose }: Sav
       setSaved(true);
       setSubmitting(false);
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to save template.'));
+      setError(getErrorMessage(err, t('templates.errors.save')));
       setSubmitting(false);
     }
   }
@@ -48,17 +50,17 @@ export function SaveTemplateModal({ open, projectId, projectName, onClose }: Sav
   return (
     <Modal
       open={open}
-      title="Save as template"
+      title={t('templates.saveTitle')}
       onClose={onClose}
       width="sm"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            {saved ? 'Close' : 'Cancel'}
+            {saved ? t('templates.close') : t('templates.cancel')}
           </Button>
           {!saved && (
             <Button type="submit" form="save-template-form" loading={submitting} disabled={!name.trim()}>
-              Save template
+              {t('templates.save')}
             </Button>
           )}
         </>
@@ -66,23 +68,22 @@ export function SaveTemplateModal({ open, projectId, projectName, onClose }: Sav
     >
       {saved ? (
         <p className="field-helper">
-          Template saved. Find it and create new projects from it under “Project templates” in the
-          sidebar.
+          {t('templates.savedHelper')}
         </p>
       ) : (
         <form id="save-template-form" className="form-stack" onSubmit={onSubmit} noValidate>
           <Input
-            label="Template name"
+            label={t('templates.nameLabel')}
             required
             autoFocus
-            placeholder="e.g. Blank sprint board"
+            placeholder={t('templates.namePlaceholder')}
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
           <Textarea
-            label="Description"
+            label={t('api.workbench.description')}
             rows={3}
-            placeholder="What is this template for?"
+            placeholder={t('templates.descPlaceholder')}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />

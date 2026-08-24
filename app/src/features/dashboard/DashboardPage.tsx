@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { FolderOpen, Plus, SquaresFour } from '@phosphor-icons/react';
 import { useNavigate, useSearchParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import type { ProjectStats } from '../../lib/stats';
 import { PROJECT_STATUS } from '../../lib/labels';
@@ -15,6 +16,7 @@ import { NewProjectModal } from './NewProjectModal';
 import { InlineError } from '../../components/InlineError';
 
 export function DashboardPage() {
+  const { t } = useTranslation('account');
   const { projects, loading, error } = useProjects();
   const { teams } = useTeams();
   const navigate = useNavigate();
@@ -60,11 +62,11 @@ export function DashboardPage() {
     <div className="page">
       <header className="page-header">
         <div>
-          <h1 className="page-title">Projects</h1>
-          <p className="page-subtitle">Everything you are building, in one place.</p>
+          <h1 className="page-title">{t('dashboard.title')}</h1>
+          <p className="page-subtitle">{t('dashboard.subtitle')}</p>
         </div>
         <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setNewOpen(true)}>
-          New project
+          {t('dashboard.newProject')}
         </Button>
       </header>
 
@@ -85,15 +87,15 @@ export function DashboardPage() {
         <div className="page-empty">
           <EmptyState
             icon={<SquaresFour size={22} />}
-            title={teams && teams.length === 0 ? 'Create a team first' : 'No projects yet'}
+            title={teams && teams.length === 0 ? t('dashboard.empty.titleNoTeam') : t('dashboard.empty.titleNoProjects')}
             description={
               teams && teams.length === 0
-                ? 'DevHub organizes projects inside teams — create a team from the sidebar, then come back to add your first project.'
-                : 'Create your first project to track tasks, issues, your tech stack and more.'
+                ? t('dashboard.empty.descNoTeam')
+                : t('dashboard.empty.descNoProjects')
             }
             action={
               <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setNewOpen(true)}>
-                New project
+                {t('dashboard.newProject')}
               </Button>
             }
           />
@@ -111,26 +113,26 @@ export function DashboardPage() {
                     <Badge tone={PROJECT_STATUS[p.status].tone}>{PROJECT_STATUS[p.status].label}</Badge>
                   </span>
                 </div>
-                <p className="project-card-desc">{p.description || 'No description.'}</p>
+                <p className="project-card-desc">{p.description || t('dashboard.noDescription')}</p>
                 <div className="project-card-meta">
                   {st ? (
                     <>
                       <span
                         className="tabular"
-                        title={`${st.doneTasks} of ${st.totalTasks} tasks done`}
+                        title={t('dashboard.stats.tasksDoneTitle', { done: st.doneTasks, total: st.totalTasks })}
                       >
-                        {st.doneTasks}/{st.totalTasks} done
+                        {t('dashboard.stats.doneShort', { done: st.doneTasks, total: st.totalTasks })}
                       </span>
-                      <span className="tabular" title={`${st.openIssues} open issues`}>
-                        {st.openIssues} issues
+                      <span className="tabular" title={t('dashboard.stats.openIssuesTitle', { count: st.openIssues })}>
+                        {t('dashboard.stats.openIssues', { count: st.openIssues })}
                       </span>
                       {st.outdatedDeps > 0 ? (
-                        <span className="tabular text-danger" title={`${st.outdatedDeps} outdated dependencies`}>
-                          {st.outdatedDeps} deps outdated
+                        <span className="tabular text-danger" title={t('dashboard.stats.depsOutdatedTitle', { count: st.outdatedDeps })}>
+                          {t('dashboard.stats.depsOutdated', { count: st.outdatedDeps })}
                         </span>
                       ) : (
-                        <span className="tabular" title={`${st.outdatedDeps} outdated dependencies`}>
-                          {st.outdatedDeps} deps outdated
+                        <span className="tabular" title={t('dashboard.stats.depsOutdatedTitle', { count: st.outdatedDeps })}>
+                          {t('dashboard.stats.depsOutdated', { count: st.outdatedDeps })}
                         </span>
                       )}
                       {st.nextMilestone && (
@@ -145,7 +147,7 @@ export function DashboardPage() {
                   ) : null}
                 </div>
                 <div className="project-card-foot">
-                  <span className="project-card-updated">updated {formatRelative(p.updatedAt)}</span>
+                  <span className="project-card-updated">{t('dashboard.card.updated', { time: formatRelative(p.updatedAt) })}</span>
                 </div>
               </button>
             );

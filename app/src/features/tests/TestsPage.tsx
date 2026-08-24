@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CheckSquare, PencilSimple, Plus } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { useProject } from '../../state/project-context';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { useNewParam } from '../../hooks/useNewParam';
@@ -21,18 +22,19 @@ import { InlineError } from '../../components/InlineError';
 const TEST_SORT_SPECS: SortSpec<TestCase>[] = [
   {
     key: 'status',
-    label: 'Status',
+    label: 'tests.sort.status',
     get: (t) => t.status,
     order: ['pending', 'pass', 'fail'],
   },
-  { key: 'name', label: 'Name', get: (t) => t.name },
-  { key: 'createdAt', label: 'Created', get: (t) => t.createdAt },
+  { key: 'name', label: 'tests.sort.name', get: (t) => t.name },
+  { key: 'createdAt', label: 'tests.sort.createdAt', get: (t) => t.createdAt },
 ];
 
 export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { state, loading, error, canEdit, dispatch } = useProject();
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const { t } = useTranslation('tracker');
   useEntityDeepLink('testCases', setEditingId);
   useNewParam(() => setCreating(true), '1', canEdit);
   const { value: sortValue, setSort } = useSortParam();
@@ -70,18 +72,16 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   return (
     <div>
       <div className="data-list-header">
-        <span className="data-list-count">
-          {tests.length} {tests.length === 1 ? 'test case' : 'test cases'}
-        </span>
+        <span className="data-list-count">{t('tests.count', { count: tests.length })}</span>
         <span className="data-list-actions">
           <SortControl
-            options={TEST_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: s.label }))}
+            options={TEST_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: t(s.label) }))}
             value={sortValue}
             onChange={setSort}
           />
           {canEdit && (
             <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
-              New test case
+              {t('tests.newTestCase')}
             </Button>
           )}
         </span>
@@ -90,12 +90,12 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       {tests.length === 0 ? (
         <EmptyState
           icon={<CheckSquare size={22} />}
-          title="No test cases yet"
-          description="Capture manual checks with steps and expected results, linked to a task or issue."
+          title={t('tests.emptyTitle')}
+          description={t('tests.emptyDesc')}
           action={
             canEdit && (
               <Button leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
-                Add a test case
+                {t('tests.addTestCase')}
               </Button>
             )
           }
@@ -118,24 +118,24 @@ return (
                     <span className="row-title-text">{test.name}</span>
                   </div>
                   <div className="data-row-sub">
-                    Steps: {test.steps || '—'}
-                    {test.expected && <span> · Expected: {test.expected}</span>}
+                    {t('tests.rowSteps', { steps: test.steps || '—' })}
+                    {test.expected && <span> · {t('tests.rowExpected', { expected: test.expected })}</span>}
                   </div>
                   <div className="data-row-meta">
-                    {linkedTask && <span>task: {linkedTask.title}</span>}
-                    {linkedIssue && <span>issue: {linkedIssue.title}</span>}
+                    {linkedTask && <span>{t('tests.metaTask', { title: linkedTask.title })}</span>}
+                    {linkedIssue && <span>{t('tests.metaIssue', { title: linkedIssue.title })}</span>}
                     <span>#{shortId(test.id)}</span>
                     {unreadIds?.has(test.id) && (
                       <>
                         <span className="unread-dot" aria-hidden="true" />
-                        <span className="sr-only">Unread</span>
+                        <span className="sr-only">{t('tests.unread')}</span>
                       </>
                     )}
                   </div>
                 </button>
                 <div className="data-row-side">
                   <Badge tone={TEST_CASE_STATUS[test.status].tone}>
-                    {TEST_CASE_STATUS[test.status].label}
+                    {t(`tests.status.${test.status}`)}
                   </Badge>
                   {canEdit && (
                     <PinButton
@@ -155,7 +155,7 @@ return (
                       variant="ghost"
                       size="sm"
                       className="btn-icon"
-                      aria-label="Edit test case"
+                      aria-label={t('tests.editAria')}
                       onClick={() => setEditingId(test.id)}
                     >
                       <PencilSimple size={14} aria-hidden="true" />

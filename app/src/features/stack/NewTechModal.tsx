@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { newId, nowIso } from '../../lib/utils';
 import type { TechEntryCategory, TechStatus } from '../../lib/types';
 import { useProject } from '../../state/project-context';
@@ -15,6 +16,7 @@ interface NewTechModalProps {
 }
 
 export function NewTechModal({ open, onClose }: NewTechModalProps) {
+  const { t } = useTranslation('project');
   const { dispatch } = useProject();
   usePresenceStatus('Creating tech entry', open);
   const [name, setName] = useState('');
@@ -51,39 +53,39 @@ export function NewTechModal({ open, onClose }: NewTechModalProps) {
   return (
     <Modal
       open={open}
-      title="New stack entry"
+      title={t('stack.newTechModal.title')}
       onClose={onClose}
       width="sm"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t('stack.newTechModal.cancel')}
           </Button>
           <Button type="submit" form="new-tech-form" disabled={!name.trim()}>
-            Add entry
+            {t('stack.newTechModal.submit')}
           </Button>
         </>
       }
     >
       <form id="new-tech-form" className="form-stack" onSubmit={onSubmit} noValidate>
         <Input
-          label="Name"
+          label={t('stack.newTechModal.nameLabel')}
           required
           autoFocus
-          placeholder="e.g. React"
+          placeholder={t('stack.newTechModal.namePlaceholder')}
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
         <Input
-          label="Version"
-          placeholder="e.g. 19.2.0"
+          label={t('stack.newTechModal.versionLabel')}
+          placeholder={t('stack.newTechModal.versionPlaceholder')}
           value={version}
           onChange={(e) => setVersion(e.target.value)}
         />
         <div className="field-row">
           <div className="field">
             <label className="field-label" htmlFor="new-tech-category">
-              Category
+              {t('stack.newTechModal.categoryLabel')}
             </label>
             <select
               id="new-tech-category"
@@ -91,15 +93,15 @@ export function NewTechModal({ open, onClose }: NewTechModalProps) {
               value={category}
               onChange={(e) => setCategory(e.target.value as TechEntryCategory)}
             >
-              <option value="frontend">Frontend</option>
-              <option value="backend">Backend</option>
-              <option value="database">Database</option>
-              <option value="tooling">Tooling</option>
+              <option value="frontend">{t('stack.optionCategory.frontend')}</option>
+              <option value="backend">{t('stack.optionCategory.backend')}</option>
+              <option value="database">{t('stack.optionCategory.database')}</option>
+              <option value="tooling">{t('stack.optionCategory.tooling')}</option>
             </select>
           </div>
           <div className="field">
             <label className="field-label" htmlFor="new-tech-status">
-              Status
+              {t('stack.newTechModal.statusLabel')}
             </label>
             <select
               id="new-tech-status"
@@ -107,16 +109,16 @@ export function NewTechModal({ open, onClose }: NewTechModalProps) {
               value={status}
               onChange={(e) => setStatus(e.target.value as TechStatus)}
             >
-              <option value="current">Current</option>
-              <option value="updateAvailable">Update available</option>
-              <option value="majorUpgrade">Major upgrade</option>
+              <option value="current">{t('stack.optionStatus.current')}</option>
+              <option value="updateAvailable">{t('stack.optionStatus.updateAvailable')}</option>
+              <option value="majorUpgrade">{t('stack.optionStatus.majorUpgrade')}</option>
             </select>
           </div>
         </div>
         <Textarea
-          label="Notes"
+          label={t('stack.newTechModal.notesLabel')}
           rows={2}
-          placeholder="Optional"
+          placeholder={t('stack.newTechModal.notesPlaceholder')}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
         />

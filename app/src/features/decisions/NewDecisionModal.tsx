@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { newId, nowIso } from '../../lib/utils';
@@ -13,6 +14,7 @@ interface NewDecisionModalProps {
 }
 
 export function NewDecisionModal({ onClose }: NewDecisionModalProps) {
+  const { t } = useTranslation('project');
   const { dispatch } = useProject();
   usePresenceStatus('Creating decision');
   const [title, setTitle] = useState('');
@@ -51,32 +53,32 @@ export function NewDecisionModal({ onClose }: NewDecisionModalProps) {
   return (
     <Modal
       open
-      title="New decision"
+      title={t('decisions.newModal.title')}
       onClose={onClose}
       width="md"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t('decisions.newModal.cancel')}
           </Button>
           <Button variant="primary" onClick={submit} disabled={!title.trim()}>
-            Add decision
+            {t('decisions.newModal.submit')}
           </Button>
         </>
       }
     >
       <div className="form-stack">
         <Input
-          label="Title"
+          label={t('decisions.newModal.titleLabel')}
           autoFocus
-          placeholder="e.g. Choose PostgreSQL over MongoDB"
+          placeholder={t('decisions.newModal.titlePlaceholder')}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
         <div className="field-row">
           <div className="field">
             <label className="field-label" htmlFor="decision-status">
-              Status
+              {t('decisions.newModal.statusLabel')}
             </label>
             <select
               id="decision-status"
@@ -84,15 +86,15 @@ export function NewDecisionModal({ onClose }: NewDecisionModalProps) {
               value={status}
               onChange={(e) => setStatus(e.target.value as DecisionStatus)}
             >
-              <option value="proposed">Proposed</option>
-              <option value="accepted">Accepted</option>
-              <option value="rejected">Rejected</option>
-              <option value="superseded">Superseded</option>
+              <option value="proposed">{t('decisions.status.proposed')}</option>
+              <option value="accepted">{t('decisions.status.accepted')}</option>
+              <option value="rejected">{t('decisions.status.rejected')}</option>
+              <option value="superseded">{t('decisions.status.superseded')}</option>
             </select>
           </div>
           <div className="field">
             <label className="field-label" htmlFor="decision-date">
-              Date
+              {t('decisions.newModal.dateLabel')}
             </label>
             <input
               id="decision-date"
@@ -104,30 +106,30 @@ export function NewDecisionModal({ onClose }: NewDecisionModalProps) {
           </div>
         </div>
         <Textarea
-          label="Context"
+          label={t('decisions.newModal.contextLabel')}
           rows={3}
-          placeholder="What led to this decision? What problem is being solved?"
+          placeholder={t('decisions.newModal.contextPlaceholder')}
           value={context}
           onChange={(e) => setContext(e.target.value)}
         />
         <Textarea
-          label="Options considered"
+          label={t('decisions.newModal.optionsLabel')}
           rows={3}
-          helper="One option per line"
-          placeholder={'Option A: …\nOption B: …'}
+          helper={t('decisions.newModal.optionsHelper')}
+          placeholder={t('decisions.newModal.optionsPlaceholder')}
           value={options}
           onChange={(e) => setOptions(e.target.value)}
         />
         <Textarea
-          label="Decision"
+          label={t('decisions.newModal.decisionLabel')}
           rows={3}
           value={decision}
           onChange={(e) => setDecision(e.target.value)}
         />
         <Textarea
-          label="Consequences"
+          label={t('decisions.newModal.consequencesLabel')}
           rows={2}
-          placeholder="What changes as a result?"
+          placeholder={t('decisions.newModal.consequencesPlaceholder')}
           value={consequences}
           onChange={(e) => setConsequences(e.target.value)}
         />

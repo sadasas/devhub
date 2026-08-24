@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { newId, nowIso } from '../../lib/utils';
@@ -13,8 +14,9 @@ interface CollectionModalProps {
 }
 
 export function CollectionModal({ onClose, onCreated }: CollectionModalProps) {
+  const { t } = useTranslation('extras');
   const { dispatch, state } = useProject();
-  usePresenceStatus('Creating API collection');
+  usePresenceStatus(t('api.collectionModal.presence'));
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +25,7 @@ export function CollectionModal({ onClose, onCreated }: CollectionModalProps) {
     const trimmed = name.trim();
     if (!trimmed) return;
     if (state?.apiCollections.some((c) => c.name.toLowerCase() === trimmed.toLowerCase())) {
-      setError('A collection with this name already exists.');
+      setError(t('api.collectionModal.duplicate'));
       return;
     }
     const ts = nowIso();
@@ -44,25 +46,25 @@ export function CollectionModal({ onClose, onCreated }: CollectionModalProps) {
   return (
     <Modal
       open
-      title="New API collection"
+      title={t('api.collectionModal.title')}
       onClose={onClose}
       width="sm"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t('api.collectionModal.cancel')}
           </Button>
           <Button variant="primary" onClick={submit} disabled={!name.trim()}>
-            Create collection
+            {t('api.collectionModal.create')}
           </Button>
         </>
       }
     >
       <div className="form-stack">
         <Input
-          label="Name"
+          label={t('api.workbench.name')}
           autoFocus
-          placeholder="e.g. Users API"
+          placeholder={t('api.collectionModal.namePlaceholder')}
           value={name}
           error={error ?? undefined}
           onChange={(e) => {
@@ -71,9 +73,9 @@ export function CollectionModal({ onClose, onCreated }: CollectionModalProps) {
           }}
         />
         <Textarea
-          label="Description"
+          label={t('api.workbench.description')}
           rows={3}
-          placeholder="What does this collection group?"
+          placeholder={t('api.collection.descPlaceholder')}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />

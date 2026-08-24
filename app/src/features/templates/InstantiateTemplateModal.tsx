@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage, isPlanLimitError } from '../../lib/errors';
 import type { ProjectTemplate } from '../../lib/types';
@@ -17,6 +18,7 @@ interface InstantiateTemplateModalProps {
 }
 
 export function InstantiateTemplateModal({ open, template, onClose }: InstantiateTemplateModalProps) {
+  const { t } = useTranslation('extras');
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +47,7 @@ export function InstantiateTemplateModal({ open, template, onClose }: Instantiat
         setLimitResource(err.details && (err.details as { resource?: string }).resource === 'members' ? 'members' : 'projects');
         setLimitOpen(true);
       } else {
-        setError(getErrorMessage(err, 'Failed to create project from template.'));
+        setError(getErrorMessage(err, t('templates.errors.instantiate')));
       }
       setSubmitting(false);
     }
@@ -55,32 +57,31 @@ export function InstantiateTemplateModal({ open, template, onClose }: Instantiat
     <>
       <Modal
         open={open && !limitOpen}
-        title="Use template"
+        title={t('templates.useTitle')}
         onClose={onClose}
         width="sm"
         footer={
           <>
             <Button variant="ghost" onClick={onClose}>
-              Cancel
+              {t('templates.cancel')}
             </Button>
             <Button type="submit" form="instantiate-form" loading={submitting} disabled={!name.trim()}>
-              Create project
+              {t('templates.createProject')}
             </Button>
           </>
         }
       >
         <form id="instantiate-form" className="form-stack" onSubmit={onSubmit} noValidate>
           <Input
-            label="Project name"
+            label={t('templates.projectName')}
             required
             autoFocus
-            placeholder="e.g. New sprint board"
+            placeholder={t('templates.projectNamePlaceholder')}
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
           <p className="field-helper">
-            A new project will be created in {template?.teamName} with the template's tasks, issues,
-            schema and more.
+            {t('templates.instantiateHelper', { team: template?.teamName ?? '' })}
           </p>
           {error && <InlineError>{error}</InlineError>}
         </form>

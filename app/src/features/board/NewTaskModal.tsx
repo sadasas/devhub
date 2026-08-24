@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { newId, nowIso, parseLabels } from '../../lib/utils';
 import { TASK_PRIORITY, TASK_PRIORITY_ORDER } from '../../lib/labels';
 import { startAfterDue } from '../../lib/start-dates';
@@ -23,7 +24,8 @@ interface NewTaskModalProps {
 
 export function NewTaskModal({ open, status, milestoneId, dueDate, onClose }: NewTaskModalProps) {
   const { state, dispatch } = useProject();
-  usePresenceStatus('Creating task', open);
+  const { t } = useTranslation('tracker');
+  usePresenceStatus(t('board.newTaskModal.presenceCreating'), open);
   const [title, setTitle] = useState('');
   const [priority, setPriority] = useState<TaskPriority>('medium');
   const [estimate, setEstimate] = useState('');
@@ -79,32 +81,32 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, onClose }: Ne
   return (
     <Modal
       open={open}
-      title="New task"
+      title={t('board.newTaskModal.title')}
       onClose={onClose}
       width="md"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t('board.newTaskModal.cancel')}
           </Button>
           <Button type="submit" form="new-task-form" disabled={!title.trim()}>
-            Add task
+            {t('board.newTaskModal.submit')}
           </Button>
         </>
       }
     >
       <form id="new-task-form" className="form-stack" onSubmit={onSubmit} noValidate>
         <Input
-          label="Title"
+          label={t('board.newTaskModal.titleLabel')}
           required
           autoFocus
-          placeholder="What needs to be done?"
+          placeholder={t('board.newTaskModal.titlePlaceholder')}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
         <div className="field">
           <label className="field-label" htmlFor="new-task-priority">
-            Priority
+            {t('board.newTaskModal.priorityLabel')}
           </label>
           <select
             id="new-task-priority"
@@ -120,47 +122,47 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, onClose }: Ne
           </select>
         </div>
         <Input
-          label="Estimate (hours)"
+          label={t('board.newTaskModal.estimateLabel')}
           type="number"
           min={0}
-          placeholder="Optional"
+          placeholder={t('board.newTaskModal.optionalPlaceholder')}
           value={estimate}
           onChange={(e) => setEstimate(e.target.value)}
         />
         <Input
-          label="Due date"
+          label={t('board.newTaskModal.dueDateLabel')}
           type="date"
           value={dueDateInput}
           onChange={(e) => setDueDateInput(e.target.value)}
         />
         <Input
-          label="Start date"
+          label={t('board.newTaskModal.startDateLabel')}
           type="date"
           value={startDateInput}
           onChange={(e) => setStartDateInput(e.target.value)}
         />
         {startAfterDue(startDateInput, dueDateInput) && (
-          <InlineError>Start date is after the due date.</InlineError>
+          <InlineError>{t('board.newTaskModal.dateWarn')}</InlineError>
         )}
         <Input
-          label="Labels"
-          placeholder="comma, separated"
+          label={t('board.newTaskModal.labelsLabel')}
+          placeholder={t('board.newTaskModal.labelsPlaceholder')}
           value={labels}
           onChange={(e) => setLabels(e.target.value)}
         />
         {state && state.milestones.length > 0 && (
           <SearchableSelect
             id="new-task-milestone"
-            label="Milestone"
+            label={t('board.newTaskModal.milestoneLabel')}
             value={milestone}
             options={state.milestones.map((m) => ({ value: m.id, label: m.name }))}
             onChange={setMilestone}
           />
         )}
         <Textarea
-          label="Description"
+          label={t('board.newTaskModal.descriptionLabel')}
           rows={3}
-          placeholder="Optional"
+          placeholder={t('board.newTaskModal.optionalPlaceholder')}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />

@@ -1,8 +1,22 @@
-const shortDate = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+import { i18n, getAppLocale } from '../i18n';
+
+const shortDateCache = new Map<string, Intl.DateTimeFormat>();
+
+function shortDate(): Intl.DateTimeFormat {
+  const locale = getAppLocale();
+  let fmt = shortDateCache.get(locale);
+  if (!fmt) {
+    fmt = new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' });
+    shortDateCache.set(locale, fmt);
+  }
+  return fmt;
+}
 
 export function startLabel(startDate: string | null | undefined): string {
   if (!startDate) return '';
-  return `Starts ${shortDate.format(new Date(`${startDate}T00:00:00Z`))}`;
+  return i18n.t('common:time.startsPrefix', {
+    date: shortDate().format(new Date(`${startDate}T00:00:00Z`)),
+  });
 }
 
 export function startAfterDue(

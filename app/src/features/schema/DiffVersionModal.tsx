@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Minus, Plus } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import type { SchemaVersion } from '../../lib/types';
 import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
@@ -13,14 +14,15 @@ interface DiffVersionModalProps {
   onClose: () => void;
 }
 
-const versionLabel = (v: SchemaVersion): string => `${v.version} — ${v.notes || 'No notes.'}`;
-
 export function DiffVersionModal({ open, versions, onClose }: DiffVersionModalProps) {
+  const { t } = useTranslation('project');
   const snapshots = versions.filter((v) => v.snapshot);
   const sorted = useMemo(
     () => [...snapshots].sort((a, b) => b.appliedAt.localeCompare(a.appliedAt)),
     [snapshots],
   );
+  const versionLabel = (v: SchemaVersion): string =>
+    t('schema.diffModal.versionLabel', { version: v.version, notes: v.notes || t('schema.noNotes') });
   const [fromId, setFromId] = useState<string>('');
   const [toId, setToId] = useState<string>('');
   usePresenceStatus('Viewing schema diff', open);
@@ -34,14 +36,14 @@ export function DiffVersionModal({ open, versions, onClose }: DiffVersionModalPr
   const empty = !from || !to || from.id === to.id;
 
   return (
-    <Modal open={open} title="Diff schema versions" onClose={onClose} width="lg" footer={<Button variant="ghost" onClick={onClose}>Close</Button>}>
+    <Modal open={open} title={t('schema.diffModal.title')} onClose={onClose} width="lg" footer={<Button variant="ghost" onClick={onClose}>{t('schema.diffModal.close')}</Button>}>
       <div className="diff-selects">
         <div className="field">
           <SearchableSelect
             id="diff-from"
-            label="From (older)"
+            label={t('schema.diffModal.fromLabel')}
             allowEmpty={false}
-            placeholder="Select version"
+            placeholder={t('schema.diffModal.selectPlaceholder')}
             value={from?.id ?? null}
             options={sorted.map((v) => ({ value: v.id, label: versionLabel(v) }))}
             onChange={(v) => setFromId(v ?? '')}
@@ -50,9 +52,9 @@ export function DiffVersionModal({ open, versions, onClose }: DiffVersionModalPr
         <div className="field">
           <SearchableSelect
             id="diff-to"
-            label="To (newer)"
+            label={t('schema.diffModal.toLabel')}
             allowEmpty={false}
-            placeholder="Select version"
+            placeholder={t('schema.diffModal.selectPlaceholder')}
             value={to?.id ?? null}
             options={sorted.map((v) => ({ value: v.id, label: versionLabel(v) }))}
             onChange={(v) => setToId(v ?? '')}
@@ -61,51 +63,51 @@ export function DiffVersionModal({ open, versions, onClose }: DiffVersionModalPr
       </div>
 
       <div className="modal-copy" role="status">
-        {empty ? 'Pick two different versions to compare.' : `Showing changes from ${from.version} to ${to.version}.`}
+        {empty ? t('schema.diffModal.pickTwo') : t('schema.diffModal.showingChanges', { from: from.version, to: to.version })}
       </div>
 
       {!empty && (
         <div className="diff-list">
           {diff.tablesAdded.length > 0 && (
             <DiffSection
-              title={`Tables added (${diff.tablesAdded.length})`}
+              title={t('schema.diffModal.tablesAdded', { count: diff.tablesAdded.length })}
               tone="added"
-              items={diff.tablesAdded.map((t) => `${t.name} (${t.columns.length} columns)`)}
+              items={diff.tablesAdded.map((tb) => t('schema.diffModal.itemWithColumns', { name: tb.name, count: tb.columns.length }))}
             />
           )}
           {diff.tablesRemoved.length > 0 && (
             <DiffSection
-              title={`Tables removed (${diff.tablesRemoved.length})`}
+              title={t('schema.diffModal.tablesRemoved', { count: diff.tablesRemoved.length })}
               tone="removed"
-              items={diff.tablesRemoved.map((t) => t.name)}
+              items={diff.tablesRemoved.map((tb) => tb.name)}
             />
           )}
           {diff.columnsAdded.length > 0 && (
             <DiffSection
-              title={`Columns added (${diff.columnsAdded.length})`}
+              title={t('schema.diffModal.columnsAdded', { count: diff.columnsAdded.length })}
               tone="added"
               items={diff.columnsAdded.map((c) => `${c.tableName}.${columnLabel(c.column)}`)}
             />
           )}
           {diff.columnsRemoved.length > 0 && (
             <DiffSection
-              title={`Columns removed (${diff.columnsRemoved.length})`}
+              title={t('schema.diffModal.columnsRemoved', { count: diff.columnsRemoved.length })}
               tone="removed"
               items={diff.columnsRemoved.map((c) => `${c.tableName}.${columnLabel(c.column)}`)}
             />
           )}
           {diff.relationsAdded.length > 0 && (
             <DiffSection
-              title={`Relations added (${diff.relationsAdded.length})`}
+              title={t('schema.diffModal.relationsAdded', { count: diff.relationsAdded.length })}
               tone="added"
-              items={diff.relationsAdded.map((r) => `${r.cardinality} relation ${r.id.slice(0, 8)}`)}
+              items={diff.relationsAdded.map((r) => t('schema.diffModal.itemRelation', { cardinality: r.cardinality, id: r.id.slice(0, 8) }))}
             />
           )}
           {diff.relationsRemoved.length > 0 && (
             <DiffSection
-              title={`Relations removed (${diff.relationsRemoved.length})`}
+              title={t('schema.diffModal.relationsRemoved', { count: diff.relationsRemoved.length })}
               tone="removed"
-              items={diff.relationsRemoved.map((r) => `${r.cardinality} relation ${r.id.slice(0, 8)}`)}
+              items={diff.relationsRemoved.map((r) => t('schema.diffModal.itemRelation', { cardinality: r.cardinality, id: r.id.slice(0, 8) }))}
             />
           )}
           {diff.tablesAdded.length === 0 &&
@@ -114,7 +116,7 @@ export function DiffVersionModal({ open, versions, onClose }: DiffVersionModalPr
             diff.columnsRemoved.length === 0 &&
             diff.relationsAdded.length === 0 &&
             diff.relationsRemoved.length === 0 && (
-              <p className="diff-empty">No differences between these versions.</p>
+              <p className="diff-empty">{t('schema.diffModal.noDifferences')}</p>
             )}
         </div>
       )}

@@ -1,3 +1,4 @@
+import { i18n, getAppLocale } from '../i18n';
 import type { Task } from './types';
 
 export type DueBucket =
@@ -55,18 +56,30 @@ export function dueColumnDate(bucket: DueBucket, today = todayIso()): string | n
   return addDays(today, COLUMN_OFFSETS[bucket]);
 }
 
-const shortDate = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+const shortDateCache = new Map<string, Intl.DateTimeFormat>();
+
+function shortDate(): Intl.DateTimeFormat {
+  const locale = getAppLocale();
+  let fmt = shortDateCache.get(locale);
+  if (!fmt) {
+    fmt = new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' });
+    shortDateCache.set(locale, fmt);
+  }
+  return fmt;
+}
 
 export function dueLabel(dueDate: string | null | undefined, today = todayIso()): string {
   if (!dueDate) return '';
   const bucket = dueBucket(dueDate, today);
   if (bucket === 'overdue') {
     const days = dayIndex(today) - dayIndex(dueDate);
-    return days === 1 ? 'Overdue 1d' : `Overdue ${days}d`;
+    return i18n.t('common:due.overdueDays', { count: days });
   }
-  if (bucket === 'today') return 'Due today';
-  if (bucket === 'tomorrow') return 'Due tomorrow';
-  return `Due ${shortDate.format(new Date(`${dueDate}T00:00:00Z`))}`;
+  if (bucket === 'today') return i18n.t('common:due.today');
+  if (bucket === 'tomorrow') return i18n.t('common:due.tomorrow');
+  return i18n.t('common:due.dated', {
+    date: shortDate().format(new Date(`${dueDate}T00:00:00Z`)),
+  });
 }
 
 export function dueTone(bucket: DueBucket): DueTone {
@@ -93,9 +106,9 @@ export function taskDueChip(
 ): DueChip {
   if (task.status === 'done' && task.completedAt && task.dueDate) {
     const doneDay = task.completedAt.slice(0, 10);
-    if (doneDay <= task.dueDate) return { label: 'Done on time', tone: 'success' };
+    if (doneDay <= task.dueDate) return { label: i18n.t('common:due.doneOnTime'), tone: 'success' };
     const days = dayIndex(doneDay) - dayIndex(task.dueDate);
-    return { label: `Done late ${days}d`, tone: 'warn' };
+    return { label: i18n.t('common:due.doneLate', { count: days }), tone: 'warn' };
   }
   return { label: dueLabel(task.dueDate, today), tone: dueTone(dueBucket(task.dueDate, today)) };
 }

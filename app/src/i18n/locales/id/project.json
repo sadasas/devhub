@@ -1,1 +1,605 @@
-{}
+{
+  "tabs": {
+    "navAria": "Bagian project",
+    "unreadBadge": "{{count}} belum dibaca",
+    "board": "Board",
+    "issues": "Issue",
+    "tests": "Test Case",
+    "stack": "Stack",
+    "schema": "Schema",
+    "decisions": "Keputusan",
+    "releases": "Rilis",
+    "api": "API",
+    "overview": "Ringkasan",
+    "whiteboard": "Whiteboard"
+  },
+  "skeleton": {
+    "todo": "Todo",
+    "inProgress": "Dikerjakan",
+    "review": "Review",
+    "done": "Selesai"
+  },
+  "page": {
+    "notFoundTitle": "Project tidak ditemukan",
+    "notFoundDesc": "Project mungkin telah dihapus, atau Anda tidak memiliki akses ke project tersebut.",
+    "backToProjects": "Proyek",
+    "noDescription": "Tidak ada deskripsi.",
+    "createdInfo": "{{description}} · dibuat {{date}}"
+  },
+  "actions": {
+    "copy": "Salin",
+    "copied": "Tersalin",
+    "export": "Ekspor",
+    "import": "Impor",
+    "sharePublic": "Bagikan · Publik",
+    "sharePrivate": "Bagikan · Privat",
+    "saveAsTemplate": "Simpan sebagai template",
+    "delete": "Hapus"
+  },
+  "deleteModal": {
+    "title": "Hapus project",
+    "cancel": "Batal",
+    "confirm": "Hapus",
+    "body": "Ini menghapus “{{name}}” beserta seluruh datanya secara permanen — task, issue, schema, keputusan. Tindakan ini tidak dapat dibatalkan."
+  },
+  "importModal": {
+    "title": "Impor backup project",
+    "cancel": "Batal",
+    "confirm": "Impor",
+    "bodySameProject": "Backup ini milik project saat ini. Mengimpor akan menimpa data saat ini dengan isi backup.",
+    "bodyOtherProject": "Backup ini milik project lain. Mengimpor akan membuat project baru dari data ini.",
+    "meta": "Di-backup {{date}} · {{tasks}} task, {{issues}} issue"
+  },
+  "errors": {
+    "invalidExport": "Bukan dokumen ekspor DevHub yang valid.",
+    "parseJson": "Tidak dapat membaca file terpilih sebagai JSON.",
+    "exportFailed": "Gagal mengekspor project.",
+    "importFailed": "Gagal mengimpor project.",
+    "deleteFailed": "Gagal menghapus project.",
+    "saveShareFailed": "Gagal menyimpan pengaturan berbagi.",
+    "prdSaveFailed": "Gagal menyimpan perubahan."
+  },
+  "banner": {
+    "regionAria": "Item yang dihapus",
+    "count_one": "{{count}} dihapus",
+    "count_other": "{{count}} dihapus",
+    "copy": "Item-item ini telah dihapus. Catatan penghapusan disimpan sementara dan tidak dapat dipulihkan.",
+    "dismiss": "Tutup",
+    "entity": {
+      "tasks": "Task",
+      "issues": "Issue",
+      "testCases": "Test",
+      "techEntries": "Tech",
+      "tables": "Tabel",
+      "relations": "Relasi",
+      "schemaVersions": "Schema",
+      "decisions": "Keputusan",
+      "milestones": "Milestone",
+      "apiCollections": "Koleksi",
+      "apiEndpoints": "Endpoint",
+      "whiteboards": "Papan"
+    }
+  },
+  "share": {
+    "title": "Bagikan project",
+    "close": "Tutup",
+    "groupAria": "Siapa yang dapat melihat project ini",
+    "private": "Privat",
+    "public": "Publik",
+    "visCopyPrivate": "Hanya member team yang bisa melihat project ini.",
+    "visCopyPublic": "Siapa pun dengan link ini bisa melihat tab yang kamu centang di bawah.",
+    "warn": "Link lama langsung nonaktif.",
+    "legend": "Tab yang dibagikan",
+    "lastCheckedTitle": "Setidaknya satu tab harus tetap publik",
+    "linkLabel": "Link publik",
+    "tab": {
+      "board": {
+        "label": "Board",
+        "description": "Papan kanban dengan task"
+      },
+      "issues": {
+        "label": "Issue",
+        "description": "Pelacak bug dan issue"
+      },
+      "milestones": {
+        "label": "Milestone",
+        "description": "Rilis dan riwayat versi"
+      },
+      "stack": {
+        "label": "Stack",
+        "description": "Catatan tech stack"
+      },
+      "about": {
+        "label": "Ringkasan",
+        "description": "PRD, statistik, dan ringkasan proyek"
+      },
+      "whiteboard": {
+        "label": "Whiteboard",
+        "description": "Papan whiteboard"
+      }
+    }
+  },
+  "prd": {
+    "editTitle": "Edit PRD",
+    "cancel": "Batal",
+    "save": "Simpan PRD",
+    "mdTooltip": "Markdown: \"- butir, 1. bernomor, **tebal**, _miring_, `kode`\"",
+    "helper": "Semua kolom mendukung Markdown — \"- butir, 1. bernomor, **tebal**, _miring_, `kode`\". Gunakan Edit/Preview pada tiap kolom untuk memeriksa hasilnya.",
+    "modeAria": "mode {{label}}",
+    "edit": "Edit",
+    "preview": "Preview",
+    "nothingToPreview": "Tidak ada yang bisa dipratinjau.",
+    "titleLabel": "Deskripsi",
+    "titlePlaceholder": "Deskripsi singkat tentang proyek ini.",
+    "section": {
+      "purpose": {
+        "label": "Tujuan",
+        "helper": "Mengapa proyek ini ada — masalah yang diselesaikannya."
+      },
+      "goals": {
+        "label": "Sasaran",
+        "helper": "Seperti apa kesuksesan itu. Satu baris per sasaran."
+      },
+      "features": {
+        "label": "Fitur",
+        "helper": "Apa yang akan dilakukan proyek ini. Satu fitur per baris."
+      },
+      "scope": {
+        "label": "Ruang lingkup",
+        "helper": "Apa saja yang termasuk dalam ruang lingkup proyek ini."
+      },
+      "outOfScope": {
+        "label": "Di luar ruang lingkup",
+        "helper": "Apa yang secara eksplisit di luar ruang lingkup — untuk saat ini atau selamanya."
+      }
+    }
+  },
+  "chat": {
+    "launcherAria": "Buka chat tim",
+    "unread_one": "{{count}} pesan belum dibaca",
+    "unread_other": "{{count}} pesan belum dibaca",
+    "drawerAria": "Chat tim",
+    "drawerTitle": "{{team}} — Chat tim",
+    "closeAria": "Tutup chat"
+  },
+  "stack": {
+    "sort": {
+      "category": "Kategori",
+      "name": "Nama",
+      "createdAt": "Dibuat",
+      "status": "Status",
+      "version": "Versi"
+    },
+    "count_one": "{{count}} entri",
+    "count_other": "{{count}} entri",
+    "viewAria": "Tampilan Stack",
+    "listTab": "Daftar",
+    "graphTab": "Grafik",
+    "newEntry": "Entri baru",
+    "emptyTitle": "Belum ada entri stack",
+    "emptyDesc": "Catat apa yang digunakan proyek ini — versi, kategori, dan kapan upgrade diperlukan.",
+    "addEntry": "Tambah entri stack",
+    "unread": "Belum dibaca",
+    "editEntryAria": "Edit entri",
+    "category": {
+      "frontend": "Frontend",
+      "backend": "Backend",
+      "database": "Database",
+      "tooling": "Tooling"
+    },
+    "statusBadge": {
+      "current": "Terkini",
+      "updateAvailable": "Update tersedia",
+      "majorUpgrade": "Upgrade besar"
+    },
+    "optionStatus": {
+      "current": "Terkini",
+      "updateAvailable": "Update tersedia",
+      "majorUpgrade": "Upgrade besar"
+    },
+    "optionCategory": {
+      "frontend": "Frontend",
+      "backend": "Backend",
+      "database": "Database",
+      "tooling": "Tooling"
+    },
+    "graph": {
+      "ariaLabel_one": "Grafik tech stack — {{count}} entri",
+      "ariaLabel_other": "Grafik tech stack — {{count}} entri",
+      "nodeAria": "Edit {{name}}",
+      "nodeTitle": "{{name}} v{{version}} · {{status}}"
+    },
+    "techModal": {
+      "editTitle": "Edit entri stack",
+      "viewTitle": "Entri stack",
+      "delete": "Hapus",
+      "cancel": "Batal",
+      "done": "Selesai",
+      "edit": "Edit",
+      "nameLabel": "Nama",
+      "versionLabel": "Versi",
+      "versionPlaceholder": "—",
+      "categoryLabel": "Kategori",
+      "statusLabel": "Status",
+      "notesLabel": "Catatan",
+      "updated": "Diperbarui {{time}}",
+      "activity": "Aktivitas",
+      "noNotes": "Tidak ada catatan.",
+      "deleteConfirmTitle": "Hapus entri stack?",
+      "deleteConfirmBody": "Ini menghapus entri stack ini secara permanen. Tindakan ini tidak dapat dibatalkan."
+    },
+    "newTechModal": {
+      "title": "Entri stack baru",
+      "cancel": "Batal",
+      "submit": "Tambah entri",
+      "nameLabel": "Nama",
+      "namePlaceholder": "mis. React",
+      "versionLabel": "Versi",
+      "versionPlaceholder": "mis. 19.2.0",
+      "categoryLabel": "Kategori",
+      "statusLabel": "Status",
+      "notesLabel": "Catatan",
+      "notesPlaceholder": "Opsional"
+    }
+  },
+  "schema": {
+    "page": {
+      "count": "{{tables}} tabel · {{relations}} relasi · {{versions}} versi",
+      "newRelation": "Relasi baru",
+      "newTable": "Tabel baru",
+      "viewAria": "Tampilan Schema",
+      "tablesTab": "Tabel",
+      "erdTab": "ERD",
+      "editTableAria": "Edit tabel {{name}}",
+      "onDelete": "saat hapus: {{value}}",
+      "deleteRelationAria": "Hapus relasi {{label}}"
+    },
+    "sort": {
+      "name": "Nama",
+      "createdAt": "Dibuat",
+      "applied": "Diterapkan"
+    },
+    "columnCount_one": "{{count}} kolom",
+    "columnCount_other": "{{count}} kolom",
+    "indexCount_one": "{{count}} indeks",
+    "indexCount_other": "{{count}} indeks",
+    "unread": "Belum dibaca",
+    "noComment": "Tidak ada komentar.",
+    "noNotes": "Tidak ada catatan.",
+    "appliedAt": "diterapkan {{date}}",
+    "relationsHeading": "Relasi",
+    "versionsHeading": "Versi schema",
+    "diffVersions": "Bandingkan versi",
+    "saveVersion": "Simpan versi",
+    "empty": {
+      "tablesTitle": "Belum ada tabel",
+      "tablesDesc": "Modelkan database Anda — tabel, kolom, kunci — lalu lihat ERD-nya.",
+      "versionsTitle": "Belum ada versi",
+      "versionsDesc": "Buat snapshot schema setiap kali skemanya berubah."
+    },
+    "deleteRelationModal": {
+      "title": "Hapus relasi",
+      "cancel": "Batal",
+      "confirm": "Hapus",
+      "body": "Hapus relasi {{relation}}? Tabel dan kolom tetap utuh."
+    },
+    "erd": {
+      "svgAria": "Diagram relasi entitas dengan {{tables}} tabel dan {{relations}} relasi",
+      "relAria": "Relasi {{from}} ke {{to}}, klik untuk menghapus",
+      "relTitle": "{{label}} · {{cardinality}} · saat hapus: {{onDelete}} — klik untuk menghapus",
+      "tableAria": "Tabel {{name}} dengan {{count}} kolom",
+      "emptyDesc": "Buat tabel pertama Anda untuk mulai menggambar ERD.",
+      "zoomIn": "Perbesar",
+      "zoomOut": "Perkecil",
+      "resetView": "Reset tampilan",
+      "hint": "Tombol panah untuk geser · +/- untuk zoom · seret untuk menggeser"
+    },
+    "table": {
+      "editTitle": "Edit tabel",
+      "viewTitle": "Tabel",
+      "delete": "Hapus",
+      "cancel": "Batal",
+      "done": "Selesai",
+      "edit": "Edit",
+      "nameLabel": "Nama",
+      "commentLabel": "Komentar",
+      "columnsLabel": "Kolom",
+      "captionName": "Nama",
+      "captionType": "Tipe",
+      "captionNull": "Null",
+      "captionPk": "PK",
+      "captionDefault": "Default",
+      "detailCaptionFlags": "Flag",
+      "colAria": "Kolom {{name}}",
+      "typeAria": "Tipe dari {{name}}",
+      "nullableAria": "Nullable untuk kolom {{name}}",
+      "pkAria": "Kunci utama untuk kolom {{name}}",
+      "defaultAria": "Default dari {{name}}",
+      "deleteColAria": "Hapus kolom {{name}}",
+      "fbName": "nama",
+      "fbColumn": "kolom",
+      "fbUnnamed": "tanpa nama",
+      "namePlaceholder": "nama",
+      "typePlaceholder": "uuid",
+      "defaultPlaceholder": "—",
+      "nullableTitle": "Nullable",
+      "primaryKeyTitle": "Kunci utama",
+      "noColumnsYetEdit": "Belum ada kolom — tambahkan yang pertama.",
+      "noColumnsView": "Belum ada kolom.",
+      "addColumn": "Tambah kolom",
+      "indexesLabel": "Indeks",
+      "indexesHelper": "Nama kolom atau ekspresi, dipisah koma.",
+      "indexesPlaceholder": "created_at, lower(email)",
+      "updatedEditInfo": "Diperbarui {{time}} · menghapus kolom akan menghapus relasinya",
+      "unnamedTable": "Tabel tanpa nama",
+      "unnamedColumn": "tanpa nama",
+      "activity": "Aktivitas",
+      "updated": "Diperbarui {{time}}",
+      "deleteConfirmTitle": "Hapus tabel?",
+      "deleteConfirmBody": "Ini menghapus tabel beserta kolom dan relasinya secara permanen. Tindakan ini tidak dapat dibatalkan."
+    },
+    "newTableModal": {
+      "title": "Tabel baru",
+      "cancel": "Batal",
+      "submit": "Buat tabel",
+      "nameLabel": "Nama",
+      "namePlaceholder": "users",
+      "commentLabel": "Komentar",
+      "commentPlaceholder": "Untuk apa tabel ini? — opsional"
+    },
+    "relationModal": {
+      "title": "Relasi baru",
+      "cancel": "Batal",
+      "submit": "Tambah relasi",
+      "fromTableLabel": "Dari tabel",
+      "fromColumnLabel": "Dari kolom",
+      "toTableLabel": "Ke tabel",
+      "toColumnLabel": "Ke kolom",
+      "selectTable": "Pilih tabel",
+      "selectColumn": "Pilih kolom",
+      "differentTablesError": "Tabel asal dan tujuan harus berbeda.",
+      "cardinalityLabel": "Kardinalitas",
+      "onDeleteLabel": "Saat hapus",
+      "optCascade": "Cascade",
+      "optSetNull": "Set null",
+      "optRestrict": "Restrict"
+    },
+    "saveVersionModal": {
+      "title": "Simpan versi schema",
+      "cancel": "Batal",
+      "submit": "Simpan versi",
+      "versionLabel": "Versi",
+      "versionPlaceholder": "1.1.0",
+      "notesLabel": "Catatan",
+      "notesPlaceholder": "Apa yang berubah dalam revisi schema ini? — opsional"
+    },
+    "diffModal": {
+      "title": "Bandingkan versi schema",
+      "close": "Tutup",
+      "fromLabel": "Dari (lebih lama)",
+      "toLabel": "Ke (lebih baru)",
+      "selectPlaceholder": "Pilih versi",
+      "versionLabel": "{{version}} — {{notes}}",
+      "pickTwo": "Pilih dua versi berbeda untuk dibandingkan.",
+      "showingChanges": "Menampilkan perubahan dari {{from}} ke {{to}}.",
+      "tablesAdded": "Tabel ditambahkan ({{count}})",
+      "tablesRemoved": "Tabel dihapus ({{count}})",
+      "columnsAdded": "Kolom ditambahkan ({{count}})",
+      "columnsRemoved": "Kolom dihapus ({{count}})",
+      "relationsAdded": "Relasi ditambahkan ({{count}})",
+      "relationsRemoved": "Relasi dihapus ({{count}})",
+      "itemWithColumns": "{{name}} ({{count}} kolom)",
+      "itemRelation": "{{cardinality}} relasi {{id}}",
+      "noDifferences": "Tidak ada perbedaan antara kedua versi ini."
+    }
+  },
+  "decisions": {
+    "sort": {
+      "date": "Tanggal",
+      "status": "Status",
+      "createdAt": "Dibuat",
+      "title": "Judul"
+    },
+    "count_one": "{{count}} keputusan",
+    "count_other": "{{count}} keputusan",
+    "newDecision": "Keputusan baru",
+    "emptyTitle": "Belum ada keputusan",
+    "emptyDesc": "Catat pilihan arsitektur dan trade-off sebagai ADR agar diri Anda di masa depan ingat alasannya.",
+    "unread": "Belum dibaca",
+    "editAria": "Edit keputusan",
+    "status": {
+      "proposed": "Diusulkan",
+      "accepted": "Diterima",
+      "rejected": "Ditolak",
+      "superseded": "Digantikan"
+    },
+    "modal": {
+      "editTitle": "Edit catatan keputusan",
+      "viewTitle": "Catatan keputusan",
+      "delete": "Hapus",
+      "cancel": "Batal",
+      "done": "Selesai",
+      "edit": "Edit",
+      "titleLabel": "Judul",
+      "statusLabel": "Status",
+      "dateLabel": "Tanggal",
+      "contextLabel": "Konteks",
+      "optionsLabel": "Opsi yang dipertimbangkan",
+      "optionsHelper": "Satu opsi per baris",
+      "decisionLabel": "Keputusan",
+      "consequencesLabel": "Konsekuensi",
+      "updated": "Diperbarui {{time}}",
+      "activity": "Aktivitas",
+      "noContext": "Tidak ada konteks.",
+      "noOptions": "Tidak ada opsi yang dipertimbangkan.",
+      "noDecision": "Tidak ada keputusan yang dicatat.",
+      "noConsequences": "Tidak ada konsekuensi yang dicatat.",
+      "deleteConfirmTitle": "Hapus catatan keputusan?",
+      "deleteConfirmBody": "Ini menghapus catatan keputusan secara permanen. Tindakan ini tidak dapat dibatalkan."
+    },
+    "newModal": {
+      "title": "Keputusan baru",
+      "cancel": "Batal",
+      "submit": "Tambah keputusan",
+      "titleLabel": "Judul",
+      "titlePlaceholder": "mis. Memilih PostgreSQL daripada MongoDB",
+      "statusLabel": "Status",
+      "dateLabel": "Tanggal",
+      "contextLabel": "Konteks",
+      "contextPlaceholder": "Apa yang mendasari keputusan ini? Masalah apa yang sedang diselesaikan?",
+      "optionsLabel": "Opsi yang dipertimbangkan",
+      "optionsHelper": "Satu opsi per baris",
+      "optionsPlaceholder": "Opsi A: …\nOpsi B: …",
+      "decisionLabel": "Keputusan",
+      "consequencesLabel": "Konsekuensi",
+      "consequencesPlaceholder": "Apa yang berubah sebagai hasilnya?"
+    }
+  },
+  "releases": {
+    "sort": {
+      "targetDate": "Tanggal target",
+      "name": "Nama",
+      "createdAt": "Dibuat",
+      "version": "Versi"
+    },
+    "count_one": "{{count}} milestone",
+    "count_other": "{{count}} milestone",
+    "newMilestone": "Milestone baru",
+    "emptyTitle": "Belum ada milestone",
+    "emptyDesc": "Kelompokkan pekerjaan ke dalam rilis dan simpan changelog atas apa yang dirilis di masing-masing.",
+    "unread": "Belum dibaca",
+    "editAria": "Edit milestone",
+    "noTargetDate": "Tanpa tanggal target",
+    "progressDone": "{{done}}/{{total}} selesai",
+    "statusBadge": {
+      "planned": "Direncanakan",
+      "inProgress": "Sedang berjalan",
+      "released": "Rilis"
+    },
+    "taskStatus": {
+      "todo": "Todo",
+      "inProgress": "Dikerjakan",
+      "review": "Review",
+      "done": "Selesai"
+    },
+    "optionStatus": {
+      "planned": "Direncanakan",
+      "inProgress": "Sedang berjalan",
+      "released": "Rilis"
+    },
+    "modal": {
+      "editTitle": "Edit milestone",
+      "viewTitle": "Milestone",
+      "delete": "Hapus",
+      "cancel": "Batal",
+      "done": "Selesai",
+      "edit": "Edit",
+      "nameLabel": "Nama",
+      "versionLabel": "Versi",
+      "versionPlaceholder": "0.1.0",
+      "targetDateLabel": "Tanggal target",
+      "statusLabel": "Status",
+      "changelogLabel": "Changelog",
+      "updated": "Diperbarui {{time}}",
+      "activity": "Aktivitas",
+      "noChangelog": "Tidak ada changelog.",
+      "tasksInRelease": "Task dalam rilis ini · {{count}}",
+      "noTasksAssigned": "Tidak ada task yang ditugaskan ke milestone ini.",
+      "deleteConfirmTitle": "Hapus milestone?",
+      "deleteConfirmBody": "Ini menghapus milestone secara permanen. Task yang tertaut akan lepas penugasannya. Tindakan ini tidak dapat dibatalkan."
+    },
+    "newModal": {
+      "title": "Milestone baru",
+      "cancel": "Batal",
+      "submit": "Tambah milestone",
+      "nameLabel": "Nama",
+      "namePlaceholder": "mis. Beta publik",
+      "versionLabel": "Versi",
+      "versionPlaceholder": "0.1.0",
+      "targetDateLabel": "Tanggal target",
+      "statusLabel": "Status",
+      "changelogLabel": "Changelog",
+      "changelogHelper": "Apa yang dirilis pada release ini"
+    }
+  },
+  "overview": {
+    "heading": "Ringkasan",
+    "editPrd": "Edit PRD",
+    "noDescriptionYet": "Belum ada deskripsi.",
+    "teamChip": "Tim: {{name}}",
+    "createdChip": "Dibuat {{date}}",
+    "updatedChip": "Diperbarui {{date}}",
+    "counts": {
+      "tasks": "Task",
+      "openIssues": "Issue terbuka",
+      "outdatedDeps": "Dependensi kedaluwarsa",
+      "testCases": "Test case",
+      "stackEntries": "Entri stack",
+      "tables": "Tabel",
+      "decisions": "Keputusan",
+      "milestones": "Milestone"
+    },
+    "chartsSectionAria": "Grafik",
+    "membersSectionAria": "Anggota",
+    "briefSectionAria": "Brief produk",
+    "stat": {
+      "tasksByStatus": "Task berdasarkan status",
+      "tasksByPriority": "Task berdasarkan prioritas",
+      "issuesBySeverity": "Issue berdasarkan tingkat",
+      "estVsActual": "Jam estimasi vs aktual",
+      "estimate": "Estimasi",
+      "actual": "Aktual"
+    },
+    "donutAria": "Task berdasarkan status",
+    "donutUnit": "task",
+    "projectStatus": {
+      "active": "Aktif",
+      "archived": "Diarsipkan"
+    },
+    "teamRole": {
+      "owner": "Pemilik",
+      "admin": "Admin",
+      "editor": "Editor",
+      "viewer": "Penampil"
+    },
+    "priority": {
+      "low": "Rendah",
+      "medium": "Sedang",
+      "high": "Tinggi",
+      "urgent": "Mendesak"
+    },
+    "severity": {
+      "critical": "Kritis",
+      "high": "Tinggi",
+      "medium": "Sedang",
+      "low": "Rendah"
+    },
+    "legend": {
+      "todo": "Todo",
+      "inProgress": "Dikerjakan",
+      "review": "Review",
+      "done": "Selesai"
+    },
+    "nextMilestone": "Milestone berikutnya:",
+    "nextMilestoneDate": "· {{date}}",
+    "chartsEmptyTitle": "Belum ada yang bisa digrafikkan",
+    "chartsEmptyDesc": "Buat task atau issue dan grafik akan muncul di sini.",
+    "membersTitle": "Anggota",
+    "assignedCount": "{{count}} ditugaskan",
+    "memberHead": {
+      "member": "Anggota",
+      "open": "Terbuka",
+      "done": "Selesai",
+      "estHours": "Est (jam)",
+      "late": "Terlambat",
+      "pctDone": "% Selesai"
+    },
+    "memberBarAria": "{{open}} terbuka, {{done}} task selesai",
+    "memberBarTitle": "{{open}} terbuka · {{done}} selesai",
+    "unknownMember": "Tidak diketahui",
+    "unassigned": "Tanpa penugasan",
+    "briefTitle": "Brief produk",
+    "briefCount": "{{set}}/{{total}} terisi",
+    "notSetYet": "Belum diisi."
+  }
+}

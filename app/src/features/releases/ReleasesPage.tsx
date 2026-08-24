@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { MILESTONE_STATUS } from '../../lib/labels';
+import { useTranslation } from 'react-i18next';
 import { formatDate, shortId } from '../../lib/utils';
+import { MILESTONE_STATUS } from '../../lib/labels';
 import { useProject } from '../../state/project-context';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { useNewParam } from '../../hooks/useNewParam';
@@ -19,13 +20,14 @@ import { NewMilestoneModal } from './NewMilestoneModal';
 import { InlineError } from '../../components/InlineError';
 
 const MILESTONE_SORT_SPECS: SortSpec<Milestone>[] = [
-  { key: 'targetDate', label: 'Target date', get: (m) => m.targetDate ?? null },
-  { key: 'name', label: 'Name', get: (m) => m.name },
-  { key: 'createdAt', label: 'Created', get: (m) => m.createdAt },
-  { key: 'version', label: 'Version', get: (m) => m.version ?? null, compare: compareVersions },
+  { key: 'targetDate', label: 'releases.sort.targetDate', get: (m) => m.targetDate ?? null },
+  { key: 'name', label: 'releases.sort.name', get: (m) => m.name },
+  { key: 'createdAt', label: 'releases.sort.createdAt', get: (m) => m.createdAt },
+  { key: 'version', label: 'releases.sort.version', get: (m) => m.version ?? null, compare: compareVersions },
 ];
 
 export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
+  const { t } = useTranslation('project');
   const { state, loading, error, canEdit } = useProject();
   const [openNew, setOpenNew] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -66,17 +68,17 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
     <div>
       <div className="data-list-header">
         <span className="data-list-count">
-          {milestones.length} milestone{milestones.length === 1 ? '' : 's'}
+          {t('releases.count', { count: milestones.length })}
         </span>
         <span className="data-list-actions">
           <SortControl
-            options={MILESTONE_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: s.label }))}
+            options={MILESTONE_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: t(s.label) }))}
             value={sortValue}
             onChange={setSort}
           />
           {canEdit && (
             <Button size="sm" onClick={() => setOpenNew(true)}>
-              <Plus size={14} aria-hidden="true" /> New milestone
+              <Plus size={14} aria-hidden="true" /> {t('releases.newMilestone')}
             </Button>
           )}
         </span>
@@ -85,12 +87,12 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
       {milestones.length === 0 ? (
         <EmptyState
             icon={<Rocket size={22} />}
-            title="No milestones yet"
-            description="Group work into releases and keep a changelog of what shipped with each."
+            title={t('releases.emptyTitle')}
+            description={t('releases.emptyDesc')}
             action={
               canEdit && (
                 <Button size="sm" onClick={() => setOpenNew(true)}>
-                  <Plus size={14} /> New milestone
+                  <Plus size={14} /> {t('releases.newMilestone')}
                 </Button>
               )
             }
@@ -107,7 +109,7 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
               >
                 <div className="data-row-title">
                   <Badge tone={MILESTONE_STATUS[m.status].tone}>
-                    {MILESTONE_STATUS[m.status].label}
+                    {t(`releases.statusBadge.${m.status}`)}
                   </Badge>
                   <span className="row-title-text">{m.name}</span>
                   {m.version && <span className="data-row-meta">v{m.version.replace(/^v/i, '')}</span>}
@@ -116,13 +118,13 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
                 <div className="data-row-meta">
                   <span>
                     <CalendarBlank size={12} aria-hidden="true" />{' '}
-                    {m.targetDate ? formatDate(m.targetDate) : 'No target date'}
+                    {m.targetDate ? formatDate(m.targetDate) : t('releases.noTargetDate')}
                   </span>
                   <span>#{shortId(m.id)}</span>
                   {unreadIds?.has(m.id) && (
                     <>
                       <span className="unread-dot" aria-hidden="true" />
-                      <span className="sr-only">Unread</span>
+                      <span className="sr-only">{t('releases.unread')}</span>
                     </>
                   )}
                 </div>
@@ -141,8 +143,10 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
                       />
                     </div>
                     <span className="tabular">
-                      {milestoneTasks(m.id).filter((t) => t.status === 'done').length}/
-                      {milestoneTasks(m.id).length} done
+                      {t('releases.progressDone', {
+                        done: milestoneTasks(m.id).filter((task) => task.status === 'done').length,
+                        total: milestoneTasks(m.id).length,
+                      })}
                     </span>
                   </div>
                 )}
@@ -153,7 +157,7 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
                     size="sm"
                     variant="ghost"
                     className="btn-icon"
-                    aria-label="Edit milestone"
+                    aria-label={t('releases.editAria')}
                     onClick={() => setEditId(m.id)}
                   >
                     <PencilSimple size={14} aria-hidden="true" />

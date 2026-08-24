@@ -1,1 +1,605 @@
-{}
+{
+  "tabs": {
+    "navAria": "Project sections",
+    "unreadBadge": "{{count}} unread",
+    "board": "Board",
+    "issues": "Issues",
+    "tests": "Test Cases",
+    "stack": "Stack",
+    "schema": "Schema",
+    "decisions": "Decisions",
+    "releases": "Releases",
+    "api": "API",
+    "overview": "Overview",
+    "whiteboard": "Whiteboard"
+  },
+  "skeleton": {
+    "todo": "Todo",
+    "inProgress": "In Progress",
+    "review": "Review",
+    "done": "Done"
+  },
+  "page": {
+    "notFoundTitle": "Project not found",
+    "notFoundDesc": "It may have been deleted, or you may not have access to it.",
+    "backToProjects": "Projects",
+    "noDescription": "No description.",
+    "createdInfo": "{{description}} · created {{date}}"
+  },
+  "actions": {
+    "copy": "Copy",
+    "copied": "Copied",
+    "export": "Export",
+    "import": "Import",
+    "sharePublic": "Share · Public",
+    "sharePrivate": "Share · Private",
+    "saveAsTemplate": "Save as template",
+    "delete": "Delete"
+  },
+  "deleteModal": {
+    "title": "Delete project",
+    "cancel": "Cancel",
+    "confirm": "Delete",
+    "body": "This permanently deletes “{{name}}” and all of its data — tasks, issues, schema, decisions. This cannot be undone."
+  },
+  "importModal": {
+    "title": "Import project backup",
+    "cancel": "Cancel",
+    "confirm": "Import",
+    "bodySameProject": "This backup belongs to the current project. Importing will overwrite its current data with the backup.",
+    "bodyOtherProject": "This backup belongs to a different project. Importing will create a new project from this data.",
+    "meta": "Backed up {{date}} · {{tasks}} tasks, {{issues}} issues"
+  },
+  "errors": {
+    "invalidExport": "Not a valid DevHub export document.",
+    "parseJson": "Could not parse the selected file as JSON.",
+    "exportFailed": "Failed to export project.",
+    "importFailed": "Failed to import project.",
+    "deleteFailed": "Failed to delete project.",
+    "saveShareFailed": "Failed to save sharing settings.",
+    "prdSaveFailed": "Failed to save changes."
+  },
+  "banner": {
+    "regionAria": "Deleted items",
+    "count_one": "{{count}} deleted",
+    "count_other": "{{count}} deleted",
+    "copy": "These items were deleted. Deletion records are kept briefly and cannot be restored.",
+    "dismiss": "Dismiss",
+    "entity": {
+      "tasks": "Task",
+      "issues": "Issue",
+      "testCases": "Test",
+      "techEntries": "Tech",
+      "tables": "Table",
+      "relations": "Relation",
+      "schemaVersions": "Schema",
+      "decisions": "Decision",
+      "milestones": "Milestone",
+      "apiCollections": "Collection",
+      "apiEndpoints": "Endpoint",
+      "whiteboards": "Board"
+    }
+  },
+  "share": {
+    "title": "Share project",
+    "close": "Close",
+    "groupAria": "Who can see this project",
+    "private": "Private",
+    "public": "Public",
+    "visCopyPrivate": "Hanya member team yang bisa melihat project ini.",
+    "visCopyPublic": "Siapa pun dengan link ini bisa melihat tab yang kamu centang di bawah.",
+    "warn": "Link lama langsung nonaktif.",
+    "legend": "Tab yang dibagikan",
+    "lastCheckedTitle": "Setidaknya satu tab harus tetap publik",
+    "linkLabel": "Link publik",
+    "tab": {
+      "board": {
+        "label": "Board",
+        "description": "Kanban board with tasks"
+      },
+      "issues": {
+        "label": "Issues",
+        "description": "Bug and issue tracker"
+      },
+      "milestones": {
+        "label": "Milestones",
+        "description": "Releases and version history"
+      },
+      "stack": {
+        "label": "Stack",
+        "description": "Tech stack ledger"
+      },
+      "about": {
+        "label": "Overview",
+        "description": "PRD, counters and project summary"
+      },
+      "whiteboard": {
+        "label": "Whiteboard",
+        "description": "Whiteboard boards"
+      }
+    }
+  },
+  "prd": {
+    "editTitle": "Edit PRD",
+    "cancel": "Cancel",
+    "save": "Save PRD",
+    "mdTooltip": "Markdown: \"- bullet, 1. numbered, **bold**, _italic_, `code`\"",
+    "helper": "Markdown supported in all fields — \"- bullet, 1. numbered, **bold**, _italic_, `code`\". Use Edit/Preview per field to check the result.",
+    "modeAria": "{{label}} mode",
+    "edit": "Edit",
+    "preview": "Preview",
+    "nothingToPreview": "Nothing to preview.",
+    "titleLabel": "Description",
+    "titlePlaceholder": "A short description of the project.",
+    "section": {
+      "purpose": {
+        "label": "Purpose",
+        "helper": "Why this project exists — the problem it solves."
+      },
+      "goals": {
+        "label": "Goals",
+        "helper": "What success looks like. One line per goal."
+      },
+      "features": {
+        "label": "Features",
+        "helper": "What this project will do. One feature per line."
+      },
+      "scope": {
+        "label": "Scope",
+        "helper": "What is in scope for this project."
+      },
+      "outOfScope": {
+        "label": "Out of scope",
+        "helper": "What is explicitly out of scope — for now or forever."
+      }
+    }
+  },
+  "chat": {
+    "launcherAria": "Open team chat",
+    "unread_one": "{{count}} unread message",
+    "unread_other": "{{count}} unread messages",
+    "drawerAria": "Team chat",
+    "drawerTitle": "{{team}} — Team chat",
+    "closeAria": "Close chat"
+  },
+  "stack": {
+    "sort": {
+      "category": "Category",
+      "name": "Name",
+      "createdAt": "Created",
+      "status": "Status",
+      "version": "Version"
+    },
+    "count_one": "{{count}} entry",
+    "count_other": "{{count}} entries",
+    "viewAria": "Stack view",
+    "listTab": "List",
+    "graphTab": "Graph",
+    "newEntry": "New entry",
+    "emptyTitle": "No stack entries yet",
+    "emptyDesc": "Track what this project runs on — versions, categories and when an upgrade is due.",
+    "addEntry": "Add a tech entry",
+    "unread": "Unread",
+    "editEntryAria": "Edit entry",
+    "category": {
+      "frontend": "Frontend",
+      "backend": "Backend",
+      "database": "Database",
+      "tooling": "Tooling"
+    },
+    "statusBadge": {
+      "current": "Current",
+      "updateAvailable": "Update Available",
+      "majorUpgrade": "Major Upgrade"
+    },
+    "optionStatus": {
+      "current": "Current",
+      "updateAvailable": "Update available",
+      "majorUpgrade": "Major upgrade"
+    },
+    "optionCategory": {
+      "frontend": "Frontend",
+      "backend": "Backend",
+      "database": "Database",
+      "tooling": "Tooling"
+    },
+    "graph": {
+      "ariaLabel_one": "Tech stack graph — {{count}} entry",
+      "ariaLabel_other": "Tech stack graph — {{count}} entries",
+      "nodeAria": "Edit {{name}}",
+      "nodeTitle": "{{name}} v{{version}} · {{status}}"
+    },
+    "techModal": {
+      "editTitle": "Edit stack entry",
+      "viewTitle": "Stack entry",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "done": "Done",
+      "edit": "Edit",
+      "nameLabel": "Name",
+      "versionLabel": "Version",
+      "versionPlaceholder": "—",
+      "categoryLabel": "Category",
+      "statusLabel": "Status",
+      "notesLabel": "Notes",
+      "updated": "Updated {{time}}",
+      "activity": "Activity",
+      "noNotes": "No notes.",
+      "deleteConfirmTitle": "Delete stack entry?",
+      "deleteConfirmBody": "This permanently deletes this stack entry. This cannot be undone."
+    },
+    "newTechModal": {
+      "title": "New stack entry",
+      "cancel": "Cancel",
+      "submit": "Add entry",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. React",
+      "versionLabel": "Version",
+      "versionPlaceholder": "e.g. 19.2.0",
+      "categoryLabel": "Category",
+      "statusLabel": "Status",
+      "notesLabel": "Notes",
+      "notesPlaceholder": "Optional"
+    }
+  },
+  "schema": {
+    "page": {
+      "count": "{{tables}} tables · {{relations}} relations · {{versions}} versions",
+      "newRelation": "New relation",
+      "newTable": "New table",
+      "viewAria": "Schema view",
+      "tablesTab": "Tables",
+      "erdTab": "ERD",
+      "editTableAria": "Edit table {{name}}",
+      "onDelete": "on delete: {{value}}",
+      "deleteRelationAria": "Delete relation {{label}}"
+    },
+    "sort": {
+      "name": "Name",
+      "createdAt": "Created",
+      "applied": "Applied"
+    },
+    "columnCount_one": "{{count}} column",
+    "columnCount_other": "{{count}} columns",
+    "indexCount_one": "{{count}} index",
+    "indexCount_other": "{{count}} indexes",
+    "unread": "Unread",
+    "noComment": "No comment.",
+    "noNotes": "No notes.",
+    "appliedAt": "applied {{date}}",
+    "relationsHeading": "Relations",
+    "versionsHeading": "Schema versions",
+    "diffVersions": "Diff versions",
+    "saveVersion": "Save version",
+    "empty": {
+      "tablesTitle": "No tables yet",
+      "tablesDesc": "Model your database — tables, columns, keys — then view the ERD.",
+      "versionsTitle": "No versions yet",
+      "versionsDesc": "Snapshot the schema whenever it changes."
+    },
+    "deleteRelationModal": {
+      "title": "Delete relation",
+      "cancel": "Cancel",
+      "confirm": "Delete",
+      "body": "Remove the relation {{relation}}? Tables and columns stay untouched."
+    },
+    "erd": {
+      "svgAria": "Entity relationship diagram with {{tables}} tables and {{relations}} relations",
+      "relAria": "Relation {{from}} to {{to}}, click to delete",
+      "relTitle": "{{label}} · {{cardinality}} · on delete: {{onDelete}} — click to delete",
+      "tableAria": "Table {{name}} with {{count}} columns",
+      "emptyDesc": "Create your first table to start drawing the ERD.",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "resetView": "Reset view",
+      "hint": "Arrow keys to pan · +/- to zoom · drag to pan"
+    },
+    "table": {
+      "editTitle": "Edit table",
+      "viewTitle": "Table",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "done": "Done",
+      "edit": "Edit",
+      "nameLabel": "Name",
+      "commentLabel": "Comment",
+      "columnsLabel": "Columns",
+      "captionName": "Name",
+      "captionType": "Type",
+      "captionNull": "Null",
+      "captionPk": "PK",
+      "captionDefault": "Default",
+      "detailCaptionFlags": "Flags",
+      "colAria": "Column {{name}}",
+      "typeAria": "Type of {{name}}",
+      "nullableAria": "Nullable for column {{name}}",
+      "pkAria": "Primary key for column {{name}}",
+      "defaultAria": "Default of {{name}}",
+      "deleteColAria": "Delete column {{name}}",
+      "fbName": "name",
+      "fbColumn": "column",
+      "fbUnnamed": "unnamed",
+      "namePlaceholder": "name",
+      "typePlaceholder": "uuid",
+      "defaultPlaceholder": "—",
+      "nullableTitle": "Nullable",
+      "primaryKeyTitle": "Primary key",
+      "noColumnsYetEdit": "No columns yet — add the first one.",
+      "noColumnsView": "No columns yet.",
+      "addColumn": "Add column",
+      "indexesLabel": "Indexes",
+      "indexesHelper": "Comma-separated column or expression names.",
+      "indexesPlaceholder": "created_at, lower(email)",
+      "updatedEditInfo": "Updated {{time}} · deleting a column removes its relations",
+      "unnamedTable": "Unnamed table",
+      "unnamedColumn": "unnamed",
+      "activity": "Activity",
+      "updated": "Updated {{time}}",
+      "deleteConfirmTitle": "Delete table?",
+      "deleteConfirmBody": "This permanently deletes the table, its columns and its relations. This cannot be undone."
+    },
+    "newTableModal": {
+      "title": "New table",
+      "cancel": "Cancel",
+      "submit": "Create table",
+      "nameLabel": "Name",
+      "namePlaceholder": "users",
+      "commentLabel": "Comment",
+      "commentPlaceholder": "What is this table for? — optional"
+    },
+    "relationModal": {
+      "title": "New relation",
+      "cancel": "Cancel",
+      "submit": "Add relation",
+      "fromTableLabel": "From table",
+      "fromColumnLabel": "From column",
+      "toTableLabel": "To table",
+      "toColumnLabel": "To column",
+      "selectTable": "Select table",
+      "selectColumn": "Select column",
+      "differentTablesError": "From and to tables must be different.",
+      "cardinalityLabel": "Cardinality",
+      "onDeleteLabel": "On delete",
+      "optCascade": "Cascade",
+      "optSetNull": "Set null",
+      "optRestrict": "Restrict"
+    },
+    "saveVersionModal": {
+      "title": "Save schema version",
+      "cancel": "Cancel",
+      "submit": "Save version",
+      "versionLabel": "Version",
+      "versionPlaceholder": "1.1.0",
+      "notesLabel": "Notes",
+      "notesPlaceholder": "What changed in this schema revision? — optional"
+    },
+    "diffModal": {
+      "title": "Diff schema versions",
+      "close": "Close",
+      "fromLabel": "From (older)",
+      "toLabel": "To (newer)",
+      "selectPlaceholder": "Select version",
+      "versionLabel": "{{version}} — {{notes}}",
+      "pickTwo": "Pick two different versions to compare.",
+      "showingChanges": "Showing changes from {{from}} to {{to}}.",
+      "tablesAdded": "Tables added ({{count}})",
+      "tablesRemoved": "Tables removed ({{count}})",
+      "columnsAdded": "Columns added ({{count}})",
+      "columnsRemoved": "Columns removed ({{count}})",
+      "relationsAdded": "Relations added ({{count}})",
+      "relationsRemoved": "Relations removed ({{count}})",
+      "itemWithColumns": "{{name}} ({{count}} columns)",
+      "itemRelation": "{{cardinality}} relation {{id}}",
+      "noDifferences": "No differences between these versions."
+    }
+  },
+  "decisions": {
+    "sort": {
+      "date": "Date",
+      "status": "Status",
+      "createdAt": "Created",
+      "title": "Title"
+    },
+    "count_one": "{{count}} decision",
+    "count_other": "{{count}} decisions",
+    "newDecision": "New decision",
+    "emptyTitle": "No decisions yet",
+    "emptyDesc": "Record architecture choices and trade-offs as ADRs so future you remembers why.",
+    "unread": "Unread",
+    "editAria": "Edit decision",
+    "status": {
+      "proposed": "Proposed",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "superseded": "Superseded"
+    },
+    "modal": {
+      "editTitle": "Edit decision record",
+      "viewTitle": "Decision record",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "done": "Done",
+      "edit": "Edit",
+      "titleLabel": "Title",
+      "statusLabel": "Status",
+      "dateLabel": "Date",
+      "contextLabel": "Context",
+      "optionsLabel": "Options considered",
+      "optionsHelper": "One option per line",
+      "decisionLabel": "Decision",
+      "consequencesLabel": "Consequences",
+      "updated": "Updated {{time}}",
+      "activity": "Activity",
+      "noContext": "No context.",
+      "noOptions": "No options considered.",
+      "noDecision": "No decision recorded.",
+      "noConsequences": "No consequences recorded.",
+      "deleteConfirmTitle": "Delete decision record?",
+      "deleteConfirmBody": "This permanently deletes the decision record. This cannot be undone."
+    },
+    "newModal": {
+      "title": "New decision",
+      "cancel": "Cancel",
+      "submit": "Add decision",
+      "titleLabel": "Title",
+      "titlePlaceholder": "e.g. Choose PostgreSQL over MongoDB",
+      "statusLabel": "Status",
+      "dateLabel": "Date",
+      "contextLabel": "Context",
+      "contextPlaceholder": "What led to this decision? What problem is being solved?",
+      "optionsLabel": "Options considered",
+      "optionsHelper": "One option per line",
+      "optionsPlaceholder": "Option A: …\nOption B: …",
+      "decisionLabel": "Decision",
+      "consequencesLabel": "Consequences",
+      "consequencesPlaceholder": "What changes as a result?"
+    }
+  },
+  "releases": {
+    "sort": {
+      "targetDate": "Target date",
+      "name": "Name",
+      "createdAt": "Created",
+      "version": "Version"
+    },
+    "count_one": "{{count}} milestone",
+    "count_other": "{{count}} milestones",
+    "newMilestone": "New milestone",
+    "emptyTitle": "No milestones yet",
+    "emptyDesc": "Group work into releases and keep a changelog of what shipped with each.",
+    "unread": "Unread",
+    "editAria": "Edit milestone",
+    "noTargetDate": "No target date",
+    "progressDone": "{{done}}/{{total}} done",
+    "statusBadge": {
+      "planned": "Planned",
+      "inProgress": "In Progress",
+      "released": "Released"
+    },
+    "taskStatus": {
+      "todo": "Todo",
+      "inProgress": "In Progress",
+      "review": "Review",
+      "done": "Done"
+    },
+    "optionStatus": {
+      "planned": "Planned",
+      "inProgress": "In progress",
+      "released": "Released"
+    },
+    "modal": {
+      "editTitle": "Edit milestone",
+      "viewTitle": "Milestone",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "done": "Done",
+      "edit": "Edit",
+      "nameLabel": "Name",
+      "versionLabel": "Version",
+      "versionPlaceholder": "0.1.0",
+      "targetDateLabel": "Target date",
+      "statusLabel": "Status",
+      "changelogLabel": "Changelog",
+      "updated": "Updated {{time}}",
+      "activity": "Activity",
+      "noChangelog": "No changelog.",
+      "tasksInRelease": "Tasks in this release · {{count}}",
+      "noTasksAssigned": "No tasks assigned to this milestone.",
+      "deleteConfirmTitle": "Delete milestone?",
+      "deleteConfirmBody": "This permanently deletes the milestone. Tasks linked to it will be unassigned. This cannot be undone."
+    },
+    "newModal": {
+      "title": "New milestone",
+      "cancel": "Cancel",
+      "submit": "Add milestone",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Public beta",
+      "versionLabel": "Version",
+      "versionPlaceholder": "0.1.0",
+      "targetDateLabel": "Target date",
+      "statusLabel": "Status",
+      "changelogLabel": "Changelog",
+      "changelogHelper": "What shipped with this release"
+    }
+  },
+  "overview": {
+    "heading": "Overview",
+    "editPrd": "Edit PRD",
+    "noDescriptionYet": "No description yet.",
+    "teamChip": "Team: {{name}}",
+    "createdChip": "Created {{date}}",
+    "updatedChip": "Updated {{date}}",
+    "counts": {
+      "tasks": "Tasks",
+      "openIssues": "Open issues",
+      "outdatedDeps": "Outdated deps",
+      "testCases": "Test cases",
+      "stackEntries": "Stack entries",
+      "tables": "Tables",
+      "decisions": "Decisions",
+      "milestones": "Milestones"
+    },
+    "chartsSectionAria": "Charts",
+    "membersSectionAria": "Members",
+    "briefSectionAria": "Product brief",
+    "stat": {
+      "tasksByStatus": "Tasks by status",
+      "tasksByPriority": "Tasks by priority",
+      "issuesBySeverity": "Issues by severity",
+      "estVsActual": "Estimated vs actual hours",
+      "estimate": "Estimate",
+      "actual": "Actual"
+    },
+    "donutAria": "Tasks by status",
+    "donutUnit": "tasks",
+    "projectStatus": {
+      "active": "Active",
+      "archived": "Archived"
+    },
+    "teamRole": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "editor": "Editor",
+      "viewer": "Viewer"
+    },
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "severity": {
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "legend": {
+      "todo": "Todo",
+      "inProgress": "In Progress",
+      "review": "Review",
+      "done": "Done"
+    },
+    "nextMilestone": "Next milestone:",
+    "nextMilestoneDate": "· {{date}}",
+    "chartsEmptyTitle": "Nothing to chart yet",
+    "chartsEmptyDesc": "Create tasks or issues and charts will appear here.",
+    "membersTitle": "Members",
+    "assignedCount": "{{count}} assigned",
+    "memberHead": {
+      "member": "Member",
+      "open": "Open",
+      "done": "Done",
+      "estHours": "Est h",
+      "late": "Late",
+      "pctDone": "% Done"
+    },
+    "memberBarAria": "{{open}} open, {{done}} done tasks",
+    "memberBarTitle": "{{open}} open · {{done}} done",
+    "unknownMember": "Unknown",
+    "unassigned": "Unassigned",
+    "briefTitle": "Product brief",
+    "briefCount": "{{set}}/{{total}} set",
+    "notSetYet": "Not set yet."
+  }
+}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Bug, CalendarBlank, ChalkboardSimple, Columns, Flag, Gauge, ListChecks, Rocket, SquaresFour, Stack } from '@phosphor-icons/react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { ApiError, api } from '../../lib/api';
@@ -26,26 +27,27 @@ import { PublicWhiteboards } from './PublicWhiteboards';
 
 const ALL_PUBLIC_TABS: PublicTab[] = ['board', 'issues', 'stack', 'milestones', 'about', 'whiteboard'];
 
-const TABS: { id: PublicTab; label: string; icon: ReactNode }[] = [
-  { id: 'board', label: 'Board', icon: <Columns size={15} /> },
-  { id: 'issues', label: 'Issues', icon: <Bug size={15} /> },
-  { id: 'stack', label: 'Stack', icon: <Stack size={15} /> },
-  { id: 'milestones', label: 'Milestones', icon: <Rocket size={15} /> },
-  { id: 'whiteboard', label: 'Whiteboard', icon: <ChalkboardSimple size={15} /> },
-  { id: 'about', label: 'Overview', icon: <Gauge size={15} /> },
+const TABS: { id: PublicTab; labelKey: string; icon: ReactNode }[] = [
+  { id: 'board', labelKey: 'public.tab.board', icon: <Columns size={15} /> },
+  { id: 'issues', labelKey: 'public.tab.issues', icon: <Bug size={15} /> },
+  { id: 'stack', labelKey: 'public.tab.stack', icon: <Stack size={15} /> },
+  { id: 'milestones', labelKey: 'public.tab.milestones', icon: <Rocket size={15} /> },
+  { id: 'whiteboard', labelKey: 'public.tab.whiteboard', icon: <ChalkboardSimple size={15} /> },
+  { id: 'about', labelKey: 'public.tab.overview', icon: <Gauge size={15} /> },
 ];
 
 const BOARD_STATUSES = ['todo', 'inProgress', 'review', 'done'] as const;
 
-const EMPTY_MESSAGE: Record<Exclude<PublicTab, 'about'>, string> = {
-  board: 'No tasks yet.',
-  issues: 'No issues yet.',
-  stack: 'No stack entries yet.',
-  milestones: 'No milestones yet.',
-  whiteboard: 'No whiteboards yet.',
+const EMPTY_MESSAGE_KEYS: Record<Exclude<PublicTab, 'about'>, string> = {
+  board: 'public.empty.board',
+  issues: 'public.empty.issues',
+  stack: 'public.empty.stack',
+  milestones: 'public.empty.milestones',
+  whiteboard: 'public.empty.whiteboard',
 };
 
 export function PublicProjectPage() {
+  const { t } = useTranslation('extras');
   const { projectId = '' } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -86,7 +88,7 @@ export function PublicProjectPage() {
         if (err instanceof ApiError && err.status === 404) {
           setNotFound(true);
         } else {
-          setError(getErrorMessage(err, 'Failed to load project.'));
+          setError(getErrorMessage(err, t('public.errors.load')));
         }
       })
       .finally(() => {
@@ -95,7 +97,7 @@ export function PublicProjectPage() {
     return () => {
       cancelled = true;
     };
-  }, [projectId]);
+  }, [projectId, t]);
 
   const allowedTabs =
     project && project.tabs.length > 0 ? project.tabs : ALL_PUBLIC_TABS;
@@ -113,11 +115,11 @@ export function PublicProjectPage() {
         <div className="public-bar-actions">
           {user ? (
             <Button variant="ghost" size="sm" onClick={() => navigate(`/project/${projectId}`)}>
-              Open in DevHub
+              {t('public.openInDevHub')}
             </Button>
           ) : (
             <Button size="sm" onClick={() => navigate('/')}>
-              Sign in
+              {t('public.signIn')}
             </Button>
           )}
         </div>
@@ -136,10 +138,10 @@ export function PublicProjectPage() {
           <div className="page-empty">
             <EmptyState
               icon={<Columns size={22} />}
-              title="Project not found"
-              description="This project does not exist or is not shared publicly."
+              title={t('public.notFound.title')}
+              description={t('public.notFound.desc')}
             />
-            <Button onClick={() => navigate('/')}>Back to DevHub</Button>
+            <Button onClick={() => navigate('/')}>{t('public.backToDevHub')}</Button>
           </div>
         )}
 
@@ -151,31 +153,31 @@ export function PublicProjectPage() {
               <div>
                 <h1 className="page-title">{project.name}</h1>
                 <p className="page-subtitle">
-                  {project.teamName} · Updated {formatDate(project.updatedAt)}
+                  {project.teamName} · {t('public.header.updated', { date: formatDate(project.updatedAt) })}
                 </p>
               </div>
               <div className="project-actions">
                 <Badge tone={PROJECT_STATUS[project.status].tone}>
                   {PROJECT_STATUS[project.status].label}
                 </Badge>
-                <Badge tone="success">Public</Badge>
+                <Badge tone="success">{t('public.badge.public')}</Badge>
               </div>
             </div>
 
-            <nav className="tabs" role="tablist" aria-label="Public project sections">
-              {TABS.filter((t) => allowedTabs.includes(t.id)).map((t) => (
+            <nav className="tabs" role="tablist" aria-label={t('public.sectionsAria')}>
+              {TABS.filter((tb) => allowedTabs.includes(tb.id)).map((tb) => (
                 <button
-                  key={t.id}
+                  key={tb.id}
                   type="button"
                   role="tab"
-                  id={`public-tab-${t.id}`}
-                  aria-selected={tab === t.id}
+                  id={`public-tab-${tb.id}`}
+                  aria-selected={tab === tb.id}
                   aria-controls="public-tabpanel"
-                  className={`tab${tab === t.id ? ' tab-active' : ''}`}
-                  onClick={() => setTab(t.id)}
+                  className={`tab${tab === tb.id ? ' tab-active' : ''}`}
+                  onClick={() => setTab(tb.id)}
                 >
-                  {t.icon}
-                  {t.label}
+                  {tb.icon}
+                  {t(tb.labelKey)}
                 </button>
               ))}
             </nav>
@@ -264,6 +266,7 @@ function PublicTaskCard({
 }
 
 function PublicBoard({ state }: { state: State }) {
+  const { t } = useTranslation('extras');
   const [view, setView] = useState<BoardView>('status');
 
   const milestoneOrder = (m: { status: string; targetDate?: string | null }): number =>
@@ -288,7 +291,7 @@ function PublicBoard({ state }: { state: State }) {
         </div>
         <div className="kanban-col-body">
           {tasks.length === 0 ? (
-            <p className="kanban-col-empty">No tasks</p>
+            <p className="kanban-col-empty">{t('public.board.noTasks')}</p>
           ) : (
             tasks.map((task) => (
               <PublicTaskCard key={task.id} task={task} state={state} showMilestone />
@@ -301,23 +304,23 @@ function PublicBoard({ state }: { state: State }) {
 
   const milestoneCols = milestoneColumns.map((m) => {
     const mId = m?.id ?? null;
-    const tasks = state.tasks.filter((t) => t.milestoneId === mId);
-    const done = tasks.filter((t) => t.status === 'done').length;
+    const tasks = state.tasks.filter((tk) => tk.milestoneId === mId);
+    const done = tasks.filter((tk) => tk.status === 'done').length;
     const progress = tasks.length > 0 ? Math.round((done / tasks.length) * 100) : 0;
     return (
       <div key={mId ?? 'unassigned'} className="kanban-col">
         <div className="kanban-col-header">
           <div className="kanban-milestone-header">
-            <span className="kanban-col-label">{m?.name ?? 'Unassigned'}</span>
+            <span className="kanban-col-label">{m?.name ?? t('public.board.unassigned')}</span>
             {m?.version && <span className="task-label">{m.version}</span>}
           </div>
-          <span className="kanban-col-count tabular" title={`${done}/${tasks.length} done`}>
+          <span className="kanban-col-count tabular" title={t('public.board.doneTitle', { done, total: tasks.length })}>
             {tasks.length} · {progress}%
           </span>
         </div>
         <div className="kanban-col-body">
           {tasks.length === 0 ? (
-            <p className="kanban-col-empty">No tasks</p>
+            <p className="kanban-col-empty">{t('public.board.noTasks')}</p>
           ) : (
             tasks.map((task) => (
               <PublicTaskCard key={task.id} task={task} state={state} showStatus />
@@ -328,29 +331,29 @@ function PublicBoard({ state }: { state: State }) {
     );
   });
 
-  const DUE_BUCKETS_PUBLIC: { bucket: ReturnType<typeof dueBucket>; label: string }[] = [
-    { bucket: 'overdue', label: 'Overdue' },
-    { bucket: 'today', label: 'Today' },
-    { bucket: 'tomorrow', label: 'Tomorrow' },
-    { bucket: 'thisWeek', label: 'This Week' },
-    { bucket: 'nextWeek', label: 'Next Week' },
-    { bucket: 'later', label: 'Later' },
-    { bucket: 'none', label: 'No Date' },
+  const DUE_BUCKETS_PUBLIC: { bucket: ReturnType<typeof dueBucket>; labelKey: string }[] = [
+    { bucket: 'overdue', labelKey: 'public.due.overdue' },
+    { bucket: 'today', labelKey: 'public.due.today' },
+    { bucket: 'tomorrow', labelKey: 'public.due.tomorrow' },
+    { bucket: 'thisWeek', labelKey: 'public.due.thisWeek' },
+    { bucket: 'nextWeek', labelKey: 'public.due.nextWeek' },
+    { bucket: 'later', labelKey: 'public.due.later' },
+    { bucket: 'none', labelKey: 'public.due.noDate' },
   ];
 
-  const dueCols = DUE_BUCKETS_PUBLIC.map(({ bucket, label }) => {
+  const dueCols = DUE_BUCKETS_PUBLIC.map(({ bucket, labelKey }) => {
     const tasks = state.tasks
-      .filter((t) => dueBucket(t.dueDate) === bucket)
+      .filter((tk) => dueBucket(tk.dueDate) === bucket)
       .sort((a, b) => (a.dueDate ?? '9999-99-99').localeCompare(b.dueDate ?? '9999-99-99'));
     return (
       <div key={bucket} className="kanban-col">
         <div className="kanban-col-header">
-          <span className="kanban-col-label">{label}</span>
+          <span className="kanban-col-label">{t(labelKey)}</span>
           <span className="kanban-col-count tabular">{tasks.length}</span>
         </div>
         <div className="kanban-col-body">
           {tasks.length === 0 ? (
-            <p className="kanban-col-empty">No tasks</p>
+            <p className="kanban-col-empty">{t('public.board.noTasks')}</p>
           ) : (
             tasks.map((task) => (
               <PublicTaskCard key={task.id} task={task} state={state} showMilestone />
@@ -363,7 +366,7 @@ function PublicBoard({ state }: { state: State }) {
 
   return (
     <div>
-      <div className="sub-tabs" role="tablist" aria-label="Board view">
+      <div className="sub-tabs" role="tablist" aria-label={t('public.board.viewAria')}>
         <button
           type="button"
           role="tab"
@@ -372,7 +375,7 @@ function PublicBoard({ state }: { state: State }) {
           aria-selected={view === 'status'}
         >
           <SquaresFour size={13} aria-hidden="true" />
-          By Status
+          {t('public.board.byStatus')}
         </button>
         <button
           type="button"
@@ -382,7 +385,7 @@ function PublicBoard({ state }: { state: State }) {
           aria-selected={view === 'milestone'}
         >
           <Flag size={13} aria-hidden="true" />
-          By Milestone
+          {t('public.board.byMilestone')}
         </button>
         <button
           type="button"
@@ -392,7 +395,7 @@ function PublicBoard({ state }: { state: State }) {
           aria-selected={view === 'due'}
         >
           <CalendarBlank size={13} aria-hidden="true" />
-          By Due Date
+          {t('public.board.byDueDate')}
         </button>
       </div>
       <div className="kanban">
@@ -403,8 +406,9 @@ function PublicBoard({ state }: { state: State }) {
 }
 
 function PublicIssues({ state }: { state: State }) {
+  const { t } = useTranslation('extras');
   if (state.issues.length === 0) {
-    return <p className="about-section-body about-section-body-empty">{EMPTY_MESSAGE.issues}</p>;
+    return <p className="about-section-body about-section-body-empty">{t(EMPTY_MESSAGE_KEYS.issues)}</p>;
   }
   return (
     <div className="data-list">
@@ -413,8 +417,8 @@ function PublicIssues({ state }: { state: State }) {
           <div className="data-row-main">
             <span className="data-row-title">{issue.title}</span>
             <span className="data-row-sub">
-              Severity: {issue.severity}
-              {issue.linkedTaskId ? ` · Linked to task ${issue.linkedTaskId.slice(0, 8)}` : ''}
+              {t('public.issue.severity', { value: issue.severity })}
+              {issue.linkedTaskId ? ` · ${t('public.issue.linkedTo', { id: issue.linkedTaskId.slice(0, 8) })}` : ''}
             </span>
             {issue.description && (
               <span className="data-row-sub public-issue-text">{issue.description}</span>
@@ -433,8 +437,9 @@ function PublicIssues({ state }: { state: State }) {
 }
 
 function PublicStack({ state }: { state: State }) {
+  const { t } = useTranslation('extras');
   if (state.techEntries.length === 0) {
-    return <p className="about-section-body about-section-body-empty">{EMPTY_MESSAGE.stack}</p>;
+    return <p className="about-section-body about-section-body-empty">{t(EMPTY_MESSAGE_KEYS.stack)}</p>;
   }
   return (
     <div className="data-list">
@@ -455,8 +460,9 @@ function PublicStack({ state }: { state: State }) {
 }
 
 function PublicMilestones({ state }: { state: State }) {
+  const { t } = useTranslation('extras');
   if (state.milestones.length === 0) {
-    return <p className="about-section-body about-section-body-empty">{EMPTY_MESSAGE.milestones}</p>;
+    return <p className="about-section-body about-section-body-empty">{t(EMPTY_MESSAGE_KEYS.milestones)}</p>;
   }
   const sorted = [...state.milestones].sort((a, b) => {
     if (a.status === 'released' && b.status !== 'released') return -1;
@@ -470,7 +476,7 @@ function PublicMilestones({ state }: { state: State }) {
           <div className="data-row-main">
             <span className="data-row-title">{milestone.name}</span>
             <span className="data-row-sub">
-              {milestone.targetDate ? `Target ${formatDate(milestone.targetDate)}` : 'No target date'}
+              {milestone.targetDate ? t('public.milestone.target', { date: formatDate(milestone.targetDate) }) : t('public.milestone.noTarget')}
             </span>
           </div>
           <div className="data-row-side">
@@ -485,33 +491,34 @@ function PublicMilestones({ state }: { state: State }) {
   );
 }
 
-const PRD_SECTIONS: { key: keyof NonNullable<PublicProject['prd']>; label: string }[] = [
-  { key: 'purpose', label: 'Purpose' },
-  { key: 'goals', label: 'Goals' },
-  { key: 'features', label: 'Features' },
-  { key: 'scope', label: 'Scope' },
-  { key: 'outOfScope', label: 'Out of scope' },
+const PRD_SECTIONS: { key: keyof NonNullable<PublicProject['prd']>; labelKey: string }[] = [
+  { key: 'purpose', labelKey: 'public.prd.purpose' },
+  { key: 'goals', labelKey: 'public.prd.goals' },
+  { key: 'features', labelKey: 'public.prd.features' },
+  { key: 'scope', labelKey: 'public.prd.scope' },
+  { key: 'outOfScope', labelKey: 'public.prd.outOfScope' },
 ];
 
 function PublicAbout({ project, state, tabs }: { project: PublicProject; state: State; tabs: PublicTab[] }) {
+  const { t } = useTranslation('extras');
   const stats = computeProjectStats(state);
   const tabCounts: Record<PublicTab, { label: string; value: number }> = {
-    board: { label: 'Tasks', value: state.tasks.length },
-    issues: { label: 'Open issues', value: stats.openIssues },
-    milestones: { label: 'Milestones', value: state.milestones.length },
-    stack: { label: 'Stack entries', value: state.techEntries.length },
-    whiteboard: { label: 'Whiteboards', value: state.whiteboards.length },
-    about: { label: 'Test cases', value: state.testCases.length },
+    board: { label: t('public.stats.tasks'), value: state.tasks.length },
+    issues: { label: t('public.stats.openIssues'), value: stats.openIssues },
+    milestones: { label: t('public.stats.milestones'), value: state.milestones.length },
+    stack: { label: t('public.stats.stackEntries'), value: state.techEntries.length },
+    whiteboard: { label: t('public.stats.whiteboards'), value: state.whiteboards.length },
+    about: { label: t('public.stats.testCases'), value: state.testCases.length },
   };
-  const counts = ALL_PUBLIC_TABS.filter((t) => tabs.includes(t)).map((t) => tabCounts[t]);
+  const counts = ALL_PUBLIC_TABS.filter((tab) => tabs.includes(tab)).map((tb) => tabCounts[tb]);
 
   return (
     <div className="about-body">
-      <p className="about-description">{project.description || 'No description yet.'}</p>
+      <p className="about-description">{project.description || t('public.noDescription')}</p>
       <p className="about-meta">
-        <span>Team: {project.teamName}</span>
-        <span>Created {formatDate(project.createdAt)}</span>
-        <span>Updated {formatDate(project.updatedAt)}</span>
+        <span>{t('public.about.team', { name: project.teamName })}</span>
+        <span>{t('public.header.created', { date: formatDate(project.createdAt) })}</span>
+        <span>{t('public.header.updated', { date: formatDate(project.updatedAt) })}</span>
       </p>
 
       <div className="stats-grid mb-24">
@@ -530,9 +537,9 @@ function PublicAbout({ project, state, tabs }: { project: PublicProject; state: 
           const value = project.prd?.[s.key];
           return (
             <section key={s.key} className="about-section">
-              <h3 className="about-section-title">{s.label}</h3>
+              <h3 className="about-section-title">{t(s.labelKey)}</h3>
               <p className={`about-section-body${value ? '' : ' about-section-body-empty'}`}>
-                {value || 'Not set yet.'}
+                {value || t('public.prd.notSet')}
               </p>
             </section>
           );

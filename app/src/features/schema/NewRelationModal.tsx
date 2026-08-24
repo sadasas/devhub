@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { newId, nowIso } from '../../lib/utils';
 import type { OnDelete, RelationCardinality } from '../../lib/types';
 import { useProject } from '../../state/project-context';
@@ -15,6 +16,7 @@ interface NewRelationModalProps {
 }
 
 export function NewRelationModal({ open, onClose }: NewRelationModalProps) {
+  const { t } = useTranslation('project');
   const { state, dispatch } = useProject();
   usePresenceStatus('Creating relation', open);
   const [fromTableId, setFromTableId] = useState('');
@@ -61,16 +63,16 @@ export function NewRelationModal({ open, onClose }: NewRelationModalProps) {
   return (
     <Modal
       open={open}
-      title="New relation"
+      title={t('schema.relationModal.title')}
       onClose={onClose}
       width="sm"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t('schema.relationModal.cancel')}
           </Button>
           <Button type="submit" form="new-relation-form" disabled={invalid}>
-            Add relation
+            {t('schema.relationModal.submit')}
           </Button>
         </>
       }
@@ -79,10 +81,10 @@ export function NewRelationModal({ open, onClose }: NewRelationModalProps) {
         <div className="field">
           <SearchableSelect
             id="rel-from-table"
-            label="From table"
+            label={t('schema.relationModal.fromTableLabel')}
             value={fromTableId || null}
-            options={(state?.tables ?? []).map((t) => ({ value: t.id, label: t.name }))}
-            emptyLabel="Select table"
+            options={(state?.tables ?? []).map((table) => ({ value: table.id, label: table.name }))}
+            emptyLabel={t('schema.relationModal.selectTable')}
             onChange={(v) => {
               setFromTableId(v ?? '');
               setFromColumnId('');
@@ -92,20 +94,20 @@ export function NewRelationModal({ open, onClose }: NewRelationModalProps) {
         <div className="field">
           <SearchableSelect
             id="rel-from-column"
-            label="From column"
+            label={t('schema.relationModal.fromColumnLabel')}
             value={fromColumnId || null}
-            options={fromColumns.map((c) => ({ value: c.id, label: c.name || 'unnamed' }))}
-            emptyLabel="Select column"
+            options={fromColumns.map((c) => ({ value: c.id, label: c.name || t('schema.table.fbUnnamed') }))}
+            emptyLabel={t('schema.relationModal.selectColumn')}
             onChange={(v) => setFromColumnId(v ?? '')}
           />
         </div>
         <div className="field">
           <SearchableSelect
             id="rel-to-table"
-            label="To table"
+            label={t('schema.relationModal.toTableLabel')}
             value={toTableId || null}
-            options={(state?.tables ?? []).map((t) => ({ value: t.id, label: t.name }))}
-            emptyLabel="Select table"
+            options={(state?.tables ?? []).map((table) => ({ value: table.id, label: table.name }))}
+            emptyLabel={t('schema.relationModal.selectTable')}
             onChange={(v) => {
               setToTableId(v ?? '');
               setToColumnId('');
@@ -115,20 +117,20 @@ export function NewRelationModal({ open, onClose }: NewRelationModalProps) {
         <div className="field">
           <SearchableSelect
             id="rel-to-column"
-            label="To column"
+            label={t('schema.relationModal.toColumnLabel')}
             value={toColumnId || null}
-            options={toColumns.map((c) => ({ value: c.id, label: c.name || 'unnamed' }))}
-            emptyLabel="Select column"
+            options={toColumns.map((c) => ({ value: c.id, label: c.name || t('schema.table.fbUnnamed') }))}
+            emptyLabel={t('schema.relationModal.selectColumn')}
             onChange={(v) => setToColumnId(v ?? '')}
           />
         </div>
         {fromTableId === toTableId && fromTableId !== '' && (
-          <InlineError>From and to tables must be different.</InlineError>
+          <InlineError>{t('schema.relationModal.differentTablesError')}</InlineError>
         )}
         <div className="field-row">
           <div className="field">
             <label className="field-label" htmlFor="rel-cardinality">
-              Cardinality
+              {t('schema.relationModal.cardinalityLabel')}
             </label>
             <select
               id="rel-cardinality"
@@ -143,7 +145,7 @@ export function NewRelationModal({ open, onClose }: NewRelationModalProps) {
           </div>
           <div className="field">
             <label className="field-label" htmlFor="rel-on-delete">
-              On delete
+              {t('schema.relationModal.onDeleteLabel')}
             </label>
             <select
               id="rel-on-delete"
@@ -151,9 +153,9 @@ export function NewRelationModal({ open, onClose }: NewRelationModalProps) {
               value={onDelete}
               onChange={(e) => setOnDelete(e.target.value as OnDelete)}
             >
-              <option value="cascade">Cascade</option>
-              <option value="setNull">Set null</option>
-              <option value="restrict">Restrict</option>
+              <option value="cascade">{t('schema.relationModal.optCascade')}</option>
+              <option value="setNull">{t('schema.relationModal.optSetNull')}</option>
+              <option value="restrict">{t('schema.relationModal.optRestrict')}</option>
             </select>
           </div>
         </div>

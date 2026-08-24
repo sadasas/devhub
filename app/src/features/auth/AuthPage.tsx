@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { ArrowRight, TerminalWindow } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import {} from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import { useAuth } from '../../state/auth-context';
@@ -11,6 +12,7 @@ import { InlineError } from '../../components/InlineError';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 
 export function AuthPage() {
+  const { t } = useTranslation('account');
   const { login, register } = useAuth();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
@@ -25,7 +27,7 @@ export function AuthPage() {
     e.preventDefault();
     setError(null);
     if (isRegister && password !== confirm) {
-      setError('Passwords do not match.');
+      setError(t('auth.error.passwordMismatch'));
       return;
     }
     setSubmitting(true);
@@ -36,7 +38,7 @@ export function AuthPage() {
         await login(email.trim(), password);
       }
     } catch (err) {
-      setError(getErrorMessage(err, 'Something went wrong. Try again.'));
+      setError(getErrorMessage(err, t('auth.error.generic')));
       setSubmitting(false);
     }
   }
@@ -49,15 +51,13 @@ export function AuthPage() {
           <span>DevHub</span>
         </div>
 <div className="auth-brand-copy">
-          <h1>The memory of your projects.</h1>
+          <h1>{t('auth.brand.title')}</h1>
           <p>
-            Tasks, bugs, tech stack, database schema, ADRs and releases — everything your project
-            needs, in one workspace.
+            {t('auth.brand.subtitle')}
           </p>
         </div>
         <p className="auth-brand-foot">
-          <TerminalWindow size={12} weight="duotone" /> Your data stays yours — export or import
-          anytime.
+          <TerminalWindow size={12} weight="duotone" /> {t('auth.brand.footer')}
         </p>
       </aside>
 
@@ -68,35 +68,35 @@ export function AuthPage() {
         <form className="auth-form" onSubmit={onSubmit} noValidate>
           <div>
             <h2 className="auth-form-title">
-              {isRegister ? 'Create your account' : 'Sign in to DevHub'}
+              {isRegister ? t('auth.form.registerTitle') : t('auth.form.loginTitle')}
             </h2>
             <p className="auth-form-sub">
-              {isRegister ? 'Takes less than a minute. No credit card.' : 'Welcome back, developer.'}
+              {isRegister ? t('auth.form.registerSub') : t('auth.form.loginSub')}
             </p>
           </div>
 
           <Input
-            label="Email"
+            label={t('auth.field.email')}
             type="email"
             autoComplete="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
+            placeholder={t('auth.field.emailPlaceholder')}
           />
           <Input
-            label="Password"
+            label={t('auth.field.password')}
             type="password"
             autoComplete={isRegister ? 'new-password' : 'current-password'}
             required
             minLength={8}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            helper={isRegister ? 'At least 8 characters.' : undefined}
+            helper={isRegister ? t('auth.field.passwordRegisterHelper') : undefined}
           />
           {isRegister && (
             <Input
-              label="Confirm password"
+              label={t('auth.field.confirmPassword')}
               type="password"
               autoComplete="new-password"
               required
@@ -108,12 +108,12 @@ export function AuthPage() {
           {error && <InlineError>{error}</InlineError>}
 
           <Button type="submit" loading={submitting} disabled={submitting || !email || !password}>
-            {isRegister ? 'Create account' : 'Sign in'}
+            {isRegister ? t('auth.action.createAccount') : t('auth.action.signIn')}
             {!submitting && <ArrowRight size={14} weight="bold" aria-hidden="true" />}
           </Button>
 
           <p className="auth-switch">
-            {isRegister ? 'Already have an account? ' : 'No account yet? '}
+            {isRegister ? t('auth.switchPrompt.hasAccount') : t('auth.switchPrompt.noAccountYet')}
             <button
               type="button"
               className="btn btn-ghost btn-sm"
@@ -122,7 +122,7 @@ export function AuthPage() {
                 setError(null);
               }}
             >
-              {isRegister ? 'Sign in' : 'Create one'}
+              {isRegister ? t('auth.action.signIn') : t('auth.action.createOne')}
             </button>
           </p>
         </form>

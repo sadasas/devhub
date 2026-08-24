@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { newId, nowIso } from '../../lib/utils';
@@ -13,6 +14,7 @@ interface NewMilestoneModalProps {
 }
 
 export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
+  const { t } = useTranslation('project');
   const { dispatch } = useProject();
   usePresenceStatus('Creating milestone');
   const [name, setName] = useState('');
@@ -43,37 +45,37 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
   return (
     <Modal
       open
-      title="New milestone"
+      title={t('releases.newModal.title')}
       onClose={onClose}
       width="md"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t('releases.newModal.cancel')}
           </Button>
           <Button variant="primary" onClick={submit} disabled={!name.trim()}>
-            Add milestone
+            {t('releases.newModal.submit')}
           </Button>
         </>
       }
     >
       <div className="form-stack">
         <Input
-          label="Name"
+          label={t('releases.newModal.nameLabel')}
           autoFocus
-          placeholder="e.g. Public beta"
+          placeholder={t('releases.newModal.namePlaceholder')}
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
         <div className="field-row">
           <div className="field">
             <label className="field-label" htmlFor="milestone-version">
-              Version
+              {t('releases.newModal.versionLabel')}
             </label>
             <input
               id="milestone-version"
               className="input"
-              placeholder="0.1.0"
+              placeholder={t('releases.newModal.versionPlaceholder')}
               inputMode="decimal"
               value={version}
               onChange={(e) => setVersion(e.target.value.replace(/[^0-9.]/g, ''))}
@@ -81,7 +83,7 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
           </div>
           <div className="field">
             <label className="field-label" htmlFor="milestone-target">
-              Target date
+              {t('releases.newModal.targetDateLabel')}
             </label>
             <input
               id="milestone-target"
@@ -94,7 +96,7 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
         </div>
         <div className="field">
           <label className="field-label" htmlFor="milestone-status">
-            Status
+            {t('releases.newModal.statusLabel')}
           </label>
           <select
             id="milestone-status"
@@ -102,15 +104,15 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
             value={status}
             onChange={(e) => setStatus(e.target.value as MilestoneStatus)}
           >
-            <option value="planned">Planned</option>
-            <option value="inProgress">In progress</option>
-            <option value="released">Released</option>
+            <option value="planned">{t('releases.optionStatus.planned')}</option>
+            <option value="inProgress">{t('releases.optionStatus.inProgress')}</option>
+            <option value="released">{t('releases.optionStatus.released')}</option>
           </select>
         </div>
         <Textarea
-          label="Changelog"
+          label={t('releases.newModal.changelogLabel')}
           rows={4}
-          helper="What shipped with this release"
+          helper={t('releases.newModal.changelogHelper')}
           value={changelog}
           onChange={(e) => setChangelog(e.target.value)}
         />

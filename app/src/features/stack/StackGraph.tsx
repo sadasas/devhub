@@ -4,7 +4,7 @@ import {
   STACK_NODE_RADIUS,
   STACK_VIEWBOX,
 } from '../../lib/stack-graph';
-import { TECH_CATEGORY, TECH_STATUS } from '../../lib/labels';
+import { useTranslation } from 'react-i18next';
 import type { TechEntry, TechEntryCategory, TechStatus } from '../../lib/types';
 
 const STATUS_COLOR: Record<TechStatus, string> = {
@@ -32,6 +32,7 @@ interface StackGraphProps {
 }
 
 export function StackGraph({ entries, onOpen }: StackGraphProps) {
+  const { t } = useTranslation('project');
   const { hubs, nodes } = computeStackGraph(entries);
 
   const categoryCount = (category: TechEntryCategory) =>
@@ -43,7 +44,7 @@ export function StackGraph({ entries, onOpen }: StackGraphProps) {
         viewBox={`0 0 ${STACK_VIEWBOX.width} ${STACK_VIEWBOX.height}`}
         className="stack-graph"
         role="group"
-        aria-label={`Tech stack graph — ${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`}
+        aria-label={t('stack.graph.ariaLabel', { count: entries.length })}
       >
         {nodes.map((node) => {
           const hub = hubs.find((h) => h.category === node.hub);
@@ -79,7 +80,7 @@ export function StackGraph({ entries, onOpen }: StackGraphProps) {
               aria-hidden="true"
             />
             <text x={hub.x} y={hub.y + 40} textAnchor="middle" className="stack-graph-hub-label">
-              {TECH_CATEGORY[hub.category].label}
+              {t(`stack.category.${hub.category}`)}
             </text>
             <text x={hub.x} y={hub.y + 55} textAnchor="middle" className="stack-graph-hub-count">
               {categoryCount(hub.category)}
@@ -92,7 +93,7 @@ export function StackGraph({ entries, onOpen }: StackGraphProps) {
             key={node.entry.id}
             role="button"
             tabIndex={0}
-            aria-label={`Edit ${node.entry.name}`}
+            aria-label={t('stack.graph.nodeAria', { name: node.entry.name })}
             className="stack-graph-node"
             onClick={() => onOpen(node.entry.id)}
             onKeyDown={(e) => {
@@ -102,7 +103,14 @@ export function StackGraph({ entries, onOpen }: StackGraphProps) {
               }
             }}
           >
-            <title>{`${node.entry.name} v${node.entry.version} · ${TECH_STATUS[node.entry.status].label}${node.entry.notes ? `\n${node.entry.notes}` : ''}`}</title>
+            <title>
+              {t('stack.graph.nodeTitle', {
+                name: node.entry.name,
+                version: node.entry.version,
+                status: t(`stack.statusBadge.${node.entry.status}`),
+              })}
+              {node.entry.notes ? `\n${node.entry.notes}` : ''}
+            </title>
             <circle
               cx={node.x}
               cy={node.y}
@@ -136,7 +144,7 @@ export function StackGraph({ entries, onOpen }: StackGraphProps) {
             return (
               <div key={status} className="legend-row">
                 <span className="legend-dot" style={{ background: STATUS_COLOR[status] }} />
-                <span>{TECH_STATUS[status].label}</span>
+                <span>{t(`stack.statusBadge.${status}`)}</span>
                 <span className="legend-count">
                   {entries.filter((e) => e.status === status).length}
                 </span>
@@ -148,7 +156,7 @@ export function StackGraph({ entries, onOpen }: StackGraphProps) {
           {STACK_CATEGORIES.map((category) => (
             <div key={category} className="legend-row">
               <span className="legend-dot" style={{ background: CATEGORY_COLOR[category] }} />
-              <span>{TECH_CATEGORY[category].label}</span>
+              <span>{t(`stack.category.${category}`)}</span>
               <span className="legend-count">{categoryCount(category)}</span>
             </div>
           ))}

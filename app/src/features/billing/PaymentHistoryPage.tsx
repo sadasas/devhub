@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Receipt } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { PaymentHistoryItem } from '../../lib/types';
@@ -14,13 +15,14 @@ function formatIdr(amount: number): string {
   return `Rp ${amount.toLocaleString('id-ID')}`;
 }
 
-const STATUS_BADGE: Record<string, { tone: 'success' | 'neutral' | 'danger'; label: string }> = {
-  completed: { tone: 'success', label: 'Paid' },
-  pending: { tone: 'neutral', label: 'Pending' },
-  cancelled: { tone: 'danger', label: 'Cancelled' },
+const STATUS_BADGE_KEYS: Record<string, { tone: 'success' | 'neutral' | 'danger'; key: string }> = {
+  completed: { tone: 'success', key: 'billing.status.paid' },
+  pending: { tone: 'neutral', key: 'billing.status.pending' },
+  cancelled: { tone: 'danger', key: 'billing.status.cancelled' },
 };
 
 export function PaymentHistoryPage() {
+  const { t } = useTranslation('extras');
   const navigate = useNavigate();
   const [payments, setPayments] = useState<PaymentHistoryItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export function PaymentHistoryPage() {
     api
       .paymentHistory()
       .then((res) => setPayments(res.payments))
-      .catch((err) => setError(getErrorMessage(err, 'Failed to load payment history.')));
+      .catch((err) => setError(getErrorMessage(err, t('billing.errors.load'))));
   };
 
   useEffect(() => {
@@ -45,7 +47,7 @@ export function PaymentHistoryPage() {
       const res = await api.resumePayment(orderId);
       window.location.assign(res.url);
     } catch (err) {
-      setActionError(getErrorMessage(err, 'Gagal melanjutkan pembayaran.'));
+      setActionError(getErrorMessage(err, t('billing.errors.resume')));
       setBusyOrderId(null);
     }
   }
@@ -59,7 +61,7 @@ export function PaymentHistoryPage() {
         prev ? prev.map((p) => (p.orderId === orderId ? { ...p, status: 'cancelled' } : p)) : prev,
       );
     } catch (err) {
-      setActionError(getErrorMessage(err, 'Gagal membatalkan pembayaran.'));
+      setActionError(getErrorMessage(err, t('billing.errors.cancel')));
     } finally {
       setBusyOrderId(null);
     }
@@ -70,12 +72,12 @@ export function PaymentHistoryPage() {
       <header className="page-header">
         <div>
           <button type="button" className="back-btn" onClick={() => navigate('/')}>
-            <ArrowLeft size={14} aria-hidden="true" /> Back
+            <ArrowLeft size={14} aria-hidden="true" /> {t('billing.back')}
           </button>
           <h1 className="page-title" style={{ marginTop: 8 }}>
-            Payment History
+            {t('billing.title')}
           </h1>
-          <p className="page-subtitle">All payments you have made across workspaces.</p>
+          <p className="page-subtitle">{t('billing.subtitle')}</p>
         </div>
       </header>
 
@@ -91,24 +93,25 @@ export function PaymentHistoryPage() {
       ) : payments?.length === 0 ? (
         <EmptyState
           icon={<Receipt size={20} />}
-          title="No payments yet"
-          description="Completed payments for your workspaces will appear here."
+          title={t('billing.empty.title')}
+          description={t('billing.empty.desc')}
         />
       ) : (
         <div style={{ display: 'grid', gap: 8 }}>
           {payments!.map((p) => {
-            const badge = STATUS_BADGE[p.status] ?? { tone: 'neutral' as const, label: p.status };
+            const badge = STATUS_BADGE_KEYS[p.status] ?? { tone: 'neutral' as const, key: '' };
+            const badgeLabel = badge.key ? t(badge.key) : p.status;
             const busy = busyOrderId === p.orderId;
             return (
               <div key={p.orderId} className="data-row">
                 <div className="data-row-main">
                   <span className="data-row-title">
                     <span className="row-title-text">{formatIdr(p.amount)}</span>
-                    <Badge tone={badge.tone}>{badge.label}</Badge>
+                    <Badge tone={badge.tone}>{badgeLabel}</Badge>
                   </span>
                   <span className="data-row-meta">
                     {p.teamName} · {p.packageName}
-                    {p.durationDays ? ` · ${p.durationDays} days` : ''} ·{' '}
+                    {p.durationDays ? ` · ${t('billing.days', { count: p.durationDays })}` : ''} ·{' '}
                     {new Date(p.createdAt).toLocaleDateString()}
                   </span>
                 </div>
@@ -120,7 +123,7 @@ export function PaymentHistoryPage() {
                       loading={busy}
                       onClick={() => void onResume(p.orderId)}
                     >
-                      Lanjutkan pembayaran
+                      {t('billing.resume')}
                     </Button>
                     <Button
                       size="sm"
@@ -128,7 +131,7 @@ export function PaymentHistoryPage() {
                       disabled={busy}
                       onClick={() => void onCancel(p.orderId)}
                     >
-                      Batalkan
+                      {t('billing.cancelPayment')}
                     </Button>
                   </div>
                 )}

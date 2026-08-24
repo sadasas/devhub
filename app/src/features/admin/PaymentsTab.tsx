@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Receipt } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { AdminPayment } from '../../lib/types';
@@ -13,6 +14,7 @@ import { formatIdr } from './charts';
 const PAGE_SIZE = 50;
 
 export function PaymentsTab({ refreshKey }: { refreshKey: number }) {
+  const { t } = useTranslation('extras');
   const [payments, setPayments] = useState<AdminPayment[] | null>(null);
   const [paymentsTotal, setPaymentsTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -27,10 +29,10 @@ export function PaymentsTab({ refreshKey }: { refreshKey: number }) {
         setPaymentsTotal(res.total);
       } catch (err) {
         setPayments([]);
-        setError(getErrorMessage(err, 'Failed to load payments'));
+        setError(getErrorMessage(err, t('admin.payments.errors.load')));
       }
     },
-    [],
+    [t],
   );
 
   useEffect(() => {
@@ -39,7 +41,7 @@ export function PaymentsTab({ refreshKey }: { refreshKey: number }) {
   }, [statusFilter, refreshKey, loadPayments]);
 
   return (
-    <section className="tab-panel" role="tabpanel" aria-label="Platform payments">
+    <section className="tab-panel" role="tabpanel" aria-label={t('admin.payments.aria')}>
       <div className="admin-filter-bar">
         <select
           className="select"
@@ -48,14 +50,14 @@ export function PaymentsTab({ refreshKey }: { refreshKey: number }) {
             setStatusFilter(e.target.value);
             setPayments(null);
           }}
-          aria-label="Filter by status"
+          aria-label={t('admin.payments.filterStatusAria')}
         >
-          <option value="">All statuses</option>
-          <option value="completed">Completed</option>
-          <option value="pending">Pending</option>
+          <option value="">{t('admin.payments.allStatuses')}</option>
+          <option value="completed">{t('admin.payments.completed')}</option>
+          <option value="pending">{t('admin.payments.pending')}</option>
         </select>
         <span className="page-subtitle">
-          {payments !== null ? `${paymentsTotal} payment${paymentsTotal === 1 ? '' : 's'}` : ''}
+          {payments !== null ? t('admin.payments.count', { count: paymentsTotal }) : ''}
         </span>
       </div>
 
@@ -69,24 +71,24 @@ export function PaymentsTab({ refreshKey }: { refreshKey: number }) {
         <InlineError className="mb-12">
           {error}{' '}
           <Button variant="ghost" size="sm" onClick={() => void loadPayments(statusFilter)}>
-            Retry
+            {t('admin.retry')}
           </Button>
         </InlineError>
       ) : payments?.length === 0 ? (
         <EmptyState
           icon={<Receipt size={22} />}
-          title="No payments yet"
-          description="Completed and pending payments will appear here."
+          title={t('admin.payments.emptyTitle')}
+          description={t('admin.payments.emptyDesc')}
         />
       ) : (
         <div className="admin-payment-table">
           <div className="admin-payment-header">
-            <span>Date</span>
-            <span>Buyer</span>
-            <span>Team</span>
-            <span>Package</span>
-            <span style={{ textAlign: 'right' }}>Amount</span>
-            <span>Status</span>
+            <span>{t('admin.payments.date')}</span>
+            <span>{t('admin.payments.buyer')}</span>
+            <span>{t('admin.payments.team')}</span>
+            <span>{t('admin.payments.package')}</span>
+            <span style={{ textAlign: 'right' }}>{t('admin.payments.amount')}</span>
+            <span>{t('admin.payments.status')}</span>
           </div>
           {payments!.map((p) => (
             <div key={p.id} className="admin-payment-row">
@@ -102,7 +104,7 @@ export function PaymentsTab({ refreshKey }: { refreshKey: number }) {
               <span>{p.packageName}</span>
               <span className="admin-payment-amount">{formatIdr(p.amount)}</span>
               <Badge tone={p.status === 'completed' ? 'success' : 'neutral'}>
-                {p.status === 'completed' ? 'Paid' : 'Pending'}
+                {p.status === 'completed' ? t('admin.payments.paid') : t('admin.payments.pending')}
               </Badge>
             </div>
           ))}

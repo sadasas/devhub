@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { FloppyDisk, GitDiff, Graph, LinkSimple, List, Plus, Trash } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { formatDate, relationLabel as formatRelation, shortId } from '../../lib/utils';
 import type { Relation, SchemaVersion, Table } from '../../lib/types';
 import { applySort, type SortSpec } from '../../lib/sort';
@@ -24,15 +25,16 @@ import { InlineError } from '../../components/InlineError';
 type SchemaView = 'tables' | 'erd';
 
 const TABLE_SORT_SPECS: SortSpec<Table>[] = [
-  { key: 'name', label: 'Name', get: (t) => t.name },
-  { key: 'createdAt', label: 'Created', get: (t) => t.createdAt },
+  { key: 'name', label: 'schema.sort.name', get: (t) => t.name },
+  { key: 'createdAt', label: 'schema.sort.createdAt', get: (t) => t.createdAt },
 ];
 
 const VERSION_SORT_SPECS: SortSpec<SchemaVersion>[] = [
-  { key: 'appliedAt', label: 'Applied', get: (v) => v.appliedAt },
+  { key: 'appliedAt', label: 'schema.sort.applied', get: (v) => v.appliedAt },
 ];
 
 export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
+  const { t } = useTranslation('project');
   const { state, loading, error, dispatch, canEdit } = useProject();
   const [searchParams, setSearchParams] = useSearchParams();
   const viewParam = searchParams.get('schemaView');
@@ -113,12 +115,15 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     <div className="page">
       <div className="data-list-header">
         <span className="data-list-count">
-          {state.tables.length} tables · {state.relations.length} relations · {state.schemaVersions.length}{' '}
-          versions
+          {t('schema.page.count', {
+            tables: state.tables.length,
+            relations: state.relations.length,
+            versions: state.schemaVersions.length,
+          })}
         </span>
         <div className="data-list-actions">
           <SortControl
-            options={TABLE_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: s.label }))}
+            options={TABLE_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: t(s.label) }))}
             value={sortValue}
             onChange={setSort}
           />
@@ -129,18 +134,18 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
               leftIcon={<LinkSimple size={13} aria-hidden="true" />}
               onClick={() => setNewRelationOpen(true)}
             >
-              New relation
+              {t('schema.page.newRelation')}
             </Button>
           )}
           {canEdit && (
             <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setNewTableOpen(true)}>
-              New table
+              {t('schema.page.newTable')}
             </Button>
           )}
         </div>
       </div>
 
-      <div className="sub-tabs" role="tablist" aria-label="Schema view">
+      <div className="sub-tabs" role="tablist" aria-label={t('schema.page.viewAria')}>
         <button
           ref={tabTablesRef}
           type="button"
@@ -154,7 +159,7 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           tabIndex={view === 'tables' ? 0 : -1}
         >
           <List size={13} aria-hidden="true" />
-          Tables
+          {t('schema.page.tablesTab')}
         </button>
         <button
           ref={tabErdRef}
@@ -169,7 +174,7 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           tabIndex={view === 'erd' ? 0 : -1}
         >
           <Graph size={13} aria-hidden="true" />
-          ERD
+          {t('schema.page.erdTab')}
         </button>
       </div>
 
@@ -180,36 +185,36 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
               {state.tables.length === 0 ? (
                 <EmptyState
                   icon={<Graph size={22} />}
-                  title="No tables yet"
-                  description="Model your database — tables, columns, keys — then view the ERD."
-                  action={canEdit ? <Button size="sm" onClick={() => setNewTableOpen(true)}>New table</Button> : undefined}
+                  title={t('schema.empty.tablesTitle')}
+                  description={t('schema.empty.tablesDesc')}
+                  action={canEdit ? <Button size="sm" onClick={() => setNewTableOpen(true)}>{t('schema.page.newTable')}</Button> : undefined}
                 />
               ) : (
                 <div className="data-list">
-                  {applySort(state.tables, tableSortSpec, effectiveSort.dir).map((t) => (
-                    <div key={t.id} className="data-row">
+                  {applySort(state.tables, tableSortSpec, effectiveSort.dir).map((t2) => (
+                    <div key={t2.id} className="data-row">
                       <button
                         type="button"
                         className="data-row-main"
-                        onClick={() => setTableId(t.id)}
-                        aria-label={`Edit table ${t.name}`}
+                        onClick={() => setTableId(t2.id)}
+                        aria-label={t('schema.page.editTableAria', { name: t2.name })}
                       >
                         <div className="data-row-title">
-                          <span className="row-title-text">{t.name}</span>
+                          <span className="row-title-text">{t2.name}</span>
                         </div>
-                        <div className="data-row-sub">{t.comment || 'No comment.'}</div>
+                        <div className="data-row-sub">{t2.comment || t('schema.noComment')}</div>
                         <div className="data-row-meta">
                           <span>
-                            {t.columns.length} column{t.columns.length === 1 ? '' : 's'}
+                            {t('schema.columnCount', { count: t2.columns.length })}
                           </span>
                           <span>
-                            {t.indexes.length} index{t.indexes.length === 1 ? '' : 'es'}
+                            {t('schema.indexCount', { count: t2.indexes.length })}
                           </span>
-                          <span>#{shortId(t.id)}</span>
-                          {unreadIds?.has(t.id) && (
+                          <span>#{shortId(t2.id)}</span>
+                          {unreadIds?.has(t2.id) && (
                             <>
                               <span className="unread-dot" aria-hidden="true" />
-                              <span className="sr-only">Unread</span>
+                              <span className="sr-only">{t('schema.unread')}</span>
                             </>
                           )}
                         </div>
@@ -229,7 +234,7 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
                 />
                 {state.relations.length > 0 && (
                   <div className="data-list relation-list">
-                    <span className="data-list-count">Relations</span>
+                    <span className="data-list-count">{t('schema.relationsHeading')}</span>
                     {state.relations.map((r) => (
                       <div className="data-row" key={r.id}>
                         <div className="data-row-main">
@@ -238,12 +243,12 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
                           </div>
                           <div className="data-row-meta">
                             <span>{r.cardinality}</span>
-                            <span>on delete: {r.onDelete}</span>
+                            <span>{t('schema.page.onDelete', { value: r.onDelete })}</span>
                             <span>#{shortId(r.id)}</span>
                             {unreadIds?.has(r.id) && (
                               <>
                                 <span className="unread-dot" aria-hidden="true" />
-                                <span className="sr-only">Unread</span>
+                                <span className="sr-only">{t('schema.unread')}</span>
                               </>
                             )}
                           </div>
@@ -254,7 +259,7 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
                               variant="ghost"
                               size="sm"
                               className="btn-icon"
-                              aria-label={`Delete relation ${relationLabel(r)}`}
+                              aria-label={t('schema.page.deleteRelationAria', { label: relationLabel(r) })}
                               onClick={() => setConfirmRel(r)}
                             >
                               <Trash size={13} aria-hidden="true" />
@@ -270,12 +275,12 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           )}
         </div>
 
-        <aside className="schema-side" aria-label="Schema versions">
+        <aside className="schema-side" aria-label={t('schema.versionsHeading')}>
           <div className="versions-section">
             <div className="data-list-header">
-              <span className="data-list-count">Schema versions</span>
+              <span className="data-list-count">{t('schema.versionsHeading')}</span>
               <SortControl
-                options={VERSION_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
+                options={VERSION_SORT_SPECS.map((s) => ({ value: s.key, label: t(s.label) }))}
                 value={versionSortValue}
                 onChange={setVersionSort}
               />
@@ -286,7 +291,7 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
                   leftIcon={<GitDiff size={13} aria-hidden="true" />}
                   onClick={() => setDiffOpen(true)}
                 >
-                  Diff versions
+                  {t('schema.diffVersions')}
                 </Button>
               )}
               {canEdit && (
@@ -296,16 +301,16 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
                   leftIcon={<FloppyDisk size={13} aria-hidden="true" />}
                   onClick={() => setSaveVersionOpen(true)}
                 >
-                  Save version
+                  {t('schema.saveVersion')}
                 </Button>
               )}
             </div>
             {state.schemaVersions.length === 0 ? (
               <EmptyState
                 icon={<FloppyDisk size={22} />}
-                title="No versions yet"
-                description="Snapshot the schema whenever it changes."
-                action={canEdit ? <Button size="sm" variant="ghost" leftIcon={<FloppyDisk size={13} aria-hidden="true" />} onClick={() => setSaveVersionOpen(true)}>Save version</Button> : undefined}
+                title={t('schema.empty.versionsTitle')}
+                description={t('schema.empty.versionsDesc')}
+                action={canEdit ? <Button size="sm" variant="ghost" leftIcon={<FloppyDisk size={13} aria-hidden="true" />} onClick={() => setSaveVersionOpen(true)}>{t('schema.saveVersion')}</Button> : undefined}
               />
             ) : (
               <div>
@@ -316,12 +321,12 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
                       {unreadIds?.has(v.id) && (
                         <>
                           <span className="unread-dot" aria-hidden="true" />
-                          <span className="sr-only">Unread</span>
+                          <span className="sr-only">{t('schema.unread')}</span>
                         </>
                       )}
                       <div className="version-main">
-                        <div className="version-notes">{v.notes || 'No notes.'}</div>
-                        <div className="version-date">applied {formatDate(v.appliedAt)}</div>
+                        <div className="version-notes">{v.notes || t('schema.noNotes')}</div>
+                        <div className="version-date">{t('schema.appliedAt', { date: formatDate(v.appliedAt) })}</div>
                       </div>
                     </div>
                   ))}
@@ -338,13 +343,13 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       <DiffVersionModal open={diffOpen} versions={state.schemaVersions} onClose={() => setDiffOpen(false)} />
       <Modal
         open={confirmRel !== null}
-        title="Delete relation"
+        title={t('schema.deleteRelationModal.title')}
         onClose={() => setConfirmRel(null)}
         width="sm"
         footer={
           <>
             <Button variant="ghost" onClick={() => setConfirmRel(null)}>
-              Cancel
+              {t('schema.deleteRelationModal.cancel')}
             </Button>
             <Button
               variant="danger"
@@ -353,14 +358,13 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
                 setConfirmRel(null);
               }}
             >
-              Delete
+              {t('schema.deleteRelationModal.confirm')}
             </Button>
           </>
         }
       >
         <p className="modal-copy">
-          Remove the relation {confirmRel ? relationLabel(confirmRel) : ''}? Tables and columns stay
-          untouched.
+          {t('schema.deleteRelationModal.body', { relation: confirmRel ? relationLabel(confirmRel) : '' })}
         </p>
       </Modal>
     </div>

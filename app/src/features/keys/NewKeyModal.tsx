@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link } from 'react-router';
 import { Check, Copy } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { McpKeyCreated } from '../../lib/types';
@@ -23,6 +24,7 @@ interface NewKeyModalProps {
 }
 
 export function NewKeyModal({ open, onClose, onCreated, activeCount = 0 }: NewKeyModalProps) {
+  const { t } = useTranslation('account');
   const [step, setStep] = useState<'form' | 'reveal'>('form');
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +69,7 @@ export function NewKeyModal({ open, onClose, onCreated, activeCount = 0 }: NewKe
       setCreated(key);
       setStep('reveal');
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to create key.'));
+      setError(getErrorMessage(err, t('keys.error.createFailed')));
     } finally {
       setSubmitting(false);
     }
@@ -96,50 +98,48 @@ export function NewKeyModal({ open, onClose, onCreated, activeCount = 0 }: NewKe
   return (
     <Modal
       open={open}
-      title="New API key"
+      title={t('keys.newKeyModal.title')}
       onClose={handleClose}
       width="sm"
       footer={
         step === 'form' ? (
           <>
             <Button variant="ghost" onClick={handleClose}>
-              Cancel
+              {t('common:action.cancel')}
             </Button>
             <Button type="submit" form="new-key-form" loading={submitting} disabled={!name.trim()}>
-              Create key
+              {t('keys.newKeyModal.create')}
             </Button>
           </>
         ) : (
-          <Button onClick={onDone}>Done</Button>
+          <Button onClick={onDone}>{t('keys.newKeyModal.done')}</Button>
         )
       }
     >
       {step === 'form' ? (
         <form id="new-key-form" className="form-stack" onSubmit={onSubmit} noValidate>
           <Input
-            label="Name"
+            label={t('keys.newKeyModal.name')}
             required
             autoFocus
-            placeholder="e.g. opencode-desktop"
-            helper="Required — so you can tell your keys apart."
+            placeholder={t('keys.newKeyModal.namePlaceholder')}
+            helper={t('keys.newKeyModal.nameHelper')}
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
           <p className="field-helper">
-            This key can read and update every project in the teams you belong to. It is shown only
-            once — store it somewhere safe.
+            {t('keys.newKeyModal.scopeNote')}
           </p>
           {atCapWarning && (
             <p className="field-helper field-helper--warn">
-              You have {activeCount} of {MAX_KEYS} active keys — the maximum is {MAX_KEYS}. Revoke an
-              unused key before creating another.
+              {t('keys.newKeyModal.capWarning', { active: activeCount, max: MAX_KEYS })}
             </p>
           )}
           {error && <InlineError>{error}</InlineError>}
         </form>
       ) : created ? (
         <div className="form-stack">
-          <p className="field-helper">Copy this key now — it is shown only once.</p>
+          <p className="field-helper">{t('keys.newKeyModal.copyNow')}</p>
           <div className="key-raw-box">
             <code className="key-raw-value">{created.key}</code>
             <Button
@@ -154,7 +154,7 @@ export function NewKeyModal({ open, onClose, onCreated, activeCount = 0 }: NewKe
               }
               onClick={() => void onCopy()}
             >
-              {copied ? 'Copied' : 'Copy key'}
+              {copied ? t('keys.copied') : t('keys.newKeyModal.copyKey')}
             </Button>
           </div>
 
@@ -165,17 +165,17 @@ export function NewKeyModal({ open, onClose, onCreated, activeCount = 0 }: NewKe
             <button
               type="button"
               className="code-copy-btn"
-              aria-label="Copy as DEVHUB_MCP_KEY environment variable"
-              title={copied ? 'Copied' : 'Copy as env var'}
+              aria-label={t('keys.newKeyModal.envVarAria')}
+              title={copied ? t('keys.copied') : t('keys.newKeyModal.envVarTitle')}
               onClick={() => void onCopyEnv()}
             >
               {copied ? <Check size={13} weight="bold" aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
             </button>
           </div>
 
-          <p className="field-helper">If you lose it, you can copy it again later from the API keys list.</p>
+          <p className="field-helper">{t('keys.newKeyModal.loseNote')}</p>
 
-          <p className="field-helper">Next steps — test it against your MCP server:</p>
+          <p className="field-helper">{t('keys.newKeyModal.nextSteps')}</p>
           <div className="code-block">
             <pre>
               <code>{curlSnippet}</code>
@@ -183,8 +183,8 @@ export function NewKeyModal({ open, onClose, onCreated, activeCount = 0 }: NewKe
             <button
               type="button"
               className="code-copy-btn"
-              aria-label="Copy curl test command"
-              title={curlCopied ? 'Copied' : 'Copy'}
+              aria-label={t('keys.newKeyModal.curlAria')}
+              title={curlCopied ? t('keys.copied') : t('keys.copy')}
               onClick={() => void onCopyCurl()}
             >
               {curlCopied ? (
@@ -195,7 +195,7 @@ export function NewKeyModal({ open, onClose, onCreated, activeCount = 0 }: NewKe
             </button>
           </div>
           <p className="field-helper">
-            <Link to="/docs/mcp">Full MCP integration guide →</Link>
+            <Link to="/docs/mcp">{t('keys.fullGuide')}</Link>
           </p>
         </div>
       ) : null}

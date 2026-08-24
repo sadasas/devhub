@@ -92,5 +92,25 @@
     "pendingTitle_one": "{{count}} change waiting to sync.",
     "pendingTitle_other": "{{count}} changes waiting to sync.",
     "pending": "Pending {{count}}"
+  },
+  "time": {
+    "justNow": "just now",
+    "minAgo_one": "{{count}}m ago",
+    "minAgo_other": "{{count}}m ago",
+    "hourAgo_one": "{{count}}h ago",
+    "hourAgo_other": "{{count}}h ago",
+    "dayAgo_one": "{{count}}d ago",
+    "dayAgo_other": "{{count}}d ago",
+    "startsPrefix": "Starts {{date}}"
+  },
+  "due": {
+    "overdueDays_one": "Overdue {{count}}d",
+    "overdueDays_other": "Overdue {{count}}d",
+    "today": "Due today",
+    "tomorrow": "Due tomorrow",
+    "dated": "Due {{date}}",
+    "doneOnTime": "Done on time",
+    "doneLate_one": "Done late {{count}}d",
+    "doneLate_other": "Done late {{count}}d"
   }
 }

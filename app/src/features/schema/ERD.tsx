@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CornersOut, Graph, MagnifyingGlassMinus, MagnifyingGlassPlus } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import type { Column, Relation, Table } from '../../lib/types';
 import type { State } from '../../lib/types';
 import { relationLabel } from '../../lib/utils';
@@ -52,6 +53,7 @@ interface ERDProps {
 }
 
 export function ERD({ state, onDeleteRelation, onNewTable }: ERDProps) {
+  const { t } = useTranslation('project');
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragStartRef = useRef<{ pointerX: number; pointerY: number; x: number; y: number } | null>(null);
   const [view, setView] = useState({ x: 16, y: 16, s: 1 });
@@ -142,7 +144,7 @@ export function ERD({ state, onDeleteRelation, onNewTable }: ERDProps) {
         width="100%"
         height="100%"
         role="group"
-        aria-label={`Entity relationship diagram with ${state.tables.length} tables and ${state.relations.length} relations`}
+        aria-label={t('schema.erd.svgAria', { tables: state.tables.length, relations: state.relations.length })}
         tabIndex={0}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -169,7 +171,10 @@ export function ERD({ state, onDeleteRelation, onNewTable }: ERDProps) {
                 className="erd-rel"
                 role="button"
                 tabIndex={0}
-                aria-label={`Relation ${ft.table.name}.${fc.name} to ${tt.table.name}.${tc.name}, click to delete`}
+                aria-label={t('schema.erd.relAria', {
+                  from: `${ft.table.name}.${fc.name}`,
+                  to: `${tt.table.name}.${tc.name}`,
+                })}
                 onClick={() => onDeleteRelation(rel)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -179,8 +184,11 @@ export function ERD({ state, onDeleteRelation, onNewTable }: ERDProps) {
                 }}
               >
                 <title>
-                  {relationLabel(ft.table.name, fc.name, tt.table.name, tc.name)} · {rel.cardinality} · on delete:{' '}
-                  {rel.onDelete} — click to delete
+                  {t('schema.erd.relTitle', {
+                    label: relationLabel(ft.table.name, fc.name, tt.table.name, tc.name),
+                    cardinality: rel.cardinality,
+                    onDelete: rel.onDelete,
+                  })}
                 </title>
                 <polyline points={pts} fill="none" strokeWidth={1.5} />
                 <text x={mx} y={(fy + ty) / 2 - 6} className="erd-cardinality" textAnchor="middle">
@@ -190,23 +198,23 @@ export function ERD({ state, onDeleteRelation, onNewTable }: ERDProps) {
             );
           })}
           {layout.map((l) => {
-            const t = l.table;
+            const table = l.table;
             return (
               <g
-                key={t.id}
+                key={table.id}
                 transform={`translate(${l.x},${l.y})`}
                 role="group"
-                aria-label={`Table ${t.name} with ${t.columns.length} columns`}
+                aria-label={t('schema.erd.tableAria', { name: table.name, count: table.columns.length })}
               >
-                <title>{t.name}</title>
+                <title>{table.name}</title>
                 <rect width={TABLE_W} height={l.h} rx={8} className="erd-table-body" />
                 <rect width={TABLE_W} height={HEADER_H} rx={8} className="erd-table-header" />
                 <rect y={HEADER_H - 8} width={TABLE_W} height={8} className="erd-table-header" />
                 <text x={12} y={20} className="erd-table-title">
-                  {truncate(t.name, 24)}
+                  {truncate(table.name, 24)}
                 </text>
-                {t.columns.map((c) => (
-                  <g key={c.id} transform={`translate(0,${HEADER_H + t.columns.indexOf(c) * ROW_H})`} aria-label={`${c.name} ${c.type}${c.primaryKey ? ' PK' : ''}${c.nullable ? '' : ' NOT NULL'}`}>
+                {table.columns.map((c) => (
+                  <g key={c.id} transform={`translate(0,${HEADER_H + table.columns.indexOf(c) * ROW_H})`} aria-label={`${c.name} ${c.type}${c.primaryKey ? ' PK' : ''}${c.nullable ? '' : ' NOT NULL'}`}>
                     {c.primaryKey && <circle cx={10} cy={ROW_H / 2} r={2.5} className="erd-pk" />}
                     <text x={22} y={14} className="erd-col-name">
                       {truncate(c.name, 20)}
@@ -225,10 +233,10 @@ export function ERD({ state, onDeleteRelation, onNewTable }: ERDProps) {
         <div className="erd-empty">
           <div className="empty-state">
             <Graph size={22} aria-hidden="true" />
-            <p className="empty-state-title">No tables yet</p>
-            <p className="empty-state-desc">Create your first table to start drawing the ERD.</p>
+            <p className="empty-state-title">{t('schema.empty.tablesTitle')}</p>
+            <p className="empty-state-desc">{t('schema.erd.emptyDesc')}</p>
             <Button size="sm" onClick={onNewTable}>
-              New table
+              {t('schema.page.newTable')}
             </Button>
           </div>
         </div>
@@ -237,8 +245,8 @@ export function ERD({ state, onDeleteRelation, onNewTable }: ERDProps) {
         <Button
           variant="secondary"
           size="sm"
-          aria-label="Zoom in"
-          title="Zoom in"
+          aria-label={t('schema.erd.zoomIn')}
+          title={t('schema.erd.zoomIn')}
           onClick={() => zoomAt(1.2)}
         >
           <MagnifyingGlassPlus size={13} aria-hidden="true" />
@@ -246,8 +254,8 @@ export function ERD({ state, onDeleteRelation, onNewTable }: ERDProps) {
         <Button
           variant="secondary"
           size="sm"
-          aria-label="Zoom out"
-          title="Zoom out"
+          aria-label={t('schema.erd.zoomOut')}
+          title={t('schema.erd.zoomOut')}
           onClick={() => zoomAt(1 / 1.2)}
         >
           <MagnifyingGlassMinus size={13} aria-hidden="true" />
@@ -255,14 +263,14 @@ export function ERD({ state, onDeleteRelation, onNewTable }: ERDProps) {
         <Button
           variant="secondary"
           size="sm"
-          aria-label="Reset view"
-          title="Reset view"
+          aria-label={t('schema.erd.resetView')}
+          title={t('schema.erd.resetView')}
           onClick={() => setView({ x: 16, y: 16, s: 1 })}
         >
           <CornersOut size={13} aria-hidden="true" />
         </Button>
       </div>
-      <div className="erd-hint">Arrow keys to pan · +/- to zoom · drag to pan</div>
+      <div className="erd-hint">{t('schema.erd.hint')}</div>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Trash } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { ISSUE_SEVERITY, ISSUE_STATUS } from '../../lib/labels';
 import { formatRelative } from '../../lib/utils';
 import type { State, Issue, IssueSeverity, IssueStatus } from '../../lib/types';
@@ -26,6 +27,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
   const [editing, setEditing] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const editSnapshot = useRef<State | null>(null);
+  const { t } = useTranslation('tracker');
 
   useEffect(() => {
     setEditing(false);
@@ -33,7 +35,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
   }, [issueId]);
 
   const issue = issueId ? state?.issues.find((i) => i.id === issueId) : undefined;
-  usePresenceStatus('Editing issue', issue != null);
+  usePresenceStatus(t('issues.modal.presenceEditing'), issue != null);
   if (!state || !issue) return null;
 
   const update = (patch: UpdatePatch<Issue>) => {
@@ -72,7 +74,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
     <>
     <Modal
       open={issueId !== null}
-      title={editing ? 'Edit issue' : 'Issue'}
+      title={editing ? t('issues.modal.editTitle') : t('issues.modal.viewTitle')}
       onClose={onClose}
       width="md"
       footer={
@@ -84,23 +86,23 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
               leftIcon={<Trash size={13} aria-hidden="true" />}
               onClick={() => setConfirmOpen(true)}
             >
-              Delete
+              {t('issues.modal.delete')}
             </Button>
           )}
           <span className="flex-1" />
           {editing ? (
             <>
               <Button variant="ghost" onClick={cancelEditing}>
-                Cancel
+                {t('issues.modal.cancel')}
               </Button>
               <Button variant="primary" onClick={finishEditing}>
-                Done
+                {t('issues.modal.done')}
               </Button>
             </>
           ) : (
             canEdit && (
               <Button variant="primary" onClick={startEditing}>
-                Edit
+                {t('issues.modal.edit')}
               </Button>
             )
           )}
@@ -111,14 +113,14 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
         {editing ? (
           <>
             <Input
-              label="Title"
+              label={t('issues.modal.titleLabel')}
               value={issue.title}
               onChange={(e) => update({ title: e.target.value })}
             />
             <div className="field-row">
               <div className="field">
                 <label className="field-label" htmlFor="issue-severity">
-                  Severity
+                  {t('issues.modal.severityLabel')}
                 </label>
                 <select
                   id="issue-severity"
@@ -126,15 +128,15 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
                   value={issue.severity}
                   onChange={(e) => update({ severity: e.target.value as IssueSeverity })}
                 >
-                  <option value="critical">Critical</option>
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
+                  <option value="critical">{t('issues.severity.critical')}</option>
+                  <option value="high">{t('issues.severity.high')}</option>
+                  <option value="medium">{t('issues.severity.medium')}</option>
+                  <option value="low">{t('issues.severity.low')}</option>
                 </select>
               </div>
               <div className="field">
                 <label className="field-label" htmlFor="issue-status">
-                  Status
+                  {t('issues.modal.statusLabel')}
                 </label>
                 <select
                   id="issue-status"
@@ -142,74 +144,74 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
                   value={issue.status}
                   onChange={(e) => update({ status: e.target.value as IssueStatus })}
                 >
-                  <option value="open">Open</option>
-                  <option value="reproduced">Reproduced</option>
-                  <option value="fixing">Fixing</option>
-                  <option value="resolved">Resolved</option>
-                  <option value="wontfix">Won't fix</option>
+                  <option value="open">{t('issues.status.open')}</option>
+                  <option value="reproduced">{t('issues.status.reproduced')}</option>
+                  <option value="fixing">{t('issues.status.fixing')}</option>
+                  <option value="resolved">{t('issues.status.resolved')}</option>
+                  <option value="wontfix">{t('issues.status.wontfix')}</option>
                 </select>
               </div>
             </div>
             <div className="field">
               <SearchableSelect
                 id="issue-linked-task"
-                label="Linked task"
+                label={t('issues.modal.linkedTaskLabel')}
                 value={issue.linkedTaskId}
                 options={state.tasks.map((t) => ({ value: t.id, label: t.title }))}
                 onChange={(v) => update({ linkedTaskId: v })}
               />
             </div>
             <Textarea
-              label="Description"
+              label={t('issues.modal.descriptionLabel')}
               rows={3}
               value={issue.description}
               onChange={(e) => update({ description: e.target.value })}
             />
             <Textarea
-              label="Reproduction steps"
+              label={t('issues.modal.reproductionStepsLabel')}
               rows={4}
               value={issue.reproduction}
               onChange={(e) => update({ reproduction: e.target.value })}
             />
-            <p className="field-helper">Updated {formatRelative(issue.updatedAt)}</p>
+            <p className="field-helper">{t('issues.modal.updated', { time: formatRelative(issue.updatedAt) })}</p>
           </>
         ) : (
           <>
             <h3 className="detail-title">{issue.title}</h3>
             <DetailList>
-              <DetailRow label="Severity">
+              <DetailRow label={t('issues.modal.severityLabel')}>
                 <Badge tone={ISSUE_SEVERITY[issue.severity].tone}>
-                  {ISSUE_SEVERITY[issue.severity].label}
+                  {t(`issues.severity.${issue.severity}`)}
                 </Badge>
               </DetailRow>
-              <DetailRow label="Status">
-                <Badge tone={ISSUE_STATUS[issue.status].tone}>{ISSUE_STATUS[issue.status].label}</Badge>
+              <DetailRow label={t('issues.modal.statusLabel')}>
+                <Badge tone={ISSUE_STATUS[issue.status].tone}>{t(`issues.status.${issue.status}`)}</Badge>
               </DetailRow>
-              <DetailRow label="Linked task">
+              <DetailRow label={t('issues.modal.linkedTaskLabel')}>
                 {linkedTask ? linkedTask.title : <DetailEmpty />}
               </DetailRow>
-              <DetailRow label="Description">
-                {issue.description.trim() ? issue.description : <DetailEmpty>No description.</DetailEmpty>}
+              <DetailRow label={t('issues.modal.descriptionLabel')}>
+                {issue.description.trim() ? issue.description : <DetailEmpty>{t('issues.modal.noDescription')}</DetailEmpty>}
               </DetailRow>
-              <DetailRow label="Reproduction">
+              <DetailRow label={t('issues.modal.reproductionRow')}>
                 {issue.reproduction.trim() ? (
                   issue.reproduction
                 ) : (
-                  <DetailEmpty>No reproduction steps.</DetailEmpty>
+                  <DetailEmpty>{t('issues.modal.noReproduction')}</DetailEmpty>
                 )}
               </DetailRow>
             </DetailList>
-            <h4 className="detail-subtitle">Activity</h4>
+            <h4 className="detail-subtitle">{t('issues.modal.activity')}</h4>
             <ActivityList projectId={projectId} entity="issues" entityId={issue.id} />
-            <p className="field-helper">Updated {formatRelative(issue.updatedAt)}</p>
+            <p className="field-helper">{t('issues.modal.updated', { time: formatRelative(issue.updatedAt) })}</p>
           </>
         )}
       </div>
     </Modal>
     <ConfirmDeleteDialog
       open={confirmOpen}
-      title="Delete issue?"
-      description="This permanently deletes the issue. This cannot be undone."
+      title={t('issues.modal.deleteConfirmTitle')}
+      description={t('issues.modal.deleteConfirmBody')}
       onClose={() => setConfirmOpen(false)}
       onConfirm={remove}
     />

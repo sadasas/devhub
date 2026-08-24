@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {} from '../../lib/api';
 import { getErrorMessage, isPlanLimitError } from '../../lib/errors';
 import type { PlanLimitResource } from '../../components/PlanLimitModal';
@@ -20,6 +21,7 @@ interface NewProjectModalProps {
 }
 
 export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
+  const { t } = useTranslation('account');
   const { create } = useProjects();
   const { teams } = useTeams();
   const navigate = useNavigate();
@@ -40,7 +42,7 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!teamId) {
-      setError('Select a team first.');
+      setError(t('dashboard.modal.selectTeamError'));
       return;
     }
     setError(null);
@@ -56,7 +58,7 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
         setLimitResource(err.details && (err.details as { resource?: string }).resource === 'members' ? 'members' : 'projects');
         setLimitOpen(true);
       } else {
-        setError(getErrorMessage(err, 'Failed to create project.'));
+        setError(getErrorMessage(err, t('dashboard.modal.createFailed')));
       }
       setSubmitting(false);
     }
@@ -65,51 +67,51 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
   return (
     <Modal
       open={open}
-      title="New project"
+      title={t('dashboard.modal.title')}
       onClose={onClose}
       width="sm"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t('common:action.cancel')}
           </Button>
           <Button type="submit" form="new-project-form" loading={submitting} disabled={!name.trim() || (teams?.length ?? 0) === 0}>
-            Create
+            {t('dashboard.modal.create')}
           </Button>
         </>
       }
     >
       <form id="new-project-form" className="form-stack" onSubmit={onSubmit} noValidate>
         <Input
-          label="Name"
+          label={t('dashboard.modal.name')}
           required
           autoFocus
-          placeholder="e.g. Landing page"
+          placeholder={t('dashboard.modal.namePlaceholder')}
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
         <Textarea
-          label="Description"
+          label={t('dashboard.modal.description')}
           rows={3}
-          placeholder="What is this project about?"
+          placeholder={t('dashboard.modal.descriptionPlaceholder')}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
         <div className="field">
           <label className="field-label" htmlFor="new-project-team">
-            Team
+            {t('dashboard.modal.team')}
           </label>
           {teams && teams.length === 0 ? (
             <p className="field-helper" id="new-project-team-hint">
-              You have no teams yet — create one from the sidebar, then return here to add a project.
+              {t('dashboard.modal.teamEmptyHint')}
             </p>
           ) : (
             <SearchableSelect
               id="new-project-team"
               allowEmpty={false}
-              placeholder="Select team"
+              placeholder={t('dashboard.modal.selectTeam')}
               value={teamId || null}
-              options={(teams ?? []).map((t) => ({ value: t.id, label: t.name }))}
+              options={(teams ?? []).map((team) => ({ value: team.id, label: team.name }))}
               onChange={(v) => setTeamId(v ?? '')}
             />
           )}

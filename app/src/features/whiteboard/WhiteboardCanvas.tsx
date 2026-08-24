@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   AlignBottom,
   AlignCenterHorizontal,
@@ -297,6 +298,7 @@ const ElementView = memo(function ElementView({
   collapsed = false,
   bounds: boundsProp,
 }: ElementViewProps) {
+  const { t } = useTranslation('extras');
   const outline = (rect: Rect) => (
     <rect
       data-testid="wb-selection"
@@ -569,10 +571,10 @@ const ElementView = memo(function ElementView({
             ) : (
               <g>
                 <text x={x + pad} y={y + pad + 13} fontSize={12} fill={missing ? '#8a8a93' : '#6ea8fe'} fontWeight={600}>
-                  {truncateToWidth(missing ? `untitled ${el.entity}` : refData!.title, 12, w - pad * 2 - toggle.rightOff)}
+                  {truncateToWidth(missing ? t('whiteboard.canvas.refUntitled', { entity: el.entity }) : refData!.title, 12, w - pad * 2 - toggle.rightOff)}
                 </text>
                 <text x={x + pad} y={y + pad + REF_LAYOUT.titleH + 10} fontSize={10} fill={missing ? '#6b7280' : '#8a8a93'}>
-                  {missing ? 'Deleted' : refData!.meta}
+                  {missing ? t('whiteboard.canvas.refDeleted') : refData!.meta}
                 </text>
               </g>
             )}
@@ -621,6 +623,7 @@ interface PopoverState {
 }
 
 export function WhiteboardCanvas({ board, tool, history, readOnly = false, readOnlyState = null, readOnlyProjectId }: WhiteboardCanvasProps) {
+  const { t } = useTranslation('extras');
   const proj = useProjectOptional(null);
   const { canEdit, dispatch, projectId, state } =
     proj ?? { canEdit: false, dispatch: noopDispatch, projectId: readOnlyProjectId ?? '', state: readOnlyState };
@@ -1495,7 +1498,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   };
 
   return (
-    <div className="wb-canvas" role="group" aria-label={`Whiteboard ${board.name} — ${board.elements.length} elements`} tabIndex={0}>
+    <div className="wb-canvas" role="group" aria-label={t('whiteboard.canvas.label', { name: board.name, count: board.elements.length })} tabIndex={0}>
       <svg
         ref={view.ref}
         className={`wb-svg ${view.dragging ? 'dragging' : ''}`}
@@ -1705,12 +1708,12 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
             })()}
         </g>
       </svg>
-      <div className="erd-zoom" role="group" aria-label="Canvas zoom">
+      <div className="erd-zoom" role="group" aria-label={t('whiteboard.canvas.zoomGroup')}>
         <button
           type="button"
           className="erd-zoom-btn"
-          title="Zoom in"
-          aria-label="Zoom in"
+          title={t('whiteboard.canvas.zoomIn')}
+          aria-label={t('whiteboard.canvas.zoomIn')}
           onClick={() => {
             const el = view.ref.current;
             if (!el) return;
@@ -1723,8 +1726,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         <button
           type="button"
           className="erd-zoom-btn"
-          title="Zoom out"
-          aria-label="Zoom out"
+          title={t('whiteboard.canvas.zoomOut')}
+          aria-label={t('whiteboard.canvas.zoomOut')}
           onClick={() => {
             const el = view.ref.current;
             if (!el) return;
@@ -1737,8 +1740,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         <button
           type="button"
           className="erd-zoom-btn"
-          title="Reset view"
-          aria-label="Reset view"
+          title={t('whiteboard.canvas.resetView')}
+          aria-label={t('whiteboard.canvas.resetView')}
           onClick={() => view.setView({ x: 16, y: 16, s: 1 })}
         >
           <CornersOut size={15} aria-hidden="true" />
@@ -1747,8 +1750,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
           <button
             type="button"
             className={`erd-zoom-btn${snapOn ? ' erd-zoom-btn-active' : ''}`}
-            title={snapOn ? 'Snap to grid: on' : 'Snap to grid: off'}
-            aria-label={snapOn ? 'Snap to grid: on' : 'Snap to grid: off'}
+            title={snapOn ? t('whiteboard.canvas.snapOn') : t('whiteboard.canvas.snapOff')}
+            aria-label={snapOn ? t('whiteboard.canvas.snapOn') : t('whiteboard.canvas.snapOff')}
             aria-pressed={snapOn}
             onClick={() => setSnapOn((v) => !v)}
           >
@@ -1757,7 +1760,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         )}
       </div>
       {canEdit && selectedIds.length > 0 && (
-        <div className="wb-selection-bar" role="group" aria-label="Selection actions">
+        <div className="wb-selection-bar" role="group" aria-label={t('whiteboard.canvas.selectionActions')}>
           {(() => {
             const hasLocked = board.elements.some((el) => selectedIds.includes(el.id) && el.locked);
             return (
@@ -1765,8 +1768,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                 <button
                   type="button"
                   className="wb-selection-btn"
-                  title={hasLocked ? 'Unlock selection' : 'Lock selection'}
-                  aria-label={hasLocked ? 'Unlock selection' : 'Lock selection'}
+                  title={hasLocked ? t('whiteboard.canvas.unlock') : t('whiteboard.canvas.lock')}
+                  aria-label={hasLocked ? t('whiteboard.canvas.unlock') : t('whiteboard.canvas.lock')}
                   aria-pressed={hasLocked}
                   onClick={onToggleLock}
                 >
@@ -1783,8 +1786,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                     <button
                       type="button"
                       className="wb-selection-btn"
-                      title={hasGroup ? 'Ungroup selection' : 'Group selection'}
-                      aria-label={hasGroup ? 'Ungroup selection' : 'Group selection'}
+                      title={hasGroup ? t('whiteboard.canvas.ungroup') : t('whiteboard.canvas.group')}
+                      aria-label={hasGroup ? t('whiteboard.canvas.ungroup') : t('whiteboard.canvas.group')}
                       onClick={hasGroup ? onUngroup : onGroup}
                     >
                       {hasGroup ? (
@@ -1804,8 +1807,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
               <button
                 type="button"
                 className="wb-selection-btn"
-                title="Align left"
-                aria-label="Align left"
+                title={t('whiteboard.canvas.alignLeft')}
+                aria-label={t('whiteboard.canvas.alignLeft')}
                 onClick={onAlign('left')}
               >
                 <AlignLeft size={15} aria-hidden="true" />
@@ -1813,8 +1816,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
               <button
                 type="button"
                 className="wb-selection-btn"
-                title="Align center horizontally"
-                aria-label="Align center horizontally"
+                title={t('whiteboard.canvas.alignCenterH')}
+                aria-label={t('whiteboard.canvas.alignCenterH')}
                 onClick={onAlign('centerX')}
               >
                 <AlignCenterHorizontal size={15} aria-hidden="true" />
@@ -1822,8 +1825,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
               <button
                 type="button"
                 className="wb-selection-btn"
-                title="Align right"
-                aria-label="Align right"
+                title={t('whiteboard.canvas.alignRight')}
+                aria-label={t('whiteboard.canvas.alignRight')}
                 onClick={onAlign('right')}
               >
                 <AlignRight size={15} aria-hidden="true" />
@@ -1831,8 +1834,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
               <button
                 type="button"
                 className="wb-selection-btn"
-                title="Align top"
-                aria-label="Align top"
+                title={t('whiteboard.canvas.alignTop')}
+                aria-label={t('whiteboard.canvas.alignTop')}
                 onClick={onAlign('top')}
               >
                 <AlignTop size={15} aria-hidden="true" />
@@ -1840,8 +1843,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
               <button
                 type="button"
                 className="wb-selection-btn"
-                title="Align middle vertically"
-                aria-label="Align middle vertically"
+                title={t('whiteboard.canvas.alignMiddleV')}
+                aria-label={t('whiteboard.canvas.alignMiddleV')}
                 onClick={onAlign('middleY')}
               >
                 <AlignCenterVertical size={15} aria-hidden="true" />
@@ -1849,8 +1852,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
               <button
                 type="button"
                 className="wb-selection-btn"
-                title="Align bottom"
-                aria-label="Align bottom"
+                title={t('whiteboard.canvas.alignBottom')}
+                aria-label={t('whiteboard.canvas.alignBottom')}
                 onClick={onAlign('bottom')}
               >
                 <AlignBottom size={15} aria-hidden="true" />
@@ -1863,8 +1866,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
               <button
                 type="button"
                 className="wb-selection-btn"
-                title="Distribute horizontally"
-                aria-label="Distribute horizontally"
+                title={t('whiteboard.canvas.distributeH')}
+                aria-label={t('whiteboard.canvas.distributeH')}
                 onClick={onDistribute('x')}
               >
                 <Columns size={15} aria-hidden="true" />
@@ -1872,8 +1875,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
               <button
                 type="button"
                 className="wb-selection-btn"
-                title="Distribute vertically"
-                aria-label="Distribute vertically"
+                title={t('whiteboard.canvas.distributeV')}
+                aria-label={t('whiteboard.canvas.distributeV')}
                 onClick={onDistribute('y')}
               >
                 <Rows size={15} aria-hidden="true" />
@@ -1883,8 +1886,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
           <button
             type="button"
             className="wb-selection-btn"
-            title="Bring forward"
-            aria-label="Bring forward"
+            title={t('whiteboard.canvas.bringForward')}
+            aria-label={t('whiteboard.canvas.bringForward')}
             onClick={() => reorderSelection(1)}
           >
             <ArrowUp size={15} aria-hidden="true" />
@@ -1892,8 +1895,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
           <button
             type="button"
             className="wb-selection-btn"
-            title="Send backward"
-            aria-label="Send backward"
+            title={t('whiteboard.canvas.sendBackward')}
+            aria-label={t('whiteboard.canvas.sendBackward')}
             onClick={() => reorderSelection(-1)}
           >
             <ArrowDown size={15} aria-hidden="true" />
@@ -1901,15 +1904,15 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
           <button
             type="button"
             className="wb-selection-btn"
-            title="Delete selected (Del)"
-            aria-label="Delete selected"
+            title={t('whiteboard.canvas.deleteSelectedTitle')}
+            aria-label={t('whiteboard.canvas.deleteSelected')}
             onClick={removeSelection}
           >
             <Trash size={15} aria-hidden="true" />
           </button>
         </div>
       )}
-      <span className="wb-hint">Scroll or pinch to zoom · drag to pan</span>
+      <span className="wb-hint">{t('whiteboard.canvas.hint')}</span>
       {board.elements.length > 0 && (
         (() => {
           const bounds = unionBounds(board.elements.map((el) => elementBounds(el)));
@@ -1933,7 +1936,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
             view.setView((v) => ({ ...v, x: wx - canvasSize.w / 2, y: wy - canvasSize.h / 2 }));
           };
           return (
-            <div className="wb-minimap" role="group" aria-label="Minimap">
+            <div className="wb-minimap" role="group" aria-label={t('whiteboard.canvas.minimap')}>
               <svg width={MW} height={MH} onClick={onMiniClick}>
                 {board.elements.map((el) => {
                   const b = elementBounds(el);

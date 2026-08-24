@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, MouseEvent as ReactMouseEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   BookOpen,
   CaretRight,
@@ -43,20 +44,20 @@ type ApiSelection = { type: 'collection'; id: string } | { type: 'endpoint'; id:
 type DeleteTarget = { kind: 'collection'; id: string; name: string } | { kind: 'endpoint'; id: string; name: string } | null;
 
 const API_COLLECTION_SORT_SPECS: SortSpec<ApiCollection>[] = [
-  { key: 'name', label: 'Name', get: (c) => c.name },
-  { key: 'createdAt', label: 'Created', get: (c) => c.createdAt },
+  { key: 'name', label: 'api.sort.name', get: (c) => c.name },
+  { key: 'createdAt', label: 'api.sort.created', get: (c) => c.createdAt },
 ];
 
 const API_ENDPOINT_SORT_SPECS: SortSpec<ApiEndpoint>[] = [
-  { key: 'name', label: 'Name', get: (e) => e.name },
+  { key: 'name', label: 'api.sort.name', get: (e) => e.name },
   {
     key: 'method',
-    label: 'Method',
+    label: 'api.sort.method',
     get: (e) => e.method,
     order: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   },
-  { key: 'createdAt', label: 'Created', get: (e) => e.createdAt },
-  { key: 'path', label: 'Path', get: (e) => e.path },
+  { key: 'createdAt', label: 'api.sort.created', get: (e) => e.createdAt },
+  { key: 'path', label: 'api.sort.path', get: (e) => e.path },
 ];
 
 const SIDEBAR_MIN = 220;
@@ -82,6 +83,7 @@ interface ApiPageProps {
 }
 
 export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageProps) {
+  const { t } = useTranslation('extras');
   const { state, canEdit, dispatch, projectId } = useProject();
   const [sidebarWidth, setSidebarWidth] = useState(parseDefaultWidth);
   const [search, setSearch] = useState('');
@@ -195,10 +197,10 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
         });
       }
       if (imported.collections.length === 0 && imported.endpoints.length === 0) {
-        setImportError('No endpoints or (tag) collections found in the file.');
+        setImportError(t('api.import.emptyFile'));
       }
     } catch (err) {
-      setImportError(err instanceof Error ? err.message : 'Failed to import OpenAPI document.');
+      setImportError(err instanceof Error ? err.message : t('api.import.failed'));
     }
   }
 
@@ -267,7 +269,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
         leftIcon={<UploadSimple size={13} aria-hidden="true" />}
         onClick={() => fileInputRef.current?.click()}
       >
-        Import OpenAPI
+        {t('api.toolbar.import')}
       </Button>
       <Button
         variant="ghost"
@@ -275,7 +277,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
         leftIcon={<DownloadSimple size={13} aria-hidden="true" />}
         onClick={onExport}
       >
-        Export OpenAPI
+        {t('api.toolbar.export')}
       </Button>
       {canEdit && (
         <>
@@ -285,7 +287,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
             leftIcon={<FolderPlus size={13} aria-hidden="true" />}
             onClick={() => setShowCollection(true)}
           >
-            New collection
+            {t('api.toolbar.newCollection')}
           </Button>
           <Button
             variant="primary"
@@ -293,7 +295,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
             leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />}
             onClick={() => setShowEndpoint(true)}
           >
-            New endpoint
+            {t('api.toolbar.newEndpoint')}
           </Button>
         </>
       )}
@@ -304,18 +306,18 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
     <div className="api-main-empty">
       <EmptyState
         icon={<Plugs size={22} />}
-        title="No endpoint selected"
-        description="Document your API: describe collections and endpoints, then export as an OpenAPI 3.0 document."
+        title={t('api.empty.title')}
+        description={t('api.empty.editorDesc')}
         action={
           <div className="api-empty-actions">
             <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => setShowEndpoint(true)}>
-              New endpoint
+              {t('api.toolbar.newEndpoint')}
             </Button>
             <Button size="sm" variant="outline" leftIcon={<FolderPlus size={13} aria-hidden="true" />} onClick={() => setShowCollection(true)}>
-              New collection
+              {t('api.toolbar.newCollection')}
             </Button>
             <Button size="sm" variant="outline" leftIcon={<UploadSimple size={13} aria-hidden="true" />} onClick={() => fileInputRef.current?.click()}>
-              Import OpenAPI
+              {t('api.toolbar.import')}
             </Button>
           </div>
         }
@@ -325,8 +327,8 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
     <div className="api-main-empty">
       <EmptyState
         icon={<Plugs size={22} />}
-        title="No endpoint selected"
-        description="Pick an endpoint from the sidebar to view its documentation."
+        title={t('api.empty.title')}
+        description={t('api.empty.viewerDesc')}
       />
     </div>
   );
@@ -336,9 +338,9 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
       <div className="api-toolbar">
         <div className="api-toolbar-left">
           <span className="api-toolbar-count">
-            {collections.length} collection{collections.length === 1 ? '' : 's'} · {endpoints.length} endpoint{endpoints.length === 1 ? '' : 's'}
+            {t('api.count.collections', { count: collections.length })} · {t('api.count.endpoints', { count: endpoints.length })}
           </span>
-          <div className="sub-tabs api-mode-toggle" role="tablist" aria-label="API view mode">
+          <div className="sub-tabs api-mode-toggle" role="tablist" aria-label={t('api.mode.aria')}>
             <button
               type="button"
               role="tab"
@@ -347,7 +349,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
               onClick={() => setMode('workspace')}
             >
               <PencilSimple size={13} aria-hidden="true" />
-              Workspace
+              {t('api.mode.workspace')}
             </button>
             <button
               type="button"
@@ -357,13 +359,13 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
               onClick={() => setMode('docs')}
             >
               <BookOpen size={13} aria-hidden="true" />
-              Docs
+              {t('api.mode.docs')}
             </button>
           </div>
         </div>
         {mode === 'workspace' && (
           <SortControl
-            options={API_COLLECTION_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: s.label }))}
+            options={API_COLLECTION_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: t(s.label) }))}
             value={sortValue}
             onChange={setSort}
           />
@@ -393,19 +395,19 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
         />
       ) : (
         <div className="api-panes">
-        <aside className="api-sidebar" style={{ width: sidebarWidth }} aria-label="API collections">
+        <aside className="api-sidebar" style={{ width: sidebarWidth }} aria-label={t('api.sidebar.aria')}>
           <input
             className="api-sidebar-search"
             type="search"
-            placeholder="Search endpoints…"
+            placeholder={t('api.sidebar.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            aria-label="Search endpoints"
+            aria-label={t('api.sidebar.searchAria')}
           />
           <div className="api-sidebar-scroll">
             {collections.length === 0 && ungrouped.length === 0 ? (
               <p className="api-sidebar-empty">
-                No collections yet. Create one or import an OpenAPI document.
+                {t('api.sidebar.empty')}
               </p>
             ) : (
               <div className="api-tree">
@@ -424,7 +426,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                         <button
                           type="button"
                           className="api-tree-caret-btn"
-                          aria-label={isOpen ? `Collapse ${c.name}` : `Expand ${c.name}`}
+                          aria-label={isOpen ? t('api.tree.collapse', { name: c.name }) : t('api.tree.expand', { name: c.name })}
                           onClick={(ev) => {
                             ev.stopPropagation();
                             setCollapsed((prev) => ({ ...prev, [c.id]: !prev[c.id] }));
@@ -447,7 +449,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                           {unreadIds?.has(c.id) && (
                             <>
                               <span className="unread-dot" aria-hidden="true" />
-                              <span className="sr-only">Unread</span>
+                              <span className="sr-only">{t('api.tree.unread')}</span>
                             </>
                           )}
                         </button>
@@ -455,8 +457,8 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                           <button
                             type="button"
                             className="api-tree-actions"
-                            aria-label={`Delete collection ${c.name}`}
-                            title="Delete collection"
+                            aria-label={t('api.tree.deleteCollectionNamed', { name: c.name })}
+                            title={t('api.tree.deleteCollection')}
                             onClick={() => setDeleteTarget({ kind: 'collection', id: c.id, name: c.name })}
                           >
                             <Trash size={13} aria-hidden="true" />
@@ -481,7 +483,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                                   {unreadIds?.has(e.id) && (
                                     <>
                                       <span className="unread-dot" aria-hidden="true" />
-                                      <span className="sr-only">Unread</span>
+                                      <span className="sr-only">{t('api.tree.unread')}</span>
                                     </>
                                   )}
                                 </button>
@@ -489,8 +491,8 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                                   <button
                                     type="button"
                                     className="api-tree-actions"
-                                    aria-label={`Delete endpoint ${e.name}`}
-                                    title="Delete endpoint"
+                                    aria-label={t('api.tree.deleteEndpointNamed', { name: e.name })}
+                                    title={t('api.tree.deleteEndpoint')}
                                     onClick={() => setDeleteTarget({ kind: 'endpoint', id: e.id, name: e.name })}
                                   >
                                     <Trash size={13} aria-hidden="true" />
@@ -506,12 +508,12 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                   );
                 })}
                 {visibleUngrouped.length > 0 && (
-                  <div className="api-tree-group">
-                    <div className={`api-tree-group-label ${selectedColl ? 'api-tree-item-selected' : ''}`}>
-                      <button
-                      type="button"
-                      className="api-tree-caret-btn"
-                      aria-label={collapsed['__ungrouped__'] ? 'Expand Ungrouped' : 'Collapse Ungrouped'}
+                    <div className="api-tree-group">
+                      <div className={`api-tree-group-label ${selectedColl ? 'api-tree-item-selected' : ''}`}>
+                        <button
+                        type="button"
+                        className="api-tree-caret-btn"
+                        aria-label={collapsed['__ungrouped__'] ? t('api.tree.expandUngrouped') : t('api.tree.collapseUngrouped')}
                       onClick={(ev) => {
                         ev.stopPropagation();
                         setCollapsed((prev) => ({ ...prev, ['__ungrouped__']: !prev['__ungrouped__'] }));
@@ -524,7 +526,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                       />
                     </button>
                       <Folder size={14} className="api-tree-folder" aria-hidden="true" />
-                      <span className="api-tree-item-title">Ungrouped</span>
+                      <span className="api-tree-item-title">{t('api.tree.ungrouped')}</span>
                       <span className="api-tree-count">{visibleUngrouped.length}</span>
                     </div>
                     {!collapsed['__ungrouped__'] && (
@@ -545,7 +547,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                                 {unreadIds?.has(e.id) && (
                                   <>
                                     <span className="unread-dot" aria-hidden="true" />
-                                    <span className="sr-only">Unread</span>
+                                    <span className="sr-only">{t('api.tree.unread')}</span>
                                   </>
                                 )}
                               </button>
@@ -553,8 +555,8 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                                 <button
                                   type="button"
                                   className="api-tree-actions"
-                                  aria-label={`Delete endpoint ${e.name}`}
-                                  title="Delete endpoint"
+                                  aria-label={t('api.tree.deleteEndpointNamed', { name: e.name })}
+                                  title={t('api.tree.deleteEndpoint')}
                                   onClick={() => setDeleteTarget({ kind: 'endpoint', id: e.id, name: e.name })}
                                 >
                                   <Trash size={13} aria-hidden="true" />
@@ -577,7 +579,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
           className="api-resizer"
           role="separator"
           aria-orientation="vertical"
-          aria-label="Resize sidebar"
+          aria-label={t('api.resizer.aria')}
           onMouseDown={onResizeStart}
         />
 
@@ -592,7 +594,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                       <select
                         className="select api-method-select"
                         value={selectedEp.method}
-                        aria-label="HTTP method"
+                        aria-label={t('api.workbench.methodAria')}
                         onChange={(e) => updateEp({ method: e.target.value as ApiMethod })}
                       >
                         <option value="GET">GET</option>
@@ -609,7 +611,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                       <input
                         className="input api-path-input"
                         value={selectedEp.path}
-                        aria-label="Endpoint path"
+                        aria-label={t('api.workbench.pathAria')}
                         onChange={(e) => updateEp({ path: e.target.value })}
                       />
                     ) : (
@@ -621,8 +623,8 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                       variant="ghost"
                       size="sm"
                       className="btn-icon"
-                      aria-label="Copy path"
-                      title="Copy path"
+                      aria-label={t('api.workbench.copyPath')}
+                      title={t('api.workbench.copyPath')}
                       leftIcon={
                         copied ? (
                           <Check size={13} weight="bold" aria-hidden="true" />
@@ -632,15 +634,15 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                       }
                       onClick={() => void copy(selectedEp.path)}
                     >
-                      {copied ? 'Copied' : 'Copy'}
+                      {copied ? t('api.workbench.copied') : t('api.workbench.copy')}
                     </Button>
                     {canEdit && (
                       <Button
                         variant="ghost"
                         size="sm"
                         className="api-delete-btn"
-                        aria-label="Delete endpoint"
-                        title="Delete endpoint"
+                        aria-label={t('api.tree.deleteEndpoint')}
+                        title={t('api.tree.deleteEndpoint')}
                         leftIcon={<Trash size={13} aria-hidden="true" />}
                         onClick={() => setDeleteTarget({ kind: 'endpoint', id: selectedEp.id, name: selectedEp.name })}
                       />
@@ -650,31 +652,31 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
 
                 <div className="api-editor">
                   <Input
-                    label="Name"
+                    label={t('api.workbench.name')}
                     value={selectedEp.name}
                     onChange={(e) => updateEp({ name: e.target.value })}
                   />
                   <Textarea
-                    label="Description"
+                    label={t('api.workbench.description')}
                     rows={2}
-                    placeholder="What does this endpoint do?"
+                    placeholder={t('api.workbench.descPlaceholder')}
                     value={selectedEp.description}
                     onChange={(e) => updateEp({ description: e.target.value })}
                   />
 
-                  <div className="tabs mt-4" role="tablist" aria-label="Endpoint details">
-                    {(['headers', 'params', 'body', 'responses'] as ApiTab[]).map((t) => (
+                  <div className="tabs mt-4" role="tablist" aria-label={t('api.workbench.tabsAria')}>
+                    {(['headers', 'params', 'body', 'responses'] as ApiTab[]).map((tabId) => (
                       <button
-                        key={t}
+                        key={tabId}
                         type="button"
                         role="tab"
-                        aria-selected={tab === t}
-                        className={`tab ${tab === t ? 'tab-active' : ''}`}
-                        onClick={() => setTab(t)}
+                        aria-selected={tab === tabId}
+                        className={`tab ${tab === tabId ? 'tab-active' : ''}`}
+                        onClick={() => setTab(tabId)}
                       >
-                        {t.charAt(0).toUpperCase() + t.slice(1)}
-                        {t !== 'body' && selectedEp[t].length > 0 && (
-                          <span className="tab-count">{selectedEp[t].length}</span>
+                        {t(`api.tab.${tabId}`)}
+                        {tabId !== 'body' && selectedEp[tabId].length > 0 && (
+                          <span className="tab-count">{selectedEp[tabId].length}</span>
                         )}
                       </button>
                     ))}
@@ -683,31 +685,31 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                   {tab === 'headers' && (
                     <div className="api-rows">
                       <div className="api-col-labels api-kv-grid">
-                        <span>Key</span>
-                        <span>Value</span>
-                        <span>Description</span>
+                        <span>{t('api.col.key')}</span>
+                        <span>{t('api.col.value')}</span>
+                        <span>{t('api.col.description')}</span>
                         <span />
                       </div>
                       {selectedEp.headers.map((h, i) => (
                         <div key={i} className="api-kv-grid">
                           <input
                             className="input"
-                            aria-label={`Header ${i + 1} key`}
-                            placeholder="X-Api-Key"
+                            aria-label={t('api.header.keyAria', { n: i + 1 })}
+                            placeholder={t('api.header.keyPlaceholder')}
                             value={h.key}
                             onChange={(e) => updateHeader(i, { key: e.target.value })}
                           />
                           <input
                             className="input api-mono-input"
-                            aria-label={`Header ${i + 1} value`}
-                            placeholder="value"
+                            aria-label={t('api.header.valueAria', { n: i + 1 })}
+                            placeholder={t('api.header.valuePlaceholder')}
                             value={h.value}
                             onChange={(e) => updateHeader(i, { value: e.target.value })}
                           />
                           <input
                             className="input"
-                            aria-label={`Header ${i + 1} description`}
-                            placeholder="What is it for?"
+                            aria-label={t('api.header.descAria', { n: i + 1 })}
+                            placeholder={t('api.header.descPlaceholder')}
                             value={h.description}
                             onChange={(e) => updateHeader(i, { description: e.target.value })}
                           />
@@ -715,17 +717,17 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                             variant="ghost"
                             size="sm"
                             className="btn-icon api-row-remove"
-                            aria-label="Remove header"
+                            aria-label={t('api.header.remove')}
                             leftIcon={<Trash size={13} aria-hidden="true" />}
                             onClick={() => updateEp({ headers: selectedEp.headers.filter((_, idx) => idx !== i) })}
                           />
                         </div>
                       ))}
                       {selectedEp.headers.length === 0 && (
-                        <p className="api-rows-empty">No headers yet.</p>
+                        <p className="api-rows-empty">{t('api.header.empty')}</p>
                       )}
                       <Button variant="ghost" size="sm" onClick={() => updateEp({ headers: [...selectedEp.headers, { key: '', value: '', description: '' }] })}>
-                        Add header
+                        {t('api.header.add')}
                       </Button>
                     </div>
                   )}
@@ -733,24 +735,24 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                   {tab === 'params' && (
                     <div className="api-rows">
                       <div className="api-col-labels api-param-grid">
-                        <span>Name</span>
-                        <span>In</span>
-                        <span className="api-req-label">Required</span>
-                        <span>Description</span>
+                        <span>{t('api.col.name')}</span>
+                        <span>{t('api.col.in')}</span>
+                        <span className="api-req-label">{t('api.col.required')}</span>
+                        <span>{t('api.col.description')}</span>
                         <span />
                       </div>
                       {selectedEp.params.map((p, i) => (
                         <div key={i} className="api-param-grid">
                           <input
                             className="input"
-                            aria-label={`Param ${i + 1} name`}
-                            placeholder="user_id"
+                            aria-label={t('api.param.nameAria', { n: i + 1 })}
+                            placeholder={t('api.param.namePlaceholder')}
                             value={p.name}
                             onChange={(e) => updateParam(i, { name: e.target.value })}
                           />
                           <select
                             className="select"
-                            aria-label={`Param ${i + 1} location`}
+                            aria-label={t('api.param.locationAria', { n: i + 1 })}
                             value={p.in}
                             onChange={(e) => updateParam(i, { in: e.target.value as ApiParam['in'] })}
                           >
@@ -761,14 +763,14 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                             <input
                               type="checkbox"
                               checked={p.required}
-                              aria-label={`Param ${i + 1} required`}
+                              aria-label={t('api.param.requiredAria', { n: i + 1 })}
                               onChange={(e) => updateParam(i, { required: e.target.checked })}
                             />
                           </label>
                           <input
                             className="input"
-                            aria-label={`Param ${i + 1} description`}
-                            placeholder="What is it?"
+                            aria-label={t('api.param.descAria', { n: i + 1 })}
+                            placeholder={t('api.param.descPlaceholder')}
                             value={p.description}
                             onChange={(e) => updateParam(i, { description: e.target.value })}
                           />
@@ -776,15 +778,15 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                             variant="ghost"
                             size="sm"
                             className="btn-icon api-row-remove"
-                            aria-label="Remove param"
+                            aria-label={t('api.param.remove')}
                             leftIcon={<Trash size={13} aria-hidden="true" />}
                             onClick={() => updateEp({ params: selectedEp.params.filter((_, idx) => idx !== i) })}
                           />
                         </div>
                       ))}
-                      {selectedEp.params.length === 0 && <p className="api-rows-empty">No params yet.</p>}
+                      {selectedEp.params.length === 0 && <p className="api-rows-empty">{t('api.param.empty')}</p>}
                       <Button variant="ghost" size="sm" onClick={() => updateEp({ params: [...selectedEp.params, { name: '', in: 'query', required: false, description: '' }] })}>
-                        Add param
+                        {t('api.param.add')}
                       </Button>
                     </div>
                   )}
@@ -792,11 +794,11 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                   {tab === 'body' && (
                     <div className="api-rows">
                       <Textarea
-                        label="Request body"
+                        label={t('api.body.label')}
                         rows={12}
                         className="api-mono-input"
                         placeholder={'{\n  "name": "Ada"\n}'}
-                        helper="JSON body example. Sent only when the method supports a body."
+                        helper={t('api.body.helper')}
                         value={selectedEp.body}
                         onChange={(e) => updateEp({ body: e.target.value })}
                       />
@@ -810,7 +812,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                           <div className="api-resp-grid">
                             <div className="field">
                               <label className="field-label" htmlFor={`resp-status-${i}`}>
-                                Status
+                                {t('api.response.status')}
                               </label>
                               <input
                                 id={`resp-status-${i}`}
@@ -818,7 +820,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                                 type="number"
                                 min={100}
                                 max={599}
-                                placeholder="200"
+                                placeholder={t('api.response.statusPlaceholder')}
                                 value={r.status === 0 || Number.isNaN(r.status) ? '' : r.status}
                                 onChange={(e) => {
                                   const v = Number(e.target.value);
@@ -831,12 +833,12 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                             </div>
                             <div className="field">
                               <label className="field-label" htmlFor={`resp-type-${i}`}>
-                                Content type
+                                {t('api.response.contentType')}
                               </label>
                               <input
                                 id={`resp-type-${i}`}
                                 className="input"
-                                placeholder="application/json"
+                                placeholder={t('api.response.contentTypePlaceholder')}
                                 value={r.contentType}
                                 onChange={(e) => updateResponse(i, { contentType: e.target.value })}
                               />
@@ -845,19 +847,19 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                               variant="ghost"
                               size="sm"
                               className="btn-icon api-row-remove"
-                              aria-label="Remove response"
+                              aria-label={t('api.response.remove')}
                               leftIcon={<Trash size={13} aria-hidden="true" />}
                               onClick={() => updateEp({ responses: selectedEp.responses.filter((_, idx) => idx !== i) })}
                             />
                           </div>
                           <Input
-                            label="Description"
-                            placeholder="e.g. User found"
+                            label={t('api.workbench.description')}
+                            placeholder={t('api.response.descPlaceholder')}
                             value={r.description}
                             onChange={(e) => updateResponse(i, { description: e.target.value })}
                           />
                           <Textarea
-                            label="Response body"
+                            label={t('api.response.bodyLabel')}
                             rows={4}
                             className="api-mono-input"
                             placeholder={'{\n  "id": "1"\n}'}
@@ -866,7 +868,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                           />
                         </div>
                       ))}
-                      {selectedEp.responses.length === 0 && <p className="api-rows-empty">No responses documented.</p>}
+                      {selectedEp.responses.length === 0 && <p className="api-rows-empty">{t('api.response.empty')}</p>}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -876,7 +878,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                           })
                         }
                       >
-                        Add response
+                        {t('api.response.add')}
                       </Button>
                     </div>
                   )}
@@ -885,7 +887,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
             ) : (
               <EndpointDocs endpoint={selectedEp} />
             )}
-            <h4 className="detail-subtitle">Activity</h4>
+            <h4 className="detail-subtitle">{t('api.activity')}</h4>
             <ActivityList projectId={projectId} entity="apiEndpoints" entityId={selectedEp.id} />
             </>
           ) : selectedColl ? (
@@ -897,7 +899,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                     <input
                       className="input api-title-input"
                       value={selectedColl.name}
-                      aria-label="Collection name"
+                      aria-label={t('api.collection.nameAria')}
                       onChange={(e) => dispatch({ type: 'apiCollection/update', id: selectedColl.id, patch: { name: e.target.value } })}
                     />
                   ) : (
@@ -911,8 +913,8 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                       variant="ghost"
                       size="sm"
                       className="api-delete-btn"
-                      aria-label="Delete collection"
-                      title="Delete collection"
+                      aria-label={t('api.tree.deleteCollection')}
+                      title={t('api.tree.deleteCollection')}
                       leftIcon={<Trash size={13} aria-hidden="true" />}
                       onClick={() => setDeleteTarget({ kind: 'collection', id: selectedColl.id, name: selectedColl.name })}
                     />
@@ -921,9 +923,9 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
               </div>
               {canEdit ? (
                 <Textarea
-                  label="Description"
+                  label={t('api.workbench.description')}
                   rows={3}
-                  placeholder="What does this collection group?"
+                  placeholder={t('api.collection.descPlaceholder')}
                   value={selectedColl.description}
                   onChange={(e) => dispatch({ type: 'apiCollection/update', id: selectedColl.id, patch: { description: e.target.value } })}
                 />
@@ -953,17 +955,17 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                         {unreadIds?.has(e.id) && (
                           <>
                             <span className="unread-dot" aria-hidden="true" />
-                            <span className="sr-only">Unread</span>
+                            <span className="sr-only">{t('api.tree.unread')}</span>
                           </>
                         )}
                       </div>
                     </button>
                   ))}
                 {endpoints.filter((e) => e.collectionId === selectedColl.id).length === 0 && (
-                  <p className="api-rows-empty">No endpoints in this collection yet.</p>
+                  <p className="api-rows-empty">{t('api.collection.emptyEndpoints')}</p>
                 )}
               </div>
-              <h4 className="detail-subtitle">Activity</h4>
+              <h4 className="detail-subtitle">{t('api.activity')}</h4>
               <ActivityList projectId={projectId} entity="apiCollections" entityId={selectedColl.id} />
             </div>
           ) : (
@@ -980,24 +982,24 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
 
       <Modal
         open={deleteTarget !== null}
-        title={`Delete ${deleteTarget?.kind === 'collection' ? 'collection' : 'endpoint'}`}
+        title={deleteTarget?.kind === 'collection' ? t('api.delete.collectionTitle') : t('api.delete.endpointTitle')}
         onClose={() => setDeleteTarget(null)}
         width="sm"
         footer={
           <>
             <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
-              Cancel
+              {t('api.delete.cancel')}
             </Button>
             <Button variant="danger" onClick={onDeleteTarget}>
-              Delete
+              {t('api.delete.confirm')}
             </Button>
           </>
         }
       >
         <p className="modal-copy">
           {deleteTarget?.kind === 'collection'
-            ? `This deletes “${deleteTarget.name}”. Its endpoints move to Ungrouped.`
-            : `This permanently deletes “${deleteTarget?.name}”.`}
+            ? t('api.delete.collectionDesc', { name: deleteTarget.name })
+            : t('api.delete.endpointDesc', { name: deleteTarget?.name ?? '' })}
         </p>
       </Modal>
     </div>

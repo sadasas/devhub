@@ -92,5 +92,25 @@
     "pendingTitle_one": "{{count}} perubahan menunggu sinkronisasi.",
     "pendingTitle_other": "{{count}} perubahan menunggu sinkronisasi.",
     "pending": "Menunggu {{count}}"
+  },
+  "time": {
+    "justNow": "baru saja",
+    "minAgo_one": "{{count}} mnt lalu",
+    "minAgo_other": "{{count}} mnt lalu",
+    "hourAgo_one": "{{count}} jam lalu",
+    "hourAgo_other": "{{count}} jam lalu",
+    "dayAgo_one": "{{count}} hr lalu",
+    "dayAgo_other": "{{count}} hr lalu",
+    "startsPrefix": "Mulai {{date}}"
+  },
+  "due": {
+    "overdueDays_one": "Terlambat {{count}} hr",
+    "overdueDays_other": "Terlambat {{count}} hr",
+    "today": "Jatuh tempo hari ini",
+    "tomorrow": "Jatuh tempo besok",
+    "dated": "Jatuh tempo {{date}}",
+    "doneOnTime": "Selesai tepat waktu",
+    "doneLate_one": "Selesai terlambat {{count}} hr",
+    "doneLate_other": "Selesai terlambat {{count}} hr"
   }
 }

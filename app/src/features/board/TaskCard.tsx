@@ -1,5 +1,6 @@
 import { memo, useCallback, useRef } from 'react';
 import { LinkSimple, ListChecks } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { TASK_PRIORITY, TASK_PRIORITY_SHORT, TASK_STATUS } from '../../lib/labels';
 import { formatDate, linkedTestCases, shortId } from '../../lib/utils';
 import { taskDueChip } from '../../lib/due-dates';
@@ -35,6 +36,7 @@ export const TaskCard = memo(function TaskCard({
   unread = false,
   onTouchDrop,
 }: TaskCardProps) {
+  const { t } = useTranslation('tracker');
   const { state, canEdit, dispatch } = useProject();
   const cardRef = useRef<HTMLButtonElement>(null);
   const handleTouchDrop = useCallback(
@@ -99,7 +101,7 @@ export const TaskCard = memo(function TaskCard({
           )}
           <Badge
             tone={TASK_PRIORITY[task.priority].tone}
-            title={`${TASK_PRIORITY[task.priority].label} priority`}
+            title={t('board.taskCard.priorityTitle', { priority: TASK_PRIORITY[task.priority].label })}
           >
             {TASK_PRIORITY_SHORT[task.priority]}
           </Badge>
@@ -129,7 +131,7 @@ export const TaskCard = memo(function TaskCard({
               </span>
             )}
             {(task.estimate != null || task.actualHours != null) && (
-              <span className="tabular" title="actual / estimate (hours)">
+              <span className="tabular" title={t('board.taskCard.actualEstimate')}>
                 {task.actualHours ?? 0}/{task.estimate ?? '—'}h
               </span>
             )}
@@ -138,7 +140,9 @@ export const TaskCard = memo(function TaskCard({
             {blockers.length > 0 && (
               <span
                 className="task-blockers"
-                title={`Blocked by: ${blockers.map((b) => b.title).join(', ')}`}
+                title={t('board.taskCard.blockedByTooltip', {
+                  names: blockers.map((b) => b.title).join(', '),
+                })}
               >
                 <LinkSimple size={11} weight="bold" aria-hidden="true" />
                 {blockers.length}
@@ -159,15 +163,17 @@ export const TaskCard = memo(function TaskCard({
             {unread && (
               <>
                 <span className="unread-dot" aria-hidden="true" />
-                <span className="sr-only">Unread</span>
+                <span className="sr-only">{t('board.taskCard.unread')}</span>
               </>
             )}
           </span>
         </div>
 
         <span className="sr-only">
-          {TASK_STATUS[task.status].label} task with {TASK_PRIORITY[task.priority].label} priority.
-          Drag to move between columns. On touch: press and hold, then drag. Move with arrow keys when focused.
+          {t('board.taskCard.srSummary', {
+            status: TASK_STATUS[task.status].label,
+            priority: TASK_PRIORITY[task.priority].label,
+          })}
         </span>
       </button>
       {canEdit && (

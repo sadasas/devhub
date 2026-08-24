@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Bug, PencilSimple, Plus } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { useProject } from '../../state/project-context';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { useNewParam } from '../../hooks/useNewParam';
@@ -21,24 +22,25 @@ import { InlineError } from '../../components/InlineError';
 const ISSUE_SORT_SPECS: SortSpec<Issue>[] = [
   {
     key: 'severity',
-    label: 'Severity',
+    label: 'issues.sort.severity',
     get: (i) => i.severity,
     order: ['critical', 'high', 'medium', 'low'],
   },
   {
     key: 'status',
-    label: 'Status',
+    label: 'issues.sort.status',
     get: (i) => i.status,
     order: ['open', 'reproduced', 'fixing', 'resolved', 'wontfix'],
   },
-  { key: 'createdAt', label: 'Created', get: (i) => i.createdAt },
-  { key: 'title', label: 'Title', get: (i) => i.title },
+  { key: 'createdAt', label: 'issues.sort.createdAt', get: (i) => i.createdAt },
+  { key: 'title', label: 'issues.sort.title', get: (i) => i.title },
 ];
 
 export function IssuesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { state, loading, error, canEdit, dispatch } = useProject();
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const { t } = useTranslation('tracker');
   useEntityDeepLink('issues', setEditingId);
   useNewParam(() => setCreating(true), '1', canEdit);
   const { value: sortValue, setSort } = useSortParam();
@@ -76,18 +78,16 @@ export function IssuesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   return (
     <div>
       <div className="data-list-header">
-        <span className="data-list-count">
-          {issues.length} {issues.length === 1 ? 'issue' : 'issues'}
-        </span>
+        <span className="data-list-count">{t('issues.count', { count: issues.length })}</span>
         <span className="data-list-actions">
           <SortControl
-            options={ISSUE_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: s.label }))}
+            options={ISSUE_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: t(s.label) }))}
             value={sortValue}
             onChange={setSort}
           />
           {canEdit && (
             <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
-              New issue
+              {t('issues.newIssue')}
             </Button>
           )}
         </span>
@@ -96,12 +96,12 @@ export function IssuesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       {issues.length === 0 ? (
         <EmptyState
           icon={<Bug size={22} />}
-          title="No issues yet"
-          description="Log bugs with a severity level and reproduction steps so they don't get lost."
+          title={t('issues.emptyTitle')}
+          description={t('issues.emptyDesc')}
           action={
             canEdit && (
               <Button leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
-                Log an issue
+                {t('issues.logIssue')}
               </Button>
             )
           }
@@ -121,25 +121,25 @@ return (
                 >
                   <div className="data-row-title">
                     <Badge tone={ISSUE_SEVERITY[issue.severity].tone}>
-                      {ISSUE_SEVERITY[issue.severity].label}
+                      {t(`issues.severity.${issue.severity}`)}
                     </Badge>
                     <span className="row-title-text">{issue.title}</span>
                   </div>
                   {issue.description && <div className="data-row-sub">{issue.description}</div>}
                   {issue.reproduction && <div className="data-row-sub">{issue.reproduction}</div>}
                   <div className="data-row-meta">
-                    {linked && <span>linked: {linked.title}</span>}
+                    {linked && <span>{t('issues.linkedTo', { title: linked.title })}</span>}
                     <span>#{shortId(issue.id)}</span>
                     {unreadIds?.has(issue.id) && (
                       <>
                         <span className="unread-dot" aria-hidden="true" />
-                        <span className="sr-only">Unread</span>
+                        <span className="sr-only">{t('issues.unread')}</span>
                       </>
                     )}
                   </div>
                 </button>
                 <div className="data-row-side">
-                  <Badge tone={ISSUE_STATUS[issue.status].tone}>{ISSUE_STATUS[issue.status].label}</Badge>
+                  <Badge tone={ISSUE_STATUS[issue.status].tone}>{t(`issues.status.${issue.status}`)}</Badge>
                   {canEdit && (
                     <PinButton
                       pinned={!!issue.pinned}
@@ -158,7 +158,7 @@ return (
                       variant="ghost"
                       size="sm"
                       className="btn-icon"
-                      aria-label="Edit issue"
+                      aria-label={t('issues.editAria')}
                       onClick={() => setEditingId(issue.id)}
                     >
                       <PencilSimple size={14} aria-hidden="true" />

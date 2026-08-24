@@ -19,6 +19,7 @@ import {
 } from '@phosphor-icons/react';
 import { ApiError, api, type SearchHit } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
+import { useTranslation } from 'react-i18next';
 import type { ChatMessage, ChatRef, ChatResolvedRef } from '../../lib/types';
 import { buildMentionToken, parseChatRefs } from '../../lib/chat-tokens';
 import { entityDeepLink } from '../../lib/deep-link';
@@ -35,19 +36,19 @@ const MENTION_RESULT_LIMIT = 10;
 const GROUP_GAP_MS = 5 * 60_000;
 const SCROLL_FAB_THRESHOLD = 400;
 
-const ENTITY_LABELS: Record<string, string> = {
-  tasks: 'Task',
-  issues: 'Issue',
-  testCases: 'Test',
-  decisions: 'Decision',
-  techEntries: 'Tech',
-  apiEndpoints: 'Endpoint',
-  apiCollections: 'Collection',
-  milestones: 'Milestone',
-  whiteboards: 'Board',
-  tables: 'Table',
-  relations: 'Relation',
-  schemaVersions: 'Schema',
+const ENTITY_LABEL_KEYS: Record<string, string> = {
+  tasks: 'teams.chat.entity.tasks',
+  issues: 'teams.chat.entity.issues',
+  testCases: 'teams.chat.entity.testCases',
+  decisions: 'teams.chat.entity.decisions',
+  techEntries: 'teams.chat.entity.techEntries',
+  apiEndpoints: 'teams.chat.entity.apiEndpoints',
+  apiCollections: 'teams.chat.entity.apiCollections',
+  milestones: 'teams.chat.entity.milestones',
+  whiteboards: 'teams.chat.entity.whiteboards',
+  tables: 'teams.chat.entity.tables',
+  relations: 'teams.chat.entity.relations',
+  schemaVersions: 'teams.chat.entity.schemaVersions',
 };
 
 const ENTITY_TINT: Record<string, string> = {
@@ -80,26 +81,6 @@ const ENTITY_ICONS: Record<string, typeof CheckSquare> = {
   schemaVersions: Graph,
 };
 
-function dayLabel(iso: string): string {
-  const d = new Date(iso);
-  const today = new Date();
-  const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
-  const diff = Math.round((startOf(today) - startOf(d)) / 86_400_000);
-  if (diff <= 0) return 'Today';
-  if (diff === 1) return 'Yesterday';
-  return d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
-}
-
-function formatChatTime(iso: string): string {
-  const d = new Date(iso);
-  const today = new Date();
-  const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
-  const diff = Math.round((startOf(today) - startOf(d)) / 86_400_000);
-  if (diff <= 0) return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-  if (diff === 1) return 'Yesterday';
-  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-}
-
 function chatLastReadKey(teamId: string): string {
   return `chatLastRead:${teamId}`;
 }
@@ -125,6 +106,7 @@ function chatQueueKey(teamId: string): string {
 }
 
 export function ChatPanel({ teamId, userId, userDisplayName }: ChatPanelProps) {
+  const { t } = useTranslation('account');
   const [messages, setMessages] = useState<ChatMessage[] | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [nextCursorId, setNextCursorId] = useState<string | null>(null);
@@ -158,6 +140,26 @@ const socketRef = useRef<TeamChatSocket | null>(null);
   const [resolvedRefs, setResolvedRefs] = useState<Map<string, ChatResolvedRef>>(
     () => new Map(),
   );
+
+  const dayLabel = useCallback((iso: string): string => {
+    const d = new Date(iso);
+    const today = new Date();
+    const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+    const diff = Math.round((startOf(today) - startOf(d)) / 86_400_000);
+    if (diff <= 0) return t('teams.chat.today');
+    if (diff === 1) return t('teams.chat.yesterday');
+    return d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  }, [t]);
+
+  function formatChatTime(iso: string): string {
+    const d = new Date(iso);
+    const today = new Date();
+    const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+    const diff = Math.round((startOf(today) - startOf(d)) / 86_400_000);
+    if (diff <= 0) return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    if (diff === 1) return t('teams.chat.yesterday');
+    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  }
 
   const resolveRefsFor = useCallback(async (list: ChatMessage[]) => {
     const missing = new Map<string, ChatRef>();
@@ -211,10 +213,10 @@ const socketRef = useRef<TeamChatSocket | null>(null);
         if (list) list.scrollTop = list.scrollHeight;
       });
     } catch (err) {
-      setLoadError(getErrorMessage(err, 'Failed to load messages'));
+      setLoadError(getErrorMessage(err, t('teams.chat.loadError')));
       setMessages([]);
     }
-  }, [teamId]);
+  }, [teamId, t]);
 
   useEffect(() => {
     void loadFirstPage();
@@ -475,7 +477,7 @@ async function onSend() {
         saveChatQueue();
       } else {
         setFailedIds((ids) => [...ids, temp.id]);
-        setSendError(getErrorMessage(err, 'Failed to send message'));
+        setSendError(getErrorMessage(err, t('teams.chat.sendFailed')));
       }
     } finally {
       setSending(false);
@@ -559,7 +561,11 @@ async function onDelete(message: ChatMessage) {
           type="button"
           key={i}
           className="chat-chip"
-          title={resolved?.projectId ? `${title} — open in project` : `${title} — not shared`}
+          title={
+            resolved?.projectId
+              ? t('teams.chat.chipOpen', { title })
+              : t('teams.chat.chipNotShared', { title })
+          }
           disabled={!resolved?.projectId}
           onClick={() => {
             if (!resolved?.projectId) return;
@@ -597,7 +603,7 @@ async function onDelete(message: ChatMessage) {
       out.push({ kind: 'msg', m });
     }
     return out;
-  }, [messages, lastReadAt, openedAt]);
+  }, [messages, lastReadAt, openedAt, dayLabel]);
 
 return (
     <div className="chat-panel">
@@ -631,8 +637,8 @@ return (
           <div className="page-empty">
             <EmptyState
               icon={<PaperPlaneTilt size={22} />}
-              title="No messages yet"
-              description="Start the conversation — messages are shared with every team member."
+              title={t('teams.chat.emptyTitle')}
+              description={t('teams.chat.emptyDescription')}
             />
           </div>
         ) : (
@@ -647,7 +653,7 @@ return (
             if (row.kind === 'unread') {
               return (
                 <div key="unread" className="chat-unread-divider" role="separator">
-                  New messages
+                  {t('teams.chat.unreadDivider')}
                 </div>
               );
             }
@@ -678,7 +684,7 @@ return (
                       }}
                       aria-hidden="true"
                     >
-                      {initialsOf(m.authorName || 'Former member')}
+                      {initialsOf(m.authorName || t('teams.chat.formerMember'))}
                     </span>
                   ) : (
                     <span className="chat-rail-time">
@@ -693,7 +699,7 @@ return (
                   {isGroupStart && (
                     <div className="chat-msg-header">
                       <span className={own ? 'chat-author chat-author-own' : 'chat-author'}>
-                        {m.authorName || 'Former member'}
+                        {m.authorName || t('teams.chat.formerMember')}
                       </span>
                       {pending && <ClockCounterClockwise size={10} aria-hidden="true" />}
                       <span className="chat-msg-time">{formatChatTime(m.createdAt)}</span>
@@ -703,21 +709,21 @@ return (
                   {failed && (
                     <div className="chat-msg-actions-inline">
                       <Button variant="ghost" size="sm" onClick={() => void onRetry(m)}>
-                        Retry
+                        {t('common:action.retry')}
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => onDismiss(m)}>
-                        Dismiss
+                        {t('teams.chat.dismiss')}
                       </Button>
                     </div>
                   )}
                   {deleteFailed && (
                     <div className="chat-msg-actions-inline" role="alert">
-                      Not deleted —{' '}
+                      {t('teams.chat.notDeleted')}{' '}
                       <Button variant="ghost" size="sm" onClick={() => void onDelete(m)}>
-                        Retry
+                        {t('common:action.retry')}
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => onDismissDeleteFailure(m)}>
-                        Dismiss
+                        {t('teams.chat.dismiss')}
                       </Button>
                     </div>
                   )}
@@ -726,8 +732,8 @@ return (
                   <button
                     type="button"
                     className="chat-msg-action"
-                    aria-label="Copy message"
-                    title="Copy message"
+                    aria-label={t('teams.chat.copyMessage')}
+                    title={t('teams.chat.copyMessage')}
                     onClick={() => void onCopy(m)}
                   >
                     <Copy size={12} aria-hidden="true" />
@@ -736,8 +742,8 @@ return (
                     <button
                       type="button"
                       className="chat-msg-action"
-                      aria-label="Delete message"
-                      title="Delete message"
+                      aria-label={t('teams.chat.deleteMessage')}
+                      title={t('teams.chat.deleteMessage')}
                       onClick={() => void onDelete(m)}
                     >
                       <Trash size={12} aria-hidden="true" />
@@ -752,8 +758,8 @@ return (
           <button
             type="button"
             className="chat-scroll-fab"
-            aria-label="Scroll to bottom"
-            title="Scroll to bottom"
+            aria-label={t('teams.chat.scrollToBottom')}
+            title={t('teams.chat.scrollToBottom')}
             onClick={() => listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })}
           >
             <PaperPlaneTilt size={16} aria-hidden="true" />
@@ -766,52 +772,55 @@ return (
         {queuedCount > 0 && (
           <div className="chat-offline-strip" role="status">
             <ClockCounterClockwise size={12} aria-hidden="true" />
-            Waiting for connection — {queuedCount} message{queuedCount === 1 ? '' : 's'} queued
+            {t('teams.chat.queued', { count: queuedCount })}
           </div>
         )}
         {mention && (
-          <div className="mention-popup" role="listbox" aria-label="Mention search">
+          <div className="mention-popup" role="listbox" aria-label={t('teams.chat.mentionSearchAria')}>
             {mention.query.length < 2 ? (
-              <div className="mention-hint">Keep typing — search tasks, issues & more</div>
+              <div className="mention-hint">{t('teams.chat.keepTyping')}</div>
             ) : mentionLoading ? (
-              <div className="mention-hint">Searching…</div>
+              <div className="mention-hint">{t('teams.chat.searching')}</div>
             ) : mentionResults.length === 0 ? (
-              <div className="mention-hint">No matches</div>
+              <div className="mention-hint">{t('teams.chat.noMatches')}</div>
             ) : (
-              mentionResults.map((hit, i) => (
-                <button
-                  type="button"
-                  key={`${hit.entity}:${hit.entityId}`}
-                  className={`mention-option${i === mentionIndex ? ' mention-option-active' : ''}`}
-                  role="option"
-                  aria-selected={i === mentionIndex}
-                  onMouseEnter={() => setMentionIndex(i)}
-                  onClick={() => insertMention(hit)}
-                >
-                  <span
-                    className="mention-entity-badge"
-                    style={{
-                      background: `color-mix(in srgb, ${ENTITY_TINT[hit.entity] ?? '#a1a1aa'} 18%, transparent)`,
-                      color: ENTITY_TINT[hit.entity] ?? '#a1a1aa',
-                    }}
+              mentionResults.map((hit, i) => {
+                const entityKey = ENTITY_LABEL_KEYS[hit.entity];
+                return (
+                  <button
+                    type="button"
+                    key={`${hit.entity}:${hit.entityId}`}
+                    className={`mention-option${i === mentionIndex ? ' mention-option-active' : ''}`}
+                    role="option"
+                    aria-selected={i === mentionIndex}
+                    onMouseEnter={() => setMentionIndex(i)}
+                    onClick={() => insertMention(hit)}
                   >
-                    {ENTITY_LABELS[hit.entity] ?? hit.entity}
-                  </span>
-                  <span className="mention-option-title">{hit.title}</span>
-                </button>
-              ))
+                    <span
+                      className="mention-entity-badge"
+                      style={{
+                        background: `color-mix(in srgb, ${ENTITY_TINT[hit.entity] ?? '#a1a1aa'} 18%, transparent)`,
+                        color: ENTITY_TINT[hit.entity] ?? '#a1a1aa',
+                      }}
+                    >
+                      {entityKey ? t(entityKey) : hit.entity}
+                    </span>
+                    <span className="mention-option-title">{hit.title}</span>
+                  </button>
+                );
+              })
             )}
           </div>
         )}
         {!draft && (
-          <span className="chat-composer-hint">Tip: type @ to link a task, issue or milestone</span>
+          <span className="chat-composer-hint">{t('teams.chat.composerTip')}</span>
         )}
         <div className="chat-composer-row">
         <textarea
           className="chat-input"
-          aria-label="Message"
-          placeholder="Type a message…"
-          title="Enter to send · Shift+Enter for new line"
+          aria-label={t('teams.chat.messageAria')}
+          placeholder={t('teams.chat.placeholder')}
+          title={t('teams.chat.enterToSend')}
           rows={1}
           value={draft}
           onChange={(e) => {
@@ -859,7 +868,7 @@ return (
         <Button
           variant="primary"
           size="sm"
-          aria-label="Send message"
+          aria-label={t('teams.chat.sendAria')}
           loading={sending}
           disabled={!draft.trim()}
           onClick={() => void onSend()}

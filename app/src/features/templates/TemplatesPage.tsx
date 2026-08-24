@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BookmarkSimple, Copy } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { ProjectTemplate } from '../../lib/types';
@@ -18,6 +19,7 @@ interface DeleteTarget {
 }
 
 export function TemplatesPage() {
+  const { t } = useTranslation('extras');
   const { teams } = useTeams();
   const [templates, setTemplates] = useState<ProjectTemplate[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -38,12 +40,12 @@ export function TemplatesPage() {
         if (!cancelled) setTemplates(list);
       })
       .catch((err) => {
-        if (!cancelled) setError(getErrorMessage(err, 'Failed to load templates.'));
+        if (!cancelled) setError(getErrorMessage(err, t('templates.errors.load')));
       });
     return () => {
       cancelled = true;
     };
-  }, [attempt]);
+  }, [attempt, t]);
 
   function openDelete(t: ProjectTemplate) {
     setConfirming(false);
@@ -60,7 +62,7 @@ export function TemplatesPage() {
       setTemplates((prev) => (prev ?? []).filter((t) => t.id !== deleteTarget.id));
       setDeleteTarget(null);
     } catch (err) {
-      setDeleteError(getErrorMessage(err, 'Failed to delete template.'));
+      setDeleteError(getErrorMessage(err, t('templates.errors.delete')));
     } finally {
       setDeleting(false);
     }
@@ -75,10 +77,9 @@ export function TemplatesPage() {
     <div className="page">
       <header className="page-header">
         <div>
-          <h1 className="page-title">Project templates</h1>
+          <h1 className="page-title">{t('templates.page.title')}</h1>
           <p className="page-subtitle">
-            Reusable project blueprints — save a project as a template, then instantiate it whenever
-            you need a fresh copy.
+            {t('templates.page.subtitle')}
           </p>
         </div>
       </header>
@@ -87,7 +88,7 @@ export function TemplatesPage() {
         <div className="form-stack">
           <InlineError>{error}</InlineError>
           <Button variant="secondary" size="sm" onClick={() => setAttempt((a) => a + 1)}>
-            Try again
+            {t('templates.retry')}
           </Button>
         </div>
       ) : templates === null ? (
@@ -105,46 +106,46 @@ export function TemplatesPage() {
         <div className="page-empty">
           <EmptyState
             icon={<BookmarkSimple size={22} />}
-            title="No templates yet"
-            description="Open any project and use “Save as template” to turn it into a reusable blueprint."
+            title={t('templates.empty.title')}
+            description={t('templates.empty.desc')}
           />
         </div>
       ) : (
         <>
           <div className="data-list-header">
             <span className="data-list-count">
-              {templates.length} template{templates.length === 1 ? '' : 's'}
+              {t('templates.count', { count: templates.length })}
             </span>
           </div>
           <div className="data-list">
-            {templates.map((t) => (
-              <div key={t.id} className="data-row">
+            {templates.map((tpl) => (
+              <div key={tpl.id} className="data-row">
                 <div className="data-row-main">
                   <div className="data-row-title">
-                    <span className="row-title-text">{t.name}</span>
+                    <span className="row-title-text">{tpl.name}</span>
                   </div>
-                  {t.description && <div className="data-row-meta">{t.description}</div>}
+                  {tpl.description && <div className="data-row-meta">{tpl.description}</div>}
                   <div className="data-row-meta">
-                    <span>{t.teamName}</span>
-                    <span>Created {formatDate(t.createdAt)}</span>
+                    <span>{tpl.teamName}</span>
+                    <span>{t('templates.row.created', { date: formatDate(tpl.createdAt) })}</span>
                   </div>
                 </div>
                 <div className="data-row-side">
                   <Button
                     size="sm"
                     leftIcon={<Copy size={13} aria-hidden="true" />}
-                    onClick={() => setUseTarget(t)}
+                    onClick={() => setUseTarget(tpl)}
                   >
-                    Use template
+                    {t('templates.use')}
                   </Button>
-                  {isAdmin(t.teamId) && (
+                  {isAdmin(tpl.teamId) && (
                     <Button
                       size="sm"
                       variant="ghost"
                       className="text-danger"
-                      onClick={() => openDelete(t)}
+                      onClick={() => openDelete(tpl)}
                     >
-                      Delete
+                      {t('templates.delete')}
                     </Button>
                   )}
                 </div>
@@ -158,7 +159,7 @@ export function TemplatesPage() {
 
       <Modal
         open={deleteTarget !== null}
-        title="Delete template"
+        title={t('templates.deleteTitle')}
         onClose={() => setDeleteTarget(null)}
         width="sm"
         footer={
@@ -170,15 +171,15 @@ export function TemplatesPage() {
                 setDeleteTarget(null);
               }}
             >
-              Cancel
+              {t('templates.cancel')}
             </Button>
             {confirming ? (
               <Button variant="danger" loading={deleting} onClick={() => void onDelete()}>
-                Confirm delete
+                {t('templates.confirmDelete')}
               </Button>
             ) : (
               <Button variant="danger" onClick={() => setConfirming(true)}>
-                Delete
+                {t('templates.delete')}
               </Button>
             )}
           </>
@@ -186,7 +187,7 @@ export function TemplatesPage() {
       >
         <div className="form-stack">
           <p>
-            “{deleteTarget?.name}” will be removed. Projects already created from it are not affected.
+            {t('templates.deleteDesc', { name: deleteTarget?.name ?? '' })}
           </p>
           {deleteError && <InlineError>{deleteError}</InlineError>}
         </div>

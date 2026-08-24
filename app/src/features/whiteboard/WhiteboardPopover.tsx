@@ -1,4 +1,5 @@
 import { useState, type KeyboardEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { WhiteboardBoundary, WhiteboardEdge, WhiteboardShape, WhiteboardElement } from '../../lib/types';
 import { effectiveArrowStyle } from './edges';
 import { ColorPalette } from './ColorPalette';
@@ -16,7 +17,23 @@ const ARROW_STYLES = ['none', 'open', 'solid', 'diamond', 'circle'] as const;
 
 const DASH_STYLES = ['solid', 'dashed', 'dotted'] as const;
 
+function editLabelKey(kind: WhiteboardElement['kind']): string {
+  switch (kind) {
+    case 'shape':
+      return 'whiteboard.popover.editShape';
+    case 'sticky':
+      return 'whiteboard.popover.editSticky';
+    case 'edge':
+      return 'whiteboard.popover.editEdge';
+    case 'boundary':
+      return 'whiteboard.popover.editBoundary';
+    default:
+      return 'whiteboard.popover.editText';
+  }
+}
+
 export function WhiteboardPopover({ el, onPatch, onDone, onCancel }: WhiteboardPopoverProps) {
+  const { t } = useTranslation('extras');
   const isShape = el.kind === 'shape';
   const isText = el.kind === 'text';
   const [label, setLabel] = useState(el.kind === 'shape' ? (el as WhiteboardShape).label : '');
@@ -53,10 +70,10 @@ export function WhiteboardPopover({ el, onPatch, onDone, onCancel }: WhiteboardP
   };
 
   return (
-    <div className="wb-popover" role="dialog" aria-label={`Edit ${el.kind}`} onKeyDown={cancelKey}>
+    <div className="wb-popover" role="dialog" aria-label={t(editLabelKey(el.kind))} onKeyDown={cancelKey}>
       {isShape ? (
         <>
-          <div className="fp-segmented fp-segmented-wrap" role="radiogroup" aria-label="Shape type">
+          <div className="fp-segmented fp-segmented-wrap" role="radiogroup" aria-label={t('whiteboard.popover.shapeType')}>
             {SHAPE_TYPES.map((st) => (
               <button
                 key={st}
@@ -71,12 +88,12 @@ export function WhiteboardPopover({ el, onPatch, onDone, onCancel }: WhiteboardP
             ))}
           </div>
           <label className="field">
-            <span className="field-label">Label</span>
+            <span className="field-label">{t('whiteboard.popover.label')}</span>
             <input
               className="input"
               value={label}
               maxLength={200}
-              placeholder="e.g. Decide"
+              placeholder={t('whiteboard.popover.placeholderDecide')}
               onChange={(e) => {
                 setLabel(e.target.value);
                 onPatch({ label: e.target.value });
@@ -93,9 +110,9 @@ export function WhiteboardPopover({ el, onPatch, onDone, onCancel }: WhiteboardP
                 onPatch({ fill: e.target.checked });
               }}
             />
-            Filled
+            {t('whiteboard.popover.filled')}
           </label>
-          <div className="fp-segmented" role="radiogroup" aria-label="Rotation">
+          <div className="fp-segmented" role="radiogroup" aria-label={t('whiteboard.popover.rotationGroup')}>
             {[0, 90, 180, 270].map((deg) => (
               <button
                 key={deg}
@@ -110,7 +127,7 @@ export function WhiteboardPopover({ el, onPatch, onDone, onCancel }: WhiteboardP
             ))}
           </div>
           <label className="field">
-            <span className="field-label">Rotation°</span>
+            <span className="field-label">{t('whiteboard.popover.rotation')}</span>
             <input
               className="input"
               type="number"
@@ -126,51 +143,51 @@ export function WhiteboardPopover({ el, onPatch, onDone, onCancel }: WhiteboardP
           </label>
           <ColorPalette value={el.color} onChange={(color) => onPatch({ color })} />
           <div className="fp-actions">
-            <button type="button" className="fp-btn fp-btn-ghost" onClick={onCancel} aria-label="Cancel changes">
-              Cancel
+            <button type="button" className="fp-btn fp-btn-ghost" onClick={onCancel} aria-label={t('whiteboard.popover.cancelChanges')}>
+              {t('whiteboard.popover.cancel')}
             </button>
-            <button type="button" className="fp-btn fp-btn-primary" onClick={onDone} aria-label="Finish editing">
-              Done
+            <button type="button" className="fp-btn fp-btn-primary" onClick={onDone} aria-label={t('whiteboard.popover.finishEditing')}>
+              {t('whiteboard.popover.done')}
             </button>
           </div>
         </>
       ) : el.kind === 'boundary' ? (
         <>
           <label className="field">
-            <span className="field-label">Label</span>
+            <span className="field-label">{t('whiteboard.popover.label')}</span>
             <input
               className="input"
               value={(el as WhiteboardBoundary).label}
               maxLength={200}
-              placeholder="e.g. System"
+              placeholder={t('whiteboard.popover.placeholderSystem')}
               onChange={(e) => onPatch({ label: e.target.value })}
               onKeyDown={commitText}
             />
           </label>
           <ColorPalette value={el.color} onChange={(color) => onPatch({ color })} />
           <div className="fp-actions">
-            <button type="button" className="fp-btn fp-btn-ghost" onClick={onCancel} aria-label="Cancel changes">
-              Cancel
+            <button type="button" className="fp-btn fp-btn-ghost" onClick={onCancel} aria-label={t('whiteboard.popover.cancelChanges')}>
+              {t('whiteboard.popover.cancel')}
             </button>
-            <button type="button" className="fp-btn fp-btn-primary" onClick={onDone} aria-label="Finish editing">
-              Done
+            <button type="button" className="fp-btn fp-btn-primary" onClick={onDone} aria-label={t('whiteboard.popover.finishEditing')}>
+              {t('whiteboard.popover.done')}
             </button>
           </div>
         </>
       ) : el.kind === 'edge' ? (
         <>
           <label className="field">
-            <span className="field-label">Label</span>
+            <span className="field-label">{t('whiteboard.popover.label')}</span>
             <input
               className="input"
               value={(el as WhiteboardEdge).label}
               maxLength={200}
-              placeholder="e.g. Yes / HTTP"
+              placeholder={t('whiteboard.popover.placeholderYes')}
               onChange={(e) => onPatch({ label: e.target.value })}
               onKeyDown={commitText}
             />
           </label>
-          <div className="fp-segmented" role="radiogroup" aria-label="Arrow style">
+          <div className="fp-segmented" role="radiogroup" aria-label={t('whiteboard.popover.arrowStyle')}>
             {ARROW_STYLES.map((st) => (
               <button
                 key={st}
@@ -184,7 +201,7 @@ export function WhiteboardPopover({ el, onPatch, onDone, onCancel }: WhiteboardP
               </button>
             ))}
           </div>
-          <div className="fp-segmented" role="radiogroup" aria-label="Line style">
+          <div className="fp-segmented" role="radiogroup" aria-label={t('whiteboard.popover.lineStyle')}>
             {DASH_STYLES.map((d) => (
               <button
                 key={d}
@@ -200,24 +217,24 @@ export function WhiteboardPopover({ el, onPatch, onDone, onCancel }: WhiteboardP
           </div>
           <ColorPalette value={el.color} onChange={(color) => onPatch({ color })} />
           <div className="fp-actions">
-            <button type="button" className="fp-btn fp-btn-ghost" onClick={onCancel} aria-label="Cancel changes">
-              Cancel
+            <button type="button" className="fp-btn fp-btn-ghost" onClick={onCancel} aria-label={t('whiteboard.popover.cancelChanges')}>
+              {t('whiteboard.popover.cancel')}
             </button>
-            <button type="button" className="fp-btn fp-btn-primary" onClick={onDone} aria-label="Finish editing">
-              Done
+            <button type="button" className="fp-btn fp-btn-primary" onClick={onDone} aria-label={t('whiteboard.popover.finishEditing')}>
+              {t('whiteboard.popover.done')}
             </button>
           </div>
         </>
       ) : (
         <>
           <label className="field">
-            <span className="field-label">{isText ? 'Text' : 'Sticky text'}</span>
+            <span className="field-label">{isText ? t('whiteboard.popover.textLabel') : t('whiteboard.popover.stickyTextLabel')}</span>
             {isText ? (
               <textarea
                 className="textarea"
                 rows={2}
                 maxLength={1000}
-                placeholder="Type…"
+                placeholder={t('whiteboard.popover.typePlaceholder')}
                 value={textValue()}
                 onChange={(e) => onPatch({ text: e.target.value })}
                 onKeyDown={(e) => commitText(e, true)}
@@ -226,21 +243,21 @@ export function WhiteboardPopover({ el, onPatch, onDone, onCancel }: WhiteboardP
               <input
                 className="input"
                 maxLength={500}
-                placeholder="Type…"
+                placeholder={t('whiteboard.popover.typePlaceholder')}
                 value={textValue()}
                 onChange={(e) => onPatch({ text: e.target.value })}
                 onKeyDown={commitText}
               />
             )}
-            {isText && <span className="fp-hint">Enter to finish · Shift+Enter newline</span>}
+            {isText && <span className="fp-hint">{t('whiteboard.popover.enterHint')}</span>}
           </label>
           <ColorPalette value={elColor()} onChange={(color) => onPatch({ color })} />
           <div className="fp-actions">
-            <button type="button" className="fp-btn fp-btn-ghost" onClick={onCancel} aria-label="Cancel changes">
-              Cancel
+            <button type="button" className="fp-btn fp-btn-ghost" onClick={onCancel} aria-label={t('whiteboard.popover.cancelChanges')}>
+              {t('whiteboard.popover.cancel')}
             </button>
-            <button type="button" className="fp-btn fp-btn-primary" onClick={onDone} aria-label="Finish editing">
-              Done
+            <button type="button" className="fp-btn fp-btn-primary" onClick={onDone} aria-label={t('whiteboard.popover.finishEditing')}>
+              {t('whiteboard.popover.done')}
             </button>
           </div>
         </>

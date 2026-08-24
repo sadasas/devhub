@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { newId, nowIso } from '../../lib/utils';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
@@ -14,6 +15,7 @@ interface NewTableModalProps {
 }
 
 export function NewTableModal({ open, onClose }: NewTableModalProps) {
+  const { t } = useTranslation('project');
   const { dispatch } = useProject();
   usePresenceStatus('Creating table', open);
   const [name, setName] = useState('');
@@ -43,33 +45,33 @@ export function NewTableModal({ open, onClose }: NewTableModalProps) {
   return (
     <Modal
       open={open}
-      title="New table"
+      title={t('schema.newTableModal.title')}
       onClose={onClose}
       width="sm"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t('schema.newTableModal.cancel')}
           </Button>
           <Button type="submit" form="new-table-form" disabled={!name.trim()}>
-            Create table
+            {t('schema.newTableModal.submit')}
           </Button>
         </>
       }
     >
       <form id="new-table-form" className="form-stack" onSubmit={onSubmit} noValidate>
         <Input
-          label="Name"
+          label={t('schema.newTableModal.nameLabel')}
           required
           autoFocus
-          placeholder="users"
+          placeholder={t('schema.newTableModal.namePlaceholder')}
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
         <Textarea
-          label="Comment"
+          label={t('schema.newTableModal.commentLabel')}
           rows={2}
-          placeholder="What is this table for? — optional"
+          placeholder={t('schema.newTableModal.commentPlaceholder')}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
         />

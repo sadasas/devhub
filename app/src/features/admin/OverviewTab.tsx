@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ChartLine,
   CurrencyCircleDollar,
@@ -16,6 +17,7 @@ import { InlineError } from '../../components/InlineError';
 import { BarChart, CHART_COLORS, Donut, StatCard, VerticalBarChart } from './charts';
 
 export function OverviewTab({ refreshKey }: { refreshKey: number }) {
+  const { t } = useTranslation('extras');
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [statsError, setStatsError] = useState<string | null>(null);
   const [charts, setCharts] = useState<AdminCharts | null>(null);
@@ -30,9 +32,9 @@ export function OverviewTab({ refreshKey }: { refreshKey: number }) {
       setStats(s);
       setCharts(c);
     } catch (err) {
-      setStatsError(getErrorMessage(err, 'Failed to load stats'));
+      setStatsError(getErrorMessage(err, t('admin.overview.errors.stats')));
     }
-  }, []);
+  }, [t]);
 
   const loadActivityChart = useCallback(async () => {
     try {
@@ -52,51 +54,51 @@ export function OverviewTab({ refreshKey }: { refreshKey: number }) {
   }, [loadActivityChart, refreshKey]);
 
   return (
-    <section className="tab-panel" role="tabpanel" aria-label="Platform overview">
+    <section className="tab-panel" role="tabpanel" aria-label={t('admin.overview.aria')}>
       {statsError && <InlineError>{statsError}</InlineError>}
       <div className="stats-grid mb-24">
         <StatCard
           icon={<UsersThree size={14} weight="duotone" aria-hidden="true" />}
-          label="Users"
+          label={t('admin.overview.users')}
           value={stats?.users ?? null}
         />
         <StatCard
           icon={<UsersThree size={14} weight="duotone" aria-hidden="true" />}
-          label="Teams"
+          label={t('admin.overview.teams')}
           value={stats?.teams ?? null}
         />
         <StatCard
           icon={<FolderSimple size={14} weight="duotone" aria-hidden="true" />}
-          label="Projects"
+          label={t('admin.overview.projects')}
           value={stats?.projects ?? null}
         />
         <StatCard
           icon={<Key size={14} weight="duotone" aria-hidden="true" />}
-          label="Active keys"
+          label={t('admin.overview.activeKeys')}
           value={stats?.activeKeys ?? null}
         />
       </div>
       <div className="stats-grid mb-24">
         <StatCard
           icon={<CurrencyCircleDollar size={14} weight="duotone" aria-hidden="true" />}
-          label="Revenue Total"
+          label={t('admin.overview.revenueTotal')}
           value={stats?.revenueTotal ?? null}
           accent
         />
         <StatCard
           icon={<ShieldCheck size={14} weight="duotone" aria-hidden="true" />}
-          label="Paid Teams"
+          label={t('admin.overview.paidTeams')}
           value={stats?.paidTeams ?? null}
         />
         <StatCard
           icon={<Receipt size={14} weight="duotone" aria-hidden="true" />}
-          label="Pending Payments"
+          label={t('admin.overview.pendingPayments')}
           value={stats?.pendingPayments ?? null}
         />
       </div>
 
       <div className="admin-filter-bar mb-12">
-        <h3 className="page-subtitle" style={{ margin: 0 }}>Activity</h3>
+        <h3 className="page-subtitle" style={{ margin: 0 }}>{t('admin.activity')}</h3>
         <span style={{ flex: 1 }} />
         {(['1d', '7d', '1m', '6m', '12m'] as const).map((r) => (
           <button
@@ -117,14 +119,14 @@ export function OverviewTab({ refreshKey }: { refreshKey: number }) {
             label: d.label,
             value: d.count,
           }))}
-          label={`Activity (${activityRange})`}
+          label={t('admin.overview.activityRange', { range: activityRange })}
           formatValue={(v) => String(v)}
         />
       ) : (
         <EmptyState
           icon={<ChartLine size={22} />}
-          title="No activity data"
-          description="Activity will appear here once users start working."
+          title={t('admin.overview.noActivity')}
+          description={t('admin.overview.noActivityDesc')}
         />
       )}
 
@@ -135,7 +137,7 @@ export function OverviewTab({ refreshKey }: { refreshKey: number }) {
               label: d.date.slice(5),
               value: d.amount,
             }))}
-            label="Revenue last 30 days"
+            label={t('admin.overview.revenue30d')}
           />
         </div>
       )}
@@ -149,7 +151,7 @@ export function OverviewTab({ refreshKey }: { refreshKey: number }) {
               color: CHART_COLORS[i % CHART_COLORS.length] ?? '#6b7280',
             }))}
             total={charts.revenueByPackage.reduce((s, p) => s + p.amount, 0)}
-            label="Revenue by package"
+            label={t('admin.overview.revenueByPackage')}
           />
         </div>
       )}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ArrowClockwise, ArrowCounterClockwise, ArrowLeft, ArrowsInSimple, ArrowsOutSimple, BoundingBox, Cards, Cursor, Eraser, Export, FlowArrow, FrameCorners, HandPointing, Note, PenNib, Selection, TextT } from '@phosphor-icons/react';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
@@ -22,22 +23,23 @@ const MAX_ELEMENTS = 1000;
 const ADD_TOOLS: ReadonlySet<string> = new Set(['pen', 'text', 'sticky', 'shape', 'edge', 'ref', 'boundary']);
 
 const TOOLS = [
-  { id: 'view', name: 'View only', icon: HandPointing, shortcut: SHORTCUTS.view },
-  { id: 'select', name: 'Select', icon: Cursor, shortcut: SHORTCUTS.select },
-  { id: 'marquee', name: 'Select area', icon: Selection, shortcut: SHORTCUTS.marquee },
-  { id: 'pen', name: 'Pen', icon: PenNib, shortcut: SHORTCUTS.pen },
-  { id: 'eraser', name: 'Eraser', icon: Eraser, shortcut: SHORTCUTS.eraser },
-  { id: 'text', name: 'Text', icon: TextT, shortcut: SHORTCUTS.text },
-  { id: 'sticky', name: 'Sticky note', icon: Note, shortcut: SHORTCUTS.sticky },
-  { id: 'shape', name: 'Shape', icon: BoundingBox, shortcut: SHORTCUTS.shape },
-  { id: 'edge', name: 'Edge', icon: FlowArrow, shortcut: SHORTCUTS.edge },
-  { id: 'ref', name: 'Entity ref card', icon: Cards, shortcut: SHORTCUTS.ref },
-  { id: 'boundary', name: 'Boundary', icon: FrameCorners, shortcut: SHORTCUTS.boundary },
+  { id: 'view', nameKey: 'whiteboard.tool.view', icon: HandPointing, shortcut: SHORTCUTS.view },
+  { id: 'select', nameKey: 'whiteboard.tool.select', icon: Cursor, shortcut: SHORTCUTS.select },
+  { id: 'marquee', nameKey: 'whiteboard.tool.marquee', icon: Selection, shortcut: SHORTCUTS.marquee },
+  { id: 'pen', nameKey: 'whiteboard.tool.pen', icon: PenNib, shortcut: SHORTCUTS.pen },
+  { id: 'eraser', nameKey: 'whiteboard.tool.eraser', icon: Eraser, shortcut: SHORTCUTS.eraser },
+  { id: 'text', nameKey: 'whiteboard.tool.text', icon: TextT, shortcut: SHORTCUTS.text },
+  { id: 'sticky', nameKey: 'whiteboard.tool.sticky', icon: Note, shortcut: SHORTCUTS.sticky },
+  { id: 'shape', nameKey: 'whiteboard.tool.shape', icon: BoundingBox, shortcut: SHORTCUTS.shape },
+  { id: 'edge', nameKey: 'whiteboard.tool.edge', icon: FlowArrow, shortcut: SHORTCUTS.edge },
+  { id: 'ref', nameKey: 'whiteboard.tool.ref', icon: Cards, shortcut: SHORTCUTS.ref },
+  { id: 'boundary', nameKey: 'whiteboard.tool.boundary', icon: FrameCorners, shortcut: SHORTCUTS.boundary },
 ] as const;
 
 const ACTIVE_TOOLS: ReadonlySet<string> = new Set(['view', 'select', 'marquee', 'pen', 'eraser', 'text', 'sticky', 'shape', 'edge', 'ref', 'boundary']);
 
 export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditorShellProps) {
+  const { t } = useTranslation('extras');
   const [tool, setTool] = useState<WbTool>('select');
   const history = useWhiteboardHistory(board.id, board.elements);
   const historyRef = useRef(history);
@@ -138,21 +140,22 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
   return (
     <div className="wb-shell" ref={shellRef}>
       <div className="board-toolbar">
-        <Button variant="ghost" size="sm" className="back-btn" onClick={onBack} aria-label="Back to boards">
+        <Button variant="ghost" size="sm" className="back-btn" onClick={onBack} aria-label={t('whiteboard.toolbar.back')}>
           <ArrowLeft size={14} aria-hidden="true" />
         </Button>
-        <div className="sub-tabs" role="toolbar" aria-label="Whiteboard tools">
+        <div className="sub-tabs" role="toolbar" aria-label={t('whiteboard.toolbar.tools')}>
           {TOOLS.map((item) => {
             const active = ACTIVE_TOOLS.has(item.id) && tool === item.id;
             const blocked = atCap && ADD_TOOLS.has(item.id);
+            const name = t(item.nameKey);
             return (
               <button
-                key={item.name}
+                key={item.id}
                 type="button"
                 className={`sub-tab${active ? ' sub-tab-active' : ''}`}
                 disabled={!ACTIVE_TOOLS.has(item.id) || blocked}
-                title={blocked ? `${item.name} — element limit reached` : item.name}
-                aria-label={`${item.name} — ${item.shortcut}`}
+                title={blocked ? t('whiteboard.tool.limitReached', { name }) : name}
+                aria-label={`${name} — ${item.shortcut}`}
                 aria-pressed={active}
                 onClick={() => {
                   if (ACTIVE_TOOLS.has(item.id)) setTool(item.id as WbTool);
@@ -167,8 +170,8 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
             type="button"
             className="sub-tab"
             disabled={!history.canUndo}
-            title="Undo (Ctrl+Z)"
-            aria-label="Undo — Ctrl+Z"
+            title={t('whiteboard.toolbar.undoTitle')}
+            aria-label={t('whiteboard.toolbar.undoAria')}
             onClick={history.undo}
           >
             <ArrowCounterClockwise size={15} aria-hidden="true" />
@@ -177,8 +180,8 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
             type="button"
             className="sub-tab"
             disabled={!history.canRedo}
-            title="Redo (Ctrl+Y)"
-            aria-label="Redo — Ctrl+Y"
+            title={t('whiteboard.toolbar.redoTitle')}
+            aria-label={t('whiteboard.toolbar.redoAria')}
             onClick={history.redo}
           >
             <ArrowClockwise size={15} aria-hidden="true" />
@@ -187,8 +190,8 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
           <button
             type="button"
             className="sub-tab"
-            title={isFullscreen ? 'Exit fullscreen (F)' : 'Fullscreen (F)'}
-            aria-label={isFullscreen ? 'Exit fullscreen — F' : 'Fullscreen — F'}
+            title={isFullscreen ? t('whiteboard.toolbar.fsExitTitle') : t('whiteboard.toolbar.fsEnterTitle')}
+            aria-label={isFullscreen ? t('whiteboard.toolbar.fsExitAria') : t('whiteboard.toolbar.fsEnterAria')}
             aria-pressed={isFullscreen}
             onClick={toggleFullscreen}
           >
@@ -203,8 +206,8 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
               type="button"
               className="sub-tab"
               disabled={elementCount === 0}
-              title={elementCount === 0 ? 'Export — the board is empty' : 'Export PNG/SVG'}
-              aria-label="Export diagram"
+              title={elementCount === 0 ? t('whiteboard.export.emptyTitle') : t('whiteboard.export.title')}
+              aria-label={t('whiteboard.export.menuLabel')}
               aria-haspopup="menu"
               aria-expanded={exportOpen}
               onClick={() => setExportOpen((open) => !open)}
@@ -212,7 +215,7 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
               <Export size={15} aria-hidden="true" />
             </button>
             {exportOpen && (
-              <div ref={exportMenuRef} className="wb-export-menu" role="menu" aria-label="Export diagram">
+              <div ref={exportMenuRef} className="wb-export-menu" role="menu" aria-label={t('whiteboard.export.menuLabel')}>
                 <button
                   type="button"
                   role="menuitem"
@@ -222,7 +225,7 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
                     downloadWhiteboardPng(board, refDataMap);
                   }}
                 >
-                  PNG image
+                  {t('whiteboard.export.png')}
                 </button>
                 <button
                   type="button"
@@ -233,7 +236,7 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
                     downloadWhiteboardSvg(board, refDataMap);
                   }}
                 >
-                  SVG image
+                  {t('whiteboard.export.svg')}
                 </button>
                 <button
                   type="button"
@@ -244,7 +247,7 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
                     downloadWhiteboardPdf(board, refDataMap);
                   }}
                 >
-                  PDF document
+                  {t('whiteboard.export.pdf')}
                 </button>
               </div>
             )}
@@ -252,11 +255,11 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
         </div>
         {nearCap && (
           <div className={`wb-cap-banner${atCap ? ' wb-cap-banner-danger' : ''}`} role="alert">
-            <Badge tone={atCap ? 'danger' : 'warn'}>{elementCount}/1000 elements</Badge>
+            <Badge tone={atCap ? 'danger' : 'warn'}>{t('whiteboard.cap.badge', { count: elementCount })}</Badge>
             <span>
               {atCap
-                ? 'Element limit reached — delete elements to add more.'
-                : 'Approaching the element limit — delete elements to keep editing.'}
+                ? t('whiteboard.cap.atLimit')
+                : t('whiteboard.cap.nearLimit')}
             </span>
           </div>
         )}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChatsCircle, X } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { useAuth } from '../../state/auth-context';
 import { ChatPanel } from '../teams/ChatPanel';
@@ -13,6 +14,7 @@ interface ProjectChatWidgetProps {
 }
 
 export function ProjectChatWidget({ teamId, teamName }: ProjectChatWidgetProps) {
+  const { t } = useTranslation('project');
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [unread, setUnread] = useState(0);
@@ -64,7 +66,7 @@ export function ProjectChatWidget({ teamId, teamName }: ProjectChatWidgetProps) 
         ref={launcherRef}
         type="button"
         className="chat-launcher"
-        aria-label="Open team chat"
+        aria-label={t('chat.launcherAria')}
         aria-expanded={open}
         aria-controls="project-chat-drawer"
         onClick={() => setOpen((v) => !v)}
@@ -75,7 +77,7 @@ export function ProjectChatWidget({ teamId, teamName }: ProjectChatWidgetProps) 
             <span className="chat-launcher-badge" aria-hidden="true">
               {unread > 99 ? '99+' : unread}
             </span>
-            <span className="sr-only">{unread} unread messages</span>
+            <span className="sr-only">{t('chat.unread', { count: unread })}</span>
           </>
         )}
       </button>
@@ -85,15 +87,15 @@ export function ProjectChatWidget({ teamId, teamName }: ProjectChatWidgetProps) 
             id="project-chat-drawer"
             className="chat-drawer"
             role="dialog"
-            aria-label="Team chat"
+            aria-label={t('chat.drawerAria')}
             aria-modal="false"
           >
             <div className="chat-drawer-head">
-              <span className="chat-drawer-title">{teamName} — Team chat</span>
+              <span className="chat-drawer-title">{t('chat.drawerTitle', { team: teamName })}</span>
               <button
                 type="button"
                 className="btn-icon"
-                aria-label="Close chat"
+                aria-label={t('chat.closeAria')}
                 onClick={() => {
                   setOpen(false);
                   launcherRef.current?.focus();

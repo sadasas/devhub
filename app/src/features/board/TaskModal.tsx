@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Trash } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import {
   TASK_PRIORITY,
   TASK_PRIORITY_ORDER,
@@ -33,6 +34,7 @@ interface TaskModalProps {
 }
 
 export function TaskModal({ taskId, onClose }: TaskModalProps) {
+  const { t } = useTranslation('tracker');
   const { state, dispatch, canEdit, projectId, teamId } = useProject();
   const [editing, setEditing] = useState(false);
   const [cycleWarn, setCycleWarn] = useState<string | null>(null);
@@ -60,7 +62,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
   }, [taskId]);
 
   const task = state?.tasks.find((t) => t.id === taskId);
-  usePresenceStatus('Editing task', task != null);
+  usePresenceStatus(t('board.taskModal.presenceEditing'), task != null);
   if (!task) return null;
 
   const update = (patch: UpdatePatch<Task>) =>
@@ -72,7 +74,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
         (tc) => tc.taskId === task.id && tc.status !== 'pass',
       );
       setDoneWarn(
-        `Cannot mark done: ${pending.length} test case${pending.length === 1 ? ' is' : 's are'} not passed yet.`,
+        t('board.taskModal.cannotMarkDone', { count: pending.length }),
       );
       return;
     }
@@ -82,7 +84,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
 
   const otherTasks = state!.tasks.filter((t) => t.id !== task.id);
   const dateWarn = startAfterDue(task.startDate, task.dueDate)
-    ? 'Start date is after the due date.'
+    ? t('board.taskModal.dateWarn')
     : null;
   const testCases = linkedTestCases(task.id, state!.testCases);
   const blockerNames = task.blockedBy
@@ -118,7 +120,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
       ? task.blockedBy.filter((x) => x !== id)
       : [...task.blockedBy, id];
     if (next.length > task.blockedBy.length && wouldCreateCycle(state!.tasks, task.id, next)) {
-      setCycleWarn('This would create a dependency cycle.');
+      setCycleWarn(t('board.taskModal.cycleWarn'));
       return;
     }
     setCycleWarn(null);
@@ -134,7 +136,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
     <>
     <Modal
       open
-      title={editing ? 'Edit task' : 'Task'}
+      title={editing ? t('board.taskModal.editTitle') : t('board.taskModal.viewTitle')}
       onClose={onClose}
       width="md"
       footer={
@@ -146,23 +148,23 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               leftIcon={<Trash size={13} aria-hidden="true" />}
               onClick={() => setConfirmOpen(true)}
             >
-              Delete
+              {t('board.taskModal.delete')}
             </Button>
           )}
           <span className="flex-1" />
           {editing ? (
             <>
               <Button variant="ghost" onClick={cancelEditing}>
-                Cancel
+                {t('board.taskModal.cancel')}
               </Button>
               <Button variant="primary" onClick={finishEditing}>
-                Done
+                {t('board.taskModal.done')}
               </Button>
             </>
           ) : (
             canEdit && (
               <Button variant="primary" onClick={startEditing}>
-                Edit
+                {t('board.taskModal.edit')}
               </Button>
             )
           )}
@@ -173,7 +175,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
         {editing ? (
           <>
             <Input
-              label="Title"
+              label={t('board.taskModal.titleLabel')}
               value={task.title}
               onChange={(e) => update({ title: e.target.value })}
             />
@@ -181,7 +183,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
             <div className="field-row">
               <div className="field">
                 <label className="field-label" htmlFor="task-status">
-                  Status
+                  {t('board.taskModal.statusLabel')}
                 </label>
                 <select
                   id="task-status"
@@ -198,7 +200,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               </div>
               <div className="field">
                 <label className="field-label" htmlFor="task-priority">
-                  Priority
+                  {t('board.taskModal.priorityLabel')}
                 </label>
                 <select
                   id="task-priority"
@@ -219,7 +221,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
             <div className="field">
               <SearchableSelect
                 id="task-milestone"
-                label="Milestone"
+                label={t('board.taskModal.milestoneLabel')}
                 value={task.milestoneId}
                 options={state!.milestones.map((m) => ({ value: m.id, label: m.name }))}
                 onChange={(v) => update({ milestoneId: v })}
@@ -229,7 +231,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
             <div className="field">
               <SearchableSelect
                 id="task-assignee"
-                label="Assignee"
+                label={t('board.taskModal.assigneeLabel')}
                 value={task.assigneeId ?? null}
                 options={members.map((m) => ({
                   value: m.id,
@@ -240,14 +242,14 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
             </div>
 
             <Input
-              label="Due date"
+              label={t('board.taskModal.dueDateLabel')}
               type="date"
               value={task.dueDate?.slice(0, 10) ?? ''}
               onChange={(e) => update({ dueDate: e.target.value === '' ? null : e.target.value })}
             />
 
             <Input
-              label="Start date"
+              label={t('board.taskModal.startDateLabel')}
               type="date"
               value={task.startDate?.slice(0, 10) ?? ''}
               onChange={(e) => update({ startDate: e.target.value === '' ? null : e.target.value })}
@@ -255,7 +257,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
             {dateWarn && <InlineError>{dateWarn}</InlineError>}
 
             <Input
-              label="Estimate (hours)"
+              label={t('board.taskModal.estimateLabel')}
               type="number"
               min={0}
               value={task.estimate ?? ''}
@@ -266,14 +268,14 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
             />
 
             <Input
-              label="Labels"
-              placeholder="comma, separated"
+              label={t('board.taskModal.labelsLabel')}
+              placeholder={t('board.taskModal.labelsPlaceholder')}
               value={task.labels.join(', ')}
               onChange={(e) => update({ labels: parseLabels(e.target.value) })}
             />
 
             <Textarea
-              label="Description"
+              label={t('board.taskModal.descriptionLabel')}
               rows={4}
               value={task.description}
               onChange={(e) => update({ description: e.target.value })}
@@ -281,11 +283,13 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
 
             <div className="field">
               <label className="field-label">
-                Blocked by{blockerNames.length > 0 ? ` — ${blockerNames.join(', ')}` : ''}
+                {blockerNames.length > 0
+                  ? t('board.taskModal.blockedByWithNames', { names: blockerNames.join(', ') })
+                  : t('board.taskModal.blockedByLabel')}
               </label>
               <div className="blocker-list">
                 {otherTasks.length === 0 && (
-                  <p className="field-helper">No other tasks to depend on.</p>
+                  <p className="field-helper">{t('board.taskModal.noBlockers')}</p>
                 )}
                 {otherTasks.map((t) => (
                   <label key={t.id} className="blocker-row">
@@ -304,10 +308,12 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
 
             <div className="field">
               <label className="field-label">
-                Test cases{testCases.length > 0 ? ` — ${testCases.length}` : ''}
+                {testCases.length > 0
+                  ? t('board.taskModal.testCasesWithCount', { count: testCases.length })
+                  : t('board.taskModal.testCasesLabel')}
               </label>
               {testCases.length === 0 ? (
-                <p className="field-helper">No test cases linked to this task yet.</p>
+                <p className="field-helper">{t('board.taskModal.noTestCases')}</p>
               ) : (
                 <div className="test-list">
                   {testCases.map((tc) => (
@@ -315,7 +321,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                       <span className="test-title">{tc.name}</span>
                       <select
                         className="select test-status-select"
-                        aria-label={`Status of ${tc.name}`}
+                        aria-label={t('board.taskModal.statusOfName', { name: tc.name })}
                         value={tc.status}
                         onChange={(e) =>
                           dispatch({
@@ -325,9 +331,9 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                           })
                         }
                       >
-                        <option value="pending">Pending</option>
-                        <option value="pass">Pass</option>
-                        <option value="fail">Fail</option>
+                        <option value="pending">{t('board.taskModal.optPending')}</option>
+                        <option value="pass">{t('board.taskModal.optPass')}</option>
+                        <option value="fail">{t('board.taskModal.optFail')}</option>
                       </select>
                     </div>
                   ))}
@@ -335,7 +341,9 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               )}
             </div>
 
-            <p className="field-helper">Updated {formatRelative(task.updatedAt)}</p>
+            <p className="field-helper">
+              {t('board.taskModal.updated', { time: formatRelative(task.updatedAt) })}
+            </p>
           </>
         ) : (
           <>

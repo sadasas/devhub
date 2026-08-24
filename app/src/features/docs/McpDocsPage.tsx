@@ -1,10 +1,10 @@
 import { Check, Copy, Key, ArrowSquareOut } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { Button } from '../../components/Button';
 import { DocsNav } from './DocsNav';
 import { DocsToc, DocsTocMobile, type DocsTocItem } from './DocsToc';
-import { Callout } from './Callout';
 
 const ENV_EXAMPLE = '$env:DEVHUB_MCP_KEY = "devhub_your_key_here"';
 
@@ -45,16 +45,16 @@ const MCP_TOOLS = [
   'update_whiteboard',
 ];
 
-const TOC_ITEMS: DocsTocItem[] = [
-  { id: 'mcp-prereq', label: 'Before you begin' },
-  { id: 'mcp-key', label: 'Create an API key' },
-  { id: 'mcp-project-id', label: 'Get your project ID' },
-  { id: 'mcp-env', label: 'Set the env variable' },
-  { id: 'mcp-config', label: 'Create opencode.json' },
-  { id: 'mcp-restart', label: 'Restart opencode' },
-  { id: 'mcp-verify', label: 'Verify the connection' },
-  { id: 'mcp-agentsync', label: 'Automate your workflow' },
-  { id: 'mcp-troubleshooting', label: 'Troubleshooting' },
+const TOC_ITEMS: { id: string; labelKey: string }[] = [
+  { id: 'mcp-prereq', labelKey: 'docs.mcp.toc.prereq' },
+  { id: 'mcp-key', labelKey: 'docs.mcp.toc.key' },
+  { id: 'mcp-project-id', labelKey: 'docs.mcp.toc.projectId' },
+  { id: 'mcp-env', labelKey: 'docs.mcp.toc.env' },
+  { id: 'mcp-config', labelKey: 'docs.mcp.toc.config' },
+  { id: 'mcp-restart', labelKey: 'docs.mcp.toc.restart' },
+  { id: 'mcp-verify', labelKey: 'docs.mcp.toc.verify' },
+  { id: 'mcp-agentsync', labelKey: 'docs.mcp.toc.agentsync' },
+  { id: 'mcp-troubleshooting', labelKey: 'docs.mcp.toc.troubleshooting' },
 ];
 
 const AGENTS_SNIPPET = `# DevHub Agent Sync Protocol
@@ -264,12 +264,13 @@ Before sync begins, ensure MCP is configured:
 4. If MCP is not reachable (server down), log as pending and continue main work.`;
 
 const PREREQS = [
-  { strong: 'opencode is installed', desc: 'This guide uses opencode, but any MCP client works with the same server.' },
-  { strong: 'DevHub is reachable', desc: 'Check /api/health returns ok before continuing.' },
-  { strong: 'You are logged in', desc: 'API keys are per-user, so you need an active account.' },
+  { strongKey: 'docs.mcp.prereq.opencodeStrong', descKey: 'docs.mcp.prereq.opencodeDesc' },
+  { strongKey: 'docs.mcp.prereq.reachableStrong', descKey: 'docs.mcp.prereq.reachableDesc' },
+  { strongKey: 'docs.mcp.prereq.loggedInStrong', descKey: 'docs.mcp.prereq.loggedInDesc' },
 ];
 
 function CodeBlock({ code, lang, file }: { code: string; lang: string; file?: string }) {
+  const { t } = useTranslation('extras');
   const { copied, copy } = useCopyFeedback();
 
   return (
@@ -292,7 +293,7 @@ function CodeBlock({ code, lang, file }: { code: string; lang: string; file?: st
           }
           onClick={() => void copy(code)}
         >
-          {copied ? 'Copied' : 'Copy'}
+          {copied ? t('api.workbench.copied') : t('api.workbench.copy')}
         </Button>
       </div>
       <pre className="code-block-body">
@@ -304,31 +305,33 @@ function CodeBlock({ code, lang, file }: { code: string; lang: string; file?: st
 
 export function McpDocsPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation('extras');
+  const tocItems: DocsTocItem[] = TOC_ITEMS.map((item) => ({ id: item.id, label: t(item.labelKey) }));
 
   return (
     <div className="page">
       <header className="page-header">
         <div>
-          <h1 className="page-title">MCP Integration</h1>
-          <p className="page-subtitle">Connect AI coding agents to read and update your DevHub projects.</p>
+          <h1 className="page-title">{t('docs.mcp.title')}</h1>
+          <p className="page-subtitle">{t('docs.mcp.subtitle')}</p>
         </div>
       </header>
 
       <div className="docs-grid">
         <div className="docs-main">
-          <DocsTocMobile items={TOC_ITEMS} />
+          <DocsTocMobile items={tocItems} />
           <DocsNav />
           <div className="docs-body">
             <section id="mcp-prereq" className="docs-prereq">
-              <h2 className="docs-section-title">Before you begin</h2>
+              <h2 className="docs-section-title">{t('docs.mcp.toc.prereq')}</h2>
               <ul className="docs-prereq-list">
                 {PREREQS.map((p) => (
-                  <li key={p.strong} className="docs-prereq-item">
+                  <li key={p.strongKey} className="docs-prereq-item">
                     <span className="docs-prereq-check" aria-hidden="true">
                       <Check size={12} weight="bold" />
                     </span>
                     <span>
-                      <strong>{p.strong}</strong> — {p.desc}
+                      <strong>{t(p.strongKey)}</strong> — {t(p.descKey)}
                     </span>
                   </li>
                 ))}
@@ -338,16 +341,12 @@ export function McpDocsPage() {
             <section id="mcp-key" className="docs-step">
               <span className="docs-step-num">01</span>
               <div className="docs-step-content">
-                <h2 className="docs-step-title">Create an API key</h2>
-                <p className="docs-step-desc">
-                  Keys are per-user and scoped to your own projects. The raw key is shown only once, so
-                  save it right away.
-                </p>
+                <h2 className="docs-step-title">{t('docs.mcp.step.keyTitle')}</h2>
                 <Button
                   leftIcon={<Key size={14} weight="bold" aria-hidden="true" />}
                   onClick={() => navigate('/keys')}
                 >
-                  Go to API Keys
+                  {t('docs.mcp.goToKeys')}
                 </Button>
               </div>
             </section>
@@ -355,72 +354,41 @@ export function McpDocsPage() {
             <section id="mcp-project-id" className="docs-step">
               <span className="docs-step-num">02</span>
               <div className="docs-step-content">
-                <h2 className="docs-step-title">Get your project ID</h2>
-                <p className="docs-step-desc">
-                  Every tool takes a <code className="inline-code">projectId</code>. Open the project you
-                  want the agent to manage — its ID is shown at the top of the page, next to the project
-                  name, with a copy button.
-                </p>
-                <Callout>
-                  The <code className="inline-code">update_prd</code> tool supports markdown in its text
-                  fields: <code className="inline-code">-</code> bullets, <code className="inline-code">1.</code>{' '}
-                  numbered lists, <strong>bold</strong>, <em>italic</em>, and{' '}
-                  <code className="inline-code">`code`</code> — rendered on the project About tab.
-                </Callout>
+                <h2 className="docs-step-title">{t('docs.mcp.step.projectIdTitle')}</h2>
               </div>
             </section>
 
             <section id="mcp-env" className="docs-step">
               <span className="docs-step-num">03</span>
               <div className="docs-step-content">
-                <h2 className="docs-step-title">Set the env variable</h2>
-                <p className="docs-step-desc">opencode reads the key from your shell environment when it starts.</p>
+                <h2 className="docs-step-title">{t('docs.mcp.step.envTitle')}</h2>
                 <CodeBlock lang="PowerShell" code={ENV_EXAMPLE} />
-                <Callout>
-                  Use <code className="inline-code">setx DEVHUB_MCP_KEY "devhub_…"</code> to make it
-                  permanent.
-                </Callout>
               </div>
             </section>
 
             <section id="mcp-config" className="docs-step">
               <span className="docs-step-num">04</span>
               <div className="docs-step-content">
-                <h2 className="docs-step-title">Create opencode.json</h2>
-                <p className="docs-step-desc">
-                  Add the devhub server to your project config. An example ships with this repo at
-                  opencode.example.json.
-                </p>
+                <h2 className="docs-step-title">{t('docs.mcp.step.configTitle')}</h2>
                 <CodeBlock lang="JSON" file="opencode.json" code={OPENCODE_CONFIG} />
-                <Callout>
-                  For production, use the hosted endpoint, e.g. https://devhub.example.com/mcp.
-                </Callout>
               </div>
             </section>
 
             <section id="mcp-restart" className="docs-step">
               <span className="docs-step-num">05</span>
               <div className="docs-step-content">
-                <h2 className="docs-step-title">Restart opencode</h2>
-                <p className="docs-step-desc">
-                  Config is loaded once at startup and not hot-reloaded. Quit opencode and start it again,
-                  then open a new session.
-                </p>
+                <h2 className="docs-step-title">{t('docs.mcp.step.restartTitle')}</h2>
               </div>
             </section>
 
             <section id="mcp-verify" className="docs-step">
               <span className="docs-step-num">06</span>
               <div className="docs-step-content">
-                <h2 className="docs-step-title">Verify the connection</h2>
-                <p className="docs-step-desc">
-                  Run <code className="inline-code">/mcp</code> in opencode — devhub should be connected
-                  with these tools:
-                </p>
+                <h2 className="docs-step-title">{t('docs.mcp.step.verifyTitle')}</h2>
                 <ul className="docs-chips">
-                  {MCP_TOOLS.map((t) => (
-                    <li key={t} className="docs-chip">
-                      {t}
+                  {MCP_TOOLS.map((tool) => (
+                    <li key={tool} className="docs-chip">
+                      {tool}
                     </li>
                   ))}
                 </ul>
@@ -430,134 +398,49 @@ export function McpDocsPage() {
             <section id="mcp-auto-prompt" className="docs-step">
               <span className="docs-step-num">07</span>
               <div className="docs-step-content">
-                <h2 className="docs-step-title">Let your agent ask for missing config</h2>
-                <p className="docs-step-desc">
-                  If <code className="inline-code">DEVHUB_MCP_KEY</code> or{' '}
-                  <code className="inline-code">DEVHUB_PROJECT_ID</code> are not set, the agent can
-                  automatically prompt you via the built-in <code className="inline-code">question</code> tool
-                  — no manual env setup required for quick demos. Add this section to your{' '}
-                  <code className="inline-code">AGENTS.md</code>:
-                </p>
+                <h2 className="docs-step-title">{t('docs.mcp.step.autoPromptTitle')}</h2>
                 <CodeBlock lang="Markdown" file="AGENTS.md" code={AUTO_PROMPT_SNIPPET} />
-                <Callout>
-                  The <code className="inline-code">question</code> tool shows a dialog in the TUI where the
-                  user can paste their key or project ID directly. The agent then uses the value for the
-                  rest of the session.
-                </Callout>
               </div>
             </section>
 
             <section id="mcp-agentsync" className="docs-step">
               <span className="docs-step-num">08</span>
               <div className="docs-step-content">
-                <h2 className="docs-step-title">Automate your workflow (agent auto-sync)</h2>
-                <p className="docs-step-desc">
-                  Once the MCP server is connected, teach your AI agent to keep DevHub in sync
-                  automatically: decisions become ADRs, planned work becomes tasks, finished work is
-                  marked done, and flowcharts are saved as whiteboards. Add these rules to your repo's{' '}
-                  <code className="inline-code">AGENTS.md</code> so every opencode session follows them.
-                </p>
+                <h2 className="docs-step-title">{t('docs.mcp.step.agentsyncTitle')}</h2>
                 <CodeBlock lang="Markdown" file="AGENTS.md" code={AGENTS_SNIPPET} />
-                <p className="docs-step-desc">
-                  The agent resolves which project to sync to dynamically: a project you mention in the
-                  session wins, then the <code className="inline-code">DEVHUB_PROJECT_ID</code> env var,
-                  otherwise it asks you once. Set both variables alongside your key:
-                </p>
                 <CodeBlock lang="PowerShell" code={AGENTSYNC_ENV_EXAMPLE} />
-                <Callout>
-                  Only architecture-level decisions belong here (structure, dependencies, patterns,
-                  hosting, security) — not cosmetic choices. One decision = one{' '}
-                  <code className="inline-code">add_decision</code> call, made when the decision is
-                  final.
-                </Callout>
-                <Callout>
-                  Tip: <code className="inline-code">project_state</code> returns at most 200 rows per
-                  collection by default — pass <code className="inline-code">limit: 0</code> to see
-                  everything.
-                </Callout>
 
-                <h3 className="docs-step-subtitle">Task lifecycle</h3>
-                <p className="docs-step-desc">
-                  Tasks track planned work through four statuses:
-                </p>
+                <h3 className="docs-step-subtitle">{t('docs.mcp.lifecycle.task')}</h3>
                 <CodeBlock lang="Text" code={TASK_LIFECYCLE} />
-                <Callout>
-                  <code className="inline-code">completedAt</code> and{' '}
-                  <code className="inline-code">actualHours</code> are auto-set when status moves to{' '}
-                  <code className="inline-code">done</code> — no need to pass them manually.
-                </Callout>
 
-                <h3 className="docs-step-subtitle">Issue lifecycle</h3>
-                <p className="docs-step-desc">
-                  Issues track bugs and link them to fixing tasks:
-                </p>
+                <h3 className="docs-step-subtitle">{t('docs.mcp.lifecycle.issue')}</h3>
                 <CodeBlock lang="Text" code={ISSUE_LIFECYCLE} />
-                <Callout>
-                  Use <code className="inline-code">linkedTaskId</code> to connect an issue to the task
-                  that fixes it. Set to <code className="inline-code">null</code> to unlink.
-                </Callout>
 
-                <h3 className="docs-step-subtitle">Decision lifecycle</h3>
-                <p className="docs-step-desc">
-                  Architecture decisions are one-shot — there is no{' '}
-                  <code className="inline-code">update_decision</code> tool:
-                </p>
+                <h3 className="docs-step-subtitle">{t('docs.mcp.lifecycle.decision')}</h3>
                 <CodeBlock lang="Text" code={DECISION_LIFECYCLE} />
-                <Callout>
-                  Only record decisions at the ADR level (structure, dependencies, patterns, hosting,
-                  security) — not cosmetic or style choices.
-                </Callout>
 
-                <h3 className="docs-step-subtitle">Whiteboard lifecycle</h3>
-                <p className="docs-step-desc">
-                  Whiteboards store diagrams and flowcharts. Elements are replaced wholesale on update:
-                </p>
+                <h3 className="docs-step-subtitle">{t('docs.mcp.lifecycle.whiteboard')}</h3>
                 <CodeBlock lang="Text" code={WHITEBOARD_LIFECYCLE} />
-                <Callout>
-                  Max 50 whiteboards per project. Element IDs are auto-assigned if omitted. Element kinds:{' '}
-                  <code className="inline-code">sticky</code>,{' '}
-                  <code className="inline-code">shape</code>,{' '}
-                  <code className="inline-code">edge</code>,{' '}
-                  <code className="inline-code">text</code>,{' '}
-                  <code className="inline-code">stroke</code>,{' '}
-                  <code className="inline-code">boundary</code>,{' '}
-                  <code className="inline-code">ref</code>.
-                </Callout>
 
-                <h3 className="docs-step-subtitle">Milestone lifecycle</h3>
-                <p className="docs-step-desc">
-                  Milestones group tasks into releases. The agent asks you before creating tasks:
-                </p>
+                <h3 className="docs-step-subtitle">{t('docs.mcp.lifecycle.milestone')}</h3>
                 <CodeBlock lang="Text" code={MILESTONE_LIFECYCLE} />
-                <Callout>
-                  <code className="inline-code">version</code> and{' '}
-                  <code className="inline-code">targetDate</code> can be cleared by passing{' '}
-                  <code className="inline-code">null</code>. Changelog supports markdown.
-                </Callout>
               </div>
             </section>
 
             <section id="mcp-troubleshooting" className="docs-troubleshooting">
-              <h2 className="docs-section-title">Troubleshooting</h2>
+              <h2 className="docs-section-title">{t('docs.mcp.toc.troubleshooting')}</h2>
               <div className="data-list">
                 <div className="data-row">
                   <div className="data-row-main">
                     <div className="data-row-title">
-                      <span className="row-title-text">401 on every call</span>
-                    </div>
-                    <div className="data-row-sub">
-                      Wrong, expired, or revoked key. Create a new one in API Keys, update DEVHUB_MCP_KEY,
-                      and restart opencode.
+                      <span className="row-title-text">{t('docs.mcp.trouble.unauthorizedTitle')}</span>
                     </div>
                   </div>
                 </div>
                 <div className="data-row">
                   <div className="data-row-main">
                     <div className="data-row-title">
-                      <span className="row-title-text">Cannot connect</span>
-                    </div>
-                    <div className="data-row-sub">
-                      DevHub is not reachable. Make sure the service is up and /api/health returns ok.
+                      <span className="row-title-text">{t('docs.mcp.trouble.connectTitle')}</span>
                     </div>
                   </div>
                 </div>
@@ -565,13 +448,13 @@ export function McpDocsPage() {
             </section>
 
             <section className="docs-next">
-              <h2 className="docs-section-title">Next steps</h2>
+              <h2 className="docs-section-title">{t('docs.mcp.nextSteps')}</h2>
               <div className="docs-next-grid">
                 <button type="button" className="docs-card" onClick={() => navigate('/keys')}>
                   <Key size={18} weight="duotone" aria-hidden="true" />
                   <span className="docs-card-text">
-                    <span className="docs-card-title">API Keys</span>
-                    <span className="docs-card-sub">Create or revoke the keys your agents use</span>
+                    <span className="docs-card-title">{t('docs.mcp.apiKeysTitle')}</span>
+                    <span className="docs-card-sub">{t('docs.mcp.apiKeysSub')}</span>
                   </span>
                   <ArrowSquareOut size={14} className="docs-card-arrow" aria-hidden="true" />
                 </button>
@@ -579,7 +462,7 @@ export function McpDocsPage() {
             </section>
           </div>
         </div>
-        <DocsToc items={TOC_ITEMS} />
+        <DocsToc items={tocItems} />
       </div>
     </div>
   );

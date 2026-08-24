@@ -1,79 +1,77 @@
 import { BookOpen, ArrowSquareOut } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { DocsNav } from './DocsNav';
 import { DocsToc, DocsTocMobile, type DocsTocItem } from './DocsToc';
 
 const DOC_NAV_ITEMS: DocsTocItem[] = [
-  { id: 'docs-overview', label: 'Overview' },
-  { id: 'docs-mcp', label: 'MCP Integration' },
-  { id: 'docs-api', label: 'API Reference' },
-  { id: 'docs-shortcuts', label: 'Keyboard Shortcuts' },
+  { id: 'docs-overview', label: 'docs.toc.overview' },
+  { id: 'docs-mcp', label: 'docs.toc.mcp' },
+  { id: 'docs-api', label: 'docs.toc.api' },
+  { id: 'docs-shortcuts', label: 'docs.toc.shortcuts' },
 ];
 
 const SHORTCUTS = [
-  { keys: ['Ctrl', 'K'], desc: 'Open or close the command palette' },
-  { keys: ['?'], desc: 'Open the command palette (when it is closed)' },
-  { keys: ['/'], desc: 'Open the command palette (when not typing)' },
-  { keys: ['↑', '↓'], desc: 'Move through palette results' },
-  { keys: ['Enter'], desc: 'Run the selected palette command' },
-  { keys: ['Esc'], desc: 'Close the palette or the active modal' },
-  { keys: ['Alt', '1-9', '0'], desc: 'Switch to a project tab (Board … About)' },
-  { keys: ['[', ']'], desc: 'Switch to the previous / next project tab' },
-  { keys: ['N'], desc: 'Create a new item in the active tab (edit access required, not while typing)' },
+  { keys: ['Ctrl', 'K'], descKey: 'docs.shortcuts.palette' },
+  { keys: ['?'], descKey: 'docs.shortcuts.paletteWhenClosed' },
+  { keys: ['/'], descKey: 'docs.shortcuts.slash' },
+  { keys: ['↑', '↓'], descKey: 'docs.shortcuts.navigateResults' },
+  { keys: ['Enter'], descKey: 'docs.shortcuts.runCommand' },
+  { keys: ['Esc'], descKey: 'docs.shortcuts.escape' },
+  { keys: ['Alt', '1-9', '0'], descKey: 'docs.shortcuts.switchTabAlt' },
+  { keys: ['[', ']'], descKey: 'docs.shortcuts.switchTabBracket' },
+  { keys: ['N'], descKey: 'docs.shortcuts.newItem' },
 ];
 
 export function DocsPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation('extras');
 
   return (
     <div className="page">
       <header className="page-header">
         <div>
-          <h1 className="page-title">Docs</h1>
-          <p className="page-subtitle">Everything you need to get the most out of DevHub, from integrations to the API.</p>
+          <h1 className="page-title">{t('docs.page.title')}</h1>
+          <p className="page-subtitle">{t('docs.page.subtitle')}</p>
         </div>
       </header>
 
       <div className="docs-grid">
         <div className="docs-main">
-          <DocsTocMobile items={DOC_NAV_ITEMS} />
+          <DocsTocMobile items={DOC_NAV_ITEMS.map((item) => ({ ...item, label: t(item.label) }))} />
           <DocsNav />
           <div className="docs-body">
             <section id="docs-overview" className="docs-section">
-              <h2 className="docs-section-title">Overview</h2>
+              <h2 className="docs-section-title">{t('docs.section.overview')}</h2>
               <p className="docs-step-desc">
-                DevHub is a project-management workspace for software projects. It keeps your tasks,
-                issues, decisions, and schema in one place — the technical memory of what you build —
-                and lets AI coding agents read and update projects through MCP or the REST API.
-                Projects can also be shared publicly as a read-only view at <code className="inline-code">/p/:projectId</code> — no login required.
+                {t('docs.overview.body1')} <code className="inline-code">/p/:projectId</code>{' '}
+                {t('docs.overview.body2')}
               </p>
             </section>
 
             <section id="docs-mcp" className="docs-section">
-              <h2 className="docs-section-title">MCP Integration</h2>
+              <h2 className="docs-section-title">{t('docs.section.mcp')}</h2>
               <p className="docs-step-desc">
-                Connect opencode and other AI agents to your DevHub workspace so they can create tasks, file
-                issues, and track decisions directly from your editor.
+                {t('docs.mcp.intro')}
               </p>
               <button type="button" className="docs-card" onClick={() => navigate('/docs/mcp')}>
                 <BookOpen size={18} weight="duotone" aria-hidden="true" />
                 <span className="docs-card-text">
-                  <span className="docs-card-title">Setup guide</span>
-                  <span className="docs-card-sub">Create a key, configure opencode, and verify the connection</span>
+                  <span className="docs-card-title">{t('docs.mcp.setupGuide')}</span>
+                  <span className="docs-card-sub">{t('docs.mcp.setupGuideSub')}</span>
                 </span>
                 <ArrowSquareOut size={14} className="docs-card-arrow" aria-hidden="true" />
               </button>
             </section>
 
             <section id="docs-shortcuts" className="docs-section">
-              <h2 className="docs-section-title">Keyboard Shortcuts</h2>
+              <h2 className="docs-section-title">{t('docs.section.shortcuts')}</h2>
               <p className="docs-step-desc">
-                DevHub is built to stay on the keyboard. Shortcuts are ignored while you are typing in an
-                input or textarea, so they never fight your text.
+                {t('docs.shortcuts.intro')}
               </p>
               <ul className="docs-keys">
                 {SHORTCUTS.map((s) => (
-                  <li key={s.desc} className="docs-key-row">
+                  <li key={s.descKey} className="docs-key-row">
                     <span className="docs-key-combo">
                       {s.keys.map((k) => (
                         <kbd key={k} className="docs-kbd">
@@ -81,20 +79,19 @@ export function DocsPage() {
                         </kbd>
                       ))}
                     </span>
-                    <span className="docs-key-desc">{s.desc}</span>
+                    <span className="docs-key-desc">{t(s.descKey)}</span>
                   </li>
                 ))}
               </ul>
               <p className="docs-step-note">
-                Tip: press <kbd className="docs-kbd">Ctrl</kbd> <kbd className="docs-kbd">K</kbd> anywhere
-                to search commands and projects, or press <kbd className="docs-kbd">?</kbd> to open the
-                palette. Inside a project, the palette also offers create actions for every entity — new
-                task, issue, test case, decision, milestone, tech entry, API collection or endpoint.
+                {t('docs.shortcuts.tip1')} <kbd className="docs-kbd">Ctrl</kbd>{' '}
+                <kbd className="docs-kbd">K</kbd> {t('docs.shortcuts.tip2')}{' '}
+                <kbd className="docs-kbd">?</kbd> {t('docs.shortcuts.tip3')}
               </p>
             </section>
           </div>
         </div>
-        <DocsToc items={DOC_NAV_ITEMS} />
+        <DocsToc items={DOC_NAV_ITEMS.map((item) => ({ ...item, label: t(item.label) }))} />
       </div>
     </div>
   );

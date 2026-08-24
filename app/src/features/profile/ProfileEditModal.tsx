@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import { Button } from '../../components/Button';
@@ -14,6 +15,7 @@ interface ProfileEditModalProps {
 }
 
 export function ProfileEditModal({ open, onClose }: ProfileEditModalProps) {
+  const { t } = useTranslation('account');
   const { user, setUser } = useAuth();
   const userRef = useRef(user);
   userRef.current = user;
@@ -45,7 +47,7 @@ export function ProfileEditModal({ open, onClose }: ProfileEditModalProps) {
       setUser(updated);
       onClose();
     } catch (err) {
-      setSaveError(getErrorMessage(err, 'Failed to save profile.'));
+      setSaveError(getErrorMessage(err, t('profile.editModal.saveFailed')));
       setSaving(false);
     }
   }
@@ -53,40 +55,40 @@ export function ProfileEditModal({ open, onClose }: ProfileEditModalProps) {
   return (
     <Modal
       open={open}
-      title="Edit profile"
+      title={t('profile.editModal.title')}
       onClose={onClose}
       width="sm"
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={saving}>
-            Cancel
+            {t('common:action.cancel')}
           </Button>
           <Button type="submit" form="profile-edit-form" loading={saving} disabled={!dirty}>
-            Save changes
+            {t('profile.editModal.save')}
           </Button>
         </>
       }
     >
       <form id="profile-edit-form" className="form-stack" onSubmit={(e) => void onSave(e)}>
         <Input
-          label="Display name"
+          label={t('profile.editModal.displayName')}
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
-          placeholder="How your name appears in DevHub"
+          placeholder={t('profile.editModal.displayNamePlaceholder')}
           maxLength={60}
           autoComplete="name"
         />
         <Textarea
-          label="Bio"
+          label={t('profile.editModal.bio')}
           value={bio}
           onChange={(e) => setBio(e.target.value)}
-          placeholder="A short line about what you build."
+          placeholder={t('profile.editModal.bioPlaceholder')}
           maxLength={500}
           rows={3}
           helper={
             bio.trim() === ''
-              ? 'No bio yet — add a short line about what you build.'
-              : `${bio.length} / 500 characters`
+              ? t('profile.editModal.bioEmptyHelper')
+              : t('profile.editModal.bioLength', { length: bio.length })
           }
         />
         {saveError && <InlineError>{saveError}</InlineError>}

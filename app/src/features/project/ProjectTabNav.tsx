@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export interface ProjectTabItem {
   id: string;
@@ -14,28 +15,29 @@ export interface ProjectTabNavProps {
 }
 
 export function ProjectTabNav({ tabs, active, onSelect, unread }: ProjectTabNavProps) {
+  const { t } = useTranslation('project');
   return (
-    <nav className="tabs" role="tablist" aria-label="Project sections">
-      {tabs.map((t) => {
-        const count = unread[t.id] ?? 0;
+    <nav className="tabs" role="tablist" aria-label={t('tabs.navAria')}>
+      {tabs.map((tab) => {
+        const count = unread[tab.id] ?? 0;
         return (
           <button
-            key={t.id}
+            key={tab.id}
             type="button"
             role="tab"
-            id={`project-tab-${t.id}`}
-            aria-selected={active === t.id}
+            id={`project-tab-${tab.id}`}
+            aria-selected={active === tab.id}
             aria-controls="project-tabpanel"
-            className={`tab ${active === t.id ? 'tab-active' : ''}`}
-            onClick={() => onSelect(t.id)}
+            className={`tab ${active === tab.id ? 'tab-active' : ''}`}
+            onClick={() => onSelect(tab.id)}
           >
-            {t.icon}
-            {t.label}
+            {tab.icon}
+            {tab.label}
             {count > 0 && (
               <span
                 className="tab-badge"
-                aria-label={`${count} unread`}
-                title={`${count} unread`}
+                aria-label={t('tabs.unreadBadge', { count })}
+                title={t('tabs.unreadBadge', { count })}
               >
                 {count > 99 ? '99+' : count}
               </span>

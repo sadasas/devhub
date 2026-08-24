@@ -1,4 +1,5 @@
 import { Folder, Plugs, Plus, UploadSimple } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import type { ApiCollection, ApiEndpoint } from '../../lib/types';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
@@ -28,10 +29,11 @@ export function ApiDocsView({
   onNewEndpoint,
   onImport,
 }: ApiDocsViewProps) {
+  const { t } = useTranslation('extras');
   const ungrouped = endpoints.filter((e) => !e.collectionId);
 
   const tocItems: DocsTocItem[] = [];
-  tocItems.push({ id: 'api-overview', label: 'Overview' });
+  tocItems.push({ id: 'api-overview', label: t('api.docs.overview') });
   for (const c of collections) {
     const children = endpoints
       .filter((e) => e.collectionId === c.id)
@@ -41,7 +43,7 @@ export function ApiDocsView({
   if (ungrouped.length > 0) {
     tocItems.push({
       id: 'api-ungrouped',
-      label: 'Ungrouped',
+      label: t('api.tree.ungrouped'),
       children: ungrouped.map((e) => ({ id: e.id, label: methodLabel(e) })),
     });
   }
@@ -51,16 +53,16 @@ export function ApiDocsView({
       <div className="api-docs-empty">
         <EmptyState
           icon={<Plugs size={22} />}
-          title="No API documentation yet"
-          description="Document your API: describe collections and endpoints, then export as an OpenAPI 3.0 document."
+          title={t('api.docs.emptyTitle')}
+          description={t('api.empty.editorDesc')}
           action={
             canEdit && (
               <div className="api-empty-actions">
                 <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={onNewEndpoint}>
-                  New endpoint
+                  {t('api.toolbar.newEndpoint')}
                 </Button>
                 <Button size="sm" variant="outline" leftIcon={<UploadSimple size={13} aria-hidden="true" />} onClick={onImport}>
-                  Import OpenAPI
+                  {t('api.toolbar.import')}
                 </Button>
               </div>
             )
@@ -78,10 +80,10 @@ export function ApiDocsView({
       <div className="docs-main">
         <DocsTocMobile items={tocItems} />
         <section id="api-overview" className="docs-section api-docs-overview">
-          <h2 className="preview-title">{projectName} API</h2>
+          <h2 className="preview-title">{t('api.docs.overviewTitle', { name: projectName })}</h2>
           {projectDescription && <p className="preview-body mt-8">{projectDescription}</p>}
           <p className="api-toolbar-count mt-8">
-            {collections.length} collection{collections.length === 1 ? '' : 's'} · {endpoints.length} endpoint{endpoints.length === 1 ? '' : 's'}
+            {t('api.count.collections', { count: collections.length })} · {t('api.count.endpoints', { count: endpoints.length })}
           </p>
         </section>
 
@@ -89,7 +91,7 @@ export function ApiDocsView({
           <section key={c.id} id={c.id} className="docs-section api-docs-group">
             <h3 className="api-docs-group-title">{c.name}</h3>
             {c.description && <p className="preview-body">{c.description}</p>}
-            <span className="api-tree-count">{endpointCount(c)} endpoint{endpointCount(c) === 1 ? '' : 's'}</span>
+            <span className="api-tree-count">{t('api.count.endpoints', { count: endpointCount(c) })}</span>
             <div className="api-docs-group-body">
               {endpoints
                 .filter((e) => e.collectionId === c.id)
@@ -106,9 +108,9 @@ export function ApiDocsView({
           <section id="api-ungrouped" className="docs-section api-docs-group">
             <h3 className="api-docs-group-title">
               <Folder size={14} className="api-tree-folder" aria-hidden="true" />
-              Ungrouped
+              {t('api.tree.ungrouped')}
             </h3>
-            <span className="api-tree-count">{ungrouped.length} endpoint{ungrouped.length === 1 ? '' : 's'}</span>
+            <span className="api-tree-count">{t('api.count.endpoints', { count: ungrouped.length })}</span>
             <div className="api-docs-group-body">
               {ungrouped.map((e) => (
                 <div key={e.id} id={e.id} className="api-docs-endpoint-anchor">

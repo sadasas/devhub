@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Check } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { AdminPackage, AdminTeam } from '../../lib/types';
@@ -20,6 +21,7 @@ function formatIdr(amount: number): string {
 }
 
 export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalProps) {
+  const { t } = useTranslation('extras');
   const [plan, setPlan] = useState<'free' | 'pro'>('free');
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const [selectedDays, setSelectedDays] = useState<number | null>(null);
@@ -59,7 +61,7 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
       onSaved({ ...team, plan: result.plan });
       onClose();
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to update team plan'));
+      setError(getErrorMessage(err, t('admin.teamPlan.errors.update')));
     } finally {
       setBusy(false);
     }
@@ -70,31 +72,31 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
   return (
     <Modal
       open={open}
-      title="Change team plan"
+      title={t('admin.teamPlan.title')}
       onClose={onClose}
       width="md"
       footer={
         <Button onClick={() => void handleSave()} disabled={!canSave || busy}>
-          {busy ? 'Saving…' : 'Save'}
+          {busy ? t('admin.teamPlan.saving') : t('admin.teamPlan.save')}
         </Button>
       }
     >
       {error && <InlineError>{error}</InlineError>}
       <div className="form-stack">
         <div>
-          <span className="page-subtitle">Team</span>
+          <span className="page-subtitle">{t('admin.teamPlan.team')}</span>
           <p style={{ margin: 0, fontSize: 14, color: 'var(--text-primary)' }}>{team?.name ?? '—'}</p>
         </div>
         <div>
-          <span className="page-subtitle">Current plan</span>
+          <span className="page-subtitle">{t('admin.teamPlan.currentPlan')}</span>
           <p style={{ margin: '4px 0 0' }}>
             <Badge tone={currentPlan === 'pro' ? 'success' : 'neutral'}>
-              {currentPlan === 'pro' ? 'Pro' : 'Free'}
+              {currentPlan === 'pro' ? t('admin.plan.pro') : t('admin.plan.free')}
             </Badge>
           </p>
         </div>
         <div>
-          <span className="page-subtitle">New plan</span>
+          <span className="page-subtitle">{t('admin.teamPlan.newPlan')}</span>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
             {/* Free card */}
             <button
@@ -120,10 +122,10 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
                 >
                   {plan === 'free' && <Check size={10} weight="bold" color="var(--accent)" />}
                 </div>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Free</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{t('admin.plan.free')}</span>
               </div>
               <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--text-muted)', paddingLeft: 24 }}>
-                No expiry · max 2 members · 3 projects
+                {t('admin.teamPlan.freeDesc')}
               </p>
             </button>
 
@@ -168,7 +170,10 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
                       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{pkg.name}</span>
                     </div>
                     <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--text-muted)', paddingLeft: 24 }}>
-                      {pkg.description || `${pkg.maxMembers === null ? 'Unlimited' : pkg.maxMembers} members · ${pkg.maxProjects === null ? 'Unlimited' : pkg.maxProjects} projects`}
+                      {pkg.description || t('admin.teamPlan.packageDesc', {
+                        members: pkg.maxMembers === null ? t('common:usage.unlimited') : pkg.maxMembers,
+                        projects: pkg.maxProjects === null ? t('common:usage.unlimited') : pkg.maxProjects,
+                      })}
                     </p>
                     {/* Duration options */}
                     {pkg.prices.length > 0 && (
@@ -194,7 +199,7 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
                                 handleSelectPackage(pkg, price.durationDays, price.priceIdr);
                               }}
                             >
-                              {price.durationDays}d — {formatIdr(price.priceIdr)}
+                              {t('admin.teamPlan.durationPrice', { days: price.durationDays, price: formatIdr(price.priceIdr) })}
                             </button>
                           );
                         })}
@@ -205,7 +210,7 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
               ))
             ) : (
               <p style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                No active Pro packages. Create a package first.
+                {t('admin.teamPlan.noProPackages')}
               </p>
             )}
           </div>

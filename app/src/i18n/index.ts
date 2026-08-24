@@ -17,6 +17,16 @@ import idExtras from './locales/id/extras.json';
 export const LANG_STORAGE_KEY = 'devhub.lang';
 export const FALLBACK_LANG: AppLanguage = 'en';
 
+const LOCALE_TAGS: Record<AppLanguage, string> = {
+  en: 'en-US',
+  id: 'id-ID',
+};
+
+export function getAppLocale(): string {
+  const lang = i18n.resolvedLanguage === 'id' ? 'id' : FALLBACK_LANG;
+  return LOCALE_TAGS[lang];
+}
+
 export type AppLanguage = 'en' | 'id';
 export type AppNamespace = 'common';
 

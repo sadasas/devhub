@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {} from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import { useTeams } from '../../state/teams-context';
@@ -15,6 +16,7 @@ interface CreateTeamModalProps {
 }
 
 export function CreateTeamModal({ open, onClose }: CreateTeamModalProps) {
+  const { t } = useTranslation('account');
   const { createTeam } = useTeams();
   const navigate = useNavigate();
   const [name, setName] = useState('');
@@ -31,7 +33,7 @@ export function CreateTeamModal({ open, onClose }: CreateTeamModalProps) {
       onClose();
       navigate(`/team/${team.id}`);
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to create team.'));
+      setError(getErrorMessage(err, t('teams.createModal.createError')));
       setSubmitting(false);
     }
   }
@@ -39,30 +41,29 @@ export function CreateTeamModal({ open, onClose }: CreateTeamModalProps) {
   return (
     <Modal
       open={open}
-      title="New team"
+      title={t('teams.createModal.title')}
       onClose={onClose}
       width="sm"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t('common:action.cancel')}
           </Button>
           <Button type="submit" form="create-team-form" loading={submitting} disabled={!name.trim()}>
-            Create
+            {t('teams.createModal.create')}
           </Button>
         </>
       }
     >
       <form id="create-team-form" className="form-stack" onSubmit={onSubmit} noValidate>
         <p className="modal-copy">
-          A team is a workspace that holds your projects. You can invite other registered users to
-          collaborate — you become the owner.
+          {t('teams.createModal.intro')}
         </p>
         <Input
-          label="Name"
+          label={t('teams.createModal.name')}
           required
           autoFocus
-          placeholder="e.g. My Startup"
+          placeholder={t('teams.createModal.namePlaceholder')}
           value={name}
           onChange={(e) => setName(e.target.value)}
         />

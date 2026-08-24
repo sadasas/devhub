@@ -1,4 +1,5 @@
 import { Check, Copy } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import type { ApiEndpoint } from '../../lib/types';
 import { Badge } from '../../components/Badge';
@@ -13,6 +14,7 @@ export function responseTone(status: number): 'success' | 'warn' | 'danger' | 'i
 }
 
 export function EndpointDocs({ endpoint }: { endpoint: ApiEndpoint }) {
+  const { t } = useTranslation('extras');
   const { copied, copy } = useCopyFeedback();
 
   return (
@@ -26,8 +28,8 @@ export function EndpointDocs({ endpoint }: { endpoint: ApiEndpoint }) {
           variant="ghost"
           size="sm"
           className="btn-icon"
-          aria-label="Copy path"
-          title="Copy path"
+          aria-label={t('api.workbench.copyPath')}
+          title={t('api.workbench.copyPath')}
           leftIcon={
             copied ? (
               <Check size={13} weight="bold" aria-hidden="true" />
@@ -37,26 +39,26 @@ export function EndpointDocs({ endpoint }: { endpoint: ApiEndpoint }) {
           }
           onClick={() => void copy(endpoint.path)}
         >
-          {copied ? 'Copied' : 'Copy'}
+          {copied ? t('api.workbench.copied') : t('api.workbench.copy')}
         </Button>
       </div>
       <h2 className="preview-title">{endpoint.name}</h2>
       {endpoint.description && (
         <div className="preview-block">
-          <div className="preview-label">Description</div>
+          <div className="preview-label">{t('api.docs.description')}</div>
           <p className="preview-body">{endpoint.description}</p>
         </div>
       )}
       {endpoint.params.length > 0 && (
         <div className="preview-block">
-          <div className="preview-label">Parameters</div>
+          <div className="preview-label">{t('api.docs.parameters')}</div>
           <table className="preview-table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>In</th>
-                <th>Required</th>
-                <th>Description</th>
+                <th>{t('api.col.name')}</th>
+                <th>{t('api.col.in')}</th>
+                <th>{t('api.col.required')}</th>
+                <th>{t('api.col.description')}</th>
               </tr>
             </thead>
             <tbody>
@@ -64,7 +66,7 @@ export function EndpointDocs({ endpoint }: { endpoint: ApiEndpoint }) {
                 <tr key={`${p.in}-${p.name}`}>
                   <td className="preview-mono">{p.name}</td>
                   <td className="preview-mono">{p.in}</td>
-                  <td>{p.required ? 'yes' : ''}</td>
+                  <td>{p.required ? t('api.docs.yes') : ''}</td>
                   <td>{p.description}</td>
                 </tr>
               ))}
@@ -74,13 +76,13 @@ export function EndpointDocs({ endpoint }: { endpoint: ApiEndpoint }) {
       )}
       {endpoint.headers.length > 0 && (
         <div className="preview-block">
-          <div className="preview-label">Headers</div>
+          <div className="preview-label">{t('api.docs.headers')}</div>
           <table className="preview-table">
             <thead>
               <tr>
-                <th>Key</th>
-                <th>Value</th>
-                <th>Description</th>
+                <th>{t('api.col.key')}</th>
+                <th>{t('api.col.value')}</th>
+                <th>{t('api.col.description')}</th>
               </tr>
             </thead>
             <tbody>
@@ -97,13 +99,13 @@ export function EndpointDocs({ endpoint }: { endpoint: ApiEndpoint }) {
       )}
       {endpoint.body && (
         <div className="preview-block">
-          <div className="preview-label">Request body</div>
+          <div className="preview-label">{t('api.body.label')}</div>
           <pre className="preview-pre">{endpoint.body}</pre>
         </div>
       )}
       {endpoint.responses.length > 0 && (
         <div className="preview-block">
-          <div className="preview-label">Responses</div>
+          <div className="preview-label">{t('api.docs.responses')}</div>
           <div className="preview-resps">
             {endpoint.responses.map((r) => (
               <div key={r.status} className="preview-resp">

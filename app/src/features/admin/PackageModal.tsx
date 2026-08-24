@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Plus, Trash } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { AdminPackage } from '../../lib/types';
@@ -22,6 +23,7 @@ interface PriceRow {
 }
 
 export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps) {
+  const { t } = useTranslation('extras');
   const isEdit = pkg !== null;
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -78,7 +80,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) {
-      setError('Name is required');
+      setError(t('admin.packageModal.errors.nameRequired'));
       return;
     }
     setBusy(true);
@@ -108,7 +110,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
       onSaved(saved);
       onClose();
     } catch (err) {
-      setError(getErrorMessage(err, isEdit ? 'Failed to update package' : 'Failed to create package'));
+      setError(getErrorMessage(err, isEdit ? t('admin.packageModal.errors.update') : t('admin.packageModal.errors.create')));
     } finally {
       setBusy(false);
     }
@@ -117,16 +119,16 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
   return (
     <Modal
       open={open}
-      title={isEdit ? 'Edit package' : 'New package'}
+      title={isEdit ? t('admin.packageModal.editTitle') : t('admin.packageModal.newTitle')}
       onClose={onClose}
       width="md"
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={busy}>
-            Cancel
+            {t('templates.cancel')}
           </Button>
           <Button onClick={() => void handleSubmit(new Event('submit') as unknown as React.FormEvent)} disabled={busy}>
-            {busy ? 'Saving…' : isEdit ? 'Save changes' : 'Create package'}
+            {busy ? t('admin.teamPlan.saving') : isEdit ? t('admin.packageModal.saveChanges') : t('admin.packageModal.create')}
           </Button>
         </>
       }
@@ -134,37 +136,37 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
       <form className="form-stack" onSubmit={(e) => void handleSubmit(e)}>
         {error && <InlineError>{error}</InlineError>}
         <Input
-          label="Name"
+          label={t('api.workbench.name')}
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
           autoFocus
-          placeholder="e.g. Pro, Enterprise…"
+          placeholder={t('admin.packageModal.namePlaceholder')}
         />
         <Input
-          label="Description"
+          label={t('api.workbench.description')}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Optional description"
+          placeholder={t('admin.packageModal.descPlaceholder')}
         />
         <div className="form-row">
           <Input
-            label="Max members"
+            label={t('admin.packageModal.maxMembers')}
             type="number"
             value={maxMembers}
             onChange={(e) => setMaxMembers(e.target.value)}
-            placeholder="Unlimited"
+            placeholder={t('common:usage.unlimited')}
           />
           <Input
-            label="Max projects"
+            label={t('admin.packageModal.maxProjects')}
             type="number"
             value={maxProjects}
             onChange={(e) => setMaxProjects(e.target.value)}
-            placeholder="Unlimited"
+            placeholder={t('common:usage.unlimited')}
           />
         </div>
         <Input
-          label="Sort order"
+          label={t('admin.packageModal.sortOrder')}
           type="number"
           value={sortOrder}
           onChange={(e) => setSortOrder(e.target.value)}
@@ -175,35 +177,35 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
             checked={isActive}
             onChange={(e) => setIsActive(e.target.checked)}
           />
-          Active
+          {t('admin.packages.active')}
         </label>
 
         <div className="form-section">
           <div className="form-section-head">
-            <span className="form-section-title">Prices</span>
+            <span className="form-section-title">{t('admin.packageModal.prices')}</span>
             <Button type="button" variant="ghost" size="sm" leftIcon={<Plus size={13} />} onClick={addPrice}>
-              Add price
+              {t('admin.packageModal.addPrice')}
             </Button>
           </div>
           {prices.map((p, i) => (
             <div key={i} className="admin-price-row">
               <Input
-                label="Duration (days)"
+                label={t('admin.packageModal.durationDays')}
                 type="number"
                 value={String(p.durationDays)}
                 onChange={(e) => updatePrice(i, 'durationDays', Number(e.target.value))}
               />
               <Input
-                label="Price (IDR)"
+                label={t('admin.packageModal.priceIdr')}
                 type="number"
                 value={String(p.priceIdr)}
                 onChange={(e) => updatePrice(i, 'priceIdr', Number(e.target.value))}
               />
               <Input
-                label="Original price (IDR)"
+                label={t('admin.packageModal.originalPriceIdr')}
                 type="number"
                 value={p.originalPriceIdr}
-                placeholder="No discount"
+                placeholder={t('admin.packageModal.noDiscount')}
                 onChange={(e) => updatePrice(i, 'originalPriceIdr', e.target.value)}
               />
               {prices.length > 1 && (
@@ -212,7 +214,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
                   variant="ghost"
                   size="sm"
                   onClick={() => removePrice(i)}
-                  aria-label="Remove price"
+                  aria-label={t('admin.packageModal.removePrice')}
                 >
                   <Trash size={13} />
                 </Button>

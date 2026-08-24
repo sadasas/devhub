@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { State, WhiteboardRefEntity } from '../../lib/types';
 import {
   DECISION_STATUS,
@@ -33,11 +34,13 @@ function labelOf<K extends string>(map: Record<K, { label: string }>, key: K | u
 }
 
 export function RefPicker({ open, state, onPick, onClose }: RefPickerProps) {
+  const { t } = useTranslation('extras');
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const options = useMemo<RefOption[]>(() => {
+    const badge = (key: string) => t(key);
     const q = query.trim().toLowerCase();
     const match = (...fields: string[]) => !q || fields.some((f) => f.toLowerCase().includes(q));
     const tasks = state?.tasks ?? [];
@@ -55,42 +58,42 @@ export function RefPicker({ open, state, onPick, onClose }: RefPickerProps) {
     };
     for (const t of tasks) {
       if (!match(t.title)) continue;
-      push({ entity: 'tasks', id: t.id, title: t.title, status: labelOf(TASK_STATUS, t.status), badge: 'Task' });
+      push({ entity: 'tasks', id: t.id, title: t.title, status: labelOf(TASK_STATUS, t.status), badge: badge('whiteboard.refPicker.badgeTask') });
     }
     for (const i of issues) {
       if (!match(i.title)) continue;
-      push({ entity: 'issues', id: i.id, title: i.title, status: `${labelOf(ISSUE_SEVERITY, i.severity)} · ${labelOf(ISSUE_STATUS, i.status)}`, badge: 'Issue' });
+      push({ entity: 'issues', id: i.id, title: i.title, status: `${labelOf(ISSUE_SEVERITY, i.severity)} · ${labelOf(ISSUE_STATUS, i.status)}`, badge: badge('whiteboard.refPicker.badgeIssue') });
     }
     for (const tc of testCases) {
       if (!match(tc.name)) continue;
-      push({ entity: 'testCases', id: tc.id, title: tc.name, status: labelOf(TEST_CASE_STATUS, tc.status), badge: 'Test Case' });
+      push({ entity: 'testCases', id: tc.id, title: tc.name, status: labelOf(TEST_CASE_STATUS, tc.status), badge: badge('whiteboard.refPicker.badgeTestCase') });
     }
     for (const m of milestones) {
       if (!match(m.name)) continue;
-      push({ entity: 'milestones', id: m.id, title: m.name, status: labelOf(MILESTONE_STATUS, m.status), badge: 'Milestone' });
+      push({ entity: 'milestones', id: m.id, title: m.name, status: labelOf(MILESTONE_STATUS, m.status), badge: badge('whiteboard.refPicker.badgeMilestone') });
     }
     for (const t of techEntries) {
       if (!match(t.name)) continue;
-      push({ entity: 'techEntries', id: t.id, title: t.name, status: `${labelOf(TECH_STATUS, t.status)} · ${t.version || '—'}`, badge: 'Tech' });
+      push({ entity: 'techEntries', id: t.id, title: t.name, status: `${labelOf(TECH_STATUS, t.status)} · ${t.version || '—'}`, badge: badge('whiteboard.refPicker.badgeTech') });
     }
     for (const d of decisions) {
       if (!match(d.title)) continue;
-      push({ entity: 'decisions', id: d.id, title: d.title, status: labelOf(DECISION_STATUS, d.status), badge: 'Decision' });
+      push({ entity: 'decisions', id: d.id, title: d.title, status: labelOf(DECISION_STATUS, d.status), badge: badge('whiteboard.refPicker.badgeDecision') });
     }
     for (const tb of tables) {
       if (!match(tb.name)) continue;
-      push({ entity: 'tables', id: tb.id, title: tb.name, status: `${tb.columns.length} columns`, badge: 'Table' });
+      push({ entity: 'tables', id: tb.id, title: tb.name, status: t('whiteboard.refPicker.columns', { count: tb.columns.length }), badge: badge('whiteboard.refPicker.badgeTable') });
     }
     for (const c of apiCollections) {
       if (!match(c.name)) continue;
-      push({ entity: 'apiCollections', id: c.id, title: c.name, status: `${apiEndpoints.filter((e) => e.collectionId === c.id).length} endpoints`, badge: 'API Coll.' });
+      push({ entity: 'apiCollections', id: c.id, title: c.name, status: t('whiteboard.refPicker.endpoints', { count: apiEndpoints.filter((e) => e.collectionId === c.id).length }), badge: badge('whiteboard.refPicker.badgeApiColl') });
     }
     for (const e of apiEndpoints) {
       if (!match(e.name, e.path)) continue;
-      push({ entity: 'apiEndpoints', id: e.id, title: e.name, status: `${e.method} ${e.path}`, badge: 'Endpoint' });
+      push({ entity: 'apiEndpoints', id: e.id, title: e.name, status: `${e.method} ${e.path}`, badge: badge('whiteboard.refPicker.badgeEndpoint') });
     }
     return out;
-  }, [state, query]);
+  }, [state, query, t]);
 
   useEffect(() => {
     if (open) {
@@ -119,13 +122,13 @@ export function RefPicker({ open, state, onPick, onClose }: RefPickerProps) {
   };
 
   return (
-    <Modal open={open} title="Link an entity" onClose={onClose} width="md">
+    <Modal open={open} title={t('whiteboard.refPicker.title')} onClose={onClose} width="md">
       <div className="ref-picker">
         <input
           ref={inputRef}
           className="input"
-          placeholder="Search tasks, issues, milestones…"
-          aria-label="Search tasks and issues"
+          placeholder={t('whiteboard.refPicker.searchPlaceholder')}
+          aria-label={t('whiteboard.refPicker.searchAria')}
           autoFocus
           value={query}
           onChange={(e) => {
@@ -135,9 +138,9 @@ export function RefPicker({ open, state, onPick, onClose }: RefPickerProps) {
           onKeyDown={handleKeyDown}
         />
         {options.length === 0 ? (
-          <p className="ref-picker-empty">No tasks, issues, or other entities to link.</p>
+          <p className="ref-picker-empty">{t('whiteboard.refPicker.empty')}</p>
         ) : (
-          <ul className="ref-picker-list" role="listbox" aria-label="Tasks and issues">
+          <ul className="ref-picker-list" role="listbox" aria-label={t('whiteboard.refPicker.listAria')}>
             {options.map((opt, i) => (
               <li key={`${opt.entity}-${opt.id}`} role="option" aria-selected={i === active}>
                 <button

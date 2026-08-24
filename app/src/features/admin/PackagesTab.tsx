@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Package, PencilSimple, Power, Trash } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { AdminPackage } from '../../lib/types';
@@ -13,6 +14,7 @@ import { formatIdr } from './charts';
 import { PackageModal } from './PackageModal';
 
 export function PackagesTab({ refreshKey }: { refreshKey: number }) {
+  const { t } = useTranslation('extras');
   const [packages, setPackages] = useState<AdminPackage[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyPackageId, setBusyPackageId] = useState<string | null>(null);
@@ -28,9 +30,9 @@ export function PackagesTab({ refreshKey }: { refreshKey: number }) {
       setPackages(p);
     } catch (err) {
       setPackages([]);
-      setError(getErrorMessage(err, 'Failed to load packages'));
+      setError(getErrorMessage(err, t('admin.packages.errors.load')));
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void loadPackages();
@@ -45,7 +47,7 @@ export function PackagesTab({ refreshKey }: { refreshKey: number }) {
         prev ? prev.map((p) => (p.id === pkg.id ? { ...p, isActive: !p.isActive } : p)) : prev,
       );
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to update package'));
+      setError(getErrorMessage(err, t('admin.packages.errors.update')));
     } finally {
       setBusyPackageId(null);
     }
@@ -77,7 +79,7 @@ export function PackagesTab({ refreshKey }: { refreshKey: number }) {
       await api.adminDeletePackage(deletingPackage.id);
       setPackages((prev) => (prev ? prev.filter((p) => p.id !== deletingPackage.id) : prev));
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to delete package'));
+      setError(getErrorMessage(err, t('admin.packages.errors.delete')));
     } finally {
       setBusyPackageId(null);
       setDeleteDialogOpen(false);
@@ -86,10 +88,10 @@ export function PackagesTab({ refreshKey }: { refreshKey: number }) {
   }
 
   return (
-    <section className="tab-panel" role="tabpanel" aria-label="Billing packages">
+    <section className="tab-panel" role="tabpanel" aria-label={t('admin.packages.aria')}>
       <div className="admin-filter-bar mb-12">
         <span className="page-subtitle">
-          {packages !== null ? `${packages.length} package${packages.length === 1 ? '' : 's'}` : ''}
+          {packages !== null ? t('admin.packages.count', { count: packages.length }) : ''}
         </span>
         <span style={{ flex: 1 }} />
         <Button
@@ -97,7 +99,7 @@ export function PackagesTab({ refreshKey }: { refreshKey: number }) {
           leftIcon={<Package size={13} aria-hidden="true" />}
           onClick={() => { setEditingPackage(null); setPackageModalOpen(true); }}
         >
-          New package
+          {t('admin.packages.new')}
         </Button>
       </div>
       {error && <InlineError>{error}</InlineError>}
@@ -110,8 +112,8 @@ export function PackagesTab({ refreshKey }: { refreshKey: number }) {
       ) : packages?.length === 0 ? (
         <EmptyState
           icon={<Package size={22} />}
-          title="No packages"
-          description="Create billing packages to define pricing tiers."
+          title={t('admin.packages.emptyTitle')}
+          description={t('admin.packages.emptyDesc')}
         />
       ) : (
         <div className="admin-packages-grid">
@@ -120,7 +122,7 @@ export function PackagesTab({ refreshKey }: { refreshKey: number }) {
               <div className="admin-package-card-head">
                 <span className="admin-package-name">{pkg.name}</span>
                 <Badge tone={pkg.isActive ? 'success' : 'neutral'}>
-                  {pkg.isActive ? 'Active' : 'Inactive'}
+                  {pkg.isActive ? t('admin.packages.active') : t('admin.packages.inactive')}
                 </Badge>
               </div>
               {pkg.description && (
@@ -128,10 +130,10 @@ export function PackagesTab({ refreshKey }: { refreshKey: number }) {
               )}
               <div className="admin-package-limits">
                 <span className="admin-package-limit">
-                  Max members: {pkg.maxMembers === null ? 'Unlimited' : pkg.maxMembers}
+                  {t('admin.packages.maxMembers', { value: pkg.maxMembers === null ? t('common:usage.unlimited') : pkg.maxMembers })}
                 </span>
                 <span className="admin-package-limit">
-                  Max projects: {pkg.maxProjects === null ? 'Unlimited' : pkg.maxProjects}
+                  {t('admin.packages.maxProjects', { value: pkg.maxProjects === null ? t('common:usage.unlimited') : pkg.maxProjects })}
                 </span>
               </div>
               {pkg.prices.length > 0 && (
@@ -139,7 +141,7 @@ export function PackagesTab({ refreshKey }: { refreshKey: number }) {
                   {pkg.prices.map((price) => (
                     <div key={price.id} className="admin-package-price-row">
                       <span className="admin-package-price-duration">
-                        {price.durationDays} days
+                        {t('admin.packages.durationDays', { count: price.durationDays })}
                       </span>
                       <span className="admin-package-price-amount">
                         {formatIdr(price.priceIdr)}
@@ -156,7 +158,7 @@ export function PackagesTab({ refreshKey }: { refreshKey: number }) {
                   disabled={busyPackageId === pkg.id}
                   onClick={() => { setEditingPackage(pkg); setPackageModalOpen(true); }}
                 >
-                  Edit
+                  {t('admin.packages.edit')}
                 </Button>
                 <span style={{ flex: 1 }} />
                 <Button
@@ -166,7 +168,7 @@ export function PackagesTab({ refreshKey }: { refreshKey: number }) {
                   disabled={busyPackageId === pkg.id}
                   onClick={() => void onTogglePackageActive(pkg)}
                 >
-                  {pkg.isActive ? 'Deactivate' : 'Activate'}
+                  {pkg.isActive ? t('admin.packages.deactivate') : t('admin.packages.activate')}
                 </Button>
                 <Button
                   variant="danger"
@@ -175,7 +177,7 @@ export function PackagesTab({ refreshKey }: { refreshKey: number }) {
                   disabled={busyPackageId === pkg.id}
                   onClick={() => void onDeletePackage(pkg)}
                 >
-                  Delete
+                  {t('templates.delete')}
                 </Button>
               </div>
             </div>
@@ -192,8 +194,8 @@ export function PackagesTab({ refreshKey }: { refreshKey: number }) {
 
       <ConfirmDeleteDialog
         open={deleteDialogOpen}
-        title="Delete package"
-        description={`Delete "${deletingPackage?.name ?? ''}"? This cannot be undone.`}
+        title={t('admin.packages.deleteTitle')}
+        description={t('admin.packages.deleteDesc', { name: deletingPackage?.name ?? '' })}
         onConfirm={() => void confirmDeletePackage()}
         onClose={() => { setDeleteDialogOpen(false); setDeletingPackage(null); }}
       />

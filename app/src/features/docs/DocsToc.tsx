@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export interface DocsTocItem {
   id: string;
@@ -57,6 +58,7 @@ function TocLinks({ items, active }: { items: DocsTocItem[]; active: string }) {
 }
 
 export function DocsToc({ items }: { items: DocsTocItem[] }) {
+  const { t } = useTranslation('extras');
   const firstId = flatten(items)[0] ?? '';
   const [active, setActive] = useState(firstId);
 
@@ -80,8 +82,8 @@ export function DocsToc({ items }: { items: DocsTocItem[] }) {
   }, [items]);
 
   return (
-    <nav className="docs-toc" aria-label="On this page">
-      <p className="docs-toc-title">On this page</p>
+    <nav className="docs-toc" aria-label={t('docs.tocAria')}>
+      <p className="docs-toc-title">{t('docs.onThisPage')}</p>
       <ul className="docs-toc-list">
         <TocLinks items={items} active={active} />
       </ul>
@@ -91,9 +93,10 @@ export function DocsToc({ items }: { items: DocsTocItem[] }) {
 
 /** Collapsible "On this page" for narrow viewports — hidden on desktop via CSS. */
 export function DocsTocMobile({ items }: { items: DocsTocItem[] }) {
+  const { t } = useTranslation('extras');
   return (
     <details className="docs-toc-mobile">
-      <summary>On this page</summary>
+      <summary>{t('docs.onThisPage')}</summary>
       <ul className="docs-toc-list">
         <TocLinks items={items} active="" />
       </ul>

@@ -1,1 +1,777 @@
-{}
+{
+  "whiteboard": {
+    "list": {
+      "sortUpdated": "Updated",
+      "sortName": "Name",
+      "sortCreated": "Created",
+      "count_one": "{{count}} whiteboard",
+      "count_other": "{{count}} whiteboards",
+      "capHint": " — {{max}} boards per project, delete one to add another",
+      "newBoard": "New board",
+      "emptyTitle": "No whiteboards yet",
+      "emptyDesc": "Sketch ideas and flowcharts on a shared canvas.",
+      "deleteTitle": "Delete board",
+      "deleteDesc": "This permanently deletes “{{name}}” and its {{elements}} elements. This cannot be undone."
+    },
+    "card": {
+      "noDescription": "No description.",
+      "elements_one": "{{count}} element",
+      "elements_other": "{{count}} elements",
+      "unread": "Unread",
+      "deleteBoard": "Delete board"
+    },
+    "toolbar": {
+      "tools": "Whiteboard tools",
+      "back": "Back to boards",
+      "undoTitle": "Undo (Ctrl+Z)",
+      "undoAria": "Undo — Ctrl+Z",
+      "redoTitle": "Redo (Ctrl+Y)",
+      "redoAria": "Redo — Ctrl+Y",
+      "fsEnterTitle": "Fullscreen (F)",
+      "fsExitTitle": "Exit fullscreen (F)",
+      "fsEnterAria": "Fullscreen — F",
+      "fsExitAria": "Exit fullscreen — F"
+    },
+    "tool": {
+      "view": "View only",
+      "select": "Select",
+      "marquee": "Select area",
+      "pen": "Pen",
+      "eraser": "Eraser",
+      "text": "Text",
+      "sticky": "Sticky note",
+      "shape": "Shape",
+      "edge": "Edge",
+      "ref": "Entity ref card",
+      "boundary": "Boundary",
+      "limitReached": "{{name}} — element limit reached"
+    },
+    "export": {
+      "title": "Export PNG/SVG",
+      "emptyTitle": "Export — the board is empty",
+      "menuLabel": "Export diagram",
+      "png": "PNG image",
+      "svg": "SVG image",
+      "pdf": "PDF document"
+    },
+    "cap": {
+      "badge": "{{count}}/1000 elements",
+      "atLimit": "Element limit reached — delete elements to add more.",
+      "nearLimit": "Approaching the element limit — delete elements to keep editing."
+    },
+    "canvas": {
+      "label": "Whiteboard {{name}} — {{count}} elements",
+      "zoomGroup": "Canvas zoom",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "resetView": "Reset view",
+      "snapOn": "Snap to grid: on",
+      "snapOff": "Snap to grid: off",
+      "selectionActions": "Selection actions",
+      "lock": "Lock selection",
+      "unlock": "Unlock selection",
+      "group": "Group selection",
+      "ungroup": "Ungroup selection",
+      "alignLeft": "Align left",
+      "alignCenterH": "Align center horizontally",
+      "alignRight": "Align right",
+      "alignTop": "Align top",
+      "alignMiddleV": "Align middle vertically",
+      "alignBottom": "Align bottom",
+      "distributeH": "Distribute horizontally",
+      "distributeV": "Distribute vertically",
+      "bringForward": "Bring forward",
+      "sendBackward": "Send backward",
+      "deleteSelectedTitle": "Delete selected (Del)",
+      "deleteSelected": "Delete selected",
+      "hint": "Scroll or pinch to zoom · drag to pan",
+      "minimap": "Minimap",
+      "refUntitled": "untitled {{entity}}",
+      "refDeleted": "Deleted"
+    },
+    "popover": {
+      "editShape": "Edit shape",
+      "editSticky": "Edit sticky",
+      "editEdge": "Edit edge",
+      "editBoundary": "Edit boundary",
+      "editText": "Edit text",
+      "shapeType": "Shape type",
+      "rotationGroup": "Rotation",
+      "rotation": "Rotation°",
+      "label": "Label",
+      "filled": "Filled",
+      "cancelChanges": "Cancel changes",
+      "finishEditing": "Finish editing",
+      "cancel": "Cancel",
+      "done": "Done",
+      "arrowStyle": "Arrow style",
+      "lineStyle": "Line style",
+      "placeholderDecide": "e.g. Decide",
+      "placeholderSystem": "e.g. System",
+      "placeholderYes": "e.g. Yes / HTTP",
+      "textLabel": "Text",
+      "stickyTextLabel": "Sticky text",
+      "typePlaceholder": "Type…",
+      "enterHint": "Enter to finish · Shift+Enter newline"
+    },
+    "palette": {
+      "color": "Color"
+    },
+    "refPicker": {
+      "title": "Link an entity",
+      "searchPlaceholder": "Search tasks, issues, milestones…",
+      "searchAria": "Search tasks and issues",
+      "empty": "No tasks, issues, or other entities to link.",
+      "listAria": "Tasks and issues",
+      "badgeTask": "Task",
+      "badgeIssue": "Issue",
+      "badgeTestCase": "Test Case",
+      "badgeMilestone": "Milestone",
+      "badgeTech": "Tech",
+      "badgeDecision": "Decision",
+      "badgeTable": "Table",
+      "badgeApiColl": "API Coll.",
+      "badgeEndpoint": "Endpoint",
+      "columns": "{{count}} columns",
+      "endpoints": "{{count}} endpoints"
+    },
+    "newModal": {
+      "presence": "Creating whiteboard",
+      "title": "New whiteboard",
+      "cancel": "Cancel",
+      "create": "Create board",
+      "capHelper": "{{max}} boards per project — delete one to add another.",
+      "name": "Name",
+      "namePlaceholder": "e.g. Q3 architecture sketch",
+      "templateLegend": "Template",
+      "description": "Description",
+      "descHelper": "Up to 2000 characters"
+    },
+    "template": {
+      "blank": { "name": "Blank", "desc": "Empty canvas — start from scratch" },
+      "kanban": { "name": "Kanban", "desc": "Todo / In Progress / Review / Done columns" },
+      "ci-cd": { "name": "CI/CD pipeline", "desc": "Commit → Build → Test → Approval → Deploy" },
+      "roadmap": { "name": "Roadmap", "desc": "Timeline with milestone markers" },
+      "release-train": { "name": "Release train", "desc": "Releases × phases matrix" },
+      "gitflow": { "name": "Gitflow", "desc": "Branching model (main / develop / feature / hotfix)" }
+    }
+  },
+  "api": {
+    "sort": {
+      "name": "Name",
+      "created": "Created",
+      "method": "Method",
+      "path": "Path"
+    },
+    "count": {
+      "collections_one": "{{count}} collection",
+      "collections_other": "{{count}} collections",
+      "endpoints_one": "{{count}} endpoint",
+      "endpoints_other": "{{count}} endpoints"
+    },
+    "mode": {
+      "aria": "API view mode",
+      "workspace": "Workspace",
+      "docs": "Docs"
+    },
+    "toolbar": {
+      "import": "Import OpenAPI",
+      "export": "Export OpenAPI",
+      "newCollection": "New collection",
+      "newEndpoint": "New endpoint"
+    },
+    "empty": {
+      "title": "No endpoint selected",
+      "editorDesc": "Document your API: describe collections and endpoints, then export as an OpenAPI 3.0 document.",
+      "viewerDesc": "Pick an endpoint from the sidebar to view its documentation."
+    },
+    "sidebar": {
+      "aria": "API collections",
+      "searchPlaceholder": "Search endpoints…",
+      "searchAria": "Search endpoints",
+      "empty": "No collections yet. Create one or import an OpenAPI document."
+    },
+    "tree": {
+      "collapse": "Collapse {{name}}",
+      "expand": "Expand {{name}}",
+      "collapseUngrouped": "Collapse Ungrouped",
+      "expandUngrouped": "Expand Ungrouped",
+      "ungrouped": "Ungrouped",
+      "unread": "Unread",
+      "deleteCollectionNamed": "Delete collection {{name}}",
+      "deleteCollection": "Delete collection",
+      "deleteEndpointNamed": "Delete endpoint {{name}}",
+      "deleteEndpoint": "Delete endpoint"
+    },
+    "resizer": {
+      "aria": "Resize sidebar"
+    },
+    "workbench": {
+      "methodAria": "HTTP method",
+      "pathAria": "Endpoint path",
+      "copyPath": "Copy path",
+      "copied": "Copied",
+      "copy": "Copy",
+      "name": "Name",
+      "description": "Description",
+      "descPlaceholder": "What does this endpoint do?",
+      "tabsAria": "Endpoint details"
+    },
+    "tab": {
+      "headers": "Headers",
+      "params": "Params",
+      "body": "Body",
+      "responses": "Responses"
+    },
+    "col": {
+      "key": "Key",
+      "value": "Value",
+      "description": "Description",
+      "name": "Name",
+      "in": "In",
+      "required": "Required"
+    },
+    "header": {
+      "keyAria": "Header {{n}} key",
+      "keyPlaceholder": "X-Api-Key",
+      "valueAria": "Header {{n}} value",
+      "valuePlaceholder": "value",
+      "descAria": "Header {{n}} description",
+      "descPlaceholder": "What is it for?",
+      "remove": "Remove header",
+      "empty": "No headers yet.",
+      "add": "Add header"
+    },
+    "param": {
+      "nameAria": "Param {{n}} name",
+      "namePlaceholder": "user_id",
+      "locationAria": "Param {{n}} location",
+      "requiredAria": "Param {{n}} required",
+      "descAria": "Param {{n}} description",
+      "descPlaceholder": "What is it?",
+      "remove": "Remove param",
+      "empty": "No params yet.",
+      "add": "Add param"
+    },
+    "body": {
+      "label": "Request body",
+      "helper": "JSON body example. Sent only when the method supports a body."
+    },
+    "response": {
+      "status": "Status",
+      "statusPlaceholder": "200",
+      "contentType": "Content type",
+      "contentTypePlaceholder": "application/json",
+      "descPlaceholder": "e.g. User found",
+      "bodyLabel": "Response body",
+      "empty": "No responses documented.",
+      "add": "Add response",
+      "remove": "Remove response"
+    },
+    "activity": "Activity",
+    "collection": {
+      "nameAria": "Collection name",
+      "descPlaceholder": "What does this collection group?",
+      "emptyEndpoints": "No endpoints in this collection yet."
+    },
+    "delete": {
+      "collectionTitle": "Delete collection",
+      "endpointTitle": "Delete endpoint",
+      "cancel": "Cancel",
+      "confirm": "Delete",
+      "collectionDesc": "This deletes “{{name}}”. Its endpoints move to Ungrouped.",
+      "endpointDesc": "This permanently deletes “{{name}}”."
+    },
+    "import": {
+      "emptyFile": "No endpoints or (tag) collections found in the file.",
+      "failed": "Failed to import OpenAPI document."
+    },
+    "docs": {
+      "overview": "Overview",
+      "overviewTitle": "{{name}} API",
+      "emptyTitle": "No API documentation yet",
+      "description": "Description",
+      "parameters": "Parameters",
+      "headers": "Headers",
+      "responses": "Responses",
+      "yes": "yes"
+    },
+    "collectionModal": {
+      "presence": "Creating API collection",
+      "title": "New API collection",
+      "cancel": "Cancel",
+      "create": "Create collection",
+      "duplicate": "A collection with this name already exists.",
+      "namePlaceholder": "e.g. Users API"
+    },
+    "endpointModal": {
+      "presence": "Creating API endpoint",
+      "title": "New endpoint",
+      "cancel": "Cancel",
+      "create": "Create endpoint",
+      "namePlaceholder": "e.g. List users",
+      "method": "Method",
+      "path": "Path",
+      "collection": "Collection",
+      "noneUngrouped": "None (ungrouped)"
+    }
+  },
+  "templates": {
+    "page": {
+      "title": "Project templates",
+      "subtitle": "Reusable project blueprints — save a project as a template, then instantiate it whenever you need a fresh copy."
+    },
+    "retry": "Try again",
+    "empty": {
+      "title": "No templates yet",
+      "desc": "Open any project and use “Save as template” to turn it into a reusable blueprint."
+    },
+    "count_one": "{{count}} template",
+    "count_other": "{{count}} templates",
+    "row": {
+      "created": "Created {{date}}"
+    },
+    "use": "Use template",
+    "delete": "Delete",
+    "deleteTitle": "Delete template",
+    "cancel": "Cancel",
+    "confirmDelete": "Confirm delete",
+    "close": "Close",
+    "save": "Save template",
+    "saveTitle": "Save as template",
+    "savedHelper": "Template saved. Find it and create new projects from it under “Project templates” in the sidebar.",
+    "useTitle": "Use template",
+    "createProject": "Create project",
+    "projectName": "Project name",
+    "projectNamePlaceholder": "e.g. New sprint board",
+    "instantiateHelper": "A new project will be created in {{team}} with the template's tasks, issues, schema and more.",
+    "nameLabel": "Template name",
+    "namePlaceholder": "e.g. Blank sprint board",
+    "descPlaceholder": "What is this template for?",
+    "deleteDesc": "“{{name}}” will be removed. Projects already created from it are not affected.",
+    "errors": {
+      "load": "Failed to load templates.",
+      "delete": "Failed to delete template.",
+      "save": "Failed to save template.",
+      "instantiate": "Failed to create project from template."
+    }
+  },
+  "admin": {
+    "title": "Admin",
+    "subtitle": "Platform-wide overview — users, teams, payments and packages.",
+    "refresh": "Refresh",
+    "tabsAria": "Admin sections",
+    "retry": "Retry",
+    "tabs": {
+      "overview": "Overview",
+      "users": "Users",
+      "payments": "Payments",
+      "teams": "Teams",
+      "packages": "Packages"
+    },
+    "plan": {
+      "free": "Free",
+      "pro": "Pro"
+    },
+    "role": {
+      "admin": "Admin",
+      "user": "User"
+    },
+    "you": "You",
+    "activity": "Activity",
+    "overview": {
+      "aria": "Platform overview",
+      "users": "Users",
+      "teams": "Teams",
+      "projects": "Projects",
+      "activeKeys": "Active keys",
+      "revenueTotal": "Revenue Total",
+      "paidTeams": "Paid Teams",
+      "pendingPayments": "Pending Payments",
+      "activityRange": "Activity ({{range}})",
+      "noActivity": "No activity data",
+      "noActivityDesc": "Activity will appear here once users start working.",
+      "revenue30d": "Revenue last 30 days",
+      "revenueByPackage": "Revenue by package",
+      "errors": {
+        "stats": "Failed to load stats"
+      }
+    },
+    "users": {
+      "aria": "Platform users",
+      "searchLabel": "Search users",
+      "searchPlaceholder": "Search by email or display name…",
+      "filterPlanAria": "Filter by plan",
+      "allPlans": "All plans",
+      "count_one": "{{count}} user",
+      "count_other": "{{count}} users",
+      "emptyTitle": "No users found",
+      "emptyQueryDesc": "Nothing matches \"{{query}}\".",
+      "emptyDesc": "No registered users yet.",
+      "joined_one": "{{count}} team · joined {{joined}}",
+      "joined_other": "{{count}} teams · joined {{joined}}",
+      "active": "active {{when}}",
+      "lastPayment": "last payment {{amount}} ({{date}})",
+      "showing": "Showing {{shown}} of {{total}} users — refine the search to narrow down.",
+      "errors": {
+        "load": "Failed to load users"
+      }
+    },
+    "payments": {
+      "aria": "Platform payments",
+      "filterStatusAria": "Filter by status",
+      "allStatuses": "All statuses",
+      "completed": "Completed",
+      "pending": "Pending",
+      "paid": "Paid",
+      "count_one": "{{count}} payment",
+      "count_other": "{{count}} payments",
+      "date": "Date",
+      "buyer": "Buyer",
+      "team": "Team",
+      "package": "Package",
+      "amount": "Amount",
+      "status": "Status",
+      "emptyTitle": "No payments yet",
+      "emptyDesc": "Completed and pending payments will appear here.",
+      "errors": {
+        "load": "Failed to load payments"
+      }
+    },
+    "packages": {
+      "aria": "Billing packages",
+      "count_one": "{{count}} package",
+      "count_other": "{{count}} packages",
+      "new": "New package",
+      "emptyTitle": "No packages",
+      "emptyDesc": "Create billing packages to define pricing tiers.",
+      "active": "Active",
+      "inactive": "Inactive",
+      "maxMembers": "Max members: {{value}}",
+      "maxProjects": "Max projects: {{value}}",
+      "durationDays": "{{count}} days",
+      "edit": "Edit",
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "deleteTitle": "Delete package",
+      "deleteDesc": "Delete \"{{name}}\"? This cannot be undone.",
+      "errors": {
+        "load": "Failed to load packages",
+        "update": "Failed to update package",
+        "delete": "Failed to delete package"
+      }
+    },
+    "packageModal": {
+      "editTitle": "Edit package",
+      "newTitle": "New package",
+      "saveChanges": "Save changes",
+      "create": "Create package",
+      "namePlaceholder": "e.g. Pro, Enterprise…",
+      "descPlaceholder": "Optional description",
+      "maxMembers": "Max members",
+      "maxProjects": "Max projects",
+      "sortOrder": "Sort order",
+      "prices": "Prices",
+      "addPrice": "Add price",
+      "durationDays": "Duration (days)",
+      "priceIdr": "Price (IDR)",
+      "originalPriceIdr": "Original price (IDR)",
+      "noDiscount": "No discount",
+      "removePrice": "Remove price",
+      "errors": {
+        "nameRequired": "Name is required",
+        "update": "Failed to update package",
+        "create": "Failed to create package"
+      }
+    },
+    "teams": {
+      "aria": "Platform teams",
+      "emptyTitle": "No teams yet",
+      "emptyDesc": "Teams appear here as soon as users create them.",
+      "memberCount": "{{count}} members",
+      "projectCount": "{{count}} projects",
+      "meta": "owner {{owner}} · created {{created}}",
+      "changePlan": "Change plan",
+      "errors": {
+        "load": "Failed to load teams"
+      }
+    },
+    "teamPlan": {
+      "title": "Change team plan",
+      "saving": "Saving…",
+      "save": "Save",
+      "team": "Team",
+      "currentPlan": "Current plan",
+      "newPlan": "New plan",
+      "freeDesc": "No expiry · max 2 members · 3 projects",
+      "packageDesc": "{{members}} members · {{projects}} projects",
+      "durationPrice": "{{days}}d — {{price}}",
+      "noProPackages": "No active Pro packages. Create a package first.",
+      "errors": {
+        "update": "Failed to update team plan"
+      }
+    }
+  },
+  "pricing": {
+    "back": "Kembali",
+    "title": "Mulai gratis, upgrade saat timmu butuh.",
+    "subtitle": "Semua fitur core tersedia — limit yang berbeda.",
+    "recommended": "Recommended",
+    "planAria": "{{name}} plan",
+    "choosePeriod": "Pilih periode:",
+    "chooseDurationAria": "Pilih durasi",
+    "durationMonths_one": "{{count}} bulan",
+    "durationMonths_other": "{{count}} bulan",
+    "totalLabel": "Total:",
+    "totalFor": "untuk {{duration}}",
+    "freePrice": "Rp 0",
+    "benefits": {
+      "unlimitedMembers": "Unlimited members",
+      "members": "{{n}} members",
+      "unlimitedProjects": "Unlimited projects",
+      "projects": "{{n}} projects",
+      "coreFeatures": "Semua fitur core",
+      "exportJson": "Export JSON",
+      "prioritySupport": "Priority support"
+    },
+    "savings": "Hemat {{percent}}%",
+    "workspace": "Workspace",
+    "workspacePlaceholder": "Pilih workspace",
+    "cta": "Upgrade ke {{name}}",
+    "ctaWithPrice": "Upgrade ke {{name}} — {{price}}",
+    "currentPlan": "Paket saat ini",
+    "pickWorkspace": "Pilih workspace di atas untuk melanjutkan.",
+    "faqSection": "Pertanyaan Umum",
+    "faq": {
+      "upgrade": {
+        "q": "Bagaimana cara upgrade?",
+        "a": "Pilih workspace yang ingin di-upgrade, lalu pilih paket dan durasi pembayaran. Setelah bayar, plan akan aktif otomatis setelah pembayaran dikonfirmasi."
+      },
+      "trial": {
+        "q": "Apakah ada free trial?",
+        "a": "Tidak ada free trial, tapi paket Free tersedia tanpa batas waktu."
+      },
+      "payment": {
+        "q": "Bagaimana cara bayar?",
+        "a": "Pembayaran melalui QRIS atau Virtual Account via Pakasir. Setelah bayar, pembayaran akan dikonfirmasi otomatis."
+      },
+      "timing": {
+        "q": "Bisa upgrade kapan saja?",
+        "a": "Ya, bisa upgrade kapan saja. Sisa hari dari plan sebelumnya akan ditambahkan ke plan baru."
+      },
+      "expired": {
+        "q": "Apa yang terjadi jika plan expired?",
+        "a": "Workspace akan kembali ke plan Free. Data tetap aman, tapi limit akan berlaku kembali."
+      }
+    },
+    "trust": "Pembayaran aman via QRIS / Virtual Account",
+    "poweredBy": "Powered by Pakasir",
+    "createAccount": "Buat akun gratis",
+    "errors": {
+      "pickWorkspace": "Pilih workspace yang akan di-upgrade.",
+      "checkout": "Gagal memulai checkout.",
+      "load": "Gagal memuat paket."
+    }
+  },
+  "billing": {
+    "back": "Back",
+    "title": "Payment History",
+    "subtitle": "All payments you have made across workspaces.",
+    "empty": {
+      "title": "No payments yet",
+      "desc": "Completed payments for your workspaces will appear here."
+    },
+    "status": {
+      "paid": "Paid",
+      "pending": "Pending",
+      "cancelled": "Cancelled"
+    },
+    "days": "{{count}} days",
+    "resume": "Lanjutkan pembayaran",
+    "cancelPayment": "Batalkan",
+    "errors": {
+      "load": "Failed to load payment history.",
+      "resume": "Gagal melanjutkan pembayaran.",
+      "cancel": "Gagal membatalkan pembayaran."
+    }
+  },
+  "public": {
+    "openInDevHub": "Open in DevHub",
+    "signIn": "Sign in",
+    "backToDevHub": "Back to DevHub",
+    "notFound": {
+      "title": "Project not found",
+      "desc": "This project does not exist or is not shared publicly."
+    },
+    "header": {
+      "created": "Created {{date}}",
+      "updated": "Updated {{date}}"
+    },
+    "badge": {
+      "public": "Public"
+    },
+    "sectionsAria": "Public project sections",
+    "tab": {
+      "board": "Board",
+      "issues": "Issues",
+      "stack": "Stack",
+      "milestones": "Milestones",
+      "whiteboard": "Whiteboard",
+      "overview": "Overview"
+    },
+    "empty": {
+      "board": "No tasks yet.",
+      "issues": "No issues yet.",
+      "stack": "No stack entries yet.",
+      "milestones": "No milestones yet.",
+      "whiteboard": "No whiteboards yet."
+    },
+    "errors": {
+      "load": "Failed to load project."
+    },
+    "board": {
+      "viewAria": "Board view",
+      "byStatus": "By Status",
+      "byMilestone": "By Milestone",
+      "byDueDate": "By Due Date",
+      "noTasks": "No tasks",
+      "unassigned": "Unassigned",
+      "doneTitle": "{{done}}/{{total}} done"
+    },
+    "due": {
+      "overdue": "Overdue",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "thisWeek": "This Week",
+      "nextWeek": "Next Week",
+      "later": "Later",
+      "noDate": "No Date"
+    },
+    "issue": {
+      "severity": "Severity: {{value}}",
+      "linkedTo": "Linked to task {{id}}"
+    },
+    "milestone": {
+      "target": "Target {{date}}",
+      "noTarget": "No target date"
+    },
+    "prd": {
+      "purpose": "Purpose",
+      "goals": "Goals",
+      "features": "Features",
+      "scope": "Scope",
+      "outOfScope": "Out of scope",
+      "notSet": "Not set yet."
+    },
+    "stats": {
+      "tasks": "Tasks",
+      "openIssues": "Open issues",
+      "milestones": "Milestones",
+      "stackEntries": "Stack entries",
+      "whiteboards": "Whiteboards",
+      "testCases": "Test cases"
+    },
+    "noDescription": "No description yet.",
+    "about": {
+      "team": "Team: {{name}}"
+    },
+    "whiteboards": {
+      "boards": "Boards",
+      "backAria": "Back to boards"
+    }
+  },
+  "docs": {
+    "navAria": "Docs sections",
+    "tocAria": "On this page",
+    "onThisPage": "On this page",
+    "nav": {
+      "overview": "Overview",
+      "mcp": "MCP Integration"
+    },
+    "toc": {
+      "overview": "Overview",
+      "mcp": "MCP Integration",
+      "api": "API Reference",
+      "shortcuts": "Keyboard Shortcuts"
+    },
+    "page": {
+      "title": "Docs",
+      "subtitle": "Everything you need to get the most out of DevHub, from integrations to the API."
+    },
+    "section": {
+      "overview": "Overview",
+      "mcp": "MCP Integration",
+      "shortcuts": "Keyboard Shortcuts"
+    },
+    "overview": {
+      "body1": "DevHub is a project-management workspace for software projects. It keeps your tasks, issues, decisions, and schema in one place — the technical memory of what you build — and lets AI coding agents read and update projects through MCP or the REST API. Projects can also be shared publicly as a read-only view at",
+      "body2": "— no login required."
+    },
+    "shortcuts": {
+      "intro": "DevHub is built to stay on the keyboard. Shortcuts are ignored while you are typing in an input or textarea, so they never fight your text.",
+      "tip1": "Tip: press",
+      "tip2": "anywhere to search commands and projects, or press",
+      "tip3": "to open the palette. Inside a project, the palette also offers create actions for every entity — new task, issue, test case, decision, milestone, tech entry, API collection or endpoint.",
+      "palette": "Open or close the command palette",
+      "paletteWhenClosed": "Open the command palette (when it is closed)",
+      "slash": "Open the command palette (when not typing)",
+      "navigateResults": "Move through palette results",
+      "runCommand": "Run the selected palette command",
+      "escape": "Close the palette or the active modal",
+      "switchTabAlt": "Switch to a project tab (Board … About)",
+      "switchTabBracket": "Switch to the previous / next project tab",
+      "newItem": "Create a new item in the active tab (edit access required, not while typing)"
+    },
+    "mcp": {
+      "title": "MCP Integration",
+      "subtitle": "Connect AI coding agents to read and update your DevHub projects.",
+      "intro": "Connect opencode and other AI agents to your DevHub workspace so they can create tasks, file issues, and track decisions directly from your editor.",
+      "setupGuide": "Setup guide",
+      "setupGuideSub": "Create a key, configure opencode, and verify the connection",
+      "goToKeys": "Go to API Keys",
+      "nextSteps": "Next steps",
+      "apiKeysTitle": "API Keys",
+      "apiKeysSub": "Create or revoke the keys your agents use",
+      "toc": {
+        "prereq": "Before you begin",
+        "key": "Create an API key",
+        "projectId": "Get your project ID",
+        "env": "Set the env variable",
+        "config": "Create opencode.json",
+        "restart": "Restart opencode",
+        "verify": "Verify the connection",
+        "agentsync": "Automate your workflow",
+        "troubleshooting": "Troubleshooting"
+      },
+      "step": {
+        "keyTitle": "Create an API key",
+        "projectIdTitle": "Get your project ID",
+        "envTitle": "Set the env variable",
+        "configTitle": "Create opencode.json",
+        "restartTitle": "Restart opencode",
+        "verifyTitle": "Verify the connection",
+        "autoPromptTitle": "Let your agent ask for missing config",
+        "agentsyncTitle": "Automate your workflow (agent auto-sync)"
+      },
+      "prereq": {
+        "opencodeStrong": "opencode is installed",
+        "opencodeDesc": "This guide uses opencode, but any MCP client works with the same server.",
+        "reachableStrong": "DevHub is reachable",
+        "reachableDesc": "Check /api/health returns ok before continuing.",
+        "loggedInStrong": "You are logged in",
+        "loggedInDesc": "API keys are per-user, so you need an active account."
+      },
+      "lifecycle": {
+        "task": "Task lifecycle",
+        "issue": "Issue lifecycle",
+        "decision": "Decision lifecycle",
+        "whiteboard": "Whiteboard lifecycle",
+        "milestone": "Milestone lifecycle"
+      },
+      "trouble": {
+        "unauthorizedTitle": "401 on every call",
+        "connectTitle": "Cannot connect"
+      }
+    }
+  }
+}

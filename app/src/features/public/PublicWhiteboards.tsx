@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ArrowLeft } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/Button';
 import type { State } from '../../lib/types';
 import { WhiteboardCard } from '../whiteboard/WhiteboardCard';
@@ -15,6 +16,7 @@ const NOOP_HISTORY: WhiteboardHistory = {
 };
 
 export function PublicWhiteboards({ state, projectId }: { state: State; projectId: string }) {
+  const { t } = useTranslation('extras');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const board = selectedId ? state.whiteboards.find((b) => b.id === selectedId) : undefined;
 
@@ -27,9 +29,9 @@ export function PublicWhiteboards({ state, projectId }: { state: State; projectI
             {board.description && <p className="page-subtitle">{board.description}</p>}
           </div>
           <div className="project-actions">
-            <Button variant="ghost" size="sm" onClick={() => setSelectedId(null)} aria-label="Back to boards">
+            <Button variant="ghost" size="sm" onClick={() => setSelectedId(null)} aria-label={t('public.whiteboards.backAria')}>
               <ArrowLeft size={14} aria-hidden="true" />
-              Boards
+              {t('public.whiteboards.boards')}
             </Button>
           </div>
         </div>
@@ -46,7 +48,7 @@ export function PublicWhiteboards({ state, projectId }: { state: State; projectI
   }
 
   if (state.whiteboards.length === 0) {
-    return <p className="about-section-body about-section-body-empty">No whiteboards yet.</p>;
+    return <p className="about-section-body about-section-body-empty">{t('public.empty.whiteboard')}</p>;
   }
 
   return (

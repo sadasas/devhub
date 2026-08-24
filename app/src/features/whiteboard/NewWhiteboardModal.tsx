@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { newId, nowIso } from '../../lib/utils';
@@ -15,8 +16,9 @@ interface NewWhiteboardModalProps {
 }
 
 export function NewWhiteboardModal({ onClose }: NewWhiteboardModalProps) {
+  const { t } = useTranslation('extras');
   const { state, dispatch } = useProject();
-  usePresenceStatus('Creating whiteboard');
+  usePresenceStatus(t('whiteboard.newModal.presence'));
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [templateId, setTemplateId] = useState('blank');
@@ -43,55 +45,55 @@ export function NewWhiteboardModal({ onClose }: NewWhiteboardModalProps) {
   return (
     <Modal
       open
-      title="New whiteboard"
+      title={t('whiteboard.newModal.title')}
       onClose={onClose}
       width="md"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t('whiteboard.newModal.cancel')}
           </Button>
           <Button variant="primary" onClick={submit} disabled={!name.trim() || atCap}>
-            Create board
+            {t('whiteboard.newModal.create')}
           </Button>
         </>
       }
     >
       <div className="form-stack">
-        {atCap && <p className="field-helper">{MAX_BOARDS} boards per project — delete one to add another.</p>}
+        {atCap && <p className="field-helper">{t('whiteboard.newModal.capHelper', { max: MAX_BOARDS })}</p>}
         <Input
-          label="Name"
+          label={t('whiteboard.newModal.name')}
           required
           autoFocus
           maxLength={100}
-          placeholder="e.g. Q3 architecture sketch"
+          placeholder={t('whiteboard.newModal.namePlaceholder')}
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
         <fieldset className="wb-template-grid">
-          <legend>Template</legend>
-          {WHITEBOARD_TEMPLATES.map((t) => (
+          <legend>{t('whiteboard.newModal.templateLegend')}</legend>
+          {WHITEBOARD_TEMPLATES.map((tpl) => (
             <label
-              key={t.id}
-              className={`wb-template-option${templateId === t.id ? ' wb-template-option-active' : ''}`}
+              key={tpl.id}
+              className={`wb-template-option${templateId === tpl.id ? ' wb-template-option-active' : ''}`}
             >
               <input
                 type="radio"
                 name="wb-template"
-                value={t.id}
-                checked={templateId === t.id}
-                onChange={() => setTemplateId(t.id)}
+                value={tpl.id}
+                checked={templateId === tpl.id}
+                onChange={() => setTemplateId(tpl.id)}
               />
-              <span className="wb-template-name">{t.name}</span>
-              <span className="wb-template-desc">{t.description}</span>
+              <span className="wb-template-name">{t(`whiteboard.template.${tpl.id}.name`)}</span>
+              <span className="wb-template-desc">{t(`whiteboard.template.${tpl.id}.desc`)}</span>
             </label>
           ))}
         </fieldset>
         <Textarea
-          label="Description"
+          label={t('whiteboard.newModal.description')}
           rows={3}
           maxLength={2000}
-          helper="Up to 2000 characters"
+          helper={t('whiteboard.newModal.descHelper')}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />

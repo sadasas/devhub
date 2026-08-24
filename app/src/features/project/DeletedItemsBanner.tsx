@@ -1,22 +1,25 @@
 import type { ActivityEntry } from '../../lib/api';
 import { formatRelative } from '../../lib/utils';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 
-const ENTITY_LABELS: Record<string, string> = {
-  tasks: 'Task',
-  issues: 'Issue',
-  testCases: 'Test',
-  techEntries: 'Tech',
-  tables: 'Table',
-  relations: 'Relation',
-  schemaVersions: 'Schema',
-  decisions: 'Decision',
-  milestones: 'Milestone',
-  apiCollections: 'Collection',
-  apiEndpoints: 'Endpoint',
-  whiteboards: 'Board',
-};
+const ENTITY_KEYS = [
+  'tasks',
+  'issues',
+  'testCases',
+  'techEntries',
+  'tables',
+  'relations',
+  'schemaVersions',
+  'decisions',
+  'milestones',
+  'apiCollections',
+  'apiEndpoints',
+  'whiteboards',
+] as const;
+
+type EntityKey = (typeof ENTITY_KEYS)[number];
 
 const MAX_ROWS = 5;
 
@@ -27,6 +30,7 @@ export interface DeletedItemsBannerProps {
 }
 
 export function DeletedItemsBanner({ items, dismissedUntil, onDismiss }: DeletedItemsBannerProps) {
+  const { t } = useTranslation('project');
   const visible = items
     .filter((entry) => entry.action === 'deleted')
     .filter(
@@ -38,24 +42,29 @@ export function DeletedItemsBanner({ items, dismissedUntil, onDismiss }: Deleted
 
   if (visible.length === 0) return null;
 
+  const entityLabel = (entity: string): string =>
+    (ENTITY_KEYS as readonly string[]).includes(entity)
+      ? t(`banner.entity.${entity as EntityKey}`)
+      : entity;
+
   return (
-    <div className="deleted-banner" role="region" aria-label="Deleted items">
+    <div className="deleted-banner" role="region" aria-label={t('banner.regionAria')}>
       <div className="deleted-banner-head">
         <Badge tone="danger">
-          {visible.length} deleted
+          {t('banner.count', { count: visible.length })}
         </Badge>
         <span className="deleted-banner-copy">
-          These items were deleted. Deletion records are kept briefly and cannot be restored.
+          {t('banner.copy')}
         </span>
         <Button variant="ghost" size="sm" onClick={onDismiss}>
-          Dismiss
+          {t('banner.dismiss')}
         </Button>
       </div>
       <div className="deleted-banner-list">
         {visible.slice(0, MAX_ROWS).map((entry) => (
           <div key={entry.id} className="deleted-banner-item">
             <span className="deleted-banner-item-entity">
-              {ENTITY_LABELS[entry.entity] ?? entry.entity}
+              {entityLabel(entry.entity)}
             </span>
             <span className="deleted-banner-item-summary" title={entry.summary}>
               {entry.summary}

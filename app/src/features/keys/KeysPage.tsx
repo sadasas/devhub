@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { Check, CircleNotch, Clock, Copy, Key, Plus } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { McpKey, McpKeyCreated } from '../../lib/types';
@@ -58,6 +59,7 @@ function KeyCopyButton({
 }
 
 export function KeysPage() {
+  const { t } = useTranslation('account');
   const [keys, setKeys] = useState<McpKey[] | null>(null);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -89,12 +91,12 @@ export function KeysPage() {
         setTotal(res.total);
       })
       .catch((err) => {
-        if (!cancelled) setError(getErrorMessage(err, 'Failed to load API keys.'));
+        if (!cancelled) setError(getErrorMessage(err, t('keys.error.load')));
       });
     return () => {
       cancelled = true;
     };
-  }, [attempt, page]);
+  }, [attempt, page, t]);
 
   function onCreated(key: McpKeyCreated) {
     if (page === 1) {
@@ -128,7 +130,7 @@ export function KeysPage() {
       }
       setRevokeTarget(null);
     } catch (err) {
-      setRevokeError(getErrorMessage(err, 'Failed to revoke key.'));
+      setRevokeError(getErrorMessage(err, t('keys.error.revoke')));
     } finally {
       setRevoking(false);
     }
@@ -145,7 +147,7 @@ export function KeysPage() {
     } catch (err) {
       setCopyError({
         id: key.id,
-        message: getErrorMessage(err, 'Failed to copy key.'),
+        message: getErrorMessage(err, t('keys.error.copy')),
       });
     } finally {
       setCopyLoadingId(null);
@@ -158,14 +160,13 @@ export function KeysPage() {
     <div className="page">
       <header className="page-header">
         <div>
-          <h1 className="page-title">API keys</h1>
+          <h1 className="page-title">{t('keys.title')}</h1>
           <p className="page-subtitle">
-            Keys for AI coding agents to read and update your projects over MCP. The full key is
-            shown only once when you create it.
+            {t('keys.subtitle')}
           </p>
         </div>
         <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setNewOpen(true)}>
-          New key
+          {t('keys.newKey')}
         </Button>
       </header>
 
@@ -173,7 +174,7 @@ export function KeysPage() {
         <div className="form-stack">
           <InlineError>{error}</InlineError>
           <Button variant="secondary" size="sm" onClick={() => setAttempt((a) => a + 1)}>
-            Try again
+            {t('common:action.tryAgain')}
           </Button>
         </div>
       ) : keys === null ? (
@@ -202,18 +203,18 @@ export function KeysPage() {
           <div className="page-empty">
             <EmptyState
               icon={<Key size={22} />}
-              title="No API keys yet"
-              description="Create a key to let AI coding agents read and update your projects over MCP."
+              title={t('keys.empty.title')}
+              description={t('keys.empty.description')}
               action={
                 <>
                   <Button
                     leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />}
                     onClick={() => setNewOpen(true)}
                   >
-                    New key
+                    {t('keys.newKey')}
                   </Button>
                   <Link className="btn btn-ghost btn-md" to="/docs/mcp">
-                    Read the MCP guide
+                    {t('keys.empty.readGuide')}
                   </Link>
                 </>
               }
@@ -225,20 +226,20 @@ export function KeysPage() {
         <>
           <div className="data-list-header">
             <span className="data-list-count">
-              {total} of {MAX_KEYS} active key{total === 1 ? '' : 's'}
+              {t('keys.count', { count: total, max: MAX_KEYS, total })}
             </span>
             {totalPages > 1 && (
-              <nav className="pager" aria-label="Pagination">
+              <nav className="pager" aria-label={t('keys.paginationAria')}>
                 <Button
                   size="sm"
                   variant="ghost"
                   disabled={page <= 1}
                   onClick={() => setPage((p) => p - 1)}
                 >
-                  Previous
+                  {t('keys.pager.previous')}
                 </Button>
                 <span className="pager-status">
-                  Page {page} of {totalPages}
+                  {t('keys.pager.status', { page, total: totalPages })}
                 </span>
                 <Button
                   size="sm"
@@ -246,7 +247,7 @@ export function KeysPage() {
                   disabled={page >= totalPages}
                   onClick={() => setPage((p) => p + 1)}
                 >
-                  Next
+                  {t('keys.pager.next')}
                 </Button>
               </nav>
             )}
@@ -260,18 +261,18 @@ export function KeysPage() {
                 <div key={k.id} className="data-row">
                   <div className="data-row-main">
                     <div className="data-row-title">
-                      <span className="row-title-text">{k.name || 'Untitled key'}</span>
-                      <span className="key-status-dot" title="Active" aria-label="Active key" />
+                      <span className="row-title-text">{k.name || t('keys.untitled')}</span>
+                      <span className="key-status-dot" title={t('keys.status.active')} aria-label={t('keys.status.activeKeyAria')} />
                     </div>
                     <div className="data-row-meta">
                       <span className="key-prefix">
                         <code>{k.prefix}…</code>
                         <KeyCopyButton
-                          label={k.revealable ? `Copy key ${k.prefix}` : `Copy key prefix ${k.prefix}`}
+                          label={k.revealable ? t('keys.copyButton.keyLabel', { prefix: k.prefix }) : t('keys.copyButton.prefixLabel', { prefix: k.prefix })}
                           title={
                             k.revealable
-                              ? 'Reveal & copy the full key'
-                              : 'Copy prefix (key created before encryption support)'
+                              ? t('keys.copyButton.revealTitle')
+                              : t('keys.copyButton.prefixTitle')
                           }
                           copied={keyCopied}
                           loading={copyLoading}
@@ -280,17 +281,17 @@ export function KeysPage() {
                       </span>
                     </div>
                     <div className="data-row-meta">
-                      <span>Created {formatDate(k.createdAt)}</span>
+                      <span>{t('keys.created', { date: formatDate(k.createdAt) })}</span>
                       <span className="key-last-used">
                         <Clock size={12} weight="duotone" aria-hidden="true" />
-                        {k.lastUsedAt ? formatRelative(k.lastUsedAt) : <em>Never</em>}
+                        {k.lastUsedAt ? formatRelative(k.lastUsedAt) : <em>{t('keys.never')}</em>}
                       </span>
                     </div>
                     {rowCopyError && <div className="data-row-meta text-danger">{rowCopyError}</div>}
                   </div>
                   <div className="data-row-side">
                     <Button size="sm" variant="ghost" onClick={() => openRevoke(k)}>
-                      Revoke
+                      {t('keys.revoke')}
                     </Button>
                   </div>
                 </div>
@@ -299,8 +300,8 @@ export function KeysPage() {
           </div>
 
           <p className="field-helper keys-inline-hint">
-            Authenticate MCP requests with your key — see the{' '}
-            <Link to="/docs/mcp">MCP integration guide</Link>.
+            {t('keys.inlineHint')}{' '}
+            <Link to="/docs/mcp">{t('keys.mcpGuideLink')}</Link>.
           </p>
         </>
       )}
@@ -314,7 +315,7 @@ export function KeysPage() {
 
       <Modal
         open={revokeTarget !== null}
-        title="Revoke key"
+        title={t('keys.revokeModal.title')}
         onClose={() => setRevokeTarget(null)}
         width="sm"
         footer={
@@ -326,15 +327,15 @@ export function KeysPage() {
                 setRevokeTarget(null);
               }}
             >
-              Cancel
+              {t('common:action.cancel')}
             </Button>
             {confirming ? (
               <Button variant="danger" loading={revoking} onClick={() => void onRevoke()}>
-                Confirm revoke
+                {t('keys.revokeModal.confirm')}
               </Button>
             ) : (
               <Button variant="danger" onClick={() => setConfirming(true)}>
-                Revoke
+                {t('keys.revoke')}
               </Button>
             )}
           </>
@@ -342,8 +343,10 @@ export function KeysPage() {
       >
         <div className="form-stack">
           <p>
-            “{revokeTarget?.name || 'Untitled key'}” ({revokeTarget?.prefix}…) will stop working
-            immediately and disappear from this list. Agents using it get a 401 on their next call.
+            {t('keys.revokeModal.body', {
+              name: revokeTarget?.name || t('keys.untitled'),
+              prefix: `${revokeTarget?.prefix}…`,
+            })}
           </p>
           {revokeError && <InlineError>{revokeError}</InlineError>}
         </div>
@@ -353,6 +356,7 @@ export function KeysPage() {
 }
 
 function KeysGuide() {
+  const { t } = useTranslation('account');
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const curlSnippet = `curl -X POST ${origin}/mcp \\
   -H "Authorization: Bearer $DEVHUB_MCP_KEY" \\
@@ -361,32 +365,34 @@ function KeysGuide() {
   const envSnippet = `DEVHUB_MCP_KEY="devhub_<your-key>"`;
 
   return (
-    <section className="keys-guide" aria-label="Using your keys">
-      <h2 className="keys-guide-title">Using your keys</h2>
+    <section className="keys-guide" aria-label={t('keys.guide.title')}>
+      <h2 className="keys-guide-title">{t('keys.guide.title')}</h2>
 
       <div className="auth-banner">
         <Key size={14} weight="duotone" aria-hidden="true" />
         <p>
-          Authenticate MCP requests with your key in the <code>Authorization</code> header:{' '}
-          <code>Authorization: Bearer $DEVHUB_MCP_KEY</code>
+          {t('keys.guide.bannerPrefix')} <code>Authorization</code>{' '}
+          {t('keys.guide.bannerSuffix')} <code>Authorization: Bearer $DEVHUB_MCP_KEY</code>
         </p>
       </div>
 
       <div className="keys-guide-grid">
         <CodeBlock
-          title="Quick start"
-          description="Test your key against the MCP server:"
+          title={t('keys.guide.quickStartTitle')}
+          description={t('keys.guide.quickStartDesc')}
+          copyAria={t('keys.guide.quickStartCopyAria')}
           code={curlSnippet}
         />
         <CodeBlock
-          title="Environment variable"
-          description="Set your key in your environment, then point opencode.json at it:"
+          title={t('keys.guide.envVarTitle')}
+          description={t('keys.guide.envVarDesc')}
+          copyAria={t('keys.guide.envVarCopyAria')}
           code={envSnippet}
         />
       </div>
 
       <Link className="keys-guide-link" to="/docs/mcp">
-        Full MCP integration guide →
+        {t('keys.fullGuide')}
       </Link>
     </section>
   );
@@ -395,12 +401,15 @@ function KeysGuide() {
 function CodeBlock({
   title,
   description,
+  copyAria,
   code,
 }: {
   title: string;
   description: string;
+  copyAria: string;
   code: string;
 }) {
+  const { t } = useTranslation('account');
   const { copied, copy } = useCopyFeedback();
   return (
     <div className="keys-guide-card">
@@ -413,8 +422,8 @@ function CodeBlock({
         <button
           type="button"
           className="code-copy-btn"
-          aria-label={`Copy ${title.toLowerCase()}`}
-          title={copied ? 'Copied' : 'Copy'}
+          aria-label={copyAria}
+          title={copied ? t('keys.copied') : t('keys.copy')}
           onClick={() => void copy(code)}
         >
           {copied ? <Check size={13} weight="bold" aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}

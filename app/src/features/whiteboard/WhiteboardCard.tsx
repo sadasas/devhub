@@ -1,4 +1,5 @@
 import { Trash } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/Button';
 import { Badge } from '../../components/Badge';
 import { formatRelative, shortId } from '../../lib/utils';
@@ -13,21 +14,22 @@ interface WhiteboardCardProps {
 }
 
 export function WhiteboardCard({ board, canEdit, unread = false, onOpen, onDelete }: WhiteboardCardProps) {
+  const { t } = useTranslation('extras');
   return (
     <div className="project-card wb-card">
       <button type="button" className="wb-card-main" onClick={onOpen}>
         <span className="project-card-title">{board.name}</span>
-        <span className="project-card-desc">{board.description || 'No description.'}</span>
+        <span className="project-card-desc">{board.description || t('whiteboard.card.noDescription')}</span>
         <span className="project-card-meta">
           <Badge tone="neutral">
-            {board.elements.length} element{board.elements.length === 1 ? '' : 's'}
+            {t('whiteboard.card.elements', { count: board.elements.length })}
           </Badge>
           <span className="project-card-updated">{formatRelative(board.updatedAt)}</span>
           <span className="project-card-updated">#{shortId(board.id)}</span>
           {unread && (
             <>
               <span className="unread-dot" aria-hidden="true" />
-              <span className="sr-only">Unread</span>
+              <span className="sr-only">{t('whiteboard.card.unread')}</span>
             </>
           )}
         </span>
@@ -37,7 +39,7 @@ export function WhiteboardCard({ board, canEdit, unread = false, onOpen, onDelet
           variant="ghost"
           size="sm"
           className="btn-icon"
-          aria-label="Delete board"
+          aria-label={t('whiteboard.card.deleteBoard')}
           onClick={onDelete}
         >
           <Trash size={14} aria-hidden="true" />

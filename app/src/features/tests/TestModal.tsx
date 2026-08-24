@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Trash } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { TEST_CASE_STATUS } from '../../lib/labels';
 import { formatRelative } from '../../lib/utils';
 import type { State, TestCase, TestCaseStatus } from '../../lib/types';
@@ -26,6 +27,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
   const [editing, setEditing] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const editSnapshot = useRef<State | null>(null);
+  const { t } = useTranslation('tracker');
 
   useEffect(() => {
     setEditing(false);
@@ -33,7 +35,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
   }, [testId]);
 
   const test = testId ? state?.testCases.find((t) => t.id === testId) : undefined;
-  usePresenceStatus('Editing test case', test != null);
+  usePresenceStatus(t('tests.modal.presenceEditing'), test != null);
   if (!state || !test) return null;
 
   const update = (patch: UpdatePatch<TestCase>) => {
@@ -71,7 +73,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
     <>
     <Modal
       open={testId !== null}
-      title={editing ? 'Edit test case' : 'Test case'}
+      title={editing ? t('tests.modal.editTitle') : t('tests.modal.viewTitle')}
       onClose={onClose}
       width="md"
       footer={
@@ -83,23 +85,23 @@ export function TestModal({ testId, onClose }: TestModalProps) {
               leftIcon={<Trash size={13} aria-hidden="true" />}
               onClick={() => setConfirmOpen(true)}
             >
-              Delete
+              {t('tests.modal.delete')}
             </Button>
           )}
           <span className="flex-1" />
           {editing ? (
             <>
               <Button variant="ghost" onClick={cancelEditing}>
-                Cancel
+                {t('tests.modal.cancel')}
               </Button>
               <Button variant="primary" onClick={finishEditing}>
-                Done
+                {t('tests.modal.done')}
               </Button>
             </>
           ) : (
             canEdit && (
               <Button variant="primary" onClick={startEditing}>
-                Edit
+                {t('tests.modal.edit')}
               </Button>
             )
           )}
@@ -109,11 +111,11 @@ export function TestModal({ testId, onClose }: TestModalProps) {
       <div className="form-stack">
         {editing ? (
           <>
-            <Input label="Name" value={test.name} onChange={(e) => update({ name: e.target.value })} />
+            <Input label={t('tests.modal.nameLabel')} value={test.name} onChange={(e) => update({ name: e.target.value })} />
             <div className="field-row">
               <div className="field">
                 <label className="field-label" htmlFor="test-status">
-                  Status
+                  {t('tests.modal.statusLabel')}
                 </label>
                 <select
                   id="test-status"
@@ -121,15 +123,15 @@ export function TestModal({ testId, onClose }: TestModalProps) {
                   value={test.status}
                   onChange={(e) => update({ status: e.target.value as TestCaseStatus })}
                 >
-                  <option value="pending">Pending</option>
-                  <option value="pass">Pass</option>
-                  <option value="fail">Fail</option>
+                  <option value="pending">{t('tests.status.pending')}</option>
+                  <option value="pass">{t('tests.status.pass')}</option>
+                  <option value="fail">{t('tests.status.fail')}</option>
                 </select>
               </div>
               <div className="field">
                 <SearchableSelect
                   id="test-task"
-                  label="Linked task"
+                  label={t('tests.modal.linkedTaskLabel')}
                   value={test.taskId}
                   options={state.tasks.map((t) => ({ value: t.id, label: t.title }))}
                   onChange={(v) => update({ taskId: v })}
@@ -139,59 +141,59 @@ export function TestModal({ testId, onClose }: TestModalProps) {
             <div className="field">
               <SearchableSelect
                 id="test-issue"
-                label="Linked issue"
+                label={t('tests.modal.linkedIssueLabel')}
                 value={test.issueId}
                 options={state.issues.map((i) => ({ value: i.id, label: i.title }))}
                 onChange={(v) => update({ issueId: v })}
               />
             </div>
             <Textarea
-              label="Steps"
+              label={t('tests.modal.stepsLabel')}
               rows={4}
               value={test.steps}
               onChange={(e) => update({ steps: e.target.value })}
             />
             <Textarea
-              label="Expected result"
+              label={t('tests.modal.expectedLabel')}
               rows={2}
               value={test.expected}
               onChange={(e) => update({ expected: e.target.value })}
             />
-            <p className="field-helper">Updated {formatRelative(test.updatedAt)}</p>
+            <p className="field-helper">{t('tests.modal.updated', { time: formatRelative(test.updatedAt) })}</p>
           </>
         ) : (
           <>
             <h3 className="detail-title">{test.name}</h3>
             <DetailList>
-              <DetailRow label="Status">
+              <DetailRow label={t('tests.modal.statusLabel')}>
                 <Badge tone={TEST_CASE_STATUS[test.status].tone}>
-                  {TEST_CASE_STATUS[test.status].label}
+                  {t(`tests.status.${test.status}`)}
                 </Badge>
               </DetailRow>
-              <DetailRow label="Linked task">
+              <DetailRow label={t('tests.modal.linkedTaskLabel')}>
                 {linkedTask ? linkedTask.title : <DetailEmpty />}
               </DetailRow>
-              <DetailRow label="Linked issue">
+              <DetailRow label={t('tests.modal.linkedIssueLabel')}>
                 {linkedIssue ? linkedIssue.title : <DetailEmpty />}
               </DetailRow>
-              <DetailRow label="Steps">
-                {test.steps.trim() ? test.steps : <DetailEmpty>No steps.</DetailEmpty>}
+              <DetailRow label={t('tests.modal.stepsLabel')}>
+                {test.steps.trim() ? test.steps : <DetailEmpty>{t('tests.modal.noSteps')}</DetailEmpty>}
               </DetailRow>
-              <DetailRow label="Expected">
-                {test.expected.trim() ? test.expected : <DetailEmpty>No expected result.</DetailEmpty>}
+              <DetailRow label={t('tests.modal.expectedRow')}>
+                {test.expected.trim() ? test.expected : <DetailEmpty>{t('tests.modal.noExpected')}</DetailEmpty>}
               </DetailRow>
             </DetailList>
-            <h4 className="detail-subtitle">Activity</h4>
+            <h4 className="detail-subtitle">{t('tests.modal.activity')}</h4>
             <ActivityList projectId={projectId} entity="testCases" entityId={test.id} />
-            <p className="field-helper">Updated {formatRelative(test.updatedAt)}</p>
+            <p className="field-helper">{t('tests.modal.updated', { time: formatRelative(test.updatedAt) })}</p>
           </>
         )}
       </div>
     </Modal>
     <ConfirmDeleteDialog
       open={confirmOpen}
-      title="Delete test case?"
-      description="This permanently deletes the test case. This cannot be undone."
+      title={t('tests.modal.deleteConfirmTitle')}
+      description={t('tests.modal.deleteConfirmBody')}
       onClose={() => setConfirmOpen(false)}
       onConfirm={remove}
     />

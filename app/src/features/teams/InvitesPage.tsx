@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowLeft, Envelope } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { TEAM_ROLE } from '../../lib/labels';
 import { useTeams } from '../../state/teams-context';
 import { Badge } from '../../components/Badge';
@@ -12,6 +13,7 @@ import { PlanLimitModal } from '../../components/PlanLimitModal';
 import { isPlanLimitError } from '../../lib/errors';
 
 export function InvitesPage() {
+  const { t } = useTranslation('account');
   const { invitations, loading, error, acceptInvitation, declineInvitation, refresh } = useTeams();
   const navigate = useNavigate();
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -29,7 +31,7 @@ export function InvitesPage() {
         setLimitTeamId(teamId);
         setLimitOpen(true);
       } else {
-        setActionError(err instanceof Error ? err.message : 'Failed to accept invitation');
+        setActionError(err instanceof Error ? err.message : t('teams.invites.acceptError'));
       }
     } finally {
       setBusyId(null);
@@ -42,7 +44,7 @@ export function InvitesPage() {
     try {
       await declineInvitation(teamId, invitationId);
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Failed to decline invitation');
+      setActionError(err instanceof Error ? err.message : t('teams.invites.declineError'));
     } finally {
       setBusyId(null);
     }
@@ -54,10 +56,10 @@ export function InvitesPage() {
         <div>
           <button type="button" className="back-btn" onClick={() => navigate('/')}>
             <ArrowLeft size={14} aria-hidden="true" />
-            Dashboard
+            {t('teams.backToDashboard')}
           </button>
-          <h1 className="page-title">Invitations</h1>
-          <p className="page-subtitle">Team invitations waiting for your decision.</p>
+          <h1 className="page-title">{t('teams.invites.title')}</h1>
+          <p className="page-subtitle">{t('teams.invites.subtitle')}</p>
         </div>
       </header>
 
@@ -70,8 +72,8 @@ export function InvitesPage() {
         <div className="page-empty">
           <EmptyState
             icon={<Envelope size={22} />}
-            title="No pending invitations"
-            description="When someone invites you to a team, it will appear here."
+            title={t('teams.invites.emptyTitle')}
+            description={t('teams.invites.emptyDescription')}
           />
         </div>
       ) : (
@@ -83,8 +85,10 @@ export function InvitesPage() {
                 <Badge tone={TEAM_ROLE[inv.role].tone}>{TEAM_ROLE[inv.role].label}</Badge>
               </span>
               <span className="data-row-meta">
-                invited {new Date(inv.createdAt).toLocaleDateString()} · expires{' '}
-                {new Date(inv.expiresAt).toLocaleDateString()}
+                {t('teams.invites.meta', {
+                  created: new Date(inv.createdAt).toLocaleDateString(),
+                  expires: new Date(inv.expiresAt).toLocaleDateString(),
+                })}
               </span>
             </div>
             <div className="data-row-side">
@@ -93,7 +97,7 @@ export function InvitesPage() {
                 loading={busyId === inv.id}
                 onClick={() => void onAccept(inv.id, inv.teamId)}
               >
-                Accept
+                {t('teams.invites.accept')}
               </Button>
               <Button
                 size="sm"
@@ -102,7 +106,7 @@ export function InvitesPage() {
                 loading={busyId === inv.id}
                 onClick={() => void onDecline(inv.id, inv.teamId)}
               >
-                Decline
+                {t('teams.invites.decline')}
               </Button>
             </div>
           </div>
@@ -112,7 +116,7 @@ export function InvitesPage() {
       {invitations.length > 0 && (
         <div className="page-footer">
           <Button variant="ghost" size="sm" onClick={() => void refresh()}>
-            Refresh
+            {t('teams.invites.refresh')}
           </Button>
         </div>
       )}

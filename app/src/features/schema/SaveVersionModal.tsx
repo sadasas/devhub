@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { newId, nowIso } from '../../lib/utils';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
@@ -14,6 +15,7 @@ interface SaveVersionModalProps {
 }
 
 export function SaveVersionModal({ open, onClose }: SaveVersionModalProps) {
+  const { t } = useTranslation('project');
   const { state, dispatch } = useProject();
   usePresenceStatus('Snapshotting schema', open);
   const [version, setVersion] = useState('');
@@ -46,33 +48,33 @@ export function SaveVersionModal({ open, onClose }: SaveVersionModalProps) {
   return (
     <Modal
       open={open}
-      title="Save schema version"
+      title={t('schema.saveVersionModal.title')}
       onClose={onClose}
       width="sm"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t('schema.saveVersionModal.cancel')}
           </Button>
           <Button type="submit" form="save-version-form" disabled={!version.trim()}>
-            Save version
+            {t('schema.saveVersionModal.submit')}
           </Button>
         </>
       }
     >
       <form id="save-version-form" className="form-stack" onSubmit={onSubmit} noValidate>
         <Input
-          label="Version"
+          label={t('schema.saveVersionModal.versionLabel')}
           required
           autoFocus
-          placeholder="1.1.0"
+          placeholder={t('schema.saveVersionModal.versionPlaceholder')}
           value={version}
           onChange={(e) => setVersion(e.target.value)}
         />
         <Textarea
-          label="Notes"
+          label={t('schema.saveVersionModal.notesLabel')}
           rows={3}
-          placeholder="What changed in this schema revision? — optional"
+          placeholder={t('schema.saveVersionModal.notesPlaceholder')}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
         />

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Trash } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { DECISION_STATUS } from '../../lib/labels';
 import { formatRelative } from '../../lib/utils';
 import type { State, Decision, DecisionStatus } from '../../lib/types';
@@ -21,6 +22,7 @@ interface DecisionModalProps {
 }
 
 export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
+  const { t } = useTranslation('project');
   const { state, dispatch, canEdit, projectId } = useProject();
   const [editing, setEditing] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -69,7 +71,7 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
     <>
     <Modal
       open={decisionId !== null}
-      title={editing ? 'Edit decision record' : 'Decision record'}
+      title={editing ? t('decisions.modal.editTitle') : t('decisions.modal.viewTitle')}
       onClose={onClose}
       width="md"
       footer={
@@ -81,23 +83,23 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
               leftIcon={<Trash size={13} aria-hidden="true" />}
               onClick={() => setConfirmOpen(true)}
             >
-              Delete
+              {t('decisions.modal.delete')}
             </Button>
           )}
           <span className="flex-1" />
           {editing ? (
             <>
               <Button variant="ghost" onClick={cancelEditing}>
-                Cancel
+                {t('decisions.modal.cancel')}
               </Button>
               <Button variant="primary" onClick={finishEditing}>
-                Done
+                {t('decisions.modal.done')}
               </Button>
             </>
           ) : (
             canEdit && (
               <Button variant="primary" onClick={startEditing}>
-                Edit
+                {t('decisions.modal.edit')}
               </Button>
             )
           )}
@@ -108,14 +110,14 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
         {editing ? (
           <>
             <Input
-              label="Title"
+              label={t('decisions.modal.titleLabel')}
               value={decision.title}
               onChange={(e) => update({ title: e.target.value })}
             />
             <div className="field-row">
               <div className="field">
                 <label className="field-label" htmlFor="decision-status">
-                  Status
+                  {t('decisions.modal.statusLabel')}
                 </label>
                 <select
                   id="decision-status"
@@ -123,15 +125,15 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
                   value={decision.status}
                   onChange={(e) => update({ status: e.target.value as DecisionStatus })}
                 >
-                  <option value="proposed">Proposed</option>
-                  <option value="accepted">Accepted</option>
-                  <option value="rejected">Rejected</option>
-                  <option value="superseded">Superseded</option>
+                  <option value="proposed">{t('decisions.status.proposed')}</option>
+                  <option value="accepted">{t('decisions.status.accepted')}</option>
+                  <option value="rejected">{t('decisions.status.rejected')}</option>
+                  <option value="superseded">{t('decisions.status.superseded')}</option>
                 </select>
               </div>
               <div className="field">
                 <label className="field-label" htmlFor="decision-date">
-                  Date
+                  {t('decisions.modal.dateLabel')}
                 </label>
                 <input
                   id="decision-date"
@@ -143,15 +145,15 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
               </div>
             </div>
             <Textarea
-              label="Context"
+              label={t('decisions.modal.contextLabel')}
               rows={3}
               value={decision.context}
               onChange={(e) => update({ context: e.target.value })}
             />
             <Textarea
-              label="Options considered"
+              label={t('decisions.modal.optionsLabel')}
               rows={3}
-              helper="One option per line"
+              helper={t('decisions.modal.optionsHelper')}
               value={decision.options.join('\n')}
               onChange={(e) =>
                 update({
@@ -164,35 +166,35 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
               }
             />
             <Textarea
-              label="Decision"
+              label={t('decisions.modal.decisionLabel')}
               rows={3}
               value={decision.decision}
               onChange={(e) => update({ decision: e.target.value })}
             />
             <Textarea
-              label="Consequences"
+              label={t('decisions.modal.consequencesLabel')}
               rows={2}
               value={decision.consequences}
               onChange={(e) => update({ consequences: e.target.value })}
             />
-            <p className="field-helper">Updated {formatRelative(decision.updatedAt)}</p>
+            <p className="field-helper">{t('decisions.modal.updated', { time: formatRelative(decision.updatedAt) })}</p>
           </>
         ) : (
           <>
             <h3 className="detail-title">{decision.title}</h3>
             <DetailList>
-              <DetailRow label="Status">
+              <DetailRow label={t('decisions.modal.statusLabel')}>
                 <Badge tone={DECISION_STATUS[decision.status].tone}>
-                  {DECISION_STATUS[decision.status].label}
+                  {t(`decisions.status.${decision.status}`)}
                 </Badge>
               </DetailRow>
-              <DetailRow label="Date">
+              <DetailRow label={t('decisions.modal.dateLabel')}>
                 <span className="font-mono"># {decision.date.slice(0, 10)}</span>
               </DetailRow>
-              <DetailRow label="Context">
-                {decision.context.trim() ? decision.context : <DetailEmpty>No context.</DetailEmpty>}
+              <DetailRow label={t('decisions.modal.contextLabel')}>
+                {decision.context.trim() ? decision.context : <DetailEmpty>{t('decisions.modal.noContext')}</DetailEmpty>}
               </DetailRow>
-              <DetailRow label="Options">
+              <DetailRow label={t('decisions.modal.optionsLabel')}>
                 {decision.options.length > 0 ? (
                   <ol className="detail-options">
                     {decision.options.map((o) => (
@@ -200,31 +202,31 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
                     ))}
                   </ol>
                 ) : (
-                  <DetailEmpty>No options considered.</DetailEmpty>
+                  <DetailEmpty>{t('decisions.modal.noOptions')}</DetailEmpty>
                 )}
               </DetailRow>
-              <DetailRow label="Decision">
-                {decision.decision.trim() ? decision.decision : <DetailEmpty>No decision recorded.</DetailEmpty>}
+              <DetailRow label={t('decisions.modal.decisionLabel')}>
+                {decision.decision.trim() ? decision.decision : <DetailEmpty>{t('decisions.modal.noDecision')}</DetailEmpty>}
               </DetailRow>
-              <DetailRow label="Consequences">
+              <DetailRow label={t('decisions.modal.consequencesLabel')}>
                 {decision.consequences.trim() ? (
                   decision.consequences
                 ) : (
-                  <DetailEmpty>No consequences recorded.</DetailEmpty>
+                  <DetailEmpty>{t('decisions.modal.noConsequences')}</DetailEmpty>
                 )}
               </DetailRow>
             </DetailList>
-            <h4 className="detail-subtitle">Activity</h4>
+            <h4 className="detail-subtitle">{t('decisions.modal.activity')}</h4>
             <ActivityList projectId={projectId} entity="decisions" entityId={decision.id} />
-            <p className="field-helper">Updated {formatRelative(decision.updatedAt)}</p>
+            <p className="field-helper">{t('decisions.modal.updated', { time: formatRelative(decision.updatedAt) })}</p>
           </>
         )}
       </div>
     </Modal>
     <ConfirmDeleteDialog
       open={confirmOpen}
-      title="Delete decision record?"
-      description="This permanently deletes the decision record. This cannot be undone."
+      title={t('decisions.modal.deleteConfirmTitle')}
+      description={t('decisions.modal.deleteConfirmBody')}
       onClose={() => setConfirmOpen(false)}
       onConfirm={remove}
     />

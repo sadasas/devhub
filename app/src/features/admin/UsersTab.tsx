@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MagnifyingGlass, UsersThree } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { AdminUser } from '../../lib/types';
@@ -15,6 +16,7 @@ import { formatIdr } from './charts';
 const PAGE_SIZE = 50;
 
 export function UsersTab({ refreshKey }: { refreshKey: number }) {
+  const { t } = useTranslation('extras');
   const { user } = useAuth();
 
   const [users, setUsers] = useState<AdminUser[] | null>(null);
@@ -45,10 +47,10 @@ export function UsersTab({ refreshKey }: { refreshKey: number }) {
         setError(null);
       } catch (err) {
         setUsers([]);
-        setError(getErrorMessage(err, 'Failed to load users'));
+        setError(getErrorMessage(err, t('admin.users.errors.load')));
       }
     },
-    [],
+    [t],
   );
 
   useEffect(() => {
@@ -57,11 +59,11 @@ export function UsersTab({ refreshKey }: { refreshKey: number }) {
   }, [query, planFilter, refreshKey, loadUsers]);
 
   return (
-    <section className="tab-panel" role="tabpanel" aria-label="Platform users">
+    <section className="tab-panel" role="tabpanel" aria-label={t('admin.users.aria')}>
       <div className="admin-filter-bar">
         <Input
-          label="Search users"
-          placeholder="Search by email or display name…"
+          label={t('admin.users.searchLabel')}
+          placeholder={t('admin.users.searchPlaceholder')}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           rightSlot={<MagnifyingGlass size={14} aria-hidden="true" />}
@@ -74,14 +76,14 @@ export function UsersTab({ refreshKey }: { refreshKey: number }) {
             setPlanFilter(e.target.value);
             setUsers(null);
           }}
-          aria-label="Filter by plan"
+          aria-label={t('admin.users.filterPlanAria')}
         >
-          <option value="">All plans</option>
-          <option value="free">Free</option>
-          <option value="pro">Pro</option>
+          <option value="">{t('admin.users.allPlans')}</option>
+          <option value="free">{t('admin.plan.free')}</option>
+          <option value="pro">{t('admin.plan.pro')}</option>
         </select>
         <span className="page-subtitle" style={{ marginLeft: 'auto' }}>
-          {users !== null ? `${usersTotal} user${usersTotal === 1 ? '' : 's'}` : ''}
+          {users !== null ? t('admin.users.count', { count: usersTotal }) : ''}
         </span>
       </div>
       {error && <InlineError>{error}</InlineError>}
@@ -93,8 +95,8 @@ export function UsersTab({ refreshKey }: { refreshKey: number }) {
       ) : users.length === 0 ? (
         <EmptyState
           icon={<UsersThree size={22} />}
-          title="No users found"
-          description={query ? `Nothing matches "${query}".` : 'No registered users yet.'}
+          title={t('admin.users.emptyTitle')}
+          description={query ? t('admin.users.emptyQueryDesc', { query }) : t('admin.users.emptyDesc')}
         />
       ) : (
         users.map((u) => {
@@ -105,19 +107,24 @@ export function UsersTab({ refreshKey }: { refreshKey: number }) {
                 <span className="data-row-title">
                   <span className="row-title-text">{u.email}</span>
                   <Badge tone={u.role === 'admin' ? 'info' : 'neutral'}>
-                    {u.role === 'admin' ? 'Admin' : 'User'}
+                    {u.role === 'admin' ? t('admin.role.admin') : t('admin.role.user')}
                   </Badge>
                   <Badge tone={u.plan === 'pro' ? 'success' : 'neutral'}>
-                    {u.plan === 'pro' ? 'Pro' : 'Free'}
+                    {u.plan === 'pro' ? t('admin.plan.pro') : t('admin.plan.free')}
                   </Badge>
-                  {isSelf && <Badge tone="neutral">You</Badge>}
+                  {isSelf && <Badge tone="neutral">{t('admin.you')}</Badge>}
                 </span>
                 <span className="data-row-meta">
-                  {u.teamCount} team{u.teamCount === 1 ? '' : 's'} · joined{' '}
-                  {new Date(u.createdAt).toLocaleDateString()}
-                  {u.lastActiveAt ? ` · active ${formatRelative(u.lastActiveAt)}` : ''}
+                  {t('admin.users.joined', {
+                    count: u.teamCount,
+                    joined: new Date(u.createdAt).toLocaleDateString(),
+                  })}
+                  {u.lastActiveAt ? ` · ${t('admin.users.active', { when: formatRelative(u.lastActiveAt) })}` : ''}
                   {u.lastPaymentAmount != null && u.lastPaymentAt
-                    ? ` · last payment ${formatIdr(u.lastPaymentAmount)} (${new Date(u.lastPaymentAt).toLocaleDateString()})`
+                    ? ` · ${t('admin.users.lastPayment', {
+                        amount: formatIdr(u.lastPaymentAmount),
+                        date: new Date(u.lastPaymentAt).toLocaleDateString(),
+                      })}`
                     : ''}
                 </span>
               </div>
@@ -127,7 +134,7 @@ export function UsersTab({ refreshKey }: { refreshKey: number }) {
       )}
       {users !== null && users.length < usersTotal && (
         <p className="page-subtitle" style={{ marginTop: 8 }}>
-          Showing {users.length} of {usersTotal} users — refine the search to narrow down.
+          {t('admin.users.showing', { shown: users.length, total: usersTotal })}
         </p>
       )}
     </section>

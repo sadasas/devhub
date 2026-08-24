@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarBlank, CaretLeft, CaretRight, Plus } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { addDaysIso, inMonth, isoOf, monthMatrix, monthName, parseIso, weekDays } from '../../lib/calendar';
 import { dueBucket, dueLabel, dueTone, todayIso } from '../../lib/due-dates';
 import { TASK_PRIORITY, TASK_STATUS } from '../../lib/labels';
@@ -76,6 +77,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
   const [hideCompleted, setHideCompleted] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
   const [dayPopup, setDayPopup] = useState<string | null>(null);
+  const { t } = useTranslation('tracker');
 
   const anchorDate = parseIso(anchor);
   const year = anchorDate.getUTCFullYear();
@@ -213,13 +215,13 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
           <button
             type="button"
             className="due-cal-more"
-            title={`${tasks.length} tasks due — open day list`}
+            title={t('board.cal.moreTitle', { count: tasks.length })}
             onClick={(e) => {
               e.stopPropagation();
               setDayPopup(date);
             }}
           >
-            +{tasks.length - MAX_CHIPS_PER_CELL} more
+            {t('board.cal.moreChip', { count: tasks.length - MAX_CHIPS_PER_CELL })}
           </button>
         )}
       </div>
@@ -230,18 +232,18 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
     <div className="due-cal">
       <div className="due-cal-toolbar">
         <div className="due-cal-nav">
-          <button type="button" className="btn btn-ghost btn-sm btn-icon" aria-label="Previous month" onClick={() => nav(-1)}>
+          <button type="button" className="btn btn-ghost btn-sm btn-icon" aria-label={t('board.cal.prevMonth')} onClick={() => nav(-1)}>
             <CaretLeft size={14} aria-hidden="true" />
           </button>
           <span className="due-cal-month-name">{monthName(year, month)}</span>
-          <button type="button" className="btn btn-ghost btn-sm btn-icon" aria-label="Next month" onClick={() => nav(1)}>
+          <button type="button" className="btn btn-ghost btn-sm btn-icon" aria-label={t('board.cal.nextMonth')} onClick={() => nav(1)}>
             <CaretRight size={14} aria-hidden="true" />
           </button>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setAnchor(today)}>
-            Today
+            {t('board.cal.today')}
           </button>
         </div>
-        <div className="sub-tabs" role="tablist" aria-label="Calendar view">
+        <div className="sub-tabs" role="tablist" aria-label={t('board.cal.viewLabel')}>
           <button
             type="button"
             role="tab"
@@ -249,7 +251,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
             aria-selected={!weekMode}
             onClick={() => setWeekMode(false)}
           >
-            Month
+            {t('board.cal.month')}
           </button>
           <button
             type="button"
@@ -258,7 +260,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
             aria-selected={weekMode}
             onClick={() => setWeekMode(true)}
           >
-            Week
+            {t('board.cal.week')}
           </button>
         </div>
         <label className="due-cal-hide">
@@ -267,14 +269,14 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
             checked={hideCompleted}
             onChange={(e) => setHideCompleted(e.target.checked)}
           />
-          Hide completed
+          {t('board.cal.hideCompleted')}
         </label>
       </div>
 
       <div className={`due-cal-grid due-cal-${weekMode ? 'week' : 'month'}`}>
         {WEEKDAY_LABELS.map((d) => (
           <div key={d} className="due-cal-head">
-            {d}
+            {t(`board.cal.weekday.${d.toLowerCase()}`)}
           </div>
         ))}
         {cells.map(cell)}
@@ -289,8 +291,8 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
         }}
         onDrop={onClearDrop}
       >
-        <span className="due-cal-strip-label">No date</span>
-        {unscheduled.length === 0 && <span className="due-cal-strip-empty">Drop tasks here to clear their due date</span>}
+        <span className="due-cal-strip-label">{t('board.cal.noDate')}</span>
+        {unscheduled.length === 0 && <span className="due-cal-strip-empty">{t('board.cal.stripEmpty')}</span>}
         {unscheduled.map((t) => (
           <CalTaskChip key={t.id} task={t} onOpenTask={onOpenTask} onTouchDrop={onTouchDrop} />
         ))}
@@ -304,7 +306,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
         footer={
           <>
             <Button variant="ghost" onClick={() => setDayPopup(null)}>
-              Close
+              {t('board.cal.close')}
             </Button>
             {canEdit && dayPopup && (
               <Button
@@ -315,7 +317,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
                   setDayPopup(null);
                 }}
               >
-                Add task
+                {t('board.cal.addTask')}
               </Button>
             )}
           </>
@@ -350,18 +352,18 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
                   {milestoneChips}
                   <EmptyState
                     icon={<CalendarBlank size={22} />}
-                    title="No tasks due"
-                    description="Tasks dropped on this day appear here."
+                    title={t('board.cal.emptyTitle')}
+                    description={t('board.cal.emptyDesc')}
                   />
                 </>
               );
             }
+            const summary = done > 0
+              ? t('board.cal.daySummaryDone', { count: dayTasks.length, done })
+              : t('board.cal.daySummary', { count: dayTasks.length });
             return (
               <>
-                <h4 className="detail-subtitle">
-                  {dayTasks.length} task{dayTasks.length === 1 ? '' : 's'}
-                  {done > 0 ? ` · ${done} done` : ''}
-                </h4>
+                <h4 className="detail-subtitle">{summary}</h4>
                 {milestoneChips}
                 <div className="due-day-list">
                   {dayTasks.map((t) => {

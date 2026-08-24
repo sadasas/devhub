@@ -20,6 +20,7 @@ import {
   UploadSimple,
 } from '@phosphor-icons/react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { api } from '../../lib/api';
 import { getErrorMessage, isPlanLimitError } from '../../lib/errors';
@@ -75,16 +76,16 @@ export type ProjectTab =
   | 'whiteboard';
 
 const TABS: { id: ProjectTab; label: string; icon: ReactNode }[] = [
-  { id: 'board', label: 'Board', icon: <Columns size={15} /> },
-  { id: 'issues', label: 'Issues', icon: <Bug size={15} /> },
-  { id: 'tests', label: 'Test Cases', icon: <CheckSquare size={15} /> },
-  { id: 'stack', label: 'Stack', icon: <Stack size={15} /> },
-  { id: 'schema', label: 'Schema', icon: <Database size={15} /> },
-  { id: 'decisions', label: 'Decisions', icon: <Scales size={15} /> },
-  { id: 'releases', label: 'Releases', icon: <Rocket size={15} /> },
-  { id: 'api', label: 'API', icon: <Plugs size={15} /> },
-  { id: 'overview', label: 'Overview', icon: <Gauge size={15} /> },
-  { id: 'whiteboard', label: 'Whiteboard', icon: <ChalkboardSimple size={15} /> },
+  { id: 'board', label: 'tabs.board', icon: <Columns size={15} /> },
+  { id: 'issues', label: 'tabs.issues', icon: <Bug size={15} /> },
+  { id: 'tests', label: 'tabs.tests', icon: <CheckSquare size={15} /> },
+  { id: 'stack', label: 'tabs.stack', icon: <Stack size={15} /> },
+  { id: 'schema', label: 'tabs.schema', icon: <Database size={15} /> },
+  { id: 'decisions', label: 'tabs.decisions', icon: <Scales size={15} /> },
+  { id: 'releases', label: 'tabs.releases', icon: <Rocket size={15} /> },
+  { id: 'api', label: 'tabs.api', icon: <Plugs size={15} /> },
+  { id: 'overview', label: 'tabs.overview', icon: <Gauge size={15} /> },
+  { id: 'whiteboard', label: 'tabs.whiteboard', icon: <ChalkboardSimple size={15} /> },
 ];
 
 // Stable module-level instance: a fresh provider per render would re-run the
@@ -92,13 +93,14 @@ const TABS: { id: ProjectTab; label: string; icon: ReactNode }[] = [
 const projectStorage = offlineProvider();
 
 function TabSkeleton({ tab }: { tab: ProjectTab }) {
+  const { t } = useTranslation('project');
   if (tab === 'board') {
     return (
       <div className="kanban" aria-hidden="true">
-        {['Todo', 'In Progress', 'Review', 'Done'].map((label) => (
-          <div key={label} className="kanban-col">
+        {['skeleton.todo', 'skeleton.inProgress', 'skeleton.review', 'skeleton.done'].map((key) => (
+          <div key={key} className="kanban-col">
             <div className="kanban-col-header">
-              <span>{label}</span>
+              <span>{t(key)}</span>
             </div>
             <div className="kanban-col-body">
               <Skeleton style={{ height: 84, width: '100%' }} />
@@ -189,6 +191,7 @@ function ProjectUnreadArea({
   onSelect: (next: ProjectTab) => void;
   project: Project;
 }) {
+  const { t } = useTranslation('project');
   const { unread, unreadIds, deleted, dismissedUntil, dismissDeleted } = useTabUnread(
     projectId,
     userId,
@@ -196,7 +199,12 @@ function ProjectUnreadArea({
   );
   return (
     <>
-      <ProjectTabNav tabs={TABS} active={tab} onSelect={(id) => onSelect(id as ProjectTab)} unread={unread} />
+      <ProjectTabNav
+        tabs={TABS.map(({ id, icon, label }) => ({ id, icon, label: t(label) }))}
+        active={tab}
+        onSelect={(id) => onSelect(id as ProjectTab)}
+        unread={unread}
+      />
       <DeletedItemsBanner
         items={deleted}
         dismissedUntil={dismissedUntil}
@@ -242,6 +250,7 @@ function ProjectUnreadArea({
 }
 
 export function ProjectPage() {
+  const { t } = useTranslation('project');
   const { projectId = '' } = useParams<{ projectId: string }>();
   const { projects, refresh, remove } = useProjects();
   const { user } = useAuth();
@@ -300,8 +309,8 @@ if (!project) {
           <div className="page-empty">
             <EmptyState
               icon={<Columns size={22} />}
-              title="Project not found"
-              description="It may have been deleted, or you may not have access to it."
+              title={t('page.notFoundTitle')}
+              description={t('page.notFoundDesc')}
             />
           </div>
         )}
@@ -329,7 +338,7 @@ if (!project) {
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setDeleteError(getErrorMessage(err, 'Failed to export project.'));
+      setDeleteError(getErrorMessage(err, t('errors.exportFailed')));
     }
   }
 
@@ -342,14 +351,14 @@ if (!project) {
       try {
         const doc = JSON.parse(String(reader.result)) as ExportDocument;
         if (doc?.meta?.app !== 'devhub' || !doc?.state) {
-          setImportError('Not a valid DevHub export document.');
+          setImportError(t('errors.invalidExport'));
           setImportDoc(null);
           return;
         }
         setImportError(null);
         setImportDoc(doc);
       } catch {
-        setImportError('Could not parse the selected file as JSON.');
+        setImportError(t('errors.parseJson'));
         setImportDoc(null);
       }
     };
@@ -371,7 +380,7 @@ if (!project) {
         setLimitOpen(true);
         setImporting(false);
       } else {
-        setImportError(getErrorMessage(err, 'Failed to import project.'));
+        setImportError(getErrorMessage(err, t('errors.importFailed')));
         setImporting(false);
       }
     }
@@ -384,7 +393,7 @@ if (!project) {
       await remove(projectId);
       navigate('/');
     } catch (err) {
-      setDeleteError(getErrorMessage(err, 'Failed to delete project.'));
+      setDeleteError(getErrorMessage(err, t('errors.deleteFailed')));
       setDeleting(false);
     }
   }
@@ -403,7 +412,7 @@ if (!project) {
           <div className="project-heading">
             <button type="button" className="back-btn" onClick={() => navigate('/')}>
               <ArrowLeft size={14} aria-hidden="true" />
-              Projects
+              {t('page.backToProjects')}
             </button>
             <div className="project-title-row">
               <h1 className="page-title">{project.name}</h1>
@@ -415,7 +424,10 @@ if (!project) {
               <PresenceChip />
             </div>
             <p className="page-subtitle">
-              {project.description || 'No description.'} · created {formatDate(project.createdAt)}
+              {t('page.createdInfo', {
+                description: project.description || t('page.noDescription'),
+                date: formatDate(project.createdAt),
+              })}
             </p>
             <div className="project-id-row">
               <code className="project-id-code">{projectId}</code>
@@ -432,7 +444,7 @@ if (!project) {
                 }
                 onClick={() => void onCopyProjectId()}
               >
-                {pidCopied ? 'Copied' : 'Copy'}
+                {pidCopied ? t('actions.copied') : t('actions.copy')}
               </Button>
             </div>
           </div>
@@ -443,7 +455,7 @@ if (!project) {
               leftIcon={<DownloadSimple size={13} aria-hidden="true" />}
               onClick={() => void onExport()}
             >
-              Export
+              {t('actions.export')}
             </Button>
             {role !== 'viewer' && (
               <Button
@@ -452,7 +464,7 @@ if (!project) {
                 leftIcon={<UploadSimple size={13} aria-hidden="true" />}
                 onClick={() => fileInputRef.current?.click()}
               >
-                Import
+                {t('actions.import')}
               </Button>
             )}
             {isAdmin && (
@@ -462,7 +474,7 @@ if (!project) {
                 leftIcon={<ShareNetwork size={13} aria-hidden="true" />}
                 onClick={() => setShareOpen(true)}
               >
-                {project.visibility === 'public' ? 'Share · Public' : 'Share · Private'}
+                {project.visibility === 'public' ? t('actions.sharePublic') : t('actions.sharePrivate')}
               </Button>
             )}
             {role !== 'viewer' && (
@@ -472,7 +484,7 @@ if (!project) {
                 leftIcon={<BookmarkSimple size={13} aria-hidden="true" />}
                 onClick={() => setSaveTemplateOpen(true)}
               >
-                Save as template
+                {t('actions.saveAsTemplate')}
               </Button>
             )}
             {isAdmin && (
@@ -482,7 +494,7 @@ if (!project) {
                 leftIcon={<Trash size={13} aria-hidden="true" />}
                 onClick={() => setConfirmOpen(true)}
               >
-                Delete
+                {t('actions.delete')}
               </Button>
             )}
           </div>
@@ -507,52 +519,53 @@ if (!project) {
 
         <Modal
           open={confirmOpen}
-          title="Delete project"
+          title={t('deleteModal.title')}
           onClose={() => setConfirmOpen(false)}
           width="sm"
           footer={
             <>
               <Button variant="ghost" onClick={() => setConfirmOpen(false)}>
-                Cancel
+                {t('deleteModal.cancel')}
               </Button>
               <Button variant="danger" loading={deleting} onClick={() => void onDelete()}>
-                Delete
+                {t('deleteModal.confirm')}
               </Button>
             </>
           }
         >
           <p className="modal-copy">
-            This permanently deletes “{project?.name}” and all of its data — tasks, issues, schema,
-            decisions. This cannot be undone.
+            {t('deleteModal.body', { name: project?.name })}
           </p>
           {deleteError && <InlineError className="mt-10">{deleteError}</InlineError>}
         </Modal>
 
         <Modal
           open={importDoc !== null}
-          title="Import project backup"
+          title={t('importModal.title')}
           onClose={() => setImportDoc(null)}
           width="sm"
           footer={
             <>
               <Button variant="ghost" onClick={() => setImportDoc(null)}>
-                Cancel
+                {t('importModal.cancel')}
               </Button>
               <Button variant="primary" loading={importing} onClick={() => void onConfirmImport()}>
-                Import
+                {t('importModal.confirm')}
               </Button>
             </>
           }
         >
           <p className="modal-copy">
             {importDoc?.meta.projectId === projectId
-              ? 'This backup belongs to the current project. Importing will overwrite its current data with the backup.'
-              : 'This backup belongs to a different project. Importing will create a new project from this data.'}
+              ? t('importModal.bodySameProject')
+              : t('importModal.bodyOtherProject')}
           </p>
           <p className="modal-copy modal-copy-muted">
-            Backed up {importDoc ? formatDate(importDoc.meta.exportedAt) : ''} ·{' '}
-            {importDoc ? importDoc.state.tasks.length : 0} tasks,{' '}
-            {importDoc ? importDoc.state.issues.length : 0} issues
+            {t('importModal.meta', {
+              date: importDoc ? formatDate(importDoc.meta.exportedAt) : '',
+              tasks: importDoc ? importDoc.state.tasks.length : 0,
+              issues: importDoc ? importDoc.state.issues.length : 0,
+            })}
           </p>
           {importError && <InlineError className="mt-10">{importError}</InlineError>}
         </Modal>

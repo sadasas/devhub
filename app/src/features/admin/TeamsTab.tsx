@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FolderSimple } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { AdminTeam } from '../../lib/types';
@@ -11,6 +12,7 @@ import { Skeleton } from '../../components/Skeleton';
 import { TeamPlanModal } from './TeamPlanModal';
 
 export function TeamsTab({ refreshKey }: { refreshKey: number }) {
+  const { t } = useTranslation('extras');
   const [teams, setTeams] = useState<AdminTeam[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [teamPlanModalOpen, setTeamPlanModalOpen] = useState(false);
@@ -23,9 +25,9 @@ export function TeamsTab({ refreshKey }: { refreshKey: number }) {
       setTeams(t);
     } catch (err) {
       setTeams([]);
-      setError(getErrorMessage(err, 'Failed to load teams'));
+      setError(getErrorMessage(err, t('admin.teams.errors.load')));
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void loadTeams();
@@ -38,7 +40,7 @@ export function TeamsTab({ refreshKey }: { refreshKey: number }) {
   }
 
   return (
-    <section className="tab-panel" role="tabpanel" aria-label="Platform teams">
+    <section className="tab-panel" role="tabpanel" aria-label={t('admin.teams.aria')}>
       {teams === null ? (
         <>
           <Skeleton style={{ width: '100%', height: 48 }} />
@@ -48,39 +50,41 @@ export function TeamsTab({ refreshKey }: { refreshKey: number }) {
         <InlineError className="mb-12">
           {error}{' '}
           <Button variant="ghost" size="sm" onClick={() => void loadTeams()}>
-            Retry
+            {t('admin.retry')}
           </Button>
         </InlineError>
       ) : teams.length === 0 ? (
         <EmptyState
           icon={<FolderSimple size={22} />}
-          title="No teams yet"
-          description="Teams appear here as soon as users create them."
+          title={t('admin.teams.emptyTitle')}
+          description={t('admin.teams.emptyDesc')}
         />
       ) : (
-        teams.map((t) => (
-          <div key={t.id} className="data-row">
+        teams.map((tm) => (
+          <div key={tm.id} className="data-row">
             <div className="data-row-main">
               <span className="data-row-title">
-                <span className="row-title-text">{t.name}</span>
-                <Badge tone="neutral">{t.memberCount} members</Badge>
-                <Badge tone="neutral">{t.projectCount} projects</Badge>
-                <Badge tone={(t as AdminTeam & { plan?: string }).plan === 'pro' ? 'success' : 'neutral'}>
-                  {(t as AdminTeam & { plan?: string }).plan === 'pro' ? 'Pro' : 'Free'}
+                <span className="row-title-text">{tm.name}</span>
+                <Badge tone="neutral">{t('admin.teams.memberCount', { count: tm.memberCount })}</Badge>
+                <Badge tone="neutral">{t('admin.teams.projectCount', { count: tm.projectCount })}</Badge>
+                <Badge tone={(tm as AdminTeam & { plan?: string }).plan === 'pro' ? 'success' : 'neutral'}>
+                  {(tm as AdminTeam & { plan?: string }).plan === 'pro' ? t('admin.plan.pro') : t('admin.plan.free')}
                 </Badge>
               </span>
               <span className="data-row-meta">
-                owner {t.ownerEmail ?? '—'} · created{' '}
-                {new Date(t.createdAt).toLocaleDateString()}
+                {t('admin.teams.meta', {
+                  owner: tm.ownerEmail ?? '—',
+                  created: new Date(tm.createdAt).toLocaleDateString(),
+                })}
               </span>
             </div>
             <div className="data-row-side">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => { setEditingTeam(t); setTeamPlanModalOpen(true); }}
+                onClick={() => { setEditingTeam(tm); setTeamPlanModalOpen(true); }}
               >
-                Change plan
+                {t('admin.teams.changePlan')}
               </Button>
             </div>
           </div>

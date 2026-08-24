@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ArrowClockwise,
   ChartLine,
@@ -17,6 +18,7 @@ import { UsersTab } from './UsersTab';
 type Tab = 'overview' | 'users' | 'payments' | 'teams' | 'packages';
 
 export function AdminPage() {
+  const { t } = useTranslation('extras');
   const [tab, setTab] = useState<Tab>('overview');
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -24,8 +26,8 @@ export function AdminPage() {
     <div className="page">
       <header className="page-header">
         <div>
-          <h1 className="page-title">Admin</h1>
-          <p className="page-subtitle">Platform-wide overview — users, teams, payments and packages.</p>
+          <h1 className="page-title">{t('admin.title')}</h1>
+          <p className="page-subtitle">{t('admin.subtitle')}</p>
         </div>
         <Button
           variant="ghost"
@@ -33,11 +35,11 @@ export function AdminPage() {
           leftIcon={<ArrowClockwise size={13} aria-hidden="true" />}
           onClick={() => setRefreshKey((k) => k + 1)}
         >
-          Refresh
+          {t('admin.refresh')}
         </Button>
       </header>
 
-      <div className="sub-tabs" role="tablist" aria-label="Admin sections">
+      <div className="sub-tabs" role="tablist" aria-label={t('admin.tabsAria')}>
         <button
           type="button"
           role="tab"
@@ -46,7 +48,7 @@ export function AdminPage() {
           aria-selected={tab === 'overview'}
         >
           <ChartLine size={13} aria-hidden="true" />
-          Overview
+          {t('admin.tabs.overview')}
         </button>
         <button
           type="button"
@@ -56,7 +58,7 @@ export function AdminPage() {
           aria-selected={tab === 'users'}
         >
           <UsersThree size={13} aria-hidden="true" />
-          Users
+          {t('admin.tabs.users')}
         </button>
         <button
           type="button"
@@ -66,7 +68,7 @@ export function AdminPage() {
           aria-selected={tab === 'payments'}
         >
           <Receipt size={13} aria-hidden="true" />
-          Payments
+          {t('admin.tabs.payments')}
         </button>
         <button
           type="button"
@@ -76,7 +78,7 @@ export function AdminPage() {
           aria-selected={tab === 'teams'}
         >
           <FolderSimple size={13} aria-hidden="true" />
-          Teams
+          {t('admin.tabs.teams')}
         </button>
         <button
           type="button"
@@ -86,7 +88,7 @@ export function AdminPage() {
           aria-selected={tab === 'packages'}
         >
           <Package size={13} aria-hidden="true" />
-          Packages
+          {t('admin.tabs.packages')}
         </button>
       </div>
 

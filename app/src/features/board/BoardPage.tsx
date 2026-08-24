@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Plus, SquaresFour, Flag, CalendarBlank } from '@phosphor-icons/react';
 import { useSearchParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import type { Task, TaskStatus } from '../../lib/types';
 import { isTaskCompletable } from '../../lib/utils';
 import { dueBucket, dueColumnDate, type DueBucket } from '../../lib/due-dates';
@@ -22,34 +23,29 @@ import { NewTaskModal } from './NewTaskModal';
 import { DueCalendar } from './DueCalendar';
 import { InlineError } from '../../components/InlineError';
 
-const COLUMNS: { status: TaskStatus; label: string }[] = [
-  { status: 'todo', label: 'Todo' },
-  { status: 'inProgress', label: 'In Progress' },
-  { status: 'review', label: 'Review' },
-  { status: 'done', label: 'Done' },
-];
+const COLUMNS: TaskStatus[] = ['todo', 'inProgress', 'review', 'done'];
 
 type BoardView = 'status' | 'milestone' | 'due';
 
-const DUE_BUCKETS: { bucket: DueBucket; label: string }[] = [
-  { bucket: 'overdue', label: 'Overdue' },
-  { bucket: 'today', label: 'Today' },
-  { bucket: 'tomorrow', label: 'Tomorrow' },
-  { bucket: 'thisWeek', label: 'This Week' },
-  { bucket: 'nextWeek', label: 'Next Week' },
-  { bucket: 'later', label: 'Later' },
-  { bucket: 'none', label: 'No Date' },
+const DUE_BUCKETS: DueBucket[] = [
+  'overdue',
+  'today',
+  'tomorrow',
+  'thisWeek',
+  'nextWeek',
+  'later',
+  'none',
 ];
 
 const milestoneOrder = (m: { status: string; targetDate?: string | null }): number =>
   m.status === 'planned' ? 0 : m.status === 'inProgress' ? 1 : 2;
 
 const TASK_SORT_SPECS: SortSpec<Task>[] = [
-  { key: 'priority', label: 'Priority', get: (t) => t.priority, order: TASK_PRIORITY_ORDER },
-  { key: 'estimate', label: 'Estimate', get: (t) => t.estimate ?? null },
-  { key: 'title', label: 'Title', get: (t) => t.title },
-  { key: 'createdAt', label: 'Created', get: (t) => t.createdAt },
-  { key: 'dueDate', label: 'Due date', get: (t) => t.dueDate ?? null },
+  { key: 'priority', label: 'board.sort.priority', get: (t) => t.priority, order: TASK_PRIORITY_ORDER },
+  { key: 'estimate', label: 'board.sort.estimate', get: (t) => t.estimate ?? null },
+  { key: 'title', label: 'board.sort.title', get: (t) => t.title },
+  { key: 'createdAt', label: 'board.sort.createdAt', get: (t) => t.createdAt },
+  { key: 'dueDate', label: 'board.sort.dueDate', get: (t) => t.dueDate ?? null },
 ];
 
 interface NewTaskTarget {
@@ -59,6 +55,7 @@ interface NewTaskTarget {
 }
 
 export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
+  const { t } = useTranslation('tracker');
   const { state, loading, error, dispatch, canEdit, teamId } = useProject();
   const [searchParams, setSearchParams] = useSearchParams();
   const viewParam = searchParams.get('view');
@@ -104,6 +101,21 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     );
   };
   const sortSpec = TASK_SORT_SPECS.find((s) => s.key === effectiveSort.key) ?? null;
+  const columnLabels: Record<TaskStatus, string> = {
+    todo: t('board.column.todo'),
+    inProgress: t('board.column.inProgress'),
+    review: t('board.column.review'),
+    done: t('board.column.done'),
+  };
+  const dueBucketLabels: Record<DueBucket, string> = {
+    overdue: t('board.dueBucket.overdue'),
+    today: t('board.dueBucket.today'),
+    tomorrow: t('board.dueBucket.tomorrow'),
+    thisWeek: t('board.dueBucket.thisWeek'),
+    nextWeek: t('board.dueBucket.nextWeek'),
+    later: t('board.dueBucket.later'),
+    none: t('board.dueBucket.none'),
+  };
   const [overKey, setOverKey] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [newTaskAt, setNewTaskAt] = useState<NewTaskTarget | null>(null);
@@ -164,12 +176,12 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       const dir = e.key === 'ArrowRight' ? 1 : -1;
       if (view === 'due') return;
       if (view === 'status') {
-        const i = COLUMNS.findIndex((c) => c.status === task.status);
-        const next = COLUMNS[(i + dir + COLUMNS.length) % COLUMNS.length]!.status;
+        const i = COLUMNS.indexOf(task.status);
+        const next = COLUMNS[(i + dir + COLUMNS.length) % COLUMNS.length]!;
         if (next === task.status) return;
         if (next === 'done' && !isTaskCompletable(task, state.testCases)) {
           showDoneBlocked(
-            `"${task.title}" still has test cases that are not all passed. Finish them before moving to Done.`,
+            t('board.blockedDone', { title: task.title }),
           );
           return;
         }
@@ -191,15 +203,15 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [canEdit, editId, newTaskAt, view, state, dispatch]);
+  }, [canEdit, editId, newTaskAt, view, state, dispatch, t]);
 
   if (loading) {
     return (
       <div className="kanban">
         {COLUMNS.map((col) => (
-          <div key={col.status} className="kanban-col" aria-hidden="true">
+          <div key={col} className="kanban-col" aria-hidden="true">
             <div className="kanban-col-header">
-              <span>{col.label}</span>
+              <span>{columnLabels[col]}</span>
             </div>
             <div className="kanban-col-body">
               <Skeleton style={{ height: 84, width: '100%' }} />
@@ -239,9 +251,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     const task = state?.tasks.find((t) => t.id === id);
     if (!task) return;
     if (status === 'done' && task.status !== 'done' && !isTaskCompletable(task, state!.testCases)) {
-      showDoneBlocked(
-        `"${task.title}" still has test cases that are not all passed. Finish them before moving to Done.`,
-      );
+      showDoneBlocked(t('board.blockedDone', { title: task.title }));
       return;
     }
     if (task.status !== status) {
@@ -298,7 +308,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           className={`kanban-col-body ${overKey === dropKey ? 'kanban-drop-active' : ''}`}
           data-drop-key={dropKey ?? ''}
         >
-          {tasks.length === 0 && <p className="kanban-col-empty">Drop tasks here</p>}
+          {tasks.length === 0 && <p className="kanban-col-empty">{t('board.dropHere')}</p>}
           {tasks.map((task) => (
             <TaskCard key={task.id} task={task} onOpen={openTask} members={members} showStatus={view === 'milestone'} showMilestone={view === 'status'} unread={unreadIds?.has(task.id)} onTouchDrop={handleTouchDrop} />
           ))}
@@ -312,7 +322,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
               leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />}
               onClick={onAdd}
             >
-              Add task
+              {t('board.addTask')}
             </Button>
           )}
         </div>
@@ -322,22 +332,22 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
 
   const statusColumns = COLUMNS.map((col) =>
     renderColumn(
-      col.status,
+      col,
       <>
-        <span className="kanban-col-label">{col.label}</span>
+        <span className="kanban-col-label">{columnLabels[col]}</span>
         <span className="kanban-col-count tabular">
-          {filteredTasks.filter((t) => t.status === col.status).length}
+          {filteredTasks.filter((t) => t.status === col).length}
         </span>
       </>,
       applySort(
-        filteredTasks.filter((t) => t.status === col.status),
+        filteredTasks.filter((t) => t.status === col),
         sortSpec,
         effectiveSort.dir,
         (t) => !!t.pinned,
       ),
-      col.status,
-      (id) => moveTaskStatus(id, col.status),
-      () => setNewTaskAt({ status: col.status }),
+      col,
+      (id) => moveTaskStatus(id, col),
+      () => setNewTaskAt({ status: col }),
     ),
   );
 
@@ -356,10 +366,10 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       key,
       <>
         <div className="kanban-milestone-header">
-          <span className="kanban-col-label">{m?.name ?? 'Unassigned'}</span>
+          <span className="kanban-col-label">{m?.name ?? t('board.unassigned')}</span>
           {m?.version && <span className="task-label">{m.version}</span>}
         </div>
-        <span className="kanban-col-count tabular" title={`${done}/${tasks.length} done`}>
+        <span className="kanban-col-count tabular" title={t('board.doneProgress', { done, total: tasks.length })}>
           {tasks.length} · {progress}%
         </span>
       </>,
@@ -370,14 +380,14 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     );
   });
 
-  const dueCols = DUE_BUCKETS.map(({ bucket, label }) => {
+  const dueCols = DUE_BUCKETS.map((bucket) => {
     const tasks = filteredTasks
       .filter((t) => dueBucket(t.dueDate) === bucket)
       .sort((a, b) => (a.dueDate ?? '9999-99-99').localeCompare(b.dueDate ?? '9999-99-99'));
     return renderColumn(
       bucket,
       <>
-        <span className="kanban-col-label">{label}</span>
+        <span className="kanban-col-label">{dueBucketLabels[bucket]}</span>
         <span className="kanban-col-count tabular">{tasks.length}</span>
       </>,
       tasks,
@@ -390,7 +400,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   return (
     <div>
       <div className="board-toolbar">
-        <div className="sub-tabs" role="tablist" aria-label="Board view">
+        <div className="sub-tabs" role="tablist" aria-label={t('board.viewTabs')}>
           <button
             type="button"
             role="tab"
@@ -399,7 +409,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
             aria-selected={view === 'status'}
           >
             <SquaresFour size={13} aria-hidden="true" />
-            By Status
+            {t('board.byStatus')}
           </button>
           <button
             type="button"
@@ -409,7 +419,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
             aria-selected={view === 'milestone'}
           >
             <Flag size={13} aria-hidden="true" />
-            By Milestone
+            {t('board.byMilestone')}
           </button>
           <button
             type="button"
@@ -419,11 +429,11 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
             aria-selected={view === 'due'}
           >
             <CalendarBlank size={13} aria-hidden="true" />
-            By Due Date
+            {t('board.byDueDate')}
           </button>
         </div>
         {view === 'due' && (
-          <div className="sub-tabs" role="tablist" aria-label="Due date view">
+          <div className="sub-tabs" role="tablist" aria-label={t('board.calTabs')}>
             <button
               type="button"
               role="tab"
@@ -431,7 +441,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
               onClick={() => setCal(false)}
               aria-selected={!calMode}
             >
-              Buckets
+              {t('board.buckets')}
             </button>
             <button
               type="button"
@@ -440,14 +450,14 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
               onClick={() => setCal(true)}
               aria-selected={calMode}
             >
-              Calendar
+              {t('board.tabCalendar')}
             </button>
           </div>
         )}
         <div className="board-toolbar-actions">
           {view !== 'due' && (
             <SortControl
-              options={TASK_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: s.label }))}
+              options={TASK_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: t(s.label) }))}
               value={sortValue}
               onChange={setSort}
             />
@@ -455,14 +465,14 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           {userId && (
             <label
               className="toolbar-check"
-              title={mineOnly ? 'Show all tasks' : 'Show only tasks assigned to me'}
+              title={mineOnly ? t('board.showAllTasks') : t('board.showOnlyMine')}
             >
               <input
                 type="checkbox"
                 checked={mineOnly}
                 onChange={(e) => setMine(e.target.checked)}
               />
-              Only my tasks
+              {t('board.onlyMyTasks')}
             </label>
           )}
         </div>

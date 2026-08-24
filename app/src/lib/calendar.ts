@@ -1,3 +1,5 @@
+import { getAppLocale } from '../i18n';
+
 export const DAY_MS = 86_400_000;
 
 export function parseIso(isoDate: string): Date {
@@ -47,7 +49,7 @@ export function inMonth(isoDate: string, year: number, month: number): boolean {
 }
 
 export function monthName(year: number, month: number): string {
-  return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(
+  return new Intl.DateTimeFormat(getAppLocale(), { month: 'long', year: 'numeric' }).format(
     new Date(Date.UTC(year, month, 1)),
   );
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getErrorMessage, isPlanLimitError } from '../../lib/errors';
 import { TEAM_ROLE } from '../../lib/labels';
 import type { TeamRole } from '../../lib/types';
@@ -20,6 +21,7 @@ interface InviteModalProps {
 const INVITE_ROLES: Exclude<TeamRole, 'owner'>[] = ['admin', 'editor', 'viewer'];
 
 export function InviteModal({ teamId, open, onClose, onInvited }: InviteModalProps) {
+  const { t } = useTranslation('account');
   const { inviteMember } = useTeams();
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<Exclude<TeamRole, 'owner'>>('editor');
@@ -44,7 +46,7 @@ export function InviteModal({ teamId, open, onClose, onInvited }: InviteModalPro
         setLimitOpen(true);
         onClose();
       } else {
-        setError(getErrorMessage(err, 'Failed to send invitation.'));
+        setError(getErrorMessage(err, t('teams.inviteModal.sendError')));
         setSubmitting(false);
       }
     }
@@ -54,37 +56,36 @@ export function InviteModal({ teamId, open, onClose, onInvited }: InviteModalPro
     <>
       <Modal
         open={open}
-        title="Invite member"
+        title={t('teams.inviteModal.title')}
         onClose={onClose}
         width="sm"
         footer={
           <>
             <Button variant="ghost" onClick={onClose}>
-              Cancel
+              {t('common:action.cancel')}
             </Button>
             <Button type="submit" form="invite-form" loading={submitting} disabled={!email.trim()}>
-              Send invite
+              {t('teams.inviteModal.send')}
             </Button>
           </>
         }
       >
       <form id="invite-form" className="form-stack" onSubmit={onSubmit} noValidate>
         <p className="modal-copy">
-          Invite a registered DevHub user by email. They must accept the invitation before they
-          can join this team.
+          {t('teams.inviteModal.intro')}
         </p>
         <Input
-          label="Email"
+          label={t('teams.inviteModal.email')}
           type="email"
           required
           autoFocus
-          placeholder="teammate@example.com"
+          placeholder={t('teams.inviteModal.emailPlaceholder')}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
         <div className="field">
           <label className="field-label" htmlFor="invite-role">
-            Role
+            {t('teams.inviteModal.role')}
           </label>
           <select
             id="invite-role"

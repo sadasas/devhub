@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ListBullets, PencilSimple, Plus, ShareNetwork, Stack } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import type { TechEntry, TechEntryCategory } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
@@ -21,16 +22,16 @@ import { InlineError } from '../../components/InlineError';
 const CATEGORY_ORDER: TechEntryCategory[] = ['frontend', 'backend', 'database', 'tooling'];
 
 const TECH_SORT_SPECS: SortSpec<TechEntry>[] = [
-  { key: 'category', label: 'Category', get: (e) => e.category, order: CATEGORY_ORDER },
-  { key: 'name', label: 'Name', get: (e) => e.name },
-  { key: 'createdAt', label: 'Created', get: (e) => e.createdAt },
+  { key: 'category', label: 'stack.sort.category', get: (e) => e.category, order: CATEGORY_ORDER },
+  { key: 'name', label: 'stack.sort.name', get: (e) => e.name },
+  { key: 'createdAt', label: 'stack.sort.createdAt', get: (e) => e.createdAt },
   {
     key: 'status',
-    label: 'Status',
+    label: 'stack.sort.status',
     get: (e) => e.status,
     order: ['current', 'updateAvailable', 'majorUpgrade'],
   },
-  { key: 'version', label: 'Version', get: (e) => e.version || null },
+  { key: 'version', label: 'stack.sort.version', get: (e) => e.version || null },
 ];
 
 type StackView = 'list' | 'graph';
@@ -46,6 +47,7 @@ function loadView(): StackView {
 }
 
 export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
+  const { t } = useTranslation('project');
   const { state, loading, error, canEdit } = useProject();
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -105,9 +107,9 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
 <div className="data-list-header">
         <div className="stack-header-left">
           <span className="data-list-count">
-            {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
+            {t('stack.count', { count: entries.length })}
           </span>
-          <div className="sub-tabs stack-view-toggle" role="tablist" aria-label="Stack view">
+          <div className="sub-tabs stack-view-toggle" role="tablist" aria-label={t('stack.viewAria')}>
             <button
               type="button"
               className={`sub-tab ${view === 'list' ? 'sub-tab-active' : ''}`}
@@ -116,7 +118,7 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
               onClick={() => switchView('list')}
             >
               <ListBullets size={13} aria-hidden="true" />
-              List
+              {t('stack.listTab')}
             </button>
             <button
               type="button"
@@ -126,21 +128,21 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
               onClick={() => switchView('graph')}
             >
               <ShareNetwork size={13} aria-hidden="true" />
-              Graph
+              {t('stack.graphTab')}
             </button>
           </div>
         </div>
         <span className="data-list-actions">
           {view === 'list' && (
             <SortControl
-              options={TECH_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: s.label }))}
+              options={TECH_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: t(s.label) }))}
               value={sortValue}
               onChange={setSort}
             />
           )}
           {canEdit && (
             <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
-              New entry
+              {t('stack.newEntry')}
             </Button>
           )}
         </span>
@@ -149,12 +151,12 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       {entries.length === 0 ? (
         <EmptyState
           icon={<Stack size={22} />}
-          title="No stack entries yet"
-          description="Track what this project runs on — versions, categories and when an upgrade is due."
+          title={t('stack.emptyTitle')}
+          description={t('stack.emptyDesc')}
           action={
             canEdit && (
               <Button leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
-                Add a tech entry
+                {t('stack.addEntry')}
               </Button>
             )
           }
@@ -172,7 +174,9 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
               >
                 <div className="data-row-title">
                   <span className="row-title-text">{entry.name}</span>
-                  <Badge tone={TECH_STATUS[entry.status].tone}>{TECH_STATUS[entry.status].label}</Badge>
+                  <Badge tone={TECH_STATUS[entry.status].tone}>
+                    {t(`stack.statusBadge.${entry.status}`)}
+                  </Badge>
                 </div>
                 {entry.notes && <div className="data-row-sub">{entry.notes}</div>}
                 <div className="data-row-meta">
@@ -181,21 +185,21 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
                   {unreadIds?.has(entry.id) && (
                     <>
                       <span className="unread-dot" aria-hidden="true" />
-                      <span className="sr-only">Unread</span>
+                      <span className="sr-only">{t('stack.unread')}</span>
                     </>
                   )}
                 </div>
               </button>
               <div className="data-row-side">
                 <Badge tone={TECH_CATEGORY[entry.category].tone}>
-                  {TECH_CATEGORY[entry.category].label}
+                  {t(`stack.category.${entry.category}`)}
                 </Badge>
                 {canEdit && (
                   <Button
                     variant="ghost"
                     size="sm"
                     className="btn-icon"
-                    aria-label="Edit entry"
+                    aria-label={t('stack.editEntryAria')}
                     onClick={() => setEditingId(entry.id)}
                   >
                     <PencilSimple size={14} aria-hidden="true" />

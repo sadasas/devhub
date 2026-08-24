@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { BillingStatus } from '../../lib/types';
@@ -15,6 +16,7 @@ interface TeamBillingPanelProps {
 }
 
 export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
+  const { t } = useTranslation('account');
   const navigate = useNavigate();
   const [data, setData] = useState<BillingStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -28,11 +30,11 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
       const status = await api.billingStatus(teamId);
       setData(status);
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to load usage.'));
+      setError(getErrorMessage(err, t('teams.billing.loadError')));
     } finally {
       setLoading(false);
     }
-  }, [teamId]);
+  }, [teamId, t]);
 
   useEffect(() => {
     void load();
@@ -53,7 +55,7 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
         <InlineError>
           {error}{' '}
           <Button variant="ghost" size="sm" onClick={() => void load()}>
-            Retry
+            {t('common:action.retry')}
           </Button>
         </InlineError>
       </section>
@@ -72,7 +74,7 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
       const res = await api.resumePayment(pendingPayment.orderId);
       window.location.assign(res.url);
     } catch (err) {
-      setBannerError(getErrorMessage(err, 'Gagal melanjutkan pembayaran.'));
+      setBannerError(getErrorMessage(err, t('teams.billing.resumeError')));
       setBannerBusy(false);
     }
   }
@@ -94,7 +96,7 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
           : prev,
       );
     } catch (err) {
-      setBannerError(getErrorMessage(err, 'Gagal membatalkan pembayaran.'));
+      setBannerError(getErrorMessage(err, t('teams.billing.cancelError')));
     } finally {
       setBannerBusy(false);
     }
@@ -103,10 +105,10 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
   let expiryMeta: string;
   if (plan === 'pro') {
     expiryMeta = expires
-      ? `Active until ${new Date(expires).toLocaleDateString()}`
-      : 'Active — no expiration (operator grant)';
+      ? t('teams.billing.activeUntil', { date: new Date(expires).toLocaleDateString() })
+      : t('teams.billing.activeNoExpiry');
   } else {
-    expiryMeta = 'Free plan';
+    expiryMeta = t('teams.billing.freePlan');
   }
 
   const daysLeft =
@@ -115,23 +117,27 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
       : null;
 
   return (
-    <section className="tab-panel billing-panel" aria-label="Usage">
+    <section className="tab-panel billing-panel" aria-label={t('teams.billing.panelAria')}>
       {plan === 'pro' && daysLeft !== null && daysLeft <= 7 && (
         <InlineError>
-          Pro ends in {daysLeft <= 0 ? 'less than a day' : `${daysLeft} day${daysLeft === 1 ? '' : 's'}`} —
-          renew to keep unlimited capacity.
+          {t('teams.billing.proEndingSoon', {
+            duration:
+              daysLeft <= 0
+                ? t('teams.billing.lessThanADay')
+                : t('teams.billing.days', { count: daysLeft }),
+          })}
         </InlineError>
       )}
       {pendingPayment && (
         <div className="billing-card">
-          <h3 className="billing-card-title">Pembayaran tertunda</h3>
+          <h3 className="billing-card-title">{t('teams.billing.pendingTitle')}</h3>
           <div className="billing-plan-row">
             <span className="billing-plan-name">
               {pendingPayment.packageName} — Rp {pendingPayment.amount.toLocaleString('id-ID')}
             </span>
-            <Badge tone="neutral">Pending</Badge>
+            <Badge tone="neutral">{t('teams.billing.pendingBadge')}</Badge>
             <span className="billing-meta">
-              {new Date(pendingPayment.createdAt).toLocaleDateString()} · selesaikan atau batalkan
+              {t('teams.billing.pendingMeta', { date: new Date(pendingPayment.createdAt).toLocaleDateString() })}
             </span>
           </div>
           {bannerError && <InlineError>{bannerError}</InlineError>}
@@ -142,7 +148,7 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
               loading={bannerBusy}
               onClick={() => void onResumePending()}
             >
-              Lanjutkan pembayaran
+              {t('teams.billing.resumePayment')}
             </Button>
             <Button
               variant="ghost"
@@ -150,29 +156,29 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
               disabled={bannerBusy}
               onClick={() => void onCancelPending()}
             >
-              Batalkan
+              {t('teams.billing.cancelPayment')}
             </Button>
           </div>
         </div>
       )}
       <div className="billing-card">
-        <h3 className="billing-card-title">Current plan</h3>
+        <h3 className="billing-card-title">{t('teams.billing.currentPlan')}</h3>
         <div className="billing-plan-row">
-          <span className="billing-plan-name">{data?.team.planPackageName ?? (plan === 'pro' ? 'Pro' : 'Free')}</span>
+          <span className="billing-plan-name">{data?.team.planPackageName ?? (plan === 'pro' ? 'Pro' : t('teams.billing.free'))}</span>
           <Badge tone={plan === 'pro' ? 'info' : 'neutral'}>
-            {plan === 'pro' ? 'Active' : 'Free'}
+            {plan === 'pro' ? t('teams.billing.activeBadge') : t('teams.billing.free')}
           </Badge>
           <span className="billing-meta">{expiryMeta}</span>
         </div>
 
         <div className="usage-meter-list">
           <UsageMeter
-            label="Members"
+            label={t('teams.billing.members')}
             used={data!.usage.members.used}
             limit={data!.usage.members.limit}
           />
           <UsageMeter
-            label="Projects"
+            label={t('teams.billing.projects')}
             used={data!.usage.projects.used}
             limit={data!.usage.projects.limit}
           />
@@ -185,12 +191,12 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
                 size="sm"
                 onClick={() => navigate(`/pricing?teamId=${teamId}`)}
               >
-                View Pricing
+                {t('teams.billing.viewPricing')}
               </Button>
             </div>
           ) : (
             <p className="billing-meta" style={{ marginTop: 12 }}>
-              Contact a team admin to upgrade this workspace.
+              {t('teams.billing.contactAdmin')}
             </p>
           ))}
       </div>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, ChartLineUp, Envelope, Trash, UsersThree } from '@phosphor-icons/react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import { TEAM_ROLE } from '../../lib/labels';
@@ -21,6 +22,7 @@ const CHANGEABLE_ROLES: TeamRole[] = ['admin', 'editor', 'viewer'];
 const ALL_ROLES: TeamRole[] = [...CHANGEABLE_ROLES, 'owner'];
 
 export function TeamPage() {
+  const { t } = useTranslation('account');
   const { teamId = '' } = useParams<{ teamId: string }>();
   const { teams, refresh, deleteTeam, renameTeam } = useTeams();
   const { user } = useAuth();
@@ -51,9 +53,9 @@ export function TeamPage() {
       setMembers(list);
       setLoadError(null);
     } catch (err) {
-      setLoadError(getErrorMessage(err, 'Failed to load members'));
+      setLoadError(getErrorMessage(err, t('teams.errors.loadMembers')));
     }
-  }, [teamId]);
+  }, [teamId, t]);
 
   const loadPendingInvites = useCallback(async () => {
     try {
@@ -85,7 +87,7 @@ export function TeamPage() {
       setMembers((prev) => (prev ? prev.map((m) => (m.id === member.id ? { ...m, role } : m)) : prev));
       if (role === 'owner') await refresh();
     } catch (err) {
-      setActionError(getErrorMessage(err, 'Failed to change role'));
+      setActionError(getErrorMessage(err, t('teams.errors.changeRole')));
     } finally {
       setBusyId(null);
     }
@@ -98,7 +100,7 @@ export function TeamPage() {
       await api.declineInvitation(teamId, inv.id);
       setPendingInvites((prev) => (prev ? prev.filter((i) => i.id !== inv.id) : prev));
     } catch (err) {
-      setActionError(getErrorMessage(err, 'Failed to withdraw invitation'));
+      setActionError(getErrorMessage(err, t('teams.errors.withdrawInvite')));
     } finally {
       setBusyId(null);
     }
@@ -112,7 +114,7 @@ export function TeamPage() {
       setMembers((prev) => (prev ? prev.filter((m) => m.id !== member.id) : prev));
       await refresh();
     } catch (err) {
-      setActionError(getErrorMessage(err, 'Failed to remove member'));
+      setActionError(getErrorMessage(err, t('teams.errors.removeMember')));
     } finally {
       setBusyId(null);
     }
@@ -127,7 +129,7 @@ export function TeamPage() {
       await refresh();
       navigate('/');
     } catch (err) {
-      setActionError(getErrorMessage(err, 'Failed to leave team'));
+      setActionError(getErrorMessage(err, t('teams.errors.leave')));
       setDeleting(false);
     }
   }
@@ -139,7 +141,7 @@ export function TeamPage() {
       await deleteTeam(teamId);
       navigate('/');
     } catch (err) {
-      setActionError(getErrorMessage(err, 'Failed to delete team'));
+      setActionError(getErrorMessage(err, t('teams.errors.deleteTeam')));
       setDeleting(false);
     }
   }
@@ -152,7 +154,7 @@ export function TeamPage() {
       await renameTeam(teamId, renameValue.trim());
       setRenameOpen(false);
     } catch (err) {
-      setActionError(getErrorMessage(err, 'Failed to rename team'));
+      setActionError(getErrorMessage(err, t('teams.errors.rename')));
     } finally {
       setRenaming(false);
     }
@@ -164,7 +166,7 @@ export function TeamPage() {
         <div>
           <button type="button" className="back-btn" onClick={() => navigate('/')}>
             <ArrowLeft size={14} aria-hidden="true" />
-            Dashboard
+            {t('teams.backToDashboard')}
           </button>
           {team ? (
             <div className="project-title-row">
@@ -173,12 +175,12 @@ export function TeamPage() {
               <Badge tone={team.plan === 'pro' ? 'info' : 'neutral'}>
                 {team.planPackageName}
               </Badge>
-              <Badge tone="neutral">{team.memberCount} members</Badge>
+              <Badge tone="neutral">{t('teams.memberCount', { count: team.memberCount })}</Badge>
             </div>
           ) : (
             <Skeleton style={{ width: 200, height: 24, marginTop: 8 }} />
           )}
-          <p className="page-subtitle">Team members share every project in this workspace.</p>
+          <p className="page-subtitle">{t('teams.subtitle')}</p>
         </div>
         <div className="project-title-row gap-8">
           {team && isAdmin && (
@@ -188,12 +190,12 @@ export function TeamPage() {
               leftIcon={<Envelope size={13} aria-hidden="true" />}
               onClick={() => setInviteOpen(true)}
             >
-              Invite
+              {t('teams.invite')}
             </Button>
           )}
           {team && isAdmin && (
             <Button variant="ghost" size="sm" onClick={() => setRenameOpen(true)}>
-              Rename
+              {t('teams.rename')}
             </Button>
           )}
           {team && team.role === 'owner' && (
@@ -203,7 +205,7 @@ export function TeamPage() {
               leftIcon={<Trash size={13} aria-hidden="true" />}
               onClick={() => setDeleteOpen(true)}
             >
-              Delete team
+              {t('teams.deleteTeam')}
             </Button>
           )}
         </div>
@@ -212,7 +214,7 @@ export function TeamPage() {
       {loadError && <InlineError>{loadError}</InlineError>}
       {actionError && <InlineError>{actionError}</InlineError>}
 
-      <div className="sub-tabs" role="tablist" aria-label="Team sections">
+      <div className="sub-tabs" role="tablist" aria-label={t('teams.tabsAria')}>
         <button
           type="button"
           role="tab"
@@ -221,7 +223,7 @@ export function TeamPage() {
           aria-selected={tab === 'members'}
         >
           <UsersThree size={13} aria-hidden="true" />
-          Members
+          {t('teams.tabMembers')}
         </button>
         <button
           type="button"
@@ -231,7 +233,7 @@ export function TeamPage() {
           aria-selected={tab === 'usage'}
         >
           <ChartLineUp size={13} aria-hidden="true" />
-          Usage
+          {t('teams.tabUsage')}
         </button>
       </div>
 
@@ -249,8 +251,8 @@ export function TeamPage() {
           <div className="page-empty">
             <EmptyState
               icon={<UsersThree size={22} />}
-              title="No members yet"
-              description="Invite a DevHub user by email to join this team."
+              title={t('teams.emptyTitle')}
+              description={t('teams.emptyDescription')}
             />
           </div>
         ) : (
@@ -264,7 +266,7 @@ export function TeamPage() {
                     <span className="row-title-text">{m.email}</span>
                     <Badge tone={TEAM_ROLE[m.role].tone}>{TEAM_ROLE[m.role].label}</Badge>
                   </span>
-                  <span className="data-row-meta">joined {new Date(m.joinedAt).toLocaleDateString()}</span>
+                  <span className="data-row-meta">{t('teams.joinedOn', { date: new Date(m.joinedAt).toLocaleDateString() })}</span>
                 </div>
                 <div className="data-row-side">
                   {roleOptions.length > 0 && (
@@ -274,7 +276,7 @@ export function TeamPage() {
                       disabled={busyId === m.id}
                       title={
                         roleOptions.includes('owner')
-                          ? 'Transfer ownership (you will become admin)'
+                          ? t('teams.transferOwnership')
                           : undefined
                       }
                       onChange={(e) => void onChangeRole(m, e.target.value as TeamRole)}
@@ -294,7 +296,7 @@ export function TeamPage() {
                       loading={busyId === m.id}
                       onClick={() => void onRemoveMember(m)}
                     >
-                      Remove
+                      {t('teams.remove')}
                     </Button>
                   )}
                 </div>
@@ -306,7 +308,7 @@ export function TeamPage() {
 
       {tab === 'members' && isAdmin && pendingInvites !== null && pendingInvites.length > 0 && (
         <section className="tab-panel mt-24">
-          <h2 className="panel-title text-muted">Pending invitations</h2>
+          <h2 className="panel-title text-muted">{t('teams.pendingInvitations')}</h2>
           {pendingInvites.map((inv) => (
             <div key={inv.id} className="data-row">
               <div className="data-row-main">
@@ -315,7 +317,7 @@ export function TeamPage() {
                   <Badge tone={TEAM_ROLE[inv.role].tone}>{TEAM_ROLE[inv.role].label}</Badge>
                 </span>
                 <span className="data-row-meta">
-                  expires {new Date(inv.expiresAt).toLocaleDateString()}
+                  {t('teams.expiresOn', { date: new Date(inv.expiresAt).toLocaleDateString() })}
                 </span>
               </div>
               <div className="data-row-side">
@@ -325,7 +327,7 @@ export function TeamPage() {
                   loading={busyId === inv.id}
                   onClick={() => void onWithdrawInvite(inv)}
                 >
-                  Withdraw
+                  {t('teams.withdraw')}
                 </Button>
               </div>
             </div>
@@ -336,7 +338,7 @@ export function TeamPage() {
       {team && team.role !== 'owner' && tab === 'members' && (
         <div className="page-footer">
           <Button variant="ghost" size="sm" className="text-danger" onClick={() => setLeaveOpen(true)}>
-            Leave team
+            {t('teams.leaveTeam')}
           </Button>
         </div>
       )}
@@ -355,13 +357,13 @@ export function TeamPage() {
 
       <Modal
         open={renameOpen}
-        title="Rename team"
+        title={t('teams.renameModal.title')}
         onClose={() => setRenameOpen(false)}
         width="sm"
         footer={
           <>
             <Button variant="ghost" onClick={() => setRenameOpen(false)}>
-              Cancel
+              {t('common:action.cancel')}
             </Button>
             <Button
               type="submit"
@@ -369,14 +371,14 @@ export function TeamPage() {
               loading={renaming}
               disabled={!renameValue.trim()}
             >
-              Save
+              {t('teams.renameModal.save')}
             </Button>
           </>
         }
       >
         <form id="rename-team-form" className="form-stack" onSubmit={onRename} noValidate>
           <Input
-            label="Team name"
+            label={t('teams.renameModal.name')}
             required
             autoFocus
             value={renameValue}
@@ -387,45 +389,43 @@ export function TeamPage() {
 
       <Modal
         open={deleteOpen}
-        title="Delete team"
+        title={t('teams.deleteModal.title')}
         onClose={() => setDeleteOpen(false)}
         width="sm"
         footer={
           <>
             <Button variant="ghost" onClick={() => setDeleteOpen(false)}>
-              Cancel
+              {t('common:action.cancel')}
             </Button>
             <Button variant="danger" loading={deleting} onClick={() => void onDelete()}>
-              Delete
+              {t('common:action.delete')}
             </Button>
           </>
         }
       >
         <p className="modal-copy">
-          This permanently deletes “{team?.name}” and every project inside it — tasks, issues,
-          schema, decisions. This cannot be undone.
+          {t('teams.deleteModal.body', { name: team?.name })}
         </p>
       </Modal>
 
       <Modal
         open={leaveOpen}
-        title="Leave team"
+        title={t('teams.leaveModal.title')}
         onClose={() => setLeaveOpen(false)}
         width="sm"
         footer={
           <>
             <Button variant="ghost" onClick={() => setLeaveOpen(false)}>
-              Cancel
+              {t('common:action.cancel')}
             </Button>
             <Button variant="danger" loading={deleting} onClick={() => void onLeave()}>
-              Leave
+              {t('teams.leaveModal.confirm')}
             </Button>
           </>
         }
       >
         <p className="modal-copy">
-          You will lose access to “{team?.name}” and all of its projects. You can be re-invited
-          later.
+          {t('teams.leaveModal.body', { name: team?.name })}
         </p>
       </Modal>
     </div>

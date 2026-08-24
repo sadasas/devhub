@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { newId, nowIso } from '../../lib/utils';
 import type { IssueSeverity } from '../../lib/types';
 import { useProject } from '../../state/project-context';
@@ -16,7 +17,8 @@ interface NewIssueModalProps {
 
 export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
   const { dispatch } = useProject();
-  usePresenceStatus('Creating issue', open);
+  const { t } = useTranslation('tracker');
+  usePresenceStatus(t('issues.newModal.presenceCreating'), open);
   const [title, setTitle] = useState('');
   const [severity, setSeverity] = useState<IssueSeverity>('medium');
   const [description, setDescription] = useState('');
@@ -50,32 +52,32 @@ export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
   return (
     <Modal
       open={open}
-      title="New issue"
+      title={t('issues.newModal.title')}
       onClose={onClose}
       width="sm"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t('issues.newModal.cancel')}
           </Button>
           <Button type="submit" form="new-issue-form" disabled={!title.trim()}>
-            Log issue
+            {t('issues.newModal.submit')}
           </Button>
         </>
       }
     >
       <form id="new-issue-form" className="form-stack" onSubmit={onSubmit} noValidate>
         <Input
-          label="Title"
+          label={t('issues.newModal.titleLabel')}
           required
           autoFocus
-          placeholder="What's broken?"
+          placeholder={t('issues.newModal.titlePlaceholder')}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
         <div className="field">
           <label className="field-label" htmlFor="new-issue-severity">
-            Severity
+            {t('issues.newModal.severityLabel')}
           </label>
           <select
             id="new-issue-severity"
@@ -83,23 +85,23 @@ export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
             value={severity}
             onChange={(e) => setSeverity(e.target.value as IssueSeverity)}
           >
-            <option value="critical">Critical</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
+            <option value="critical">{t('issues.severity.critical')}</option>
+            <option value="high">{t('issues.severity.high')}</option>
+            <option value="medium">{t('issues.severity.medium')}</option>
+            <option value="low">{t('issues.severity.low')}</option>
           </select>
         </div>
         <Textarea
-          label="Description"
+          label={t('issues.modal.descriptionLabel')}
           rows={3}
-          placeholder="What's broken, where, and why — optional"
+          placeholder={t('issues.newModal.descriptionPlaceholder')}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
         <Textarea
-          label="Reproduction steps"
+          label={t('issues.newModal.reproductionStepsLabel')}
           rows={3}
-          placeholder="Steps to reproduce, expected vs actual — optional"
+          placeholder={t('issues.newModal.reproductionPlaceholder')}
           value={reproduction}
           onChange={(e) => setReproduction(e.target.value)}
         />

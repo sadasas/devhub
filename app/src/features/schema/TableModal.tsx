@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Plus, Trash, X } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { newId, formatRelative } from '../../lib/utils';
 import type { State, Column } from '../../lib/types';
 import type { UpdatePatch } from '../../state/project-context';
@@ -20,6 +21,7 @@ interface TableModalProps {
 }
 
 export function TableModal({ tableId, onClose }: TableModalProps) {
+  const { t } = useTranslation('project');
   const { state, dispatch, canEdit, projectId } = useProject();
   const [editing, setEditing] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -83,7 +85,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
     <>
     <Modal
       open={tableId !== null}
-      title={editing ? 'Edit table' : 'Table'}
+      title={editing ? t('schema.table.editTitle') : t('schema.table.viewTitle')}
       onClose={onClose}
       width="lg"
       footer={
@@ -95,23 +97,23 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
               leftIcon={<Trash size={13} aria-hidden="true" />}
               onClick={() => setConfirmOpen(true)}
             >
-              Delete
+              {t('schema.table.delete')}
             </Button>
           )}
           <span className="flex-1" />
           {editing ? (
             <>
               <Button variant="ghost" onClick={cancelEditing}>
-                Cancel
+                {t('schema.table.cancel')}
               </Button>
               <Button variant="primary" onClick={finishEditing}>
-                Done
+                {t('schema.table.done')}
               </Button>
             </>
           ) : (
             canEdit && (
               <Button variant="primary" onClick={startEditing}>
-                Edit
+                {t('schema.table.edit')}
               </Button>
             )
           )}
@@ -122,63 +124,63 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
         {editing ? (
           <>
             <Input
-              label="Name"
+              label={t('schema.table.nameLabel')}
               value={table.name}
               onChange={(e) => update({ name: e.target.value })}
             />
             <Textarea
-              label="Comment"
+              label={t('schema.table.commentLabel')}
               rows={2}
               value={table.comment}
               onChange={(e) => update({ comment: e.target.value })}
             />
             <div className="field">
-              <span className="field-label">Columns</span>
+              <span className="field-label">{t('schema.table.columnsLabel')}</span>
               <div className="col-edit-grid">
                 <div className="col-edit-caption" aria-hidden="true">
-                  <span>Name</span>
-                  <span>Type</span>
-                  <span className="col-edit-check">Null</span>
-                  <span className="col-edit-check">PK</span>
-                  <span>Default</span>
+                  <span>{t('schema.table.captionName')}</span>
+                  <span>{t('schema.table.captionType')}</span>
+                  <span className="col-edit-check">{t('schema.table.captionNull')}</span>
+                  <span className="col-edit-check">{t('schema.table.captionPk')}</span>
+                  <span>{t('schema.table.captionDefault')}</span>
                   <span />
                 </div>
                 {table.columns.map((c) => (
                   <div className="col-edit-row" key={c.id}>
                     <input
                       className="input"
-                      aria-label={`Column ${c.name || 'name'}`}
-                      placeholder="name"
+                      aria-label={t('schema.table.colAria', { name: c.name || t('schema.table.fbName') })}
+                      placeholder={t('schema.table.namePlaceholder')}
                       value={c.name}
                       onChange={(e) => updateColumn(c.id, { name: e.target.value })}
                     />
                     <input
                       className="input"
-                      aria-label={`Type of ${c.name || 'column'}`}
-                      placeholder="uuid"
+                      aria-label={t('schema.table.typeAria', { name: c.name || t('schema.table.fbColumn') })}
+                      placeholder={t('schema.table.typePlaceholder')}
                       value={c.type}
                       onChange={(e) => updateColumn(c.id, { type: e.target.value })}
                     />
-                    <label className="col-edit-check" title="Nullable">
+                    <label className="col-edit-check" title={t('schema.table.nullableTitle')}>
                       <input
                         type="checkbox"
                         checked={c.nullable}
-                        aria-label={`Nullable for column ${c.name || 'unnamed'}`}
+                        aria-label={t('schema.table.nullableAria', { name: c.name || t('schema.table.fbUnnamed') })}
                         onChange={(e) => updateColumn(c.id, { nullable: e.target.checked })}
                       />
                     </label>
-                    <label className="col-edit-check" title="Primary key">
+                    <label className="col-edit-check" title={t('schema.table.primaryKeyTitle')}>
                       <input
                         type="checkbox"
                         checked={c.primaryKey}
-                        aria-label={`Primary key for column ${c.name || 'unnamed'}`}
+                        aria-label={t('schema.table.pkAria', { name: c.name || t('schema.table.fbUnnamed') })}
                         onChange={(e) => updateColumn(c.id, { primaryKey: e.target.checked })}
                       />
                     </label>
                     <input
                       className="input"
-                      aria-label={`Default of ${c.name || 'column'}`}
-                      placeholder="—"
+                      aria-label={t('schema.table.defaultAria', { name: c.name || t('schema.table.fbColumn') })}
+                      placeholder={t('schema.table.defaultPlaceholder')}
                       value={c.default ?? ''}
                       onChange={(e) => updateColumn(c.id, { default: e.target.value || null })}
                     />
@@ -186,7 +188,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                       variant="ghost"
                       size="sm"
                       className="btn-icon"
-                      aria-label={`Delete column ${c.name || 'unnamed'}`}
+                      aria-label={t('schema.table.deleteColAria', { name: c.name || t('schema.table.fbUnnamed') })}
                       onClick={() => removeColumn(c.id)}
                     >
                       <X size={13} aria-hidden="true" />
@@ -194,47 +196,47 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                   </div>
                 ))}
                 {table.columns.length === 0 && (
-                  <p className="field-helper">No columns yet — add the first one.</p>
+                  <p className="field-helper">{t('schema.table.noColumnsYetEdit')}</p>
                 )}
               </div>
               <Button variant="ghost" size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={addColumn}>
-                Add column
+                {t('schema.table.addColumn')}
               </Button>
             </div>
             <Input
-              label="Indexes"
-              helper="Comma-separated column or expression names."
-              placeholder="created_at, lower(email)"
+              label={t('schema.table.indexesLabel')}
+              helper={t('schema.table.indexesHelper')}
+              placeholder={t('schema.table.indexesPlaceholder')}
               value={table.indexes.join(', ')}
               onChange={(e) =>
                 update({ indexes: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })
               }
             />
             <p className="field-helper">
-              Updated {formatRelative(table.updatedAt)} · deleting a column removes its relations
+              {t('schema.table.updatedEditInfo', { time: formatRelative(table.updatedAt) })}
             </p>
           </>
         ) : (
           <>
-            <h3 className="detail-title">{table.name || <DetailEmpty>Unnamed table</DetailEmpty>}</h3>
+            <h3 className="detail-title">{table.name || <DetailEmpty>{t('schema.table.unnamedTable')}</DetailEmpty>}</h3>
             <DetailList>
-              <DetailRow label="Comment">
-                {table.comment.trim() ? table.comment : <DetailEmpty>No comment.</DetailEmpty>}
+              <DetailRow label={t('schema.table.commentLabel')}>
+                {table.comment.trim() ? table.comment : <DetailEmpty>{t('schema.noComment')}</DetailEmpty>}
               </DetailRow>
-              <DetailRow label="Columns">
+              <DetailRow label={t('schema.table.columnsLabel')}>
                 {table.columns.length === 0 ? (
-                  <DetailEmpty>No columns yet.</DetailEmpty>
+                  <DetailEmpty>{t('schema.table.noColumnsView')}</DetailEmpty>
                 ) : (
                   <div>
                     <div className="detail-col-caption" aria-hidden="true">
-                      <span>Name</span>
-                      <span>Type</span>
-                      <span className="detail-col-flags">Flags</span>
-                      <span>Default</span>
+                      <span>{t('schema.table.captionName')}</span>
+                      <span>{t('schema.table.captionType')}</span>
+                      <span className="detail-col-flags">{t('schema.table.detailCaptionFlags')}</span>
+                      <span>{t('schema.table.captionDefault')}</span>
                     </div>
                     {table.columns.map((c) => (
                       <div className="detail-col-row" key={c.id}>
-                        <span className="detail-col-name">{c.name || <DetailEmpty>unnamed</DetailEmpty>}</span>
+                        <span className="detail-col-name">{c.name || <DetailEmpty>{t('schema.table.unnamedColumn')}</DetailEmpty>}</span>
                         <span className="detail-col-type">{c.type || <DetailEmpty />}</span>
                         <span className="detail-col-flags">
                           {c.primaryKey && <Badge tone="accent">PK</Badge>}
@@ -246,7 +248,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                   </div>
                 )}
               </DetailRow>
-              <DetailRow label="Indexes">
+              <DetailRow label={t('schema.table.indexesLabel')}>
                 {table.indexes.length > 0 ? (
                   <span className="detail-chips">
                     {table.indexes.map((i) => (
@@ -260,17 +262,17 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                 )}
               </DetailRow>
             </DetailList>
-            <h4 className="detail-subtitle">Activity</h4>
+            <h4 className="detail-subtitle">{t('schema.table.activity')}</h4>
             <ActivityList projectId={projectId} entity="tables" entityId={table.id} />
-            <p className="field-helper">Updated {formatRelative(table.updatedAt)}</p>
+            <p className="field-helper">{t('schema.table.updated', { time: formatRelative(table.updatedAt) })}</p>
           </>
         )}
       </div>
     </Modal>
     <ConfirmDeleteDialog
       open={confirmOpen}
-      title="Delete table?"
-      description="This permanently deletes the table, its columns and its relations. This cannot be undone."
+      title={t('schema.table.deleteConfirmTitle')}
+      description={t('schema.table.deleteConfirmBody')}
       onClose={() => setConfirmOpen(false)}
       onConfirm={remove}
     />
