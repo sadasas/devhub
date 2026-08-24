@@ -255,6 +255,8 @@ export function ProjectPage() {
       (prev) => {
         const p = new URLSearchParams(prev);
         p.set('tab', next);
+        p.delete('sort');
+        p.delete('dir');
         return p;
       },
       { replace: true },
