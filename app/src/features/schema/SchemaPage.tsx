@@ -25,7 +25,6 @@ type SchemaView = 'tables' | 'erd';
 
 const TABLE_SORT_SPECS: SortSpec<Table>[] = [
   { key: 'name', label: 'Name', get: (t) => t.name },
-  { key: 'createdAt', label: 'Created', get: (t) => t.createdAt },
 ];
 
 const VERSION_SORT_SPECS: SortSpec<SchemaVersion>[] = [

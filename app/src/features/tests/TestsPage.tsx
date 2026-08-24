@@ -26,7 +26,6 @@ const TEST_SORT_SPECS: SortSpec<TestCase>[] = [
     order: ['pending', 'pass', 'fail'],
   },
   { key: 'name', label: 'Name', get: (t) => t.name },
-  { key: 'createdAt', label: 'Created', get: (t) => t.createdAt },
 ];
 
 export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {

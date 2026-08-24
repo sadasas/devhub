@@ -23,7 +23,6 @@ const CATEGORY_ORDER: TechEntryCategory[] = ['frontend', 'backend', 'database', 
 const TECH_SORT_SPECS: SortSpec<TechEntry>[] = [
   { key: 'category', label: 'Category', get: (e) => e.category, order: CATEGORY_ORDER },
   { key: 'name', label: 'Name', get: (e) => e.name },
-  { key: 'createdAt', label: 'Created', get: (e) => e.createdAt },
   {
     key: 'status',
     label: 'Status',

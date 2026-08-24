@@ -44,7 +44,6 @@ type DeleteTarget = { kind: 'collection'; id: string; name: string } | { kind: '
 
 const API_COLLECTION_SORT_SPECS: SortSpec<ApiCollection>[] = [
   { key: 'name', label: 'Name', get: (c) => c.name },
-  { key: 'createdAt', label: 'Created', get: (c) => c.createdAt },
 ];
 
 const API_ENDPOINT_SORT_SPECS: SortSpec<ApiEndpoint>[] = [

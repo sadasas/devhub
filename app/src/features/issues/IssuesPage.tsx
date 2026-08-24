@@ -31,7 +31,6 @@ const ISSUE_SORT_SPECS: SortSpec<Issue>[] = [
     get: (i) => i.status,
     order: ['open', 'reproduced', 'fixing', 'resolved', 'wontfix'],
   },
-  { key: 'createdAt', label: 'Created', get: (i) => i.createdAt },
   { key: 'title', label: 'Title', get: (i) => i.title },
 ];
 

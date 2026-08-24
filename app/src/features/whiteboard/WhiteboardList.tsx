@@ -19,7 +19,6 @@ const MAX_BOARDS = 50;
 const BOARD_SORT_SPECS: SortSpec<Whiteboard>[] = [
   { key: 'updatedAt', label: 'Updated', get: (b) => b.updatedAt },
   { key: 'name', label: 'Name', get: (b) => b.name },
-  { key: 'createdAt', label: 'Created', get: (b) => b.createdAt },
 ];
 
 interface WhiteboardListProps {

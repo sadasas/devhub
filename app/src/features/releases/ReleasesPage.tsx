@@ -21,7 +21,6 @@ import { InlineError } from '../../components/InlineError';
 const MILESTONE_SORT_SPECS: SortSpec<Milestone>[] = [
   { key: 'targetDate', label: 'Target date', get: (m) => m.targetDate ?? null },
   { key: 'name', label: 'Name', get: (m) => m.name },
-  { key: 'createdAt', label: 'Created', get: (m) => m.createdAt },
   { key: 'version', label: 'Version', get: (m) => m.version ?? null, compare: compareVersions },
 ];
 
