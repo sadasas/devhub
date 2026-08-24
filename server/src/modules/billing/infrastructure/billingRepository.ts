@@ -57,6 +57,19 @@ export async function listTeamPayments(teamId: string, limit = 10): Promise<Team
   return result.rows;
 }
 
+export async function listPaymentsByUser(userId: string, limit = 50): Promise<TeamPaymentRow[]> {
+  const result = await pool.query<TeamPaymentRow>(
+    `SELECT tp.*, t.name AS team_name
+     FROM team_payments tp
+     JOIN teams t ON t.id = tp.team_id
+     WHERE tp.created_by = $1
+     ORDER BY tp.created_at DESC
+     LIMIT $2`,
+    [userId, limit],
+  );
+  return result.rows;
+}
+
 // ---------- Packages ----------
 
 interface PackageWithPrices extends PackageRow {
@@ -68,7 +81,7 @@ export type { PackageWithPrices };
 async function attachPrices(packages: PackageRow[]): Promise<PackageWithPrices[]> {
   if (packages.length === 0) return [];
   const priceRes = await pool.query<PackagePriceRow & { is_active: boolean }>(
-    `SELECT id, package_id, duration_days, price_idr, sort_order, is_active
+    `SELECT id, package_id, duration_days, price_idr, original_price_idr, sort_order, is_active
      FROM billing_package_prices
      ORDER BY sort_order, duration_days`,
   );
@@ -119,7 +132,7 @@ export async function findActivePrice(
   packageId: string,
 ): Promise<PackagePriceRow | null> {
   const res = await pool.query<PackagePriceRow>(
-    `SELECT id, package_id, duration_days, price_idr, sort_order, is_active
+    `SELECT id, package_id, duration_days, price_idr, original_price_idr, sort_order, is_active
      FROM billing_package_prices
      WHERE id = $1 AND package_id = $2 AND is_active`,
     [priceId, packageId],
@@ -215,11 +228,14 @@ export async function findPackageById(packageId: string): Promise<PackageRow | n
 /** Ganti daftar harga secara menyeluruh; baris lama yang hilang di-nonaktifkan (soft). */
 export async function replacePackagePrices(
   packageId: string,
-  prices: Array<{ durationDays: number; priceIdr: number }>,
+  prices: Array<{ durationDays: number; priceIdr: number; originalPriceIdr?: number | null }>,
 ): Promise<void> {
   for (const p of prices) {
     if (!Number.isInteger(p.durationDays) || p.durationDays <= 0 || !Number.isInteger(p.priceIdr) || p.priceIdr < 0) {
       throw Object.assign(new Error('Invalid price row'), { code: '22023' });
+    }
+    if (p.originalPriceIdr != null && (!Number.isInteger(p.originalPriceIdr) || p.originalPriceIdr <= p.priceIdr)) {
+      throw Object.assign(new Error('Original price must be greater than selling price'), { code: '22023' });
     }
   }
   await withTransaction(pool, async (client) => {
@@ -229,17 +245,16 @@ export async function replacePackagePrices(
     );
     let idx = 0;
     for (const p of prices) {
-      // Reuse baris existing yang cocok durasinya bila ada.
       const updated = await client.query(
-        `UPDATE billing_package_prices SET price_idr = $3, is_active = true, sort_order = $4
+        `UPDATE billing_package_prices SET price_idr = $3, original_price_idr = $5, is_active = true, sort_order = $4
          WHERE package_id = $1 AND duration_days = $2`,
-        [packageId, p.durationDays, p.priceIdr, idx],
+        [packageId, p.durationDays, p.priceIdr, idx, p.originalPriceIdr ?? null],
       );
       if ((updated.rowCount ?? 0) === 0) {
         await client.query(
-          `INSERT INTO billing_package_prices (package_id, duration_days, price_idr, sort_order, is_active)
-           VALUES ($1, $2, $3, $4, true)`,
-          [packageId, p.durationDays, p.priceIdr, idx],
+          `INSERT INTO billing_package_prices (package_id, duration_days, price_idr, original_price_idr, sort_order, is_active)
+           VALUES ($1, $2, $3, $4, $5, true)`,
+          [packageId, p.durationDays, p.priceIdr, p.originalPriceIdr ?? null, idx],
         );
       }
       idx += 1;

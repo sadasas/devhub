@@ -27,6 +27,7 @@ const createSchema = packageInputSchema.extend({
       z.object({
         durationDays: z.number().int().min(1).max(3_650),
         priceIdr: z.number().int().min(0),
+        originalPriceIdr: z.number().int().min(0).nullable().optional(),
       }),
     )
     .default([]),
@@ -38,6 +39,7 @@ const patchSchema = packageInputSchema.partial().extend({
       z.object({
         durationDays: z.number().int().min(1).max(3_650),
         priceIdr: z.number().int().min(0),
+        originalPriceIdr: z.number().int().min(0).nullable().optional(),
       }),
     )
     .optional(),
@@ -52,7 +54,7 @@ export function serializePackage(row: {
   max_projects: number | null;
   sort_order: number;
   is_active: boolean;
-  prices: Array<{ id: string; duration_days: number; price_idr: number; sort_order: number; is_active: boolean }>;
+  prices: Array<{ id: string; duration_days: number; price_idr: number; original_price_idr: number | null; sort_order: number; is_active: boolean }>;
 }) {
   return {
     id: row.id,
@@ -67,6 +69,7 @@ export function serializePackage(row: {
       id: p.id,
       durationDays: p.duration_days,
       priceIdr: p.price_idr,
+      originalPriceIdr: p.original_price_idr,
       sortOrder: p.sort_order,
       isActive: p.is_active,
     })),

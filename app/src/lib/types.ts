@@ -376,6 +376,7 @@ export interface PackagePrice {
   id: string;
   durationDays: number;
   priceIdr: number;
+  originalPriceIdr: number | null;
 }
 
 export interface BillingPackage {
@@ -390,6 +391,17 @@ export interface BillingPackage {
 
 export interface BillingPayment {
   orderId: string;
+  packageName: string;
+  durationDays: number | null;
+  amount: number;
+  status: string;
+  createdAt: string;
+  completedAt: string | null;
+}
+
+export interface PaymentHistoryItem {
+  orderId: string;
+  teamName: string;
   packageName: string;
   durationDays: number | null;
   amount: number;
@@ -500,6 +512,22 @@ export interface AdminStats {
   activeKeys: number;
   activity24h: number;
   activity7d: number;
+  revenue24h: number;
+  revenue7d: number;
+  revenueTotal: number;
+  paidTeams: number;
+  pendingPayments: number;
+}
+
+export interface AdminCharts {
+  revenueByDay: Array<{ date: string; amount: number }>;
+  revenueByPackage: Array<{ name: string; amount: number }>;
+}
+
+export interface AdminActivityChart {
+  date: string;
+  label: string;
+  count: number;
 }
 
 export interface AdminUser {
@@ -510,6 +538,9 @@ export interface AdminUser {
   teamCount: number;
   createdAt: string;
   lastActiveAt: string | null;
+  plan: string | null;
+  lastPaymentAmount: number | null;
+  lastPaymentAt: string | null;
 }
 
 export interface AdminTeam {
@@ -521,16 +552,37 @@ export interface AdminTeam {
   createdAt: string;
 }
 
-export interface AdminActivityEntry {
+export interface AdminPayment {
   id: string;
-  entity: string;
-  entityId: string;
-  action: string;
-  authorName: string;
-  summary: string;
-  projectId: string;
-  projectName: string;
+  teamId: string;
+  teamName: string;
+  orderId: string;
+  buyerEmail: string;
+  packageName: string;
+  durationDays: number | null;
+  amount: number;
+  status: string;
   createdAt: string;
+  completedAt: string | null;
+}
+
+export interface AdminPackagePrice {
+  id: string;
+  durationDays: number;
+  priceIdr: number;
+  originalPriceIdr: number | null;
+}
+
+export interface AdminPackage {
+  id: string;
+  name: string;
+  description: string;
+  isFree: boolean;
+  maxMembers: number | null;
+  maxProjects: number | null;
+  sortOrder: number;
+  isActive: boolean;
+  prices: AdminPackagePrice[];
 }
 
 export interface McpKey {

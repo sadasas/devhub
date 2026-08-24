@@ -9,7 +9,7 @@ export interface PublicPackage {
   isFree: boolean;
   maxMembers: number | null;
   maxProjects: number | null;
-  prices: Array<{ id: string; durationDays: number; priceIdr: number }>;
+  prices: Array<{ id: string; durationDays: number; priceIdr: number; originalPriceIdr: number | null }>;
 }
 
 export function serializePackagePublic(row: PackageWithPrices): PublicPackage {
@@ -22,7 +22,12 @@ export function serializePackagePublic(row: PackageWithPrices): PublicPackage {
     maxProjects: row.max_projects,
     prices: row.prices
       .filter((p: PackagePriceRow) => p.is_active)
-      .map((p: PackagePriceRow) => ({ id: p.id, durationDays: p.duration_days, priceIdr: p.price_idr })),
+      .map((p: PackagePriceRow) => ({
+        id: p.id,
+        durationDays: p.duration_days,
+        priceIdr: p.price_idr,
+        originalPriceIdr: p.original_price_idr,
+      })),
   };
 }
 

@@ -12,6 +12,7 @@ export interface TeamPaymentRow {
   created_by: string;
   created_at: Date;
   completed_at: Date | null;
+  team_name?: string;
 }
 
 export interface PackageRow {
@@ -30,6 +31,7 @@ export interface PackagePriceRow {
   package_id: string;
   duration_days: number;
   price_idr: number;
+  original_price_idr: number | null;
   sort_order: number;
   is_active: boolean;
 }

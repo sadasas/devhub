@@ -205,8 +205,7 @@ export function PricingPage() {
                 <p className="pricing-duration-label">Pilih periode:</p>
                 <div className="pricing-duration-grid" role="group" aria-label="Pilih durasi">
                   {proPkg.prices.map((price) => {
-                    const original = (price as unknown as { originalPriceIdr?: number | null })
-                      .originalPriceIdr;
+                    const original = price.originalPriceIdr;
                     const hasDisc = typeof original === 'number' && original > price.priceIdr;
                     const isActive = selectedPriceId === price.id;
                     return (
