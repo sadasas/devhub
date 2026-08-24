@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { ApiError, api } from '../../lib/api';
-import type { AdminStats, AdminUser, User } from '../../lib/types';
+import type { AdminPackage, AdminPayment, AdminStats, AdminUser, User } from '../../lib/types';
 import { AdminPage } from './AdminPage';
 
 const ADMIN: User = {
@@ -27,6 +27,9 @@ function makeUser(over: Partial<AdminUser> = {}): AdminUser {
     teamCount: 1,
     createdAt: '2026-02-01T00:00:00.000Z',
     lastActiveAt: null,
+    plan: 'free',
+    lastPaymentAmount: null,
+    lastPaymentAt: null,
     ...over,
   };
 }
@@ -51,83 +54,160 @@ describe('AdminPage', () => {
     activeKeys: 1,
     activity24h: 5,
     activity7d: 20,
+    revenue24h: 250000,
+    revenue7d: 1000000,
+    revenueTotal: 5000000,
+    paidTeams: 1,
+    pendingPayments: 0,
   };
 
-  it('renders platform stats and the users list for an admin', async () => {
+  const CHARTS = {
+    revenueByDay: [],
+    revenueByPackage: [],
+    teamsByPlan: [],
+  };
+
+  it('renders overview tab with platform stats by default', async () => {
     vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
+    vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
+    vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: [], total: 0 });
+
+    renderPage();
+    expect(await screen.findByText('Revenue Total')).toBeDefined();
+    expect(screen.getByText('Paid Teams')).toBeDefined();
+    expect(screen.getByText('Pending Payments')).toBeDefined();
+  });
+
+  it('does not fetch users list while on overview tab', async () => {
+    const usersSpy = vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: [], total: 0 });
+    vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
+    vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
+    vi.spyOn(api, 'adminStatsActivity').mockResolvedValue([]);
+
+    renderPage();
+    expect(await screen.findByText('Revenue Total')).toBeDefined();
+    expect(usersSpy).not.toHaveBeenCalled();
+  });
+
+  it('switches to users tab and shows the user list', async () => {
+    vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
+    vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
     vi.spyOn(api, 'listAdminUsers').mockResolvedValue({
       users: [makeUser()],
       total: 1,
     });
 
     renderPage();
+    fireEvent.click(screen.getByRole('tab', { name: /Users/ }));
     expect(await screen.findByText('member@test.dev')).toBeDefined();
-    expect(screen.getByText('Users (2)')).toBeDefined();
-    expect(screen.getByText('Active keys')).toBeDefined();
+    expect(screen.getByText(/Users/)).toBeDefined();
   });
 
   it('re-fetches platform stats when Refresh is clicked', async () => {
     const statsSpy = vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
+    vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
     vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: [], total: 0 });
 
     renderPage();
-    await screen.findByText('No users found');
-    expect(statsSpy).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(statsSpy).toHaveBeenCalledTimes(1));
 
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
     await waitFor(() => expect(statsSpy).toHaveBeenCalledTimes(2));
-    expect(screen.getByText('Users (2)')).toBeDefined();
   });
 
-  it('changes a user role and updates the row', async () => {
-    vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
-    vi.spyOn(api, 'listAdminUsers').mockResolvedValue({
-      users: [makeUser()],
-      total: 1,
-    });
-    const setRole = vi
-      .spyOn(api, 'setAdminUserRole')
-      .mockResolvedValue({ id: '22222222-2222-4222-8222-222222222222', email: 'member@test.dev', role: 'admin' });
+  it('changing activity range does not refetch platform stats', async () => {
+    const statsSpy = vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
+    vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
+    const activitySpy = vi
+      .spyOn(api, 'adminStatsActivity')
+      .mockResolvedValue([{ date: '2026-08-24', label: 'Mon', count: 5 }]);
+    vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: [], total: 0 });
 
     renderPage();
-    await screen.findByText('member@test.dev');
+    await waitFor(() => expect(statsSpy).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(activitySpy).toHaveBeenCalledTimes(1));
 
-    const select = screen.getByLabelText('Role for member@test.dev') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: 'admin' } });
+    fireEvent.click(screen.getByRole('tab', { name: /Overview/ }));
+    fireEvent.click(screen.getByRole('button', { name: '1M' }));
 
-    await waitFor(() =>
-      expect(setRole).toHaveBeenCalledWith('22222222-2222-4222-8222-222222222222', 'admin'),
-    );
-    expect((screen.getByLabelText('Role for member@test.dev') as HTMLSelectElement).value).toBe('admin');
-  });
-
-  it('shows an error when a role change fails', async () => {
-    vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
-    vi.spyOn(api, 'listAdminUsers').mockResolvedValue({
-      users: [makeUser({ role: 'admin' })],
-      total: 1,
-    });
-    vi.spyOn(api, 'setAdminUserRole').mockRejectedValue(
-      new ApiError(409, 'CONFLICT', 'You cannot demote yourself'),
-    );
-
-    renderPage();
-    await screen.findByText('member@test.dev');
-    fireEvent.change(screen.getByLabelText('Role for member@test.dev'), { target: { value: 'user' } });
-
-    expect(await screen.findByText('You cannot demote yourself')).toBeDefined();
+    await waitFor(() => expect(activitySpy).toHaveBeenCalledWith('1m'));
+    expect(statsSpy).toHaveBeenCalledTimes(1);
   });
 
   it('shows the empty state when no users match the search', async () => {
     vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
+    vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
     vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: [], total: 0 });
 
     renderPage();
+    fireEvent.click(screen.getByRole('tab', { name: /Users/ }));
     expect(await screen.findByText('No users found')).toBeDefined();
   });
 
-  it('loads teams and activity lazily per tab', async () => {
+  it('loads payments lazily per tab', async () => {
     vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
+    vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
+    vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: [], total: 0 });
+    const listPayments = vi.spyOn(api, 'listAdminPayments').mockResolvedValue({
+      payments: [
+        {
+          id: 'pay-1',
+          teamId: 'team-1',
+          teamName: 'Team A',
+          orderId: 'DH-001',
+          buyerEmail: 'user@test.dev',
+          packageName: 'Pro',
+          durationDays: 30,
+          amount: 250000,
+          status: 'completed',
+          createdAt: '2026-03-01T00:00:00.000Z',
+          completedAt: '2026-03-01T00:05:00.000Z',
+        },
+      ] as AdminPayment[],
+      total: 1,
+    });
+
+    renderPage();
+    expect(listPayments).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('tab', { name: /Payments/ }));
+    expect(await screen.findByText('user@test.dev')).toBeDefined();
+    expect(listPayments).toHaveBeenCalledTimes(1);
+  });
+
+  it('loads packages lazily per tab', async () => {
+    vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
+    vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
+    vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: [], total: 0 });
+    const listPackages = vi.spyOn(api, 'adminListPackages').mockResolvedValue([
+      {
+        id: 'pkg-1',
+        name: 'Pro',
+        description: 'Pro plan',
+        isFree: false,
+        maxMembers: null,
+        maxProjects: null,
+        sortOrder: 1,
+        isActive: true,
+        prices: [
+          { id: 'price-1', durationDays: 30, priceIdr: 250000 },
+          { id: 'price-2', durationDays: 365, priceIdr: 2500000 },
+        ],
+      },
+    ] as AdminPackage[]);
+
+    renderPage();
+    expect(listPackages).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('tab', { name: /Packages/ }));
+    expect(await screen.findByText('Pro')).toBeDefined();
+    expect(screen.getByText('Rp 250.000')).toBeDefined();
+    expect(listPackages).toHaveBeenCalledTimes(1);
+  });
+
+  it('loads teams lazily per tab', async () => {
+    vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
+    vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
     vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: [], total: 0 });
     const listTeams = vi.spyOn(api, 'listAdminTeams').mockResolvedValue([
       {
@@ -139,33 +219,18 @@ describe('AdminPage', () => {
         createdAt: '2026-01-01T00:00:00.000Z',
       },
     ]);
-    const listActivity = vi.spyOn(api, 'listAdminActivity').mockResolvedValue([
-      {
-        id: '44444444-4444-4444-8444-444444444444',
-        entity: 'tasks',
-        entityId: '55555555-5555-4555-8555-555555555555',
-        action: 'created',
-        authorName: 'admin@test.dev',
-        summary: 'created task "Demo"',
-        projectId: '66666666-6666-4666-8666-666666666666',
-        projectName: 'Project X',
-        createdAt: '2026-03-01T00:00:00.000Z',
-      },
-    ]);
 
     renderPage();
     expect(listTeams).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('tab', { name: /Teams/ }));
     expect(await screen.findByText('Team A')).toBeDefined();
-
-    fireEvent.click(screen.getByRole('tab', { name: /Activity/ }));
-    expect(await screen.findByText('created task "Demo"')).toBeDefined();
-    expect(listActivity).toHaveBeenCalledTimes(1);
   });
 
   it('shows an error with retry when the teams list fails to load', async () => {
     vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
+    vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
+    vi.spyOn(api, 'adminStatsActivity').mockResolvedValue([]);
     vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: [], total: 0 });
     const listTeams = vi
       .spyOn(api, 'listAdminTeams')
@@ -190,21 +255,5 @@ describe('AdminPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(await screen.findByText('Team A')).toBeDefined();
     expect(listTeams).toHaveBeenCalledTimes(2);
-  });
-
-  it('shows an error with retry when the activity feed fails to load', async () => {
-    vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
-    vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: [], total: 0 });
-    const listActivity = vi
-      .spyOn(api, 'listAdminActivity')
-      .mockRejectedValue(new ApiError(500, 'INTERNAL', 'boom'));
-
-    renderPage();
-    fireEvent.click(screen.getByRole('tab', { name: /Activity/ }));
-
-    expect(await screen.findByText(/boom\. Please try again in a moment\./)).toBeDefined();
-    expect(screen.queryByText('No recent activity')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Retry' })).toBeDefined();
-    expect(listActivity).toHaveBeenCalledTimes(1);
   });
 });

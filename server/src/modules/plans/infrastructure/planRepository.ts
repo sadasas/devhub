@@ -39,8 +39,14 @@ export async function getTeamUsage(teamId: string): Promise<TeamUsage | null> {
 export async function setTeamPlan(
   teamId: string,
   plan: TeamPlan,
+  packageId?: string,
+  durationDays?: number,
 ): Promise<{ id: string; plan: TeamPlan } | null> {
-  // Grant manual operator = tanpa kedaluwarsa. Pro mengambil paket aktif non-free pertama.
+  const pkgId = packageId ?? null;
+  const expiry =
+    plan === 'pro' && pkgId && durationDays
+      ? `now() + make_interval(days => ${durationDays})`
+      : 'NULL';
   const result = await pool.query<{ id: string; plan: TeamPlan }>(
     `UPDATE teams SET
        plan = $2,
@@ -48,7 +54,7 @@ export async function setTeamPlan(
          SELECT id FROM billing_packages WHERE is_active AND NOT is_free
          ORDER BY sort_order, created_at LIMIT 1
        ) ELSE NULL END,
-       plan_expires_at = NULL
+       plan_expires_at = ${expiry}
      WHERE id = $1
      RETURNING id, plan`,
     [teamId, plan],

@@ -8,6 +8,25 @@ export interface PlatformStats {
   activeKeys: number;
   activity24h: number;
   activity7d: number;
+  revenue24h: number;
+  revenue7d: number;
+  revenueTotal: number;
+  paidTeams: number;
+  pendingPayments: number;
+}
+
+export interface AdminPayment {
+  id: string;
+  teamId: string;
+  teamName: string;
+  orderId: string;
+  buyerEmail: string;
+  packageName: string;
+  durationDays: number | null;
+  amount: number;
+  status: string;
+  createdAt: string;
+  completedAt: string | null;
 }
 
 export interface AdminUser {
@@ -18,6 +37,9 @@ export interface AdminUser {
   teamCount: number;
   createdAt: string;
   lastActiveAt: string | null;
+  plan: string | null;
+  lastPaymentAmount: number | null;
+  lastPaymentAt: string | null;
 }
 
 export interface AdminTeam {
@@ -29,18 +51,6 @@ export interface AdminTeam {
   createdAt: string;
 }
 
-export interface AdminActivityEntry {
-  id: string;
-  entity: string;
-  entityId: string;
-  action: string;
-  authorName: string;
-  summary: string;
-  projectId: string;
-  projectName: string;
-  createdAt: string;
-}
-
 export async function getPlatformStats(): Promise<PlatformStats> {
   const result = await pool.query<PlatformStats>(`
     SELECT
@@ -49,7 +59,12 @@ export async function getPlatformStats(): Promise<PlatformStats> {
       (SELECT count(*) FROM projects)::int AS projects,
       (SELECT count(*) FROM mcp_keys WHERE revoked_at IS NULL)::int AS "activeKeys",
       (SELECT count(*) FROM activity_log WHERE created_at >= now() - interval '24 hours')::int AS "activity24h",
-      (SELECT count(*) FROM activity_log WHERE created_at >= now() - interval '7 days')::int AS "activity7d"
+      (SELECT count(*) FROM activity_log WHERE created_at >= now() - interval '7 days')::int AS "activity7d",
+      (SELECT coalesce(sum(amount), 0)::int FROM team_payments WHERE status = 'completed' AND completed_at >= now() - interval '24 hours')::int AS "revenue24h",
+      (SELECT coalesce(sum(amount), 0)::int FROM team_payments WHERE status = 'completed' AND completed_at >= now() - interval '7 days')::int AS "revenue7d",
+      (SELECT coalesce(sum(amount), 0)::int FROM team_payments WHERE status = 'completed')::int AS "revenueTotal",
+      (SELECT count(*)::int FROM teams WHERE plan = 'pro')::int AS "paidTeams",
+      (SELECT count(*)::int FROM team_payments WHERE status = 'pending')::int AS "pendingPayments"
   `);
   const row = result.rows[0];
   if (!row) throw new ApiError(500, 'INTERNAL', 'Failed to compute platform stats');
@@ -58,25 +73,108 @@ export async function getPlatformStats(): Promise<PlatformStats> {
 
 const USER_FILTER = `($1 = '' OR u.email ILIKE '%' || $1 || '%' OR u.display_name ILIKE '%' || $1 || '%')`;
 
+export async function getPlatformStatsCharts(): Promise<{
+  revenueByDay: Array<{ date: string; amount: number }>;
+  revenueByPackage: Array<{ name: string; amount: number }>;
+}> {
+  const [byDay, byPackage] = await Promise.all([
+    pool.query<{ date: string; amount: number }>(
+      `SELECT to_char(completed_at, 'YYYY-MM-DD') AS date, sum(amount)::int AS amount
+       FROM team_payments
+       WHERE status = 'completed' AND completed_at >= now() - interval '30 days'
+       GROUP BY 1
+       ORDER BY 1`,
+    ),
+    pool.query<{ name: string; amount: number }>(
+      `SELECT package_name AS name, sum(amount)::int AS amount
+       FROM team_payments
+       WHERE status = 'completed'
+       GROUP BY 1
+       ORDER BY 2 DESC`,
+    ),
+  ]);
+  return {
+    revenueByDay: byDay.rows,
+    revenueByPackage: byPackage.rows,
+  };
+}
+
+const ACTIVITY_DEFAULT = {
+  trunc: 'day', fmt: 'YYYY-MM-DD', labelFmt: 'Dy', steps: 7, step: '1 day',
+};
+
+const ACTIVITY_CONFIG: Record<string, { trunc: string; fmt: string; labelFmt: string; steps: number; step: string }> = {
+  '1d':  { trunc: 'hour',  fmt: 'HH24:00',                    labelFmt: 'HH24:00', steps: 24, step: '1 hour' },
+  '7d':  { trunc: 'day',   fmt: 'YYYY-MM-DD',                 labelFmt: 'Dy',     steps: 7,  step: '1 day' },
+  '1m':  { trunc: 'day',   fmt: 'YYYY-MM-DD',                 labelFmt: 'DD Mon', steps: 30, step: '1 day' },
+  '6m':  { trunc: 'week',  fmt: 'YYYY-MM-DD',                 labelFmt: 'DD Mon', steps: 26, step: '1 week' },
+  '12m': { trunc: 'month', fmt: 'YYYY-MM',                    labelFmt: 'Mon YYYY', steps: 12, step: '1 month' },
+};
+
+export async function getActivityByRange(
+  range: string,
+): Promise<{ date: string; label: string; count: number }[]> {
+  const cfg = ACTIVITY_CONFIG[range] ?? ACTIVITY_DEFAULT;
+  const { trunc, fmt, labelFmt, steps, step } = cfg;
+  const result = await pool.query<{ date: string; label: string; count: number }>(
+    `SELECT to_char(date_trunc('${trunc}', d), '${fmt}') AS date,
+            to_char(date_trunc('${trunc}', d), '${labelFmt}') AS label,
+            COALESCE(count(a.id), 0)::int AS count
+     FROM generate_series(
+            date_trunc('${trunc}', now()) - interval '${step}' * ${steps - 1},
+            date_trunc('${trunc}', now()),
+            interval '${step}'
+          ) d
+     LEFT JOIN activity_log a ON date_trunc('${trunc}', a.created_at) = d
+     GROUP BY d
+     ORDER BY d`,
+  );
+  return result.rows;
+}
+
 export async function listPlatformUsers(
   query: string,
   limit: number,
   offset: number,
+  planFilter?: string,
 ): Promise<{ users: AdminUser[]; total: number }> {
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+  let idx = 1;
+
+  if (query) {
+    conditions.push(`(u.email ILIKE '%' || $${idx} || '%' OR u.display_name ILIKE '%' || $${idx} || '%')`);
+    params.push(query);
+    idx++;
+  }
+
+  if (planFilter && (planFilter === 'free' || planFilter === 'pro')) {
+    conditions.push(`EXISTS (SELECT 1 FROM team_members tm2 JOIN teams t2 ON t2.id = tm2.team_id WHERE tm2.user_id = u.id AND t2.plan = $${idx})`);
+    params.push(planFilter);
+    idx++;
+  } else if (planFilter && planFilter === 'paid') {
+    conditions.push(`EXISTS (SELECT 1 FROM team_members tm2 JOIN teams t2 ON t2.id = tm2.team_id WHERE tm2.user_id = u.id AND t2.plan = 'pro')`);
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
   const [list, total] = await Promise.all([
     pool.query<AdminUser>(
       `SELECT u.id, u.email, u.display_name AS "displayName", u.role, u.created_at AS "createdAt",
               (SELECT count(*)::int FROM team_members tm WHERE tm.user_id = u.id) AS "teamCount",
-              (SELECT max(a.created_at) FROM activity_log a WHERE a.author_id = u.id) AS "lastActiveAt"
+              (SELECT max(a.created_at) FROM activity_log a WHERE a.author_id = u.id) AS "lastActiveAt",
+              (SELECT max(t.plan) FROM team_members tm JOIN teams t ON t.id = tm.team_id WHERE tm.user_id = u.id) AS "plan",
+              (SELECT tp.amount FROM team_payments tp WHERE tp.created_by = u.id AND tp.status = 'completed' ORDER BY tp.completed_at DESC LIMIT 1) AS "lastPaymentAmount",
+              (SELECT tp.completed_at FROM team_payments tp WHERE tp.created_by = u.id AND tp.status = 'completed' ORDER BY tp.completed_at DESC LIMIT 1) AS "lastPaymentAt"
        FROM users u
-       WHERE ${USER_FILTER}
+       ${where}
        ORDER BY u.created_at DESC
-       LIMIT $2 OFFSET $3`,
-      [query, limit, offset],
+       LIMIT $${idx} OFFSET $${idx + 1}`,
+      [...params, limit, offset],
     ),
     pool.query<{ total: number }>(
-      `SELECT count(*)::int AS total FROM users u WHERE ${USER_FILTER}`,
-      [query],
+      `SELECT count(*)::int AS total FROM users u ${where}`,
+      params,
     ),
   ]);
   return { users: list.rows, total: total.rows[0]?.total ?? 0 };
@@ -116,17 +214,52 @@ export async function listPlatformTeams(limit: number): Promise<{ teams: AdminTe
   return { teams: result.rows };
 }
 
-export async function listRecentActivity(limit: number): Promise<{ activity: AdminActivityEntry[] }> {
-  const result = await pool.query<AdminActivityEntry>(
-    `SELECT a.id, a.entity, a.entity_id AS "entityId", a.action,
-            a.author_name AS "authorName", a.summary,
-            a.project_id AS "projectId", p.name AS "projectName",
-            a.created_at AS "createdAt"
-     FROM activity_log a
-     JOIN projects p ON p.id = a.project_id
-     ORDER BY a.created_at DESC
-     LIMIT $1`,
-    [limit],
-  );
-  return { activity: result.rows };
+export async function listAllPayments(
+  limit: number,
+  offset: number,
+  status?: string,
+  teamId?: string,
+): Promise<{ payments: AdminPayment[]; total: number }> {
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+  let idx = 1;
+
+  if (status && (status === 'pending' || status === 'completed')) {
+    conditions.push(`tp.status = $${idx}`);
+    params.push(status);
+    idx++;
+  }
+  if (teamId) {
+    conditions.push(`tp.team_id = $${idx}`);
+    params.push(teamId);
+    idx++;
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const [list, total] = await Promise.all([
+    pool.query<AdminPayment>(
+      `SELECT tp.id, tp.team_id AS "teamId", t.name AS "teamName",
+              tp.order_id AS "orderId", u.email AS "buyerEmail",
+              tp.package_name AS "packageName", tp.duration_days AS "durationDays",
+              tp.amount, tp.status, tp.created_at AS "createdAt",
+              tp.completed_at AS "completedAt"
+       FROM team_payments tp
+       JOIN teams t ON t.id = tp.team_id
+       JOIN users u ON u.id = tp.created_by
+       ${where}
+       ORDER BY tp.created_at DESC
+       LIMIT $${idx} OFFSET $${idx + 1}`,
+      [...params, limit, offset],
+    ),
+    pool.query<{ total: number }>(
+      `SELECT count(*)::int AS total
+       FROM team_payments tp
+       JOIN teams t ON t.id = tp.team_id
+       JOIN users u ON u.id = tp.created_by
+       ${where}`,
+      params,
+    ),
+  ]);
+  return { payments: list.rows, total: total.rows[0]?.total ?? 0 };
 }

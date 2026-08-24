@@ -271,7 +271,8 @@ export function PricingPage() {
     const init: Record<string, string> = {};
     for (const pkg of packages) {
       if (!pkg.isFree && pkg.prices.length > 0) {
-        init[pkg.id] = pkg.prices[0].id;
+        const first = pkg.prices[0];
+        if (first) init[pkg.id] = first.id;
       }
     }
     if (Object.keys(init).length > 0) {

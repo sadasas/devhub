@@ -90,7 +90,7 @@ export function BillingRedirectPage() {
           )}
           <Button
             variant="primary"
-            onClick={() => (window.location.href = `/team/${teamId}?tab=billing`)}
+            onClick={() => (window.location.href = `/team/${teamId}?tab=usage`)}
           >
             Back to workspace
           </Button>
@@ -110,7 +110,7 @@ export function BillingRedirectPage() {
           {data.payments.some((p) => p.status === 'pending') && (
             <p className="billing-meta">Order created {new Date().toLocaleTimeString()}</p>
           )}
-          <Link className="back-btn" to={`/team/${teamId}?tab=billing`}>
+            <Link className="back-btn" to={`/team/${teamId}?tab=usage`}>
             Back to workspace
           </Link>
         </section>

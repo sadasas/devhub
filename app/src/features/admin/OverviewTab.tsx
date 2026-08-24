@@ -1,0 +1,158 @@
+import { useCallback, useEffect, useState } from 'react';
+import {
+  ChartLine,
+  CurrencyCircleDollar,
+  FolderSimple,
+  Key,
+  Receipt,
+  ShieldCheck,
+  UsersThree,
+} from '@phosphor-icons/react';
+import { api } from '../../lib/api';
+import { getErrorMessage } from '../../lib/errors';
+import type { AdminActivityChart, AdminCharts, AdminStats } from '../../lib/types';
+import { EmptyState } from '../../components/EmptyState';
+import { InlineError } from '../../components/InlineError';
+import { BarChart, CHART_COLORS, Donut, StatCard, VerticalBarChart } from './charts';
+
+export function OverviewTab({ refreshKey }: { refreshKey: number }) {
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
+  const [charts, setCharts] = useState<AdminCharts | null>(null);
+  const [activityRange, setActivityRange] = useState('7d');
+  const [activityChart, setActivityChart] = useState<AdminActivityChart[] | null>(null);
+
+  const loadOverview = useCallback(async () => {
+    setStats(null);
+    setStatsError(null);
+    try {
+      const [s, c] = await Promise.all([api.adminStats(), api.adminStatsCharts()]);
+      setStats(s);
+      setCharts(c);
+    } catch (err) {
+      setStatsError(getErrorMessage(err, 'Failed to load stats'));
+    }
+  }, []);
+
+  const loadActivityChart = useCallback(async () => {
+    try {
+      const a = await api.adminStatsActivity(activityRange);
+      setActivityChart(a);
+    } catch {
+      setActivityChart([]);
+    }
+  }, [activityRange]);
+
+  useEffect(() => {
+    void loadOverview();
+  }, [loadOverview, refreshKey]);
+
+  useEffect(() => {
+    void loadActivityChart();
+  }, [loadActivityChart, refreshKey]);
+
+  return (
+    <section className="tab-panel" role="tabpanel" aria-label="Platform overview">
+      {statsError && <InlineError>{statsError}</InlineError>}
+      <div className="stats-grid mb-24">
+        <StatCard
+          icon={<UsersThree size={14} weight="duotone" aria-hidden="true" />}
+          label="Users"
+          value={stats?.users ?? null}
+        />
+        <StatCard
+          icon={<UsersThree size={14} weight="duotone" aria-hidden="true" />}
+          label="Teams"
+          value={stats?.teams ?? null}
+        />
+        <StatCard
+          icon={<FolderSimple size={14} weight="duotone" aria-hidden="true" />}
+          label="Projects"
+          value={stats?.projects ?? null}
+        />
+        <StatCard
+          icon={<Key size={14} weight="duotone" aria-hidden="true" />}
+          label="Active keys"
+          value={stats?.activeKeys ?? null}
+        />
+      </div>
+      <div className="stats-grid mb-24">
+        <StatCard
+          icon={<CurrencyCircleDollar size={14} weight="duotone" aria-hidden="true" />}
+          label="Revenue Total"
+          value={stats?.revenueTotal ?? null}
+          accent
+        />
+        <StatCard
+          icon={<ShieldCheck size={14} weight="duotone" aria-hidden="true" />}
+          label="Paid Teams"
+          value={stats?.paidTeams ?? null}
+        />
+        <StatCard
+          icon={<Receipt size={14} weight="duotone" aria-hidden="true" />}
+          label="Pending Payments"
+          value={stats?.pendingPayments ?? null}
+        />
+      </div>
+
+      <div className="admin-filter-bar mb-12">
+        <h3 className="page-subtitle" style={{ margin: 0 }}>Activity</h3>
+        <span style={{ flex: 1 }} />
+        {(['1d', '7d', '1m', '6m', '12m'] as const).map((r) => (
+          <button
+            key={r}
+            type="button"
+            className={`sub-tab ${activityRange === r ? 'sub-tab-active' : ''}`}
+            onClick={() => setActivityRange(r)}
+          >
+            {r.toUpperCase()}
+          </button>
+        ))}
+      </div>
+
+      {activityChart && activityChart.length > 0 ? (
+        <VerticalBarChart
+          rows={activityChart.map((d) => ({
+            id: d.date,
+            label: d.label,
+            value: d.count,
+          }))}
+          label={`Activity (${activityRange})`}
+          formatValue={(v) => String(v)}
+        />
+      ) : (
+        <EmptyState
+          icon={<ChartLine size={22} />}
+          title="No activity data"
+          description="Activity will appear here once users start working."
+        />
+      )}
+
+      {charts && charts.revenueByDay.length > 0 && (
+        <div style={{ marginTop: 24 }}>
+          <BarChart
+            rows={charts.revenueByDay.map((d) => ({
+              label: d.date.slice(5),
+              value: d.amount,
+            }))}
+            label="Revenue last 30 days"
+          />
+        </div>
+      )}
+
+      {charts && charts.revenueByPackage.length > 0 && (
+        <div style={{ marginTop: 24 }}>
+          <Donut
+            segments={charts.revenueByPackage.map((p, i) => ({
+              name: p.name,
+              value: p.amount,
+              color: CHART_COLORS[i % CHART_COLORS.length] ?? '#6b7280',
+            }))}
+            total={charts.revenueByPackage.reduce((s, p) => s + p.amount, 0)}
+            label="Revenue by package"
+          />
+        </div>
+      )}
+    </section>
+  );
+}

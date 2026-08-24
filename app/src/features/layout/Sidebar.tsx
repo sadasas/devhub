@@ -1,4 +1,4 @@
-import { BookOpen, BookmarkSimple, EnvelopeSimple, FolderSimple, Key, Plus, ShieldStar, SignOut, SquaresFour, UsersThree } from '@phosphor-icons/react';
+import { BookOpen, BookmarkSimple, CurrencyCircleDollar, EnvelopeSimple, FolderSimple, Key, Plus, Receipt, ShieldStar, SignOut, SquaresFour, UsersThree } from '@phosphor-icons/react';
 import { useMemo, useState } from 'react';
 import { NavLink, type NavLinkProps } from 'react-router';
 import { useAuth } from '../../state/auth-context';
@@ -57,6 +57,14 @@ export function Sidebar() {
         <NavLink to="/templates" className={itemClass()} aria-label="Project Templates">
           <BookmarkSimple size={15} weight="duotone" aria-hidden="true" />
           <span>Templates</span>
+        </NavLink>
+        <NavLink to="/pricing" className={itemClass()} aria-label="Pricing">
+          <CurrencyCircleDollar size={15} weight="duotone" aria-hidden="true" />
+          <span>Pricing</span>
+        </NavLink>
+        <NavLink to="/payments" className={itemClass()} aria-label="Payment History">
+          <Receipt size={15} weight="duotone" aria-hidden="true" />
+          <span>Payment History</span>
         </NavLink>
         {user?.role === 'admin' && (
           <NavLink to="/admin" className={itemClass()} aria-label="Admin">

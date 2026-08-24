@@ -37,6 +37,7 @@ const TEAM: Team = {
   name: 'Team One',
   role: 'owner',
   plan: 'free',
+  planPackageName: 'Free',
   memberCount: 1,
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z',

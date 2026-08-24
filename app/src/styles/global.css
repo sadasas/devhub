@@ -7627,10 +7627,6 @@ input[type='checkbox'] {
   font-variant-numeric: tabular-nums;
 }
 
-.admin-chart [title]:hover .admin-vbar-value {
-  opacity: 1 !important;
-}
-
 @media (max-width: 700px) {
   .admin-payment-header,
   .admin-payment-row {

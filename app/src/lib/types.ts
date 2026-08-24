@@ -421,6 +421,7 @@ export interface BillingStatus {
     name: string;
     plan: TeamPlan;
     planExpiresAt: string | null;
+    planPackageName: string;
   };
   usage: {
     members: BillingUsageItem;

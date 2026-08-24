@@ -68,6 +68,13 @@ Every tool: inputs validated by zod; response includes `updatedAt` of the mutate
 - Errors: JSON-RPC error objects; validation failures return clear messages.
 - Idempotency: `create_*` tools do not dedupe — agents should check state first (via `project_state`) to avoid duplicates. Exception: `add_relation` rejects a relation identical (same 4 column ids) to an existing one.
 
+**Entity status flows:**
+- Task: `todo` → `inProgress` → `review` → `done` (auto-sets `completedAt` + `actualHours`)
+- Issue: `open` → `reproduced` → `fixing` → `resolved` | `wontfix`
+- Decision: `proposed` → `accepted` | `rejected` | `superseded` (no update tool — one-shot)
+- Milestone: `planned` → `inProgress` → `released`
+- Whiteboard: no status — create/update with full element replacement (max 50/project)
+
 ---
 
 ## 4. Client Configuration
@@ -168,11 +175,12 @@ The browser UI polls `GET /api/projects/:id/state` every 5s while the tab is vis
 Agar setiap sesi AI otomatis menyinkronkan kerjanya ke DevHub, sediakan dua file di repo user:
 
 1. **`AGENTS.md`** (root repo) — aturan wajib yang dibaca opencode tiap sesi:
+   - Prasyarat: cek `DEVHUB_MCP_KEY` & `DEVHUB_PROJECT_ID` — jika kosong, tanyakan ke user via `question` tool (custom input)
+   - Jika MCP return 401 → tanyakan user lagi (key invalid/expired)
    - Keputusan arsitektural/tradeoff difinalisasi → `add_decision` (saat keputusan fix)
    - Rencana kerja disusun / mulai implementasi → `create_task` (awal sesi)
    - Pekerjaan selesai & terverifikasi (lint/test/build hijau atau committed) → `update_task` status `done` (sebelum tutup sesi)
    - Flowchart/diagram dirancang → `create_whiteboard` / `update_whiteboard`
-2. **`.opencode/skills/devhub-sync/SKILL.md`** — pedoman eksekusi: skema payload tiap tool, kriteria keputusan layak-ADR (anti-spam), kesalahan umum.
 
 Contoh lengkap kedua file terdokumentasi di halaman aplikasi **Docs → MCP Integration → "Automate your workflow"** (`/docs/mcp#mcp-agentsync`) dan bisa disalin dari sana.
 

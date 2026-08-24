@@ -41,6 +41,7 @@ function makeTeam(over: Partial<Team>): Team {
     name: 'Platform',
     role: 'owner',
     plan: 'free',
+    planPackageName: 'Free',
     memberCount: 2,
     createdAt: '2026-08-01T00:00:00.000Z',
     updatedAt: '2026-08-01T00:00:00.000Z',
@@ -57,7 +58,7 @@ const PRO_PACKAGE: BillingPackage = {
   isFree: false,
   maxMembers: null,
   maxProjects: null,
-  prices: [{ id: 'pr-30', durationDays: 30, priceIdr: 250_000 }],
+  prices: [{ id: 'pr-30', durationDays: 30, priceIdr: 250_000, originalPriceIdr: null }],
 };
 
 describe('NewProjectModal team select', () => {

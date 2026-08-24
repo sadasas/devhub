@@ -35,6 +35,7 @@ const AdminPageLazy = lazy(() => import('./features/admin/AdminPage').then((m) =
 const ProjectPageLazy = lazy(() => import('./features/project/ProjectPage').then((m) => ({ default: m.ProjectPage })));
 const PublicProjectPageLazy = lazy(() => import('./features/public/PublicProjectPage').then((m) => ({ default: m.PublicProjectPage })));
 const PricingPageLazy = lazy(() => import('./features/pricing/PricingPage').then((m) => ({ default: m.PricingPage })));
+const PaymentHistoryPageLazy = lazy(() => import('./features/billing/PaymentHistoryPage').then((m) => ({ default: m.PaymentHistoryPage })));
 const BillingRedirectPageLazy = lazy(() => import('./features/teams/BillingRedirectPage').then((m) => ({ default: m.BillingRedirectPage })));
 const CommandPaletteLazy = lazy(() => import('./components/CommandPalette').then((m) => ({ default: m.CommandPalette })));
 
@@ -142,6 +143,14 @@ function Root() {
               element={
                 <RouteBoundary fallback={<PricingSkeleton />}>
                   <PricingPageLazy />
+                </RouteBoundary>
+              }
+            />
+            <Route
+              path="/payments"
+              element={
+                <RouteBoundary fallback={<PricingSkeleton />}>
+                  <PaymentHistoryPageLazy />
                 </RouteBoundary>
               }
             />

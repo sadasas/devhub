@@ -54,8 +54,8 @@ const PACKAGES: BillingPackage[] = [
     maxMembers: null,
     maxProjects: null,
     prices: [
-      { id: 'pr-30', durationDays: 30, priceIdr: 250_000 },
-      { id: 'pr-365', durationDays: 365, priceIdr: 2_500_000 },
+      { id: 'pr-30', durationDays: 30, priceIdr: 250_000, originalPriceIdr: null },
+      { id: 'pr-365', durationDays: 365, priceIdr: 2_500_000, originalPriceIdr: null },
     ],
   },
 ];
@@ -124,8 +124,8 @@ describe('PricingPage (single-page flow)', () => {
     mockUser = { id: 'u1' };
     mockTeams = [{ id: 't1', name: 'Test Team' }];
     const PACKAGES_3: BillingPackage[] = [
-      PACKAGES[0],
-      PACKAGES[1],
+      PACKAGES[0]!,
+      PACKAGES[1]!,
       {
         id: 'pkg-biz',
         name: 'Business',
@@ -133,7 +133,7 @@ describe('PricingPage (single-page flow)', () => {
         isFree: false,
         maxMembers: null,
         maxProjects: null,
-        prices: [{ id: 'bz-30', durationDays: 30, priceIdr: 500_000 }],
+        prices: [{ id: 'bz-30', durationDays: 30, priceIdr: 500_000, originalPriceIdr: null }],
       },
     ];
     mockListPackages.mockResolvedValueOnce({ packages: PACKAGES_3 });
@@ -159,8 +159,8 @@ describe('PricingPage (single-page flow)', () => {
     mockUser = { id: 'u1' };
     mockTeams = [{ id: 't1', name: 'Test Team' }];
     const PACKAGES_3: BillingPackage[] = [
-      PACKAGES[0],
-      PACKAGES[1],
+      PACKAGES[0]!,
+      PACKAGES[1]!,
       {
         id: 'pkg-biz',
         name: 'Business',
@@ -168,7 +168,7 @@ describe('PricingPage (single-page flow)', () => {
         isFree: false,
         maxMembers: null,
         maxProjects: null,
-        prices: [{ id: 'bz-30', durationDays: 30, priceIdr: 500_000 }],
+        prices: [{ id: 'bz-30', durationDays: 30, priceIdr: 500_000, originalPriceIdr: null }],
       },
     ];
     mockListPackages.mockResolvedValueOnce({ packages: PACKAGES_3 });

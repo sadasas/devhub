@@ -40,12 +40,14 @@ export async function getEffectiveUsage(teamId: string): Promise<TeamUsage | nul
   return repoGetTeamUsage(teamId);
 }
 
-/** Grant manual operator: attach/detach paket tanpa kedaluwarsa. */
+/** Grant manual operator: attach paket dengan durasi opsional. */
 export async function updateTeamPlan(
   teamId: string,
   plan: TeamPlan,
+  packageId?: string,
+  durationDays?: number,
 ): Promise<{ id: string; plan: TeamPlan } | null> {
-  return repoSetTeamPlan(teamId, plan);
+  return repoSetTeamPlan(teamId, plan, packageId, durationDays);
 }
 
 /** Aktivasi paket hasil pembayaran; menumpuk dari expiry lama bila masih aktif. */
