@@ -8,7 +8,7 @@ export interface TeamPaymentRow {
   package_name: string;
   duration_days: number | null;
   amount: number;
-  status: 'pending' | 'completed';
+  status: 'pending' | 'completed' | 'cancelled';
   created_by: string;
   created_at: Date;
   completed_at: Date | null;

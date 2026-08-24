@@ -1,6 +1,7 @@
 import type {
   ActivityUnreadSummary,
-  AdminActivityEntry,
+  AdminPackage,
+  AdminPayment,
   AdminStats,
   AdminTeam,
   AdminUser,
@@ -12,6 +13,7 @@ import type {
   Invitation,
   McpKeyList,
   McpKeyCreated,
+  PaymentHistoryItem,
   Project,
   ProjectTemplate,
   PublicProject,
@@ -470,27 +472,81 @@ export const api = {
     return res.unread;
   },
 
-  adminStats: () => request<AdminStats>('/admin/stats'),  listAdminUsers: async (opts: { query?: string; limit?: number; offset?: number } = {}) => {
+  adminStats: () => request<AdminStats>('/admin/stats'),
+  adminStatsCharts: () =>
+    request<{
+      revenueByDay: Array<{ date: string; amount: number }>;
+      revenueByPackage: Array<{ name: string; amount: number }>;
+    }>('/admin/stats/charts'),
+  adminStatsActivity: (range: string) =>
+    request<Array<{ date: string; label: string; count: number }>>(
+      `/admin/stats/activity?range=${encodeURIComponent(range)}`,
+    ),  listAdminUsers: async (opts: { query?: string; limit?: number; offset?: number; plan?: string } = {}) => {
     const params = new URLSearchParams();
     if (opts.query) params.set('query', opts.query);
     if (opts.limit !== undefined) params.set('limit', String(opts.limit));
     if (opts.offset !== undefined) params.set('offset', String(opts.offset));
+    if (opts.plan) params.set('plan', opts.plan);
     const qs = params.toString();
     return request<{ users: AdminUser[]; total: number }>(`/admin/users${qs ? `?${qs}` : ''}`);
   },
-  setAdminUserRole: (userId: string, role: 'user' | 'admin') =>
-    request<{ id: string; email: string; role: 'user' | 'admin' }>(
-      `/admin/users/${encodeURIComponent(userId)}/role`,
-      { method: 'PATCH', body: JSON.stringify({ role }) },
-    ),
   listAdminTeams: async () => {
     const res = await request<{ teams: AdminTeam[] }>('/admin/teams');
     return res.teams;
   },
-  listAdminActivity: async () => {
-    const res = await request<{ activity: AdminActivityEntry[] }>('/admin/activity');
-    return res.activity;
+  listAdminPayments: async (opts: { limit?: number; offset?: number; status?: string; teamId?: string } = {}) => {
+    const params = new URLSearchParams();
+    if (opts.limit !== undefined) params.set('limit', String(opts.limit));
+    if (opts.offset !== undefined) params.set('offset', String(opts.offset));
+    if (opts.status) params.set('status', opts.status);
+    if (opts.teamId) params.set('teamId', opts.teamId);
+    const qs = params.toString();
+    return request<{ payments: AdminPayment[]; total: number }>(`/admin/payments${qs ? `?${qs}` : ''}`);
   },
+  adminListPackages: async () => {
+    const res = await request<{ packages: AdminPackage[] }>('/admin/packages');
+    return res.packages;
+  },
+  adminCreatePackage: (data: {
+    name: string;
+    description?: string;
+    isFree?: boolean;
+    maxMembers?: number | null;
+    maxProjects?: number | null;
+    sortOrder?: number;
+    isActive?: boolean;
+    prices?: Array<{ durationDays: number; priceIdr: number }>;
+  }) =>
+    request<AdminPackage>('/admin/packages', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  adminPatchPackage: (
+    packageId: string,
+    data: {
+      name?: string;
+      description?: string;
+      isFree?: boolean;
+      maxMembers?: number | null;
+      maxProjects?: number | null;
+      sortOrder?: number;
+      isActive?: boolean;
+      prices?: Array<{ durationDays: number; priceIdr: number }>;
+    },
+  ) =>
+    request<AdminPackage>(`/admin/packages/${encodeURIComponent(packageId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  adminDeletePackage: (packageId: string) =>
+    request<{ ok: boolean }>(`/admin/packages/${encodeURIComponent(packageId)}`, {
+      method: 'DELETE',
+    }),
+  adminSetTeamPlan: (teamId: string, plan: 'free' | 'pro', packageId?: string, durationDays?: number) =>
+    request<{ id: string; plan: string }>(`/admin/teams/${encodeURIComponent(teamId)}/plan`, {
+      method: 'PATCH',
+      body: JSON.stringify({ plan, packageId, durationDays }),
+    }),
 
   startCheckout: (teamId: string, packageId: string, priceId: string) =>
     request<{ orderId: string; url: string; amount: number; packageName: string; durationDays: number }>(
@@ -500,7 +556,12 @@ export const api = {
         body: JSON.stringify({ teamId, packageId, priceId }),
       },
     ),
+  resumePayment: (orderId: string) =>
+    request<{ url: string }>(`/billing/resume/${encodeURIComponent(orderId)}`),
+  cancelPayment: (orderId: string) =>
+    request<{ ok: boolean }>(`/billing/cancel/${encodeURIComponent(orderId)}`, { method: 'POST' }),
   listPackages: () => request<{ packages: BillingPackage[] }>('/billing/packages'),
   billingStatus: (teamId: string) =>
     request<BillingStatus>(`/billing/status/${encodeURIComponent(teamId)}`),
+  paymentHistory: () => request<{ payments: PaymentHistoryItem[] }>('/billing/payments'),
 };

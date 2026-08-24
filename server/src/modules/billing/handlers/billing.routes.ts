@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireAuth, getUserId } from '../../auth/middleware/requireAuth.js';
-import { getBillingOverview, handleWebhook, startCheckout } from '../application/billingService.js';
+import { cancelPayment, getBillingOverview, getPaymentHistory, handleWebhook, resumePayment, startCheckout } from '../application/billingService.js';
 import { listPublicPackages } from '../application/packagesPublic.js';
 
 /** Webhook Pakasir + daftar paket — TANPA requireAuth. */
@@ -22,7 +22,22 @@ billingRouter.post('/checkout', async (req, res) => {
   res.json(await startCheckout(userId, req.body));
 });
 
+billingRouter.get('/resume/:orderId', async (req, res) => {
+  const userId = getUserId(req);
+  res.json(await resumePayment(userId, req.params.orderId ?? ''));
+});
+
+billingRouter.post('/cancel/:orderId', async (req, res) => {
+  const userId = getUserId(req);
+  res.json(await cancelPayment(userId, req.params.orderId ?? ''));
+});
+
 billingRouter.get('/status/:teamId', async (req, res) => {
   const userId = getUserId(req);
   res.json(await getBillingOverview(userId, req.params.teamId ?? ''));
+});
+
+billingRouter.get('/payments', async (req, res) => {
+  const userId = getUserId(req);
+  res.json(await getPaymentHistory(userId));
 });

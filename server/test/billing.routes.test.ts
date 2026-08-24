@@ -371,4 +371,118 @@ describe('billing Pakasir + paket dinamis (ADR-044/045)', () => {
     expect(res.status).toBe(402);
     expect(res.body.error.details).toMatchObject({ resource: 'projects', limit: 1 });
   });
+
+  it('resume reconstructs deterministic URL for own pending payment', async () => {
+    const pro = await getProPackage();
+    const co = await checkout(owner, { teamId, packageId: pro.id, priceId: pro.price30Id });
+
+    const res = await request(app)
+      .get(`/api/v1/billing/resume/${co.body.orderId}`)
+      .set('Cookie', owner)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(res.status).toBe(200);
+    expect(res.body.url).toContain('https://app.pakasir.com/pay/devhub-test/250000');
+    expect(res.body.url).toContain(`order_id=${encodeURIComponent(co.body.orderId)}`);
+    expect(res.body.url).toContain(
+      `redirect=${encodeURIComponent(`https://app.test/billing/${teamId}`)}`,
+    );
+  });
+
+  it('resume rejects completed payment (409) and unknown order (404)', async () => {
+    const pro = await getProPackage();
+    const co = await checkout(owner, { teamId, packageId: pro.id, priceId: pro.price30Id });
+
+    vi.stubGlobal('fetch', mockPakasirDetail('completed', co.body.orderId, 250_000));
+    await request(app)
+      .post('/api/v1/billing/webhook')
+      .send({ order_id: co.body.orderId, amount: 250_000 });
+
+    const done = await request(app)
+      .get(`/api/v1/billing/resume/${co.body.orderId}`)
+      .set('Cookie', owner)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(done.status).toBe(409);
+
+    const missing = await request(app)
+      .get('/api/v1/billing/resume/DH-nope')
+      .set('Cookie', owner)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(missing.status).toBe(404);
+  });
+
+  it('resume access: stranger 404, team admin 200', async () => {
+    const pro = await getProPackage();
+    const co = await checkout(owner, { teamId, packageId: pro.id, priceId: pro.price30Id });
+
+    const stranger = await register('stranger@test.dev');
+    const forbidden = await request(app)
+      .get(`/api/v1/billing/resume/${co.body.orderId}`)
+      .set('Cookie', stranger)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(forbidden.status).toBe(404);
+
+    const teamAdmin = await register('tadmin@test.dev');
+    await inviteUser(owner, teamAdmin, teamId, 'admin');
+    const allowed = await request(app)
+      .get(`/api/v1/billing/resume/${co.body.orderId}`)
+      .set('Cookie', teamAdmin)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(allowed.status).toBe(200);
+  });
+
+  it('cancel marks pending cancelled; double cancel 409; completed 409', async () => {
+    const pro = await getProPackage();
+    const co = await checkout(owner, { teamId, packageId: pro.id, priceId: pro.price30Id });
+
+    const res = await request(app)
+      .post(`/api/v1/billing/cancel/${co.body.orderId}`)
+      .set('Cookie', owner)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true });
+
+    const row = await pool.query<{ status: string }>(
+      'SELECT status FROM team_payments WHERE order_id = $1',
+      [co.body.orderId],
+    );
+    expect(row.rows[0]?.status).toBe('cancelled');
+
+    const again = await request(app)
+      .post(`/api/v1/billing/cancel/${co.body.orderId}`)
+      .set('Cookie', owner)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(again.status).toBe(409);
+
+    const co2 = await checkout(owner, { teamId, packageId: pro.id, priceId: pro.price30Id });
+    vi.stubGlobal('fetch', mockPakasirDetail('completed', co2.body.orderId, 250_000));
+    await request(app)
+      .post('/api/v1/billing/webhook')
+      .send({ order_id: co2.body.orderId, amount: 250_000 });
+    const cancelDone = await request(app)
+      .post(`/api/v1/billing/cancel/${co2.body.orderId}`)
+      .set('Cookie', owner)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(cancelDone.status).toBe(409);
+  });
+
+  it('webhook after cancel does not activate the plan', async () => {
+    const pro = await getProPackage();
+    const co = await checkout(owner, { teamId, packageId: pro.id, priceId: pro.price30Id });
+    await request(app)
+      .post(`/api/v1/billing/cancel/${co.body.orderId}`)
+      .set('Cookie', owner)
+      .set('X-Forwarded-For', uniqueIp());
+
+    vi.stubGlobal('fetch', mockPakasirDetail('completed', co.body.orderId, 250_000));
+    const res = await request(app)
+      .post('/api/v1/billing/webhook')
+      .send({ order_id: co.body.orderId, amount: 250_000 });
+
+    const row = await pool.query<{ status: string }>(
+      'SELECT status FROM team_payments WHERE order_id = $1',
+      [co.body.orderId],
+    );
+    expect(row.rows[0]?.status).toBe('cancelled');
+    expect(await teamExpiresAt(teamId)).toBeNull();
+  });
 });

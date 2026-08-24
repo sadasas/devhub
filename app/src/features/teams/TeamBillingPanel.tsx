@@ -19,6 +19,8 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
   const [data, setData] = useState<BillingStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [bannerBusy, setBannerBusy] = useState(false);
+  const [bannerError, setBannerError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -60,6 +62,43 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
 
   const plan = data?.team.plan ?? 'free';
   const expires = data?.team.planExpiresAt ?? null;
+  const pendingPayment = data?.payments.find((p) => p.status === 'pending') ?? null;
+
+  async function onResumePending() {
+    if (!pendingPayment) return;
+    setBannerError(null);
+    setBannerBusy(true);
+    try {
+      const res = await api.resumePayment(pendingPayment.orderId);
+      window.location.assign(res.url);
+    } catch (err) {
+      setBannerError(getErrorMessage(err, 'Gagal melanjutkan pembayaran.'));
+      setBannerBusy(false);
+    }
+  }
+
+  async function onCancelPending() {
+    if (!pendingPayment) return;
+    setBannerError(null);
+    setBannerBusy(true);
+    try {
+      await api.cancelPayment(pendingPayment.orderId);
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              payments: prev.payments.map((p) =>
+                p.orderId === pendingPayment.orderId ? { ...p, status: 'cancelled' } : p,
+              ),
+            }
+          : prev,
+      );
+    } catch (err) {
+      setBannerError(getErrorMessage(err, 'Gagal membatalkan pembayaran.'));
+    } finally {
+      setBannerBusy(false);
+    }
+  }
 
   let expiryMeta: string;
   if (plan === 'pro') {
@@ -82,6 +121,39 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
           Pro ends in {daysLeft <= 0 ? 'less than a day' : `${daysLeft} day${daysLeft === 1 ? '' : 's'}`} —
           renew to keep unlimited capacity.
         </InlineError>
+      )}
+      {pendingPayment && (
+        <div className="billing-card">
+          <h3 className="billing-card-title">Pembayaran tertunda</h3>
+          <div className="billing-plan-row">
+            <span className="billing-plan-name">
+              {pendingPayment.packageName} — Rp {pendingPayment.amount.toLocaleString('id-ID')}
+            </span>
+            <Badge tone="neutral">Pending</Badge>
+            <span className="billing-meta">
+              {new Date(pendingPayment.createdAt).toLocaleDateString()} · selesaikan atau batalkan
+            </span>
+          </div>
+          {bannerError && <InlineError>{bannerError}</InlineError>}
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <Button
+              variant="primary"
+              size="sm"
+              loading={bannerBusy}
+              onClick={() => void onResumePending()}
+            >
+              Lanjutkan pembayaran
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={bannerBusy}
+              onClick={() => void onCancelPending()}
+            >
+              Batalkan
+            </Button>
+          </div>
+        </div>
       )}
       <div className="billing-card">
         <h3 className="billing-card-title">Current plan</h3>

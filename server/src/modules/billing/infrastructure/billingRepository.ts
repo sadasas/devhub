@@ -49,6 +49,17 @@ export async function markPaymentCompleted(orderId: string): Promise<TeamPayment
   return result.rows[0] ?? null;
 }
 
+export async function cancelPendingPayment(orderId: string): Promise<TeamPaymentRow | null> {
+  const result = await pool.query<TeamPaymentRow>(
+    `UPDATE team_payments
+     SET status = 'cancelled'
+     WHERE order_id = $1 AND status = 'pending'
+     RETURNING *`,
+    [orderId],
+  );
+  return result.rows[0] ?? null;
+}
+
 export async function listTeamPayments(teamId: string, limit = 10): Promise<TeamPaymentRow[]> {
   const result = await pool.query<TeamPaymentRow>(
     `SELECT * FROM team_payments WHERE team_id = $1 ORDER BY created_at DESC LIMIT $2`,

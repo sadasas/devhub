@@ -4,8 +4,9 @@ import { config } from '../../../config.js';
 import { randomUUID } from 'node:crypto';
 import { ApiError } from '../../../shared/errors.js';
 import { assertAdmin, getTeamWithRole } from '../../authorization/application/authz.js';
-import { PAKASIR_PAY_BASE } from '../domain/billing.js';
+import { PAKASIR_PAY_BASE, type TeamPaymentRow } from '../domain/billing.js';
 import {
+  cancelPendingPayment,
   findActivePackage,
   findActivePrice,
   findPaymentByOrderId,
@@ -83,6 +84,43 @@ export async function startCheckout(userId: string, body: unknown): Promise<Chec
 
 interface PakasirTransaction {
   transaction?: { status?: string; amount?: number; order_id?: string };
+}
+
+/** Pembuat pembayaran boleh lanjut/batalkan; admin tim juga; orang luar → 404 (anti-enumeration). */
+async function assertPaymentAccess(userId: string, payment: TeamPaymentRow): Promise<void> {
+  if (payment.created_by === userId) return;
+  const row = await getTeamWithRole(userId, payment.team_id);
+  if (!row) throw new ApiError(404, 'NOT_FOUND', 'Payment not found');
+  assertAdmin(row.role);
+}
+
+function requirePending(payment: TeamPaymentRow): void {
+  if (payment.status !== 'pending') {
+    throw new ApiError(409, 'CONFLICT', `Payment is already ${payment.status}`);
+  }
+}
+
+export async function resumePayment(userId: string, orderId: string): Promise<{ url: string }> {
+  const payment = await findPaymentByOrderId(orderId);
+  if (!payment) throw new ApiError(404, 'NOT_FOUND', 'Payment not found');
+  await assertPaymentAccess(userId, payment);
+  requirePending(payment);
+  requirePakasirConfigured();
+
+  let url = `${PAKASIR_PAY_BASE}/pay/${config.PAKASIR_SLUG}/${payment.amount}?order_id=${encodeURIComponent(orderId)}`;
+  if (config.APP_PUBLIC_URL) {
+    url += `&redirect=${encodeURIComponent(`${config.APP_PUBLIC_URL.replace(/\/$/, '')}/billing/${payment.team_id}`)}`;
+  }
+  return { url };
+}
+
+export async function cancelPayment(userId: string, orderId: string): Promise<{ ok: boolean }> {
+  const payment = await findPaymentByOrderId(orderId);
+  if (!payment) throw new ApiError(404, 'NOT_FOUND', 'Payment not found');
+  await assertPaymentAccess(userId, payment);
+  requirePending(payment);
+  await cancelPendingPayment(orderId);
+  return { ok: true };
 }
 
 /** Webhook Pakasir tidak bertanda tangan — verifikasi wajib server-to-server. */
