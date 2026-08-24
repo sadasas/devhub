@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import type { BillingPackage } from '../../lib/types';
 import { PricingPage } from './PricingPage';
@@ -63,6 +63,7 @@ const PACKAGES: BillingPackage[] = [
 describe('PricingPage (single-page flow)', () => {
   beforeEach(() => {
     mockListPackages.mockReset().mockResolvedValue({ packages: PACKAGES });
+    mockStartCheckout.mockReset();
   });
 
   afterEach(() => {
@@ -152,5 +153,45 @@ describe('PricingPage (single-page flow)', () => {
 
     const proCard = screen.getByText('Pro').closest('section')!;
     expect(within(proCard).queryByText(/Gagal memulai checkout/)).toBeNull();
+  });
+
+  it('prevents double checkout while one is in flight', async () => {
+    mockUser = { id: 'u1' };
+    mockTeams = [{ id: 't1', name: 'Test Team' }];
+    const PACKAGES_3: BillingPackage[] = [
+      PACKAGES[0],
+      PACKAGES[1],
+      {
+        id: 'pkg-biz',
+        name: 'Business',
+        description: 'Business tier',
+        isFree: false,
+        maxMembers: null,
+        maxProjects: null,
+        prices: [{ id: 'bz-30', durationDays: 30, priceIdr: 500_000 }],
+      },
+    ];
+    mockListPackages.mockResolvedValueOnce({ packages: PACKAGES_3 });
+    let resolveCheckout!: (v: unknown) => void;
+    mockStartCheckout.mockImplementationOnce(() => new Promise((r) => { resolveCheckout = r; }));
+
+    renderPage(['/pricing?teamId=t1']);
+    await screen.findByText('Pro');
+
+    // First click triggers checkout
+    const proBtn = screen.getByRole('button', { name: /Upgrade ke Pro/ });
+    fireEvent.click(proBtn);
+    await waitFor(() => {
+      expect(mockStartCheckout).toHaveBeenCalledTimes(1);
+    });
+
+    // Second click on different package should be blocked by disabled button
+    const bizBtn = screen.getByRole('button', { name: /Upgrade ke Business/ });
+    fireEvent.click(bizBtn);
+    // startCheckout should still be called only once
+    expect(mockStartCheckout).toHaveBeenCalledTimes(1);
+
+    // Clean up
+    await act(async () => { resolveCheckout({ url: 'http://example.com' }); });
   });
 });

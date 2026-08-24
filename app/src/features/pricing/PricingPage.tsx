@@ -107,6 +107,7 @@ function PricingCard({
   selectedTeamId,
   onBuy,
   busy,
+  anyBusy,
   user,
   teams,
   actionError,
@@ -119,6 +120,7 @@ function PricingCard({
   selectedTeamId: string;
   onBuy: (pkgId: string, priceId: string) => void;
   busy: boolean;
+  anyBusy: boolean;
   user: { id: string } | null;
   teams: { id: string; name: string }[] | null;
   actionError: string | null;
@@ -212,7 +214,7 @@ function PricingCard({
         {pkg.prices.length > 0 ? (
           <Button
             variant={isRecommended ? 'primary' : 'secondary'}
-            disabled={!user || !selectedTeamId || busy}
+            disabled={!user || !selectedTeamId || busy || anyBusy}
             loading={busy}
             onClick={() => {
               const priceId = selectedPriceId ?? pkg.prices[0]?.id;
@@ -260,6 +262,7 @@ export function PricingPage() {
 
   const freePkgs = (packages ?? []).filter((p) => p.isFree);
   const paidPkgs = (packages ?? []).filter((p) => !p.isFree);
+  const anyBusy = busyKey !== null;
 
   const initRef = useRef(false);
   useEffect(() => {
@@ -337,20 +340,21 @@ export function PricingPage() {
       ) : (
         <div className="pricing-grid">
           {freePkgs.map((pkg) => (
-            <PricingCard
-              key={pkg.id}
-              pkg={pkg}
-              isRecommended={false}
-              selectedPriceId={null}
-              onSelectPrice={handleSelectPrice}
-              onSelectTeam={setSelectedTeamId}
-              selectedTeamId={selectedTeamId}
-              onBuy={handleBuy}
-              busy={false}
-              user={user}
-              teams={teams}
-              actionError={null}
-            />
+              <PricingCard
+                key={pkg.id}
+                pkg={pkg}
+                isRecommended={false}
+                selectedPriceId={null}
+                onSelectPrice={handleSelectPrice}
+                onSelectTeam={setSelectedTeamId}
+                selectedTeamId={selectedTeamId}
+                onBuy={handleBuy}
+                busy={false}
+                anyBusy={anyBusy}
+                user={user}
+                teams={teams}
+                actionError={null}
+              />
           ))}
           {paidPkgs.map((pkg, i) => {
             const isSelectedBusy = busyKey?.startsWith(`${pkg.id}:`) ?? false;
@@ -365,6 +369,7 @@ export function PricingPage() {
                 selectedTeamId={selectedTeamId}
                 onBuy={handleBuy}
                 busy={isSelectedBusy}
+                anyBusy={anyBusy}
                 user={user}
                 teams={teams}
                 actionError={actionError?.pkgId === pkg.id ? actionError.message : null}
@@ -409,10 +414,6 @@ export function PricingPage() {
             Buat akun gratis
           </Button>
         )}
-        <p className="page-subtitle">
-          Pembayaran melalui QRIS / Virtual Account (Pakasir). Upgrade per workspace; perpanjangan
-          manual.
-        </p>
       </div>
     </div>
   );
