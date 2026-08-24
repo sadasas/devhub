@@ -23,6 +23,7 @@ const CATEGORY_ORDER: TechEntryCategory[] = ['frontend', 'backend', 'database', 
 const TECH_SORT_SPECS: SortSpec<TechEntry>[] = [
   { key: 'category', label: 'Category', get: (e) => e.category, order: CATEGORY_ORDER },
   { key: 'name', label: 'Name', get: (e) => e.name },
+  { key: 'createdAt', label: 'Created', get: (e) => e.createdAt },
   {
     key: 'status',
     label: 'Status',
@@ -52,6 +53,7 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   useEntityDeepLink('techEntries', setEditingId);
   useNewParam(() => setCreating(true), '1', canEdit);
   const { value: sortValue, setSort } = useSortParam();
+  const effectiveSort = sortValue ?? { key: 'createdAt', dir: 'desc' as const };
 
   const switchView = (next: StackView) => {
     setView(next);
@@ -89,9 +91,9 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   if (!state) return null;
 
   const entries = state.techEntries;
-  const sortSpec = TECH_SORT_SPECS.find((s) => s.key === sortValue?.key) ?? null;
+  const sortSpec = TECH_SORT_SPECS.find((s) => s.key === effectiveSort.key) ?? null;
   const sorted = sortSpec
-    ? applySort(entries, sortSpec, sortValue?.dir ?? 'asc')
+    ? applySort(entries, sortSpec, effectiveSort.dir)
     : [...entries].sort(
         (a, b) =>
           CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category) ||
@@ -131,7 +133,7 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
         <span className="data-list-actions">
           {view === 'list' && (
             <SortControl
-              options={TECH_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
+              options={TECH_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: s.label }))}
               value={sortValue}
               onChange={setSort}
             />

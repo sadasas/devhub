@@ -26,6 +26,7 @@ const TEST_SORT_SPECS: SortSpec<TestCase>[] = [
     order: ['pending', 'pass', 'fail'],
   },
   { key: 'name', label: 'Name', get: (t) => t.name },
+  { key: 'createdAt', label: 'Created', get: (t) => t.createdAt },
 ];
 
 export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
@@ -74,7 +75,7 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
         </span>
         <span className="data-list-actions">
           <SortControl
-            options={TEST_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
+            options={TEST_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: s.label }))}
             value={sortValue}
             onChange={setSort}
           />

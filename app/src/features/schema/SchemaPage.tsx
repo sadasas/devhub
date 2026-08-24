@@ -25,6 +25,7 @@ type SchemaView = 'tables' | 'erd';
 
 const TABLE_SORT_SPECS: SortSpec<Table>[] = [
   { key: 'name', label: 'Name', get: (t) => t.name },
+  { key: 'createdAt', label: 'Created', get: (t) => t.createdAt },
 ];
 
 const VERSION_SORT_SPECS: SortSpec<SchemaVersion>[] = [
@@ -50,8 +51,9 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     [setSearchParams],
   );
   const { value: sortValue, setSort } = useSortParam();
+  const effectiveSort = sortValue ?? { key: 'createdAt', dir: 'desc' as const };
   const { value: versionSortValue, setSort: setVersionSort } = useSortParam('sortv');
-  const tableSortSpec = TABLE_SORT_SPECS.find((s) => s.key === sortValue?.key) ?? null;
+  const tableSortSpec = TABLE_SORT_SPECS.find((s) => s.key === effectiveSort.key) ?? null;
   const versionSortSpec = VERSION_SORT_SPECS.find((s) => s.key === versionSortValue?.key) ?? null;
   const [newTableOpen, setNewTableOpen] = useState(false);
   const [tableId, setTableId] = useState<string | null>(null);
@@ -116,7 +118,7 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
         </span>
         <div className="data-list-actions">
           <SortControl
-            options={TABLE_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
+            options={TABLE_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: s.label }))}
             value={sortValue}
             onChange={setSort}
           />
@@ -184,7 +186,7 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
                 />
               ) : (
                 <div className="data-list">
-                  {applySort(state.tables, tableSortSpec, sortValue?.dir ?? 'asc').map((t) => (
+                  {applySort(state.tables, tableSortSpec, effectiveSort.dir).map((t) => (
                     <div key={t.id} className="data-row">
                       <button
                         type="button"

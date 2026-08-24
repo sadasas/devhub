@@ -21,6 +21,7 @@ import { InlineError } from '../../components/InlineError';
 const MILESTONE_SORT_SPECS: SortSpec<Milestone>[] = [
   { key: 'targetDate', label: 'Target date', get: (m) => m.targetDate ?? null },
   { key: 'name', label: 'Name', get: (m) => m.name },
+  { key: 'createdAt', label: 'Created', get: (m) => m.createdAt },
   { key: 'version', label: 'Version', get: (m) => m.version ?? null, compare: compareVersions },
 ];
 
@@ -69,7 +70,7 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
         </span>
         <span className="data-list-actions">
           <SortControl
-            options={MILESTONE_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
+            options={MILESTONE_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: s.label }))}
             value={sortValue}
             onChange={setSort}
           />

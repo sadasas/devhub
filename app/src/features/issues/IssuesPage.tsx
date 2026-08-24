@@ -31,6 +31,7 @@ const ISSUE_SORT_SPECS: SortSpec<Issue>[] = [
     get: (i) => i.status,
     order: ['open', 'reproduced', 'fixing', 'resolved', 'wontfix'],
   },
+  { key: 'createdAt', label: 'Created', get: (i) => i.createdAt },
   { key: 'title', label: 'Title', get: (i) => i.title },
 ];
 
@@ -80,7 +81,7 @@ export function IssuesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
         </span>
         <span className="data-list-actions">
           <SortControl
-            options={ISSUE_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
+            options={ISSUE_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: s.label }))}
             value={sortValue}
             onChange={setSort}
           />

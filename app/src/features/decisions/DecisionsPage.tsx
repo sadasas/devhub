@@ -26,6 +26,7 @@ const DECISION_SORT_SPECS: SortSpec<Decision>[] = [
     get: (d) => d.status,
     order: ['proposed', 'accepted', 'rejected', 'superseded'],
   },
+  { key: 'createdAt', label: 'Created', get: (d) => d.createdAt },
   { key: 'title', label: 'Title', get: (d) => d.title },
 ];
 
@@ -72,7 +73,7 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
         </span>
         <span className="data-list-actions">
           <SortControl
-            options={DECISION_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
+            options={DECISION_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: s.label }))}
             value={sortValue}
             onChange={setSort}
           />

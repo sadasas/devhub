@@ -19,6 +19,7 @@ const MAX_BOARDS = 50;
 const BOARD_SORT_SPECS: SortSpec<Whiteboard>[] = [
   { key: 'updatedAt', label: 'Updated', get: (b) => b.updatedAt },
   { key: 'name', label: 'Name', get: (b) => b.name },
+  { key: 'createdAt', label: 'Created', get: (b) => b.createdAt },
 ];
 
 interface WhiteboardListProps {
@@ -71,7 +72,7 @@ export function WhiteboardList({ onOpen, loading = false, unreadIds }: Whiteboar
         </span>
         <span className="data-list-actions">
           <SortControl
-            options={BOARD_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
+            options={BOARD_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: s.label }))}
             value={sortValue}
             onChange={setSort}
           />

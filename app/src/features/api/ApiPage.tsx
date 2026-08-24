@@ -44,6 +44,7 @@ type DeleteTarget = { kind: 'collection'; id: string; name: string } | { kind: '
 
 const API_COLLECTION_SORT_SPECS: SortSpec<ApiCollection>[] = [
   { key: 'name', label: 'Name', get: (c) => c.name },
+  { key: 'createdAt', label: 'Created', get: (c) => c.createdAt },
 ];
 
 const API_ENDPOINT_SORT_SPECS: SortSpec<ApiEndpoint>[] = [
@@ -54,6 +55,7 @@ const API_ENDPOINT_SORT_SPECS: SortSpec<ApiEndpoint>[] = [
     get: (e) => e.method,
     order: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   },
+  { key: 'createdAt', label: 'Created', get: (e) => e.createdAt },
   { key: 'path', label: 'Path', get: (e) => e.path },
 ];
 
@@ -109,8 +111,9 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
   useNewParam(() => setShowCollection(true), '1', canEdit);
   useNewParam(() => setShowEndpoint(true), 'endpoint', canEdit);
   const { value: sortValue, setSort } = useSortParam();
-  const collectionSortSpec = API_COLLECTION_SORT_SPECS.find((s) => s.key === sortValue?.key) ?? null;
-  const endpointSortSpec = API_ENDPOINT_SORT_SPECS.find((s) => s.key === sortValue?.key) ?? null;
+  const effectiveSort = sortValue ?? { key: 'createdAt', dir: 'desc' as const };
+  const collectionSortSpec = API_COLLECTION_SORT_SPECS.find((s) => s.key === effectiveSort.key) ?? null;
+  const endpointSortSpec = API_ENDPOINT_SORT_SPECS.find((s) => s.key === effectiveSort.key) ?? null;
 
   if (!state) return null;
 
@@ -128,7 +131,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
         )
       : collections,
     collectionSortSpec,
-    sortValue?.dir ?? 'asc',
+    effectiveSort.dir,
   );
   const ungrouped = endpoints.filter((e) => !e.collectionId);
   const visibleUngrouped = applySort(
@@ -138,7 +141,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
         )
       : ungrouped,
     endpointSortSpec,
-    sortValue?.dir ?? 'asc',
+    effectiveSort.dir,
   );
 
   function matchesEndpoint(e: ApiEndpoint): boolean {
@@ -360,7 +363,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
         </div>
         {mode === 'workspace' && (
           <SortControl
-            options={API_COLLECTION_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
+            options={API_COLLECTION_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: s.label }))}
             value={sortValue}
             onChange={setSort}
           />
@@ -411,7 +414,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                   const epList = applySort(
                     endpoints.filter((e) => e.collectionId === c.id && (!query || matchesEndpoint(e))),
                     endpointSortSpec,
-                    sortValue?.dir ?? 'asc',
+                    effectiveSort.dir,
                   );
                   return (
                     <div key={c.id} className="api-tree-group">

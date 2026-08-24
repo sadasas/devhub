@@ -48,6 +48,7 @@ const TASK_SORT_SPECS: SortSpec<Task>[] = [
   { key: 'priority', label: 'Priority', get: (t) => t.priority, order: TASK_PRIORITY_ORDER },
   { key: 'estimate', label: 'Estimate', get: (t) => t.estimate ?? null },
   { key: 'title', label: 'Title', get: (t) => t.title },
+  { key: 'createdAt', label: 'Created', get: (t) => t.createdAt },
   { key: 'dueDate', label: 'Due date', get: (t) => t.dueDate ?? null },
 ];
 
@@ -446,7 +447,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
         <div className="board-toolbar-actions">
           {view !== 'due' && (
             <SortControl
-              options={TASK_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
+              options={TASK_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: s.label }))}
               value={sortValue}
               onChange={setSort}
             />
