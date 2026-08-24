@@ -107,6 +107,7 @@ DevHub is a hosted SaaS project management application for programming projects.
 | G-1 | As a Solo Dev, I can open a command palette with Ctrl+K, so that I can navigate and create without mouse. | P0 |
 | G-2 | As a Solo Dev, I can use keyboard shortcuts for common actions. | P0 |
 | G-3 | As a user, I can register/login with email + password, so that my data is private. | P0 |
+| G-4 | As a user, I can switch the UI between English and Bahasa Indonesia, so that I can work in my preferred language. | P1 |
 
 ### 2.11 AI Agent (MCP) (M)
 

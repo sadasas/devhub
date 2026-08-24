@@ -1,4 +1,5 @@
 import { Trash } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { Button } from './Button';
 import { Modal } from './Modal';
 
@@ -15,10 +16,11 @@ export function ConfirmDeleteDialog({
   open,
   title,
   description,
-  confirmLabel = 'Delete',
+  confirmLabel,
   onConfirm,
   onClose,
 }: ConfirmDeleteDialogProps) {
+  const { t } = useTranslation();
   return (
     <Modal
       open={open}
@@ -28,14 +30,14 @@ export function ConfirmDeleteDialog({
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t('action.cancel')}
           </Button>
           <Button
             variant="danger"
             leftIcon={<Trash size={13} aria-hidden="true" />}
             onClick={onConfirm}
           >
-            {confirmLabel}
+            {confirmLabel ?? t('action.delete')}
           </Button>
         </>
       }

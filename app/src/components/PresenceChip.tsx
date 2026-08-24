@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CaretDown } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { useProject } from '../state/project-context';
 import { useAuth } from '../state/auth-context';
 import { avatarColor, initialsOf } from '../lib/avatar';
@@ -31,6 +32,7 @@ export function PresenceChip() {
   const [pos, setPos] = useState<PopoverPos | null>(null);
   const wrapRef = useRef<HTMLSpanElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
 
   const openAt = useCallback(() => {
     const rect = wrapRef.current?.getBoundingClientRect();
@@ -103,7 +105,7 @@ export function PresenceChip() {
             </span>
           ))}
         </span>
-        {users.length} online
+        {t('presence.chip', { count: users.length })}
         <CaretDown size={10} aria-hidden="true" />
       </button>
       {open &&
@@ -113,7 +115,7 @@ export function PresenceChip() {
             className="presence-popover"
             id={POPOVER_ID}
             role="dialog"
-            aria-label="Online users"
+            aria-label={t('presence.dialog')}
             style={
               pos
                 ? {
@@ -127,7 +129,7 @@ export function PresenceChip() {
                 : undefined
             }
           >
-            <div className="presence-popover-header">Online · {users.length}</div>
+            <div className="presence-popover-header">{t('presence.header', { count: users.length })}</div>
             {users.map((u) => (
               <div key={u.userId} className="presence-popover-row">
                 <span className="presence-popover-avatar" aria-hidden="true">
@@ -141,9 +143,9 @@ export function PresenceChip() {
                 </span>
                 <span className="presence-popover-meta">
                   <span className="presence-popover-name">
-                    {u.name || 'User'}
+                    {u.name || t('presence.fallbackName')}
                     {user && u.userId === user.id ? (
-                      <span className="presence-you">(you)</span>
+                      <span className="presence-you">{t('presence.you')}</span>
                     ) : null}
                   </span>
                   {u.activity ? (

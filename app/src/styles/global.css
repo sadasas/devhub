@@ -604,6 +604,33 @@ a:hover {
   font-weight: 600;
 }
 
+/* Language switcher — reuses .sort-control/.sort-menu */
+.lang-menu {
+  min-width: 180px;
+}
+
+.lang-menu-up {
+  top: auto;
+  bottom: calc(100% + 6px);
+  transform-origin: bottom right;
+}
+
+.lang-row-check {
+  flex-shrink: 0;
+}
+
+.lang-row-check-off {
+  opacity: 0;
+}
+
+.auth-lang {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  z-index: var(--z-overlay, 30);
+}
+
+
 .sort-menu-dir {
   display: flex;
   gap: 4px;
@@ -949,6 +976,7 @@ a:hover {
 }
 
 .auth-form-wrap {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1230,7 +1258,8 @@ a:hover {
   white-space: nowrap;
 }
 
-.sidebar-signout {
+.sidebar-signout,
+.sidebar-lang-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1247,7 +1276,8 @@ a:hover {
     color var(--duration-fast) var(--ease-out);
 }
 
-.sidebar-signout:hover {
+.sidebar-signout:hover,
+.sidebar-lang-btn:hover {
   background: rgba(255, 255, 255, 0.08);
   color: var(--text-primary);
 }

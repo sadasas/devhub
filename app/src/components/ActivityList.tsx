@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, type ActivityEntry, type GranularEntity } from '../lib/api';
+import { useTranslation } from 'react-i18next';
 import { formatRelative } from '../lib/utils';
 import { useOptionalAuth } from '../state/auth-context';
 import { DetailEmpty } from './DetailList';
@@ -12,53 +13,40 @@ interface ActivityListProps {
   entityId: string;
 }
 
-const FIELD_LABELS: Record<string, string> = {
-  status: 'Status',
-  priority: 'Priority',
-  title: 'Title',
-  description: 'Description',
-  labels: 'Labels',
-  severity: 'Severity',
-  reproduction: 'Reproduction',
-  linkedTaskId: 'Linked task',
-  name: 'Name',
-  notes: 'Notes',
-  estimate: 'Estimate',
-  actualHours: 'Actual hours',
-  milestoneId: 'Milestone',
-  blockedBy: 'Blocked by',
-  steps: 'Steps',
-  expected: 'Expected result',
-  taskId: 'Linked task',
-  issueId: 'Linked issue',
-  version: 'Version',
-  targetDate: 'Target date',
-  dueDate: 'Due date',
-  startDate: 'Start date',
-  status2: 'Status',
-};
+const FIELD_KEYS = new Set([
+  'status',
+  'priority',
+  'title',
+  'description',
+  'labels',
+  'severity',
+  'reproduction',
+  'linkedTaskId',
+  'name',
+  'notes',
+  'estimate',
+  'actualHours',
+  'milestoneId',
+  'blockedBy',
+  'steps',
+  'expected',
+  'taskId',
+  'issueId',
+  'version',
+  'targetDate',
+  'dueDate',
+  'startDate',
+]);
 
-function fieldLabel(field: string): string {
-  if (FIELD_LABELS[field]) return FIELD_LABELS[field];
+function humanizeField(field: string): string {
   return field.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase());
-}
-
-function displayValue(value: unknown): string {
-  if (value === null || value === undefined) return '—';
-  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-  return String(value);
-}
-
-function ActionVerb({ action }: { action: ActivityEntry['action'] }) {
-  if (action === 'created') return <span className="activity-verb activity-created">created</span>;
-  if (action === 'deleted') return <span className="activity-verb activity-deleted">deleted</span>;
-  return <span className="activity-verb activity-updated">updated</span>;
 }
 
 export function ActivityList({ projectId, entity, entityId }: ActivityListProps) {
   const { user } = useOptionalAuth();
   const [items, setItems] = useState<ActivityEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     let cancelled = false;
@@ -71,7 +59,7 @@ export function ActivityList({ projectId, entity, entityId }: ActivityListProps)
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Failed to load activity');
+          setError(err instanceof Error ? err.message : t('activity.loadFailed'));
         }
       });
     return () => {
@@ -90,20 +78,33 @@ export function ActivityList({ projectId, entity, entityId }: ActivityListProps)
     );
   }
   if (items.length === 0) {
-    return <DetailEmpty>No activity recorded yet.</DetailEmpty>;
+    return <DetailEmpty>{t('activity.empty')}</DetailEmpty>;
   }
+
+  const fieldLabel = (field: string): string =>
+    FIELD_KEYS.has(field)
+      ? t(`activity.fields.${field}`, { defaultValue: humanizeField(field) })
+      : humanizeField(field);
+
+  const displayValue = (value: unknown): string => {
+    if (value === null || value === undefined) return '—';
+    if (typeof value === 'boolean') return value ? t('activity.yes') : t('activity.no');
+    return String(value);
+  };
 
   return (
     <ul className="activity-list">
       {items.map((entry) => {
         const author =
-          entry.authorId !== null && entry.authorId === user?.id ? 'You' : entry.authorName || 'Someone';
+          entry.authorId !== null && entry.authorId === user?.id
+            ? t('activity.authorYou')
+            : entry.authorName || t('activity.authorUnknown');
         const changes = Object.entries(entry.changes);
         return (
           <li key={entry.id} className="activity-item">
             <p className="activity-line">
               <span className="activity-author">{author}</span> <ActionVerb action={entry.action} />{' '}
-              <span className="activity-summary">{entry.summary || '(untitled)'}</span>
+              <span className="activity-summary">{entry.summary || t('activity.untitled')}</span>
               <span className="activity-time">{formatRelative(entry.createdAt)}</span>
             </p>
             {changes.length > 0 && (
@@ -121,4 +122,11 @@ export function ActivityList({ projectId, entity, entityId }: ActivityListProps)
       })}
     </ul>
   );
+}
+
+function ActionVerb({ action }: { action: ActivityEntry['action'] }) {
+  const { t } = useTranslation();
+  if (action === 'created') return <span className="activity-verb activity-created">{t('activity.verbCreated')}</span>;
+  if (action === 'deleted') return <span className="activity-verb activity-deleted">{t('activity.verbDeleted')}</span>;
+  return <span className="activity-verb activity-updated">{t('activity.verbUpdated')}</span>;
 }

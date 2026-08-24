@@ -34,3 +34,6 @@ Thumbs.db
 
 # Misc
 *.tsbuildinfo
+
+# opencode session artifacts
+.opencode/plans/

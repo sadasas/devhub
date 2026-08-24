@@ -63,6 +63,7 @@
 | [ADR-043](#adr-043) | Business model: freemium 2-tier — Free 2 member/3 proyek · Pro $15/bln flat | Accepted | 2026-08-22 |
 | [ADR-044](#adr-044) | Billing Pakasir: premium per-workspace unlimited-all, URL-redirect QRIS/VA, renewal manual | Accepted | 2026-08-22 |
 | [ADR-045](#adr-045) | Paket dinamis dari DB: limit per paket, durasi+harga dari DB, Free ikut dikelola admin | Accepted | 2026-08-22 |
+| [ADR-046](#adr-046) | i18n multi-bahasa EN+ID: react-i18next, auto-detect + localStorage, server error tetap EN | Accepted | 2026-08-24 |
 
 ---
 
@@ -579,3 +580,21 @@
   - Client: /pricing, PlanLimitModal (alur pilih paket → pilih durasi → bayar), dan kartu Upgrade TeamPage semuanya merender dari endpoint DB; monthly/yearly hardcoded dihapus.
 - **Consequences:** Positive - admin mengatur harga/limit/tier tanpa deploy; Free yang bisa diedit memungkinkan eksperimen limit; grandfathered mencegah churn paksa. Negative - resolver kuota kini join dua tabel per permintaan limit; akurasi transaksi lama bergantung kolom snapshot; admin UI wajib menandai price nonaktif; verifikasi `tsc -b app` sempat terblokir WIP sesi lain (keys/profile).
 - **Alternatives:** Paket sebagai dokumen JSONB tunggal (ditolak: query limit efektif jadi rumit); hardcode tier kedua di kode (ditolak: bertentangan dengan manage-from-DB); durasi dihitung proporsional otomatis (ditolak: admin ingin kontrol harga per durasi).
+
+---
+
+### ADR-046
+**i18n multi-bahasa EN+ID: react-i18next, auto-detect + localStorage, server error tetap EN**
+
+- **Status:** Accepted (2026-08-24) - M36 v0.29.0
+- **Context:** PRD lama mencantumkan i18n sebagai out-of-scope. Pasar awal Indonesia (billing Pakasir, ADR-044) menuntut UI berbahasa Indonesia; pengguna internasional tetap dilayani English. Riset UX language-switcher 2025–2026: tanpa bendera, nama native ("English"/"Bahasa Indonesia"), penempatan yang diharapkan user (sidebar/footer/login), simpan preferensi, aksesibel keyboard+ARIA.
+- **Decision:**
+  - Library `i18next` + `react-i18next` (v17) — interpolation, plural, namespace bawaan; dua bahasa: **EN default + ID**.
+  - Resolusi bahasa awal: `localStorage('devhub.lang')` → deteksi `navigator.language` prefix `id` → fallback `en`. Pilihan eksplisit user selalu menimpa.
+  - Resource JSON statis per fitur di `app/src/i18n/locales/{en,id}/<ns>.json`, di-bundle Vite (tanpa lazy-load — ukuran 2 bahasa kecil); konvensi key `fitur.konteks.elemen`.
+  - Persistensi localStorage saja (tanpa kolom profil server) — perangkat lintas tidak sinkron, diterima.
+  - Toggle: dropdown globe di sidebar footer (+palette Ctrl+K action + pojok halaman Auth); mobile via drawer; `<html lang>` ikut diperbarui.
+  - **Pesan error dinamis dari API tetap EN**; hanya fallback statis client yang dilokalkan.
+  - Default test = `en` → assertion teks existing tidak berubah; `react.useSuspense:false` agar komponen tidak suspend saat init.
+- **Consequences:** Positive — pasar Indonesia terlayani penuh; ekosistem i18next matang untuk plural/interpolation; migrasi bertahap per fitur tanpa memecah test. Negative — ~1.000 kunci harus dipelihara dua bahasa (risiko drift EN↔ID, mitigasi: fallback EN + review); bundle +~15kb gzip; string baru wajib masuk kedua locale (konvensi coding standards).
+- **Alternatives:** Custom context ringan ~2kb (ditolak: build ulang plural/interpolation, justru rawan bug); typesafe-i18n (ditolak: setup codegen lebih berat dari kebutuhan 2 bahasa); persistensi ke profil server (ditunda: butuh migration + endpoint, nilai tambah kecil untuk solo dev).

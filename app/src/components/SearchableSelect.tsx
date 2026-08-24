@@ -1,6 +1,7 @@
 import { useLayoutEffect, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CaretDown } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 
 export interface SearchableOption {
   value: string;
@@ -27,7 +28,7 @@ export function SearchableSelect({
   options,
   placeholder,
   allowEmpty = true,
-  emptyLabel = 'None',
+  emptyLabel,
   disabled = false,
   onChange,
 }: SearchableSelectProps) {
@@ -38,6 +39,9 @@ export function SearchableSelect({
   const containerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { t } = useTranslation();
+  const resolvedEmptyLabel = emptyLabel ?? t('select.empty');
+  const resolvedPlaceholder = placeholder ?? t('select.placeholder');
 
   const selected = options.find((o) => o.value === value);
 
@@ -50,10 +54,10 @@ export function SearchableSelect({
   const rows = useMemo(() => {
     const base = filtered as { value: string | null; label: string; hint?: string }[];
     if (allowEmpty && !query.trim()) {
-      return [{ value: null, label: emptyLabel }, ...base];
+      return [{ value: null, label: resolvedEmptyLabel }, ...base];
     }
     return base;
-  }, [allowEmpty, emptyLabel, filtered, query]);
+  }, [allowEmpty, resolvedEmptyLabel, filtered, query]);
 
   useEffect(() => {
     if (open) {
@@ -106,7 +110,7 @@ export function SearchableSelect({
     };
   }, [open]);
 
-  const display = selected?.label ?? (allowEmpty ? emptyLabel : placeholder ?? 'Select…');
+  const display = selected?.label ?? (allowEmpty ? resolvedEmptyLabel : resolvedPlaceholder);
 
   const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -171,15 +175,15 @@ export function SearchableSelect({
             className="ss-input"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search…"
-            aria-label={`Search ${label ?? 'options'}`}
+            placeholder={t('select.search')}
+            aria-label={t('select.searchLabel', { what: label ?? t('select.options') })}
             role="combobox"
             aria-expanded="true"
             aria-controls={`${id}-listbox`}
             aria-activedescendant={rows[index] ? `${id}-option-${rows[index].value ?? 'empty'}` : undefined}
           />
-          <div className="ss-list" id={`${id}-listbox`} role="listbox" aria-label={label ?? 'Options'}>
-            {rows.length === 0 && <div className="ss-empty">No matches for “{query}”</div>}
+          <div className="ss-list" id={`${id}-listbox`} role="listbox" aria-label={label ?? t('select.options')}>
+            {rows.length === 0 && <div className="ss-empty">{t('select.noMatches', { query })}</div>}
             {rows.map((row, i) => {
               const isActive = i === index;
               const key = row.value ?? 'empty';

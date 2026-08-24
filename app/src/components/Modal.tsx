@@ -2,6 +2,7 @@ import { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from '@phosphor-icons/react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
 type ModalWidth = 'sm' | 'md' | 'lg';
@@ -35,6 +36,7 @@ interface ModalProps {
 
 export function Modal({ open, title, onClose, children, footer, width = 'md' }: ModalProps) {
   const titleId = useId();
+  const { t } = useTranslation();
   const dialogRef = useFocusTrap<HTMLDivElement>(open);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
@@ -77,7 +79,7 @@ export function Modal({ open, title, onClose, children, footer, width = 'md' }: 
             type="button"
             className="btn btn-ghost btn-sm btn-icon"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('action.close')}
           >
             <X size={14} weight="bold" aria-hidden="true" />
           </button>

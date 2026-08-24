@@ -8,6 +8,7 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Logo } from '../../components/Logo';
 import { InlineError } from '../../components/InlineError';
+import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 
 export function AuthPage() {
   const { login, register } = useAuth();
@@ -61,6 +62,9 @@ export function AuthPage() {
       </aside>
 
       <main className="auth-form-wrap">
+        <div className="auth-lang">
+          <LanguageSwitcher />
+        </div>
         <form className="auth-form" onSubmit={onSubmit} noValidate>
           <div>
             <h2 className="auth-form-title">

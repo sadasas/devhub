@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { CaretDown, SortAscending, SortDescending } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import type { SortDir } from '../lib/sort';
 
 interface SortOption {
@@ -22,7 +23,8 @@ interface SortControlProps {
 export function SortControl({ options, value, onChange, allowNone = true }: SortControlProps) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const activeLabel = value ? (options.find((o) => o.value === value.key)?.label ?? value.key) : 'Sort';
+  const { t } = useTranslation();
+  const activeLabel = value ? (options.find((o) => o.value === value.key)?.label ?? value.key) : t('sort.trigger');
 
   useEffect(() => {
     if (!open) return;
@@ -63,7 +65,7 @@ export function SortControl({ options, value, onChange, allowNone = true }: Sort
         <CaretDown size={10} aria-hidden="true" />
       </button>
       {open && (
-        <div className="sort-menu" role="menu" aria-label="Sort">
+        <div className="sort-menu" role="menu" aria-label={t('sort.menu')}>
           {value && allowNone && (
             <button
               type="button"
@@ -74,7 +76,7 @@ export function SortControl({ options, value, onChange, allowNone = true }: Sort
                 setOpen(false);
               }}
             >
-              None
+              {t('sort.none')}
             </button>
           )}
           {options.map((o) => (
@@ -90,7 +92,7 @@ export function SortControl({ options, value, onChange, allowNone = true }: Sort
             </button>
           ))}
           {value && (
-            <div className="sort-menu-dir" role="group" aria-label="Direction">
+            <div className="sort-menu-dir" role="group" aria-label={t('sort.direction')}>
               {(['asc', 'desc'] as const).map((dir) => (
                 <button
                   key={dir}
@@ -108,7 +110,7 @@ export function SortControl({ options, value, onChange, allowNone = true }: Sort
                   ) : (
                     <SortDescending size={13} aria-hidden="true" />
                   )}
-                  {dir === 'asc' ? 'Ascending' : 'Descending'}
+                  {dir === 'asc' ? t('sort.ascending') : t('sort.descending')}
                 </button>
               ))}
             </div>

@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { SquaresFour, FolderSimple, Key, BookOpen, UserCircle, Plus, ArrowUp, ArrowDown, ArrowRight, MagnifyingGlass, Columns, Bug, CheckSquare, Scales, Rocket, Stack, Plugs, ChalkboardSimple } from '@phosphor-icons/react';
+import { SquaresFour, FolderSimple, Key, BookOpen, UserCircle, Plus, ArrowUp, ArrowDown, ArrowRight, MagnifyingGlass, Columns, Bug, CheckSquare, Scales, Rocket, Stack, Plugs, ChalkboardSimple, Globe } from '@phosphor-icons/react';
 import { matchPath, useLocation, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { useProjects } from '../state/projects-context';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { useSearchResults } from '../hooks/useSearchResults';
 import { entityDeepLink } from '../lib/deep-link';
 import { onOpenPalette } from '../lib/palette-events';
+import { LANGUAGES, useAppLocale } from '../i18n/useAppLocale';
 
 interface PaletteCommand {
   id: string;
@@ -37,6 +39,8 @@ export function CommandPalette() {
   const navigate = useNavigate();
   const location = useLocation();
   const { projects } = useProjects();
+  const { t } = useTranslation('shell');
+  const { lang, setLang } = useAppLocale();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [index, setIndex] = useState(0);
@@ -53,8 +57,8 @@ export function CommandPalette() {
     const list: PaletteCommand[] = [
       {
         id: 'dashboard',
-        group: 'Navigate',
-        label: 'Go to dashboard',
+        group: t('palette.groupNavigate'),
+        label: t('palette.goDashboard'),
         icon: <SquaresFour size={16} />,
         run: () => {
           setOpen(false);
@@ -63,8 +67,8 @@ export function CommandPalette() {
       },
       {
         id: 'keys',
-        group: 'Navigate',
-        label: 'Go to API keys',
+        group: t('palette.groupNavigate'),
+        label: t('palette.goKeys'),
         icon: <Key size={16} />,
         run: () => {
           setOpen(false);
@@ -73,8 +77,8 @@ export function CommandPalette() {
       },
       {
         id: 'docs',
-        group: 'Navigate',
-        label: 'Open docs',
+        group: t('palette.groupNavigate'),
+        label: t('palette.openDocs'),
         icon: <BookOpen size={16} />,
         run: () => {
           setOpen(false);
@@ -83,8 +87,8 @@ export function CommandPalette() {
       },
       {
         id: 'profile',
-        group: 'Navigate',
-        label: 'Go to profile',
+        group: t('palette.groupNavigate'),
+        label: t('palette.goProfile'),
         icon: <UserCircle size={16} />,
         run: () => {
           setOpen(false);
@@ -93,12 +97,25 @@ export function CommandPalette() {
       },
       {
         id: 'new-project',
-        group: 'Create',
-        label: 'New project',
+        group: t('palette.groupCreate'),
+        label: t('palette.newProject'),
         icon: <Plus size={16} />,
         run: () => {
           setOpen(false);
           navigate('/?new=1');
+        },
+      },
+      {
+        id: 'switch-language',
+        group: t('palette.groupPreferences'),
+        label: t('language.switchTo', {
+          name: LANGUAGES.find((l) => l.code !== lang)?.nativeName ?? '',
+        }),
+        icon: <Globe size={16} />,
+        run: () => {
+          setOpen(false);
+          const other = LANGUAGES.find((l) => l.code !== lang);
+          if (other) setLang(other.code);
         },
       },
     ];
@@ -114,20 +131,20 @@ export function CommandPalette() {
         navigate(`/project/${project.id}?${params.toString()}`);
       };
       const createCommands: { id: string; label: string; icon: ReactNode; tab: string; value?: string }[] = [
-        { id: 'new-task', label: 'New task', icon: <Columns size={16} />, tab: 'board' },
-        { id: 'new-issue', label: 'New issue', icon: <Bug size={16} />, tab: 'issues' },
-        { id: 'new-test-case', label: 'New test case', icon: <CheckSquare size={16} />, tab: 'tests' },
-        { id: 'new-decision', label: 'New decision', icon: <Scales size={16} />, tab: 'decisions' },
-        { id: 'new-milestone', label: 'New milestone', icon: <Rocket size={16} />, tab: 'releases' },
-        { id: 'new-tech-entry', label: 'New tech entry', icon: <Stack size={16} />, tab: 'stack' },
-        { id: 'new-api-collection', label: 'New API collection', icon: <Plugs size={16} />, tab: 'api' },
-        { id: 'new-api-endpoint', label: 'New API endpoint', icon: <Plugs size={16} />, tab: 'api', value: 'endpoint' },
-        { id: 'new-whiteboard', label: 'New whiteboard', icon: <ChalkboardSimple size={16} />, tab: 'whiteboard' },
+        { id: 'new-task', label: t('palette.newTask'), icon: <Columns size={16} />, tab: 'board' },
+        { id: 'new-issue', label: t('palette.newIssue'), icon: <Bug size={16} />, tab: 'issues' },
+        { id: 'new-test-case', label: t('palette.newTestCase'), icon: <CheckSquare size={16} />, tab: 'tests' },
+        { id: 'new-decision', label: t('palette.newDecision'), icon: <Scales size={16} />, tab: 'decisions' },
+        { id: 'new-milestone', label: t('palette.newMilestone'), icon: <Rocket size={16} />, tab: 'releases' },
+        { id: 'new-tech-entry', label: t('palette.newTechEntry'), icon: <Stack size={16} />, tab: 'stack' },
+        { id: 'new-api-collection', label: t('palette.newApiCollection'), icon: <Plugs size={16} />, tab: 'api' },
+        { id: 'new-api-endpoint', label: t('palette.newApiEndpoint'), icon: <Plugs size={16} />, tab: 'api', value: 'endpoint' },
+        { id: 'new-whiteboard', label: t('palette.newWhiteboard'), icon: <ChalkboardSimple size={16} />, tab: 'whiteboard' },
       ];
       for (const c of createCommands) {
         list.push({
           id: c.id,
-          group: 'Create',
+          group: t('palette.groupCreate'),
           label: c.label,
           icon: c.icon,
           run: () => createIn(c.tab, c.value),
@@ -137,7 +154,7 @@ export function CommandPalette() {
     for (const p of projects ?? []) {
       list.push({
         id: p.id,
-        group: 'Projects',
+        group: t('palette.groupProjects'),
         label: p.name,
         icon: <FolderSimple size={16} />,
         run: () => {
@@ -156,8 +173,8 @@ export function CommandPalette() {
       if (search.loading) {
         list.push({
           id: 'search-loading',
-          group: 'Search',
-          label: 'Searching…',
+          group: t('palette.groupSearch'),
+          label: t('palette.searching'),
           icon: <MagnifyingGlass size={16} />,
           disabled: true,
           run: () => {},
@@ -165,7 +182,7 @@ export function CommandPalette() {
       } else if (search.error) {
         list.push({
           id: 'search-error',
-          group: 'Search',
+          group: t('palette.groupSearch'),
           label: search.error,
           icon: <MagnifyingGlass size={16} />,
           disabled: true,
@@ -173,7 +190,7 @@ export function CommandPalette() {
         });
       } else {
         for (const projectResult of search.results) {
-          const group = `Results · ${projectResult.projectName}`;
+          const group = t('palette.resultsGroup', { name: projectResult.projectName });
           for (const hit of projectResult.hits) {
             list.push({
               id: `search-${projectResult.projectId}-${hit.entity}-${hit.entityId}`,
@@ -192,7 +209,7 @@ export function CommandPalette() {
       }
     }
     return list;
-  }, [projects, navigate, location, q, search.loading, search.error, search.results]);
+  }, [projects, navigate, location, q, search.loading, search.error, search.results, t, lang, setLang]);
 
   const filtered = useMemo(() => {
     const lower = q.toLowerCase();
@@ -289,7 +306,7 @@ export function CommandPalette() {
 
   let flat = 0;
   return (
-    <div className="palette" role="dialog" aria-modal="true" aria-label="Command palette">
+    <div className="palette" role="dialog" aria-modal="true" aria-label={t('palette.dialog')}>
       <div className="palette-backdrop" onMouseDown={() => setOpen(false)} />
       <div className="palette-panel" ref={panelRef}>
         <input
@@ -297,15 +314,15 @@ export function CommandPalette() {
           className="palette-input"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Type a command or search tasks, issues, decisions…"
-          aria-label="Search commands"
+          placeholder={t('palette.searchPlaceholder')}
+          aria-label={t('palette.searchCommands')}
           role="combobox"
           aria-expanded="true"
           aria-controls="palette-list"
           aria-activedescendant={filtered[index] ? `palette-option-${filtered[index].id}` : undefined}
         />
-        <div className="palette-list" id="palette-list" role="listbox" aria-label="Commands">
-          {filtered.length === 0 && <div className="palette-empty">No matches for “{query}”</div>}
+        <div className="palette-list" id="palette-list" role="listbox" aria-label={t('palette.commandsList')}>
+          {filtered.length === 0 && <div className="palette-empty">{t('palette.noMatches', { query })}</div>}
           {groups.map((g) => (
             <div key={g}>
               <div className="palette-group">{g}</div>
@@ -338,12 +355,12 @@ export function CommandPalette() {
         </div>
         <div className="palette-footer">
           <span>
-            <ArrowUp size={11} /> <ArrowDown size={11} /> navigate
+            <ArrowUp size={11} /> <ArrowDown size={11} /> {t('palette.hintNavigate')}
           </span>
           <span>
-            <ArrowRight size={11} /> open
+            <ArrowRight size={11} /> {t('palette.hintOpen')}
           </span>
-          <span>esc close</span>
+          <span>{t('palette.hintClose')}</span>
         </div>
       </div>
     </div>

@@ -1,0 +1,96 @@
+{
+  "language": {
+    "toggle": "Ganti bahasa",
+    "menu": "Bahasa",
+    "switchTo": "Ganti ke {{name}}"
+  },
+  "action": {
+    "cancel": "Batal",
+    "close": "Tutup",
+    "delete": "Hapus",
+    "retry": "Coba lagi",
+    "reload": "Muat ulang",
+    "tryAgain": "Coba lagi",
+    "loadLatest": "Muat versi terbaru"
+  },
+  "save": {
+    "saving": "Menyimpan…",
+    "allSaved": "Semua perubahan tersimpan",
+    "failed": "Gagal menyimpan: {{error}} — perubahan Anda tetap aman di perangkat ini."
+  },
+  "sort": {
+    "trigger": "Urutkan",
+    "menu": "Urutkan",
+    "none": "Tidak ada",
+    "direction": "Arah",
+    "ascending": "Naik",
+    "descending": "Turun"
+  },
+  "select": {
+    "empty": "Tidak ada",
+    "placeholder": "Pilih…",
+    "search": "Cari…",
+    "searchLabel": "Cari {{what}}",
+    "options": "Opsi",
+    "noMatches": "Tidak ada hasil untuk “{{query}}”"
+  },
+  "presence": {
+    "chip": "{{count}} online",
+    "dialog": "Pengguna online",
+    "header": "Online · {{count}}",
+    "fallbackName": "Pengguna",
+    "you": "(Anda)"
+  },
+  "activity": {
+    "empty": "Belum ada aktivitas tercatat.",
+    "loadFailed": "Gagal memuat aktivitas",
+    "verbCreated": "membuat",
+    "verbDeleted": "menghapus",
+    "verbUpdated": "memperbarui",
+    "authorYou": "Anda",
+    "authorUnknown": "Seseorang",
+    "untitled": "(tanpa judul)",
+    "yes": "Ya",
+    "no": "Tidak",
+    "fields": {
+      "status": "Status",
+      "priority": "Prioritas",
+      "title": "Judul",
+      "description": "Deskripsi",
+      "labels": "Label",
+      "severity": "Tingkat",
+      "reproduction": "Reproduksi",
+      "linkedTaskId": "Task terkait",
+      "name": "Nama",
+      "notes": "Catatan",
+      "estimate": "Estimasi",
+      "actualHours": "Jam aktual",
+      "milestoneId": "Milestone",
+      "blockedBy": "Diblokir oleh",
+      "steps": "Langkah",
+      "expected": "Hasil yang diharapkan",
+      "taskId": "Task terkait",
+      "issueId": "Issue terkait",
+      "version": "Versi",
+      "targetDate": "Tanggal target",
+      "dueDate": "Tanggal jatuh tempo",
+      "startDate": "Tanggal mulai"
+    }
+  },
+  "errorBoundary": {
+    "title": "Terjadi kesalahan",
+    "subtitle": "Terjadi kesalahan tak terduga saat menampilkan halaman ini. Data Anda aman — coba lagi, atau muat ulang aplikasi bila masalah berlanjut."
+  },
+  "usage": {
+    "unlimited": "Tanpa batas",
+    "ofLimit": "{{label}}: {{used}} dari {{limit}}"
+  },
+  "sync": {
+    "offlineTitle": "Tidak dapat menghubungi server — perubahan disimpan lokal dan akan disinkronkan saat koneksi kembali.",
+    "offline": "Offline",
+    "pendingSuffix": "· {{count}} menunggu",
+    "pendingTitle_one": "{{count}} perubahan menunggu sinkronisasi.",
+    "pendingTitle_other": "{{count}} perubahan menunggu sinkronisasi.",
+    "pending": "Menunggu {{count}}"
+  }
+}

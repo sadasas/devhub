@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CheckCircle, Warning } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { useProject } from '../state/project-context';
 import { Button } from './Button';
 
@@ -9,6 +10,7 @@ const SAVED_VISIBLE_MS = 2000;
 export function SaveBanner() {
   const { saveError, saving, retrySave, lastSavedAt, conflict, resolveConflict } = useProject();
   const [showSaved, setShowSaved] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!lastSavedAt) return;
@@ -23,7 +25,7 @@ export function SaveBanner() {
         <Warning size={13} weight="bold" aria-hidden="true" />
         <span>{conflict.message}</span>
         <Button variant="ghost" size="sm" onClick={resolveConflict}>
-          Load latest
+          {t('action.loadLatest')}
         </Button>
       </div>,
       document.body,
@@ -34,9 +36,9 @@ export function SaveBanner() {
     return createPortal(
       <div className="save-toast save-banner" role="alert" data-testid="save-banner">
         <Warning size={13} weight="bold" aria-hidden="true" />
-        <span>Save failed: {saveError} — your changes are kept locally.</span>
+        <span>{t('save.failed', { error: saveError })}</span>
         <Button variant="ghost" size="sm" onClick={retrySave} loading={saving}>
-          Retry
+          {t('action.retry')}
         </Button>
       </div>,
       document.body,
@@ -48,11 +50,11 @@ export function SaveBanner() {
   return createPortal(
     <div className="save-toast save-status" role="status" data-testid="save-banner">
       {saving ? (
-        'Saving…'
+        t('save.saving')
       ) : (
         <>
           <CheckCircle size={13} weight="bold" aria-hidden="true" />
-          All changes saved
+          {t('save.allSaved')}
         </>
       )}
     </div>,

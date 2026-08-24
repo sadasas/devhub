@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 interface UsageMeterProps {
   label: string;
   used: number;
@@ -5,11 +7,12 @@ interface UsageMeterProps {
 }
 
 export function UsageMeter({ label, used, limit }: UsageMeterProps) {
+  const { t } = useTranslation();
   if (limit === null) {
     return (
       <div className="usage-meter">
         <span className="usage-meter-label">{label}</span>
-        <span className="usage-meter-value">Unlimited</span>
+        <span className="usage-meter-value">{t('usage.unlimited')}</span>
       </div>
     );
   }
@@ -24,7 +27,7 @@ export function UsageMeter({ label, used, limit }: UsageMeterProps) {
         aria-valuenow={used}
         aria-valuemin={0}
         aria-valuemax={limit}
-        aria-label={`${label}: ${used} of ${limit}`}
+        aria-label={t('usage.ofLimit', { label, used, limit })}
       >
         <div className={`usage-meter-fill usage-meter-${tone}`} style={{ width: `${pct}%` }} />
       </div>
