@@ -10,6 +10,7 @@ import {
   findActivePrice,
   findPaymentByOrderId,
   insertPendingPayment,
+  listPaymentsByUser,
   listTeamPayments,
   markPaymentCompleted,
 } from '../infrastructure/billingRepository.js';
@@ -132,6 +133,7 @@ function serializePayment(row: {
   status: string;
   created_at: Date;
   completed_at: Date | null;
+  team_name?: string;
 }) {
   return {
     orderId: row.order_id,
@@ -141,6 +143,7 @@ function serializePayment(row: {
     status: row.status,
     createdAt: row.created_at.toISOString(),
     completedAt: row.completed_at ? row.completed_at.toISOString() : null,
+    ...(row.team_name !== undefined ? { teamName: row.team_name } : {}),
   };
 }
 
@@ -157,6 +160,7 @@ export async function getBillingOverview(userId: string, teamId: string) {
       id: row.id,
       name: row.name,
       plan,
+      planPackageName: usage?.packageName ?? 'Free',
       planExpiresAt: row.plan_expires_at ? row.plan_expires_at.toISOString() : null,
     },
     usage: {
@@ -171,4 +175,9 @@ export async function getBillingOverview(userId: string, teamId: string) {
     },
     payments: payments.map(serializePayment),
   };
+}
+
+export async function getPaymentHistory(userId: string) {
+  const payments = await listPaymentsByUser(userId);
+  return { payments: payments.map(serializePayment) };
 }

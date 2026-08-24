@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, CaretDown, Check, Lock, Lightning, Star } from '@phosphor-icons/react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
-import type { BillingPackage } from '../../lib/types';
+import type { BillingPackage, PackagePrice } from '../../lib/types';
 import { Button } from '../../components/Button';
 import { InlineError } from '../../components/InlineError';
 import { SearchableSelect } from '../../components/SearchableSelect';
@@ -44,7 +44,7 @@ const STATIC_BENEFITS = ['Semua fitur core', 'Export JSON', 'Priority support'];
 const FAQ_ITEMS = [
   {
     q: 'Bagaimana cara upgrade?',
-    a: 'Pilih workspace yang ingin di-upgrade, lalu pilih paket Pro dan durasi pembayaran. Setelah bayar, plan akan aktif otomatis setelah pembayaran dikonfirmasi.',
+    a: 'Pilih workspace yang ingin di-upgrade, lalu pilih paket dan durasi pembayaran. Setelah bayar, plan akan aktif otomatis setelah pembayaran dikonfirmasi.',
   },
   {
     q: 'Apakah ada free trial?',
@@ -64,6 +64,179 @@ const FAQ_ITEMS = [
   },
 ];
 
+function DurationCard({
+  price,
+  isActive,
+  pkgId,
+  onSelect,
+}: {
+  price: PackagePrice;
+  isActive: boolean;
+  pkgId: string;
+  onSelect: (pkgId: string, priceId: string) => void;
+}) {
+  const original = price.originalPriceIdr;
+  const hasDisc = typeof original === 'number' && original > price.priceIdr;
+  return (
+    <button
+      type="button"
+      className={`pricing-duration-card${isActive ? ' pricing-duration-card-active' : ''}`}
+      aria-pressed={isActive}
+      onClick={() => onSelect(pkgId, price.id)}
+    >
+      <span className="pricing-duration-name">{formatDuration(price.durationDays)}</span>
+      {hasDisc && (
+        <span className="pricing-duration-original">{formatIdr(original)}</span>
+      )}
+      <span className="pricing-duration-price">{formatIdr(price.priceIdr)}</span>
+      {hasDisc && (
+        <span className="pricing-duration-savings">
+          Hemat {savingsPercent(original, price.priceIdr)}%
+        </span>
+      )}
+    </button>
+  );
+}
+
+function PricingCard({
+  pkg,
+  isRecommended,
+  selectedPriceId,
+  onSelectPrice,
+  onSelectTeam,
+  selectedTeamId,
+  onBuy,
+  busyKey,
+  user,
+  teams,
+  actionError,
+}: {
+  pkg: BillingPackage;
+  isRecommended: boolean;
+  selectedPriceId: string | null;
+  onSelectPrice: (pkgId: string, priceId: string) => void;
+  onSelectTeam: (teamId: string) => void;
+  selectedTeamId: string;
+  onBuy: (pkgId: string, priceId: string) => void;
+  busyKey: string | null;
+  user: { id: string } | null;
+  teams: { id: string; name: string }[] | null;
+  actionError: string | null;
+}) {
+  const selectedPrice = pkg.prices.find((p) => p.id === selectedPriceId) ?? null;
+  const benefits = computeBenefits(pkg);
+
+  return (
+    <section
+      className={`pricing-card${isRecommended ? ' pricing-card-pro' : ''}`}
+      aria-label={`${pkg.name} plan`}
+    >
+      {isRecommended && (
+        <div className="pricing-pro-header">
+          <p className="pricing-recommended">
+            <Star size={11} weight="fill" aria-hidden="true" /> Recommended
+          </p>
+        </div>
+      )}
+
+      <h2 className="pricing-plan-name">{pkg.name}</h2>
+      {pkg.description && <p className="page-subtitle">{pkg.description}</p>}
+
+      {pkg.prices.length > 0 ? (
+        <>
+          <div>
+            <p className="pricing-duration-label">Pilih periode:</p>
+            <div className="pricing-duration-grid" role="group" aria-label="Pilih durasi">
+              {pkg.prices.map((price) => (
+                <DurationCard
+                  key={price.id}
+                  price={price}
+                  isActive={selectedPriceId === price.id}
+                  pkgId={pkg.id}
+                  onSelect={onSelectPrice}
+                />
+              ))}
+            </div>
+          </div>
+
+          {selectedPrice && (
+            <p className="pricing-total-line">
+              Total: {selectedPrice.originalPriceIdr != null && selectedPrice.originalPriceIdr > selectedPrice.priceIdr ? (
+                <>{formatIdr(selectedPrice.originalPriceIdr)} → </>
+              ) : null}
+              {formatIdr(selectedPrice.priceIdr)} untuk {formatDuration(selectedPrice.durationDays)}
+            </p>
+          )}
+        </>
+      ) : (
+        <p className="pricing-price">Rp 0</p>
+      )}
+
+      <hr className="pricing-divider" />
+
+      <ul className="pricing-benefits">
+        {benefits.map((b) => (
+          <li key={b}>
+            <Check size={13} weight="bold" aria-hidden="true" />
+            {b}
+          </li>
+        ))}
+        {STATIC_BENEFITS.map((b) => (
+          <li key={b}>
+            <Check size={13} weight="bold" aria-hidden="true" />
+            {b}
+          </li>
+        ))}
+      </ul>
+
+      <hr className="pricing-divider" />
+
+      <div className="pricing-checkout">
+        {pkg.prices.length > 0 && (
+          <div className="field">
+            <label className="field-label" htmlFor={`pricing-team-${pkg.id}`}>
+              Workspace
+            </label>
+            <SearchableSelect
+              id={`pricing-team-${pkg.id}`}
+              placeholder="Pilih workspace"
+              value={selectedTeamId || null}
+              options={(teams ?? []).map((t) => ({ value: t.id, label: t.name }))}
+              onChange={(v) => onSelectTeam(v ?? '')}
+            />
+          </div>
+        )}
+
+        {isRecommended && actionError && <InlineError>{actionError}</InlineError>}
+
+        {pkg.prices.length > 0 ? (
+          <Button
+            variant={isRecommended ? 'primary' : 'secondary'}
+            disabled={!user || !selectedTeamId}
+            loading={!!busyKey}
+            onClick={() => {
+              const priceId = selectedPriceId ?? pkg.prices[0]?.id;
+              if (priceId) onBuy(pkg.id, priceId);
+            }}
+          >
+            {selectedPrice
+              ? `Upgrade ke ${pkg.name} — ${formatIdr(selectedPrice.priceIdr)}`
+              : `Upgrade ke ${pkg.name}`}
+          </Button>
+        ) : (
+          <Button variant="ghost" size="sm" disabled>
+            Paket saat ini
+          </Button>
+        )}
+
+        {isRecommended && !selectedTeamId && (
+          <p className="page-subtitle">Pilih workspace di atas untuk melanjutkan.</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export function PricingPage() {
   const { user } = useAuth();
   const { teams } = useTeams();
@@ -75,7 +248,7 @@ export function PricingPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
-  const [selectedPriceId, setSelectedPriceId] = useState<string | null>(null);
+  const [selectedPrices, setSelectedPrices] = useState<Record<string, string>>({});
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   useEffect(() => {
@@ -85,33 +258,37 @@ export function PricingPage() {
   const effectiveTeamId =
     queryTeamId && teams?.some((t) => t.id === queryTeamId) ? queryTeamId : selectedTeamId;
 
-  const proPkg = useMemo(() => packages?.find((p) => !p.isFree) ?? null, [packages]);
-  const freePkg = useMemo(() => packages?.find((p) => p.isFree) ?? null, [packages]);
+  const freePkgs = (packages ?? []).filter((p) => p.isFree);
+  const paidPkgs = (packages ?? []).filter((p) => !p.isFree);
 
-  // Default to cheapest price
+  const initRef = useRef(false);
   useEffect(() => {
-    if (proPkg && !selectedPriceId) {
-      setSelectedPriceId(proPkg.prices[0]?.id ?? null);
+    if (!packages || initRef.current) return;
+    initRef.current = true;
+    const init: Record<string, string> = {};
+    for (const pkg of packages) {
+      if (!pkg.isFree && pkg.prices.length > 0) {
+        init[pkg.id] = pkg.prices[0].id;
+      }
     }
-  }, [proPkg, selectedPriceId]);
+    if (Object.keys(init).length > 0) {
+      setSelectedPrices((prev) => ({ ...prev, ...init }));
+    }
+  }, [packages]);
 
-  const selectedPrice = useMemo(
-    () => proPkg?.prices.find((p) => p.id === selectedPriceId) ?? null,
-    [proPkg, selectedPriceId],
-  );
+  function handleSelectPrice(pkgId: string, priceId: string) {
+    setSelectedPrices((prev) => ({ ...prev, [pkgId]: priceId }));
+  }
 
-  const proBenefits = useMemo(() => (proPkg ? computeBenefits(proPkg) : []), [proPkg]);
-
-  async function onBuy() {
-    if (!proPkg || !selectedPriceId) return;
+  async function handleBuy(pkgId: string, priceId: string) {
     if (!effectiveTeamId) {
       setActionError('Pilih workspace yang akan di-upgrade.');
       return;
     }
     setActionError(null);
-    setBusyKey(`${proPkg.id}:${selectedPriceId}`);
+    setBusyKey(`${pkgId}:${priceId}`);
     try {
-      const result = await api.startCheckout(effectiveTeamId, proPkg.id, selectedPriceId);
+      const result = await api.startCheckout(effectiveTeamId, pkgId, priceId);
       window.location.assign(result.url);
     } catch (err) {
       setActionError(getErrorMessage(err, 'Gagal memulai checkout.'));
@@ -140,9 +317,7 @@ export function PricingPage() {
             <ArrowLeft size={14} aria-hidden="true" /> Kembali
           </button>
           <h1 className="page-title pricing-title">Mulai gratis, upgrade saat timmu butuh.</h1>
-          <p className="page-subtitle">
-            Semua fitur core tersedia di kedua plan — limit yang berbeda.
-          </p>
+          <p className="page-subtitle">Semua fitur core tersedia — limit yang berbeda.</p>
         </div>
       </header>
 
@@ -161,165 +336,38 @@ export function PricingPage() {
         </div>
       ) : (
         <div className="pricing-grid">
-          {/* Free card */}
-          {freePkg && (
-            <section className="pricing-card" aria-label={`${freePkg.name} plan`}>
-              <h2 className="pricing-plan-name">{freePkg.name}</h2>
-              {freePkg.description && <p className="page-subtitle">{freePkg.description}</p>}
-              <p className="pricing-price">Rp 0</p>
-              <ul className="pricing-features">
-                {computeBenefits(freePkg).map((b) => (
-                  <li key={b}>
-                    <Check size={13} weight="bold" aria-hidden="true" />
-                    {b}
-                  </li>
-                ))}
-                <li>
-                  <Check size={13} weight="bold" aria-hidden="true" />
-                  Semua fitur core
-                </li>
-                <li>
-                  <Check size={13} weight="bold" aria-hidden="true" />
-                  Export JSON
-                </li>
-              </ul>
-              <Button variant="ghost" size="sm" disabled>
-                Paket saat ini
-              </Button>
-            </section>
-          )}
-
-          {/* Pro card */}
-          {proPkg && (
-            <section className="pricing-card pricing-card-pro" aria-label={`${proPkg.name} plan`}>
-              <div className="pricing-pro-header">
-                <p className="pricing-recommended">
-                  <Star size={11} weight="fill" aria-hidden="true" /> Recommended
-                </p>
-                <h2 className="pricing-plan-name">{proPkg.name}</h2>
-                {proPkg.description && <p className="page-subtitle">{proPkg.description}</p>}
-              </div>
-
-              {/* Duration selector */}
-              <div>
-                <p className="pricing-duration-label">Pilih periode:</p>
-                <div className="pricing-duration-grid" role="group" aria-label="Pilih durasi">
-                  {proPkg.prices.map((price) => {
-                    const original = price.originalPriceIdr;
-                    const hasDisc = typeof original === 'number' && original > price.priceIdr;
-                    const isActive = selectedPriceId === price.id;
-                    return (
-                      <button
-                        key={price.id}
-                        type="button"
-                        className={`pricing-duration-card${isActive ? ' pricing-duration-card-active' : ''}`}
-                        aria-pressed={isActive}
-                        onClick={() => setSelectedPriceId(price.id)}
-                      >
-                        <span className="pricing-duration-name">
-                          {formatDuration(price.durationDays)}
-                        </span>
-                        <span className="pricing-duration-price">
-                          {formatIdr(price.priceIdr)}
-                        </span>
-                        {hasDisc && (
-                          <span className="pricing-duration-savings">
-                            Hemat {savingsPercent(original as number, price.priceIdr)}%
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Total */}
-              {selectedPrice && (
-                <p className="pricing-total-line">
-                  Total: {formatIdr(selectedPrice.priceIdr)} untuk{' '}
-                  {formatDuration(selectedPrice.durationDays)}
-                </p>
-              )}
-
-              <hr className="pricing-divider" />
-
-              {/* Benefits */}
-              <ul className="pricing-benefits">
-                {proBenefits.map((b) => (
-                  <li key={b}>
-                    <Check size={13} weight="bold" aria-hidden="true" />
-                    {b}
-                  </li>
-                ))}
-                {STATIC_BENEFITS.map((b) => (
-                  <li key={b}>
-                    <Check size={13} weight="bold" aria-hidden="true" />
-                    {b}
-                  </li>
-                ))}
-              </ul>
-
-              <hr className="pricing-divider" />
-
-              {/* Checkout */}
-              <div className="pricing-checkout">
-                <div className="field">
-                  <label className="field-label" htmlFor="pricing-team">
-                    Workspace
-                  </label>
-                  <SearchableSelect
-                    id="pricing-team"
-                    placeholder="Pilih workspace"
-                    value={selectedTeamId || null}
-                    options={(teams ?? []).map((t) => ({ value: t.id, label: t.name }))}
-                    onChange={(v) => setSelectedTeamId(v ?? '')}
-                  />
-                </div>
-
-                {actionError && <InlineError>{actionError}</InlineError>}
-
-                <Button
-                  variant="primary"
-                  disabled={!user || !effectiveTeamId}
-                  loading={!!busyKey}
-                  onClick={() => void onBuy()}
-                >
-                  {selectedPrice
-                    ? `Upgrade ke Pro — ${formatIdr(selectedPrice.priceIdr)}`
-                    : 'Upgrade ke Pro'}
-                </Button>
-
-                {!effectiveTeamId && (
-                  <p className="page-subtitle">Pilih workspace di atas untuk melanjutkan.</p>
-                )}
-
-                {!user && (
-                  <p className="page-subtitle">Buat akun gratis untuk upgrade workspace.</p>
-                )}
-              </div>
-            </section>
-          )}
-        </div>
-      )}
-
-      {/* Why upgrade */}
-      {proPkg && freePkg && (
-        <div className="pricing-why">
-          <h3 className="pricing-section-label">Kenapa upgrade ke Pro?</h3>
-          <ul className="pricing-benefits">
-            {proBenefits.map((b) => (
-              <li key={b}>
-                <Check size={13} weight="bold" aria-hidden="true" />
-                {b}
-              </li>
-            ))}
-            {STATIC_BENEFITS.map((b) => (
-              <li key={b}>
-                <Check size={13} weight="bold" aria-hidden="true" />
-                {b}
-              </li>
-            ))}
-          </ul>
+          {freePkgs.map((pkg) => (
+            <PricingCard
+              key={pkg.id}
+              pkg={pkg}
+              isRecommended={false}
+              selectedPriceId={null}
+              onSelectPrice={handleSelectPrice}
+              onSelectTeam={setSelectedTeamId}
+              selectedTeamId={selectedTeamId}
+              onBuy={handleBuy}
+              busyKey={busyKey}
+              user={user}
+              teams={teams}
+              actionError={null}
+            />
+          ))}
+          {paidPkgs.map((pkg, i) => (
+            <PricingCard
+              key={pkg.id}
+              pkg={pkg}
+              isRecommended={i === 0}
+              selectedPriceId={selectedPrices[pkg.id] ?? pkg.prices[0]?.id ?? null}
+              onSelectPrice={handleSelectPrice}
+              onSelectTeam={setSelectedTeamId}
+              selectedTeamId={selectedTeamId}
+              onBuy={handleBuy}
+              busyKey={busyKey}
+              user={user}
+              teams={teams}
+              actionError={i === 0 ? actionError : null}
+            />
+          ))}
         </div>
       )}
 

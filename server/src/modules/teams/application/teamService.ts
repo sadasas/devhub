@@ -59,6 +59,7 @@ function teamJson(row: {
   name: string;
   role: string;
   plan?: string;
+  plan_package_name?: string;
   member_count: number | string;
   created_at: Date;
   updated_at: Date;
@@ -68,6 +69,7 @@ function teamJson(row: {
     name: row.name,
     role: row.role,
     plan: row.plan ?? 'free',
+    planPackageName: row.plan_package_name ?? 'Free',
     memberCount: Number(row.member_count),
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),

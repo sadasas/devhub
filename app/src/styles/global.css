@@ -7038,6 +7038,12 @@ input[type='checkbox'] {
   color: var(--text-muted);
 }
 
+.pricing-duration-original {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
 .pricing-duration-savings {
   font-size: 11px;
   color: var(--accent);
@@ -7451,7 +7457,8 @@ input[type='checkbox'] {
 
 .admin-package-actions {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 6px;
   padding-top: 10px;
   border-top: 1px solid var(--border-hairline);
 }
@@ -7512,6 +7519,11 @@ input[type='checkbox'] {
   gap: 8px;
   margin-bottom: 12px;
   flex-wrap: wrap;
+}
+
+.admin-filter-bar .select {
+  width: auto;
+  min-width: 0;
 }
 
 .admin-packages-grid {
@@ -7613,6 +7625,10 @@ input[type='checkbox'] {
   min-width: 80px;
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+.admin-chart [title]:hover .admin-vbar-value {
+  opacity: 1 !important;
 }
 
 @media (max-width: 700px) {

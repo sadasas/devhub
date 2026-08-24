@@ -1,19 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Wallet } from '@phosphor-icons/react';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
-import type { BillingPayment, BillingStatus } from '../../lib/types';
+import type { BillingStatus } from '../../lib/types';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { Skeleton } from '../../components/Skeleton';
 import { InlineError } from '../../components/InlineError';
-import { EmptyState } from '../../components/EmptyState';
 import { UsageMeter } from '../../components/UsageMeter';
-
-function formatIdr(amount: number): string {
-  return `Rp ${amount.toLocaleString('id-ID')}`;
-}
 
 interface TeamBillingPanelProps {
   teamId: string;
@@ -32,7 +26,7 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
       const status = await api.billingStatus(teamId);
       setData(status);
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to load billing.'));
+      setError(getErrorMessage(err, 'Failed to load usage.'));
     } finally {
       setLoading(false);
     }
@@ -47,7 +41,6 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
       <section className="tab-panel billing-panel" aria-busy="true">
         <Skeleton style={{ width: '100%', height: 96 }} />
         <Skeleton style={{ width: '100%', height: 64 }} />
-        <Skeleton style={{ width: '100%', height: 48 }} />
       </section>
     );
   }
@@ -82,30 +75,8 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
       ? Math.ceil((Date.parse(expires) - Date.now()) / 86_400_000)
       : null;
 
-
-
-  function PaymentRow({ p }: { p: BillingPayment }) {
-    return (
-      <div className="data-row">
-        <div className="data-row-main">
-          <span className="data-row-title">
-            <span className="row-title-text">{formatIdr(p.amount)}</span>
-            <Badge tone={p.status === 'completed' ? 'success' : 'neutral'}>
-              {p.status === 'completed' ? 'Paid' : 'Pending'}
-            </Badge>
-          </span>
-          <span className="data-row-meta">
-            {p.packageName}
-            {p.durationDays ? ` · ${p.durationDays} days` : ''} ·{' '}
-            {new Date(p.createdAt).toLocaleDateString()}
-          </span>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <section className="tab-panel billing-panel" aria-label="Billing">
+    <section className="tab-panel billing-panel" aria-label="Usage">
       {plan === 'pro' && daysLeft !== null && daysLeft <= 7 && (
         <InlineError>
           Pro ends in {daysLeft <= 0 ? 'less than a day' : `${daysLeft} day${daysLeft === 1 ? '' : 's'}`} —
@@ -115,7 +86,7 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
       <div className="billing-card">
         <h3 className="billing-card-title">Current plan</h3>
         <div className="billing-plan-row">
-          <span className="billing-plan-name">{plan === 'pro' ? 'Pro' : 'Free'}</span>
+          <span className="billing-plan-name">{data?.team.planPackageName ?? (plan === 'pro' ? 'Pro' : 'Free')}</span>
           <Badge tone={plan === 'pro' ? 'info' : 'neutral'}>
             {plan === 'pro' ? 'Active' : 'Free'}
           </Badge>
@@ -151,21 +122,6 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
             </p>
           ))}
       </div>
-
-      <div className="billing-card">
-        <h3 className="billing-card-title">Payment history</h3>
-        {(data?.payments.length ?? 0) === 0 ? (
-          <EmptyState
-            icon={<Wallet size={20} />}
-            title="No payments yet"
-            description="Completed payments for this workspace will appear here."
-          />
-        ) : (
-          data!.payments.map((p) => <PaymentRow key={p.orderId} p={p} />)
-        )}
-      </div>
     </section>
   );
 }
-
-

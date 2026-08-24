@@ -6,6 +6,7 @@ export interface TeamListRow {
   name: string;
   role: string;
   plan: 'free' | 'pro';
+  plan_package_name: string;
   member_count: number | string;
   created_at: Date;
   updated_at: Date;
@@ -14,9 +15,16 @@ export interface TeamListRow {
 export async function listTeams(userId: string): Promise<TeamListRow[]> {
   const result = await pool.query(
     `SELECT t.id, t.name, t.created_at, t.updated_at, tm.role, t.plan,
+            COALESCE(cur.name, fr.name) AS plan_package_name,
             (SELECT count(*)::int FROM team_members m WHERE m.team_id = t.id) AS member_count
      FROM teams t
      JOIN team_members tm ON tm.team_id = t.id
+     LEFT JOIN billing_packages cur
+       ON cur.id = t.plan_package_id
+       AND (t.plan_expires_at IS NULL OR t.plan_expires_at > now())
+     LEFT JOIN LATERAL (
+       SELECT name FROM billing_packages WHERE is_free LIMIT 1
+     ) fr ON true
      WHERE tm.user_id = $1
      ORDER BY t.created_at ASC`,
     [userId],

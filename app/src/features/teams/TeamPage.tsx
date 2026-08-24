@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowLeft, CreditCard, Envelope, Trash, UsersThree } from '@phosphor-icons/react';
+import { ArrowLeft, ChartLineUp, Envelope, Trash, UsersThree } from '@phosphor-icons/react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
@@ -26,7 +26,7 @@ export function TeamPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const tab = searchParams.get('tab') === 'billing' ? 'billing' : 'members';
+  const tab = searchParams.get('tab') === 'usage' ? 'usage' : 'members';
   const team = teams?.find((t) => t.id === teamId);
 
   const [members, setMembers] = useState<TeamMember[] | null>(null);
@@ -171,7 +171,7 @@ export function TeamPage() {
               <h1 className="page-title">{team.name}</h1>
               <Badge tone={TEAM_ROLE[team.role].tone}>{TEAM_ROLE[team.role].label}</Badge>
               <Badge tone={team.plan === 'pro' ? 'info' : 'neutral'}>
-                {team.plan === 'pro' ? 'Pro' : 'Free'}
+                {team.planPackageName}
               </Badge>
               <Badge tone="neutral">{team.memberCount} members</Badge>
             </div>
@@ -226,16 +226,16 @@ export function TeamPage() {
         <button
           type="button"
           role="tab"
-          className={`sub-tab ${tab === 'billing' ? 'sub-tab-active' : ''}`}
-          onClick={() => setSearchParams({ tab: 'billing' }, { replace: true })}
-          aria-selected={tab === 'billing'}
+          className={`sub-tab ${tab === 'usage' ? 'sub-tab-active' : ''}`}
+          onClick={() => setSearchParams({ tab: 'usage' }, { replace: true })}
+          aria-selected={tab === 'usage'}
         >
-          <CreditCard size={13} aria-hidden="true" />
-          Billing
+          <ChartLineUp size={13} aria-hidden="true" />
+          Usage
         </button>
       </div>
 
-      {tab === 'billing' && <TeamBillingPanel teamId={teamId} isAdmin={isAdmin} />}
+      {tab === 'usage' && <TeamBillingPanel teamId={teamId} isAdmin={isAdmin} />}
 
       {tab === 'members' && (
         <>

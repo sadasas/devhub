@@ -113,10 +113,4 @@ describe('PricingPage (single-page flow)', () => {
     expect(await screen.findByText(/Pembayaran aman/)).toBeDefined();
     expect(screen.getByText(/Powered by Pakasir/)).toBeDefined();
   });
-
-  it('renders why upgrade section', async () => {
-    renderPage();
-
-    expect(await screen.findByText('Kenapa upgrade ke Pro?')).toBeDefined();
-  });
 });

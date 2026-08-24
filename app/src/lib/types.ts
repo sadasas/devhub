@@ -434,6 +434,7 @@ export interface Team {
   name: string;
   role: TeamRole;
   plan: TeamPlan;
+  planPackageName: string;
   memberCount: number;
   createdAt: string;
   updatedAt: string;
