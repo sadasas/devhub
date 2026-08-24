@@ -81,7 +81,7 @@ export function IssuesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
         <span className="data-list-actions">
           <SortControl
             options={ISSUE_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
-            value={effectiveSort}
+            value={sortValue}
             onChange={setSort}
           />
           {canEdit && (

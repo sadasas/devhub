@@ -72,7 +72,7 @@ export function WhiteboardList({ onOpen, loading = false, unreadIds }: Whiteboar
         <span className="data-list-actions">
           <SortControl
             options={BOARD_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
-            value={effectiveSort}
+            value={sortValue}
             onChange={setSort}
           />
           {canEdit && !atCap && (

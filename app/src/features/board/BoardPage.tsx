@@ -447,7 +447,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           {view !== 'due' && (
             <SortControl
               options={TASK_SORT_SPECS.map((s) => ({ value: s.key, label: s.label }))}
-              value={effectiveSort}
+              value={sortValue}
               onChange={setSort}
             />
           )}
