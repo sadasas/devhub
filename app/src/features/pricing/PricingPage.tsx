@@ -106,7 +106,7 @@ function PricingCard({
   onSelectTeam,
   selectedTeamId,
   onBuy,
-  busyKey,
+  busy,
   user,
   teams,
   actionError,
@@ -118,7 +118,7 @@ function PricingCard({
   onSelectTeam: (teamId: string) => void;
   selectedTeamId: string;
   onBuy: (pkgId: string, priceId: string) => void;
-  busyKey: string | null;
+  busy: boolean;
   user: { id: string } | null;
   teams: { id: string; name: string }[] | null;
   actionError: string | null;
@@ -207,13 +207,13 @@ function PricingCard({
           </div>
         )}
 
-        {isRecommended && actionError && <InlineError>{actionError}</InlineError>}
+        {actionError && <InlineError>{actionError}</InlineError>}
 
         {pkg.prices.length > 0 ? (
           <Button
             variant={isRecommended ? 'primary' : 'secondary'}
-            disabled={!user || !selectedTeamId}
-            loading={!!busyKey}
+            disabled={!user || !selectedTeamId || busy}
+            loading={busy}
             onClick={() => {
               const priceId = selectedPriceId ?? pkg.prices[0]?.id;
               if (priceId) onBuy(pkg.id, priceId);
@@ -246,7 +246,7 @@ export function PricingPage() {
   const [selectedTeamId, setSelectedTeamId] = useState<string>(queryTeamId ?? '');
   const [packages, setPackages] = useState<BillingPackage[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<{ pkgId: string; message: string } | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [selectedPrices, setSelectedPrices] = useState<Record<string, string>>({});
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -282,7 +282,7 @@ export function PricingPage() {
 
   async function handleBuy(pkgId: string, priceId: string) {
     if (!effectiveTeamId) {
-      setActionError('Pilih workspace yang akan di-upgrade.');
+      setActionError({ pkgId, message: 'Pilih workspace yang akan di-upgrade.' });
       return;
     }
     setActionError(null);
@@ -291,7 +291,7 @@ export function PricingPage() {
       const result = await api.startCheckout(effectiveTeamId, pkgId, priceId);
       window.location.assign(result.url);
     } catch (err) {
-      setActionError(getErrorMessage(err, 'Gagal memulai checkout.'));
+      setActionError({ pkgId, message: getErrorMessage(err, 'Gagal memulai checkout.') });
       setBusyKey(null);
     }
   }
@@ -346,28 +346,31 @@ export function PricingPage() {
               onSelectTeam={setSelectedTeamId}
               selectedTeamId={selectedTeamId}
               onBuy={handleBuy}
-              busyKey={busyKey}
+              busy={false}
               user={user}
               teams={teams}
               actionError={null}
             />
           ))}
-          {paidPkgs.map((pkg, i) => (
-            <PricingCard
-              key={pkg.id}
-              pkg={pkg}
-              isRecommended={i === 0}
-              selectedPriceId={selectedPrices[pkg.id] ?? pkg.prices[0]?.id ?? null}
-              onSelectPrice={handleSelectPrice}
-              onSelectTeam={setSelectedTeamId}
-              selectedTeamId={selectedTeamId}
-              onBuy={handleBuy}
-              busyKey={busyKey}
-              user={user}
-              teams={teams}
-              actionError={i === 0 ? actionError : null}
-            />
-          ))}
+          {paidPkgs.map((pkg, i) => {
+            const isSelectedBusy = busyKey?.startsWith(`${pkg.id}:`) ?? false;
+            return (
+              <PricingCard
+                key={pkg.id}
+                pkg={pkg}
+                isRecommended={i === 0}
+                selectedPriceId={selectedPrices[pkg.id] ?? pkg.prices[0]?.id ?? null}
+                onSelectPrice={handleSelectPrice}
+                onSelectTeam={setSelectedTeamId}
+                selectedTeamId={selectedTeamId}
+                onBuy={handleBuy}
+                busy={isSelectedBusy}
+                user={user}
+                teams={teams}
+                actionError={actionError?.pkgId === pkg.id ? actionError.message : null}
+              />
+            );
+          })}
         </div>
       )}
 

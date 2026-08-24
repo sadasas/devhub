@@ -1,19 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import type { BillingPackage } from '../../lib/types';
 import { PricingPage } from './PricingPage';
 
-const { mockListPackages, mockUser } = vi.hoisted(() => ({
+const { mockListPackages, mockStartCheckout } = vi.hoisted(() => ({
   mockListPackages: vi.fn(),
-  mockUser: null as { id: string } | null,
+  mockStartCheckout: vi.fn(),
 }));
+
+let mockUser: { id: string } | null = null;
+let mockTeams: { id: string; name: string }[] = [];
 
 vi.mock('../../lib/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../lib/api')>();
   return {
     ...actual,
-    api: { ...actual.api, listPackages: mockListPackages, startCheckout: vi.fn() },
+    api: { ...actual.api, listPackages: mockListPackages, startCheckout: mockStartCheckout },
   };
 });
 
@@ -22,12 +25,12 @@ vi.mock('../../state/auth-context', () => ({
 }));
 
 vi.mock('../../state/teams-context', () => ({
-  useTeams: () => ({ teams: [] }),
+  useTeams: () => ({ teams: mockTeams }),
 }));
 
-function renderPage() {
+function renderPage(initialEntries?: string[]) {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={initialEntries}>
       <PricingPage />
     </MemoryRouter>,
   );
@@ -64,6 +67,8 @@ describe('PricingPage (single-page flow)', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    mockUser = null;
+    mockTeams = [];
   });
 
   it('renders both plans with dynamic limits and duration cards', async () => {
@@ -112,5 +117,40 @@ describe('PricingPage (single-page flow)', () => {
 
     expect(await screen.findByText(/Pembayaran aman/)).toBeDefined();
     expect(screen.getByText(/Powered by Pakasir/)).toBeDefined();
+  });
+
+  it('shows checkout error on the correct card when multiple paid packages', async () => {
+    mockUser = { id: 'u1' };
+    mockTeams = [{ id: 't1', name: 'Test Team' }];
+    const PACKAGES_3: BillingPackage[] = [
+      PACKAGES[0],
+      PACKAGES[1],
+      {
+        id: 'pkg-biz',
+        name: 'Business',
+        description: 'Business tier',
+        isFree: false,
+        maxMembers: null,
+        maxProjects: null,
+        prices: [{ id: 'bz-30', durationDays: 30, priceIdr: 500_000 }],
+      },
+    ];
+    mockListPackages.mockResolvedValueOnce({ packages: PACKAGES_3 });
+    mockStartCheckout.mockRejectedValueOnce(new Error('Billing disabled'));
+
+    renderPage(['/pricing?teamId=t1']);
+
+    await screen.findByText('Pro');
+    expect(screen.getByText('Business')).toBeDefined();
+
+    const upgradeBtns = screen.getAllByRole('button', { name: /Upgrade ke/ });
+    const bizBtn = upgradeBtns.find((b) => b.textContent?.includes('Business'))!;
+    await act(async () => { fireEvent.click(bizBtn); });
+
+    const bizCard = screen.getByText('Business').closest('section')!;
+    expect(await within(bizCard).findByText(/Gagal memulai checkout/)).toBeDefined();
+
+    const proCard = screen.getByText('Pro').closest('section')!;
+    expect(within(proCard).queryByText(/Gagal memulai checkout/)).toBeNull();
   });
 });
