@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import type { KeyboardEvent } from 'react';
+import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowClockwise,
+  Buildings,
   ChartLine,
-  FolderSimple,
   Package,
   Receipt,
   UsersThree,
@@ -15,12 +17,60 @@ import { PackagesTab } from './PackagesTab';
 import { TeamsTab } from './TeamsTab';
 import { UsersTab } from './UsersTab';
 
-type Tab = 'overview' | 'users' | 'payments' | 'teams' | 'packages';
+const TABS = [
+  { id: 'overview', labelKey: 'admin.tabs.overview', Icon: ChartLine },
+  { id: 'users', labelKey: 'admin.tabs.users', Icon: UsersThree },
+  { id: 'teams', labelKey: 'admin.tabs.teams', Icon: Buildings },
+  { id: 'payments', labelKey: 'admin.tabs.payments', Icon: Receipt },
+  { id: 'packages', labelKey: 'admin.tabs.packages', Icon: Package },
+] as const;
+
+type TabId = (typeof TABS)[number]['id'];
+
+function isTabId(value: string | null): value is TabId {
+  return TABS.some((x) => x.id === value);
+}
 
 export function AdminPage() {
   const { t } = useTranslation('extras');
-  const [tab, setTab] = useState<Tab>('overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const tabParam = searchParams.get('tab');
+  const tab: TabId = isTabId(tabParam) ? tabParam : 'overview';
+
+  function setTab(next: TabId): void {
+    if (next === tab) return;
+    setSearchParams(next === 'overview' ? {} : { tab: next }, { replace: true });
+  }
+
+  // ARIA APG tabs: roving tabindex + panah kiri/kanan/Home/End (audit H2)
+  function onTabKeyDown(e: KeyboardEvent<HTMLButtonElement>, index: number): void {
+    let nextIndex: number | null = null;
+    if (e.key === 'ArrowRight') nextIndex = (index + 1) % TABS.length;
+    else if (e.key === 'ArrowLeft') nextIndex = (index - 1 + TABS.length) % TABS.length;
+    else if (e.key === 'Home') nextIndex = 0;
+    else if (e.key === 'End') nextIndex = TABS.length - 1;
+    if (nextIndex === null) return;
+    e.preventDefault();
+    const next = TABS[nextIndex];
+    if (!next) return;
+    setTab(next.id);
+    document.getElementById(`admin-tab-${next.id}`)?.focus();
+  }
+
+  function handleRefresh(): void {
+    if (refreshing) return;
+    setRefreshing(true);
+    setRefreshKey((k) => k + 1);
+  }
+
+  // Dipanggil tiap loader tab selesai (idempoten) untuk mematikan spinner Refresh.
+  // Stabil via useCallback agar identitas prop tidak memicu refetch berulang di tab.
+  const handleSettled = useCallback((): void => {
+    setRefreshing(false);
+  }, []);
 
   return (
     <div className="page">
@@ -32,71 +82,56 @@ export function AdminPage() {
         <Button
           variant="ghost"
           size="sm"
+          loading={refreshing}
           leftIcon={<ArrowClockwise size={13} aria-hidden="true" />}
-          onClick={() => setRefreshKey((k) => k + 1)}
+          onClick={handleRefresh}
         >
           {t('admin.refresh')}
         </Button>
       </header>
 
       <div className="sub-tabs" role="tablist" aria-label={t('admin.tabsAria')}>
-        <button
-          type="button"
-          role="tab"
-          className={`sub-tab ${tab === 'overview' ? 'sub-tab-active' : ''}`}
-          onClick={() => setTab('overview')}
-          aria-selected={tab === 'overview'}
-        >
-          <ChartLine size={13} aria-hidden="true" />
-          {t('admin.tabs.overview')}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className={`sub-tab ${tab === 'users' ? 'sub-tab-active' : ''}`}
-          onClick={() => setTab('users')}
-          aria-selected={tab === 'users'}
-        >
-          <UsersThree size={13} aria-hidden="true" />
-          {t('admin.tabs.users')}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className={`sub-tab ${tab === 'payments' ? 'sub-tab-active' : ''}`}
-          onClick={() => setTab('payments')}
-          aria-selected={tab === 'payments'}
-        >
-          <Receipt size={13} aria-hidden="true" />
-          {t('admin.tabs.payments')}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className={`sub-tab ${tab === 'teams' ? 'sub-tab-active' : ''}`}
-          onClick={() => setTab('teams')}
-          aria-selected={tab === 'teams'}
-        >
-          <FolderSimple size={13} aria-hidden="true" />
-          {t('admin.tabs.teams')}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className={`sub-tab ${tab === 'packages' ? 'sub-tab-active' : ''}`}
-          onClick={() => setTab('packages')}
-          aria-selected={tab === 'packages'}
-        >
-          <Package size={13} aria-hidden="true" />
-          {t('admin.tabs.packages')}
-        </button>
+        {TABS.map(({ id, labelKey, Icon }, i) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            id={`admin-tab-${id}`}
+            className={`sub-tab ${tab === id ? 'sub-tab-active' : ''}`}
+            onClick={() => setTab(id)}
+            onKeyDown={(e) => onTabKeyDown(e, i)}
+            aria-selected={tab === id}
+            aria-controls={`admin-panel-${id}`}
+            tabIndex={tab === id ? 0 : -1}
+          >
+            <Icon size={13} aria-hidden="true" />
+            {t(labelKey)}
+          </button>
+        ))}
       </div>
 
-      {tab === 'overview' && <OverviewTab refreshKey={refreshKey} />}
-      {tab === 'users' && <UsersTab refreshKey={refreshKey} />}
-      {tab === 'payments' && <PaymentsTab refreshKey={refreshKey} />}
-      {tab === 'teams' && <TeamsTab refreshKey={refreshKey} />}
-      {tab === 'packages' && <PackagesTab refreshKey={refreshKey} />}
+      <div
+        id={`admin-panel-${tab}`}
+        role="tabpanel"
+        aria-labelledby={`admin-tab-${tab}`}
+        tabIndex={0}
+      >
+        {tab === 'overview' && (
+          <OverviewTab refreshKey={refreshKey} onSettled={handleSettled} />
+        )}
+        {tab === 'users' && (
+          <UsersTab refreshKey={refreshKey} onSettled={handleSettled} />
+        )}
+        {tab === 'teams' && (
+          <TeamsTab refreshKey={refreshKey} onSettled={handleSettled} />
+        )}
+        {tab === 'payments' && (
+          <PaymentsTab refreshKey={refreshKey} onSettled={handleSettled} />
+        )}
+        {tab === 'packages' && (
+          <PackagesTab refreshKey={refreshKey} onSettled={handleSettled} />
+        )}
+      </div>
     </div>
   );
 }

@@ -199,7 +199,7 @@ describe('AdminPage', () => {
     renderPage();
     expect(listPackages).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('tab', { name: /Packages/ }));
+    fireEvent.click(screen.getByRole('tab', { name: /Plans|Packages/ }));
     expect(await screen.findByText('Pro')).toBeDefined();
     expect(screen.getByText('Rp 250.000')).toBeDefined();
     expect(listPackages).toHaveBeenCalledTimes(1);
@@ -213,6 +213,7 @@ describe('AdminPage', () => {
       {
         id: '33333333-3333-4333-8333-333333333333',
         name: 'Team A',
+        plan: 'free' as const,
         ownerEmail: 'admin@test.dev',
         memberCount: 2,
         projectCount: 1,
@@ -225,6 +226,7 @@ describe('AdminPage', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: /Teams/ }));
     expect(await screen.findByText('Team A')).toBeDefined();
+    expect(await screen.findByText('Free')).toBeDefined();
   });
 
   it('shows an error with retry when the teams list fails to load', async () => {
@@ -239,6 +241,7 @@ describe('AdminPage', () => {
         {
           id: '33333333-3333-4333-8333-333333333333',
           name: 'Team A',
+          plan: 'free' as const,
           ownerEmail: 'admin@test.dev',
           memberCount: 2,
           projectCount: 1,

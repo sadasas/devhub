@@ -18,6 +18,7 @@
     "docs": "Dokumentasi",
     "teams": "Tim",
     "newTeam": "Tim baru",
+    "filterPlaceholder": "Filter tim & proyek…",
     "noTeamsYet": "Belum ada tim.",
     "createTeam": "Buat tim",
     "profile": "Profil",

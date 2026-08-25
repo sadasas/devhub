@@ -404,3 +404,78 @@ Badge entity ("Task"/"Issue"/…) kini `position: absolute` di **pojok kanan ata
 4. **Chunk splitting** (>500 kB) — di luar lingkup UI/UX, tercatat untuk performa.
 5. **Mode baca di workbench API**: pola read-mode modal detail belum merata ke editor API (Edit/Preview toggle sudah ada di sana, tapi preview adalah render JSON, bukan tampilan read yang rapi).
 6. **Keamanan: MCP API key ter-commit di `opencode.json:8`** (commit `aac5a5d`) — key `devhub_CnEa…` asli; catatan saja per keputusan user, rekomendasi: revoke + regenerate + `.gitignore` sebelum menambah config baru.
+---
+
+## Batch 13 — Audit UI halaman Admin (2026-08-25)
+
+**Permintaan**: "audit admin page". Lingkup: `app/src/features/admin/*` (10 file) + route `/admin` + Sidebar link. Halaman dibangun pasca audit app terakhir (M31 → M27b/M27c), sehingga belum pernah lolos finish-gate.
+**Metode**: dual review paralel — Accessibility Auditor (WCAG 2.2 AA + baseline proyek) & UI Finish-Gate Reviewer (ship-readiness) — lalu verifikasi manual setiap temuan ke source.
+**Status**: SELESAI — keputusan gate **HOLD**. Keputusan lanjutan: sync DevHub + riset redesign layout (Batch 14 menyusul).
+
+### Ringkasan
+
+| Sumber | Blocker | High | Medium | Low |
+| --- | --- | --- | --- | --- |
+| Finish-gate | 1 | 5 | ~8 | ~7 |
+| Accessibility | — | 2 | 6 | 7 |
+
+Fondasi kuat (terverifikasi): kontras lolos semua perhitungan (muted 5.55:1 worst-case; badges ≥5.75:1; chart ≥4.49:1 non-text), modal primitives lengkap (trap/Esc/focus restore), delete 2-langkah via ConfirmDeleteDialog, debounce search bersih, sidebar link role-gated, test 10/10 hijau.
+
+### Temuan gate (critical/high) — diverifikasi manual
+
+| ID | Sev | Temuan | Lokasi |
+| --- | --- | --- | --- |
+| C1 | Critical | Badge plan team selalu "Free" — server `listPlatformTeams` tak men-SELECT `plan`, tipe `AdminTeam` tanpa field, client cast field phantom `(tm as AdminTeam & {plan?:string}).plan` | `TeamsTab.tsx:70-71` ↔ `server/adminService.ts:204-208` ↔ `types.ts:548` |
+| H1 | High | `<button>` nested dalam `<button>` (chip durasi dalam plan-card); SR flatten tree; touch target <36px; seleksi tanpa aria-pressed | `TeamPlanModal.tsx:136→184-208` |
+| H2 | High | Tabs non-konform APG (tanpa arrow-key/roving tabindex/aria-controls/id) + tab di useState bukan URL `?tab=` (konvensi ProjectPage dilang) | `AdminPage.tsx:22,42-93` |
+| H3 | High | Error + empty tampil bersamaan (InlineError di luar ternary; loader set []+error); Overview/Users tanpa Retry | `UsersTab.tsx:89-100`, `PackagesTab.tsx:105-117`, `OverviewTab.tsx:58` |
+| H4 | High | Tanpa pagination — PAGE_SIZE 50, baris 51+ unreachable; API offset tak dipakai | `UsersTab.tsx:16`, `PaymentsTab.tsx:14` |
+| H5 | High | Tabel payments rusak ≤700px — grid 6 kolom jadi 4 track, 5 anak visible → baris implisit misaligned | `global.css:7364` vs `7660-7670` |
+
+### Temuan medium & low (ringkas)
+
+Medium: loading senyap SR (nol `role="status"`) · refresh tanpa busy + tanpa cancellation flag · warna chart hardcoded hex (`charts.tsx:14`, fallback `OverviewTab:151`, rgba `TeamPlanModal:188`) · `toLocaleDateString()` mentah 4 situs · ConfirmDeleteDialog tanpa busy + tutup saat error · seleksi tanpa aria-pressed · payments fake-table div-grid · donut center integer mentah · TeamPlanModal fetch packages gagal→empty bohong + footer tanpa Cancel kiri · UI ganti role user tidak ada (endpoint server ada) · route /admin tanpa guard UI · refresh kosongkan overview (CLS) + failure aktivitas menyamar empty state.
+
+Low: heading skip h1→h3/h4 · ikon dekoratif tanpa aria-hidden (4 situs) · compactId dead code rusak (`charts.tsx:8-12`) · formatIdr duplikat 4× · i18n lintas namespace (`t('templates.delete')` dll) · inline style tersebar (regresi D4) · casing stat labels · focus jatuh ke body setelah delete package (restore ke node detached) · error validasi PackageModal tak ter-bind field + jalur validasi ganda · sukses async senyap SR · VerticalBarChart label position-only >14 titik · donut label tanpa total · KPI revenue24h/7d di-fetch tak dirender.
+
+### Kriteria pass gate re-run
+
+Badge pro benar saat cold-load · tiap tab tepat satu dari {skeleton | error+Retry | empty | data} · baris 51+ reachable via pager · `/admin?tab=payments` restore · nol validateDOMNesting · tabel payments utuh di 360px · semua path destruktif busy-guarded dengan Cancel kiri.
+
+### Tracking DevHub (project `232b47c6…`)
+
+- Task gate: `e52b9810` (urgent, M31) — C1=`4b75ba83`, H1=`2b4daee9`, H2=`f7cde573`, H3=`edf56181`, H4=`890191a8`, H5=`8dc5c4fb`
+- Task polish: `188d45b7` (medium, M31) — M batch=`d2054b46`, L batch=`6b1e71ce`
+
+---
+
+## Batch 14 — Remediasi gate + redesign layout Admin (2026-08-25)
+
+**Permintaan**: "update semua, lalu coba redesign layout agar sesuai dengan tema dan coba riset lg". Eksekusi Steps 0-5 sesuai spek Batch 13 + ADR-047 (riset: UX Architect + UX Researcher; desain visual disintesis dari tokens.css + data kontras audit a11y).
+**Status**: SELESAI - semua gate blockers tertutup. Verifikasi hijau: lint exit 0, tsc exit 0, **app test 719/719 (79 file)**, build app+server sukses, server admin.routes **7/7**.
+
+### Perubahan per Step
+
+| Step | Isi | File |
+| --- | --- | --- |
+| 0 (C1) | `listPlatformTeams` SELECT `t.plan`; `AdminTeam.plan: 'free'\|'pro'`; cast phantom dihapus; api client return type dipersempit; test cold-load pro badge (server) + assert Free badge (app) | `adminService.ts`, `types.ts`, `api.ts`, `TeamsTab.tsx`, 2 test |
+| 1 (H2) | Tab state pindah ke URL `?tab=` (`useSearchParams`, replace:true); APG tabs: roving tabindex + Arrow/Home/End + id/aria-controls; wrapper `role="tabpanel"`; Refresh pakai prop `loading` (spinner + aria-busy), settle via callback stabil `useCallback` | `AdminPage.tsx` |
+| 2 (H3/M1/M12) | Rantai eksklusif error-skeleton-empty-data di kelima tab + Retry di Users/Packages/Overview; loader tak lagi `set([])` saat gagal; live region `role=status` sr-only per tab; stale-while-revalidate (refresh tidak reset skeleton); failure chart aktivitas = InlineError terpisah, bukan empty state | 5 tab files |
+| 3 (H4) | Pager `.pager` Prev/status/Next ala KeysPage di Users & Payments; PAGE_SIZE 50->25; param URL `q`,`plan`,`status`,`page` (+ clamp halaman saat total menyusut); race stale-response ditangani counter `latestRequest` | `UsersTab.tsx`, `PaymentsTab.tsx`, i18n en+id |
+| 4 (H5/M7) | Payments dibuang div-grid-nya, ganti `.data-list/.data-row` cards (buyer = judul; meta team/paket/jumlah/tanggal; Badge success/warn dot); CSS `.admin-payment-*` (termasuk patch <=700px yang rusak) dihapus | `PaymentsTab.tsx`, `global.css` |
+| 5 (H1/M6/M9) | TeamPlanModal ditulis ulang: kartu plan jadi div + tombol header `aria-pressed`, chip durasi jadi SIBLING `.btn.btn-sm.ghost` (bunuh nested button + touch target >=36px); footer `[Cancel kiri][Save loading]`; fetch packages dapat state loading/error+Retry; summary-confirm 2-langkah untuk grant Pro ("Grant X - Nd hari - Rp N ke team?"); inline style diganti class token `.admin-plan-card*` baru | `TeamPlanModal.tsx`, `global.css`, i18n en+id |
+
+### Bug laten yang ikut ditemukan & diperbaiki
+
+1. **Server test `/admin/activity` 404**: test menulis ekspektasi terhadap endpoint `{activity:[...]}` dengan summary per item yang tidak pernah ada; route nyata `/stats/activity?range=` mengembalikan bare array bucket agregat. Test diperbaiki ke kontrak nyata.
+2. **PackagesTab crash saat error+null**: rantai lama `packages === null && !error ? skeleton : packages?.length === 0 ? ... : packages!.map` membuat kombinasi error+null jatuh ke cabang data dan crash pada `undefined.map`. Kini rantai eksklusif murni.
+3. **Regresi diri sendiri yang tertangkap test**: setelah loader Teams berhenti `set([])` saat gagal, urutan ternary lama (null sebelum error) menyembunyikan pesan error selamanya — persis pola H3. Urutan dibalik (error dulu); test retry Teams menjadi penjaganya.
+
+### Catatan proses
+
+- Sebagian file sempat ter-revert di tengah sesi (TeamsTab, types, adminService, TeamPlanModal) — dideteksi lewat integritas check grep per-file setelah tsc menemukan error aneh, lalu diterapkan ulang. Pelajaran: jalankan integrity grep setelah gangguan mode.
+- Keputusan D1-D5 (PAGE_SIZE 25, summary-confirm grant, dst.) tercatat di ADR-047.
+
+### Sisa pekerjaan (task polish `188d45b7` tetap terbuka)
+
+M3 chart tokens --chart-* · M4 formatDate 4 situs · M5 ConfirmDeleteDialog busy · M8 donut formatIdr center · M10 UI ganti role user · M11 guard route /admin · batch L lengkap. Subset M yang ikut tertutup di batch ini: M1, M2 (cancellation), M6, M7 (via redesign), M9, M12 (lihat issue `d2054b46`).

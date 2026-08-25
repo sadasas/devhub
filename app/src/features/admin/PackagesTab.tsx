@@ -10,10 +10,15 @@ import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { EmptyState } from '../../components/EmptyState';
 import { InlineError } from '../../components/InlineError';
 import { Skeleton } from '../../components/Skeleton';
-import { formatIdr } from './charts';
+import { formatIdr } from '../../lib/format';
 import { PackageModal } from './PackageModal';
 
-export function PackagesTab({ refreshKey }: { refreshKey: number }) {
+interface PackagesTabProps {
+  refreshKey: number;
+  onSettled?: () => void;
+}
+
+export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
   const { t } = useTranslation('extras');
   const [packages, setPackages] = useState<AdminPackage[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -29,10 +34,11 @@ export function PackagesTab({ refreshKey }: { refreshKey: number }) {
       const p = await api.adminListPackages();
       setPackages(p);
     } catch (err) {
-      setPackages([]);
       setError(getErrorMessage(err, t('admin.packages.errors.load')));
+    } finally {
+      onSettled?.();
     }
-  }, [t]);
+  }, [t, onSettled]);
 
   useEffect(() => {
     void loadPackages();
@@ -88,12 +94,15 @@ export function PackagesTab({ refreshKey }: { refreshKey: number }) {
   }
 
   return (
-    <section className="tab-panel" role="tabpanel" aria-label={t('admin.packages.aria')}>
+    <section className="tab-panel" aria-label={t('admin.packages.aria')}>
+      <p role="status" aria-live="polite" className="sr-only">
+        {packages === null ? t('admin.loading') : t('admin.packages.count', { count: packages.length })}
+      </p>
       <div className="admin-filter-bar mb-12">
-        <span className="page-subtitle">
+        <span className="page-subtitle admin-filter-count">
           {packages !== null ? t('admin.packages.count', { count: packages.length }) : ''}
         </span>
-        <span style={{ flex: 1 }} />
+        <span className="admin-filter-spacer" />
         <Button
           size="sm"
           leftIcon={<Package size={13} aria-hidden="true" />}
@@ -102,14 +111,20 @@ export function PackagesTab({ refreshKey }: { refreshKey: number }) {
           {t('admin.packages.new')}
         </Button>
       </div>
-      {error && <InlineError>{error}</InlineError>}
-      {packages === null && !error ? (
+      {error ? (
+        <InlineError className="mb-12">
+          {error}{' '}
+          <Button variant="ghost" size="sm" onClick={() => void loadPackages()}>
+            {t('admin.retry')}
+          </Button>
+        </InlineError>
+      ) : packages === null ? (
         <div className="admin-packages-grid">
           {[0, 1, 2].map((i) => (
             <Skeleton key={i} style={{ width: '100%', height: 160 }} />
           ))}
         </div>
-      ) : packages?.length === 0 ? (
+      ) : packages.length === 0 ? (
         <EmptyState
           icon={<Package size={22} />}
           title={t('admin.packages.emptyTitle')}
@@ -117,7 +132,7 @@ export function PackagesTab({ refreshKey }: { refreshKey: number }) {
         />
       ) : (
         <div className="admin-packages-grid">
-          {packages!.map((pkg) => (
+          {packages.map((pkg) => (
             <div key={pkg.id} className="admin-package-card">
               <div className="admin-package-card-head">
                 <span className="admin-package-name">{pkg.name}</span>
@@ -160,7 +175,7 @@ export function PackagesTab({ refreshKey }: { refreshKey: number }) {
                 >
                   {t('admin.packages.edit')}
                 </Button>
-                <span style={{ flex: 1 }} />
+                <span className="admin-filter-spacer" />
                 <Button
                   variant="ghost"
                   size="sm"

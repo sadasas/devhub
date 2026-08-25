@@ -2,7 +2,7 @@ import { Check, Star, Infinity as InfinityIcon } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import type { BillingPackage, PackagePrice } from '../../lib/types';
 import { Button } from '../../components/Button';
-function formatIdr(a:number){return `Rp ${a.toLocaleString('id-ID')}`}
+import { formatIdr } from '../../lib/format';
 type TFunc=(k:string,o?:Record<string,unknown>)=>string;
 function formatDuration(t:TFunc,d:number){return t('pricing.durationMonths',{count:Math.round(d/30)})}
 function savingsPercent(o:number,d:number){return Math.round(((o-d)/o)*100)}

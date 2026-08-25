@@ -201,7 +201,7 @@ export async function setUserRole(
 
 export async function listPlatformTeams(limit: number): Promise<{ teams: AdminTeam[] }> {
   const result = await pool.query<AdminTeam>(
-    `SELECT t.id, t.name, t.created_at AS "createdAt",
+    `SELECT t.id, t.name, t.plan AS "plan", t.created_at AS "createdAt",
             (SELECT count(*)::int FROM team_members tm WHERE tm.team_id = t.id) AS "memberCount",
             (SELECT count(*)::int FROM projects p WHERE p.team_id = t.id) AS "projectCount",
             (SELECT u.email FROM team_members tm JOIN users u ON u.id = tm.user_id

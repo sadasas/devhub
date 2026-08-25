@@ -548,6 +548,7 @@ export interface AdminUser {
 export interface AdminTeam {
   id: string;
   name: string;
+  plan: 'free' | 'pro';
   ownerEmail: string | null;
   memberCount: number;
   projectCount: number;

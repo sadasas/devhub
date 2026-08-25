@@ -18,9 +18,10 @@ import { InlineError } from '../../components/InlineError';
 interface NewProjectModalProps {
   open: boolean;
   onClose: () => void;
+  initialTeamId?: string | null;
 }
 
-export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
+export function NewProjectModal({ open, onClose, initialTeamId }: NewProjectModalProps) {
   const { t } = useTranslation('account');
   const { create } = useProjects();
   const { teams } = useTeams();
@@ -35,9 +36,13 @@ export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
 
   useEffect(() => {
     if (open && teams && teams.length > 0) {
-      setTeamId((prev) => (prev && teams.some((t) => t.id === prev) ? prev : (teams[0]?.id ?? '')));
+      if (initialTeamId && teams.some((t) => t.id === initialTeamId)) {
+        setTeamId(initialTeamId);
+      } else {
+        setTeamId((prev) => (prev && teams.some((t) => t.id === prev) ? prev : (teams[0]?.id ?? '')));
+      }
     }
-  }, [open, teams]);
+  }, [open, teams, initialTeamId]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();

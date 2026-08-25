@@ -18,6 +18,7 @@
     "docs": "Docs",
     "teams": "Teams",
     "newTeam": "New team",
+    "filterPlaceholder": "Filter teams & projects…",
     "noTeamsYet": "No teams yet.",
     "createTeam": "Create team",
     "profile": "Profile",

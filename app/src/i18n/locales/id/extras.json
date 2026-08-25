@@ -371,9 +371,9 @@
     "tabs": {
       "overview": "Ringkasan",
       "users": "Pengguna",
-      "payments": "Pembayaran",
       "teams": "Tim",
-      "packages": "Paket"
+      "payments": "Pembayaran",
+      "packages": "Paket Langganan"
     },
     "plan": {
       "free": "Free",
@@ -400,9 +400,22 @@
       "revenue30d": "Pendapatan 30 hari terakhir",
       "revenueByPackage": "Pendapatan per paket",
       "loaded": "Statistik platform diperbarui.",
+      "financeTitle": "Keuangan & Monetisasi",
+      "healthTitle": "Kesehatan Platform",
+      "activityTitle": "Aktivitas & Engagement",
       "errors": {
         "stats": "Gagal memuat statistik"
       }
+    },
+    "sections": {
+      "finance": "Keuangan & Monetisasi",
+      "health": "Kesehatan Platform",
+      "activity": "Aktivitas & Engagement"
+    },
+    "banner": {
+      "pendingTitle": "{{count}} pembayaran tertunda",
+      "pendingDesc": "Perlu ditinjau sebelum rekonsiliasi",
+      "pendingAction": "Tinjau →"
     },
     "users": {
       "aria": "Pengguna platform",

@@ -389,9 +389,9 @@
     "tabs": {
       "overview": "Overview",
       "users": "Users",
-      "payments": "Payments",
       "teams": "Teams",
-      "packages": "Packages"
+      "payments": "Payments",
+      "packages": "Plans"
     },
     "plan": {
       "free": "Free",
@@ -418,9 +418,22 @@
       "revenue30d": "Revenue last 30 days",
       "revenueByPackage": "Revenue by package",
       "loaded": "Platform stats updated.",
+      "financeTitle": "Finance & Monetization",
+      "healthTitle": "Platform Health",
+      "activityTitle": "Activity & Engagement",
       "errors": {
         "stats": "Failed to load stats"
       }
+    },
+    "sections": {
+      "finance": "Finance & Monetization",
+      "health": "Platform Health",
+      "activity": "Activity & Engagement"
+    },
+    "banner": {
+      "pendingTitle": "{{count}} pending payments",
+      "pendingDesc": "Needs review before reconciliation",
+      "pendingAction": "Review →"
     },
     "users": {
       "aria": "Platform users",

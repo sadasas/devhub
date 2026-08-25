@@ -8,16 +8,13 @@ import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { InlineError } from '../../components/InlineError';
 import { Modal } from '../../components/Modal';
+import { formatIdr } from '../../lib/format';
 
 interface TeamPlanModalProps {
   open: boolean;
   team: AdminTeam | null;
   onClose: () => void;
-  onSaved: (team: AdminTeam & { plan: string }) => void;
-}
-
-function formatIdr(amount: number): string {
-  return `Rp ${amount.toLocaleString('id-ID')}`;
+  onSaved: (team: AdminTeam) => void;
 }
 
 export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalProps) {
@@ -26,28 +23,71 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const [selectedDays, setSelectedDays] = useState<number | null>(null);
   const [packages, setPackages] = useState<AdminPackage[]>([]);
+  const [packagesLoading, setPackagesLoading] = useState(false);
+  const [packagesError, setPackagesError] = useState<string | null>(null);
+  // ADR-047 §G: grant paket berbayar = 2 langkah (ringkasan dulu, baru eksekusi).
+  const [stage, setStage] = useState<'edit' | 'confirm'>('edit');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!open || !team) return;
-    setPlan((team as AdminTeam & { plan?: string }).plan === 'pro' ? 'pro' : 'free');
+  function resetSelection(): void {
     setSelectedPackageId(null);
     setSelectedDays(null);
+    setStage('edit');
     setError(null);
-    void api.adminListPackages().then(setPackages).catch(() => setPackages([]));
+  }
+
+  async function loadPackages(): Promise<void> {
+    setPackagesLoading(true);
+    setPackagesError(null);
+    try {
+      const p = await api.adminListPackages();
+      setPackages(p);
+    } catch (err) {
+      setPackagesError(getErrorMessage(err, t('admin.teamPlan.errors.packages')));
+    } finally {
+      setPackagesLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!open || !team) return;
+    setPlan(team.plan === 'pro' ? 'pro' : 'free');
+    resetSelection();
+    setBusy(false);
+    void loadPackages();
   }, [open, team]);
 
-  const currentPlan = (team as AdminTeam & { plan?: string })?.plan ?? 'free';
+  const currentPlan = team?.plan ?? 'free';
   const proPackages = packages.filter((p) => !p.isFree && p.isActive);
 
-  function handleSelectPackage(pkg: AdminPackage, days: number, _priceIdr: number) {
+  const selectedPkg = proPackages.find((p) => p.id === selectedPackageId) ?? null;
+  const selectedPrice =
+    selectedPkg?.prices.find((pr) => pr.durationDays === selectedDays) ?? null;
+
+  function handleSelectPackage(pkg: AdminPackage, days: number): void {
     setPlan('pro');
     setSelectedPackageId(pkg.id);
     setSelectedDays(days);
+    setStage('edit');
   }
 
-  async function handleSave() {
+  function handlePrimaryAction(): void {
+    if (!team || busy) return;
+    if (stage === 'edit') {
+      if (plan === 'pro') {
+        // Ringkas dulu (summary-confirm); free langsung dieksekusi (reversibel).
+        if (!selectedPkg || !selectedPrice) return;
+        setStage('confirm');
+        return;
+      }
+      void doSave();
+      return;
+    }
+    void doSave();
+  }
+
+  async function doSave(): Promise<void> {
     if (!team) return;
     setBusy(true);
     setError(null);
@@ -55,8 +95,8 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
       const result = await api.adminSetTeamPlan(
         team.id,
         plan,
-        plan === 'pro' && selectedPackageId && selectedDays ? selectedPackageId : undefined,
-        plan === 'pro' && selectedPackageId && selectedDays ? selectedDays : undefined,
+        plan === 'pro' && selectedPkg && selectedDays ? selectedPkg.id : undefined,
+        plan === 'pro' && selectedPkg && selectedDays ? selectedDays : undefined,
       );
       onSaved({ ...team, plan: result.plan });
       onClose();
@@ -67,7 +107,7 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
     }
   }
 
-  const canSave = plan !== currentPlan || (plan === 'pro' && selectedPackageId !== null);
+  const canProceed = plan === 'free' ? plan !== currentPlan : Boolean(selectedPkg && selectedPrice);
 
   return (
     <Modal
@@ -76,146 +116,156 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
       onClose={onClose}
       width="md"
       footer={
-        <Button onClick={() => void handleSave()} disabled={!canSave || busy}>
-          {busy ? t('admin.teamPlan.saving') : t('admin.teamPlan.save')}
-        </Button>
+        <>
+          <Button variant="ghost" size="sm" disabled={busy} onClick={() => {
+            if (stage === 'confirm') setStage('edit');
+            else onClose();
+          }}>
+            {stage === 'confirm' ? t('admin.teamPlan.back') : t('common:action.cancel')}
+          </Button>
+          <Button
+            size="sm"
+            loading={busy}
+            disabled={!canProceed || busy}
+            onClick={handlePrimaryAction}
+          >
+            {busy
+              ? t('admin.teamPlan.saving')
+              : stage === 'confirm'
+                ? t('admin.teamPlan.confirm')
+                : t('admin.teamPlan.save')}
+          </Button>
+        </>
       }
     >
       {error && <InlineError>{error}</InlineError>}
-      <div className="form-stack">
-        <div>
-          <span className="page-subtitle">{t('admin.teamPlan.team')}</span>
-          <p style={{ margin: 0, fontSize: 14, color: 'var(--text-primary)' }}>{team?.name ?? '—'}</p>
-        </div>
-        <div>
-          <span className="page-subtitle">{t('admin.teamPlan.currentPlan')}</span>
-          <p style={{ margin: '4px 0 0' }}>
-            <Badge tone={currentPlan === 'pro' ? 'success' : 'neutral'}>
-              {currentPlan === 'pro' ? t('admin.plan.pro') : t('admin.plan.free')}
-            </Badge>
+      {stage === 'confirm' && selectedPkg && selectedPrice ? (
+        <div className="form-stack">
+          <span className="page-subtitle">{t('admin.teamPlan.confirmTitle')}</span>
+          <p style={{ margin: 0, fontSize: 14, color: 'var(--text-primary)' }}>
+            {t('admin.teamPlan.confirmGrant', {
+              name: selectedPkg.name,
+              days: selectedPrice.durationDays,
+              price: formatIdr(selectedPrice.priceIdr),
+              team: team?.name ?? '—',
+            })}
           </p>
         </div>
-        <div>
-          <span className="page-subtitle">{t('admin.teamPlan.newPlan')}</span>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
-            {/* Free card */}
-            <button
-              type="button"
-              className="admin-plan-card"
-              style={{
-                background: plan === 'free' ? 'var(--accent-dim)' : 'var(--bg-inset)',
-                border: `1px solid ${plan === 'free' ? 'var(--accent)' : 'var(--border-hairline)'}`,
-                borderRadius: 'var(--radius-card)',
-                padding: '12px 14px',
-                cursor: 'pointer',
-                textAlign: 'left',
-              }}
-              onClick={() => { setPlan('free'); setSelectedPackageId(null); setSelectedDays(null); }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div
-                  style={{
-                    width: 16, height: 16, borderRadius: '50%',
-                    border: `2px solid ${plan === 'free' ? 'var(--accent)' : 'var(--border-strong)'}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}
-                >
-                  {plan === 'free' && <Check size={10} weight="bold" color="var(--accent)" />}
-                </div>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{t('admin.plan.free')}</span>
-              </div>
-              <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--text-muted)', paddingLeft: 24 }}>
-                {t('admin.teamPlan.freeDesc')}
-              </p>
-            </button>
-
-            {/* Pro cards — one per package */}
-            {proPackages.length > 0 ? (
-              proPackages.map((pkg) => (
-                <div key={pkg.id}>
-                  <button
-                    type="button"
-                    className="admin-plan-card"
-                    style={{
-                      background: plan === 'pro' && selectedPackageId === pkg.id
-                        ? 'var(--accent-dim)' : 'var(--bg-inset)',
-                      border: `1px solid ${plan === 'pro' && selectedPackageId === pkg.id
-                        ? 'var(--accent)' : 'var(--border-hairline)'}`,
-                      borderRadius: 'var(--radius-card)',
-                      padding: '12px 14px',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      width: '100%',
-                    }}
-                    onClick={() => {
-                      const first = pkg.prices[0];
-                      if (first) {
-                        handleSelectPackage(pkg, first.durationDays, first.priceIdr);
-                      }
-                    }}
+      ) : (
+        <div className="form-stack">
+          <div>
+            <span className="page-subtitle">{t('admin.teamPlan.team')}</span>
+            <p style={{ margin: 0, fontSize: 14, color: 'var(--text-primary)' }}>{team?.name ?? '—'}</p>
+          </div>
+          <div>
+            <span className="page-subtitle">{t('admin.teamPlan.currentPlan')}</span>
+            <p style={{ margin: '4px 0 0' }}>
+              <Badge tone={currentPlan === 'pro' ? 'success' : 'neutral'}>
+                {currentPlan === 'pro' ? t('admin.plan.pro') : t('admin.plan.free')}
+              </Badge>
+            </p>
+          </div>
+          <div>
+            <span className="page-subtitle">{t('admin.teamPlan.newPlan')}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+              {/* Free card — tanpa chip durasi, boleh jadi satu tombol */}
+              <button
+                type="button"
+                className={`admin-plan-card ${plan === 'free' ? 'admin-plan-card-selected' : ''}`}
+                onClick={() => { setPlan('free'); setSelectedPackageId(null); setSelectedDays(null); }}
+                aria-pressed={plan === 'free'}
+              >
+                <span className="admin-plan-card-row">
+                  <span
+                    className="admin-plan-radio"
+                    data-selected={plan === 'free' ? 'true' : undefined}
+                    aria-hidden="true"
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div
-                        style={{
-                          width: 16, height: 16, borderRadius: '50%',
-                          border: `2px solid ${plan === 'pro' && selectedPackageId === pkg.id
-                            ? 'var(--accent)' : 'var(--border-strong)'}`,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    {plan === 'free' && <Check size={10} weight="bold" color="var(--accent)" />}
+                  </span>
+                  <span className="admin-plan-name">{t('admin.plan.free')}</span>
+                </span>
+                <span className="admin-plan-desc">{t('admin.teamPlan.freeDesc')}</span>
+              </button>
+
+              {/* Pro cards — header tombol + chip durasi sebagai SIBLING (bukan nested) */}
+              {packagesLoading ? (
+                <p className="admin-plan-desc" style={{ fontStyle: 'italic' }}>{t('admin.loading')}</p>
+              ) : packagesError ? (
+                <InlineError>
+                  {packagesError}{' '}
+                  <Button variant="ghost" size="sm" onClick={() => void loadPackages()}>
+                    {t('admin.retry')}
+                  </Button>
+                </InlineError>
+              ) : proPackages.length > 0 ? (
+                proPackages.map((pkg) => {
+                  const cardSelected = plan === 'pro' && selectedPackageId === pkg.id;
+                  return (
+                    <div
+                      key={pkg.id}
+                      className={`admin-plan-card ${cardSelected ? 'admin-plan-card-selected' : ''}`}
+                    >
+                      <button
+                        type="button"
+                        className="admin-plan-card-head"
+                        aria-pressed={cardSelected}
+                        onClick={() => {
+                          const first = pkg.prices[0];
+                          if (first) handleSelectPackage(pkg, first.durationDays);
                         }}
                       >
-                        {plan === 'pro' && selectedPackageId === pkg.id && (
-                          <Check size={10} weight="bold" color="var(--accent)" />
-                        )}
-                      </div>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{pkg.name}</span>
+                        <span className="admin-plan-card-row">
+                          <span
+                            className="admin-plan-radio"
+                            data-selected={cardSelected ? 'true' : undefined}
+                            aria-hidden="true"
+                          >
+                            {cardSelected && <Check size={10} weight="bold" color="var(--accent)" />}
+                          </span>
+                          <span className="admin-plan-name">{pkg.name}</span>
+                        </span>
+                        <span className="admin-plan-desc">
+                          {pkg.description ||
+                            t('admin.teamPlan.packageDesc', {
+                              members: pkg.maxMembers === null ? t('common:usage.unlimited') : pkg.maxMembers,
+                              projects: pkg.maxProjects === null ? t('common:usage.unlimited') : pkg.maxProjects,
+                            })}
+                        </span>
+                      </button>
+                      {pkg.prices.length > 0 && (
+                        <div className="admin-plan-chips">
+                          {pkg.prices.map((price) => {
+                            const chipSelected = cardSelected && selectedDays === price.durationDays;
+                            return (
+                              <button
+                                key={price.id}
+                                type="button"
+                                className={`btn btn-ghost btn-sm admin-plan-chip ${chipSelected ? 'admin-plan-chip-selected' : ''}`}
+                                aria-pressed={chipSelected}
+                                onClick={() => handleSelectPackage(pkg, price.durationDays)}
+                              >
+                                {t('admin.teamPlan.durationPrice', {
+                                  days: price.durationDays,
+                                  price: formatIdr(price.priceIdr),
+                                })}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                    <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--text-muted)', paddingLeft: 24 }}>
-                      {pkg.description || t('admin.teamPlan.packageDesc', {
-                        members: pkg.maxMembers === null ? t('common:usage.unlimited') : pkg.maxMembers,
-                        projects: pkg.maxProjects === null ? t('common:usage.unlimited') : pkg.maxProjects,
-                      })}
-                    </p>
-                    {/* Duration options */}
-                    {pkg.prices.length > 0 && (
-                      <div style={{ display: 'flex', gap: 6, marginTop: 8, paddingLeft: 24, flexWrap: 'wrap' }}>
-                        {pkg.prices.map((price) => {
-                          const selected = selectedPackageId === pkg.id && selectedDays === price.durationDays;
-                          return (
-                            <button
-                              key={price.id}
-                              type="button"
-                              style={{
-                                background: selected ? 'var(--accent-dim)' : 'rgba(255,255,255,0.04)',
-                                border: `1px solid ${selected ? 'var(--accent)' : 'var(--border-hairline)'}`,
-                                borderRadius: 'var(--radius-sm)',
-                                padding: '4px 10px',
-                                cursor: 'pointer',
-                                fontSize: 12,
-                                color: selected ? 'var(--accent)' : 'var(--text-secondary)',
-                                fontWeight: selected ? 600 : 400,
-                              }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSelectPackage(pkg, price.durationDays, price.priceIdr);
-                              }}
-                            >
-                              {t('admin.teamPlan.durationPrice', { days: price.durationDays, price: formatIdr(price.priceIdr) })}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </button>
-                </div>
-              ))
-            ) : (
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                {t('admin.teamPlan.noProPackages')}
-              </p>
-            )}
+                  );
+                })
+              ) : (
+                <p className="admin-plan-desc" style={{ fontStyle: 'italic' }}>
+                  {t('admin.teamPlan.noProPackages')}
+                </p>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </Modal>
   );
 }

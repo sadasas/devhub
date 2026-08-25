@@ -543,7 +543,7 @@ export const api = {
       method: 'DELETE',
     }),
   adminSetTeamPlan: (teamId: string, plan: 'free' | 'pro', packageId?: string, durationDays?: number) =>
-    request<{ id: string; plan: string }>(`/admin/teams/${encodeURIComponent(teamId)}/plan`, {
+    request<{ id: string; plan: 'free' | 'pro' }>(`/admin/teams/${encodeURIComponent(teamId)}/plan`, {
       method: 'PATCH',
       body: JSON.stringify({ plan, packageId, durationDays }),
     }),

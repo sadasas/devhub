@@ -35,6 +35,16 @@
   --status-info: #6ea8fe;
   --status-info-dim: rgba(110, 168, 254, 0.12);
 
+  /* Chart palette — turunan status tokens, bukan hex random (Wave1.1 ADR-048) */
+  --chart-1: var(--status-success);
+  --chart-2: var(--status-info);
+  --chart-3: var(--status-warn);
+  --chart-4: var(--status-danger);
+  --chart-5: #8a7dff;
+  --chart-6: var(--text-muted);
+  --chart-track: rgba(255, 255, 255, 0.06);
+  --chart-grid: rgba(255, 255, 255, 0.04);
+
   /* Radius scale — documented, locked */
   --radius-card: 8px;
   --radius-input: 6px;

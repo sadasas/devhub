@@ -9,9 +9,15 @@ import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { InlineError } from '../../components/InlineError';
 import { Skeleton } from '../../components/Skeleton';
+import { formatDateAdmin } from '../../lib/format';
 import { TeamPlanModal } from './TeamPlanModal';
 
-export function TeamsTab({ refreshKey }: { refreshKey: number }) {
+interface TeamsTabProps {
+  refreshKey: number;
+  onSettled?: () => void;
+}
+
+export function TeamsTab({ refreshKey, onSettled }: TeamsTabProps) {
   const { t } = useTranslation('extras');
   const [teams, setTeams] = useState<AdminTeam[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -21,38 +27,44 @@ export function TeamsTab({ refreshKey }: { refreshKey: number }) {
   const loadTeams = useCallback(async () => {
     setError(null);
     try {
-      const t = await api.listAdminTeams();
-      setTeams(t);
+      const loaded = await api.listAdminTeams();
+      setTeams(loaded);
     } catch (err) {
-      setTeams([]);
+      // Jangan set [] saat gagal (audit H3): error dan empty harus eksklusif.
       setError(getErrorMessage(err, t('admin.teams.errors.load')));
+    } finally {
+      onSettled?.();
     }
-  }, [t]);
+  }, [t, onSettled]);
 
   useEffect(() => {
     void loadTeams();
   }, [refreshKey, loadTeams]);
 
-  function onTeamSaved(saved: AdminTeam & { plan: string }) {
+  function onTeamSaved(saved: AdminTeam) {
     setTeams((prev) =>
-      prev ? prev.map((t) => (t.id === saved.id ? { ...t, plan: saved.plan } : t)) : prev,
+      prev ? prev.map((tm) => (tm.id === saved.id ? saved : tm)) : prev,
     );
   }
 
   return (
-    <section className="tab-panel" role="tabpanel" aria-label={t('admin.teams.aria')}>
-      {teams === null ? (
-        <>
-          <Skeleton style={{ width: '100%', height: 48 }} />
-          <Skeleton style={{ width: '100%', height: 48, marginTop: 8 }} />
-        </>
-      ) : error ? (
+    <section className="tab-panel" aria-label={t('admin.teams.aria')}>
+      <p role="status" aria-live="polite" className="sr-only">
+        {teams === null ? t('admin.loading') : t('admin.teams.count', { count: teams.length })}
+      </p>
+      {/* Kontrak eksklusif (audit H3): error ⊕ skeleton ⊕ empty ⊕ data */}
+      {error ? (
         <InlineError className="mb-12">
           {error}{' '}
           <Button variant="ghost" size="sm" onClick={() => void loadTeams()}>
             {t('admin.retry')}
           </Button>
         </InlineError>
+      ) : teams === null ? (
+        <>
+          <Skeleton style={{ width: '100%', height: 48 }} />
+          <Skeleton style={{ width: '100%', height: 48, marginTop: 8 }} />
+        </>
       ) : teams.length === 0 ? (
         <EmptyState
           icon={<FolderSimple size={22} />}
@@ -67,14 +79,14 @@ export function TeamsTab({ refreshKey }: { refreshKey: number }) {
                 <span className="row-title-text">{tm.name}</span>
                 <Badge tone="neutral">{t('admin.teams.memberCount', { count: tm.memberCount })}</Badge>
                 <Badge tone="neutral">{t('admin.teams.projectCount', { count: tm.projectCount })}</Badge>
-                <Badge tone={(tm as AdminTeam & { plan?: string }).plan === 'pro' ? 'success' : 'neutral'}>
-                  {(tm as AdminTeam & { plan?: string }).plan === 'pro' ? t('admin.plan.pro') : t('admin.plan.free')}
+                <Badge tone={tm.plan === 'pro' ? 'success' : 'neutral'}>
+                  {tm.plan === 'pro' ? t('admin.plan.pro') : t('admin.plan.free')}
                 </Badge>
               </span>
               <span className="data-row-meta">
                 {t('admin.teams.meta', {
                   owner: tm.ownerEmail ?? '—',
-                  created: new Date(tm.createdAt).toLocaleDateString(),
+                  created: formatDateAdmin(tm.createdAt),
                 })}
               </span>
             </div>

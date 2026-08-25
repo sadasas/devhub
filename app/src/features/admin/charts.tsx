@@ -1,17 +1,19 @@
 import type { ReactNode } from 'react';
 import { Skeleton } from '../../components/Skeleton';
+import { compactId as compactIdUtil, formatIdr } from '../../lib/format';
 
-export function formatIdr(amount: number): string {
-  return `Rp ${amount.toLocaleString('id-ID')}`;
-}
+// Re-export single source (compat: tab lain masih import dari sini)
+export { compactIdUtil as compactId, formatIdr };
 
-export function compactId(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(',0', '')}jt`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(',0', '')}rb`;
-  return String(n);
-}
-
-export const CHART_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+// Tokenized palette — turunan --chart-* (ADR-048 Wave1.1), bukan hex random
+export const CHART_COLORS = [
+  'var(--chart-1)',
+  'var(--chart-2)',
+  'var(--chart-3)',
+  'var(--chart-4)',
+  'var(--chart-5)',
+  'var(--chart-6)',
+];
 
 export function Donut({
   segments,

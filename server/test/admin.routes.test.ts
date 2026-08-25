@@ -162,18 +162,35 @@ describe('admin routes', () => {
       .set('Cookie', adminCookie)
       .set('X-Forwarded-For', uniqueIp());
     expect(teamsRes.status).toBe(200);
-    const teams = (teamsRes.body as { teams: Array<{ name: string; memberCount: number; projectCount: number }> }).teams;
+    const teams = (teamsRes.body as {
+      teams: Array<{ id: string; name: string; plan: string; memberCount: number; projectCount: number }>;
+    }).teams;
     expect(teams.length).toBeGreaterThanOrEqual(2);
     expect(teams[0]?.ownerEmail).toBeTruthy();
+    // ADMIN-C1: field plan harus terkirim agar UI tidak menampilkan "Free" palsu
+    expect(teams.every((t) => t.plan === 'free' || t.plan === 'pro')).toBe(true);
+
+    await pool.query(
+      `UPDATE teams SET plan = 'pro', plan_expires_at = now() + interval '30 days' WHERE id = $1`,
+      [teamId],
+    );
+    const proRes = await request(app)
+      .get('/api/v1/admin/teams')
+      .set('Cookie', adminCookie)
+      .set('X-Forwarded-For', uniqueIp());
+    const proTeams = (proRes.body as { teams: Array<{ id: string; plan: string }> }).teams;
+    expect(proTeams.find((t) => t.id === teamId)?.plan).toBe('pro');
 
     const activityRes = await request(app)
-      .get('/api/v1/admin/activity')
+      .get('/api/v1/admin/stats/activity?range=7d')
       .set('Cookie', adminCookie)
       .set('X-Forwarded-For', uniqueIp());
     expect(activityRes.status).toBe(200);
-    const activity = (activityRes.body as { activity: Array<{ projectName: string; summary: string }> }).activity;
-    expect(activity).toHaveLength(1);
-    expect(activity[0]?.projectName).toBe('Admin test project');
-    expect(activity[0]?.summary).toContain('Demo');
+    // Kontrak nyata: bare array bucket {date,label,count} (bukan {activity:[...]})
+    const activity = activityRes.body as Array<{ date: string; label: string; count: number }>;
+    expect(Array.isArray(activity)).toBe(true);
+    expect(activity.length).toBeGreaterThan(0);
+    const totalBuckets = activity.reduce((sum, b) => sum + (b.count ?? 0), 0);
+    expect(totalBuckets).toBeGreaterThanOrEqual(1);
   });
 });

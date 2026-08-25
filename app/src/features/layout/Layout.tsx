@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { List, MagnifyingGlass } from '@phosphor-icons/react';
 import { Sidebar } from './Sidebar';
 import { Logo } from '../../components/Logo';
+import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 import { openPalette } from '../../lib/palette-events';
 
 export function Layout() {
@@ -34,6 +35,9 @@ export function Layout() {
       <a className="skip-link" href="#main-content">
         {t('layout.skipToContent')}
       </a>
+      <div className="app-lang" aria-label="Language">
+        <LanguageSwitcher triggerClassName="app-lang-btn" />
+      </div>
       <header className="topbar">
         <button
           type="button"
@@ -48,6 +52,7 @@ export function Layout() {
           <Logo size={16} />
           <span>DevHub</span>
         </span>
+        <LanguageSwitcher triggerClassName="topbar-btn" />
         <button
           type="button"
           className="topbar-btn"
