@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, CaretDown, Check, Lock, Lightning, ShieldCheck } from '@phosphor-icons/react';
+import { ArrowLeft, CaretDown, Lock, Lightning, ShieldCheck } from '@phosphor-icons/react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
@@ -12,8 +12,8 @@ import { Skeleton } from '../../components/Skeleton';
 import { useAuth } from '../../state/auth-context';
 import { useTeams } from '../../state/teams-context';
 import { PricingCard } from './PricingCard';
+import { PricingCompare } from './PricingCompare';
 const FAQ_ITEM_KEYS = ['upgrade', 'trial', 'payment', 'timing', 'expired'] as const;
-const COMPARE_KEYS = ['tasks', 'issues', 'schema', 'decisions', 'whiteboard', 'api'] as const;
 export function PricingPage() {
   const { t } = useTranslation('extras');
   const { user } = useAuth();
@@ -92,7 +92,7 @@ export function PricingPage() {
             })}
             {freePkgs.map((pkg) => (<PricingCard key={pkg.id} pkg={pkg} isFeatured={false} selectedPrice={null} onBuy={() => {}} busy={false} anyBusy={anyBusy} variant="free" />))}
           </div>
-          {packages && (<section className="pricing-compare" aria-label={t('pricing.compareTitle')}><h2 className="pricing-compare-title">{t('pricing.compareTitle')}</h2><ul className="pricing-compare-list">{COMPARE_KEYS.map((key) => (<li key={key} className="pricing-compare-item"><Check size={14} weight="bold" aria-hidden="true" className="pricing-compare-check" /><span>{t(`pricing.compare.${key}`)}</span></li>))}</ul></section>)}
+          {packages && <PricingCompare packages={packages} />}
         </>
       )}
       <section className="pricing-faq" aria-labelledby="pricing-faq-heading"><h2 id="pricing-faq-heading" className="pricing-section-label">{t('pricing.faqSection')}</h2>{FAQ_ITEM_KEYS.map((key, i) => { const isOpen = openFaq === i; const answerId = `pricing-faq-${key}`; return (<div key={key} className="pricing-faq-item"><button type="button" className="pricing-faq-trigger" aria-expanded={isOpen} aria-controls={answerId} onClick={() => setOpenFaq(isOpen ? null : i)}><span>{t(`pricing.faq.${key}.q`)}</span><CaretDown size={14} weight="bold" aria-hidden="true" /></button><p id={answerId} className="pricing-faq-answer" hidden={!isOpen}>{t(`pricing.faq.${key}.a`)}</p></div>); })}</section>
