@@ -7232,6 +7232,7 @@ input[type='checkbox'] {
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-card);
   margin-bottom: 18px;
+  min-width: 0;
 }
 
 .pricing-workspace-label {
@@ -7239,12 +7240,44 @@ input[type='checkbox'] {
   font-weight: 600;
   color: var(--text-secondary);
   white-space: nowrap;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .pricing-workspace-field {
-  flex: 1;
-  min-width: 200px;
+  flex: 1 1 200px;
+  min-width: min(200px, 100%);
   max-width: 320px;
+}
+
+.pricing-workspace-wrap {
+  min-width: 0;
+}
+
+.pricing-workspace-hint-block,
+.pricing-workspace-error {
+  margin: 8px 2px 0;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.pricing-workspace-error {
+  color: var(--status-danger);
+}
+
+.segmented-card {
+  width: 100%;
+  border-radius: 12px;
+  flex-wrap: wrap;
+}
+
+.segmented-card .segmented-btn {
+  flex: 1 1 128px;
+  min-height: 44px;
+  padding: 8px 10px;
+  justify-content: center;
+  white-space: normal;
 }
 
 .pricing-workspace-hint {
@@ -7275,6 +7308,9 @@ input[type='checkbox'] {
   background: var(--bg-inset);
   border: 1px solid var(--border-hairline);
   border-radius: 999px;
+  max-width: 100%;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .segmented-btn {
@@ -7290,6 +7326,8 @@ input[type='checkbox'] {
   color: var(--text-secondary);
   cursor: pointer;
   min-height: 36px;
+  min-width: 0;
+  overflow-wrap: anywhere;
   transition:
     background var(--duration-fast) var(--ease-out),
     color var(--duration-fast) var(--ease-out),
@@ -7324,7 +7362,9 @@ input[type='checkbox'] {
   display: inline-flex;
   align-items: baseline;
   gap: 4px;
-  white-space: nowrap;
+  white-space: normal;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .segmented-sub {
@@ -7332,6 +7372,9 @@ input[type='checkbox'] {
   opacity: 0.8;
   font-size: 12px;
   font-family: var(--font-mono);
+  white-space: normal;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .segmented-badge {
@@ -7362,15 +7405,23 @@ input[type='checkbox'] {
   height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 22px 20px 20px;
+  gap: 12px;
+  padding: 18px 16px;
   background: var(--bg-elevated);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-card);
+  min-width: 0;
   transition:
     border-color var(--duration-fast) var(--ease-out),
     transform var(--duration-fast) var(--ease-out),
     box-shadow var(--duration-fast) var(--ease-out);
+}
+
+@media (min-width: 768px) {
+  .pricing-card {
+    padding: 22px 20px 20px;
+    gap: 14px;
+  }
 }
 
 .pricing-card:hover {
@@ -7481,17 +7532,23 @@ input[type='checkbox'] {
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 6px 8px;
+  gap: 4px 6px;
   line-height: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .pricing-price-amount {
   font-family: var(--font-mono);
-  font-size: 30px;
+  font-size: clamp(22px, 6.2vw, 30px);
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .pricing-price-period {
@@ -7556,12 +7613,17 @@ input[type='checkbox'] {
 
 .pricing-cta-btn {
   width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+  line-height: 1.3;
+  min-height: 44px;
 }
 
 .pricing-cta-hint {
   margin: 0;
   font-size: 12px;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   text-align: center;
 }
 
@@ -7702,7 +7764,9 @@ input[type='checkbox'] {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 12px 0;
+  min-height: 44px;
+  padding: 12px 4px;
+  gap: 12px;
   background: none;
   border: none;
   color: var(--text-secondary);
@@ -7711,6 +7775,16 @@ input[type='checkbox'] {
   text-align: left;
   cursor: pointer;
   transition: color var(--duration-fast) var(--ease-out);
+}
+
+.pricing-faq-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.pricing-faq-answer[hidden] {
+  display: none;
 }
 
 .pricing-faq-trigger:hover {
@@ -7942,28 +8016,48 @@ input[type='checkbox'] {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 700px) {
   .pricing-grid {
     grid-template-columns: 1fr;
+    gap: 14px;
   }
 
+  .pricing-compare-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
   .pricing-card-pro,
   .pricing-card-featured {
-    order: -1;
+    order: initial;
   }
 
   .pricing-billing-toggle {
-    position: sticky;
-    top: 53px;
-    z-index: 5;
-    margin: 0 -16px 16px;
-    padding: 10px 16px;
-    background: var(--bg-base);
-    border-bottom: 1px solid var(--border-hairline);
+    position: static;
+    margin: 0 0 16px;
+    padding: 6px 0;
+    background: transparent;
+    border-bottom: none;
   }
 
   .pricing-workspace-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
     padding: 10px 12px;
+  }
+
+  .pricing-workspace-field {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+  }
+
+  .pricing-workspace-label {
+    white-space: normal;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   .pricing-compare-list {
@@ -7975,7 +8069,7 @@ input[type='checkbox'] {
   }
 
   .segmented-btn {
-    flex: 1;
+    flex: 1 1 140px;
     justify-content: center;
   }
 }
@@ -7990,7 +8084,21 @@ input[type='checkbox'] {
   }
 
   .pricing-price-amount {
-    font-size: 26px;
+    font-size: clamp(20px, 7vw, 26px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pricing-card:hover {
+    transform: none;
+  }
+
+  .pricing-faq-trigger svg {
+    transition: none;
+  }
+
+  .segmented-btn {
+    transition: none;
   }
 }
 
