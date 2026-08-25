@@ -10357,7 +10357,7 @@ button.admin-plan-card {
   --sidebar-w: 240px;
 }
 .layout[data-collapsed="true"] {
-  --rail-w: 64px;
+  --rail-w: 56px;
   --sidebar-w: 0px;
 }
 .team-rail-desktop {
