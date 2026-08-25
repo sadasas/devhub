@@ -52,13 +52,13 @@ describe('DecisionsPage', () => {
 
   it('marks rows with an unread dot for ids in unreadIds', () => {
     renderPage(new Set(['d1']));
-    expect(document.querySelectorAll('.unread-dot').length).toBe(1);
-    expect(screen.getAllByText('Unread').length).toBe(1);
+    expect(document.querySelectorAll('.unread-pill').length).toBe(1);
+    expect(screen.getAllByText('New').length).toBe(1);
   });
 
   it('renders no unread dots without unreadIds', () => {
     renderPage();
-    expect(document.querySelectorAll('.unread-dot').length).toBe(0);
+    expect(document.querySelectorAll('.unread-pill').length).toBe(0);
   });
 
   it('toggles pinned via dispatch', () => {

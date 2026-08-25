@@ -3,6 +3,8 @@ import { api, type ActivityEntry, type GranularEntity } from '../lib/api';
 import {
   clearLegacyUnread,
   deletedDismissKey,
+  dismissKeyForTab,
+  DISMISS_PREFIX,
   readDismissedUntil,
   readUnreadMap,
   tabOfEntity,
@@ -15,27 +17,27 @@ const DISMISS_KEY = '__deleted_dismiss__';
 const WATERMARK_WRITE_DEBOUNCE_MS = 500;
 
 export interface TabUnreadResult {
-  unread: Record<string, number>;
-  unreadIds: Record<string, ReadonlySet<string>>;
+  unread: Record<string, { new: number; deleted: number; total: number }>;
+  unreadIds: Record<string, { new: ReadonlySet<string>; deleted: ReadonlySet<string> }>;
   deleted: ActivityEntry[];
-  dismissedUntil: string | null;
-  dismissDeleted: () => void;
+  dismissedUntil: Record<string, string | null>;
+  dismissDeleted: (tab: string) => void;
 }
 
 /**
- * Badge unread server-side (ADR M32): angka dihitung SQL di GET /activity/unread
- * berdasarkan watermark baca di DB. Klien tidak lagi menyimpan watermark —
- * ganti tab cukup rekomputasi lokal + PUT debounce; aktivitas baru live via WS.
+ * Badge unread server-side (M38): hanya hit new (created) + deleted,
+ * updated diabaikan. Badge hilang saat pindah tab (bukan saat masuk).
+ * Banner deleted per tab via dismissKeyForTab.
  */
 export function useTabUnread(
   projectId: string,
   userId: string,
   activeTab: string,
 ): TabUnreadResult {
-  const [unread, setUnread] = useState<Record<string, number>>({});
-  const [unreadIds, setUnreadIds] = useState<Record<string, ReadonlySet<string>>>({});
+  const [unread, setUnread] = useState<Record<string, { new: number; deleted: number; total: number }>>({});
+  const [unreadIds, setUnreadIds] = useState<Record<string, { new: ReadonlySet<string>; deleted: ReadonlySet<string> }>>({});
   const [deleted, setDeleted] = useState<ActivityEntry[]>([]);
-  const [dismissedUntil, setDismissedUntil] = useState<string | null>(null);
+  const [dismissedUntil, setDismissedUntil] = useState<Record<string, string | null>>({});
 
   const activeTabRef = useRef(activeTab);
   activeTabRef.current = activeTab;
@@ -65,23 +67,44 @@ export function useTabUnread(
     [flushWatermarkWrites],
   );
 
-  // Satu panggilan kecil per buka project — server yang menghitung.
+  // Satu panggilan kecil per buka project — server yang menghitung (new+deleted only).
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const summary = await api.fetchActivityUnread(projectId);
+        const summary: any = await api.fetchActivityUnread(projectId);
         if (cancelled) return;
-        const counts = { ...summary.counts };
-        delete counts[activeTabRef.current];
-        setUnread(counts);
-        setUnreadIds(
-          Object.fromEntries(
-            Object.entries(summary.ids ?? {}).map(([tab, list]) => [tab, new Set(list)]),
-          ),
-        );
+
+        // Normalisasi counts: support legacy number & new object shape
+        const rawCounts = summary.counts ?? {};
+        const normCounts: Record<string, { new: number; deleted: number; total: number }> = {};
+        for (const [tab, val] of Object.entries(rawCounts)) {
+          if (typeof val === 'number') {
+            normCounts[tab] = { new: val as number, deleted: 0, total: val as number };
+          } else if (val && typeof val === 'object') {
+            const v = val as { new?: number; deleted?: number; total?: number };
+            const n = v.new ?? 0;
+            const d = v.deleted ?? 0;
+            normCounts[tab] = { new: n, deleted: d, total: v.total ?? n + d };
+          }
+        }
+        // JANGAN hapus activeTab — biar dot tetap kelihatan saat pertama masuk (hilang saat pindah tab)
+        setUnread(normCounts);
+
+        const rawIds = summary.ids ?? {};
+        const normIds: Record<string, { new: ReadonlySet<string>; deleted: ReadonlySet<string> }> = {};
+        for (const [tab, val] of Object.entries(rawIds)) {
+          if (Array.isArray(val)) {
+            normIds[tab] = { new: new Set(val as string[]), deleted: new Set() };
+          } else if (val && typeof val === 'object') {
+            const v = val as { new?: string[]; deleted?: string[] };
+            normIds[tab] = { new: new Set(v.new ?? []), deleted: new Set(v.deleted ?? []) };
+          }
+        }
+        setUnreadIds(normIds);
+
         setDeleted(
-          (summary.deleted ?? []).map((d) => ({
+          (summary.deleted ?? []).map((d: any) => ({
             id: d.id,
             projectId,
             entity: d.entity as GranularEntity,
@@ -92,24 +115,37 @@ export function useTabUnread(
             summary: d.summary ?? '',
             changes: {},
             createdAt: d.createdAt,
-          })),
+            tab: d.tab ?? tabOfEntity(d.entity as GranularEntity),
+          })) as unknown as ActivityEntry[],
         );
-        const serverDismiss = summary.watermarks?.[DISMISS_KEY] ?? null;
-        if (serverDismiss) {
-          setDismissedUntil(serverDismiss);
+
+        const marks = summary.watermarks ?? {};
+        const perTabDismiss: Record<string, string | null> = {};
+        const globalDismiss = marks[DISMISS_KEY] ?? null;
+        for (const [k, v] of Object.entries(marks)) {
+          if ((k as string).startsWith(DISMISS_PREFIX)) {
+            const tab = (k as string).slice(DISMISS_PREFIX.length);
+            perTabDismiss[tab] = v as string;
+          }
+        }
+        if (globalDismiss && Object.keys(perTabDismiss).length === 0) {
+          const knownTabs = ['board','issues','tests','stack','schema','decisions','releases','api','whiteboard'];
+          for (const t of knownTabs) perTabDismiss[t] = globalDismiss;
           clearLegacyUnread(deletedDismissKey(projectId));
-        } else {
-          seedLegacyWatermarks(projectId, userId, summary.watermarks ?? {}, () => {
-            const legacy = readDismissedUntil(deletedDismissKey(projectId));
-            if (legacy) {
-              setDismissedUntil(legacy);
-              return true;
-            }
-            return false;
+        } else if (Object.keys(marks).length === 0) {
+          seedLegacyWatermarks(projectId, userId, marks, (tab, legacyVal) => {
+            perTabDismiss[tab] = legacyVal;
+            return true;
           });
         }
+        setDismissedUntil(perTabDismiss);
+        clearLegacyUnread(unreadStorageKey(projectId, userId));
+        if (globalDismiss) clearLegacyUnread(deletedDismissKey(projectId));
       } catch {
-        if (!cancelled) setUnread({});
+        if (!cancelled) {
+          setUnread({});
+          setUnreadIds({});
+        }
       }
     })();
     return () => {
@@ -117,25 +153,23 @@ export function useTabUnread(
     };
   }, [projectId, userId]);
 
-  // Ganti tab: rekomputasi lokal + tandai tab yang ditinggalkan sudah dibaca.
-  // Badge tab yang dimasuki juga dibersihkan (paritas UX dengan perilaku lama).
+  // Ganti tab: hanya tandai tab yang ditinggalkan sudah dibaca (hilang saat pindah tab).
   const prevTabRef = useRef(activeTab);
   useEffect(() => {
     const prev = prevTabRef.current;
     prevTabRef.current = activeTab;
     if (!prev || prev === activeTab) return;
     scheduleWatermarkWrite(prev);
-    const cleared = new Set([prev, activeTab]);
     setUnread((map) => {
-      if (!Object.keys(map).some((t) => cleared.has(t))) return map;
+      if (!(prev in map)) return map;
       const next = { ...map };
-      for (const t of cleared) delete next[t];
+      delete next[prev];
       return next;
     });
     setUnreadIds((map) => {
-      if (!Object.keys(map).some((t) => cleared.has(t))) return map;
+      if (!(prev in map)) return map;
       const next = { ...map };
-      for (const t of cleared) delete next[t];
+      delete next[prev];
       return next;
     });
   }, [activeTab, scheduleWatermarkWrite]);
@@ -143,13 +177,27 @@ export function useTabUnread(
   const { subscribeActivity } = useProject();
   useEffect(() => {
     return subscribeActivity((msg) => {
+      if (msg.entry.action !== 'created' && msg.entry.action !== 'deleted') return;
       const tab = tabOfEntity(msg.entry.entity);
       if (tab !== activeTabRef.current) {
-        setUnread((prev) => ({ ...prev, [tab]: (prev[tab] ?? 0) + 1 }));
+        setUnread((prev) => {
+          const cur = prev[tab] ?? { new: 0, deleted: 0, total: 0 };
+          const isNew = msg.entry.action === 'created';
+          const next = {
+            new: cur.new + (isNew ? 1 : 0),
+            deleted: cur.deleted + (isNew ? 0 : 1),
+            total: cur.total + 1,
+          };
+          return { ...prev, [tab]: next };
+        });
         setUnreadIds((prevMap) => {
-          const next = new Set(prevMap[tab] ?? []);
-          next.add(msg.entry.entityId);
-          return { ...prevMap, [tab]: next };
+          const cur = prevMap[tab] ?? { new: new Set(), deleted: new Set() };
+          const isNew = msg.entry.action === 'created';
+          const nextNew = new Set(cur.new);
+          const nextDel = new Set(cur.deleted);
+          if (isNew) nextNew.add(msg.entry.entityId);
+          else nextDel.add(msg.entry.entityId);
+          return { ...prevMap, [tab]: { new: nextNew, deleted: nextDel } };
         });
       }
       if (msg.entry.action === 'deleted') {
@@ -158,22 +206,25 @@ export function useTabUnread(
     });
   }, [subscribeActivity]);
 
-  const dismissDeleted = useCallback(() => {
-    setDismissedUntil(new Date().toISOString());
-    void api.setTabReadWatermark(projectId, DISMISS_KEY).catch(() => {});
-  }, [projectId]);
+  const dismissDeleted = useCallback(
+    (tab: string) => {
+      const key = dismissKeyForTab(tab);
+      setDismissedUntil((prev) => ({ ...prev, [tab]: new Date().toISOString() }));
+      void api.setTabReadWatermark(projectId, key).catch(() => {});
+    },
+    [projectId],
+  );
 
   useEffect(() => flushWatermarkWrites, [flushWatermarkWrites]);
 
   return { unread, unreadIds, deleted, dismissedUntil, dismissDeleted };
 }
 
-/** Migrasi sekali: watermark lama di localStorage → server, lalu hapus lokal. */
 function seedLegacyWatermarks(
   projectId: string,
   userId: string,
   serverMarks: Record<string, string>,
-  adoptLegacyDismiss: () => boolean,
+  onAdopt: (tab: string, val: string) => boolean,
 ): void {
   try {
     if (Object.keys(serverMarks).length > 0) {
@@ -182,14 +233,17 @@ function seedLegacyWatermarks(
       return;
     }
     const legacy = readUnreadMap(unreadStorageKey(projectId, userId));
-    const dismissedAdopted = adoptLegacyDismiss();
+    const legacyDismiss = readDismissedUntil(deletedDismissKey(projectId));
+    if (legacyDismiss) {
+      const knownTabs = ['board','issues','tests','stack','schema','decisions','releases','api','whiteboard'];
+      for (const t of knownTabs) {
+        if (onAdopt(t, legacyDismiss)) void api.setTabReadWatermark(projectId, dismissKeyForTab(t)).catch(() => {});
+      }
+    }
     const tabs = Object.keys(legacy);
-    if (tabs.length === 0 && !dismissedAdopted) return;
+    if (tabs.length === 0 && !legacyDismiss) return;
     for (const tab of tabs) {
       void api.setTabReadWatermark(projectId, tab).catch(() => {});
-    }
-    if (dismissedAdopted) {
-      void api.setTabReadWatermark(projectId, DISMISS_KEY).catch(() => {});
     }
     clearLegacyUnread(unreadStorageKey(projectId, userId));
     clearLegacyUnread(deletedDismissKey(projectId));

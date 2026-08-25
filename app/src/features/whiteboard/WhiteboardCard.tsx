@@ -27,10 +27,9 @@ export function WhiteboardCard({ board, canEdit, unread = false, onOpen, onDelet
           <span className="project-card-updated">{formatRelative(board.updatedAt)}</span>
           <span className="project-card-updated">#{shortId(board.id)}</span>
           {unread && (
-            <>
-              <span className="unread-dot" aria-hidden="true" />
-              <span className="sr-only">{t('whiteboard.card.unread')}</span>
-            </>
+            <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">
+              New
+            </span>
           )}
         </span>
       </button>

@@ -35,13 +35,13 @@ describe('TaskCard', () => {
 
   it('renders an unread dot for unread tasks', () => {
     render(<TaskCard task={task()} onOpen={() => {}} unread />);
-    expect(document.querySelector('.unread-dot')).toBeTruthy();
-    expect(screen.getByText('Unread')).toBeTruthy();
+    expect(document.querySelector('.unread-pill')).toBeTruthy();
+    expect(screen.getByText('New')).toBeTruthy();
   });
 
   it('omits the unread dot for read tasks', () => {
     render(<TaskCard task={task()} onOpen={() => {}} />);
-    expect(document.querySelector('.unread-dot')).toBeNull();
+    expect(document.querySelector('.unread-pill')).toBeNull();
   });
 
   it('renders a due chip with a tone for tasks with a due date', () => {

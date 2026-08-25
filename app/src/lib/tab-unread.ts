@@ -15,6 +15,14 @@ export function deletedDismissKey(projectId: string): string {
   return `devhub:deleted-dismiss:${projectId}`;
 }
 
+export const DISMISS_PREFIX = '__deleted_dismiss__:';
+export function dismissKeyForTab(tab: string): string {
+  return `${DISMISS_PREFIX}${tab}`;
+}
+export function isDismissKey(tab: string): boolean {
+  return tab === '__deleted_dismiss__' || tab.startsWith(DISMISS_PREFIX);
+}
+
 /** Sisa helper lama (localStorage) — hanya dipakai untuk seeding sekali ke server. */
 export function readUnreadMap(key: string): UnreadMap {
   try {

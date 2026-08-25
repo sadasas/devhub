@@ -207,6 +207,7 @@ function ProjectUnreadArea({
       />
       <DeletedItemsBanner
         items={deleted}
+        activeTab={tab}
         dismissedUntil={dismissedUntil}
         onDismiss={dismissDeleted}
       />
@@ -219,29 +220,29 @@ function ProjectUnreadArea({
       >
         <Suspense fallback={<TabSkeleton tab={tab} />}>
           {tab === 'board' ? (
-            <BoardPageLazy unreadIds={unreadIds.board} />
+            <BoardPageLazy unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new} />
           ) : tab === 'issues' ? (
-            <IssuesPageLazy unreadIds={unreadIds.issues} />
+            <IssuesPageLazy unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new} />
           ) : tab === 'tests' ? (
-            <TestsPageLazy unreadIds={unreadIds.tests} />
+            <TestsPageLazy unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new} />
           ) : tab === 'stack' ? (
-            <StackPageLazy unreadIds={unreadIds.stack} />
+            <StackPageLazy unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new} />
           ) : tab === 'schema' ? (
-            <SchemaPageLazy unreadIds={unreadIds.schema} />
+            <SchemaPageLazy unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new} />
           ) : tab === 'decisions' ? (
-            <DecisionsPageLazy unreadIds={unreadIds.decisions} />
+            <DecisionsPageLazy unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new} />
           ) : tab === 'releases' ? (
-            <ReleasesPageLazy unreadIds={unreadIds.releases} />
+            <ReleasesPageLazy unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new} />
           ) : tab === 'api' ? (
             <ApiPageLazy
               projectName={project.name}
               projectDescription={project.description ?? ''}
-              unreadIds={unreadIds.api}
+              unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new}
             />
           ) : tab === 'overview' ? (
             <OverviewPageLazy project={project} />
           ) : tab === 'whiteboard' ? (
-            <WhiteboardPageLazy unreadIds={unreadIds.whiteboard} />
+            <WhiteboardPageLazy unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new} />
           ) : null}
         </Suspense>
       </section>

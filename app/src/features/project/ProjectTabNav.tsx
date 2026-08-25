@@ -11,7 +11,7 @@ export interface ProjectTabNavProps {
   tabs: ProjectTabItem[];
   active: string;
   onSelect: (id: string) => void;
-  unread: Record<string, number>;
+  unread: Record<string, number | { new: number; deleted: number; total: number }>;
 }
 
 export function ProjectTabNav({ tabs, active, onSelect, unread }: ProjectTabNavProps) {
@@ -19,7 +19,11 @@ export function ProjectTabNav({ tabs, active, onSelect, unread }: ProjectTabNavP
   return (
     <nav className="tabs" role="tablist" aria-label={t('tabs.navAria')}>
       {tabs.map((tab) => {
-        const count = unread[tab.id] ?? 0;
+        const raw = unread[tab.id];
+        const c = typeof raw === 'number' ? { new: raw, deleted: 0, total: raw } : raw;
+        const total = c?.total ?? 0;
+        const newCount = c?.new ?? 0;
+        const delCount = c?.deleted ?? 0;
         return (
           <button
             key={tab.id}
@@ -33,13 +37,23 @@ export function ProjectTabNav({ tabs, active, onSelect, unread }: ProjectTabNavP
           >
             {tab.icon}
             {tab.label}
-            {count > 0 && (
-              <span
-                className="tab-badge"
-                aria-label={t('tabs.unreadBadge', { count })}
-                title={t('tabs.unreadBadge', { count })}
-              >
-                {count > 99 ? '99+' : count}
+            {total > 0 && (
+              <span className="tab-badge-split" aria-label={`${newCount} new, ${delCount} deleted in ${tab.label}`} title={`${newCount} new · ${delCount} deleted`}>
+                {newCount > 0 && (
+                  <span className="tab-badge tab-badge-new" aria-hidden="true">
+                    {newCount > 99 ? '99+' : newCount}
+                  </span>
+                )}
+                {delCount > 0 && (
+                  <span className="tab-badge tab-badge-deleted" aria-hidden="true">
+                    {delCount > 99 ? '99+' : delCount}
+                  </span>
+                )}
+                {newCount === 0 && delCount === 0 && (
+                  <span className="tab-badge" aria-hidden="true">
+                    {total > 99 ? '99+' : total}
+                  </span>
+                )}
               </span>
             )}
           </button>

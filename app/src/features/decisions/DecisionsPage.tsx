@@ -121,11 +121,8 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
                   <span># {d.date}</span>
                   <span>#{shortId(d.id)}</span>
                   {unreadIds?.has(d.id) && (
-                    <>
-                      <span className="unread-dot" aria-hidden="true" />
-                      <span className="sr-only">{t('decisions.unread')}</span>
-                    </>
-                  )}
+                    <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">New</span>
+                    )}
                 </div>
               </button>
               <div className="data-row-side">

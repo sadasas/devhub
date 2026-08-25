@@ -199,8 +199,8 @@ describe('ApiPage', () => {
     });
     renderPage(new Set(['c1', 'e1']));
 
-    expect(screen.getAllByText('Unread').length).toBe(2);
-    expect(document.querySelectorAll('.unread-dot').length).toBe(2);
+    expect(screen.getAllByText('New').length).toBe(2);
+    expect(document.querySelectorAll('.unread-pill').length).toBe(2);
   });
 
   it('renders no unread dots without unreadIds', () => {
@@ -210,6 +210,6 @@ describe('ApiPage', () => {
     });
     renderPage();
 
-    expect(document.querySelectorAll('.unread-dot').length).toBe(0);
+    expect(document.querySelectorAll('.unread-pill').length).toBe(0);
   });
 });

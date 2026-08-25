@@ -161,10 +161,14 @@ export const TaskCard = memo(function TaskCard({
               #{shortId(task.id)}
             </span>
             {unread && (
-              <>
-                <span className="unread-dot" aria-hidden="true" />
-                <span className="sr-only">{t('board.taskCard.unread')}</span>
-              </>
+              <span
+                className="unread-pill"
+                role="status"
+                aria-label={t('board.taskCard.unreadAria', { defaultValue: 'New — not yet viewed' })}
+                title={t('board.taskCard.unreadTitle', { defaultValue: 'New · not yet viewed' })}
+              >
+                New
+              </span>
             )}
           </span>
         </div>

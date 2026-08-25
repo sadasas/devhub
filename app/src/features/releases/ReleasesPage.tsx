@@ -122,11 +122,8 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
                   </span>
                   <span>#{shortId(m.id)}</span>
                   {unreadIds?.has(m.id) && (
-                    <>
-                      <span className="unread-dot" aria-hidden="true" />
-                      <span className="sr-only">{t('releases.unread')}</span>
-                    </>
-                  )}
+                    <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">New</span>
+                    )}
                 </div>
                 {milestoneTasks(m.id).length > 0 && (
                   <div className="milestone-progress">

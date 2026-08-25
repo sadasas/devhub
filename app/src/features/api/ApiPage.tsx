@@ -448,8 +448,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                           <span className="api-tree-count">{endpointCount(c.id)}</span>
                           {unreadIds?.has(c.id) && (
                             <>
-                              <span className="unread-dot" aria-hidden="true" />
-                              <span className="sr-only">{t('api.tree.unread')}</span>
+                              <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">New</span>
                             </>
                           )}
                         </button>
@@ -482,8 +481,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                                   <span className="api-tree-item-title">{e.name}</span>
                                   {unreadIds?.has(e.id) && (
                                     <>
-                                      <span className="unread-dot" aria-hidden="true" />
-                                      <span className="sr-only">{t('api.tree.unread')}</span>
+                                      <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">New</span>
                                     </>
                                   )}
                                 </button>
@@ -546,8 +544,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                                 <span className="api-tree-item-title">{e.name}</span>
                                 {unreadIds?.has(e.id) && (
                                   <>
-                                    <span className="unread-dot" aria-hidden="true" />
-                                    <span className="sr-only">{t('api.tree.unread')}</span>
+                                    <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">New</span>
                                   </>
                                 )}
                               </button>
@@ -954,8 +951,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                         <span className="api-tree-item-path">{e.path}</span>
                         {unreadIds?.has(e.id) && (
                           <>
-                            <span className="unread-dot" aria-hidden="true" />
-                            <span className="sr-only">{t('api.tree.unread')}</span>
+                            <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">New</span>
                           </>
                         )}
                       </div>

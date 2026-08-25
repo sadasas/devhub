@@ -22,7 +22,7 @@ function entry(over: Partial<ActivityEntry>): ActivityEntry {
 describe('DeletedItemsBanner', () => {
   it('returns null when there are no deleted items', () => {
     const { container } = render(
-      <DeletedItemsBanner items={[entry({ action: 'updated' })]} dismissedUntil={null} onDismiss={() => {}} />,
+      <DeletedItemsBanner items={[entry({ action: 'updated' })]} activeTab="board" dismissedUntil={{}} onDismiss={() => {}} />,
     );
     expect(container.querySelector('.deleted-banner')).toBeNull();
   });
@@ -32,10 +32,11 @@ describe('DeletedItemsBanner', () => {
       <DeletedItemsBanner
         items={[
           entry({ id: 'a1', entity: 'tasks', summary: 'Build login', createdAt: '2026-08-20T10:00:00.000Z' }),
-          entry({ id: 'a2', entity: 'issues', summary: 'Flaky test', createdAt: '2026-08-20T09:00:00.000Z' }),
+          entry({ id: 'a2', entity: 'tasks', summary: 'Flaky test', createdAt: '2026-08-20T09:00:00.000Z' }),
           entry({ id: 'a3', action: 'updated', entity: 'tasks', summary: 'Ignore me' }),
         ]}
-        dismissedUntil={null}
+        activeTab="board"
+        dismissedUntil={{}}
         onDismiss={() => {}}
       />,
     );
@@ -54,7 +55,8 @@ describe('DeletedItemsBanner', () => {
           entry({ id: 'a1', summary: 'Old one', createdAt: '2026-08-20T10:00:00.000Z' }),
           entry({ id: 'a2', summary: 'Fresh one', createdAt: '2026-08-21T10:00:00.000Z' }),
         ]}
-        dismissedUntil="2026-08-20T12:00:00.000Z"
+        activeTab="board"
+        dismissedUntil={{ board: '2026-08-20T12:00:00.000Z' }}
         onDismiss={() => {}}
       />,
     );
@@ -65,11 +67,11 @@ describe('DeletedItemsBanner', () => {
   it('calls onDismiss when the Dismiss button is clicked', () => {
     const onDismiss = vi.fn();
     const { container } = render(
-      <DeletedItemsBanner items={[entry({})]} dismissedUntil={null} onDismiss={onDismiss} />,
+      <DeletedItemsBanner items={[entry({})]} activeTab="board" dismissedUntil={{}} onDismiss={onDismiss} />,
     );
     const button = container.querySelector('button');
     expect(button).not.toBeNull();
     button!.click();
-    expect(onDismiss).toHaveBeenCalledTimes(1);
+    expect(onDismiss).toHaveBeenCalledWith('board');
   });
 });

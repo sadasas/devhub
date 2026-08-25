@@ -77,13 +77,13 @@ describe('SchemaPage', () => {
 
   it('marks tables and schema versions with an unread dot for ids in unreadIds', () => {
     renderPage(new Set(['tb1', 'sv1']));
-    expect(document.querySelectorAll('.unread-dot').length).toBe(2);
-    expect(screen.getAllByText('Unread').length).toBe(2);
+    expect(document.querySelectorAll('.unread-pill').length).toBe(2);
+    expect(screen.getAllByText('New').length).toBe(2);
   });
 
   it('renders no unread dots without unreadIds', () => {
     renderPage();
-    expect(document.querySelectorAll('.unread-dot').length).toBe(0);
+    expect(document.querySelectorAll('.unread-pill').length).toBe(0);
   });
 
   it('keeps the versions panel visible in both sub-views', async () => {

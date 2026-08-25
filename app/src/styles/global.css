@@ -7997,6 +7997,44 @@ input[type='checkbox'] {
   border-radius: var(--radius-pill);
 }
 
+.tab-badge-split {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tab-badge-new {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid rgba(52, 195, 142, 0.3);
+  border-radius: var(--radius-pill);
+}
+
+.tab-badge-deleted {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--status-danger);
+  background: var(--status-danger-dim);
+  border: 1px solid rgba(244, 112, 109, 0.3);
+  border-radius: var(--radius-pill);
+}
+
 .deleted-banner {
   display: flex;
   flex-direction: column;
@@ -8078,6 +8116,24 @@ input[type='checkbox'] {
   display: inline-block;
   background: var(--accent);
   border-radius: 50%;
+}
+
+.unread-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  padding: 0 6px;
+  background: var(--accent-dim);
+  border: 1px solid rgba(52, 195, 142, 0.3);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  white-space: nowrap;
 }
 
 /* Due date calendar (M19 P2) */

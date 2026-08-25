@@ -3,6 +3,7 @@ import { formatRelative } from '../../lib/utils';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
+import { tabOfEntity } from '../../lib/tab-unread';
 
 const ENTITY_KEYS = [
   'tasks',
@@ -25,19 +26,25 @@ const MAX_ROWS = 5;
 
 export interface DeletedItemsBannerProps {
   items: ActivityEntry[];
-  dismissedUntil: string | null;
-  onDismiss: () => void;
+  activeTab?: string;
+  dismissedUntil: Record<string, string | null> | string | null;
+  onDismiss: (tab: string) => void;
 }
 
-export function DeletedItemsBanner({ items, dismissedUntil, onDismiss }: DeletedItemsBannerProps) {
+export function DeletedItemsBanner({ items, activeTab = 'board', dismissedUntil, onDismiss }: DeletedItemsBannerProps) {
   const { t } = useTranslation('project');
+  const until =
+    dismissedUntil && typeof dismissedUntil === 'object' && !Array.isArray(dismissedUntil)
+      ? (dismissedUntil as Record<string, string | null>)[activeTab] ?? null
+      : (dismissedUntil as string | null);
   const visible = items
     .filter((entry) => entry.action === 'deleted')
-    .filter(
-      (entry) =>
-        !dismissedUntil ||
-        new Date(entry.createdAt).getTime() > new Date(dismissedUntil).getTime(),
-    )
+    .filter((entry) => {
+      const entryTab =
+        (entry as unknown as { tab?: string }).tab ?? tabOfEntity(entry.entity as never);
+      if (entryTab !== activeTab) return false;
+      return !until || new Date(entry.createdAt).getTime() > new Date(until).getTime();
+    })
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   if (visible.length === 0) return null;
@@ -56,7 +63,7 @@ export function DeletedItemsBanner({ items, dismissedUntil, onDismiss }: Deleted
         <span className="deleted-banner-copy">
           {t('banner.copy')}
         </span>
-        <Button variant="ghost" size="sm" onClick={onDismiss}>
+        <Button variant="ghost" size="sm" onClick={() => onDismiss(activeTab)}>
           {t('banner.dismiss')}
         </Button>
       </div>

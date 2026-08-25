@@ -183,11 +183,8 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
                   <span>v{entry.version}</span>
                   <span>#{shortId(entry.id)}</span>
                   {unreadIds?.has(entry.id) && (
-                    <>
-                      <span className="unread-dot" aria-hidden="true" />
-                      <span className="sr-only">{t('stack.unread')}</span>
-                    </>
-                  )}
+                    <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">New</span>
+                    )}
                 </div>
               </button>
               <div className="data-row-side">

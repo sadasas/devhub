@@ -212,10 +212,9 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
                           </span>
                           <span>#{shortId(t2.id)}</span>
                           {unreadIds?.has(t2.id) && (
-                            <>
-                              <span className="unread-dot" aria-hidden="true" />
-                              <span className="sr-only">{t('schema.unread')}</span>
-                            </>
+                            <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">
+                              New
+                            </span>
                           )}
                         </div>
                       </button>
@@ -246,10 +245,9 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
                             <span>{t('schema.page.onDelete', { value: r.onDelete })}</span>
                             <span>#{shortId(r.id)}</span>
                             {unreadIds?.has(r.id) && (
-                              <>
-                                <span className="unread-dot" aria-hidden="true" />
-                                <span className="sr-only">{t('schema.unread')}</span>
-                              </>
+                              <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">
+                                New
+                              </span>
                             )}
                           </div>
                         </div>
@@ -319,10 +317,9 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
                     <div className="version-row" key={v.id}>
                       <Badge tone="accent">{v.version}</Badge>
                       {unreadIds?.has(v.id) && (
-                        <>
-                          <span className="unread-dot" aria-hidden="true" />
-                          <span className="sr-only">{t('schema.unread')}</span>
-                        </>
+                        <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">
+                          New
+                        </span>
                       )}
                       <div className="version-main">
                         <div className="version-notes">{v.notes || t('schema.noNotes')}</div>

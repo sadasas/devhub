@@ -22,19 +22,19 @@ describe('ProjectTabNav', () => {
 
   it('shows a badge only on tabs with unread counts', () => {
     render(
-      <ProjectTabNav tabs={TABS} active="board" onSelect={() => {}} unread={{ issues: 3 }} />,
+      <ProjectTabNav tabs={TABS} active="board" onSelect={() => {}} unread={{ issues: { new: 3, deleted: 0, total: 3 } }} />,
     );
     const badge = screen.getByText('3');
-    expect(badge.className).toContain('tab-badge');
-    expect(badge.getAttribute('aria-label')).toBe('3 unread');
+    expect(badge.className).toContain('tab-badge-new');
+    expect(badge.closest('.tab-badge-split')?.getAttribute('aria-label')).toBe('3 new, 0 deleted in Issues');
     expect(screen.queryByText('2')).toBeNull();
   });
 
   it('caps the badge count at 99+', () => {
     render(
-      <ProjectTabNav tabs={TABS} active="board" onSelect={() => {}} unread={{ whiteboard: 120 }} />,
+      <ProjectTabNav tabs={TABS} active="board" onSelect={() => {}} unread={{ whiteboard: { new: 120, deleted: 0, total: 120 } }} />,
     );
-    expect(screen.getByText('99+').getAttribute('aria-label')).toBe('120 unread');
+    expect(screen.getByText('99+').closest('.tab-badge-split')?.getAttribute('aria-label')).toBe('120 new, 0 deleted in Whiteboard');
   });
 
   it('calls onSelect with the tab id on click', () => {

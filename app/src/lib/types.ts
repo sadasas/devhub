@@ -627,7 +627,7 @@ export interface UserStats {
   days: ActivityDay[];
 }
 
-/** Badge unread server-side (ADR M32): agregat SQL vs watermark baca di DB. */
+/** Badge unread server-side (ADR M32 — M38 revisi: hanya new+deleted, pill NEW, banner per tab). */
 export interface ActivityUnreadDeleted {
   id: string;
   entity: string;
@@ -635,11 +635,24 @@ export interface ActivityUnreadDeleted {
   authorName: string;
   summary: string;
   createdAt: string;
+  tab: string;
+}
+
+export interface UnreadCounts {
+  new: number;
+  deleted: number;
+  total: number;
+}
+
+export interface UnreadIds {
+  new: string[];
+  deleted: string[];
 }
 
 export interface ActivityUnreadSummary {
-  counts: Record<string, number>;
-  ids: Record<string, string[]>;
+  counts: Record<string, UnreadCounts>;
+  ids: Record<string, UnreadIds>;
   deleted: ActivityUnreadDeleted[];
   watermarks: Record<string, string>;
+  // legacy compat (server lama): counts flat number, ids flat string[] — di-handle di hook
 }

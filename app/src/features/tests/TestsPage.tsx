@@ -126,11 +126,8 @@ return (
                     {linkedIssue && <span>{t('tests.metaIssue', { title: linkedIssue.title })}</span>}
                     <span>#{shortId(test.id)}</span>
                     {unreadIds?.has(test.id) && (
-                      <>
-                        <span className="unread-dot" aria-hidden="true" />
-                        <span className="sr-only">{t('tests.unread')}</span>
-                      </>
-                    )}
+                      <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">New</span>
+                      )}
                   </div>
                 </button>
                 <div className="data-row-side">
