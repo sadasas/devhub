@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Receipt } from '@phosphor-icons/react';
+import { CaretLeft, CaretRight, Receipt } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { api } from '../../lib/api';
@@ -84,19 +84,11 @@ export function PaymentsTab({ refreshKey, onSettled }: PaymentsTabProps) {
         {payments === null ? t('admin.loading') : t('admin.payments.count', { count: paymentsTotal })}
       </p>
       <div className="admin-filter-bar">
-        <select
-          className="select"
-          value={statusParam}
-          onChange={(e) => {
-            updateParam('status', e.target.value || null);
-            updateParam('page', null);
-          }}
-          aria-label={t('admin.payments.filterStatusAria')}
-        >
-          <option value="">{t('admin.payments.allStatuses')}</option>
-          <option value="completed">{t('admin.payments.completed')}</option>
-          <option value="pending">{t('admin.payments.pending')}</option>
-        </select>
+        <span className="admin-activity-ranges" role="group" aria-label={t('admin.payments.filterStatusAria')}>
+          <button type="button" className={`sub-tab ${statusParam === '' ? 'sub-tab-active' : ''}`} aria-pressed={statusParam === ''} onClick={() => { updateParam('status', null); updateParam('page', null); }}>{t('admin.payments.allStatuses')}</button>
+          <button type="button" className={`sub-tab ${statusParam === 'completed' ? 'sub-tab-active' : ''}`} aria-pressed={statusParam === 'completed'} onClick={() => { updateParam('status', 'completed'); updateParam('page', null); }}>{t('admin.payments.completed')}</button>
+          <button type="button" className={`sub-tab ${statusParam === 'pending' ? 'sub-tab-active' : ''}`} aria-pressed={statusParam === 'pending'} onClick={() => { updateParam('status', 'pending'); updateParam('page', null); }}>{t('admin.payments.pending')}</button>
+        </span>
         <span className="page-subtitle admin-filter-count">
           {payments !== null ? t('admin.payments.count', { count: paymentsTotal }) : ''}
         </span>
@@ -105,7 +97,7 @@ export function PaymentsTab({ refreshKey, onSettled }: PaymentsTabProps) {
       {error ? (
         <InlineError className="mb-12">
           {error}{' '}
-          <Button variant="ghost" size="sm" onClick={() => void loadPayments()}>
+          <Button variant="secondary" size="sm" onClick={() => void loadPayments()}>
             {t('admin.retry')}
           </Button>
         </InlineError>
@@ -145,8 +137,7 @@ export function PaymentsTab({ refreshKey, onSettled }: PaymentsTabProps) {
             <nav className="pager" aria-label={t('admin.payments.paginationAria')}>
               <Button
                 size="sm"
-                variant="ghost"
-                disabled={page <= 1}
+                variant="secondary" leftIcon={<CaretLeft size={12} aria-hidden="true" />} disabled={page <= 1}
                 onClick={() => updateParam('page', String(page - 1))}
               >
                 {t('admin.pager.previous')}
@@ -154,8 +145,7 @@ export function PaymentsTab({ refreshKey, onSettled }: PaymentsTabProps) {
               <span className="pager-status">{t('admin.pager.status', { page, total: totalPages })}</span>
               <Button
                 size="sm"
-                variant="ghost"
-                disabled={page >= totalPages}
+                variant="secondary" leftIcon={<CaretRight size={12} aria-hidden="true" />} disabled={page >= totalPages}
                 onClick={() => updateParam('page', String(page + 1))}
               >
                 {t('admin.pager.next')}
@@ -167,3 +157,4 @@ export function PaymentsTab({ refreshKey, onSettled }: PaymentsTabProps) {
     </section>
   );
 }
+

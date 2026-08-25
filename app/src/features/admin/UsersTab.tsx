@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { MagnifyingGlass, UsersThree, X } from '@phosphor-icons/react';
+import { CaretLeft, CaretRight, MagnifyingGlass, UsersThree, X } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { api } from '../../lib/api';
@@ -131,24 +131,16 @@ export function UsersTab({ refreshKey, onSettled }: UsersTabProps) {
           }
           className="admin-filter-input"
         />
-        <select
-          className="select"
-          value={planParam}
-          onChange={(e) => {
-            updateParam('plan', e.target.value || null);
-            updateParam('page', null);
-          }}
-          aria-label={t('admin.users.filterPlanAria')}
-        >
-          <option value="">{t('admin.users.allPlans')}</option>
-          <option value="free">{t('admin.plan.free')}</option>
-          <option value="pro">{t('admin.plan.pro')}</option>
-        </select>
+        <span className="admin-activity-ranges" role="group" aria-label={t('admin.users.filterPlanAria')}>
+          <button type="button" className={`sub-tab ${planParam === '' ? 'sub-tab-active' : ''}`} aria-pressed={planParam === ''} onClick={() => { updateParam('plan', null); updateParam('page', null); }}>{t('admin.users.allPlans')}</button>
+          <button type="button" className={`sub-tab ${planParam === 'free' ? 'sub-tab-active' : ''}`} aria-pressed={planParam === 'free'} onClick={() => { updateParam('plan', 'free'); updateParam('page', null); }}>{t('admin.plan.free')}</button>
+          <button type="button" className={`sub-tab ${planParam === 'pro' ? 'sub-tab-active' : ''}`} aria-pressed={planParam === 'pro'} onClick={() => { updateParam('plan', 'pro'); updateParam('page', null); }}>{t('admin.plan.pro')}</button>
+        </span>
         <span className="page-subtitle admin-filter-count">
           {users !== null ? t('admin.users.count', { count: usersTotal }) : ''}
         </span>
         {users !== null && users.length > 0 && users.length < usersTotal && (
-          <span className="page-subtitle" style={{ fontSize: 11 }}>
+          <span className="admin-filter-hint">
             {t('admin.users.showing', { shown: users.length, total: usersTotal })}
           </span>
         )}
@@ -156,7 +148,7 @@ export function UsersTab({ refreshKey, onSettled }: UsersTabProps) {
       {error ? (
         <InlineError className="mb-12">
           {error}{' '}
-          <Button variant="ghost" size="sm" onClick={() => void loadUsers()}>
+          <Button variant="secondary" size="sm" leftIcon={<CaretLeft size={12} aria-hidden="true" />} onClick={() => void loadUsers()}>
             {t('admin.retry')}
           </Button>
         </InlineError>
@@ -209,8 +201,7 @@ export function UsersTab({ refreshKey, onSettled }: UsersTabProps) {
             <nav className="pager" aria-label={t('admin.users.paginationAria')}>
               <Button
                 size="sm"
-                variant="ghost"
-                disabled={page <= 1}
+                variant="secondary" leftIcon={<CaretLeft size={12} aria-hidden="true" />} disabled={page <= 1}
                 onClick={() => updateParam('page', String(page - 1))}
               >
                 {t('admin.pager.previous')}
@@ -218,8 +209,7 @@ export function UsersTab({ refreshKey, onSettled }: UsersTabProps) {
               <span className="pager-status">{t('admin.pager.status', { page, total: totalPages })}</span>
               <Button
                 size="sm"
-                variant="ghost"
-                disabled={page >= totalPages}
+                variant="secondary" leftIcon={<CaretRight size={12} aria-hidden="true" />} disabled={page >= totalPages}
                 onClick={() => updateParam('page', String(page + 1))}
               >
                 {t('admin.pager.next')}
@@ -231,3 +221,5 @@ export function UsersTab({ refreshKey, onSettled }: UsersTabProps) {
     </section>
   );
 }
+
+

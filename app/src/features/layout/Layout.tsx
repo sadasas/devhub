@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Outlet, useLocation } from 'react-router';
+import { Outlet, useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { List, MagnifyingGlass } from '@phosphor-icons/react';
 import { Sidebar } from './Sidebar';
@@ -12,11 +12,13 @@ import { useProjects } from '../../state/projects-context';
 import { CreateTeamModal } from '../teams/CreateTeamModal';
 
 const RAIL_ACTIVE_KEY = 'devhub:rail:activeTeam';
+const RAIL_MAIN_KEY = 'devhub:rail:activeMain';
 
 export function Layout() {
   const [navOpen, setNavOpen] = useState(false);
   const [createTeamOpen, setCreateTeamOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { t } = useTranslation('shell');
   const { teams } = useTeams();
   const { projects } = useProjects();
@@ -26,6 +28,15 @@ export function Layout() {
       return localStorage.getItem(RAIL_ACTIVE_KEY);
     } catch {
       return null;
+    }
+  });
+
+  const [activeMain, setActiveMain] = useState<'home' | 'team'>(() => {
+    try {
+      const v = localStorage.getItem(RAIL_MAIN_KEY);
+      return v === 'team' || v === 'home' ? v : 'home';
+    } catch {
+      return 'home';
     }
   });
 
@@ -41,21 +52,38 @@ export function Layout() {
     return null;
   }, [location.pathname, projects]);
 
+  const derivedMainFromRoute = useMemo<'home' | 'team' | null>(() => {
+    if (location.pathname.startsWith('/team/') || location.pathname.startsWith('/project/')) return 'team';
+    if (location.pathname === '/' || location.pathname.startsWith('/invites') || location.pathname.startsWith('/pricing') || location.pathname.startsWith('/payments') || location.pathname.startsWith('/keys') || location.pathname.startsWith('/templates') || location.pathname.startsWith('/docs') || location.pathname.startsWith('/admin')) return 'home';
+    return null;
+  }, [location.pathname]);
+
   useEffect(() => {
     if (derivedFromRoute) {
       setRailTeamId(derivedFromRoute);
+      setActiveMain('team');
     }
   }, [derivedFromRoute]);
+
+  useEffect(() => {
+    if (derivedMainFromRoute) {
+      setActiveMain(derivedMainFromRoute);
+    }
+  }, [derivedMainFromRoute]);
 
   useEffect(() => {
     if (railTeamId) {
       try {
         localStorage.setItem(RAIL_ACTIVE_KEY, railTeamId);
-      } catch {
-        // ignore
-      }
+      } catch {}
     }
   }, [railTeamId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(RAIL_MAIN_KEY, activeMain);
+    } catch {}
+  }, [activeMain]);
 
   const activeTeamId = useMemo(() => {
     if (derivedFromRoute) return derivedFromRoute;
@@ -83,7 +111,15 @@ export function Layout() {
 
   const handleSelectTeam = (teamId: string) => {
     setRailTeamId(teamId);
+    setActiveMain('team');
     setNavOpen(false);
+    navigate(`/team/${teamId}`);
+  };
+
+  const handleSelectHome = () => {
+    setActiveMain('home');
+    setNavOpen(false);
+    navigate('/');
   };
 
   return (
@@ -129,7 +165,9 @@ export function Layout() {
         <TeamRail
           teams={teams}
           activeTeamId={activeTeamId}
+          activeMain={activeMain}
           onSelectTeam={handleSelectTeam}
+          onSelectHome={handleSelectHome}
           onCreateTeam={() => setCreateTeamOpen(true)}
         />
       </div>
@@ -139,11 +177,13 @@ export function Layout() {
             <TeamRail
               teams={teams}
               activeTeamId={activeTeamId}
+              activeMain={activeMain}
               onSelectTeam={handleSelectTeam}
+              onSelectHome={handleSelectHome}
               onCreateTeam={() => setCreateTeamOpen(true)}
             />
           </div>
-          <Sidebar activeTeamId={activeTeamId} onCreateTeam={() => setCreateTeamOpen(true)} />
+          <Sidebar activeTeamId={activeTeamId} activeMain={activeMain} onCreateTeam={() => setCreateTeamOpen(true)} />
         </div>
       </div>
       <main className="main" id="main-content">
