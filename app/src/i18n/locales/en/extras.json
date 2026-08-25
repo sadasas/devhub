@@ -362,6 +362,12 @@
     "refresh": "Refresh",
     "tabsAria": "Admin sections",
     "retry": "Retry",
+    "loading": "Loading…",
+    "pager": {
+      "previous": "Previous",
+      "next": "Next",
+      "status": "Page {{page}} of {{total}}"
+    },
     "tabs": {
       "overview": "Overview",
       "users": "Users",
@@ -393,6 +399,7 @@
       "noActivityDesc": "Activity will appear here once users start working.",
       "revenue30d": "Revenue last 30 days",
       "revenueByPackage": "Revenue by package",
+      "loaded": "Platform stats updated.",
       "errors": {
         "stats": "Failed to load stats"
       }
@@ -403,6 +410,7 @@
       "searchPlaceholder": "Search by email or display name…",
       "filterPlanAria": "Filter by plan",
       "allPlans": "All plans",
+      "paginationAria": "Users pagination",
       "count_one": "{{count}} user",
       "count_other": "{{count}} users",
       "emptyTitle": "No users found",
@@ -421,6 +429,7 @@
       "aria": "Platform payments",
       "filterStatusAria": "Filter by status",
       "allStatuses": "All statuses",
+      "paginationAria": "Payments pagination",
       "completed": "Completed",
       "pending": "Pending",
       "paid": "Paid",
@@ -488,6 +497,8 @@
       "aria": "Platform teams",
       "emptyTitle": "No teams yet",
       "emptyDesc": "Teams appear here as soon as users create them.",
+      "count_one": "{{count}} team",
+      "count_other": "{{count}} teams",
       "memberCount": "{{count}} members",
       "projectCount": "{{count}} projects",
       "meta": "owner {{owner}} · created {{created}}",
@@ -507,8 +518,13 @@
       "packageDesc": "{{members}} members · {{projects}} projects",
       "durationPrice": "{{days}}d — {{price}}",
       "noProPackages": "No active Pro packages. Create a package first.",
+      "confirmTitle": "Confirm plan change",
+      "confirmGrant": "Grant {{name}} · {{days}} days · {{price}} to {{team}}?",
+      "back": "Back",
+      "confirm": "Confirm grant",
       "errors": {
-        "update": "Failed to update team plan"
+        "update": "Failed to update team plan",
+        "packages": "Failed to load packages"
       }
     }
   },
@@ -525,6 +541,7 @@
     "totalLabel": "Total:",
     "totalFor": "untuk {{duration}}",
     "freePrice": "Rp 0",
+    "freePeriod": "/ selamanya",
     "benefits": {
       "unlimitedMembers": "Unlimited members",
       "members": "{{n}} members",
@@ -535,12 +552,33 @@
       "prioritySupport": "Priority support"
     },
     "savings": "Hemat {{percent}}%",
+    "originalPriceAria": "Harga normal {{price}}",
+    "billedYearly": "Ditagih tahunan — setara {{monthly}}/bulan",
+    "youSave": "Hemat {{amount}} dibanding harga normal",
     "workspace": "Workspace",
     "workspacePlaceholder": "Pilih workspace",
+    "workspaceBarLabel": "Tagih ke workspace",
+    "workspaceBarAria": "Pilih workspace untuk penagihan",
+    "billingToggleAria": "Pilihan periode tagihan",
+    "billingGroupAria": "Pilih durasi paket",
+    "billing": {
+      "monthly": "Bulanan",
+      "yearly": "Tahunan"
+    },
+    "billingHint": "Tahunan paling hemat — bayar sekali, fokus setahun.",
     "cta": "Upgrade ke {{name}}",
     "ctaWithPrice": "Upgrade ke {{name}} — {{price}}",
     "currentPlan": "Paket saat ini",
     "pickWorkspace": "Pilih workspace di atas untuk melanjutkan.",
+    "compareTitle": "Perbandingan fitur",
+    "compare": {
+      "tasks": "Task & Board Kanban",
+      "issues": "Issue tracking",
+      "schema": "Schema & ERD",
+      "decisions": "Decision log (ADR)",
+      "whiteboard": "Whiteboard & diagram",
+      "api": "API docs + OpenAPI"
+    },
     "faqSection": "Pertanyaan Umum",
     "faq": {
       "upgrade": {
@@ -565,6 +603,7 @@
       }
     },
     "trust": "Pembayaran aman via QRIS / Virtual Account",
+    "trustRow": "QRIS • VA BCA/Mandiri/BRI • Tanpa kartu kredit",
     "poweredBy": "Powered by Pakasir",
     "createAccount": "Buat akun gratis",
     "errors": {

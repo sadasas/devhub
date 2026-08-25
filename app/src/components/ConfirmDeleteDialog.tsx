@@ -8,6 +8,7 @@ interface ConfirmDeleteDialogProps {
   title: string;
   description: string;
   confirmLabel?: string;
+  busy?: boolean;
   onConfirm: () => void;
   onClose: () => void;
 }
@@ -17,6 +18,7 @@ export function ConfirmDeleteDialog({
   title,
   description,
   confirmLabel,
+  busy = false,
   onConfirm,
   onClose,
 }: ConfirmDeleteDialogProps) {
@@ -25,15 +27,17 @@ export function ConfirmDeleteDialog({
     <Modal
       open={open}
       title={title}
-      onClose={onClose}
+      onClose={busy ? undefined : onClose}
       width="sm"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose} disabled={busy}>
             {t('action.cancel')}
           </Button>
           <Button
             variant="danger"
+            loading={busy}
+            disabled={busy}
             leftIcon={<Trash size={13} aria-hidden="true" />}
             onClick={onConfirm}
           >

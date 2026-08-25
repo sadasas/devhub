@@ -28,7 +28,7 @@ function unlockBodyScroll() {
 interface ModalProps {
   open: boolean;
   title: string;
-  onClose: () => void;
+  onClose?: () => void;
   children: ReactNode;
   footer?: ReactNode;
   width?: ModalWidth;
@@ -45,7 +45,7 @@ export function Modal({ open, title, onClose, children, footer, width = 'md' }: 
     if (!open) return;
     dialogRef.current?.scrollTo?.(0, 0);
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCloseRef.current();
+      if (e.key === 'Escape') onCloseRef.current?.();
     };
     document.addEventListener('keydown', onKey);
     lockBodyScroll();
@@ -61,7 +61,7 @@ export function Modal({ open, title, onClose, children, footer, width = 'md' }: 
     <div
       className="modal-backdrop"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) onClose?.();
       }}
     >
       <div
@@ -79,6 +79,7 @@ export function Modal({ open, title, onClose, children, footer, width = 'md' }: 
             type="button"
             className="btn btn-ghost btn-sm btn-icon"
             onClick={onClose}
+            disabled={!onClose}
             aria-label={t('action.close')}
           >
             <X size={14} weight="bold" aria-hidden="true" />

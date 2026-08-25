@@ -1,233 +1,22 @@
-import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, CaretDown, Check, Lock, Lightning, Star } from '@phosphor-icons/react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ArrowLeft, CaretDown, Check, Lock, Lightning, ShieldCheck } from '@phosphor-icons/react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
-import type { BillingPackage, PackagePrice } from '../../lib/types';
+import type { BillingPackage } from '../../lib/types';
 import { Button } from '../../components/Button';
 import { InlineError } from '../../components/InlineError';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { Skeleton } from '../../components/Skeleton';
 import { useAuth } from '../../state/auth-context';
 import { useTeams } from '../../state/teams-context';
-
-function formatIdr(amount: number): string {
-  return `Rp ${amount.toLocaleString('id-ID')}`;
-}
-
-type TFunc = (key: string, opts?: Record<string, unknown>) => string;
-
-function formatDuration(t: TFunc, days: number): string {
-  const months = Math.round(days / 30);
-  return t('pricing.durationMonths', { count: months });
-}
-
-function savingsPercent(original: number, discounted: number): number {
-  return Math.round(((original - discounted) / original) * 100);
-}
-
-function computeBenefits(t: TFunc, pkg: BillingPackage): string[] {
-  const benefits: string[] = [];
-  if (pkg.maxMembers === null) {
-    benefits.push(t('pricing.benefits.unlimitedMembers'));
-  } else {
-    benefits.push(t('pricing.benefits.members', { n: pkg.maxMembers }));
-  }
-  if (pkg.maxProjects === null) {
-    benefits.push(t('pricing.benefits.unlimitedProjects'));
-  } else {
-    benefits.push(t('pricing.benefits.projects', { n: pkg.maxProjects }));
-  }
-  return benefits;
-}
-
-const STATIC_BENEFIT_KEYS = [
-  'pricing.benefits.coreFeatures',
-  'pricing.benefits.exportJson',
-  'pricing.benefits.prioritySupport',
-] as const;
+import { BillingToggle } from './BillingToggle';
+import { PricingCard } from './PricingCard';
 
 const FAQ_ITEM_KEYS = ['upgrade', 'trial', 'payment', 'timing', 'expired'] as const;
 
-function DurationCard({
-  price,
-  isActive,
-  pkgId,
-  onSelect,
-}: {
-  price: PackagePrice;
-  isActive: boolean;
-  pkgId: string;
-  onSelect: (pkgId: string, priceId: string) => void;
-}) {
-  const { t } = useTranslation('extras');
-  const original = price.originalPriceIdr;
-  const hasDisc = typeof original === 'number' && original > price.priceIdr;
-  return (
-    <button
-      type="button"
-      className={`pricing-duration-card${isActive ? ' pricing-duration-card-active' : ''}`}
-      aria-pressed={isActive}
-      onClick={() => onSelect(pkgId, price.id)}
-    >
-      <span className="pricing-duration-name">{formatDuration(t, price.durationDays)}</span>
-      {hasDisc && (
-        <span className="pricing-duration-original">{formatIdr(original)}</span>
-      )}
-      <span className="pricing-duration-price">{formatIdr(price.priceIdr)}</span>
-      {hasDisc && (
-        <span className="pricing-duration-savings">
-          {t('pricing.savings', { percent: savingsPercent(original, price.priceIdr) })}
-        </span>
-      )}
-    </button>
-  );
-}
-
-function PricingCard({
-  pkg,
-  isRecommended,
-  selectedPriceId,
-  onSelectPrice,
-  onSelectTeam,
-  selectedTeamId,
-  onBuy,
-  busy,
-  anyBusy,
-  user,
-  teams,
-  actionError,
-}: {
-  pkg: BillingPackage;
-  isRecommended: boolean;
-  selectedPriceId: string | null;
-  onSelectPrice: (pkgId: string, priceId: string) => void;
-  onSelectTeam: (teamId: string) => void;
-  selectedTeamId: string;
-  onBuy: (pkgId: string, priceId: string) => void;
-  busy: boolean;
-  anyBusy: boolean;
-  user: { id: string } | null;
-  teams: { id: string; name: string }[] | null;
-  actionError: string | null;
-}) {
-  const { t } = useTranslation('extras');
-  const selectedPrice = pkg.prices.find((p) => p.id === selectedPriceId) ?? null;
-  const benefits = computeBenefits(t, pkg);
-
-  return (
-    <section
-      className={`pricing-card${isRecommended ? ' pricing-card-pro' : ''}`}
-      aria-label={t('pricing.planAria', { name: pkg.name })}
-    >
-      {isRecommended && (
-        <div className="pricing-pro-header">
-          <p className="pricing-recommended">
-            <Star size={11} weight="fill" aria-hidden="true" /> {t('pricing.recommended')}
-          </p>
-        </div>
-      )}
-
-      <h2 className="pricing-plan-name">{pkg.name}</h2>
-      {pkg.description && <p className="page-subtitle">{pkg.description}</p>}
-
-      {pkg.prices.length > 0 ? (
-        <>
-          <div>
-            <p className="pricing-duration-label">{t('pricing.choosePeriod')}</p>
-            <div className="pricing-duration-grid" role="group" aria-label={t('pricing.chooseDurationAria')}>
-              {pkg.prices.map((price) => (
-                <DurationCard
-                  key={price.id}
-                  price={price}
-                  isActive={selectedPriceId === price.id}
-                  pkgId={pkg.id}
-                  onSelect={onSelectPrice}
-                />
-              ))}
-            </div>
-          </div>
-
-          {selectedPrice && (
-            <p className="pricing-total-line">
-              {t('pricing.totalLabel')}{' '}
-              {selectedPrice.originalPriceIdr != null && selectedPrice.originalPriceIdr > selectedPrice.priceIdr ? (
-                <>{formatIdr(selectedPrice.originalPriceIdr)} → </>
-              ) : null}
-              {formatIdr(selectedPrice.priceIdr)}{' '}
-              {t('pricing.totalFor', { duration: formatDuration(t, selectedPrice.durationDays) })}
-            </p>
-          )}
-        </>
-      ) : (
-        <p className="pricing-price">{t('pricing.freePrice')}</p>
-      )}
-
-      <hr className="pricing-divider" />
-
-      <ul className="pricing-benefits">
-        {benefits.map((b) => (
-          <li key={b}>
-            <Check size={13} weight="bold" aria-hidden="true" />
-            {b}
-          </li>
-        ))}
-        {STATIC_BENEFIT_KEYS.map((key) => (
-          <li key={key}>
-            <Check size={13} weight="bold" aria-hidden="true" />
-            {t(key)}
-          </li>
-        ))}
-      </ul>
-
-      <hr className="pricing-divider" />
-
-      <div className="pricing-checkout">
-        {pkg.prices.length > 0 && (
-          <div className="field">
-            <label className="field-label" htmlFor={`pricing-team-${pkg.id}`}>
-              {t('pricing.workspace')}
-            </label>
-            <SearchableSelect
-              id={`pricing-team-${pkg.id}`}
-              placeholder={t('pricing.workspacePlaceholder')}
-              value={selectedTeamId || null}
-              options={(teams ?? []).map((tm) => ({ value: tm.id, label: tm.name }))}
-              onChange={(v) => onSelectTeam(v ?? '')}
-            />
-          </div>
-        )}
-
-        {actionError && <InlineError>{actionError}</InlineError>}
-
-        {pkg.prices.length > 0 ? (
-          <Button
-            variant={isRecommended ? 'primary' : 'secondary'}
-            disabled={!user || !selectedTeamId || busy || anyBusy}
-            loading={busy}
-            onClick={() => {
-              const priceId = selectedPriceId ?? pkg.prices[0]?.id;
-              if (priceId) onBuy(pkg.id, priceId);
-            }}
-          >
-            {selectedPrice
-              ? t('pricing.ctaWithPrice', { name: pkg.name, price: formatIdr(selectedPrice.priceIdr) })
-              : t('pricing.cta', { name: pkg.name })}
-          </Button>
-        ) : (
-          <Button variant="ghost" size="sm" disabled>
-            {t('pricing.currentPlan')}
-          </Button>
-        )}
-
-        {isRecommended && !selectedTeamId && (
-          <p className="page-subtitle">{t('pricing.pickWorkspace')}</p>
-        )}
-      </div>
-    </section>
-  );
-}
+const COMPARE_KEYS = ['tasks', 'issues', 'schema', 'decisions', 'whiteboard', 'api'] as const;
 
 export function PricingPage() {
   const { t } = useTranslation('extras');
@@ -243,17 +32,26 @@ export function PricingPage() {
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [selectedPrices, setSelectedPrices] = useState<Record<string, string>>({});
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const errorRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
     if (queryTeamId) setSelectedTeamId(queryTeamId);
   }, [queryTeamId]);
 
   const effectiveTeamId =
-    queryTeamId && teams?.some((t) => t.id === queryTeamId) ? queryTeamId : selectedTeamId;
+    queryTeamId && teams?.some((team) => team.id === queryTeamId) ? queryTeamId : selectedTeamId;
 
   const freePkgs = (packages ?? []).filter((p) => p.isFree);
   const paidPkgs = (packages ?? []).filter((p) => !p.isFree);
   const anyBusy = busyKey !== null;
+
+  // Global selected price id for toggle — pick from first paid package
+  const globalSelectedPriceId = (() => {
+    if (paidPkgs.length === 0) return null;
+    const firstPkg = paidPkgs[0];
+    if (!firstPkg) return null;
+    return selectedPrices[firstPkg.id] ?? firstPkg.prices[0]?.id ?? null;
+  })();
 
   const initRef = useRef(false);
   useEffect(() => {
@@ -271,13 +69,47 @@ export function PricingPage() {
     }
   }, [packages]);
 
-  function handleSelectPrice(pkgId: string, priceId: string) {
-    setSelectedPrices((prev) => ({ ...prev, [pkgId]: priceId }));
-  }
+  const handleToggleChange = useCallback(
+    (priceId: string) => {
+      // Find duration of the toggled priceId
+      let targetDuration: number | null = null;
+      for (const pkg of paidPkgs) {
+        const found = pkg.prices.find((p) => p.id === priceId);
+        if (found) {
+          targetDuration = found.durationDays;
+          break;
+        }
+      }
+      if (targetDuration == null) {
+        // fallback: treat priceId as direct per-package
+        setSelectedPrices((prev) => {
+          const next = { ...prev };
+          for (const pkg of paidPkgs) {
+            if (pkg.prices.some((p) => p.id === priceId)) next[pkg.id] = priceId;
+          }
+          return next;
+        });
+        return;
+      }
+      // Sync all paid packages to the same duration
+      setSelectedPrices((prev) => {
+        const next = { ...prev };
+        for (const pkg of paidPkgs) {
+          const match = pkg.prices.find((p) => p.durationDays === targetDuration);
+          if (match) next[pkg.id] = match.id;
+        }
+        return next;
+      });
+    },
+    [paidPkgs],
+  );
 
   async function handleBuy(pkgId: string, priceId: string) {
     if (!effectiveTeamId) {
-      setActionError({ pkgId, message: t('pricing.errors.pickWorkspace') });
+      const msg = t('pricing.errors.pickWorkspace');
+      setActionError({ pkgId, message: msg });
+      // focus error for a11y
+      requestAnimationFrame(() => errorRef.current?.focus());
       return;
     }
     setActionError(null);
@@ -288,6 +120,7 @@ export function PricingPage() {
     } catch (err) {
       setActionError({ pkgId, message: getErrorMessage(err, t('pricing.errors.checkout')) });
       setBusyKey(null);
+      requestAnimationFrame(() => errorRef.current?.focus());
     }
   }
 
@@ -304,9 +137,12 @@ export function PricingPage() {
     else navigate('/');
   };
 
+  const workspaceError = actionError?.message ?? null;
+  const workspaceHasError = !!workspaceError;
+
   return (
-    <div className="page">
-      <header className="page-header">
+    <div className="page pricing-page">
+      <header className="page-header pricing-header">
         <div>
           <button type="button" className="back-btn" onClick={onBack}>
             <ArrowLeft size={14} aria-hidden="true" /> {t('pricing.back')}
@@ -319,83 +155,164 @@ export function PricingPage() {
       {error && <InlineError>{error}</InlineError>}
 
       {packages === null && !error ? (
-        <div className="pricing-grid" aria-busy="true">
+        <div className="pricing-grid pricing-grid-featured" aria-busy="true" aria-label={t('pricing.loadingAria', { defaultValue: 'Memuat paket' })}>
           {[0, 1].map((i) => (
-            <div key={i}>
-              <Skeleton style={{ width: 90, height: 20 }} />
-              <Skeleton style={{ width: 140, height: 34, marginTop: 12 }} />
-              <Skeleton className="skeleton-row" style={{ marginTop: 12 }} />
+            <div key={i} className="pricing-card" aria-hidden="true">
+              <Skeleton style={{ width: 90, height: 16 }} />
+              <Skeleton style={{ width: 160, height: 30, marginTop: 12 }} />
+              <Skeleton className="skeleton-row" style={{ marginTop: 14 }} />
               <Skeleton className="skeleton-row" style={{ marginTop: 8 }} />
+              <Skeleton className="skeleton-row" style={{ marginTop: 8, width: '70%' }} />
+              <Skeleton style={{ width: '100%', height: 36, marginTop: 16 }} />
             </div>
           ))}
         </div>
       ) : (
-        <div className="pricing-grid">
-          {freePkgs.map((pkg) => (
+        <>
+          {/* Workspace bar — single source of truth */}
+          {packages && paidPkgs.length > 0 && (
+            <div
+              className="pricing-workspace-bar"
+              role="region"
+              aria-label={t('pricing.workspaceBarAria')}
+            >
+              <label className="pricing-workspace-label" htmlFor="pricing-workspace-select">
+                {t('pricing.workspaceBarLabel')}
+              </label>
+              <div className="pricing-workspace-field">
+                <SearchableSelect
+                  id="pricing-workspace-select"
+                  placeholder={t('pricing.workspacePlaceholder')}
+                  value={effectiveTeamId || null}
+                  options={(teams ?? []).map((tm) => ({ value: tm.id, label: tm.name }))}
+                  onChange={(v) => {
+                    setSelectedTeamId(v ?? '');
+                    if (v) setActionError(null);
+                  }}
+                />
+              </div>
+              {!effectiveTeamId && (
+                <span className="pricing-workspace-hint">{t('pricing.pickWorkspace')}</span>
+              )}
+            </div>
+          )}
+
+          {workspaceHasError && (
+            <p ref={errorRef} className="field-error pricing-workspace-error" role="alert" tabIndex={-1}>
+              {workspaceError}
+            </p>
+          )}
+
+          {/* Billing toggle — global segmented control */}
+          {packages && paidPkgs.length > 0 && (
+            <BillingToggle
+              packages={packages}
+              selectedPriceId={globalSelectedPriceId}
+              onChange={handleToggleChange}
+            />
+          )}
+
+          <div className="pricing-grid pricing-grid-featured">
+            {/* Pro first — featured */}
+            {paidPkgs.map((pkg, i) => {
+              const priceId = selectedPrices[pkg.id] ?? pkg.prices[0]?.id ?? null;
+              const selectedPrice = pkg.prices.find((p) => p.id === priceId) ?? pkg.prices[0] ?? null;
+              const isSelectedBusy = busyKey?.startsWith(`${pkg.id}:`) ?? false;
+              const disabledReason = !user
+                ? null
+                : !effectiveTeamId
+                  ? t('pricing.errors.pickWorkspace')
+                  : null;
+              return (
+                <PricingCard
+                  key={pkg.id}
+                  pkg={pkg}
+                  isFeatured={i === 0}
+                  selectedPrice={selectedPrice}
+                  onBuy={(pid) => handleBuy(pkg.id, pid)}
+                  busy={isSelectedBusy}
+                  anyBusy={anyBusy}
+                  disabledReason={disabledReason}
+                  actionError={actionError?.pkgId === pkg.id ? actionError.message : null}
+                />
+              );
+            })}
+            {freePkgs.map((pkg) => (
               <PricingCard
                 key={pkg.id}
                 pkg={pkg}
-                isRecommended={false}
-                selectedPriceId={null}
-                onSelectPrice={handleSelectPrice}
-                onSelectTeam={setSelectedTeamId}
-                selectedTeamId={selectedTeamId}
-                onBuy={handleBuy}
+                isFeatured={false}
+                selectedPrice={null}
+                onBuy={() => {}}
                 busy={false}
                 anyBusy={anyBusy}
-                user={user}
-                teams={teams}
-                actionError={null}
+                variant="free"
               />
-          ))}
-          {paidPkgs.map((pkg, i) => {
-            const isSelectedBusy = busyKey?.startsWith(`${pkg.id}:`) ?? false;
-            return (
-              <PricingCard
-                key={pkg.id}
-                pkg={pkg}
-                isRecommended={i === 0}
-                selectedPriceId={selectedPrices[pkg.id] ?? pkg.prices[0]?.id ?? null}
-                onSelectPrice={handleSelectPrice}
-                onSelectTeam={setSelectedTeamId}
-                selectedTeamId={selectedTeamId}
-                onBuy={handleBuy}
-                busy={isSelectedBusy}
-                anyBusy={anyBusy}
-                user={user}
-                teams={teams}
-                actionError={actionError?.pkgId === pkg.id ? actionError.message : null}
-              />
-            );
-          })}
-        </div>
+            ))}
+          </div>
+
+          {/* Comparison strip — editorial, not full table */}
+          {packages && (
+            <section className="pricing-compare" aria-label={t('pricing.compareTitle')}>
+              <h2 className="pricing-compare-title">{t('pricing.compareTitle')}</h2>
+              <ul className="pricing-compare-list">
+                {COMPARE_KEYS.map((key) => (
+                  <li key={key} className="pricing-compare-item">
+                    <Check size={14} weight="bold" aria-hidden="true" className="pricing-compare-check" />
+                    <span>{t(`pricing.compare.${key}`)}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </>
       )}
 
       {/* FAQ */}
-      <div className="pricing-faq">
-        <p className="pricing-section-label">{t('pricing.faqSection')}</p>
-        {FAQ_ITEM_KEYS.map((key, i) => (
-          <div key={key} className="pricing-faq-item">
-            <button
-              type="button"
-              className="pricing-faq-trigger"
-              aria-expanded={openFaq === i}
-              onClick={() => setOpenFaq(openFaq === i ? null : i)}
-            >
-              {t(`pricing.faq.${key}.q`)}
-              <CaretDown size={14} weight="bold" aria-hidden="true" />
-            </button>
-            {openFaq === i && <p className="pricing-faq-answer">{t(`pricing.faq.${key}.a`)}</p>}
-          </div>
-        ))}
-      </div>
+      <section className="pricing-faq" aria-labelledby="pricing-faq-heading">
+        <h2 id="pricing-faq-heading" className="pricing-section-label">
+          {t('pricing.faqSection')}
+        </h2>
+        {FAQ_ITEM_KEYS.map((key, i) => {
+          const isOpen = openFaq === i;
+          const answerId = `pricing-faq-${key}`;
+          return (
+            <div key={key} className="pricing-faq-item">
+              <button
+                type="button"
+                className="pricing-faq-trigger"
+                aria-expanded={isOpen}
+                aria-controls={answerId}
+                onClick={() => setOpenFaq(isOpen ? null : i)}
+              >
+                {t(`pricing.faq.${key}.q`)}
+                <CaretDown size={14} weight="bold" aria-hidden="true" />
+              </button>
+              {isOpen && (
+                <p id={answerId} className="pricing-faq-answer">
+                  {t(`pricing.faq.${key}.a`)}
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </section>
 
-      {/* Trust */}
-      <div className="pricing-trust">
-        <Lock size={13} aria-hidden="true" />
-        <span>{t('pricing.trust')}</span>
+      {/* Trust row */}
+      <div className="pricing-trust-row" role="contentinfo" aria-label={t('pricing.trust')}>
+        <span>
+          <Lock size={14} aria-hidden="true" />
+          {t('pricing.trust')}
+        </span>
+        <span className="pricing-trust-divider" aria-hidden="true">
+          •
+        </span>
+        <span>
+          <ShieldCheck size={14} aria-hidden="true" />
+          {t('pricing.trustRow')}
+        </span>
       </div>
-      <p className="page-subtitle" style={{ textAlign: 'center' }}>
+      <p className="page-subtitle" style={{ textAlign: 'center', marginTop: 8 }}>
         {t('pricing.poweredBy')}
       </p>
 

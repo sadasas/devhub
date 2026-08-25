@@ -362,6 +362,12 @@
     "refresh": "Muat ulang",
     "tabsAria": "Bagian admin",
     "retry": "Coba lagi",
+    "loading": "Memuat…",
+    "pager": {
+      "previous": "Sebelumnya",
+      "next": "Berikutnya",
+      "status": "Halaman {{page}} dari {{total}}"
+    },
     "tabs": {
       "overview": "Ringkasan",
       "users": "Pengguna",
@@ -393,6 +399,7 @@
       "noActivityDesc": "Aktivitas akan muncul di sini setelah pengguna mulai bekerja.",
       "revenue30d": "Pendapatan 30 hari terakhir",
       "revenueByPackage": "Pendapatan per paket",
+      "loaded": "Statistik platform diperbarui.",
       "errors": {
         "stats": "Gagal memuat statistik"
       }
@@ -403,6 +410,7 @@
       "searchPlaceholder": "Cari berdasarkan email atau nama tampilan…",
       "filterPlanAria": "Filter berdasarkan plan",
       "allPlans": "Semua plan",
+      "paginationAria": "Paginasi pengguna",
       "count_one": "{{count}} pengguna",
       "count_other": "{{count}} pengguna",
       "emptyTitle": "Tidak ada pengguna ditemukan",
@@ -421,6 +429,7 @@
       "aria": "Pembayaran platform",
       "filterStatusAria": "Filter berdasarkan status",
       "allStatuses": "Semua status",
+      "paginationAria": "Paginasi pembayaran",
       "completed": "Selesai",
       "pending": "Tertunda",
       "paid": "Lunas",
@@ -488,6 +497,8 @@
       "aria": "Tim platform",
       "emptyTitle": "Belum ada tim",
       "emptyDesc": "Tim akan muncul di sini begitu pengguna membuatnya.",
+      "count_one": "{{count}} tim",
+      "count_other": "{{count}} tim",
       "memberCount": "{{count}} anggota",
       "projectCount": "{{count}} proyek",
       "meta": "pemilik {{owner}} · dibuat {{created}}",
@@ -507,8 +518,13 @@
       "packageDesc": "{{members}} anggota · {{projects}} proyek",
       "durationPrice": "{{days}}h — {{price}}",
       "noProPackages": "Belum ada paket Pro aktif. Buat paket terlebih dahulu.",
+      "confirmTitle": "Konfirmasi perubahan plan",
+      "confirmGrant": "Terapkan {{name}} · {{days}} hari · {{price}} ke {{team}}?",
+      "back": "Kembali",
+      "confirm": "Konfirmasi terapkan",
       "errors": {
-        "update": "Gagal memperbarui plan tim"
+        "update": "Gagal memperbarui plan tim",
+        "packages": "Gagal memuat paket"
       }
     }
   },
@@ -525,6 +541,7 @@
     "totalLabel": "Total:",
     "totalFor": "untuk {{duration}}",
     "freePrice": "Rp 0",
+    "freePeriod": "/ selamanya",
     "benefits": {
       "unlimitedMembers": "Anggota tanpa batas",
       "members": "{{n}} anggota",
@@ -535,12 +552,33 @@
       "prioritySupport": "Priority support"
     },
     "savings": "Hemat {{percent}}%",
+    "originalPriceAria": "Harga normal {{price}}",
+    "billedYearly": "Ditagih tahunan — setara {{monthly}}/bulan",
+    "youSave": "Hemat {{amount}} dibanding harga normal",
     "workspace": "Workspace",
     "workspacePlaceholder": "Pilih workspace",
+    "workspaceBarLabel": "Tagih ke workspace",
+    "workspaceBarAria": "Pilih workspace untuk penagihan",
+    "billingToggleAria": "Pilihan periode tagihan",
+    "billingGroupAria": "Pilih durasi paket",
+    "billing": {
+      "monthly": "Bulanan",
+      "yearly": "Tahunan"
+    },
+    "billingHint": "Tahunan paling hemat — bayar sekali, fokus setahun.",
     "cta": "Upgrade ke {{name}}",
     "ctaWithPrice": "Upgrade ke {{name}} — {{price}}",
     "currentPlan": "Paket saat ini",
     "pickWorkspace": "Pilih workspace di atas untuk melanjutkan.",
+    "compareTitle": "Perbandingan fitur",
+    "compare": {
+      "tasks": "Task & Board Kanban",
+      "issues": "Issue tracking",
+      "schema": "Schema & ERD",
+      "decisions": "Decision log (ADR)",
+      "whiteboard": "Whiteboard & diagram",
+      "api": "API docs + OpenAPI"
+    },
     "faqSection": "Pertanyaan Umum",
     "faq": {
       "upgrade": {
@@ -565,6 +603,7 @@
       }
     },
     "trust": "Pembayaran aman via QRIS / Virtual Account",
+    "trustRow": "QRIS • VA BCA/Mandiri/BRI • Tanpa kartu kredit",
     "poweredBy": "Powered by Pakasir",
     "createAccount": "Buat akun gratis",
     "errors": {

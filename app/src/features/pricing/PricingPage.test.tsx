@@ -81,8 +81,10 @@ describe('PricingPage (single-page flow)', () => {
     expect(screen.getByText(/3 projects/)).toBeDefined();
     expect(screen.getAllByText('Unlimited members').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Unlimited projects').length).toBeGreaterThanOrEqual(1);
-    expect(await screen.findByText('1 bulan')).toBeDefined();
-    expect(screen.getByText(/12 bulan/)).toBeDefined();
+    // Billing toggle replaced per-card duration cards — verify segmented toggle
+    expect(await screen.findByRole('radiogroup', { name: /Pilih durasi/ })).toBeDefined();
+    expect(screen.getByRole('radio', { name: /1 bulan/ })).toBeDefined();
+    expect(screen.getByRole('radio', { name: /12 bulan/ })).toBeDefined();
   });
 
   it('shows dynamic CTA with price', async () => {
@@ -94,9 +96,11 @@ describe('PricingPage (single-page flow)', () => {
   it('shows duration cards on the page (no step 2)', async () => {
     renderPage();
 
-    expect(await screen.findByText('Pilih periode:')).toBeDefined();
-    expect(screen.getByText('1 bulan')).toBeDefined();
-    expect(screen.getByText(/12 bulan/)).toBeDefined();
+    // New editorial: workspace bar + billing toggle (not per-card "Pilih periode:")
+    expect(await screen.findByText(/Tagih ke workspace/)).toBeDefined();
+    expect(screen.getByRole('radiogroup', { name: /Pilih durasi/ })).toBeDefined();
+    expect(screen.getByRole('radio', { name: /1 bulan/ })).toBeDefined();
+    expect(screen.getByRole('radio', { name: /12 bulan/ })).toBeDefined();
   });
 
   it('shows a register CTA for anonymous visitors', async () => {
