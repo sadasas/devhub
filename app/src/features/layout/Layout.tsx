@@ -12,11 +12,20 @@ import { useProjects } from '../../state/projects-context';
 import { CreateTeamModal } from '../teams/CreateTeamModal';
 
 const RAIL_ACTIVE_KEY = 'devhub:rail:activeTeam';
+const SIDEBAR_COLLAPSED_KEY = 'devhub:layout:sidebarCollapsed';
+const SIDEBAR_WIDTH_KEY = 'devhub:layout:sidebarWidth';
 const RAIL_MAIN_KEY = 'devhub:rail:activeMain';
 
 export function Layout() {
   const [navOpen, setNavOpen] = useState(false);
   const [createTeamOpen, setCreateTeamOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true'; } catch { return false; }
+  });
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    try { const v = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY)); return v >= 200 && v <= 400 ? v : 240; } catch { return 240; }
+  });
+  const [liveMsg, setLiveMsg] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation('shell');
@@ -85,6 +94,10 @@ export function Layout() {
     } catch {}
   }, [activeMain]);
 
+  useEffect(() => { try { localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed)); } catch {} setLiveMsg(collapsed ? 'Sidebar collapsed' : 'Sidebar expanded'); }, [collapsed]);
+
+  useEffect(() => { try { localStorage.setItem(SIDEBAR_WIDTH_KEY, String(sidebarWidth)); } catch {} }, [sidebarWidth]);
+
   const activeTeamId = useMemo(() => {
     if (derivedFromRoute) return derivedFromRoute;
     if (railTeamId && teams?.some((tm) => tm.id === railTeamId)) return railTeamId;
@@ -109,6 +122,38 @@ export function Layout() {
     };
   }, [navOpen]);
 
+  const handleToggleCollapsed = () => { if (window.matchMedia('(max-width: 860px)').matches) return; setCollapsed(v => !v); };
+
+  // keyboard Ctrl+B or [ to toggle
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const mod = e.ctrlKey || e.metaKey;
+      const isB = e.key.toLowerCase() === 'b';
+      const isBracket = e.key === '[';
+      const target = e.target as HTMLElement | null;
+      const isTyping = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+      if (isTyping) return;
+      if (window.matchMedia('(max-width: 860px)').matches) return;
+      if ((mod && isB) || (!mod && isBracket)) { e.preventDefault(); setCollapsed(v => !v); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const onHandlePointerDown = (e: React.PointerEvent) => {
+    if (collapsed) return;
+    const startX = e.clientX;
+    const startW = sidebarWidth;
+    const onMove = (ev: PointerEvent) => {
+      const dx = ev.clientX - startX;
+      const next = Math.min(360, Math.max(220, startW + dx));
+      if (next < 140) setCollapsed(true); else setSidebarWidth(next);
+    };
+    const onUp = () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
+
   const handleSelectTeam = (teamId: string) => {
     setRailTeamId(teamId);
     setActiveMain('team');
@@ -123,7 +168,7 @@ export function Layout() {
   };
 
   return (
-    <div className="layout">
+    <div className="layout" data-collapsed={collapsed ? 'true' : undefined} style={{ ['--sidebar-w' as any]: `${sidebarWidth}px` } as React.CSSProperties}>
       <a className="skip-link" href="#main-content">
         {t('layout.skipToContent')}
       </a>
@@ -166,6 +211,9 @@ export function Layout() {
           teams={teams}
           activeTeamId={activeTeamId}
           activeMain={activeMain}
+          compact={collapsed}
+          collapsed={collapsed}
+          onToggleCollapsed={handleToggleCollapsed}
           onSelectTeam={handleSelectTeam}
           onSelectHome={handleSelectHome}
           onCreateTeam={() => setCreateTeamOpen(true)}
@@ -186,9 +234,16 @@ export function Layout() {
           <Sidebar activeTeamId={activeTeamId} activeMain={activeMain} onCreateTeam={() => setCreateTeamOpen(true)} />
         </div>
       </div>
+      <div className="sidebar-shell" style={{ width: collapsed ? 0 : undefined }} aria-hidden={collapsed}>
+        <div id="sidebar-region" className="sidebar-region" inert={collapsed ? '' as any : undefined} aria-hidden={collapsed}>
+          <Sidebar activeTeamId={activeTeamId} activeMain={activeMain} onCreateTeam={() => setCreateTeamOpen(true)} />
+        </div>
+        {!collapsed && <div className="sidebar-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" onPointerDown={onHandlePointerDown} onDoubleClick={handleToggleCollapsed} />}
+      </div>
       <main className="main" id="main-content">
         <Outlet />
       </main>
+      <div aria-live="polite" className="sr-only">{liveMsg}</div>
       <CreateTeamModal open={createTeamOpen} onClose={() => setCreateTeamOpen(false)} />
     </div>
   );

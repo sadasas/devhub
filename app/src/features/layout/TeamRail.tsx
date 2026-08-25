@@ -1,4 +1,4 @@
-import { Plus, SquaresFour } from '@phosphor-icons/react';
+import { CaretDoubleLeft, CaretDoubleRight, Plus, SquaresFour } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { avatarColor, initialsOf as avatarInitials } from '../../lib/avatar';
 import { useAuth } from '../../state/auth-context';
@@ -8,18 +8,21 @@ interface TeamRailProps {
   teams: { id: string; name: string; memberCount: number }[] | null;
   activeTeamId: string | null;
   activeMain?: 'home' | 'team';
+  compact?: boolean;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
   onSelectTeam: (teamId: string) => void;
   onSelectHome: () => void;
   onCreateTeam: () => void;
 }
 
-export function TeamRail({ teams, activeTeamId, activeMain = 'team', onSelectTeam, onSelectHome, onCreateTeam }: TeamRailProps) {
+export function TeamRail({ teams, activeTeamId, activeMain = 'team', compact = false, collapsed = false, onToggleCollapsed, onSelectTeam, onSelectHome, onCreateTeam }: TeamRailProps) {
   const { t } = useTranslation('shell');
   const { user, logout } = useAuth();
   const isHomeActive = activeMain === 'home';
 
   return (
-    <nav className="team-rail" aria-label="Teams">
+    <nav className={`team-rail ${compact ? 'team-rail-compact' : ''}`} aria-label="Teams">
       <button
         type="button"
         className={`team-rail-home${isHomeActive ? ' team-rail-home-active' : ''}`}
@@ -87,6 +90,20 @@ export function TeamRail({ teams, activeTeamId, activeMain = 'team', onSelectTea
         <Plus size={14} weight="bold" aria-hidden="true" />
         <span>New team</span>
       </button>
+
+      {onToggleCollapsed && (
+        <button
+          type="button"
+          className="team-rail-collapse"
+          aria-label={collapsed ? t('layout.expandSidebar', { defaultValue: 'Expand sidebar' }) : t('layout.collapseSidebar', { defaultValue: 'Collapse sidebar' })}
+          aria-expanded={!collapsed}
+          aria-controls="sidebar-region"
+          title={collapsed ? 'Expand (Ctrl+B)' : 'Collapse (Ctrl+B)'}
+          onClick={onToggleCollapsed}
+        >
+          {collapsed ? <CaretDoubleRight size={14} weight="bold" aria-hidden="true" /> : <CaretDoubleLeft size={14} weight="bold" aria-hidden="true" />}
+        </button>
+      )}
 
       <div className="team-rail-footer-account">
         <button
