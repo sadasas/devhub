@@ -7,8 +7,8 @@ interface InlineErrorProps {
 
 export function InlineError({ children, className }: InlineErrorProps) {
   return (
-    <p className={`field-error${className ? ` ${className}` : ''}`} role="alert">
+    <div className={`field-error${className ? ` ${className}` : ''}`} role="alert">
       {children}
-    </p>
+    </div>
   );
 }

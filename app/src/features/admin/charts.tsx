@@ -1,9 +1,8 @@
 import type { ReactNode } from 'react';
 import { Skeleton } from '../../components/Skeleton';
-import { compactId as compactIdUtil, formatIdr } from '../../lib/format';
+import { formatIdr } from '../../lib/format';
 
-// Re-export single source (compat: tab lain masih import dari sini)
-export { compactIdUtil as compactId, formatIdr };
+export { formatIdr };
 
 // Tokenized palette — turunan --chart-* (ADR-048 Wave1.1), bukan hex random
 export const CHART_COLORS = [
@@ -27,9 +26,10 @@ export function Donut({
   const r = 40;
   const c = 2 * Math.PI * r;
   let acc = 0;
+  const summary = total > 0 ? segments.map((s) => `${s.name} ${formatIdr(s.value)}`).join(', ') : label;
   return (
     <div className="admin-chart">
-      <svg viewBox="0 0 100 100" className="admin-chart-donut" role="img" aria-label={label}>
+      <svg viewBox="0 0 100 100" className="admin-chart-donut" role="img" aria-label={`${label}: ${summary}`}>
         <circle cx="50" cy="50" r={r} fill="none" stroke="var(--bg-inset)" strokeWidth="14" />
         {total > 0 &&
           segments.map((s, i) => {
@@ -51,8 +51,8 @@ export function Donut({
             acc += len;
             return el;
           })}
-        <text x="50" y="47" textAnchor="middle" className="donut-total">
-          {total}
+        <text x="50" y="47" textAnchor="middle" className="donut-total tabular">
+          {formatIdr(total)}
         </text>
         <text x="50" y="61" textAnchor="middle" className="donut-label">
           {label}
@@ -61,11 +61,22 @@ export function Donut({
       <div className="admin-chart-legend">
         {segments.map((s, i) => (
           <span key={i} className="admin-chart-legend-item">
-            <span className="admin-chart-legend-dot" style={{ background: s.color }} />
+            <span className="admin-chart-legend-dot" style={{ color: s.color, background: 'currentColor' }} />
             {s.name}: {formatIdr(s.value)}
           </span>
         ))}
       </div>
+      <table className="sr-only">
+        <caption>{label}</caption>
+        <tbody>
+          {segments.map((s) => (
+            <tr key={s.name}>
+              <th scope="row">{s.name}</th>
+              <td>{formatIdr(s.value)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -80,23 +91,40 @@ export function BarChart({
   formatValue?: (n: number) => string;
 }) {
   const max = Math.max(1, ...rows.map((r) => r.value));
+  const summary = rows.map((r) => `${r.label} ${formatValue ? formatValue(r.value) : formatIdr(r.value)}`).join(', ');
   return (
     <div className="admin-chart">
-      <h4 className="admin-chart-title">{label}</h4>
-      <div className="admin-bars">
+      <h3 className="admin-chart-title">{label}</h3>
+      <div className="admin-bars" role="img" aria-label={`${label}: ${summary}`}>
         {rows.map((r) => (
           <div key={r.label} className="admin-bar-row">
             <span className="admin-bar-label">{r.label}</span>
             <div className="admin-bar-track">
               <div
                 className="admin-bar-fill"
+                role="meter"
+                aria-label={`${r.label} ${formatValue ? formatValue(r.value) : formatIdr(r.value)}`}
+                aria-valuenow={r.value}
+                aria-valuemin={0}
+                aria-valuemax={max}
                 style={{ width: `${(r.value / max) * 100}%` }}
               />
             </div>
-            <span className="admin-bar-value">{formatValue ? formatValue(r.value) : formatIdr(r.value)}</span>
+            <span className="admin-bar-value tabular">{formatValue ? formatValue(r.value) : formatIdr(r.value)}</span>
           </div>
         ))}
       </div>
+      <table className="sr-only">
+        <caption>{label}</caption>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.label}>
+              <th scope="row">{r.label}</th>
+              <td>{formatValue ? formatValue(r.value) : formatIdr(r.value)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -114,44 +142,52 @@ export function VerticalBarChart({
   const barHeight = 140;
   const n = rows.length;
   const showLabel = (i: number) => n <= 14 ? true : i % (n <= 35 ? 5 : 10) === 0 || i === n - 1;
+  const showValue = (i: number, v: number) => n <= 20 || v === max || i === n - 1;
+  const summary = rows.map((r) => `${r.label} ${formatValue ? formatValue(r.value) : r.value}`).join(', ');
   return (
     <div className="admin-chart">
-      <h4 className="admin-chart-title">{label}</h4>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: n > 30 ? 2 : 4, height: barHeight + 24 }}>
+      <h3 className="admin-chart-title">{label}</h3>
+      <div className="admin-vbar-track" role="img" aria-label={`${label}: ${summary}`} style={{ height: barHeight + 24, gap: n > 30 ? 2 : 4 }}>
         {rows.map((r, i) => {
           const h = max > 0 ? (r.value / max) * barHeight : 0;
           return (
             <div
               key={r.id ?? r.label}
-              title={`${r.label}: ${formatValue ? formatValue(r.value) : r.value}`}
-              style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
+              className="admin-vbar-col"
+              aria-label={`${r.label}: ${formatValue ? formatValue(r.value) : r.value}`}
             >
-              <span style={{ fontSize: 10, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}
-                className="admin-vbar-value"
-              >
+              <span className="admin-vbar-value" data-hidden={showValue(i, r.value) ? undefined : 'true'}>
                 {formatValue ? formatValue(r.value) : r.value}
               </span>
               <div
-                style={{
-                  width: '100%',
-                  maxWidth: 40,
-                  height: Math.max(h, 2),
-                  background: 'var(--accent)',
-                  borderRadius: 'var(--radius-sm) var(--radius-sm) 0 0',
-                  transition: 'height var(--duration-fast) var(--ease-out)',
-                }}
+                className="admin-vbar-bar"
+                role="meter"
+                aria-label={`${r.label} ${formatValue ? formatValue(r.value) : r.value}`}
+                aria-valuenow={r.value}
+                aria-valuemin={0}
+                aria-valuemax={max}
+                style={{ height: Math.max(h, 2) }}
               />
               {showLabel(i) ? (
-                <span style={{ fontSize: 10, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
-                  {r.label}
-                </span>
+                <span className="admin-vbar-label">{r.label}</span>
               ) : (
-                <span style={{ fontSize: 10 }}>&nbsp;</span>
+                <span className="admin-vbar-label-spacer" aria-hidden="true">&nbsp;</span>
               )}
             </div>
           );
         })}
       </div>
+      <table className="sr-only">
+        <caption>{label}</caption>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.id ?? r.label}>
+              <th scope="row">{r.label}</th>
+              <td>{formatValue ? formatValue(r.value) : r.value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

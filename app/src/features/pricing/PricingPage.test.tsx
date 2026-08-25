@@ -19,10 +19,10 @@ describe('PricingPage (single-page flow)', () => {
   afterEach(() => { vi.restoreAllMocks(); mockUser = null; mockTeams = []; });
   it('renders both plans with dynamic limits and duration cards', async () => {
     renderPage();
-    expect(await screen.findByText('Free')).toBeDefined();
-    expect(screen.getByText('Pro')).toBeDefined();
-    expect(screen.getByText(/2 members/)).toBeDefined();
-    expect(screen.getByText(/3 projects/)).toBeDefined();
+    expect(await screen.findByRole('heading', { name: 'Free' })).toBeDefined();
+    expect(screen.getByRole('heading', { name: /Pro/ })).toBeDefined();
+    expect(screen.getAllByText(/2 members/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/3 projects/).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Unlimited members').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Unlimited projects').length).toBeGreaterThanOrEqual(1);
     const radios = await screen.findAllByRole('radio');
@@ -45,16 +45,16 @@ describe('PricingPage (single-page flow)', () => {
     const PACKAGES_3: BillingPackage[] = [PACKAGES[0]!, PACKAGES[1]!, { id: 'pkg-biz', name: 'Business', description: 'Business tier', isFree: false, maxMembers: null, maxProjects: null, prices: [{ id: 'bz-30', durationDays: 30, priceIdr: 500_000, originalPriceIdr: null }] }];
     mockListPackages.mockResolvedValueOnce({ packages: PACKAGES_3 }); mockStartCheckout.mockRejectedValueOnce(new Error('Billing disabled'));
     renderPage(['/pricing?teamId=t1']);
-    await screen.findByText('Pro'); expect(screen.getByText('Business')).toBeDefined();
+    await screen.findByRole('heading', { name: /Pro/ }); expect(screen.getByRole('heading', { name: 'Business' })).toBeDefined();
     const upgradeBtns = screen.getAllByRole('button', { name: /Upgrade to|Upgrade ke/ }); const bizBtn = upgradeBtns.find((b) => b.textContent?.includes('Business'))!; await act(async () => { fireEvent.click(bizBtn); });
-    const bizCard = screen.getByText('Business').closest('section')!; expect(await within(bizCard).findByText(/Failed to start checkout|Gagal memulai checkout/)).toBeDefined();
-    const proCard = screen.getByText('Pro').closest('section')!; expect(within(proCard).queryByText(/Failed to start checkout|Gagal memulai checkout/)).toBeNull();
+    const bizCard = screen.getByRole('heading', { name: 'Business' }).closest('section')!; expect(await within(bizCard).findByText(/Failed to start checkout|Gagal memulai checkout/)).toBeDefined();
+    const proCard = screen.getByRole('heading', { name: /Pro/ }).closest('section')!; expect(within(proCard).queryByText(/Failed to start checkout|Gagal memulai checkout/)).toBeNull();
   });
   it('prevents double checkout while one is in flight', async () => {
     mockUser = { id: 'u1' }; mockTeams = [{ id: 't1', name: 'Test Team' }];
     const PACKAGES_3: BillingPackage[] = [PACKAGES[0]!, PACKAGES[1]!, { id: 'pkg-biz', name: 'Business', description: 'Business tier', isFree: false, maxMembers: null, maxProjects: null, prices: [{ id: 'bz-30', durationDays: 30, priceIdr: 500_000, originalPriceIdr: null }] }];
     mockListPackages.mockResolvedValueOnce({ packages: PACKAGES_3 }); let resolveCheckout!: (v: unknown) => void; mockStartCheckout.mockImplementationOnce(() => new Promise((r) => { resolveCheckout = r; }));
-    renderPage(['/pricing?teamId=t1']); await screen.findByText('Pro');
+    renderPage(['/pricing?teamId=t1']); await screen.findByRole('heading', { name: /Pro/ });
     const proBtn = screen.getByRole('button', { name: /Upgrade to Pro|Upgrade ke Pro/ }); fireEvent.click(proBtn); await waitFor(() => { expect(mockStartCheckout).toHaveBeenCalledTimes(1); });
     const bizBtn = screen.getByRole('button', { name: /Upgrade to Business|Upgrade ke Business/ }); fireEvent.click(bizBtn); expect(mockStartCheckout).toHaveBeenCalledTimes(1);
     await act(async () => { resolveCheckout({ url: 'http://example.com' }); });

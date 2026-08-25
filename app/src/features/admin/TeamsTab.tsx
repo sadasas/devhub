@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowClockwise, CaretLeft, CaretRight, FolderSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { AdminTeam } from '../../lib/types';
@@ -21,22 +22,40 @@ const PAGE_SIZE = 25;
 
 export function TeamsTab({ refreshKey, onSettled }: TeamsTabProps) {
   const { t } = useTranslation('extras');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const planFilter = (searchParams.get('plan') as '' | 'free' | 'pro') || '';
+  const rawPage = Number.parseInt(searchParams.get('page') ?? '1', 10);
+  const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1;
   const [teams, setTeams] = useState<AdminTeam[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [planFilter, setPlanFilter] = useState<'' | 'free' | 'pro'>('');
-  const [page, setPage] = useState(1);
   const [teamPlanModalOpen, setTeamPlanModalOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState<AdminTeam | null>(null);
+  const latestRequest = useRef(0);
+
+  function updateParam(key: string, value: string | null): void {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (value) next.set(key, value);
+        else next.delete(key);
+        return next;
+      },
+      { replace: true },
+    );
+  }
 
   const loadTeams = useCallback(async () => {
-    setError(null);
+    const requestId = ++latestRequest.current;
     try {
       const loaded = await api.listAdminTeams();
+      if (latestRequest.current !== requestId) return;
       setTeams(loaded);
+      setError(null);
     } catch (err) {
+      if (latestRequest.current !== requestId) return;
       setError(getErrorMessage(err, t('admin.teams.errors.load')));
     } finally {
-      onSettled?.();
+      if (latestRequest.current === requestId) onSettled?.();
     }
   }, [t, onSettled]);
 
@@ -59,8 +78,11 @@ export function TeamsTab({ refreshKey, onSettled }: TeamsTabProps) {
   const pagedTeams = filteredTeams ? filteredTeams.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) : null;
 
   useEffect(() => {
-    setPage(1);
-  }, [planFilter]);
+    if (error === null && filteredTeams !== null && filteredTeams.length > 0 && page > totalPages) {
+      updateParam('page', String(totalPages));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredTeams, page, totalPages]);
 
   return (
     <section className="tab-panel" aria-label={t('admin.teams.aria')}>
@@ -68,10 +90,10 @@ export function TeamsTab({ refreshKey, onSettled }: TeamsTabProps) {
         {teams === null ? t('admin.loading') : t('admin.teams.count', { count: teams.length })}
       </p>
       <div className="admin-filter-bar">
-        <span className="admin-activity-ranges" role="group" aria-label={t('admin.users.filterPlanAria')}>
-          <button type="button" className={`sub-tab ${planFilter === '' ? 'sub-tab-active' : ''}`} aria-pressed={planFilter === ''} onClick={() => setPlanFilter('')}>{t('admin.users.allPlans')}</button>
-          <button type="button" className={`sub-tab ${planFilter === 'free' ? 'sub-tab-active' : ''}`} aria-pressed={planFilter === 'free'} onClick={() => setPlanFilter('free')}>{t('admin.plan.free')}</button>
-          <button type="button" className={`sub-tab ${planFilter === 'pro' ? 'sub-tab-active' : ''}`} aria-pressed={planFilter === 'pro'} onClick={() => setPlanFilter('pro')}>{t('admin.plan.paid')}</button>
+        <span className="admin-activity-ranges" role="radiogroup" aria-label={t('admin.teams.filterPlanAria', { defaultValue: 'Filter plan' })}>
+          <button type="button" role="radio" aria-checked={planFilter === ''} className={`sub-tab ${planFilter === '' ? 'sub-tab-active' : ''}`} onClick={() => { updateParam('plan', null); updateParam('page', null); }}>{t('admin.users.allPlans')}</button>
+          <button type="button" role="radio" aria-checked={planFilter === 'free'} className={`sub-tab ${planFilter === 'free' ? 'sub-tab-active' : ''}`} onClick={() => { updateParam('plan', 'free'); updateParam('page', null); }}>{t('admin.plan.free')}</button>
+          <button type="button" role="radio" aria-checked={planFilter === 'pro'} className={`sub-tab ${planFilter === 'pro' ? 'sub-tab-active' : ''}`} onClick={() => { updateParam('plan', 'pro'); updateParam('page', null); }}>{t('admin.plan.pro')}</button>
         </span>
         <span className="page-subtitle admin-filter-count">
           {filteredTeams !== null ? t('admin.teams.count', { count: filteredTeams.length }) : ''}
@@ -91,21 +113,21 @@ export function TeamsTab({ refreshKey, onSettled }: TeamsTabProps) {
         </>
       ) : filteredTeams!.length === 0 ? (
         <EmptyState
-          icon={<FolderSimple size={22} />}
+          icon={<FolderSimple size={22} aria-hidden="true" />}
           title={t('admin.teams.emptyTitle')}
           description={t('admin.teams.emptyDesc')}
         />
       ) : (
-        <>
+        <div role="list">
           {pagedTeams!.map((tm) => (
-            <div key={tm.id} className="data-row">
+            <div key={tm.id} className="data-row" role="listitem">
               <div className="data-row-main">
                 <span className="data-row-title">
-                  <span className="row-title-text">{tm.name}</span>
+                  <span className="row-title-text" title={tm.name}>{tm.name}</span>
                   <Badge tone="neutral">{t('admin.teams.memberCount', { count: tm.memberCount })}</Badge>
                   <Badge tone="neutral">{t('admin.teams.projectCount', { count: tm.projectCount })}</Badge>
                   <Badge tone={tm.plan === 'pro' ? 'success' : 'neutral'}>
-                    {tm.plan === 'pro' ? t('admin.plan.paid') : t('admin.plan.free')}
+                    {tm.plan === 'pro' ? t('admin.plan.pro') : t('admin.plan.free')}
                   </Badge>
                 </span>
                 <span className="data-row-meta">
@@ -129,12 +151,12 @@ export function TeamsTab({ refreshKey, onSettled }: TeamsTabProps) {
           ))}
           {totalPages > 1 && (
             <nav className="pager" aria-label={t('admin.teams.paginationAria', { defaultValue: 'Teams pagination' })}>
-              <Button size="sm" variant="secondary" leftIcon={<CaretLeft size={12} aria-hidden="true" />} disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>{t('admin.pager.previous')}</Button>
+              <Button size="sm" variant="secondary" leftIcon={<CaretLeft size={12} aria-hidden="true" />} disabled={page <= 1} onClick={() => updateParam('page', String(page - 1))}>{t('admin.pager.previous')}</Button>
               <span className="pager-status">{t('admin.pager.status', { page, total: totalPages })}</span>
-              <Button size="sm" variant="secondary" leftIcon={<CaretRight size={12} aria-hidden="true" />} disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>{t('admin.pager.next')}</Button>
+              <Button size="sm" variant="secondary" leftIcon={<CaretRight size={12} aria-hidden="true" />} disabled={page >= totalPages} onClick={() => updateParam('page', String(page + 1))}>{t('admin.pager.next')}</Button>
             </nav>
           )}
-        </>
+        </div>
       )}
 
       <TeamPlanModal

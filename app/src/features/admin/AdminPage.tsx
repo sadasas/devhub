@@ -42,7 +42,15 @@ export function AdminPage() {
 
   function setTab(next: TabId): void {
     if (next === tab) return;
-    setSearchParams(next === 'overview' ? {} : { tab: next }, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        if (next === 'overview') n.delete('tab');
+        else n.set('tab', next);
+        return n;
+      },
+      { replace: true },
+    );
   }
 
   // ARIA APG tabs: roving tabindex + panah kiri/kanan/Home/End (audit H2)
@@ -110,28 +118,25 @@ export function AdminPage() {
         ))}
       </div>
 
-      <div
-        id={`admin-panel-${tab}`}
-        role="tabpanel"
-        aria-labelledby={`admin-tab-${tab}`}
-        tabIndex={0}
-      >
-        {tab === 'overview' && (
-          <OverviewTab refreshKey={refreshKey} onSettled={handleSettled} />
-        )}
-        {tab === 'users' && (
-          <UsersTab refreshKey={refreshKey} onSettled={handleSettled} />
-        )}
-        {tab === 'teams' && (
-          <TeamsTab refreshKey={refreshKey} onSettled={handleSettled} />
-        )}
-        {tab === 'payments' && (
-          <PaymentsTab refreshKey={refreshKey} onSettled={handleSettled} />
-        )}
-        {tab === 'packages' && (
-          <PackagesTab refreshKey={refreshKey} onSettled={handleSettled} />
-        )}
-      </div>
+      {TABS.map(({ id }) => (
+        <div
+          key={id}
+          id={`admin-panel-${id}`}
+          role="tabpanel"
+          aria-labelledby={`admin-tab-${id}`}
+          hidden={tab !== id}
+        >
+          {tab === id && (
+            <>
+              {id === 'overview' && <OverviewTab refreshKey={refreshKey} onSettled={handleSettled} />}
+              {id === 'users' && <UsersTab refreshKey={refreshKey} onSettled={handleSettled} />}
+              {id === 'teams' && <TeamsTab refreshKey={refreshKey} onSettled={handleSettled} />}
+              {id === 'payments' && <PaymentsTab refreshKey={refreshKey} onSettled={handleSettled} />}
+              {id === 'packages' && <PackagesTab refreshKey={refreshKey} onSettled={handleSettled} />}
+            </>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

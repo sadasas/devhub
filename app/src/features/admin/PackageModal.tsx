@@ -17,9 +17,14 @@ interface PackageModalProps {
 }
 
 interface PriceRow {
+  id: string;
   durationDays: number;
   priceIdr: number;
   originalPriceIdr: string;
+}
+
+function newPriceRow(): PriceRow {
+  return { id: crypto.randomUUID(), durationDays: 30, priceIdr: 0, originalPriceIdr: '' };
 }
 
 export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps) {
@@ -31,7 +36,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
   const [maxProjects, setMaxProjects] = useState('');
   const [sortOrder, setSortOrder] = useState('0');
   const [isActive, setIsActive] = useState(true);
-  const [prices, setPrices] = useState<PriceRow[]>([{ durationDays: 30, priceIdr: 0, originalPriceIdr: '' }]);
+  const [prices, setPrices] = useState<PriceRow[]>([newPriceRow()]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,11 +52,12 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
       setPrices(
         pkg.prices.length > 0
           ? pkg.prices.map((p) => ({
+              id: crypto.randomUUID(),
               durationDays: p.durationDays,
               priceIdr: p.priceIdr,
               originalPriceIdr: p.originalPriceIdr != null ? String(p.originalPriceIdr) : '',
             }))
-          : [{ durationDays: 30, priceIdr: 0, originalPriceIdr: '' }],
+          : [newPriceRow()],
       );
     } else {
       setName('');
@@ -60,7 +66,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
       setMaxProjects('');
       setSortOrder('0');
       setIsActive(true);
-      setPrices([{ durationDays: 30, priceIdr: 0, originalPriceIdr: '' }]);
+      setPrices([newPriceRow()]);
     }
     setError(null);
   }, [open, pkg]);
@@ -70,7 +76,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
   }
 
   function addPrice() {
-    setPrices((prev) => [...prev, { durationDays: 30, priceIdr: 0, originalPriceIdr: '' }]);
+    setPrices((prev) => [...prev, newPriceRow()]);
   }
 
   function removePrice(index: number) {
@@ -83,15 +89,44 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
       setError(t('admin.packageModal.errors.nameRequired'));
       return;
     }
+    const parsedMembers = maxMembers.trim() === '' ? null : Number(maxMembers);
+    if (parsedMembers !== null && (!Number.isFinite(parsedMembers) || parsedMembers < 0)) {
+      setError(t('admin.packageModal.errors.maxMembersInvalid', { defaultValue: 'Max members must be 0 or more' }));
+      return;
+    }
+    const parsedProjects = maxProjects.trim() === '' ? null : Number(maxProjects);
+    if (parsedProjects !== null && (!Number.isFinite(parsedProjects) || parsedProjects < 0)) {
+      setError(t('admin.packageModal.errors.maxProjectsInvalid', { defaultValue: 'Max projects must be 0 or more' }));
+      return;
+    }
+    const parsedSort = Number(sortOrder);
+    if (!Number.isFinite(parsedSort)) {
+      setError(t('admin.packageModal.errors.sortOrderInvalid', { defaultValue: 'Sort order must be a number' }));
+      return;
+    }
+    for (const pr of prices) {
+      if (!Number.isFinite(pr.durationDays) || pr.durationDays <= 0) {
+        setError(t('admin.packageModal.errors.durationInvalid', { defaultValue: 'Duration must be > 0' }));
+        return;
+      }
+      if (!Number.isFinite(pr.priceIdr) || pr.priceIdr < 0) {
+        setError(t('admin.packageModal.errors.priceInvalid', { defaultValue: 'Price must be 0 or more' }));
+        return;
+      }
+      if (pr.originalPriceIdr.trim() !== '' && (!Number.isFinite(Number(pr.originalPriceIdr)) || Number(pr.originalPriceIdr) < 0)) {
+        setError(t('admin.packageModal.errors.originalPriceInvalid', { defaultValue: 'Original price must be 0 or more' }));
+        return;
+      }
+    }
     setBusy(true);
     setError(null);
     try {
       const data = {
         name: name.trim(),
         description: description.trim() || undefined,
-        maxMembers: maxMembers ? Number(maxMembers) : null,
-        maxProjects: maxProjects ? Number(maxProjects) : null,
-        sortOrder: Number(sortOrder),
+        maxMembers: parsedMembers,
+        maxProjects: parsedProjects,
+        sortOrder: parsedSort,
         isActive,
         prices: prices
           .filter((p) => p.durationDays > 0)
@@ -127,17 +162,13 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
           <Button variant="secondary" leftIcon={<X size={12} aria-hidden="true" />} onClick={onClose} disabled={busy}>
             {t('templates.cancel')}
           </Button>
-          <Button
-            loading={busy}
-            disabled={busy}
-            onClick={() => void handleSubmit(new Event('submit') as unknown as React.FormEvent)}
-          >
+          <Button type="submit" form="pkg-form" loading={busy} disabled={busy}>
             {busy ? t('admin.teamPlan.saving') : isEdit ? t('admin.packageModal.saveChanges') : t('admin.packageModal.create')}
           </Button>
         </>
       }
     >
-      <form className="form-stack" onSubmit={(e) => void handleSubmit(e)}>
+      <form id="pkg-form" className="form-stack" onSubmit={(e) => void handleSubmit(e)}>
         {error && <InlineError>{error}</InlineError>}
         <Input
           label={t('api.workbench.name')}
@@ -187,26 +218,30 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
         <div className="form-section">
           <div className="form-section-head">
             <span className="form-section-title">{t('admin.packageModal.prices')}</span>
-            <Button type="button" variant="ghost" size="sm" leftIcon={<Plus size={13} />} onClick={addPrice}>
+            <Button type="button" variant="ghost" size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={addPrice}>
               {t('admin.packageModal.addPrice')}
             </Button>
           </div>
           {prices.map((p, i) => (
-            <div key={i} className="admin-price-row">
+            <fieldset key={p.id} className="admin-price-row admin-price-row-fieldset">
+              <legend className="sr-only">{t('admin.packageModal.priceLegend', { index: i + 1, defaultValue: `Price ${i + 1}` })}</legend>
               <Input
                 label={t('admin.packageModal.durationDays')}
+                aria-label={t('admin.packageModal.durationDaysWithIndex', { index: i + 1, defaultValue: `Price ${i + 1} - Duration (days)` })}
                 type="number"
                 value={String(p.durationDays)}
                 onChange={(e) => updatePrice(i, 'durationDays', Number(e.target.value))}
               />
               <Input
                 label={t('admin.packageModal.priceIdr')}
+                aria-label={t('admin.packageModal.priceIdrWithIndex', { index: i + 1, defaultValue: `Price ${i + 1} - Price IDR` })}
                 type="number"
                 value={String(p.priceIdr)}
                 onChange={(e) => updatePrice(i, 'priceIdr', Number(e.target.value))}
               />
               <Input
                 label={t('admin.packageModal.originalPriceIdr')}
+                aria-label={t('admin.packageModal.originalPriceIdrWithIndex', { index: i + 1, defaultValue: `Price ${i + 1} - Original Price IDR` })}
                 type="number"
                 value={p.originalPriceIdr}
                 placeholder={t('admin.packageModal.noDiscount')}
@@ -220,10 +255,10 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
                   onClick={() => removePrice(i)}
                   aria-label={t('admin.packageModal.removePrice')}
                 >
-                  <Trash size={13} />
+                  <Trash size={13} aria-hidden="true" />
                 </Button>
               )}
-            </div>
+            </fieldset>
           ))}
         </div>
       </form>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CheckCircle, Package, PencilSimple, Power, Trash } from '@phosphor-icons/react';
+import { ArrowClockwise, CheckCircle, Package, PencilSimple, Power, Trash } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { AdminPackage } from '../../lib/types';
@@ -20,6 +21,8 @@ interface PackagesTabProps {
 
 export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
   const { t } = useTranslation('extras');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const statusFilter = (searchParams.get('status') as '' | 'active' | 'inactive') || '';
   const [packages, setPackages] = useState<AdminPackage[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyPackageId, setBusyPackageId] = useState<string | null>(null);
@@ -27,19 +30,34 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
   const [editingPackage, setEditingPackage] = useState<AdminPackage | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingPackage, setDeletingPackage] = useState<AdminPackage | null>(null);
-  const [statusFilter, setStatusFilter] = useState<'' | 'active' | 'inactive'>('');
   const [toast, setToast] = useState<string | null>(null);
   const deleteTriggerRef = useRef<HTMLElement | null>(null);
+  const latestRequest = useRef(0);
+
+  function updateParam(key: string, value: string | null): void {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (value) next.set(key, value);
+        else next.delete(key);
+        return next;
+      },
+      { replace: true },
+    );
+  }
 
   const loadPackages = useCallback(async () => {
-    setError(null);
+    const requestId = ++latestRequest.current;
     try {
       const p = await api.adminListPackages();
+      if (latestRequest.current !== requestId) return;
       setPackages(p);
+      setError(null);
     } catch (err) {
+      if (latestRequest.current !== requestId) return;
       setError(getErrorMessage(err, t('admin.packages.errors.load')));
     } finally {
-      onSettled?.();
+      if (latestRequest.current === requestId) onSettled?.();
     }
   }, [t, onSettled]);
 
@@ -57,7 +75,7 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
       );
       const msg = pkg.isActive ? t('admin.packages.deactivated', { name: pkg.name }) : t('admin.packages.activated', { name: pkg.name });
       setToast(msg);
-      window.setTimeout(() => setToast(null), 2500);
+      window.setTimeout(() => setToast(null), 5000);
     } catch (err) {
       setError(getErrorMessage(err, t('admin.packages.errors.update')));
     } finally {
@@ -87,9 +105,8 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
   function closeDeleteDialog() {
     setDeleteDialogOpen(false);
     setDeletingPackage(null);
-    // focus restore (L fix) — next tick agar dialog unmount dulu
     const trigger = deleteTriggerRef.current;
-    if (trigger && typeof trigger.focus === 'function') {
+    if (trigger && document.contains(trigger) && typeof trigger.focus === 'function') {
       window.requestAnimationFrame(() => trigger.focus());
     }
   }
@@ -102,7 +119,7 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
       await api.adminDeletePackage(deletingPackage.id);
       setPackages((prev) => (prev ? prev.filter((p) => p.id !== deletingPackage.id) : prev));
       setToast(t('admin.packages.deleted', { name: deletingPackage.name }));
-      window.setTimeout(() => setToast(null), 2500);
+      window.setTimeout(() => setToast(null), 5000);
       closeDeleteDialog();
     } catch (err) {
       setError(getErrorMessage(err, t('admin.packages.errors.delete')));
@@ -126,34 +143,37 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
         {packages === null ? t('admin.loading') : t('admin.packages.count', { count: packages.length })}
       </p>
       {toast && (
-        <div className="admin-toast" role="status" aria-live="polite">
+        <div className="admin-toast" role="status" aria-live="polite" aria-atomic="true">
           <CheckCircle size={14} weight="duotone" aria-hidden="true" />
           {toast}
         </div>
       )}
       <div className="admin-filter-bar mb-12">
-        <span className="admin-activity-ranges" role="group" aria-label={t('admin.packages.filterStatusAria', { defaultValue: 'Filter status' })}>
+        <span className="admin-activity-ranges" role="radiogroup" aria-label={t('admin.packages.filterStatusAria', { defaultValue: 'Filter status' })}>
           <button
             type="button"
+            role="radio"
+            aria-checked={statusFilter === ''}
             className={`sub-tab ${statusFilter === '' ? 'sub-tab-active' : ''}`}
-            aria-pressed={statusFilter === ''}
-            onClick={() => setStatusFilter('')}
+            onClick={() => updateParam('status', null)}
           >
             {t('admin.packages.allStatuses', { defaultValue: 'Semua' })}
           </button>
           <button
             type="button"
+            role="radio"
+            aria-checked={statusFilter === 'active'}
             className={`sub-tab ${statusFilter === 'active' ? 'sub-tab-active' : ''}`}
-            aria-pressed={statusFilter === 'active'}
-            onClick={() => setStatusFilter('active')}
+            onClick={() => updateParam('status', 'active')}
           >
             {t('admin.packages.active')}
           </button>
           <button
             type="button"
+            role="radio"
+            aria-checked={statusFilter === 'inactive'}
             className={`sub-tab ${statusFilter === 'inactive' ? 'sub-tab-active' : ''}`}
-            aria-pressed={statusFilter === 'inactive'}
-            onClick={() => setStatusFilter('inactive')}
+            onClick={() => updateParam('status', 'inactive')}
           >
             {t('admin.packages.inactive')}
           </button>
@@ -161,7 +181,6 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
         <span className="page-subtitle admin-filter-count">
           {filteredPackages !== null ? t('admin.packages.count', { count: filteredPackages.length }) : ''}
         </span>
-        <span className="admin-filter-spacer" />
         <Button
           size="sm"
           leftIcon={<Package size={13} aria-hidden="true" />}
@@ -173,7 +192,7 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
       {error ? (
         <InlineError className="mb-12">
           {error}{' '}
-          <Button variant="ghost" size="sm" onClick={() => void loadPackages()}>
+          <Button variant="secondary" size="sm" leftIcon={<ArrowClockwise size={12} aria-hidden="true" />} onClick={() => void loadPackages()}>
             {t('admin.retry')}
           </Button>
         </InlineError>
@@ -185,14 +204,14 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
         </div>
       ) : filteredPackages!.length === 0 ? (
         <EmptyState
-          icon={<Package size={22} />}
+          icon={<Package size={22} aria-hidden="true" />}
           title={t('admin.packages.emptyTitle')}
           description={statusFilter ? t('admin.packages.emptyFiltered', { defaultValue: 'Tidak ada paket dengan filter ini.' }) : t('admin.packages.emptyDesc')}
         />
       ) : (
-        <div className="admin-packages-grid">
+        <div className="admin-packages-grid" role="list">
           {filteredPackages!.map((pkg) => (
-            <div key={pkg.id} className="admin-package-card">
+            <div key={pkg.id} className="admin-package-card" role="listitem" aria-label={pkg.name}>
               <div className="admin-package-card-head">
                 <span className="admin-package-name">{pkg.name}</span>
                 <Badge tone={pkg.isActive ? 'success' : 'neutral'}>
@@ -211,9 +230,9 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
                 </span>
               </div>
               {pkg.prices.length > 0 && (
-                <div className="admin-package-prices">
+                <div className="admin-package-prices" role="list" aria-label={t('admin.packages.pricesLabel', { defaultValue: 'Prices' })}>
                   {pkg.prices.map((price) => (
-                    <div key={price.id} className="admin-package-price-row">
+                    <div key={price.id} className="admin-package-price-row" role="listitem">
                       <span className="admin-package-price-duration">
                         {t('admin.packages.durationDays', { count: price.durationDays })}
                       </span>
