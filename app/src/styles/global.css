@@ -8982,7 +8982,7 @@ button.admin-plan-card {
 
 
 
-@media (max-width: 640px) {
+@media (max-width: 860px) {
   .segmented-card { gap: 3px; padding: 3px; }
   .segmented-card .segmented-btn { flex: 1 1 110px; min-height: 34px; padding: 6px 8px; font-size: 12px; gap: 4px; }
   .segmented-card .segmented-sub { font-size: 10.5px; }
