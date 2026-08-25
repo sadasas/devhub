@@ -148,12 +148,30 @@
       "descHelper": "Up to 2000 characters"
     },
     "template": {
-      "blank": { "name": "Blank", "desc": "Empty canvas — start from scratch" },
-      "kanban": { "name": "Kanban", "desc": "Todo / In Progress / Review / Done columns" },
-      "ci-cd": { "name": "CI/CD pipeline", "desc": "Commit → Build → Test → Approval → Deploy" },
-      "roadmap": { "name": "Roadmap", "desc": "Timeline with milestone markers" },
-      "release-train": { "name": "Release train", "desc": "Releases × phases matrix" },
-      "gitflow": { "name": "Gitflow", "desc": "Branching model (main / develop / feature / hotfix)" }
+      "blank": {
+        "name": "Blank",
+        "desc": "Empty canvas — start from scratch"
+      },
+      "kanban": {
+        "name": "Kanban",
+        "desc": "Todo / In Progress / Review / Done columns"
+      },
+      "ci-cd": {
+        "name": "CI/CD pipeline",
+        "desc": "Commit → Build → Test → Approval → Deploy"
+      },
+      "roadmap": {
+        "name": "Roadmap",
+        "desc": "Timeline with milestone markers"
+      },
+      "release-train": {
+        "name": "Release train",
+        "desc": "Releases × phases matrix"
+      },
+      "gitflow": {
+        "name": "Gitflow",
+        "desc": "Branching model (main / develop / feature / hotfix)"
+      }
     }
   },
   "api": {
@@ -529,19 +547,19 @@
     }
   },
   "pricing": {
-    "back": "Kembali",
-    "title": "Mulai gratis, upgrade saat timmu butuh.",
-    "subtitle": "Semua fitur core tersedia — limit yang berbeda.",
+    "back": "Back",
+    "title": "Start free, upgrade when your team needs it.",
+    "subtitle": "All core features included — different limits.",
     "recommended": "Recommended",
     "planAria": "{{name}} plan",
     "choosePeriod": "Pilih periode:",
     "chooseDurationAria": "Pilih durasi",
-    "durationMonths_one": "{{count}} bulan",
-    "durationMonths_other": "{{count}} bulan",
+    "durationMonths_one": "{{count}} month",
+    "durationMonths_other": "{{count}} months",
     "totalLabel": "Total:",
     "totalFor": "untuk {{duration}}",
     "freePrice": "Rp 0",
-    "freePeriod": "/ selamanya",
+    "freePeriod": "/ forever",
     "benefits": {
       "unlimitedMembers": "Unlimited members",
       "members": "{{n}} members",
@@ -552,64 +570,64 @@
       "prioritySupport": "Priority support"
     },
     "savings": "Hemat {{percent}}%",
-    "originalPriceAria": "Harga normal {{price}}",
-    "billedYearly": "Ditagih tahunan — setara {{monthly}}/bulan",
-    "youSave": "Hemat {{amount}} dibanding harga normal",
+    "originalPriceAria": "Regular price {{price}}",
+    "billedYearly": "Billed yearly — equals {{monthly}}/mo",
+    "youSave": "Save {{amount}} vs regular price",
     "workspace": "Workspace",
     "workspacePlaceholder": "Pilih workspace",
-    "workspaceBarLabel": "Tagih ke workspace",
-    "workspaceBarAria": "Pilih workspace untuk penagihan",
-    "billingToggleAria": "Pilihan periode tagihan",
-    "billingGroupAria": "Pilih durasi paket",
+    "workspaceBarLabel": "Bill to workspace",
+    "workspaceBarAria": "Select workspace for billing",
+    "billingToggleAria": "Billing period options",
+    "billingGroupAria": "Choose package duration",
     "billing": {
-      "monthly": "Bulanan",
-      "yearly": "Tahunan"
+      "monthly": "Monthly",
+      "yearly": "Yearly"
     },
-    "billingHint": "Tahunan paling hemat — bayar sekali, fokus setahun.",
-    "cta": "Upgrade ke {{name}}",
-    "ctaWithPrice": "Upgrade ke {{name}} — {{price}}",
-    "currentPlan": "Paket saat ini",
-    "pickWorkspace": "Pilih workspace di atas untuk melanjutkan.",
-    "compareTitle": "Perbandingan fitur",
+    "billingHint": "Yearly is best value — pay once, focus for a year.",
+    "cta": "Upgrade to {{name}}",
+    "ctaWithPrice": "Upgrade to {{name}} — {{price}}",
+    "currentPlan": "Current plan",
+    "pickWorkspace": "Select a workspace above to continue.",
+    "compareTitle": "Feature comparison",
     "compare": {
-      "tasks": "Task & Board Kanban",
+      "tasks": "Tasks & Kanban board",
       "issues": "Issue tracking",
       "schema": "Schema & ERD",
       "decisions": "Decision log (ADR)",
-      "whiteboard": "Whiteboard & diagram",
+      "whiteboard": "Whiteboard & diagrams",
       "api": "API docs + OpenAPI"
     },
-    "faqSection": "Pertanyaan Umum",
+    "faqSection": "FAQ",
     "faq": {
       "upgrade": {
-        "q": "Bagaimana cara upgrade?",
-        "a": "Pilih workspace yang ingin di-upgrade, lalu pilih paket dan durasi pembayaran. Setelah bayar, plan akan aktif otomatis setelah pembayaran dikonfirmasi."
+        "q": "How do I upgrade?",
+        "a": "Select the workspace to upgrade, then choose a package and duration. After payment, the plan activates automatically once confirmed."
       },
       "trial": {
-        "q": "Apakah ada free trial?",
-        "a": "Tidak ada free trial, tapi paket Free tersedia tanpa batas waktu."
+        "q": "Is there a free trial?",
+        "a": "No free trial, but the Free plan is available forever."
       },
       "payment": {
-        "q": "Bagaimana cara bayar?",
-        "a": "Pembayaran melalui QRIS atau Virtual Account via Pakasir. Setelah bayar, pembayaran akan dikonfirmasi otomatis."
+        "q": "How do I pay?",
+        "a": "Payment via QRIS or Virtual Account through Pakasir. It is confirmed automatically after payment."
       },
       "timing": {
-        "q": "Bisa upgrade kapan saja?",
-        "a": "Ya, bisa upgrade kapan saja. Sisa hari dari plan sebelumnya akan ditambahkan ke plan baru."
+        "q": "Can I upgrade anytime?",
+        "a": "Yes, you can upgrade anytime. Remaining days from your previous plan are added to the new plan."
       },
       "expired": {
-        "q": "Apa yang terjadi jika plan expired?",
-        "a": "Workspace akan kembali ke plan Free. Data tetap aman, tapi limit akan berlaku kembali."
+        "q": "What happens when the plan expires?",
+        "a": "The workspace returns to the Free plan. Data stays safe, but limits apply again."
       }
     },
-    "trust": "Pembayaran aman via QRIS / Virtual Account",
-    "trustRow": "QRIS • VA BCA/Mandiri/BRI • Tanpa kartu kredit",
+    "trust": "Secure payment via QRIS / Virtual Account",
+    "trustRow": "QRIS • VA BCA/Mandiri/BRI • No credit card needed",
     "poweredBy": "Powered by Pakasir",
-    "createAccount": "Buat akun gratis",
+    "createAccount": "Create free account",
     "errors": {
-      "pickWorkspace": "Pilih workspace yang akan di-upgrade.",
-      "checkout": "Gagal memulai checkout.",
-      "load": "Gagal memuat paket."
+      "pickWorkspace": "Select the workspace to upgrade.",
+      "checkout": "Failed to start checkout.",
+      "load": "Failed to load packages."
     }
   },
   "billing": {
