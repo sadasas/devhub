@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Package, PencilSimple, Power, Trash } from '@phosphor-icons/react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { CheckCircle, Package, PencilSimple, Power, Trash } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
@@ -27,6 +27,9 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
   const [editingPackage, setEditingPackage] = useState<AdminPackage | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingPackage, setDeletingPackage] = useState<AdminPackage | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'' | 'active' | 'inactive'>('');
+  const [toast, setToast] = useState<string | null>(null);
+  const deleteTriggerRef = useRef<HTMLElement | null>(null);
 
   const loadPackages = useCallback(async () => {
     setError(null);
@@ -52,6 +55,9 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
       setPackages((prev) =>
         prev ? prev.map((p) => (p.id === pkg.id ? { ...p, isActive: !p.isActive } : p)) : prev,
       );
+      const msg = pkg.isActive ? t('admin.packages.deactivated', { name: pkg.name }) : t('admin.packages.activated', { name: pkg.name });
+      setToast(msg);
+      window.setTimeout(() => setToast(null), 2500);
     } catch (err) {
       setError(getErrorMessage(err, t('admin.packages.errors.update')));
     } finally {
@@ -73,8 +79,19 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
   }
 
   function onDeletePackage(pkg: AdminPackage) {
+    deleteTriggerRef.current = document.activeElement as HTMLElement | null;
     setDeletingPackage(pkg);
     setDeleteDialogOpen(true);
+  }
+
+  function closeDeleteDialog() {
+    setDeleteDialogOpen(false);
+    setDeletingPackage(null);
+    // focus restore (L fix) — next tick agar dialog unmount dulu
+    const trigger = deleteTriggerRef.current;
+    if (trigger && typeof trigger.focus === 'function') {
+      window.requestAnimationFrame(() => trigger.focus());
+    }
   }
 
   async function confirmDeletePackage() {
@@ -84,23 +101,65 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
     try {
       await api.adminDeletePackage(deletingPackage.id);
       setPackages((prev) => (prev ? prev.filter((p) => p.id !== deletingPackage.id) : prev));
+      setToast(t('admin.packages.deleted', { name: deletingPackage.name }));
+      window.setTimeout(() => setToast(null), 2500);
+      closeDeleteDialog();
     } catch (err) {
       setError(getErrorMessage(err, t('admin.packages.errors.delete')));
+      // jangan tutup dialog saat error — biar retry (M5)
     } finally {
       setBusyPackageId(null);
-      setDeleteDialogOpen(false);
-      setDeletingPackage(null);
     }
   }
+
+  const filteredPackages = packages
+    ? packages.filter((p) => {
+        if (statusFilter === 'active') return p.isActive;
+        if (statusFilter === 'inactive') return !p.isActive;
+        return true;
+      })
+    : null;
 
   return (
     <section className="tab-panel" aria-label={t('admin.packages.aria')}>
       <p role="status" aria-live="polite" className="sr-only">
         {packages === null ? t('admin.loading') : t('admin.packages.count', { count: packages.length })}
       </p>
+      {toast && (
+        <div className="admin-toast" role="status" aria-live="polite">
+          <CheckCircle size={14} weight="duotone" aria-hidden="true" />
+          {toast}
+        </div>
+      )}
       <div className="admin-filter-bar mb-12">
+        <span className="admin-activity-ranges" role="group" aria-label={t('admin.packages.filterStatusAria', { defaultValue: 'Filter status' })}>
+          <button
+            type="button"
+            className={`sub-tab ${statusFilter === '' ? 'sub-tab-active' : ''}`}
+            aria-pressed={statusFilter === ''}
+            onClick={() => setStatusFilter('')}
+          >
+            {t('admin.packages.allStatuses', { defaultValue: 'Semua' })}
+          </button>
+          <button
+            type="button"
+            className={`sub-tab ${statusFilter === 'active' ? 'sub-tab-active' : ''}`}
+            aria-pressed={statusFilter === 'active'}
+            onClick={() => setStatusFilter('active')}
+          >
+            {t('admin.packages.active')}
+          </button>
+          <button
+            type="button"
+            className={`sub-tab ${statusFilter === 'inactive' ? 'sub-tab-active' : ''}`}
+            aria-pressed={statusFilter === 'inactive'}
+            onClick={() => setStatusFilter('inactive')}
+          >
+            {t('admin.packages.inactive')}
+          </button>
+        </span>
         <span className="page-subtitle admin-filter-count">
-          {packages !== null ? t('admin.packages.count', { count: packages.length }) : ''}
+          {filteredPackages !== null ? t('admin.packages.count', { count: filteredPackages.length }) : ''}
         </span>
         <span className="admin-filter-spacer" />
         <Button
@@ -124,15 +183,15 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
             <Skeleton key={i} style={{ width: '100%', height: 160 }} />
           ))}
         </div>
-      ) : packages.length === 0 ? (
+      ) : filteredPackages!.length === 0 ? (
         <EmptyState
           icon={<Package size={22} />}
           title={t('admin.packages.emptyTitle')}
-          description={t('admin.packages.emptyDesc')}
+          description={statusFilter ? t('admin.packages.emptyFiltered', { defaultValue: 'Tidak ada paket dengan filter ini.' }) : t('admin.packages.emptyDesc')}
         />
       ) : (
         <div className="admin-packages-grid">
-          {packages.map((pkg) => (
+          {filteredPackages!.map((pkg) => (
             <div key={pkg.id} className="admin-package-card">
               <div className="admin-package-card-head">
                 <span className="admin-package-name">{pkg.name}</span>
@@ -211,8 +270,9 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
         open={deleteDialogOpen}
         title={t('admin.packages.deleteTitle')}
         description={t('admin.packages.deleteDesc', { name: deletingPackage?.name ?? '' })}
+        busy={busyPackageId === deletingPackage?.id}
         onConfirm={() => void confirmDeletePackage()}
-        onClose={() => { setDeleteDialogOpen(false); setDeletingPackage(null); }}
+        onClose={closeDeleteDialog}
       />
     </section>
   );

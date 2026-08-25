@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { MagnifyingGlass, UsersThree } from '@phosphor-icons/react';
+import { MagnifyingGlass, UsersThree, X } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { api } from '../../lib/api';
@@ -115,7 +115,20 @@ export function UsersTab({ refreshKey, onSettled }: UsersTabProps) {
           placeholder={t('admin.users.searchPlaceholder')}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          rightSlot={<MagnifyingGlass size={14} aria-hidden="true" />}
+          rightSlot={
+            searchInput ? (
+              <button
+                type="button"
+                className="key-copy-btn"
+                aria-label={t('common:action.clear')}
+                onClick={() => setSearchInput('')}
+              >
+                <X size={12} aria-hidden="true" />
+              </button>
+            ) : (
+              <MagnifyingGlass size={14} aria-hidden="true" />
+            )
+          }
           className="admin-filter-input"
         />
         <select
@@ -134,6 +147,11 @@ export function UsersTab({ refreshKey, onSettled }: UsersTabProps) {
         <span className="page-subtitle admin-filter-count">
           {users !== null ? t('admin.users.count', { count: usersTotal }) : ''}
         </span>
+        {users !== null && users.length > 0 && users.length < usersTotal && (
+          <span className="page-subtitle" style={{ fontSize: 11 }}>
+            {t('admin.users.showing', { shown: users.length, total: usersTotal })}
+          </span>
+        )}
       </div>
       {error ? (
         <InlineError className="mb-12">

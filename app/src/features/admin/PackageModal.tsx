@@ -127,7 +127,11 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
           <Button variant="ghost" onClick={onClose} disabled={busy}>
             {t('templates.cancel')}
           </Button>
-          <Button onClick={() => void handleSubmit(new Event('submit') as unknown as React.FormEvent)} disabled={busy}>
+          <Button
+            loading={busy}
+            disabled={busy}
+            onClick={() => void handleSubmit(new Event('submit') as unknown as React.FormEvent)}
+          >
             {busy ? t('admin.teamPlan.saving') : isEdit ? t('admin.packageModal.saveChanges') : t('admin.packageModal.create')}
           </Button>
         </>

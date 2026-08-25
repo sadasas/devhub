@@ -1,7 +1,6 @@
 import {
   BookOpen,
   BookmarkSimple,
-  CaretRight,
   CurrencyCircleDollar,
   EnvelopeSimple,
   FolderSimple,
@@ -14,8 +13,8 @@ import {
   SquaresFour,
   UsersThree,
 } from '@phosphor-icons/react';
-import { useEffect, useMemo, useState } from 'react';
-import { NavLink, useLocation, type NavLinkProps } from 'react-router';
+import { useMemo, useState } from 'react';
+import { NavLink, type NavLinkProps } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../state/auth-context';
 import { useProjects } from '../../state/projects-context';
@@ -24,20 +23,20 @@ import { initialsOf } from '../../lib/initials';
 import { Button } from '../../components/Button';
 import { Logo } from '../../components/Logo';
 import { Skeleton } from '../../components/Skeleton';
-import { CreateTeamModal } from '../teams/CreateTeamModal';
 import { NewProjectModal } from '../dashboard/NewProjectModal';
 
-const COLLAPSED_KEY = 'devhub:sidebar:collapsed';
+interface SidebarProps {
+  activeTeamId?: string | null;
+  onCreateTeam?: () => void;
+}
 
-export function Sidebar() {
+export function Sidebar({ activeTeamId, onCreateTeam }: SidebarProps) {
   const { user, logout } = useAuth();
   const { projects } = useProjects();
   const { teams, invitations } = useTeams();
-  const [createTeamOpen, setCreateTeamOpen] = useState(false);
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [prefillTeamId, setPrefillTeamId] = useState<string | null>(null);
   const [filterQuery, setFilterQuery] = useState('');
-  const location = useLocation();
   const { t } = useTranslation('shell');
 
   const projectsByTeam = useMemo(() => {
@@ -51,69 +50,16 @@ export function Sidebar() {
   }, [projects]);
 
   const teamsLoading = teams === null;
-  const totalProjects = projects?.length ?? 0;
-  const showFilter = (teams?.length ?? 0) > 3 || totalProjects > 8;
-
-  const [collapsedIds, setCollapsedIds] = useState<string[]>(() => {
-    try {
-      const raw = localStorage.getItem(COLLAPSED_KEY);
-      return raw ? (JSON.parse(raw) as string[]) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(COLLAPSED_KEY, JSON.stringify(collapsedIds));
-    } catch {
-      // ignore
-    }
-  }, [collapsedIds]);
-
-  const toggleTeam = (teamId: string) => {
-    setCollapsedIds((prev) => (prev.includes(teamId) ? prev.filter((id) => id !== teamId) : [...prev, teamId]));
-  };
-
-  const activeTeamId = useMemo(() => {
-    if (location.pathname.startsWith('/team/')) {
-      return location.pathname.split('/')[2] ?? null;
-    }
-    if (location.pathname.startsWith('/project/')) {
-      const pid = location.pathname.split('/')[2];
-      const proj = (projects ?? []).find((p) => p.id === pid);
-      return proj?.teamId ?? null;
-    }
-    return null;
-  }, [location.pathname, projects]);
-
-  useEffect(() => {
-    if (activeTeamId && collapsedIds.includes(activeTeamId)) {
-      setCollapsedIds((prev) => prev.filter((id) => id !== activeTeamId));
-    }
-  }, [activeTeamId, collapsedIds]);
+  const activeTeam = teams?.find((tm) => tm.id === activeTeamId) ?? null;
+  const teamProjectsAll = activeTeam ? (projectsByTeam.get(activeTeam.id) ?? []) : [];
+  const showFilter = teamProjectsAll.length > 8;
 
   const lowerQuery = filterQuery.trim().toLowerCase();
-
-  const filteredTeams = useMemo(() => {
-    if (!lowerQuery || !teams) return teams;
-    return teams.filter((team) => {
-      const teamMatch = team.name.toLowerCase().includes(lowerQuery);
-      const teamProjects = projectsByTeam.get(team.id) ?? [];
-      const projMatch = teamProjects.some((p) => p.name.toLowerCase().includes(lowerQuery));
-      return teamMatch || projMatch;
-    });
-  }, [teams, projectsByTeam, lowerQuery]);
-
-  const getFilteredProjects = (teamId: string) => {
-    const list = projectsByTeam.get(teamId) ?? [];
-    const sorted = [...list].sort((a, b) => a.name.localeCompare(b.name));
-    if (!lowerQuery) return sorted;
-    const team = teams?.find((tm) => tm.id === teamId);
-    const teamMatch = team?.name.toLowerCase().includes(lowerQuery);
-    if (teamMatch) return sorted;
-    return sorted.filter((p) => p.name.toLowerCase().includes(lowerQuery));
-  };
+  const filteredProjects = useMemo(() => {
+    const list = [...teamProjectsAll].sort((a, b) => a.name.localeCompare(b.name));
+    if (!lowerQuery) return list;
+    return list.filter((p) => p.name.toLowerCase().includes(lowerQuery));
+  }, [teamProjectsAll, lowerQuery]);
 
   const itemClass =
     (extra = ''): NavLinkProps['className'] =>
@@ -121,7 +67,7 @@ export function Sidebar() {
       `sidebar-item${extra ? ` ${extra}` : ''}${isActive ? ' sidebar-item-active' : ''}`;
 
   const openCreateProject = (teamId?: string) => {
-    setPrefillTeamId(teamId ?? null);
+    setPrefillTeamId(teamId ?? activeTeamId ?? null);
     setCreateProjectOpen(true);
   };
 
@@ -150,140 +96,95 @@ export function Sidebar() {
 
       <div className="sidebar-divider" aria-hidden="true" />
 
-      <div className="sidebar-section sidebar-section-row">
-        <span>{t('sidebar.teams')}</span>
-        <button
-          type="button"
-          className="sidebar-add-btn"
-          title={t('sidebar.newTeam')}
-          aria-label={t('sidebar.newTeam')}
-          onClick={() => setCreateTeamOpen(true)}
-        >
-          <Plus size={12} weight="bold" aria-hidden="true" />
-        </button>
-      </div>
-
-      {showFilter && (
-        <div className="sidebar-filter" role="search">
-          <MagnifyingGlass size={14} aria-hidden="true" className="sidebar-filter-icon" />
-          <input
-            type="text"
-            className="sidebar-filter-input"
-            placeholder={t('sidebar.filterPlaceholder', { defaultValue: 'Filter teams & projects…' }) as string}
-            aria-label={t('sidebar.filterPlaceholder', { defaultValue: 'Filter teams & projects' }) as string}
-            value={filterQuery}
-            onChange={(e) => setFilterQuery(e.target.value)}
-          />
+      {teamsLoading ? (
+        <>
+          <Skeleton className="sidebar-skeleton" />
+          <Skeleton className="sidebar-skeleton" />
+          <Skeleton className="sidebar-skeleton" />
+        </>
+      ) : !activeTeam ? (
+        <div className="sidebar-empty">
+          <p>{t('sidebar.noTeamsYet')}</p>
+          <Button variant="ghost" size="sm" onClick={() => onCreateTeam?.()}>
+            {t('sidebar.createTeam')}
+          </Button>
         </div>
-      )}
+      ) : (
+        <>
+          <div className="sidebar-section sidebar-section-row">
+            <span className="sidebar-team-active-label" title={activeTeam.name}>
+              <UsersThree size={12} weight="duotone" aria-hidden="true" />
+              <span className="sidebar-item-label">{activeTeam.name}</span>
+            </span>
+            <span className="sidebar-count-muted" aria-label={`${teamProjectsAll.length} projects`}>
+              {teamProjectsAll.length}
+            </span>
+            <span className="sidebar-count-muted" aria-label={`${activeTeam.memberCount} members`}>
+              {activeTeam.memberCount}
+            </span>
+            <button
+              type="button"
+              className="sidebar-add-btn"
+              title={`New project in ${activeTeam.name}`}
+              aria-label={`New project in ${activeTeam.name}`}
+              onClick={() => openCreateProject(activeTeam.id)}
+            >
+              <Plus size={12} weight="bold" aria-hidden="true" />
+            </button>
+          </div>
 
-      <nav className="sidebar-nav sidebar-nav-grow" aria-label={t('sidebar.teamsNav')}>
-        {teamsLoading ? (
-          <>
-            <Skeleton className="sidebar-skeleton" />
-            <Skeleton className="sidebar-skeleton" />
-            <Skeleton className="sidebar-skeleton" />
-          </>
-        ) : filteredTeams?.length === 0 ? (
-          lowerQuery ? (
-            <div className="sidebar-empty">
-              <p>No matches for “{filterQuery}”</p>
-              <Button variant="ghost" size="sm" onClick={() => setFilterQuery('')}>
-                Clear filter
-              </Button>
+          {showFilter && (
+            <div className="sidebar-filter" role="search">
+              <MagnifyingGlass size={14} aria-hidden="true" className="sidebar-filter-icon" />
+              <input
+                type="text"
+                className="sidebar-filter-input"
+                placeholder={t('sidebar.filterPlaceholder', { defaultValue: 'Filter projects…' }) as string}
+                aria-label={t('sidebar.filterPlaceholder', { defaultValue: 'Filter projects' }) as string}
+                value={filterQuery}
+                onChange={(e) => setFilterQuery(e.target.value)}
+              />
             </div>
-          ) : teams?.length === 0 ? (
-            <div className="sidebar-empty">
-              <p>{t('sidebar.noTeamsYet')}</p>
-              <Button variant="ghost" size="sm" onClick={() => setCreateTeamOpen(true)}>
-                {t('sidebar.createTeam')}
-              </Button>
-            </div>
-          ) : null
-        ) : (
-          filteredTeams?.map((team) => {
-            const teamProjectsAll = projectsByTeam.get(team.id) ?? [];
-            const teamProjects = getFilteredProjects(team.id);
-            const collapsed = collapsedIds.includes(team.id);
-            const isActiveTeam = activeTeamId === team.id;
-            return (
-              <div key={team.id} className="sidebar-team">
-                <div className={`sidebar-team-header${isActiveTeam ? ' sidebar-team-head-active' : ''}`}>
-                  <button
-                    type="button"
-                    className="sidebar-disclosure"
-                    aria-expanded={!collapsed}
-                    aria-controls={`team-projects-${team.id}`}
-                    aria-label={collapsed ? `Expand ${team.name}` : `Collapse ${team.name}`}
-                    onClick={() => toggleTeam(team.id)}
-                  >
-                    <CaretRight
-                      size={12}
-                      weight="bold"
-                      aria-hidden="true"
-                      style={{
-                        transform: collapsed ? 'none' : 'rotate(90deg)',
-                        transition: 'transform 120ms var(--ease-out)',
-                      }}
-                    />
-                  </button>
-                  <NavLink to={`/team/${team.id}`} className={itemClass('sidebar-team-head')} title={team.name}>
-                    <UsersThree size={13} weight="duotone" aria-hidden="true" />
-                    <span className="sidebar-item-label">{team.name}</span>
-                    <span className="sidebar-count-muted" aria-label={`${teamProjectsAll.length} projects`}>
-                      {teamProjectsAll.length}
-                    </span>
-                    <span className="sidebar-count-muted" aria-label={`${team.memberCount} members`}>
-                      {team.memberCount}
-                    </span>
-                  </NavLink>
-                  <button
-                    type="button"
-                    className="sidebar-add-btn sidebar-add-btn-team"
-                    title={`New project in ${team.name}`}
-                    aria-label={`New project in ${team.name}`}
-                    onClick={() => openCreateProject(team.id)}
-                  >
-                    <Plus size={12} weight="bold" aria-hidden="true" />
+          )}
+
+          <nav className="sidebar-nav sidebar-nav-grow" aria-label={t('sidebar.teamsNav')}>
+            {filteredProjects.length === 0 ? (
+              lowerQuery ? (
+                <div className="sidebar-empty">
+                  <p>No matches for “{filterQuery}”</p>
+                  <Button variant="ghost" size="sm" onClick={() => setFilterQuery('')}>
+                    Clear filter
+                  </Button>
+                </div>
+              ) : (
+                <div className="sidebar-project-empty">
+                  <span>No projects yet.</span>{' '}
+                  <button type="button" className="sidebar-link-btn" onClick={() => openCreateProject(activeTeam.id)}>
+                    Create project
                   </button>
                 </div>
-                <div
-                  id={`team-projects-${team.id}`}
-                  role="group"
-                  hidden={collapsed}
-                  aria-label={`${team.name} projects`}
-                  className="sidebar-team-projects"
+              )
+            ) : (
+              filteredProjects.map((p) => (
+                <NavLink
+                  key={p.id}
+                  to={`/project/${p.id}`}
+                  className={itemClass('sidebar-project-item')}
+                  title={p.name}
                 >
-                  {teamProjects.length === 0 ? (
-                    lowerQuery ? (
-                      <div className="sidebar-project-empty">No matches</div>
-                    ) : (
-                      <div className="sidebar-project-empty">
-                        <span>No projects yet.</span>{' '}
-                        <button type="button" className="sidebar-link-btn" onClick={() => openCreateProject(team.id)}>
-                          Create project
-                        </button>
-                      </div>
-                    )
-                  ) : (
-                    teamProjects.map((p) => (
-                      <NavLink
-                        key={p.id}
-                        to={`/project/${p.id}`}
-                        className={itemClass('sidebar-project-item')}
-                        title={p.name}
-                      >
-                        <FolderSimple size={14} weight="duotone" aria-hidden="true" />
-                        <span className="sidebar-item-label">{p.name}</span>
-                      </NavLink>
-                    ))
-                  )}
-                </div>
-              </div>
-            );
-          })
-        )}
-      </nav>
+                  <FolderSimple size={14} weight="duotone" aria-hidden="true" />
+                  <span className="sidebar-item-label">{p.name}</span>
+                </NavLink>
+              ))
+            )}
+            <div className="sidebar-team-footer">
+              <NavLink to={`/team/${activeTeam.id}`} className="sidebar-team-link">
+                View team →
+              </NavLink>
+            </div>
+          </nav>
+        </>
+      )}
 
       <div className="sidebar-divider" aria-hidden="true" />
 
@@ -339,7 +240,6 @@ export function Sidebar() {
         </button>
       </div>
 
-      <CreateTeamModal open={createTeamOpen} onClose={() => setCreateTeamOpen(false)} />
       <NewProjectModal
         open={createProjectOpen}
         onClose={() => {

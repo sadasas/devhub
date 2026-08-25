@@ -1,16 +1,67 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Outlet, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { List, MagnifyingGlass } from '@phosphor-icons/react';
 import { Sidebar } from './Sidebar';
+import { TeamRail } from './TeamRail';
 import { Logo } from '../../components/Logo';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 import { openPalette } from '../../lib/palette-events';
+import { useTeams } from '../../state/teams-context';
+import { useProjects } from '../../state/projects-context';
+import { CreateTeamModal } from '../teams/CreateTeamModal';
+
+const RAIL_ACTIVE_KEY = 'devhub:rail:activeTeam';
 
 export function Layout() {
   const [navOpen, setNavOpen] = useState(false);
+  const [createTeamOpen, setCreateTeamOpen] = useState(false);
   const location = useLocation();
   const { t } = useTranslation('shell');
+  const { teams } = useTeams();
+  const { projects } = useProjects();
+
+  const [railTeamId, setRailTeamId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(RAIL_ACTIVE_KEY);
+    } catch {
+      return null;
+    }
+  });
+
+  const derivedFromRoute = useMemo(() => {
+    if (location.pathname.startsWith('/team/')) {
+      return location.pathname.split('/')[2] ?? null;
+    }
+    if (location.pathname.startsWith('/project/')) {
+      const pid = location.pathname.split('/')[2];
+      const proj = (projects ?? []).find((p) => p.id === pid);
+      return proj?.teamId ?? null;
+    }
+    return null;
+  }, [location.pathname, projects]);
+
+  useEffect(() => {
+    if (derivedFromRoute) {
+      setRailTeamId(derivedFromRoute);
+    }
+  }, [derivedFromRoute]);
+
+  useEffect(() => {
+    if (railTeamId) {
+      try {
+        localStorage.setItem(RAIL_ACTIVE_KEY, railTeamId);
+      } catch {
+        // ignore
+      }
+    }
+  }, [railTeamId]);
+
+  const activeTeamId = useMemo(() => {
+    if (derivedFromRoute) return derivedFromRoute;
+    if (railTeamId && teams?.some((tm) => tm.id === railTeamId)) return railTeamId;
+    return teams?.[0]?.id ?? null;
+  }, [derivedFromRoute, railTeamId, teams]);
 
   useEffect(() => {
     setNavOpen(false);
@@ -29,6 +80,11 @@ export function Layout() {
       document.removeEventListener('keydown', onKey);
     };
   }, [navOpen]);
+
+  const handleSelectTeam = (teamId: string) => {
+    setRailTeamId(teamId);
+    setNavOpen(false);
+  };
 
   return (
     <div className="layout">
@@ -69,12 +125,31 @@ export function Layout() {
         aria-label={t('layout.closeNav')}
         tabIndex={navOpen ? 0 : -1}
       />
+      <div className="team-rail-desktop" aria-hidden="true">
+        <TeamRail
+          teams={teams}
+          activeTeamId={activeTeamId}
+          onSelectTeam={handleSelectTeam}
+          onCreateTeam={() => setCreateTeamOpen(true)}
+        />
+      </div>
       <div className={`sidebar-drawer${navOpen ? ' sidebar-open' : ''}`}>
-        <Sidebar />
+        <div className="sidebar-drawer-inner">
+          <div className="team-rail-mobile">
+            <TeamRail
+              teams={teams}
+              activeTeamId={activeTeamId}
+              onSelectTeam={handleSelectTeam}
+              onCreateTeam={() => setCreateTeamOpen(true)}
+            />
+          </div>
+          <Sidebar activeTeamId={activeTeamId} onCreateTeam={() => setCreateTeamOpen(true)} />
+        </div>
       </div>
       <main className="main" id="main-content">
         <Outlet />
       </main>
+      <CreateTeamModal open={createTeamOpen} onClose={() => setCreateTeamOpen(false)} />
     </div>
   );
 }
