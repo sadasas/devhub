@@ -1023,7 +1023,7 @@ a:hover {
 
 .layout {
   display: grid;
-  grid-template-columns: 64px 240px 1fr;
+  grid-template-columns: 180px 240px 1fr;
   min-height: 100dvh;
 }
 
@@ -1033,12 +1033,12 @@ a:hover {
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 8px;
   padding: 12px 8px;
   background: var(--bg-elevated);
   border-right: 1px solid var(--border-hairline);
   overflow-y: auto;
+  width: 180px;
 }
 
 .team-rail-desktop {
@@ -1059,21 +1059,24 @@ a:hover {
 
 .team-rail-item {
   position: relative;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  border: 2px solid transparent;
-  background: var(--bg-inset);
-  color: var(--text-primary);
-  font-size: 12px;
-  font-weight: 600;
-  display: grid;
-  place-items: center;
+  width: 100%;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
   cursor: pointer;
+  text-align: left;
   transition:
     border-color var(--duration-fast) var(--ease-out),
     background-color var(--duration-fast) var(--ease-out),
-    transform var(--duration-fast) var(--ease-out);
+    color var(--duration-fast) var(--ease-out);
 }
 
 .team-rail-item:hover {
@@ -1082,9 +1085,81 @@ a:hover {
 }
 
 .team-rail-item-active {
-  border-color: var(--accent);
+  border-color: rgba(52, 195, 142, 0.25);
   background: var(--accent-dim);
   color: var(--text-primary);
+}
+
+.team-rail-home {
+  width: 100%;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+
+.team-rail-home:hover {
+  background: rgba(255,255,255,0.04);
+  color: var(--text-primary);
+}
+
+.team-rail-home-active {
+  background: rgba(255,255,255,0.07);
+  color: var(--text-primary);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.team-rail-home-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team-rail-divider {
+  height: 1px;
+  background: var(--border-hairline);
+  margin: 4px 0;
+}
+
+.team-rail-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+.team-rail-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team-rail-count {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+  background: rgba(255,255,255,0.06);
+  padding: 1px 5px;
+  border-radius: 999px;
 }
 
 .team-rail-initials {
@@ -1764,6 +1839,37 @@ a:hover {
 
   .team-rail-mobile {
     display: block;
+  }
+
+  .team-rail-mobile .team-rail {
+    width: 64px;
+    align-items: center;
+  }
+
+  .team-rail-mobile .team-rail-item {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .team-rail-mobile .team-rail-name,
+  .team-rail-mobile .team-rail-count,
+  .team-rail-mobile .team-rail-home-label {
+    display: none;
+  }
+
+  .team-rail-mobile .team-rail-home {
+    width: 44px;
+    height: 44px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .team-rail-mobile .team-rail-icon {
+    width: 36px;
+    height: 36px;
   }
 
   .sidebar-drawer {
