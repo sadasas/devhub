@@ -8988,7 +8988,7 @@ button.admin-plan-card {
   .segmented-card .segmented-sub { font-size: 10.5px; }
   .segmented-card .segmented-badge { font-size: 10px; padding: 1px 6px; }
 }
-@media (max-width: 360px) { .segmented-card .segmented-sub { display: none; } }
+@media (max-width: 860px) { .segmented-card .segmented-sub { display: none; } }
 
 @media (max-width: 640px) {
   .pricing-workspace-bar { margin-bottom: 14px !important; gap: 6px !important; padding: 8px 10px !important; }
