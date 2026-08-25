@@ -8979,3 +8979,20 @@ button.admin-plan-card {
 }
 
 
+
+
+
+@media (max-width: 640px) {
+  .segmented-card { gap: 3px; padding: 3px; }
+  .segmented-card .segmented-btn { flex: 1 1 110px; min-height: 34px; padding: 6px 8px; font-size: 12px; gap: 4px; }
+  .segmented-card .segmented-sub { font-size: 10.5px; }
+  .segmented-card .segmented-badge { font-size: 10px; padding: 1px 6px; }
+}
+@media (max-width: 360px) { .segmented-card .segmented-sub { display: none; } }
+
+@media (max-width: 640px) {
+  .pricing-workspace-bar { margin-bottom: 14px !important; gap: 6px !important; padding: 8px 10px !important; }
+  .pricing-workspace-hint-block, .pricing-workspace-error { margin-top: 8px !important; font-size: 11.5px !important; }
+  .pricing-workspace-wrap { margin-bottom: 16px; }
+  .pricing-grid { margin-top: 0; }
+}
