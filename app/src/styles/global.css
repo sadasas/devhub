@@ -10453,3 +10453,15 @@ button.admin-plan-card {
 .layout {
   grid-template-columns: var(--rail-w) var(--sidebar-w) 1fr;
 }
+/* Fix duplicate sidebar bug: drawer is mobile-only */
+.sidebar-drawer { display: none; }
+@media (max-width: 860px) {
+  .sidebar-drawer { display: block; }
+}
+@media (min-width: 861px) {
+  .sidebar-drawer { display: none !important; visibility: hidden !important; pointer-events: none !important; }
+}
+.sidebar-handle {
+  right: -3px;
+  left: auto;
+}
