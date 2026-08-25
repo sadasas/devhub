@@ -9010,3 +9010,6 @@ button.admin-plan-card {
   .pricing-workspace-wrap { margin-bottom: 22px; }
   .pricing-grid { margin-top: 0; }
 }
+
+/* Pricing: hilangkan text harga tahunan/bulanan di segmented (sesuai request) */
+.segmented-sub { display: none !important; }
