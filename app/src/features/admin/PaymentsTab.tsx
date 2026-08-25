@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CaretLeft, CaretRight, Receipt } from '@phosphor-icons/react';
+import { ArrowClockwise, CaretLeft, CaretRight, Receipt } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { api } from '../../lib/api';
@@ -97,7 +97,7 @@ export function PaymentsTab({ refreshKey, onSettled }: PaymentsTabProps) {
       {error ? (
         <InlineError className="mb-12">
           {error}{' '}
-          <Button variant="secondary" size="sm" onClick={() => void loadPayments()}>
+          <Button variant="secondary" size="sm" leftIcon={<ArrowClockwise size={12} aria-hidden="true" />} onClick={() => void loadPayments()}>
             {t('admin.retry')}
           </Button>
         </InlineError>
@@ -157,4 +157,5 @@ export function PaymentsTab({ refreshKey, onSettled }: PaymentsTabProps) {
     </section>
   );
 }
+
 

@@ -226,7 +226,7 @@ describe('AdminPage', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: /Teams/ }));
     expect(await screen.findByText('Team A')).toBeDefined();
-    expect(await screen.findByText('Free')).toBeDefined();
+    expect(screen.getAllByText('Free').length).toBeGreaterThan(0);
   });
 
   it('shows an error with retry when the teams list fails to load', async () => {
@@ -260,3 +260,4 @@ describe('AdminPage', () => {
     expect(listTeams).toHaveBeenCalledTimes(2);
   });
 });
+

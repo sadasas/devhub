@@ -1,4 +1,4 @@
-import { Trash } from '@phosphor-icons/react';
+import { Trash, X } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { Button } from './Button';
 import { Modal } from './Modal';
@@ -31,7 +31,7 @@ export function ConfirmDeleteDialog({
       width="sm"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose} disabled={busy}>
+          <Button variant="secondary" leftIcon={<X size={12} aria-hidden="true" />} onClick={onClose} disabled={busy}>
             {t('action.cancel')}
           </Button>
           <Button
@@ -50,3 +50,5 @@ export function ConfirmDeleteDialog({
     </Modal>
   );
 }
+
+

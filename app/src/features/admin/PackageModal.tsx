@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Trash } from '@phosphor-icons/react';
+import { Plus, Trash, X } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
@@ -124,7 +124,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
       width="md"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose} disabled={busy}>
+          <Button variant="secondary" leftIcon={<X size={12} aria-hidden="true" />} onClick={onClose} disabled={busy}>
             {t('templates.cancel')}
           </Button>
           <Button
@@ -230,3 +230,5 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
     </Modal>
   );
 }
+
+

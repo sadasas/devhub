@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Check } from '@phosphor-icons/react';
+import { Check, X } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
@@ -117,7 +117,7 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
       width="md"
       footer={
         <>
-          <Button variant="ghost" size="sm" disabled={busy} onClick={() => {
+          <Button variant="secondary" size="sm" leftIcon={<X size={12} aria-hidden="true" />} disabled={busy} onClick={() => {
             if (stage === 'confirm') setStage('edit');
             else onClose();
           }}>
@@ -269,3 +269,5 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
     </Modal>
   );
 }
+
+
