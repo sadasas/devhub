@@ -10398,12 +10398,34 @@ button.admin-plan-card {
   display: none;
 }
 .team-rail-compact .team-rail-item,
-.team-rail-compact .team-rail-home,
-.team-rail-compact .team-rail-create {
+.team-rail-compact .team-rail-home {
+  width: 36px;
+  height: 36px;
+  padding: 0;
   justify-content: center;
+  margin: 0 auto;
+  border-radius: var(--radius-sm);
+}
+.team-rail-compact .team-rail-create {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  justify-content: center;
+  margin: 0 auto;
 }
 .team-rail-compact .team-rail-icon {
   margin: 0;
+}
+.team-rail-compact .team-rail-list {
+  gap: 8px;
+  align-items: center;
+}
+.team-rail-compact .team-rail-collapse {
+  margin-top: auto;
+  align-self: center;
+}
+.team-rail-compact .team-rail-footer-account {
+  margin-top: 12px;
 }
 .team-rail-collapse {
   margin-top: auto;
