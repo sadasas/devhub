@@ -7252,6 +7252,18 @@ input[type='checkbox'] {
 
 .pricing-workspace-wrap {
   min-width: 0;
+  margin-bottom: 20px;
+}
+
+.pricing-workspace-hint-block {
+  margin: 10px 2px 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.pricing-workspace-error {
+  margin-top: 8px;
 }
 
 .pricing-workspace-hint-block,
