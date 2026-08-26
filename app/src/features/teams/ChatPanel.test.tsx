@@ -634,7 +634,9 @@ describe('ChatPanel', () => {
     yesterday.setDate(yesterday.getDate() - 1);
     const old = new Date(noon);
     old.setDate(old.getDate() - 5);
-    const hhmm = new Date(noon).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    const hhmm = new Date(noon).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
+    const timeOld = new Date(old).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
+    const timeYesterday = new Date(yesterday).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
     api.listMessages.mockResolvedValueOnce({
       messages: [
         message({ id: 'm3', content: 'sekarang', createdAt: noon.toISOString() }),
@@ -646,8 +648,8 @@ describe('ChatPanel', () => {
     renderPanel();
     await screen.findByText('sekarang');
     const times = document.querySelectorAll('.chat-msg-time');
-    expect(times[0]?.textContent).toBe(new Date(old.toISOString()).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }));
-    expect(times[1]?.textContent).toBe('Yesterday');
+    expect(times[0]?.textContent).toBe(`${new Date(old.toISOString()).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} • ${timeOld}`);
+    expect(times[1]?.textContent).toBe(`Yesterday • ${timeYesterday}`);
     expect(times[2]?.textContent).toBe(hhmm);
   });
 

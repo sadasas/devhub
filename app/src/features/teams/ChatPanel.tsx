@@ -156,9 +156,10 @@ const socketRef = useRef<TeamChatSocket | null>(null);
     const today = new Date();
     const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
     const diff = Math.round((startOf(today) - startOf(d)) / 86_400_000);
-    if (diff <= 0) return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-    if (diff === 1) return t('teams.chat.yesterday');
-    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+    const time = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
+    if (diff <= 0) return time;
+    if (diff === 1) return `${t('teams.chat.yesterday')} • ${time}`;
+    return `${d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} • ${time}`;
   }
 
   const resolveRefsFor = useCallback(async (list: ChatMessage[]) => {
@@ -586,7 +587,7 @@ async function onDelete(message: ChatMessage) {
           }}
         >
           <EntityIcon size={12} weight="bold" aria-hidden="true" style={{ color: tint }} />
-          {label}
+          <span className="chat-chip-label">{label}</span>
         </button>
       );
     });
@@ -705,6 +706,7 @@ return (
                       {new Date(m.createdAt).toLocaleTimeString(undefined, {
                         hour: '2-digit',
                         minute: '2-digit',
+                        hour12: false,
                       })}
                     </span>
                   )}
