@@ -141,14 +141,18 @@ export function VerticalBarChart({
   const max = Math.max(1, ...rows.map((r) => r.value));
   const barHeight = 140;
   const n = rows.length;
-  const showLabel = (i: number) => n <= 14 ? true : i % (n <= 35 ? 5 : 10) === 0 || i === n - 1;
-  const showValue = (i: number, v: number) => n <= 20 || v === max || i === n - 1;
+  const tilted = n > 14;
   const summary = rows.map((r) => `${r.label} ${formatValue ? formatValue(r.value) : r.value}`).join(', ');
   return (
     <div className="admin-chart">
       <h3 className="admin-chart-title">{label}</h3>
-      <div className="admin-vbar-track" role="img" aria-label={`${label}: ${summary}`} style={{ height: barHeight + 24, gap: n > 30 ? 2 : 4 }}>
-        {rows.map((r, i) => {
+      <div
+        className={`admin-vbar-track ${tilted ? 'admin-vbar-track--tilted' : ''}`}
+        role="img"
+        aria-label={`${label}: ${summary}`}
+        style={{ height: tilted ? barHeight + 56 : barHeight + 24, gap: n > 30 ? 2 : 4 }}
+      >
+        {rows.map((r) => {
           const h = max > 0 ? (r.value / max) * barHeight : 0;
           return (
             <div
@@ -156,9 +160,7 @@ export function VerticalBarChart({
               className="admin-vbar-col"
               aria-label={`${r.label}: ${formatValue ? formatValue(r.value) : r.value}`}
             >
-              <span className="admin-vbar-value" data-hidden={showValue(i, r.value) ? undefined : 'true'}>
-                {formatValue ? formatValue(r.value) : r.value}
-              </span>
+              <span className="admin-vbar-value">{formatValue ? formatValue(r.value) : r.value}</span>
               <div
                 className="admin-vbar-bar"
                 role="meter"
@@ -168,11 +170,7 @@ export function VerticalBarChart({
                 aria-valuemax={max}
                 style={{ height: Math.max(h, 2) }}
               />
-              {showLabel(i) ? (
-                <span className="admin-vbar-label">{r.label}</span>
-              ) : (
-                <span className="admin-vbar-label-spacer" aria-hidden="true">&nbsp;</span>
-              )}
+              <span className={`admin-vbar-label ${tilted ? 'admin-vbar-label--tilted' : ''}`}>{r.label}</span>
             </div>
           );
         })}

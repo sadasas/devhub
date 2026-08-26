@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowClockwise, CheckCircle, Package, PencilSimple, Power, Trash } from '@phosphor-icons/react';
+import { CheckCircle, Package } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { api } from '../../lib/api';
@@ -183,7 +183,6 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
         </span>
         <Button
           size="sm"
-          leftIcon={<Package size={13} aria-hidden="true" />}
           onClick={() => { setEditingPackage(null); setPackageModalOpen(true); }}
         >
           {t('admin.packages.new')}
@@ -192,7 +191,7 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
       {error ? (
         <InlineError className="mb-12">
           {error}{' '}
-          <Button variant="secondary" size="sm" leftIcon={<ArrowClockwise size={12} aria-hidden="true" />} onClick={() => void loadPackages()}>
+          <Button variant="secondary" size="sm" onClick={() => void loadPackages()}>
             {t('admin.retry')}
           </Button>
         </InlineError>
@@ -245,32 +244,29 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
               )}
               <div className="admin-package-actions">
                 <Button
-                  variant="ghost"
+                  variant="danger"
                   size="sm"
-                  leftIcon={<PencilSimple size={13} aria-hidden="true" />}
                   disabled={busyPackageId === pkg.id}
-                  onClick={() => { setEditingPackage(pkg); setPackageModalOpen(true); }}
+                  onClick={() => void onDeletePackage(pkg)}
                 >
-                  {t('admin.packages.edit')}
+                  {t('templates.delete')}
                 </Button>
-                <span className="admin-filter-spacer" />
                 <Button
                   variant="ghost"
                   size="sm"
-                  leftIcon={<Power size={13} aria-hidden="true" />}
                   disabled={busyPackageId === pkg.id}
                   onClick={() => void onTogglePackageActive(pkg)}
                 >
                   {pkg.isActive ? t('admin.packages.deactivate') : t('admin.packages.activate')}
                 </Button>
+                <span className="admin-filter-spacer" />
                 <Button
-                  variant="danger"
+                  variant="secondary"
                   size="sm"
-                  leftIcon={<Trash size={13} aria-hidden="true" />}
                   disabled={busyPackageId === pkg.id}
-                  onClick={() => void onDeletePackage(pkg)}
+                  onClick={() => { setEditingPackage(pkg); setPackageModalOpen(true); }}
                 >
-                  {t('templates.delete')}
+                  {t('admin.packages.edit')}
                 </Button>
               </div>
             </div>

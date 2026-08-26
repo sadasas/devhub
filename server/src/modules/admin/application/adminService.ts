@@ -45,6 +45,10 @@ export interface AdminUser {
 export interface AdminTeam {
   id: string;
   name: string;
+  plan: 'free' | 'pro';
+  planPackageId: string | null;
+  planDurationDays: number | null;
+  planExpiresAt: string | null;
   ownerEmail: string | null;
   memberCount: number;
   projectCount: number;
@@ -63,7 +67,7 @@ export async function getPlatformStats(): Promise<PlatformStats> {
       (SELECT coalesce(sum(amount), 0)::int FROM team_payments WHERE status = 'completed' AND completed_at >= now() - interval '24 hours')::int AS "revenue24h",
       (SELECT coalesce(sum(amount), 0)::int FROM team_payments WHERE status = 'completed' AND completed_at >= now() - interval '7 days')::int AS "revenue7d",
       (SELECT coalesce(sum(amount), 0)::int FROM team_payments WHERE status = 'completed')::int AS "revenueTotal",
-      (SELECT count(*)::int FROM teams WHERE plan = 'pro')::int AS "paidTeams",
+      (SELECT count(*)::int FROM teams t LEFT JOIN billing_packages cur ON cur.id = t.plan_package_id AND (t.plan_expires_at IS NULL OR t.plan_expires_at > now()) WHERE cur.id IS NOT NULL)::int AS "paidTeams",
       (SELECT count(*)::int FROM team_payments WHERE status = 'pending')::int AS "pendingPayments"
   `);
   const row = result.rows[0];
@@ -201,12 +205,19 @@ export async function setUserRole(
 
 export async function listPlatformTeams(limit: number): Promise<{ teams: AdminTeam[] }> {
   const result = await pool.query<AdminTeam>(
-    `SELECT t.id, t.name, t.plan AS "plan", t.created_at AS "createdAt",
+    `SELECT
+            CASE WHEN cur.id IS NOT NULL THEN 'pro' ELSE 'free' END AS "plan",
+            t.id, t.name,
+            t.plan_package_id AS "planPackageId",
+            t.plan_duration_days AS "planDurationDays",
+            t.plan_expires_at AS "planExpiresAt",
+            t.created_at AS "createdAt",
             (SELECT count(*)::int FROM team_members tm WHERE tm.team_id = t.id) AS "memberCount",
             (SELECT count(*)::int FROM projects p WHERE p.team_id = t.id) AS "projectCount",
             (SELECT u.email FROM team_members tm JOIN users u ON u.id = tm.user_id
              WHERE tm.team_id = t.id AND tm.role = 'owner' LIMIT 1) AS "ownerEmail"
      FROM teams t
+     LEFT JOIN billing_packages cur ON cur.id = t.plan_package_id AND (t.plan_expires_at IS NULL OR t.plan_expires_at > now())
      ORDER BY t.created_at DESC
      LIMIT $1`,
     [limit],

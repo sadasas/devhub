@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Check, X } from '@phosphor-icons/react';
+import { useEffect, useRef, useState } from 'react';
+import { Check } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
@@ -29,6 +29,7 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
   const [stage, setStage] = useState<'edit' | 'confirm'>('edit');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const didPreselectRef = useRef(false);
 
   function resetSelection(): void {
     setSelectedPackageId(null);
@@ -54,9 +55,41 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
     if (!open || !team) return;
     setPlan(team.plan === 'pro' ? 'pro' : 'free');
     resetSelection();
+    didPreselectRef.current = false;
     setBusy(false);
     void loadPackages();
   }, [open, team]);
+
+  // Pre-select snapshot histori: paket + durasi exact jika pro (tanpa tebak) — sekali per open
+  useEffect(() => {
+    if (didPreselectRef.current) return;
+    if (!open || !team || packages.length === 0) return;
+    if (team.plan !== 'pro') return;
+    const snapPackageId = team.planPackageId;
+    const snapDays = team.planDurationDays;
+    if (snapPackageId && snapDays) {
+      const pkg = packages.find((p) => p.id === snapPackageId && !p.isFree && p.isActive);
+      const priceExists = pkg?.prices.some((pr) => pr.durationDays === snapDays);
+      if (pkg && priceExists) {
+        setSelectedPackageId(snapPackageId);
+        setSelectedDays(snapDays);
+        setPlan('pro');
+        didPreselectRef.current = true;
+        return;
+      }
+    }
+    // Fallback: paket snapshot tidak ditemukan (harga diubah/di-nonaktifkan) — pre-select paket saja
+    if (snapPackageId) {
+      const pkg = packages.find((p) => p.id === snapPackageId && !p.isFree && p.isActive);
+      if (pkg) {
+        setSelectedPackageId(snapPackageId);
+        // durasi tetap null → user pilih chip (tampilkan hint expiry)
+        setPlan('pro');
+        didPreselectRef.current = true;
+      }
+    }
+    didPreselectRef.current = true;
+  }, [open, team, packages]);
 
   const currentPlan = team?.plan ?? 'free';
   const proPackages = packages.filter((p) => !p.isFree && p.isActive);
@@ -98,7 +131,13 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
         plan === 'pro' && selectedPkg && selectedDays ? selectedPkg.id : undefined,
         plan === 'pro' && selectedPkg && selectedDays ? selectedDays : undefined,
       );
-      onSaved({ ...team, plan: result.plan });
+      onSaved({
+        ...team,
+        plan: result.plan,
+        planPackageId: plan === 'pro' && selectedPkg ? selectedPkg.id : null,
+        planDurationDays: plan === 'pro' && selectedDays ? selectedDays : null,
+        planExpiresAt: team.planExpiresAt, // akan di-refresh dari listTeams next fetch; snapshot dijaga sinkron dengan plan
+      });
       onClose();
     } catch (err) {
       setError(getErrorMessage(err, t('admin.teamPlan.errors.update')));
@@ -117,7 +156,7 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
       width="md"
       footer={
         <>
-          <Button variant="secondary" size="sm" leftIcon={<X size={12} aria-hidden="true" />} disabled={busy} onClick={() => {
+          <Button variant="secondary" size="sm" disabled={busy} onClick={() => {
             if (stage === 'confirm') setStage('edit');
             else onClose();
           }}>
@@ -159,10 +198,19 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
           </div>
           <div>
             <span className="page-subtitle">{t('admin.teamPlan.currentPlan')}</span>
-            <p style={{ margin: '4px 0 0' }}>
+            <p style={{ margin: '4px 0 0', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
               <Badge tone={currentPlan === 'pro' ? 'success' : 'neutral'}>
                 {currentPlan === 'pro' ? t('admin.plan.pro') : t('admin.plan.free')}
               </Badge>
+              {team?.planDurationDays && team.planExpiresAt && (
+                <span className="admin-plan-desc" style={{ paddingLeft: 0 }}>
+                  {t('admin.teamPlan.currentDuration', {
+                    defaultValue: '{{days}} hari · sampai {{date}}',
+                    days: team.planDurationDays,
+                    date: new Date(team.planExpiresAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
+                  })}
+                </span>
+              )}
             </p>
           </div>
           <div>
@@ -190,7 +238,7 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
 
               {/* Pro cards — header tombol + chip durasi sebagai SIBLING (bukan nested) */}
               {packagesLoading ? (
-                <p className="admin-plan-desc" style={{ fontStyle: 'italic' }}>{t('admin.loading')}</p>
+                <p className="admin-plan-desc form-helper-italic">{t('admin.loading')}</p>
               ) : packagesError ? (
                 <InlineError>
                   {packagesError}{' '}

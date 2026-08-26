@@ -549,6 +549,9 @@ export interface AdminTeam {
   id: string;
   name: string;
   plan: 'free' | 'pro';
+  planPackageId: string | null;
+  planDurationDays: number | null;
+  planExpiresAt: string | null;
   ownerEmail: string | null;
   memberCount: number;
   projectCount: number;

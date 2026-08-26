@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ChartLine,
@@ -35,8 +35,10 @@ export function OverviewTab({ refreshKey, onSettled }: OverviewTabProps) {
   const [activityRange, setActivityRange] = useState('7d');
   const [activityChart, setActivityChart] = useState<AdminActivityChart[] | null>(null);
   const [activityError, setActivityError] = useState<string | null>(null);
+  const pendingSettled = useRef(0);
 
   const loadOverview = useCallback(async () => {
+    pendingSettled.current += 1;
     setStatsError(null);
     try {
       const [s, c] = await Promise.all([api.adminStats(), api.adminStatsCharts()]);
@@ -45,11 +47,16 @@ export function OverviewTab({ refreshKey, onSettled }: OverviewTabProps) {
     } catch (err) {
       setStatsError(getErrorMessage(err, t('admin.overview.errors.stats')));
     } finally {
-      onSettled?.();
+      pendingSettled.current -= 1;
+      if (pendingSettled.current <= 0) {
+        pendingSettled.current = 0;
+        onSettled?.();
+      }
     }
   }, [t, onSettled]);
 
   const loadActivityChart = useCallback(async () => {
+    pendingSettled.current += 1;
     setActivityError(null);
     try {
       const a = await api.adminStatsActivity(activityRange);
@@ -57,7 +64,11 @@ export function OverviewTab({ refreshKey, onSettled }: OverviewTabProps) {
     } catch (err) {
       setActivityError(getErrorMessage(err, t('admin.overview.errors.stats')));
     } finally {
-      onSettled?.();
+      pendingSettled.current -= 1;
+      if (pendingSettled.current <= 0) {
+        pendingSettled.current = 0;
+        onSettled?.();
+      }
     }
   }, [activityRange, t, onSettled]);
 
@@ -232,11 +243,16 @@ export function OverviewTab({ refreshKey, onSettled }: OverviewTabProps) {
               />
             ) : activityChart !== null ? (
               <EmptyState
-                icon={<ChartLine size={22} />}
+                icon={<ChartLine size={22} aria-hidden="true" />}
                 title={t('admin.overview.noActivity')}
                 description={t('admin.overview.noActivityDesc')}
               />
-            ) : null}
+            ) : (
+              <div aria-hidden="true">
+                <Skeleton style={{ width: '100%', height: 140 }} />
+                <Skeleton style={{ width: 160, height: 12, marginTop: 8 }} />
+              </div>
+            )}
           </div>
         </>
       )}

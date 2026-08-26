@@ -51,6 +51,19 @@ export function UsersTab({ refreshKey, onSettled }: UsersTabProps) {
     );
   }
 
+  function setPlanFilterAtomic(nextPlan: string | null): void {
+    setSearchParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        if (nextPlan) n.set('plan', nextPlan);
+        else n.delete('plan');
+        n.delete('page');
+        return n;
+      },
+      { replace: true },
+    );
+  }
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const trimmed = searchInput.trim();
@@ -131,10 +144,10 @@ export function UsersTab({ refreshKey, onSettled }: UsersTabProps) {
           }
           className="admin-filter-input"
         />
-        <span className="admin-activity-ranges" role="group" aria-label={t('admin.users.filterPlanAria')}>
-          <button type="button" className={`sub-tab ${planParam === '' ? 'sub-tab-active' : ''}`} aria-pressed={planParam === ''} onClick={() => { updateParam('plan', null); updateParam('page', null); }}>{t('admin.users.allPlans')}</button>
-          <button type="button" className={`sub-tab ${planParam === 'free' ? 'sub-tab-active' : ''}`} aria-pressed={planParam === 'free'} onClick={() => { updateParam('plan', 'free'); updateParam('page', null); }}>{t('admin.plan.free')}</button>
-          <button type="button" className={`sub-tab ${planParam === 'pro' ? 'sub-tab-active' : ''}`} aria-pressed={planParam === 'pro'} onClick={() => { updateParam('plan', 'pro'); updateParam('page', null); }}>{t('admin.plan.pro')}</button>
+        <span className="admin-activity-ranges" role="radiogroup" aria-label={t('admin.users.filterPlanAria', { defaultValue: 'Filter plan' })}>
+          <button type="button" role="radio" aria-checked={planParam === ''} className={`sub-tab ${planParam === '' ? 'sub-tab-active' : ''}`} tabIndex={planParam === '' ? 0 : -1} onClick={() => setPlanFilterAtomic(null)}>{t('admin.users.allPlans')}</button>
+          <button type="button" role="radio" aria-checked={planParam === 'free'} className={`sub-tab ${planParam === 'free' ? 'sub-tab-active' : ''}`} tabIndex={planParam === 'free' ? 0 : -1} onClick={() => setPlanFilterAtomic('free')}>{t('admin.plan.free')}</button>
+          <button type="button" role="radio" aria-checked={planParam === 'pro'} className={`sub-tab ${planParam === 'pro' ? 'sub-tab-active' : ''}`} tabIndex={planParam === 'pro' ? 0 : -1} onClick={() => setPlanFilterAtomic('pro')}>{t('admin.plan.pro')}</button>
         </span>
         <span className="page-subtitle admin-filter-count">
           {users !== null ? t('admin.users.count', { count: usersTotal }) : ''}
@@ -148,7 +161,7 @@ export function UsersTab({ refreshKey, onSettled }: UsersTabProps) {
       {error ? (
         <InlineError className="mb-12">
           {error}{' '}
-          <Button variant="secondary" size="sm" leftIcon={<CaretLeft size={12} aria-hidden="true" />} onClick={() => void loadUsers()}>
+          <Button variant="secondary" size="sm" onClick={() => void loadUsers()}>
             {t('admin.retry')}
           </Button>
         </InlineError>
@@ -159,7 +172,7 @@ export function UsersTab({ refreshKey, onSettled }: UsersTabProps) {
         </>
       ) : users.length === 0 ? (
         <EmptyState
-          icon={<UsersThree size={22} />}
+          icon={<UsersThree size={22} aria-hidden="true" />}
           title={t('admin.users.emptyTitle')}
           description={qParam ? t('admin.users.emptyQueryDesc', { query: qParam }) : t('admin.users.emptyDesc')}
         />

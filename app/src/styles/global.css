@@ -9902,8 +9902,8 @@ button.admin-plan-card {
 .admin-package-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding-top: 10px;
+  gap: 8px;
+  padding-top: 12px;
   border-top: 1px solid var(--border-hairline);
 }
 
@@ -9963,6 +9963,8 @@ button.admin-plan-card {
   gap: 8px;
   margin-bottom: 12px;
   flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
 }
 
 .admin-filter-bar .select {
@@ -10225,6 +10227,8 @@ button.admin-plan-card {
   background: var(--bg-elevated);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-input);
+  position: relative;
+  z-index: 1;
 }
 
 @media (max-width: 860px) {
@@ -10234,6 +10238,92 @@ button.admin-plan-card {
 
   .admin-activity-header {
     align-items: flex-start;
+  }
+}
+
+.admin-vbar-track {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 164px;
+  padding: 6px 2px 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.admin-vbar-col {
+  flex: 1 1 0;
+  min-width: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.admin-vbar-bar {
+  width: 100%;
+  min-height: 2px;
+  background: var(--accent);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  transition: height 120ms var(--ease-out);
+}
+
+.admin-vbar-bar[aria-valuenow="0"] {
+  background: var(--chart-track);
+}
+
+.admin-vbar-value {
+  font: 500 10.5px var(--font-mono);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.admin-vbar-value[data-hidden] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.admin-vbar-label {
+  font: 500 10px var(--font-mono);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.admin-vbar-label-spacer {
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-vbar-bar {
+    transition: none;
+  }
+}
+
+.admin-vbar-track--tilted {
+  height: 196px !important;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding-bottom: 32px;
+}
+
+.admin-vbar-track--tilted .admin-vbar-col {
+  overflow: visible;
+}
+
+.admin-vbar-label--tilted {
+  transform: rotate(-45deg);
+  transform-origin: left top;
+  white-space: nowrap;
+  display: inline-block;
+  position: relative;
+  left: 6px;
+  margin-top: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-vbar-label--tilted {
+    transition: none;
   }
 }
 

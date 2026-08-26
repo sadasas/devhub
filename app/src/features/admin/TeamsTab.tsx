@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowClockwise, CaretLeft, CaretRight, FolderSimple } from '@phosphor-icons/react';
+import { CaretLeft, CaretRight } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { api } from '../../lib/api';
@@ -39,6 +39,19 @@ export function TeamsTab({ refreshKey, onSettled }: TeamsTabProps) {
         if (value) next.set(key, value);
         else next.delete(key);
         return next;
+      },
+      { replace: true },
+    );
+  }
+
+  function setPlanFilterAtomic(nextPlan: string | null): void {
+    setSearchParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        if (nextPlan) n.set('plan', nextPlan);
+        else n.delete('plan');
+        n.delete('page');
+        return n;
       },
       { replace: true },
     );
@@ -91,9 +104,9 @@ export function TeamsTab({ refreshKey, onSettled }: TeamsTabProps) {
       </p>
       <div className="admin-filter-bar">
         <span className="admin-activity-ranges" role="radiogroup" aria-label={t('admin.teams.filterPlanAria', { defaultValue: 'Filter plan' })}>
-          <button type="button" role="radio" aria-checked={planFilter === ''} className={`sub-tab ${planFilter === '' ? 'sub-tab-active' : ''}`} onClick={() => { updateParam('plan', null); updateParam('page', null); }}>{t('admin.users.allPlans')}</button>
-          <button type="button" role="radio" aria-checked={planFilter === 'free'} className={`sub-tab ${planFilter === 'free' ? 'sub-tab-active' : ''}`} onClick={() => { updateParam('plan', 'free'); updateParam('page', null); }}>{t('admin.plan.free')}</button>
-          <button type="button" role="radio" aria-checked={planFilter === 'pro'} className={`sub-tab ${planFilter === 'pro' ? 'sub-tab-active' : ''}`} onClick={() => { updateParam('plan', 'pro'); updateParam('page', null); }}>{t('admin.plan.pro')}</button>
+          <button type="button" role="radio" aria-checked={planFilter === ''} className={`sub-tab ${planFilter === '' ? 'sub-tab-active' : ''}`} tabIndex={planFilter === '' ? 0 : -1} onClick={() => setPlanFilterAtomic(null)}>{t('admin.users.allPlans')}</button>
+          <button type="button" role="radio" aria-checked={planFilter === 'free'} className={`sub-tab ${planFilter === 'free' ? 'sub-tab-active' : ''}`} tabIndex={planFilter === 'free' ? 0 : -1} onClick={() => setPlanFilterAtomic('free')}>{t('admin.plan.free')}</button>
+          <button type="button" role="radio" aria-checked={planFilter === 'pro'} className={`sub-tab ${planFilter === 'pro' ? 'sub-tab-active' : ''}`} tabIndex={planFilter === 'pro' ? 0 : -1} onClick={() => setPlanFilterAtomic('pro')}>{t('admin.plan.pro')}</button>
         </span>
         <span className="page-subtitle admin-filter-count">
           {filteredTeams !== null ? t('admin.teams.count', { count: filteredTeams.length }) : ''}
@@ -102,7 +115,7 @@ export function TeamsTab({ refreshKey, onSettled }: TeamsTabProps) {
       {error ? (
         <InlineError className="mb-12">
           {error}{' '}
-          <Button variant="secondary" size="sm" leftIcon={<ArrowClockwise size={12} aria-hidden="true" />} onClick={() => void loadTeams()}>
+          <Button variant="secondary" size="sm" onClick={() => void loadTeams()}>
             {t('admin.retry')}
           </Button>
         </InlineError>
@@ -113,7 +126,7 @@ export function TeamsTab({ refreshKey, onSettled }: TeamsTabProps) {
         </>
       ) : filteredTeams!.length === 0 ? (
         <EmptyState
-          icon={<FolderSimple size={22} aria-hidden="true" />}
+          icon={<span aria-hidden="true" />}
           title={t('admin.teams.emptyTitle')}
           description={t('admin.teams.emptyDesc')}
         />
@@ -141,7 +154,6 @@ export function TeamsTab({ refreshKey, onSettled }: TeamsTabProps) {
                 <Button
                   variant="secondary"
                   size="sm"
-                  leftIcon={<FolderSimple size={12} aria-hidden="true" />}
                   onClick={() => { setEditingTeam(tm); setTeamPlanModalOpen(true); }}
                 >
                   {t('admin.teams.changePlan')}

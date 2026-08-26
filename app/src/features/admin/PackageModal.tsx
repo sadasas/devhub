@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Trash, X } from '@phosphor-icons/react';
+
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
@@ -159,7 +159,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
       width="md"
       footer={
         <>
-          <Button variant="secondary" leftIcon={<X size={12} aria-hidden="true" />} onClick={onClose} disabled={busy}>
+          <Button variant="secondary" onClick={onClose} disabled={busy}>
             {t('templates.cancel')}
           </Button>
           <Button type="submit" form="pkg-form" loading={busy} disabled={busy}>
@@ -218,7 +218,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
         <div className="form-section">
           <div className="form-section-head">
             <span className="form-section-title">{t('admin.packageModal.prices')}</span>
-            <Button type="button" variant="ghost" size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={addPrice}>
+            <Button type="button" variant="ghost" size="sm" onClick={addPrice}>
               {t('admin.packageModal.addPrice')}
             </Button>
           </div>
@@ -253,9 +253,9 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
                   variant="ghost"
                   size="sm"
                   onClick={() => removePrice(i)}
-                  aria-label={t('admin.packageModal.removePrice')}
+                  aria-label={t('admin.packageModal.removePriceWithIndex', { index: i + 1, defaultValue: `Remove price ${i + 1}` })}
                 >
-                  <Trash size={13} aria-hidden="true" />
+                  {t('admin.packageModal.removePriceLabel', { defaultValue: 'Remove' })}
                 </Button>
               )}
             </fieldset>

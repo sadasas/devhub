@@ -58,8 +58,8 @@ export function Sidebar({ activeTeamId, activeMain = 'team', onCreateTeam }: Sid
 
   const itemClass =
     (extra = ''): NavLinkProps['className'] =>
-    ({ isActive }) =>
-      `sidebar-item${extra ? ` ${extra}` : ''}${isActive ? ' sidebar-item-active' : ''}`;
+      ({ isActive }) =>
+        `sidebar-item${extra ? ` ${extra}` : ''}${isActive ? ' sidebar-item-active' : ''}`;
 
   const openCreateProject = (teamId?: string) => {
     setPrefillTeamId(teamId ?? activeTeamId ?? null);
@@ -173,9 +173,6 @@ export function Sidebar({ activeTeamId, activeMain = 'team', onCreateTeam }: Sid
                   ) : (
                     <div className="sidebar-project-empty">
                       <span>No projects yet.</span>{' '}
-                      <button type="button" className="sidebar-link-btn" onClick={() => openCreateProject(activeTeam.id)}>
-                        Create project
-                      </button>
                     </div>
                   )
                 ) : (

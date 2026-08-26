@@ -40,6 +40,14 @@ export function AdminPage() {
   const tabParam = searchParams.get('tab');
   const tab: TabId = isTabId(tabParam) ? tabParam : 'overview';
 
+  const ALLOWED_PARAMS: Record<TabId, Set<string>> = {
+    overview: new Set(['tab']),
+    users: new Set(['tab', 'q', 'plan', 'page']),
+    teams: new Set(['tab', 'plan', 'page']),
+    payments: new Set(['tab', 'status', 'page']),
+    packages: new Set(['tab', 'status']),
+  };
+
   function setTab(next: TabId): void {
     if (next === tab) return;
     setSearchParams(
@@ -47,6 +55,8 @@ export function AdminPage() {
         const n = new URLSearchParams(prev);
         if (next === 'overview') n.delete('tab');
         else n.set('tab', next);
+        const allowed = ALLOWED_PARAMS[next];
+        for (const k of [...n.keys()]) if (!allowed.has(k)) n.delete(k);
         return n;
       },
       { replace: true },
