@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { List, MagnifyingGlass } from '@phosphor-icons/react';
@@ -26,11 +26,15 @@ export function Layout() {
     try { const v = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY)); return v >= 200 && v <= 400 ? v : 240; } catch { return 240; }
   });
   const [liveMsg, setLiveMsg] = useState('');
+  const [hoverExpand, setHoverExpand] = useState(false);
+  const hoverTimeoutRef = useRef<number | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation('shell');
   const { teams } = useTeams();
   const { projects } = useProjects();
+
+  const effectiveCollapsed = collapsed && !hoverExpand;
 
   const [railTeamId, setRailTeamId] = useState<string | null>(() => {
     try {
@@ -122,7 +126,27 @@ export function Layout() {
     };
   }, [navOpen]);
 
-  const handleToggleCollapsed = () => { if (window.matchMedia('(max-width: 860px)').matches) return; setCollapsed(v => !v); };
+  const handleToggleCollapsed = () => { if (window.matchMedia('(max-width: 860px)').matches) return; setHoverExpand(false); setCollapsed(v => !v); };
+
+  const handleHoverEnter = () => {
+    if (window.matchMedia('(max-width: 860px)').matches) return;
+    if (!collapsed) return;
+    if (window.matchMedia('(hover: none)').matches) return;
+    if (hoverTimeoutRef.current) window.clearTimeout(hoverTimeoutRef.current);
+    setHoverExpand(true);
+  };
+  const handleHoverLeave = () => {
+    if (hoverTimeoutRef.current) window.clearTimeout(hoverTimeoutRef.current);
+    hoverTimeoutRef.current = window.setTimeout(() => setHoverExpand(false), 140) as unknown as number;
+  };
+
+  useEffect(() => {
+    return () => { if (hoverTimeoutRef.current) window.clearTimeout(hoverTimeoutRef.current); };
+  }, []);
+
+  useEffect(() => {
+    if (!collapsed) setHoverExpand(false);
+  }, [collapsed]);
 
   // keyboard Ctrl+B or [ to toggle
   useEffect(() => {
@@ -141,7 +165,7 @@ export function Layout() {
   }, []);
 
   const onHandlePointerDown = (e: React.PointerEvent) => {
-    if (collapsed) return;
+    if (effectiveCollapsed) return;
     const startX = e.clientX;
     const startW = sidebarWidth;
     const onMove = (ev: PointerEvent) => {
@@ -168,7 +192,7 @@ export function Layout() {
   };
 
   return (
-    <div className="layout" data-collapsed={collapsed ? 'true' : undefined} style={{ ['--sidebar-w' as any]: `${sidebarWidth}px` } as React.CSSProperties}>
+    <div className="layout" data-collapsed={collapsed ? 'true' : undefined} data-hover-expand={hoverExpand ? 'true' : undefined} style={{ ['--sidebar-w' as any]: `${sidebarWidth}px` } as React.CSSProperties}>
       <a className="skip-link" href="#main-content">
         {t('layout.skipToContent')}
       </a>
@@ -206,12 +230,12 @@ export function Layout() {
         aria-label={t('layout.closeNav')}
         tabIndex={navOpen ? 0 : -1}
       />
-      <div className="team-rail-desktop" aria-hidden="true">
+      <div className="team-rail-desktop" aria-hidden="true" onMouseEnter={handleHoverEnter} onMouseLeave={handleHoverLeave} onFocusCapture={handleHoverEnter} onBlurCapture={handleHoverLeave}>
         <TeamRail
           teams={teams}
           activeTeamId={activeTeamId}
           activeMain={activeMain}
-          compact={collapsed}
+          compact={effectiveCollapsed}
           collapsed={collapsed}
           onToggleCollapsed={handleToggleCollapsed}
           onSelectTeam={handleSelectTeam}
@@ -234,8 +258,8 @@ export function Layout() {
           <Sidebar activeTeamId={activeTeamId} activeMain={activeMain} onCreateTeam={() => setCreateTeamOpen(true)} />
         </div>
       </div>
-      <div className="sidebar-shell" style={{ width: collapsed ? 0 : undefined }} aria-hidden={collapsed}>
-        <div id="sidebar-region" className="sidebar-region" inert={collapsed ? '' as any : undefined} aria-hidden={collapsed}>
+      <div className="sidebar-shell" style={{ width: collapsed ? 0 : undefined }} aria-hidden={effectiveCollapsed} onMouseEnter={handleHoverEnter} onMouseLeave={handleHoverLeave} onFocusCapture={handleHoverEnter} onBlurCapture={handleHoverLeave}>
+        <div id="sidebar-region" className="sidebar-region" inert={effectiveCollapsed ? '' as any : undefined} aria-hidden={effectiveCollapsed}>
           <Sidebar activeTeamId={activeTeamId} activeMain={activeMain} onCreateTeam={() => setCreateTeamOpen(true)} />
         </div>
         {!collapsed && <div className="sidebar-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" onPointerDown={onHandlePointerDown} onDoubleClick={handleToggleCollapsed} />}

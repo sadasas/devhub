@@ -1,5 +1,6 @@
 import { CaretDoubleLeft, CaretDoubleRight, Plus, SquaresFour } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router';
 import { avatarColor, initialsOf as avatarInitials } from '../../lib/avatar';
 import { useAuth } from '../../state/auth-context';
 import { initialsOf } from '../../lib/initials';
@@ -19,6 +20,7 @@ interface TeamRailProps {
 export function TeamRail({ teams, activeTeamId, activeMain = 'team', compact = false, collapsed = false, onToggleCollapsed, onSelectTeam, onSelectHome, onCreateTeam }: TeamRailProps) {
   const { t } = useTranslation('shell');
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const isHomeActive = activeMain === 'home';
 
   return (
@@ -91,27 +93,28 @@ export function TeamRail({ teams, activeTeamId, activeMain = 'team', compact = f
         <span>New team</span>
       </button>
 
-      {onToggleCollapsed && (
-        <button
-          type="button"
-          className="team-rail-collapse"
-          aria-label={collapsed ? t('layout.expandSidebar', { defaultValue: 'Expand sidebar' }) : t('layout.collapseSidebar', { defaultValue: 'Collapse sidebar' })}
-          aria-expanded={!collapsed}
-          aria-controls="sidebar-region"
-          title={collapsed ? 'Expand (Ctrl+B)' : 'Collapse (Ctrl+B)'}
-          onClick={onToggleCollapsed}
-        >
-          {collapsed ? <CaretDoubleRight size={14} weight="bold" aria-hidden="true" /> : <CaretDoubleLeft size={14} weight="bold" aria-hidden="true" />}
-        </button>
-      )}
+      <div className="team-rail-bottom">
+        {onToggleCollapsed && (
+          <button
+            type="button"
+            className="team-rail-collapse"
+            aria-label={collapsed ? t('layout.expandSidebar', { defaultValue: 'Expand sidebar' }) : t('layout.collapseSidebar', { defaultValue: 'Collapse sidebar' })}
+            aria-expanded={!collapsed}
+            aria-controls="sidebar-region"
+            title={collapsed ? 'Expand (Ctrl+B)' : 'Collapse (Ctrl+B)'}
+            onClick={onToggleCollapsed}
+          >
+            {collapsed ? <CaretDoubleRight size={14} weight="bold" aria-hidden="true" /> : <CaretDoubleLeft size={14} weight="bold" aria-hidden="true" />}
+          </button>
+        )}
 
-      <div className="team-rail-footer-account">
+        <div className="team-rail-footer-account">
         <button
           type="button"
           className="team-rail-account"
           aria-label={t('sidebar.profile')}
           title={user?.email ?? t('sidebar.profile')}
-          onClick={() => (window.location.href = '/profile')}
+          onClick={() => navigate('/profile')}
         >
           <span className="team-rail-avatar" aria-hidden="true">
             {user ? initialsOf(user.displayName, user.email) : '?'}
@@ -132,6 +135,7 @@ export function TeamRail({ teams, activeTeamId, activeMain = 'team', compact = f
         >
           ⎋
         </button>
+        </div>
       </div>
     </nav>
   );
