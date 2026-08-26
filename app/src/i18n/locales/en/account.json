@@ -182,6 +182,10 @@
       "more": "More"
     }
   },
+  "theme": {
+    "appearance": "Appearance",
+    "appearanceHint": "Choose how DevHub looks. System follows your OS."
+  },
   "keys": {
     "title": "API keys",
     "subtitle": "Keys for AI coding agents to read and update your projects over MCP. The full key is shown only once when you create it.",

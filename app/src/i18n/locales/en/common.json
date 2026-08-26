@@ -4,6 +4,19 @@
     "menu": "Language",
     "switchTo": "Switch to {{name}}"
   },
+  "theme": {
+    "toggle": "Switch theme",
+    "menu": "Theme",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark",
+    "appearance": "Appearance",
+    "appearanceHint": "Choose how DevHub looks. System follows your OS.",
+    "switchedTo": "Switched to {{theme}} theme",
+    "paletteSystem": "Theme: System",
+    "paletteLight": "Theme: Light",
+    "paletteDark": "Theme: Dark"
+  },
   "action": {
     "cancel": "Cancel",
     "close": "Close",

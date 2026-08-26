@@ -10,6 +10,7 @@ import { Input } from '../../components/Input';
 import { Logo } from '../../components/Logo';
 import { InlineError } from '../../components/InlineError';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
+import { ThemeSwitcher } from '../../components/ThemeSwitcher';
 
 export function AuthPage() {
   const { t } = useTranslation('account');
@@ -62,7 +63,8 @@ export function AuthPage() {
       </aside>
 
       <main className="auth-form-wrap">
-        <div className="auth-lang">
+        <div className="auth-prefs">
+          <ThemeSwitcher />
           <LanguageSwitcher />
         </div>
         <form className="auth-form" onSubmit={onSubmit} noValidate>

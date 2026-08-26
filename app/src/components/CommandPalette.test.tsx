@@ -23,6 +23,10 @@ vi.mock('../hooks/useSearchResults', () => ({
   }),
 }));
 
+vi.mock('../state/theme-context', () => ({
+  useTheme: () => ({ pref: 'system', resolved: 'dark', setTheme: vi.fn() }),
+}));
+
 function renderPalette(initialEntry = '/') {
   let location = '';
   function Probe() {

@@ -182,6 +182,10 @@
       "more": "Banyak"
     }
   },
+  "theme": {
+    "appearance": "Tampilan",
+    "appearanceHint": "Pilih tampilan DevHub. System mengikuti OS Anda."
+  },
   "keys": {
     "title": "API keys",
     "subtitle": "API key untuk AI coding agent membaca dan memperbarui proyek Anda lewat MCP. Key lengkap hanya ditampilkan sekali saat dibuat.",

@@ -37,6 +37,10 @@ vi.mock('../../state/teams-context', () => teamsMock);
 const projectsMock = vi.hoisted(() => ({ useProjects: vi.fn() }));
 vi.mock('../../state/projects-context', () => projectsMock);
 
+vi.mock('../../state/theme-context', () => ({
+  useTheme: () => ({ pref: 'system', resolved: 'dark', setTheme: vi.fn() }),
+}));
+
 const user: User = {
   id: 'u1',
   email: 'you@devhub.dev',

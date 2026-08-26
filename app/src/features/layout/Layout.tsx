@@ -6,10 +6,13 @@ import { Sidebar } from './Sidebar';
 import { TeamRail } from './TeamRail';
 import { Logo } from '../../components/Logo';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
+import { ThemeSwitcher } from '../../components/ThemeSwitcher';
 import { openPalette } from '../../lib/palette-events';
 import { useTeams } from '../../state/teams-context';
 import { useProjects } from '../../state/projects-context';
+import { useAuth } from '../../state/auth-context';
 import { CreateTeamModal } from '../teams/CreateTeamModal';
+import { ProjectChatWidget } from '../project/ProjectChatWidget';
 
 const RAIL_ACTIVE_KEY = 'devhub:rail:activeTeam';
 const SIDEBAR_COLLAPSED_KEY = 'devhub:layout:sidebarCollapsed';
@@ -33,6 +36,7 @@ export function Layout() {
   const { t } = useTranslation('shell');
   const { teams } = useTeams();
   const { projects } = useProjects();
+  const { user } = useAuth();
 
   const effectiveCollapsed = collapsed && !hoverExpand;
 
@@ -196,7 +200,8 @@ export function Layout() {
       <a className="skip-link" href="#main-content">
         {t('layout.skipToContent')}
       </a>
-      <div className="app-lang" aria-label="Language">
+      <div className="app-prefs" aria-label="Preferences">
+        <ThemeSwitcher triggerClassName="app-lang-btn" />
         <LanguageSwitcher triggerClassName="app-lang-btn" />
       </div>
       <header className="topbar">
@@ -213,6 +218,7 @@ export function Layout() {
           <Logo size={16} />
           <span>DevHub</span>
         </span>
+        <ThemeSwitcher triggerClassName="topbar-btn" />
         <LanguageSwitcher triggerClassName="topbar-btn" />
         <button
           type="button"
@@ -269,6 +275,13 @@ export function Layout() {
       </main>
       <div aria-live="polite" className="sr-only">{liveMsg}</div>
       <CreateTeamModal open={createTeamOpen} onClose={() => setCreateTeamOpen(false)} />
+      {user && activeTeamId && (() => {
+        const activeTeam = teams?.find((tm) => tm.id === activeTeamId);
+        if (!activeTeam) return null;
+        const isChatRoute = location.pathname.startsWith('/team/') && new URLSearchParams(location.search).get('tab') === 'chat';
+        if (isChatRoute) return null;
+        return <ProjectChatWidget teamId={activeTeamId} teamName={activeTeam.name} />;
+      })()}
     </div>
   );
 }

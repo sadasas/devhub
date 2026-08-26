@@ -20,6 +20,7 @@ import { avatarColor } from '../../lib/avatar';
 import type { TeamRole } from '../../lib/types';
 import { Button } from '../../components/Button';
 import { Skeleton } from '../../components/Skeleton';
+import { ThemeSwitcher } from '../../components/ThemeSwitcher';
 import { ChangePasswordModal } from './ChangePasswordModal';
 import { ProfileEditModal } from './ProfileEditModal';
 import { ProfileStats } from './ProfileStats';
@@ -314,6 +315,13 @@ export function ProfilePage() {
 
       {tab === 'account' && (
         <section className="profile-tab-panel" aria-label={t('profile.accountPanelAria')}>
+          <div className="profile-panel">
+            <h3 className="profile-panel-title">{t('theme.appearance')}</h3>
+            <p className="field-helper" style={{ marginBottom: 12 }}>
+              {t('theme.appearanceHint')}
+            </p>
+            <ThemeSwitcher variant="segmented" />
+          </div>
           <div className="profile-panel">
             <dl className="settings-rows">
               <div className="settings-row">

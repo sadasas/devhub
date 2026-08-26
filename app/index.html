@@ -10,6 +10,23 @@
       content="DevHub — the memory of your projects: tasks, issues, tech stack, schema, decisions, and releases in one workspace."
     />
     <meta name="theme-color" content="#0a0a0c" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      (function () {
+        try {
+          var k = 'devhub.theme';
+          var p = localStorage.getItem(k);
+          var r;
+          if (p === 'light' || p === 'dark') r = p;
+          else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) r = 'light';
+          else r = 'dark';
+          document.documentElement.setAttribute('data-theme', r);
+          document.documentElement.style.colorScheme = r;
+          var m = document.querySelector('meta[name="theme-color"]');
+          if (m) m.content = r === 'light' ? '#f4f4f5' : '#0a0a0c';
+        } catch (e) {}
+      })();
+    </script>
     <title>DevHub</title>
   </head>
   <body>

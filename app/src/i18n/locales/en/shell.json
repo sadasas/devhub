@@ -25,6 +25,11 @@
     "signedIn": "Signed in",
     "signOut": "Sign out"
   },
+  "theme": {
+    "paletteSystem": "Theme: System",
+    "paletteLight": "Theme: Light",
+    "paletteDark": "Theme: Dark"
+  },
   "palette": {
     "dialog": "Command palette",
     "open": "Open command palette",

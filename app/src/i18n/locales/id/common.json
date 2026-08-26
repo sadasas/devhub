@@ -4,6 +4,19 @@
     "menu": "Bahasa",
     "switchTo": "Ganti ke {{name}}"
   },
+  "theme": {
+    "toggle": "Ganti tema",
+    "menu": "Tema",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark",
+    "appearance": "Tampilan",
+    "appearanceHint": "Pilih tampilan DevHub. System mengikuti OS Anda.",
+    "switchedTo": "Beralih ke tema {{theme}}",
+    "paletteSystem": "Theme: System",
+    "paletteLight": "Theme: Light",
+    "paletteDark": "Theme: Dark"
+  },
   "action": {
     "cancel": "Batal",
     "close": "Tutup",

@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { SquaresFour, FolderSimple, Key, BookOpen, UserCircle, Plus, ArrowUp, ArrowDown, ArrowRight, MagnifyingGlass, Columns, Bug, CheckSquare, Scales, Rocket, Stack, Plugs, ChalkboardSimple, Globe, Archive, ArrowCounterClockwise } from '@phosphor-icons/react';
+import { SquaresFour, FolderSimple, Key, BookOpen, UserCircle, Plus, ArrowUp, ArrowDown, ArrowRight, MagnifyingGlass, Columns, Bug, CheckSquare, Scales, Rocket, Stack, Plugs, ChalkboardSimple, Globe, Archive, ArrowCounterClockwise, Monitor, Sun, Moon, ChatsCircle } from '@phosphor-icons/react';
 import { matchPath, useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useProjects } from '../state/projects-context';
+import { useTeams } from '../state/teams-context';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { useSearchResults } from '../hooks/useSearchResults';
 import { entityDeepLink } from '../lib/deep-link';
 import { onOpenPalette } from '../lib/palette-events';
 import { LANGUAGES, useAppLocale } from '../i18n/useAppLocale';
+import { useTheme } from '../state/theme-context';
 
 interface PaletteCommand {
   id: string;
@@ -39,8 +41,10 @@ export function CommandPalette() {
   const navigate = useNavigate();
   const location = useLocation();
   const { projects, update } = useProjects() as unknown as { projects: import('../lib/types').Project[] | null; update: (id: string, patch: Record<string, unknown>) => Promise<unknown> };
+  const { teams } = useTeams();
   const { t } = useTranslation('shell');
   const { lang, setLang } = useAppLocale();
+  const { setTheme } = useTheme();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [index, setIndex] = useState(0);
@@ -118,10 +122,46 @@ export function CommandPalette() {
           if (other) setLang(other.code);
         },
       },
+      {
+        id: 'theme-system',
+        group: t('palette.groupPreferences'),
+        label: t('theme.paletteSystem'),
+        icon: <Monitor size={16} />,
+        run: () => {
+          setOpen(false);
+          setTheme('system');
+        },
+      },
+      {
+        id: 'theme-light',
+        group: t('palette.groupPreferences'),
+        label: t('theme.paletteLight'),
+        icon: <Sun size={16} />,
+        run: () => {
+          setOpen(false);
+          setTheme('light');
+        },
+      },
+      {
+        id: 'theme-dark',
+        group: t('palette.groupPreferences'),
+        label: t('theme.paletteDark'),
+        icon: <Moon size={16} />,
+        run: () => {
+          setOpen(false);
+          setTheme('dark');
+        },
+      },
     ];
     const activeMatch = matchPath('/project/:projectId', location.pathname);
     const projectId = activeMatch?.params.projectId;
     const project = projectId ? projects?.find((p) => p.id === projectId) : undefined;
+    const teamId = (() => {
+      const tm = matchPath('/team/:teamId', location.pathname)?.params.teamId;
+      if (tm) return tm;
+      if (project?.teamId) return project.teamId;
+      return teams?.[0]?.id ?? null;
+    })();
     if (project && project.role !== 'viewer' && project.status !== 'archived') {
       const createIn = (tab: string, value = '1') => {
         const params = new URLSearchParams(location.search);
@@ -175,6 +215,19 @@ export function CommandPalette() {
           },
         });
       }
+    }
+    if (teamId) {
+      list.push({
+        id: 'open-team-chat',
+        group: t('palette.groupNavigate'),
+        label: t('palette.openTeamChat', { defaultValue: 'Open team chat' }),
+        icon: <ChatsCircle size={16} />,
+        run: () => {
+          setOpen(false);
+          const targetTeam = teams?.find((tm) => tm.id === teamId);
+          if (targetTeam) navigate(`/team/${teamId}?tab=chat`);
+        },
+      });
     }
     for (const p of projects ?? []) {
       const isArchived = p.status === 'archived';
@@ -235,7 +288,7 @@ export function CommandPalette() {
       }
     }
     return list;
-  }, [projects, navigate, location, q, search.loading, search.error, search.results, t, lang, setLang, update]);
+  }, [projects, teams, navigate, location, q, search.loading, search.error, search.results, t, lang, setLang, setTheme, update]);
 
   const filtered = useMemo(() => {
     const lower = q.toLowerCase();

@@ -5,10 +5,13 @@ import './styles/fonts.css'
 import './styles/tokens.css'
 import './styles/global.css'
 import App from './App.tsx'
+import { ThemeProvider } from './state/theme-context'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ThemeProvider>
+      <App />
+    </ThemeProvider>
   </StrictMode>,
 )
 

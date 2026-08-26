@@ -64,6 +64,7 @@
 | [ADR-044](#adr-044) | Billing Pakasir: premium per-workspace unlimited-all, URL-redirect QRIS/VA, renewal manual | Accepted | 2026-08-22 |
 | [ADR-045](#adr-045) | Paket dinamis dari DB: limit per paket, durasi+harga dari DB, Free ikut dikelola admin | Accepted | 2026-08-22 |
 | [ADR-046](#adr-046) | i18n multi-bahasa EN+ID: react-i18next, auto-detect + localStorage, server error tetap EN | Accepted | 2026-08-24 |
+| [ADR-047](#adr-047) | Light/Dark theme: global pref html[data-theme], inline FOUC, warm-zinc light tokens, shell cluster + palette + Profile | Accepted | 2026-08-26 |
 
 ---
 
@@ -597,4 +598,21 @@
   - **Pesan error dinamis dari API tetap EN**; hanya fallback statis client yang dilokalkan.
   - Default test = `en` → assertion teks existing tidak berubah; `react.useSuspense:false` agar komponen tidak suspend saat init.
 - **Consequences:** Positive — pasar Indonesia terlayani penuh; ekosistem i18next matang untuk plural/interpolation; migrasi bertahap per fitur tanpa memecah test. Negative — ~1.000 kunci harus dipelihara dua bahasa (risiko drift EN↔ID, mitigasi: fallback EN + review); bundle +~15kb gzip; string baru wajib masuk kedua locale (konvensi coding standards).
-- **Alternatives:** Custom context ringan ~2kb (ditolak: build ulang plural/interpolation, justru rawan bug); typesafe-i18n (ditolak: setup codegen lebih berat dari kebutuhan 2 bahasa); persistensi ke profil server (ditunda: butuh migration + endpoint, nilai tambah kecil untuk solo dev).
+  - **Alternatives:** Custom context ringan ~2kb (ditolak: build ulang plural/interpolation, justru rawan bug); typesafe-i18n (ditolak: setup codegen lebih berat dari kebutuhan 2 bahasa); persistensi ke profil server (ditunda: butuh migration + endpoint, nilai tambah kecil untuk solo dev).
+
+---
+
+### ADR-047
+**Light/Dark theme: global pref html[data-theme], inline FOUC, warm-zinc light tokens, shell cluster + palette + Profile**
+
+- **Status:** Accepted (2026-08-26) — M40 v0.40.0
+- **Context:** DevHub terkunci dark-only sejak ADR-008 (VARIANCE 4/MOTION 3/DENSITY 7, zinc off-black, emerald single accent, WCAG AA). PRD §5.6 "dark-only locked" dan `tokens.css:4` hanya `:root` dark, `global.css:17` `color-scheme: dark`. Permintaan pasar: opsi terang untuk kenyamanan baca siang hari, tanpa mengorbankan karakter cockpit. Riset 2025-26: model 3-state `system|light|dark` persist localStorage adalah standar untuk app produktivitas (Linear system-follow, GitHub 3-radio di Settings, Tailwind header icon); FOUC 100-300ms terjadi jika hanya `useEffect` set theme setelah CSS — butuh inline blocking `<script>` sebelum CSS; pure `#fff` base glare + templated, sedangkan dark accent `#34c38e` fail 2.25:1 di putih → butuh darken `#0e7a4a` 5.38:1.
+- **Decision:**
+  - **Scope global pref (bukan per-project/per-team, bukan server-persist V1):** key `devhub.theme` (dot-namespace mirip `devhub.lang`), enum `system|light|dark`, default `system` (follow OS via `matchMedia('(prefers-color-scheme: light)')`). Resolved `light|dark` → `html[data-theme]` + `style.colorScheme` + `meta theme-color`.
+  - **Engine:** `app/src/lib/theme.ts` (pure `resolveTheme`/`detectInitialTheme`) + `app/src/state/theme-context.tsx` (`ThemeProvider` di atas `AuthProvider` & `BrowserRouter`, lazy `useState`, effects `dataset+colorScheme+meta+localStorage`, listeners `matchMedia` hanya saat `pref===system` + `storage` cross-tab, `aria-live` announce).
+  - **FOUC prevention:** inline `<script>` sync <200B di `app/index.html` `<head>` sebelum CSS — `localStorage` + `matchMedia` → `dataset` + `colorScheme` + `meta` sebelum first paint; fallback CSS `@media (prefers-color-scheme: light) {:root:not([data-theme])}`.
+  - **Tokens:** `tokens.css` `:root` dark tetap + `html[data-theme='light']` override 35 vars (surfaces warm-zinc `#f4f4f5` base, `#fcfcfa` elevated, `#fafafa` inset, `#ffffff` overlay; borders `rgba(0,0,0,0.08/0.12)`; text `#18181b/#52525b/#71717a`; `text-on-accent` → `#ffffff`; accent `#0e7a4a` + status darken `danger #dc2626/warn #8a5a00/info #2563eb/chart-5 #6d5bff`; shadow light `0 1px 2px 0.06` + `0 8px 24px 0.08`); `global.css` `html{color-scheme: var(--color-scheme)}` + `html[data-theme]` + light overrides untuk ~58 hardcode `rgba(255,255,255)` → `rgba(0,0,0)` (scrollbar, btn hover, badge, skeleton, backdrop `rgba(15,15,18,0.32) blur8px`, data-row, rail/sidebar).
+  - **Switcher (reuse LanguageSwitcher pattern):** `ThemeSwitcher.tsx` (`sort-control` + `sort-menu` + `Check` + `aria-haspopup/menu` + `menuitemradio`) — icons `Sun`/`Moon`/`Monitor`, variant `dropdown` (shell) vs `segmented` (Profile). Placement: cluster `.app-prefs` fixed top-right desktop (2 icons Theme+Lang) + `TopBar` mobile 4 icons + `AuthPage` `auth-prefs` pre-login + `CommandPalette` 3 commands (`Theme: System/Light/Dark` via `useTheme`) + `Profile > Account > Appearance` segmented.
+  - **Canvas & docs:** Whiteboard/ERD/Charts sudah token-based (`var(--bg-inset)` etc) — zero code change bila token benar; light track/grid `rgba(0,0,0,0.06/0.04)` + heatmap `0.06` shadow tipis; i18n `theme.*` EN+ID (common + shell + account), README/PRD update "dark-only → light & dark".
+- **Consequences:** Positive — nyaman siang/malam tanpa template glare; one accent lock tetap emerald; cross-tab & OS sync; no flash; reuse existing dropdown pattern (nol deps baru). Negative — accent sedikit lebih gelap di light (`#0e7a4a` vs `#34c38e`); maintenance 40 var override; inline script kecil di head; dua warna border/shadow berbeda per tema.
+- **Alternatives:** `filter:invert` (ditolak: kontras fail & neon); `localStorage` boolean `dark:true/false` (ditolak: tidak bisa kembali ke system); `useEffect` set theme tanpa inline script (ditolak: FOUC); pure `#fff` base (ditolak: glare + templated); switcher di sidebar/rail only (ditolak: hilang di mobile/collapsed); help: per-project theme (ditolak: repaint shell saat pindah project, inkonsisten).

@@ -25,6 +25,11 @@
     "signedIn": "Sudah masuk",
     "signOut": "Keluar"
   },
+  "theme": {
+    "paletteSystem": "Theme: System",
+    "paletteLight": "Theme: Light",
+    "paletteDark": "Theme: Dark"
+  },
   "palette": {
     "dialog": "Palet perintah",
     "open": "Buka palet perintah",
