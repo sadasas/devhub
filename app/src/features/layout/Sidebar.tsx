@@ -32,6 +32,7 @@ export function Sidebar({ activeTeamId, activeMain = 'team', onCreateTeam }: Sid
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [prefillTeamId, setPrefillTeamId] = useState<string | null>(null);
   const [filterQuery, setFilterQuery] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
   const { t } = useTranslation('shell');
 
   const projectsByTeam = useMemo(() => {
@@ -50,11 +51,15 @@ export function Sidebar({ activeTeamId, activeMain = 'team', onCreateTeam }: Sid
   const showFilter = teamProjectsAll.length > 8;
 
   const lowerQuery = filterQuery.trim().toLowerCase();
-  const filteredProjects = useMemo(() => {
+  const { filteredActive, filteredArchived } = useMemo(() => {
     const list = [...teamProjectsAll].sort((a, b) => a.name.localeCompare(b.name));
-    if (!lowerQuery) return list;
-    return list.filter((p) => p.name.toLowerCase().includes(lowerQuery));
+    const filtered = !lowerQuery ? list : list.filter((p) => p.name.toLowerCase().includes(lowerQuery));
+    return {
+      filteredActive: filtered.filter((p) => p.status !== 'archived'),
+      filteredArchived: filtered.filter((p) => p.status === 'archived'),
+    };
   }, [teamProjectsAll, lowerQuery]);
+  const filteredProjects = filteredActive;
 
   const itemClass =
     (extra = ''): NavLinkProps['className'] =>
@@ -187,6 +192,31 @@ export function Sidebar({ activeTeamId, activeMain = 'team', onCreateTeam }: Sid
                       <span className="sidebar-item-label">{p.name}</span>
                     </NavLink>
                   ))
+                )}
+                {filteredArchived.length > 0 && (
+                  <>
+                    <button
+                      type="button"
+                      className="sidebar-archived-toggle"
+                      aria-expanded={showArchived}
+                      onClick={() => setShowArchived((v) => !v)}
+                    >
+                      <span>{showArchived ? '▾' : '▸'}</span> Archived
+                      <span className="sidebar-count-muted">{filteredArchived.length}</span>
+                    </button>
+                    {showArchived &&
+                      filteredArchived.map((p) => (
+                        <NavLink
+                          key={p.id}
+                          to={`/project/${p.id}`}
+                          className={itemClass('sidebar-project-item sidebar-project-item--archived')}
+                          title={`${p.name} — archived`}
+                        >
+                          <FolderSimple size={14} weight="duotone" aria-hidden="true" />
+                          <span className="sidebar-item-label">{p.name}</span>
+                        </NavLink>
+                      ))}
+                  </>
                 )}
                 <div className="sidebar-team-footer">
                   <NavLink to={`/team/${activeTeam.id}`} className="sidebar-team-link">

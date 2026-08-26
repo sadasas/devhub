@@ -141,6 +141,14 @@ export async function updateProject(
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
   assertWrite(row.role);
   const input = parseOrThrow(updateProjectSchema, body, 'Invalid project data');
+  if (row.status === 'archived') {
+    const hasOther = input.name !== undefined || input.description !== undefined || input.visibility !== undefined || input.publicTabs !== undefined || input.prd !== undefined;
+    const isRestore = input.status === 'active';
+    const isNoopArchive = input.status === 'archived' && !hasOther;
+    if (!isRestore && !isNoopArchive) {
+      throw new ApiError(403, 'ARCHIVED', 'Project is archived — restore to edit');
+    }
+  }
   if (input.visibility !== undefined) assertAdmin(row.role);
   if (input.publicTabs !== undefined) assertAdmin(row.role);
   const patch: ProjectMetaPatch = {
@@ -193,6 +201,9 @@ export async function putProjectState(
   const row = await getProjectWithRole(userId, projectId);
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
   assertWrite(row.role);
+  if (row.status === 'archived') {
+    throw new ApiError(403, 'ARCHIVED', 'Project is archived — restore to edit');
+  }
   const { state, version: bodyVersion } = parseOrThrow(putStateSchema, body, 'Invalid state payload');
   // If-Match didukung sebagai alternatif version di body (audit 2026-08b, REST-2)
   const version = typeof ifMatch === 'string' && ifMatch.trim().length > 0
@@ -262,6 +273,9 @@ export async function importProject(
   const existing = await getProjectWithRole(userId, meta.projectId);
   if (existing) {
     assertWrite(existing.role);
+    if (existing.status === 'archived') {
+      throw new ApiError(403, 'ARCHIVED', 'Project is archived — restore before importing');
+    }
     // Restore conditional pada versi state ekspor (audit 2026-08b, REST-4/DB-11):
     // ekspor lama (tanpa stateVersion) tetap restore unconditional untuk kompatibilitas.
     if (meta.stateVersion !== undefined) {

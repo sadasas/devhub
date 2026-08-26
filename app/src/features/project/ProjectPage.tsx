@@ -1,5 +1,7 @@
 import { lazy, Suspense, useRef, useState } from 'react';
 import {
+  Archive,
+  ArrowCounterClockwise,
   ArrowLeft,
   BookmarkSimple,
   Bug,
@@ -50,6 +52,8 @@ import { SaveTemplateModal } from '../templates/SaveTemplateModal';
 import { ProjectChatWidget } from './ProjectChatWidget';
 import { ProjectTabNav } from './ProjectTabNav';
 import { DeletedItemsBanner } from './DeletedItemsBanner';
+import { ArchivedBanner } from './ArchivedBanner';
+import { ArchiveUndoToast } from './ArchiveUndoToast';
 import { useTabUnread } from '../../hooks/useTabUnread';
 
 const BoardPageLazy = lazy(() => import('../board/BoardPage').then((m) => ({ default: m.BoardPage })));
@@ -253,7 +257,7 @@ function ProjectUnreadArea({
 export function ProjectPage() {
   const { t } = useTranslation('project');
   const { projectId = '' } = useParams<{ projectId: string }>();
-  const { projects, refresh, remove } = useProjects();
+  const { projects, refresh, remove, update } = useProjects();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -274,7 +278,7 @@ export function ProjectPage() {
   };
   const project = projects?.find((p) => p.id === projectId);
   useTabShortcuts(TABS.map((t) => t.id), tab, setTab);
-  useNewItemShortcut(tab, project?.role !== undefined && project.role !== 'viewer', (activeTab, value) => {
+  useNewItemShortcut(tab, project?.role !== undefined && project.role !== 'viewer' && project?.status !== 'archived', (activeTab, value) => {
     setSearchParams(
       (prev) => {
         const p = new URLSearchParams(prev);
@@ -288,6 +292,10 @@ export function ProjectPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [archiveConfirm, setArchiveConfirm] = useState<null | 'archive' | 'restore'>(null);
+  const [archiving, setArchiving] = useState(false);
+  const [archiveError, setArchiveError] = useState<string | null>(null);
+  const [undoToast, setUndoToast] = useState<null | 'archived' | 'restored'>(null);
   const [importDoc, setImportDoc] = useState<ExportDocument | null>(null);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
@@ -321,6 +329,22 @@ if (!project) {
 
   const role = project.role;
   const isAdmin = role === 'owner' || role === 'admin';
+  const canArchive = role !== 'viewer';
+  const isArchived = project.status === 'archived';
+
+  async function handleArchiveToggle(next: 'active' | 'archived') {
+    setArchiveError(null);
+    setArchiving(true);
+    try {
+      await update(projectId, { status: next });
+      setArchiveConfirm(null);
+      setUndoToast(next === 'archived' ? 'archived' : 'restored');
+    } catch (err) {
+      setArchiveError(getErrorMessage(err, 'Failed to update project status'));
+    } finally {
+      setArchiving(false);
+    }
+  }
 
   async function onCopyProjectId() {
     await copyPid(projectId);
@@ -405,6 +429,7 @@ if (!project) {
       projectId={projectId}
       role={role}
       teamId={project.teamId}
+      isArchived={isArchived}
       provider={projectStorage}
     >
       <ProjectPresenceStatus tab={tab} />
@@ -458,7 +483,7 @@ if (!project) {
             >
               {t('actions.export')}
             </Button>
-            {role !== 'viewer' && (
+            {role !== 'viewer' && !isArchived && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -478,7 +503,7 @@ if (!project) {
                 {project.visibility === 'public' ? t('actions.sharePublic') : t('actions.sharePrivate')}
               </Button>
             )}
-            {role !== 'viewer' && (
+            {role !== 'viewer' && !isArchived && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -486,6 +511,28 @@ if (!project) {
                 onClick={() => setSaveTemplateOpen(true)}
               >
                 {t('actions.saveAsTemplate')}
+              </Button>
+            )}
+            {canArchive && !isArchived && (
+              <Button
+                variant="ghost"
+                size="sm"
+                leftIcon={<Archive size={13} aria-hidden="true" />}
+                onClick={() => setArchiveConfirm('archive')}
+                aria-label={`Archive ${project.name}`}
+              >
+                Archive
+              </Button>
+            )}
+            {canArchive && isArchived && (
+              <Button
+                variant="primary"
+                size="sm"
+                leftIcon={<ArrowCounterClockwise size={13} aria-hidden="true" />}
+                onClick={() => setArchiveConfirm('restore')}
+                aria-label={`Restore ${project.name}`}
+              >
+                Restore
               </Button>
             )}
             {isAdmin && (
@@ -508,6 +555,14 @@ if (!project) {
           />
         </header>
 
+        {isArchived && (
+          <ArchivedBanner
+            canRestore={canArchive}
+            restoring={archiving}
+            onRestore={canArchive ? () => setArchiveConfirm('restore') : undefined}
+          />
+        )}
+
         <ProjectUnreadArea
           projectId={projectId}
           userId={user?.id ?? ''}
@@ -517,6 +572,18 @@ if (!project) {
         />
 
         <SaveBanner />
+
+        {undoToast && (
+          <ArchiveUndoToast
+            action={undoToast}
+            onUndo={() => {
+              const next = undoToast === 'archived' ? 'active' : 'archived';
+              setUndoToast(null);
+              void handleArchiveToggle(next as 'active' | 'archived');
+            }}
+            onDismiss={() => setUndoToast(null)}
+          />
+        )}
 
         <Modal
           open={confirmOpen}
@@ -538,6 +605,34 @@ if (!project) {
             {t('deleteModal.body', { name: project?.name })}
           </p>
           {deleteError && <InlineError className="mt-10">{deleteError}</InlineError>}
+        </Modal>
+
+        <Modal
+          open={archiveConfirm !== null}
+          title={archiveConfirm === 'archive' ? `Archive “${project.name}”?` : `Restore “${project.name}”?`}
+          onClose={() => setArchiveConfirm(null)}
+          width="sm"
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setArchiveConfirm(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant={archiveConfirm === 'archive' ? 'primary' : 'ghost'}
+                loading={archiving}
+                onClick={() => void handleArchiveToggle(archiveConfirm === 'archive' ? 'archived' : 'active')}
+              >
+                {archiveConfirm === 'archive' ? 'Archive' : 'Restore'}
+              </Button>
+            </>
+          }
+        >
+          <p className="modal-copy">
+            {archiveConfirm === 'archive'
+              ? 'Project will become read-only and hidden from Active view. You can restore anytime.'
+              : 'Project will become editable again.'}
+          </p>
+          {archiveError && <InlineError className="mt-10">{archiveError}</InlineError>}
         </Modal>
 
         <Modal

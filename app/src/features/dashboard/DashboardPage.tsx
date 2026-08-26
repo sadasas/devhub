@@ -5,7 +5,9 @@ import type { ProjectStats } from '../../lib/stats';
 import { useProjects } from '../../state/projects-context';
 import { useTeams } from '../../state/teams-context';
 import { useAuth } from '../../state/auth-context';
+import { Archive } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
+import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/Skeleton';
 import { InlineError } from '../../components/InlineError';
 import { NewProjectModal } from './NewProjectModal';
@@ -29,10 +31,12 @@ export function DashboardPage() {
   const [statsLoading, setStatsLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  // URL state: ?q & ?sort & ?team (+ ?new legacy)
+  // URL state: ?q & ?sort & ?team & ?status (+ ?new legacy)
   const queryParam = searchParams.get('q') ?? '';
   const sortParam = (searchParams.get('sort') as SortOption | null) ?? 'updated';
   const teamParam = searchParams.get('team') ?? 'all';
+  const statusParam = searchParams.get('status') as 'archived' | 'all' | null;
+  const showMode: 'active' | 'archived' | 'all' = statusParam === 'archived' ? 'archived' : statusParam === 'all' ? 'all' : 'active';
 
   const [queryDraft, setQueryDraft] = useState(queryParam);
   const deferredQuery = useDeferredValue(queryDraft);
@@ -81,6 +85,17 @@ export function DashboardPage() {
     };
   }, [projects]);
 
+  const archiveCounts = useMemo(() => {
+    if (!projects) return { active: 0, archived: 0, all: 0 };
+    let active = 0;
+    let archived = 0;
+    for (const p of projects) {
+      if (p.status === 'archived') archived += 1;
+      else active += 1;
+    }
+    return { active, archived, all: projects.length };
+  }, [projects]);
+
   const displayName = user?.displayName?.trim() ? user.displayName : (user?.email?.split('@')[0] ?? 'there');
 
   // derived global hero stats
@@ -109,6 +124,9 @@ export function DashboardPage() {
     if (!projects) return [];
     const q = deferredQuery.trim().toLowerCase();
     let list = projects;
+    // status filter
+    if (showMode === 'active') list = list.filter((p) => p.status === 'active');
+    else if (showMode === 'archived') list = list.filter((p) => p.status === 'archived');
     // team filter
     if (teamFilter !== 'all') {
       list = list.filter((p) => p.teamId === teamFilter);
@@ -133,7 +151,7 @@ export function DashboardPage() {
       return Date.parse(b.p.updatedAt) - Date.parse(a.p.updatedAt);
     });
     return sorted.map((x) => x.p);
-  }, [projects, deferredQuery, teamFilter, sort, stats]);
+  }, [projects, deferredQuery, teamFilter, sort, stats, showMode]);
 
   // grouping adaptive
   const isSingleTeam = (teams?.length ?? 0) <= 1;
@@ -205,6 +223,15 @@ export function DashboardPage() {
     });
   };
 
+  const commitStatus = (v: 'active' | 'archived' | 'all') => {
+    startTransition(() => {
+      const next = new URLSearchParams(searchParams);
+      if (v === 'active') next.delete('status');
+      else next.set('status', v);
+      setSearchParams(next, { replace: true });
+    });
+  };
+
   const handleOpen = (id: string) => navigate(`/project/${id}`);
 
   // exclusive chain: error > loading > empty (no team / no project / no result) > data
@@ -251,6 +278,22 @@ export function DashboardPage() {
         count={filteredSorted.length}
         teams={teams}
       />
+      {projects && projects.length > 0 && (
+        <div className="archive-filter" role="tablist" aria-label="Filter by status">
+          {(['active', 'all', 'archived'] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              role="tab"
+              aria-selected={showMode === v}
+              className={showMode === v ? 'archive-filter-btn archive-filter-btn-active' : 'archive-filter-btn'}
+              onClick={() => commitStatus(v)}
+            >
+              {v === 'active' ? `Active (${archiveCounts.active})` : v === 'all' ? `All (${archiveCounts.all})` : `Archived (${archiveCounts.archived})`}
+            </button>
+          ))}
+        </div>
+      )}
       {isPending && <span className="welcome-pending" aria-hidden="true" />}
 
       {/* exclusive content */}
@@ -278,6 +321,12 @@ export function DashboardPage() {
         <WelcomeEmptyNoTeam onCreateTeam={() => setTeamCreateOpen(true)} />
       ) : projectsEmpty ? (
         <WelcomeEmptyNoProject teamName={teams?.[0]?.name} onCreate={() => setNewOpen(true)} />
+      ) : filteredEmpty && showMode === 'archived' && !deferredQuery.trim() ? (
+        <EmptyState
+          icon={<Archive size={22} weight="duotone" aria-hidden="true" />}
+          title="No archived projects"
+          description="Archived projects are read-only and hidden from Active view."
+        />
       ) : filteredEmpty ? (
         <WelcomeEmptyNoResult query={deferredQuery.trim()} onClear={() => commitQuery('')} />
       ) : (

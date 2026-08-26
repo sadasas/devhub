@@ -8,6 +8,7 @@ interface WelcomeProjectRowProps {
   project: Project;
   stats?: ProjectStats | null;
   statsLoading?: boolean;
+  archived?: boolean;
   onOpen: (id: string) => void;
 }
 
@@ -23,10 +24,12 @@ export const WelcomeProjectRow = memo(function WelcomeProjectRow({
   project,
   stats,
   statsLoading,
+  archived,
   onOpen,
 }: WelcomeProjectRowProps) {
   const [expanded, setExpanded] = useState(false);
-  const dotColor = getDotTone(stats ?? null);
+  const isArchived = archived ?? project.status === 'archived';
+  const dotColor = isArchived ? 'var(--text-muted)' : getDotTone(stats ?? null);
   const hasTasks = !!(stats && stats.totalTasks > 0);
   const progressPct = hasTasks ? Math.round((stats!.doneTasks / stats!.totalTasks) * 100) : 0;
   const showIssues = !!(stats && stats.openIssues > 0);
@@ -37,15 +40,16 @@ export const WelcomeProjectRow = memo(function WelcomeProjectRow({
     <div className={`welcome-row-wrap${expanded ? ' welcome-row-wrap-expanded' : ''}`}>
       <button
         type="button"
-        className="welcome-row"
+        className={`welcome-row${isArchived ? ' welcome-row--archived' : ''}`}
         onClick={() => onOpen(project.id)}
-        aria-label={`Open ${project.name}, ${stats ? `${stats.doneTasks} of ${stats.totalTasks} done, ${stats.openIssues} open issues` : 'no stats yet'}`}
+        aria-label={`Open ${project.name}${isArchived ? ', archived' : ''}, ${stats ? `${stats.doneTasks} of ${stats.totalTasks} done, ${stats.openIssues} open issues` : 'no stats yet'}`}
       >
         <span className="welcome-row-main">
           <span className="welcome-row-dot" style={{ background: dotColor }} aria-hidden="true" />
           <span className="welcome-row-title" title={project.name}>
             {project.name}
           </span>
+          {isArchived && <span className="badge welcome-row-badge-archived">Archived</span>}
           <span className="welcome-row-team" title={project.teamName}>
             {project.teamName}
           </span>

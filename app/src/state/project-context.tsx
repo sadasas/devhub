@@ -392,6 +392,7 @@ export function ProjectProvider({
   projectId,
   role,
   teamId = '',
+  isArchived = false,
   provider = apiProvider,
   createRealtime,
   children,
@@ -399,6 +400,7 @@ export function ProjectProvider({
   projectId: string;
   role: TeamRole;
   teamId?: string;
+  isArchived?: boolean;
   provider?: StorageProvider;
   createRealtime?: (handlers: RealtimeHandlers) => RealtimeSocket;
   children: ReactNode;
@@ -425,8 +427,8 @@ export function ProjectProvider({
   const savingRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingFlushRef = useRef<Promise<void> | null>(null);
-  const canEditRef = useRef(role !== 'viewer');
-  canEditRef.current = role !== 'viewer';
+  const canEditRef = useRef(role !== 'viewer' && !isArchived);
+  canEditRef.current = role !== 'viewer' && !isArchived;
   const wsConnectedRef = useRef(false);
 
   const emitPendingCount = useCallback(() => {
@@ -816,7 +818,7 @@ export function ProjectProvider({
       saving,
       lastSavedAt,
       role,
-      canEdit: role !== 'viewer',
+      canEdit: role !== 'viewer' && !isArchived,
       conflict,
       isOffline,
       pendingCount,
@@ -827,7 +829,7 @@ export function ProjectProvider({
       retrySave,
       resolveConflict,
     }),
-    [projectId, teamId, state, loading, error, saveError, saving, lastSavedAt, role, conflict, isOffline, pendingCount, presence, subscribeActivity, setStatus, dispatch, retrySave, resolveConflict],
+    [projectId, teamId, state, loading, error, saveError, saving, lastSavedAt, role, isArchived, conflict, isOffline, pendingCount, presence, subscribeActivity, setStatus, dispatch, retrySave, resolveConflict],
   );
 
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;

@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
-import { ChartBar, PencilSimple } from '@phosphor-icons/react';
+import { Archive, ArrowCounterClockwise, ChartBar, PencilSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import type { Project } from '../../lib/types';
 import { useProject } from '../../state/project-context';
+import { useProjects } from '../../state/projects-context';
 import { api } from '../../lib/api';
 import { formatDate } from '../../lib/utils';
 import { todayIso } from '../../lib/due-dates';
@@ -187,7 +188,9 @@ function MemberRow({ stat }: { stat: MemberStat }) {
 export function OverviewPage({ project }: { project: Project }) {
   const { t } = useTranslation('project');
   const { state, loading, error, canEdit, teamId } = useProject();
+  const { update } = useProjects();
   const [editOpen, setEditOpen] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const [membersLoaded, setMembersLoaded] = useState(false);
   const [memberNames, setMemberNames] = useState<Record<string, string>>({});
 
@@ -340,6 +343,33 @@ export function OverviewPage({ project }: { project: Project }) {
             <Badge tone={TEAM_ROLE[project.role].tone}>{t(`overview.teamRole.${project.role}`)}</Badge>
           </span>
         </p>
+        {project.status === 'archived' && canEdit && (
+          <div style={{ marginTop: 10 }}>
+            <Button
+              size="sm"
+              variant="primary"
+              leftIcon={<ArrowCounterClockwise size={13} aria-hidden="true" />}
+              loading={restoring}
+              onClick={async () => {
+                setRestoring(true);
+                try {
+                  await update(project.id, { status: 'active' });
+                } finally {
+                  setRestoring(false);
+                }
+              }}
+            >
+              Restore project
+            </Button>
+            <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--text-muted)' }}>Archived projects are read-only.</span>
+          </div>
+        )}
+        {project.status === 'archived' && !canEdit && (
+          <p style={{ marginTop: 10, fontSize: 12, color: 'var(--text-muted)' }}>
+            <Archive size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} aria-hidden="true" />
+            This project is archived — read-only.
+          </p>
+        )}
       </div>
 
       <div className="about-stats">

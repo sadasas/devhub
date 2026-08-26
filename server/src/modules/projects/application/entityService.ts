@@ -24,8 +24,8 @@ export async function mutateProject(
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const result = await client.query<{ data: unknown; version: number; role: string }>(
-      `SELECT p.data, p.version, tm.role
+    const result = await client.query<{ data: unknown; version: number; role: string; status: string }>(
+      `SELECT p.data, p.version, p.status, tm.role
        FROM projects p
        JOIN team_members tm ON tm.team_id = p.team_id
        WHERE p.id = $1 AND tm.user_id = $2
@@ -35,6 +35,9 @@ export async function mutateProject(
     const row = result.rows[0];
     if (!row) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
     assertWrite(row.role as TeamRole);
+    if (row.status === 'archived') {
+      throw new ApiError(403, 'ARCHIVED', 'Project is archived — restore to edit');
+    }
     if (ifMatch !== undefined && String(row.version) !== ifMatch) {
       throw new ApiError(
         409,

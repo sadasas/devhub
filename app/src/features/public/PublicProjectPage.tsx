@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bug, CalendarBlank, ChalkboardSimple, Columns, Flag, Gauge, ListChecks, Rocket, SquaresFour, Stack } from '@phosphor-icons/react';
+import { Archive, Bug, CalendarBlank, ChalkboardSimple, Columns, Flag, Gauge, ListChecks, Rocket, SquaresFour, Stack } from '@phosphor-icons/react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { ApiError, api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
@@ -163,6 +163,13 @@ export function PublicProjectPage() {
                 <Badge tone="success">{t('public.badge.public')}</Badge>
               </div>
             </div>
+
+            {project.status === 'archived' && (
+              <div className="archived-banner" role="status">
+                <Archive size={14} weight="duotone" aria-hidden="true" />
+                <span className="archived-banner-copy">This project is archived — read-only.</span>
+              </div>
+            )}
 
             <nav className="tabs" role="tablist" aria-label={t('public.sectionsAria')}>
               {TABS.filter((tb) => allowedTabs.includes(tb.id)).map((tb) => (

@@ -42,6 +42,9 @@ export async function saveState(projectId: string, state: State): Promise<void> 
   if (row.role === 'viewer') {
     throw new McpError(ErrorCode.InvalidParams, `No write access to project ${projectId}`);
   }
+  if (row.status === 'archived') {
+    throw new McpError(ErrorCode.InvalidRequest, `Project is archived — restore to edit: ${projectId}`);
+  }
   const after = stateSchema.safeParse(state);
   if (!after.success) {
     throw new McpError(
@@ -136,6 +139,9 @@ export async function updatePrd(projectId: string, patch: PrdPatch): Promise<Prd
   }
   if (row.role === 'viewer') {
     throw new McpError(ErrorCode.InvalidParams, `No write access to project ${projectId}`);
+  }
+  if (row.status === 'archived') {
+    throw new McpError(ErrorCode.InvalidRequest, `Project is archived — restore to edit: ${projectId}`);
   }
   const merged = mergePrd(patch, normalizePrd(row.prd));
   const result = await pool.query(

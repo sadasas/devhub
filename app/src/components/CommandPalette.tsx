@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { SquaresFour, FolderSimple, Key, BookOpen, UserCircle, Plus, ArrowUp, ArrowDown, ArrowRight, MagnifyingGlass, Columns, Bug, CheckSquare, Scales, Rocket, Stack, Plugs, ChalkboardSimple, Globe } from '@phosphor-icons/react';
+import { SquaresFour, FolderSimple, Key, BookOpen, UserCircle, Plus, ArrowUp, ArrowDown, ArrowRight, MagnifyingGlass, Columns, Bug, CheckSquare, Scales, Rocket, Stack, Plugs, ChalkboardSimple, Globe, Archive, ArrowCounterClockwise } from '@phosphor-icons/react';
 import { matchPath, useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useProjects } from '../state/projects-context';
@@ -38,7 +38,7 @@ function highlight(text: string, query: string): ReactNode {
 export function CommandPalette() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { projects } = useProjects();
+  const { projects, update } = useProjects() as unknown as { projects: import('../lib/types').Project[] | null; update: (id: string, patch: Record<string, unknown>) => Promise<unknown> };
   const { t } = useTranslation('shell');
   const { lang, setLang } = useAppLocale();
   const [open, setOpen] = useState(false);
@@ -122,7 +122,7 @@ export function CommandPalette() {
     const activeMatch = matchPath('/project/:projectId', location.pathname);
     const projectId = activeMatch?.params.projectId;
     const project = projectId ? projects?.find((p) => p.id === projectId) : undefined;
-    if (project && project.role !== 'viewer') {
+    if (project && project.role !== 'viewer' && project.status !== 'archived') {
       const createIn = (tab: string, value = '1') => {
         const params = new URLSearchParams(location.search);
         params.set('tab', tab);
@@ -151,12 +151,38 @@ export function CommandPalette() {
         });
       }
     }
+    if (project && project.role !== 'viewer') {
+      if (project.status === 'archived') {
+        list.push({
+          id: 'unarchive-project',
+          group: t('palette.groupCreate'),
+          label: 'Unarchive project',
+          icon: <ArrowCounterClockwise size={16} />,
+          run: () => {
+            setOpen(false);
+            void update(project.id, { status: 'active' });
+          },
+        });
+      } else {
+        list.push({
+          id: 'archive-project',
+          group: t('palette.groupCreate'),
+          label: 'Archive project',
+          icon: <Archive size={16} />,
+          run: () => {
+            setOpen(false);
+            void update(project.id, { status: 'archived' });
+          },
+        });
+      }
+    }
     for (const p of projects ?? []) {
+      const isArchived = p.status === 'archived';
       list.push({
         id: p.id,
         group: t('palette.groupProjects'),
-        label: p.name,
-        icon: <FolderSimple size={16} />,
+        label: isArchived ? `${p.name} (archived)` : p.name,
+        icon: isArchived ? <Archive size={16} /> : <FolderSimple size={16} />,
         run: () => {
           setOpen(false);
           navigate(`/project/${p.id}`);
@@ -209,7 +235,7 @@ export function CommandPalette() {
       }
     }
     return list;
-  }, [projects, navigate, location, q, search.loading, search.error, search.results, t, lang, setLang]);
+  }, [projects, navigate, location, q, search.loading, search.error, search.results, t, lang, setLang, update]);
 
   const filtered = useMemo(() => {
     const lower = q.toLowerCase();
