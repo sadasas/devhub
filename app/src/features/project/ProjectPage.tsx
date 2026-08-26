@@ -49,7 +49,6 @@ import { ShareModal } from './ShareModal';
 import { PlanLimitModal } from '../../components/PlanLimitModal';
 import { InlineError } from '../../components/InlineError';
 import { SaveTemplateModal } from '../templates/SaveTemplateModal';
-import { ProjectChatWidget } from './ProjectChatWidget';
 import { ProjectTabNav } from './ProjectTabNav';
 import { DeletedItemsBanner } from './DeletedItemsBanner';
 import { ArchivedBanner } from './ArchivedBanner';
@@ -679,7 +678,6 @@ if (!project) {
           projectName={project.name}
           onClose={() => setSaveTemplateOpen(false)}
         />
-        {project && user && <ProjectChatWidget teamId={project.teamId} teamName={project.teamName} />}
       </div>
     </ProjectProvider>
   );

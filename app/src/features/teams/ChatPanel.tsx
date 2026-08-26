@@ -52,18 +52,18 @@ const ENTITY_LABEL_KEYS: Record<string, string> = {
 };
 
 const ENTITY_TINT: Record<string, string> = {
-  tasks: '#34c38e',
-  issues: '#f4706d',
-  testCases: '#e8b955',
-  decisions: '#6ea8fe',
-  techEntries: '#2dd4bf',
-  apiEndpoints: '#f4706d',
-  apiCollections: '#e8b955',
-  milestones: '#6ea8fe',
-  whiteboards: '#2dd4bf',
-  tables: '#a1a1aa',
-  relations: '#a1a1aa',
-  schemaVersions: '#a1a1aa',
+  tasks: 'var(--accent)',
+  issues: 'var(--status-danger)',
+  testCases: 'var(--status-warn)',
+  decisions: 'var(--status-info)',
+  techEntries: 'var(--method-patch)',
+  apiEndpoints: 'var(--status-danger)',
+  apiCollections: 'var(--status-warn)',
+  milestones: 'var(--status-info)',
+  whiteboards: 'var(--method-patch)',
+  tables: 'var(--text-muted)',
+  relations: 'var(--text-muted)',
+  schemaVersions: 'var(--text-muted)',
 };
 
 const ENTITY_ICONS: Record<string, typeof CheckSquare> = {
@@ -289,7 +289,9 @@ const socketRef = useRef<TeamChatSocket | null>(null);
     requestAnimationFrame(() => {
       const list = listRef.current;
       if (list && list.scrollHeight - list.scrollTop - list.clientHeight < 40) {
-        list.scrollTop = list.scrollHeight;
+        const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+        if (typeof list.scrollTo === 'function') list.scrollTo({ top: list.scrollHeight, behavior: reduce ? 'auto' : 'smooth' });
+        else list.scrollTop = list.scrollHeight;
       }
     });
   }, []);
@@ -451,7 +453,11 @@ async function onSend() {
     refsRef.current = [];
     requestAnimationFrame(() => {
       const list = listRef.current;
-      if (list) list.scrollTop = list.scrollHeight;
+      if (list) {
+        const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+        if (typeof list.scrollTo === 'function') list.scrollTo({ top: list.scrollHeight, behavior: reduce ? 'auto' : 'smooth' });
+        else list.scrollTop = list.scrollHeight;
+      }
     });
     try {
       const saved = await api.sendMessage(teamId, content, refs);
@@ -567,12 +573,19 @@ async function onDelete(message: ChatMessage) {
               : t('teams.chat.chipNotShared', { title })
           }
           disabled={!resolved?.projectId}
+          style={
+            {
+              color: tint,
+              background: `color-mix(in srgb, ${tint} 12%, transparent)`,
+              borderColor: `color-mix(in srgb, ${tint} 30%, transparent)`,
+            } as React.CSSProperties
+          }
           onClick={() => {
             if (!resolved?.projectId) return;
             navigate(entityDeepLink(resolved.projectId, entity as Parameters<typeof entityDeepLink>[1], entityId));
           }}
         >
-          <EntityIcon size={10} weight="bold" aria-hidden="true" style={{ color: tint }} />
+          <EntityIcon size={12} weight="bold" aria-hidden="true" style={{ color: tint }} />
           {label}
         </button>
       );
@@ -607,29 +620,30 @@ async function onDelete(message: ChatMessage) {
 
 return (
     <div className="chat-panel">
-      <div className="chat-list" ref={listRef}>
+      <div className="chat-list" ref={listRef} role="log" aria-live="polite" aria-relevant="additions text" aria-label={t('teams.chat.listAria', { defaultValue: 'Team messages' })} aria-busy={messages === null}>
         <div className="chat-sentinel" ref={sentinelRef} />
         {messages === null ? (
           <>
+            <span className="sr-only" role="status">{t('teams.chat.loading', { defaultValue: 'Loading messages' })}</span>
             <div className="chat-skeleton-row">
-              <span className="chat-skeleton-avatar" />
+              <span className="chat-skeleton-avatar skeleton" />
               <span className="chat-skeleton-lines">
-                <span />
-                <span />
+                <span className="skeleton" />
+                <span className="skeleton" />
               </span>
             </div>
             <div className="chat-skeleton-row">
-              <span className="chat-skeleton-avatar" />
+              <span className="chat-skeleton-avatar skeleton" />
               <span className="chat-skeleton-lines">
-                <span />
-                <span />
+                <span className="skeleton" />
+                <span className="skeleton" />
               </span>
             </div>
             <div className="chat-skeleton-row">
-              <span className="chat-skeleton-avatar" />
+              <span className="chat-skeleton-avatar skeleton" />
               <span className="chat-skeleton-lines">
-                <span />
-                <span />
+                <span className="skeleton" />
+                <span className="skeleton" />
               </span>
             </div>
           </>
@@ -645,14 +659,14 @@ return (
           rows!.map((row: { kind: string; label?: string; m?: ChatMessage }) => {
             if (row.kind === 'divider') {
               return (
-                <div key={row.label} className="chat-date-divider" role="separator">
+                <div key={row.label} className="chat-date-divider" role="separator" aria-label={row.label}>
                   {row.label}
                 </div>
               );
             }
             if (row.kind === 'unread') {
               return (
-                <div key="unread" className="chat-unread-divider" role="separator">
+                <div key="unread" className="chat-unread-divider" role="separator" aria-label={t('teams.chat.unreadDivider')}>
                   {t('teams.chat.unreadDivider')}
                 </div>
               );
@@ -701,13 +715,19 @@ return (
                       <span className={own ? 'chat-author chat-author-own' : 'chat-author'}>
                         {m.authorName || t('teams.chat.formerMember')}
                       </span>
+                      <span className="chat-msg-time">{formatChatTime(m.createdAt)}</span>
                       {pending && <ClockCounterClockwise size={10} aria-hidden="true" />}
+                    </div>
+                  )}
+                  {!isGroupStart && pending && (
+                    <div className="chat-msg-header">
+                      <ClockCounterClockwise size={10} aria-hidden="true" />
                       <span className="chat-msg-time">{formatChatTime(m.createdAt)}</span>
                     </div>
                   )}
                   <div className="chat-msg-text">{renderContent(m.content)}</div>
                   {failed && (
-                    <div className="chat-msg-actions-inline">
+                    <div className="chat-msg-actions-inline" role="alert" aria-live="assertive">
                       <Button variant="ghost" size="sm" onClick={() => void onRetry(m)}>
                         {t('common:action.retry')}
                       </Button>
@@ -760,14 +780,20 @@ return (
             className="chat-scroll-fab"
             aria-label={t('teams.chat.scrollToBottom')}
             title={t('teams.chat.scrollToBottom')}
-            onClick={() => listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })}
+            onClick={() => {
+              const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+              if (typeof listRef.current?.scrollTo === 'function') listRef.current?.scrollTo({ top: listRef.current!.scrollHeight, behavior: reduce ? 'auto' : 'smooth' });
+              else if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
+            }}
           >
             <PaperPlaneTilt size={16} aria-hidden="true" />
           </button>
         )}
       </div>
-      {loadError && <InlineError>{loadError}</InlineError>}
-      {sendError && <InlineError>{sendError}</InlineError>}
+      <div className="chat-inline-feedback">
+        {loadError && <InlineError>{loadError}</InlineError>}
+        {sendError && <InlineError>{sendError}</InlineError>}
+      </div>
       <div className="chat-composer">
         {queuedCount > 0 && (
           <div className="chat-offline-strip" role="status">
@@ -776,7 +802,7 @@ return (
           </div>
         )}
         {mention && (
-          <div className="mention-popup" role="listbox" aria-label={t('teams.chat.mentionSearchAria')}>
+          <div id="mention-listbox" className="mention-popup" role="listbox" aria-label={t('teams.chat.mentionSearchAria')}>
             {mention.query.length < 2 ? (
               <div className="mention-hint">{t('teams.chat.keepTyping')}</div>
             ) : mentionLoading ? (
@@ -789,6 +815,7 @@ return (
                 return (
                   <button
                     type="button"
+                    id={`mention-opt-${i}`}
                     key={`${hit.entity}:${hit.entityId}`}
                     className={`mention-option${i === mentionIndex ? ' mention-option-active' : ''}`}
                     role="option"
@@ -813,16 +840,27 @@ return (
           </div>
         )}
         {!draft && (
-          <span className="chat-composer-hint">{t('teams.chat.composerTip')}</span>
+          <span id="chat-composer-hint" className="chat-composer-hint">{t('teams.chat.composerTip')}</span>
         )}
         <div className="chat-composer-row">
         <textarea
+          id="chat-input"
           className="chat-input"
           aria-label={t('teams.chat.messageAria')}
+          aria-describedby={!draft ? 'chat-composer-hint' : undefined}
+          aria-expanded={!!mention}
+          aria-controls={mention ? 'mention-listbox' : undefined}
+          aria-autocomplete="list"
+          aria-activedescendant={mention && mentionResults[mentionIndex] ? `mention-opt-${mentionIndex}` : undefined}
           placeholder={t('teams.chat.placeholder')}
           title={t('teams.chat.enterToSend')}
           rows={1}
           value={draft}
+          onInput={(ee) => {
+            const ta = ee.currentTarget as HTMLTextAreaElement;
+            ta.style.height = 'auto';
+            ta.style.height = Math.min(ta.scrollHeight, 160) + 'px';
+          }}
           onChange={(e) => {
             const value = e.target.value;
             setDraft(value);
@@ -843,6 +881,20 @@ return (
               if (e.key === 'ArrowUp') {
                 e.preventDefault();
                 setMentionIndex((i) => Math.max(i - 1, 0));
+                return;
+              }
+              if (e.key === 'Home') {
+                e.preventDefault();
+                setMentionIndex(0);
+                return;
+              }
+              if (e.key === 'End') {
+                e.preventDefault();
+                setMentionIndex(mentionResults.length - 1);
+                return;
+              }
+              if (e.key === 'Tab') {
+                setMention(null);
                 return;
               }
               if (e.key === 'Enter' && !e.shiftKey) {
@@ -868,6 +920,7 @@ return (
         <Button
           variant="primary"
           size="sm"
+          className="chat-send-btn"
           aria-label={t('teams.chat.sendAria')}
           loading={sending}
           disabled={!draft.trim()}

@@ -8,6 +8,7 @@ import { Logo } from '../../components/Logo';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 import { ThemeSwitcher } from '../../components/ThemeSwitcher';
 import { openPalette } from '../../lib/palette-events';
+import { toggleChat } from '../../lib/chat-events';
 import { useTeams } from '../../state/teams-context';
 import { useProjects } from '../../state/projects-context';
 import { useAuth } from '../../state/auth-context';
@@ -152,21 +153,31 @@ export function Layout() {
     if (!collapsed) setHoverExpand(false);
   }, [collapsed]);
 
-  // keyboard Ctrl+B or [ to toggle
+  // keyboard Ctrl+B or [ to toggle, Ctrl+C to toggle chat
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isTyping = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+      const isModal = Boolean(document.querySelector('.modal-backdrop, .palette'));
+      // Ctrl/Cmd+C toggles team chat — guard against typing, modal, and text selection (copy)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
+        if (isTyping || isModal) return;
+        if (window.getSelection()?.toString()) return;
+        if (!user || !activeTeamId) return;
+        e.preventDefault();
+        toggleChat();
+        return;
+      }
+      if (isTyping) return;
+      if (window.matchMedia('(max-width: 860px)').matches) return;
       const mod = e.ctrlKey || e.metaKey;
       const isB = e.key.toLowerCase() === 'b';
       const isBracket = e.key === '[';
-      const target = e.target as HTMLElement | null;
-      const isTyping = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
-      if (isTyping) return;
-      if (window.matchMedia('(max-width: 860px)').matches) return;
       if ((mod && isB) || (!mod && isBracket)) { e.preventDefault(); setCollapsed(v => !v); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [user, activeTeamId]);
 
   const onHandlePointerDown = (e: React.PointerEvent) => {
     if (effectiveCollapsed) return;
@@ -278,8 +289,6 @@ export function Layout() {
       {user && activeTeamId && (() => {
         const activeTeam = teams?.find((tm) => tm.id === activeTeamId);
         if (!activeTeam) return null;
-        const isChatRoute = location.pathname.startsWith('/team/') && new URLSearchParams(location.search).get('tab') === 'chat';
-        if (isChatRoute) return null;
         return <ProjectChatWidget teamId={activeTeamId} teamName={activeTeam.name} />;
       })()}
     </div>

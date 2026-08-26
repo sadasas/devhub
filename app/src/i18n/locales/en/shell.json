@@ -56,6 +56,7 @@
     "newApiCollection": "New API collection",
     "newApiEndpoint": "New API endpoint",
     "newWhiteboard": "New whiteboard",
+    "toggleTeamChat": "Toggle team chat",
     "searching": "Searching…",
     "noMatches": "No matches for “{{query}}”",
     "hintNavigate": "navigate",

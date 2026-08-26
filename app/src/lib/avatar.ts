@@ -19,5 +19,6 @@ export function initialsOf(name: string): string {
 
 export function avatarColor(userId: string): string {
   const hue = AVATAR_HUES[fnv1a(userId) % AVATAR_HUES.length] ?? 205;
-  return `hsl(${hue} 48% 58%)`;
+  const light = hue === 265 || hue === 310 || hue === 350 ? 65 : 58;
+  return `hsl(${hue} 48% ${light}%)`;
 }

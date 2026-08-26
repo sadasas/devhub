@@ -56,7 +56,7 @@ describe('ProjectChatWidget', () => {
     const launcher = await screen.findByRole('button', { name: /Open team chat/ });
     fireEvent.click(launcher);
     expect(await screen.findByTestId('chat-panel')).toBeTruthy();
-    expect(screen.getByRole('dialog', { name: 'Team chat' }).getAttribute('aria-modal')).toBe('false');
+    expect(screen.getByRole('dialog').getAttribute('aria-modal')).toBe('true');
     expect(chatApi.setMessagesRead).toHaveBeenCalledWith('t1', expect.any(String));
     expect(launcher.getAttribute('aria-expanded')).toBe('true');
   });

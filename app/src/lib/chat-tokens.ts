@@ -4,7 +4,8 @@ export interface ChatTokenRef {
 }
 
 export function buildMentionToken(title: string, entity: string, entityId: string): string {
-  return `@[${title}](${entity}:${entityId})`;
+  const safe = title.replaceAll('[', ' ').replaceAll(']', ' ').replaceAll('(', ' ').replaceAll(')', ' ').replace(/\s+/g, ' ').trim();
+  return `@[${safe}](${entity}:${entityId})`;
 }
 
 const TOKEN_RE = /@\[([^\]]+)\]\(([^:]+):([^)]+)\)/g;

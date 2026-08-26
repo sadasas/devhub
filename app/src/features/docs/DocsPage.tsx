@@ -13,8 +13,8 @@ const DOC_NAV_ITEMS: DocsTocItem[] = [
 
 const SHORTCUTS = [
   { keys: ['Ctrl', 'K'], descKey: 'docs.shortcuts.palette' },
-  { keys: ['?'], descKey: 'docs.shortcuts.paletteWhenClosed' },
-  { keys: ['/'], descKey: 'docs.shortcuts.slash' },
+  { keys: ['Ctrl', 'C'], descKey: 'docs.shortcuts.toggleChat' },
+  { keys: ['Ctrl', 'B'], descKey: 'docs.shortcuts.toggleSidebar' },
   { keys: ['↑', '↓'], descKey: 'docs.shortcuts.navigateResults' },
   { keys: ['Enter'], descKey: 'docs.shortcuts.runCommand' },
   { keys: ['Esc'], descKey: 'docs.shortcuts.escape' },
@@ -85,8 +85,7 @@ export function DocsPage() {
               </ul>
               <p className="docs-step-note">
                 {t('docs.shortcuts.tip1')} <kbd className="docs-kbd">Ctrl</kbd>{' '}
-                <kbd className="docs-kbd">K</kbd> {t('docs.shortcuts.tip2')}{' '}
-                <kbd className="docs-kbd">?</kbd> {t('docs.shortcuts.tip3')}
+                <kbd className="docs-kbd">K</kbd> {t('docs.shortcuts.tip2')}
               </p>
             </section>
           </div>

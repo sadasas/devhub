@@ -175,10 +175,10 @@ describe('CommandPalette', () => {
     expect(view.queryByRole('combobox')).not.toBeTruthy();
   });
 
-  it('opens with / when not typing', () => {
-    renderPalette();
+  it('does not open with / when not typing (removed)', () => {
+    const { view } = renderPalette();
     fireEvent.keyDown(window, { key: '/' });
-    expect(screen.getByRole('combobox', { name: 'Search commands' })).toBeTruthy();
+    expect(view.queryByRole('combobox')).not.toBeTruthy();
   });
 
   it('does not open with / while typing in an input', () => {

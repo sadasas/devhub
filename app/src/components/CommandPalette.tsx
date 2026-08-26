@@ -8,6 +8,7 @@ import { useFocusTrap } from '../hooks/useFocusTrap';
 import { useSearchResults } from '../hooks/useSearchResults';
 import { entityDeepLink } from '../lib/deep-link';
 import { onOpenPalette } from '../lib/palette-events';
+import { toggleChat } from '../lib/chat-events';
 import { LANGUAGES, useAppLocale } from '../i18n/useAppLocale';
 import { useTheme } from '../state/theme-context';
 
@@ -41,7 +42,12 @@ export function CommandPalette() {
   const navigate = useNavigate();
   const location = useLocation();
   const { projects, update } = useProjects() as unknown as { projects: import('../lib/types').Project[] | null; update: (id: string, patch: Record<string, unknown>) => Promise<unknown> };
-  const { teams } = useTeams();
+  let teams: import('../lib/types').Team[] | null = null;
+  try {
+    teams = useTeams().teams as import('../lib/types').Team[] | null;
+  } catch {
+    teams = null;
+  }
   const { t } = useTranslation('shell');
   const { lang, setLang } = useAppLocale();
   const { setTheme } = useTheme();
@@ -218,14 +224,13 @@ export function CommandPalette() {
     }
     if (teamId) {
       list.push({
-        id: 'open-team-chat',
+        id: 'toggle-team-chat',
         group: t('palette.groupNavigate'),
-        label: t('palette.openTeamChat', { defaultValue: 'Open team chat' }),
+        label: t('palette.toggleTeamChat', { defaultValue: 'Toggle team chat' }),
         icon: <ChatsCircle size={16} />,
         run: () => {
           setOpen(false);
-          const targetTeam = teams?.find((tm) => tm.id === teamId);
-          if (targetTeam) navigate(`/team/${teamId}?tab=chat`);
+          toggleChat();
         },
       });
     }
@@ -311,34 +316,6 @@ export function CommandPalette() {
           setIndex(0);
         }
         setOpen((o) => !o);
-        return;
-      }
-      if (e.key === '?' && !openRef.current) {
-        const target = e.target as HTMLElement | null;
-        const typing =
-          target?.tagName === 'INPUT' ||
-          target?.tagName === 'TEXTAREA' ||
-          target?.isContentEditable;
-        if (!typing) {
-          e.preventDefault();
-          setQuery('');
-          setIndex(0);
-          setOpen(true);
-        }
-        return;
-      }
-      if (e.key === '/' && !openRef.current) {
-        const target = e.target as HTMLElement | null;
-        const typing =
-          target?.tagName === 'INPUT' ||
-          target?.tagName === 'TEXTAREA' ||
-          target?.isContentEditable;
-        if (!typing) {
-          e.preventDefault();
-          setQuery('');
-          setIndex(0);
-          setOpen(true);
-        }
         return;
       }
       if (!openRef.current) return;
