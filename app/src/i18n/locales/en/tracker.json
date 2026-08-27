@@ -37,6 +37,10 @@
     "addTask": "Add task",
     "unassigned": "Unassigned",
     "doneProgress": "{{done}}/{{total}} done",
+    "fullscreen": {
+      "enter": "Fullscreen — F",
+      "exit": "Exit fullscreen — F"
+    },
     "taskCard": {
       "actualEstimate": "actual / estimate (hours)",
       "priorityTitle": "{{priority}} priority",

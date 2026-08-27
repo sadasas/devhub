@@ -8096,6 +8096,17 @@ input[type='checkbox'] {
 .wb-cap-banner-danger { background: var(--status-danger-dim); border-color: var(--status-danger); }
 .wb-shell:fullscreen { height: 100dvh; background: var(--bg-inset); overflow: hidden; padding: 16px; }
 .wb-shell:fullscreen .wb-canvas { flex: 1 1 auto; height: auto; min-height: 0; }
+.board-shell { display: flex; flex-direction: column; min-width: 0; }
+.board-shell:fullscreen { width: 100vw; height: 100dvh; background: var(--bg-base); color: var(--text-primary); color-scheme: var(--color-scheme); overflow: auto; padding: 16px; display: flex; flex-direction: column; }
+.board-shell:fullscreen::backdrop { background: var(--bg-base); }
+.board-shell--fullscreen { position: fixed; inset: 0; z-index: calc(var(--z-overlay) + 1); width: 100vw; height: 100dvh; background: var(--bg-base); overflow: auto; padding: 16px; display: flex; flex-direction: column; }
+.board-shell:fullscreen .board-toolbar { position: sticky; top: 0; z-index: 5; background: var(--bg-base); margin-bottom: 12px; flex-shrink: 0; }
+.board-shell:fullscreen .kanban { max-height: none; flex: 1 1 auto; min-height: 0; }
+.board-shell:fullscreen .kanban-col { max-height: calc(100dvh - 80px); }
+.board-shell:fullscreen .tl-root { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.board-shell:fullscreen .tl-wrap { flex: 1 1 auto; min-height: 0; }
+.board-shell:fullscreen .tl-wrap { max-height: none !important; }
+.board-shell:fullscreen .tl-lane, .board-shell:fullscreen .tl-grid { max-height: none !important; }
 .chat-panel { display: flex; flex-direction: column; height: 60dvh; min-height: 320px; border: 1px solid var(--border-hairline); border-radius: var(--radius-card); background: var(--bg-inset); overflow: hidden; }
 .chat-list { flex: 1 1 auto; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 12px; position: relative; }
 .chat-msg { position: relative; display: flex; align-items: flex-start; gap: 8px; padding-right: 72px; }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react';
-import { Plus, SquaresFour, Flag, ChartBar } from '@phosphor-icons/react';
+import { Plus, SquaresFour, Flag, ChartBar, ArrowsOutSimple, ArrowsInSimple } from '@phosphor-icons/react';
 import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import type { Task, TaskStatus } from '../../lib/types';
@@ -20,6 +20,7 @@ import { TaskCard } from './TaskCard';
 import { TaskModal } from './TaskModal';
 import { NewTaskModal } from './NewTaskModal';
 import { InlineError } from '../../components/InlineError';
+import { isTypingTarget, isModalOrPaletteOpen } from '../../lib/keys';
 
 const BoardTimeline = lazy(() =>
   import('./BoardTimeline').then((m) => ({ default: m.BoardTimeline })),
@@ -110,6 +111,29 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const [doneBlockedMsg, setDoneBlockedMsg] = useState<string | null>(null);
   const [members, setMembers] = useState<Record<string, { email: string; displayName?: string }>>({});
   const doneBlockedTimer = useRef<number | undefined>(undefined);
+  const shellRef = useRef<HTMLDivElement>(null);
+  const [isFs, setIsFs] = useState(false);
+  const toggleFs = useCallback(() => {
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void shellRef.current?.requestFullscreen();
+  }, []);
+  useEffect(() => {
+    const onFsChange = () => setIsFs(document.fullscreenElement === shellRef.current);
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
+  useEffect(() => {
+    if (editId || newTaskAt) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (isTypingTarget(e.target) || isModalOrPaletteOpen() || e.altKey) return;
+      if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        toggleFs();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [editId, newTaskAt, toggleFs]);
   const openTask = useCallback((id: string) => setEditId(id), []);
   const handleTouchDrop = useCallback((taskId: string, dropKey: string | null) => {
     getDropHandler(dropKey)?.(taskId);
@@ -360,7 +384,8 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   });
 
   return (
-    <div>
+    <>
+    <div ref={shellRef} className="board-shell">
       <div className="board-toolbar">
         <div className="sub-tabs" role="tablist" aria-label={t('board.viewTabs')}>
           <button
@@ -415,6 +440,17 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
               {t('board.onlyMyTasks')}
             </label>
           )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="btn-icon"
+            aria-pressed={isFs}
+            aria-label={isFs ? t('board.fullscreen.exit', { defaultValue: 'Exit fullscreen — F' }) : t('board.fullscreen.enter', { defaultValue: 'Fullscreen — F' })}
+            title={isFs ? t('board.fullscreen.exit', { defaultValue: 'Exit fullscreen (F)' }) : t('board.fullscreen.enter', { defaultValue: 'Fullscreen (F)' })}
+            onClick={toggleFs}
+          >
+            {isFs ? <ArrowsInSimple size={15} aria-hidden="true" /> : <ArrowsOutSimple size={15} aria-hidden="true" />}
+          </Button>
         </div>
       </div>
 
@@ -438,6 +474,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           {view === 'status' ? statusColumns : milestoneCols}
         </div>
       )}
+      </div>
 
       <TaskModal taskId={editId} onClose={() => setEditId(null)} />
       <NewTaskModal
@@ -448,6 +485,6 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
         startDate={newTaskAt?.startDate}
         onClose={() => setNewTaskAt(null)}
       />
-    </div>
+    </>
   );
 }

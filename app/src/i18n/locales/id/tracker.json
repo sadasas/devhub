@@ -37,6 +37,10 @@
     "addTask": "Tambah task",
     "unassigned": "Tanpa milestone",
     "doneProgress": "{{done}}/{{total}} selesai",
+    "fullscreen": {
+      "enter": "Layar penuh — F",
+      "exit": "Keluar layar penuh — F"
+    },
     "taskCard": {
       "actualEstimate": "aktual / estimasi (jam)",
       "priorityTitle": "prioritas {{priority}}",
