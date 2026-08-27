@@ -435,7 +435,9 @@
       "noDecision": "Tidak ada keputusan yang dicatat.",
       "noConsequences": "Tidak ada konsekuensi yang dicatat.",
       "deleteConfirmTitle": "Hapus catatan keputusan?",
-      "deleteConfirmBody": "Ini menghapus catatan keputusan secara permanen. Tindakan ini tidak dapat dibatalkan."
+      "deleteConfirmBody": "Ini menghapus catatan keputusan secara permanen. Tindakan ini tidak dapat dibatalkan.",
+      "milestoneLabel": "Milestone",
+      "noMilestone": "Tanpa milestone"
     },
     "newModal": {
       "title": "Keputusan baru",
@@ -506,7 +508,10 @@
       "tasksInRelease": "Task dalam rilis ini · {{count}}",
       "noTasksAssigned": "Tidak ada task yang ditugaskan ke milestone ini.",
       "deleteConfirmTitle": "Hapus milestone?",
-      "deleteConfirmBody": "Ini menghapus milestone secara permanen. Task yang tertaut akan lepas penugasannya. Tindakan ini tidak dapat dibatalkan."
+      "deleteConfirmBody": "Ini menghapus milestone secara permanen. Task yang tertaut akan lepas penugasannya. Tindakan ini tidak dapat dibatalkan.",
+      "changelogHelp": "Markdown: **tebal**, _miring_, `kode`, [tautan](https://...)",
+      "changelogHelp2": "## judul, - poin, 1. bernomor, > kutipan, ```blok kode```",
+      "changelogPlaceholder": "- poin, **tebal**, _miring_, `kode`"
     },
     "newModal": {
       "title": "Milestone baru",
@@ -520,6 +525,44 @@
       "statusLabel": "Status",
       "changelogLabel": "Changelog",
       "changelogHelper": "Apa yang dirilis pada release ini"
+    },
+    "overdue": "Terlambat",
+    "group": {
+      "active": "Aktif",
+      "planned": "Direncanakan",
+      "released": "Dirilis"
+    },
+    "viewToggle": {
+      "aria": "Tampilan rilis",
+      "list": "Daftar",
+      "flow": "Alur",
+      "timeline": "Timeline"
+    },
+    "flow": {
+      "ready": "Siap rilis",
+      "notReady": "Belum siap",
+      "checklistTitle": "Checklist Kesiapan",
+      "emptyDescFlow": "Belum ada rilis. Buat milestone dengan status Sedang berjalan untuk melihat alur step-by-step.",
+      "invalidMilestone": "Milestone terpilih tidak ditemukan. Pilih di bawah.",
+      "selectMilestone": "Milestone",
+      "cycleDetected": "Siklus terdeteksi di rantai blockedBy — menampilkan urutan cadangan.",
+      "allBlocked": "Semua task terblokir. Mulai dari task yang memblokir paling banyak.",
+      "addTask": "Tambah task ke rilis ini",
+      "dagAria": "Alur eksekusi",
+      "layerReady": "Siap Sekarang",
+      "layerBlocked": "Terblokir — Lapisan {{idx}}",
+      "doneSection": "Selesai",
+      "blockedBy": "Terblokir oleh:",
+      "stateReady": "Siap",
+      "stateBlocked": "Terblokir",
+      "technicalContext": "Konteks Teknis",
+      "decisions": "Keputusan",
+      "schema": "Versi Schema",
+      "stack": "Stack",
+      "viewDetail": "Lihat detail alur →"
+    },
+    "detail": {
+      "back": "Kembali ke Timeline"
     }
   },
   "overview": {

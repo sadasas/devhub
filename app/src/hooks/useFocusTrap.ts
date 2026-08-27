@@ -9,7 +9,7 @@ const FOCUSABLE_SELECTOR = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(',');
 
-export function useFocusTrap<T extends HTMLElement>(active: boolean) {
+export function useFocusTrap<T extends HTMLElement>(active: boolean, initialFocusRef?: React.RefObject<HTMLElement | null>) {
   const containerRef = useRef<T | null>(null);
 
   useEffect(() => {
@@ -20,7 +20,13 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean) {
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const focusables = () =>
       Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
-    focusables()[0]?.focus();
+    if (initialFocusRef?.current && container.contains(initialFocusRef.current)) {
+      initialFocusRef.current.focus();
+    } else if (document.activeElement instanceof HTMLElement && container.contains(document.activeElement)) {
+      // keep current focus if already inside container (e.g. autoFocus case)
+    } else {
+      focusables()[0]?.focus();
+    }
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Tab') return;
@@ -41,9 +47,14 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean) {
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
-      previouslyFocused?.focus();
+      if (previouslyFocused && document.contains(previouslyFocused)) {
+        previouslyFocused.focus();
+      } else {
+        const expandTrigger = document.querySelector<HTMLElement>('[data-expand-trigger]');
+        if (expandTrigger && document.contains(expandTrigger)) expandTrigger.focus();
+      }
     };
-  }, [active]);
+  }, [active, initialFocusRef]);
 
   return containerRef;
 }

@@ -163,6 +163,7 @@ export const decisionSchema = z.object({
   consequences: z.string().max(LIMITS.DECISION_CONSEQUENCES).default(''),
   date: isoDate,
   pinned: z.boolean().default(false),
+  milestoneId: z.string().uuid().nullable().optional(),
 });
 
 export const milestoneStatus = z.enum(['planned', 'inProgress', 'released']);

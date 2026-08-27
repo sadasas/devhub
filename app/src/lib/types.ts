@@ -115,6 +115,7 @@ export interface Decision extends Base {
   consequences: string;
   date: string;
   pinned?: boolean;
+  milestoneId?: string | null;
 }
 
 export interface Milestone extends Base {

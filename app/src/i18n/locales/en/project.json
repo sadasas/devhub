@@ -435,7 +435,9 @@
       "noDecision": "No decision recorded.",
       "noConsequences": "No consequences recorded.",
       "deleteConfirmTitle": "Delete decision record?",
-      "deleteConfirmBody": "This permanently deletes the decision record. This cannot be undone."
+      "deleteConfirmBody": "This permanently deletes the decision record. This cannot be undone.",
+      "milestoneLabel": "Milestone",
+      "noMilestone": "No milestone"
     },
     "newModal": {
       "title": "New decision",
@@ -506,7 +508,10 @@
       "tasksInRelease": "Tasks in this release · {{count}}",
       "noTasksAssigned": "No tasks assigned to this milestone.",
       "deleteConfirmTitle": "Delete milestone?",
-      "deleteConfirmBody": "This permanently deletes the milestone. Tasks linked to it will be unassigned. This cannot be undone."
+      "deleteConfirmBody": "This permanently deletes the milestone. Tasks linked to it will be unassigned. This cannot be undone.",
+      "changelogHelp": "Markdown: **bold**, _italic_, `code`, [link](https://...)",
+      "changelogHelp2": "## heading, - bullet, 1. numbered, > quote, ```code block```",
+      "changelogPlaceholder": "- bullet, **bold**, _italic_, `code`"
     },
     "newModal": {
       "title": "New milestone",
@@ -520,6 +525,44 @@
       "statusLabel": "Status",
       "changelogLabel": "Changelog",
       "changelogHelper": "What shipped with this release"
+    },
+    "overdue": "Overdue",
+    "group": {
+      "active": "Active",
+      "planned": "Planned",
+      "released": "Released"
+    },
+    "viewToggle": {
+      "aria": "Releases view",
+      "list": "List",
+      "flow": "Flow",
+      "timeline": "Timeline"
+    },
+    "flow": {
+      "ready": "Ready to release",
+      "notReady": "Not ready",
+      "checklistTitle": "Readiness Checklist",
+      "emptyDescFlow": "No releases yet. Create a milestone with status In Progress to see the step-by-step flow.",
+      "invalidMilestone": "Selected milestone not found. Choose one below.",
+      "selectMilestone": "Milestone",
+      "cycleDetected": "Cycle detected in blockedBy chain — showing fallback order.",
+      "allBlocked": "All tasks are blocked. Start with the tasks that block the most others.",
+      "addTask": "Add task to this release",
+      "dagAria": "Execution flow",
+      "layerReady": "Ready Now",
+      "layerBlocked": "Blocked — Layer {{idx}}",
+      "doneSection": "Done",
+      "blockedBy": "Blocked by:",
+      "stateReady": "Ready",
+      "stateBlocked": "Blocked",
+      "technicalContext": "Technical Context",
+      "decisions": "Decisions",
+      "schema": "Schema Versions",
+      "stack": "Stack",
+      "viewDetail": "View flow detail →"
+    },
+    "detail": {
+      "back": "Back to Timeline"
     }
   },
   "overview": {
