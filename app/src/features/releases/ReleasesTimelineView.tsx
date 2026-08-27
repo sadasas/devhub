@@ -1,4 +1,5 @@
 import { Badge } from "../../components/Badge";
+import { MarkdownBlocks } from "../../lib/markdown";
 import { MILESTONE_STATUS } from "../../lib/labels";
 import type { Milestone, Task } from "../../lib/types";
 import { shortId } from "../../lib/utils";
@@ -10,6 +11,7 @@ interface Props {
   tasks: Task[];
   onSelect: (id: string) => void;
   unreadIds?: ReadonlySet<string>;
+  showCta?: boolean;
 }
 
 function dotForStatus(status: Milestone["status"]) {
@@ -32,7 +34,7 @@ function parseDateParts(iso?: string | null) {
   }
 }
 
-export function ReleasesTimelineView({ milestones, tasks, onSelect, unreadIds }: Props) {
+export function ReleasesTimelineView({ milestones, tasks, onSelect, unreadIds, showCta = true }: Props) {
   const { t } = useTranslation("project");
   if (milestones.length === 0) return null;
   const sorted = [...milestones].sort((a, b) => {
@@ -44,7 +46,6 @@ export function ReleasesTimelineView({ milestones, tasks, onSelect, unreadIds }:
   const releasedCount = sorted.filter((m) => m.status === "released").length;
   const total = sorted.length;
   const fillPercent = total > 1 ? Math.round((releasedCount / total) * 100) : 0;
-  const firstActiveId = sorted.find((m) => m.status === "inProgress")?.id ?? null;
   return (
     <div className="timeline">
       <div className="timeline-spine" aria-hidden="true">
@@ -55,9 +56,7 @@ export function ReleasesTimelineView({ milestones, tasks, onSelect, unreadIds }:
         const done = msTasks.filter((tt) => tt.status === "done").length;
         const tot = msTasks.length;
         const progress = tot > 0 ? Math.round((done / tot) * 100) : 0;
-        const isActive = m.id === firstActiveId;
         const date = parseDateParts(m.targetDate);
-        const isPlannedWithProgress = m.status === "planned" && tot > 0;
         return (
           <div key={m.id} className="timeline-row">
             <div className="timeline-date-col">
@@ -72,7 +71,7 @@ export function ReleasesTimelineView({ milestones, tasks, onSelect, unreadIds }:
               )}
             </div>
             <div className={"timeline-dot " + dotForStatus(m.status)} aria-hidden="true">
-              {m.status === "released" ? <Check size={14} weight="bold" /> : isActive ? <Rocket size={14} weight="fill" /> : isPlannedWithProgress ? <span style={{ fontSize: 9, fontWeight: 700 }}>{progress}%</span> : null}
+              {m.status === "released" ? <Check size={14} weight="bold" /> : m.status === "inProgress" ? <Rocket size={14} weight="fill" /> : null}
             </div>
             <button type="button" className="timeline-card" onClick={() => onSelect(m.id)} aria-label={m.name}>
               <div className="timeline-card-head">
@@ -82,7 +81,7 @@ export function ReleasesTimelineView({ milestones, tasks, onSelect, unreadIds }:
                 {unreadIds?.has(m.id) && <span className="unread-pill">New</span>}
               </div>
               <div className="timeline-card-title">{m.name}</div>
-              {m.changelog && <div className="timeline-card-sub">{m.changelog}</div>}
+              {m.changelog && <div className="timeline-card-sub md-blocks"><MarkdownBlocks text={m.changelog} /></div>}
               {tot > 0 && (
                 <div className="milestone-progress" style={{ marginTop: 8 }}>
                   <div className="milestone-progress-track">
@@ -91,7 +90,7 @@ export function ReleasesTimelineView({ milestones, tasks, onSelect, unreadIds }:
                   <span className="tabular">{done}/{tot} · {progress}%</span>
                 </div>
               )}
-              <span className="timeline-cta">{t("releases.flow.viewDetail", { defaultValue: "Lihat detail alur →" })}</span>
+              {showCta && <span className="timeline-cta">{t("releases.flow.viewDetail", { defaultValue: "Lihat detail alur →" })}</span>}
             </button>
           </div>
         );

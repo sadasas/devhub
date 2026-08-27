@@ -7,9 +7,7 @@ import { ApiError, api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { PublicProject, PublicTab, State, Task } from '../../lib/types';
 import {
-  ISSUE_STATUS,
-  MILESTONE_STATUS,
-  PROJECT_STATUS,
+  ISSUE_STATUS,  PROJECT_STATUS,
   TASK_STATUS,
   TECH_CATEGORY,
   TECH_STATUS,
@@ -24,6 +22,7 @@ import { EmptyState } from '../../components/EmptyState';
 import { InlineError } from '../../components/InlineError';
 import { Skeleton } from '../../components/Skeleton';
 import { PublicWhiteboards } from './PublicWhiteboards';
+import { ReleasesTimelineView } from '../releases/ReleasesTimelineView';
 
 const ALL_PUBLIC_TABS: PublicTab[] = ['board', 'issues', 'stack', 'milestones', 'about', 'whiteboard'];
 
@@ -471,30 +470,8 @@ function PublicMilestones({ state }: { state: State }) {
   if (state.milestones.length === 0) {
     return <p className="about-section-body about-section-body-empty">{t(EMPTY_MESSAGE_KEYS.milestones)}</p>;
   }
-  const sorted = [...state.milestones].sort((a, b) => {
-    if (a.status === 'released' && b.status !== 'released') return -1;
-    if (b.status === 'released' && a.status !== 'released') return 1;
-    return a.targetDate?.localeCompare(b.targetDate ?? '') ?? 0;
-  });
   return (
-    <div className="data-list">
-      {sorted.map((milestone) => (
-        <div key={milestone.id} className="data-row">
-          <div className="data-row-main">
-            <span className="data-row-title">{milestone.name}</span>
-            <span className="data-row-sub">
-              {milestone.targetDate ? t('public.milestone.target', { date: formatDate(milestone.targetDate) }) : t('public.milestone.noTarget')}
-            </span>
-          </div>
-          <div className="data-row-side">
-            {milestone.version && <span className="data-row-meta font-mono">{milestone.version}</span>}
-            <Badge tone={MILESTONE_STATUS[milestone.status].tone}>
-              {MILESTONE_STATUS[milestone.status].label}
-            </Badge>
-          </div>
-        </div>
-      ))}
-    </div>
+    <ReleasesTimelineView milestones={state.milestones} tasks={state.tasks} onSelect={() => {}} showCta={false} />
   );
 }
 
