@@ -4554,17 +4554,17 @@ a:hover {
 .tl-wrap {
   width: 100%;
   min-width: 0;
-  --lane-w: 256px;
+  --lane-w: 280px;
   grid-template-columns: var(--lane-w) 1fr;
 }
 @media (max-width: 900px) {
   .tl-wrap {
-    --lane-w: 180px;
+    --lane-w: 200px;
   }
 }
 @media (max-width: 600px) {
   .tl-wrap {
-    --lane-w: 140px;
+    --lane-w: 160px;
   }
 }
 .tl-skeleton {

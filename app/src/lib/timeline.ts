@@ -8,7 +8,7 @@ export const TIMELINE_ZOOMS: TimelineZoom[] = ['day'];
 export const TIMELINE_GROUPS: TimelineGroup[] = ['none', 'milestone', 'assignee'];
 
 export const TIMELINE_COL_WIDTH: Record<TimelineZoom, number> = {
-  day: 56,
+  day: 80,
 };
 
 const DAY_MS = 86_400_000;

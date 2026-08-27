@@ -5,9 +5,10 @@ import { useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Task } from "../../lib/types";
 import { useProject } from "../../state/project-context";
-import { TASK_STATUS } from "../../lib/labels";
+import { TASK_STATUS, TASK_PRIORITY, TASK_PRIORITY_SHORT } from "../../lib/labels";
 import { addDaysToDate, barGeometry, clampGroup, isUnscheduled, isWeekend, timelineWindow, headerMonthLabel, todayIso, TIMELINE_COL_WIDTH, type TimelineGroup } from "../../lib/timeline";
 import { taskDueChip } from "../../lib/due-dates";
+import { avatarColor, initialsOf } from "../../lib/avatar";
 import { api } from "../../lib/api";
 
 interface BoardTimelineProps {
@@ -20,9 +21,8 @@ interface BoardTimelineProps {
   onNewTaskAt?: (t: { startDate?: string | null; dueDate?: string | null }) => void;
   onTouchDrop?: (taskId: string, dropKey: string | null) => void;
 }
-const LANE_LABEL_W = 256;
-const BAR_H = 68;
-const ROW_H = 76;
+const BAR_H = 92;
+const ROW_H = 100;
 const ROW_TOP = 4;
 function dayIndex(iso: string): number { return Math.floor(Date.parse(`${iso}T00:00:00Z`) / 86400000); }
 function packLane(tasks: Task[]): { rowOf: Map<string, number>; rowsNeeded: number } {
@@ -188,8 +188,8 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds }:
           </button>
         ))}
       </div>
-      <div className="tl-wrap" style={{display:"grid",gridTemplateColumns:`${LANE_LABEL_W}px 1fr`,gridTemplateRows:"64px 1fr",border:"1px solid var(--border-hairline)",borderRadius:"var(--radius-card)",overflow:"hidden",background:"var(--bg-elevated)",width:"100%",minWidth:0}}>
-          <div style={{background:"var(--bg-elevated)",borderBottom:"1px solid var(--border-strong)",borderRight:"1px solid var(--border-hairline)",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 10px",height:64,position:"sticky",top:0,left:0,zIndex:4, minWidth:0}}>
+      <div className="tl-wrap" style={{display:"grid",gridTemplateColumns:"var(--lane-w) 1fr",gridTemplateRows:"76px 1fr",border:"1px solid var(--border-hairline)",borderRadius:"var(--radius-card)",overflow:"hidden",background:"var(--bg-elevated)",width:"100%",minWidth:0}}>
+          <div style={{background:"var(--bg-elevated)",borderBottom:"1px solid var(--border-strong)",borderRight:"1px solid var(--border-hairline)",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 10px",height:76,position:"sticky",top:0,left:0,zIndex:4, minWidth:0}}>
             <span style={{fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.06em",color:"var(--text-muted)"}}>{t("board.timeline.laneTasks",{defaultValue:"Tasks"})}</span>
             <span style={{display:"flex",gap:4}}>
               <button type="button" className="btn btn-ghost btn-sm btn-icon" aria-label={t("board.timeline.prev",{defaultValue:"Previous"})} onClick={()=>onNav(-1)}><CaretLeft size={14} aria-hidden="true" /></button>
@@ -197,16 +197,16 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds }:
             </span>
           </div>
           <div ref={headerRef} style={{overflow:"hidden",borderBottom:"1px solid var(--border-strong)",background:"var(--bg-elevated)",position:"sticky",top:0,zIndex:2,minWidth:0}}>
-            <div style={{display:"flex",height:28,borderBottom:"1px solid var(--border-hairline)"}}>
+            <div style={{display:"flex",height:32,borderBottom:"1px solid var(--border-hairline)"}}>
               {monthHeaders.map(mh=> (<div key={mh.key} style={{flex:`0 0 ${mh.span*colW}px`,width:mh.span*colW,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--font-mono)",fontSize:11,letterSpacing:"0.06em",textTransform:"uppercase",color:"var(--text-muted)",borderRight:"1px solid var(--border-hairline)",whiteSpace:"nowrap",overflow:"hidden"}}>{mh.label}</div>))}
             </div>
-            <div style={{display:"flex",height:36}}>
+            <div style={{display:"flex",height:44}}>
               {win.days.map(d=>{const isToday=d===today; const weekend=isWeekend(d); return <div key={d} style={{flex:`0 0 ${colW}px`,width:colW,borderRight:"1px solid var(--border-hairline)",display:"grid",placeItems:"center",padding:"4px 0",background:isToday?"var(--accent-dim)":weekend?"var(--bg-weekend, rgba(255,255,255,0.02))":"transparent"}}><span style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,color:isToday?"var(--accent)":"var(--text-primary)",lineHeight:1}}>{d.slice(8)}</span><span style={{fontSize:10.5,color:"var(--text-muted)",lineHeight:1}}>{new Date(`${d}T00:00:00Z`).toLocaleDateString(undefined,{weekday:"short"}).slice(0,3)}</span></div>;})}
             </div>
           </div>
           <div ref={laneRef} className="tl-lane" style={{overflow:"hidden",overflowY:"auto",scrollbarWidth:"thin",maxHeight:"60vh",position:"sticky",left:0,zIndex:2,background:"var(--bg-elevated)",minWidth:0,overscrollBehavior:"contain"}}>
             {packed.map((lane:any,idx:number)=>{
-              const h = lane.tasks.length===0 ? 88 : Math.max(120, lane.rowsNeeded*ROW_H+12);
+              const h = lane.tasks.length===0 ? 96 : Math.max(128, lane.rowsNeeded*ROW_H+16);
               return <div key={lane.key} style={{height: h, minHeight:36, display:"flex",alignItems:lane.tasks.length?"flex-start":"center",gap:8,padding:"6px 10px",borderBottom:"1px solid var(--border-hairline)",borderRight:"1px solid var(--border-hairline)",background: idx%2===1?"var(--bg-stripe, rgba(255,255,255,0.015))":"transparent",position:"relative"}}>
                 <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:500,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}} title={lane.label}>{lane.label}</div>{"sub" in lane && (lane as any).sub && <div style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--text-muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(lane as any).sub}</div>}<div style={{fontSize:11,fontFamily:"var(--font-mono)",color:"var(--text-muted)"}} className="tabular">{lane.tasks.length} tasks · {lane.rowsNeeded} rows</div>{lane.tasks.length===0 && <div style={{fontSize:11, color:"var(--text-muted)", fontStyle:"italic", marginTop:2}}>No tasks</div>}</div>
               </div>;
@@ -215,7 +215,7 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds }:
           <div ref={gridRef} className="tl-grid" style={{overflow:"auto",position:"relative",maxHeight:"60vh",minWidth:0,overscrollBehavior:"contain"}} onDragOver={handleGridDragOver} onDragLeave={(e)=>{ if(e.target===e.currentTarget) setGhostDate(null); }}>
             <div style={{position:"relative",width:totalWidth,minWidth:totalWidth}}>
               {packed.map((lane:any, laneIdx:number)=>{
-                const h = lane.tasks.length===0 ? 88 : Math.max(120, lane.rowsNeeded*ROW_H+12);
+                const h = lane.tasks.length===0 ? 96 : Math.max(128, lane.rowsNeeded*ROW_H+16);
                 return <div key={lane.key} style={{position:"relative",height: h, minHeight:36, borderBottom:"1px solid var(--border-hairline)",background: laneIdx%2===1?"var(--bg-stripe, rgba(255,255,255,0.015))":"transparent"}} onDragOver={handleGridDragOver} onDrop={e=>{const grid=gridRef.current; if(!grid) return; const gridRect=grid.getBoundingClientRect(); const x=e.clientX-gridRect.left+grid.scrollLeft; const dayIdx=Math.floor(x/colW); const targetDate=win.days[Math.max(0,Math.min(win.days.length-1,dayIdx))]??null; const laneRect=(e.currentTarget as HTMLElement).getBoundingClientRect(); const y=e.clientY-laneRect.top; const targetRow=Math.floor((y-ROW_TOP)/ROW_H); const draggedId=e.dataTransfer.getData("text/plain"); const laneTasks=lane.tasks; const curIdx=laneTasks.findIndex((tt: Task)=>tt.id===draggedId); const fromRow=lane.rowOf.get(draggedId) ?? curIdx; if(targetRow!==fromRow && curIdx!==-1 && draggedId){ const targetTask=laneTasks.find((tt: Task)=> (lane.rowOf.get(tt.id)??0)===targetRow); if(targetTask){ const targetIdx=laneTasks.findIndex((tt: Task)=>tt.id===targetTask.id); let steps=Math.abs(targetIdx-curIdx); let dir= targetIdx>curIdx?1:-1; for(let s=0;s<steps;s++) moveInLane(lane.key, draggedId, dir); } } handleGridDrop(e,targetDate);}}>
                   <div style={{position:"absolute",inset:0,display:"flex",pointerEvents:"none"}} aria-hidden="true">{win.days.map(d=>(<div key={d} style={{flex:`0 0 ${colW}px`,width:colW,borderRight: d===today?"1px solid var(--accent)":"1px solid var(--border-hairline)",opacity: d===today?1:0.6,background: d===today?"var(--accent-dim)": isWeekend(d)?"var(--bg-weekend, rgba(255,255,255,0.02))":"transparent"}} />))}</div>
                   {todayOffset!=null && (<><div aria-hidden="true" style={{position:"absolute",top:0,bottom:0,left:todayOffset,width:colW,background:"var(--accent-dim)",opacity:0.15,pointerEvents:"none"}} /><div aria-hidden="true" style={{position:"absolute",top:0,bottom:0,left:todayOffset,width:1.5,background:"var(--accent)",zIndex:2,pointerEvents:"none"}} /></>)}
@@ -234,10 +234,34 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds }:
                     const border = isDone ? "rgba(0,0,0,0.12)" : "rgba(0,0,0,0.08)";
                     const borderStyle = isDone ? "dashed" : "solid";
                     const shadow = isDone ? "none" : "0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.10)";
+                    const statusMeta = TASK_STATUS[task.status];
+                    const prioMeta = TASK_PRIORITY[task.priority];
+                    const assignee = task.assigneeId ? (members as any)?.[task.assigneeId] : undefined;
+                    const assigneeName = assignee ? (assignee.displayName || assignee.email) : undefined;
+                    const showAssigneeName = geom.width >= 140;
+                    const showDue = geom.width >= 110;
                     return <div key={task.id} role="group" aria-label={`${task.title}, ${geom.startDate} to ${geom.endDate}, ${task.status}, ${task.priority}`} style={{position:"absolute",left:geom.left,top,width:geom.width,height:BAR_H}}>
-                      <button type="button" aria-label={`${task.title}, ${geom.startDate} to ${geom.endDate}, ${TASK_STATUS[task.status].label}`} draggable={canEdit} onDragStart={e=>handleBarDragStart(e,task)} onDragEnd={handleDragEnd} onClick={()=>handleBarClick(task)} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault(); handleBarClick(task);}}} title={`${task.title} · ${geom.startDate}→${geom.endDate} (${geom.spanDays}d) · ${TASK_STATUS[task.status].label}`} style={{width:"100%",height:BAR_H,borderRadius:"var(--radius-card)",border:`1px ${borderStyle} ${border}`,background:bg,boxShadow:shadow,display:"flex",flexDirection:"column",alignItems:"stretch",justifyContent:"center",padding:"6px 8px",gap:2,cursor:canEdit?"grab":"pointer",opacity:1,overflow:"hidden",minWidth:0}}>
-                      <span style={{flex:1,minWidth:0,display:"-webkit-box",WebkitBoxOrient:"vertical",WebkitLineClamp:3,lineClamp:"3" as any,overflow:"hidden",overflowWrap:"anywhere",wordBreak:"normal",lineHeight:"15px",fontSize:12,fontWeight:600,color:textColor,textAlign:"left"}}>{task.title}</span>
-                      {task.estimate!=null && <span className="tabular" style={{fontSize:10,color:isDone?"var(--text-muted)":"#475569",alignSelf:"flex-start",fontWeight:500,flexShrink:0,lineHeight:1}}>{task.estimate}h</span>}
+                      <button type="button" aria-label={`${task.title}, ${geom.startDate} to ${geom.endDate}, ${TASK_STATUS[task.status].label}`} draggable={canEdit} onDragStart={e=>handleBarDragStart(e,task)} onDragEnd={handleDragEnd} onClick={()=>handleBarClick(task)} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault(); handleBarClick(task);}}} title={`${task.title} · ${geom.startDate}→${geom.endDate} (${geom.spanDays}d) · ${TASK_STATUS[task.status].label}`} style={{width:"100%",height:BAR_H,borderRadius:"var(--radius-card)",border:`1px ${borderStyle} ${border}`,background:bg,boxShadow:shadow,display:"flex",flexDirection:"column",alignItems:"stretch",justifyContent:"center",padding:"7px 8px 6px 8px",gap:4,cursor:canEdit?"grab":"pointer",opacity:1,overflow:"hidden",minWidth:0}}>
+                      <span style={{display:"flex",alignItems:"center",gap:4,minWidth:0}}>
+                        <span className={`badge badge-${(statusMeta as any).tone ?? 'neutral'}`} style={{fontSize:10, padding:"2px 6px", lineHeight:1}}>{statusMeta.label}</span>
+                        <span className={`badge badge-${(prioMeta as any).tone ?? 'neutral'}`} style={{fontSize:10, padding:"2px 5px", marginLeft:"auto", lineHeight:1}}>{TASK_PRIORITY_SHORT[task.priority]}</span>
+                        {unreadIds?.has(task.id) && <span className="unread-pill" style={{fontSize:9, padding:"1px 4px", lineHeight:1}}>New</span>}
+                      </span>
+                      <span style={{flex:1,minWidth:0,display:"-webkit-box",WebkitBoxOrient:"vertical",WebkitLineClamp:2,lineClamp:"2" as any,overflow:"hidden",overflowWrap:"anywhere",wordBreak:"normal",lineHeight:"14px",fontSize:12,fontWeight:600,color:textColor,textAlign:"left"}}>{task.title}</span>
+                      <span style={{display:"flex",alignItems:"center",gap:6,minWidth:0}}>
+                        {assigneeName ? (
+                          <span className="task-avatar" title={assigneeName} style={{gap:4, fontSize:10, minWidth:0}}>
+                            <span className="task-assignee-avatar" style={{width:16,height:16,fontSize:9,backgroundColor: avatarColor(task.assigneeId!)}}>{initialsOf(assigneeName)}</span>
+                            {showAssigneeName && <span className="task-assignee-name" style={{maxWidth:72, fontSize:10}}>{assigneeName}</span>}
+                          </span>
+                        ) : (
+                          <span style={{fontSize:10,color:"#94a3b8",fontStyle:"italic"}}>—</span>
+                        )}
+                        <span style={{marginLeft:"auto",display:"inline-flex",gap:6,alignItems:"center",flexShrink:0}}>
+                          {task.estimate!=null && <span className="tabular" style={{fontSize:10,color:isDone?"#065f46":"#475569",fontWeight:500,lineHeight:1}}>{task.estimate}h</span>}
+                          {showDue && dueChip.label && <span className={`task-due task-due-${dueChip.tone}`} style={{fontSize:10,padding:"1px 4px",lineHeight:1}}>{dueChip.label}</span>}
+                        </span>
+                      </span>
                     </button>
                     </div>;
                   })}
