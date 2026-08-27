@@ -27,6 +27,7 @@ export const LIMITS = {
   WHITEBOARD_DESCRIPTION: 2_000,
   WHITEBOARD_ELEMENTS: 1_000,
   WHITEBOARDS_PER_PROJECT: 50,
+  TIMELINE_ORDER: 5000,
 } as const;
 
 export const isoDate = z.string().refine((v) => !Number.isNaN(Date.parse(v)), {
@@ -357,6 +358,8 @@ export const stateSchema = z.object({
   apiCollections: z.array(apiCollectionSchema).max(500).default([]),
   apiEndpoints: z.array(apiEndpointSchema).max(5_000).default([]),
   whiteboards: z.array(whiteboardSchema).max(LIMITS.WHITEBOARDS_PER_PROJECT).default([]),
+  timelineOrder: z.record(z.string(), z.array(z.string().uuid()).max(5000)).default({}),
+  timelineRow: z.record(z.string(), z.record(z.string(), z.number().int().min(0).max(10000))).default({}),
 });
 
 export type State = z.infer<typeof stateSchema>;
@@ -400,6 +403,8 @@ export const emptyState: State = {
   apiCollections: [],
   apiEndpoints: [],
   whiteboards: [],
+  timelineOrder: {},
+  timelineRow: {},
 };
 
 export const exportDocumentSchema = z.object({

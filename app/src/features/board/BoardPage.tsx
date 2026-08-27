@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Plus, SquaresFour, Flag, CalendarBlank } from '@phosphor-icons/react';
+import { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react';
+import { Plus, SquaresFour, Flag, ChartBar } from '@phosphor-icons/react';
 import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import type { Task, TaskStatus } from '../../lib/types';
 import { isTaskCompletable } from '../../lib/utils';
-import { dueBucket, dueColumnDate, type DueBucket } from '../../lib/due-dates';
 import { TASK_PRIORITY_ORDER } from '../../lib/labels';
 import { applySort, type SortSpec } from '../../lib/sort';
 import { useProject } from '../../state/project-context';
@@ -20,22 +19,15 @@ import { SortControl } from '../../components/SortControl';
 import { TaskCard } from './TaskCard';
 import { TaskModal } from './TaskModal';
 import { NewTaskModal } from './NewTaskModal';
-import { DueCalendar } from './DueCalendar';
 import { InlineError } from '../../components/InlineError';
+
+const BoardTimeline = lazy(() =>
+  import('./BoardTimeline').then((m) => ({ default: m.BoardTimeline })),
+);
 
 const COLUMNS: TaskStatus[] = ['todo', 'inProgress', 'review', 'done'];
 
-type BoardView = 'status' | 'milestone' | 'due';
-
-const DUE_BUCKETS: DueBucket[] = [
-  'overdue',
-  'today',
-  'tomorrow',
-  'thisWeek',
-  'nextWeek',
-  'later',
-  'none',
-];
+type BoardView = 'status' | 'milestone' | 'timeline';
 
 const milestoneOrder = (m: { status: string; targetDate?: string | null }): number =>
   m.status === 'planned' ? 0 : m.status === 'inProgress' ? 1 : 2;
@@ -52,33 +44,38 @@ interface NewTaskTarget {
   status?: TaskStatus;
   milestoneId?: string | null;
   dueDate?: string | null;
+  startDate?: string | null;
 }
 
 export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { t } = useTranslation('tracker');
   const { state, loading, error, dispatch, canEdit, teamId } = useProject();
   const [searchParams, setSearchParams] = useSearchParams();
-  const viewParam = searchParams.get('view');
+  const rawView = searchParams.get('view');
+  // hard delete ?view=due → redirect to timeline (M41)
   const view: BoardView =
-    viewParam === 'milestone' ? 'milestone' : viewParam === 'due' ? 'due' : 'status';
-  const calParam = searchParams.get('cal');
-  const calMode = view === 'due' && calParam === '1';
-  const setCal = (on: boolean) => {
-    setSearchParams(
-      (prev) => {
-        const p = new URLSearchParams(prev);
-        if (on) p.set('cal', '1');
-        else p.delete('cal');
-        return p;
-      },
-      { replace: true },
-    );
-  };
+    rawView === 'milestone' ? 'milestone' : rawView === 'timeline' || rawView === 'due' ? 'timeline' : 'status';
+  // legacy ?view=due or ?cal=1 → normalize to timeline (replace once)
+  useEffect(() => {
+    if (rawView === 'due' || searchParams.get('cal') === '1') {
+      setSearchParams(
+        (prev) => {
+          const p = new URLSearchParams(prev);
+          p.set('view', 'timeline');
+          p.delete('cal');
+          return p;
+        },
+        { replace: true },
+      );
+    }
+  }, [rawView, searchParams, setSearchParams]);
   const setView = (next: BoardView) => {
     setSearchParams(
       (prev) => {
         const p = new URLSearchParams(prev);
         p.set('view', next);
+        // cleanup legacy cal param when leaving due
+        p.delete('cal');
         return p;
       },
       { replace: true },
@@ -106,15 +103,6 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     inProgress: t('board.column.inProgress'),
     review: t('board.column.review'),
     done: t('board.column.done'),
-  };
-  const dueBucketLabels: Record<DueBucket, string> = {
-    overdue: t('board.dueBucket.overdue'),
-    today: t('board.dueBucket.today'),
-    tomorrow: t('board.dueBucket.tomorrow'),
-    thisWeek: t('board.dueBucket.thisWeek'),
-    nextWeek: t('board.dueBucket.nextWeek'),
-    later: t('board.dueBucket.later'),
-    none: t('board.dueBucket.none'),
   };
   const [overKey, setOverKey] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
@@ -174,7 +162,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       if (!task) return;
       e.preventDefault();
       const dir = e.key === 'ArrowRight' ? 1 : -1;
-      if (view === 'due') return;
+      if (view === 'timeline') return;
       if (view === 'status') {
         const i = COLUMNS.indexOf(task.status);
         const next = COLUMNS[(i + dir + COLUMNS.length) % COLUMNS.length]!;
@@ -264,15 +252,6 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     const task = state?.tasks.find((t) => t.id === id);
     if (task && task.milestoneId !== milestoneId) {
       dispatch({ type: 'task/update', id, patch: { milestoneId } });
-    }
-  }
-
-  function moveTaskDue(id: string, bucket: DueBucket) {
-    if (!canEdit) return;
-    const task = state?.tasks.find((t) => t.id === id);
-    const dueDate = dueColumnDate(bucket);
-    if (task && task.dueDate !== dueDate) {
-      dispatch({ type: 'task/update', id, patch: { dueDate } });
     }
   }
 
@@ -380,23 +359,6 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     );
   });
 
-  const dueCols = DUE_BUCKETS.map((bucket) => {
-    const tasks = filteredTasks
-      .filter((t) => dueBucket(t.dueDate) === bucket)
-      .sort((a, b) => (a.dueDate ?? '9999-99-99').localeCompare(b.dueDate ?? '9999-99-99'));
-    return renderColumn(
-      bucket,
-      <>
-        <span className="kanban-col-label">{dueBucketLabels[bucket]}</span>
-        <span className="kanban-col-count tabular">{tasks.length}</span>
-      </>,
-      tasks,
-      bucket,
-      (id) => moveTaskDue(id, bucket),
-      () => setNewTaskAt({ dueDate: dueColumnDate(bucket) }),
-    );
-  });
-
   return (
     <div>
       <div className="board-toolbar">
@@ -424,38 +386,16 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           <button
             type="button"
             role="tab"
-            className={`sub-tab ${view === 'due' ? 'sub-tab-active' : ''}`}
-            onClick={() => setView('due')}
-            aria-selected={view === 'due'}
+            className={`sub-tab ${view === 'timeline' ? 'sub-tab-active' : ''}`}
+            onClick={() => setView('timeline')}
+            aria-selected={view === 'timeline'}
           >
-            <CalendarBlank size={13} aria-hidden="true" />
-            {t('board.byDueDate')}
+            <ChartBar size={13} aria-hidden="true" />
+            {t('board.byTimeline', { defaultValue: 'Timeline' })}
           </button>
         </div>
-        {view === 'due' && (
-          <div className="sub-tabs" role="tablist" aria-label={t('board.calTabs')}>
-            <button
-              type="button"
-              role="tab"
-              className={`sub-tab ${!calMode ? 'sub-tab-active' : ''}`}
-              onClick={() => setCal(false)}
-              aria-selected={!calMode}
-            >
-              {t('board.buckets')}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              className={`sub-tab ${calMode ? 'sub-tab-active' : ''}`}
-              onClick={() => setCal(true)}
-              aria-selected={calMode}
-            >
-              {t('board.tabCalendar')}
-            </button>
-          </div>
-        )}
         <div className="board-toolbar-actions">
-          {view !== 'due' && (
+          {view !== 'timeline' && (
             <SortControl
               options={TASK_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: t(s.label) }))}
               value={sortValue}
@@ -480,22 +420,24 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
 
       {doneBlockedMsg && <InlineError className="mb-12">{doneBlockedMsg}</InlineError>}
 
-      <div className="kanban">
-        {view === 'status' ? (
-          statusColumns
-        ) : view === 'milestone' ? (
-          milestoneCols
-        ) : calMode ? (
-          <DueCalendar
-              onOpenTask={openTask}
-              onQuickCreate={(dueDate) => setNewTaskAt({ dueDate })}
-              taskFilter={mineOnly && userId ? (t) => t.assigneeId === userId : undefined}
-              onTouchDrop={handleTouchDrop}
-            />
-        ) : (
-          dueCols
-        )}
-      </div>
+      {view === 'timeline' ? (
+        <Suspense fallback={<div className="tl-skeleton" aria-busy="true" aria-live="polite"><Skeleton style={{ height: 28, width: '100%', marginBottom: 8 }} /><Skeleton style={{ height: 44, width: '100%', marginBottom: 12 }} /><Skeleton style={{ height: 280, width: '100%' }} /></div>}>
+          <BoardTimeline
+            filteredTasks={filteredTasks}
+            onOpenTask={openTask}
+            members={members}
+            userId={userId}
+            mineOnly={mineOnly}
+            onNewTaskAt={setNewTaskAt}
+            onTouchDrop={handleTouchDrop}
+            unreadIds={unreadIds}
+          />
+        </Suspense>
+      ) : (
+        <div className="kanban">
+          {view === 'status' ? statusColumns : milestoneCols}
+        </div>
+      )}
 
       <TaskModal taskId={editId} onClose={() => setEditId(null)} />
       <NewTaskModal
@@ -503,6 +445,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
         status={newTaskAt?.status ?? null}
         milestoneId={newTaskAt?.milestoneId}
         dueDate={newTaskAt?.dueDate}
+        startDate={newTaskAt?.startDate}
         onClose={() => setNewTaskAt(null)}
       />
     </div>

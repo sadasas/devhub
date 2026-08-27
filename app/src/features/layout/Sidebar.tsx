@@ -4,6 +4,8 @@ import {
   FolderSimple,
   Key,
   MagnifyingGlass,
+  Notebook,
+  Plugs,
   Plus,
   Receipt,
   ShieldStar,
@@ -114,6 +116,20 @@ export function Sidebar({ activeTeamId, activeMain = 'team', onCreateTeam }: Sid
                 <span>{t('sidebar.admin')}</span>
               </NavLink>
             )}
+          </nav>
+
+          <div className="sidebar-section">
+            <span>{t('sidebar.docs')}</span>
+          </div>
+          <nav className="sidebar-nav" aria-label="Docs">
+            <NavLink to="/docs" className={itemClass()} aria-label={t('sidebar.docs')}>
+              <Notebook size={15} weight="duotone" aria-hidden="true" />
+              <span>{t('sidebar.docs')}</span>
+            </NavLink>
+            <NavLink to="/docs/mcp" className={itemClass()} aria-label="MCP">
+              <Plugs size={15} weight="duotone" aria-hidden="true" />
+              <span>MCP</span>
+            </NavLink>
           </nav>
         </>
       ) : (

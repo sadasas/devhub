@@ -45,6 +45,10 @@
   --chart-track: rgba(255, 255, 255, 0.06);
   --chart-grid: rgba(255, 255, 255, 0.04);
 
+  /* Timeline — stripe/weekend bg untuk Gantt (isolasi scroll) */
+  --bg-stripe: rgba(255, 255, 255, 0.015);
+  --bg-weekend: rgba(255, 255, 255, 0.02);
+
   /* Radius scale — documented, locked */
   --radius-card: 8px;
   --radius-input: 6px;
@@ -126,6 +130,9 @@ html[data-theme='light'] {
   --chart-5: #6d5bff;
   --chart-track: rgba(0, 0, 0, 0.06);
   --chart-grid: rgba(0, 0, 0, 0.04);
+
+  --bg-stripe: rgba(0, 0, 0, 0.03);
+  --bg-weekend: rgba(0, 0, 0, 0.015);
 
   --method-get: #0e7a4a;
   --method-get-dim: rgba(14, 122, 74, 0.1);

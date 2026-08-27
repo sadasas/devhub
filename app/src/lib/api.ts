@@ -214,6 +214,12 @@ export const api = {
     }),
   deleteProject: (projectId: string) =>
     request<void>(`/projects/${encodeURIComponent(projectId)}`, { method: 'DELETE' }),
+  patchTimelineOrder: (projectId: string, timelineOrder: Record<string, string[]>, version?: number) =>
+    request<{ ok: true; version: number }>(`/projects/${encodeURIComponent(projectId)}/timeline-order`, {
+      method: 'PATCH',
+      body: JSON.stringify({ timelineOrder }),
+      headers: version !== undefined ? { 'If-Match': `"${version}"` } : undefined,
+    }),
 
   exportProjectDoc: (projectId: string) =>
     request<ExportDocument>(`/projects/${encodeURIComponent(projectId)}/export`),

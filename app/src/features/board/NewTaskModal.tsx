@@ -19,10 +19,11 @@ interface NewTaskModalProps {
   status: TaskStatus | null;
   milestoneId?: string | null;
   dueDate?: string | null;
+  startDate?: string | null;
   onClose: () => void;
 }
 
-export function NewTaskModal({ open, status, milestoneId, dueDate, onClose }: NewTaskModalProps) {
+export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, onClose }: NewTaskModalProps) {
   const { state, dispatch } = useProject();
   const { t } = useTranslation('tracker');
   usePresenceStatus(t('board.newTaskModal.presenceCreating'), open);
@@ -39,9 +40,9 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, onClose }: Ne
     if (open) {
       setMilestone(milestoneId ?? null);
       setDueDateInput(dueDate ?? '');
-      setStartDateInput('');
+      setStartDateInput(startDate ?? '');
     }
-  }, [open, milestoneId, dueDate]);
+  }, [open, milestoneId, dueDate, startDate]);
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();

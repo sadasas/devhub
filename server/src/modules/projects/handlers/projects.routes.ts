@@ -4,6 +4,7 @@ import { requireAuth, getUserId } from '../../auth/middleware/requireAuth.js';
 import { parseOrThrow } from '../../../shared/db.js';
 import { exportDocumentSchema } from '../domain/state.js';
 import { prdSchema } from '../domain/prd.js';
+import { mutateProject } from '../application/entityService.js';
 import {
   createProject,
   deleteProject,
@@ -61,6 +62,19 @@ projectsRouter.patch('/:projectId', async (req, res) => {
   const userId = getUserId(req);
   const { row, version } = await updateProject(userId, req.params.projectId, req.body);
   res.json(projectJson(row));
+  broadcastSync(req.params.projectId, version);
+});
+
+const timelineOrderSchema = z.object({ timelineOrder: z.record(z.string(), z.array(z.string().uuid()).max(5000)).default({}) });
+
+projectsRouter.patch('/:projectId/timeline-order', async (req, res) => {
+  const userId = getUserId(req);
+  const body = parseOrThrow(timelineOrderSchema, req.body, 'Invalid timeline order');
+  const ifMatch = typeof req.headers['if-match'] === 'string' ? req.headers['if-match'].replace(/^"(.*)"$/, '$1') : undefined;
+  const { version } = await mutateProject(userId, req.params.projectId, ifMatch, (state) => {
+    (state as any).timelineOrder = body.timelineOrder;
+  });
+  res.json({ ok: true, version });
   broadcastSync(req.params.projectId, version);
 });
 

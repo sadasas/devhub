@@ -1444,15 +1444,16 @@ a:hover {
 }
 
 .sidebar {
-  position: sticky;
-  top: 0;
-  height: 100dvh;
+  position: static;
+  flex: 1;
+  min-height: 0;
+  height: auto;
   display: flex;
   flex-direction: column;
   background: var(--bg-elevated);
-  border-right: 1px solid var(--border-hairline);
+  border-right: none;
   padding: 12px 8px;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .sidebar-brand {
@@ -1474,7 +1475,11 @@ a:hover {
 
 .sidebar-nav-grow {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   margin-bottom: 8px;
 }
 
@@ -1512,7 +1517,13 @@ a:hover {
   box-shadow: inset 2px 0 0 var(--accent);
 }
 
+.sidebar-item svg {
+  flex-shrink: 0;
+}
+
 .sidebar-item-label {
+  min-width: 0;
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4519,6 +4530,57 @@ a:hover {
   background: var(--accent-dim);
   color: var(--accent);
   font-weight: 600;
+}
+
+/* ============================================================
+   Board — timeline (Gantt) — isolasi scroll + responsive lane
+   ============================================================ */
+.tl-root {
+  width: 100%;
+  min-width: 0;
+  contain: inline-size;
+}
+.tl-unscheduled {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.tl-wrap {
+  width: 100%;
+  min-width: 0;
+  --lane-w: 256px;
+  grid-template-columns: var(--lane-w) 1fr;
+}
+@media (max-width: 900px) {
+  .tl-wrap {
+    --lane-w: 180px;
+  }
+}
+@media (max-width: 600px) {
+  .tl-wrap {
+    --lane-w: 140px;
+  }
+}
+.tl-skeleton {
+  width: 100%;
+  min-width: 0;
+}
+.tl-bar-main:hover {
+  border-color: var(--border-strong) !important;
+  filter: brightness(1.08);
+}
+.tl-bar-main:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+}
+.tl-unscheduled-chip:hover {
+  border-color: var(--border-strong);
 }
 
 .erd-wrap {
@@ -10747,14 +10809,17 @@ button.admin-plan-card {
 }
 .sidebar-shell {
   width: var(--sidebar-w);
-  overflow: hidden;
+  overflow: visible;
   position: relative;
   transition: width 220ms var(--ease-out);
   border-right: 1px solid var(--border-hairline);
   background: var(--bg-elevated);
+  display: flex;
+  flex-direction: column;
 }
 .layout[data-collapsed="true"] .sidebar-shell {
   width: 0;
+  overflow: hidden;
   opacity: 1;
   pointer-events: none;
   border-right-color: transparent;
@@ -10764,8 +10829,11 @@ button.admin-plan-card {
   height: 100dvh;
   position: sticky;
   top: 0;
-  overflow-y: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   transition: transform 200ms var(--ease-out);
+  align-self: start;
 }
 .layout[data-collapsed="true"] .sidebar-region {
   transform: translateX(-24px);

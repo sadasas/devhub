@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Timeline Mockup — PC & Mobile — DevHub M41</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap');
+  :root{
+    --bg-base:#0a0a0c; --bg-elevated:#101013; --bg-overlay:#16161a; --bg-inset:#0c0c0f;
+    --border-hairline:rgba(255,255,255,0.08); --border-strong:rgba(255,255,255,0.14);
+    --text-primary:#e4e4e7; --text-secondary:#a1a1aa; --text-muted:#8a8a93;
+    --accent:#34c38e; --accent-dim:rgba(52,195,142,0.12); --accent-ring:rgba(52,195,142,0.35);
+    --status-danger:#f4706d; --status-warn:#e8b955; --status-info:#6ea8fe; --status-success:#34c38e;
+    --radius-card:8px; --radius-input:6px; --radius-pill:999px; --font-sans:'Geist',system-ui,sans-serif; --font-mono:'Geist Mono',monospace;
+    --tl-row-h:36px; --tl-bar-h:22px; --tl-header-h:36px; --tl-header-sub-h:28px; --tl-label-w:256px;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{font-family:var(--font-sans);background:var(--bg-base);color:var(--text-primary);line-height:1.5;-webkit-font-smoothing:antialiased;padding:24px}
+  h1{font-size:20px;letter-spacing:-0.02em;margin-bottom:6px}
+  .sub{color:var(--text-muted);font-size:13px;margin-bottom:18px}
+  .section{margin:28px 0}
+  .section h2{font-size:13px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:12px}
+  .browser{border:1px solid var(--border-hairline);border-radius:12px;overflow:hidden;background:var(--bg-elevated);box-shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.45)}
+  .browser-bar{height:38px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--border-hairline);background:var(--bg-inset)}
+  .dot{width:10px;height:10px;border-radius:50%}.dot-r{background:#f4706d}.dot-y{background:#e8b955}.dot-g{background:#34c38e}
+  .browser-title{margin-left:8px;font-size:12px;color:var(--text-muted);font-family:var(--font-mono)}
+  /* toolbar */
+  .board-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border-hairline);background:var(--bg-elevated)}
+  .sub-tabs{display:inline-flex;gap:4px;padding:3px;background:var(--bg-inset);border:1px solid var(--border-hairline);border-radius:var(--radius-input)}
+  .sub-tab{padding:6px 10px;border:none;border-radius:6px;background:transparent;color:var(--text-secondary);font-size:12px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .sub-tab-active{background:var(--accent-dim);color:var(--accent);font-weight:600}
+  .segmented{display:inline-flex;gap:2px;padding:3px;background:var(--bg-inset);border:1px solid var(--border-hairline);border-radius:var(--radius-input)}
+  .seg-btn{padding:5px 10px;border:none;border-radius:6px;background:transparent;color:var(--text-secondary);font-size:11px;font-weight:500;cursor:pointer}
+  .seg-btn-active{background:var(--accent-dim);color:var(--accent);font-weight:600}
+  .toolbar-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .pill{font-family:var(--font-mono);font-size:11px;padding:4px 8px;border-radius:999px;border:1px solid var(--border-hairline);background:rgba(255,255,255,0.04);color:var(--text-secondary)}
+  /* timeline shell */
+  .tl-wrap{display:grid;grid-template-columns:var(--tl-label-w) 1fr;background:var(--bg-elevated);overflow:hidden}
+  .tl-label-col{background:var(--bg-elevated);border-right:1px solid var(--border-hairline);overflow:hidden}
+  .tl-header{position:sticky;top:0;z-index:3;background:var(--bg-elevated);border-bottom:1px solid rgba(255,255,255,0.14)}
+  .tl-header-month{height:var(--tl-header-sub-h);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border-hairline)}
+  .tl-header-days{display:flex;height:var(--tl-header-h)}
+  .tl-header-day{flex:0 0 56px;border-right:1px solid rgba(255,255,255,0.08);display:grid;place-items:center;padding:4px 0}
+  .tl-header-day.week{border-right-color:rgba(255,255,255,0.14)}
+  .tl-header-day-num{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--text-primary);line-height:1}
+  .tl-header-day-name{font-size:10.5px;color:var(--text-muted);line-height:1}
+  .tl-header-day-today{background:var(--accent-dim)}
+  .tl-header-day-today .tl-header-day-num{color:var(--accent)}
+  .tl-grid{position:relative;overflow:auto}
+  .tl-row{height:var(--tl-row-h);display:flex;align-items:center;border-bottom:1px solid var(--border-hairline);position:relative}
+  .tl-row-alt{background:rgba(255,255,255,0.015)}
+  .tl-bar{position:absolute;height:var(--tl-bar-h);border-radius:6px;border:1px solid rgba(255,255,255,0.14);background:var(--bg-overlay);display:inline-flex;align-items:center;padding:0 6px;font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tl-bar-info{background:rgba(110,168,254,0.12);border-color:rgba(110,168,254,0.28)}
+  .tl-bar span.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-right:6px}
+  .tl-bar .bar-title{overflow:hidden;text-overflow:ellipsis}
+  .tl-today-line{position:absolute;top:0;bottom:0;width:1.5px;background:var(--accent);z-index:2;pointer-events:none}
+  .tl-label-cell{height:var(--tl-row-h);padding:6px 10px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border-hairline)}
+  .tl-label-cell .avatar{width:20px;height:20px;border-radius:50%;background:var(--accent-dim);color:var(--accent);display:grid;place-items:center;font-size:10px;font-weight:600}
+  .tl-label{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tl-count{font-family:var(--font-mono);font-size:11px;color:var(--text-muted)}
+  /* unscheduled */
+  .unsched{display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--bg-inset);border-top:1px solid var(--border-hairline);border-bottom:1px solid var(--border-hairline);overflow-x:auto}
+  .unsched-label{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);white-space:nowrap}
+  .chip{padding:5px 8px;border-radius:999px;background:var(--bg-overlay);border:1px solid var(--border-hairline);font-size:11px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+  /* popover */
+  .popover{position:absolute;right:22%;top:48px;width:300px;background:var(--bg-overlay);border:1px solid rgba(255,255,255,0.14);border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.45),0 24px 50px rgba(2,6,23,.35);padding:12px;z-index:10}
+  .pop-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
+  .badge{font-family:var(--font-mono);font-size:10px;padding:2px 6px;border-radius:999px;border:1px solid var(--border-hairline);background:rgba(255,255,255,0.04)}
+  .pop-meta{margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--text-secondary)}
+  .pop-desc{margin-top:8px;font-size:12px;color:var(--text-muted);line-height:1.5}
+  .pop-footer{margin-top:10px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text-muted)}
+  /* mobile */
+  .mobile-frame{width:390px;max-width:100%;margin:0 auto;border:1px solid var(--border-hairline);border-radius:16px;overflow:hidden;background:var(--bg-elevated);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+  .mobile-topbar{height:44px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--border-hairline);background:var(--bg-elevated)}
+  .mobile-list{padding:8px}
+  .ml-group{margin-bottom:10px}
+  .ml-head{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);padding:6px 4px;display:flex;justify-content:space-between}
+  .ml-card{padding:10px 12px;background:var(--bg-overlay);border:1px solid var(--border-hairline);border-radius:8px;margin-bottom:6px}
+  .ml-card-title{font-size:13px;font-weight:500}
+  .ml-card-meta{font-size:11px;color:var(--text-muted);margin-top:4px;display:flex;gap:8px}
+  .hint{font-size:12px;color:var(--text-muted);padding:10px 12px;background:var(--bg-inset);border-top:1px solid var(--border-hairline);text-align:center}
+  @media (max-width:900px){ .tl-wrap{grid-template-columns:200px 1fr} .tl-header-day{flex-basis:48px} }
+</style>
+</head>
+<body>
+<h1>M41 — Board Timeline Mockup</h1>
+<p class="sub">PC: Gantt Week (56px/day) + Plot By Due* | Mobile: List grouped fallback (≤860px). Dark-tech zinc #0a0a0c + emerald #34c38e + hairline 1px + Geist. Hard delete Buckets+By Due — Timeline view ke-3.</p>
+
+<div class="section">
+<h2>PC — 1280×720 (Week zoom, Plot By Due Date*)</h2>
+<div class="browser">
+  <div class="browser-bar"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span><span class="browser-title">devhub / project — Board → Timeline</span></div>
+
+  <!-- Board toolbar -->
+  <div class="board-toolbar">
+    <div class="sub-tabs" role="tablist"><button class="sub-tab">◧ By Status</button><button class="sub-tab">⚑ By Milestone</button><button class="sub-tab sub-tab-active">▭ Timeline</button></div>
+    <div class="toolbar-right">
+      <div class="segmented" aria-label="Zoom"><button class="seg-btn">Day</button><button class="seg-btn seg-btn-active">Week</button><button class="seg-btn">Month</button><button class="seg-btn">Quarter</button></div>
+      <div class="segmented" aria-label="Plot"><button class="seg-btn seg-btn-active">By Due Date</button><button class="seg-btn">By Start Date</button></div>
+      <div class="segmented" aria-label="Group"><button class="seg-btn seg-btn-active">None</button><button class="seg-btn">Milestone</button><button class="seg-btn">Assignee</button></div>
+      <span class="pill">Today</span><label style="font-size:12px;color:var(--text-secondary);display:inline-flex;align-items:center;gap:6px"><input type="checkbox"/> Hide completed</label>
+    </div>
+  </div>
+
+  <!-- Unscheduled strip -->
+  <div class="unsched"><span class="unsched-label">Unscheduled (3) — drag to schedule</span><span class="chip">◆ Usability Testing</span><span class="chip">◆ Social Kit Develop</span><span class="chip" style="border-style:dashed;color:var(--text-muted)">Drop to clear</span></div>
+
+  <!-- Timeline grid -->
+  <div class="tl-wrap" style="--tl-label-w:256px">
+    <div class="tl-label-col">
+      <div style="height:64px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--border-strong);font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted)">Task</div>
+      <div class="tl-label-cell"><span class="avatar">H</span><span class="tl-label">Upload Script</span><span class="tl-count">1d</span></div>
+      <div class="tl-label-cell" style="background:rgba(255,255,255,0.015)"><span class="avatar" style="background:rgba(110,168,254,0.2);color:#6ea8fe">D</span><span class="tl-label">Development Apps</span></div>
+      <div class="tl-label-cell"><span class="avatar">D</span><span class="tl-label">Develop Database</span></div>
+      <div class="tl-label-cell" style="background:rgba(255,255,255,0.015)"><span class="avatar">O</span><span class="tl-label">Offline Meeting</span></div>
+      <div class="tl-label-cell"><span class="avatar">C</span><span class="tl-label">Client Briefing</span></div>
+      <div class="tl-label-cell" style="background:rgba(255,255,255,0.015)"><span class="avatar">U</span><span class="tl-label" style="color:var(--text-muted);text-decoration:line-through">Usability Testing</span></div>
+    </div>
+    <div style="position:relative;overflow:hidden">
+      <div class="tl-header">
+        <div class="tl-header-month">September 2021</div>
+        <div class="tl-header-days">
+          <div class="tl-header-day"><span class="tl-header-day-num">10</span><span class="tl-header-day-name">Fri</span></div>
+          <div class="tl-header-day"><span class="tl-header-day-num">11</span><span class="tl-header-day-name">Sat</span></div>
+          <div class="tl-header-day"><span class="tl-header-day-num">12</span><span class="tl-header-day-name">Sun</span></div>
+          <div class="tl-header-day"><span class="tl-header-day-num">13</span><span class="tl-header-day-name">Mon</span></div>
+          <div class="tl-header-day tl-header-day-today"><span class="tl-header-day-num">14</span><span class="tl-header-day-name">Tue</span></div>
+          <div class="tl-header-day week"><span class="tl-header-day-num">15</span><span class="tl-header-day-name">Wed</span></div>
+          <div class="tl-header-day"><span class="tl-header-day-num">16</span><span class="tl-header-day-name">Thu</span></div>
+          <div class="tl-header-day"><span class="tl-header-day-num">17</span><span class="tl-header-day-name">Fri</span></div>
+          <div class="tl-header-day"><span class="tl-header-day-num">18</span><span class="tl-header-day-name">Sat</span></div>
+          <div class="tl-header-day"><span class="tl-header-day-num">19</span><span class="tl-header-day-name">Sun</span></div>
+          <div class="tl-header-day week"><span class="tl-header-day-num">20</span><span class="tl-header-day-name">Mon</span></div>
+        </div>
+      </div>
+      <div class="tl-grid">
+        <!-- Today line -->
+        <div class="tl-today-line" style="left:224px"></div>
+        <!-- Rows grid lines are via tl-row borders -->
+        <div class="tl-row"></div>
+        <div class="tl-row tl-row-alt"></div>
+        <div class="tl-row"></div>
+        <div class="tl-row tl-row-alt"></div>
+        <div class="tl-row"></div>
+        <div class="tl-row tl-row-alt"></div>
+        <!-- Bars absolute -->
+        <div class="tl-bar" style="left:8px;top:8px;width:96px;background:var(--bg-overlay)"><span class="dot" style="background:var(--text-muted)"></span><span class="bar-title">Upload Script</span></div>
+        <div class="tl-bar tl-bar-info" style="left:32px;top:44px;width:420px;border-color:rgba(110,168,254,0.35)"><span class="dot" style="background:var(--status-info)"></span><span class="bar-title">Development Apps — 9d</span></div>
+        <div class="tl-bar" style="left:120px;top:80px;width:168px"><span class="dot" style="background:var(--status-warn)"></span><span class="bar-title">Develop Database</span></div>
+        <div class="tl-bar" style="left:24px;top:116px;width:112px"><span class="dot" style="background:var(--status-info)"></span><span class="bar-title">Offline Meeting</span></div>
+        <div class="tl-bar" style="left:160px;top:152px;width:88px"><span class="dot" style="background:var(--accent)"></span><span class="bar-title">Client Briefing</span></div>
+        <!-- Usability Testing done faded -->
+        <div class="tl-bar" style="left:40px;top:188px;width:120px;opacity:.6;text-decoration:line-through;color:var(--text-muted);background:rgba(255,255,255,0.06)">Usability Testing</div>
+
+        <!-- Popover Sep 2021 style -->
+        <div class="popover" role="dialog" aria-label="Development Apps">
+          <div class="pop-title">● Development Apps <span class="badge">High</span><span style="margin-left:auto;color:var(--text-muted);cursor:pointer">✕</span></div>
+          <div class="pop-meta"><span style="display:inline-flex;align-items:center;gap:6px"><span class="avatar" style="width:16px;height:16px;font-size:8px">H</span> HilalNeet</span><span>•</span><span>Sep 3 09:00 → Sep 12 16:50</span><span>•</span><span>4 subtask</span></div>
+          <div class="pop-meta"><span class="badge">Priority Enabled</span><span class="badge">3 Files</span><span class="badge">7 Comments</span></div>
+          <div class="pop-desc">Bar Week: left = Sep 3, width = 9d. Drag move/resize → PATCH {startDate,dueDate}. Plot By Start would show same bar; Unscheduled if !start.</div>
+          <div class="pop-footer"><span style="color:var(--accent)">Open Task →</span><span>← → Move status</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="padding:10px 16px;font-size:11px;color:var(--text-muted);font-family:var(--font-mono);background:var(--bg-inset);border-top:1px solid var(--border-hairline)">PC: label 256px sticky | grid scroll-x | bar h22 radius6 | today 1.5px accent + wash | Week 56px/day (zoom via --tl-col-*) | Group None (flat) — hover lane wash, focus ring 2px accent-ring</div>
+</div>
+</div>
+
+<div class="section">
+<h2>Mobile — 390px (fallback List grouped, ≤860px)</h2>
+<p class="sub" style="margin-bottom:12px">Timeline tidak di-render penuh di mobile. Default = List grouped `Overdue|Today|This Week|Later|No date` (reuse buckets logic sebagai list, bukan kanban) + tombol <code>Switch to Timeline</code> → horizontal scroll 800px.</p>
+<div class="mobile-frame">
+  <div class="mobile-topbar">
+    <span style="font-size:13px;font-weight:600">Timeline</span>
+    <span style="margin-left:auto" class="segmented"><button class="seg-btn seg-btn-active">By Due</button><button class="seg-btn">By Start</button></span>
+    <span class="pill" style="padding:2px 6px">Week</span>
+  </div>
+  <div style="display:flex;gap:6px;padding:8px;border-bottom:1px solid var(--border-hairline)"><span class="chip">Today</span><span class="chip" style="background:var(--accent-dim);border-color:rgba(52,195,142,0.25);color:var(--accent)">● Development Apps</span><span class="chip">Week</span></div>
+  <div class="mobile-list">
+    <div class="ml-group"><div class="ml-head"><span>Overdue</span><span>1</span></div><div class="ml-card"><div class="ml-card-title">Upload Script</div><div class="ml-card-meta"><span>Sep 10</span><span>•</span><span>High</span><span style="margin-left:auto;color:var(--status-danger)">Overdue</span></div></div></div>
+    <div class="ml-group"><div class="ml-head"><span>Today — Tue 14</span><span>2</span></div><div class="ml-card" style="border-color:rgba(110,168,254,0.35);background:rgba(110,168,254,0.08)"><div class="ml-card-title">Development Apps</div><div class="ml-card-meta"><span>Sep 3 → Sep 12</span><span>•</span><span>9d</span><span>•</span><span>HilalNeet</span></div></div><div class="ml-card"><div class="ml-card-title">Offline Meeting</div><div class="ml-card-meta"><span>Sep 11</span><span>•</span><span>Client</span></div></div></div>
+    <div class="ml-group"><div class="ml-head"><span>This Week</span><span>1</span></div><div class="ml-card"><div class="ml-card-title">Develop Database</div><div class="ml-card-meta"><span>Sep 13 → Sep 16</span><span>•</span><span>4 subtask</span></div></div></div>
+    <div class="ml-group"><div class="ml-head"><span>No date</span><span>2</span></div><div class="ml-card" style="border-style:dashed"><div class="ml-card-title" style="color:var(--text-muted)">Usability Testing</div><div class="ml-card-meta"><span>Drag to schedule</span></div></div><div class="ml-card" style="border-style:dashed"><div class="ml-card-title" style="color:var(--text-muted)">Social Kit Develop</div></div></div>
+  </div>
+  <div class="hint">↔ Scroll → to see Timeline · bar 28px padded → handle 16px · Long-press 180ms drag · <a href="#" style="color:var(--accent)">Switch to Timeline (Week)</a></div>
+  <div style="height:120px;position:relative;overflow:auto;background:var(--bg-inset);border-top:1px solid var(--border-hairline);display:flex">
+    <div style="width:160px;flex:0 0 160px;background:var(--bg-elevated);border-right:1px solid var(--border-hairline);font-size:11px"><div style="height:28px;display:flex;align-items:center;padding:0 8px;border-bottom:1px solid var(--border-hairline);color:var(--text-muted);font-family:var(--font-mono)">Task</div><div style="height:36px;display:flex;align-items:center;padding:0 8px;border-bottom:1px solid var(--border-hairline)">Development Apps</div><div style="height:36px;display:flex;align-items:center;padding:0 8px">Upload Script</div></div>
+    <div style="flex:1;position:relative;min-width:600px"><div style="display:flex;height:28px;border-bottom:1px solid var(--border-strong);font-family:var(--font-mono);font-size:10px;color:var(--text-muted)"><span style="flex:0 0 60px;display:grid;place-items:center;border-right:1px solid var(--border-hairline)">12 Sun</span><span style="flex:0 0 60px;display:grid;place-items:center;border-right:1px solid var(--border-hairline);background:var(--accent-dim);color:var(--accent)">14 Tue</span><span style="flex:0 0 60px;display:grid;place-items:center">15 Wed</span></div><div style="position:absolute;left:40px;top:34px;width:180px;height:22px;background:rgba(110,168,254,0.2);border:1px solid rgba(110,168,254,0.35);border-radius:6px;font-size:11px;display:grid;place-items:center">Development Apps</div><div style="position:absolute;left:20px;top:70px;width:90px;height:22px;background:var(--bg-overlay);border:1px solid var(--border-strong);border-radius:6px;font-size:11px;display:grid;place-items:center">Upload Script</div><div style="position:absolute;left:120px;top:0;bottom:0;width:1.5px;background:var(--accent)"></div></div>
+  </div>
+</div>
+<p class="sub" style="margin-top:10px">Mobile spec: default List grouped (reuse dueBucket logic sebagai list), topbar 44px, card 1px hairline radius8, bar di scroll preview min-width 600px + label 160px sticky + today line. Touch: bar height visual 22→ padded 36, handle 16px always visible @hover:none, long-press 180ms, swipe → action sheet. Reduced-motion: no anim.</p>
+</div>
+
+<div class="section" style="padding:12px;border:1px dashed var(--border-hairline);border-radius:8px;background:var(--bg-inset)">
+<h2 style="color:var(--text-primary)">States & Tokens checklist</h2>
+<p class="sub">Tokens lock: zinc off-black + emerald + hairline 1px + Geist + radius 8/6 + shadow tinted. Bar: neutral charcoal (80%) vs info blue muted — left edge 3px status, done faded strike, overdue left edge red. Focus ring 2px accent-ring. Popover 260px overlay strong shadow. Week 56px/day, Month 10px/day via --tl-col-*. Roving tabindex Arrow, role grid.</p>
+</div>
+</body>
+</html>

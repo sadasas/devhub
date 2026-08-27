@@ -77,7 +77,8 @@ export type ProjectAction =
   | { type: 'apiEndpoint/remove'; id: string }
   | { type: 'whiteboard/add'; whiteboard: Whiteboard }
   | { type: 'whiteboard/update'; id: string; patch: UpdatePatch<Whiteboard> }
-  | { type: 'whiteboard/remove'; id: string };
+  | { type: 'whiteboard/remove'; id: string }
+  | { type: 'timeline/reorder'; laneKey: string; ids: string[] };
 
 /* ------------------------------------------------------------------ */
 /* Reducer — sole mutator of project state                             */
@@ -91,6 +92,8 @@ function updateIn<T extends { id: string }>(list: T[], id: string, patch: Partia
 }
 
 export function projectReducer(state: State, action: ProjectAction): State {
+  // ensure timelineOrder exists for old projects
+  if (!(state as any).timelineOrder) (state as any).timelineOrder = {};
   switch (action.type) {
     case 'replace':
       return action.state;
@@ -268,6 +271,12 @@ export function projectReducer(state: State, action: ProjectAction): State {
       return {
         ...state,
         whiteboards: state.whiteboards.filter((w) => w.id !== action.id),
+      };
+
+    case 'timeline/reorder':
+      return {
+        ...state,
+        timelineOrder: { ...(state as any).timelineOrder, [action.laneKey]: action.ids },
       };
 
     default:

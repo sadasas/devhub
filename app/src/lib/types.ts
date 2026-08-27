@@ -319,6 +319,8 @@ export interface State {
   apiCollections: ApiCollection[];
   apiEndpoints: ApiEndpoint[];
   whiteboards: Whiteboard[];
+  timelineOrder?: Record<string, string[]>;
+  timelineRow?: Record<string, Record<string, number>>;
 }
 
 export interface ExportMeta {
