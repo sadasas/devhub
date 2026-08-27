@@ -64,11 +64,14 @@ Before creating a task (session start or mid-session), ask the user whether the 
 | Issue linked to task | `update_issue` (linkedTaskId) | When linking |
 | Test case written for task/issue | `add_test_case` | When test is written |
 | Milestone created / status changed | `add_milestone` / `update_milestone` | When milestone is changed |
+| API collection / endpoint baru diekspos (mis. tambah `server/src/modules/*/handlers/*.ts`, `entity-router.ts`, `*.routes.ts`) | `add_api_collection` / `add_api_endpoint` | Saat agen membuat/mengekspos endpoint atau collection baru — segera setelah route/handler committed & `method+path` final |
+| Kontrak API endpoint berubah (method/path/params/body/responses/collection) | `update_api_endpoint` | Saat agen mengubah kontrak — patch sebelum tutup sesi/commit |
 
 ## Behavior rules
 
 - Only ADR-level decisions are recorded — not small cosmetic/style choices.
 - One decision = one call; do not batch them at end of project.
 - Tasks are created granular per verifiable unit of work, not one giant task.
+- Sebelum `add_api_endpoint`, baca `project_state.apiEndpoints` dan cocokkan `method+path+collectionId` untuk hindari duplikat (cap 500 collections / 5000 endpoints).
 - After syncing, verify with `project_state` if unsure (default cap is 200 rows
   per collection — use `limit: 0` to see all).

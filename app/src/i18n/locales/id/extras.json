@@ -823,6 +823,7 @@
         "issue": "Siklus hidup issue",
         "decision": "Siklus hidup keputusan",
         "whiteboard": "Siklus hidup whiteboard",
+        "api": "Siklus API",
         "milestone": "Siklus hidup milestone"
       },
       "trouble": {

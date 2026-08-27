@@ -158,6 +158,8 @@ Any MCP client supporting streamable HTTP + bearer auth. Keep the API key out of
 7. project_state                 → verify final state
 ```
 
+Jika fitur mengekspos HTTP endpoint, agen memanggil `add_api_collection` / `add_api_endpoint` segera setelah route/handler committed (atau `update_api_endpoint` jika kontrak berubah) — sebelum `update_task` `done`.
+
 The browser UI polls `GET /api/projects/:id/state` every 5s while the tab is visible, so progress appears live.
 
 ### 5.2 Bug triage loop
@@ -181,6 +183,8 @@ Agar setiap sesi AI otomatis menyinkronkan kerjanya ke DevHub, sediakan dua file
    - Rencana kerja disusun / mulai implementasi → `create_task` (awal sesi)
    - Pekerjaan selesai & terverifikasi (lint/test/build hijau atau committed) → `update_task` status `done` (sebelum tutup sesi)
    - Flowchart/diagram dirancang → `create_whiteboard` / `update_whiteboard`
+   - API collection / endpoint baru diekspos (mis. tambah `server/src/modules/*/handlers/*.ts`, `entity-router.ts`, `*.routes.ts`) → `add_api_collection` / `add_api_endpoint` (segera setelah route/handler committed & `method+path` final)
+   - Kontrak API endpoint berubah (method/path/params/body/responses/collection) → `update_api_endpoint` (patch sebelum tutup sesi/commit)
 
 Contoh lengkap kedua file terdokumentasi di halaman aplikasi **Docs → MCP Integration → "Automate your workflow"** (`/docs/mcp#mcp-agentsync`) dan bisa disalin dari sana.
 

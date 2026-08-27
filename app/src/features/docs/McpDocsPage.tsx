@@ -90,11 +90,14 @@ Before creating a task (session start or mid-session), ask the user whether the 
 | Issue linked to task | update_issue (linkedTaskId) | When linking |
 | Test case written for task/issue | add_test_case | When test is written |
 | Milestone created / status changed | add_milestone / update_milestone | When milestone is changed |
+| API collection / endpoint baru diekspos (mis. tambah \`server/src/modules/*/handlers/*.ts\`, \`entity-router.ts\`, \`*.routes.ts\`) | add_api_collection / add_api_endpoint | Saat agen membuat/mengekspos endpoint atau collection baru — segera setelah route/handler committed & \`method+path\` final |
+| Kontrak API endpoint berubah (method/path/params/body/responses/collection) | update_api_endpoint | Saat agen mengubah kontrak — patch sebelum tutup sesi/commit |
 
 ## Behavior rules
 - Only ADR-level decisions are recorded — not small cosmetic/style choices.
 - One decision = one call; do not batch them at end of project.
 - Tasks are created granular per verifiable unit of work, not one giant task.
+- Sebelum \`add_api_endpoint\`, baca \`project_state.apiEndpoints\` dan cocokkan \`method+path+collectionId\` untuk hindari duplikat (cap 500 collections / 5000 endpoints).
 - After syncing, verify with project_state if unsure (default cap is 200 rows per collection — use limit: 0).`;
 
 const AGENTSYNC_ENV_EXAMPLE = `$env:DEVHUB_MCP_KEY = "devhub_your_key_here"      # required — MCP auth
@@ -224,6 +227,40 @@ update_whiteboard {
       color: "#8b5cf6", width: 2, arrowhead: true }
   ]
 }`;
+
+const API_LIFECYCLE = `Group + document endpoints (add_api_collection / add_api_endpoint → update_api_endpoint)
+
+# 1. Create a collection to group endpoints (optional but recommended)
+add_api_collection {
+  projectId: "<your-project-uuid>",
+  name: "Auth",
+  description: "Login, register, session"
+}
+
+# 2. Document each new endpoint immediately after the route/handler is committed
+add_api_endpoint {
+  projectId: "<your-project-uuid>",
+  collectionId: "<collection-uuid>",
+  method: "POST",
+  path: "/api/auth/login",
+  name: "Login",
+  description: "Authenticates a user and sets an httpOnly session cookie",
+  headers: [],
+  params: [],
+  body: "{ email: string, password: string }",
+  responses: [{ status: 200, contentType: "application/json", description: "JWT cookie set", body: "{ user: { id, email } }" }]
+}
+
+# 3. Patch the contract when it changes (method/path/params/body/responses/collection)
+update_api_endpoint {
+  projectId: "<your-project-uuid>",
+  endpointId: "<endpoint-uuid>",
+  path: "/api/v1/auth/login",
+  description: "Now returns version + ETag — see docs",
+  responses: [{ status: 200, contentType: "application/json", description: "Updated response", body: "{ user, version }" }]
+}
+
+# Tip: before add_api_endpoint, read project_state.apiEndpoints and match method+path+collectionId to avoid duplicates (cap 500 collections / 5000 endpoints)`;
 
 const MILESTONE_LIFECYCLE = `Status: planned → inProgress → released
 
@@ -421,6 +458,9 @@ export function McpDocsPage() {
 
                 <h3 className="docs-step-subtitle">{t('docs.mcp.lifecycle.whiteboard')}</h3>
                 <CodeBlock lang="Text" code={WHITEBOARD_LIFECYCLE} />
+
+                <h3 className="docs-step-subtitle">{t('docs.mcp.lifecycle.api')}</h3>
+                <CodeBlock lang="Text" code={API_LIFECYCLE} />
 
                 <h3 className="docs-step-subtitle">{t('docs.mcp.lifecycle.milestone')}</h3>
                 <CodeBlock lang="Text" code={MILESTONE_LIFECYCLE} />
