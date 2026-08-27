@@ -199,29 +199,26 @@ export function KeysPage() {
           ))}
         </div>
       ) : keys.length === 0 ? (
-        <>
-          <div className="page-empty">
-            <EmptyState
-              icon={<Key size={22} />}
-              title={t('keys.empty.title')}
-              description={t('keys.empty.description')}
-              action={
-                <>
-                  <Button
-                    leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />}
-                    onClick={() => setNewOpen(true)}
-                  >
-                    {t('keys.newKey')}
-                  </Button>
-                  <Link className="btn btn-ghost btn-md" to="/docs/mcp">
-                    {t('keys.empty.readGuide')}
-                  </Link>
-                </>
-              }
-            />
-          </div>
-          <KeysGuide />
-        </>
+        <div className="page-empty">
+          <EmptyState
+            icon={<Key size={22} />}
+            title={t('keys.empty.title')}
+            description={t('keys.empty.description')}
+            action={
+              <>
+                <Button
+                  leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />}
+                  onClick={() => setNewOpen(true)}
+                >
+                  {t('keys.newKey')}
+                </Button>
+                <Link className="btn btn-ghost btn-md" to="/docs/mcp">
+                  {t('keys.empty.readGuide')}
+                </Link>
+              </>
+            }
+          />
+        </div>
       ) : (
         <>
           <div className="data-list-header">
@@ -432,3 +429,7 @@ function CodeBlock({
     </div>
   );
 }
+
+// Opsi A: KeysGuide/CodeBlock dipertahankan tapi tidak dirender saat empty (dead code) — cegah TS6133 noUnusedLocals
+void KeysGuide;
+void CodeBlock;

@@ -79,20 +79,16 @@ describe('KeysPage', () => {
     );
   });
 
-  it('shows the quickstart guide in the empty state', async () => {
+  it('does not show the quickstart guide in the empty state', async () => {
     apiMock.listKeys.mockResolvedValue(listResponse([]));
 
     renderPage();
 
     expect(await screen.findByText('No API keys yet')).not.toBeNull();
-    expect(screen.getByRole('heading', { name: 'Using your keys' })).not.toBeNull();
-    // Banner + curl snippet sama-sama memuat header Authorization
-    expect(screen.getAllByText(/Authorization: Bearer \$DEVHUB_MCP_KEY/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/curl -X POST/)).not.toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Using your keys' })).toBeNull();
+    expect(screen.queryByText(/curl -X POST/)).toBeNull();
+    expect(screen.queryByText(/Authorization: Bearer \$DEVHUB_MCP_KEY/)).toBeNull();
     expect(screen.getByRole('link', { name: /Read the MCP guide/ }).getAttribute('href')).toBe('/docs/mcp');
-    expect(screen.getByRole('link', { name: /Full MCP integration guide/ }).getAttribute('href')).toBe(
-      '/docs/mcp',
-    );
   });
 
   it('paginates with GitHub-style Previous/Next controls', async () => {
