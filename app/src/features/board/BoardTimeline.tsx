@@ -7,7 +7,6 @@ import type { Task } from "../../lib/types";
 import { useProject } from "../../state/project-context";
 import { TASK_STATUS, TASK_PRIORITY, TASK_PRIORITY_SHORT } from "../../lib/labels";
 import { addDaysToDate, barGeometry, clampGroup, isUnscheduled, isWeekend, timelineWindow, headerMonthLabel, todayIso, TIMELINE_COL_WIDTH, type TimelineGroup } from "../../lib/timeline";
-import { taskDueChip } from "../../lib/due-dates";
 import { avatarColor, initialsOf } from "../../lib/avatar";
 import { api } from "../../lib/api";
 
@@ -223,13 +222,11 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds }:
                     const geom=barGeometry(task, win.start, zoom); if(!geom) return null;
                     const row=lane.rowOf.get(task.id) ?? 0; const top=ROW_TOP+row*ROW_H;
                     const isDone=task.status==="done";
-                    const dueChip=taskDueChip(task);
                     const isOverdue=!isDone && task.dueDate && task.dueDate < today;
-                    const tone:string=isDone?"done":isOverdue?"danger":dueChip.tone;
+                    const tone:string=isDone?"done":isOverdue?"danger":"neutral";
                     let bg="#e0e7ff";
                     if(isDone) bg="#6ee7b7";
                     else if(tone==="danger") bg="#fecaca";
-                    else if(tone==="warn") bg="#fde68a";
                     const textColor = isDone ? "#064e3b" : "#1e293b";
                     const border = isDone ? "rgba(0,0,0,0.12)" : "rgba(0,0,0,0.08)";
                     const borderStyle = isDone ? "dashed" : "solid";
@@ -239,15 +236,14 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds }:
                     const assignee = task.assigneeId ? (members as any)?.[task.assigneeId] : undefined;
                     const assigneeName = assignee ? (assignee.displayName || assignee.email) : undefined;
                     const showAssigneeName = geom.width >= 140;
-                    const showDue = geom.width >= 110;
                     return <div key={task.id} role="group" aria-label={`${task.title}, ${geom.startDate} to ${geom.endDate}, ${task.status}, ${task.priority}`} style={{position:"absolute",left:geom.left,top,width:geom.width,height:BAR_H}}>
                       <button type="button" aria-label={`${task.title}, ${geom.startDate} to ${geom.endDate}, ${TASK_STATUS[task.status].label}`} draggable={canEdit} onDragStart={e=>handleBarDragStart(e,task)} onDragEnd={handleDragEnd} onClick={()=>handleBarClick(task)} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault(); handleBarClick(task);}}} title={`${task.title} · ${geom.startDate}→${geom.endDate} (${geom.spanDays}d) · ${TASK_STATUS[task.status].label}`} style={{width:"100%",height:BAR_H,borderRadius:"var(--radius-card)",border:`1px ${borderStyle} ${border}`,background:bg,boxShadow:shadow,display:"flex",flexDirection:"column",alignItems:"stretch",justifyContent:"center",padding:"7px 8px 6px 8px",gap:4,cursor:canEdit?"grab":"pointer",opacity:1,overflow:"hidden",minWidth:0}}>
                       <span style={{display:"flex",alignItems:"center",gap:4,minWidth:0}}>
-                        <span className={`badge badge-${(statusMeta as any).tone ?? 'neutral'}`} style={{fontSize:10, padding:"2px 6px", lineHeight:1}}>{statusMeta.label}</span>
-                        <span className={`badge badge-${(prioMeta as any).tone ?? 'neutral'}`} style={{fontSize:10, padding:"2px 5px", marginLeft:"auto", lineHeight:1}}>{TASK_PRIORITY_SHORT[task.priority]}</span>
+                        <span className={`badge badge-${(statusMeta as any).tone ?? 'neutral'}`} style={{fontSize:10, padding:"2px 6px", lineHeight:1, background:"#ffffff", color: isDone ? "#064e3b" : "#1e293b", borderColor:"rgba(0,0,0,0.10)", fontWeight:600, boxShadow:"0 1px 2px rgba(0,0,0,0.06)"}}>{statusMeta.label}</span>
+                        <span className={`badge badge-${(prioMeta as any).tone ?? 'neutral'}`} style={{fontSize:10, padding:"2px 5px", marginLeft:"auto", lineHeight:1, background:"#ffffff", color:"#1e293b", borderColor:"rgba(0,0,0,0.10)", fontWeight:600, boxShadow:"0 1px 2px rgba(0,0,0,0.06)"}}>{TASK_PRIORITY_SHORT[task.priority]}</span>
                         {unreadIds?.has(task.id) && <span className="unread-pill" style={{fontSize:9, padding:"1px 4px", lineHeight:1}}>New</span>}
                       </span>
-                      <span style={{flex:1,minWidth:0,display:"-webkit-box",WebkitBoxOrient:"vertical",WebkitLineClamp:2,lineClamp:"2" as any,overflow:"hidden",overflowWrap:"anywhere",wordBreak:"normal",lineHeight:"14px",fontSize:12,fontWeight:600,color:textColor,textAlign:"left"}}>{task.title}</span>
+                      <span style={{flex:1,minWidth:0,display:"-webkit-box",WebkitBoxOrient:"vertical",WebkitLineClamp:2,lineClamp:"2" as any,overflow:"hidden",overflowWrap:"break-word",wordBreak:"break-word",hyphens:"auto",lineHeight:"14px",fontSize:12,fontWeight:600,color:textColor,textAlign:"left"}}>{task.title}</span>
                       <span style={{display:"flex",alignItems:"center",gap:6,minWidth:0}}>
                         {assigneeName ? (
                           <span className="task-avatar" title={assigneeName} style={{gap:4, fontSize:10, minWidth:0}}>
@@ -257,10 +253,7 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds }:
                         ) : (
                           <span style={{fontSize:10,color:"#94a3b8",fontStyle:"italic"}}>—</span>
                         )}
-                        <span style={{marginLeft:"auto",display:"inline-flex",gap:6,alignItems:"center",flexShrink:0}}>
-                          {task.estimate!=null && <span className="tabular" style={{fontSize:10,color:isDone?"#065f46":"#475569",fontWeight:500,lineHeight:1}}>{task.estimate}h</span>}
-                          {showDue && dueChip.label && <span className={`task-due task-due-${dueChip.tone}`} style={{fontSize:10,padding:"1px 4px",lineHeight:1}}>{dueChip.label}</span>}
-                        </span>
+                        {task.estimate!=null && <span className="tabular" style={{fontSize:10,color:isDone?"#065f46":"#475569",fontWeight:500,lineHeight:1,marginLeft:"auto"}}>{task.estimate}h</span>}
                       </span>
                     </button>
                     </div>;
