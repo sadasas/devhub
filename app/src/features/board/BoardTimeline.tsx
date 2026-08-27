@@ -109,7 +109,29 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds }:
     grid.addEventListener("scroll",onScroll,{passive:true});
     return()=> grid.removeEventListener("scroll",onScroll);
   },[]);
+  useEffect(()=>{
+    const grid=gridRef.current; const header=headerRef.current;
+    if(!grid || todayOffset==null) return;
+    const target=Math.max(0, todayOffset - grid.clientWidth/2 + colW/2);
+    const smooth = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
+    requestAnimationFrame(()=>{
+      grid.scrollTo({left: target, behavior: smooth as any});
+      if(header) header.scrollLeft=target;
+    });
+  },[todayOffset, colW]);
   const onNav=(dir:number)=> setAnchor(addDaysToDate(anchor, dir*7));
+  const onToday=useCallback(()=>{
+    const t=todayIso();
+    const grid=gridRef.current; const header=headerRef.current;
+    if(t===anchor && todayOffset!=null && grid){
+      const target=Math.max(0, todayOffset - grid.clientWidth/2 + colW/2);
+      const smooth = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
+      grid.scrollTo({left: target, behavior: smooth as any});
+      if(header) header.scrollLeft=target;
+      return;
+    }
+    setAnchor(t);
+  },[anchor, todayOffset, colW]);
   const [dragId,setDragId]=useState<string|null>(null);
   const [ghostDate,setGhostDate]=useState<string|null>(null);
   const handleBarDragStart=useCallback((e:React.DragEvent,task:Task)=>{e.dataTransfer.setData("text/plain",task.id); e.dataTransfer.effectAllowed="move"; setDragId(task.id); setGhostDate(task.startDate ?? null);},[]);
@@ -152,7 +174,7 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds }:
           ))}
         </div>
         <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center"}}>
-          <Button variant="ghost" size="sm" onClick={()=>setAnchor(todayIso())}>{t("board.timeline.today",{defaultValue:"Today"})}</Button>
+          <Button variant="ghost" size="sm" onClick={onToday}>{t("board.timeline.today",{defaultValue:"Today"})}</Button>
           <label className="toolbar-check" style={{fontSize:12}}><input type="checkbox" checked={hideCompleted} onChange={e=>setHideCompleted(e.target.checked)} />{t("board.cal.hideCompleted",{defaultValue:"Hide completed"})}</label>
         </div>
       </div>
