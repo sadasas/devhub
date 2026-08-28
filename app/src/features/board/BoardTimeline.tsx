@@ -187,7 +187,7 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds }:
           </button>
         ))}
       </div>
-      <div className="tl-wrap" style={{display:"grid",gridTemplateColumns:"var(--lane-w) 1fr",gridTemplateRows:"76px 1fr",border:"1px solid var(--border-hairline)",borderRadius:"var(--radius-card)",overflow:"hidden",background:"var(--bg-elevated)",width:"100%",minWidth:0}}>
+      <div className="tl-wrap" style={{display:"grid",gridTemplateColumns:"var(--lane-w) 1fr",gridTemplateRows:"76px 1fr",minHeight:400,border:"1px solid var(--border-hairline)",borderRadius:"var(--radius-card)",overflow:"hidden",background:"var(--bg-elevated)",width:"100%",minWidth:0}}>
           <div style={{background:"var(--bg-elevated)",borderBottom:"1px solid var(--border-strong)",borderRight:"1px solid var(--border-hairline)",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 10px",height:76,position:"sticky",top:0,left:0,zIndex:4, minWidth:0}}>
             <span style={{fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.06em",color:"var(--text-muted)"}}>{t("board.timeline.laneTasks",{defaultValue:"Tasks"})}</span>
             <span style={{display:"flex",gap:4}}>
