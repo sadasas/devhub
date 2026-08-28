@@ -203,7 +203,7 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds }:
               {win.days.map(d=>{const isToday=d===today; const weekend=isWeekend(d); return <div key={d} style={{flex:`0 0 ${colW}px`,width:colW,borderRight:"1px solid var(--border-hairline)",display:"grid",placeItems:"center",padding:"4px 0",background:isToday?"var(--accent-dim)":weekend?"var(--bg-weekend, rgba(255,255,255,0.02))":"transparent"}}><span style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,color:isToday?"var(--accent)":"var(--text-primary)",lineHeight:1}}>{d.slice(8)}</span><span style={{fontSize:10.5,color:"var(--text-muted)",lineHeight:1}}>{new Date(`${d}T00:00:00Z`).toLocaleDateString(undefined,{weekday:"short"}).slice(0,3)}</span></div>;})}
             </div>
           </div>
-          <div ref={laneRef} className="tl-lane" style={{overflow:"hidden",overflowY:"auto",scrollbarWidth:"thin",maxHeight:"60vh",position:"sticky",left:0,zIndex:2,background:"var(--bg-elevated)",minWidth:0,overscrollBehavior:"contain"}}>
+          <div ref={laneRef} className="tl-lane" style={{overflow:"hidden",overflowY:"auto",scrollbarWidth:"thin",maxHeight:"60vh",minHeight:0,height:"100%",alignSelf:"stretch",position:"sticky",left:0,zIndex:2,background:"var(--bg-elevated)",minWidth:0,overscrollBehavior:"contain"}}>
             {packed.map((lane:any,idx:number)=>{
               const h = lane.tasks.length===0 ? 100 : Math.max(136, lane.rowsNeeded*ROW_H+16);
               return <div key={lane.key} style={{height: h, minHeight:36, display:"flex",alignItems:lane.tasks.length?"flex-start":"center",gap:8,padding:"6px 10px",borderBottom:"1px solid var(--border-hairline)",borderRight:"1px solid var(--border-hairline)",background: idx%2===1?"var(--bg-stripe, rgba(255,255,255,0.015))":"transparent",position:"relative"}}>
@@ -211,7 +211,7 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds }:
               </div>;
             })}
           </div>
-          <div ref={gridRef} className="tl-grid" style={{overflow:"auto",position:"relative",maxHeight:"60vh",minWidth:0,overscrollBehavior:"contain"}} onDragOver={handleGridDragOver} onDragLeave={(e)=>{ if(e.target===e.currentTarget) setGhostDate(null); }}>
+          <div ref={gridRef} className="tl-grid" style={{overflow:"auto",position:"relative",maxHeight:"60vh",minHeight:0,height:"100%",alignSelf:"stretch",minWidth:0,overscrollBehavior:"contain"}} onDragOver={handleGridDragOver} onDragLeave={(e)=>{ if(e.target===e.currentTarget) setGhostDate(null); }}>
             <div style={{position:"relative",width:totalWidth,minWidth:totalWidth,minHeight:"100%"}}>
               {packed.map((lane:any, laneIdx:number)=>{
                 const h = lane.tasks.length===0 ? 100 : Math.max(136, lane.rowsNeeded*ROW_H+16);

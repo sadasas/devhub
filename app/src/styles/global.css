@@ -8106,6 +8106,7 @@ input[type='checkbox'] {
 .board-shell:fullscreen .kanban-col { max-height: calc(100dvh - 80px); }
 .board-shell:fullscreen .tl-root { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
 .board-shell:fullscreen .tl-wrap { flex: 1 1 auto; min-height: 0 !important; }
+.board-shell:fullscreen .tl-lane, .board-shell:fullscreen .tl-grid { height: 100% !important; min-height: 0; }
 .board-shell:fullscreen .tl-wrap { max-height: none !important; }
 .board-shell:fullscreen .tl-lane, .board-shell:fullscreen .tl-grid { max-height: none !important; }
 .chat-panel { display: flex; flex-direction: column; height: 60dvh; min-height: 320px; border: 1px solid var(--border-hairline); border-radius: var(--radius-card); background: var(--bg-inset); overflow: hidden; }
