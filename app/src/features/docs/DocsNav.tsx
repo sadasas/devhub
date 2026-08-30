@@ -10,7 +10,7 @@ export function DocsNav() {
       <NavLink to="/docs" end className={tabClass}>
         {t('docs.nav.overview')}
       </NavLink>
-      <NavLink to="/docs/mcp" className={tabClass}>
+      <NavLink to="/docs/mcp" end className={tabClass}>
         {t('docs.nav.mcp')}
       </NavLink>
     </nav>

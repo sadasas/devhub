@@ -237,6 +237,10 @@ export function ReleasesFlowView({
     return null;
   }, [milestones, selectedId]);
 
+  const flowTasks = useMemo(() => (selected ? tasks.filter((t) => t.milestoneId === selected.id) : []), [tasks, selected]);
+  const dag = useMemo(() => computeDag(flowTasks), [flowTasks]);
+  const doneTasks = useMemo(() => flowTasks.filter((t) => t.status === 'done'), [flowTasks]);
+
   if (milestones.length === 0) {
     return (
       <EmptyState
@@ -270,11 +274,6 @@ export function ReleasesFlowView({
       </div>
     );
   }
-
-  const flowTasks = useMemo(() => tasks.filter((t) => t.milestoneId === selected.id), [tasks, selected.id]);
-
-  const dag = useMemo(() => computeDag(flowTasks), [flowTasks]);
-  const doneTasks = useMemo(() => flowTasks.filter((t) => t.status === 'done'), [flowTasks]);
 
   return (
     <div className="release-flow">

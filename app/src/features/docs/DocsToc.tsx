@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -11,14 +12,37 @@ function flatten(items: DocsTocItem[]): string[] {
   return items.flatMap((item) => [item.id, ...flatten(item.children ?? [])]);
 }
 
-function jumpTo(id: string) {
-  document.getElementById(id)?.scrollIntoView({
-    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-    block: 'start',
+function focusSection(id: string) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  // ensure target is focusable
+  if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
+  // smooth scroll respecting reduced-motion
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+  // keep URL hash in sync without triggering jump
+  try {
+    const url = new URL(window.location.href);
+    url.hash = id;
+    window.history.pushState(null, '', url.toString());
+  } catch {
+    window.location.hash = id;
+  }
+  // focus for a11y after scroll
+  requestAnimationFrame(() => {
+    el.focus({ preventScroll: true });
   });
 }
 
-function TocLinks({ items, active }: { items: DocsTocItem[]; active: string }) {
+function TocLinks({ items, active, onNavigate }: { items: DocsTocItem[]; active: string; onNavigate?: (id: string) => void }) {
+  const handleClick = (_e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    // allow native anchor navigation, but enhance with focus + pushState
+    // do not preventDefault fully — let hash update natively, then focus
+    onNavigate?.(id);
+    // delay focus to after native hash scroll
+    window.setTimeout(() => focusSection(id), 0);
+  };
+
   return (
     <>
       {items.map((item) => (
@@ -26,10 +50,8 @@ function TocLinks({ items, active }: { items: DocsTocItem[]; active: string }) {
           <a
             href={`#${item.id}`}
             className={active === item.id ? 'docs-toc-link docs-toc-link-active' : 'docs-toc-link'}
-            onClick={(e) => {
-              e.preventDefault();
-              jumpTo(item.id);
-            }}
+            aria-current={active === item.id ? 'location' : undefined}
+            onClick={(e) => handleClick(e, item.id)}
           >
             {item.label}
           </a>
@@ -40,10 +62,8 @@ function TocLinks({ items, active }: { items: DocsTocItem[]; active: string }) {
                   <a
                     href={`#${child.id}`}
                     className={active === child.id ? 'docs-toc-link docs-toc-link-active' : 'docs-toc-link'}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      jumpTo(child.id);
-                    }}
+                    aria-current={active === child.id ? 'location' : undefined}
+                    onClick={(e) => handleClick(e, child.id)}
                   >
                     {child.label}
                   </a>
@@ -94,11 +114,24 @@ export function DocsToc({ items }: { items: DocsTocItem[] }) {
 /** Collapsible "On this page" for narrow viewports — hidden on desktop via CSS. */
 export function DocsTocMobile({ items }: { items: DocsTocItem[] }) {
   const { t } = useTranslation('extras');
+  const detailsRef = React.useRef<HTMLDetailsElement>(null);
+
+  const handleNavigate = (id: string) => {
+    // auto-close mobile toc after navigation
+    requestAnimationFrame(() => {
+      if (detailsRef.current?.hasAttribute('open')) {
+        detailsRef.current.removeAttribute('open');
+      }
+    });
+    // also focusSection is handled in TocLinks, but ensure close
+    void id;
+  };
+
   return (
-    <details className="docs-toc-mobile">
+    <details ref={detailsRef} className="docs-toc-mobile">
       <summary>{t('docs.onThisPage')}</summary>
       <ul className="docs-toc-list">
-        <TocLinks items={items} active="" />
+        <TocLinks items={items} active="" onNavigate={handleNavigate} />
       </ul>
     </details>
   );

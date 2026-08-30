@@ -53,14 +53,31 @@ function KanbanSkeleton() {
 function DocsBodySkeleton() {
   return (
     <div className="docs-body" aria-hidden="true">
-      {[0, 1, 2].map((i) => (
-        <div key={i} className="docs-section">
-          <Skeleton style={{ width: 180, height: 18 }} />
-          <Skeleton style={{ width: '100%', height: 14, marginTop: 10 }} />
-          <Skeleton style={{ width: '92%', height: 14, marginTop: 6 }} />
-          <Skeleton style={{ width: '60%', height: 14, marginTop: 6 }} />
+      <div className="docs-section">
+        <Skeleton style={{ width: 180, height: 18 }} />
+        <Skeleton style={{ width: '100%', height: 14, marginTop: 10 }} />
+        <Skeleton style={{ width: '92%', height: 14, marginTop: 6 }} />
+      </div>
+      <div className="docs-hub" aria-hidden="true">
+        <Skeleton style={{ width: 120, height: 16, marginBottom: 12 }} />
+        <div className="docs-hub-grid">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} style={{ height: 74, width: '100%' }} />
+          ))}
         </div>
-      ))}
+        <Skeleton style={{ width: '100%', height: 132, marginTop: 14 }} />
+      </div>
+      <div className="docs-section">
+        <Skeleton style={{ width: 160, height: 18 }} />
+        <Skeleton style={{ width: '100%', height: 14, marginTop: 10 }} />
+        <Skeleton style={{ width: '88%', height: 14, marginTop: 6 }} />
+        <Skeleton style={{ width: '100%', height: 56, marginTop: 12 }} />
+      </div>
+      <div className="docs-section">
+        <Skeleton style={{ width: 180, height: 18 }} />
+        <Skeleton style={{ width: '100%', height: 42, marginTop: 10 }} />
+        <Skeleton style={{ width: '100%', height: 42, marginTop: 8 }} />
+      </div>
     </div>
   );
 }

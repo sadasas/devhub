@@ -1,25 +1,33 @@
-import { Check, Copy, Key, ArrowSquareOut } from '@phosphor-icons/react';
-import { useNavigate } from 'react-router';
+import {
+  ArrowSquareOut,
+  Check,
+  Code,
+  Copy,
+  Cursor as CursorIcon,
+  Key,
+  Robot,
+  Sparkle,
+  Terminal,
+  Wind,
+  Warning,
+  CaretDown,
+  Info,
+} from '@phosphor-icons/react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { useCopyFeedback } from '../../hooks/useCopyFeedback';
+
 import { Button } from '../../components/Button';
+import { useCopyFeedback } from '../../hooks/useCopyFeedback';
+import { Callout } from './Callout';
 import { DocsNav } from './DocsNav';
 import { DocsToc, DocsTocMobile, type DocsTocItem } from './DocsToc';
 
-const ENV_EXAMPLE = '$env:DEVHUB_MCP_KEY = "devhub_your_key_here"';
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
 
-const OPENCODE_CONFIG = `{
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "devhub": {
-      "type": "remote",
-      "url": "http://localhost:3000/mcp",
-      "headers": {
-        "Authorization": "Bearer {env:DEVHUB_MCP_KEY}"
-      }
-    }
-  }
-}`;
+const STORAGE_KEY = 'docs-mcp-agent';
 
 const MCP_TOOLS = [
   'project_state',
@@ -43,7 +51,7 @@ const MCP_TOOLS = [
   'update_api_endpoint',
   'create_whiteboard',
   'update_whiteboard',
-];
+] as const;
 
 const TOC_ITEMS: { id: string; labelKey: string }[] = [
   { id: 'mcp-prereq', labelKey: 'docs.mcp.toc.prereq' },
@@ -53,9 +61,29 @@ const TOC_ITEMS: { id: string; labelKey: string }[] = [
   { id: 'mcp-config', labelKey: 'docs.mcp.toc.config' },
   { id: 'mcp-restart', labelKey: 'docs.mcp.toc.restart' },
   { id: 'mcp-verify', labelKey: 'docs.mcp.toc.verify' },
+  { id: 'mcp-auto-prompt', labelKey: 'docs.mcp.toc.autoPrompt' },
   { id: 'mcp-agentsync', labelKey: 'docs.mcp.toc.agentsync' },
   { id: 'mcp-troubleshooting', labelKey: 'docs.mcp.toc.troubleshooting' },
 ];
+
+const PREREQS = [
+  { strongKey: 'docs.mcp.prereq.opencodeStrong', descKey: 'docs.mcp.prereq.opencodeDesc' },
+  { strongKey: 'docs.mcp.prereq.reachableStrong', descKey: 'docs.mcp.prereq.reachableDesc' },
+  { strongKey: 'docs.mcp.prereq.loggedInStrong', descKey: 'docs.mcp.prereq.loggedInDesc' },
+];
+
+type AgentId = 'opencode' | 'claude' | 'cursor' | 'windsurf' | 'vscode' | 'gemini';
+
+const AGENT_IDS: readonly AgentId[] = ['opencode', 'claude', 'cursor', 'windsurf', 'vscode', 'gemini'] as const;
+
+const AGENT_META: Record<AgentId, { label: string; Icon: typeof Terminal }> = {
+  opencode: { label: 'OpenCode', Icon: Terminal },
+  claude: { label: 'Claude Code', Icon: Robot },
+  cursor: { label: 'Cursor', Icon: CursorIcon },
+  windsurf: { label: 'Windsurf', Icon: Wind },
+  vscode: { label: 'VS Code/Copilot', Icon: Code },
+  gemini: { label: 'Gemini', Icon: Sparkle },
+};
 
 const AGENTS_SNIPPET = `# DevHub Agent Sync Protocol
 
@@ -100,12 +128,17 @@ Before creating a task (session start or mid-session), ask the user whether the 
 - Sebelum \`add_api_endpoint\`, baca \`project_state.apiEndpoints\` dan cocokkan \`method+path+collectionId\` untuk hindari duplikat (cap 500 collections / 5000 endpoints).
 - After syncing, verify with project_state if unsure (default cap is 200 rows per collection — use limit: 0).`;
 
-const AGENTSYNC_ENV_EXAMPLE = `$env:DEVHUB_MCP_KEY = "devhub_your_key_here"      # required — MCP auth
-$env:DEVHUB_PROJECT_ID = "<your-project-uuid>" # optional — default sync target
+const AUTO_PROMPT_SNIPPET = `## Prerequisites
 
-# Linux/macOS:
-export DEVHUB_MCP_KEY="devhub_your_key_here"
-export DEVHUB_PROJECT_ID="<your-project-uuid>"`;
+Before sync begins, ensure MCP is configured:
+
+1. Check env var DEVHUB_MCP_KEY — if empty, ask user via question tool (custom: true):
+   "DevHub MCP key is not set. Open DevHub → sidebar → API Keys → create a key, then paste it here."
+2. Check env var DEVHUB_PROJECT_ID — if empty, ask user via question tool (custom: true):
+   "Project ID is not set. Open a project in DevHub → copy the ID from the header, then paste it here."
+3. If MCP returns 401 (key invalid/expired), ask user again:
+   "MCP key is not valid. Create a new key at DevHub → API Keys → then paste it here."
+4. If MCP is not reachable (server down), log as pending and continue main work.`;
 
 const TASK_LIFECYCLE = `Status: todo → inProgress → review → done
 
@@ -288,30 +321,69 @@ update_milestone {
   changelog: "- Pointer events drag handler\\n- Touch support iOS Safari 17+"
 }`;
 
-const AUTO_PROMPT_SNIPPET = `## Prerequisites
+// Variant wrappers — same core content, file-specific label (prompt wants 5 varian)
+const AGENTS_VARIANT_SNIPPETS: Record<string, string> = {
+  'AGENTS.md': AGENTS_SNIPPET,
+  'CLAUDE.md': `# CLAUDE.md — DevHub Agent Sync\n\n${AGENTS_SNIPPET}`,
+  '.cursorrules': `# .cursorrules — DevHub Agent Sync\n\n${AGENTS_SNIPPET}`,
+  '.windsurfrules': `# .windsurfrules — DevHub Agent Sync\n\n${AGENTS_SNIPPET}`,
+  '.github/copilot-instructions.md': `# .github/copilot-instructions.md — DevHub Agent Sync\n\n${AGENTS_SNIPPET}`,
+};
 
-Before sync begins, ensure MCP is configured:
+const AUTO_PROMPT_VARIANT_SNIPPETS: Record<string, string> = {
+  'AGENTS.md': AUTO_PROMPT_SNIPPET,
+  'CLAUDE.md': `# CLAUDE.md — DevHub Prerequisites\n\n${AUTO_PROMPT_SNIPPET}`,
+  '.cursorrules': `# .cursorrules — DevHub Prerequisites\n\n${AUTO_PROMPT_SNIPPET}`,
+  '.windsurfrules': `# .windsurfrules — DevHub Prerequisites\n\n${AUTO_PROMPT_SNIPPET}`,
+  '.github/copilot-instructions.md': `# .github/copilot-instructions.md — DevHub Prerequisites\n\n${AUTO_PROMPT_SNIPPET}`,
+};
 
-1. Check env var DEVHUB_MCP_KEY — if empty, ask user via question tool (custom: true):
-   "DevHub MCP key is not set. Open DevHub → sidebar → API Keys → create a key, then paste it here."
-2. Check env var DEVHUB_PROJECT_ID — if empty, ask user via question tool (custom: true):
-   "Project ID is not set. Open a project in DevHub → copy the ID from the header, then paste it here."
-3. If MCP returns 401 (key invalid/expired), ask user again:
-   "MCP key is not valid. Create a new key at DevHub → API Keys → then paste it here."
-4. If MCP is not reachable (server down), log as pending and continue main work.`;
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
-const PREREQS = [
-  { strongKey: 'docs.mcp.prereq.opencodeStrong', descKey: 'docs.mcp.prereq.opencodeDesc' },
-  { strongKey: 'docs.mcp.prereq.reachableStrong', descKey: 'docs.mcp.prereq.reachableDesc' },
-  { strongKey: 'docs.mcp.prereq.loggedInStrong', descKey: 'docs.mcp.prereq.loggedInDesc' },
-];
+function getMcpUrl(): string {
+  const raw =
+    (import.meta.env.VITE_API_URL as string | undefined) ||
+    (typeof window !== 'undefined' ? window.location.origin : '');
+  const base = raw.replace(/\/+$/, '');
+  if (!base) return 'http://localhost:3000/mcp';
+  return `${base}/mcp`;
+}
+
+function getInitialAgent(): AgentId {
+  if (typeof window === 'undefined') return 'opencode';
+  try {
+    const url = new URL(window.location.href);
+    const param = url.searchParams.get('agent')?.toLowerCase();
+    if (param && (AGENT_IDS as readonly string[]).includes(param)) {
+      return param as AgentId;
+    }
+    // hash may contain ?agent=...
+    if (url.hash.includes('agent=')) {
+      const hashParams = new URLSearchParams(url.hash.split('?')[1] ?? '');
+      const h = hashParams.get('agent')?.toLowerCase();
+      if (h && (AGENT_IDS as readonly string[]).includes(h)) return h as AgentId;
+    }
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (stored && (AGENT_IDS as readonly string[]).includes(stored)) return stored as AgentId;
+  } catch {
+    // ignore
+  }
+  return 'opencode';
+}
+
+// ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
 
 function CodeBlock({ code, lang, file }: { code: string; lang: string; file?: string }) {
   const { t } = useTranslation('extras');
   const { copied, copy } = useCopyFeedback();
+  const regionLabel = file ? `${lang} ${file}` : `${lang} code`;
 
   return (
-    <div className="code-block">
+    <div className="code-block" role="region" aria-label={regionLabel}>
       <div className="code-block-header">
         <span className="code-block-meta">
           <span className="code-block-badge">{lang}</span>
@@ -321,6 +393,7 @@ function CodeBlock({ code, lang, file }: { code: string; lang: string; file?: st
           variant="ghost"
           size="sm"
           className="code-block-copy"
+          aria-label={copied ? t('api.workbench.copied') : t('api.workbench.copy')}
           leftIcon={
             copied ? (
               <Check size={12} weight="bold" aria-hidden="true" />
@@ -333,17 +406,434 @@ function CodeBlock({ code, lang, file }: { code: string; lang: string; file?: st
           {copied ? t('api.workbench.copied') : t('api.workbench.copy')}
         </Button>
       </div>
-      <pre className="code-block-body">
+      <pre className="code-block-body" tabIndex={0}>
         <code>{code}</code>
       </pre>
+      <span aria-live="polite" className="sr-only">
+        {copied ? t('api.workbench.copied') : ''}
+      </span>
     </div>
   );
 }
 
+function AgentPicker({
+  selected,
+  onSelect,
+}: {
+  selected: AgentId;
+  onSelect: (id: AgentId) => void;
+}) {
+  const { t } = useTranslation('extras');
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      const idx = AGENT_IDS.indexOf(selected);
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const dir = e.key === 'ArrowRight' ? 1 : -1;
+        const next = AGENT_IDS[(idx + dir + AGENT_IDS.length) % AGENT_IDS.length]!;
+        onSelect(next);
+        // focus the new tab on next tick
+        requestAnimationFrame(() => {
+          const el = document.getElementById(`agent-tab-${next}`);
+          el?.focus();
+        });
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        onSelect(AGENT_IDS[0]!);
+        document.getElementById(`agent-tab-${AGENT_IDS[0]!}`)?.focus();
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        const last = AGENT_IDS[AGENT_IDS.length - 1]!;
+        onSelect(last);
+        document.getElementById(`agent-tab-${last}`)?.focus();
+      }
+    },
+    [selected, onSelect],
+  );
+
+  return (
+    <div className="docs-agent-picker-wrap" aria-label={t('docs.mcp.agent.tabsLabel')}>
+      <div
+        ref={listRef}
+        className="docs-agent-picker"
+        role="tablist"
+        aria-label={t('docs.mcp.agent.pickerLabel')}
+        onKeyDown={handleKeyDown}
+      >
+        {AGENT_IDS.map((id) => {
+          const meta = AGENT_META[id];
+          const Icon = meta.Icon;
+          const isActive = selected === id;
+          return (
+            <button
+              key={id}
+              id={`agent-tab-${id}`}
+              role="tab"
+              type="button"
+              aria-selected={isActive}
+              aria-controls={`agent-panel-${id}`}
+              tabIndex={isActive ? 0 : -1}
+              className="docs-agent-tab"
+              onClick={() => onSelect(id)}
+            >
+              <Icon size={14} weight={isActive ? 'fill' : 'regular'} aria-hidden="true" />
+              <span>{t(`docs.mcp.agent.${id}` as const, { defaultValue: meta.label })}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function EnvSwitcher({ psCode, bashCode }: { psCode: string; bashCode: string }) {
+  const { t } = useTranslation('extras');
+  const [shell, setShell] = useState<'ps' | 'bash'>('ps');
+
+  return (
+    <div className="docs-env-wrap">
+      <div className="segmented" role="tablist" aria-label="Shell selector">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={shell === 'ps'}
+          className={`segment ${shell === 'ps' ? 'segment-active' : ''}`}
+          onClick={() => setShell('ps')}
+        >
+          {t('docs.mcp.env.powershell')}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={shell === 'bash'}
+          className={`segment ${shell === 'bash' ? 'segment-active' : ''}`}
+          onClick={() => setShell('bash')}
+        >
+          {t('docs.mcp.env.bash')}
+        </button>
+      </div>
+      <div role="tabpanel" aria-label={shell === 'ps' ? 'PowerShell' : 'bash'}>
+        <CodeBlock lang={shell === 'ps' ? 'PowerShell' : 'bash'} code={shell === 'ps' ? psCode : bashCode} />
+      </div>
+      <p className="docs-step-note">{t('docs.mcp.env.hint')}</p>
+    </div>
+  );
+}
+
+function LifecycleAccordion({
+  title,
+  code,
+  defaultOpen = false,
+}: {
+  title: string;
+  code: string;
+  defaultOpen?: boolean;
+}) {
+  return (
+    <details className="docs-accordion" open={defaultOpen}>
+      <summary>
+        <h3 style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>{title}</h3>
+        <CaretDown size={12} weight="bold" aria-hidden="true" className="docs-accordion-chevron" />
+      </summary>
+      <div className="docs-accordion-body">
+        <CodeBlock lang="Text" code={code} />
+      </div>
+    </details>
+  );
+}
+
+type VariantFile = { id: string; file: string; lang: string; code: string; labelKey: string };
+
+function DocsVariantTabs({ variants, commitNoteKey }: { variants: VariantFile[]; commitNoteKey: string }) {
+  const { t } = useTranslation('extras');
+  const [activeId, setActiveId] = useState<string>(() => variants[0]?.id ?? '');
+  const active = variants.find((v) => v.id === activeId) ?? variants[0]!;
+
+  return (
+    <div className="docs-agents-variant-tabs">
+      <div className="segmented docs-variant-segmented" role="tablist" aria-label={t('docs.mcp.agentsync.variantLabel')}>
+        {variants.map((v) => (
+          <button
+            key={v.id}
+            type="button"
+            role="tab"
+            aria-selected={activeId === v.id}
+            className={`segment ${activeId === v.id ? 'segment-active' : ''}`}
+            onClick={() => setActiveId(v.id)}
+            aria-controls={`variant-panel-${v.id}`}
+            id={`variant-tab-${v.id}`}
+          >
+            {t(v.labelKey as any, { defaultValue: v.file })}
+          </button>
+        ))}
+      </div>
+      <div id={`variant-panel-${active.id}`} role="tabpanel" aria-labelledby={`variant-tab-${active.id}`} style={{ marginTop: 10 }}>
+        <CodeBlock lang={active.lang} file={active.file} code={active.code} />
+      </div>
+      <Callout>
+        <span>{t(commitNoteKey, { defaultValue: 'Commit file ini ke repo root — agen membacanya setiap sesi.' })}</span>
+      </Callout>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main page
+// ---------------------------------------------------------------------------
+
 export function McpDocsPage() {
   const navigate = useNavigate();
   const { t } = useTranslation('extras');
-  const tocItems: DocsTocItem[] = TOC_ITEMS.map((item) => ({ id: item.id, label: t(item.labelKey) }));
+  const [agent, setAgent] = useState<AgentId>(() => getInitialAgent());
+  const tocItems: DocsTocItem[] = useMemo(
+    () => TOC_ITEMS.map((item) => ({ id: item.id, label: t(item.labelKey) })),
+    [t],
+  );
+
+  const mcpUrl = useMemo(() => getMcpUrl(), []);
+  // also compute apiUrl for docs transparency
+  const apiUrl = useMemo(() => {
+    const raw =
+      (import.meta.env.VITE_API_URL as string | undefined) ||
+      (typeof window !== 'undefined' ? window.location.origin : '');
+    return raw.replace(/\/+$/, '');
+  }, []);
+
+  // Persist agent selection
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, agent);
+    } catch {
+      // ignore
+    }
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('agent', agent);
+      window.history.replaceState(null, '', url.toString());
+    } catch {
+      // ignore
+    }
+  }, [agent]);
+
+  // Sync if URL changes externally (back/forward)
+  useEffect(() => {
+    const onPop = () => {
+      const next = getInitialAgent();
+      setAgent((prev) => (prev !== next ? next : prev));
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  const psEnv = useMemo(
+    () =>
+      `$env:DEVHUB_MCP_KEY = "devhub_your_key_here"\n$env:DEVHUB_PROJECT_ID = "a1b2c3d4-e5f6-4a7b-9c0d-1234567890ab"  # optional`,
+    [],
+  );
+  const bashEnv = useMemo(
+    () => `export DEVHUB_MCP_KEY="devhub_your_key_here"\nexport DEVHUB_PROJECT_ID="a1b2c3d4-e5f6-4a7b-9c0d-1234567890ab"  # optional`,
+    [],
+  );
+
+  const projectIdExample = t('docs.mcp.projectId.headerExample');
+  const { copied: copiedPid, copy: copyPid } = useCopyFeedback();
+
+  // Per-agent config snippets
+  const snippets = useMemo(() => {
+    const url = mcpUrl;
+    return {
+      opencode: {
+        files: [
+          {
+            file: 'opencode.json',
+            lang: 'JSON',
+            code: `{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "devhub": {
+      "type": "remote",
+      "url": "${url}",
+      "headers": {
+        "Authorization": "Bearer {env:DEVHUB_MCP_KEY}"
+      },
+      "enabled": true
+    }
+  }
+}`,
+          },
+        ],
+      },
+      claude: {
+        cli: `claude mcp add --transport http devhub ${url} --header "Authorization: Bearer \${DEVHUB_MCP_KEY}"`,
+        files: [
+          {
+            file: '.mcp.json  (project)',
+            lang: 'JSON',
+            code: `{
+  "mcpServers": {
+    "devhub": {
+      "type": "http",
+      "url": "${url}",
+      "headers": {
+        "Authorization": "Bearer \${DEVHUB_MCP_KEY}"
+      }
+    }
+  }
+}`,
+          },
+          {
+            file: '~/.claude.json  (global)',
+            lang: 'JSON',
+            code: `{
+  "mcpServers": {
+    "devhub": {
+      "type": "http",
+      "url": "${url}",
+      "headers": {
+        "Authorization": "Bearer \${DEVHUB_MCP_KEY}"
+      }
+    }
+  }
+}`,
+          },
+        ],
+      },
+      cursor: {
+        files: [
+          {
+            file: '.cursor/mcp.json  (project)',
+            lang: 'JSON',
+            code: `{
+  "mcpServers": {
+    "devhub": {
+      "url": "${url}",
+      "headers": {
+        "Authorization": "Bearer \${DEVHUB_MCP_KEY}"
+      }
+    }
+  }
+}`,
+          },
+          {
+            file: '~/.cursor/mcp.json  (global)',
+            lang: 'JSON',
+            code: `{
+  "mcpServers": {
+    "devhub": {
+      "url": "${url}",
+      "headers": {
+        "Authorization": "Bearer \${DEVHUB_MCP_KEY}"
+      }
+    }
+  }
+}`,
+          },
+        ],
+      },
+      windsurf: {
+        files: [
+          {
+            file: '~/.codeium/windsurf/mcp_config.json',
+            lang: 'JSON',
+            code: `{
+  "mcpServers": {
+    "devhub": {
+      "serverUrl": "${url}",
+      "headers": {
+        "Authorization": "Bearer \${DEVHUB_MCP_KEY}"
+      }
+    }
+  }
+}`,
+          },
+        ],
+      },
+      vscode: {
+        files: [
+          {
+            file: '.vscode/mcp.json  (workspace)',
+            lang: 'JSON',
+            code: `{
+  "servers": {
+    "devhub": {
+      "type": "http",
+      "url": "${url}",
+      "headers": {
+        "Authorization": "Bearer \${DEVHUB_MCP_KEY}"
+      }
+    }
+  }
+}`,
+          },
+          {
+            file: '.github/copilot/mcp.json  (optional)',
+            lang: 'JSON',
+            code: `{
+  "servers": {
+    "devhub": {
+      "type": "http",
+      "url": "${url}",
+      "headers": {
+        "Authorization": "Bearer \${DEVHUB_MCP_KEY}"
+      }
+    }
+  }
+}`,
+          },
+        ],
+      },
+      gemini: {
+        files: [
+          {
+            file: '~/.gemini/settings.json',
+            lang: 'JSON',
+            code: `{
+  "mcpServers": {
+    "devhub": {
+      "serverUrl": "${url}",
+      "headers": {
+        "Authorization": "Bearer \${DEVHUB_MCP_KEY}"
+      }
+    }
+  }
+}`,
+          },
+        ],
+      },
+    } as Record<AgentId, { files: { file: string; lang: string; code: string }[]; cli?: string }>;
+  }, [mcpUrl]);
+
+  const verifyCurl = useMemo(
+    () =>
+      `curl -s -X POST ${mcpUrl} \\\n  -H "Authorization: Bearer $DEVHUB_MCP_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | jq`,
+    [mcpUrl],
+  );
+
+  const restartText = useMemo(() => {
+    const map: Record<AgentId, string> = {
+      opencode: t('docs.mcp.restart.opencode'),
+      claude: t('docs.mcp.restart.claude'),
+      cursor: t('docs.mcp.restart.cursor'),
+      windsurf: t('docs.mcp.restart.windsurf'),
+      vscode: t('docs.mcp.restart.vscode'),
+      gemini: t('docs.mcp.restart.gemini'),
+    };
+    return map[agent];
+  }, [agent, t]);
+
+  const verifyCheck = useMemo(() => {
+    const map: Record<AgentId, string> = {
+      opencode: t('docs.mcp.verify.opencodeCheck'),
+      claude: t('docs.mcp.verify.claudeCheck'),
+      cursor: t('docs.mcp.verify.cursorCheck'),
+      windsurf: t('docs.mcp.verify.windsurfCheck'),
+      vscode: t('docs.mcp.verify.vscodeCheck'),
+      gemini: t('docs.mcp.verify.geminiCheck'),
+    };
+    return map[agent];
+  }, [agent, t]);
 
   return (
     <div className="page">
@@ -358,71 +848,295 @@ export function McpDocsPage() {
         <div className="docs-main">
           <DocsTocMobile items={tocItems} />
           <DocsNav />
+
+          {/* Agent picker — sticky above docs-body */}
+          <AgentPicker selected={agent} onSelect={setAgent} />
+
           <div className="docs-body">
-            <section id="mcp-prereq" className="docs-prereq">
+            {/* Prereqs */}
+            <section id="mcp-prereq" className="docs-prereq" tabIndex={-1}>
               <h2 className="docs-section-title">{t('docs.mcp.toc.prereq')}</h2>
               <ul className="docs-prereq-list">
-                {PREREQS.map((p) => (
-                  <li key={p.strongKey} className="docs-prereq-item">
-                    <span className="docs-prereq-check" aria-hidden="true">
-                      <Check size={12} weight="bold" />
-                    </span>
-                    <span>
-                      <strong>{t(p.strongKey)}</strong> — {t(p.descKey)}
-                    </span>
-                  </li>
-                ))}
+                {PREREQS.map((p, idx) => {
+                  const isFirst = idx === 0;
+                  const label = AGENT_META[agent]?.label ?? "OpenCode";
+                  const strongText = isFirst ? t("docs.mcp.prereq.agentStrong", { agent: label }) : t(p.strongKey);
+                  const descText = isFirst ? t("docs.mcp.prereq.agentDesc", { agent: label }) : t(p.descKey);
+                  const strong = strongText === "docs.mcp.prereq.agentStrong" ? `${label} ${t("docs.mcp.prereq.fallbackInstalled")}` : strongText;
+                  const desc = descText === "docs.mcp.prereq.agentDesc" ? t(p.descKey) : descText;
+                  return (
+                    <li key={p.strongKey} className="docs-prereq-item">
+                      <span className="docs-prereq-check" aria-hidden="true">
+                        <Check size={12} weight="bold" />
+                      </span>
+                      <span>
+                        <strong>{strong}</strong> — {desc}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
+              <p className="docs-step-note" style={{ marginTop: 10 }}>
+                Endpoint: <code className="inline-code">POST {mcpUrl}</code>
+                {apiUrl ? (
+                  <span style={{ marginLeft: 6, color: 'var(--text-muted)', fontSize: 12 }}>
+                    ({apiUrl}/mcp — Streamable HTTP, Bearer per-user key)
+                  </span>
+                ) : null}
+              </p>
             </section>
 
-            <section id="mcp-key" className="docs-step">
+            {/* 01 Create key */}
+            <section id="mcp-key" className="docs-step" tabIndex={-1}>
               <span className="docs-step-num">01</span>
               <div className="docs-step-content">
                 <h2 className="docs-step-title">{t('docs.mcp.step.keyTitle')}</h2>
-                <Button
-                  leftIcon={<Key size={14} weight="bold" aria-hidden="true" />}
-                  onClick={() => navigate('/keys')}
-                >
+                <p className="docs-step-desc">
+                  Create a per-user key in DevHub. The raw key is shown once — save it to{' '}
+                  <code className="inline-code">DEVHUB_MCP_KEY</code>.
+                </p>
+                <Button leftIcon={<Key size={14} weight="bold" aria-hidden="true" />} onClick={() => navigate('/keys')}>
                   {t('docs.mcp.goToKeys')}
                 </Button>
               </div>
             </section>
 
-            <section id="mcp-project-id" className="docs-step">
+            {/* 02 Project ID */}
+            <section id="mcp-project-id" className="docs-step" tabIndex={-1}>
               <span className="docs-step-num">02</span>
               <div className="docs-step-content">
                 <h2 className="docs-step-title">{t('docs.mcp.step.projectIdTitle')}</h2>
+                <p className="docs-step-desc">{t('docs.mcp.projectId.desc')}</p>
+                <div className="docs-project-id-row">
+                  <span className="docs-project-id-mono" aria-label={t('docs.mcp.projectId.exampleLabel')}>
+                    {projectIdExample}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={t('docs.mcp.projectId.copyLabel')}
+                    leftIcon={
+                      copiedPid ? <Check size={12} weight="bold" aria-hidden="true" /> : <Copy size={12} aria-hidden="true" />
+                    }
+                    onClick={() => void copyPid('a1b2c3d4-e5f6-4a7b-9c0d-1234567890ab')}
+                  >
+                    {copiedPid ? t('api.workbench.copied') : t('api.workbench.copy')}
+                  </Button>
+                  <span aria-live="polite" className="sr-only">
+                    {copiedPid ? t('api.workbench.copied') : ''}
+                  </span>
+                </div>
+                <p className="docs-step-note">
+                  Path: <code className="inline-code">/project/:id</code> — copy the UUID from the header. Keep the dash
+                  format, don&apos;t trim.
+                </p>
+                <Callout>
+                  <span>{t('docs.mcp.projectId.tip')}</span>
+                </Callout>
               </div>
             </section>
 
-            <section id="mcp-env" className="docs-step">
+            {/* 03 Env */}
+            <section id="mcp-env" className="docs-step" tabIndex={-1}>
               <span className="docs-step-num">03</span>
               <div className="docs-step-content">
                 <h2 className="docs-step-title">{t('docs.mcp.step.envTitle')}</h2>
-                <CodeBlock lang="PowerShell" code={ENV_EXAMPLE} />
+                <EnvSwitcher psCode={psEnv} bashCode={bashEnv} />
               </div>
             </section>
 
-            <section id="mcp-config" className="docs-step">
+            {/* 04 Config — per agent */}
+            <section id="mcp-config" className="docs-step" tabIndex={-1}>
               <span className="docs-step-num">04</span>
               <div className="docs-step-content">
-                <h2 className="docs-step-title">{t('docs.mcp.step.configTitle')}</h2>
-                <CodeBlock lang="JSON" file="opencode.json" code={OPENCODE_CONFIG} />
+                <h2 className="docs-step-title">{t('docs.mcp.step.configTitle', { agent: AGENT_META[agent].label })}</h2>
+                <p className="docs-step-desc">{t('docs.mcp.agent.configHint')}</p>
+
+                <div
+                  key={agent}
+                  id={`agent-panel-${agent}`}
+                  role="tabpanel"
+                  aria-labelledby={`agent-tab-${agent}`}
+                  className="docs-section-stack"
+                >
+                  {snippets[agent].cli ? (
+                    <div className="docs-config-card">
+                      <div className="docs-config-card-head">
+                        <span className="docs-config-card-label">{t('docs.mcp.agent.cliTitle')}</span>
+                      </div>
+                      <div style={{ padding: 10 }}>
+                        <CodeBlock lang="bash" file={agent === 'claude' ? 'Terminal' : undefined} code={snippets[agent].cli!} />
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {snippets[agent].files.map((f) => (
+                    <div key={f.file} className="docs-config-card">
+                      <div className="docs-config-card-head">
+                        <span className="docs-config-card-label">{f.file}</span>
+                      </div>
+                      <div style={{ padding: 10 }}>
+                        <CodeBlock lang={f.lang} file={f.file} code={f.code} />
+                      </div>
+                    </div>
+                  ))}
+
+                  {agent === 'windsurf' ? (
+                    <Callout tone="warn">
+                      <span style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+                        <Warning size={14} weight="bold" aria-hidden="true" style={{ marginTop: 2, flexShrink: 0 }} />
+                        <span>{t('docs.mcp.agent.windsurfWarn')}</span>
+                      </span>
+                    </Callout>
+                  ) : null}
+
+                  {agent === 'claude' ? (
+                    <Callout>
+                      <span>
+                        CLI uses <code className="inline-code">{'${DEVHUB_MCP_KEY}'}</code> expansion; JSON also supports{' '}
+                        <code className="inline-code">{'${DEVHUB_MCP_KEY}'}</code>. Don&apos;t use{' '}
+                        <code className="inline-code">{'{env:DEVHUB_MCP_KEY}'}</code> (opencode only).
+                      </span>
+                    </Callout>
+                  ) : null}
+                  {agent === 'opencode' ? (
+                    <Callout>
+                      <span>
+                        opencode uses <code className="inline-code">{'{env:DEVHUB_MCP_KEY}'}</code> — not{' '}
+                        <code className="inline-code">{'${DEVHUB_MCP_KEY}'}</code>. Ensure{' '}
+                        <code className="inline-code">enabled: true</code>.
+                      </span>
+                    </Callout>
+                  ) : null}
+                </div>
               </div>
             </section>
 
-            <section id="mcp-restart" className="docs-step">
+            {/* 05 Restart */}
+            <section id="mcp-restart" className="docs-step" tabIndex={-1}>
               <span className="docs-step-num">05</span>
               <div className="docs-step-content">
-                <h2 className="docs-step-title">{t('docs.mcp.step.restartTitle')}</h2>
+                <h2 className="docs-step-title">{t('docs.mcp.step.restartTitle', { agent: AGENT_META[agent].label })}</h2>
+                <div className="docs-config-card" style={{ padding: 12 }}>
+                  <p style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13, lineHeight: 1.55 }}>
+                    <Info size={14} weight="bold" aria-hidden="true" style={{ marginTop: 2, color: 'var(--accent)', flexShrink: 0 }} />
+                    <span>{restartText}</span>
+                  </p>
+                </div>
+                <ul className="docs-verify-list" aria-label={t('docs.mcp.restart.title')}>
+                  <li className="docs-verify-item">
+                    <span className="docs-verify-check" aria-hidden="true">
+                      <Check size={10} weight="bold" />
+                    </span>
+                    <span>
+                      <strong>OpenCode:</strong> {t('docs.mcp.restart.opencode')}
+                    </span>
+                  </li>
+                  <li className="docs-verify-item">
+                    <span className="docs-verify-check" aria-hidden="true">
+                      <Check size={10} weight="bold" />
+                    </span>
+                    <span>
+                      <strong>Claude:</strong> {t('docs.mcp.restart.claude')}
+                    </span>
+                  </li>
+                  <li className="docs-verify-item">
+                    <span className="docs-verify-check" aria-hidden="true">
+                      <Check size={10} weight="bold" />
+                    </span>
+                    <span>
+                      <strong>Cursor:</strong> {t('docs.mcp.restart.cursor')}
+                    </span>
+                  </li>
+                  <li className="docs-verify-item">
+                    <span className="docs-verify-check" aria-hidden="true">
+                      <Check size={10} weight="bold" />
+                    </span>
+                    <span>
+                      <strong>Windsurf:</strong> {t('docs.mcp.restart.windsurf')}
+                    </span>
+                  </li>
+                  <li className="docs-verify-item">
+                    <span className="docs-verify-check" aria-hidden="true">
+                      <Check size={10} weight="bold" />
+                    </span>
+                    <span>
+                      <strong>VS Code:</strong> {t('docs.mcp.restart.vscode')}
+                    </span>
+                  </li>
+                  <li className="docs-verify-item">
+                    <span className="docs-verify-check" aria-hidden="true">
+                      <Check size={10} weight="bold" />
+                    </span>
+                    <span>
+                      <strong>Gemini:</strong> {t('docs.mcp.restart.gemini')}
+                    </span>
+                  </li>
+                </ul>
               </div>
             </section>
 
-            <section id="mcp-verify" className="docs-step">
+            {/* 06 Verify */}
+            <section id="mcp-verify" className="docs-step" tabIndex={-1}>
               <span className="docs-step-num">06</span>
               <div className="docs-step-content">
                 <h2 className="docs-step-title">{t('docs.mcp.step.verifyTitle')}</h2>
-                <ul className="docs-chips">
+
+                <h3 className="docs-step-subtitle" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
+                  {t('docs.mcp.verify.checklistTitle')}
+                </h3>
+                <div className="docs-config-card" style={{ padding: 12 }}>
+                  <p style={{ display: 'flex', gap: 8, fontSize: 13, lineHeight: 1.55 }}>
+                    <Check size={14} weight="bold" aria-hidden="true" style={{ marginTop: 2, color: 'var(--accent)' }} />
+                    <span>{verifyCheck}</span>
+                  </p>
+                </div>
+                <ul className="docs-verify-list">
+                  <li className="docs-verify-item">
+                    <span className="docs-verify-check" aria-hidden="true">
+                      <Check size={10} weight="bold" />
+                    </span>
+                    <span>{t('docs.mcp.verify.opencodeCheck')}</span>
+                  </li>
+                  <li className="docs-verify-item">
+                    <span className="docs-verify-check" aria-hidden="true">
+                      <Check size={10} weight="bold" />
+                    </span>
+                    <span>{t('docs.mcp.verify.claudeCheck')}</span>
+                  </li>
+                  <li className="docs-verify-item">
+                    <span className="docs-verify-check" aria-hidden="true">
+                      <Check size={10} weight="bold" />
+                    </span>
+                    <span>{t('docs.mcp.verify.cursorCheck')}</span>
+                  </li>
+                  <li className="docs-verify-item">
+                    <span className="docs-verify-check" aria-hidden="true">
+                      <Check size={10} weight="bold" />
+                    </span>
+                    <span>{t('docs.mcp.verify.windsurfCheck')}</span>
+                  </li>
+                  <li className="docs-verify-item">
+                    <span className="docs-verify-check" aria-hidden="true">
+                      <Check size={10} weight="bold" />
+                    </span>
+                    <span>{t('docs.mcp.verify.vscodeCheck')}</span>
+                  </li>
+                  <li className="docs-verify-item">
+                    <span className="docs-verify-check" aria-hidden="true">
+                      <Check size={10} weight="bold" />
+                    </span>
+                    <span>{t('docs.mcp.verify.geminiCheck')}</span>
+                  </li>
+                </ul>
+
+                <h3 className="docs-step-subtitle">{t('docs.mcp.verify.curlLabel')}</h3>
+                <p className="docs-step-note">{t('docs.mcp.verify.curlDesc')}</p>
+                <CodeBlock lang="bash" code={verifyCurl} />
+                <p className="docs-step-note">{t('docs.mcp.verify.toolsHint')}</p>
+
+                <h3 className="docs-step-subtitle">{t('docs.mcp.verify.chipsLabel')}</h3>
+                <ul className="docs-chips" aria-label={t('docs.mcp.verify.chipsLabel')}>
                   {MCP_TOOLS.map((tool) => (
                     <li key={tool} className="docs-chip">
                       {tool}
@@ -432,72 +1146,168 @@ export function McpDocsPage() {
               </div>
             </section>
 
-            <section id="mcp-auto-prompt" className="docs-step">
+            {/* 07 Auto prompt — 5 variant tabs */}
+            <section id="mcp-auto-prompt" className="docs-step" tabIndex={-1}>
               <span className="docs-step-num">07</span>
               <div className="docs-step-content">
                 <h2 className="docs-step-title">{t('docs.mcp.step.autoPromptTitle')}</h2>
-                <CodeBlock lang="Markdown" file="AGENTS.md" code={AUTO_PROMPT_SNIPPET} />
+                <p className="docs-step-desc">
+                  Let your agent ask for missing config instead of failing silently. Choose your instruction file — all variants contain the same prerequisite checks, only the filename differs.
+                </p>
+                <DocsVariantTabs
+                  variants={[
+                    { id: 'ap-agents', file: 'AGENTS.md', lang: 'Markdown', code: AUTO_PROMPT_VARIANT_SNIPPETS['AGENTS.md']!, labelKey: 'docs.mcp.agentsync.variantAGENTS' },
+                    { id: 'ap-claude', file: 'CLAUDE.md', lang: 'Markdown', code: AUTO_PROMPT_VARIANT_SNIPPETS['CLAUDE.md']!, labelKey: 'docs.mcp.agentsync.variantCLAUDE' },
+                    { id: 'ap-cursor', file: '.cursorrules', lang: 'Markdown', code: AUTO_PROMPT_VARIANT_SNIPPETS['.cursorrules']!, labelKey: 'docs.mcp.agentsync.variantCursor' },
+                    { id: 'ap-windsurf', file: '.windsurfrules', lang: 'Markdown', code: AUTO_PROMPT_VARIANT_SNIPPETS['.windsurfrules']!, labelKey: 'docs.mcp.agentsync.variantWindsurf' },
+                    { id: 'ap-copilot', file: '.github/copilot-instructions.md', lang: 'Markdown', code: AUTO_PROMPT_VARIANT_SNIPPETS['.github/copilot-instructions.md']!, labelKey: 'docs.mcp.agentsync.variantCopilot' },
+                  ]}
+                  commitNoteKey="docs.mcp.autoPrompt.commitNote"
+                />
               </div>
             </section>
 
-            <section id="mcp-agentsync" className="docs-step">
+            {/* 08 Agent sync — 5 variant tabs */}
+            <section id="mcp-agentsync" className="docs-step" tabIndex={-1}>
               <span className="docs-step-num">08</span>
               <div className="docs-step-content">
                 <h2 className="docs-step-title">{t('docs.mcp.step.agentsyncTitle')}</h2>
-                <CodeBlock lang="Markdown" file="AGENTS.md" code={AGENTS_SNIPPET} />
-                <CodeBlock lang="PowerShell" code={AGENTSYNC_ENV_EXAMPLE} />
+                <p className="docs-step-desc">
+                  Copy the full sync protocol to your instruction file. All variants share the same hierarchy (project target resolution → milestone resolution → required sync table), only the filename differs.
+                </p>
+                <DocsVariantTabs
+                  variants={[
+                    { id: 'as-agents', file: 'AGENTS.md', lang: 'Markdown', code: AGENTS_VARIANT_SNIPPETS['AGENTS.md']!, labelKey: 'docs.mcp.agentsync.variantAGENTS' },
+                    { id: 'as-claude', file: 'CLAUDE.md', lang: 'Markdown', code: AGENTS_VARIANT_SNIPPETS['CLAUDE.md']!, labelKey: 'docs.mcp.agentsync.variantCLAUDE' },
+                    { id: 'as-cursor', file: '.cursorrules', lang: 'Markdown', code: AGENTS_VARIANT_SNIPPETS['.cursorrules']!, labelKey: 'docs.mcp.agentsync.variantCursor' },
+                    { id: 'as-windsurf', file: '.windsurfrules', lang: 'Markdown', code: AGENTS_VARIANT_SNIPPETS['.windsurfrules']!, labelKey: 'docs.mcp.agentsync.variantWindsurf' },
+                    { id: 'as-copilot', file: '.github/copilot-instructions.md', lang: 'Markdown', code: AGENTS_VARIANT_SNIPPETS['.github/copilot-instructions.md']!, labelKey: 'docs.mcp.agentsync.variantCopilot' },
+                  ]}
+                  commitNoteKey="docs.mcp.agentsync.commitNote"
+                />
+                <div style={{ marginTop: 12 }}>
+                  <CodeBlock lang="PowerShell" code={`$env:DEVHUB_MCP_KEY = "devhub_your_key_here"      # required — MCP auth\n$env:DEVHUB_PROJECT_ID = "<your-project-uuid>" # optional — default sync target\n\n# Linux/macOS:\nexport DEVHUB_MCP_KEY="devhub_your_key_here"\nexport DEVHUB_PROJECT_ID="<your-project-uuid>"`} />
+                </div>
 
-                <h3 className="docs-step-subtitle">{t('docs.mcp.lifecycle.task')}</h3>
-                <CodeBlock lang="Text" code={TASK_LIFECYCLE} />
+                <h3 className="docs-step-subtitle">{t('docs.mcp.lifecycle.title')}</h3>
+                <p className="docs-step-note" style={{ marginBottom: 10 }}>
+                  Collapsed by default — expand what you need. Keep tasks granular, verify with{' '}
+                  <code className="inline-code">project_state</code> before creating.
+                </p>
 
-                <h3 className="docs-step-subtitle">{t('docs.mcp.lifecycle.issue')}</h3>
-                <CodeBlock lang="Text" code={ISSUE_LIFECYCLE} />
-
-                <h3 className="docs-step-subtitle">{t('docs.mcp.lifecycle.decision')}</h3>
-                <CodeBlock lang="Text" code={DECISION_LIFECYCLE} />
-
-                <h3 className="docs-step-subtitle">{t('docs.mcp.lifecycle.whiteboard')}</h3>
-                <CodeBlock lang="Text" code={WHITEBOARD_LIFECYCLE} />
-
-                <h3 className="docs-step-subtitle">{t('docs.mcp.lifecycle.api')}</h3>
-                <CodeBlock lang="Text" code={API_LIFECYCLE} />
-
-                <h3 className="docs-step-subtitle">{t('docs.mcp.lifecycle.milestone')}</h3>
-                <CodeBlock lang="Text" code={MILESTONE_LIFECYCLE} />
+                <LifecycleAccordion title={t('docs.mcp.lifecycle.task')} code={TASK_LIFECYCLE} />
+                <LifecycleAccordion title={t('docs.mcp.lifecycle.issue')} code={ISSUE_LIFECYCLE} />
+                <LifecycleAccordion title={t('docs.mcp.lifecycle.decision')} code={DECISION_LIFECYCLE} />
+                <LifecycleAccordion title={t('docs.mcp.lifecycle.whiteboard')} code={WHITEBOARD_LIFECYCLE} />
+                <LifecycleAccordion title={t('docs.mcp.lifecycle.api')} code={API_LIFECYCLE} />
+                <LifecycleAccordion title={t('docs.mcp.lifecycle.milestone')} code={MILESTONE_LIFECYCLE} />
               </div>
             </section>
 
-            <section id="mcp-troubleshooting" className="docs-troubleshooting">
+            {/* Troubleshooting — matrix 2 kolom */}
+            <section id="mcp-troubleshooting" className="docs-troubleshooting" tabIndex={-1}>
               <h2 className="docs-section-title">{t('docs.mcp.toc.troubleshooting')}</h2>
-              <div className="data-list">
-                <div className="data-row">
-                  <div className="data-row-main">
-                    <div className="data-row-title">
-                      <span className="row-title-text">{t('docs.mcp.trouble.unauthorizedTitle')}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="data-row">
-                  <div className="data-row-main">
-                    <div className="data-row-title">
-                      <span className="row-title-text">{t('docs.mcp.trouble.connectTitle')}</span>
-                    </div>
-                  </div>
-                </div>
+              <p className="docs-step-note" style={{ marginBottom: 12 }}>
+                {t('docs.mcp.trouble.intro', { defaultValue: 'Quick diagnosis — find your symptom on the left, apply the fix on the right.' })}
+              </p>
+              <div className="docs-troubleshooting-wrap" role="region" aria-label={t('docs.mcp.trouble.title', { defaultValue: 'Troubleshooting matrix' })}>
+                <table className="docs-troubleshooting-table">
+                  <caption className="sr-only">{t('docs.mcp.trouble.title', { defaultValue: 'Troubleshooting matrix' })}</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">{t('docs.mcp.trouble.tableSymptom')}</th>
+                      <th scope="col">{t('docs.mcp.trouble.tableFix')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr aria-label={`${t('docs.mcp.trouble.row401AllSymptom')} — ${t('docs.mcp.trouble.row401AllFix')}`}>
+                      <td data-label={t('docs.mcp.trouble.tableSymptom')}>
+                        <strong>{t('docs.mcp.trouble.row401AllSymptom')}</strong>
+                      </td>
+                      <td data-label={t('docs.mcp.trouble.tableFix')}>{t('docs.mcp.trouble.row401AllFix')}</td>
+                    </tr>
+                    <tr aria-label={`${t('docs.mcp.trouble.row401ScopedSymptom')} — ${t('docs.mcp.trouble.row401ScopedFix')}`}>
+                      <td>
+                        <strong>{t('docs.mcp.trouble.row401ScopedSymptom')}</strong>
+                      </td>
+                      <td>{t('docs.mcp.trouble.row401ScopedFix')}</td>
+                    </tr>
+                    <tr aria-label={`${t('docs.mcp.trouble.row400Symptom')} — ${t('docs.mcp.trouble.row400Fix')}`}>
+                      <td>
+                        <strong>{t('docs.mcp.trouble.row400Symptom')}</strong>
+                      </td>
+                      <td>{t('docs.mcp.trouble.row400Fix')}</td>
+                    </tr>
+                    <tr aria-label={`${t('docs.mcp.trouble.rowProjectIdSymptom')} — ${t('docs.mcp.trouble.rowProjectIdFix')}`}>
+                      <td>
+                        <strong>{t('docs.mcp.trouble.rowProjectIdSymptom')}</strong>
+                      </td>
+                      <td>{t('docs.mcp.trouble.rowProjectIdFix')}</td>
+                    </tr>
+                    <tr aria-label={`${t('docs.mcp.trouble.rowToolsNotListedSymptom')} — ${t('docs.mcp.trouble.rowToolsNotListedFix')}`}>
+                      <td>
+                        <strong>{t('docs.mcp.trouble.rowToolsNotListedSymptom')}</strong>
+                      </td>
+                      <td>{t('docs.mcp.trouble.rowToolsNotListedFix')}</td>
+                    </tr>
+                    <tr aria-label={`${t('docs.mcp.trouble.rowNotVisibleSymptom')} — ${t('docs.mcp.trouble.rowNotVisibleFix')}`}>
+                      <td>
+                        <strong>{t('docs.mcp.trouble.rowNotVisibleSymptom')}</strong>
+                      </td>
+                      <td>{t('docs.mcp.trouble.rowNotVisibleFix')}</td>
+                    </tr>
+                    <tr aria-label={`${t('docs.mcp.trouble.rowCursorCeilingSymptom')} — ${t('docs.mcp.trouble.rowCursorCeilingFix')}`}>
+                      <td>
+                        <strong>{t('docs.mcp.trouble.rowCursorCeilingSymptom')}</strong>
+                      </td>
+                      <td>{t('docs.mcp.trouble.rowCursorCeilingFix')}</td>
+                    </tr>
+                    <tr aria-label={`${t('docs.mcp.trouble.rowWindsurfUrlSymptom')} — ${t('docs.mcp.trouble.rowWindsurfUrlFix')}`}>
+                      <td>
+                        <strong>{t('docs.mcp.trouble.rowWindsurfUrlSymptom')}</strong>{' '}
+                        <span className="badge badge-warn" style={{ marginLeft: 6 }}>
+                          CRITICAL
+                        </span>
+                      </td>
+                      <td>{t('docs.mcp.trouble.rowWindsurfUrlFix')}</td>
+                    </tr>
+                    <tr aria-label={`${t('docs.mcp.trouble.rowSseDeprecatedSymptom')} — ${t('docs.mcp.trouble.rowSseDeprecatedFix')}`}>
+                      <td>
+                        <strong>{t('docs.mcp.trouble.rowSseDeprecatedSymptom')}</strong>
+                      </td>
+                      <td>{t('docs.mcp.trouble.rowSseDeprecatedFix')}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
+
+              <Callout tone="warn">
+                <span style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+                  <Warning size={14} weight="bold" aria-hidden="true" style={{ marginTop: 2, flexShrink: 0 }} />
+                  <span>
+                    <strong>400 on tool call:</strong> invalid args per zod schema — run{' '}
+                    <code className="inline-code">project_state</code> first to see exact field names. Duplicate tasks?
+                    read-then-write. Poll interval is 5s while tab visible — hard-refresh if stale.
+                  </span>
+                </span>
+              </Callout>
             </section>
 
             <section className="docs-next">
               <h2 className="docs-section-title">{t('docs.mcp.nextSteps')}</h2>
               <div className="docs-next-grid">
-                <button type="button" className="docs-card" onClick={() => navigate('/keys')}>
+                <Link
+                  to="/keys"
+                  className="docs-card"
+                  aria-label={`${t('docs.mcp.apiKeysTitle')} — ${t('docs.mcp.apiKeysSub')}`}
+                >
                   <Key size={18} weight="duotone" aria-hidden="true" />
                   <span className="docs-card-text">
                     <span className="docs-card-title">{t('docs.mcp.apiKeysTitle')}</span>
                     <span className="docs-card-sub">{t('docs.mcp.apiKeysSub')}</span>
                   </span>
                   <ArrowSquareOut size={14} className="docs-card-arrow" aria-hidden="true" />
-                </button>
+                </Link>
               </div>
             </section>
           </div>

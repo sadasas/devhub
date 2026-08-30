@@ -148,12 +148,30 @@
       "descHelper": "Hingga 2000 karakter"
     },
     "template": {
-      "blank": { "name": "Kosong", "desc": "Kanvas kosong — mulai dari nol" },
-      "kanban": { "name": "Kanban", "desc": "Kolom Todo / In Progress / Review / Done" },
-      "ci-cd": { "name": "Pipeline CI/CD", "desc": "Commit → Build → Test → Approval → Deploy" },
-      "roadmap": { "name": "Roadmap", "desc": "Linimasa dengan penanda milestone" },
-      "release-train": { "name": "Release train", "desc": "Matriks rilis × fase" },
-      "gitflow": { "name": "Gitflow", "desc": "Model branching (main / develop / feature / hotfix)" }
+      "blank": {
+        "name": "Kosong",
+        "desc": "Kanvas kosong — mulai dari nol"
+      },
+      "kanban": {
+        "name": "Kanban",
+        "desc": "Kolom Todo / In Progress / Review / Done"
+      },
+      "ci-cd": {
+        "name": "Pipeline CI/CD",
+        "desc": "Commit → Build → Test → Approval → Deploy"
+      },
+      "roadmap": {
+        "name": "Roadmap",
+        "desc": "Linimasa dengan penanda milestone"
+      },
+      "release-train": {
+        "name": "Release train",
+        "desc": "Matriks rilis × fase"
+      },
+      "gitflow": {
+        "name": "Gitflow",
+        "desc": "Model branching (main / develop / feature / hotfix)"
+      }
     }
   },
   "api": {
@@ -744,13 +762,16 @@
     "onThisPage": "Di halaman ini",
     "nav": {
       "overview": "Ringkasan",
-      "mcp": "Integrasi MCP"
+      "mcp": "Integrasi MCP",
+      "quickstart": "Quickstart",
+      "shortcuts": "Pintasan"
     },
     "toc": {
       "overview": "Ringkasan",
       "mcp": "Integrasi MCP",
       "api": "Referensi API",
-      "shortcuts": "Pintasan Keyboard"
+      "shortcuts": "Pintasan Keyboard",
+      "quickstart": "Quickstart"
     },
     "page": {
       "title": "Dokumentasi",
@@ -759,7 +780,8 @@
     "section": {
       "overview": "Ringkasan",
       "mcp": "Integrasi MCP",
-      "shortcuts": "Pintasan Keyboard"
+      "shortcuts": "Pintasan Keyboard",
+      "quickstart": "Quickstart"
     },
     "overview": {
       "body1": "DevHub adalah workspace manajemen proyek untuk proyek perangkat lunak. Ia menyimpan task, issue, keputusan, dan skema Anda di satu tempat — memori teknis dari apa yang Anda bangun — serta memungkinkan agen AI membaca dan memperbarui proyek melalui MCP atau REST API. Proyek juga dapat dibagikan secara publik sebagai tampilan baca-saja di",
@@ -798,17 +820,19 @@
         "restart": "Restart opencode",
         "verify": "Verifikasi koneksi",
         "agentsync": "Otomatiskan alur kerja Anda",
-        "troubleshooting": "Penyelesaian masalah"
+        "troubleshooting": "Penyelesaian masalah",
+        "autoPrompt": "Auto-prompt"
       },
       "step": {
         "keyTitle": "Buat API key",
         "projectIdTitle": "Dapatkan project ID Anda",
         "envTitle": "Atur variabel env",
-        "configTitle": "Buat opencode.json",
-        "restartTitle": "Restart opencode",
+        "configTitle": "Buat konfigurasi {{agent}}",
+        "restartTitle": "Restart {{agent}}",
         "verifyTitle": "Verifikasi koneksi",
         "autoPromptTitle": "Biarakan agen Anda meminta konfigurasi yang belum ada",
-        "agentsyncTitle": "Otomatiskan alur kerja Anda (auto-sync agen)"
+        "agentsyncTitle": "Otomatiskan alur kerja Anda (auto-sync agen)",
+        "keyDesc": "Buat key per-pengguna di DevHub. Key mentah hanya tampil sekali — simpan ke {{key}}."
       },
       "prereq": {
         "opencodeStrong": "opencode sudah terpasang",
@@ -816,7 +840,10 @@
         "reachableStrong": "DevHub dapat dijangkau",
         "reachableDesc": "Pastikan /api/health mengembalikan ok sebelum melanjutkan.",
         "loggedInStrong": "Anda sudah masuk",
-        "loggedInDesc": "API keys bersifat per-pengguna, jadi Anda membutuhkan akun yang aktif."
+        "loggedInDesc": "API keys bersifat per-pengguna, jadi Anda membutuhkan akun yang aktif.",
+        "agentStrong": "{{agent}} sudah terpasang",
+        "agentDesc": "Panduan ini dikonfigurasi untuk {{agent}}, tetapi klien MCP mana pun dapat digunakan dengan server yang sama.",
+        "fallbackInstalled": "sudah terpasang"
       },
       "lifecycle": {
         "task": "Siklus hidup task",
@@ -824,12 +851,130 @@
         "decision": "Siklus hidup keputusan",
         "whiteboard": "Siklus hidup whiteboard",
         "api": "Siklus API",
-        "milestone": "Siklus hidup milestone"
+        "milestone": "Siklus hidup milestone",
+        "title": "Referensi lifecycle"
       },
       "trouble": {
         "unauthorizedTitle": "401 pada setiap panggilan",
-        "connectTitle": "Tidak dapat terhubung"
+        "connectTitle": "Tidak dapat terhubung",
+        "tableSymptom": "Gejala",
+        "tableFix": "Perbaikan",
+        "row401AllSymptom": "401 pada setiap panggilan",
+        "row401AllFix": "Key salah, kedaluwarsa, atau dicabut. Buat yang baru di API Keys, perbarui DEVHUB_MCP_KEY, restart client.",
+        "row401ScopedSymptom": "401 hanya untuk beberapa proyek",
+        "row401ScopedFix": "Key bersifat per-pengguna: hanya bisa akses proyek milik pembuat key tersebut.",
+        "row400Symptom": "400 pada tool call (validasi)",
+        "row400Fix": "Argumen tidak valid sesuai skema zod; jalankan project_state untuk melihat nama field yang tepat.",
+        "rowProjectIdSymptom": "projectId hilang/tidak dikenal",
+        "rowProjectIdFix": "Salin project ID dari header proyek (UUID); milik pengguna saat ini.",
+        "rowToolsNotListedSymptom": "Tools tidak terdaftar di agen",
+        "rowToolsNotListedFix": "Config client belum reload; restart agen atau jalankan ulang perintah MCP.",
+        "rowNotVisibleSymptom": "Perubahan tidak terlihat di UI",
+        "rowNotVisibleFix": "UI polling setiap 5 detik saat tab terlihat; hard-refresh atau ganti tab.",
+        "rowCursorCeilingSymptom": "Cursor maks 40 tools",
+        "rowCursorCeilingFix": "Cursor membatasi ~40 tools. Nonaktifkan server/tools yang tidak dipakai agar di bawah batas.",
+        "rowWindsurfUrlSymptom": "Config Windsurf tidak termuat (gagal diam)",
+        "rowWindsurfUrlFix": "Ganti \"url\" menjadi \"serverUrl\" di ~/.codeium/windsurf/mcp_config.json — Windsurf memerlukan serverUrl.",
+        "rowSseDeprecatedSymptom": "Transport SSE deprecated",
+        "rowSseDeprecatedFix": "Gunakan Streamable HTTP (type: http) sebagai pengganti SSE; SSE sudah deprecated di spesifikasi MCP.",
+        "title": "Matriks troubleshooting",
+        "intro": "Diagnosis cepat - temukan gejala di kiri, terapkan perbaikan di kanan.",
+        "hint": "Tips: 400 pada tool call berarti argumen tidak valid sesuai skema zod — jalankan project_state dulu untuk melihat nama field yang tepat. Task duplikat? Baca state sebelum membuat. UI melakukan polling setiap 5 detik saat tab terlihat."
+      },
+      "agent": {
+        "pickerLabel": "Pilih agen",
+        "windsurfWarn": "Windsurf memakai serverUrl bukan url — copy config Cursor akan gagal diam.",
+        "configHint": "Salin snippet ini ke file config Anda.",
+        "opencode": "OpenCode",
+        "claude": "Claude Code",
+        "cursor": "Cursor",
+        "windsurf": "Windsurf",
+        "vscode": "VS Code / Copilot",
+        "gemini": "Gemini",
+        "tabsLabel": "Tab agen",
+        "cliTitle": "Perintah CLI",
+        "windsurfBadge": "serverUrl!"
+      },
+      "env": {
+        "powershell": "PowerShell",
+        "bash": "bash / zsh",
+        "hint": "Simpan key di env — jangan commit ke git."
+      },
+      "projectId": {
+        "tip": "Salin project ID dari header halaman proyek Anda.",
+        "headerExample": "a1b2c3d4-e5f6-4a7b-9c0d-1234567890ab",
+        "desc": "Buka proyek dan salin ID dari header (monospace dengan tombol salin).",
+        "exampleLabel": "Contoh project ID",
+        "copyLabel": "Salin project ID",
+        "pathHint": "Path: {{path}} — salin UUID dari header. Pertahankan format dash, jangan dipotong."
+      },
+      "restart": {
+        "opencode": "Restart opencode (tutup dan buka kembali TUI).",
+        "claude": "Keluar dan buka kembali Claude Code (atau jalankan claude mcp list untuk verifikasi).",
+        "cursor": "Keluar dan buka kembali Cursor sepenuhnya (Cmd+Q / Alt+F4) — reload saja tidak cukup.",
+        "windsurf": "Windsurf auto-reload saat file config berubah — tanpa restart.",
+        "vscode": "Reload window: Cmd+Shift+P -> Developer: Reload Window.",
+        "gemini": "Restart Gemini CLI.",
+        "title": "Restart / Reload per agen"
+      },
+      "verify": {
+        "opencodeCheck": "opencode: jalankan opencode mcp list -> devhub connected dan 21 tools.",
+        "claudeCheck": "Claude Code: claude mcp list -> devhub: connected.",
+        "cursorCheck": "Cursor: Settings -> Tools & MCP -> devhub hijau (maks 40 tools).",
+        "windsurfCheck": "Windsurf: Settings -> MCP Servers -> devhub hijau (auto-reload).",
+        "vscodeCheck": "VS Code: Output -> log MCP menampilkan devhub connected.",
+        "geminiCheck": "Gemini: cek daftar MCP server menampilkan devhub connected.",
+        "checklistTitle": "Verifikasi per agen",
+        "curlLabel": "Verifikasi via curl",
+        "curlDesc": "Pengecekan langsung streamable HTTP (tanpa reload client).",
+        "toolsHint": "21 tools akan terdaftar jika berhasil.",
+        "chipsLabel": "Tools tersedia"
+      },
+      "agentsync": {
+        "variantLabel": "Pilih file instruksi",
+        "variantAGENTS": "AGENTS.md (universal)",
+        "variantCLAUDE": "CLAUDE.md",
+        "variantCursor": ".cursorrules",
+        "variantWindsurf": ".windsurfrules",
+        "variantCopilot": ".github/copilot-instructions.md",
+        "commitNote": "Commit file ini ke repo root — agen membacanya setiap sesi.",
+        "desc": "Salin protokol sync lengkap ke file instruksi Anda. Semua varian berbagi hierarki yang sama (resolusi target proyek → resolusi milestone → tabel sync wajib), hanya nama file yang berbeda."
+      },
+      "autoPrompt": {
+        "commitNote": "Commit file ini ke repo root agar agen bisa meminta config yang hilang.",
+        "desc": "Biarkan agen Anda meminta konfigurasi yang hilang daripada gagal diam-diam. Pilih file instruksi Anda — semua varian berisi pemeriksaan prasyarat yang sama, hanya nama file yang berbeda."
       }
+    },
+    "hub": {
+      "title": "Jelajahi",
+      "quickstartTitle": "Quickstart",
+      "quickstartSub": "≤2 menit — API key, project ID & opencode config",
+      "mcpTitle": "MCP Multi-Agent",
+      "mcpSub": "6 agen · Streamable HTTP · Postgres sync",
+      "shortcutsTitle": "Pintasan Keyboard",
+      "shortcutsSub": "Palette, navigasi & aksi — tetap di keyboard",
+      "diagramTitle": "Cara terhubung",
+      "diagramCaption": "Browser & agen → Streamable HTTP → Postgres. Agen dan browser berbagi API yang sama.",
+      "browserLabel": "Browser",
+      "agentLabel": "Agen",
+      "mcpLabel": "POST /mcp",
+      "transportLabel": "Streamable HTTP",
+      "postgresLabel": "Postgres",
+      "apiUrlLabel": "URL API"
+    },
+    "quickstart": {
+      "title": "Quickstart",
+      "subtitle": "Terhubung dalam kurang dari 2 menit",
+      "step1Title": "Buat API key",
+      "step1Desc": "Buka API Keys dan buat key. Salin — Anda akan butuh untuk variabel env.",
+      "step2Title": "Dapatkan project ID",
+      "step2Desc": "Buka proyek dan salin ID dari header.",
+      "step3Title": "Konfigurasi opencode",
+      "step3Desc": "Tambahkan server MCP ke opencode.json dan set DEVHUB_MCP_KEY.",
+      "verifyTitle": "Verifikasi",
+      "verifyDesc": "Restart opencode dan jalankan project_state untuk konfirmasi koneksi.",
+      "goToKeys": "Buka API Keys",
+      "goToMcp": "Buka panduan MCP"
     }
   }
 }

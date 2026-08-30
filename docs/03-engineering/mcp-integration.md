@@ -125,9 +125,32 @@ A step-by-step visual guide is also available in the app under **MCP Guide** (si
 
 Tool calls appear as `mcp__devhub__<tool_name>`.
 
-### 4.2 Claude Code (`.mcp.json`)
+### 4.2 Claude Code (`.mcp.json` / `~/.claude.json` + CLI)
+
+```bash
+# CLI (recommended)
+claude mcp add --transport http devhub https://devhub.example.com/mcp --header "Authorization: Bearer ${DEVHUB_MCP_KEY}"
+claude mcp list  # verify: devhub: connected
+```
 
 ```json
+// .mcp.json (project) or ~/.claude.json (global)
+{
+  "mcpServers": {
+    "devhub": {
+      "type": "http",
+      "url": "https://devhub.example.com/mcp",
+      "headers": { "Authorization": "Bearer ${DEVHUB_MCP_KEY}" }
+    }
+  }
+}
+```
+> CLI uses `${VAR}` expansion; do not use `{env:VAR}` (opencode only).
+
+### 4.3 Cursor (`.cursor/mcp.json`)
+
+```json
+// .cursor/mcp.json (project) or ~/.cursor/mcp.json (global) — use "url" (not serverUrl)
 {
   "mcpServers": {
     "devhub": {
@@ -137,8 +160,57 @@ Tool calls appear as `mcp__devhub__<tool_name>`.
   }
 }
 ```
+> Cursor requires full restart (Cmd+Q). Caps at ~40 tools — disable unused servers if needed.
 
-### 4.3 Other clients
+### 4.4 Windsurf (`~/.codeium/windsurf/mcp_config.json`)
+
+```json
+// ~/.codeium/windsurf/mcp_config.json — use "serverUrl" (not "url") — "url" will silently fail
+{
+  "mcpServers": {
+    "devhub": {
+      "serverUrl": "https://devhub.example.com/mcp",
+      "headers": { "Authorization": "Bearer ${DEVHUB_MCP_KEY}" }
+    }
+  }
+}
+```
+> Windsurf auto-reloads on config change — no restart needed. **CRITICAL: copying a Cursor config with "url" will silently fail — change to "serverUrl".**
+
+### 4.5 VS Code / GitHub Copilot (`.vscode/mcp.json`)
+
+```json
+// .vscode/mcp.json (workspace) — use "servers" + "type: http" (not mcpServers)
+{
+  "servers": {
+    "devhub": {
+      "type": "http",
+      "url": "https://devhub.example.com/mcp",
+      "headers": { "Authorization": "Bearer ${DEVHUB_MCP_KEY}" }
+    }
+  }
+}
+```
+
+Optional Copilot CLI: `.github/copilot/mcp.json` with same shape (`servers`).
+
+> Reload window: Cmd+Shift+P → Developer: Reload Window.
+
+### 4.6 Gemini CLI (`~/.gemini/settings.json`)
+
+```json
+// ~/.gemini/settings.json — use "serverUrl" (like Windsurf)
+{
+  "mcpServers": {
+    "devhub": {
+      "serverUrl": "https://devhub.example.com/mcp",
+      "headers": { "Authorization": "Bearer ${DEVHUB_MCP_KEY}" }
+    }
+  }
+}
+```
+
+### 4.7 Other clients
 
 Any MCP client supporting streamable HTTP + bearer auth. Keep the API key out of shared config files where possible; prefer environment expansion (`{env:...}` for opencode, `${...}` for Claude Code).
 
@@ -235,6 +307,9 @@ Then `tools/list`, then `tools/call` with a tool name + arguments. Full examples
 | Tools not listed in agent | Client config not reloaded; restart the agent / re-run `opencode mcp` |
 | Changes not visible in UI | UI polls only while tab visible; hard-refresh or switch tabs |
 | Duplicate tasks | Agent re-ran `create_task` without checking state first; read-then-write |
+| Cursor max 40 tools | Cursor caps at ~40 tools. Disable unused servers or tools to stay under the limit |
+| Windsurf config not loaded (silent fail) | Change "url" to "serverUrl" in `~/.codeium/windsurf/mcp_config.json` — Windsurf requires `serverUrl` |
+| SSE transport deprecated | Use Streamable HTTP (`type: http`) instead of SSE; SSE is deprecated in the MCP spec |
 
 ---
 

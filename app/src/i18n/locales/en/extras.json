@@ -762,13 +762,16 @@
     "onThisPage": "On this page",
     "nav": {
       "overview": "Overview",
-      "mcp": "MCP Integration"
+      "mcp": "MCP Integration",
+      "quickstart": "Quickstart",
+      "shortcuts": "Shortcuts"
     },
     "toc": {
       "overview": "Overview",
       "mcp": "MCP Integration",
       "api": "API Reference",
-      "shortcuts": "Keyboard Shortcuts"
+      "shortcuts": "Keyboard Shortcuts",
+      "quickstart": "Quickstart"
     },
     "page": {
       "title": "Docs",
@@ -777,7 +780,8 @@
     "section": {
       "overview": "Overview",
       "mcp": "MCP Integration",
-      "shortcuts": "Keyboard Shortcuts"
+      "shortcuts": "Keyboard Shortcuts",
+      "quickstart": "Quickstart"
     },
     "overview": {
       "body1": "DevHub is a project-management workspace for software projects. It keeps your tasks, issues, decisions, and schema in one place — the technical memory of what you build — and lets AI coding agents read and update projects through MCP or the REST API. Projects can also be shared publicly as a read-only view at",
@@ -816,17 +820,19 @@
         "restart": "Restart opencode",
         "verify": "Verify the connection",
         "agentsync": "Automate your workflow",
-        "troubleshooting": "Troubleshooting"
+        "troubleshooting": "Troubleshooting",
+        "autoPrompt": "Auto-prompt"
       },
       "step": {
         "keyTitle": "Create an API key",
         "projectIdTitle": "Get your project ID",
         "envTitle": "Set the env variable",
-        "configTitle": "Create opencode.json",
-        "restartTitle": "Restart opencode",
+        "configTitle": "Create {{agent}} config",
+        "restartTitle": "Restart {{agent}}",
         "verifyTitle": "Verify the connection",
         "autoPromptTitle": "Let your agent ask for missing config",
-        "agentsyncTitle": "Automate your workflow (agent auto-sync)"
+        "agentsyncTitle": "Automate your workflow (agent auto-sync)",
+        "keyDesc": "Create a per-user key in DevHub. The raw key is shown once — save it to {{key}}."
       },
       "prereq": {
         "opencodeStrong": "opencode is installed",
@@ -834,7 +840,10 @@
         "reachableStrong": "DevHub is reachable",
         "reachableDesc": "Check /api/health returns ok before continuing.",
         "loggedInStrong": "You are logged in",
-        "loggedInDesc": "API keys are per-user, so you need an active account."
+        "loggedInDesc": "API keys are per-user, so you need an active account.",
+        "agentStrong": "{{agent}} is installed",
+        "agentDesc": "This guide is configured for {{agent}}, but any MCP client works with the same server.",
+        "fallbackInstalled": "is installed"
       },
       "lifecycle": {
         "task": "Task lifecycle",
@@ -842,12 +851,130 @@
         "decision": "Decision lifecycle",
         "whiteboard": "Whiteboard lifecycle",
         "api": "API lifecycle",
-        "milestone": "Milestone lifecycle"
+        "milestone": "Milestone lifecycle",
+        "title": "Lifecycle references"
       },
       "trouble": {
         "unauthorizedTitle": "401 on every call",
-        "connectTitle": "Cannot connect"
+        "connectTitle": "Cannot connect",
+        "tableSymptom": "Symptom",
+        "tableFix": "Fix",
+        "row401AllSymptom": "401 on every call",
+        "row401AllFix": "Wrong, expired, or revoked key. Create a new one in API Keys, update DEVHUB_MCP_KEY, restart the client.",
+        "row401ScopedSymptom": "401 only for some projects",
+        "row401ScopedFix": "Key is user-scoped: it can only access projects owned by the user who created it.",
+        "row400Symptom": "400 on tool call (validation error)",
+        "row400Fix": "Invalid arguments per zod schema; run project_state to see exact field names.",
+        "rowProjectIdSymptom": "Missing/unknown projectId",
+        "rowProjectIdFix": "Copy the project ID from the project header (UUID); it is owned by the current user.",
+        "rowToolsNotListedSymptom": "Tools not listed in agent",
+        "rowToolsNotListedFix": "Client config not reloaded; restart the agent or re-run the MCP command.",
+        "rowNotVisibleSymptom": "Changes not visible in UI",
+        "rowNotVisibleFix": "UI polls every 5s while tab is visible; hard-refresh or switch tabs.",
+        "rowCursorCeilingSymptom": "Cursor max 40 tools",
+        "rowCursorCeilingFix": "Cursor caps at ~40 tools. Disable unused servers or tools to stay under the limit.",
+        "rowWindsurfUrlSymptom": "Windsurf config not loaded (silent fail)",
+        "rowWindsurfUrlFix": "Change \"url\" to \"serverUrl\" in ~/.codeium/windsurf/mcp_config.json — Windsurf requires serverUrl.",
+        "rowSseDeprecatedSymptom": "SSE transport deprecated",
+        "rowSseDeprecatedFix": "Use Streamable HTTP (type: http) instead of SSE; SSE is deprecated in the MCP spec.",
+        "title": "Troubleshooting matrix",
+        "intro": "Quick diagnosis - find your symptom on the left, apply the fix on the right.",
+        "hint": "Tips: 400 on tool call means invalid args per zod schema — run project_state first to see exact field names. Duplicate tasks? Read state before create. UI polls every 5s while tab is visible."
+      },
+      "agent": {
+        "pickerLabel": "Choose agent",
+        "windsurfWarn": "Windsurf uses serverUrl not url — copying a Cursor config will silently fail.",
+        "configHint": "Copy this snippet to your config file.",
+        "opencode": "OpenCode",
+        "claude": "Claude Code",
+        "cursor": "Cursor",
+        "windsurf": "Windsurf",
+        "vscode": "VS Code / Copilot",
+        "gemini": "Gemini",
+        "tabsLabel": "Agent tabs",
+        "cliTitle": "CLI command",
+        "windsurfBadge": "serverUrl!"
+      },
+      "env": {
+        "powershell": "PowerShell",
+        "bash": "bash / zsh",
+        "hint": "Keep the key in env — do not commit it to git."
+      },
+      "projectId": {
+        "tip": "Copy the project ID from the header of your project page.",
+        "headerExample": "a1b2c3d4-e5f6-4a7b-9c0d-1234567890ab",
+        "desc": "Open a project and copy the ID from the header (monospace with copy button).",
+        "exampleLabel": "Example project ID",
+        "copyLabel": "Copy project ID",
+        "pathHint": "Path: {{path}} — copy the UUID from the header. Keep the dash format, don't trim."
+      },
+      "restart": {
+        "opencode": "Restart opencode (close and reopen the TUI).",
+        "claude": "Quit and reopen Claude Code (or run claude mcp list to verify).",
+        "cursor": "Quit and reopen Cursor completely (Cmd+Q / Alt+F4) — reload is not enough.",
+        "windsurf": "Windsurf auto-reloads when the config file changes — no restart needed.",
+        "vscode": "Reload window: Cmd+Shift+P -> Developer: Reload Window.",
+        "gemini": "Restart Gemini CLI.",
+        "title": "Restart / Reload per agent"
+      },
+      "verify": {
+        "opencodeCheck": "opencode: run opencode mcp list -> devhub connected and 21 tools.",
+        "claudeCheck": "Claude Code: claude mcp list -> devhub: connected.",
+        "cursorCheck": "Cursor: Settings -> Tools & MCP -> devhub green (max 40 tools).",
+        "windsurfCheck": "Windsurf: Settings -> MCP Servers -> devhub green (auto-reload).",
+        "vscodeCheck": "VS Code: Output -> MCP logs show devhub connected.",
+        "geminiCheck": "Gemini: check MCP server list shows devhub connected.",
+        "checklistTitle": "Verify per agent",
+        "curlLabel": "Verify via curl",
+        "curlDesc": "Direct streamable HTTP check (no client reload).",
+        "toolsHint": "21 tools will be listed on success.",
+        "chipsLabel": "Available tools"
+      },
+      "agentsync": {
+        "variantLabel": "Choose instruction file",
+        "variantAGENTS": "AGENTS.md (universal)",
+        "variantCLAUDE": "CLAUDE.md",
+        "variantCursor": ".cursorrules",
+        "variantWindsurf": ".windsurfrules",
+        "variantCopilot": ".github/copilot-instructions.md",
+        "commitNote": "Commit this file to the repo root — your agent reads it every session.",
+        "desc": "Copy the full sync protocol to your instruction file. All variants share the same hierarchy (project target resolution → milestone resolution → required sync table), only the filename differs."
+      },
+      "autoPrompt": {
+        "commitNote": "Commit this file to the repo root so your agent can prompt for missing config.",
+        "desc": "Let your agent ask for missing config instead of failing silently. Choose your instruction file — all variants contain the same prerequisite checks, only the filename differs."
       }
+    },
+    "hub": {
+      "title": "Explore",
+      "quickstartTitle": "Quickstart",
+      "quickstartSub": "≤2 min — API key, project ID & opencode config",
+      "mcpTitle": "MCP Multi-Agent",
+      "mcpSub": "6 agents · Streamable HTTP · Postgres sync",
+      "shortcutsTitle": "Keyboard Shortcuts",
+      "shortcutsSub": "Palette, navigation & actions — stay on keyboard",
+      "diagramTitle": "How it connects",
+      "diagramCaption": "Browser & agents → Streamable HTTP → Postgres. Agents and browser share the same API.",
+      "browserLabel": "Browser",
+      "agentLabel": "Agent",
+      "mcpLabel": "POST /mcp",
+      "transportLabel": "Streamable HTTP",
+      "postgresLabel": "Postgres",
+      "apiUrlLabel": "API URL"
+    },
+    "quickstart": {
+      "title": "Quickstart",
+      "subtitle": "Get connected in under 2 minutes",
+      "step1Title": "Create an API key",
+      "step1Desc": "Go to API Keys and generate a key. Copy it — you’ll need it for the env variable.",
+      "step2Title": "Get your project ID",
+      "step2Desc": "Open a project and copy the ID from the header.",
+      "step3Title": "Configure opencode",
+      "step3Desc": "Add the MCP server to opencode.json and set DEVHUB_MCP_KEY.",
+      "verifyTitle": "Verify",
+      "verifyDesc": "Restart opencode and run project_state to confirm the connection.",
+      "goToKeys": "Go to API Keys",
+      "goToMcp": "Open MCP guide"
     }
   }
 }
