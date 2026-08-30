@@ -24,12 +24,11 @@ function bestSavings(prices: PackagePrice[]): number | null {
 
 type BillingToggleProps = {
   packages: BillingPackage[];
-  selectedPriceId: string | null;
-  onChange: (priceId: string) => void;
+  value: number | null;
+  onChange: (durationDays: number) => void;
 };
 
 function getDurations(packages: BillingPackage[]): PackagePrice[] {
-  // Collect one representative price per distinct durationDays across paid packages
   const map = new Map<number, PackagePrice>();
   for (const pkg of packages) {
     if (pkg.isFree) continue;
@@ -45,20 +44,12 @@ function formatDurationShort(days: number, t: (k: string, o?: Record<string, unk
   return t('pricing.durationMonths', { count: months });
 }
 
-export function BillingToggle({ packages, selectedPriceId, onChange }: BillingToggleProps) {
+export function BillingToggle({ packages, value, onChange }: BillingToggleProps) {
   const { t } = useTranslation('extras');
   const durations = getDurations(packages);
   const groupRef = useRef<HTMLDivElement>(null);
 
-  // Resolve which duration is currently selected
-  const selectedDuration = (() => {
-    if (!selectedPriceId) return durations[0]?.durationDays ?? null;
-    for (const pkg of packages) {
-      const found = pkg.prices.find((p) => p.id === selectedPriceId);
-      if (found) return found.durationDays;
-    }
-    return durations[0]?.durationDays ?? null;
-  })();
+  const selectedDuration = value ?? durations[0]?.durationDays ?? null;
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -71,19 +62,19 @@ export function BillingToggle({ packages, selectedPriceId, onChange }: BillingTo
         const next = (idx + dir + buttons.length) % buttons.length;
         const target = buttons[next];
         target?.focus();
-        const priceId = target?.dataset.priceId;
-        if (priceId) onChange(priceId);
+        const days = target?.dataset.durationDays;
+        if (days) onChange(Number(days));
       } else if (e.key === 'Home') {
         e.preventDefault();
         buttons[0]?.focus();
-        const priceId = buttons[0]?.dataset.priceId;
-        if (priceId) onChange(priceId);
+        const days = buttons[0]?.dataset.durationDays;
+        if (days) onChange(Number(days));
       } else if (e.key === 'End') {
         e.preventDefault();
         const last = buttons[buttons.length - 1];
         last?.focus();
-        const priceId = last?.dataset.priceId;
-        if (priceId) onChange(priceId);
+        const days = last?.dataset.durationDays;
+        if (days) onChange(Number(days));
       }
     },
     [onChange],
@@ -91,7 +82,6 @@ export function BillingToggle({ packages, selectedPriceId, onChange }: BillingTo
 
   if (durations.length <= 1) return null;
 
-  // For savings badge on yearly option, compute best savings across packages for that duration
   function savingsForDuration(days: number): number | null {
     let max: number | null = null;
     for (const pkg of packages) {
@@ -102,7 +92,6 @@ export function BillingToggle({ packages, selectedPriceId, onChange }: BillingTo
         if (max == null || s > max) max = s;
       }
     }
-    // also compute monthlyEquivalent comparison fallback: if yearly vs monthly price
     if (max == null && durations.length === 2) {
       const monthly = packages
         .flatMap((p) => p.prices)
@@ -120,16 +109,6 @@ export function BillingToggle({ packages, selectedPriceId, onChange }: BillingTo
     return max;
   }
 
-  // Map duration -> representative priceId for that duration (first paid package)
-  function priceIdForDuration(days: number): string | null {
-    for (const pkg of packages) {
-      if (pkg.isFree) continue;
-      const pr = pkg.prices.find((p) => p.durationDays === days);
-      if (pr) return pr.id;
-    }
-    return null;
-  }
-
   return (
     <div className="pricing-billing-toggle" role="region" aria-label={t('pricing.billingToggleAria')}>
       <div
@@ -140,11 +119,11 @@ export function BillingToggle({ packages, selectedPriceId, onChange }: BillingTo
         onKeyDown={handleKeyDown}
       >
         {durations.map((d) => {
-          const priceId = priceIdForDuration(d.durationDays) ?? d.id;
           const isActive = selectedDuration === d.durationDays;
           const sav = savingsForDuration(d.durationDays);
           const monthlyEq = monthlyEquivalent(d);
           const isYearly = d.durationDays > 60;
+          const billingLabel = isYearly ? t('pricing.billing.yearly') : t('pricing.billing.monthly');
           return (
             <button
               key={d.durationDays}
@@ -153,13 +132,13 @@ export function BillingToggle({ packages, selectedPriceId, onChange }: BillingTo
               aria-checked={isActive}
               aria-label={
                 isYearly && sav
-                  ? `${formatDurationShort(d.durationDays, t)} — ${t('pricing.savings', { percent: sav })}`
-                  : formatDurationShort(d.durationDays, t)
+                  ? `${billingLabel} — ${t('pricing.savings', { percent: sav })}`
+                  : billingLabel
               }
-              data-price-id={priceId}
+              data-duration-days={d.durationDays}
               tabIndex={isActive ? 0 : -1}
               className={`segmented-btn${isActive ? ' segmented-btn-active' : ''}`}
-              onClick={() => onChange(priceId)}
+              onClick={() => onChange(d.durationDays)}
             >
               <span className="segmented-label">
                 {isYearly ? t('pricing.billing.yearly') : t('pricing.billing.monthly')}
