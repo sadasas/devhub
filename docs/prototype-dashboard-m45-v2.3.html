@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>devhub / dashboard — M45 v2.3 (weather minimal · dark-tech)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@200;300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<style>
+:root{
+  --bg-base:#0f0f11;
+  --bg-elevated:#18181b;
+  --bg-inset:#131316;
+  --bg-soft:#1e1e21;
+  --border-hairline:rgba(255,255,255,0.07);
+  --text-primary:#e8e8ea;
+  --text-muted:#8e8e98;
+  --text-dim:#6f6f79;
+  --accent:#5db69b;
+  --accent-dark:#2d6b5e;
+  --accent-deep:var(--status-success-soft);
+  --accent-mint:#c8e9dd;
+  --status-warn:#c9a96a;
+  --status-danger:#d67a7a;
+  --status-info:#7ba4d9;
+  --status-success-soft:#273332;
+  --accent-dim:rgba(93,182,155,0.12);
+  --radius-xl:var(--radius-lg);
+  --radius-lg:16px;
+  --radius-card:12px;
+  --radius-sm:8px;
+  --radius-pill:999px;
+  --pattern-stripe:rgba(255,255,255,0.06);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} *{transition:none!important;animation:none!important} }
+body{
+  margin:0;
+  background:var(--bg-base);
+  color:var(--text-primary);
+  font-family:'Geist', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+.mono{font-family:'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+.shell{ max-width:1180px; margin:0 auto; padding:28px 24px 40px; }
+@media(max-width:860px){.shell{padding:16px}}
+.chrome{
+  background:var(--bg-soft);
+  border:1px solid var(--border-hairline);
+  border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+  padding:10px 14px;
+  display:flex; align-items:center; gap:8px;
+}
+.dots{display:flex;gap:6px;align-items:center}
+.chrome-dot{width:12px;height:12px;border-radius:50%;border:1px solid rgba(0,0,0,0.25)}
+.dot-r{background:#ff5f57}.dot-y{background:#ffbd2e}.dot-g{background:#28c840}
+.chrome-title{margin-left:10px;font-size:12px;color:var(--text-muted);font-family:'Geist Mono', monospace;letter-spacing:-0.01em}
+.chrome-title b{color:var(--text-primary);font-weight:600}
+.main{
+  background:var(--bg-base);
+  border:1px solid var(--border-hairline);
+  border-top:none;
+  border-radius:0 0 var(--radius-lg) var(--radius-lg);
+  overflow:hidden;
+  box-shadow:0 1px 0 rgba(255,255,255,0.02) inset, 0 20px 60px rgba(0,0,0,0.35);
+}
+/* ---- WEATHER LAYOUT 380 + 700 ---- */
+.weather-layout{
+  display:grid;
+  grid-template-columns: 380px 700px;
+  gap:20px;
+  padding:18px 24px 0;
+  justify-content:center;
+  align-items:start;
+}
+@media(max-width:1150px){
+  .weather-layout{ grid-template-columns: 340px 1fr; gap:16px; }
+}
+@media(max-width:860px){
+  .weather-layout{ grid-template-columns:1fr; padding:14px 16px 0; }
+}
+/* HERO LEFT */
+.hero{
+  position:sticky;
+  top:18px;
+  background:var(--bg-elevated);
+  border:1px solid var(--border-hairline);
+  border-radius:var(--radius-lg);
+  padding:20px 20px 16px;
+  display:flex;
+  flex-direction:column;
+  min-height:640px;
+  overflow:hidden;
+}
+@media(max-width:860px){ .hero{ position:relative; top:auto; min-height:auto; } }
+.hero-search{ position:relative; }
+.hero-search input{
+  width:100%;
+  background:var(--bg-inset);
+  border:none;
+  color:var(--text-primary);
+  padding:11px 14px 11px 36px;
+  border-radius:var(--radius-pill);
+  font-size:13px;
+  outline:none;
+  font-family:'Geist', sans-serif;
+}
+.hero-search input::placeholder{ color:var(--text-muted); }
+.hero-search input:focus{ box-shadow:0 0 0 3px rgba(93,182,155,0.14); }
+.hero-search .search-icon{
+  position:absolute; left:12px; top:50%; transform:translateY(-50%);
+  color:var(--text-muted); font-size:14px; pointer-events:none;
+}
+.hero-visual{
+  margin:28px 0 10px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+}
+.sun-wrap{
+  position:relative;
+  width:128px; height:108px;
+}
+.sun-circle{
+  width:96px; height:96px;
+  border-radius:50%;
+  background:var(--accent);
+  opacity:0.95;
+  position:absolute; left:4px; top:0;
+  box-shadow:0 8px 24px rgba(93,182,155,0.18);
+}
+.cloud-outline{
+  position:absolute;
+  left:18px; top:54px;
+  width:96px; height:36px;
+  border:1.6px solid rgba(255,255,255,0.22);
+  border-radius:999px;
+  background:rgba(255,255,255,0.02);
+  backdrop-filter:blur(2px);
+}
+.cloud-outline::before,
+.cloud-outline::after{
+  content:"";
+  position:absolute;
+  background:var(--bg-elevated);
+  border:1.6px solid rgba(255,255,255,0.22);
+  border-radius:50%;
+}
+.cloud-outline::before{ width:36px; height:36px; left:16px; top:-16px; border-bottom:none; }
+.cloud-outline::after{ width:26px; height:26px; right:18px; top:-10px; border-bottom:none; }
+.rain-bars{
+  display:flex; gap:10px;
+  margin-left:22px; margin-top:8px;
+}
+.rain-bar{
+  width:3px; background:var(--text-muted);
+  border-radius:999px; opacity:0.55;
+}
+.rain-bar:nth-child(1){ height:14px; }
+.rain-bar:nth-child(2){ height:22px; }
+.rain-bar:nth-child(3){ height:16px; }
+.rain-bar:nth-child(4){ height:20px; }
+.hero-temp{
+  display:flex; align-items:flex-start; gap:2px;
+  font-size:72px; font-weight:200; letter-spacing:-0.05em; line-height:1;
+  color:var(--text-primary);
+  margin-top:10px;
+}
+.hero-temp .deg{
+  font-size:16px; font-weight:400; letter-spacing:-0.01em;
+  color:var(--text-muted); margin-top:14px; margin-left:2px;
+  line-height:1.1;
+}
+.hero-meta{
+  margin-top:10px;
+  display:flex; flex-direction:column; gap:3px;
+}
+.hero-day{
+  font-size:13px; font-weight:500; color:var(--text-primary);
+  font-family:'Geist Mono', monospace; letter-spacing:-0.01em;
+}
+.hero-desc{ font-size:13px; color:var(--text-muted); line-height:1.4; }
+.hero-desc strong{ color:var(--text-primary); font-weight:500; }
+.hero-blocked{
+  margin-top:6px;
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:12px; color:var(--text-muted);
+}
+.hero-blocked i{ color:var(--text-dim); }
+.hero-card{
+  margin-top:auto;
+  border:none;
+  border-radius:var(--radius-lg);
+  overflow:hidden;
+  background:var(--bg-inset);
+  cursor:pointer;
+  transition:transform .14s, background .14s;
+}
+.hero-card:hover{ transform:translateY(-1px); background:var(--bg-soft); }
+.hero-card-img{
+  height:118px;
+  background:
+    linear-gradient(180deg, rgba(93,182,155,0.16) 0%, rgba(19,19,22,0.92) 92%),
+    linear-gradient(135deg, var(--bg-soft) 0%, var(--bg-inset) 100%);
+  position:relative;
+  overflow:hidden;
+  display:flex; align-items:flex-end; padding:12px;
+}
+.hero-card-img::before{
+  content:"";
+  position:absolute; inset:0;
+  background: repeating-linear-gradient(-16deg, transparent 0 18px, rgba(255,255,255,0.04) 18px 19px);
+  opacity:0.45;
+}
+.hero-card-img::after{
+  content:"";
+  position:absolute; left:18px; top:22px;
+  width:56px; height:36px;
+  border:1.2px solid rgba(255,255,255,0.18);
+  border-radius:999px;
+  background:rgba(255,255,255,0.04);
+}
+.hero-card-img .mini-sun{
+  position:absolute; left:12px; top:14px;
+  width:42px; height:42px; border-radius:50%;
+  background:var(--accent); opacity:0.92;
+}
+.hero-card-img .img-label{
+  position:relative; z-index:1;
+  font-size:11px; color:rgba(255,255,255,0.86);
+  background:rgba(0,0,0,0.32); border:none;
+  padding:4px 8px; border-radius:var(--radius-pill);
+  backdrop-filter:blur(6px);
+  font-family:'Geist Mono', monospace;
+}
+.hero-card-body{ padding:12px 14px; }
+.hero-card-title{ font-size:13px; font-weight:600; letter-spacing:-0.01em; }
+.hero-card-sub{ font-size:11px; color:var(--text-muted); margin-top:2px; font-family:'Geist Mono', monospace; }
+
+/* RIGHT COLUMN */
+.right{ display:flex; flex-direction:column; gap:14px; min-width:0; }
+.topbar{
+  display:flex; justify-content:space-between; align-items:center;
+  gap:12px; padding:6px 2px 2px;
+}
+.view-toggle{ display:flex; gap:18px; align-items:center; }
+.view-toggle button{
+  background:none; border:none; cursor:pointer;
+  font-family:'Geist', sans-serif;
+  font-size:14px; font-weight:500;
+  color:var(--text-muted);
+  padding:6px 2px 8px;
+  position:relative;
+  transition:color .15s;
+}
+.view-toggle button.active{ color:var(--text-primary); }
+.view-toggle button.active::after{
+  content:""; position:absolute; left:0; right:0; bottom:0;
+  height:2px; background:var(--text-primary); border-radius:999px;
+}
+.view-toggle button:focus-visible{ outline:2px solid var(--accent); outline-offset:4px; border-radius:2px; }
+.topbar-right{ display:flex; align-items:center; gap:10px; }
+.unit-switch{
+  display:flex; background:var(--bg-inset); border:none;
+  border-radius:var(--radius-pill); padding:3px; gap:2px;
+}
+.unit-switch button{
+  background:transparent; border:none; cursor:pointer;
+  padding:6px 12px; border-radius:var(--radius-pill);
+  font-size:12px; font-weight:500; color:var(--text-muted);
+  font-family:'Geist Mono', monospace;
+  transition:background .15s, color .15s, box-shadow .15s;
+}
+.unit-switch button.active{
+  background:var(--bg-elevated); color:var(--text-primary);
+  box-shadow:0 1px 6px rgba(0,0,0,0.22);
+  border:1px solid var(--border-hairline);
+}
+.avatar{
+  width:32px; height:32px; border-radius:50%;
+  background:var(--accent); color:#0a0f0e;
+  display:grid; place-items:center; font-size:12px; font-weight:700;
+  border:none; flex-shrink:0;
+  overflow:hidden;
+}
+.avatar img{ width:100%; height:100%; object-fit:cover; }
+
+/* WEEK STRIP */
+.week-strip{
+  display:grid; grid-template-columns:repeat(7,1fr); gap:8px;
+}
+@media(max-width:700px){ .week-strip{ grid-template-columns:repeat(4,1fr); } }
+@media(max-width:460px){ .week-strip{ grid-template-columns:repeat(3,1fr); } }
+.week-pill{
+  background:var(--bg-inset);
+  border:none;
+  border-radius:var(--radius-lg);
+  padding:12px 8px 10px;
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  cursor:pointer; transition:transform .14s, background .14s, box-shadow .14s;
+  text-align:center; min-height:92px; justify-content:center;
+}
+.week-pill:hover{ transform:translateY(-1px); background:var(--bg-elevated); }
+.week-pill.active{ background:var(--bg-elevated); box-shadow:0 0 0 2px rgba(93,182,155,0.16) inset; }
+.week-pill:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+.week-pill .wk-day{
+  font-size:10.5px; font-family:'Geist Mono', monospace;
+  letter-spacing:0.07em; text-transform:uppercase; color:var(--text-muted); font-weight:500;
+}
+.week-pill .wk-icon{
+  width:28px; height:28px; display:grid; place-items:center;
+  font-size:22px; line-height:1;
+}
+.week-pill .wk-icon i{ font-size:22px; }
+.week-pill .wk-count{
+  font-size:12px; font-weight:500; color:var(--text-primary);
+}
+.week-pill .wk-count small{
+  font-size:11px; color:var(--text-muted); font-weight:400;
+}
+.week-pill[data-tone="sun"] .wk-icon{ color:var(--status-warn); }
+.week-pill[data-tone="cloud"] .wk-icon{ color:var(--text-muted); }
+.week-pill[data-tone="rain"] .wk-icon{ color:var(--status-info); }
+.week-pill[data-tone="wind"] .wk-icon{ color:var(--text-dim); }
+
+/* HIGHLIGHTS */
+.highlights-head{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:2px 2px 0;
+}
+.highlights-head h2{
+  margin:0; font-size:13px; font-weight:600; letter-spacing:-0.015em;
+}
+.highlights-head .hl-more{
+  font-size:11px; color:var(--text-muted); cursor:pointer; font-family:'Geist Mono', monospace;
+}
+.highlights-grid{
+  display:grid; grid-template-columns:repeat(3,1fr); gap:12px;
+}
+@media(max-width:1100px){ .highlights-grid{ grid-template-columns:repeat(2,1fr); } }
+@media(max-width:600px){ .highlights-grid{ grid-template-columns:1fr; } }
+.highlight-card{
+  background:var(--bg-inset);
+  border:none;
+  border-radius:var(--radius-lg);
+  padding:16px;
+  cursor:pointer;
+  transition:transform .14s, background .14s;
+  min-height:168px;
+  display:flex; flex-direction:column;
+  position:relative;
+  overflow:hidden;
+}
+.highlight-card:hover{ transform:translateY(-1px); background:var(--bg-elevated); }
+.highlight-card:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+.highlight-card.active{ box-shadow:0 0 0 2px rgba(93,182,155,0.18) inset; }
+.hl-top{
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:10px;
+}
+.hl-label{
+  font-size:10.5px; font-family:'Geist Mono', monospace;
+  letter-spacing:0.07em; text-transform:uppercase; color:var(--text-muted); font-weight:500;
+}
+.hl-icon{ color:var(--text-muted); font-size:14px; }
+.hl-value{
+  font-size:30px; font-weight:300; letter-spacing:-0.03em; line-height:1; color:var(--text-primary);
+}
+.hl-value small{
+  font-size:12px; font-weight:400; color:var(--text-muted); margin-left:4px;
+  font-family:'Geist Mono', monospace;
+}
+.hl-sub{ font-size:11.5px; color:var(--text-muted); margin-top:4px; line-height:1.35; }
+.hl-footer{
+  margin-top:auto; padding-top:12px;
+  display:flex; justify-content:space-between; align-items:flex-end; gap:8px;
+  font-size:11px; color:var(--text-muted);
+}
+
+/* GAUGE CARD */
+.gauge-wrap{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  flex:1; padding:6px 0 2px;
+}
+.gauge-svg{ width:160px; height:84px; overflow:visible; }
+.gauge-center{
+  text-align:center; margin-top:-6px;
+}
+.gauge-center .big{ font-size:28px; font-weight:300; letter-spacing:-0.03em; line-height:1; }
+.gauge-center .cap{ font-size:10.5px; font-family:'Geist Mono', monospace; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin-top:2px; }
+.gauge-scale{
+  display:flex; justify-content:space-between; width:160px;
+  font-size:10px; font-family:'Geist Mono', monospace; color:var(--text-dim);
+  margin-top:4px; padding:0 6px;
+}
+
+/* WIND COMPASS */
+.compass-row{
+  display:flex; align-items:center; justify-content:space-between; margin-top:12px;
+}
+.compass-pill{
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--bg-elevated); border:none;
+  padding:6px 10px; border-radius:var(--radius-pill);
+  font-size:11px; color:var(--text-muted); font-family:'Geist Mono', monospace;
+}
+.compass-pill i{ font-size:12px; color:var(--accent); }
+.compass-circle{
+  width:36px; height:36px; border-radius:50%;
+  background:var(--bg-elevated); border:none;
+  display:grid; place-items:center; color:var(--text-muted); font-size:16px;
+}
+
+/* SUNRISE CARD */
+.sunrise-arc{
+  flex:1; display:flex; align-items:center; justify-content:center; padding:8px 0 4px;
+}
+.sunrise-arc svg{ width:180px; height:64px; overflow:visible; }
+.sunrise-times{
+  display:flex; justify-content:space-between; gap:12px; margin-top:8px;
+}
+.sunrise-times .t{
+  flex:1; display:flex; flex-direction:column; gap:2px;
+}
+.sunrise-times .t .lbl{ font-size:10.5px; font-family:'Geist Mono', monospace; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-muted); display:flex; align-items:center; gap:5px; }
+.sunrise-times .t .val{ font-size:13px; font-weight:500; color:var(--text-primary); }
+.sunrise-times .t .sub{ font-size:11px; color:var(--text-muted); }
+
+/* VERTICAL SLIDER */
+.v-slider{
+  display:flex; gap:14px; align-items:stretch; flex:1; margin-top:8px;
+}
+.v-track{
+  width:6px; background:var(--bg-elevated); border:none;
+  border-radius:999px; position:relative; overflow:hidden; flex-shrink:0;
+  min-height:78px; align-self:stretch;
+}
+.v-fill{
+  position:absolute; left:0; right:0; bottom:0;
+  background:var(--accent); border-radius:999px;
+}
+.v-info{
+  display:flex; flex-direction:column; justify-content:space-between; flex:1;
+}
+.v-marks{
+  display:flex; flex-direction:column; justify-content:space-between;
+  font-size:10px; font-family:'Geist Mono', monospace; color:var(--text-dim);
+  min-height:78px; padding:2px 0;
+}
+.v-status{
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:11px; font-weight:500; color:var(--text-primary);
+  margin-top:8px;
+}
+.v-status.muted{ color:var(--text-muted); }
+.v-emoji{ font-size:12px; }
+
+/* AIR QUALITY */
+.aq-row{ display:flex; align-items:center; justify-content:space-between; margin-top:10px; }
+.aq-badge{
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--bg-elevated); border:none;
+  padding:6px 10px; border-radius:var(--radius-pill);
+  font-size:11px; color:var(--text-muted);
+}
+.aq-badge.bad{ color:var(--status-danger); background:rgba(214,122,122,0.10); }
+.aq-badge i{ font-size:13px; }
+
+/* PROJECT MINI LIST (kept for search logic, minimal) */
+.projects-section{
+  margin-top:4px;
+  background:var(--bg-inset);
+  border:none;
+  border-radius:var(--radius-lg);
+  padding:14px 14px 10px;
+}
+.projects-head{
+  display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;
+}
+.projects-head h3{ margin:0; font-size:12px; font-weight:600; letter-spacing:-0.01em; }
+.projects-head .count{ font-size:11px; color:var(--text-muted); font-family:'Geist Mono', monospace; }
+.mini-rows{ display:flex; flex-direction:column; gap:8px; }
+.mini-row{
+  background:var(--bg-elevated); border:none;
+  border-radius:var(--radius-sm);
+  padding:10px 12px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+  cursor:pointer; transition:background .12s, transform .12s;
+}
+.mini-row:hover{ background:var(--bg-soft); transform:translateY(-1px); }
+.mini-row:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+.mini-row-left{ display:flex; align-items:center; gap:10px; min-width:0; flex:1; }
+.mini-icon{
+  width:28px; height:28px; border-radius:8px; display:grid; place-items:center;
+  background:var(--bg-inset); border:none; color:var(--text-muted); font-size:13px; flex-shrink:0;
+}
+.mini-name{ font-size:12.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mini-desc{ font-size:11.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mini-meta{ display:flex; align-items:center; gap:8px; font-size:11px; color:var(--text-muted); flex-shrink:0; }
+.chips{ display:flex; gap:6px; flex-wrap:wrap; min-height:6px; margin-top:8px; }
+.chip{
+  font-size:11px; background:var(--bg-elevated); border:none; padding:5px 8px; border-radius:999px;
+  display:inline-flex; align-items:center; gap:6px; color:var(--text-muted); line-height:1;
+}
+.chip b{ color:var(--text-primary); font-weight:500; }
+.chip button{ border:none; background:transparent; color:var(--text-muted); cursor:pointer; padding:0 2px; font-size:13px; line-height:1; }
+.chip button:hover{ color:var(--text-primary); }
+.empty{ padding:14px; text-align:center; color:var(--text-muted); font-size:12.5px; border:1px dashed rgba(255,255,255,0.08); border-radius:var(--radius-lg); margin-top:10px; display:none; }
+.empty.show{ display:block; }
+
+/* FOOTER */
+.footer{
+  padding:18px 24px; display:flex; flex-wrap:wrap; gap:12px; justify-content:space-between; align-items:center;
+  border-top:1px solid var(--border-hairline); margin-top:18px; color:var(--text-muted); font-size:12px;
+}
+.footer-left{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.footer-left strong{ color:var(--text-primary); font-weight:600; }
+
+/* MODAL + TOAST (reuse v2.2) */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.56);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg-elevated);border:1px solid var(--border-hairline);border-radius:var(--radius-lg);width:100%;max-width:480px;max-height:85vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+.modal-head{padding:18px 20px 14px;border-bottom:1px solid var(--border-hairline);display:flex;justify-content:space-between;align-items:center;gap:12px}
+.modal-head h3{margin:0;font-size:15px;font-weight:600}
+.modal-close{border:1px solid var(--border-hairline);background:var(--bg-inset);color:var(--text-muted);width:28px;height:28px;border-radius:8px;cursor:pointer;display:grid;place-items:center}
+.modal-close:hover{color:var(--text-primary)}
+.modal-body{padding:16px 20px}
+.modal-meta{font-size:12px;color:var(--text-muted);display:flex;gap:8px;flex-wrap:wrap}
+.modal-actions{padding:12px 20px 16px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--border-hairline)}
+.btn-ghost2{background:var(--bg-inset);border:1px solid var(--border-hairline);color:var(--text-primary);padding:8px 12px;border-radius:var(--radius-sm);cursor:pointer;font-size:13px}
+.btn-ghost2:hover{border-color:rgba(255,255,255,0.14)}
+.btn-primary{
+  background:var(--accent); color:#0a0f0e; border:1px solid transparent;
+  padding:8px 14px; border-radius:var(--radius-sm); font-weight:700; font-size:13px; cursor:pointer;
+}
+.toast{
+  position:fixed; bottom:18px; left:50%; transform:translateX(-50%) translateY(12px);
+  background:var(--bg-elevated); border:1px solid var(--border-hairline); color:var(--text-primary);
+  padding:10px 14px; border-radius:10px; font-size:12.5px; box-shadow:0 12px 32px rgba(0,0,0,0.4);
+  opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:60;
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="chrome">
+    <div class="dots">
+      <div class="chrome-dot dot-r"></div>
+      <div class="chrome-dot dot-y"></div>
+      <div class="chrome-dot dot-g"></div>
+    </div>
+    <div class="chrome-title">devhub / <b>dashboard — M45 v2.3</b> <span style="opacity:0.6; font-size:11px; margin-left:8px">weather minimal · dark-tech · 380 + 700 · sage + Geist</span></div>
+  </div>
+  <div class="main">
+    <div class="weather-layout">
+      <!-- LEFT HERO STICKY -->
+      <aside class="hero" aria-label="Overview">
+        <div class="hero-search">
+          <i class="ph ph-magnifying-glass search-icon" aria-hidden="true"></i>
+          <input id="searchInput" type="text" placeholder="Search for projects..." autocomplete="off" spellcheck="false" aria-label="Search for projects">
+        </div>
+
+        <div class="hero-visual" aria-hidden="true">
+          <div class="sun-wrap">
+            <div class="sun-circle"></div>
+            <div class="cloud-outline"></div>
+          </div>
+          <div class="rain-bars">
+            <i class="rain-bar"></i><i class="rain-bar"></i><i class="rain-bar"></i><i class="rain-bar"></i>
+          </div>
+        </div>
+
+        <div class="hero-temp" aria-label="7 open issues">
+          7<span class="deg">issues</span>
+        </div>
+        <div class="hero-meta">
+          <div class="hero-day mono">Monday, 16:00</div>
+          <div class="hero-desc">Mostly on track</div>
+          <div class="hero-blocked"><i class="ph ph-cloud-rain"></i> Blocked — 30%</div>
+        </div>
+        <div style="margin-top:14px; font-size:11px; color:var(--text-dim); font-family:'Geist Mono', monospace;">Open Issues · 7 total · 3 critical/high</div>
+
+        <div class="hero-card" id="heroCard" role="button" tabindex="0" aria-label="Open workspace DevHub">
+          <div class="hero-card-img">
+            <div class="mini-sun" aria-hidden="true"></div>
+            <span class="img-label">New York · 12°C Mostly cloudy</span>
+          </div>
+          <div class="hero-card-body">
+            <div class="hero-card-title">DevHub — your-workspace</div>
+            <div class="hero-card-sub">your-workspace · 4 projects</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- RIGHT COLUMN -->
+      <section class="right">
+        <!-- TOPBAR: Today/Week + Tasks/Issues + avatar -->
+        <div class="topbar">
+          <div class="view-toggle" role="tablist" aria-label="Time range">
+            <button class="view-btn" data-view="today" role="tab" aria-selected="false">Today</button>
+            <button class="view-btn active" data-view="week" role="tab" aria-selected="true">Week</button>
+          </div>
+          <div class="topbar-right">
+            <div class="unit-switch" role="group" aria-label="Metric toggle">
+              <button class="unit-btn active" data-unit="tasks" aria-pressed="true">Tasks</button>
+              <button class="unit-btn" data-unit="issues" aria-pressed="false">Issues</button>
+            </div>
+            <div class="avatar" aria-label="User Dina">DN</div>
+          </div>
+        </div>
+
+        <!-- WEEK STRIP Sun-Sat -->
+        <div class="week-strip" id="weekStrip" aria-label="Week strip Sun to Sat">
+          <div class="week-pill" data-day="sun" data-tone="sun" tabindex="0" role="button" aria-label="Sun Done 2/0">
+            <div class="wk-day">Sun</div>
+            <div class="wk-icon"><i class="ph ph-sun"></i></div>
+            <div class="wk-count">2/0</div>
+          </div>
+          <div class="week-pill" data-day="mon" data-tone="cloud" tabindex="0" role="button" aria-label="Mon Partly cloudy 2 done 1 todo">
+            <div class="wk-day">Mon</div>
+            <div class="wk-icon"><i class="ph ph-cloud-sun"></i></div>
+            <div class="wk-count">2/1</div>
+          </div>
+          <div class="week-pill" data-day="tue" data-tone="cloud" tabindex="0" role="button" aria-label="Tue Cloudy 0 done 1 todo">
+            <div class="wk-day">Tue</div>
+            <div class="wk-icon"><i class="ph ph-cloud"></i></div>
+            <div class="wk-count">0/1</div>
+          </div>
+          <div class="week-pill" data-day="wed" data-tone="rain" tabindex="0" role="button" aria-label="Wed Overdue">
+            <div class="wk-day">Wed</div>
+            <div class="wk-icon"><i class="ph ph-cloud-rain"></i></div>
+            <div class="wk-count"><small>3 issues</small></div>
+          </div>
+          <div class="week-pill" data-day="thu" data-tone="wind" tabindex="0" role="button" aria-label="Thu Blocked wind">
+            <div class="wk-day">Thu</div>
+            <div class="wk-icon"><i class="ph ph-wind"></i></div>
+            <div class="wk-count"><small>1 blocked</small></div>
+          </div>
+          <div class="week-pill" data-day="fri" data-tone="sun" tabindex="0" role="button" aria-label="Fri Sunny">
+            <div class="wk-day">Fri</div>
+            <div class="wk-icon"><i class="ph ph-sun"></i></div>
+            <div class="wk-count">1/0</div>
+          </div>
+          <div class="week-pill" data-day="sat" data-tone="sun" tabindex="0" role="button" aria-label="Sat Sunny">
+            <div class="wk-day">Sat</div>
+            <div class="wk-icon"><i class="ph ph-sun"></i></div>
+            <div class="wk-count">3/0</div>
+          </div>
+        </div>
+
+        <!-- TODAY'S HIGHLIGHTS HEAD -->
+        <div class="highlights-head">
+          <h2>Today's Highlights</h2>
+          <span class="hl-more mono">6 cards · minimal</span>
+        </div>
+
+        <!-- GRID 3x2 -->
+        <div class="highlights-grid" id="highlightsGrid">
+          <!-- 1: Attention — 2 gauge semi-circle sage 90deg -->
+          <div class="highlight-card" data-search="attention open issues gauge uv index 2" data-day="wed" tabindex="0" role="button" aria-label="Attention 2">
+            <div class="hl-top">
+              <span class="hl-label">Attention — 2</span>
+              <i class="ph ph-warning-circle hl-icon"></i>
+            </div>
+            <div class="gauge-wrap">
+              <svg class="gauge-svg" viewBox="0 0 160 84" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <!-- track 180 deg -->
+                <path d="M 16 80 A 64 64 0 0 1 144 80" stroke="var(--bg-elevated)" stroke-width="8" stroke-linecap="round" />
+                <!-- progress sage 90deg ~ 50% -->
+                <path d="M 16 80 A 64 64 0 0 1 80 16" stroke="var(--accent)" stroke-width="8" stroke-linecap="round" />
+                <!-- needle at 90deg / value 2 -->
+                <g transform="translate(80,80) rotate(-45)">
+                  <line x1="0" y1="0" x2="0" y2="-52" stroke="var(--text-primary)" stroke-width="1.6" stroke-linecap="round" opacity="0.9"/>
+                  <circle cx="0" cy="0" r="3.2" fill="var(--text-primary)" />
+                </g>
+              </svg>
+              <div class="gauge-center">
+                <div class="big">2</div>
+                <div class="cap">open issues · moderate</div>
+              </div>
+              <div class="gauge-scale"><span>6</span><span>9</span><span>12</span></div>
+            </div>
+            <div class="hl-footer">
+              <span>UV Index → Attention</span>
+              <span class="mono">sage 90°</span>
+            </div>
+          </div>
+
+          <!-- 2: Velocity — 5.2 tasks/day -->
+          <div class="highlight-card" data-search="velocity tasks per day wind 5.2" data-day="tue" tabindex="0" role="button" aria-label="Velocity 5.2 tasks per day">
+            <div class="hl-top">
+              <span class="hl-label">Velocity — 5.2</span>
+              <i class="ph ph-wind hl-icon"></i>
+            </div>
+            <div class="hl-value">5.2<small>tasks/day</small></div>
+            <div class="hl-sub">Avg 3.1/d · last 7 days · Created vs Done</div>
+            <div class="compass-row">
+              <span class="compass-pill"><i class="ph ph-navigation-arrow"></i> WSW · Avg 3.1/d</span>
+              <span class="compass-circle" title="WSW"><i class="ph ph-compass"></i></span>
+            </div>
+          </div>
+
+          <!-- 3: Next Milestone — v0.46 -->
+          <div class="highlight-card" data-search="next milestone v0.46 sunrise sunset 5 days left 8 tasks" data-day="mon" tabindex="0" role="button" aria-label="Next Milestone v0.46">
+            <div class="hl-top">
+              <span class="hl-label">Next Milestone — v0.46</span>
+              <i class="ph ph-calendar-blank hl-icon"></i>
+            </div>
+            <div class="sunrise-arc" aria-hidden="true">
+              <svg viewBox="0 0 180 64" fill="none">
+                <!-- arc -->
+                <path d="M 14 56 A 76 76 0 0 1 166 56" stroke="rgba(255,255,255,0.08)" stroke-width="1.2" stroke-dasharray="3 4" stroke-linecap="round"/>
+                <path d="M 14 56 A 76 76 0 0 1 90 6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+                <!-- sun dot -->
+                <circle cx="90" cy="8" r="5" fill="var(--accent)" />
+                <circle cx="90" cy="8" r="9" fill="var(--accent)" opacity="0.16"/>
+              </svg>
+            </div>
+            <div class="sunrise-times">
+              <div class="t">
+                <div class="lbl"><i class="ph ph-sun"></i> Sunrise</div>
+                <div class="val">5 days left</div>
+                <div class="sub">6:35 AM · 2024-03-05</div>
+              </div>
+              <div class="t" style="text-align:right; align-items:flex-end;">
+                <div class="lbl">Sunset <i class="ph ph-moon"></i></div>
+                <div class="val">8 tasks</div>
+                <div class="sub">5:42 PM · 5/8 done</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4: Stack Health — 12% outdated -->
+          <div class="highlight-card" data-search="stack health 12% outdated humidity normal" data-day="thu" tabindex="0" role="button" aria-label="Stack Health 12 percent">
+            <div class="hl-top">
+              <span class="hl-label">Stack Health — 12%</span>
+              <i class="ph ph-stack hl-icon"></i>
+            </div>
+            <div class="v-slider">
+              <div class="v-track" aria-hidden="true"><div class="v-fill" style="height:12%"></div></div>
+              <div class="v-info">
+                <div class="hl-value">12%<small>outdated</small></div>
+                <div class="hl-sub">2 outdated deps · 1 major upgrade</div>
+                <div class="v-status">Normal <span class="v-emoji">👍</span></div>
+              </div>
+              <div class="v-marks"><span>100</span><span>50</span><span>0</span></div>
+            </div>
+            <div class="hl-footer"><span>Humidity → Health</span><span class="mono">12%</span></div>
+          </div>
+
+          <!-- 5: Progress — 41% Done -->
+          <div class="highlight-card" data-search="progress 41% done visibility" data-day="sun" tabindex="0" role="button" aria-label="Progress 41 percent">
+            <div class="hl-top">
+              <span class="hl-label">Progress — 41%</span>
+              <i class="ph ph-chart-donut hl-icon"></i>
+            </div>
+            <div class="v-slider">
+              <div class="v-track" aria-hidden="true"><div class="v-fill" style="height:41%; background:var(--accent)"></div></div>
+              <div class="v-info">
+                <div class="hl-value">41%<small>Done</small></div>
+                <div class="hl-sub">3 done · 8 tasks total · Todo 27%</div>
+                <div class="v-status muted">On track · 5 in progress</div>
+              </div>
+              <div class="v-marks"><span>100</span><span>50</span><span>0</span></div>
+            </div>
+            <div class="hl-footer"><span>Visibility → Progress</span><span class="mono">5.2km</span></div>
+          </div>
+
+          <!-- 6: Blocked — 3 -->
+          <div class="highlight-card" data-search="blocked 3 unhealthy air quality" data-day="thu" tabindex="0" role="button" aria-label="Blocked 3 unhealthy">
+            <div class="hl-top">
+              <span class="hl-label">Blocked — 3</span>
+              <i class="ph ph-prohibit hl-icon"></i>
+            </div>
+            <div class="hl-value">3<small>blocked</small></div>
+            <div class="hl-sub">Unhealthy · 1 overdue · 2 need review</div>
+            <div class="aq-row">
+              <span class="aq-badge bad"><i class="ph ph-thumbs-down"></i> Unhealthy</span>
+              <span class="mono" style="font-size:10px; color:var(--text-dim)">Air Quality → Blocked · 102</span>
+            </div>
+            <div class="hl-footer" style="margin-top:12px"><span>Air Quality 102 → Blocked</span><span class="mono">3</span></div>
+          </div>
+        </div>
+
+        <!-- PROJECTS MINI (for search filter logic, minimal, no border) -->
+        <div class="projects-section" id="projectsSection">
+          <div class="projects-head">
+            <h3>Projects</h3>
+            <span class="count mono" id="projectCount">4 projects</span>
+          </div>
+          <div class="mini-rows" id="projectGroups">
+            <div class="mini-row" data-id="p1" data-name="DevHub" data-team="your-workspace" data-desc="API collections, decisions and schema workspace for DevHub" data-issues="3" data-day="wed" tabindex="0" role="button" aria-label="Open DevHub">
+              <div class="mini-row-left">
+                <span class="mini-icon"><i class="ph ph-code"></i></span>
+                <div style="min-width:0">
+                  <div class="mini-name">DevHub</div>
+                  <div class="mini-desc">API & schema workspace</div>
+                </div>
+              </div>
+              <div class="mini-meta"><span class="mono">v0.46 · 5d</span><span>🐛 3</span><span style="color:var(--status-warn)">● overdue</span></div>
+            </div>
+            <div class="mini-row" data-id="p2" data-name="Coffeeshop" data-team="your-workspace" data-desc="Mock coffee shop API with Bento insight demo data" data-issues="0" data-day="tue" tabindex="0" role="button">
+              <div class="mini-row-left">
+                <span class="mini-icon"><i class="ph ph-coffee"></i></span>
+                <div style="min-width:0"><div class="mini-name">Coffeeshop</div><div class="mini-desc">Mock API · Bento demo</div></div>
+              </div>
+              <div class="mini-meta"><span class="mono">v0.46 · 5d</span><span>🐛 0</span></div>
+            </div>
+            <div class="mini-row" data-id="p3" data-name="Portfolio" data-team="personal" data-desc="Personal site built with Geist and dark-tech tokens — portfolio and blog" data-issues="0" data-day="sun" tabindex="0" role="button">
+              <div class="mini-row-left">
+                <span class="mini-icon"><i class="ph ph-palette"></i></span>
+                <div style="min-width:0"><div class="mini-name">Portfolio</div><div class="mini-desc">Geist · dark-tech</div></div>
+              </div>
+              <div class="mini-meta"><span>🐛 0</span><span class="mono">90%</span></div>
+            </div>
+            <div class="mini-row" data-id="p4" data-name="Acme CRM" data-team="client-acme" data-desc="Client project for Acme — archived and needs review" data-issues="2" data-day="wed" tabindex="0" role="button">
+              <div class="mini-row-left">
+                <span class="mini-icon"><i class="ph ph-briefcase"></i></span>
+                <div style="min-width:0"><div class="mini-name">Acme CRM</div><div class="mini-desc">Client · archived</div></div>
+              </div>
+              <div class="mini-meta"><span>🐛 2</span><span class="mono">12%</span></div>
+            </div>
+          </div>
+          <div class="chips" id="activeChips"></div>
+          <div class="empty" id="emptyState">No results for "<span id="emptyQuery"></span>"</div>
+        </div>
+
+      </section>
+    </div>
+
+    <div class="footer">
+      <div class="footer-left">
+        <strong>Today's Highlights</strong>
+        <span>· weather minimal · 6 cards · sage gauge · vertical sliders · no border badges</span>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; font-family:'Geist Mono', monospace; font-size:11px;">
+        <span>Sun ☀️ Done</span><span>·</span><span>Mon 🌤️ 2/1</span><span>·</span><span>Fri ☀️</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="hlModal" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="hlModalTitle">
+    <div class="modal-head">
+      <h3 id="hlModalTitle">Highlight</h3>
+      <button class="modal-close" data-close-hl aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-meta" id="hlModalMeta"></div>
+      <p id="hlModalDesc" style="color:var(--text-muted);font-size:13px;line-height:1.5;margin:12px 0 0"></p>
+      <div style="margin-top:14px; display:flex; gap:8px; align-items:center">
+        <div style="flex:1; height:6px; background:var(--bg-inset); border-radius:999px; overflow:hidden"><div id="hlModalTrack" style="height:100%; width:41%; background:var(--accent); border-radius:999px"></div></div>
+        <span id="hlModalTrackLbl" class="mono" style="font-size:12px;color:var(--text-muted)">41%</span>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost2" data-close-hl>Close</button>
+      <button class="btn-primary" data-close-hl>Open board</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">Filtered</div>
+
+<script>
+(() => {
+  const searchInput = document.getElementById('searchInput');
+  const weekPills = Array.from(document.querySelectorAll('.week-pill'));
+  const hlCards = Array.from(document.querySelectorAll('.highlight-card'));
+  const miniRows = Array.from(document.querySelectorAll('.mini-row'));
+  const projectCount = document.getElementById('projectCount');
+  const chips = document.getElementById('activeChips');
+  const emptyState = document.getElementById('emptyState');
+  const toast = document.getElementById('toast');
+  const hlModal = document.getElementById('hlModal');
+  const heroCard = document.getElementById('heroCard');
+
+  let searchQuery = '';
+  let selectedDay = null;
+  let activeView = 'week';
+  let unitMode = 'tasks';
+
+  function showToast(msg){
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(()=> toast.classList.remove('show'), 2200);
+  }
+
+  // Topbar Today/Week
+  document.querySelectorAll('.view-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.view-btn').forEach(b=>{ b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-selected','true');
+      activeView = btn.dataset.view;
+      if(activeView === 'today'){
+        // show only today (Thu for demo - blocked day)
+        weekPills.forEach(p=> p.style.display = p.dataset.day === 'thu' ? '' : 'none');
+        showToast('Today · 1 day · Thu blocked');
+      } else {
+        weekPills.forEach(p=> p.style.display = '');
+        showToast('Week · Sun—Sat · 7 days');
+      }
+      applyFilters();
+    });
+  });
+
+  // Tasks/Issues toggle
+  document.querySelectorAll('.unit-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.unit-btn').forEach(b=>{ b.classList.remove('active'); b.setAttribute('aria-pressed','false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-pressed','true');
+      unitMode = btn.dataset.unit;
+      showToast(unitMode === 'tasks' ? 'Tasks · 8 total · 41% done' : 'Issues · 7 open · Blocked 30%');
+    });
+  });
+
+  // Week pill click -> filter
+  weekPills.forEach(pill=>{
+    const activate = ()=>{
+      const day = pill.dataset.day;
+      if(selectedDay === day){ selectedDay = null; pill.classList.remove('active'); }
+      else {
+        weekPills.forEach(p=>p.classList.remove('active'));
+        pill.classList.add('active');
+        selectedDay = day;
+      }
+      applyFilters();
+      if(selectedDay){
+        const label = pill.querySelector('.wk-day').textContent;
+        const cnt = pill.querySelector('.wk-count').textContent.trim();
+        showToast(label+' · '+cnt+' · filtered');
+      } else {
+        showToast('Week filter cleared');
+      }
+    };
+    pill.addEventListener('click', activate);
+    pill.addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); activate(); }});
+  });
+
+  function escapeHtml(s){ return s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+  function renderChips(visibleHlCount, visibleRowCount){
+    chips.innerHTML='';
+    if(searchQuery){
+      const c=document.createElement('div'); c.className='chip';
+      c.innerHTML='<span>q: <b>'+escapeHtml(searchQuery)+'</b></span> <button aria-label="Clear search">×</button>';
+      c.querySelector('button').addEventListener('click',()=>{ searchQuery=''; searchInput.value=''; applyFilters(); searchInput.focus(); });
+      chips.appendChild(c);
+    }
+    if(selectedDay){
+      const pill = weekPills.find(p=>p.dataset.day===selectedDay);
+      const lbl = pill ? pill.querySelector('.wk-day').textContent : selectedDay;
+      const c=document.createElement('div'); c.className='chip';
+      c.innerHTML='<span>day: <b>'+escapeHtml(lbl)+'</b></span> <button aria-label="Clear day">×</button>';
+      c.querySelector('button').addEventListener('click',()=>{ selectedDay=null; weekPills.forEach(p=>p.classList.remove('active')); applyFilters(); });
+      chips.appendChild(c);
+    }
+    if(activeView==='today'){
+      const c=document.createElement('div'); c.className='chip';
+      c.innerHTML='<span>view: <b>Today</b></span> <button aria-label="Clear view">×</button>';
+      c.querySelector('button').addEventListener('click',()=>{
+        activeView='week'; document.querySelectorAll('.view-btn').forEach(b=>{ b.classList.toggle('active', b.dataset.view==='week'); b.setAttribute('aria-selected', b.dataset.view==='week'?'true':'false'); });
+        weekPills.forEach(p=> p.style.display=''); applyFilters();
+      });
+      chips.appendChild(c);
+    }
+  }
+
+  function matchesSearch(el){
+    if(!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    const hay = (el.dataset.search || el.dataset.name + ' ' + el.dataset.desc + ' ' + el.dataset.team || '').toLowerCase();
+    return hay.includes(q) || el.textContent.toLowerCase().includes(q);
+  }
+  function matchesDay(el){
+    if(!selectedDay) return true;
+    return (el.dataset.day === selectedDay);
+  }
+
+  function applyFilters(){
+    let visHl = 0, visRows = 0;
+    hlCards.forEach(card=>{
+      const vis = matchesSearch(card) && (selectedDay ? matchesDay(card) : true);
+      // respect Today view: if today active, only show thu? already filtered week pills, but keep hl filter too
+      let viewOk = true;
+      if(activeView==='today'){
+        // today => only show thu related? demo: show blocked card only
+        viewOk = card.dataset.day === 'thu';
+      }
+      const finalVis = vis && viewOk;
+      card.style.display = finalVis ? '' : 'none';
+      card.classList.toggle('active', finalVis && selectedDay && card.dataset.day===selectedDay);
+      if(finalVis) visHl++;
+    });
+    miniRows.forEach(row=>{
+      const vis = matchesSearch(row) && matchesDay(row);
+      let viewOk = true;
+      if(activeView==='today') viewOk = row.dataset.day === 'thu';
+      const finalVis = vis && viewOk;
+      row.style.display = finalVis ? '' : 'none';
+      if(finalVis) visRows++;
+    });
+    if(projectCount) projectCount.textContent = visRows + ' project' + (visRows!==1?'s':'');
+    renderChips(visHl, visRows);
+    if(visHl===0 && visRows===0){
+      emptyState.classList.add('show');
+      document.getElementById('emptyQuery').textContent = searchQuery || selectedDay || activeView;
+    } else {
+      emptyState.classList.remove('show');
+    }
+  }
+
+  searchInput.addEventListener('input', e=>{ searchQuery = e.target.value.trim(); applyFilters(); });
+
+  // Highlight card click -> modal
+  function openHlModal(card){
+    const label = card.querySelector('.hl-label').textContent.trim();
+    const valueEl = card.querySelector('.hl-value');
+    const value = valueEl ? valueEl.textContent.trim() : '';
+    const sub = card.querySelector('.hl-sub') ? card.querySelector('.hl-sub').textContent.trim() : '';
+    document.getElementById('hlModalTitle').textContent = label;
+    document.getElementById('hlModalMeta').innerHTML = '<span class="mono" style="background:var(--bg-inset);padding:2px 6px;border-radius:999px">'+escapeHtml(value || label)+'</span><span>'+escapeHtml(sub.slice(0,42))+'</span>';
+    document.getElementById('hlModalDesc').textContent = sub + ' — This card mirrors weather “Today\'s Highlights” minimal style: no border, bg-inset, radius var(--radius-lg), whitespace lega, tipografi besar 28–32px weight 300, label mono uppercase muted. Clicked '+label+'.';
+    // track width demo
+    const track = document.getElementById('hlModalTrack');
+    const lbl = document.getElementById('hlModalTrackLbl');
+    if(label.includes('Attention')){ track.style.width='28%'; lbl.textContent='2 / 12'; }
+    else if(label.includes('Velocity')){ track.style.width='68%'; lbl.textContent='5.2/d'; }
+    else if(label.includes('Milestone')){ track.style.width='62%'; lbl.textContent='5 days left'; }
+    else if(label.includes('Stack Health')){ track.style.width='12%'; lbl.textContent='12%'; }
+    else if(label.includes('Progress')){ track.style.width='41%'; lbl.textContent='41%'; }
+    else if(label.includes('Blocked')){ track.style.width='18%'; lbl.textContent='3 blocked'; }
+    hlModal.classList.add('open'); hlModal.setAttribute('aria-hidden','false');
+  }
+  hlCards.forEach(card=>{
+    card.addEventListener('click', ()=> openHlModal(card));
+    card.addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); openHlModal(card); }});
+  });
+
+  // mini rows -> modal reuse
+  miniRows.forEach(row=>{
+    row.addEventListener('click', ()=>{
+      const name=row.dataset.name;
+      const desc=row.dataset.desc;
+      document.getElementById('hlModalTitle').textContent = name;
+      document.getElementById('hlModalMeta').innerHTML = '<span class="mono" style="background:var(--bg-inset);padding:2px 6px;border-radius:999px">'+escapeHtml(row.dataset.team)+'</span><span>🐛 '+row.dataset.issues+' issues</span>';
+      document.getElementById('hlModalDesc').textContent = desc + ' — opened from minimal weather layout search filter.';
+      document.getElementById('hlModalTrack').style.width = (row.dataset.issues==='0'?'90%':'36%');
+      document.getElementById('hlModalTrackLbl').textContent = row.dataset.issues + ' issues';
+      hlModal.classList.add('open'); hlModal.setAttribute('aria-hidden','false');
+    });
+  });
+
+  if(heroCard){
+    heroCard.addEventListener('click', ()=>{
+      document.getElementById('hlModalTitle').textContent = 'DevHub — your-workspace';
+      document.getElementById('hlModalMeta').innerHTML = '<span class="mono" style="background:var(--bg-inset);padding:2px 6px;border-radius:999px">your-workspace</span><span>4 projects</span>';
+      document.getElementById('hlModalDesc').textContent = 'your-workspace · 4 projects — card bawah hero, gradient + text, seperti card New York pada referensi weather.';
+      document.getElementById('hlModalTrack').style.width='72%';
+      document.getElementById('hlModalTrackLbl').textContent='4 projects';
+      hlModal.classList.add('open'); hlModal.setAttribute('aria-hidden','false');
+    });
+    heroCard.addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); heroCard.click(); }});
+  }
+
+  function closeAll(){
+    hlModal.classList.remove('open'); hlModal.setAttribute('aria-hidden','true');
+  }
+  document.querySelectorAll('[data-close-hl]').forEach(b=> b.addEventListener('click', closeAll));
+  hlModal.addEventListener('click', e=>{ if(e.target===hlModal) closeAll(); });
+
+  document.addEventListener('keydown', e=>{
+    const isInput = document.activeElement.tagName==='INPUT' || document.activeElement.tagName==='SELECT' || document.activeElement.tagName==='TEXTAREA';
+    if(e.key==='Escape'){
+      if(hlModal.classList.contains('open')){ closeAll(); e.preventDefault(); return; }
+      if(selectedDay){ selectedDay=null; weekPills.forEach(p=>p.classList.remove('active')); applyFilters(); }
+      return;
+    }
+    if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); searchInput.focus(); searchInput.select(); return; }
+    if(!isInput){
+      if(e.key==='/'){ e.preventDefault(); searchInput.focus(); return; }
+      if(e.key==='ArrowRight' || e.key==='ArrowLeft'){
+        const vis = hlCards.filter(c=> c.style.display!=='none');
+        if(vis.length===0) return;
+        const idx = vis.indexOf(document.activeElement.closest('.highlight-card'));
+        let next = idx;
+        if(e.key==='ArrowRight') next = Math.min(idx+1, vis.length-1);
+        if(e.key==='ArrowLeft') next = Math.max(idx-1, 0);
+        if(next>=0 && vis[next]) vis[next].focus();
+      }
+    }
+  });
+
+  applyFilters();
+})();
+</script>
+</body>
+</html>

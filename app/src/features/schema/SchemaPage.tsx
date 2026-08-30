@@ -334,7 +334,13 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
                   icon={<Graph size={22} />}
                   title={isViewing ? t('schema.viewBanner.noTablesInSnapshot') : t('schema.empty.tablesTitle')}
                   description={isViewing ? t('schema.viewBanner.noTablesDesc') : t('schema.empty.tablesDesc')}
-                  action={canEditEffective ? <Button size="sm" onClick={() => setNewTableOpen(true)}>{t('schema.page.newTable')}</Button> : undefined}
+                  action={
+                    !isViewing && canEditEffective ? (
+                      <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setNewTableOpen(true)}>
+                        {t('schema.page.newTable', { defaultValue: 'Create table' })}
+                      </Button>
+                    ) : undefined
+                  }
                 />
               ) : (
                 <div className="data-list">

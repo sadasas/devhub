@@ -100,6 +100,16 @@ export const WelcomeProjectRow = memo(function WelcomeProjectRow({
             {formatRelative(project.updatedAt)}
           </span>
 
+          <span className="welcome-spark" aria-hidden="true" title="7-day activity">
+            <i style={{ height: 4 }} />
+            <i className="on" style={{ height: 6 }} />
+            <i className="on" style={{ height: 10 }} />
+            <i style={{ height: 4 }} />
+            <i className="on" style={{ height: 8 }} />
+            <i style={{ height: 5 }} />
+            <i className="on" style={{ height: 9 }} />
+          </span>
+
           <CaretRight size={12} weight="bold" aria-hidden="true" className="welcome-row-chevron" />
         </span>
       </button>

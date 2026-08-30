@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>devhub / dashboard — M45</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-base:#0f0f11;
+  --bg-elevated:#18181b;
+  --bg-inset:#131316;
+  --border-hairline:rgba(255,255,255,0.07);
+  --text-primary:#e8e8ea;
+  --text-muted:#8e8e98;
+  --accent:#5db69b;
+  --status-warn:#c9a96a;
+  --status-danger:#d67a7a;
+  --status-info:#7ba4d9;
+  --radius-lg:12px;
+  --radius-sm:8px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *{transition:none!important;animation:none!important}
+}
+body{
+  margin:0;
+  background:var(--bg-base);
+  color:var(--text-primary);
+  font-family:'Geist', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+.mono{font-family:'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+.shell{
+  max-width:1100px;
+  margin:0 auto;
+  padding:28px 32px;
+}
+@media(max-width:860px){.shell{padding:16px}}
+.chrome{
+  background:#1e1e21;
+  border:1px solid var(--border-hairline);
+  border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+  padding:10px 14px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  position:relative;
+}
+.dots{display:flex;gap:6px;align-items:center}
+.chrome-dot{width:12px;height:12px;border-radius:50%;border:1px solid rgba(0,0,0,0.25)}
+.dot-r{background:#ff5f57}.dot-y{background:#ffbd2e}.dot-g{background:#28c840}
+.chrome-title{margin-left:10px;font-size:12.5px;color:var(--text-muted);font-family:'Geist Mono', monospace;letter-spacing:-0.01em}
+.main{
+  background:var(--bg-base);
+  border:1px solid var(--border-hairline);
+  border-top:none;
+  border-radius:0 0 var(--radius-lg) var(--radius-lg);
+  overflow:hidden;
+}
+/* header */
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  padding:22px 24px 18px;
+}
+.header h1{
+  margin:0;
+  font-size:22px;
+  font-weight:600;
+  letter-spacing:-0.02em;
+  line-height:1.15;
+}
+.header p{
+  margin:6px 0 0;
+  color:var(--text-muted);
+  font-size:13px;
+}
+.btn-primary{
+  background:var(--accent);
+  color:#0a0f0e;
+  border:1px solid transparent;
+  padding:9px 16px;
+  border-radius:var(--radius-sm);
+  font-weight:600;
+  font-size:13px;
+  cursor:pointer;
+  white-space:nowrap;
+  box-shadow:0 1px 0 rgba(255,255,255,0.04) inset;
+}
+.btn-primary:hover{filter:brightness(1.06)}
+.btn-primary:active{transform:translateY(1px)}
+/* bento */
+.bento{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+  padding:0 24px;
+}
+@media(max-width:700px){.bento{grid-template-columns:1fr}}
+.bento-tile{
+  background:var(--bg-elevated);
+  border:1px solid var(--border-hairline);
+  border-radius:var(--radius-lg);
+  padding:16px;
+  cursor:pointer;
+  position:relative;
+  transition:border-color .16s, box-shadow .16s, transform .12s;
+}
+.bento-tile:hover{border-color:rgba(255,255,255,0.11);transform:translateY(-1px)}
+.bento-tile.active{border-color:var(--accent);box-shadow:0 0 0 3px rgba(93,182,155,0.18)}
+.bento-top{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted);font-weight:500;letter-spacing:0.01em}
+.dot{width:8px;height:8px;border-radius:50%;box-shadow:0 0 0 4px rgba(255,255,255,0.06)}
+.dot.warn{background:var(--status-warn)}
+.dot.info{background:var(--status-info)}
+.dot.accent{background:var(--accent)}
+.bento-value{font-size:19px;font-weight:700;margin:10px 0 4px;letter-spacing:-0.02em}
+.bento-desc{font-size:12px;color:var(--text-muted);line-height:1.4}
+.track{height:4px;background:var(--bg-inset);border-radius:999px;margin-top:10px;width:100%;overflow:hidden;border:1px solid var(--border-hairline)}
+.track-fill{height:100%;border-radius:999px}
+.track.warn .track-fill{background:var(--status-warn)}
+.track.info .track-fill{background:var(--status-info)}
+.track.accent .track-fill{background:var(--accent)}
+/* queue */
+.queue-wrap{padding:18px 24px 0}
+.queue-head{font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.queue-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:860px){.queue-grid{grid-template-columns:1fr}}
+.queue-card{
+  background:var(--bg-elevated);
+  border:1px solid var(--border-hairline);
+  border-radius:var(--radius-lg);
+  padding:14px;
+  cursor:pointer;
+  transition:border-color .15s, transform .12s;
+}
+.queue-card:hover{border-color:rgba(255,255,255,0.11);transform:translateY(-1px)}
+.queue-title{font-size:13px;font-weight:600;line-height:1.35}
+.queue-meta{font-size:11px;color:var(--text-muted);margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.badge{font-size:10.5px;padding:3px 7px;border-radius:999px;border:1px solid var(--border-hairline);background:var(--bg-inset);font-family:'Geist Mono', monospace;line-height:1}
+.badge.warn{color:var(--status-warn);border-color:rgba(201,169,106,0.28)}
+.badge.info{color:var(--status-info);border-color:rgba(123,164,217,0.28)}
+.badge.accent{color:var(--accent);border-color:rgba(93,182,155,0.28)}
+.badge.muted{color:var(--text-muted)}
+/* sentinel */
+#sentinel{height:1px}
+/* commandbar */
+.commandbar{
+  position:sticky;top:0;z-index:10;
+  background:rgba(15,15,17,0.82);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border-top:1px solid var(--border-hairline);
+  border-bottom:1px solid var(--border-hairline);
+  padding:12px 24px;
+  display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+  transition:box-shadow .2s, background .2s;
+  margin-top:18px;
+}
+.commandbar.stuck{box-shadow:0 8px 24px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.04);background:rgba(15,15,17,0.92)}
+.cmd-search{flex:1 1 300px;position:relative;min-width:220px}
+.cmd-search input{
+  width:100%;background:var(--bg-inset);border:1px solid var(--border-hairline);color:var(--text-primary);
+  padding:10px 42px 10px 12px;border-radius:var(--radius-sm);font-size:13px;outline:none;
+}
+.cmd-search input::placeholder{color:var(--text-muted)}
+.cmd-search input:focus{border-color:rgba(93,182,155,0.45);box-shadow:0 0 0 3px rgba(93,182,155,0.14)}
+.cmd-search kbd{
+  position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  font-size:11px;background:var(--bg-elevated);border:1px solid var(--border-hairline);border-bottom-width:2px;
+  padding:2px 6px;border-radius:6px;color:var(--text-muted);font-family:'Geist Mono', monospace;line-height:1;
+  pointer-events:none;
+}
+.cmd-selects{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cmd-selects label{font-size:11px;color:var(--text-muted);font-weight:500;display:flex;align-items:center;gap:6px}
+.cmd-selects select{
+  background:var(--bg-elevated);border:1px solid var(--border-hairline);color:var(--text-primary);
+  padding:8px 28px 8px 10px;border-radius:var(--radius-sm);font-size:12.5px;outline:none;appearance:none;
+  background-image:linear-gradient(45deg, transparent 50%, var(--text-muted) 50%), linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+  background-position:calc(100% - 14px) calc(50% - 2px), calc(100% - 9px) calc(50% - 2px);
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat;
+}
+.cmd-selects select:focus{border-color:rgba(93,182,155,0.4)}
+.cmd-count{font-size:12.5px;color:var(--text-muted);margin-left:auto;white-space:nowrap}
+.chips{padding:8px 24px 0;display:flex;gap:6px;flex-wrap:wrap;min-height:28px}
+.chip{font-size:12px;background:var(--bg-elevated);border:1px solid var(--border-hairline);padding:5px 8px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;color:var(--text-muted);line-height:1}
+.chip b{color:var(--text-primary);font-weight:500}
+.chip button{border:none;background:transparent;color:var(--text-muted);cursor:pointer;padding:0 2px;font-size:14px;line-height:1}
+.chip button:hover{color:var(--text-primary)}
+/* groups */
+.groups{padding:12px 12px 0}
+.group{margin-bottom:16px}
+.group-head{
+  display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;user-select:none;color:var(--text-muted);
+  font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;
+}
+.group-head:hover{color:var(--text-primary)}
+.group-head .arrow{font-size:10px;transition:transform .15s;display:inline-block}
+.group.collapsed .arrow{transform:rotate(-90deg)}
+.group.collapsed .rows{display:none}
+.group-count{font-family:'Geist Mono', monospace;font-weight:400;font-size:11px;background:var(--bg-inset);border:1px solid var(--border-hairline);padding:2px 6px;border-radius:999px}
+.rows{display:flex;flex-direction:column;gap:8px;padding:0 12px}
+.row{
+  background:var(--bg-elevated);border:1px solid var(--border-hairline);border-radius:var(--radius-sm);
+  padding:0 14px;display:flex;align-items:center;gap:12px;min-height:52px;cursor:pointer;
+  transition:border-color .12s, background .12s, opacity .12s, box-shadow .12s;
+}
+.row:hover{border-color:rgba(255,255,255,0.10)}
+.row:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row.active{border-color:var(--accent);box-shadow:0 0 0 3px rgba(93,182,155,0.16)}
+.row.archived{opacity:0.62}
+@media(max-width:900px){
+  .row{flex-direction:column;align-items:flex-start;min-height:64px;padding:12px 14px;gap:8px}
+  .row-meta{width:100%}
+}
+.row-left{display:flex;align-items:center;gap:10px;min-width:0;flex:1;width:100%}
+.dot-ring{width:8px;height:8px;border-radius:50%;position:relative;flex-shrink:0}
+.dot-ring::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:1px solid rgba(255,255,255,0.08)}
+.dot-ring.warn{background:var(--status-warn)}
+.dot-ring.info{background:var(--status-info)}
+.dot-ring.accent{background:var(--accent)}
+.dot-ring.muted{background:#3f3f46}
+.row-title{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.team-pill{font-family:'Geist Mono', monospace;font-size:10.5px;background:var(--bg-inset);border:1px solid var(--border-hairline);padding:2px 6px;border-radius:999px;color:var(--text-muted);white-space:nowrap;flex-shrink:0}
+.row-desc{
+  font-size:12.5px;color:var(--text-muted);line-height:1.4;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;
+  overflow:hidden;min-width:0;flex:1;
+}
+.row-desc.expanded{-webkit-line-clamp:unset;white-space:normal}
+@media(max-width:900px){.row-desc{flex:none;width:100%}}
+.row-meta{display:flex;align-items:center;gap:10px;flex-shrink:0;font-size:11.5px;color:var(--text-muted);flex-wrap:wrap}
+.track-mini{width:56px;height:4px;background:var(--bg-inset);border:1px solid var(--border-hairline);border-radius:999px;overflow:hidden;flex-shrink:0}
+.track-mini-fill{height:100%;background:var(--accent);border-radius:999px}
+.spark{width:56px;height:12px;display:flex;align-items:end;gap:2px;flex-shrink:0}
+.spark i{display:block;width:4px;background:#3f3f46;border-radius:2px}
+.spark i.up{background:var(--accent);opacity:1}
+.chevron{margin-left:4px;color:var(--text-muted);font-size:12px;flex-shrink:0}
+.btn-more{
+  border:none;background:transparent;color:var(--text-muted);font-size:11.5px;cursor:pointer;padding:2px 6px;border-radius:6px;white-space:nowrap;
+  font-family:'Geist Mono', monospace;
+}
+.btn-more:hover{background:var(--bg-inset);color:var(--text-primary)}
+.empty{
+  padding:22px;text-align:center;color:var(--text-muted);font-size:13px;border:1px dashed rgba(255,255,255,0.10);
+  border-radius:var(--radius-lg);margin:12px 24px;display:none;
+}
+.empty.show{display:block}
+.empty b{color:var(--text-primary)}
+.empty button{margin-top:8px;background:var(--bg-elevated);border:1px solid var(--border-hairline);color:var(--text-primary);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:12.5px}
+.empty button:hover{border-color:rgba(255,255,255,0.14)}
+/* footer */
+.footer{
+  padding:18px 24px;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;
+  border-top:1px solid var(--border-hairline);margin-top:16px;color:var(--text-muted);font-size:12px;
+}
+.footer-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.footer-left strong{color:var(--text-primary);font-weight:600}
+.kbd-hints{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.kbd{font-family:'Geist Mono', monospace;font-size:11px;background:var(--bg-elevated);border:1px solid var(--border-hairline);border-bottom-width:2px;padding:2px 6px;border-radius:6px;color:var(--text-muted)}
+/* modals */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.56);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;
+  z-index:50;padding:20px;
+}
+.modal-overlay.open{display:flex}
+.modal{
+  background:var(--bg-elevated);border:1px solid var(--border-hairline);border-radius:var(--radius-lg);width:100%;max-width:520px;
+  max-height:85vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,0.5);
+}
+.modal-head{padding:18px 20px 14px;border-bottom:1px solid var(--border-hairline);display:flex;justify-content:space-between;align-items:center;gap:12px}
+.modal-head h3{margin:0;font-size:15px;font-weight:600}
+.modal-close{border:1px solid var(--border-hairline);background:var(--bg-inset);color:var(--text-muted);width:28px;height:28px;border-radius:8px;cursor:pointer;display:grid;place-items:center}
+.modal-close:hover{color:var(--text-primary)}
+.modal-body{padding:16px 20px}
+.modal-meta{font-size:12px;color:var(--text-muted);display:flex;gap:8px;flex-wrap:wrap}
+.field{margin-bottom:12px}
+.field label{font-size:12px;color:var(--text-muted);display:block;margin-bottom:6px;font-weight:500}
+.field input{
+  width:100%;background:var(--bg-inset);border:1px solid var(--border-hairline);color:var(--text-primary);
+  padding:10px 12px;border-radius:var(--radius-sm);font-size:13px;outline:none;
+}
+.field input:focus{border-color:rgba(93,182,155,0.45);box-shadow:0 0 0 3px rgba(93,182,155,0.12)}
+.templates{display:flex;gap:8px;flex-wrap:wrap}
+.tmpl{
+  flex:1 1 120px;background:var(--bg-inset);border:1px solid var(--border-hairline);border-radius:var(--radius-sm);
+  padding:12px;text-align:left;cursor:pointer;color:var(--text-primary);
+}
+.tmpl:hover{border-color:rgba(255,255,255,0.12)}
+.tmpl.active{border-color:var(--accent);box-shadow:0 0 0 3px rgba(93,182,155,0.14)}
+.tmpl strong{font-size:13px;display:block}
+.tmpl span{font-size:11.5px;color:var(--text-muted)}
+.dashed{
+  border:1px dashed rgba(255,255,255,0.10);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--text-muted);background:var(--bg-inset);
+}
+.modal-actions{padding:12px 20px 16px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--border-hairline)}
+.btn-ghost{background:var(--bg-inset);border:1px solid var(--border-hairline);color:var(--text-primary);padding:8px 12px;border-radius:var(--radius-sm);cursor:pointer;font-size:13px}
+.btn-ghost:hover{border-color:rgba(255,255,255,0.14)}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="chrome">
+    <div class="dots">
+      <div class="chrome-dot dot-r"></div>
+      <div class="chrome-dot dot-y"></div>
+      <div class="chrome-dot dot-g"></div>
+    </div>
+    <div class="chrome-title">devhub / dashboard — M45</div>
+  </div>
+  <div class="main">
+    <!-- header -->
+    <div class="header">
+      <div>
+        <h1>Welcome back, Dina</h1>
+        <p>4 projects · 2 need attention · 1 outdated</p>
+      </div>
+      <button class="btn-primary" id="btnNew">+ New project</button>
+    </div>
+
+    <!-- bento -->
+    <div class="bento" id="bento">
+      <div class="bento-tile" data-bento="attention" role="button" tabindex="0" aria-label="Filter attention">
+        <div class="bento-top"><span class="dot warn"></span> Attention</div>
+        <div class="bento-value">2 need attention</div>
+        <div class="bento-desc">Projects with open issues or outdated stack</div>
+        <div class="track warn"><div class="track-fill" style="width:42%"></div></div>
+      </div>
+      <div class="bento-tile" data-bento="due" role="button" tabindex="0" aria-label="Filter due today and scroll to queue">
+        <div class="bento-top"><span class="dot info"></span> Due Today</div>
+        <div class="bento-value">3 tasks</div>
+        <div class="bento-desc">Due today across DevHub & Coffeeshop</div>
+        <div class="track info"><div class="track-fill" style="width:66%"></div></div>
+      </div>
+      <div class="bento-tile" data-bento="milestone" role="button" tabindex="0" aria-label="Filter next milestone">
+        <div class="bento-top"><span class="dot accent"></span> Next Milestone</div>
+        <div class="bento-value">v0.46 — 5 days left</div>
+        <div class="bento-desc">62% complete · ships Mar 5</div>
+        <div class="track accent"><div class="track-fill" style="width:62%"></div></div>
+      </div>
+    </div>
+
+    <!-- queue -->
+    <div class="queue-wrap" id="queue">
+      <div class="queue-head"><span>Next-Action Queue · 3</span><span class="mono" style="font-size:11px;color:var(--text-muted)">sorted by due</span></div>
+      <div class="queue-grid">
+        <div class="queue-card" data-task="t1" role="button" tabindex="0">
+          <div class="queue-title">Fix dueDates track 40→56px</div>
+          <div class="queue-meta"><span class="badge warn">Due today</span><span>DevHub · 2h left</span></div>
+        </div>
+        <div class="queue-card" data-task="t2" role="button" tabindex="0">
+          <div class="queue-title">Review PR — Schema ERD</div>
+          <div class="queue-meta"><span class="badge danger">Blocked</span><span>DevHub · waiting review</span></div>
+        </div>
+        <div class="queue-card" data-task="t3" role="button" tabindex="0">
+          <div class="queue-title">Write ADR for dashboard</div>
+          <div class="queue-meta"><span class="badge info">In Review</span><span>Coffeeshop · 1d ago</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="sentinel"></div>
+    <!-- commandbar -->
+    <div class="commandbar" id="commandBar">
+      <div class="cmd-search">
+        <input id="searchInput" type="text" placeholder="Search name, team, or description — try 'api'" autocomplete="off" spellcheck="false">
+        <kbd>⌘K</kbd>
+      </div>
+      <div class="cmd-selects">
+        <label>Sort
+          <select id="sortSelect">
+            <option value="updated">Updated</option>
+            <option value="name">Name</option>
+            <option value="issues">Issues</option>
+            <option value="progress">Progress</option>
+          </select>
+        </label>
+        <label>Team
+          <select id="teamSelect">
+            <option value="all">All</option>
+            <option value="your-workspace">your-workspace</option>
+            <option value="client-acme">client-acme</option>
+            <option value="personal">personal</option>
+          </select>
+        </label>
+      </div>
+      <div class="cmd-count" id="projectCount">4 projects</div>
+    </div>
+    <div class="chips" id="activeChips"></div>
+
+    <!-- project list grouped -->
+    <div class="groups" id="projectGroups">
+      <!-- your-workspace -->
+      <div class="group" data-team="your-workspace">
+        <div class="group-head" data-collapse>
+          <span class="arrow">▾</span>
+          <span>your-workspace</span>
+          <span class="group-count" data-group-count>2</span>
+        </div>
+        <div class="rows">
+          <div class="row" data-id="p1" data-name="DevHub" data-team="your-workspace" data-desc="API collections, decisions and schema workspace for DevHub" data-issues="3" data-progress="72" data-updated="2" tabindex="0" role="button" aria-label="Open DevHub project">
+            <div class="row-left">
+              <span class="dot-ring warn" aria-hidden="true"></span>
+              <span class="row-title">DevHub</span>
+              <span class="team-pill mono">your-workspace</span>
+              <span class="row-desc" title="API collections, decisions and schema workspace for DevHub">API collections, decisions and schema workspace for DevHub</span>
+            </div>
+            <div class="row-meta">
+              <div class="track-mini" title="track 56px"><div class="track-mini-fill" style="width:72%"></div></div>
+              <span>🐛 3</span>
+              <span>⚠ outdated</span>
+              <span>⬢ v0.46 5d</span>
+              <span>◷ 2h ago</span>
+              <span class="spark" aria-hidden="true" title="7-day activity"><i style="height:5px"></i><i style="height:8px"></i><i style="height:4px"></i><i style="height:10px"></i><i style="height:6px"></i><i class="up" style="height:12px"></i><i style="height:7px"></i></span>
+              <button class="btn-more" data-more>More ▾</button>
+              <span class="chevron">〉</span>
+            </div>
+          </div>
+
+          <div class="row" data-id="p2" data-name="Coffeeshop" data-team="your-workspace" data-desc="Mock coffee shop API with Bento insight demo data" data-issues="0" data-progress="34" data-updated="5" tabindex="0" role="button" aria-label="Open Coffeeshop project">
+            <div class="row-left">
+              <span class="dot-ring info" aria-hidden="true"></span>
+              <span class="row-title">Coffeeshop</span>
+              <span class="team-pill mono">your-workspace</span>
+              <span class="row-desc" title="Mock coffee shop API with Bento insight demo data">Mock coffee shop API with Bento insight demo data</span>
+            </div>
+            <div class="row-meta">
+              <div class="track-mini"><div class="track-mini-fill" style="width:34%"></div></div>
+              <span>🐛 0</span>
+              <span>⬢ v0.46 5d</span>
+              <span>◷ 5h ago</span>
+              <span class="spark" aria-hidden="true"><i style="height:3px"></i><i style="height:5px"></i><i style="height:7px"></i><i style="height:6px"></i><i style="height:4px"></i><i style="height:3px"></i><i class="up" style="height:8px"></i></span>
+              <button class="btn-more" data-more>More ▾</button>
+              <span class="chevron">〉</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- personal -->
+      <div class="group" data-team="personal">
+        <div class="group-head" data-collapse>
+          <span class="arrow">▾</span>
+          <span>personal</span>
+          <span class="group-count">1</span>
+        </div>
+        <div class="rows">
+          <div class="row" data-id="p3" data-name="Portfolio" data-team="personal" data-desc="Personal site built with Geist and dark-tech tokens — portfolio and blog" data-issues="0" data-progress="90" data-updated="24" tabindex="0" role="button">
+            <div class="row-left">
+              <span class="dot-ring muted"></span>
+              <span class="row-title">Portfolio</span>
+              <span class="team-pill mono">personal</span>
+              <span class="row-desc" title="Personal site built with Geist and dark-tech tokens — portfolio and blog">Personal site built with Geist and dark-tech tokens — portfolio and blog</span>
+            </div>
+            <div class="row-meta">
+              <div class="track-mini"><div class="track-mini-fill" style="width:90%"></div></div>
+              <span>🐛 0</span>
+              <span>◷ 1d ago</span>
+              <span class="spark"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:7px"></i><i style="height:10px"></i><i style="height:9px"></i><i class="up" style="height:12px"></i></span>
+              <button class="btn-more" data-more>More ▾</button>
+              <span class="chevron">〉</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- client-acme -->
+      <div class="group" data-team="client-acme">
+        <div class="group-head" data-collapse>
+          <span class="arrow">▾</span>
+          <span>client-acme</span>
+          <span class="group-count">1</span>
+        </div>
+        <div class="rows">
+          <div class="row archived" data-id="p4" data-name="Acme CRM" data-team="client-acme" data-desc="Client project for Acme — archived and needs review" data-issues="2" data-progress="12" data-updated="72" tabindex="0" role="button">
+            <div class="row-left">
+              <span class="dot-ring muted"></span>
+              <span class="row-title">Acme CRM</span>
+              <span class="team-pill mono">client-acme</span>
+              <span class="row-desc" title="Client project for Acme — archived and needs review">Client project for Acme — archived and needs review</span>
+            </div>
+            <div class="row-meta">
+              <div class="track-mini"><div class="track-mini-fill" style="width:12%"></div></div>
+              <span>🐛 2</span>
+              <span>◷ 3d ago</span>
+              <span class="spark"><i style="height:6px"></i><i style="height:4px"></i><i style="height:3px"></i><i style="height:5px"></i><i style="height:4px"></i><i style="height:4px"></i><i class="up" style="height:3px"></i></span>
+              <button class="btn-more" data-more>More ▾</button>
+              <span class="chevron">〉</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="empty" id="emptyState">No results for "<span id="emptyQuery"></span>" <button id="btnClearEmpty">Clear filter</button></div>
+
+    <div class="footer">
+      <div class="footer-left">
+        <strong>Recent activity</strong>
+        <span>· Dina pushed 2h ago · Fix dueDates merged · 7-day spark active</span>
+      </div>
+      <div class="kbd-hints">
+        <span class="kbd">⌘K</span> <span>search</span>
+        <span class="kbd">/</span> <span>search</span>
+        <span class="kbd">n</span> <span>new</span>
+        <span class="kbd">↑↓</span> <span>navigate</span>
+        <span class="kbd">↵</span> <span>open</span>
+        <span class="kbd">Esc</span> <span>close</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Task Modal -->
+<div class="modal-overlay" id="taskModal" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="taskModalTitle">
+    <div class="modal-head">
+      <h3 id="taskModalTitle">Task</h3>
+      <button class="modal-close" data-close-task aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-meta" id="taskModalMeta"></div>
+      <p id="taskModalDesc" style="color:var(--text-muted);font-size:13px;line-height:1.5;margin:12px 0 0"></p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" data-close-task>Close</button>
+      <button class="btn-primary" data-close-task>Open task</button>
+    </div>
+  </div>
+</div>
+
+<!-- Project Modal -->
+<div class="modal-overlay" id="projectModal" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="projectModalTitle">
+    <div class="modal-head">
+      <h3 id="projectModalTitle">Project</h3>
+      <button class="modal-close" data-close-project aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-meta" id="projectModalMeta"></div>
+      <p id="projectModalDesc" style="color:var(--text-muted);font-size:13px;line-height:1.5;margin:12px 0 0"></p>
+      <div style="margin-top:14px;display:flex;gap:8px;align-items:center">
+        <div class="track-mini" style="width:120px;height:6px"><div id="projectModalTrack" class="track-mini-fill" style="width:50%"></div></div>
+        <span id="projectModalProgress" class="mono" style="font-size:12px;color:var(--text-muted)"></span>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" data-close-project>Close</button>
+      <button class="btn-primary" data-close-project>Open project</button>
+    </div>
+  </div>
+</div>
+
+<!-- New Project Modal -->
+<div class="modal-overlay" id="newProjectModal" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="newProjectTitle">
+    <div class="modal-head">
+      <h3 id="newProjectTitle">New project</h3>
+      <button class="modal-close" data-close-new aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label for="newName">Project name</label>
+        <input id="newName" type="text" placeholder="e.g. Coffeeshop API">
+      </div>
+      <div class="field">
+        <label>Template</label>
+        <div class="templates" id="tmplGroup">
+          <button class="tmpl active" data-tmpl="Blank"><strong>Blank</strong><span>Empty project</span></button>
+          <button class="tmpl" data-tmpl="Kanban Starter"><strong>Kanban Starter</strong><span>Board + queue</span></button>
+          <button class="tmpl" data-tmpl="Schema Starter"><strong>Schema Starter</strong><span>ERD + API docs</span></button>
+        </div>
+      </div>
+      <div class="dashed">This will create a new project in <b style="color:var(--text-primary)">your-workspace</b> · You can change team after creation. Track defaults to 56px.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" data-close-new>Cancel</button>
+      <button class="btn-primary" id="btnCreate">Create project</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const searchInput = document.getElementById('searchInput');
+  const sortSelect = document.getElementById('sortSelect');
+  const teamSelect = document.getElementById('teamSelect');
+  const projectCount = document.getElementById('projectCount');
+  const chips = document.getElementById('activeChips');
+  const rows = Array.from(document.querySelectorAll('.row'));
+  const groups = Array.from(document.querySelectorAll('.group'));
+  const emptyState = document.getElementById('emptyState');
+  const emptyQuery = document.getElementById('emptyQuery');
+  const commandBar = document.getElementById('commandBar');
+  const sentinel = document.getElementById('sentinel');
+  const bentoTiles = Array.from(document.querySelectorAll('.bento-tile'));
+  const queueCards = Array.from(document.querySelectorAll('.queue-card'));
+
+  const taskModal = document.getElementById('taskModal');
+  const projectModal = document.getElementById('projectModal');
+  const newModal = document.getElementById('newProjectModal');
+  const headerSubtitle = document.querySelector('.header p');
+
+  let searchQuery = '';
+  let teamFilter = 'all';
+  let sortBy = 'updated';
+  let bentoFilter = null; // null | 'attention' | 'due' | 'milestone'
+  let activeIndex = -1;
+  let selectedTmpl = 'Blank';
+
+  const tasks = {
+    t1:{title:'Fix dueDates track 40→56px', meta:'Due today · DevHub', desc:'Increase track width from 40px to 56px for better readability. Due today — currently in Next-Action Queue. File: docs/prototype-dashboard-m45.html'},
+    t2:{title:'Review PR — Schema ERD', meta:'Blocked · DevHub', desc:'Schema ERD PR is blocked waiting for review. Check relations and indexes before merging.'},
+    t3:{title:'Write ADR for dashboard', meta:'In Review · Coffeeshop', desc:'Draft ADR for Dashboard Redesign M45: Bento Insight + Next-Action Queue. In review by team.'}
+  };
+
+  function getVisibleRows(){
+    return rows.filter(r => r.style.display !== 'none' && !r.closest('.group.collapsed'));
+  }
+
+  function renderChips(){
+    chips.innerHTML = '';
+    if(searchQuery){
+      const c = document.createElement('div');
+      c.className = 'chip';
+      c.innerHTML = `<span>q: <b>${escapeHtml(searchQuery)}</b></span> <button aria-label="Clear search">×</button>`;
+      c.querySelector('button').addEventListener('click',()=>{searchQuery='';searchInput.value='';applyFilters();searchInput.focus();});
+      chips.appendChild(c);
+    }
+    if(teamFilter!=='all'){
+      const c = document.createElement('div');
+      c.className='chip';
+      c.innerHTML = `<span>team: <b>${escapeHtml(teamFilter)}</b></span> <button aria-label="Clear team">×</button>`;
+      c.querySelector('button').addEventListener('click',()=>{teamFilter='all';teamSelect.value='all';applyFilters();});
+      chips.appendChild(c);
+    }
+    if(bentoFilter){
+      const label = bentoFilter==='attention'?'attention: 2 need attention': bentoFilter==='due'?'due: DevHub & Coffeeshop':'milestone: v0.46';
+      const c=document.createElement('div');
+      c.className='chip';
+      c.innerHTML=`<span>${label}</span> <button aria-label="Clear bento">×</button>`;
+      c.querySelector('button').addEventListener('click',()=>{bentoFilter=null;updateBentoActive();applyFilters();});
+      chips.appendChild(c);
+    }
+  }
+
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  function matchesSearch(row){
+    if(!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    const name = row.dataset.name.toLowerCase();
+    const team = row.dataset.team.toLowerCase();
+    const desc = row.dataset.desc.toLowerCase();
+    return name.includes(q) || team.includes(q) || desc.includes(q);
+  }
+  function matchesTeam(row){
+    if(teamFilter==='all') return true;
+    return row.dataset.team===teamFilter;
+  }
+  function matchesBento(row){
+    if(!bentoFilter) return true;
+    if(bentoFilter==='attention') return parseInt(row.dataset.issues,10)>0;
+    if(bentoFilter==='due'){
+      const n=row.dataset.name;
+      return n==='DevHub' || n==='Coffeeshop';
+    }
+    if(bentoFilter==='milestone'){
+      // milestone v0.46 — show DevHub & Coffeeshop which have v0.46, but spec says v0.46 5d for tiles; filter to those with milestone
+      const name=row.dataset.name;
+      // allow DevHub & Coffeeshop as milestone carriers
+      return name==='DevHub' || name==='Coffeeshop';
+    }
+    return true;
+  }
+
+  function applyFilters(){
+    let visibleCount=0;
+    // sort rows order first then visibility: need to reorder DOM per sort
+    const rowsContainerMap = new Map();
+    groups.forEach(g=>{
+      const rowsWrap = g.querySelector('.rows');
+      rowsContainerMap.set(g, rowsWrap);
+    });
+    // collect all rows data
+    let filtered = rows.slice();
+    // apply filters to decide visibility
+    filtered.forEach(r=>{
+      const vis = matchesSearch(r) && matchesTeam(r) && matchesBento(r);
+      r._visible = vis;
+      if(vis) visibleCount++;
+    });
+    // sort visible rows globally but keep group structure? Sort within groups by reordering per group.
+    // Instead sort per group independent.
+    groups.forEach(g=>{
+      const wrap = g.querySelector('.rows');
+      const groupRows = Array.from(wrap.children);
+      groupRows.sort((a,b)=>{
+        // if one hidden after filter, keep but sort still? Sort all group rows by criteria
+        if(sortBy==='name') return a.dataset.name.localeCompare(b.dataset.name);
+        if(sortBy==='issues') return parseInt(b.dataset.issues)-parseInt(a.dataset.issues);
+        if(sortBy==='progress') return parseInt(b.dataset.progress)-parseInt(a.dataset.progress);
+        if(sortBy==='updated') return parseInt(a.dataset.updated)-parseInt(b.dataset.updated);
+        return 0;
+      });
+      groupRows.forEach(r=>wrap.appendChild(r));
+    });
+
+    // now show/hide
+    rows.forEach(r=>{
+      r.style.display = r._visible ? '' : 'none';
+      r.classList.remove('active');
+    });
+    // group counts and hide empty groups visually? keep header but collapse if 0 visible? Spec says grouped, we hide empty groups header? Keep but count 0.
+    groups.forEach(g=>{
+      const wrap = g.querySelector('.rows');
+      const cntEl = g.querySelector('[data-group-count]');
+      const visInGroup = Array.from(wrap.children).filter(r=> r._visible).length;
+      if(cntEl) cntEl.textContent = visInGroup;
+      // hide group head if 0 visible? keep header but no rows -> still show header but rows empty.
+      // Optionally hide group if teamFilter explicitly filtered to different team, other groups will be 0 and still shown but with 0; we hide groups with 0 when filter active to avoid clutter? Keep but they will show 0.
+      g.style.display = visInGroup===0 && (teamFilter!=='all' || searchQuery || bentoFilter) ? 'none' : '';
+    });
+
+    projectCount.textContent = `${visibleCount} project${visibleCount!==1?'s':''}`;
+    // update header subtitle? keep 4 projects static but could dynamic
+    // chips
+    renderChips();
+    // empty state
+    if(visibleCount===0){
+      emptyState.classList.add('show');
+      emptyQuery.textContent = searchQuery || teamFilter || bentoFilter || '';
+      emptyState.firstChild.nodeValue = `No results for "${searchQuery || teamFilter || bentoFilter}" `;
+      // ensure text includes spec phrase
+      emptyState.innerHTML = `No results for "<span>${escapeHtml(searchQuery || teamFilter || bentoFilter)}</span>" <button id="btnClearEmpty">Clear filter</button>`;
+      document.getElementById('btnClearEmpty').addEventListener('click', clearAllFilters);
+    } else {
+      emptyState.classList.remove('show');
+    }
+    activeIndex = -1;
+  }
+
+  function clearAllFilters(){
+    searchQuery=''; searchInput.value='';
+    teamFilter='all'; teamSelect.value='all';
+    bentoFilter=null; updateBentoActive();
+    sortBy='updated'; sortSelect.value='updated';
+    applyFilters();
+  }
+
+  function updateBentoActive(){
+    bentoTiles.forEach(t=> t.classList.toggle('active', t.dataset.bento===bentoFilter));
+  }
+
+  // bento click
+  bentoTiles.forEach(tile=>{
+    const activate = ()=>{
+      const key=tile.dataset.bento;
+      if(bentoFilter===key){ bentoFilter=null; }
+      else { bentoFilter=key; }
+      updateBentoActive();
+      applyFilters();
+      if(key==='due' && bentoFilter==='due'){
+        document.getElementById('queue').scrollIntoView({behavior:'smooth', block:'start'});
+      }
+    };
+    tile.addEventListener('click', activate);
+    tile.addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); activate(); }});
+  });
+
+  // search live
+  searchInput.addEventListener('input', e=>{
+    searchQuery = e.target.value.trim();
+    applyFilters();
+  });
+
+  teamSelect.addEventListener('change', e=>{
+    teamFilter = e.target.value;
+    applyFilters();
+  });
+  sortSelect.addEventListener('change', e=>{
+    sortBy = e.target.value;
+    applyFilters();
+  });
+
+  // chips already in render
+  // queue -> modal
+  function openTaskModal(id){
+    const t=tasks[id];
+    if(!t) return;
+    document.getElementById('taskModalTitle').textContent=t.title;
+    document.getElementById('taskModalMeta').innerHTML=`<span class="badge ${id==='t1'?'warn':id==='t2'?'danger':'info'}">${id==='t1'?'Due today':id==='t2'?'Blocked':'In Review'}</span><span>${t.meta}</span>`;
+    document.getElementById('taskModalDesc').textContent=t.desc;
+    taskModal.classList.add('open');
+    taskModal.setAttribute('aria-hidden','false');
+  }
+  queueCards.forEach(c=>{
+    c.addEventListener('click',()=> openTaskModal(c.dataset.task));
+    c.addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); openTaskModal(c.dataset.task); }});
+  });
+
+  // row -> modal + more
+  function openProjectModal(row){
+    const name=row.dataset.name;
+    const team=row.dataset.team;
+    const desc=row.dataset.desc;
+    const prog=row.dataset.progress;
+    const iss=row.dataset.issues;
+    document.getElementById('projectModalTitle').textContent=name;
+    document.getElementById('projectModalMeta').innerHTML=`<span class="team-pill mono">${team}</span><span>🐛 ${iss} issues</span><span>Track 56px</span>`;
+    document.getElementById('projectModalDesc').textContent=desc + ' — 7-day sparkline 56×12 (i bars) · milestone ⬢ v0.46 5d · ◷ '+row.dataset.updated+'h ago';
+    document.getElementById('projectModalTrack').style.width=prog+'%';
+    document.getElementById('projectModalProgress').textContent=prog+'%';
+    projectModal.classList.add('open');
+    projectModal.setAttribute('aria-hidden','false');
+  }
+  rows.forEach(row=>{
+    row.addEventListener('click', (e)=>{
+      if(e.target.closest('[data-more]')) return;
+      openProjectModal(row);
+    });
+    // more button
+    const btn=row.querySelector('[data-more]');
+    const desc=row.querySelector('.row-desc');
+    if(btn){
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const expanded = desc.classList.toggle('expanded');
+        btn.textContent = expanded ? 'Less ▴' : 'More ▾';
+      });
+    }
+  });
+
+  // group collapse
+  document.querySelectorAll('[data-collapse]').forEach(head=>{
+    head.addEventListener('click',()=>{
+      const g=head.closest('.group');
+      g.classList.toggle('collapsed');
+    });
+  });
+
+  // modals close
+  function closeAll(){
+    taskModal.classList.remove('open'); taskModal.setAttribute('aria-hidden','true');
+    projectModal.classList.remove('open'); projectModal.setAttribute('aria-hidden','true');
+    newModal.classList.remove('open'); newModal.setAttribute('aria-hidden','true');
+  }
+  document.querySelectorAll('[data-close-task]').forEach(b=> b.addEventListener('click', closeAll));
+  document.querySelectorAll('[data-close-project]').forEach(b=> b.addEventListener('click', closeAll));
+  document.querySelectorAll('[data-close-new]').forEach(b=> b.addEventListener('click', closeAll));
+  ;[taskModal,projectModal,newModal].forEach(ov=>{
+    ov.addEventListener('click', e=>{ if(e.target===ov) closeAll(); });
+  });
+
+  // New project modal
+  const btnNew = document.getElementById('btnNew');
+  btnNew.addEventListener('click', ()=>{ newModal.classList.add('open'); newModal.setAttribute('aria-hidden','false'); setTimeout(()=>document.getElementById('newName').focus(),30); });
+  document.querySelectorAll('.tmpl').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.tmpl').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedTmpl = btn.dataset.tmpl;
+    });
+  });
+  document.getElementById('btnCreate').addEventListener('click', ()=>{
+    const input=document.getElementById('newName');
+    let name=input.value.trim();
+    if(!name){ input.focus(); input.style.borderColor='var(--status-danger)'; return; }
+    input.style.borderColor='';
+    // inject row
+    const id='p'+Date.now();
+    const team='your-workspace';
+    const desc = selectedTmpl==='Blank' ? 'New blank project — no template' : selectedTmpl==='Kanban Starter' ? 'Kanban Starter template with board and queue' : 'Schema Starter template with ERD and API docs';
+    const group = document.querySelector('.group[data-team="your-workspace"] .rows');
+    const row = document.createElement('div');
+    row.className='row';
+    row.dataset.id=id;
+    row.dataset.name=name;
+    row.dataset.team=team;
+    row.dataset.desc=desc;
+    row.dataset.issues='0';
+    row.dataset.progress='0';
+    row.dataset.updated='0';
+    row.tabIndex=0;
+    row.setAttribute('role','button');
+    row.innerHTML=`
+      <div class="row-left">
+        <span class="dot-ring accent"></span>
+        <span class="row-title">${escapeHtml(name)}</span>
+        <span class="team-pill mono">${team}</span>
+        <span class="row-desc" title="${escapeHtml(desc)}">${escapeHtml(desc)}</span>
+      </div>
+      <div class="row-meta">
+        <div class="track-mini"><div class="track-mini-fill" style="width:0%"></div></div>
+        <span>🐛 0</span>
+        <span>⬢ v0.46 5d</span>
+        <span>◷ now</span>
+        <span class="spark"><i style="height:2px"></i><i style="height:3px"></i><i style="height:2px"></i><i style="height:4px"></i><i style="height:3px"></i><i style="height:5px"></i><i class="up" style="height:6px"></i></span>
+        <button class="btn-more" data-more>More ▾</button>
+        <span class="chevron">〉</span>
+      </div>
+    `;
+    // events for new row
+    row.addEventListener('click', (e)=>{ if(e.target.closest('[data-more]')) return; openProjectModal(row); });
+    const btn=row.querySelector('[data-more]');
+    const d=row.querySelector('.row-desc');
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const expanded=d.classList.toggle('expanded');
+      btn.textContent=expanded?'Less ▴':'More ▾';
+    });
+    group.prepend(row);
+    rows.push(row);
+    input.value='';
+    newModal.classList.remove('open');
+    // update counts
+    const total = document.querySelectorAll('.row').length;
+    headerSubtitle.textContent = `${total} projects · 2 need attention · 1 outdated`;
+    applyFilters();
+    // focus new row
+    setTimeout(()=>{ row.focus(); row.scrollIntoView({behavior:'smooth', block:'center'}); },50);
+  });
+
+  // sticky elevation via IntersectionObserver
+  if('IntersectionObserver' in window){
+    const obs=new IntersectionObserver(entries=>{
+      entries.forEach(ent=>{
+        if(!ent.isIntersecting) commandBar.classList.add('stuck');
+        else commandBar.classList.remove('stuck');
+      });
+    }, {threshold:0});
+    obs.observe(sentinel);
+  } else {
+    window.addEventListener('scroll',()=>{
+      const rect=sentinel.getBoundingClientRect();
+      if(rect.top<0) commandBar.classList.add('stuck'); else commandBar.classList.remove('stuck');
+    });
+  }
+
+  // keyboard
+  document.addEventListener('keydown', e=>{
+    const activeTag=document.activeElement.tagName;
+    const isInput = activeTag==='INPUT' || activeTag==='SELECT' || activeTag==='TEXTAREA';
+    // Esc close modals
+    if(e.key==='Escape'){
+      if(taskModal.classList.contains('open')||projectModal.classList.contains('open')||newModal.classList.contains('open')){ closeAll(); e.preventDefault(); return; }
+      // also clear bento if needed
+      if(bentoFilter){ bentoFilter=null; updateBentoActive(); applyFilters(); }
+      return;
+    }
+    if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){
+      e.preventDefault();
+      searchInput.focus();
+      searchInput.select();
+      return;
+    }
+    if(!isInput){
+      if(e.key==='/'){
+        e.preventDefault(); searchInput.focus(); return;
+      }
+      if(e.key.toLowerCase()==='n'){
+        e.preventDefault(); btnNew.click(); return;
+      }
+      if(e.key==='ArrowDown' || e.key==='ArrowUp'){
+        const vis = Array.from(document.querySelectorAll('.row')).filter(r=> r.style.display!=='none' && r.closest('.group').style.display!=='none');
+        if(vis.length===0) return;
+        e.preventDefault();
+        if(e.key==='ArrowDown'){
+          activeIndex = Math.min(activeIndex+1, vis.length-1);
+          if(activeIndex<0) activeIndex=0;
+        } else {
+          activeIndex = Math.max(activeIndex-1, 0);
+        }
+        vis.forEach(r=>r.classList.remove('active'));
+        const target=vis[activeIndex];
+        target.classList.add('active');
+        target.focus();
+        target.scrollIntoView({behavior:'smooth', block:'nearest'});
+      }
+      if(e.key==='Enter'){
+        const vis = Array.from(document.querySelectorAll('.row')).filter(r=> r.style.display!=='none');
+        const focused = document.activeElement.closest('.row');
+        if(focused && focused.style.display!=='none'){
+          openProjectModal(focused);
+        } else if(activeIndex>=0){
+          const v = vis[activeIndex];
+          if(v) openProjectModal(v);
+        }
+      }
+    }
+  });
+
+  // initial
+  applyFilters();
+})();
+</script>
+</body>
+</html>

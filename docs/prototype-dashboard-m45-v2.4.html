@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>devhub / dashboard — M45 v2.4 (boxless · weather-inspired · airy · whitespace)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<style>
+:root{
+  --bg-base:#0f0f11;
+  --bg-elevated:#18181b;
+  --bg-inset:#131316;
+  --bg-soft:#1e1e21;
+  --border-hairline:rgba(255,255,255,0.07);
+  --text-primary:#e8e8ea;
+  --text-muted:#8e8e98;
+  --text-dim:#6f6f79;
+  --accent:#5db69b;
+  --accent-dark:#2d6b5e;
+  --accent-deep:var(--status-success-soft);
+  --accent-mint:#c8e9dd;
+  --status-warn:#c9a96a;
+  --status-danger:#d67a7a;
+  --status-info:#7ba4d9;
+  --status-success-soft:#273332;
+  --card-blue-soft:#6b8ad4;
+  --card-cream-soft:#e8e0d0;
+  --accent-dim:rgba(93,182,155,0.12);
+  --radius-xl:var(--radius-lg);
+  --radius-lg:16px;
+  --radius-card:12px;
+  --radius-sm:8px;
+  --radius-pill:999px;
+  --pattern-stripe:rgba(255,255,255,0.06);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} *{transition:none!important;animation:none!important} }
+body{
+  margin:0;
+  background:var(--bg-base);
+  color:var(--text-primary);
+  font-family:'Geist', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+.mono{font-family:'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+.shell{ max-width:1180px; margin:0 auto; padding:28px 24px 40px; }
+@media(max-width:860px){.shell{padding:16px}}
+.chrome{
+  background:var(--bg-soft);
+  border:1px solid var(--border-hairline);
+  border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+  padding:10px 14px;
+  display:flex; align-items:center; gap:8px;
+}
+.dots{display:flex;gap:6px;align-items:center}
+.chrome-dot{width:12px;height:12px;border-radius:50%;border:1px solid rgba(0,0,0,0.25)}
+.dot-r{background:#ff5f57}.dot-y{background:#ffbd2e}.dot-g{background:#28c840}
+.chrome-title{margin-left:10px;font-size:12px;color:var(--text-muted);font-family:'Geist Mono', monospace;letter-spacing:-0.01em}
+.chrome-title b{color:var(--text-primary);font-weight:600}
+.main{
+  background:var(--bg-base);
+  border:1px solid var(--border-hairline);
+  border-top:none;
+  border-radius:0 0 var(--radius-lg) var(--radius-lg);
+  overflow:hidden;
+  box-shadow:0 1px 0 rgba(255,255,255,0.02) inset, 0 20px 60px rgba(0,0,0,0.35);
+}
+/* header v2 */
+.header-v2{
+  display:flex; justify-content:space-between; align-items:flex-start; gap:16px;
+  padding:22px 24px 18px;
+  border-bottom:1px solid var(--border-hairline);
+}
+.header-v2 h1{
+  margin:0; font-size:24px; font-weight:700; letter-spacing:-0.03em; line-height:1.1;
+}
+.header-v2 p{ margin:6px 0 0; color:var(--text-muted); font-size:12.5px; }
+.hdr-actions{display:flex; gap:10px; align-items:center; flex-shrink:0}
+.btn-ghost{
+  background:var(--bg-elevated); color:var(--text-primary);
+  border:1px solid var(--border-hairline); padding:9px 14px; border-radius:var(--radius-sm);
+  font-weight:500; font-size:13px; cursor:pointer;
+}
+.btn-ghost:hover{border-color:rgba(255,255,255,0.13); background:#1f1f22}
+.btn-primary{
+  background:var(--accent); color:#0a0f0e; border:1px solid transparent;
+  padding:9px 16px; border-radius:var(--radius-sm); font-weight:700; font-size:13px; cursor:pointer; white-space:nowrap;
+  box-shadow:0 1px 0 rgba(255,255,255,0.12) inset, 0 4px 16px rgba(93,182,155,0.25);
+}
+.btn-primary:hover{filter:brightness(1.06)}
+.btn-primary:active{transform:translateY(1px)}
+/* grid 12 */
+.grid12{
+  display:grid;
+  grid-template-columns:repeat(12,1fr);
+  gap:24px;
+  padding:20px 24px 0;
+}
+@media(max-width:1100px){ .grid12{grid-template-columns:repeat(6,1fr)} }
+@media(max-width:720px){ .grid12{grid-template-columns:1fr; padding:14px 16px 0} }
+/* stats wrapper spans full */
+.stats-wrap{
+  grid-column:1 / -1;
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:24px;
+}
+@media(max-width:1000px){ .stats-wrap{grid-template-columns:repeat(2,1fr)} }
+@media(max-width:560px){ .stats-wrap{grid-template-columns:1fr} }
+.stat-card{
+  background:transparent;
+  border:none;
+  border-radius:var(--radius-lg);
+  padding:20px 20px 18px;
+  position:relative;
+  overflow:hidden;
+  cursor:pointer;
+  transition:background .15s ease, color .15s ease;
+  display:flex; flex-direction:column; justify-content:space-between;
+  min-height:140px;
+}
+.stat-card:hover{ transform:none; background:rgba(255,255,255,0.02); border-color:transparent; color:var(--text-primary); }
+.stat-card:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.stat-card.active{border:none; background:rgba(255,255,255,0.03); box-shadow:none}
+.stat-card.primary{
+  background:var(--accent);
+  color:#fff;
+  border:none;
+  min-height:140px;
+  box-shadow:0 4px 16px rgba(93,182,155,0.18), 0 1px 0 rgba(255,255,255,0.08) inset;
+}
+.stat-top{ display:flex; justify-content:space-between; align-items:flex-start; }
+.stat-icon{
+  width:42px; height:42px; border-radius:10px; display:grid; place-items:center; font-size:20px;
+  background:transparent; border:none; position:relative; overflow:hidden; flex-shrink:0;
+  color:var(--text-muted);
+}
+.stat-icon::after{
+  content:""; position:absolute; inset:0;
+  background: repeating-linear-gradient(135deg, transparent 0 3px, var(--pattern-stripe) 3px 6px);
+  opacity:0.04;
+  pointer-events:none;
+}
+.stat-card.primary .stat-icon{
+  background:rgba(255,255,255,0.14); border:none; color:rgba(255,255,255,0.95);
+}
+.stat-card.primary .stat-icon::after{
+  display:none;
+}
+.stat-icon i{
+  font-size:22px;
+  width:22px;
+  height:22px;
+  display:grid;
+  place-items:center;
+  line-height:1;
+}
+.stat-arrow{
+  width:28px; height:28px; border-radius:var(--radius-pill); display:grid; place-items:center;
+  background:transparent; border:none; color:var(--text-muted); font-size:13px; flex-shrink:0;
+}
+.stat-card.primary .stat-arrow{ background:rgba(255,255,255,0.16); border:none; color:#fff; }
+.stat-label{ font-size:11px; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; color:var(--text-muted); margin-top:16px; }
+.stat-card.primary .stat-label{ color:rgba(255,255,255,0.78); }
+.stat-num{ font-size:32px; font-weight:300; letter-spacing:-0.04em; line-height:1; margin-top:8px; }
+.stat-card.primary .stat-num{ color:#fff; }
+.stat-sub{ font-size:12px; color:var(--text-muted); margin-top:4px; line-height:1.3; }
+.stat-card.primary .stat-sub{ color:rgba(255,255,255,0.78); }
+.stat-badge{
+  margin-top:12px; display:inline-flex; align-items:center; gap:5px;
+  font-size:11px; font-weight:500; color:var(--accent);
+  background:rgba(93,182,155,0.10); border:none;
+  padding:4px 8px; border-radius:var(--radius-pill); align-self:flex-start;
+}
+.stat-card.primary .stat-badge{
+  background:rgba(255,255,255,0.16); border:none; color:#fff;
+}
+.stat-badge i{font-size:10px}
+/* analytics */
+.card{
+  border-radius:var(--radius-lg);
+  background:transparent;
+  border:none;
+  box-shadow:none;
+}
+.analytics{
+  grid-column: span 8;
+  padding:20px 20px 16px;
+  display:flex; flex-direction:column;
+}
+@media(max-width:1100px){ .analytics{grid-column:1 / -1} }
+.analytics-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:14px; }
+.analytics-title{ font-size:14px; font-weight:600; letter-spacing:-0.015em; }
+.analytics-sub{ font-size:11px; color:var(--text-muted); margin-top:3px; }
+.analytics-legend{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-size:11px; color:var(--text-muted); }
+.legend-dot{width:8px;height:8px;border-radius:50%; display:inline-block; border:1px solid rgba(255,255,255,0.08)}
+.legend-dot.sage{background:var(--accent)}
+.legend-dot.dark{background:var(--accent-dark)}
+.legend-dot.mint{background:var(--accent-mint)}
+.legend-dot.stripe{background: var(--bg-inset); border:1px solid var(--border-hairline); background-image: repeating-linear-gradient(45deg, var(--pattern-stripe) 0 3px, transparent 3px 7px); opacity:0.9}
+.bars{
+  display:flex; align-items:flex-end; justify-content:space-between; gap:10px;
+  height:108px; padding:24px 6px 0;
+  flex:1;
+}
+.bar-wrap{ flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; position:relative; height:100%; justify-content:flex-end; }
+.bar{
+  width:100%; max-width:44px; border-radius:6px; position:relative;
+  transition:filter .15s, transform .15s;
+  cursor:pointer;
+  min-height:12px;
+}
+.bar:hover{filter:brightness(1.08); transform:translateY(-1px)}
+.bar.solid-sage{ background:var(--accent); box-shadow:none; filter:saturate(0.92); }
+.bar.solid-dark{ background:var(--accent-dark); filter:saturate(0.72); opacity:0.95; }
+.bar.solid-mint{ background:var(--accent-mint); filter:saturate(0.45); opacity:0.88; }
+.bar.stripe{
+  background-color: transparent;
+  background-image: repeating-linear-gradient(45deg, var(--pattern-stripe) 0 3px, transparent 3px 7px);
+  border:none;
+  opacity:0.96;
+}
+.bar-label{ font-size:10.5px; color:var(--text-muted); font-family:'Geist Mono', monospace; }
+.tooltip{
+  position:absolute; top:-30px; left:50%; transform:translateX(-50%);
+  background:#e8e8ea; color:#0f0f11; font-size:11px; font-weight:700; padding:5px 9px; border-radius:var(--radius-pill);
+  white-space:nowrap; box-shadow:0 6px 20px rgba(0,0,0,0.28); font-family:'Geist Mono', monospace; line-height:1; z-index:2;
+}
+.tooltip::after{
+  content:""; position:absolute; bottom:-4px; left:50%; transform:translateX(-50%) rotate(45deg);
+  width:8px; height:8px; background:#e8e8ea;
+}
+/* milestone card */
+.milestone{
+  grid-column: span 4;
+  padding:20px;
+  display:flex; flex-direction:column;
+}
+@media(max-width:1100px){ .milestone{grid-column:1 / -1} }
+.milestone-head{ display:flex; justify-content:space-between; align-items:center; }
+.milestone-title{ font-size:14px; font-weight:600; letter-spacing:-0.015em; }
+.milestone-badge{
+  font-size:10px; padding:4px 8px; border-radius:var(--radius-pill);
+  background:rgba(201,169,106,0.12); color:var(--status-warn); border:none;
+  font-weight:600; letter-spacing:0.06em; text-transform:uppercase;
+}
+.milestone-big{ font-size:20px; font-weight:700; letter-spacing:-0.02em; margin:16px 0 6px; line-height:1.1; }
+.milestone-desc{ font-size:12.5px; color:var(--text-muted); line-height:1.5; }
+.milestone-meta{ display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+.pill-meta{ font-size:11px; padding:5px 8px; border-radius:var(--radius-pill); background:var(--bg-inset); border:none; color:var(--text-muted); display:inline-flex; gap:5px; align-items:center; }
+.milestone-track{ margin-top:16px; height:6px; background:rgba(255,255,255,0.06); border-radius:6px; overflow:hidden; border:none; }
+.milestone-fill{ height:100%; width:62%; background:var(--accent); border-radius:6px; }
+.milestone-dates{ display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-top:7px; font-family:'Geist Mono', monospace; }
+.btn-view{
+  margin-top:16px; background:var(--accent); color:#0a0f0e; border:none; padding:10px 14px; border-radius:10px;
+  font-weight:600; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; width:100%;
+}
+.btn-view:hover{filter:brightness(1.06)}
+.btn-view:active{transform:translateY(1px)}
+/* row3 */
+.team{
+  grid-column: span 5;
+  padding:20px;
+}
+@media(max-width:1100px){ .team{grid-column: span 3} }
+@media(max-width:720px){ .team{grid-column:1 / -1} }
+.team-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+.team-title{ font-size:14px; font-weight:600; }
+.team-link{ font-size:12px; color:var(--text-muted); cursor:pointer; font-weight:500; }
+.team-link:hover{color:var(--text-primary)}
+.team-list{ display:flex; flex-direction:column; }
+.team-item{ display:flex; align-items:center; gap:12px; padding:14px 0; border-bottom:none; }
+.team-item:last-child{border-bottom:none}
+.avatar-stack{ display:flex; align-items:center; }
+.avatar{
+  width:32px; height:32px; border-radius:var(--radius-pill); display:grid; place-items:center;
+  font-size:11px; font-weight:700; color:var(--text-muted); background:var(--bg-inset); border:1px solid var(--border-hairline); flex-shrink:0;
+  /* overlap */
+  margin-left:-7px; position:relative;
+}
+.avatar:first-child{margin-left:0}
+/* v2.1 mono + 1 accent: only warn keeps color, others muted */
+.avatar.blue, .avatar.mint, .avatar.info{ background:var(--bg-inset); color:var(--text-muted); border-color:var(--border-hairline); filter:saturate(0.6); }
+.avatar.amber{ background:rgba(201,169,106,0.12); color:var(--status-warn); border-color:rgba(201,169,106,0.20); }
+.avatar.orange{ background:rgba(201,169,106,0.12); color:var(--status-warn); border-color:rgba(201,169,106,0.20); }
+.team-info{ flex:1; min-width:0; }
+.team-name{ font-size:13px; font-weight:600; line-height:1.2; }
+.team-task{ font-size:11.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
+.status-pill{
+  font-size:10.5px; padding:4px 9px; border-radius:var(--radius-pill); font-weight:600; border:none; white-space:nowrap; line-height:1;
+}
+.status-pill.completed{ background:rgba(93,182,155,0.12); color:var(--accent); border:none; }
+.status-pill.inprogress{ background:var(--bg-inset); color:var(--text-muted); border:none; }
+.status-pill.pending{ background:rgba(201,169,106,0.10); color:var(--status-warn); border:none; }
+.progress{
+  grid-column: span 3;
+  padding:20px;
+  display:flex; flex-direction:column; align-items:center; text-align:center;
+}
+@media(max-width:1100px){ .progress{grid-column: span 3} }
+@media(max-width:720px){ .progress{grid-column:1 / -1} }
+.progress-head{ align-self:stretch; display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+.progress-title{ font-size:14px; font-weight:600; }
+.progress-sub{ font-size:11px; color:var(--text-muted); cursor:pointer; }
+.donut-wrap{ position:relative; width:160px; height:160px; margin:14px 0 10px; }
+.donut-center{
+  position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none;
+}
+.donut-pct{ font-size:30px; font-weight:800; letter-spacing:-0.03em; line-height:1; }
+.donut-lbl{ font-size:11px; color:var(--text-muted); margin-top:2px; font-weight:500; }
+.legend{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; font-size:11px; color:var(--text-muted); margin-top:4px; }
+.legend-item{ display:flex; align-items:center; gap:6px; }
+.legend-dot{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+.legend-dot.sage{ background:var(--accent); }
+.legend-dot.dim{ background:rgba(93,182,155,0.32); }
+.legend-dot.stripe{ background:var(--bg-inset); border:1px solid var(--border-hairline); }
+.focus{
+  grid-column: span 2;
+  padding:20px;
+  position:relative; overflow:hidden; display:flex; flex-direction:column; color:var(--text-primary);
+  background:transparent;
+  border:none;
+  min-height:260px;
+  box-shadow:none;
+}
+.focus::after{ display:none; }
+@media(max-width:1100px){ .focus{grid-column: span 6} }
+@media(max-width:720px){ .focus{grid-column:1 / -1} }
+.focus-head{ position:relative; display:flex; justify-content:space-between; align-items:center; z-index:1; }
+.focus-title{ font-size:13px; font-weight:600; color:var(--text-primary); }
+.focus-badge{
+  font-size:11px; padding:4px 9px; border-radius:var(--radius-pill);
+  background:var(--bg-elevated); border:none; color:var(--text-muted); font-weight:500;
+}
+.focus-time{
+  position:relative; z-index:1; font-family:'Geist Mono', monospace; font-size:28px; font-weight:600; letter-spacing:-0.04em; margin:22px 0 6px; line-height:1;
+  color:var(--text-primary);
+  text-shadow:none;
+}
+.focus-sub{ position:relative; z-index:1; font-size:11px; color:var(--text-muted); line-height:1.4; }
+.focus-wave{ display:none; }
+.focus-controls{ position:relative; z-index:1; display:flex; gap:10px; margin-top:18px; }
+.btn-pause{
+  width:42px; height:42px; border-radius:var(--radius-pill); background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border-hairline); display:grid; place-items:center; cursor:pointer; box-shadow:none;
+  font-size:14px;
+}
+.btn-pause:hover{ background:var(--bg-soft); border-color:rgba(255,255,255,0.12); }
+.btn-stop{
+  width:42px; height:42px; border-radius:var(--radius-pill); background:var(--bg-elevated); color:var(--text-muted); border:1px solid var(--border-hairline); display:grid; place-items:center; cursor:pointer; box-shadow:none;
+}
+.btn-stop:hover{ background:var(--bg-soft); border-color:rgba(255,255,255,0.12); color:var(--text-primary); }
+.projmini{
+  grid-column: span 2;
+  padding:20px;
+  display:flex; flex-direction:column;
+}
+@media(max-width:1100px){ .projmini{grid-column: span 6} }
+@media(max-width:720px){ .projmini{grid-column:1 / -1} }
+.projmini-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.projmini-title{ font-size:14px; font-weight:600; }
+.projmini-link{ font-size:11px; color:var(--text-muted); cursor:pointer; }
+.mini-list{ display:flex; flex-direction:column; gap:10px; }
+.mini-item{
+  display:flex; align-items:center; gap:10px; padding:12px 12px; border-radius:var(--radius-lg);
+  background:transparent; border:none; cursor:pointer; transition:background .12s, color .12s;
+}
+.mini-item:hover{ transform:none; border-color:transparent; background:rgba(255,255,255,0.02); }
+.mini-item.active{border:none; background:rgba(255,255,255,0.03); box-shadow:none}
+.mini-icon{
+  width:36px; height:36px; border-radius:var(--radius-lg); display:grid; place-items:center; color:var(--text-muted); background:var(--bg-inset); border:1px solid var(--border-hairline); font-size:14px; flex-shrink:0; font-weight:600;
+}
+/* v2.1 mono + 1 accent */
+.mini-icon.blue, .mini-icon.mint{ background:var(--bg-inset); color:var(--text-muted); border:1px solid var(--border-hairline); filter:saturate(0.6); }
+.mini-icon.warn, .mini-icon.orange{ background:rgba(201,169,106,0.12); color:var(--status-warn); border:1px solid rgba(201,169,106,0.20); }
+.mini-info{ flex:1; min-width:0; }
+.mini-name{ font-size:13px; font-weight:600; line-height:1.2; }
+.mini-desc{ font-size:11.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
+.mini-arrow{ color:var(--text-muted); font-size:12px; flex-shrink:0; }
+/* queue sentinel + commandbar */
+#sentinel{height:1px}
+.commandbar{
+  position:sticky; top:0; z-index:10;
+  background:rgba(15,15,17,0.82); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  border-top:1px solid var(--border-hairline); border-bottom:1px solid var(--border-hairline);
+  padding:12px 24px; display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+  transition:box-shadow .2s, background .2s; margin-top:18px;
+}
+.commandbar.stuck{box-shadow:0 8px 24px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.04); background:rgba(15,15,17,0.92)}
+.cmd-search{flex:1 1 300px; position:relative; min-width:220px}
+.cmd-search input{
+  width:100%; background:var(--bg-inset); border:1px solid var(--border-hairline); color:var(--text-primary);
+  padding:10px 42px 10px 12px; border-radius:var(--radius-sm); font-size:13px; outline:none;
+}
+.cmd-search input::placeholder{color:var(--text-muted)}
+.cmd-search input:focus{border-color:rgba(93,182,155,0.45); box-shadow:0 0 0 3px rgba(93,182,155,0.14)}
+.cmd-search kbd{
+  position:absolute; right:8px; top:50%; transform:translateY(-50%);
+  font-size:11px; background:var(--bg-elevated); border:1px solid var(--border-hairline); border-bottom-width:2px;
+  padding:2px 6px; border-radius:6px; color:var(--text-muted); font-family:'Geist Mono', monospace; line-height:1; pointer-events:none;
+}
+.cmd-selects{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+.cmd-selects label{font-size:11px;color:var(--text-muted);font-weight:500;display:flex;align-items:center;gap:6px}
+.cmd-selects select{
+  background:var(--bg-elevated); border:1px solid var(--border-hairline); color:var(--text-primary);
+  padding:8px 28px 8px 10px; border-radius:var(--radius-sm); font-size:12.5px; outline:none; appearance:none;
+  background-image:linear-gradient(45deg, transparent 50%, var(--text-muted) 50%), linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+  background-position:calc(100% - 14px) calc(50% - 2px), calc(100% - 9px) calc(50% - 2px);
+  background-size:5px 5px,5px 5px; background-repeat:no-repeat;
+}
+.cmd-selects select:focus{border-color:rgba(93,182,155,0.4)}
+.cmd-count{font-size:12.5px;color:var(--text-muted);margin-left:auto;white-space:nowrap}
+.chips{padding:8px 24px 0;display:flex;gap:6px;flex-wrap:wrap;min-height:28px}
+.chip{font-size:12px;background:var(--bg-elevated);border:none;padding:5px 8px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;color:var(--text-muted);line-height:1}
+.chip b{color:var(--text-primary);font-weight:500}
+.chip button{border:none;background:transparent;color:var(--text-muted);cursor:pointer;padding:0 2px;font-size:14px;line-height:1}
+.chip button:hover{color:var(--text-primary)}
+/* groups */
+.groups{padding:12px 12px 0}
+.group{margin-bottom:16px}
+.group-head{
+  display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;user-select:none;color:var(--text-muted);
+  font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;
+}
+.group-head:hover{color:var(--text-primary)}
+.group-head .arrow{font-size:10px;transition:transform .15s;display:inline-block}
+.group.collapsed .arrow{transform:rotate(-90deg)}
+.group.collapsed .rows{display:none}
+.group-count{font-family:'Geist Mono', monospace;font-weight:400;font-size:11px;background:var(--bg-inset);border:none;padding:2px 6px;border-radius:999px}
+.rows{display:flex;flex-direction:column;gap:8px;padding:0 12px}
+.row{
+  background:var(--bg-elevated);border:1px solid var(--border-hairline);border-radius:var(--radius-sm);
+  padding:0 14px;display:flex;align-items:center;gap:12px;min-height:56px;cursor:pointer;
+  transition:border-color .12s, background .12s, opacity .12s, box-shadow .12s;
+}
+.row:hover{border-color:rgba(255,255,255,0.10)}
+.row:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row.active{border-color:var(--accent);box-shadow:0 0 0 3px rgba(93,182,155,0.16)}
+.row.archived{opacity:0.62}
+@media(max-width:900px){
+  .row{flex-direction:column;align-items:flex-start;min-height:68px;padding:12px 14px;gap:8px}
+  .row-meta{width:100%}
+}
+.row-left{display:flex;align-items:center;gap:10px;min-width:0;flex:1;width:100%}
+.icon-box{
+  width:28px;height:28px;border-radius:var(--radius-sm);display:grid;place-items:center;color:var(--text-muted);background:var(--bg-inset);border:1px solid var(--border-hairline);font-size:12px;font-weight:700;flex-shrink:0;
+}
+/* v2.1 mono + 1 accent */
+.icon-box.blue, .icon-box.mint{ background:var(--bg-inset); color:var(--text-muted); border:1px solid var(--border-hairline); filter:saturate(0.6); }
+.icon-box.warn, .icon-box.orange{ background:rgba(201,169,106,0.12); color:var(--status-warn); border:1px solid rgba(201,169,106,0.20); }
+.row-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.team-pill{font-family:'Geist Mono', monospace;font-size:10.5px;background:var(--bg-inset);border:none;padding:2px 6px;border-radius:999px;color:var(--text-muted);white-space:nowrap;flex-shrink:0}
+.row-desc{font-size:12.5px;color:var(--text-muted);line-height:1.4;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;min-width:0;flex:1}
+.row-desc.expanded{-webkit-line-clamp:unset;white-space:normal}
+@media(max-width:900px){.row-desc{flex:none;width:100%}}
+.row-meta{display:flex;align-items:center;gap:10px;flex-shrink:0;font-size:11.5px;color:var(--text-muted);flex-wrap:wrap}
+.track-mini{width:56px;height:4px;background:var(--bg-inset);border:1px solid var(--border-hairline);border-radius:6px;overflow:hidden;flex-shrink:0}
+.track-mini-fill{height:100%;background:var(--accent);border-radius:6px}
+.spark{width:56px;height:12px;display:flex;align-items:end;gap:2px;flex-shrink:0}
+.spark i{display:block;width:4px;background:#3f3f46;border-radius:2px}
+.spark i.up{background:var(--accent);opacity:1}
+.chevron{margin-left:4px;color:var(--text-muted);font-size:12px;flex-shrink:0}
+.btn-more{border:none;background:transparent;color:var(--text-muted);font-size:11.5px;cursor:pointer;padding:2px 6px;border-radius:6px;white-space:nowrap;font-family:'Geist Mono', monospace}
+.btn-more:hover{background:var(--bg-inset);color:var(--text-primary)}
+.empty{padding:22px;text-align:center;color:var(--text-muted);font-size:13px;border:1px dashed rgba(255,255,255,0.10);border-radius:var(--radius-lg);margin:12px 24px;display:none}
+.empty.show{display:block}
+.empty b{color:var(--text-primary)}
+.empty button{margin-top:8px;background:var(--bg-elevated);border:1px solid var(--border-hairline);color:var(--text-primary);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:12.5px}
+.empty button:hover{border-color:rgba(255,255,255,0.14)}
+.footer{
+  padding:18px 24px;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;
+  border-top:1px solid var(--border-hairline);margin-top:16px;color:var(--text-muted);font-size:12px;
+}
+.footer-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.footer-left strong{color:var(--text-primary);font-weight:600}
+.kbd-hints{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.kbd{font-family:'Geist Mono', monospace;font-size:11px;background:var(--bg-elevated);border:1px solid var(--border-hairline);border-bottom-width:2px;padding:2px 6px;border-radius:6px;color:var(--text-muted)}
+/* modals */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.56);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg-elevated);border:1px solid var(--border-hairline);border-radius:var(--radius-lg);width:100%;max-width:520px;max-height:85vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+.modal-head{padding:18px 20px 14px;border-bottom:1px solid var(--border-hairline);display:flex;justify-content:space-between;align-items:center;gap:12px}
+.modal-head h3{margin:0;font-size:15px;font-weight:600}
+.modal-close{border:1px solid var(--border-hairline);background:var(--bg-inset);color:var(--text-muted);width:28px;height:28px;border-radius:8px;cursor:pointer;display:grid;place-items:center}
+.modal-close:hover{color:var(--text-primary)}
+.modal-body{padding:16px 20px}
+.modal-meta{font-size:12px;color:var(--text-muted);display:flex;gap:8px;flex-wrap:wrap}
+.field{margin-bottom:12px}
+.field label{font-size:12px;color:var(--text-muted);display:block;margin-bottom:6px;font-weight:500}
+.field input{width:100%;background:var(--bg-inset);border:1px solid var(--border-hairline);color:var(--text-primary);padding:10px 12px;border-radius:var(--radius-sm);font-size:13px;outline:none}
+.field input:focus{border-color:rgba(93,182,155,0.45);box-shadow:0 0 0 3px rgba(93,182,155,0.12)}
+.templates{display:flex;gap:8px;flex-wrap:wrap}
+.tmpl{flex:1 1 120px;background:var(--bg-inset);border:1px solid var(--border-hairline);border-radius:var(--radius-sm);padding:12px;text-align:left;cursor:pointer;color:var(--text-primary)}
+.tmpl:hover{border-color:rgba(255,255,255,0.12)}
+.tmpl.active{border-color:var(--accent);box-shadow:0 0 0 3px rgba(93,182,155,0.14)}
+.tmpl strong{font-size:13px;display:block}
+.tmpl span{font-size:11.5px;color:var(--text-muted)}
+.dashed{border:1px dashed rgba(255,255,255,0.10);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--text-muted);background:var(--bg-inset)}
+.modal-actions{padding:12px 20px 16px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--border-hairline)}
+.btn-ghost2{background:var(--bg-inset);border:1px solid var(--border-hairline);color:var(--text-primary);padding:8px 12px;border-radius:var(--radius-sm);cursor:pointer;font-size:13px}
+.btn-ghost2:hover{border-color:rgba(255,255,255,0.14)}
+/* toast */
+.toast{
+  position:fixed; bottom:18px; left:50%; transform:translateX(-50%) translateY(12px);
+  background:var(--bg-elevated); border:1px solid var(--border-hairline); color:var(--text-primary);
+  padding:10px 14px; border-radius:10px; font-size:12.5px; box-shadow:0 12px 32px rgba(0,0,0,0.4);
+  opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:60;
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+
+/* v2.4 boxless overrides — weather Today Highlights airy (gap 24px, no box) */
+.highlights-grid{ gap:24px; }
+.highlight-card{
+  background:transparent !important;
+  border:none !important;
+  box-shadow:none !important;
+  padding:20px 20px 18px !important;
+  border-radius:var(--radius-lg);
+}
+.highlight-card:hover{ background:rgba(255,255,255,0.02) !important; transform:none !important; }
+.hl-value{ font-size:32px !important; font-weight:300 !important; letter-spacing:-0.04em; color:var(--text-primary); }
+.hl-label{ font-size:10.5px !important; font-family:"Geist Mono", monospace; letter-spacing:0.07em; text-transform:uppercase; color:var(--text-muted); }
+.v-track, .gauge-svg path{ border:none; }
+/* v2.4 boxless — ensure all bento cards are airy, no border/shadow */
+.card, .stat-card, .focus, .analytics, .milestone, .team, .progress, .projmini{
+  background:transparent !important;
+  border:none !important;
+  box-shadow:none !important;
+}
+/* v2.4 tweak: restore Total Projects primary as filled sage (v2.2) — only first card hijau */
+.stat-card.primary{
+  background:var(--accent) !important;
+  color:#fff !important;
+  border:none !important;
+  box-shadow:0 4px 16px rgba(93,182,155,0.18), 0 1px 0 rgba(255,255,255,0.08) inset !important;
+}
+.stat-card.primary .stat-label{ color:rgba(255,255,255,0.78) !important; }
+.stat-card.primary .stat-num{ color:#fff !important; }
+.stat-card.primary .stat-sub{ color:rgba(255,255,255,0.78) !important; }
+.stat-card.primary .stat-icon{ background:rgba(255,255,255,0.14) !important; border:none !important; color:rgba(255,255,255,0.95) !important; }
+.stat-card.primary .stat-icon i{ color:#fff !important; }
+.stat-card.primary .stat-arrow{ background:rgba(255,255,255,0.16) !important; border:none !important; color:#fff !important; }
+.stat-card.primary .stat-badge{ background:rgba(255,255,255,0.16) !important; border:none !important; color:#fff !important; }
+.stat-card:hover, .card:hover{ transform:none !important; }
+.stat-icon[style]{ background:transparent !important; border:none !important; }
+
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="chrome">
+    <div class="dots">
+      <div class="chrome-dot dot-r"></div>
+      <div class="chrome-dot dot-y"></div>
+      <div class="chrome-dot dot-g"></div>
+    </div>
+    <div class="chrome-title">devhub / <b>dashboard — M45 v2.4</b> <span style="opacity:0.6; font-size:11px; margin-left:8px">boxless · weather-inspired · airy · whitespace · sage</span></div>
+  </div>
+  <div class="main">
+    <!-- header Dashboard + Add Project + Import -->
+    <div class="header-v2">
+      <div>
+        <h1>Dashboard</h1>
+        <p class="mono">Welcome back, Dina · 4 projects · 2 need attention · streak 7 days</p>
+      </div>
+      <div class="hdr-actions">
+        <button class="btn-ghost" id="btnImport"><i class="ph ph-download-simple" style="margin-right:6px"></i>Import Data</button>
+        <button class="btn-primary" id="btnNew">+ Add Project</button>
+      </div>
+    </div>
+
+    <!-- BENTO 12 COL — v2.2 DevHub stats: same grid (4 stat, 8+4, 5+3+2+2) but DevHub-relevant stats — Linear-style -->
+    <div class="grid12">
+      <!-- ROW 1: 4 stat cards — DevHub stats -->
+      <div class="stats-wrap" id="statsWrap">
+        <!-- primary filled sage — DevHub: Total Projects -->
+        <div class="stat-card primary" data-bento="all" role="button" tabindex="0" aria-label="Filter all projects">
+          <div class="stat-top">
+            <div class="stat-icon"><i class="ph ph-squares-four"></i></div>
+            <div class="stat-arrow"><i class="ph ph-arrow-up-right"></i></div>
+          </div>
+          <div>
+            <div class="stat-label">Total Projects</div>
+            <div class="stat-num">4</div>
+            <div class="stat-sub">2 need attention</div>
+            <div class="stat-badge"><i class="ph ph-trend-up"></i> Increased from last week</div>
+          </div>
+        </div>
+        <!-- Open Issues — DevHub: warn -->
+        <div class="stat-card" data-bento="attention" role="button" tabindex="0" aria-label="Filter attention — open issues">
+          <div class="stat-top">
+            <div class="stat-icon" style="color:var(--status-warn); background:transparent; border:none"><i class="ph ph-bug"></i></div>
+            <div class="stat-arrow"><i class="ph ph-arrow-up-right"></i></div>
+          </div>
+          <div>
+            <div class="stat-label">Open Issues</div>
+            <div class="stat-num">7</div>
+            <div class="stat-sub">3 critical/high</div>
+            <div class="stat-badge" style="color:var(--status-warn); background:rgba(201,169,106,0.10); border:none"><i class="ph ph-trend-up"></i> Increased from last week</div>
+          </div>
+        </div>
+        <!-- Overdue Tasks — DevHub: danger -->
+        <div class="stat-card" data-bento="overdue" role="button" tabindex="0" aria-label="Overdue tasks">
+          <div class="stat-top">
+            <div class="stat-icon" style="color:var(--status-danger); background:transparent; border:none"><i class="ph ph-clock"></i></div>
+            <div class="stat-arrow"><i class="ph ph-arrow-up-right"></i></div>
+          </div>
+          <div>
+            <div class="stat-label">Overdue Tasks</div>
+            <div class="stat-num">3</div>
+            <div class="stat-sub">Due today + overdue</div>
+            <div class="stat-badge" style="color:var(--status-danger); background:rgba(214,122,122,0.10); border:none"><i class="ph ph-trend-up"></i> Increased — 1 overdue</div>
+          </div>
+        </div>
+        <!-- Stack Health — DevHub: info -->
+        <div class="stat-card" data-bento="outdated" role="button" tabindex="0" aria-label="Filter outdated stack">
+          <div class="stat-top">
+            <div class="stat-icon" style="color:var(--status-info); background:transparent; border:none"><i class="ph ph-stack"></i></div>
+            <div class="stat-arrow"><i class="ph ph-arrow-up-right"></i></div>
+          </div>
+          <div>
+            <div class="stat-label">Stack Health</div>
+            <div class="stat-num">2</div>
+            <div class="stat-sub">2 outdated deps</div>
+            <div class="stat-badge" style="color:var(--status-info); background:rgba(123,164,217,0.10); border:none"><i class="ph ph-trend-up"></i> Increased — 1 major upgrade</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROW 2: Analytics (8) + Next Milestone (4) -->
+      <div class="card analytics" id="analyticsCard">
+        <div class="analytics-head">
+          <div>
+            <div class="analytics-title">Tasks Activity — last 7 days</div>
+            <div class="analytics-sub mono">Created (▒ stripe muted) vs Done (● solid sage) · velocity</div>
+          </div>
+          <div class="analytics-legend">
+            <span style="display:inline-flex;align-items:center;gap:5px"><span class="legend-dot sage" style="background:var(--accent)"></span> Done</span>
+            <span style="display:inline-flex;align-items:center;gap:5px"><span class="legend-dot stripe"></span> Created</span>
+          </div>
+        </div>
+        <div class="bars" id="bars">
+          <div class="bar-wrap">
+            <div class="bar stripe" style="height:38px" title="S · Created 2 · Done 1"></div>
+            <span class="bar-label">S</span>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar solid-sage" style="height:48px" title="M · Created 3 · Done 2"></div>
+            <span class="bar-label">M</span>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar solid-sage" style="height:74px" title="T · Created 1 · Done 4 — 74% peak">
+              <div class="tooltip">74%</div>
+            </div>
+            <span class="bar-label">T</span>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar solid-sage" style="height:52px" title="W · Created 2 · Done 2"></div>
+            <span class="bar-label">W</span>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar solid-sage" style="height:40px" title="T · Created 0 · Done 1"></div>
+            <span class="bar-label">T</span>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar stripe" style="height:36px" title="F · Created 1 · Done 0"></div>
+            <span class="bar-label">F</span>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar solid-sage" style="height:62px" title="S · Created 2 · Done 3"></div>
+            <span class="bar-label">S</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card milestone" id="milestoneCard">
+        <div class="milestone-head">
+          <div class="milestone-title"><i class="ph ph-calendar-blank" style="margin-right:6px; color:var(--accent)"></i>Next Milestone</div>
+          <span class="milestone-badge">Due Soon</span>
+        </div>
+        <div class="milestone-big">v0.46 — 5 days left</div>
+        <div class="milestone-desc">5/8 tasks · 62% · 2 blocking · ships 2024-03-05</div>
+        <div class="milestone-meta">
+          <span class="pill-meta"><i class="ph ph-target"></i> DevHub</span>
+          <span class="pill-meta"><i class="ph ph-check-circle"></i> 5/8 tasks</span>
+          <span class="pill-meta"><i class="ph ph-clock"></i> 2024-03-05</span>
+        </div>
+        <div class="milestone-track" title="62% — 5/8 tasks"><div class="milestone-fill" style="width:62%; background:var(--accent)"></div></div>
+        <div class="milestone-dates"><span>2024-02-28</span><span class="mono">62% · 5/8</span><span>2024-03-05</span></div>
+        <button class="btn-view" id="btnViewBoard">View Board →</button>
+      </div>
+
+      <!-- ROW 3: Team (5) + Progress (3) + Focus (2) + Project mini (2) -->
+      <div class="card team" id="teamCard">
+        <div class="team-head">
+          <div class="team-title">Team Collaboration</div>
+          <span class="team-link">View all <i class="ph ph-caret-right" style="font-size:10px"></i></span>
+        </div>
+        <div class="team-list">
+          <div class="team-item">
+            <div class="avatar-stack">
+              <div class="avatar blue">AN</div>
+            </div>
+            <div class="team-info">
+              <div class="team-name">Alex Nesterov</div>
+              <div class="team-task">Working on DevHub · API collections</div>
+            </div>
+            <span class="status-pill inprogress">In Progress</span>
+          </div>
+          <div class="team-item">
+            <div class="avatar-stack"><div class="avatar mint">MD</div></div>
+            <div class="team-info">
+              <div class="team-name">Mira Dina</div>
+              <div class="team-task">Working on Coffeeshop · Schema ERD</div>
+            </div>
+            <span class="status-pill completed">Completed</span>
+          </div>
+          <div class="team-item">
+            <div class="avatar-stack"><div class="avatar orange">RS</div></div>
+            <div class="team-info">
+              <div class="team-name">Rafi Syah</div>
+              <div class="team-task">Working on Portfolio · dark-tech tokens</div>
+            </div>
+            <span class="status-pill pending">Pending</span>
+          </div>
+          <div class="team-item">
+            <div class="avatar-stack"><div class="avatar amber">KL</div></div>
+            <div class="team-info">
+              <div class="team-name">Kina L.</div>
+              <div class="team-task">Working on Acme CRM · review needed</div>
+            </div>
+            <span class="status-pill pending">Pending</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card progress" id="progressCard">
+        <div class="progress-head">
+          <div class="progress-title">Tasks by Status</div>
+          <span class="progress-sub mono">8 tasks · 3 done</span>
+        </div>
+        <div class="donut-wrap">
+          <svg width="160" height="160" viewBox="0 0 160 160" style="transform: rotate(-90deg);">
+            <defs></defs>
+            <!-- track -->
+            <circle cx="80" cy="80" r="71" fill="none" stroke="var(--bg-inset)" stroke-width="18" style="stroke:var(--bg-inset)" />
+            <!-- Todo 27% — muted -->
+            <circle cx="80" cy="80" r="71" fill="none" stroke="var(--bg-inset)" stroke-width="18" stroke-linecap="round"
+              stroke-dasharray="120.5 325.6" stroke-dashoffset="0" style="stroke:var(--bg-inset); opacity:0.95" />
+            <!-- In Progress 32% — info var(--status-info) -->
+            <circle cx="80" cy="80" r="71" fill="none" stroke="var(--status-info)" stroke-width="18" stroke-linecap="round"
+              stroke-dasharray="142.8 303.3" stroke-dashoffset="-120.5" style="stroke:var(--status-info); opacity:1" />
+            <!-- Done 41% — sage solid var(--accent) -->
+            <circle cx="80" cy="80" r="71" fill="none" stroke="var(--accent)" stroke-width="18" stroke-linecap="round"
+              stroke-dasharray="182.9 263.2" stroke-dashoffset="-263.3" style="stroke:var(--accent)" />
+          </svg>
+          <div class="donut-center" style="transform: rotate(0deg);">
+            <div class="donut-pct">41%</div>
+            <div class="donut-lbl">8 tasks</div>
+          </div>
+        </div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot sage" style="background:var(--accent)"></span> Done 41%</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--status-info); width:9px; height:9px; border-radius:50%"></span> In Progress 32%</span>
+          <span class="legend-item"><span class="legend-dot stripe"></span> Todo 27%</span>
+        </div>
+      </div>
+
+      <div class="card focus" id="focusCard">
+        <div class="focus-head">
+          <div class="focus-title"><i class="ph ph-lightning" style="margin-right:6px"></i>Your Focus</div>
+          <span class="focus-badge">Streak 7 days</span>
+        </div>
+        <div class="focus-time mono" id="focusTime">01:24:08</div>
+        <div class="focus-sub">Streak 7 days · 3 done today<br><span class="mono" style="font-size:11px; color:var(--text-muted)">Keep the momentum, Dina</span></div>
+        <div class="focus-controls">
+          <button class="btn-pause" id="btnPause" aria-label="Pause"><i class="ph ph-pause" style="font-weight:700"></i></button>
+          <button class="btn-stop" id="btnStop" aria-label="Stop"><i class="ph ph-stop" style="font-weight:700"></i></button>
+          <span style="position:relative; z-index:1; align-self:center; margin-left:8px; font-size:11px; color:var(--text-muted)" class="mono">tap to pause</span>
+        </div>
+        <div class="focus-wave" aria-hidden="true"></div>
+      </div>
+
+      <div class="card projmini" id="projMiniCard">
+        <div class="projmini-head">
+          <div class="projmini-title">Projects</div>
+          <span class="projmini-link mono">4 total</span>
+        </div>
+        <div class="mini-list" id="miniList">
+          <div class="mini-item" data-mini="p1" tabindex="0" role="button">
+            <div class="mini-icon blue"><i class="ph ph-code"></i></div>
+            <div class="mini-info">
+              <div class="mini-name">DevHub</div>
+              <div class="mini-desc">API & schema workspace</div>
+            </div>
+            <span class="mini-arrow">〉</span>
+          </div>
+          <div class="mini-item" data-mini="p2" tabindex="0" role="button">
+            <div class="mini-icon mint"><i class="ph ph-coffee"></i></div>
+            <div class="mini-info">
+              <div class="mini-name">Coffeeshop</div>
+              <div class="mini-desc">Mock API · Bento demo</div>
+            </div>
+            <span class="mini-arrow">〉</span>
+          </div>
+          <div class="mini-item" data-mini="p3" tabindex="0" role="button">
+            <div class="mini-icon warn"><i class="ph ph-palette"></i></div>
+            <div class="mini-info">
+              <div class="mini-name">Portfolio</div>
+              <div class="mini-desc">Geist · dark-tech</div>
+            </div>
+            <span class="mini-arrow">〉</span>
+          </div>
+          <div class="mini-item" data-mini="p4" tabindex="0" role="button">
+            <div class="mini-icon orange"><i class="ph ph-briefcase"></i></div>
+            <div class="mini-info">
+              <div class="mini-name">Acme CRM</div>
+              <div class="mini-desc">Client · archived</div>
+            </div>
+            <span class="mini-arrow">〉</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="sentinel"></div>
+    <!-- commandbar -->
+    <div class="commandbar" id="commandBar">
+      <div class="cmd-search">
+        <input id="searchInput" type="text" placeholder="Search name, team, or description — try 'api'" autocomplete="off" spellcheck="false">
+        <kbd>⌘K</kbd>
+      </div>
+      <div class="cmd-selects">
+        <label>Sort
+          <select id="sortSelect">
+            <option value="updated">Updated</option>
+            <option value="name">Name</option>
+            <option value="issues">Issues</option>
+            <option value="progress">Progress</option>
+          </select>
+        </label>
+        <label>Team
+          <select id="teamSelect">
+            <option value="all">All</option>
+            <option value="your-workspace">your-workspace</option>
+            <option value="client-acme">client-acme</option>
+            <option value="personal">personal</option>
+          </select>
+        </label>
+      </div>
+      <div class="cmd-count" id="projectCount">4 projects</div>
+    </div>
+    <div class="chips" id="activeChips"></div>
+
+    <!-- project groups (searchable) -->
+    <div class="groups" id="projectGroups">
+      <div class="group" data-team="your-workspace">
+        <div class="group-head" data-collapse>
+          <span class="arrow">▾</span>
+          <span>your-workspace</span>
+          <span class="group-count" data-group-count>2</span>
+        </div>
+        <div class="rows">
+          <div class="row" data-id="p1" data-name="DevHub" data-team="your-workspace" data-desc="API collections, decisions and schema workspace for DevHub" data-issues="3" data-progress="72" data-updated="2" tabindex="0" role="button" aria-label="Open DevHub project">
+            <div class="row-left">
+              <span class="icon-box blue" aria-hidden="true"><i class="ph ph-code"></i></span>
+              <span class="row-title">DevHub</span>
+              <span class="team-pill mono">your-workspace</span>
+              <span class="row-desc" title="API collections, decisions and schema workspace for DevHub">API collections, decisions and schema workspace for DevHub</span>
+            </div>
+            <div class="row-meta">
+              <div class="track-mini" title="progress 72%"><div class="track-mini-fill" style="width:72%"></div></div>
+              <span>🐛 3</span>
+              <span style="color:var(--status-warn)">⚠ outdated</span>
+              <span>⬢ v0.46 5d</span>
+              <span>◷ 2h ago</span>
+              <span class="spark" aria-hidden="true"><i style="height:5px"></i><i style="height:8px"></i><i style="height:4px"></i><i style="height:10px"></i><i style="height:6px"></i><i class="up" style="height:12px"></i><i style="height:7px"></i></span>
+              <button class="btn-more" data-more>More ▾</button>
+              <span class="chevron">〉</span>
+            </div>
+          </div>
+          <div class="row" data-id="p2" data-name="Coffeeshop" data-team="your-workspace" data-desc="Mock coffee shop API with Bento insight demo data" data-issues="0" data-progress="34" data-updated="5" tabindex="0" role="button" aria-label="Open Coffeeshop project">
+            <div class="row-left">
+              <span class="icon-box mint" aria-hidden="true"><i class="ph ph-coffee"></i></span>
+              <span class="row-title">Coffeeshop</span>
+              <span class="team-pill mono">your-workspace</span>
+              <span class="row-desc" title="Mock coffee shop API with Bento insight demo data">Mock coffee shop API with Bento insight demo data</span>
+            </div>
+            <div class="row-meta">
+              <div class="track-mini"><div class="track-mini-fill" style="width:34%"></div></div>
+              <span>🐛 0</span>
+              <span>⬢ v0.46 5d</span>
+              <span>◷ 5h ago</span>
+              <span class="spark" aria-hidden="true"><i style="height:3px"></i><i style="height:5px"></i><i style="height:7px"></i><i style="height:6px"></i><i style="height:4px"></i><i style="height:3px"></i><i class="up" style="height:8px"></i></span>
+              <button class="btn-more" data-more>More ▾</button>
+              <span class="chevron">〉</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="group" data-team="personal">
+        <div class="group-head" data-collapse>
+          <span class="arrow">▾</span>
+          <span>personal</span>
+          <span class="group-count">1</span>
+        </div>
+        <div class="rows">
+          <div class="row" data-id="p3" data-name="Portfolio" data-team="personal" data-desc="Personal site built with Geist and dark-tech tokens — portfolio and blog" data-issues="0" data-progress="90" data-updated="24" tabindex="0" role="button">
+            <div class="row-left">
+              <span class="icon-box warn" aria-hidden="true"><i class="ph ph-palette"></i></span>
+              <span class="row-title">Portfolio</span>
+              <span class="team-pill mono">personal</span>
+              <span class="row-desc" title="Personal site built with Geist and dark-tech tokens — portfolio and blog">Personal site built with Geist and dark-tech tokens — portfolio and blog</span>
+            </div>
+            <div class="row-meta">
+              <div class="track-mini"><div class="track-mini-fill" style="width:90%"></div></div>
+              <span>🐛 0</span>
+              <span>◷ 1d ago</span>
+              <span class="spark"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:7px"></i><i style="height:10px"></i><i style="height:9px"></i><i class="up" style="height:12px"></i></span>
+              <button class="btn-more" data-more>More ▾</button>
+              <span class="chevron">〉</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="group" data-team="client-acme">
+        <div class="group-head" data-collapse>
+          <span class="arrow">▾</span>
+          <span>client-acme</span>
+          <span class="group-count">1</span>
+        </div>
+        <div class="rows">
+          <div class="row archived" data-id="p4" data-name="Acme CRM" data-team="client-acme" data-desc="Client project for Acme — archived and needs review" data-issues="2" data-progress="12" data-updated="72" tabindex="0" role="button">
+            <div class="row-left">
+              <span class="icon-box orange" aria-hidden="true"><i class="ph ph-briefcase"></i></span>
+              <span class="row-title">Acme CRM</span>
+              <span class="team-pill mono">client-acme</span>
+              <span class="row-desc" title="Client project for Acme — archived and needs review">Client project for Acme — archived and needs review</span>
+            </div>
+            <div class="row-meta">
+              <div class="track-mini"><div class="track-mini-fill" style="width:12%"></div></div>
+              <span>🐛 2</span>
+              <span>◷ 3d ago</span>
+              <span class="spark"><i style="height:6px"></i><i style="height:4px"></i><i style="height:3px"></i><i style="height:5px"></i><i style="height:4px"></i><i style="height:4px"></i><i class="up" style="height:3px"></i></span>
+              <button class="btn-more" data-more>More ▾</button>
+              <span class="chevron">〉</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="empty" id="emptyState">No results for "<span id="emptyQuery"></span>" <button id="btnClearEmpty">Clear filter</button></div>
+    <div class="footer">
+      <div class="footer-left">
+        <strong>Recent activity</strong>
+        <span>· Dina pushed 2h ago · Focus streak 7 days · Analytics 74% peak Tue</span>
+      </div>
+      <div class="kbd-hints">
+        <span class="kbd">⌘K</span> <span>search</span>
+        <span class="kbd">/</span> <span>search</span>
+        <span class="kbd">n</span> <span>new</span>
+        <span class="kbd">↑↓</span> <span>navigate</span>
+        <span class="kbd">↵</span> <span>open</span>
+        <span class="kbd">Esc</span> <span>close</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Task Modal -->
+<div class="modal-overlay" id="taskModal" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="taskModalTitle">
+    <div class="modal-head">
+      <h3 id="taskModalTitle">Task</h3>
+      <button class="modal-close" data-close-task aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-meta" id="taskModalMeta"></div>
+      <p id="taskModalDesc" style="color:var(--text-muted);font-size:13px;line-height:1.5;margin:12px 0 0"></p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost2" data-close-task>Close</button>
+      <button class="btn-primary" data-close-task>Open task</button>
+    </div>
+  </div>
+</div>
+<!-- Project Modal -->
+<div class="modal-overlay" id="projectModal" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="projectModalTitle">
+    <div class="modal-head">
+      <h3 id="projectModalTitle">Project</h3>
+      <button class="modal-close" data-close-project aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-meta" id="projectModalMeta"></div>
+      <p id="projectModalDesc" style="color:var(--text-muted);font-size:13px;line-height:1.5;margin:12px 0 0"></p>
+      <div style="margin-top:14px;display:flex;gap:8px;align-items:center">
+        <div class="track-mini" style="width:120px;height:6px"><div id="projectModalTrack" class="track-mini-fill" style="width:50%"></div></div>
+        <span id="projectModalProgress" class="mono" style="font-size:12px;color:var(--text-muted)"></span>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost2" data-close-project>Close</button>
+      <button class="btn-primary" data-close-project>Open project</button>
+    </div>
+  </div>
+</div>
+<!-- New Project Modal -->
+<div class="modal-overlay" id="newProjectModal" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="newProjectTitle">
+    <div class="modal-head">
+      <h3 id="newProjectTitle">New project</h3>
+      <button class="modal-close" data-close-new aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label for="newName">Project name</label>
+        <input id="newName" type="text" placeholder="e.g. Coffeeshop API">
+      </div>
+      <div class="field">
+        <label>Template</label>
+        <div class="templates" id="tmplGroup">
+          <button class="tmpl active" data-tmpl="Blank"><strong>Blank</strong><span>Empty project</span></button>
+          <button class="tmpl" data-tmpl="Kanban Starter"><strong>Kanban Starter</strong><span>Board + queue</span></button>
+          <button class="tmpl" data-tmpl="Schema Starter"><strong>Schema Starter</strong><span>ERD + API docs</span></button>
+        </div>
+      </div>
+      <div class="dashed">This will create a new project in <b style="color:var(--text-primary)">your-workspace</b> · You can change team after creation.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost2" data-close-new>Cancel</button>
+      <button class="btn-primary" id="btnCreate">Create project</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast">Imported successfully</div>
+<script>
+(() => {
+  const searchInput = document.getElementById('searchInput');
+  const sortSelect = document.getElementById('sortSelect');
+  const teamSelect = document.getElementById('teamSelect');
+  const projectCount = document.getElementById('projectCount');
+  const chips = document.getElementById('activeChips');
+  const rows = Array.from(document.querySelectorAll('.row'));
+  const groups = Array.from(document.querySelectorAll('.group'));
+  const emptyState = document.getElementById('emptyState');
+  const commandBar = document.getElementById('commandBar');
+  const sentinel = document.getElementById('sentinel');
+  const statCards = Array.from(document.querySelectorAll('.stat-card'));
+  const miniItems = Array.from(document.querySelectorAll('.mini-item'));
+
+  const taskModal = document.getElementById('taskModal');
+  const projectModal = document.getElementById('projectModal');
+  const newModal = document.getElementById('newProjectModal');
+  const toast = document.getElementById('toast');
+  const headerSubtitle = document.querySelector('.header-v2 p');
+
+  let searchQuery = '';
+  let teamFilter = 'all';
+  let sortBy = 'updated';
+  let bentoFilter = null; // all | attention (Open Issues) | overdue | outdated (Stack Health) | ended | running (legacy)
+  let activeIndex = -1;
+  let selectedTmpl = 'Blank';
+
+  // focus timer
+  let running = true;
+  let seconds = 5048; // 01:24:08
+  const focusTimeEl = document.getElementById('focusTime');
+  let timerId = setInterval(tick, 1000);
+  function tick(){
+    if(!running) return;
+    seconds++;
+    const h = String(Math.floor(seconds/3600)).padStart(2,'0');
+    const m = String(Math.floor(seconds%3600/60)).padStart(2,'0');
+    const s = String(seconds%60).padStart(2,'0');
+    if(focusTimeEl) focusTimeEl.textContent = `${h}:${m}:${s}`;
+  }
+  document.getElementById('btnPause').addEventListener('click', ()=>{
+    running = !running;
+    const btn=document.getElementById('btnPause');
+    btn.innerHTML = running ? '<i class="ph ph-pause"></i>' : '<i class="ph ph-play"></i>';
+    showToast(running ? 'Focus resumed' : 'Focus paused');
+  });
+  document.getElementById('btnStop').addEventListener('click', ()=>{
+    running=false;
+    seconds=0;
+    if(focusTimeEl) focusTimeEl.textContent='00:00:00';
+    document.getElementById('btnPause').innerHTML='<i class="ph ph-play"></i>';
+    showToast('Focus stopped · streak saved');
+  });
+
+  function showToast(msg){
+    toast.textContent=msg;
+    toast.classList.add('show');
+    setTimeout(()=> toast.classList.remove('show'), 2200);
+  }
+
+  // stat filter
+  function updateStatActive(){
+    statCards.forEach(c=> c.classList.toggle('active', c.dataset.bento===bentoFilter));
+  }
+  statCards.forEach(card=>{
+    const activate = ()=>{
+      const key=card.dataset.bento;
+      if(bentoFilter===key) bentoFilter=null;
+      else bentoFilter=key;
+      // primary "all" means clear
+      if(key==='all' && bentoFilter==='all'){ bentoFilter=null; }
+      updateStatActive();
+      applyFilters();
+      if(bentoFilter==='attention' || bentoFilter==='overdue' || bentoFilter==='outdated' || bentoFilter==='running' || bentoFilter==='ended'){
+        // scroll to list for feedback
+        document.getElementById('projectGroups').scrollIntoView({behavior:'smooth', block:'start'});
+      }
+    };
+    card.addEventListener('click', activate);
+    card.addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); activate(); }});
+  });
+
+  // mini project click -> open modal
+  miniItems.forEach(m=>{
+    m.addEventListener('click', ()=>{
+      const id=m.dataset.mini;
+      const row=document.querySelector(`.row[data-id="${id}"]`);
+      if(row) openProjectModal(row);
+    });
+    m.addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); m.click(); }});
+  });
+
+  // board button + import
+  document.getElementById('btnViewBoard').addEventListener('click', ()=> showToast('Opening board · v0.46'));
+  document.getElementById('btnImport').addEventListener('click', ()=> showToast('Import Data — demo: 0 files imported'));
+  document.querySelector('.team-link').addEventListener('click', ()=> showToast('Team Collaboration — 4 members'));
+
+  // bars tooltip interaction
+  document.querySelectorAll('.bar').forEach(b=>{
+    b.addEventListener('click', ()=> showToast('Analytics — Tue 74% peak'));
+  });
+
+  function getVisibleRows(){
+    return rows.filter(r => r.style.display !== 'none' && !r.closest('.group.collapsed') && r.closest('.group').style.display!=='none');
+  }
+  function renderChips(){
+    chips.innerHTML='';
+    if(searchQuery){
+      const c=document.createElement('div'); c.className='chip';
+      c.innerHTML=`<span>q: <b>${escapeHtml(searchQuery)}</b></span> <button aria-label="Clear search">×</button>`;
+      c.querySelector('button').addEventListener('click',()=>{searchQuery='';searchInput.value='';applyFilters();searchInput.focus();});
+      chips.appendChild(c);
+    }
+    if(teamFilter!=='all'){
+      const c=document.createElement('div'); c.className='chip';
+      c.innerHTML=`<span>team: <b>${escapeHtml(teamFilter)}</b></span> <button aria-label="Clear team">×</button>`;
+      c.querySelector('button').addEventListener('click',()=>{teamFilter='all';teamSelect.value='all';applyFilters();});
+      chips.appendChild(c);
+    }
+    if(bentoFilter){
+      const label = bentoFilter==='attention'?'Open Issues: 7 open': bentoFilter==='overdue'?'Overdue Tasks: 3 overdue': bentoFilter==='outdated'?'Stack Health: 2 outdated': bentoFilter==='ended'?'ended: 2 projects': bentoFilter==='running'?'running: 1 active':'all: 4 projects';
+      const c=document.createElement('div'); c.className='chip';
+      c.innerHTML=`<span>${label}</span> <button aria-label="Clear bento">×</button>`;
+      c.querySelector('button').addEventListener('click',()=>{bentoFilter=null;updateStatActive();applyFilters();});
+      chips.appendChild(c);
+    }
+  }
+  function escapeHtml(s){ return s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  function matchesSearch(row){
+    if(!searchQuery) return true;
+    const q=searchQuery.toLowerCase();
+    return row.dataset.name.toLowerCase().includes(q) || row.dataset.team.toLowerCase().includes(q) || row.dataset.desc.toLowerCase().includes(q);
+  }
+  function matchesTeam(row){
+    if(teamFilter==='all') return true;
+    return row.dataset.team===teamFilter;
+  }
+  function matchesBento(row){
+    if(!bentoFilter || bentoFilter==='all') return true;
+    if(bentoFilter==='attention') return parseInt(row.dataset.issues,10)>0;
+    if(bentoFilter==='overdue') return row.dataset.name==='DevHub' || parseInt(row.dataset.issues,10)>0; // demo: overdue tasks in DevHub
+    if(bentoFilter==='outdated') return row.dataset.desc.includes('outdated') || row.dataset.name==='DevHub';
+    if(bentoFilter==='ended') return row.dataset.name==='Portfolio' || row.dataset.name==='Acme CRM';
+    if(bentoFilter==='running') return row.dataset.name==='Coffeeshop';
+    return true;
+  }
+  function applyFilters(){
+    let visibleCount=0;
+    let filtered = rows.slice();
+    filtered.forEach(r=>{
+      const vis = matchesSearch(r) && matchesTeam(r) && matchesBento(r);
+      r._visible = vis;
+      if(vis) visibleCount++;
+    });
+    groups.forEach(g=>{
+      const wrap=g.querySelector('.rows');
+      const groupRows=Array.from(wrap.children);
+      groupRows.sort((a,b)=>{
+        if(sortBy==='name') return a.dataset.name.localeCompare(b.dataset.name);
+        if(sortBy==='issues') return parseInt(b.dataset.issues)-parseInt(a.dataset.issues);
+        if(sortBy==='progress') return parseInt(b.dataset.progress)-parseInt(a.dataset.progress);
+        if(sortBy==='updated') return parseInt(a.dataset.updated)-parseInt(b.dataset.updated);
+        return 0;
+      });
+      groupRows.forEach(r=>wrap.appendChild(r));
+    });
+    rows.forEach(r=>{
+      r.style.display = r._visible ? '' : 'none';
+      r.classList.remove('active');
+    });
+    // also filter mini list
+    miniItems.forEach(m=>{
+      const row=document.querySelector(`.row[data-id="${m.dataset.mini}"]`);
+      if(row){ m.style.display = row._visible ? '' : 'none'; m.style.opacity = row._visible ? '1':'0.45'; }
+    });
+    groups.forEach(g=>{
+      const wrap=g.querySelector('.rows');
+      const cntEl=g.querySelector('[data-group-count]');
+      const visInGroup=Array.from(wrap.children).filter(r=> r._visible).length;
+      if(cntEl) cntEl.textContent=visInGroup;
+      g.style.display = visInGroup===0 && (teamFilter!=='all' || searchQuery || bentoFilter) ? 'none' : '';
+    });
+    projectCount.textContent=`${visibleCount} project${visibleCount!==1?'s':''}`;
+    document.querySelector('.projmini-link').textContent=`${visibleCount} total`;
+    renderChips();
+    if(visibleCount===0){
+      emptyState.classList.add('show');
+      emptyState.innerHTML=`No results for "<span>${escapeHtml(searchQuery || teamFilter || bentoFilter)}</span>" <button id="btnClearEmpty">Clear filter</button>`;
+      document.getElementById('btnClearEmpty').addEventListener('click', clearAllFilters);
+    } else emptyState.classList.remove('show');
+    activeIndex=-1;
+  }
+  function clearAllFilters(){
+    searchQuery=''; searchInput.value='';
+    teamFilter='all'; teamSelect.value='all';
+    bentoFilter=null; updateStatActive();
+    sortBy='updated'; sortSelect.value='updated';
+    applyFilters();
+  }
+  searchInput.addEventListener('input', e=>{ searchQuery=e.target.value.trim(); applyFilters(); });
+  teamSelect.addEventListener('change', e=>{ teamFilter=e.target.value; applyFilters(); });
+  sortSelect.addEventListener('change', e=>{ sortBy=e.target.value; applyFilters(); });
+
+  function openProjectModal(row){
+    const name=row.dataset.name;
+    const team=row.dataset.team;
+    const desc=row.dataset.desc;
+    const prog=row.dataset.progress;
+    const iss=row.dataset.issues;
+    document.getElementById('projectModalTitle').textContent=name;
+    document.getElementById('projectModalMeta').innerHTML=`<span class="team-pill mono">${team}</span><span>🐛 ${iss} issues</span><span class="mono">Track 56px</span>`;
+    document.getElementById('projectModalDesc').textContent=desc + ' — 7-day sparkline 56×12 · milestone ⬢ v0.46 5d · ◷ '+row.dataset.updated+'h ago';
+    document.getElementById('projectModalTrack').style.width=prog+'%';
+    document.getElementById('projectModalProgress').textContent=prog+'%';
+    projectModal.classList.add('open');
+    projectModal.setAttribute('aria-hidden','false');
+  }
+  // queue-like: milestone card click also opens tasks? keep simple
+  rows.forEach(row=>{
+    row.addEventListener('click', (e)=>{
+      if(e.target.closest('[data-more]')) return;
+      openProjectModal(row);
+    });
+    const btn=row.querySelector('[data-more]');
+    const desc=row.querySelector('.row-desc');
+    if(btn){
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const expanded=desc.classList.toggle('expanded');
+        btn.textContent=expanded ? 'Less ▴' : 'More ▾';
+      });
+    }
+  });
+  document.querySelectorAll('[data-collapse]').forEach(head=>{
+    head.addEventListener('click',()=>{
+      const g=head.closest('.group');
+      g.classList.toggle('collapsed');
+    });
+  });
+  function closeAll(){
+    taskModal.classList.remove('open'); taskModal.setAttribute('aria-hidden','true');
+    projectModal.classList.remove('open'); projectModal.setAttribute('aria-hidden','true');
+    newModal.classList.remove('open'); newModal.setAttribute('aria-hidden','true');
+  }
+  document.querySelectorAll('[data-close-task]').forEach(b=> b.addEventListener('click', closeAll));
+  document.querySelectorAll('[data-close-project]').forEach(b=> b.addEventListener('click', closeAll));
+  document.querySelectorAll('[data-close-new]').forEach(b=> b.addEventListener('click', closeAll));
+  ;[taskModal,projectModal,newModal].forEach(ov=>{ ov.addEventListener('click', e=>{ if(e.target===ov) closeAll(); }); });
+  const btnNew = document.getElementById('btnNew');
+  btnNew.addEventListener('click', ()=>{ newModal.classList.add('open'); newModal.setAttribute('aria-hidden','false'); setTimeout(()=>document.getElementById('newName').focus(),30); });
+  document.querySelectorAll('.tmpl').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.tmpl').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedTmpl=btn.dataset.tmpl;
+    });
+  });
+  document.getElementById('btnCreate').addEventListener('click', ()=>{
+    const input=document.getElementById('newName');
+    let name=input.value.trim();
+    if(!name){ input.focus(); input.style.borderColor='var(--status-danger)'; return; }
+    input.style.borderColor='';
+    const id='p'+Date.now();
+    const team='your-workspace';
+    const desc = selectedTmpl==='Blank' ? 'New blank project — no template' : selectedTmpl==='Kanban Starter' ? 'Kanban Starter template with board and queue' : 'Schema Starter template with ERD and API docs';
+    const colors=['blue','mint','warn','orange'];
+    const color=colors[Math.floor(Math.random()*colors.length)];
+    const icons={blue:'ph-code',mint:'ph-coffee',warn:'ph-palette',orange:'ph-briefcase'};
+    const icon=icons[color];
+    const group=document.querySelector('.group[data-team="your-workspace"] .rows');
+    const row=document.createElement('div');
+    row.className='row';
+    row.dataset.id=id; row.dataset.name=name; row.dataset.team=team; row.dataset.desc=desc; row.dataset.issues='0'; row.dataset.progress='0'; row.dataset.updated='0';
+    row.tabIndex=0; row.setAttribute('role','button');
+    row.innerHTML=`
+      <div class="row-left">
+        <span class="icon-box ${color}"><i class="ph ${icon}"></i></span>
+        <span class="row-title">${escapeHtml(name)}</span>
+        <span class="team-pill mono">${team}</span>
+        <span class="row-desc" title="${escapeHtml(desc)}">${escapeHtml(desc)}</span>
+      </div>
+      <div class="row-meta">
+        <div class="track-mini"><div class="track-mini-fill" style="width:0%"></div></div>
+        <span>🐛 0</span>
+        <span>⬢ v0.46 5d</span>
+        <span>◷ now</span>
+        <span class="spark"><i style="height:2px"></i><i style="height:3px"></i><i style="height:2px"></i><i style="height:4px"></i><i style="height:3px"></i><i style="height:5px"></i><i class="up" style="height:6px"></i></span>
+        <button class="btn-more" data-more>More ▾</button>
+        <span class="chevron">〉</span>
+      </div>
+    `;
+    row.addEventListener('click', (e)=>{ if(e.target.closest('[data-more]')) return; openProjectModal(row); });
+    const btn=row.querySelector('[data-more]');
+    const d=row.querySelector('.row-desc');
+    btn.addEventListener('click', (e)=>{ e.stopPropagation(); const ex=d.classList.toggle('expanded'); btn.textContent=ex?'Less ▴':'More ▾'; });
+    group.prepend(row);
+    rows.push(row);
+    // add mini item
+    const miniList=document.getElementById('miniList');
+    const mini=document.createElement('div');
+    mini.className='mini-item'; mini.dataset.mini=id; mini.tabIndex=0; mini.setAttribute('role','button');
+    mini.innerHTML=`<div class="mini-icon ${color}"><i class="ph ${icon}"></i></div><div class="mini-info"><div class="mini-name">${escapeHtml(name)}</div><div class="mini-desc">${escapeHtml(desc.slice(0,22))}</div></div><span class="mini-arrow">〉</span>`;
+    mini.addEventListener('click', ()=>{ const r=document.querySelector(`.row[data-id="${id}"]`); if(r) openProjectModal(r); });
+    miniList.prepend(mini);
+    miniItems.push(mini);
+    input.value='';
+    newModal.classList.remove('open');
+    const total=document.querySelectorAll('.row').length;
+    headerSubtitle.textContent=`${total} projects · 2 need attention · streak 7 days`;
+    applyFilters();
+    setTimeout(()=>{ row.focus(); row.scrollIntoView({behavior:'smooth', block:'center'}); },50);
+    showToast(`Project "${name}" created`);
+  });
+  if('IntersectionObserver' in window){
+    const obs=new IntersectionObserver(entries=>{
+      entries.forEach(ent=>{
+        if(!ent.isIntersecting) commandBar.classList.add('stuck');
+        else commandBar.classList.remove('stuck');
+      });
+    }, {threshold:0});
+    obs.observe(sentinel);
+  } else {
+    window.addEventListener('scroll',()=>{
+      const rect=sentinel.getBoundingClientRect();
+      if(rect.top<0) commandBar.classList.add('stuck'); else commandBar.classList.remove('stuck');
+    });
+  }
+  document.addEventListener('keydown', e=>{
+    const activeTag=document.activeElement.tagName;
+    const isInput = activeTag==='INPUT' || activeTag==='SELECT' || activeTag==='TEXTAREA';
+    if(e.key==='Escape'){
+      if(taskModal.classList.contains('open')||projectModal.classList.contains('open')||newModal.classList.contains('open')){ closeAll(); e.preventDefault(); return; }
+      if(bentoFilter){ bentoFilter=null; updateStatActive(); applyFilters(); }
+      return;
+    }
+    if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){
+      e.preventDefault(); searchInput.focus(); searchInput.select(); return;
+    }
+    if(!isInput){
+      if(e.key==='/'){ e.preventDefault(); searchInput.focus(); return; }
+      if(e.key.toLowerCase()==='n'){ e.preventDefault(); btnNew.click(); return; }
+      if(e.key==='ArrowDown' || e.key==='ArrowUp'){
+        const vis = Array.from(document.querySelectorAll('.row')).filter(r=> r.style.display!=='none' && r.closest('.group').style.display!=='none');
+        if(vis.length===0) return;
+        e.preventDefault();
+        if(e.key==='ArrowDown'){ activeIndex=Math.min(activeIndex+1, vis.length-1); if(activeIndex<0) activeIndex=0; }
+        else { activeIndex=Math.max(activeIndex-1, 0); }
+        vis.forEach(r=>r.classList.remove('active'));
+        const target=vis[activeIndex];
+        target.classList.add('active'); target.focus(); target.scrollIntoView({behavior:'smooth', block:'nearest'});
+      }
+      if(e.key==='Enter'){
+        const focused=document.activeElement.closest('.row');
+        if(focused && focused.style.display!=='none'){ openProjectModal(focused); }
+        else if(activeIndex>=0){
+          const vis=Array.from(document.querySelectorAll('.row')).filter(r=> r.style.display!=='none');
+          const v=vis[activeIndex]; if(v) openProjectModal(v);
+        }
+      }
+    }
+  });
+  applyFilters();
+})();
+</script>
+</body>
+</html>
+

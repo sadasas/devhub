@@ -33,7 +33,7 @@ export function WelcomeEmptyNoProject({
         <Plus size={20} weight="duotone" />
       </span>
       <h3 className="welcome-empty-title">{teamName ? `No projects in ${teamName}` : 'No projects yet'}</h3>
-      <p className="welcome-empty-desc">Mulai technical memory pertama. Create a project to track tasks, issues, stack and more — or import from JSON.</p>
+      <p className="welcome-empty-desc">Mulai technical memory pertama. Create a project to track tasks, issues, stack and more.</p>
       <div className="welcome-empty-actions">
         <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={onCreate}>
           Create project

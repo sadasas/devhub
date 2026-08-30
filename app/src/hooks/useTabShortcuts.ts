@@ -27,6 +27,16 @@ export function useTabShortcuts<T extends string>(
           return;
         }
       }
+      // Plain 1-4 → primary tabs (progressive disclosure). No modifier.
+      // F3: keyboard 1 2 3 4 for primary, More via Tab + Enter
+      if (!mods && !e.altKey) {
+        const digit = TAB_KEYS.indexOf(e.key);
+        if (digit !== -1 && digit < 4 && digit < tabsRef.current.length) {
+          e.preventDefault();
+          onSelectRef.current(tabsRef.current[digit]!);
+          return;
+        }
+      }
       if (mods || e.altKey) return;
       if (e.key !== '[' && e.key !== ']') return;
       const n = tabsRef.current.length;

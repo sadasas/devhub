@@ -44,6 +44,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
 
   useEffect(() => {
     if (open) {
+      setTitle('');
       setMilestone(milestoneId ?? null);
       setDueDateInput(dueDate ?? '');
       setStartDateInput(startDate ?? '');

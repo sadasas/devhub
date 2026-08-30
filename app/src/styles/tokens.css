@@ -70,6 +70,8 @@
   --radius-input: 8px;
   --radius-sm: 6px;
   --radius-pill: 999px;
+  --radius-lg: 16px;
+  --pattern-stripe: rgba(255,255,255,0.06);
 
   /* HTTP method colors — soft muted */
   --method-get: #5db69b;
@@ -167,6 +169,7 @@ html[data-theme='light'] {
 
   --bg-stripe: rgba(0, 0, 0, 0.03);
   --bg-weekend: rgba(0, 0, 0, 0.015);
+  --pattern-stripe: rgba(0,0,0,0.06);
 
   --method-get: #4a8b6f;
   --method-get-dim: rgba(74, 139, 111, 0.10);

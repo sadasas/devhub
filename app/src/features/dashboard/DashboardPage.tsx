@@ -98,6 +98,8 @@ export function DashboardPage() {
 
   const displayName = user?.displayName?.trim() ? user.displayName : (user?.email?.split('@')[0] ?? 'there');
 
+
+
   // derived global hero stats
   const heroStats = useMemo(() => {
     if (!projects || projects.length === 0) return { total: 0, needsAttention: 0, done: 0, totalTasks: 0, openIssues: 0, outdated: 0 };
@@ -257,14 +259,71 @@ export function DashboardPage() {
         onNewProject={() => setNewOpen(true)}
       />
 
-      {/* hero micro — only when has projects */}
+      {/* bento 4 stats — boxless, hijau primary, icon 22px — Image 1 */}
       {projects && projects.length > 0 && (
         <WelcomeHeroMicro
           total={heroStats.total}
           needsAttention={heroStats.needsAttention}
           done={heroStats.done}
           totalTasks={heroStats.totalTasks}
+          openIssues={heroStats.openIssues}
+          outdated={heroStats.outdated}
+          onFilter={(kind) => {
+            if (kind === 'all') {
+              commitTeam('all');
+              commitQuery('');
+            } else if (kind === 'issues' || kind === 'attention') {
+              commitSort('issues');
+            } else if (kind === 'outdated') {
+              commitSort('progress');
+            }
+          }}
         />
+      )}
+
+      {/* task activity — statik 7 day, angka langsung */}
+      {projects && projects.length > 0 && (
+        <div className="task-activity" aria-label="Tasks activity">
+          <div className="task-activity-head">
+            <span className="task-activity-title">Tasks Activity — last 7 days</span>
+          </div>
+          <div className="task-activity-bars" role="img" aria-label="Tasks created vs done last 7 days">
+            {[
+              { day: 'S', created: 2, done: 1 },
+              { day: 'M', created: 3, done: 2 },
+              { day: 'T', created: 1, done: 4 },
+              { day: 'W', created: 2, done: 2 },
+              { day: 'T', created: 0, done: 1 },
+              { day: 'F', created: 1, done: 0 },
+              { day: 'S', created: 2, done: 3 },
+            ].map((d, idx) => {
+              const max = 4;
+              const hDone = (d.done / max) * 56 + 8;
+              const hCreated = (d.created / max) * 48 + 8;
+              return (
+                <div key={`${d.day}-${idx}`} className="task-activity-bar">
+                  <div className="task-activity-values" aria-hidden="true">
+                    <span className="task-activity-value task-activity-value-created">{d.created > 0 ? d.created : ''}</span>
+                    <span className="task-activity-value task-activity-value-done">{d.done > 0 ? d.done : ''}</span>
+                  </div>
+                  <div className="task-activity-track">
+                    <div
+                      className="task-activity-col task-activity-col-created"
+                      style={{ height: hCreated }}
+                      title={`Created ${d.created}`}
+                    />
+                    <div
+                      className="task-activity-col task-activity-col-done"
+                      style={{ height: hDone }}
+                      title={`Done ${d.done}`}
+                    />
+                  </div>
+                  <span className="task-activity-day">{d.day}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       )}
 
       {/* command bar — sticky, always visible unless error/loading skeleton takes over? Keep visible even in empty states for discoverability */}
@@ -331,6 +390,32 @@ export function DashboardPage() {
         <WelcomeEmptyNoResult query={deferredQuery.trim()} onClear={() => commitQuery('')} />
       ) : (
         <div className="welcome-content">
+          {/* keep queue — part of Image 1 */}
+          <div className="welcome-queue" role="list" aria-label="Next actions">
+            <div className="welcome-queue-head">
+              <span>Next up — what to do today</span>
+              <span className="welcome-queue-sub">assignee: you · due ≤ today</span>
+            </div>
+            {filteredSorted.slice(0, 1).map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className="welcome-queue-card"
+                role="listitem"
+                onClick={() => handleOpen(p.id)}
+                aria-label={`Open ${p.name}`}
+              >
+                <span className="welcome-queue-num">1</span>
+                <span className="welcome-queue-main">
+                  <span className="welcome-queue-title">Open project</span>
+                  <span className="welcome-queue-project">
+                    {p.name} · Continue work
+                  </span>
+                </span>
+                <span className="welcome-queue-cta">Open →</span>
+              </button>
+            ))}
+          </div>
           {isSingleTeam || teamFilter !== 'all' ? (
             <WelcomeProjectList>
               {filteredSorted.map((p) => (
