@@ -8,7 +8,7 @@ import { Logo } from '../../components/Logo';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 import { ThemeSwitcher } from '../../components/ThemeSwitcher';
 import { openPalette } from '../../lib/palette-events';
-import { toggleChat } from '../../lib/chat-events';
+import { onToggleChat } from '../../lib/chat-events';
 import { useTeams } from '../../state/teams-context';
 import { useProjects } from '../../state/projects-context';
 import { useAuth } from '../../state/auth-context';
@@ -19,6 +19,8 @@ const RAIL_ACTIVE_KEY = 'devhub:rail:activeTeam';
 const SIDEBAR_COLLAPSED_KEY = 'devhub:layout:sidebarCollapsed';
 const SIDEBAR_WIDTH_KEY = 'devhub:layout:sidebarWidth';
 const RAIL_MAIN_KEY = 'devhub:rail:activeMain';
+const CHAT_WIDTH_KEY = 'devhub:layout:chatWidth';
+const CHAT_OPEN_PREFIX = 'devhub:layout:chatOpen:';
 
 export function Layout() {
   const [navOpen, setNavOpen] = useState(false);
@@ -33,6 +35,13 @@ export function Layout() {
   });
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     try { const v = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY)); return v >= 200 && v <= 400 ? v : 240; } catch { return 240; }
+  });
+  const [chatWidth, setChatWidth] = useState<number>(() => {
+    try { const v = Number(localStorage.getItem(CHAT_WIDTH_KEY)); return v >= 320 && v <= 440 ? v : 360; } catch { return 360; }
+  });
+  const [chatOpen, setChatOpen] = useState(false);
+  const [isMobileChat, setIsMobileChat] = useState<boolean>(() => {
+    try { return typeof window !== 'undefined' ? window.matchMedia('(max-width: 860px)').matches : false; } catch { return false; }
   });
   const [liveMsg, setLiveMsg] = useState('');
   // staged hover: railHover = main rail expanded, hoveredId = which item second shows
@@ -122,6 +131,7 @@ export function Layout() {
   useEffect(() => { try { localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed)); } catch {} setLiveMsg(collapsed ? 'Sidebar collapsed' : 'Sidebar expanded'); }, [collapsed]);
 
   useEffect(() => { try { localStorage.setItem(SIDEBAR_WIDTH_KEY, String(sidebarWidth)); } catch {} }, [sidebarWidth]);
+  useEffect(() => { try { localStorage.setItem(CHAT_WIDTH_KEY, String(chatWidth)); } catch {} }, [chatWidth]);
 
   const activeTeamId = useMemo(() => {
     if (derivedFromRoute) return derivedFromRoute;
@@ -129,6 +139,48 @@ export function Layout() {
     if (railTeamId && teams?.some((tm) => tm.id === railTeamId)) return railTeamId;
     return teams?.[0]?.id ?? null;
   }, [derivedFromRoute, railTeamId, teams, activeMain]);
+
+  // chat open per-team persistence
+  useEffect(() => {
+    if (!activeTeamId) { setChatOpen(false); return; }
+    try {
+      const v = localStorage.getItem(CHAT_OPEN_PREFIX + activeTeamId);
+      setChatOpen(v === 'true');
+    } catch { setChatOpen(false); }
+  }, [activeTeamId]);
+
+  useEffect(() => {
+    if (!activeTeamId) return;
+    try { localStorage.setItem(CHAT_OPEN_PREFIX + activeTeamId, String(chatOpen)); } catch {}
+  }, [chatOpen, activeTeamId]);
+
+  // track mobile breakpoint for chat inline vs drawer
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 860px)');
+    const onChange = () => setIsMobileChat(mql.matches);
+    onChange();
+    try { mql.addEventListener('change', onChange); return () => mql.removeEventListener('change', onChange); }
+    catch {
+      mql.addListener(onChange as any);
+      return () => mql.removeListener(onChange as any);
+    }
+  }, []);
+
+  // listen global toggleChat event (Ctrl+C) to control inline state on desktop
+  useEffect(() => {
+    const off = onToggleChat(() => setChatOpen((v) => !v));
+    return off;
+  }, []);
+
+  // auto-collapse sidebar on narrow desktop when chat opens to keep main >=560
+  useEffect(() => {
+    if (!chatOpen) return;
+    if (isMobileChat) return;
+    if (collapsed) return;
+    try {
+      if (window.innerWidth < 1280) setCollapsed(true);
+    } catch {}
+  }, [chatOpen, isMobileChat, collapsed]);
 
   useEffect(() => {
     setNavOpen(false);
@@ -259,13 +311,16 @@ export function Layout() {
     }
   }, [collapsed]);
 
-  // keyboard Ctrl+B or [ to toggle, Ctrl+C to toggle chat, Esc to dismiss flyout
+  // keyboard Ctrl+B or [ to toggle, Ctrl+C / ] to toggle chat, Esc to dismiss flyout
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      // Esc dismisses staged flyout when collapsed
-      if (e.key === 'Escape' && collapsed && (isRailHovered || hoveredId !== null)) {
-        const isModalEsc = Boolean(document.querySelector('.modal-backdrop, .palette'));
-        if (!isModalEsc) {
+      const target = e.target as HTMLElement | null;
+      const isTyping = Boolean(target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable));
+      const isModal = Boolean(document.querySelector('.modal-backdrop, .palette'));
+      // Esc dismisses staged flyout when collapsed OR closes chat inline
+      if (e.key === 'Escape') {
+        const isModalEsc = isModal;
+        if (!isModalEsc && collapsed && (isRailHovered || hoveredId !== null)) {
           e.preventDefault();
           if (railEnterTimeoutRef.current) window.clearTimeout(railEnterTimeoutRef.current);
           if (railLeaveTimeoutRef.current) window.clearTimeout(railLeaveTimeoutRef.current);
@@ -275,17 +330,30 @@ export function Layout() {
           setHoveredId(null);
           return;
         }
+        // Esc closes inline chat when open on desktop (not when modal/palette open)
+        if (!isModalEsc && chatOpen && !isMobileChat) {
+          const isChatFocused = Boolean(document.querySelector('#chat-inline-shell:focus-within'));
+          if (isChatFocused || !isTyping) {
+            e.preventDefault();
+            setChatOpen(false);
+            return;
+          }
+        }
       }
-      const target = e.target as HTMLElement | null;
-      const isTyping = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
-      const isModal = Boolean(document.querySelector('.modal-backdrop, .palette'));
       // Ctrl/Cmd+C toggles team chat — guard against typing, modal, and text selection (copy)
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
         if (isTyping || isModal) return;
         if (window.getSelection()?.toString()) return;
         if (!user || !activeTeamId) return;
         e.preventDefault();
-        toggleChat();
+        setChatOpen((v) => !v);
+        return;
+      }
+      // ] toggles chat inline on desktop (mirror [ for sidebar)
+      if (!isTyping && !isModal && !window.matchMedia('(max-width: 860px)').matches && e.key === ']' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (!user || !activeTeamId) return;
+        e.preventDefault();
+        setChatOpen((v) => !v);
         return;
       }
       if (isTyping) return;
@@ -297,7 +365,7 @@ export function Layout() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [user, activeTeamId, collapsed, isRailHovered, hoveredId]);
+  }, [user, activeTeamId, collapsed, isRailHovered, hoveredId, chatOpen, isMobileChat]);
 
   const onHandlePointerDown = (e: React.PointerEvent) => {
     if (collapsed) return;
@@ -307,6 +375,19 @@ export function Layout() {
       const dx = ev.clientX - startX;
       const next = Math.min(360, Math.max(220, startW + dx));
       if (next < 140) setCollapsed(true); else setSidebarWidth(next);
+    };
+    const onUp = () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
+
+  const onChatHandlePointerDown = (e: React.PointerEvent) => {
+    const startX = e.clientX;
+    const startW = chatWidth;
+    const onMove = (ev: PointerEvent) => {
+      const dx = startX - ev.clientX; // dragging left increases width
+      const next = Math.min(440, Math.max(320, startW + dx));
+      setChatWidth(next);
     };
     const onUp = () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); };
     window.addEventListener('pointermove', onMove);
@@ -340,8 +421,9 @@ export function Layout() {
     return activeMain;
   }, [collapsed, hoveredId, activeMain]);
 
+  const isChatInlineOpen = chatOpen && !isMobileChat;
   return (
-    <div className="layout" data-collapsed={collapsed ? 'true' : undefined} data-rail-hover={isRailHovered ? 'true' : undefined} data-second-visible={isSecondVisible ? 'true' : undefined} data-hover-expand={isRailHovered ? 'true' : undefined} style={{ ['--sidebar-w' as any]: `${sidebarWidth}px` } as React.CSSProperties}>
+    <div className="layout" data-collapsed={collapsed ? 'true' : undefined} data-rail-hover={isRailHovered ? 'true' : undefined} data-second-visible={isSecondVisible ? 'true' : undefined} data-hover-expand={isRailHovered ? 'true' : undefined} data-chat-open={isChatInlineOpen ? 'true' : undefined} style={{ ['--sidebar-w' as any]: `${sidebarWidth}px`, ['--chat-w' as any]: `${isChatInlineOpen ? chatWidth : 0}px` } as React.CSSProperties}>
       <a className="skip-link" href="#main-content">
         {t('layout.skipToContent')}
       </a>
@@ -422,13 +504,24 @@ export function Layout() {
       <main className="main" id="main-content">
         <Outlet />
       </main>
-      <div aria-live="polite" className="sr-only">{liveMsg}</div>
-      <CreateTeamModal open={createTeamOpen} onClose={() => setCreateTeamOpen(false)} />
       {user && activeTeamId && (() => {
         const activeTeam = teams?.find((tm) => tm.id === activeTeamId);
         if (!activeTeam) return null;
-        return <ProjectChatWidget teamId={activeTeamId} teamName={activeTeam.name} />;
+        return (
+          <ProjectChatWidget
+            teamId={activeTeamId}
+            teamName={activeTeam.name}
+            open={chatOpen}
+            onOpenChange={setChatOpen}
+            width={chatWidth}
+            onWidthChange={setChatWidth}
+            onResizeHandlePointerDown={onChatHandlePointerDown}
+            isMobile={isMobileChat}
+          />
+        );
       })()}
+      <div aria-live="polite" className="sr-only">{liveMsg}</div>
+      <CreateTeamModal open={createTeamOpen} onClose={() => setCreateTeamOpen(false)} />
     </div>
   );
 }
