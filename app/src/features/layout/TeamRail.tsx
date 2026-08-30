@@ -11,13 +11,15 @@ interface TeamRailProps {
   activeMain?: 'home' | 'team';
   compact?: boolean;
   collapsed?: boolean;
+  hoveredId?: string | null;
   onToggleCollapsed?: () => void;
   onSelectTeam: (teamId: string) => void;
   onSelectHome: () => void;
   onCreateTeam: () => void;
+  onHoverItem?: (id: string | null) => void;
 }
 
-export function TeamRail({ teams, activeTeamId, activeMain = 'team', compact = false, collapsed = false, onToggleCollapsed, onSelectTeam, onSelectHome, onCreateTeam }: TeamRailProps) {
+export function TeamRail({ teams, activeTeamId, activeMain = 'team', compact = false, collapsed = false, hoveredId = null, onToggleCollapsed, onSelectTeam, onSelectHome, onCreateTeam, onHoverItem }: TeamRailProps) {
   const { t } = useTranslation('shell');
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -27,11 +29,25 @@ export function TeamRail({ teams, activeTeamId, activeMain = 'team', compact = f
     <nav className={`team-rail ${compact ? 'team-rail-compact' : ''}`} aria-label="Teams">
       <button
         type="button"
-        className={`team-rail-home${isHomeActive ? ' team-rail-home-active' : ''}`}
+        className={`team-rail-home${isHomeActive ? ' team-rail-home-active' : ''}${hoveredId === 'home' ? ' team-rail-home-hovered' : ''}`}
         aria-label={t('sidebar.dashboard')}
         aria-current={isHomeActive ? 'page' : undefined}
+        aria-expanded={hoveredId === 'home' ? true : undefined}
+        aria-controls="sidebar-region"
         title={t('sidebar.dashboard')}
         onClick={onSelectHome}
+        onPointerEnter={() => onHoverItem?.('home')}
+        onPointerLeave={(e) => {
+          const rt = e.relatedTarget as Node | null;
+          if (rt && document.getElementById('sidebar-region')?.contains(rt)) return;
+          onHoverItem?.(null);
+        }}
+        onFocus={() => onHoverItem?.('home')}
+        onBlur={(e) => {
+          const rt = e.relatedTarget as Node | null;
+          if (rt && (document.getElementById('sidebar-region')?.contains(rt) || (e.currentTarget as HTMLElement).closest('.desktop-sidebar-group')?.contains(rt))) return;
+          onHoverItem?.(null);
+        }}
       >
         <SquaresFour size={18} weight={isHomeActive ? 'fill' : 'duotone'} aria-hidden="true" />
         <span className="team-rail-home-label">{t('sidebar.dashboard')}</span>
@@ -54,6 +70,7 @@ export function TeamRail({ teams, activeTeamId, activeMain = 'team', compact = f
         ) : (
           teams.map((team) => {
             const isActive = team.id === activeTeamId && activeMain === 'team';
+            const isHovered = hoveredId === team.id;
             const initials = avatarInitials(team.name);
             const bg = avatarColor(team.id);
             return (
@@ -61,14 +78,33 @@ export function TeamRail({ teams, activeTeamId, activeMain = 'team', compact = f
                 key={team.id}
                 type="button"
                 role="listitem"
-                className={`team-rail-item${isActive ? ' team-rail-item-active' : ''}`}
+                className={`team-rail-item${isActive ? ' team-rail-item-active' : ''}${isHovered ? ' team-rail-item-hovered' : ''}`}
                 aria-label={`${team.name}, ${team.memberCount} members`}
                 aria-current={isActive ? 'true' : undefined}
+                aria-expanded={isHovered ? true : undefined}
+                aria-controls="sidebar-region"
                 title={`${team.name} — ${team.memberCount} members`}
                 onClick={() => onSelectTeam(team.id)}
+                onPointerEnter={() => onHoverItem?.(team.id)}
+                onPointerLeave={(e) => {
+                  const rt = e.relatedTarget as Node | null;
+                  if (rt && document.getElementById('sidebar-region')?.contains(rt)) return;
+                  onHoverItem?.(null);
+                }}
+                onFocus={() => onHoverItem?.(team.id)}
+                onBlur={(e) => {
+                  const rt = e.relatedTarget as Node | null;
+                  if (rt && (document.getElementById('sidebar-region')?.contains(rt) || (e.currentTarget as HTMLElement).closest('.desktop-sidebar-group')?.contains(rt))) return;
+                  onHoverItem?.(null);
+                }}
               >
                 <span className="team-rail-icon" style={{ background: bg }} aria-hidden="true">
                   {initials.slice(0, 2)}
+                  {team.memberCount > 0 && (
+                    <span className="team-rail-icon-bubble" aria-hidden="true">
+                      {team.memberCount > 99 ? '99+' : team.memberCount}
+                    </span>
+                  )}
                 </span>
                 <span className="team-rail-name" title={team.name}>
                   {team.name}

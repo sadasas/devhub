@@ -10,7 +10,7 @@ import {
   Receipt,
   ShieldStar,
 } from '@phosphor-icons/react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { NavLink, type NavLinkProps } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../state/auth-context';
@@ -36,6 +36,12 @@ export function Sidebar({ activeTeamId, activeMain = 'team', onCreateTeam }: Sid
   const [filterQuery, setFilterQuery] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const { t } = useTranslation('shell');
+
+  // Reset local UI when switching team context (flyout preview or real nav)
+  useEffect(() => {
+    setFilterQuery('');
+    setShowArchived(false);
+  }, [activeTeamId]);
 
   const projectsByTeam = useMemo(() => {
     const map = new Map<string, typeof projects>();

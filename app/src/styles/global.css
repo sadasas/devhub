@@ -1108,13 +1108,16 @@ a:hover {
 
 .team-rail-item:hover {
   border: none;
-  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
 }
 
-.team-rail-item-active {
+.team-rail-item-active,
+.team-rail-item-hovered {
   border: none;
   background: var(--accent-dim);
   color: var(--text-primary);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 .team-rail-home {
@@ -1140,8 +1143,9 @@ a:hover {
   color: var(--text-primary);
 }
 
-.team-rail-home-active {
-  background: rgba(255,255,255,0.07);
+.team-rail-home-active,
+.team-rail-home-hovered {
+  background: var(--accent-dim);
   color: var(--text-primary);
   box-shadow: inset 2px 0 0 var(--accent);
 }
@@ -1160,15 +1164,42 @@ a:hover {
 }
 
 .team-rail-icon {
+  position: relative;
   width: 28px;
   height: 28px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   display: grid;
   place-items: center;
   font-size: 11px;
   font-weight: 600;
   flex-shrink: 0;
   color: #fff;
+}
+
+.team-rail-icon-bubble {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  display: inline-grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-muted);
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+/* hide bubble when expanded (count visible) */
+.layout:not([data-collapsed="true"]) .team-rail-icon-bubble,
+.layout[data-hover-expand="true"] .team-rail-icon-bubble {
+  display: none;
 }
 
 .team-rail-name {
@@ -1205,9 +1236,9 @@ a:hover {
 }
 
 .team-rail-skeleton {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
 }
 
 .team-rail-empty {
@@ -10975,24 +11006,24 @@ button.admin-plan-card {
   .pricing-compare-table-wrap { display: none; }
   .pricing-compare-cards { display: grid; gap: 14px; }
 }
-/* Sidebar collapsible — push + icon rail (60px) */
+/* Sidebar collapsible — staged push/overlay + icon rail */
 .layout {
-  --rail-w: 180px;
-  --sidebar-w: 240px;
+  --rail-w: var(--rail-w-expanded);
+  --sidebar-w: var(--sidebar-w);
 }
 .layout[data-collapsed="true"] {
-  --rail-w: 56px;
+  --rail-w: var(--rail-w-compact);
   --sidebar-w: 0px;
 }
 .team-rail-desktop {
   width: var(--rail-w);
-  transition: width 200ms var(--ease-out);
+  transition: width var(--duration-normal) var(--ease-out);
 }
 .sidebar-shell {
   width: var(--sidebar-w);
   overflow: visible;
   position: relative;
-  transition: width 220ms var(--ease-out);
+  transition: width var(--duration-slow) var(--ease-out);
   border-right: 1px solid var(--border-hairline);
   background: var(--bg-elevated);
   display: flex;
@@ -11006,14 +11037,14 @@ button.admin-plan-card {
   border-right-color: transparent;
 }
 .sidebar-region {
-  width: 240px;
+  width: var(--sidebar-w);
   height: 100dvh;
   position: sticky;
   top: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: transform 200ms var(--ease-out);
+  transition: transform var(--duration-normal) var(--ease-out);
   align-self: start;
 }
 .layout[data-collapsed="true"] .sidebar-region {
@@ -11100,23 +11131,23 @@ button.admin-plan-card {
 }
 .team-rail-compact .team-rail-item,
 .team-rail-compact .team-rail-home {
-  width: 36px;
+  width: 100%;
   height: 36px;
-  padding: 0;
+  padding: 0 10px;
   justify-content: center;
-  align-self: center;
+  align-self: stretch;
   gap: 0;
   margin: 0;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-input);
   transition-delay: 220ms;
 }
 .team-rail-compact .team-rail-create {
-  width: 36px;
+  width: 100%;
   height: 36px;
-  padding: 0;
+  padding: 0 10px;
   justify-content: center;
-  align-self: center;
-  gap: 0;
+  align-self: stretch;
+  gap: 6px;
   margin: 0;
   transition-delay: 220ms;
 }
@@ -11133,15 +11164,15 @@ button.admin-plan-card {
 }
 .team-rail-compact {
   width: 100%;
-  padding: 10px;
-  gap: 12px;
-  align-items: center;
+  padding: 12px 8px;
+  gap: 8px;
+  align-items: stretch;
 }
 .team-rail-compact .team-rail-list {
-  width: 36px;
+  width: 100%;
   gap: 8px;
-  align-items: center;
-  margin: 0 auto;
+  align-items: stretch;
+  margin: 0;
 }
 .team-rail-compact .team-rail-collapse {
   margin-top: 0;
@@ -11169,10 +11200,10 @@ button.admin-plan-card {
   height: 36px;
 }
 .team-rail-compact .team-rail-bottom {
-  width: 36px;
-  margin-left: auto;
-  margin-right: auto;
-  align-items: center;
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  align-items: stretch;
 }
 .team-rail-bottom {
   margin-top: auto;
@@ -11193,7 +11224,7 @@ button.admin-plan-card {
   align-items: center;
 }
 .team-rail-compact .team-rail-bottom .team-rail-collapse {
-  width: 36px;
+  width: 100%;
   height: 36px;
 }
 .team-rail-bottom .team-rail-footer-account {
@@ -11220,8 +11251,10 @@ button.admin-plan-card {
   background: rgba(255,255,255,0.06);
   color: var(--text-primary);
 }
-.team-rail-collapse:focus-visible {
-  outline: 2px solid var(--accent);
+.team-rail-collapse:focus-visible,
+.team-rail-item:focus-visible,
+.team-rail-home:focus-visible {
+  outline: 2px solid var(--accent-ring);
   outline-offset: 2px;
 }
 .sidebar-handle {
@@ -11248,6 +11281,11 @@ button.admin-plan-card {
   /* keep grid vars for fallback but flex is primary */
   grid-template-columns: var(--rail-w) var(--sidebar-w) 1fr;
 }
+.desktop-sidebar-group {
+  display: flex;
+  flex-shrink: 0;
+  position: relative;
+}
 .team-rail-desktop, .sidebar-shell { flex-shrink: 0; }
 .main { flex: 1; min-width: 0; }
 @media (max-width: 860px) {
@@ -11271,28 +11309,53 @@ button.admin-plan-card {
     grid-template-rows: auto 1fr;
   }
 }
-/* Hover-expand push when collapsed — JS-driven via data-hover-expand (content stays visible) */
+/* Staged hover — rail expands on hover, second overlays on item hover */
 @media (min-width: 861px) and (hover: hover) {
+  /* Stage 1: hover rail → expand rail only (second stays 0) */
   .layout[data-collapsed="true"][data-hover-expand="true"] {
-    --rail-w: 180px;
-    --sidebar-w: 240px;
+    --rail-w: var(--rail-w-expanded);
   }
-  .layout[data-collapsed="true"][data-hover-expand="true"] .sidebar-shell {
-    width: var(--sidebar-w) !important;
+  /* Stage 2: hover item → overlay second (rail already expanded) */
+  .layout[data-collapsed="true"][data-second-visible="true"] {
+    --sidebar-w: var(--sidebar-w-flyout);
+  }
+  .layout[data-collapsed="true"][data-second-visible="true"] .sidebar-shell {
+    width: var(--sidebar-w-flyout) !important;
     opacity: 1 !important;
     pointer-events: auto !important;
-    border-right-color: var(--border-hairline) !important;
-    position: relative;
-    left: auto;
-    top: auto;
-    height: auto;
-    z-index: auto;
-    box-shadow: none;
+    border-right-color: var(--border-strong) !important;
+    position: fixed !important;
+    left: var(--rail-w-expanded) !important;
+    top: 0 !important;
+    height: 100dvh !important;
+    z-index: 20 !important;
+    box-shadow: var(--shadow-raised) !important;
     overflow: hidden;
+    border-left: 1px solid var(--border-hairline);
+    transition: none !important;
   }
-  .layout[data-collapsed="true"][data-hover-expand="true"] .sidebar-region {
+  .layout[data-collapsed="true"][data-second-visible="true"] .sidebar-region {
+    width: var(--sidebar-w-flyout) !important;
     transform: none !important;
     opacity: 1 !important;
+    height: 100dvh;
+    transition: none !important;
+  }
+  /* keep rail expanded while second is visible */
+  .layout[data-collapsed="true"][data-second-visible="true"] {
+    --rail-w: var(--rail-w-expanded);
+  }
+  /* hover bridge — invisible 12px strip between rail and overlay to prevent gap */
+  .layout[data-collapsed="true"][data-second-visible="true"] .desktop-sidebar-group::after {
+    content: '';
+    position: fixed;
+    left: calc(var(--rail-w-expanded) - 4px);
+    top: 0;
+    width: 12px;
+    height: 100dvh;
+    z-index: 19;
+    pointer-events: auto;
+    background: transparent;
   }
 }
 

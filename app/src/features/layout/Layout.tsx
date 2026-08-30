@@ -54,16 +54,6 @@ export function Layout() {
     return isRailHovered && hoveredId !== null;
   }, [collapsed, isRailHovered, hoveredId]);
 
-  // hoveredTeamId is null | 'home' | teamId
-  // Sidebar context: when collapsed flyout → use hoveredId, when pinned → use activeMain-derived team
-  const sidebarContextTeamId = useMemo(() => {
-    if (!collapsed) return null; // pinned uses activeTeamId directly
-    if (hoveredId === 'home') return '__home__';
-    return hoveredId;
-  }, [collapsed, hoveredId]);
-
-  // effectiveCollapsed for a11y inert: sidebar hidden when not secondVisible and collapsed
-  const effectiveCollapsed = collapsed && !isSecondVisible;
   // rail compact when collapsed and not hovered
   const railCompact = collapsed && !isRailHovered;
 
@@ -135,9 +125,10 @@ export function Layout() {
 
   const activeTeamId = useMemo(() => {
     if (derivedFromRoute) return derivedFromRoute;
+    if (activeMain === 'home') return null;
     if (railTeamId && teams?.some((tm) => tm.id === railTeamId)) return railTeamId;
     return teams?.[0]?.id ?? null;
-  }, [derivedFromRoute, railTeamId, teams]);
+  }, [derivedFromRoute, railTeamId, teams, activeMain]);
 
   useEffect(() => {
     setNavOpen(false);
@@ -172,6 +163,11 @@ export function Layout() {
   const clearHoverTimers = () => {
     if (hoverGroupLeaveRef.current) { window.clearTimeout(hoverGroupLeaveRef.current); hoverGroupLeaveRef.current = null; }
     if (railLeaveTimeoutRef.current) { window.clearTimeout(railLeaveTimeoutRef.current); railLeaveTimeoutRef.current = null; }
+    if (itemHoverTimeoutRef.current) { window.clearTimeout(itemHoverTimeoutRef.current); itemHoverTimeoutRef.current = null; }
+  };
+
+  const isReducedMotion = () => {
+    try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; }
   };
 
   const handleRailEnter = () => {
@@ -181,20 +177,26 @@ export function Layout() {
     clearHoverTimers();
     if (railEnterTimeoutRef.current) window.clearTimeout(railEnterTimeoutRef.current);
     if (railLeaveTimeoutRef.current) window.clearTimeout(railLeaveTimeoutRef.current);
-    // small enter delay to filter mouse pass-through
+    if (isReducedMotion()) {
+      setIsRailHovered(true);
+      return;
+    }
+    // enter delay to filter mouse pass-through
     railEnterTimeoutRef.current = window.setTimeout(() => {
       setIsRailHovered(true);
-    }, 70) as unknown as number;
+    }, 150) as unknown as number;
   };
 
   const handleRailLeave = () => {
     if (railEnterTimeoutRef.current) { window.clearTimeout(railEnterTimeoutRef.current); railEnterTimeoutRef.current = null; }
     if (railLeaveTimeoutRef.current) window.clearTimeout(railLeaveTimeoutRef.current);
+    if (isReducedMotion()) {
+      setIsRailHovered(false);
+      return;
+    }
     railLeaveTimeoutRef.current = window.setTimeout(() => {
       setIsRailHovered(false);
-      // keep hoveredId a bit longer to allow moving into second panel via bridge
-      // actual hide is controlled by hoverGroup
-    }, 160) as unknown as number;
+    }, 300) as unknown as number;
   };
 
   const handleHoverItem = (id: string | null) => {
@@ -203,13 +205,18 @@ export function Layout() {
     if (window.matchMedia('(hover: none)').matches) return;
     clearHoverTimers();
     if (itemHoverTimeoutRef.current) window.clearTimeout(itemHoverTimeoutRef.current);
+    if (isReducedMotion()) {
+      setIsRailHovered(!!id || isRailHovered);
+      setHoveredId(id);
+      return;
+    }
     if (id === null) {
-      // leave item but stay on rail -> keep rail expanded, hide second after short delay
-      itemHoverTimeoutRef.current = window.setTimeout(() => setHoveredId(null), 90) as unknown as number;
+      // leave item but stay on rail -> keep rail expanded, hide second after delay
+      // 250ms gives time to cross bridge to second (fixed overlay)
+      itemHoverTimeoutRef.current = window.setTimeout(() => setHoveredId(null), 250) as unknown as number;
     } else {
       // enter item -> show second after small debounce to avoid flicker on fast move
-      // if already have a hoveredId, reduce delay for snappy feel
-      const delay = hoveredId ? 55 : 75;
+      const delay = hoveredId ? 40 : 120;
       itemHoverTimeoutRef.current = window.setTimeout(() => {
         setIsRailHovered(true);
         setHoveredId(id);
@@ -219,14 +226,21 @@ export function Layout() {
 
   const handleHoverGroupEnter = () => {
     clearHoverTimers();
+    // keep rail expanded while over second
+    if (collapsed) setIsRailHovered(true);
   };
 
   const handleHoverGroupLeave = () => {
     if (hoverGroupLeaveRef.current) window.clearTimeout(hoverGroupLeaveRef.current);
+    if (isReducedMotion()) {
+      setIsRailHovered(false);
+      setHoveredId(null);
+      return;
+    }
     hoverGroupLeaveRef.current = window.setTimeout(() => {
       setIsRailHovered(false);
       setHoveredId(null);
-    }, 260) as unknown as number;
+    }, 400) as unknown as number;
   };
 
   useEffect(() => {
@@ -245,9 +259,23 @@ export function Layout() {
     }
   }, [collapsed]);
 
-  // keyboard Ctrl+B or [ to toggle, Ctrl+C to toggle chat
+  // keyboard Ctrl+B or [ to toggle, Ctrl+C to toggle chat, Esc to dismiss flyout
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // Esc dismisses staged flyout when collapsed
+      if (e.key === 'Escape' && collapsed && (isRailHovered || hoveredId !== null)) {
+        const isModalEsc = Boolean(document.querySelector('.modal-backdrop, .palette'));
+        if (!isModalEsc) {
+          e.preventDefault();
+          if (railEnterTimeoutRef.current) window.clearTimeout(railEnterTimeoutRef.current);
+          if (railLeaveTimeoutRef.current) window.clearTimeout(railLeaveTimeoutRef.current);
+          if (itemHoverTimeoutRef.current) window.clearTimeout(itemHoverTimeoutRef.current);
+          if (hoverGroupLeaveRef.current) window.clearTimeout(hoverGroupLeaveRef.current);
+          setIsRailHovered(false);
+          setHoveredId(null);
+          return;
+        }
+      }
       const target = e.target as HTMLElement | null;
       const isTyping = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
       const isModal = Boolean(document.querySelector('.modal-backdrop, .palette'));
@@ -269,7 +297,7 @@ export function Layout() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [user, activeTeamId]);
+  }, [user, activeTeamId, collapsed, isRailHovered, hoveredId]);
 
   const onHandlePointerDown = (e: React.PointerEvent) => {
     if (collapsed) return;
