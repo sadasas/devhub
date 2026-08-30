@@ -4,6 +4,8 @@
     "calTabs": "Due date view",
     "byStatus": "By Status",
     "byMilestone": "By Milestone",
+    "byCalendar": "Calendar",
+    "byTimeline": "Timeline",
     "byDueDate": "By Due Date",
     "buckets": "Buckets",
     "tabCalendar": "Calendar",
@@ -188,7 +190,24 @@
       "activity": "Activity",
       "updated": "Updated {{time}}",
       "deleteConfirmTitle": "Delete issue?",
-      "deleteConfirmBody": "This permanently deletes the issue. This cannot be undone."
+      "deleteConfirmBody": "This permanently deletes the issue. This cannot be undone.",
+      "createdTimeLabel": "Created time",
+      "untitledIssue": "Untitled issue",
+      "titleRequired": "Title is required",
+      "clickToEdit": "Click to edit",
+      "fullscreenAriaDescription": "Open fullscreen Description",
+      "fullscreenAriaReproduction": "Open fullscreen Reproduction steps",
+      "change": "Change",
+      "add": "+ Add",
+      "taskDeleted": "Task deleted —",
+      "removeLink": "Remove link",
+      "fullscreenHelper": "Esc to exit fullscreen",
+      "fullscreenHelperReadOnly": "Read-only",
+      "changeAria": "Change {{label}}",
+      "editTab": "Edit",
+      "previewTab": "Preview",
+      "fullscreenTitle": "{{label}} — Fullscreen",
+      "unlinkTaskAria": "Unlink task"
     },
     "newModal": {
       "presenceCreating": "Creating issue",
@@ -262,6 +281,41 @@
       "stepsPlaceholder": "1. … 2. … — optional",
       "expectedLabel": "Expected result",
       "expectedPlaceholder": "What should happen — optional"
+    }
+  },
+  "prd": {
+    "editTitle": "Edit PRD",
+    "cancel": "Cancel",
+    "save": "Save PRD",
+    "mdTooltip": "Markdown: \"- bullet, 1. numbered, **bold**, _italic_, `code`\"",
+    "helper": "Markdown supported in all fields — \"- bullet, 1. numbered, **bold**, _italic_, `code`\". Use Edit/Preview per field to check the result.",
+    "modeAria": "{{label}} mode",
+    "edit": "Edit",
+    "preview": "Preview",
+    "nothingToPreview": "Nothing to preview.",
+    "titleLabel": "Description",
+    "titlePlaceholder": "A short description of the project.",
+    "section": {
+      "purpose": {
+        "label": "Purpose",
+        "helper": "Why this project exists — the problem it solves."
+      },
+      "goals": {
+        "label": "Goals",
+        "helper": "What success looks like. One line per goal."
+      },
+      "features": {
+        "label": "Features",
+        "helper": "What this project will do. One feature per line."
+      },
+      "scope": {
+        "label": "Scope",
+        "helper": "What is in scope for this project."
+      },
+      "outOfScope": {
+        "label": "Out of scope",
+        "helper": "What is explicitly out of scope — for now or forever."
+      }
     }
   }
 }

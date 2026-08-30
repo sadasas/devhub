@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ListBullets, PencilSimple, Plus, ShareNetwork, Stack } from '@phosphor-icons/react';
+import { ListBullets, Plus, ShareNetwork, Stack } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import type { TechEntry, TechEntryCategory } from '../../lib/types';
 import { useProject } from '../../state/project-context';
@@ -191,17 +191,6 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
                 <Badge tone={TECH_CATEGORY[entry.category].tone}>
                   {t(`stack.category.${entry.category}`)}
                 </Badge>
-                {canEdit && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="btn-icon"
-                    aria-label={t('stack.editEntryAria')}
-                    onClick={() => setEditingId(entry.id)}
-                  >
-                    <PencilSimple size={14} aria-hidden="true" />
-                  </Button>
-                )}
               </div>
             </div>
           ))}

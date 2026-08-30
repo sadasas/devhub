@@ -1,17 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarBlank, CaretLeft, CaretRight, Plus } from '@phosphor-icons/react';
+import { CaretLeft, CaretRight, Circle, Clock, Eye, CheckCircle } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { addDaysIso, inMonth, isoOf, monthMatrix, monthName, parseIso, weekDays } from '../../lib/calendar';
-import { dueBucket, dueLabel, dueTone, todayIso } from '../../lib/due-dates';
-import { TASK_PRIORITY, TASK_STATUS } from '../../lib/labels';
-import { startLabel } from '../../lib/start-dates';
-import { formatDate, shortId } from '../../lib/utils';
+import { dueBucket, dueLabel, dueTone, taskDueChip, todayIso } from '../../lib/due-dates';
+
 import type { Task } from '../../lib/types';
 import { useProject } from '../../state/project-context';
-import { Badge } from '../../components/Badge';
-import { Button } from '../../components/Button';
-import { EmptyState } from '../../components/EmptyState';
-import { Modal } from '../../components/Modal';
 import { registerDrop } from '../../lib/drop-registry';
 import { useTouchDrag } from '../../hooks/useTouchDrag';
 
@@ -20,24 +14,33 @@ interface DueCalendarProps {
   onQuickCreate: (dueDate: string) => void;
   taskFilter?: (t: Task) => boolean;
   onTouchDrop?: (taskId: string, dropKey: string | null) => void;
+  mineOnly?: boolean;
+  onToggleMine?: (v: boolean) => void;
+  showMineFilter?: boolean;
 }
 
 const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-const MAX_CHIPS_PER_CELL = 3;
-
-const STATUS_ORDER: Task['status'][] = ['todo', 'inProgress', 'review', 'done'];
-
-const dayHeader = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-
 interface CalTaskChipProps {
   task: Task;
   date?: string;
+  segmentStart?: string;
+  span?: number;
   onOpenTask: (taskId: string) => void;
   onTouchDrop?: (taskId: string, dropKey: string | null) => void;
+  onDragOffset?: (offset: number, start: string | null) => void;
+  style?: React.CSSProperties;
+  classNameExtra?: string;
 }
 
-function CalTaskChip({ task, date, onOpenTask, onTouchDrop }: CalTaskChipProps) {
+const STATUS_ICON: Record<string, React.ReactNode> = {
+  todo: <Circle size={14} weight="bold" aria-hidden="true" />,
+  inProgress: <Clock size={14} weight="bold" aria-hidden="true" />,
+  review: <Eye size={14} weight="bold" aria-hidden="true" />,
+  done: <CheckCircle size={14} weight="fill" aria-hidden="true" />,
+};
+
+function CalTaskChip({ task, date, segmentStart, span, onOpenTask, onTouchDrop, onDragOffset, style, classNameExtra }: CalTaskChipProps) {
   const { canEdit } = useProject();
   const ref = useRef<HTMLButtonElement>(null);
   const handleTouchDrop = useCallback(
@@ -45,15 +48,18 @@ function CalTaskChip({ task, date, onOpenTask, onTouchDrop }: CalTaskChipProps) 
     [task.id, onTouchDrop],
   );
   useTouchDrag(ref, { enabled: canEdit && !!onTouchDrop, onDrop: handleTouchDrop });
-  const title = date ? `${task.title} · ${dueLabel(date, todayIso())}` : undefined;
-  const dotTone = date ? dueTone(dueBucket(date, todayIso())) : 'neutral';
+  const title = date ? `${task.title} \u00b7 ${dueLabel(date, todayIso())}` : undefined;
+  const rawTone = task.status === 'done' ? taskDueChip(task).tone : date ? dueTone(dueBucket(date, todayIso())) : 'neutral';
+  const tone = rawTone as 'danger' | 'warn' | 'success' | 'neutral';
+  const isDone = task.status === 'done';
   return (
     <button
       ref={ref}
       type="button"
-      className="due-cal-task"
+      className={`due-cal-task due-cal-task-${tone}${isDone ? ' due-cal-task-done' : ''} ${classNameExtra ?? ''}`}
       draggable={canEdit}
       title={title}
+      style={style}
       onClick={(e) => {
         e.stopPropagation();
         onOpenTask(task.id);
@@ -62,21 +68,47 @@ function CalTaskChip({ task, date, onOpenTask, onTouchDrop }: CalTaskChipProps) 
         e.stopPropagation();
         e.dataTransfer.setData('text/plain', task.id);
         e.dataTransfer.effectAllowed = 'move';
+        if (onDragOffset) {
+          if (segmentStart && span && span > 1) {
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const colWidth = rect.width / span;
+            const offsetInSegment = Math.max(0, Math.min(span - 1, Math.floor(x / colWidth)));
+            const grabDate = addDaysIso(segmentStart, offsetInSegment);
+            onDragOffset(0, grabDate);
+          } else if (segmentStart) {
+            onDragOffset(0, segmentStart);
+          } else {
+            onDragOffset(0, task.startDate ?? task.dueDate ?? null);
+          }
+        }
       }}
     >
-      <span className={`due-cal-dot due-cal-dot-${dotTone}`} aria-hidden="true" />
+      <span aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, opacity: 0.9 }}>
+        {STATUS_ICON[task.status]}
+      </span>
       <span className="due-cal-task-title">{task.title}</span>
     </button>
   );
 }
 
-export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop }: DueCalendarProps) {
+const MAX_VISIBLE = 3;
+
+export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop, mineOnly, onToggleMine, showMineFilter }: DueCalendarProps) {
   const { state, canEdit, dispatch } = useProject();
   const [anchor, setAnchor] = useState(todayIso());
   const [weekMode, setWeekMode] = useState(false);
   const [hideCompleted, setHideCompleted] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
-  const [dayPopup, setDayPopup] = useState<string | null>(null);
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  const [expandedCells, setExpandedCells] = useState<Set<string>>(new Set());
+  const [stripCollapsed, setStripCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem("due-cal-strip-collapsed") === "1"; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("due-cal-strip-collapsed", stripCollapsed ? "1" : "0"); } catch {}
+  }, [stripCollapsed]);
+  const dragGrabDateRef = useRef<string | null>(null);
   const { t } = useTranslation('tracker');
 
   const anchorDate = parseIso(anchor);
@@ -84,31 +116,9 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
   const month = anchorDate.getUTCMonth();
   const today = todayIso();
 
-  const cells = useMemo(() => (weekMode ? weekDays(anchor) : monthMatrix(year, month).flat()), [weekMode, anchor, year, month]);
-
-  const tasksByDay = useMemo(() => {
-    const map = new Map<string, Task[]>();
-    for (const t of state?.tasks ?? []) {
-      if (!t.dueDate) continue;
-      if (hideCompleted && t.status === 'done') continue;
-      if (taskFilter && !taskFilter(t)) continue;
-      const list = map.get(t.dueDate) ?? [];
-      list.push(t);
-      map.set(t.dueDate, list);
-    }
-    return map;
-  }, [state, hideCompleted, taskFilter]);
-
-  const milestonesByDay = useMemo(() => {
-    const map = new Map<string, { id: string; name: string; version: string | null }[]>();
-    for (const m of state?.milestones ?? []) {
-      if (!m.targetDate) continue;
-      const list = map.get(m.targetDate) ?? [];
-      list.push({ id: m.id, name: m.name, version: m.version ?? null });
-      map.set(m.targetDate, list);
-    }
-    return map;
-  }, [state]);
+  const weeks = useMemo(() => monthMatrix(year, month), [year, month]);
+  const flatCells = useMemo(() => (weekMode ? weekDays(anchor) : weeks.flat()), [weekMode, anchor, weeks]);
+  const cells = flatCells;
 
   const unscheduled = useMemo(
     () =>
@@ -117,6 +127,138 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
         .sort((a, b) => a.title.localeCompare(b.title)),
     [state, hideCompleted, taskFilter],
   );
+
+  const dateToPos = useMemo(() => {
+    const map = new Map<string, { row: number; col: number }>();
+    if (weekMode) {
+      const w = weekDays(anchor);
+      w.forEach((d, i) => map.set(d, { row: 0, col: i }));
+    } else {
+      weeks.forEach((week, r) => {
+        week.forEach((d, c) => map.set(d, { row: r, col: c }));
+      });
+    }
+    return map;
+  }, [weeks, weekMode, anchor]);
+
+  const spanningSegments = useMemo(() => {
+    const segments: Array<{ task: Task; row: number; colStart: number; span: number; startDate: string; endDate: string }> = [];
+    const visibleStart = weekMode ? weekDays(anchor)[0]! : weeks[0]![0]!;
+    const visibleEnd = weekMode ? weekDays(anchor)[6]! : weeks[5]![6]!;
+    for (const task of state?.tasks ?? []) {
+      if (!task.dueDate) continue;
+      if (hideCompleted && task.status === 'done') continue;
+      if (taskFilter && !taskFilter(task)) continue;
+      const rawStart = task.startDate && task.startDate <= task.dueDate ? task.startDate : task.dueDate;
+      const rawEnd = task.dueDate;
+      const start = rawStart < visibleStart ? visibleStart : rawStart;
+      const end = rawEnd > visibleEnd ? visibleEnd : rawEnd;
+      if (start > end) continue;
+      let cur = start;
+      while (cur <= end) {
+        const pos = dateToPos.get(cur);
+        if (!pos) break;
+        const row = pos.row;
+        const rowEndDate = weekMode ? weekDays(anchor)[6]! : weeks[row]![6]!;
+        const segEnd = end <= rowEndDate ? end : rowEndDate;
+        const endPos = dateToPos.get(segEnd);
+        if (!endPos) break;
+        const colStart = pos.col;
+        const colEnd = endPos.col;
+        const span = colEnd - colStart + 1;
+        segments.push({ task, row, colStart, span, startDate: cur, endDate: segEnd });
+        if (segEnd === end) break;
+        cur = addDaysIso(segEnd, 1);
+      }
+    }
+    segments.sort((a, b) => a.row - b.row || a.colStart - b.colStart || a.task.title.localeCompare(b.task.title));
+    return segments;
+  }, [state, hideCompleted, taskFilter, weeks, weekMode, anchor, dateToPos]);
+
+  // Group by row and compute lanes and overflow
+  const rowGroups = useMemo(() => {
+    const byRow = new Map<number, typeof spanningSegments>();
+    for (const s of spanningSegments) {
+      const arr = byRow.get(s.row) ?? [];
+      arr.push(s);
+      byRow.set(s.row, arr);
+    }
+    const result = new Map<number, { segments: typeof spanningSegments; lanes: number[][]; overflow: number }>();
+    for (const [row, segs] of byRow) {
+      // sort for lane packing already sorted
+      const lanes: number[] = [];
+      const segLanes = new Map<string, number>();
+      for (const seg of segs) {
+        let lane = 0;
+        for (let i = 0; i < lanes.length; i++) {
+          if (seg.colStart > lanes[i]!) {
+            lane = i;
+            break;
+          }
+          if (i === lanes.length - 1) lane = lanes.length;
+        }
+        if (lane === lanes.length) lanes.push(seg.colStart + seg.span - 1);
+        else lanes[lane] = seg.colStart + seg.span - 1;
+        segLanes.set(`${seg.task.id}-${seg.colStart}`, lane);
+      }
+      // For max visible, we need per-row max lanes needed
+      const totalLanes = lanes.length;
+      const overflow = Math.max(0, totalLanes - MAX_VISIBLE);
+      result.set(row, { segments: segs as any, lanes: lanes as any, overflow } as any);
+    }
+    return result;
+  }, [spanningSegments]);
+
+  const segmentsWithLane = useMemo(() => {
+    const result: Array<(typeof spanningSegments)[number] & { lane: number }> = [];
+    for (const [row, group] of rowGroups) {
+      const isExpanded = expandedRows.has(row);
+      // recompute lanes with cap
+      const segs = group.segments as typeof spanningSegments;
+      const lanes: number[] = [];
+      for (const seg of segs) {
+        let lane = 0;
+        for (let i = 0; i < lanes.length; i++) {
+          if (seg.colStart > lanes[i]!) {
+            lane = i;
+            break;
+          }
+          if (i === lanes.length - 1) lane = lanes.length;
+        }
+        const wouldBeLane = lane === lanes.length ? lanes.length : lane;
+        // if not expanded and would be >= MAX_VISIBLE, skip (will be in +N)
+        if (!isExpanded && wouldBeLane >= MAX_VISIBLE) {
+          // skip rendering this segment, it will be counted in more
+          continue;
+        }
+        if (lane === lanes.length) lanes.push(seg.colStart + seg.span - 1);
+        else lanes[lane] = seg.colStart + seg.span - 1;
+        result.push({ ...seg, lane });
+      }
+    }
+    return result;
+  }, [spanningSegments, rowGroups, expandedRows]);
+
+  // Row heights: if expanded, height follows max lanes, else 112
+  const rowHeights = useMemo(() => {
+    const heights: number[] = [];
+    const numRows = weekMode ? 1 : 6;
+    for (let r = 0; r < numRows; r++) {
+      const group = rowGroups.get(r);
+      if (!group) {
+        heights.push(112);
+        continue;
+      }
+      const totalLanes = (group as any).lanes?.length ?? 0;
+      const isRowExpanded = expandedRows.has(r) || Array.from(expandedCells).some(d => {
+        const pos = dateToPos.get(d);
+        return pos?.row === r;
+      });
+      const needed = isRowExpanded ? Math.max(140, 28 + totalLanes * 26 + 28) : 140;
+      heights.push(needed);
+    }
+    return heights;
+  }, [rowGroups, expandedRows, expandedCells, weekMode, dateToPos]);
 
   const nav = (dir: number) => {
     if (weekMode) {
@@ -136,8 +278,30 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
     (taskId: string, date: string | null) => {
       if (!canEdit) return;
       const task = state?.tasks.find((t) => t.id === taskId);
-      if (task && task.dueDate !== date) {
-        dispatch({ type: 'task/update', id: taskId, patch: { dueDate: date } });
+      if (!task) return;
+      if (date === null) {
+        if (task.dueDate !== null) dispatch({ type: 'task/update', id: taskId, patch: { dueDate: null } });
+        dragGrabDateRef.current = null;
+        return;
+      }
+      if (task.startDate && task.dueDate && task.startDate !== task.dueDate) {
+        const oldStart = task.startDate;
+        const oldDue = task.dueDate!;
+        const duration = Math.round((parseIso(oldDue).getTime() - parseIso(oldStart).getTime()) / 86400000);
+        const grabDate = dragGrabDateRef.current;
+        let offset = 0;
+        if (grabDate) {
+          offset = Math.round((parseIso(grabDate).getTime() - parseIso(oldStart).getTime()) / 86400000);
+        }
+        const newStart = addDaysIso(date, -offset);
+        const newDue = addDaysIso(newStart, duration);
+        dragGrabDateRef.current = null;
+        if (task.dueDate !== newDue || task.startDate !== newStart) {
+          dispatch({ type: 'task/update', id: taskId, patch: { dueDate: newDue, startDate: newStart } });
+        }
+      } else {
+        dragGrabDateRef.current = null;
+        if (task.dueDate !== date) dispatch({ type: 'task/update', id: taskId, patch: { dueDate: date } });
       }
     },
     [canEdit, state, dispatch],
@@ -166,8 +330,6 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
   };
 
   const cell = (date: string) => {
-    const tasks = tasksByDay.get(date) ?? [];
-    const milestones = milestonesByDay.get(date) ?? [];
     const dimmed = !weekMode && !inMonth(date, year, month);
     const isToday = date === today;
     return (
@@ -185,9 +347,9 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
           else if (e.key === 'ArrowUp') moveFocus(-7);
           else if (e.key === 'PageDown') nav(1);
           else if (e.key === 'PageUp') nav(-1);
-          else if (e.key === 'Enter') setDayPopup(date);
+          else if (e.key === 'Enter') onQuickCreate(date);
         }}
-        onClick={() => setDayPopup(date)}
+        onClick={() => onQuickCreate(date)}
         onDragOver={(e) => {
           e.preventDefault();
           e.dataTransfer.dropEffect = 'move';
@@ -195,38 +357,13 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
         onDrop={onDrop(date)}
       >
         <span className="due-cal-daynum">{date.slice(8)}</span>
-        {milestones.length > 0 && (
-          <span className="due-cal-milestones">
-            {milestones.map((m) => (
-              <span
-                key={m.id}
-                className="due-cal-milestone"
-                title={`${m.name}${m.version ? ` ${m.version}` : ''}`}
-              >
-                ◆
-              </span>
-            ))}
-          </span>
-        )}
-        {tasks.slice(0, MAX_CHIPS_PER_CELL).map((t) => (
-          <CalTaskChip key={t.id} task={t} date={date} onOpenTask={onOpenTask} onTouchDrop={onTouchDrop} />
-        ))}
-        {tasks.length > MAX_CHIPS_PER_CELL && (
-          <button
-            type="button"
-            className="due-cal-more"
-            title={t('board.cal.moreTitle', { count: tasks.length })}
-            onClick={(e) => {
-              e.stopPropagation();
-              setDayPopup(date);
-            }}
-          >
-            {t('board.cal.moreChip', { count: tasks.length - MAX_CHIPS_PER_CELL })}
-          </button>
-        )}
       </div>
     );
   };
+
+  const gridRowTemplate = weekMode
+    ? `28px ${rowHeights[0]}px`
+    : `28px ${rowHeights.map((h) => `${h}px`).join(' ')}`;
 
   return (
     <div className="due-cal">
@@ -263,152 +400,207 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
             {t('board.cal.week')}
           </button>
         </div>
-        <label className="due-cal-hide">
-          <input
-            type="checkbox"
-            checked={hideCompleted}
-            onChange={(e) => setHideCompleted(e.target.checked)}
-          />
-          {t('board.cal.hideCompleted')}
-        </label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          {showMineFilter && onToggleMine && (
+            <label className="due-cal-hide">
+              <input
+                type="checkbox"
+                checked={!!mineOnly}
+                onChange={(e) => onToggleMine(e.target.checked)}
+              />
+              {t('board.onlyMyTasks')}
+            </label>
+          )}
+          <label className="due-cal-hide">
+            <input
+              type="checkbox"
+              checked={hideCompleted}
+              onChange={(e) => setHideCompleted(e.target.checked)}
+            />
+            {t('board.cal.hideCompleted')}
+          </label>
+        </div>
       </div>
 
-      <div className={`due-cal-grid due-cal-${weekMode ? 'week' : 'month'}`}>
-        {WEEKDAY_LABELS.map((d) => (
-          <div key={d} className="due-cal-head">
-            {t(`board.cal.weekday.${d.toLowerCase()}`)}
+      <div className="due-cal-body">
+        <div className={`due-cal-grid due-cal-${weekMode ? 'week' : 'month'}`} style={{ position: 'relative', gridTemplateRows: gridRowTemplate }}>
+          {WEEKDAY_LABELS.map((d) => (
+            <div key={d} className="due-cal-head">
+              {t(`board.cal.weekday.${d.toLowerCase()}`)}
+            </div>
+          ))}
+          {cells.map(cell)}
+        <div className="due-cal-spans-container" style={{ position: 'absolute', top: '28px', left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
+          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+        {segmentsWithLane.map(({ task, row, colStart, span, lane, startDate }) => {
+          const top = rowHeights.slice(0, row).reduce((a, b) => a + b + 1, 0) + 28 + lane * 26;
+          const left = `calc(${colStart} * ((100% - 6px) / 7 + 1px) + 4px)`;
+          const width = `calc(${span} * ((100% - 6px) / 7) + ${(span - 1) * 1}px - 8px)`;
+          const segmentStart = startDate ?? task.startDate ?? task.dueDate ?? null;
+          return (
+            <CalTaskChip
+              key={`${task.id}-${row}-${colStart}`}
+              task={task}
+              date={task.dueDate ?? undefined}
+              segmentStart={segmentStart ?? undefined}
+              span={span}
+              onOpenTask={onOpenTask}
+              onTouchDrop={onTouchDrop}
+              onDragOffset={(_, grabDate) => { dragGrabDateRef.current = grabDate; }}
+              classNameExtra="due-cal-span"
+              style={{
+                position: 'absolute',
+                top: `${top}px`,
+                left,
+                width,
+                zIndex: 2,
+                margin: 0,
+                pointerEvents: 'auto',
+              }}
+            />
+          );
+        })}
+        {/* lihat yang lain per cell - di dalam cell */}
+        {cells.map(date => {
+          const covering = spanningSegments.filter(s => date >= s.startDate && date <= s.endDate).length;
+          if (covering <= MAX_VISIBLE) return null;
+          const pos = dateToPos.get(date);
+          if (!pos) return null;
+          const row = pos.row;
+          const col = pos.col;
+          const isExpanded = expandedCells.has(date) || expandedRows.has(row);
+          if (isExpanded) return null;
+          const overflow = covering - MAX_VISIBLE;
+          const rowTop = rowHeights.slice(0, row).reduce((a,b)=>a+b+1,0);
+          const top = rowTop + 28 + MAX_VISIBLE * 26; // lane 3 di dalam cell
+          const left = `calc(${col} * ((100% - 6px) / 7 + 1px) + 4px)`;
+          const width = `calc((100% - 6px) / 7 - 8px)`;
+          return (
+            <button
+              key={`more-${date}`}
+              type="button"
+              className="due-cal-more"
+              style={{
+                position: 'absolute',
+                top: `${top}px`,
+                left,
+                width,
+                zIndex: 2,
+                pointerEvents: 'auto',
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpandedCells(s => {
+                  const n = new Set(s);
+                  n.add(date);
+                  return n;
+                });
+                setExpandedRows(s => {
+                  const n = new Set(s);
+                  n.add(row);
+                  return n;
+                });
+              }}
+            >
+              +{overflow} lagi
+            </button>
+          );
+        })}
+        {/* tombol ciutkan per cell */}
+        {Array.from(expandedCells).map(date => {
+          const pos = dateToPos.get(date);
+          if (!pos) return null;
+          const row = pos.row;
+          const col = pos.col;
+          const group = rowGroups.get(row) as any;
+          const total = group?.lanes.length ?? 0;
+          const top = rowHeights.slice(0, row).reduce((a,b)=>a+b+1,0) + 28 + total * 26 + 4;
+          const left = `calc(${col} * ((100% - 6px) / 7 + 1px) + 4px)`;
+          const width = `calc((100% - 6px) / 7 - 8px)`;
+          return (
+            <button
+              key={`less-${date}`}
+              type="button"
+              className="due-cal-more"
+              style={{
+                position: 'absolute',
+                top: `${top}px`,
+                left,
+                width,
+                zIndex: 2,
+                pointerEvents: 'auto',
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpandedCells(s => {
+                  const n = new Set(s);
+                  n.delete(date);
+                  return n;
+                });
+                // check if any other cell in same row still expanded, if not, collapse row
+                const stillExpandedInRow = Array.from(expandedCells).some(d => d !== date && dateToPos.get(d)?.row === row);
+                if (!stillExpandedInRow) {
+                  setExpandedRows(s => {
+                    const n = new Set(s);
+                    n.delete(row);
+                    return n;
+                  });
+                }
+              }}
+            >
+              ciutkan
+            </button>
+          );
+        })}
           </div>
-        ))}
-        {cells.map(cell)}
-      </div>
+        </div>
+        </div>
 
-      <div
-        className="due-cal-strip"
+      <aside
+        id="due-cal-strip"
+        className={`due-cal-strip ${stripCollapsed ? 'is-collapsed' : ''}`}
         data-drop-key="clear"
+        role={stripCollapsed ? 'button' : undefined}
+        tabIndex={stripCollapsed ? 0 : undefined}
+        aria-label={stripCollapsed ? t('board.cal.expandUnscheduled') : undefined}
+        onClick={stripCollapsed ? () => setStripCollapsed(false) : undefined}
+        onKeyDown={stripCollapsed ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setStripCollapsed(false); } } : undefined}
         onDragOver={(e) => {
           e.preventDefault();
           e.dataTransfer.dropEffect = 'move';
         }}
         onDrop={onClearDrop}
       >
-        <span className="due-cal-strip-label">{t('board.cal.noDate')}</span>
-        {unscheduled.length === 0 && <span className="due-cal-strip-empty">{t('board.cal.stripEmpty')}</span>}
-        {unscheduled.map((t) => (
-          <CalTaskChip key={t.id} task={t} onOpenTask={onOpenTask} onTouchDrop={onTouchDrop} />
+        <div className="due-cal-strip-head">
+          {stripCollapsed ? (
+            <button
+              type="button"
+              className="due-cal-strip-label is-collapsed-label"
+              aria-label={t('board.cal.expandUnscheduled')}
+              onClick={(e) => { e.stopPropagation(); setStripCollapsed(false); }}
+            >
+              {t('board.cal.noDate')} ({unscheduled.length})
+            </button>
+          ) : (
+            <span className="due-cal-strip-label">{t('board.cal.noDate')} ({unscheduled.length})</span>
+          )}
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm btn-icon due-cal-strip-toggle"
+            aria-expanded={!stripCollapsed}
+            aria-controls="due-cal-strip"
+            aria-label={stripCollapsed ? t('board.cal.expandUnscheduled') : t('board.cal.collapseUnscheduled')}
+            onClick={(e) => { e.stopPropagation(); setStripCollapsed(v => !v); }}
+          >
+            {stripCollapsed ? <CaretRight size={14} /> : <CaretLeft size={14} />}
+          </button>
+        </div>
+        {!stripCollapsed && unscheduled.length === 0 && <span className="due-cal-strip-empty">{t('board.cal.stripEmpty')}</span>}
+        {!stripCollapsed && unscheduled.map((t) => (
+          <CalTaskChip key={t.id} task={t} onOpenTask={onOpenTask} onTouchDrop={onTouchDrop} onDragOffset={(_, grabDate) => { dragGrabDateRef.current = grabDate; }} />
         ))}
+      </aside>
       </div>
-
-      <Modal
-        open={dayPopup !== null}
-        title={dayPopup ? dayHeader.format(parseIso(dayPopup)) : ''}
-        onClose={() => setDayPopup(null)}
-        width="md"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setDayPopup(null)}>
-              {t('board.cal.close')}
-            </Button>
-            {canEdit && dayPopup && (
-              <Button
-                variant="primary"
-                leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />}
-                onClick={() => {
-                  onQuickCreate(dayPopup);
-                  setDayPopup(null);
-                }}
-              >
-                {t('board.cal.addTask')}
-              </Button>
-            )}
-          </>
-        }
-      >
-        {dayPopup &&
-          (() => {
-            const dayTasks = (tasksByDay.get(dayPopup) ?? []).slice().sort((a, b) => {
-              const order = STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status);
-              if (order !== 0) return order;
-              return a.title.localeCompare(b.title);
-            });
-            const dayMilestones = milestonesByDay.get(dayPopup) ?? [];
-            const done = dayTasks.filter((t) => t.status === 'done').length;
-            const milestoneChips =
-              dayMilestones.length > 0 ? (
-                <div className="detail-chips mb-12">
-                  {dayMilestones.map((m) => (
-                    <span
-                      key={m.id}
-                      className="task-label"
-                      title={`${m.name}${m.version ? ` ${m.version}` : ''}`}
-                    >
-                      ◆ {m.name}
-                    </span>
-                  ))}
-                </div>
-              ) : null;
-            if (dayTasks.length === 0) {
-              return (
-                <>
-                  {milestoneChips}
-                  <EmptyState
-                    icon={<CalendarBlank size={22} />}
-                    title={t('board.cal.emptyTitle')}
-                    description={t('board.cal.emptyDesc')}
-                  />
-                </>
-              );
-            }
-            const summary = done > 0
-              ? t('board.cal.daySummaryDone', { count: dayTasks.length, done })
-              : t('board.cal.daySummary', { count: dayTasks.length });
-            return (
-              <>
-                <h4 className="detail-subtitle">{summary}</h4>
-                {milestoneChips}
-                <div className="due-day-list">
-                  {dayTasks.map((t) => {
-                    const milestone = t.milestoneId
-                      ? (state?.milestones.find((m) => m.id === t.milestoneId) ?? null)
-                      : null;
-                    return (
-                      <button
-                        key={t.id}
-                        type="button"
-                        className="due-day-row"
-                        onClick={() => {
-                          onOpenTask(t.id);
-                          setDayPopup(null);
-                        }}
-                      >
-                        <span className="due-day-row-main">
-                          <span className="due-day-row-title">
-                            <Badge tone={TASK_PRIORITY[t.priority].tone}>
-                              {TASK_PRIORITY[t.priority].label}
-                            </Badge>
-                            <span className="row-title-text">{t.title}</span>
-                          </span>
-                          <span className="due-day-row-meta">
-                            {t.startDate && (
-                              <span className="task-start" title={formatDate(t.startDate)}>
-                                {startLabel(t.startDate)}
-                              </span>
-                            )}
-                            {milestone && <span className="task-label">{milestone.name}</span>}
-                            {t.estimate != null && <span className="tabular">{t.estimate}h</span>}
-                            <span className="due-day-row-id">#{shortId(t.id)}</span>
-                          </span>
-                        </span>
-                        <span className="due-day-row-side">
-                          <Badge tone={TASK_STATUS[t.status].tone}>{TASK_STATUS[t.status].label}</Badge>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </>
-            );
-          })()}
-      </Modal>
     </div>
   );
 }

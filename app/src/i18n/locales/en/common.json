@@ -88,7 +88,10 @@
       "targetDate": "Target date",
       "dueDate": "Due date",
       "startDate": "Start date"
-    }
+    },
+    "expandWithCount": "View full ({{count}} characters)",
+    "collapse": "Hide",
+    "identicalPreview": "Identical preview — click View full for change details"
   },
   "errorBoundary": {
     "title": "Something went wrong",

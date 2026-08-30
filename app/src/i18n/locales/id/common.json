@@ -88,7 +88,10 @@
       "targetDate": "Tanggal target",
       "dueDate": "Tanggal jatuh tempo",
       "startDate": "Tanggal mulai"
-    }
+    },
+    "expandWithCount": "Lihat lengkap ({{count}} karakter)",
+    "collapse": "Sembunyikan",
+    "identicalPreview": "Pratinjau identik — klik Lihat lengkap untuk detail perubahan"
   },
   "errorBoundary": {
     "title": "Terjadi kesalahan",

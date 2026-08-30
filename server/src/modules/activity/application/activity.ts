@@ -29,7 +29,9 @@ export interface ActivityEntry {
 export const ACTIVITY_PER_PROJECT = 500;
 export const ACTIVITY_PER_ENTITY = 50;
 export const ACTIVITY_CLUSTER_MS = 60_000;
-const VALUE_MAX_LEN = 300;
+const VALUE_MAX_LEN = 2000;
+const LONG_VALUE_MAX_LEN = 5000;
+const LONG_VALUE_FIELDS = new Set(["description","reproduction","notes","steps","expected","context","decision","consequences","changelog","body","purpose","goals","features","scope","outOfScope"]);
 
 const ENTITY_LABELS: Record<string, string> = {
   tasks: 'Task',
@@ -163,15 +165,16 @@ export function entitySummary(
   return summary;
 }
 
-function truncate(value: unknown): unknown {
+function truncate(value: unknown, field?: string): unknown {
+  const limit = field && LONG_VALUE_FIELDS.has(field) ? LONG_VALUE_MAX_LEN : VALUE_MAX_LEN;
   if (Array.isArray(value)) {
     return value
       .map((v) => String(v))
-      .join(', ')
-      .slice(0, VALUE_MAX_LEN);
+      .join(", ")
+      .slice(0, limit);
   }
-  if (typeof value === 'string' && value.length > VALUE_MAX_LEN) {
-    return `${value.slice(0, VALUE_MAX_LEN)}…`;
+  if (typeof value === "string" && value.length > limit) {
+    return `${value.slice(0, limit)}…`;
   }
   return value;
 }
@@ -199,7 +202,7 @@ export function diffEntities(
     if (normalize(a) === normalize(b)) continue;
     const from = fieldCount(entity ?? '', key, a);
     const to = fieldCount(entity ?? '', key, b);
-    changes[key] = from !== null ? { from, to } : { from: truncate(a), to: truncate(b) };
+    changes[key] = from !== null ? { from, to } : { from: truncate(a, key), to: truncate(b, key) };
   }
   return changes;
 }

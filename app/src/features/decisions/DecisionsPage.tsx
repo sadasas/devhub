@@ -11,7 +11,7 @@ import type { Decision } from '../../lib/types';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
-import { PencilSimple, Plus, Scales } from '@phosphor-icons/react';
+import { Plus, Scales } from '@phosphor-icons/react';
 import { PinButton } from '../../components/PinButton';
 import { Skeleton } from '../../components/Skeleton';
 import { SortControl } from '../../components/SortControl';
@@ -124,8 +124,7 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
                     <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">New</span>
                     )}
                 </div>
-              </button>
-              <div className="data-row-side">
+              </button>              <div className="data-row-side" style={{ justifyContent: 'flex-start', gap: '4px' }}>
                 {canEdit && (
                   <PinButton
                     pinned={!!d.pinned}
@@ -134,17 +133,6 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
                       dispatch({ type: 'decision/update', id: d.id, patch: { pinned: !d.pinned } })
                     }
                   />
-                )}
-                {canEdit && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="btn-icon"
-                    aria-label={t('decisions.editAria')}
-                    onClick={() => setEditId(d.id)}
-                  >
-                    <PencilSimple size={14} aria-hidden="true" />
-                  </Button>
                 )}
               </div>
             </div>

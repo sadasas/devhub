@@ -24,14 +24,24 @@ export function Layout() {
   const [navOpen, setNavOpen] = useState(false);
   const [createTeamOpen, setCreateTeamOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<boolean>(() => {
-    try { return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true'; } catch { return false; }
+    try {
+      const v = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+      // default is collapsed true; if key missing => true (new behavior)
+      if (v === null) return true;
+      return v === 'true';
+    } catch { return true; }
   });
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     try { const v = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY)); return v >= 200 && v <= 400 ? v : 240; } catch { return 240; }
   });
   const [liveMsg, setLiveMsg] = useState('');
-  const [hoverExpand, setHoverExpand] = useState(false);
-  const hoverTimeoutRef = useRef<number | null>(null);
+  // staged hover: railHover = main rail expanded, hoveredId = which item second shows
+  const [isRailHovered, setIsRailHovered] = useState(false);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const railEnterTimeoutRef = useRef<number | null>(null);
+  const railLeaveTimeoutRef = useRef<number | null>(null);
+  const itemHoverTimeoutRef = useRef<number | null>(null);
+  const hoverGroupLeaveRef = useRef<number | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation('shell');
@@ -39,7 +49,23 @@ export function Layout() {
   const { projects } = useProjects();
   const { user } = useAuth();
 
-  const effectiveCollapsed = collapsed && !hoverExpand;
+  const isSecondVisible = useMemo(() => {
+    if (!collapsed) return true; // pinned docked — always visible
+    return isRailHovered && hoveredId !== null;
+  }, [collapsed, isRailHovered, hoveredId]);
+
+  // hoveredTeamId is null | 'home' | teamId
+  // Sidebar context: when collapsed flyout → use hoveredId, when pinned → use activeMain-derived team
+  const sidebarContextTeamId = useMemo(() => {
+    if (!collapsed) return null; // pinned uses activeTeamId directly
+    if (hoveredId === 'home') return '__home__';
+    return hoveredId;
+  }, [collapsed, hoveredId]);
+
+  // effectiveCollapsed for a11y inert: sidebar hidden when not secondVisible and collapsed
+  const effectiveCollapsed = collapsed && !isSecondVisible;
+  // rail compact when collapsed and not hovered
+  const railCompact = collapsed && !isRailHovered;
 
   const [railTeamId, setRailTeamId] = useState<string | null>(() => {
     try {
@@ -131,26 +157,92 @@ export function Layout() {
     };
   }, [navOpen]);
 
-  const handleToggleCollapsed = () => { if (window.matchMedia('(max-width: 860px)').matches) return; setHoverExpand(false); setCollapsed(v => !v); };
+  const handleToggleCollapsed = () => {
+    if (window.matchMedia('(max-width: 860px)').matches) return;
+    // clear all hover timers when toggling pinned
+    if (railEnterTimeoutRef.current) window.clearTimeout(railEnterTimeoutRef.current);
+    if (railLeaveTimeoutRef.current) window.clearTimeout(railLeaveTimeoutRef.current);
+    if (itemHoverTimeoutRef.current) window.clearTimeout(itemHoverTimeoutRef.current);
+    if (hoverGroupLeaveRef.current) window.clearTimeout(hoverGroupLeaveRef.current);
+    setIsRailHovered(false);
+    setHoveredId(null);
+    setCollapsed(v => !v);
+  };
 
-  const handleHoverEnter = () => {
+  const clearHoverTimers = () => {
+    if (hoverGroupLeaveRef.current) { window.clearTimeout(hoverGroupLeaveRef.current); hoverGroupLeaveRef.current = null; }
+    if (railLeaveTimeoutRef.current) { window.clearTimeout(railLeaveTimeoutRef.current); railLeaveTimeoutRef.current = null; }
+  };
+
+  const handleRailEnter = () => {
     if (window.matchMedia('(max-width: 860px)').matches) return;
     if (!collapsed) return;
     if (window.matchMedia('(hover: none)').matches) return;
-    if (hoverTimeoutRef.current) window.clearTimeout(hoverTimeoutRef.current);
-    setHoverExpand(true);
+    clearHoverTimers();
+    if (railEnterTimeoutRef.current) window.clearTimeout(railEnterTimeoutRef.current);
+    if (railLeaveTimeoutRef.current) window.clearTimeout(railLeaveTimeoutRef.current);
+    // small enter delay to filter mouse pass-through
+    railEnterTimeoutRef.current = window.setTimeout(() => {
+      setIsRailHovered(true);
+    }, 70) as unknown as number;
   };
-  const handleHoverLeave = () => {
-    if (hoverTimeoutRef.current) window.clearTimeout(hoverTimeoutRef.current);
-    hoverTimeoutRef.current = window.setTimeout(() => setHoverExpand(false), 140) as unknown as number;
+
+  const handleRailLeave = () => {
+    if (railEnterTimeoutRef.current) { window.clearTimeout(railEnterTimeoutRef.current); railEnterTimeoutRef.current = null; }
+    if (railLeaveTimeoutRef.current) window.clearTimeout(railLeaveTimeoutRef.current);
+    railLeaveTimeoutRef.current = window.setTimeout(() => {
+      setIsRailHovered(false);
+      // keep hoveredId a bit longer to allow moving into second panel via bridge
+      // actual hide is controlled by hoverGroup
+    }, 160) as unknown as number;
+  };
+
+  const handleHoverItem = (id: string | null) => {
+    if (window.matchMedia('(max-width: 860px)').matches) return;
+    if (!collapsed) return;
+    if (window.matchMedia('(hover: none)').matches) return;
+    clearHoverTimers();
+    if (itemHoverTimeoutRef.current) window.clearTimeout(itemHoverTimeoutRef.current);
+    if (id === null) {
+      // leave item but stay on rail -> keep rail expanded, hide second after short delay
+      itemHoverTimeoutRef.current = window.setTimeout(() => setHoveredId(null), 90) as unknown as number;
+    } else {
+      // enter item -> show second after small debounce to avoid flicker on fast move
+      // if already have a hoveredId, reduce delay for snappy feel
+      const delay = hoveredId ? 55 : 75;
+      itemHoverTimeoutRef.current = window.setTimeout(() => {
+        setIsRailHovered(true);
+        setHoveredId(id);
+      }, delay) as unknown as number;
+    }
+  };
+
+  const handleHoverGroupEnter = () => {
+    clearHoverTimers();
+  };
+
+  const handleHoverGroupLeave = () => {
+    if (hoverGroupLeaveRef.current) window.clearTimeout(hoverGroupLeaveRef.current);
+    hoverGroupLeaveRef.current = window.setTimeout(() => {
+      setIsRailHovered(false);
+      setHoveredId(null);
+    }, 260) as unknown as number;
   };
 
   useEffect(() => {
-    return () => { if (hoverTimeoutRef.current) window.clearTimeout(hoverTimeoutRef.current); };
+    return () => {
+      if (railEnterTimeoutRef.current) window.clearTimeout(railEnterTimeoutRef.current);
+      if (railLeaveTimeoutRef.current) window.clearTimeout(railLeaveTimeoutRef.current);
+      if (itemHoverTimeoutRef.current) window.clearTimeout(itemHoverTimeoutRef.current);
+      if (hoverGroupLeaveRef.current) window.clearTimeout(hoverGroupLeaveRef.current);
+    };
   }, []);
 
   useEffect(() => {
-    if (!collapsed) setHoverExpand(false);
+    if (!collapsed) {
+      setIsRailHovered(false);
+      setHoveredId(null);
+    }
   }, [collapsed]);
 
   // keyboard Ctrl+B or [ to toggle, Ctrl+C to toggle chat
@@ -180,7 +272,7 @@ export function Layout() {
   }, [user, activeTeamId]);
 
   const onHandlePointerDown = (e: React.PointerEvent) => {
-    if (effectiveCollapsed) return;
+    if (collapsed) return;
     const startX = e.clientX;
     const startW = sidebarWidth;
     const onMove = (ev: PointerEvent) => {
@@ -206,8 +298,22 @@ export function Layout() {
     navigate('/');
   };
 
+  // derived sidebar context for staged hover
+  const sidebarTeamId = useMemo(() => {
+    if (!collapsed) return activeTeamId;
+    if (hoveredId === 'home') return null;
+    if (hoveredId) return hoveredId;
+    return activeTeamId;
+  }, [collapsed, hoveredId, activeTeamId]);
+  const sidebarMain: 'home' | 'team' = useMemo(() => {
+    if (!collapsed) return activeMain;
+    if (hoveredId === 'home') return 'home';
+    if (hoveredId) return 'team';
+    return activeMain;
+  }, [collapsed, hoveredId, activeMain]);
+
   return (
-    <div className="layout" data-collapsed={collapsed ? 'true' : undefined} data-hover-expand={hoverExpand ? 'true' : undefined} style={{ ['--sidebar-w' as any]: `${sidebarWidth}px` } as React.CSSProperties}>
+    <div className="layout" data-collapsed={collapsed ? 'true' : undefined} data-rail-hover={isRailHovered ? 'true' : undefined} data-second-visible={isSecondVisible ? 'true' : undefined} data-hover-expand={isRailHovered ? 'true' : undefined} style={{ ['--sidebar-w' as any]: `${sidebarWidth}px` } as React.CSSProperties}>
       <a className="skip-link" href="#main-content">
         {t('layout.skipToContent')}
       </a>
@@ -247,18 +353,28 @@ export function Layout() {
         aria-label={t('layout.closeNav')}
         tabIndex={navOpen ? 0 : -1}
       />
-      <div className="team-rail-desktop" aria-hidden="true" onMouseEnter={handleHoverEnter} onMouseLeave={handleHoverLeave} onFocusCapture={handleHoverEnter} onBlurCapture={handleHoverLeave}>
-        <TeamRail
-          teams={teams}
-          activeTeamId={activeTeamId}
-          activeMain={activeMain}
-          compact={effectiveCollapsed}
-          collapsed={collapsed}
-          onToggleCollapsed={handleToggleCollapsed}
-          onSelectTeam={handleSelectTeam}
-          onSelectHome={handleSelectHome}
-          onCreateTeam={() => setCreateTeamOpen(true)}
-        />
+      <div className="desktop-sidebar-group" onPointerEnter={handleHoverGroupEnter} onPointerLeave={handleHoverGroupLeave}>
+        <div className="team-rail-desktop" aria-hidden="false" onPointerEnter={handleRailEnter} onPointerLeave={handleRailLeave} onFocusCapture={handleRailEnter} onBlurCapture={handleHoverGroupLeave}>
+          <TeamRail
+            teams={teams}
+            activeTeamId={activeTeamId}
+            activeMain={activeMain}
+            compact={railCompact}
+            collapsed={collapsed}
+            onToggleCollapsed={handleToggleCollapsed}
+            onSelectTeam={handleSelectTeam}
+            onSelectHome={handleSelectHome}
+            onCreateTeam={() => setCreateTeamOpen(true)}
+            onHoverItem={handleHoverItem}
+            hoveredId={hoveredId}
+          />
+        </div>
+        <div className="sidebar-shell" data-visible={isSecondVisible ? 'true' : 'false'} aria-hidden={collapsed && !isSecondVisible} onPointerEnter={handleHoverGroupEnter} onPointerLeave={handleHoverGroupLeave}>
+          <div id="sidebar-region" className="sidebar-region" inert={collapsed && !isSecondVisible ? '' as any : undefined} aria-hidden={collapsed && !isSecondVisible}>
+            <Sidebar activeTeamId={sidebarTeamId} activeMain={sidebarMain} onCreateTeam={() => setCreateTeamOpen(true)} />
+          </div>
+          {!collapsed && <div className="sidebar-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" onPointerDown={onHandlePointerDown} onDoubleClick={handleToggleCollapsed} />}
+        </div>
       </div>
       <div className={`sidebar-drawer${navOpen ? ' sidebar-open' : ''}`}>
         <div className="sidebar-drawer-inner">
@@ -274,12 +390,6 @@ export function Layout() {
           </div>
           <Sidebar activeTeamId={activeTeamId} activeMain={activeMain} onCreateTeam={() => setCreateTeamOpen(true)} />
         </div>
-      </div>
-      <div className="sidebar-shell" style={{ width: collapsed ? 0 : undefined }} aria-hidden={effectiveCollapsed} onMouseEnter={handleHoverEnter} onMouseLeave={handleHoverLeave} onFocusCapture={handleHoverEnter} onBlurCapture={handleHoverLeave}>
-        <div id="sidebar-region" className="sidebar-region" inert={effectiveCollapsed ? '' as any : undefined} aria-hidden={effectiveCollapsed}>
-          <Sidebar activeTeamId={activeTeamId} activeMain={activeMain} onCreateTeam={() => setCreateTeamOpen(true)} />
-        </div>
-        {!collapsed && <div className="sidebar-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" onPointerDown={onHandlePointerDown} onDoubleClick={handleToggleCollapsed} />}
       </div>
       <main className="main" id="main-content">
         <Outlet />

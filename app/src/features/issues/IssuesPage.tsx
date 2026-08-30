@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bug, PencilSimple, Plus } from '@phosphor-icons/react';
+import { Bug, Plus } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../state/project-context';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
@@ -135,7 +135,7 @@ return (
                       )}
                   </div>
                 </button>
-                <div className="data-row-side">
+                <div className="data-row-side" style={{ justifyContent: 'flex-start', gap: '4px' }}>
                   <Badge tone={ISSUE_STATUS[issue.status].tone}>{t(`issues.status.${issue.status}`)}</Badge>
                   {canEdit && (
                     <PinButton
@@ -149,17 +149,6 @@ return (
                         })
                       }
                     />
-                  )}
-                  {canEdit && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="btn-icon"
-                      aria-label={t('issues.editAria')}
-                      onClick={() => setEditingId(issue.id)}
-                    >
-                      <PencilSimple size={14} aria-hidden="true" />
-                    </Button>
                   )}
                 </div>
               </div>

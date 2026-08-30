@@ -4,6 +4,8 @@
     "calTabs": "Tampilan tanggal jatuh tempo",
     "byStatus": "Berdasarkan Status",
     "byMilestone": "Berdasarkan Milestone",
+    "byCalendar": "Kalender",
+    "byTimeline": "Timeline",
     "byDueDate": "Berdasarkan Tanggal jatuh tempo",
     "buckets": "Kelompok",
     "tabCalendar": "Kalender",
@@ -188,7 +190,24 @@
       "activity": "Aktivitas",
       "updated": "Diperbarui {{time}}",
       "deleteConfirmTitle": "Hapus issue?",
-      "deleteConfirmBody": "Ini menghapus issue secara permanen. Tindakan ini tidak dapat dibatalkan."
+      "deleteConfirmBody": "Ini menghapus issue secara permanen. Tindakan ini tidak dapat dibatalkan.",
+      "createdTimeLabel": "Waktu dibuat",
+      "untitledIssue": "Issue tanpa judul",
+      "titleRequired": "Judul wajib diisi",
+      "clickToEdit": "Klik untuk mengedit",
+      "fullscreenAriaDescription": "Buka fullscreen Deskripsi",
+      "fullscreenAriaReproduction": "Buka fullscreen Langkah Reproduksi",
+      "change": "Ubah",
+      "add": "+ Tambah",
+      "taskDeleted": "Task terhapus —",
+      "removeLink": "Hapus tautan",
+      "fullscreenHelper": "Esc untuk keluar fullscreen",
+      "fullscreenHelperReadOnly": "Hanya baca",
+      "changeAria": "Ubah {{label}}",
+      "editTab": "Edit",
+      "previewTab": "Pratinjau",
+      "fullscreenTitle": "{{label}} — Layar Penuh",
+      "unlinkTaskAria": "Lepas tautan task"
     },
     "newModal": {
       "presenceCreating": "Membuat issue",
@@ -262,6 +281,41 @@
       "stepsPlaceholder": "1. … 2. … — opsional",
       "expectedLabel": "Hasil yang diharapkan",
       "expectedPlaceholder": "Apa yang seharusnya terjadi — opsional"
+    }
+  },
+  "prd": {
+    "editTitle": "Edit PRD",
+    "cancel": "Batal",
+    "save": "Simpan PRD",
+    "mdTooltip": "Markdown: \"- butir, 1. bernomor, **tebal**, _miring_, `kode`\"",
+    "helper": "Semua kolom mendukung Markdown — \"- butir, 1. bernomor, **tebal**, _miring_, `kode`\". Gunakan Edit/Preview pada tiap kolom untuk memeriksa hasilnya.",
+    "modeAria": "mode {{label}}",
+    "edit": "Edit",
+    "preview": "Preview",
+    "nothingToPreview": "Tidak ada yang bisa dipratinjau.",
+    "titleLabel": "Deskripsi",
+    "titlePlaceholder": "Deskripsi singkat tentang proyek ini.",
+    "section": {
+      "purpose": {
+        "label": "Tujuan",
+        "helper": "Mengapa proyek ini ada — masalah yang diselesaikannya."
+      },
+      "goals": {
+        "label": "Sasaran",
+        "helper": "Seperti apa kesuksesan itu. Satu baris per sasaran."
+      },
+      "features": {
+        "label": "Fitur",
+        "helper": "Apa yang akan dilakukan proyek ini. Satu fitur per baris."
+      },
+      "scope": {
+        "label": "Ruang lingkup",
+        "helper": "Apa saja yang termasuk dalam ruang lingkup proyek ini."
+      },
+      "outOfScope": {
+        "label": "Di luar ruang lingkup",
+        "helper": "Apa yang secara eksplisit di luar ruang lingkup — untuk saat ini atau selamanya."
+      }
     }
   }
 }

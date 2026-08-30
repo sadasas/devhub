@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react';
-import { Plus, SquaresFour, Flag, ChartBar, ArrowsOutSimple, ArrowsInSimple } from '@phosphor-icons/react';
+import { Plus, SquaresFour, Flag, CalendarBlank, ArrowsOutSimple, ArrowsInSimple } from '@phosphor-icons/react';
 import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import type { Task, TaskStatus } from '../../lib/types';
@@ -22,13 +22,11 @@ import { NewTaskModal } from './NewTaskModal';
 import { InlineError } from '../../components/InlineError';
 import { isTypingTarget, isModalOrPaletteOpen } from '../../lib/keys';
 
-const BoardTimeline = lazy(() =>
-  import('./BoardTimeline').then((m) => ({ default: m.BoardTimeline })),
-);
+const DueCalendar = lazy(() => import('./DueCalendar').then((m) => ({ default: m.DueCalendar })));
 
 const COLUMNS: TaskStatus[] = ['todo', 'inProgress', 'review', 'done'];
 
-type BoardView = 'status' | 'milestone' | 'timeline';
+type BoardView = 'status' | 'milestone' | 'calendar';
 
 const milestoneOrder = (m: { status: string; targetDate?: string | null }): number =>
   m.status === 'planned' ? 0 : m.status === 'inProgress' ? 1 : 2;
@@ -53,16 +51,16 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { state, loading, error, dispatch, canEdit, teamId } = useProject();
   const [searchParams, setSearchParams] = useSearchParams();
   const rawView = searchParams.get('view');
-  // hard delete ?view=due → redirect to timeline (M41)
+  // calendar replaces timeline (user request) — keep legacy redirects
   const view: BoardView =
-    rawView === 'milestone' ? 'milestone' : rawView === 'timeline' || rawView === 'due' ? 'timeline' : 'status';
-  // legacy ?view=due or ?cal=1 → normalize to timeline (replace once)
+    rawView === 'milestone' ? 'milestone' : rawView === 'calendar' || rawView === 'timeline' || rawView === 'due' ? 'calendar' : 'status';
+  // legacy ?view=due|timeline or ?cal=1 → normalize to calendar (replace once)
   useEffect(() => {
-    if (rawView === 'due' || searchParams.get('cal') === '1') {
+    if (rawView === 'due' || rawView === 'timeline' || searchParams.get('cal') === '1') {
       setSearchParams(
         (prev) => {
           const p = new URLSearchParams(prev);
-          p.set('view', 'timeline');
+          p.set('view', 'calendar');
           p.delete('cal');
           return p;
         },
@@ -75,7 +73,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       (prev) => {
         const p = new URLSearchParams(prev);
         p.set('view', next);
-        // cleanup legacy cal param when leaving due
+        // cleanup legacy cal param when leaving calendar
         p.delete('cal');
         return p;
       },
@@ -186,7 +184,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       if (!task) return;
       e.preventDefault();
       const dir = e.key === 'ArrowRight' ? 1 : -1;
-      if (view === 'timeline') return;
+      if (view === 'calendar') return;
       if (view === 'status') {
         const i = COLUMNS.indexOf(task.status);
         const next = COLUMNS[(i + dir + COLUMNS.length) % COLUMNS.length]!;
@@ -411,34 +409,36 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           <button
             type="button"
             role="tab"
-            className={`sub-tab ${view === 'timeline' ? 'sub-tab-active' : ''}`}
-            onClick={() => setView('timeline')}
-            aria-selected={view === 'timeline'}
+            className={`sub-tab ${view === 'calendar' ? 'sub-tab-active' : ''}`}
+            onClick={() => setView('calendar')}
+            aria-selected={view === 'calendar'}
           >
-            <ChartBar size={13} aria-hidden="true" />
-            {t('board.byTimeline', { defaultValue: 'Timeline' })}
+            <CalendarBlank size={13} aria-hidden="true" />
+            {t('board.byCalendar', { defaultValue: 'Calendar' })}
           </button>
         </div>
         <div className="board-toolbar-actions">
-          {view !== 'timeline' && (
-            <SortControl
-              options={TASK_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: t(s.label) }))}
-              value={sortValue}
-              onChange={setSort}
-            />
-          )}
-          {userId && (
-            <label
-              className="toolbar-check"
-              title={mineOnly ? t('board.showAllTasks') : t('board.showOnlyMine')}
-            >
-              <input
-                type="checkbox"
-                checked={mineOnly}
-                onChange={(e) => setMine(e.target.checked)}
+          {view !== 'calendar' && (
+            <>
+              <SortControl
+                options={TASK_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: t(s.label) }))}
+                value={sortValue}
+                onChange={setSort}
               />
-              {t('board.onlyMyTasks')}
-            </label>
+              {userId && (
+                <label
+                  className="toolbar-check"
+                  title={mineOnly ? t('board.showAllTasks') : t('board.showOnlyMine')}
+                >
+                  <input
+                    type="checkbox"
+                    checked={mineOnly}
+                    onChange={(e) => setMine(e.target.checked)}
+                  />
+                  {t('board.onlyMyTasks')}
+                </label>
+              )}
+            </>
           )}
           <Button
             variant="ghost"
@@ -456,17 +456,25 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
 
       {doneBlockedMsg && <InlineError className="mb-12">{doneBlockedMsg}</InlineError>}
 
-      {view === 'timeline' ? (
-        <Suspense fallback={<div className="tl-skeleton" aria-busy="true" aria-live="polite"><Skeleton style={{ height: 28, width: '100%', marginBottom: 8 }} /><Skeleton style={{ height: 44, width: '100%', marginBottom: 12 }} /><Skeleton style={{ height: 280, width: '100%' }} /></div>}>
-          <BoardTimeline
-            filteredTasks={filteredTasks}
+      {view === 'calendar' ? (
+        <Suspense
+          fallback={
+            <div className="due-cal-skeleton" aria-busy="true" aria-live="polite">
+              <Skeleton style={{ height: 36, width: '100%', marginBottom: 10 }} />
+              <Skeleton style={{ height: 112, width: '100%', marginBottom: 8 }} />
+              <Skeleton style={{ height: 112, width: '100%', marginBottom: 8 }} />
+              <Skeleton style={{ height: 112, width: '100%' }} />
+            </div>
+          }
+        >
+          <DueCalendar
             onOpenTask={openTask}
-            members={members}
-            userId={userId}
-            mineOnly={mineOnly}
-            onNewTaskAt={setNewTaskAt}
+            onQuickCreate={(dueDate) => setNewTaskAt({ dueDate })}
+            taskFilter={mineOnly && userId ? (t) => t.assigneeId === userId : undefined}
             onTouchDrop={handleTouchDrop}
-            unreadIds={unreadIds}
+            mineOnly={mineOnly}
+            onToggleMine={userId ? setMine : undefined}
+            showMineFilter={!!userId}
           />
         </Suspense>
       ) : (

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckSquare, PencilSimple, Plus } from '@phosphor-icons/react';
+import { CheckSquare, Plus } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../state/project-context';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
@@ -130,7 +130,7 @@ return (
                       )}
                   </div>
                 </button>
-                <div className="data-row-side">
+                <div className="data-row-side" style={{ justifyContent: 'flex-start', gap: '4px' }}>
                   <Badge tone={TEST_CASE_STATUS[test.status].tone}>
                     {t(`tests.status.${test.status}`)}
                   </Badge>
@@ -146,17 +146,6 @@ return (
                         })
                       }
                     />
-                  )}
-                  {canEdit && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="btn-icon"
-                      aria-label={t('tests.editAria')}
-                      onClick={() => setEditingId(test.id)}
-                    >
-                      <PencilSimple size={14} aria-hidden="true" />
-                    </Button>
                   )}
                 </div>
               </div>

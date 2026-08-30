@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DevHub — Soft Flat Preview (No Neon Gradient)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-base: #0F0F11;
+    --bg-elevated: #18181B;
+    --bg-overlay: #1E1E21;
+    --bg-inset: #131316;
+    --border-hairline: rgba(255,255,255,0.07);
+    --border-strong: rgba(255,255,255,0.11);
+    --text-primary: #E8E8EA;
+    --text-secondary: #A8A8B0;
+    --text-muted: #8E8E98;
+    --accent: #5DB69B;
+    --accent-hover: #6BC1A7;
+    --card-blue-soft: #6B8AD4;
+    --card-mint-soft: #A8C9B8;
+    --card-cream-soft: #E8E0D0;
+    --radius-card: 16px;
+    --radius-pill: 999px;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #0A0A0C;
+    color: var(--text-primary);
+    padding: 40px 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .label {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .label h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+  .label p { color: var(--text-muted); font-size: 13px; margin-top: 6px; }
+  .label code { font-family: 'Geist Mono', monospace; background: var(--bg-elevated); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+  .row {
+    display: flex;
+    gap: 18px;
+    justify-content: center;
+    align-items: stretch;
+    flex-wrap: wrap;
+    max-width: 980px;
+    margin: 0 auto;
+  }
+  .card {
+    width: 300px;
+    border-radius: 20px;
+    padding: 18px 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    border: 1px solid rgba(0,0,0,0.08);
+    position: relative;
+  }
+  /* CARD 1 - cream soft flat */
+  .card-cream {
+    background: var(--card-cream-soft);
+    color: #1C1C1F;
+  }
+  .card-cream .card-muted { color: #6B657A; }
+  .card-blue {
+    background: var(--card-blue-soft);
+    color: #FFFFFF;
+    border-color: rgba(255,255,255,0.10);
+  }
+  .card-blue .badge-xp {
+    background: #B8D8C8;
+    color: #1C1C1F;
+  }
+  .card-mint {
+    background: var(--card-mint-soft);
+    color: #1C1C1F;
+  }
+  .card-top {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 11px; font-weight: 500; letter-spacing: 0.02em;
+  }
+  .card-top .x { font-size: 16px; opacity: 0.7; }
+  .progress { height: 4px; background: rgba(0,0,0,0.12); border-radius: 999px; overflow: hidden; flex: 1; margin: 0 10px; }
+  .progress-fill { height: 100%; background: #6B8AD4; width: 38%; border-radius: 999px; }
+  .card-blue .progress { background: rgba(255,255,255,0.25); }
+  .card-blue .progress-fill { background: #FFFFFF; }
+  .dots { display: flex; gap: 4px; justify-content: center; margin-top: 6px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(0,0,0,0.15); }
+  .dot.active { background: #6B8AD4; }
+  .card-blue .dot { background: rgba(255,255,255,0.35); }
+  .card-blue .dot.active { background: #FFFFFF; }
+  .card h2 { font-size: 22px; font-weight: 800; line-height: 1.15; letter-spacing: -0.02em; }
+  .card-blue h2 { font-size: 34px; line-height: 0.95; }
+  .card-mint h2 { font-size: 30px; }
+  .illust {
+    flex: 1;
+    display: grid; place-items: center;
+    padding: 10px 0;
+    min-height: 150px;
+  }
+  /* Doodle paper character - flat soft, hand-drawn */
+  .paper {
+    width: 90px; height: 110px;
+    background: #FFFFFF;
+    border: 1.8px solid #1C1C1F;
+    border-radius: 6px;
+    position: relative;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.08);
+    display: grid; place-items: center;
+  }
+  .paper::before {
+    content: '';
+    position: absolute; inset: 0;
+    border-radius: 6px;
+    background: var(--fill, transparent);
+    opacity: 0.12;
+  }
+  .paper-stack::after {
+    content: '';
+    position: absolute; top: 4px; left: -6px; right: 6px; bottom: -4px;
+    background: #FFFFFF; border: 1.8px solid #1C1C1F; border-radius: 6px; z-index: -1;
+  }
+  .eyes { display: flex; gap: 10px; margin-bottom: 6px; }
+  .eye { width: 18px; height: 18px; border: 1.6px solid #1C1C1F; border-radius: 50%; position: relative; background: #fff; }
+  .eye::after { content: ''; position: absolute; width: 7px; height: 7px; background: #1C1C1F; border-radius: 50%; top: 5px; left: 4px; }
+  .eye:nth-child(2)::after { left: 6px; }
+  .mouth { width: 12px; height: 6px; border-bottom: 1.6px solid #1C1C1F; border-radius: 0 0 8px 8px; }
+  .mouth.sad { width: 10px; height: 8px; border: 1.6px solid #1C1C1F; border-top: none; border-radius: 0 0 10px 10px; transform: rotate(180deg); margin-top: 4px; }
+  .mouth.thinking { width: 14px; height: 2px; background: #1C1C1F; border: none; border-radius: 2px; }
+  .hand { position: absolute; font-size: 14px; }
+  .card-cream .paper { --fill: #6B8AD4; }
+  .card-blue .paper { --fill: #6B8AD4; transform: rotate(-4deg); }
+  .card-blue .paper-stack::after { transform: rotate(2deg); }
+  .card-mint .paper { --fill: #A8C9B8; }
+  /* legs / arms doodle */
+  .limb { position: absolute; width: 22px; height: 2px; background: #1C1C1F; border-radius: 2px; }
+  .options { display: flex; flex-direction: column; gap: 8px; }
+  .opt {
+    padding: 10px 12px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    border: 1.5px solid transparent; text-align: left;
+  }
+  .opt.active { background: #6B8AD4; color: #fff; border-color: #5A7AC0; }
+  .opt.idle { background: rgba(0,0,0,0.06); color: #1C1C1F; border-color: rgba(0,0,0,0.06); }
+  .card-blue .opt { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.10); }
+  .btn {
+    margin-top: auto;
+    padding: 11px; border-radius: 8px; font-weight: 700; font-size: 13px;
+    border: none; cursor: pointer; text-align: center;
+  }
+  .btn-primary { background: #6B8AD4; color: #fff; }
+  .btn-dark { background: #111114; color: #fff; }
+  .card-cream .btn-primary { background: #6B8AD4; }
+  .badge-xp {
+    font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 999px;
+    font-family: 'Geist Mono', monospace;
+  }
+  .meta { text-align: center; font-size: 13px; font-weight: 600; color: #fff; opacity: 0.95; }
+  .explain {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-hairline);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+  }
+  .explain strong { color: var(--text-primary); }
+  .card-mint .explain { background: #FFFCF8; border-color: rgba(0,0,0,0.08); color: #4A4A52; }
+  .card-mint .explain strong { color: #1C1C1F; }
+  .explain-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .btn-ghost { background: #E8EAF0; color: #1C1C1F; border: 1px solid rgba(0,0,0,0.06); }
+  .swirl { font-size: 22px; margin-bottom: 6px; opacity: 0.7; }
+  .footer-note {
+    max-width: 980px; margin: 28px auto 0;
+    background: var(--bg-elevated); border: 1px solid var(--border-hairline);
+    border-radius: 12px; padding: 16px 18px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;
+    font-size: 12px; line-height: 1.6; color: var(--text-muted);
+  }
+  .footer-note strong { color: var(--text-primary); font-size: 12px; display: block; margin-bottom: 4px; }
+  .footer-note code { font-family: 'Geist Mono', monospace; background: var(--bg-inset); padding: 1px 5px; border-radius: 4px; font-size: 11px; color: var(--text-secondary); }
+  @media (max-width: 860px) { .row { flex-direction: column; align-items: center; } .footer-note { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+  <div class="label">
+    <h1>DevHub — Soft Flat Preview</h1>
+    <p>Flat solid, warna soft, <code>0 gradient neon</code> &nbsp;•&nbsp; Cream/Mint/Blue versi soft dari gambar kamu</p>
+  </div>
+
+  <div class="row">
+    <!-- CARD 1 - Quiz -->
+    <div class="card card-cream">
+      <div class="card-top">
+        <span class="x">×</span>
+        <div class="progress"><div class="progress-fill"></div></div>
+        <span class="card-muted">Quiz 2 / 5</span>
+      </div>
+      <div class="dots"><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      <h2>What helps information stay in memory longer</h2>
+      <div class="illust">
+        <div style="position:relative">
+          <div class="paper paper-stack" style="transform: rotate(2deg);">
+            <div style="display:flex; flex-direction:column; align-items:center;">
+              <div class="eyes"><div class="eye"></div><div class="eye"></div></div>
+              <div class="mouth thinking"></div>
+            </div>
+            <!-- hand -->
+            <div class="limb" style="right:-10px; top:52px; transform: rotate(-18deg); width:18px;"></div>
+          </div>
+          <!-- legs -->
+          <div class="limb" style="left:18px; bottom:-8px; transform: rotate(78deg); width:16px;"></div>
+          <div class="limb" style="right:22px; bottom:-8px; transform: rotate(78deg); width:16px;"></div>
+        </div>
+      </div>
+      <div class="options">
+        <div class="opt active">Active recall</div>
+        <div class="opt idle">Reading twice</div>
+        <div class="opt idle">Highlighting notes</div>
+      </div>
+      <button class="btn btn-primary">Check answer</button>
+    </div>
+
+    <!-- CARD 2 - Quest complete -->
+    <div class="card card-blue">
+      <div class="card-top">
+        <span class="x" style="color:#fff">×</span>
+        <span></span>
+      </div>
+      <h2>Quest<br>complete</h2>
+      <div class="badge-xp" style="align-self:flex-start;">+300 XP</div>
+      <div class="illust">
+        <div style="position:relative">
+          <div class="paper paper-stack">
+            <div style="display:flex; flex-direction:column; align-items:center;">
+              <div class="eyes"><div class="eye"></div><div class="eye"></div></div>
+              <div class="mouth" style="width:8px; height:4px; border-top: 1.6px solid #1C1C1F; border-bottom:none; border-radius: 8px 8px 0 0; margin-top:4px;"></div>
+            </div>
+          </div>
+          <div class="limb" style="left:-14px; top:38px; transform: rotate(-42deg); width:22px;"></div>
+          <div class="limb" style="right:-12px; top:8px; transform: rotate(28deg); width:22px; height:10px; border-radius:6px; background:#fff; border:1.6px solid #1C1C1F;"></div>
+          <div class="limb" style="left:18px; bottom:-10px; transform: rotate(68deg); width:18px;"></div>
+          <div class="limb" style="right:18px; bottom:-6px; transform: rotate(68deg); width:18px;"></div>
+        </div>
+      </div>
+      <div class="meta">4 of 5 answers correct</div>
+      <button class="btn btn-dark">Continue</button>
+    </div>
+
+    <!-- CARD 3 - Not quite -->
+    <div class="card card-mint">
+      <div class="card-top"><span class="x">×</span><span></span></div>
+      <h2>Not quite</h2>
+      <div class="illust" style="flex-direction:column; gap:6px;">
+        <div class="swirl">🌀</div>
+        <div style="position:relative">
+          <div class="paper paper-stack" style="transform: rotate(-1deg);">
+            <div style="display:flex; flex-direction:column; align-items:center;">
+              <div class="eyes"><div class="eye" style="transform: rotate(6deg)"></div><div class="eye"></div></div>
+              <div class="mouth sad"></div>
+            </div>
+          </div>
+          <div class="limb" style="left:12px; bottom:-8px; width:26px; transform: rotate(8deg); height:8px; background:#fff; border:1.6px solid #1C1C1F; border-radius: 10px;"></div>
+          <div class="limb" style="right:10px; bottom:-10px; width:26px; transform: rotate(-8deg); height:8px; background:#fff; border:1.6px solid #1C1C1F; border-radius: 10px;"></div>
+          <div class="limb" style="right:-6px; top:46px; transform: rotate(-22deg); width:14px;"></div>
+        </div>
+      </div>
+      <div class="explain">
+        <strong>Why this answer missed</strong>
+        <div style="margin-top:4px;">Active recall works best when you retrieve an answer before checking your notes</div>
+        <div class="explain-actions">
+          <button class="btn btn-ghost" style="padding:9px;">Review</button>
+          <button class="btn btn-dark" style="padding:9px;">Try again</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    <div>
+      <strong>✓ Flat, bukan gradient</strong>
+      Semua <code>background</code> = solid flat. Tidak ada <code>linear-gradient</code>, tidak ada neon glow. Biru elektrik <code>#2D5BFF</code> di gambar di-soft-kan jadi <code>#6B8AD4</code> (chroma 42%).
+    </div>
+    <div>
+      <strong>✓ Soft semua</strong>
+      Cream <code>#E8E0D0</code> • Mint <code>#A8C9B8</code> • Blue <code>#6B8AD4</code> — saturation 35-48%, warm. Di dark mode tetap soft karena opacity fill cuma 12%.
+    </div>
+    <div>
+      <strong>✓ Siap pakai di DevHub</strong>
+      Token ini tinggal copy ke <code>tokens.css</code>. Doodle line-art <code>1.6px #1C1C1F</code> sama persis kayak gambar, cuma fill-nya di-soft-kan. Buka file ini di browser untuk lihat preview.
+    </div>
+  </div>
+
+  <p style="text-align:center; margin-top: 18px; font-size: 11px; color: var(--text-muted); font-family: 'Geist Mono', monospace;">
+    File: soft-flat-preview.html — buka langsung di browser, tidak perlu build. Bandingkan dengan screenshot asli: warna lebih pudar & tenang.
+  </p>
+</body>
+</html>

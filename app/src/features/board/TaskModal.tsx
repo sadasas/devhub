@@ -1,30 +1,27 @@
-import { useEffect, useRef, useState } from 'react';
-import { Trash } from '@phosphor-icons/react';
+import { useEffect, useState } from 'react';
+import { Trash, Flag, CalendarBlank as CalendarIcon, User, Clock, Tag, LinkSimple, ListChecks, FileText, ArrowsOutSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import {
   TASK_PRIORITY,
   TASK_PRIORITY_ORDER,
   TASK_STATUS,
-  TEST_CASE_STATUS,
 } from '../../lib/labels';
 import { formatDate, formatRelative, isTaskCompletable, linkedTestCases, parseLabels } from '../../lib/utils';
 import { api } from '../../lib/api';
 import { taskDueChip } from '../../lib/due-dates';
-import { startAfterDue, startLabel } from '../../lib/start-dates';
-import type { State, Task, TaskPriority, TaskStatus, TeamMember, TestCaseStatus } from '../../lib/types';
+import { startAfterDue } from '../../lib/start-dates';
+import type { Task, TaskPriority, TaskStatus, TeamMember } from '../../lib/types';
 import type { UpdatePatch } from '../../state/project-context';
 import { useProject, wouldCreateCycle } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
-import { Badge } from '../../components/Badge';
 import { ActivityList } from '../../components/ActivityList';
 import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
-import { DetailEmpty, DetailList, DetailRow } from '../../components/DetailList';
+import { DetailEmpty } from '../../components/DetailList';
 import { InlineError } from '../../components/InlineError';
-import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { SearchableSelect } from '../../components/SearchableSelect';
-import { Textarea } from '../../components/Textarea';
+import { MarkdownBlocks } from '../../lib/markdown';
 
 const STATUS_OPTIONS: TaskStatus[] = ['todo', 'inProgress', 'review', 'done'];
 
@@ -34,14 +31,14 @@ interface TaskModalProps {
 }
 
 export function TaskModal({ taskId, onClose }: TaskModalProps) {
-  const { t } = useTranslation('tracker');
+  const { t } = useTranslation(['tracker','project']);
   const { state, dispatch, canEdit, projectId, teamId } = useProject();
-  const [editing, setEditing] = useState(false);
+  const [activeField, setActiveField] = useState<string | null>(null);
   const [cycleWarn, setCycleWarn] = useState<string | null>(null);
   const [doneWarn, setDoneWarn] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [fullscreenField, setFullscreenField] = useState<string | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
-  const editSnapshot = useRef<State | null>(null);
 
   useEffect(() => {
     if (teamId) {
@@ -55,7 +52,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
   }, [teamId]);
 
   useEffect(() => {
-    setEditing(false);
+    setActiveField(null);
     setCycleWarn(null);
     setDoneWarn(null);
     setConfirmOpen(false);
@@ -87,34 +84,12 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
     ? t('board.taskModal.dateWarn')
     : null;
   const testCases = linkedTestCases(task.id, state!.testCases);
-  const blockerNames = task.blockedBy
-    .map((id) => state!.tasks.find((t) => t.id === id)?.title)
-    .filter((t): t is string => t !== undefined);
   const blockedTasks = task.blockedBy
     .map((id) => state!.tasks.find((t) => t.id === id))
     .filter((t): t is Task => t !== undefined);
   const milestone = task.milestoneId
     ? state!.milestones.find((m) => m.id === task.milestoneId)
     : undefined;
-  const startEditing = () => {
-    editSnapshot.current = structuredClone(state!);
-    setEditing(true);
-  };
-
-  const cancelEditing = () => {
-    if (editSnapshot.current) {
-      dispatch({ type: 'replace', state: editSnapshot.current });
-      editSnapshot.current = null;
-    }
-    setEditing(false);
-  };
-
-  const finishEditing = () => {
-    editSnapshot.current = null;
-    setEditing(false);
-    onClose();
-  };
-
   const toggleBlocker = (id: string) => {
     const next = task.blockedBy.includes(id)
       ? task.blockedBy.filter((x) => x !== id)
@@ -136,310 +111,322 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
     <>
     <Modal
       open
-      title={editing ? t('board.taskModal.editTitle') : t('board.taskModal.viewTitle')}
+      title={t('board.taskModal.viewTitle')}
       onClose={onClose}
-      width="md"
+      width="lg"
       footer={
-        <>
-          {canEdit && !editing && (
-            <Button
-              variant="danger"
-              size="sm"
-              leftIcon={<Trash size={13} aria-hidden="true" />}
-              onClick={() => setConfirmOpen(true)}
-            >
-              {t('board.taskModal.delete')}
-            </Button>
-          )}
-          <span className="flex-1" />
-          {editing ? (
-            <>
-              <Button variant="ghost" onClick={cancelEditing}>
-                {t('board.taskModal.cancel')}
-              </Button>
-              <Button variant="primary" onClick={finishEditing}>
-                {t('board.taskModal.done')}
-              </Button>
-            </>
-          ) : (
-            canEdit && (
-              <Button variant="primary" onClick={startEditing}>
-                {t('board.taskModal.edit')}
-              </Button>
-            )
-          )}
-        </>
+        canEdit ? (
+          <Button
+            variant="danger"
+            size="sm"
+            leftIcon={<Trash size={13} aria-hidden="true" />}
+            onClick={() => setConfirmOpen(true)}
+          >
+            {t('board.taskModal.delete')}
+          </Button>
+        ) : undefined
       }
     >
       <div className="form-stack">
-        {editing ? (
           <>
-            <Input
-              label={t('board.taskModal.titleLabel')}
-              value={task.title}
-              onChange={(e) => update({ title: e.target.value })}
-            />
-
-            <div className="field-row">
-              <div className="field">
-                <label className="field-label" htmlFor="task-status">
-                  {t('board.taskModal.statusLabel')}
-                </label>
-                <select
-                  id="task-status"
-                  className="select"
-                  value={task.status}
-                  onChange={(e) => changeStatus(e.target.value as TaskStatus)}
-                >
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s} value={s}>
-                      {TASK_STATUS[s].label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="field">
-                <label className="field-label" htmlFor="task-priority">
-                  {t('board.taskModal.priorityLabel')}
-                </label>
-                <select
-                  id="task-priority"
-                  className="select"
-                  value={task.priority}
-                  onChange={(e) => update({ priority: e.target.value as TaskPriority })}
-                >
-                  {TASK_PRIORITY_ORDER.map((p) => (
-                    <option key={p} value={p}>
-                      {TASK_PRIORITY[p].label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            {doneWarn && <InlineError>{doneWarn}</InlineError>}
-
-            <div className="field">
-              <SearchableSelect
-                id="task-milestone"
-                label={t('board.taskModal.milestoneLabel')}
-                value={task.milestoneId}
-                options={state!.milestones.map((m) => ({ value: m.id, label: m.name }))}
-                onChange={(v) => update({ milestoneId: v })}
+            {/* Title inline */}
+            {activeField === 'title' && canEdit ? (
+              <input
+                className="input"
+                value={task.title}
+                autoFocus
+                onChange={(e) => update({ title: e.target.value })}
+                onBlur={() => setActiveField(null)}
+                onKeyDown={(e) => { if (e.key === 'Enter') setActiveField(null); if (e.key === 'Escape') setActiveField(null); }}
               />
-            </div>
+            ) : (
+              <h3
+                className="detail-title"
+                onClick={() => canEdit && setActiveField('title')}
+                style={{ cursor: canEdit ? 'text' : undefined, padding: '4px 6px', margin: '-4px -6px', borderRadius: 6 }}
+                onMouseEnter={(e) => { if (canEdit) (e.currentTarget as HTMLElement).style.background = 'var(--bg-inset)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                title={canEdit ? 'Click to edit' : undefined}
+              >
+                {task.title || <DetailEmpty>Untitled task</DetailEmpty>}
+              </h3>
+            )}
+            {/* Fintech clean - no pinned bar, no section icons per row */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18, padding: '4px 0' }}>
+              {/* Created time - like Fintech */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
+                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                  <Clock size={12} aria-hidden="true" /> Created time
+                </span>
+                <span style={{ color: 'var(--text-secondary)' }}>{formatDate(task.createdAt)} {new Date(task.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
 
-            <div className="field">
-              <SearchableSelect
-                id="task-assignee"
-                label={t('board.taskModal.assigneeLabel')}
-                value={task.assigneeId ?? null}
-                options={members.map((m) => ({
-                  value: m.id,
-                  label: m.displayName || m.email,
-                }))}
-                onChange={(v) => update({ assigneeId: v })}
-              />
-            </div>
-
-            <Input
-              label={t('board.taskModal.dueDateLabel')}
-              type="date"
-              value={task.dueDate?.slice(0, 10) ?? ''}
-              onChange={(e) => update({ dueDate: e.target.value === '' ? null : e.target.value })}
-            />
-
-            <Input
-              label={t('board.taskModal.startDateLabel')}
-              type="date"
-              value={task.startDate?.slice(0, 10) ?? ''}
-              onChange={(e) => update({ startDate: e.target.value === '' ? null : e.target.value })}
-            />
-            {dateWarn && <InlineError>{dateWarn}</InlineError>}
-
-            <Input
-              label={t('board.taskModal.estimateLabel')}
-              type="number"
-              min={0}
-              value={task.estimate ?? ''}
-              onChange={(e) => {
-                const v = e.target.value;
-                update({ estimate: v === '' ? undefined : Math.max(0, Number(v)) });
-              }}
-            />
-
-            <Input
-              label={t('board.taskModal.labelsLabel')}
-              placeholder={t('board.taskModal.labelsPlaceholder')}
-              value={task.labels.join(', ')}
-              onChange={(e) => update({ labels: parseLabels(e.target.value) })}
-            />
-
-            <Textarea
-              label={t('board.taskModal.descriptionLabel')}
-              rows={4}
-              value={task.description}
-              onChange={(e) => update({ description: e.target.value })}
-            />
-
-            <div className="field">
-              <label className="field-label">
-                {blockerNames.length > 0
-                  ? t('board.taskModal.blockedByWithNames', { names: blockerNames.join(', ') })
-                  : t('board.taskModal.blockedByLabel')}
-              </label>
-              <div className="blocker-list">
-                {otherTasks.length === 0 && (
-                  <p className="field-helper">{t('board.taskModal.noBlockers')}</p>
+              {/* Status - dot + peach pill like In Research */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
+                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                  <Flag size={12} aria-hidden="true" /> Status
+                </span>
+                {activeField === 'status' && canEdit ? (
+                  <select className="select" style={{ width: 160 }} value={task.status} autoFocus onChange={(e) => { changeStatus(e.target.value as TaskStatus); setActiveField(null); }} onBlur={() => setActiveField(null)}>
+                    {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{TASK_STATUS[s].label}</option>)}
+                  </select>
+                ) : (
+                  <button type="button" onClick={() => canEdit && setActiveField('status')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 999, background: task.status === 'done' ? 'var(--status-success-dim)' : task.status === 'review' ? 'var(--status-warn-dim)' : task.status === 'inProgress' ? 'var(--status-info-dim)' : 'var(--bg-inset)', border: 'none', cursor: canEdit ? 'pointer' : 'default', fontSize: 12 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: TASK_STATUS[task.status].tone === 'success' ? 'var(--status-success)' : TASK_STATUS[task.status].tone === 'warn' ? 'var(--status-warn)' : TASK_STATUS[task.status].tone === 'info' ? 'var(--status-info)' : 'var(--text-muted)', flexShrink: 0 }} />
+                    {TASK_STATUS[task.status].label}
+                  </button>
                 )}
-                {otherTasks.map((t) => (
-                  <label key={t.id} className="blocker-row">
-                    <input
-                      type="checkbox"
-                      checked={task.blockedBy.includes(t.id)}
-                      onChange={() => toggleBlocker(t.id)}
-                    />
-                    <span className="blocker-title">{t.title}</span>
-                    <span className="blocker-state font-mono">{TASK_STATUS[t.status].label}</span>
-                  </label>
-                ))}
               </div>
-              {cycleWarn && <InlineError>{cycleWarn}</InlineError>}
-            </div>
+              {doneWarn && <InlineError>{doneWarn}</InlineError>}
 
-            <div className="field">
-              <label className="field-label">
-                {testCases.length > 0
-                  ? t('board.taskModal.testCasesWithCount', { count: testCases.length })
-                  : t('board.taskModal.testCasesLabel')}
-              </label>
-              {testCases.length === 0 ? (
-                <p className="field-helper">{t('board.taskModal.noTestCases')}</p>
-              ) : (
-                <div className="test-list">
-                  {testCases.map((tc) => (
-                    <div key={tc.id} className="test-row" title={tc.steps || tc.name}>
-                      <span className="test-title">{tc.name}</span>
-                      <select
-                        className="select test-status-select"
-                        aria-label={t('board.taskModal.statusOfName', { name: tc.name })}
-                        value={tc.status}
-                        onChange={(e) =>
-                          dispatch({
-                            type: 'testCase/update',
-                            id: tc.id,
-                            patch: { status: e.target.value as TestCaseStatus },
-                          })
-                        }
-                      >
-                        <option value="pending">{t('board.taskModal.optPending')}</option>
-                        <option value="pass">{t('board.taskModal.optPass')}</option>
-                        <option value="fail">{t('board.taskModal.optFail')}</option>
-                      </select>
+              {/* Priority - pill biru tipis */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
+                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                  <Flag size={12} aria-hidden="true" /> Priority
+                </span>
+                {activeField === 'priority' && canEdit ? (
+                  <select className="select" style={{ width: 160 }} value={task.priority} autoFocus onChange={(e) => { update({ priority: e.target.value as TaskPriority }); setActiveField(null); }} onBlur={() => setActiveField(null)}>
+                    {TASK_PRIORITY_ORDER.map((p) => <option key={p} value={p}>{TASK_PRIORITY[p].label}</option>)}
+                  </select>
+                ) : (
+                  <button type="button" onClick={() => canEdit && setActiveField('priority')} style={{ padding: '2px 8px', borderRadius: 999, background: 'var(--status-info-dim)', border: '1px solid rgba(123,164,217,0.15)', fontSize: 11, color: 'var(--status-info)', cursor: canEdit ? 'pointer' : 'default' }}>
+                    {TASK_PRIORITY[task.priority].label}
+                  </button>
+                )}
+              </div>
+
+              {/* Dates - combined Start → Due */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
+                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                  <CalendarIcon size={12} aria-hidden="true" /> Dates
+                </span>
+                {activeField === 'dates' && canEdit ? (
+                  <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input className="input" type="date" style={{ width: 140 }} value={task.startDate?.slice(0, 10) ?? ''} onChange={(e) => update({ startDate: e.target.value === '' ? null : e.target.value })} />
+                    <span style={{ color: 'var(--text-muted)' }}>→</span>
+                    <input className="input" type="date" style={{ width: 140 }} value={task.dueDate?.slice(0, 10) ?? ''} onChange={(e) => update({ dueDate: e.target.value === '' ? null : e.target.value })} />
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setActiveField(null)} disabled={!!dateWarn}>OK</button>
+                  </span>
+                ) : (
+                  <button type="button" onClick={() => canEdit && setActiveField('dates')} style={{ background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default', fontSize: 13, color: task.dueDate || task.startDate ? 'var(--text-secondary)' : 'var(--text-muted)', padding: '2px 6px', margin: '-2px -6px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    {task.startDate || task.dueDate ? (
+                      <>
+                        {task.startDate ? formatDate(task.startDate) : '—'}
+                        <span style={{ color: 'var(--text-muted)' }}>→</span>
+                        {task.dueDate ? formatDate(task.dueDate) : '—'}
+                        {task.dueDate && <span className={`task-due task-due-${taskDueChip(task).tone}`} style={{ marginLeft: 6 }}>{taskDueChip(task).label}</span>}
+                      </>
+                    ) : '—'}
+                  </button>
+                )}
+              </div>
+              {dateWarn && <InlineError>{dateWarn}</InlineError>}
+
+
+
+              {/* Tags - pill abu tipis */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
+                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                  <Tag size={12} aria-hidden="true" /> Tags
+                </span>
+                                {activeField === 'labels' && canEdit ? (
+                  <input className="input" style={{ flex: 1, maxWidth: 260 }} placeholder={t('board.taskModal.labelsPlaceholder')} value={task.labels.join(', ')} autoFocus onChange={(e) => update({ labels: parseLabels(e.target.value) })} onBlur={() => setActiveField(null)} onKeyDown={(e) => { if (e.key === 'Enter') setActiveField(null); }} />
+                ) : task.labels.length > 0 ? (
+                  <button type="button" onClick={() => canEdit && setActiveField('labels')} style={{ display: 'flex', gap: 6, flexWrap: 'wrap', background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default', padding: 0 }}>
+                    {task.labels.map((l) => <span key={l} style={{ padding: '2px 8px', borderRadius: 999, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, color: 'var(--text-secondary)' }}>{l}</span>)}
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => canEdit && setActiveField('labels')} style={{ background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default', color: 'var(--text-muted)', fontSize: 13 }}>—</button>
+                )}
+              </div>
+
+              {/* Assignees - avatar overlap */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
+                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                  <User size={12} aria-hidden="true" /> Assignees
+                </span>
+                {activeField === 'assignee' && canEdit ? (
+                  <SearchableSelect id="task-assignee-inline" label="" value={task.assigneeId ?? null} options={members.map((m) => ({ value: m.id, label: m.displayName || m.email }))} onChange={(v) => { update({ assigneeId: v }); setActiveField(null); }} />
+                ) : task.assigneeId ? (
+                  <button type="button" onClick={() => canEdit && setActiveField('assignee')} style={{ display: 'inline-flex', alignItems: 'center', gap: -6, background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default' }}>
+                    <span style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--accent-dim)', border: '2px solid var(--bg-overlay)', display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 600, color: 'var(--accent)' }}>{(members.find(m=>m.id===task.assigneeId)?.displayName || members.find(m=>m.id===task.assigneeId)?.email || '?').slice(0,1).toUpperCase()}</span>
+                    <span style={{ marginLeft: 6, fontSize: 13, color: 'var(--text-secondary)' }}>{members.find(m=>m.id===task.assigneeId)?.displayName || members.find(m=>m.id===task.assigneeId)?.email}</span>
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => canEdit && setActiveField('assignee')} style={{ background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default', color: 'var(--text-muted)', fontSize: 13 }}>—</button>
+                )}
+              </div>
+
+              {/* Description - card abu muda - disamakan dengan IssueModal */
+              <div style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', borderRadius: 8, padding: 16, marginTop: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <FileText size={12} aria-hidden="true" /> {t('board.taskModal.descriptionLabel')}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm btn-icon"
+                    aria-label={t('tracker:issues.modal.fullscreenAriaDescription')}
+                    title={t('tracker:issues.modal.fullscreenAriaDescription')}
+                    onClick={() => setFullscreenField('description')}
+                  >
+                    <ArrowsOutSimple size={14} aria-hidden="true" />
+                  </button>
+                </div>
+                {activeField === 'description' && canEdit ? (
+                  <>
+                    <textarea
+                      className="textarea"
+                      value={task.description}
+                      autoFocus
+                      rows={4}
+                      placeholder={t('board.newTaskModal.descriptionLabel')}
+                      onChange={(e) => update({ description: e.target.value })}
+                      onBlur={() => setActiveField(null)}
+                      aria-label={t('board.taskModal.descriptionLabel')}
+                      maxLength={10000}
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
+                      <span style={{ fontSize: 11, color: task.description.length > 9000 ? 'var(--status-danger)' : task.description.length > 8000 ? 'var(--status-warn)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                        {task.description.length.toLocaleString()} / {(10000).toLocaleString()}
+                      </span>
                     </div>
+                  </>
+                ) : (
+                  <div
+                    onClick={() => canEdit && setActiveField('description')}
+                    role={canEdit ? 'button' : undefined}
+                    tabIndex={canEdit ? 0 : undefined}
+                    onKeyDown={(e) => {
+                      if (canEdit && (e.key === 'Enter' || e.key === ' ')) {
+                        e.preventDefault();
+                        setActiveField('description');
+                      }
+                    }}
+                    aria-label={canEdit ? 'Edit ' + t('board.taskModal.descriptionLabel') : undefined}
+                    style={{
+                      cursor: canEdit ? 'text' : undefined,
+                      fontSize: 13,
+                      lineHeight: 1.6,
+                      color: task.description.trim() ? 'var(--text-secondary)' : 'var(--text-muted)',
+                      minHeight: 40,
+                      overflowWrap: 'anywhere',
+                    }}
+                  >
+                    {task.description.trim() ? (
+                      <MarkdownBlocks text={task.description} />
+                    ) : (
+                      t('board.taskModal.noDescription')
+                    )}
+                  </div>
+                )}
+              </div>
+
+              /* All details directly with icons - no View details collapse */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
+                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                  <Tag size={12} aria-hidden="true" /> Milestone
+                </span>
+                {activeField === 'milestone' && canEdit ? (
+                  <SearchableSelect id="task-milestone" label="" value={task.milestoneId} options={state!.milestones.map((m) => ({ value: m.id, label: m.name }))} onChange={(v) => { update({ milestoneId: v }); setActiveField(null); }} />
+                ) : (
+                  <button type="button" onClick={() => canEdit && setActiveField('milestone')} style={{ background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default', fontSize: 13, color: milestone ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
+                    {milestone ? milestone.name : '—'}
+                  </button>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
+                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                  <Clock size={12} aria-hidden="true" /> Estimate
+                </span>
+                {activeField === 'estimate' && canEdit ? (
+                  <input className="input" type="number" min={0} style={{ width: 100 }} value={task.estimate ?? ''} autoFocus onChange={(e) => { const v = e.target.value; update({ estimate: v === '' ? undefined : Math.max(0, Number(v)) }); }} onBlur={() => setActiveField(null)} />
+                ) : (
+                  <button type="button" onClick={() => canEdit && setActiveField('estimate')} style={{ background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default', fontSize: 13, color: 'var(--text-secondary)' }}>
+                    {task.estimate != null ? `${task.estimate}h` : '—'} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>· Actual: {task.actualHours != null ? `${task.actualHours}h` : '—'}</span>
+                  </button>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
+                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                  <LinkSimple size={12} aria-hidden="true" /> Blocked by
+                </span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, flex: 1, alignItems: 'center' }}>
+                  {blockedTasks.length > 0 ? blockedTasks.map((bt) => (
+                    <span key={bt.id} style={{ padding: '2px 8px', borderRadius: 999, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <LinkSimple size={10} aria-hidden="true" /> {bt.title} {canEdit && <button onClick={() => toggleBlocker(bt.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>×</button>}
+                    </span>
+                  )) : <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>}
+                  {canEdit && (activeField === 'blockedBy' ? (
+                    <SearchableSelect id="blockedBy-picker" label="" value={null} options={otherTasks.filter(ot => !task.blockedBy.includes(ot.id)).map(ot => ({ value: ot.id, label: ot.title }))} onChange={(v) => { if (v) { toggleBlocker(v); setActiveField(null); } }} />
+                  ) : (
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setActiveField('blockedBy')}>+ Add</button>
                   ))}
                 </div>
-              )}
-            </div>
+              </div>
+              {cycleWarn && <InlineError>{cycleWarn}</InlineError>}
 
-            <p className="field-helper">
-              {t('board.taskModal.updated', { time: formatRelative(task.updatedAt) })}
-            </p>
-          </>
-        ) : (
-          <>
-            <h3 className="detail-title">{task.title || <DetailEmpty>Untitled task</DetailEmpty>}</h3>
-            <DetailList>
-              <DetailRow label="Status">
-                <Badge tone={TASK_STATUS[task.status].tone}>{TASK_STATUS[task.status].label}</Badge>
-              </DetailRow>
-              <DetailRow label="Priority">
-                <Badge tone={TASK_PRIORITY[task.priority].tone}>
-                  {TASK_PRIORITY[task.priority].label}
-                </Badge>
-              </DetailRow>
-              <DetailRow label="Milestone">
-                {milestone ? milestone.name : <DetailEmpty />}
-              </DetailRow>
-              <DetailRow label="Due date">
-                {task.dueDate ? (
-                  <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-                    <span className={`task-due task-due-${taskDueChip(task).tone}`}>
-                      {taskDueChip(task).label}
-                    </span>
-                    <span className="text-muted">{formatDate(task.dueDate)}</span>
-                  </span>
-                ) : (
-                  <DetailEmpty />
-                )}
-              </DetailRow>
-              <DetailRow label="Done date">
-                {task.completedAt ? formatDate(task.completedAt) : <DetailEmpty />}
-              </DetailRow>
-              <DetailRow label="Start date">
-                {task.startDate ? (
-                  <span className="task-due task-due-neutral">{startLabel(task.startDate)}</span>
-                ) : (
-                  <DetailEmpty />
-                )}
-              </DetailRow>
-              <DetailRow label="Estimate">
-                {task.estimate != null ? `${task.estimate}h` : <DetailEmpty />}
-              </DetailRow>
-              <DetailRow label="Actual">
-                {task.actualHours != null ? `${task.actualHours}h` : <DetailEmpty />}
-              </DetailRow>
-              <DetailRow label="Labels">
-                {task.labels.length > 0 ? (
-                  <span className="detail-chips">
-                    {task.labels.map((l) => (
-                      <Badge key={l}>{l}</Badge>
-                    ))}
-                  </span>
-                ) : (
-                  <DetailEmpty />
-                )}
-              </DetailRow>
-              <DetailRow label="Description">
-                {task.description.trim() ? task.description : <DetailEmpty>No description.</DetailEmpty>}
-              </DetailRow>
-              <DetailRow label="Blocked by">
-                {blockedTasks.length > 0 ? (
-                  <div className="test-list">
-                    {blockedTasks.map((t) => (
-                      <div key={t.id} className="test-row">
-                        <span className="test-title">{t.title}</span>
-                        <Badge tone={TASK_STATUS[t.status].tone}>{TASK_STATUS[t.status].label}</Badge>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <DetailEmpty />
-                )}
-              </DetailRow>
-              <DetailRow label="Test cases">
-                {testCases.length === 0 ? (
-                  <DetailEmpty>No test cases linked to this task yet.</DetailEmpty>
-                ) : (
-                  <div className="test-list">
-                    {testCases.map((tc) => (
-                      <div key={tc.id} className="test-row" title={tc.steps || tc.name}>
-                        <span className="test-title">{tc.name}</span>
-                        <Badge tone={TEST_CASE_STATUS[tc.status].tone}>
-                          {TEST_CASE_STATUS[tc.status].label}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </DetailRow>
-            </DetailList>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
+                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                  <ListChecks size={12} aria-hidden="true" /> Test cases
+                </span>
+                <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                  {testCases.length === 0 ? 'No linked' : `${testCases.length} linked`}
+                </span>
+              </div>
+            </div>
             <h4 className="detail-subtitle">Activity</h4>
             <ActivityList projectId={projectId} entity="tasks" entityId={task.id} />
             <p className="field-helper">Updated {formatRelative(task.updatedAt)}</p>
           </>
-        )}
-      </div>
+        </div>
     </Modal>
+    {fullscreenField === 'description' && (
+        <Modal
+          open
+          title={`${t('board.taskModal.descriptionLabel')} — Fullscreen`}
+          onClose={() => setFullscreenField(null)}
+          width="lg"
+          className="modal-fullscreen"
+        >
+          <div className="field">
+            <div className="issue-fullscreen-split" style={{ display: 'flex', gap: 16, flex: 1, minHeight: 0, alignItems: 'stretch' }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('tracker:issues.modal.editTab')}</div>
+                <textarea
+                  className="textarea"
+                  style={{ flex: 1, minHeight: 0, height: '100%', resize: 'none' }}
+                  value={task.description}
+                  autoFocus={canEdit}
+                  readOnly={!canEdit}
+                  placeholder={t('board.newTaskModal.descriptionLabel')}
+                  onChange={(e) => canEdit && update({ description: e.target.value })}
+                  aria-label={t('board.taskModal.descriptionLabel')}
+                  maxLength={10000}
+                />
+              </div>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('tracker:issues.modal.previewTab')}</div>
+                <div className="md-preview" style={{ flex: 1, minHeight: 0, height: '100%', overflow: 'auto' }}>
+                  {task.description.trim() ? (
+                    <MarkdownBlocks text={task.description} />
+                  ) : (
+                    <span className="md-preview-empty">{t('project:prd.nothingToPreview')}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+              <p className="field-helper" style={{ margin: 0 }}>{canEdit ? t('tracker:issues.modal.fullscreenHelper') : t('tracker:issues.modal.fullscreenHelperReadOnly')}</p>
+              <span style={{ fontSize: 11, color: task.description.length > 9000 ? 'var(--status-danger)' : task.description.length > 8000 ? 'var(--status-warn)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                {task.description.length.toLocaleString()} / {(10000).toLocaleString()}
+              </span>
+            </div>
+          </div>
+        </Modal>
+      )}
     <ConfirmDeleteDialog
       open={confirmOpen}
       title="Delete task?"

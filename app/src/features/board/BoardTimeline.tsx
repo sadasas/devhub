@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../../components/Button";
-import { CaretLeft, CaretRight } from "@phosphor-icons/react";
+import { CaretLeft, CaretRight, Plus } from "@phosphor-icons/react";
 import { useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Task } from "../../lib/types";
@@ -38,7 +38,7 @@ function packLane(tasks: Task[]): { rowOf: Map<string, number>; rowsNeeded: numb
   }
   return { rowOf, rowsNeeded: Math.max(1, trackEnd.length) };
 }
-export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds }: BoardTimelineProps) {
+export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds, onNewTaskAt }: BoardTimelineProps) {
   const { t } = useTranslation("tracker");
   const { state, dispatch, canEdit, projectId } = useProject() as any;
   const [searchParams, setSearchParams] = useSearchParams();
@@ -99,6 +99,7 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds }:
       return {...lane, rowOf, rowsNeeded};
     });
   },[lanes]);
+  const laneTotal = useMemo(()=> packed.reduce((s,l)=> { const base = l.tasks.length===0 ? 100+ROW_H : Math.max(136, (l.rowsNeeded+1)*ROW_H+16); return s + (packed.length===1 ? Math.max(324, base) : base); },0), [packed]);
   const todayOffset = useMemo(()=>{const idx=win.days.indexOf(today); if(idx===-1) return null; return idx*colW;},[win.days,today,colW]);
   const gridRef=useRef<HTMLDivElement>(null); const headerRef=useRef<HTMLDivElement>(null); const laneRef=useRef<HTMLDivElement>(null);
   useEffect(()=>{
@@ -173,6 +174,11 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds }:
           ))}
         </div>
         <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center"}}>
+          {canEdit && onNewTaskAt && (
+            <Button variant="primary" size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={()=>onNewTaskAt({ startDate: today, dueDate: addDaysToDate(today,2) })}>
+              {t("board.addTask",{defaultValue:"New task"})}
+            </Button>
+          )}
           <Button variant="ghost" size="sm" onClick={onToday}>{t("board.timeline.today",{defaultValue:"Today"})}</Button>
           <label className="toolbar-check" style={{fontSize:12}}><input type="checkbox" checked={hideCompleted} onChange={e=>setHideCompleted(e.target.checked)} />{t("board.cal.hideCompleted",{defaultValue:"Hide completed"})}</label>
         </div>
@@ -187,7 +193,7 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds }:
           </button>
         ))}
       </div>
-      <div className="tl-wrap" style={{display:"grid",gridTemplateColumns:"var(--lane-w) 1fr",gridTemplateRows:"76px minmax(324px, auto)",minHeight:400,border:"1px solid var(--border-hairline)",borderRadius:"var(--radius-card)",overflow:"hidden",background:"var(--bg-elevated)",width:"100%",minWidth:0}}>
+      <div className="tl-wrap" style={{display:"grid",gridTemplateColumns:"var(--lane-w) 1fr",gridTemplateRows:"76px auto",minHeight:Math.max(400, 76 + laneTotal),border:"1px solid var(--border-hairline)",borderRadius:"var(--radius-card)",overflow:"hidden",background:"var(--bg-elevated)",width:"100%",minWidth:0}}>
           <div style={{background:"var(--bg-elevated)",borderBottom:"1px solid var(--border-strong)",borderRight:"1px solid var(--border-hairline)",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 10px",height:76,position:"sticky",top:0,left:0,zIndex:4, minWidth:0}}>
             <span style={{fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.06em",color:"var(--text-muted)"}}>{t("board.timeline.laneTasks",{defaultValue:"Tasks"})}</span>
             <span style={{display:"flex",gap:4}}>
@@ -205,7 +211,8 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds }:
           </div>
           <div ref={laneRef} className="tl-lane" style={{overflow:"hidden",overflowY:"auto",scrollbarWidth:"thin",maxHeight:"60vh",minHeight:0,height:"100%",alignSelf:"stretch",position:"sticky",left:0,zIndex:2,background:"var(--bg-elevated)",minWidth:0,overscrollBehavior:"contain"}}>
             {packed.map((lane:any,idx:number)=>{
-              const h = lane.tasks.length===0 ? 100 : Math.max(136, lane.rowsNeeded*ROW_H+16);
+              const base = lane.tasks.length===0 ? 100+ROW_H : Math.max(136, (lane.rowsNeeded+1)*ROW_H+16);
+              const h = packed.length===1 ? Math.max(324, base) : base;
               return <div key={lane.key} style={{height: h, minHeight:36, display:"flex",alignItems:lane.tasks.length?"flex-start":"center",gap:8,padding:"6px 10px",borderBottom:"1px solid var(--border-hairline)",borderRight:"1px solid var(--border-hairline)",background: idx%2===1?"var(--bg-stripe, rgba(255,255,255,0.015))":"transparent",position:"relative"}}>
                 <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:500,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}} title={lane.label}>{lane.label}</div>{"sub" in lane && (lane as any).sub && <div style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--text-muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(lane as any).sub}</div>}<div style={{fontSize:11,fontFamily:"var(--font-mono)",color:"var(--text-muted)"}} className="tabular">{lane.tasks.length} tasks · {lane.rowsNeeded} rows</div>{lane.tasks.length===0 && <div style={{fontSize:11, color:"var(--text-muted)", fontStyle:"italic", marginTop:2}}>No tasks</div>}</div>
               </div>;
@@ -214,7 +221,8 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds }:
           <div ref={gridRef} className="tl-grid" style={{overflow:"auto",position:"relative",maxHeight:"60vh",minHeight:0,height:"100%",alignSelf:"stretch",minWidth:0,overscrollBehavior:"contain"}} onDragOver={handleGridDragOver} onDragLeave={(e)=>{ if(e.target===e.currentTarget) setGhostDate(null); }}>
             <div style={{position:"relative",width:totalWidth,minWidth:totalWidth,minHeight:"100%"}}>
               {packed.map((lane:any, laneIdx:number)=>{
-                const h = lane.tasks.length===0 ? 100 : Math.max(136, lane.rowsNeeded*ROW_H+16);
+                const base = lane.tasks.length===0 ? 100+ROW_H : Math.max(136, (lane.rowsNeeded+1)*ROW_H+16);
+                const h = packed.length===1 ? Math.max(324, base) : base;
                 return <div key={lane.key} style={{position:"relative",height: h, minHeight:36, borderBottom:"1px solid var(--border-hairline)",background: laneIdx%2===1?"var(--bg-stripe, rgba(255,255,255,0.015))":"transparent"}} onDragOver={handleGridDragOver} onDrop={e=>{const grid=gridRef.current; if(!grid) return; const gridRect=grid.getBoundingClientRect(); const x=e.clientX-gridRect.left+grid.scrollLeft; const dayIdx=Math.floor(x/colW); const targetDate=win.days[Math.max(0,Math.min(win.days.length-1,dayIdx))]??null; const laneRect=(e.currentTarget as HTMLElement).getBoundingClientRect(); const y=e.clientY-laneRect.top; const targetRow=Math.floor((y-ROW_TOP)/ROW_H); const draggedId=e.dataTransfer.getData("text/plain"); const laneTasks=lane.tasks; const curIdx=laneTasks.findIndex((tt: Task)=>tt.id===draggedId); const fromRow=lane.rowOf.get(draggedId) ?? curIdx; if(targetRow!==fromRow && curIdx!==-1 && draggedId){ const targetTask=laneTasks.find((tt: Task)=> (lane.rowOf.get(tt.id)??0)===targetRow); if(targetTask){ const targetIdx=laneTasks.findIndex((tt: Task)=>tt.id===targetTask.id); let steps=Math.abs(targetIdx-curIdx); let dir= targetIdx>curIdx?1:-1; for(let s=0;s<steps;s++) moveInLane(lane.key, draggedId, dir); } } handleGridDrop(e,targetDate);}}>
                   <div style={{position:"absolute",inset:0,display:"flex",pointerEvents:"none"}} aria-hidden="true">{win.days.map(d=>(<div key={d} style={{flex:`0 0 ${colW}px`,width:colW,borderRight: d===today?"1px solid var(--accent)":"1px solid var(--border-hairline)",opacity: d===today?1:0.6,background: d===today?"var(--accent-dim)": isWeekend(d)?"var(--bg-weekend, rgba(255,255,255,0.02))":"transparent"}} />))}</div>
                   {todayOffset!=null && (<><div aria-hidden="true" style={{position:"absolute",top:0,bottom:0,left:todayOffset,width:colW,background:"var(--accent-dim)",opacity:0.15,pointerEvents:"none"}} /><div aria-hidden="true" style={{position:"absolute",top:0,bottom:0,left:todayOffset,width:1.5,background:"var(--accent)",zIndex:2,pointerEvents:"none"}} /></>)}
@@ -265,8 +273,23 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds }:
                     const ghostEnd=addDaysToDate(ghostDate, span);
                     const g=barGeometry({...dragTask, startDate:ghostDate, dueDate:ghostEnd} as Task, win.start, zoom);
                     if(!g) return null;
-                    const rowGhost=lane.rowOf.get(dragId) ?? 0;
-                    const topGhost=ROW_TOP+rowGhost*ROW_H;
+                    // hitung row ghost: free pertama di ghostDate dari atas (0→maxRow), bukan dari y — agar atas kosong bisa ditempati
+                    const ghostS = dayIndex(ghostDate);
+                    const ghostE = dayIndex(ghostEnd);
+                    const maxRow = lane.rowsNeeded;
+                    let ghostRow = 0;
+                    outer: for(let r=0;r<=maxRow;r++){
+                      for(const t of lane.tasks){
+                        if(t.id===dragId) continue;
+                        if((lane.rowOf.get(t.id) ?? -1) !== r) continue;
+                        const s = t.startDate!, e = t.dueDate!; if(!s||!e) continue;
+                        let a=s, b=e; if(a>b) [a,b]=[b,a];
+                        const sIdx=dayIndex(a), eIdx=dayIndex(b);
+                        if(!(ghostE < sIdx || ghostS > eIdx)){ continue outer; }
+                      }
+                      ghostRow = r; break;
+                    }
+                    const topGhost=ROW_TOP+ghostRow*ROW_H;
                     return <div aria-hidden="true" style={{position:"absolute",left:g.left,top:topGhost,width:g.width,height:BAR_H,border:"2px dashed var(--accent)",background:"rgba(52,195,142,0.18)",borderRadius:"var(--radius-card)",pointerEvents:"none",opacity:1,boxShadow:"0 2px 8px rgba(0,0,0,0.18)"}} />;
                   })()}
                 </div>

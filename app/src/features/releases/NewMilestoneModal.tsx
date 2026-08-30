@@ -1,14 +1,13 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useProject } from "../../state/project-context";
 import { usePresenceStatus } from "../../hooks/usePresenceStatus";
 import { newId, nowIso } from "../../lib/utils";
 import type { MilestoneStatus } from "../../lib/types";
-import { MarkdownBlocks } from "../../lib/markdown";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { Modal } from "../../components/Modal";
-import { ArrowsOutSimple, ArrowsInSimple } from "@phosphor-icons/react";
+import { FileText, ArrowsOutSimple } from "@phosphor-icons/react";
 
 interface NewMilestoneModalProps {
   onClose: () => void;
@@ -23,23 +22,7 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
   const [targetDate, setTargetDate] = useState("");
   const [status, setStatus] = useState<MilestoneStatus>("planned");
   const [changelog, setChangelog] = useState("");
-  const [preview, setPreview] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const changelogId = useId();
-  const helperId = useId();
-  const countId = useId();
-  const expandedTextareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (!preview && !expanded && textareaRef.current) {
-      const el = textareaRef.current;
-      el.style.height = "auto";
-      const max = 340;
-      el.style.height = Math.min(el.scrollHeight, max) + "px";
-      el.style.overflowY = el.scrollHeight > max ? "auto" : "hidden";
-    }
-  }, [changelog, preview, expanded]);
+  const [fullscreen, setFullscreen] = useState(false);
 
   const submit = () => {
     if (!name.trim()) return;
@@ -65,96 +48,70 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
   const countTone = count > limit * 0.95 ? "var(--status-danger)" : count > limit * 0.8 ? "var(--status-warn)" : "var(--text-muted)";
 
   const changelogField = (
-    <div className="field" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-      <div className="field-label-row">
-        <label className="field-label" htmlFor={changelogId}>
-          {t("releases.newModal.changelogLabel")}
-        </label>
-        <span className="flex-1" />
-        {!expanded && (
-          <div className="md-toggle" role="group" aria-label={t("prd.modeAria", { label: t("releases.newModal.changelogLabel") })}>
-            <button type="button" title={t("prd.mdTooltip")} className={`md-toggle-btn${!preview ? " active" : ""}`} aria-pressed={!preview} onClick={() => setPreview(false)}>
-              {t("prd.edit")}
-            </button>
-            <button type="button" title={t("prd.mdTooltip")} className={`md-toggle-btn${preview ? " active" : ""}`} aria-pressed={preview} onClick={() => setPreview(true)}>
-              {t("prd.preview")}
-            </button>
-          </div>
-        )}
-        <Button size="sm" variant="ghost" className="btn-icon" data-expand-trigger aria-label={expanded ? t("releases.modal.collapse", { defaultValue: "Collapse" }) : t("releases.modal.expand", { defaultValue: "Expand" })} title={expanded ? "Collapse — back to single" : "Expand — split edit & preview"} aria-expanded={expanded} aria-controls={`${changelogId}-expanded`} onClick={() => setExpanded((v) => !v)}>
-          {expanded ? <ArrowsInSimple size={14} /> : <ArrowsOutSimple size={14} />}
-        </Button>
+    <div style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', borderRadius: 8, padding: 16 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <FileText size={12} aria-hidden="true" /> {t("releases.newModal.changelogLabel")}
+        </span>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm btn-icon"
+          aria-label={t('tracker:issues.modal.fullscreenAriaDescription')}
+          title={t('tracker:issues.modal.fullscreenAriaDescription')}
+          onClick={() => setFullscreen(true)}
+        >
+          <ArrowsOutSimple size={14} aria-hidden="true" />
+        </button>
       </div>
-      {preview && !expanded ? (
-        <div className="md-preview" style={{ maxHeight: 340, overflowY: "auto" }} tabIndex={0} role="region" aria-label={t("releases.modal.previewLabel", { defaultValue: "Preview changelog" })}>
-          {changelog.trim() ? <MarkdownBlocks text={changelog} /> : <span className="md-preview-empty">{t("prd.nothingToPreview")}</span>}
-        </div>
-      ) : !expanded ? (
-        <textarea
-          ref={textareaRef}
-          id={changelogId}
-          className="textarea textarea-autosize"
-          rows={4}
-          value={changelog}
-          onChange={(e) => setChangelog(e.target.value)}
-          placeholder={t("releases.newModal.changelogHelper")}
-          aria-describedby={`${helperId} ${countId}`}
-          style={{ minHeight: 96, maxHeight: 340, resize: "vertical", overflowY: "auto", fieldSizing: "content" } as React.CSSProperties}
-        />
-      ) : null}
-      {!expanded && (
-        <>
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
-            <span id={countId} className="tabular" style={{ fontSize: 11, color: countTone }} aria-live="polite" aria-atomic="true">
-              {count.toLocaleString()} / {limit.toLocaleString()}
-            </span>
-          </div>
-          <p id={helperId} className="field-helper">{t("releases.modal.changelogHelp")}</p>
-          <p id={`${helperId}-2`} className="field-helper">{t("releases.modal.changelogHelp2")}</p>
-        </>
-      )}
+      <textarea
+        className="textarea"
+        rows={4}
+        value={changelog}
+        onChange={(e) => setChangelog(e.target.value)}
+        placeholder={t("releases.modal.changelogPlaceholder")}
+        maxLength={20000}
+      />
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
+        <span style={{ fontSize: 11, color: countTone, fontFamily: 'var(--font-mono)' }}>
+          {count.toLocaleString()} / {limit.toLocaleString()}
+        </span>
+      </div>
     </div>
   );
 
-  if (expanded) {
+  if (fullscreen) {
     return (
       <Modal
         open
-        title={t("releases.newModal.title") + " — " + (name || "New")}
-        onClose={() => setExpanded(false)}
+        title={t("releases.modal.changelogLabel") + ` - Fullscreen`}
+        onClose={() => setFullscreen(false)}
         width="lg"
-        className="modal-fullscreen modal-split"
-        initialFocusRef={expandedTextareaRef}
-        footer={
-          <>
-            <span className="flex-1" />
-            <Button variant="primary" onClick={() => setExpanded(false)}>{t("releases.modal.done")}</Button>
-          </>
-        }
+        className="modal-fullscreen"
       >
-        <div className="modal-split-grid">
-          <div style={{ display: "flex", flexDirection: "column", minHeight: 0, gap: 8 }}>
-            <label className="field-label" htmlFor={`${changelogId}-expanded`} style={{ fontWeight: 600 }}>{t("releases.newModal.changelogLabel")} — Edit</label>
-            <textarea
-              ref={expandedTextareaRef}
-              id={`${changelogId}-expanded`}
-              className="textarea"
-              value={changelog}
-              onChange={(e) => setChangelog(e.target.value)}
-              placeholder={t("releases.newModal.changelogHelper")}
-              aria-describedby={`${helperId} ${countId}`}
-              style={{ flex: 1, minHeight: 0, resize: "none", overflowY: "auto" }}
-            />
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span id={helperId} className="field-helper" style={{ margin: 0 }}>{t("releases.modal.changelogHelp")}</span>
-              <span id={countId} className="tabular" style={{ fontSize: 11, color: countTone }} aria-live="polite" aria-atomic="true">{count.toLocaleString()} / {limit.toLocaleString()}</span>
+        <div className="field" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <div className="issue-fullscreen-split" style={{ display: 'flex', gap: 16, flex: 1, minHeight: 0, alignItems: 'stretch' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('tracker:issues.modal.editTab')}</div>
+              <textarea
+                className="textarea"
+                style={{ flex: 1, minHeight: 0, height: '100%', resize: 'none' }}
+                value={changelog}
+                onChange={(e) => setChangelog(e.target.value)}
+                placeholder={t("releases.modal.changelogPlaceholder")}
+                maxLength={20000}
+                autoFocus
+              />
+            </div>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('tracker:issues.modal.previewTab')}</div>
+              <div className="md-preview" style={{ flex: 1, minHeight: 0, height: '100%', overflow: 'auto' }}>
+                {changelog.trim() ? <div className="md-blocks" style={{ whiteSpace: 'pre-wrap' }}>{changelog}</div> : <span className="md-preview-empty">{t('project:prd.nothingToPreview')}</span>}
+              </div>
             </div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", minHeight: 0, borderLeft: "1px solid var(--border-hairline)", paddingLeft: 16 }}>
-            <div className="field-label" style={{ fontWeight: 600 }} id={`${changelogId}-preview-heading`}>Preview</div>
-            <div className="md-preview" style={{ flex: 1, overflowY: "auto" }} tabIndex={0} role="region" aria-labelledby={`${changelogId}-preview-heading`}>
-              {changelog.trim() ? <MarkdownBlocks text={changelog} /> : <span className="md-preview-empty">{t("prd.nothingToPreview")}</span>}
-            </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+            <p className="field-helper" style={{ margin: 0 }}>{t('tracker:issues.modal.fullscreenHelper')}</p>
+            <span style={{ fontSize: 11, color: countTone, fontFamily: 'var(--font-mono)' }}>{count.toLocaleString()} / {limit.toLocaleString()}</span>
           </div>
         </div>
       </Modal>
@@ -179,7 +136,7 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
       }
     >
       <div className="form-stack">
-        <Input label={t("releases.newModal.nameLabel")} autoFocus placeholder={t("releases.newModal.namePlaceholder")} value={name} onChange={(e) => setName(e.target.value)} />
+        <Input label={t("releases.newModal.nameLabel")} autoFocus placeholder={t("releases.newModal.namePlaceholder")} value={name} onChange={(e) => setName(e.target.value)} maxLength={300} />
         <div className="field-row">
           <div className="field">
             <label className="field-label" htmlFor="milestone-version">
@@ -192,6 +149,7 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
               inputMode="decimal"
               value={version}
               onChange={(e) => setVersion(e.target.value.replace(/[^0-9.]/g, ""))}
+              maxLength={100}
             />
           </div>
           <div className="field">
