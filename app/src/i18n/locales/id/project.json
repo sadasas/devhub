@@ -391,6 +391,22 @@
       "itemWithColumns": "{{name}} ({{count}} kolom)",
       "itemRelation": "{{cardinality}} relasi {{id}}",
       "noDifferences": "Tidak ada perbedaan antara kedua versi ini."
+    },
+    "viewBanner": {
+      "viewing": "Melihat snapshot",
+      "backToCurrent": "Kembali ke current",
+      "diffWithCurrent": "Bandingkan dengan current",
+      "readOnlyNotice": "Hanya baca — editing dinonaktifkan saat melihat snapshot.",
+      "count": "Melihat {{version}} · {{tables}} tabel · {{relations}} relasi · snapshot {{date}}",
+      "noSnapshotTitle": "Tidak ada snapshot untuk versi ini",
+      "noSnapshotDesc": "Versi ini disimpan sebelum snapshot ditangkap. Hanya metadata.",
+      "noTablesInSnapshot": "Tidak ada tabel di snapshot ini",
+      "noTablesDesc": "Snapshot ini disimpan dengan 0 tabel."
+    },
+    "viewRow": {
+      "aria": "Lihat snapshot {{version}}",
+      "active": "Sedang dilihat",
+      "noSnapshotTooltip": "Tidak ada snapshot — disimpan sebelum capture"
     }
   },
   "decisions": {

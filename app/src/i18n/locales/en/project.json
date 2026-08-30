@@ -391,6 +391,22 @@
       "itemWithColumns": "{{name}} ({{count}} columns)",
       "itemRelation": "{{cardinality}} relation {{id}}",
       "noDifferences": "No differences between these versions."
+    },
+    "viewBanner": {
+      "viewing": "Viewing snapshot",
+      "backToCurrent": "Back to current",
+      "diffWithCurrent": "Diff with current",
+      "readOnlyNotice": "Read-only — editing disabled while viewing a snapshot.",
+      "count": "Viewing {{version}} · {{tables}} tables · {{relations}} relations · snapshot {{date}}",
+      "noSnapshotTitle": "No snapshot for this version",
+      "noSnapshotDesc": "This version was saved before snapshots were captured. Metadata only.",
+      "noTablesInSnapshot": "No tables in this snapshot",
+      "noTablesDesc": "This snapshot was saved with 0 tables."
+    },
+    "viewRow": {
+      "aria": "View snapshot {{version}}",
+      "active": "Currently viewing",
+      "noSnapshotTooltip": "No snapshot — saved before snapshot capture"
     }
   },
   "decisions": {

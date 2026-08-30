@@ -1,6 +1,6 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { FloppyDisk, GitDiff, Graph, LinkSimple, List, Plus, Trash } from '@phosphor-icons/react';
+import { ArrowLeft, CaretLeft, CaretRight, Eye, FloppyDisk, GitDiff, Graph, LinkSimple, List, Plus, Trash, Warning } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { formatDate, relationLabel as formatRelation, shortId } from '../../lib/utils';
 import type { Relation, SchemaVersion, Table } from '../../lib/types';
@@ -64,9 +64,78 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const [confirmRel, setConfirmRel] = useState<Relation | null>(null);
   const [saveVersionOpen, setSaveVersionOpen] = useState(false);
   const [diffOpen, setDiffOpen] = useState(false);
+  const [versionsCollapsed, setVersionsCollapsed] = useState(false);
 
   const tabTablesRef = useRef<HTMLButtonElement>(null);
   const tabErdRef = useRef<HTMLButtonElement>(null);
+
+  // Opsi B: snapshot viewing via ?v=<uuid>
+  const selectedVersionId = searchParams.get('v');
+  const selectedVersion = useMemo(
+    () => (state ? (state.schemaVersions.find((v) => v.id === selectedVersionId) ?? null) : null),
+    [state, selectedVersionId],
+  );
+  const isViewing = !!selectedVersion;
+  const hasSnapshot = !!selectedVersion?.snapshot;
+  const displayTables = useMemo(() => {
+    if (!state) return [];
+    if (!isViewing) return state.tables;
+    if (!hasSnapshot) return [];
+    return selectedVersion!.snapshot!.tables;
+  }, [state, isViewing, hasSnapshot, selectedVersion]);
+  const displayRelations = useMemo(() => {
+    if (!state) return [];
+    if (!isViewing) return state.relations;
+    if (!hasSnapshot) return [];
+    return selectedVersion!.snapshot!.relations;
+  }, [state, isViewing, hasSnapshot, selectedVersion]);
+  const displayStateForERD = useMemo(() => {
+    if (!state) return null;
+    if (!isViewing) return state;
+    return { ...state, tables: displayTables, relations: displayRelations };
+  }, [state, isViewing, displayTables, displayRelations]);
+  const canEditEffective = canEdit && !isViewing;
+
+  const toggleVersion = useCallback(
+    (v: SchemaVersion) => {
+      setSearchParams(
+        (prev) => {
+          const p = new URLSearchParams(prev);
+          if (p.get('v') === v.id) p.delete('v');
+          else p.set('v', v.id);
+          return p;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
+  const exitViewing = useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        p.delete('v');
+        return p;
+      },
+      { replace: true },
+    );
+  }, [setSearchParams]);
+
+  // focus is handled via autoFocus on Back button for SR announcement
+
+  useEffect(() => {
+    if (!isViewing) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (diffOpen) return; // let modal handle its own escape
+        exitViewing();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isViewing, diffOpen, exitViewing]);
 
   const handleTabKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -98,11 +167,11 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     );
   }
 
-  if (!state) return null;
+  if (!state || !displayStateForERD) return null;
 
-  const relationLabel = (rel: Relation) => {
-    const ft = state.tables.find((t) => t.id === rel.fromTableId);
-    const tt = state.tables.find((t) => t.id === rel.toTableId);
+  const relationLabel = (rel: Relation, tables: Table[] = displayTables) => {
+    const ft = tables.find((t) => t.id === rel.fromTableId);
+    const tt = tables.find((t) => t.id === rel.toTableId);
     return formatRelation(
       ft?.name,
       ft?.columns.find((c) => c.id === rel.fromColumnId)?.name,
@@ -111,15 +180,38 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     );
   };
 
+  const relationLabelCurrent = (rel: Relation) => relationLabel(rel, state.tables);
+  const relationLabelDisplay = (rel: Relation) => relationLabel(rel, displayTables);
+
+  const columnsCount = displayTables.reduce((acc, t) => acc + t.columns.length, 0);
+
   return (
     <div className="page">
       <div className="data-list-header">
         <span className="data-list-count">
-          {t('schema.page.count', {
-            tables: state.tables.length,
-            relations: state.relations.length,
-            versions: state.schemaVersions.length,
-          })}
+          {isViewing && selectedVersion ? (
+            hasSnapshot ? (
+              t('schema.viewBanner.count', {
+                version: selectedVersion.version,
+                tables: displayTables.length,
+                relations: displayRelations.length,
+                date: formatDate(selectedVersion.appliedAt),
+              })
+            ) : (
+              t('schema.viewBanner.count', {
+                version: selectedVersion.version,
+                tables: 0,
+                relations: 0,
+                date: formatDate(selectedVersion.appliedAt),
+              })
+            )
+          ) : (
+            t('schema.page.count', {
+              tables: state.tables.length,
+              relations: state.relations.length,
+              versions: state.schemaVersions.length,
+            })
+          )}
         </span>
         <div className="data-list-actions">
           <SortControl
@@ -127,7 +219,7 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
             value={sortValue}
             onChange={setSort}
           />
-          {canEdit && (
+          {canEditEffective && (
             <Button
               variant="ghost"
               size="sm"
@@ -137,7 +229,7 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
               {t('schema.page.newRelation')}
             </Button>
           )}
-          {canEdit && (
+          {canEditEffective && (
             <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setNewTableOpen(true)}>
               {t('schema.page.newTable')}
             </Button>
@@ -178,46 +270,154 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
         </button>
       </div>
 
-      <div className="schema-layout">
+      {isViewing && selectedVersion && (
+        <div
+          className="snapshot-banner"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <div className="snapshot-banner-left">
+            <Eye size={14} aria-hidden="true" style={{ color: 'var(--accent)', flexShrink: 0 }} />
+            <span className="snapshot-banner-label">{t('schema.viewBanner.viewing')}</span>
+            <Badge tone="accent">{selectedVersion.version}</Badge>
+            <span className="snapshot-banner-meta">
+              {t('schema.appliedAt', { date: formatDate(selectedVersion.appliedAt) })}
+              {selectedVersion.notes ? ` · ${selectedVersion.notes}` : ` · ${t('schema.noNotes')}`}
+              {hasSnapshot && ` · ${displayTables.length} tables · ${displayRelations.length} relations · ${columnsCount} columns`}
+            </span>
+            {!hasSnapshot && (
+              <span className="snapshot-banner-warn" title={t('schema.viewRow.noSnapshotTooltip')}>
+                <Warning size={13} aria-hidden="true" /> {t('schema.viewBanner.noSnapshotTitle')}
+              </span>
+            )}
+          </div>
+          <div className="snapshot-banner-actions">
+            <Button
+              variant="secondary"
+              size="sm"
+              leftIcon={<ArrowLeft size={13} aria-hidden="true" />}
+              onClick={exitViewing}
+              aria-label={t('schema.viewBanner.backToCurrent')}
+              autoFocus={isViewing}
+            >
+              {t('schema.viewBanner.backToCurrent')}
+            </Button>
+            {hasSnapshot && (
+              <Button
+                variant="ghost"
+                size="sm"
+                leftIcon={<GitDiff size={13} aria-hidden="true" />}
+                onClick={() => setDiffOpen(true)}
+              >
+                {t('schema.viewBanner.diffWithCurrent')}
+              </Button>
+            )}
+          </div>
+          <div className="snapshot-banner-notice">{t('schema.viewBanner.readOnlyNotice')}</div>
+        </div>
+      )}
+
+      <div className={`schema-layout ${versionsCollapsed ? 'schema-layout-collapsed' : ''} `}>
         <div className="schema-main">
           {view === 'tables' ? (
             <div id="panel-tables" role="tabpanel" aria-labelledby="tab-tables" tabIndex={0}>
-              {state.tables.length === 0 ? (
+              {isViewing && !hasSnapshot ? (
+                <EmptyState
+                  icon={<FloppyDisk size={22} />}
+                  title={t('schema.viewBanner.noSnapshotTitle')}
+                  description={t('schema.viewBanner.noSnapshotDesc')}
+                  action={<Button size="sm" variant="secondary" leftIcon={<ArrowLeft size={13} aria-hidden="true" />} onClick={exitViewing}>{t('schema.viewBanner.backToCurrent')}</Button>}
+                />
+              ) : displayTables.length === 0 ? (
                 <EmptyState
                   icon={<Graph size={22} />}
-                  title={t('schema.empty.tablesTitle')}
-                  description={t('schema.empty.tablesDesc')}
-                  action={canEdit ? <Button size="sm" onClick={() => setNewTableOpen(true)}>{t('schema.page.newTable')}</Button> : undefined}
+                  title={isViewing ? t('schema.viewBanner.noTablesInSnapshot') : t('schema.empty.tablesTitle')}
+                  description={isViewing ? t('schema.viewBanner.noTablesDesc') : t('schema.empty.tablesDesc')}
+                  action={canEditEffective ? <Button size="sm" onClick={() => setNewTableOpen(true)}>{t('schema.page.newTable')}</Button> : undefined}
                 />
               ) : (
                 <div className="data-list">
-                  {applySort(state.tables, tableSortSpec, effectiveSort.dir).map((t2) => (
-                    <div key={t2.id} className="data-row">
-                      <button
-                        type="button"
-                        className="data-row-main"
-                        onClick={() => setTableId(t2.id)}
-                        aria-label={t('schema.page.editTableAria', { name: t2.name })}
-                      >
-                        <div className="data-row-title">
-                          <span className="row-title-text">{t2.name}</span>
-                        </div>
-                        <div className="data-row-sub">{t2.comment || t('schema.noComment')}</div>
-                        <div className="data-row-meta">
-                          <span>
-                            {t('schema.columnCount', { count: t2.columns.length })}
-                          </span>
-                          <span>
-                            {t('schema.indexCount', { count: t2.indexes.length })}
-                          </span>
-                          <span>#{shortId(t2.id)}</span>
-                          {unreadIds?.has(t2.id) && (
-                            <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">
-                              New
+                  {applySort(displayTables, tableSortSpec, effectiveSort.dir).map((t2) => (
+                    <div key={t2.id} className={`data-row ${isViewing ? 'snapshot-row' : ''}`}>
+                      {isViewing ? (
+                        <div className="data-row-main snapshot-row-main" aria-label={t2.name}>
+                          <div className="data-row-title">
+                            <span className="row-title-text">{t2.name}</span>
+                            <span className="snapshot-row-id">#{shortId(t2.id)}</span>
+                          </div>
+                          <div className="data-row-sub">{t2.comment || t('schema.noComment')}</div>
+                          <div className="data-row-meta">
+                            <span>
+                              {t('schema.columnCount', { count: t2.columns.length })}
                             </span>
+                            <span>
+                              {t('schema.indexCount', { count: t2.indexes.length })}
+                            </span>
+                          </div>
+                          {t2.columns.length > 0 && (
+                            <div className="snapshot-cols" role="list" aria-label={`${t2.name} columns`}>
+                              <div className="snapshot-cols-head">
+                                <span>{t('schema.table.captionName')}</span>
+                                <span>{t('schema.table.captionType')}</span>
+                                <span>{t('schema.table.detailCaptionFlags')}</span>
+                                <span>{t('schema.table.captionDefault')}</span>
+                              </div>
+                              {t2.columns.map((c) => (
+                                <div key={c.id} className="snapshot-col" role="listitem">
+                                  <span className="snapshot-col-name font-mono" title={c.name}>
+                                    {c.name}
+                                    {c.primaryKey && <span className="snapshot-pk" title={t('schema.table.primaryKeyTitle')}> PK</span>}
+                                  </span>
+                                  <span className="snapshot-col-type font-mono">{c.type || '—'}</span>
+                                  <span className="snapshot-col-flags font-mono">
+                                    {c.nullable ? '' : 'NOT NULL'}
+                                    {c.primaryKey && c.nullable ? ' · PK' : ''}
+                                  </span>
+                                  <span className="snapshot-col-default font-mono">{c.default ?? '—'}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {t2.indexes.length > 0 && (
+                            <div className="snapshot-indexes">
+                              <span className="snapshot-indexes-label">{t('schema.table.indexesLabel')}:</span>{' '}
+                              <span className="font-mono">{t2.indexes.join(', ')}</span>
+                            </div>
+                          )}
+                          {t2.columns.length === 0 && (
+                            <div className="field-helper" style={{ marginTop: 6, fontStyle: 'italic' }}>
+                              {t('schema.table.noColumnsView')}
+                            </div>
                           )}
                         </div>
-                      </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="data-row-main"
+                          onClick={() => setTableId(t2.id)}
+                          aria-label={t('schema.page.editTableAria', { name: t2.name })}
+                        >
+                          <div className="data-row-title">
+                            <span className="row-title-text">{t2.name}</span>
+                          </div>
+                          <div className="data-row-sub">{t2.comment || t('schema.noComment')}</div>
+                          <div className="data-row-meta">
+                            <span>
+                              {t('schema.columnCount', { count: t2.columns.length })}
+                            </span>
+                            <span>
+                              {t('schema.indexCount', { count: t2.indexes.length })}
+                            </span>
+                            <span>#{shortId(t2.id)}</span>
+                            {unreadIds?.has(t2.id) && (
+                              <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">
+                                New
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -227,24 +427,25 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
             <div id="panel-erd" role="tabpanel" aria-labelledby="tab-erd" tabIndex={0}>
               <div className="erd-wrap">
                 <ERD
-                  state={state}
-                  onDeleteRelation={setConfirmRel}
-                  onNewTable={canEdit ? () => setNewTableOpen(true) : () => {}}
+                  state={displayStateForERD}
+                  readOnly={isViewing}
+                  onDeleteRelation={canEditEffective ? setConfirmRel : () => {}}
+                  onNewTable={canEditEffective ? () => setNewTableOpen(true) : () => {}}
                 />
-                {state.relations.length > 0 && (
+                {displayRelations.length > 0 && (
                   <div className="data-list relation-list">
                     <span className="data-list-count">{t('schema.relationsHeading')}</span>
-                    {state.relations.map((r) => (
+                    {displayRelations.map((r) => (
                       <div className="data-row" key={r.id}>
                         <div className="data-row-main">
                           <div className="data-row-title">
-                            <span className="row-title-text font-mono">{relationLabel(r)}</span>
+                            <span className="row-title-text font-mono">{isViewing ? relationLabelDisplay(r) : relationLabelCurrent(r)}</span>
                           </div>
                           <div className="data-row-meta">
                             <span>{r.cardinality}</span>
                             <span>{t('schema.page.onDelete', { value: r.onDelete })}</span>
                             <span>#{shortId(r.id)}</span>
-                            {unreadIds?.has(r.id) && (
+                            {!isViewing && unreadIds?.has(r.id) && (
                               <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">
                                 New
                               </span>
@@ -252,12 +453,12 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
                           </div>
                         </div>
                         <div className="data-row-side">
-                          {canEdit && (
+                          {canEditEffective && (
                             <Button
                               variant="ghost"
                               size="sm"
                               className="btn-icon"
-                              aria-label={t('schema.page.deleteRelationAria', { label: relationLabel(r) })}
+                              aria-label={t('schema.page.deleteRelationAria', { label: isViewing ? relationLabelDisplay(r) : relationLabelCurrent(r) })}
                               onClick={() => setConfirmRel(r)}
                             >
                               <Trash size={13} aria-hidden="true" />
@@ -268,14 +469,38 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
                     ))}
                   </div>
                 )}
+                {isViewing && displayRelations.length === 0 && hasSnapshot && displayTables.length > 0 && (
+                  <div className="field-helper" style={{ marginTop: 8, textAlign: 'center' }}>
+                    {t('schema.relationsHeading')} — 0
+                  </div>
+                )}
               </div>
             </div>
           )}
         </div>
 
-        <aside className="schema-side" aria-label={t('schema.versionsHeading')}>
+        <aside className={`schema-side ${versionsCollapsed ? 'schema-side-collapsed' : ''} `} aria-label={t('schema.versionsHeading')}>
+          {versionsCollapsed ? (
+            <button type="button" className="schema-side-collapsed-btn" onClick={() => setVersionsCollapsed(false)} aria-label="Expand versions" title="Expand versions">
+              <CaretLeft size={14} aria-hidden="true" />
+              <span className="schema-side-collapsed-label">{t('schema.versionsHeading')}</span>
+              <Badge tone="accent">{state.schemaVersions.length}</Badge>
+            </button>
+          ) : (
           <div className="versions-section">
             <div className="data-list-header">
+                            <Button
+                variant="ghost"
+                size="sm"
+                className="btn-icon"
+                aria-label={versionsCollapsed ? 'Expand versions' : 'Minimize versions'}
+                aria-expanded={!versionsCollapsed}
+                aria-controls="versions-list"
+                onClick={() => setVersionsCollapsed((v) => !v)}
+                title={versionsCollapsed ? 'Expand' : 'Minimize'}
+              >
+                <CaretRight size={13} aria-hidden="true" />
+              </Button>
               <span className="data-list-count">{t('schema.versionsHeading')}</span>
               <SortControl
                 options={VERSION_SORT_SPECS.map((s) => ({ value: s.key, label: t(s.label) }))}
@@ -311,25 +536,47 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
                 action={canEdit ? <Button size="sm" variant="ghost" leftIcon={<FloppyDisk size={13} aria-hidden="true" />} onClick={() => setSaveVersionOpen(true)}>{t('schema.saveVersion')}</Button> : undefined}
               />
             ) : (
-              <div>
+              <div id="versions-list" className="versions-list">
                 {applySort(state.schemaVersions, versionSortSpec, versionSortValue?.dir ?? 'asc').map(
-                  (v) => (
-                    <div className="version-row" key={v.id}>
-                      <Badge tone="accent">{v.version}</Badge>
-                      {unreadIds?.has(v.id) && (
-                        <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">
-                          New
+                  (v) => {
+                    const isActive = v.id === selectedVersionId;
+                    const hasSnap = !!v.snapshot;
+                    return (
+                      <button
+                        key={v.id}
+                        type="button"
+                        className={`version-row ${isActive ? 'version-row-active' : ''} ${!hasSnap ? 'version-row-no-snapshot' : ''}`}
+                        onClick={() => toggleVersion(v)}
+                        aria-pressed={isActive}
+                        aria-current={isActive ? 'true' : undefined}
+                        aria-label={t('schema.viewRow.aria', { version: v.version })}
+                        title={hasSnap ? t('schema.viewRow.aria', { version: v.version }) : t('schema.viewRow.noSnapshotTooltip')}
+                      >
+                        <Badge tone="accent">{v.version}</Badge>
+                        {unreadIds?.has(v.id) && (
+                          <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">
+                            New
+                          </span>
+                        )}
+                        <div className="version-main">
+                          <div className="version-notes">{v.notes || t('schema.noNotes')}</div>
+                          <div className="version-date">{t('schema.appliedAt', { date: formatDate(v.appliedAt) })}</div>
+                        </div>
+                        <span className="version-row-eye" aria-hidden="true">
+                          {isActive ? <Eye size={14} weight="fill" /> : <Eye size={14} />}
                         </span>
-                      )}
-                      <div className="version-main">
-                        <div className="version-notes">{v.notes || t('schema.noNotes')}</div>
-                        <div className="version-date">{t('schema.appliedAt', { date: formatDate(v.appliedAt) })}</div>
-                      </div>
-                    </div>
-                  ))}
+                        {!hasSnap && (
+                          <span className="version-row-warn" aria-hidden="true">
+                            <Warning size={12} />
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
               </div>
             )}
           </div>
+          )}
         </aside>
       </div>
 
@@ -361,7 +608,7 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
         }
       >
         <p className="modal-copy">
-          {t('schema.deleteRelationModal.body', { relation: confirmRel ? relationLabel(confirmRel) : '' })}
+          {t('schema.deleteRelationModal.body', { relation: confirmRel ? relationLabelCurrent(confirmRel) : '' })}
         </p>
       </Modal>
     </div>

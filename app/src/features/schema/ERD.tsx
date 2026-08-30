@@ -50,9 +50,10 @@ interface ERDProps {
   state: State;
   onDeleteRelation: (relation: Relation) => void;
   onNewTable: () => void;
+  readOnly?: boolean;
 }
 
-export function ERD({ state, onDeleteRelation, onNewTable }: ERDProps) {
+export function ERD({ state, onDeleteRelation, onNewTable, readOnly = false }: ERDProps) {
   const { t } = useTranslation('project');
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragStartRef = useRef<{ pointerX: number; pointerY: number; x: number; y: number } | null>(null);
@@ -165,6 +166,31 @@ export function ERD({ state, onDeleteRelation, onNewTable }: ERDProps) {
             const ty = tt.y + columnY(tt.table, tc);
             const mx = (fx + tx) / 2;
             const pts = `${fx},${fy} ${mx},${fy} ${mx},${ty} ${tx},${ty}`;
+            if (readOnly) {
+              return (
+                <g
+                  key={rel.id}
+                  className="erd-rel"
+                  role="img"
+                  aria-label={t('schema.erd.relAria', {
+                    from: `${ft.table.name}.${fc.name}`,
+                    to: `${tt.table.name}.${tc.name}`,
+                  })}
+                >
+                  <title>
+                    {t('schema.erd.relTitle', {
+                      label: relationLabel(ft.table.name, fc.name, tt.table.name, tc.name),
+                      cardinality: rel.cardinality,
+                      onDelete: rel.onDelete,
+                    })}
+                  </title>
+                  <polyline points={pts} fill="none" strokeWidth={1.5} />
+                  <text x={mx} y={(fy + ty) / 2 - 6} className="erd-cardinality" textAnchor="middle">
+                    {rel.cardinality}
+                  </text>
+                </g>
+              );
+            }
             return (
               <g
                 key={rel.id}
@@ -229,7 +255,7 @@ export function ERD({ state, onDeleteRelation, onNewTable }: ERDProps) {
           })}
         </g>
       </svg>
-      {state.tables.length === 0 && (
+      {state.tables.length === 0 && !readOnly && (
         <div className="erd-empty">
           <div className="empty-state">
             <Graph size={22} aria-hidden="true" />
@@ -238,6 +264,15 @@ export function ERD({ state, onDeleteRelation, onNewTable }: ERDProps) {
             <Button size="sm" onClick={onNewTable}>
               {t('schema.page.newTable')}
             </Button>
+          </div>
+        </div>
+      )}
+      {state.tables.length === 0 && readOnly && (
+        <div className="erd-empty">
+          <div className="empty-state">
+            <Graph size={22} aria-hidden="true" />
+            <p className="empty-state-title">{t('schema.empty.tablesTitle')}</p>
+            <p className="empty-state-desc">{t('schema.viewBanner.noTablesInSnapshot')}</p>
           </div>
         </div>
       )}
