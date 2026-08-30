@@ -2423,7 +2423,7 @@ a:hover {
    ============================================================ */
 
 .page {
-  padding: 28px 32px 48px;
+  padding: 20px 32px 48px;
   max-width: 1100px;
   width: 100%;
   margin: 0 auto;
@@ -5304,7 +5304,7 @@ a:hover {
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
 .data-list-count {
@@ -5552,7 +5552,7 @@ a:hover {
   background: var(--bg-elevated);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-input);
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   max-width: 100%;
   overflow-x: auto;
 }
@@ -5795,6 +5795,71 @@ a:hover {
 input[type='checkbox'] {
   accent-color: var(--accent);
   cursor: pointer;
+}
+
+/* Schema — responsive columns grid (samakan dengan Issue/Task card behavior) */
+@media (max-width: 768px) {
+  .col-edit-grid {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .col-edit-caption,
+  .col-edit-row {
+    min-width: 560px;
+  }
+  .detail-col-caption,
+  .detail-col-row {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 640px) {
+  .col-edit-caption {
+    display: none;
+  }
+  .col-edit-row {
+    grid-template-columns: 1fr 1fr 28px;
+    grid-template-areas:
+      'name type del'
+      'null pk default';
+    gap: 8px;
+    padding: 10px;
+    background: var(--bg-inset);
+    border: 1px solid var(--border-hairline);
+    border-radius: 8px;
+  }
+  .col-edit-row input:nth-of-type(1) {
+    grid-area: name;
+  }
+  .col-edit-row input:nth-of-type(2) {
+    grid-area: type;
+  }
+  .col-edit-row .col-edit-check:nth-of-type(1) {
+    grid-area: null;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+  .col-edit-row .col-edit-check:nth-of-type(1)::after {
+    content: 'Nullable';
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+  .col-edit-row .col-edit-check:nth-of-type(2) {
+    grid-area: pk;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+  .col-edit-row .col-edit-check:nth-of-type(2)::after {
+    content: 'PK';
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+  .col-edit-row input:nth-of-type(3) {
+    grid-area: default;
+  }
+  .col-edit-row .btn-icon {
+    grid-area: del;
+  }
 }
 
 .relation-list {

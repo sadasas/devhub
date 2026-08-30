@@ -336,7 +336,8 @@
       "activity": "Activity",
       "updated": "Updated {{time}}",
       "deleteConfirmTitle": "Delete table?",
-      "deleteConfirmBody": "This permanently deletes the table, its columns and its relations. This cannot be undone."
+      "deleteConfirmBody": "This permanently deletes the table, its columns and its relations. This cannot be undone.",
+      "presenceEditing": "Editing table"
     },
     "newTableModal": {
       "title": "New table",
@@ -345,7 +346,8 @@
       "nameLabel": "Name",
       "namePlaceholder": "users",
       "commentLabel": "Comment",
-      "commentPlaceholder": "What is this table for? — optional"
+      "commentPlaceholder": "What is this table for? — optional",
+      "presenceCreating": "Creating table"
     },
     "relationModal": {
       "title": "New relation",

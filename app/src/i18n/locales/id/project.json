@@ -336,7 +336,8 @@
       "activity": "Aktivitas",
       "updated": "Diperbarui {{time}}",
       "deleteConfirmTitle": "Hapus tabel?",
-      "deleteConfirmBody": "Ini menghapus tabel beserta kolom dan relasinya secara permanen. Tindakan ini tidak dapat dibatalkan."
+      "deleteConfirmBody": "Ini menghapus tabel beserta kolom dan relasinya secara permanen. Tindakan ini tidak dapat dibatalkan.",
+      "presenceEditing": "Mengedit tabel"
     },
     "newTableModal": {
       "title": "Tabel baru",
@@ -345,7 +346,8 @@
       "nameLabel": "Nama",
       "namePlaceholder": "users",
       "commentLabel": "Komentar",
-      "commentPlaceholder": "Untuk apa tabel ini? — opsional"
+      "commentPlaceholder": "Untuk apa tabel ini? — opsional",
+      "presenceCreating": "Membuat tabel"
     },
     "relationModal": {
       "title": "Relasi baru",
