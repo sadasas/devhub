@@ -1,0 +1,132 @@
+{
+  "language": {
+    "toggle": "Ganti bahasa",
+    "menu": "Bahasa",
+    "switchTo": "Ganti ke {{name}}"
+  },
+  "theme": {
+    "toggle": "Ganti tema",
+    "menu": "Tema",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark",
+    "appearance": "Tampilan",
+    "appearanceHint": "Pilih tampilan DevHub. System mengikuti OS Anda.",
+    "switchedTo": "Beralih ke tema {{theme}}",
+    "paletteSystem": "Theme: System",
+    "paletteLight": "Theme: Light",
+    "paletteDark": "Theme: Dark"
+  },
+  "action": {
+    "cancel": "Batal",
+    "close": "Tutup",
+    "delete": "Hapus",
+    "retry": "Coba lagi",
+    "reload": "Muat ulang",
+    "tryAgain": "Coba lagi",
+    "loadLatest": "Muat versi terbaru"
+  },
+  "save": {
+    "saving": "Menyimpan…",
+    "allSaved": "Semua perubahan tersimpan",
+    "failed": "Gagal menyimpan: {{error}} — perubahan Anda tetap aman di perangkat ini."
+  },
+  "sort": {
+    "trigger": "Urutkan",
+    "menu": "Urutkan",
+    "none": "Tidak ada",
+    "direction": "Arah",
+    "ascending": "Naik",
+    "descending": "Turun"
+  },
+  "select": {
+    "empty": "Tidak ada",
+    "placeholder": "Pilih…",
+    "search": "Cari…",
+    "searchLabel": "Cari {{what}}",
+    "options": "Opsi",
+    "noMatches": "Tidak ada hasil untuk “{{query}}”"
+  },
+  "presence": {
+    "chip": "{{count}} online",
+    "dialog": "Pengguna online",
+    "header": "Online · {{count}}",
+    "fallbackName": "Pengguna",
+    "you": "(Anda)"
+  },
+  "activity": {
+    "empty": "Belum ada aktivitas tercatat.",
+    "loadFailed": "Gagal memuat aktivitas",
+    "verbCreated": "membuat",
+    "verbDeleted": "menghapus",
+    "verbUpdated": "memperbarui",
+    "authorYou": "Anda",
+    "authorUnknown": "Seseorang",
+    "untitled": "(tanpa judul)",
+    "yes": "Ya",
+    "no": "Tidak",
+    "fields": {
+      "status": "Status",
+      "priority": "Prioritas",
+      "title": "Judul",
+      "description": "Deskripsi",
+      "labels": "Label",
+      "severity": "Tingkat",
+      "reproduction": "Reproduksi",
+      "linkedTaskId": "Task terkait",
+      "name": "Nama",
+      "notes": "Catatan",
+      "estimate": "Estimasi",
+      "actualHours": "Jam aktual",
+      "milestoneId": "Milestone",
+      "blockedBy": "Diblokir oleh",
+      "steps": "Langkah",
+      "expected": "Hasil yang diharapkan",
+      "taskId": "Task terkait",
+      "issueId": "Issue terkait",
+      "version": "Versi",
+      "targetDate": "Tanggal target",
+      "dueDate": "Tanggal jatuh tempo",
+      "startDate": "Tanggal mulai"
+    },
+    "expandWithCount": "Lihat lengkap ({{count}} karakter)",
+    "collapse": "Sembunyikan",
+    "identicalPreview": "Pratinjau identik — klik Lihat lengkap untuk detail perubahan"
+  },
+  "errorBoundary": {
+    "title": "Terjadi kesalahan",
+    "subtitle": "Terjadi kesalahan tak terduga saat menampilkan halaman ini. Data Anda aman — coba lagi, atau muat ulang aplikasi bila masalah berlanjut."
+  },
+  "usage": {
+    "unlimited": "Tanpa batas",
+    "ofLimit": "{{label}}: {{used}} dari {{limit}}"
+  },
+  "sync": {
+    "offlineTitle": "Tidak dapat menghubungi server — perubahan disimpan lokal dan akan disinkronkan saat koneksi kembali.",
+    "offline": "Offline",
+    "pendingSuffix": "· {{count}} menunggu",
+    "pendingTitle_one": "{{count}} perubahan menunggu sinkronisasi.",
+    "pendingTitle_other": "{{count}} perubahan menunggu sinkronisasi.",
+    "pending": "Menunggu {{count}}"
+  },
+  "time": {
+    "justNow": "baru saja",
+    "minAgo_one": "{{count}} mnt lalu",
+    "minAgo_other": "{{count}} mnt lalu",
+    "hourAgo_one": "{{count}} jam lalu",
+    "hourAgo_other": "{{count}} jam lalu",
+    "dayAgo_one": "{{count}} hr lalu",
+    "dayAgo_other": "{{count}} hr lalu",
+    "startsPrefix": "Mulai {{date}}"
+  },
+  "due": {
+    "overdueDays_one": "Terlambat {{count}} hr",
+    "overdueDays_other": "Terlambat {{count}} hr",
+    "today": "Jatuh tempo hari ini",
+    "tomorrow": "Jatuh tempo besok",
+    "dated": "Jatuh tempo {{date}}",
+    "doneOnTime": "Selesai tepat waktu",
+    "doneLate_one": "Selesai terlambat {{count}} hr",
+    "doneLate_other": "Selesai terlambat {{count}} hr"
+  }
+}

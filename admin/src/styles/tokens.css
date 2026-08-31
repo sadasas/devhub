@@ -1,0 +1,197 @@
+/* DevHub design tokens — single source of truth.
+   Spec: docs/03-engineering/coding-standards.md (Design System section).
+   vSoftFlat — flat, soft, 0 gradient neon. All colors desaturated <55% chroma. */
+
+:root {
+  /* Surfaces — warm soft dark, never pure #000 */
+  --bg-base: #0f0f11;
+  --bg-elevated: #18181b;
+  --bg-overlay: #1e1e21;
+  --bg-inset: #131316;
+
+  /* Borders — hairline soft */
+  --border-hairline: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.11);
+
+  /* Text — soft, WCAG AA 4.5:1+ */
+  --text-primary: #e8e8ea;
+  --text-secondary: #a8a8b0;
+  --text-muted: #8e8e98;
+  --text-on-accent: #ffffff;
+
+  /* Accent — sage soft (ex-emerald #34c38e -> muted) */
+  --accent: #5db69b;
+  --accent-hover: #6bc1a7;
+  --accent-pressed: #4fa48c;
+  --accent-dim: rgba(93, 182, 155, 0.12);
+  --accent-ring: rgba(93, 182, 155, 0.30);
+
+  /* Semantic — all soft dusty, flat */
+  --status-danger: #d67a7a;
+  --status-danger-dim: rgba(214, 122, 122, 0.12);
+  --status-warn: #c9a96a;
+  --status-warn-dim: rgba(201, 169, 106, 0.12);
+  --status-success: #5db69b;
+  --status-success-dim: rgba(93, 182, 155, 0.12);
+  --status-info: #7ba4d9;
+  --status-info-dim: rgba(123, 164, 217, 0.12);
+
+  /* Tint solid soft — opaque pastel for calendar chips (mix dim over surface, solid) */
+  --status-danger-soft: #382b2d;
+  --status-warn-soft: #36312b;
+  --status-success-soft: #273332;
+  --status-info-soft: #2b313b;
+  --status-neutral-soft: #26262b;
+
+  /* Card soft — flat replacements for vivid #2D5BFF / #C5E8D9 / #F5F1E9 */
+  --card-blue-soft: #6b8ad4;
+  --card-blue-soft-dim: rgba(107, 138, 212, 0.12);
+  --card-mint-soft: #a8c9b8;
+  --card-mint-soft-dim: rgba(168, 201, 184, 0.12);
+  --card-cream-soft: #e8e0d0;
+  --card-cream-soft-dim: rgba(232, 224, 208, 0.12);
+
+  /* Chart palette — turunan status tokens, bukan hex random */
+  --chart-1: var(--status-success);
+  --chart-2: var(--status-info);
+  --chart-3: var(--status-warn);
+  --chart-4: var(--status-danger);
+  --chart-5: #8a7dff;
+  --chart-6: var(--text-muted);
+  --chart-track: rgba(255, 255, 255, 0.06);
+  --chart-grid: rgba(255, 255, 255, 0.04);
+
+  /* Timeline — stripe/weekend */
+  --bg-stripe: rgba(255, 255, 255, 0.015);
+  --bg-weekend: rgba(255, 255, 255, 0.02);
+
+  /* Radius — soft flat (8px -> 12px/16px) */
+  --radius-card: 12px;
+  --radius-input: 8px;
+  --radius-sm: 6px;
+  --radius-pill: 999px;
+  --radius-lg: 16px;
+  --pattern-stripe: rgba(255,255,255,0.06);
+
+  /* HTTP method colors — soft muted */
+  --method-get: #5db69b;
+  --method-get-dim: rgba(93, 182, 155, 0.12);
+  --method-post: #c9a96a;
+  --method-post-dim: rgba(201, 169, 106, 0.12);
+  --method-put: #7ba4d9;
+  --method-put-dim: rgba(123, 164, 217, 0.12);
+  --method-patch: #6bb8b0;
+  --method-patch-dim: rgba(107, 184, 176, 0.12);
+  --method-delete: #d67a7a;
+  --method-delete-dim: rgba(214, 122, 122, 0.12);
+  --method-options: #a8a8b0;
+  --method-options-dim: rgba(168, 168, 176, 0.12);
+
+  /* Z-index */
+  --z-nav: 10;
+  --z-palette: 30;
+  --z-modal: 40;
+  --z-overlay: 50;
+
+  /* Typography */
+  --font-sans: 'Geist Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Geist Mono Variable', 'Cascadia Code', 'Consolas', monospace;
+
+  /* Layout */
+  --rail-w-compact: 64px;
+  --rail-w-expanded: 180px;
+  --sidebar-w: 240px;
+  --sidebar-w-flyout: 280px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 120ms;
+  --duration-normal: 180ms;
+  --duration-slow: 220ms;
+
+  /* Shadows — soft, never neon */
+  --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.30), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
+  --color-scheme: dark;
+}
+
+html {
+  color-scheme: dark light;
+}
+
+/* Light theme — warm stone soft, never pure #fff */
+html[data-theme='light'] {
+  --bg-base: #f4f3f0;
+  --bg-elevated: #fffcf8;
+  --bg-overlay: #ffffff;
+  --bg-inset: #f9f7f4;
+
+  --border-hairline: rgba(0, 0, 0, 0.07);
+  --border-strong: rgba(0, 0, 0, 0.11);
+
+  --text-primary: #1c1c1f;
+  --text-secondary: #5a5a64;
+  --text-muted: #7a7a85;
+  --text-on-accent: #ffffff;
+
+  --accent: #4a8b6f;
+  --accent-hover: #5a9d7f;
+  --accent-pressed: #3d7a60;
+  --accent-dim: rgba(74, 139, 111, 0.10);
+  --accent-ring: rgba(74, 139, 111, 0.20);
+
+  --status-danger: #b85c5c;
+  --status-danger-dim: rgba(184, 92, 92, 0.10);
+  --status-warn: #9e7e3a;
+  --status-warn-dim: rgba(158, 126, 58, 0.10);
+  --status-success: #4a8b6f;
+  --status-success-dim: rgba(74, 139, 111, 0.10);
+  --status-info: #5b7db8;
+  --status-info-dim: rgba(91, 125, 184, 0.10);
+
+  --status-danger-soft: #f6ebeb;
+  --status-warn-soft: #f3f0e7;
+  --status-success-soft: #e9f1ee;
+  --status-info-soft: #ebeff6;
+  --status-neutral-soft: #ececef;
+
+  --card-blue-soft: #8fa3d8;
+  --card-blue-soft-dim: rgba(143, 163, 216, 0.12);
+  --card-mint-soft: #b8d8c8;
+  --card-mint-soft-dim: rgba(184, 216, 200, 0.12);
+  --card-cream-soft: #f0ebe0;
+  --card-cream-soft-dim: rgba(240, 235, 224, 0.12);
+
+  --chart-5: #7a6ee0;
+  --chart-track: rgba(0, 0, 0, 0.06);
+  --chart-grid: rgba(0, 0, 0, 0.04);
+
+  --bg-stripe: rgba(0, 0, 0, 0.03);
+  --bg-weekend: rgba(0, 0, 0, 0.015);
+  --pattern-stripe: rgba(0,0,0,0.06);
+
+  --method-get: #4a8b6f;
+  --method-get-dim: rgba(74, 139, 111, 0.10);
+  --method-post: #9e7e3a;
+  --method-post-dim: rgba(158, 126, 58, 0.10);
+  --method-put: #5b7db8;
+  --method-put-dim: rgba(91, 125, 184, 0.10);
+  --method-patch: #4a8b8b;
+  --method-patch-dim: rgba(74, 139, 139, 0.10);
+  --method-delete: #b85c5c;
+  --method-delete-dim: rgba(184, 92, 92, 0.10);
+  --method-options: #7a7a85;
+  --method-options-dim: rgba(122, 122, 133, 0.10);
+
+  --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+
+  --color-scheme: light;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    color-scheme: light;
+  }
+}

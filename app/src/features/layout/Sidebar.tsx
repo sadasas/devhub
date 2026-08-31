@@ -9,12 +9,10 @@ import {
   Plugs,
   Plus,
   Receipt,
-  ShieldStar,
 } from '@phosphor-icons/react';
 import { useEffect, useMemo, useState } from 'react';
 import { NavLink, type NavLinkProps } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../../state/auth-context';
 import { useProjects } from '../../state/projects-context';
 import { useTeams } from '../../state/teams-context';
 import { Button } from '../../components/Button';
@@ -30,7 +28,6 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeTeamId, activeMain = 'team', onCreateTeam }: SidebarProps) {
-  const { user } = useAuth();
   const { projects } = useProjects();
   const { teams, invitations } = useTeams();
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
@@ -136,12 +133,6 @@ export function Sidebar({ activeTeamId, activeMain = 'team', onCreateTeam }: Sid
               <Receipt size={15} weight="duotone" aria-hidden="true" />
               <span>{t('sidebar.payments')}</span>
             </NavLink>
-            {user?.role === 'admin' && (
-              <NavLink to="/admin" className={itemClass()} aria-label={t('sidebar.admin')}>
-                <ShieldStar size={15} weight="duotone" aria-hidden="true" />
-                <span>{t('sidebar.admin')}</span>
-              </NavLink>
-            )}
           </nav>
 
           <div className="sidebar-section">

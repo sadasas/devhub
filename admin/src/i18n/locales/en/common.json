@@ -1,0 +1,132 @@
+{
+  "language": {
+    "toggle": "Change language",
+    "menu": "Language",
+    "switchTo": "Switch to {{name}}"
+  },
+  "theme": {
+    "toggle": "Switch theme",
+    "menu": "Theme",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark",
+    "appearance": "Appearance",
+    "appearanceHint": "Choose how DevHub looks. System follows your OS.",
+    "switchedTo": "Switched to {{theme}} theme",
+    "paletteSystem": "Theme: System",
+    "paletteLight": "Theme: Light",
+    "paletteDark": "Theme: Dark"
+  },
+  "action": {
+    "cancel": "Cancel",
+    "close": "Close",
+    "delete": "Delete",
+    "retry": "Retry",
+    "reload": "Reload",
+    "tryAgain": "Try again",
+    "loadLatest": "Load latest"
+  },
+  "save": {
+    "saving": "Saving…",
+    "allSaved": "All changes saved",
+    "failed": "Save failed: {{error}} — your changes are kept locally."
+  },
+  "sort": {
+    "trigger": "Sort",
+    "menu": "Sort",
+    "none": "None",
+    "direction": "Direction",
+    "ascending": "Ascending",
+    "descending": "Descending"
+  },
+  "select": {
+    "empty": "None",
+    "placeholder": "Select…",
+    "search": "Search…",
+    "searchLabel": "Search {{what}}",
+    "options": "Options",
+    "noMatches": "No matches for “{{query}}”"
+  },
+  "presence": {
+    "chip": "{{count}} online",
+    "dialog": "Online users",
+    "header": "Online · {{count}}",
+    "fallbackName": "User",
+    "you": "(you)"
+  },
+  "activity": {
+    "empty": "No activity recorded yet.",
+    "loadFailed": "Failed to load activity",
+    "verbCreated": "created",
+    "verbDeleted": "deleted",
+    "verbUpdated": "updated",
+    "authorYou": "You",
+    "authorUnknown": "Someone",
+    "untitled": "(untitled)",
+    "yes": "Yes",
+    "no": "No",
+    "fields": {
+      "status": "Status",
+      "priority": "Priority",
+      "title": "Title",
+      "description": "Description",
+      "labels": "Labels",
+      "severity": "Severity",
+      "reproduction": "Reproduction",
+      "linkedTaskId": "Linked task",
+      "name": "Name",
+      "notes": "Notes",
+      "estimate": "Estimate",
+      "actualHours": "Actual hours",
+      "milestoneId": "Milestone",
+      "blockedBy": "Blocked by",
+      "steps": "Steps",
+      "expected": "Expected result",
+      "taskId": "Linked task",
+      "issueId": "Linked issue",
+      "version": "Version",
+      "targetDate": "Target date",
+      "dueDate": "Due date",
+      "startDate": "Start date"
+    },
+    "expandWithCount": "View full ({{count}} characters)",
+    "collapse": "Hide",
+    "identicalPreview": "Identical preview — click View full for change details"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "subtitle": "An unexpected error occurred while rendering this page. Your data is safe — try again, or reload the app if the problem persists."
+  },
+  "usage": {
+    "unlimited": "Unlimited",
+    "ofLimit": "{{label}}: {{used}} of {{limit}}"
+  },
+  "sync": {
+    "offlineTitle": "Cannot reach the server — changes are kept locally and will sync when connectivity returns.",
+    "offline": "Offline",
+    "pendingSuffix": "· {{count}} pending",
+    "pendingTitle_one": "{{count}} change waiting to sync.",
+    "pendingTitle_other": "{{count}} changes waiting to sync.",
+    "pending": "Pending {{count}}"
+  },
+  "time": {
+    "justNow": "just now",
+    "minAgo_one": "{{count}}m ago",
+    "minAgo_other": "{{count}}m ago",
+    "hourAgo_one": "{{count}}h ago",
+    "hourAgo_other": "{{count}}h ago",
+    "dayAgo_one": "{{count}}d ago",
+    "dayAgo_other": "{{count}}d ago",
+    "startsPrefix": "Starts {{date}}"
+  },
+  "due": {
+    "overdueDays_one": "Overdue {{count}}d",
+    "overdueDays_other": "Overdue {{count}}d",
+    "today": "Due today",
+    "tomorrow": "Due tomorrow",
+    "dated": "Due {{date}}",
+    "doneOnTime": "Done on time",
+    "doneLate_one": "Done late {{count}}d",
+    "doneLate_other": "Done late {{count}}d"
+  }
+}

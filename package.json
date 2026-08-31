@@ -5,6 +5,7 @@
   "description": "Personal developer hub — projects, tasks, issues, tech stack, schema, decisions, releases",
   "workspaces": [
     "app",
+    "admin",
     "server",
     "e2e"
   ],

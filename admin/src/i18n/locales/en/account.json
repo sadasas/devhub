@@ -1,0 +1,419 @@
+{
+  "auth": {
+    "brand": {
+      "title": "The memory of your projects.",
+      "subtitle": "Tasks, bugs, tech stack, database schema, ADRs and releases — everything your project needs, in one workspace.",
+      "footer": "Your data stays yours — export or import anytime."
+    },
+    "form": {
+      "loginTitle": "Sign in to DevHub",
+      "registerTitle": "Create your account",
+      "loginSub": "Welcome back, developer.",
+      "registerSub": "Takes less than a minute. No credit card."
+    },
+    "field": {
+      "email": "Email",
+      "emailPlaceholder": "you@example.com",
+      "password": "Password",
+      "passwordRegisterHelper": "At least 8 characters.",
+      "confirmPassword": "Confirm password"
+    },
+    "action": {
+      "signIn": "Sign in",
+      "createAccount": "Create account",
+      "createOne": "Create one"
+    },
+    "switchPrompt": {
+      "hasAccount": "Already have an account? ",
+      "noAccountYet": "No account yet? "
+    },
+    "error": {
+      "passwordMismatch": "Passwords do not match.",
+      "generic": "Something went wrong. Try again."
+    }
+  },
+  "dashboard": {
+    "title": "Projects",
+    "subtitle": "Everything you are building, in one place.",
+    "newProject": "New project",
+    "empty": {
+      "titleNoTeam": "Create a team first",
+      "titleNoProjects": "No projects yet",
+      "descNoTeam": "DevHub organizes projects inside teams — create a team from the sidebar, then come back to add your first project.",
+      "descNoProjects": "Create your first project to track tasks, issues, your tech stack and more."
+    },
+    "noDescription": "No description.",
+    "card": {
+      "updated": "updated {{time}}"
+    },
+    "stats": {
+      "doneShort": "{{done}}/{{total}} done",
+      "tasksDoneTitle": "{{done}} of {{total}} tasks done",
+      "openIssues": "{{count}} issues",
+      "openIssuesTitle": "{{count}} open issues",
+      "depsOutdated": "{{count}} deps outdated",
+      "depsOutdatedTitle": "{{count}} outdated dependencies"
+    },
+    "modal": {
+      "title": "New project",
+      "create": "Create",
+      "selectTeamError": "Select a team first.",
+      "createFailed": "Failed to create project.",
+      "name": "Name",
+      "namePlaceholder": "e.g. Landing page",
+      "description": "Description",
+      "descriptionPlaceholder": "What is this project about?",
+      "team": "Team",
+      "teamEmptyHint": "You have no teams yet — create one from the sidebar, then return here to add a project.",
+      "selectTeam": "Select team"
+    }
+  },
+  "profile": {
+    "title": "Profile",
+    "subtitle": "Your identity on DevHub teams.",
+    "summaryAria": "Profile summary",
+    "addBio": "Add a bio — tell your team what you build.",
+    "joined": "Joined {{date}}",
+    "role": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "editor": "Editor",
+      "viewer": "Viewer"
+    },
+    "edit": "Edit profile",
+    "tabsAria": "Profile sections",
+    "tab": {
+      "profile": "Profile",
+      "security": "Security",
+      "account": "Account"
+    },
+    "statsAria": "Profile statistics",
+    "stat": {
+      "teams": "Teams",
+      "projects": "Projects",
+      "activeKeys": "Active API keys"
+    },
+    "yourTeams": "Your teams",
+    "yourProjects": "Your projects",
+    "noTeams": "No teams yet.",
+    "noProjects": "No projects yet.",
+    "members_one": "{{count}} member",
+    "members_other": "{{count}} members",
+    "relatedAria": "Related pages",
+    "links": {
+      "apiKeys": "API keys",
+      "mcpGuide": "MCP guide"
+    },
+    "securityPanelAria": "Security",
+    "security": {
+      "password": "Password",
+      "passwordDesc": "Use at least 8 characters, different from your current one.",
+      "changePassword": "Change password"
+    },
+    "accountPanelAria": "Account details",
+    "account": {
+      "email": "Email",
+      "memberSince": "Member since",
+      "accountId": "Account ID"
+    },
+    "editModal": {
+      "title": "Edit profile",
+      "save": "Save changes",
+      "saveFailed": "Failed to save profile.",
+      "displayName": "Display name",
+      "displayNamePlaceholder": "How your name appears in DevHub",
+      "bio": "Bio",
+      "bioPlaceholder": "A short line about what you build.",
+      "bioEmptyHelper": "No bio yet — add a short line about what you build.",
+      "bioLength": "{{length}} / 500 characters"
+    },
+    "changeModal": {
+      "title": "Change password",
+      "update": "Update password",
+      "done": "Done",
+      "success": "Password updated. Use it on your next login.",
+      "current": "Current password",
+      "new": "New password",
+      "confirm": "Confirm new password",
+      "newHelper": "At least 8 characters and different from the current password.",
+      "mismatch": "New password and confirmation do not match.",
+      "failed": "Failed to change password."
+    },
+    "passwordToggle": {
+      "show": "Show password",
+      "hide": "Hide password"
+    },
+    "months": {
+      "jan": "Jan",
+      "feb": "Feb",
+      "mar": "Mar",
+      "apr": "Apr",
+      "may": "May",
+      "jun": "Jun",
+      "jul": "Jul",
+      "aug": "Aug",
+      "sep": "Sep",
+      "oct": "Oct",
+      "nov": "Nov",
+      "dec": "Dec"
+    },
+    "days": {
+      "mon": "Mon",
+      "wed": "Wed",
+      "fri": "Fri"
+    },
+    "activity": {
+      "sectionAria": "GitHub-style activity stats",
+      "totalSuffix": "contributions in the last year",
+      "unavailable": "Contributions unavailable",
+      "tasksCompleted": "Tasks completed",
+      "issuesResolved": "Issues resolved",
+      "activeDays": "Active days",
+      "currentStreak": "Current streak",
+      "longestStreak": "Longest streak",
+      "streakSuffix": "d"
+    },
+    "heat": {
+      "gridAria": "Contribution activity in the last year",
+      "contributions_one": "{{count}} contribution",
+      "contributions_other": "{{count}} contributions",
+      "cellAria": "{{contributions}} on {{date}}",
+      "less": "Less",
+      "more": "More"
+    }
+  },
+  "theme": {
+    "appearance": "Appearance",
+    "appearanceHint": "Choose how DevHub looks. System follows your OS."
+  },
+  "keys": {
+    "title": "API keys",
+    "subtitle": "Keys for AI coding agents to read and update your projects over MCP. The full key is shown only once when you create it.",
+    "newKey": "New key",
+    "copied": "Copied",
+    "copy": "Copy",
+    "fullGuide": "Full MCP integration guide →",
+    "untitled": "Untitled key",
+    "never": "Never",
+    "created": "Created {{date}}",
+    "count_one": "{{total}} of {{max}} active key",
+    "count_other": "{{total}} of {{max}} active keys",
+    "paginationAria": "Pagination",
+    "pager": {
+      "previous": "Previous",
+      "next": "Next",
+      "status": "Page {{page}} of {{total}}"
+    },
+    "status": {
+      "active": "Active",
+      "activeKeyAria": "Active key"
+    },
+    "copyButton": {
+      "keyLabel": "Copy key {{prefix}}",
+      "prefixLabel": "Copy key prefix {{prefix}}",
+      "revealTitle": "Reveal & copy the full key",
+      "prefixTitle": "Copy prefix (key created before encryption support)"
+    },
+    "empty": {
+      "title": "No API keys yet",
+      "description": "Create a key to let AI coding agents read and update your projects over MCP.",
+      "readGuide": "Read the MCP guide"
+    },
+    "error": {
+      "load": "Failed to load API keys.",
+      "revoke": "Failed to revoke key.",
+      "copy": "Failed to copy key.",
+      "create": "Failed to create key."
+    },
+    "revoke": "Revoke",
+    "revokeModal": {
+      "title": "Revoke key",
+      "confirm": "Confirm revoke",
+      "body": "“{{name}}” ({{prefix}}…) will stop working immediately and disappear from this list. Agents using it get a 401 on their next call."
+    },
+    "inlineHint": "Authenticate MCP requests with your key — see the",
+    "mcpGuideLink": "MCP integration guide",
+    "newKeyModal": {
+      "title": "New API key",
+      "create": "Create key",
+      "done": "Done",
+      "name": "Name",
+      "namePlaceholder": "e.g. opencode-desktop",
+      "nameHelper": "Required — so you can tell your keys apart.",
+      "scopeNote": "This key can read and update every project in the teams you belong to. It is shown only once — store it somewhere safe.",
+      "capWarning": "You have {{active}} of {{max}} active keys — the maximum is {{max}}. Revoke an unused key before creating another.",
+      "copyNow": "Copy this key now — it is shown only once.",
+      "copyKey": "Copy key",
+      "envVarAria": "Copy as DEVHUB_MCP_KEY environment variable",
+      "envVarTitle": "Copy as env var",
+      "loseNote": "If you lose it, you can copy it again later from the API keys list.",
+      "nextSteps": "Next steps — test it against your MCP server:",
+      "curlAria": "Copy curl test command"
+    },
+    "guide": {
+      "title": "Using your keys",
+      "bannerPrefix": "Authenticate MCP requests with your key in the",
+      "bannerSuffix": "header:",
+      "quickStartTitle": "Quick start",
+      "quickStartDesc": "Test your key against the MCP server:",
+      "quickStartCopyAria": "Copy quick start",
+      "envVarTitle": "Environment variable",
+      "envVarDesc": "Set your key in your environment, then point opencode.json at it:",
+      "envVarCopyAria": "Copy environment variable"
+    }
+  },
+  "teams": {
+    "backToDashboard": "Dashboard",
+    "subtitle": "Team members share every project in this workspace.",
+    "invite": "Invite",
+    "rename": "Edit team",
+    "deleteTeam": "Delete team",
+    "memberCount": "{{count}} members",
+    "tabsAria": "Team sections",
+    "tabMembers": "Members",
+    "tabUsage": "Usage",
+    "emptyTitle": "No members yet",
+    "emptyDescription": "Invite a DevHub user by email to join this team.",
+    "joinedOn": "joined {{date}}",
+    "transferOwnership": "Transfer ownership (you will become admin)",
+    "remove": "Remove",
+    "pendingInvitations": "Pending invitations",
+    "expiresOn": "expires {{date}}",
+    "withdraw": "Withdraw",
+    "leaveTeam": "Leave team",
+    "renameModal": {
+      "title": "Edit team",
+      "save": "Save",
+      "name": "Team name",
+      "icon": "Icon"
+    },
+    "deleteModal": {
+      "title": "Delete team",
+      "body": "This permanently deletes “{{name}}” and every project inside it — tasks, issues, schema, decisions. This cannot be undone."
+    },
+    "leaveModal": {
+      "title": "Leave team",
+      "confirm": "Leave",
+      "body": "You will lose access to “{{name}}” and all of its projects. You can be re-invited later."
+    },
+    "errors": {
+      "loadMembers": "Failed to load members",
+      "changeRole": "Failed to change role",
+      "withdrawInvite": "Failed to withdraw invitation",
+      "removeMember": "Failed to remove member",
+      "leave": "Failed to leave team",
+      "deleteTeam": "Failed to delete team",
+      "rename": "Failed to update team"
+    },
+    "invites": {
+      "title": "Invitations",
+      "subtitle": "Team invitations waiting for your decision.",
+      "emptyTitle": "No pending invitations",
+      "emptyDescription": "When someone invites you to a team, it will appear here.",
+      "meta": "invited {{created}} · expires {{expires}}",
+      "accept": "Accept",
+      "decline": "Decline",
+      "refresh": "Refresh",
+      "acceptError": "Failed to accept invitation",
+      "declineError": "Failed to decline invitation"
+    },
+    "inviteModal": {
+      "title": "Invite member",
+      "send": "Send invite",
+      "intro": "Invite a registered DevHub user by email. They must accept the invitation before they can join this team.",
+      "email": "Email",
+      "emailPlaceholder": "teammate@example.com",
+      "role": "Role",
+      "sendError": "Failed to send invitation."
+    },
+    "createModal": {
+      "title": "New team",
+      "create": "Create",
+      "intro": "A team is a workspace that holds your projects. You can invite other registered users to collaborate — you become the owner.",
+      "name": "Name",
+      "namePlaceholder": "e.g. My Startup",
+      "icon": "Icon",
+      "createError": "Failed to create team."
+    },
+    "billing": {
+      "panelAria": "Usage",
+      "loadError": "Failed to load usage.",
+      "freePlan": "Free plan",
+      "activeUntil": "Active until {{date}}",
+      "activeNoExpiry": "Active — no expiration (operator grant)",
+      "proEndingSoon": "Pro ends in {{duration}} — renew to keep unlimited capacity.",
+      "lessThanADay": "less than a day",
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days",
+      "currentPlan": "Current plan",
+      "activeBadge": "Active",
+      "free": "Free",
+      "members": "Members",
+      "projects": "Projects",
+      "viewPricing": "View Pricing",
+      "contactAdmin": "Contact a team admin to upgrade this workspace.",
+      "pendingTitle": "Pembayaran tertunda",
+      "pendingBadge": "Pending",
+      "pendingMeta": "{{date}} · selesaikan atau batalkan",
+      "resumePayment": "Lanjutkan pembayaran",
+      "cancelPayment": "Batalkan",
+      "resumeError": "Gagal melanjutkan pembayaran.",
+      "cancelError": "Gagal membatalkan pembayaran."
+    },
+    "payment": {
+      "title": "Payment status",
+      "checking": "Checking your payment…",
+      "loadError": "Failed to load payment status.",
+      "proActive": "Pro is active",
+      "unlimitedUntil": "Unlimited members & projects until {{date}}.",
+      "unlimited": "Unlimited members & projects.",
+      "lastPayment": "Last payment: Rp {{amount}} · {{date}}",
+      "back": "Back to workspace",
+      "waiting": "Waiting for payment confirmation",
+      "instructions": "Complete the payment via QRIS / Virtual Account. This page checks automatically — you can also come back later from the workspace Billing tab.",
+      "orderCreated": "Order created {{time}}"
+    },
+    "chat": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "formerMember": "Former member",
+      "loadError": "Failed to load messages",
+      "sendFailed": "Failed to send message",
+      "emptyTitle": "No messages yet",
+      "emptyDescription": "Start the conversation — messages are shared with every team member.",
+      "unreadDivider": "New messages",
+      "dismiss": "Dismiss",
+      "notDeleted": "Not deleted —",
+      "copyMessage": "Copy message",
+      "deleteMessage": "Delete message",
+      "scrollToBottom": "Scroll to bottom",
+      "queued_one": "Waiting for connection — {{count}} message queued",
+      "queued_other": "Waiting for connection — {{count}} messages queued",
+      "mentionSearchAria": "Mention search",
+      "keepTyping": "Keep typing — search tasks, issues & more",
+      "searching": "Searching…",
+      "noMatches": "No matches",
+      "composerTip": "Tip: type @ to link a task, issue or milestone",
+      "messageAria": "Message",
+      "placeholder": "Type a message…",
+      "enterToSend": "Enter to send · Shift+Enter for new line",
+      "sendAria": "Send message",
+      "chipOpen": "{{title}} — open in project",
+      "chipNotShared": "{{title}} — not shared",
+      "entity": {
+        "tasks": "Task",
+        "issues": "Issue",
+        "testCases": "Test",
+        "decisions": "Decision",
+        "techEntries": "Tech",
+        "apiEndpoints": "Endpoint",
+        "apiCollections": "Collection",
+        "milestones": "Milestone",
+        "whiteboards": "Board",
+        "tables": "Table",
+        "relations": "Relation",
+        "schemaVersions": "Schema"
+      }
+    }
+  }
+}

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="DevHub Admin — platform-wide overview: users, teams, payments and packages."
+    />
+    <meta name="theme-color" content="#0a0a0c" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      (function () {
+        try {
+          var k = 'devhub.theme';
+          var p = localStorage.getItem(k);
+          var r;
+          if (p === 'light' || p === 'dark') r = p;
+          else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) r = 'light';
+          else r = 'dark';
+          document.documentElement.setAttribute('data-theme', r);
+          document.documentElement.style.colorScheme = r;
+          var m = document.querySelector('meta[name="theme-color"]');
+          if (m) m.content = r === 'light' ? '#f4f4f5' : '#0a0a0c';
+        } catch (e) {}
+      })();
+    </script>
+    <title>DevHub Admin</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

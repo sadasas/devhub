@@ -1,0 +1,1013 @@
+{
+  "whiteboard": {
+    "list": {
+      "sortUpdated": "Diperbarui",
+      "sortName": "Nama",
+      "sortCreated": "Dibuat",
+      "count_one": "{{count}} whiteboard",
+      "count_other": "{{count}} whiteboard",
+      "capHint": " — maksimal {{max}} board per proyek, hapus satu untuk menambah lainnya",
+      "newBoard": "Board baru",
+      "emptyTitle": "Belum ada whiteboard",
+      "emptyDesc": "Sketsa ide dan flowchart di kanvas bersama.",
+      "deleteTitle": "Hapus board",
+      "deleteDesc": "Tindakan ini menghapus “{{name}}” beserta {{elements}} elemennya secara permanen. Tidak dapat dibatalkan."
+    },
+    "card": {
+      "noDescription": "Tidak ada deskripsi.",
+      "elements_one": "{{count}} elemen",
+      "elements_other": "{{count}} elemen",
+      "unread": "Belum dibaca",
+      "deleteBoard": "Hapus board"
+    },
+    "toolbar": {
+      "tools": "Perangkat whiteboard",
+      "back": "Kembali ke daftar board",
+      "undoTitle": "Undo (Ctrl+Z)",
+      "undoAria": "Undo — Ctrl+Z",
+      "redoTitle": "Redo (Ctrl+Y)",
+      "redoAria": "Redo — Ctrl+Y",
+      "fsEnterTitle": "Layar penuh (F)",
+      "fsExitTitle": "Keluar layar penuh (F)",
+      "fsEnterAria": "Layar penuh — F",
+      "fsExitAria": "Keluar layar penuh — F"
+    },
+    "tool": {
+      "view": "Hanya lihat",
+      "select": "Pilih",
+      "marquee": "Pilih area",
+      "pen": "Pena",
+      "eraser": "Hapus",
+      "text": "Teks",
+      "sticky": "Sticky note",
+      "shape": "Shape",
+      "edge": "Garis",
+      "ref": "Kartu referensi entitas",
+      "boundary": "Batas",
+      "limitReached": "{{name}} — batas elemen tercapai"
+    },
+    "export": {
+      "title": "Ekspor PNG/SVG",
+      "emptyTitle": "Ekspor — board masih kosong",
+      "menuLabel": "Ekspor diagram",
+      "png": "Gambar PNG",
+      "svg": "Gambar SVG",
+      "pdf": "Dokumen PDF"
+    },
+    "viewer": {
+      "badge": "Hanya lihat",
+      "banner": "Anda memiliki akses hanya lihat — pengeditan dinonaktifkan.",
+      "readOnlyTip": "Hanya lihat — pengeditan dinonaktifkan"
+    },
+    "cap": {
+      "badge": "{{count}}/1000 elemen",
+      "atLimit": "Batas elemen tercapai — hapus beberapa elemen untuk menambah lagi.",
+      "nearLimit": "Mendekati batas elemen — hapus beberapa elemen agar tetap bisa mengedit."
+    },
+    "canvas": {
+      "label": "Whiteboard {{name}} — {{count}} elemen",
+      "zoomGroup": "Zoom kanvas",
+      "zoomIn": "Perbesar",
+      "zoomOut": "Perkecil",
+      "resetView": "Atur ulang tampilan",
+      "snapOn": "Snap ke grid: aktif",
+      "snapOff": "Snap ke grid: nonaktif",
+      "selectionActions": "Aksi seleksi",
+      "lock": "Kunci seleksi",
+      "unlock": "Buka kunci seleksi",
+      "group": "Grupkan seleksi",
+      "ungroup": "Pisahkan grup seleksi",
+      "alignLeft": "Rata kiri",
+      "alignCenterH": "Rata tengah horizontal",
+      "alignRight": "Rata kanan",
+      "alignTop": "Rata atas",
+      "alignMiddleV": "Rata tengah vertikal",
+      "alignBottom": "Rata bawah",
+      "distributeH": "Sebar horizontal",
+      "distributeV": "Sebar vertikal",
+      "bringForward": "Majukan",
+      "sendBackward": "Mundurkan",
+      "deleteSelectedTitle": "Hapus yang dipilih (Del)",
+      "deleteSelected": "Hapus yang dipilih",
+      "hint": "Gulir atau cubit untuk zoom · seret untuk menggeser",
+      "minimap": "Minimap",
+      "refUntitled": "tanpa judul {{entity}}",
+      "refDeleted": "Terhapus"
+    },
+    "popover": {
+      "editShape": "Edit shape",
+      "editSticky": "Edit sticky",
+      "editEdge": "Edit garis",
+      "editBoundary": "Edit batas",
+      "editText": "Edit teks",
+      "shapeType": "Jenis shape",
+      "rotationGroup": "Rotasi",
+      "rotation": "Rotasi°",
+      "label": "Label",
+      "filled": "Diisi warna",
+      "cancelChanges": "Batalkan perubahan",
+      "finishEditing": "Selesai mengedit",
+      "cancel": "Batal",
+      "done": "Selesai",
+      "arrowStyle": "Gaya panah",
+      "lineStyle": "Gaya garis",
+      "placeholderDecide": "mis. Putuskan",
+      "placeholderSystem": "mis. Sistem",
+      "placeholderYes": "mis. Ya / HTTP",
+      "textLabel": "Teks",
+      "stickyTextLabel": "Teks sticky",
+      "typePlaceholder": "Ketik…",
+      "enterHint": "Enter untuk selesai · Shift+Enter baris baru",
+      "background": "Latar",
+      "textColor": "Warna teks",
+      "shapeColor": "Warna border",
+      "fontSize": "Ukuran font",
+      "align": "Perataan",
+      "align_left": "Kiri",
+      "align_center": "Tengah",
+      "align_right": "Kanan"
+    },
+    "inspector": {
+      "panelLabel": "Properti elemen",
+      "collapse": "Sembunyikan properti",
+      "expand": "Tampilkan properti",
+      "emptyTitle": "Tidak ada elemen terpilih",
+      "emptyDesc": "Pilih elemen di kanvas untuk mengedit detailnya.",
+      "multiTitle": "{{count}} elemen terpilih",
+      "multiDesc": "Pindahkan, ratakan, atau hapus seleksi. Pilih satu elemen untuk mengubah teks dan warnanya.",
+      "clearSelection": "Bersihkan seleksi"
+    },
+    "layers": {
+      "title": "Lapisan",
+      "panelLabel": "Lapisan",
+      "collapse": "Sembunyikan lapisan",
+      "expand": "Tampilkan lapisan",
+      "searchPlaceholder": "Cari lapisan…",
+      "listLabel": "Lapisan elemen",
+      "empty": "Tidak ada lapisan",
+      "count": "{{count}}"
+    },
+    "palette": {
+      "color": "Warna"
+    },
+    "refPicker": {
+      "title": "Tautkan entitas",
+      "searchPlaceholder": "Cari task, issue, milestone…",
+      "searchAria": "Cari task dan issue",
+      "empty": "Tidak ada task, issue, atau entitas lain untuk ditautkan.",
+      "listAria": "Task dan issue",
+      "badgeTask": "Task",
+      "badgeIssue": "Issue",
+      "badgeTestCase": "Test case",
+      "badgeMilestone": "Milestone",
+      "badgeTech": "Tech",
+      "badgeDecision": "Keputusan",
+      "badgeTable": "Tabel",
+      "badgeApiColl": "Kol. API",
+      "badgeEndpoint": "Endpoint",
+      "columns": "{{count}} kolom",
+      "endpoints": "{{count}} endpoint"
+    },
+    "newModal": {
+      "presence": "Membuat whiteboard",
+      "title": "Whiteboard baru",
+      "cancel": "Batal",
+      "create": "Buat board",
+      "capHelper": "Maksimal {{max}} board per proyek — hapus satu untuk menambah lainnya.",
+      "name": "Nama",
+      "namePlaceholder": "mis. Sketsa arsitektur Q3",
+      "templateLegend": "Template",
+      "description": "Deskripsi",
+      "descHelper": "Hingga 2000 karakter"
+    },
+    "template": {
+      "blank": {
+        "name": "Kosong",
+        "desc": "Kanvas kosong — mulai dari nol"
+      },
+      "kanban": {
+        "name": "Kanban",
+        "desc": "Kolom Todo / In Progress / Review / Done"
+      },
+      "ci-cd": {
+        "name": "Pipeline CI/CD",
+        "desc": "Commit → Build → Test → Approval → Deploy"
+      },
+      "roadmap": {
+        "name": "Roadmap",
+        "desc": "Linimasa dengan penanda milestone"
+      },
+      "release-train": {
+        "name": "Release train",
+        "desc": "Matriks rilis × fase"
+      },
+      "gitflow": {
+        "name": "Gitflow",
+        "desc": "Model branching (main / develop / feature / hotfix)"
+      }
+    }
+  },
+  "api": {
+    "sort": {
+      "name": "Nama",
+      "created": "Dibuat",
+      "method": "Method",
+      "path": "Path"
+    },
+    "count": {
+      "collections_one": "{{count}} koleksi",
+      "collections_other": "{{count}} koleksi",
+      "endpoints_one": "{{count}} endpoint",
+      "endpoints_other": "{{count}} endpoint"
+    },
+    "mode": {
+      "aria": "Mode tampilan API",
+      "workspace": "Workspace",
+      "docs": "Docs"
+    },
+    "toolbar": {
+      "import": "Impor OpenAPI",
+      "export": "Ekspor OpenAPI",
+      "newCollection": "Koleksi baru",
+      "newEndpoint": "Endpoint baru"
+    },
+    "empty": {
+      "title": "Belum ada endpoint yang dipilih",
+      "editorDesc": "Dokumentasikan API Anda: jelaskan koleksi dan endpoint, lalu ekspor sebagai dokumen OpenAPI 3.0.",
+      "viewerDesc": "Pilih salah satu endpoint dari sidebar untuk melihat dokumentasinya."
+    },
+    "sidebar": {
+      "aria": "Koleksi API",
+      "searchPlaceholder": "Cari endpoint…",
+      "searchAria": "Cari endpoint",
+      "empty": "Belum ada koleksi. Buat satu atau impor dokumen OpenAPI."
+    },
+    "tree": {
+      "collapse": "Ciutkan {{name}}",
+      "expand": "Bentangkan {{name}}",
+      "collapseUngrouped": "Ciutkan Tanpa grup",
+      "expandUngrouped": "Bentangkan Tanpa grup",
+      "ungrouped": "Tanpa grup",
+      "unread": "Belum dibaca",
+      "deleteCollectionNamed": "Hapus koleksi {{name}}",
+      "deleteCollection": "Hapus koleksi",
+      "deleteEndpointNamed": "Hapus endpoint {{name}}",
+      "deleteEndpoint": "Hapus endpoint"
+    },
+    "resizer": {
+      "aria": "Ubah lebar sidebar"
+    },
+    "workbench": {
+      "methodAria": "Method HTTP",
+      "pathAria": "Path endpoint",
+      "copyPath": "Salin path",
+      "copied": "Tersalin",
+      "copy": "Salin",
+      "name": "Nama",
+      "description": "Deskripsi",
+      "descPlaceholder": "Apa fungsi endpoint ini?",
+      "tabsAria": "Detail endpoint"
+    },
+    "tab": {
+      "headers": "Headers",
+      "params": "Params",
+      "body": "Body",
+      "responses": "Responses"
+    },
+    "col": {
+      "key": "Key",
+      "value": "Value",
+      "description": "Deskripsi",
+      "name": "Nama",
+      "in": "In",
+      "required": "Wajib"
+    },
+    "header": {
+      "keyAria": "Key header {{n}}",
+      "keyPlaceholder": "X-Api-Key",
+      "valueAria": "Value header {{n}}",
+      "valuePlaceholder": "value",
+      "descAria": "Deskripsi header {{n}}",
+      "descPlaceholder": "Untuk apa ini?",
+      "remove": "Hapus header",
+      "empty": "Belum ada header.",
+      "add": "Tambah header"
+    },
+    "param": {
+      "nameAria": "Nama param {{n}}",
+      "namePlaceholder": "user_id",
+      "locationAria": "Lokasi param {{n}}",
+      "requiredAria": "Param {{n}} wajib",
+      "descAria": "Deskripsi param {{n}}",
+      "descPlaceholder": "Apa ini?",
+      "remove": "Hapus param",
+      "empty": "Belum ada param.",
+      "add": "Tambah param"
+    },
+    "body": {
+      "label": "Body request",
+      "helper": "Contoh body JSON. Hanya dikirim saat method mendukung body."
+    },
+    "response": {
+      "status": "Status",
+      "statusPlaceholder": "200",
+      "contentType": "Content type",
+      "contentTypePlaceholder": "application/json",
+      "descPlaceholder": "mis. Pengguna ditemukan",
+      "bodyLabel": "Body response",
+      "empty": "Belum ada response yang didokumentasikan.",
+      "add": "Tambah response",
+      "remove": "Hapus response"
+    },
+    "activity": "Aktivitas",
+    "collection": {
+      "nameAria": "Nama koleksi",
+      "descPlaceholder": "Apa yang dikelompokkan koleksi ini?",
+      "emptyEndpoints": "Belum ada endpoint di koleksi ini."
+    },
+    "delete": {
+      "collectionTitle": "Hapus koleksi",
+      "endpointTitle": "Hapus endpoint",
+      "cancel": "Batal",
+      "confirm": "Hapus",
+      "collectionDesc": "Ini menghapus “{{name}}”. Endpoint di dalamnya akan dipindahkan ke Tanpa grup.",
+      "endpointDesc": "Ini menghapus “{{name}}” secara permanen."
+    },
+    "import": {
+      "emptyFile": "Tidak ada endpoint atau koleksi (tag) yang ditemukan di berkas.",
+      "failed": "Gagal mengimpor dokumen OpenAPI."
+    },
+    "docs": {
+      "overview": "Ringkasan",
+      "overviewTitle": "API {{name}}",
+      "emptyTitle": "Belum ada dokumentasi API",
+      "description": "Deskripsi",
+      "parameters": "Parameter",
+      "headers": "Header",
+      "responses": "Response",
+      "yes": "ya"
+    },
+    "collectionModal": {
+      "presence": "Membuat koleksi API",
+      "title": "Koleksi API baru",
+      "cancel": "Batal",
+      "create": "Buat koleksi",
+      "duplicate": "Koleksi dengan nama ini sudah ada.",
+      "namePlaceholder": "mis. Users API"
+    },
+    "endpointModal": {
+      "presence": "Membuat endpoint API",
+      "title": "Endpoint baru",
+      "cancel": "Batal",
+      "create": "Buat endpoint",
+      "namePlaceholder": "mis. List users",
+      "method": "Method",
+      "path": "Path",
+      "collection": "Koleksi",
+      "noneUngrouped": "Tanpa grup"
+    }
+  },
+  "templates": {
+    "page": {
+      "title": "Template proyek",
+      "subtitle": "Cetak biru proyek yang dapat digunakan ulang — simpan proyek sebagai template, lalu buat salinan barunya kapan pun Anda butuhkan."
+    },
+    "retry": "Coba lagi",
+    "empty": {
+      "title": "Belum ada template",
+      "desc": "Buka proyek mana pun dan gunakan “Simpan sebagai template” untuk menjadikannya cetak biru yang dapat digunakan ulang."
+    },
+    "count_one": "{{count}} template",
+    "count_other": "{{count}} template",
+    "row": {
+      "created": "Dibuat {{date}}"
+    },
+    "use": "Gunakan template",
+    "delete": "Hapus",
+    "deleteTitle": "Hapus template",
+    "cancel": "Batal",
+    "confirmDelete": "Konfirmasi hapus",
+    "close": "Tutup",
+    "save": "Simpan template",
+    "saveTitle": "Simpan sebagai template",
+    "savedHelper": "Template tersimpan. Temukan dan buat proyek baru darinya di bagian “Template proyek” pada sidebar.",
+    "useTitle": "Gunakan template",
+    "createProject": "Buat proyek",
+    "projectName": "Nama proyek",
+    "projectNamePlaceholder": "mis. Papan sprint baru",
+    "instantiateHelper": "Proyek baru akan dibuat di {{team}} dengan task, issue, skema, dan lainnya dari template.",
+    "nameLabel": "Nama template",
+    "namePlaceholder": "mis. Papan sprint kosong",
+    "descPlaceholder": "Untuk apa template ini?",
+    "deleteDesc": "“{{name}}” akan dihapus. Proyek yang sudah dibuat darinya tidak terpengaruh.",
+    "errors": {
+      "load": "Gagal memuat template.",
+      "delete": "Gagal menghapus template.",
+      "save": "Gagal menyimpan template.",
+      "instantiate": "Gagal membuat proyek dari template."
+    }
+  },
+  "admin": {
+    "title": "Admin",
+    "subtitle": "Ringkasan seluruh platform — pengguna, tim, pembayaran, dan paket.",
+    "refresh": "Muat ulang",
+    "tabsAria": "Bagian admin",
+    "retry": "Coba lagi",
+    "loading": "Memuat…",
+    "pager": {
+      "previous": "Sebelumnya",
+      "next": "Berikutnya",
+      "status": "Halaman {{page}} dari {{total}}"
+    },
+    "tabs": {
+      "overview": "Ringkasan",
+      "users": "Pengguna",
+      "teams": "Tim",
+      "payments": "Pembayaran",
+      "packages": "Paket Langganan"
+    },
+    "plan": {
+      "free": "Free",
+      "pro": "Pro"
+    },
+    "role": {
+      "admin": "Admin",
+      "user": "Pengguna"
+    },
+    "you": "Anda",
+    "activity": "Aktivitas",
+    "overview": {
+      "aria": "Ringkasan platform",
+      "users": "Pengguna",
+      "teams": "Tim",
+      "projects": "Proyek",
+      "activeKeys": "Key aktif",
+      "revenueTotal": "Total Pendapatan",
+      "paidTeams": "Tim Berbayar",
+      "pendingPayments": "Pembayaran Tertunda",
+      "activityRange": "Aktivitas ({{range}})",
+      "noActivity": "Belum ada data aktivitas",
+      "noActivityDesc": "Aktivitas akan muncul di sini setelah pengguna mulai bekerja.",
+      "revenue30d": "Pendapatan 30 hari terakhir",
+      "revenueByPackage": "Pendapatan per paket",
+      "loaded": "Statistik platform diperbarui.",
+      "financeTitle": "Keuangan & Monetisasi",
+      "healthTitle": "Kesehatan Platform",
+      "activityTitle": "Aktivitas & Engagement",
+      "errors": {
+        "stats": "Gagal memuat statistik"
+      }
+    },
+    "sections": {
+      "finance": "Keuangan & Monetisasi",
+      "health": "Kesehatan Platform",
+      "activity": "Aktivitas & Engagement"
+    },
+    "banner": {
+      "pendingTitle": "{{count}} pembayaran tertunda",
+      "pendingDesc": "Perlu ditinjau sebelum rekonsiliasi",
+      "pendingAction": "Tinjau →"
+    },
+    "users": {
+      "aria": "Pengguna platform",
+      "searchLabel": "Cari pengguna",
+      "searchPlaceholder": "Cari berdasarkan email atau nama tampilan…",
+      "filterPlanAria": "Filter berdasarkan plan",
+      "allPlans": "Semua plan",
+      "paginationAria": "Paginasi pengguna",
+      "count_one": "{{count}} pengguna",
+      "count_other": "{{count}} pengguna",
+      "emptyTitle": "Tidak ada pengguna ditemukan",
+      "emptyQueryDesc": "Tidak ada yang cocok dengan \"{{query}}\".",
+      "emptyDesc": "Belum ada pengguna terdaftar.",
+      "joined_one": "{{count}} tim · bergabung {{joined}}",
+      "joined_other": "{{count}} tim · bergabung {{joined}}",
+      "active": "aktif {{when}}",
+      "lastPayment": "pembayaran terakhir {{amount}} ({{date}})",
+      "showing": "Menampilkan {{shown}} dari {{total}} pengguna — persempit pencarian untuk hasil lebih spesifik.",
+      "errors": {
+        "load": "Gagal memuat pengguna"
+      }
+    },
+    "payments": {
+      "aria": "Pembayaran platform",
+      "filterStatusAria": "Filter berdasarkan status",
+      "allStatuses": "Semua status",
+      "paginationAria": "Paginasi pembayaran",
+      "completed": "Selesai",
+      "pending": "Tertunda",
+      "paid": "Lunas",
+      "count_one": "{{count}} pembayaran",
+      "count_other": "{{count}} pembayaran",
+      "date": "Tanggal",
+      "buyer": "Pembeli",
+      "team": "Tim",
+      "package": "Paket",
+      "amount": "Jumlah",
+      "status": "Status",
+      "emptyTitle": "Belum ada pembayaran",
+      "emptyDesc": "Pembayaran yang selesai maupun tertunda akan muncul di sini.",
+      "errors": {
+        "load": "Gagal memuat pembayaran"
+      }
+    },
+    "packages": {
+      "aria": "Paket penagihan",
+      "count_one": "{{count}} paket",
+      "count_other": "{{count}} paket",
+      "new": "Paket baru",
+      "emptyTitle": "Belum ada paket",
+      "emptyDesc": "Buat paket penagihan untuk menentukan tingkatan harga.",
+      "emptyFiltered": "Tidak ada paket dengan filter ini.",
+      "allStatuses": "Semua status",
+      "filterStatusAria": "Filter status paket",
+      "active": "Aktif",
+      "inactive": "Nonaktif",
+      "activated": "\"{{name}}\" diaktifkan",
+      "deactivated": "\"{{name}}\" dinonaktifkan",
+      "deleted": "\"{{name}}\" dihapus",
+      "maxMembers": "Maks anggota: {{value}}",
+      "maxProjects": "Maks proyek: {{value}}",
+      "durationDays": "{{count}} hari",
+      "edit": "Edit",
+      "activate": "Aktifkan",
+      "deactivate": "Nonaktifkan",
+      "deleteTitle": "Hapus paket",
+      "deleteDesc": "Hapus \"{{name}}\"? Tindakan ini tidak dapat dibatalkan.",
+      "errors": {
+        "load": "Gagal memuat paket",
+        "update": "Gagal memperbarui paket",
+        "delete": "Gagal menghapus paket"
+      }
+    },
+    "packageModal": {
+      "editTitle": "Edit paket",
+      "newTitle": "Paket baru",
+      "saveChanges": "Simpan perubahan",
+      "create": "Buat paket",
+      "namePlaceholder": "mis. Pro, Enterprise…",
+      "descPlaceholder": "Deskripsi opsional",
+      "maxMembers": "Maks anggota",
+      "maxProjects": "Maks proyek",
+      "sortOrder": "Urutan",
+      "prices": "Harga",
+      "addPrice": "Tambah harga",
+      "durationDays": "Durasi (hari)",
+      "priceIdr": "Harga (IDR)",
+      "originalPriceIdr": "Harga asli (IDR)",
+      "noDiscount": "Tanpa diskon",
+      "removePrice": "Hapus harga",
+      "errors": {
+        "nameRequired": "Nama wajib diisi",
+        "update": "Gagal memperbarui paket",
+        "create": "Gagal membuat paket"
+      }
+    },
+    "teams": {
+      "aria": "Tim platform",
+      "emptyTitle": "Belum ada tim",
+      "emptyDesc": "Tim akan muncul di sini begitu pengguna membuatnya.",
+      "count_one": "{{count}} tim",
+      "count_other": "{{count}} tim",
+      "memberCount": "{{count}} anggota",
+      "projectCount": "{{count}} proyek",
+      "meta": "pemilik {{owner}} · dibuat {{created}}",
+      "changePlan": "Ubah plan",
+      "errors": {
+        "load": "Gagal memuat tim"
+      }
+    },
+    "teamPlan": {
+      "title": "Ubah plan tim",
+      "saving": "Menyimpan…",
+      "save": "Simpan",
+      "team": "Tim",
+      "currentPlan": "Plan saat ini",
+      "newPlan": "Plan baru",
+      "freeDesc": "Tanpa kedaluwarsa · maks 2 anggota · 3 proyek",
+      "packageDesc": "{{members}} anggota · {{projects}} proyek",
+      "durationPrice": "{{days}}h — {{price}}",
+      "noProPackages": "Belum ada paket Pro aktif. Buat paket terlebih dahulu.",
+      "confirmTitle": "Konfirmasi perubahan plan",
+      "confirmGrant": "Terapkan {{name}} · {{days}} hari · {{price}} ke {{team}}?",
+      "back": "Kembali",
+      "confirm": "Konfirmasi terapkan",
+      "errors": {
+        "update": "Gagal memperbarui plan tim",
+        "packages": "Gagal memuat paket"
+      }
+    }
+  },
+  "pricing": {
+    "back": "Kembali",
+    "title": "Mulai gratis, upgrade saat timmu butuh.",
+    "subtitle": "Semua fitur core tersedia — limit yang berbeda.",
+    "recommended": "Direkomendasikan",
+    "planAria": "plan {{name}}",
+    "choosePeriod": "Pilih periode:",
+    "chooseDurationAria": "Pilih durasi",
+    "durationMonths_one": "{{count}} bulan",
+    "durationMonths_other": "{{count}} bulan",
+    "totalLabel": "Total:",
+    "totalFor": "untuk {{duration}}",
+    "freePrice": "Rp 0",
+    "freePeriod": "/ selamanya",
+    "benefits": {
+      "unlimitedMembers": "Anggota tanpa batas",
+      "members": "{{n}} anggota",
+      "unlimitedProjects": "Proyek tanpa batas",
+      "projects": "{{n}} proyek",
+      "coreFeatures": "Semua fitur core",
+      "exportJson": "Export JSON",
+      "prioritySupport": "Priority support"
+    },
+    "savings": "Hemat {{percent}}%",
+    "originalPriceAria": "Harga normal {{price}}",
+    "billedYearly": "Ditagih tahunan — setara {{monthly}}/bulan",
+    "youSave": "Hemat {{amount}} dibanding harga normal",
+    "workspace": "Workspace",
+    "workspacePlaceholder": "Pilih workspace",
+    "workspaceBarLabel": "Tagih ke workspace",
+    "workspaceBarAria": "Pilih workspace untuk penagihan",
+    "billingToggleAria": "Pilihan periode tagihan",
+    "billingGroupAria": "Pilih durasi paket",
+    "billing": {
+      "monthly": "Bulanan",
+      "yearly": "Tahunan"
+    },
+    "billingHint": "Tahunan paling hemat — bayar sekali, fokus setahun.",
+    "cta": "Upgrade ke {{name}}",
+    "ctaWithPrice": "Upgrade ke {{name}} — {{price}}",
+    "currentPlan": "Paket saat ini",
+    "pickWorkspace": "Pilih workspace di atas untuk melanjutkan.",
+    "compareTitle": "Perbandingan fitur",
+    "compare": {
+      "tasks": "Task & Board Kanban",
+      "issues": "Issue tracking",
+      "schema": "Schema & ERD",
+      "decisions": "Decision log (ADR)",
+      "whiteboard": "Whiteboard & diagram",
+      "api": "API docs + OpenAPI"
+    },
+    "faqSection": "Pertanyaan Umum",
+    "faq": {
+      "upgrade": {
+        "q": "Bagaimana cara upgrade?",
+        "a": "Pilih workspace yang ingin di-upgrade, lalu pilih paket dan durasi pembayaran. Setelah bayar, plan akan aktif otomatis setelah pembayaran dikonfirmasi."
+      },
+      "trial": {
+        "q": "Apakah ada free trial?",
+        "a": "Tidak ada free trial, tapi paket Free tersedia tanpa batas waktu."
+      },
+      "payment": {
+        "q": "Bagaimana cara bayar?",
+        "a": "Pembayaran melalui QRIS atau Virtual Account via Pakasir. Setelah bayar, pembayaran akan dikonfirmasi otomatis."
+      },
+      "timing": {
+        "q": "Bisa upgrade kapan saja?",
+        "a": "Ya, bisa upgrade kapan saja. Sisa hari dari plan sebelumnya akan ditambahkan ke plan baru."
+      },
+      "expired": {
+        "q": "Apa yang terjadi jika plan expired?",
+        "a": "Workspace akan kembali ke plan Free. Data tetap aman, tapi limit akan berlaku kembali."
+      }
+    },
+    "trust": "Pembayaran aman via QRIS / Virtual Account",
+    "trustRow": "QRIS • VA BCA/Mandiri/BRI • Tanpa kartu kredit",
+    "poweredBy": "Powered by Pakasir",
+    "createAccount": "Buat akun gratis",
+    "errors": {
+      "pickWorkspace": "Pilih workspace yang akan di-upgrade.",
+      "checkout": "Gagal memulai checkout.",
+      "load": "Gagal memuat paket."
+    }
+  },
+  "billing": {
+    "back": "Kembali",
+    "title": "Riwayat Pembayaran",
+    "subtitle": "Semua pembayaran yang telah Anda lakukan di seluruh workspace.",
+    "empty": {
+      "title": "Belum ada pembayaran",
+      "desc": "Pembayaran yang selesai untuk workspace Anda akan muncul di sini."
+    },
+    "status": {
+      "paid": "Lunas",
+      "pending": "Tertunda",
+      "cancelled": "Dibatalkan"
+    },
+    "days": "{{count}} hari",
+    "resume": "Lanjutkan pembayaran",
+    "cancelPayment": "Batalkan",
+    "errors": {
+      "load": "Gagal memuat riwayat pembayaran.",
+      "resume": "Gagal melanjutkan pembayaran.",
+      "cancel": "Gagal membatalkan pembayaran."
+    }
+  },
+  "public": {
+    "openInDevHub": "Buka di DevHub",
+    "signIn": "Masuk",
+    "backToDevHub": "Kembali ke DevHub",
+    "notFound": {
+      "title": "Proyek tidak ditemukan",
+      "desc": "Proyek ini tidak ada atau tidak dibagikan secara publik."
+    },
+    "header": {
+      "created": "Dibuat {{date}}",
+      "updated": "Diperbarui {{date}}"
+    },
+    "badge": {
+      "public": "Publik"
+    },
+    "sectionsAria": "Bagian proyek publik",
+    "tab": {
+      "board": "Board",
+      "issues": "Issue",
+      "stack": "Stack",
+      "milestones": "Milestone",
+      "whiteboard": "Whiteboard",
+      "overview": "Ringkasan"
+    },
+    "empty": {
+      "board": "Belum ada task.",
+      "issues": "Belum ada issue.",
+      "stack": "Belum ada entri stack.",
+      "milestones": "Belum ada milestone.",
+      "whiteboard": "Belum ada whiteboard."
+    },
+    "errors": {
+      "load": "Gagal memuat proyek."
+    },
+    "board": {
+      "viewAria": "Tampilan board",
+      "byStatus": "Berdasarkan Status",
+      "byMilestone": "Berdasarkan Milestone",
+      "byDueDate": "Berdasarkan Tenggat",
+      "noTasks": "Tidak ada task",
+      "unassigned": "Tanpa penugasan",
+      "doneTitle": "{{done}}/{{total}} selesai"
+    },
+    "due": {
+      "overdue": "Terlambat",
+      "today": "Hari Ini",
+      "tomorrow": "Besok",
+      "thisWeek": "Minggu Ini",
+      "nextWeek": "Minggu Depan",
+      "later": "Nanti",
+      "noDate": "Tanpa Tanggal"
+    },
+    "issue": {
+      "severity": "Tingkat: {{value}}",
+      "linkedTo": "Tertaut ke task {{id}}"
+    },
+    "milestone": {
+      "target": "Target {{date}}",
+      "noTarget": "Tanpa tanggal target"
+    },
+    "prd": {
+      "purpose": "Tujuan",
+      "goals": "Sasaran",
+      "features": "Fitur",
+      "scope": "Ruang lingkup",
+      "outOfScope": "Di luar ruang lingkup",
+      "notSet": "Belum diatur."
+    },
+    "stats": {
+      "tasks": "Task",
+      "openIssues": "Issue terbuka",
+      "milestones": "Milestone",
+      "stackEntries": "Entri stack",
+      "whiteboards": "Whiteboard",
+      "testCases": "Test case"
+    },
+    "noDescription": "Belum ada deskripsi.",
+    "about": {
+      "team": "Tim: {{name}}"
+    },
+    "whiteboards": {
+      "boards": "Board",
+      "backAria": "Kembali ke daftar board"
+    }
+  },
+  "docs": {
+    "navAria": "Bagian dokumentasi",
+    "tocAria": "Di halaman ini",
+    "onThisPage": "Di halaman ini",
+    "nav": {
+      "overview": "Ringkasan",
+      "mcp": "Integrasi MCP",
+      "quickstart": "Quickstart",
+      "shortcuts": "Pintasan"
+    },
+    "toc": {
+      "overview": "Ringkasan",
+      "mcp": "Integrasi MCP",
+      "api": "Referensi API",
+      "shortcuts": "Pintasan Keyboard",
+      "quickstart": "Quickstart"
+    },
+    "page": {
+      "title": "Dokumentasi",
+      "subtitle": "Semua yang Anda butuhkan untuk memanfaatkan DevHub secara maksimal, dari integrasi hingga API."
+    },
+    "section": {
+      "overview": "Ringkasan",
+      "mcp": "Integrasi MCP",
+      "shortcuts": "Pintasan Keyboard",
+      "quickstart": "Quickstart"
+    },
+    "overview": {
+      "body1": "DevHub adalah workspace manajemen proyek untuk proyek perangkat lunak. Ia menyimpan task, issue, keputusan, dan skema Anda di satu tempat — memori teknis dari apa yang Anda bangun — serta memungkinkan agen AI membaca dan memperbarui proyek melalui MCP atau REST API. Proyek juga dapat dibagikan secara publik sebagai tampilan baca-saja di",
+      "body2": "— tanpa perlu login."
+    },
+    "shortcuts": {
+      "intro": "DevHub dirancang agar tetap nyaman digunakan dari keyboard. Pintasan diabaikan saat Anda sedang mengetik di input atau textarea, sehingga tidak mengganggu ketikan Anda.",
+      "tip1": "Tips: tekan",
+      "tip2": "di mana saja untuk mencari perintah dan proyek. Di dalam proyek, palet juga menawarkan aksi pembuatan untuk setiap entitas — task, issue, test case, keputusan, milestone, entri stack, koleksi API, atau endpoint baru.",
+      "palette": "Membuka atau menutup palet perintah",
+      "toggleChat": "Toggle team chat",
+      "toggleSidebar": "Toggle sidebar",
+      "navigateResults": "Bergerak melalui hasil palet",
+      "runCommand": "Menjalankan perintah palet yang dipilih",
+      "escape": "Menutup palet atau modal yang aktif",
+      "switchTabAlt": "Berpindah ke tab proyek (Board … Ringkasan)",
+      "switchTabBracket": "Berpindah ke tab proyek sebelumnya / berikutnya",
+      "newItem": "Membuat item baru di tab aktif (membutuhkan akses edit, tidak saat sedang mengetik)"
+    },
+    "mcp": {
+      "title": "Integrasi MCP",
+      "subtitle": "Hubungkan agen AI untuk membaca dan memperbarui proyek DevHub Anda.",
+      "intro": "Hubungkan opencode dan agen AI lainnya ke workspace DevHub Anda agar mereka dapat membuat task, melaporkan issue, dan mencatat keputusan langsung dari editor Anda.",
+      "setupGuide": "Panduan setup",
+      "setupGuideSub": "Buat key, konfigurasikan opencode, dan verifikasi koneksinya",
+      "goToKeys": "Buka API Keys",
+      "nextSteps": "Langkah selanjutnya",
+      "apiKeysTitle": "API Keys",
+      "apiKeysSub": "Buat atau cabut key yang digunakan agen Anda",
+      "toc": {
+        "prereq": "Sebelum Anda mulai",
+        "key": "Buat API key",
+        "projectId": "Dapatkan project ID Anda",
+        "env": "Atur variabel env",
+        "config": "Buat opencode.json",
+        "restart": "Restart opencode",
+        "verify": "Verifikasi koneksi",
+        "agentsync": "Otomatiskan alur kerja Anda",
+        "troubleshooting": "Penyelesaian masalah",
+        "autoPrompt": "Auto-prompt"
+      },
+      "step": {
+        "keyTitle": "Buat API key",
+        "projectIdTitle": "Dapatkan project ID Anda",
+        "envTitle": "Atur variabel env",
+        "configTitle": "Buat konfigurasi {{agent}}",
+        "restartTitle": "Restart {{agent}}",
+        "verifyTitle": "Verifikasi koneksi",
+        "autoPromptTitle": "Biarakan agen Anda meminta konfigurasi yang belum ada",
+        "agentsyncTitle": "Otomatiskan alur kerja Anda (auto-sync agen)",
+        "keyDesc": "Buat key per-pengguna di DevHub. Key mentah hanya tampil sekali — simpan ke {{key}}."
+      },
+      "prereq": {
+        "opencodeStrong": "opencode sudah terpasang",
+        "opencodeDesc": "Panduan ini menggunakan opencode, tetapi klien MCP mana pun dapat digunakan dengan server yang sama.",
+        "reachableStrong": "DevHub dapat dijangkau",
+        "reachableDesc": "Pastikan /api/health mengembalikan ok sebelum melanjutkan.",
+        "loggedInStrong": "Anda sudah masuk",
+        "loggedInDesc": "API keys bersifat per-pengguna, jadi Anda membutuhkan akun yang aktif.",
+        "agentStrong": "{{agent}} sudah terpasang",
+        "agentDesc": "Panduan ini dikonfigurasi untuk {{agent}}, tetapi klien MCP mana pun dapat digunakan dengan server yang sama.",
+        "fallbackInstalled": "sudah terpasang"
+      },
+      "lifecycle": {
+        "task": "Siklus hidup task",
+        "issue": "Siklus hidup issue",
+        "decision": "Siklus hidup keputusan",
+        "whiteboard": "Siklus hidup whiteboard",
+        "api": "Siklus API",
+        "milestone": "Siklus hidup milestone",
+        "title": "Referensi lifecycle"
+      },
+      "trouble": {
+        "unauthorizedTitle": "401 pada setiap panggilan",
+        "connectTitle": "Tidak dapat terhubung",
+        "tableSymptom": "Gejala",
+        "tableFix": "Perbaikan",
+        "row401AllSymptom": "401 pada setiap panggilan",
+        "row401AllFix": "Key salah, kedaluwarsa, atau dicabut. Buat yang baru di API Keys, perbarui DEVHUB_MCP_KEY, restart client.",
+        "row401ScopedSymptom": "401 hanya untuk beberapa proyek",
+        "row401ScopedFix": "Key bersifat per-pengguna: hanya bisa akses proyek milik pembuat key tersebut.",
+        "row400Symptom": "400 pada tool call (validasi)",
+        "row400Fix": "Argumen tidak valid sesuai skema zod; jalankan project_state untuk melihat nama field yang tepat.",
+        "rowProjectIdSymptom": "projectId hilang/tidak dikenal",
+        "rowProjectIdFix": "Salin project ID dari header proyek (UUID); milik pengguna saat ini.",
+        "rowToolsNotListedSymptom": "Tools tidak terdaftar di agen",
+        "rowToolsNotListedFix": "Config client belum reload; restart agen atau jalankan ulang perintah MCP.",
+        "rowNotVisibleSymptom": "Perubahan tidak terlihat di UI",
+        "rowNotVisibleFix": "UI polling setiap 5 detik saat tab terlihat; hard-refresh atau ganti tab.",
+        "rowCursorCeilingSymptom": "Cursor maks 40 tools",
+        "rowCursorCeilingFix": "Cursor membatasi ~40 tools. Nonaktifkan server/tools yang tidak dipakai agar di bawah batas.",
+        "rowWindsurfUrlSymptom": "Config Windsurf tidak termuat (gagal diam)",
+        "rowWindsurfUrlFix": "Ganti \"url\" menjadi \"serverUrl\" di ~/.codeium/windsurf/mcp_config.json — Windsurf memerlukan serverUrl.",
+        "rowSseDeprecatedSymptom": "Transport SSE deprecated",
+        "rowSseDeprecatedFix": "Gunakan Streamable HTTP (type: http) sebagai pengganti SSE; SSE sudah deprecated di spesifikasi MCP.",
+        "title": "Matriks troubleshooting",
+        "intro": "Diagnosis cepat - temukan gejala di kiri, terapkan perbaikan di kanan.",
+        "hint": "Tips: 400 pada tool call berarti argumen tidak valid sesuai skema zod — jalankan project_state dulu untuk melihat nama field yang tepat. Task duplikat? Baca state sebelum membuat. UI melakukan polling setiap 5 detik saat tab terlihat."
+      },
+      "agent": {
+        "pickerLabel": "Pilih agen",
+        "windsurfWarn": "Windsurf memakai serverUrl bukan url — copy config Cursor akan gagal diam.",
+        "configHint": "Salin snippet ini ke file config Anda.",
+        "opencode": "OpenCode",
+        "claude": "Claude Code",
+        "cursor": "Cursor",
+        "windsurf": "Windsurf",
+        "vscode": "VS Code / Copilot",
+        "gemini": "Gemini",
+        "tabsLabel": "Tab agen",
+        "cliTitle": "Perintah CLI",
+        "windsurfBadge": "serverUrl!"
+      },
+      "env": {
+        "powershell": "PowerShell",
+        "bash": "bash / zsh",
+        "hint": "Simpan key di env — jangan commit ke git."
+      },
+      "projectId": {
+        "tip": "Salin project ID dari header halaman proyek Anda.",
+        "headerExample": "a1b2c3d4-e5f6-4a7b-9c0d-1234567890ab",
+        "desc": "Buka proyek dan salin ID dari header (monospace dengan tombol salin).",
+        "exampleLabel": "Contoh project ID",
+        "copyLabel": "Salin project ID",
+        "pathHint": "Path: {{path}} — salin UUID dari header. Pertahankan format dash, jangan dipotong."
+      },
+      "restart": {
+        "opencode": "Restart opencode (tutup dan buka kembali TUI).",
+        "claude": "Keluar dan buka kembali Claude Code (atau jalankan claude mcp list untuk verifikasi).",
+        "cursor": "Keluar dan buka kembali Cursor sepenuhnya (Cmd+Q / Alt+F4) — reload saja tidak cukup.",
+        "windsurf": "Windsurf auto-reload saat file config berubah — tanpa restart.",
+        "vscode": "Reload window: Cmd+Shift+P -> Developer: Reload Window.",
+        "gemini": "Restart Gemini CLI.",
+        "title": "Restart / Reload per agen"
+      },
+      "verify": {
+        "opencodeCheck": "opencode: jalankan opencode mcp list -> devhub connected dan 21 tools.",
+        "claudeCheck": "Claude Code: claude mcp list -> devhub: connected.",
+        "cursorCheck": "Cursor: Settings -> Tools & MCP -> devhub hijau (maks 40 tools).",
+        "windsurfCheck": "Windsurf: Settings -> MCP Servers -> devhub hijau (auto-reload).",
+        "vscodeCheck": "VS Code: Output -> log MCP menampilkan devhub connected.",
+        "geminiCheck": "Gemini: cek daftar MCP server menampilkan devhub connected.",
+        "checklistTitle": "Verifikasi per agen",
+        "curlLabel": "Verifikasi via curl",
+        "curlDesc": "Pengecekan langsung streamable HTTP (tanpa reload client).",
+        "toolsHint": "21 tools akan terdaftar jika berhasil.",
+        "chipsLabel": "Tools tersedia"
+      },
+      "agentsync": {
+        "variantLabel": "Pilih file instruksi",
+        "variantAGENTS": "AGENTS.md (universal)",
+        "variantCLAUDE": "CLAUDE.md",
+        "variantCursor": ".cursorrules",
+        "variantWindsurf": ".windsurfrules",
+        "variantCopilot": ".github/copilot-instructions.md",
+        "commitNote": "Commit file ini ke repo root — agen membacanya setiap sesi.",
+        "desc": "Salin protokol sync lengkap ke file instruksi Anda. Semua varian berbagi hierarki yang sama (resolusi target proyek → resolusi milestone → tabel sync wajib), hanya nama file yang berbeda."
+      },
+      "autoPrompt": {
+        "commitNote": "Commit file ini ke repo root agar agen bisa meminta config yang hilang.",
+        "desc": "Biarkan agen Anda meminta konfigurasi yang hilang daripada gagal diam-diam. Pilih file instruksi Anda — semua varian berisi pemeriksaan prasyarat yang sama, hanya nama file yang berbeda."
+      }
+    },
+    "hub": {
+      "title": "Jelajahi",
+      "quickstartTitle": "Quickstart",
+      "quickstartSub": "≤2 menit — API key, project ID & opencode config",
+      "mcpTitle": "MCP Multi-Agent",
+      "mcpSub": "6 agen · Streamable HTTP · Postgres sync",
+      "shortcutsTitle": "Pintasan Keyboard",
+      "shortcutsSub": "Palette, navigasi & aksi — tetap di keyboard",
+      "diagramTitle": "Cara terhubung",
+      "diagramCaption": "Browser & agen → Streamable HTTP → Postgres. Agen dan browser berbagi API yang sama.",
+      "browserLabel": "Browser",
+      "agentLabel": "Agen",
+      "mcpLabel": "POST /mcp",
+      "transportLabel": "Streamable HTTP",
+      "postgresLabel": "Postgres",
+      "apiUrlLabel": "URL API"
+    },
+    "quickstart": {
+      "title": "Quickstart",
+      "subtitle": "Terhubung dalam kurang dari 2 menit",
+      "step1Title": "Buat API key",
+      "step1Desc": "Buka API Keys dan buat key. Salin — Anda akan butuh untuk variabel env.",
+      "step2Title": "Dapatkan project ID",
+      "step2Desc": "Buka proyek dan salin ID dari header.",
+      "step3Title": "Konfigurasi opencode",
+      "step3Desc": "Tambahkan server MCP ke opencode.json dan set DEVHUB_MCP_KEY.",
+      "verifyTitle": "Verifikasi",
+      "verifyDesc": "Restart opencode dan jalankan project_state untuk konfirmasi koneksi.",
+      "goToKeys": "Buka API Keys",
+      "goToMcp": "Buka panduan MCP"
+    }
+  }
+}

@@ -1,0 +1,419 @@
+{
+  "auth": {
+    "brand": {
+      "title": "Memori untuk seluruh proyek Anda.",
+      "subtitle": "Task, bug, tech stack, skema database, ADR, dan rilis — semua yang proyek Anda butuhkan, dalam satu workspace.",
+      "footer": "Data Anda tetap milik Anda — ekspor atau impor kapan saja."
+    },
+    "form": {
+      "loginTitle": "Masuk ke DevHub",
+      "registerTitle": "Buat akun Anda",
+      "loginSub": "Selamat datang kembali, developer.",
+      "registerSub": "Kurang dari satu menit. Tanpa kartu kredit."
+    },
+    "field": {
+      "email": "Email",
+      "emailPlaceholder": "you@example.com",
+      "password": "Kata sandi",
+      "passwordRegisterHelper": "Minimal 8 karakter.",
+      "confirmPassword": "Konfirmasi kata sandi"
+    },
+    "action": {
+      "signIn": "Masuk",
+      "createAccount": "Buat akun",
+      "createOne": "Buat sekarang"
+    },
+    "switchPrompt": {
+      "hasAccount": "Sudah punya akun? ",
+      "noAccountYet": "Belum punya akun? "
+    },
+    "error": {
+      "passwordMismatch": "Kata sandi tidak cocok.",
+      "generic": "Terjadi kesalahan. Coba lagi."
+    }
+  },
+  "dashboard": {
+    "title": "Proyek",
+    "subtitle": "Semua yang sedang Anda bangun, dalam satu tempat.",
+    "newProject": "Proyek baru",
+    "empty": {
+      "titleNoTeam": "Buat tim terlebih dahulu",
+      "titleNoProjects": "Belum ada proyek",
+      "descNoTeam": "DevHub mengorganisasi proyek di dalam tim — buat tim dari sidebar, lalu kembali ke sini untuk menambahkan proyek pertama Anda.",
+      "descNoProjects": "Buat proyek pertama Anda untuk melacak task, issue, tech stack, dan lainnya."
+    },
+    "noDescription": "Tidak ada deskripsi.",
+    "card": {
+      "updated": "diperbarui {{time}}"
+    },
+    "stats": {
+      "doneShort": "{{done}}/{{total}} selesai",
+      "tasksDoneTitle": "{{done}} dari {{total}} task selesai",
+      "openIssues": "{{count}} issue",
+      "openIssuesTitle": "{{count}} issue terbuka",
+      "depsOutdated": "{{count}} dependensi usang",
+      "depsOutdatedTitle": "{{count}} dependensi usang"
+    },
+    "modal": {
+      "title": "Proyek baru",
+      "create": "Buat",
+      "selectTeamError": "Pilih tim terlebih dahulu.",
+      "createFailed": "Gagal membuat proyek.",
+      "name": "Nama",
+      "namePlaceholder": "cth. Landing page",
+      "description": "Deskripsi",
+      "descriptionPlaceholder": "Tentang apa proyek ini?",
+      "team": "Tim",
+      "teamEmptyHint": "Anda belum punya tim — buat tim dari sidebar, lalu kembali ke sini untuk menambahkan proyek.",
+      "selectTeam": "Pilih tim"
+    }
+  },
+  "profile": {
+    "title": "Profil",
+    "subtitle": "Identitas Anda di tim DevHub.",
+    "summaryAria": "Ringkasan profil",
+    "addBio": "Tambahkan bio — beri tahu tim Anda apa yang Anda bangun.",
+    "joined": "Bergabung {{date}}",
+    "role": {
+      "owner": "Pemilik",
+      "admin": "Admin",
+      "editor": "Editor",
+      "viewer": "Penonton"
+    },
+    "edit": "Edit profil",
+    "tabsAria": "Bagian profil",
+    "tab": {
+      "profile": "Profil",
+      "security": "Keamanan",
+      "account": "Akun"
+    },
+    "statsAria": "Statistik profil",
+    "stat": {
+      "teams": "Teams",
+      "projects": "Proyek",
+      "activeKeys": "API key aktif"
+    },
+    "yourTeams": "Tim Anda",
+    "yourProjects": "Proyek Anda",
+    "noTeams": "Belum ada tim.",
+    "noProjects": "Belum ada proyek.",
+    "members_one": "{{count}} member",
+    "members_other": "{{count}} member",
+    "relatedAria": "Halaman terkait",
+    "links": {
+      "apiKeys": "API key",
+      "mcpGuide": "Panduan MCP"
+    },
+    "securityPanelAria": "Keamanan",
+    "security": {
+      "password": "Kata sandi",
+      "passwordDesc": "Gunakan minimal 8 karakter, berbeda dari kata sandi saat ini.",
+      "changePassword": "Ganti kata sandi"
+    },
+    "accountPanelAria": "Detail akun",
+    "account": {
+      "email": "Email",
+      "memberSince": "Member sejak",
+      "accountId": "ID Akun"
+    },
+    "editModal": {
+      "title": "Edit profil",
+      "save": "Simpan perubahan",
+      "saveFailed": "Gagal menyimpan profil.",
+      "displayName": "Nama tampilan",
+      "displayNamePlaceholder": "Bagaimana nama Anda tampil di DevHub",
+      "bio": "Bio",
+      "bioPlaceholder": "Satu baris singkat tentang apa yang Anda bangun.",
+      "bioEmptyHelper": "Belum ada bio — tambahkan satu baris singkat tentang apa yang Anda bangun.",
+      "bioLength": "{{length}} / 500 karakter"
+    },
+    "changeModal": {
+      "title": "Ganti kata sandi",
+      "update": "Perbarui kata sandi",
+      "done": "Selesai",
+      "success": "Kata sandi diperbarui. Gunakan pada login berikutnya.",
+      "current": "Kata sandi saat ini",
+      "new": "Kata sandi baru",
+      "confirm": "Konfirmasi kata sandi baru",
+      "newHelper": "Minimal 8 karakter dan berbeda dari kata sandi saat ini.",
+      "mismatch": "Kata sandi baru dan konfirmasinya tidak cocok.",
+      "failed": "Gagal mengganti kata sandi."
+    },
+    "passwordToggle": {
+      "show": "Tampilkan kata sandi",
+      "hide": "Sembunyikan kata sandi"
+    },
+    "months": {
+      "jan": "Jan",
+      "feb": "Feb",
+      "mar": "Mar",
+      "apr": "Apr",
+      "may": "Mei",
+      "jun": "Jun",
+      "jul": "Jul",
+      "aug": "Agu",
+      "sep": "Sep",
+      "oct": "Okt",
+      "nov": "Nov",
+      "dec": "Des"
+    },
+    "days": {
+      "mon": "Sen",
+      "wed": "Rab",
+      "fri": "Jum"
+    },
+    "activity": {
+      "sectionAria": "Statistik aktivitas gaya GitHub",
+      "totalSuffix": "kontribusi dalam satu tahun terakhir",
+      "unavailable": "Kontribusi tidak tersedia",
+      "tasksCompleted": "Task selesai",
+      "issuesResolved": "Issue teratasi",
+      "activeDays": "Hari aktif",
+      "currentStreak": "Streak saat ini",
+      "longestStreak": "Streak terpanjang",
+      "streakSuffix": "h"
+    },
+    "heat": {
+      "gridAria": "Aktivitas kontribusi dalam satu tahun terakhir",
+      "contributions_one": "{{count}} kontribusi",
+      "contributions_other": "{{count}} kontribusi",
+      "cellAria": "{{contributions}} pada {{date}}",
+      "less": "Sedikit",
+      "more": "Banyak"
+    }
+  },
+  "theme": {
+    "appearance": "Tampilan",
+    "appearanceHint": "Pilih tampilan DevHub. System mengikuti OS Anda."
+  },
+  "keys": {
+    "title": "API keys",
+    "subtitle": "API key untuk AI coding agent membaca dan memperbarui proyek Anda lewat MCP. Key lengkap hanya ditampilkan sekali saat dibuat.",
+    "newKey": "Key baru",
+    "copied": "Tersalin",
+    "copy": "Salin",
+    "fullGuide": "Panduan integrasi MCP lengkap →",
+    "untitled": "Key tanpa nama",
+    "never": "Belum pernah",
+    "created": "Dibuat {{date}}",
+    "count_one": "{{total}} dari {{max}} key aktif",
+    "count_other": "{{total}} dari {{max}} key aktif",
+    "paginationAria": "Paginasi",
+    "pager": {
+      "previous": "Sebelumnya",
+      "next": "Berikutnya",
+      "status": "Halaman {{page}} dari {{total}}"
+    },
+    "status": {
+      "active": "Aktif",
+      "activeKeyAria": "Key aktif"
+    },
+    "copyButton": {
+      "keyLabel": "Salin key {{prefix}}",
+      "prefixLabel": "Salin prefix key {{prefix}}",
+      "revealTitle": "Tampilkan & salin key lengkap",
+      "prefixTitle": "Salin prefix (key dibuat sebelum ada dukungan enkripsi)"
+    },
+    "empty": {
+      "title": "Belum ada API key",
+      "description": "Buat key agar AI coding agent dapat membaca dan memperbarui proyek Anda lewat MCP.",
+      "readGuide": "Baca panduan MCP"
+    },
+    "error": {
+      "load": "Gagal memuat API key.",
+      "revoke": "Gagal mencabut key.",
+      "copy": "Gagal menyalin key.",
+      "create": "Gagal membuat key."
+    },
+    "revoke": "Cabut",
+    "revokeModal": {
+      "title": "Cabut key",
+      "confirm": "Konfirmasi pencabutan",
+      "body": "“{{name}}” ({{prefix}}…) akan langsung berhenti bekerja dan hilang dari daftar ini. Agent yang menggunakannya mendapat 401 pada panggilan berikutnya."
+    },
+    "inlineHint": "Autentikasi permintaan MCP dengan API key Anda — lihat",
+    "mcpGuideLink": "panduan integrasi MCP",
+    "newKeyModal": {
+      "title": "API key baru",
+      "create": "Buat key",
+      "done": "Selesai",
+      "name": "Nama",
+      "namePlaceholder": "cth. opencode-desktop",
+      "nameHelper": "Wajib — agar Anda bisa membedakan antar key.",
+      "scopeNote": "Key ini dapat membaca dan memperbarui setiap proyek di tim yang Anda ikuti. Hanya ditampilkan sekali — simpan di tempat aman.",
+      "capWarning": "Anda memiliki {{active}} dari {{max}} key aktif — maksimumnya {{max}}. Cabut key yang tidak terpakai sebelum membuat yang baru.",
+      "copyNow": "Salin key ini sekarang — hanya ditampilkan sekali.",
+      "copyKey": "Salin key",
+      "envVarAria": "Salin sebagai variabel lingkungan DEVHUB_MCP_KEY",
+      "envVarTitle": "Salin sebagai env var",
+      "loseNote": "Jika hilang, Anda bisa menyalinnya lagi nanti dari daftar API key.",
+      "nextSteps": "Langkah berikutnya — uji terhadap server MCP Anda:",
+      "curlAria": "Salin perintah uji curl"
+    },
+    "guide": {
+      "title": "Menggunakan API key Anda",
+      "bannerPrefix": "Autentikasi permintaan MCP dengan API key Anda pada",
+      "bannerSuffix": "header:",
+      "quickStartTitle": "Mulai cepat",
+      "quickStartDesc": "Uji API key Anda terhadap server MCP:",
+      "quickStartCopyAria": "Salin mulai cepat",
+      "envVarTitle": "Variabel lingkungan",
+      "envVarDesc": "Atur key Anda di environment, lalu arahkan opencode.json ke sana:",
+      "envVarCopyAria": "Salin variabel lingkungan"
+    }
+  },
+  "teams": {
+    "backToDashboard": "Dashboard",
+    "subtitle": "Anggota tim berbagi setiap proyek di workspace ini.",
+    "invite": "Undang",
+    "rename": "Ubah tim",
+    "deleteTeam": "Hapus tim",
+    "memberCount": "{{count}} anggota",
+    "tabsAria": "Bagian tim",
+    "tabMembers": "Anggota",
+    "tabUsage": "Penggunaan",
+    "emptyTitle": "Belum ada anggota",
+    "emptyDescription": "Undang pengguna DevHub lewat email untuk bergabung ke tim ini.",
+    "joinedOn": "bergabung {{date}}",
+    "transferOwnership": "Transfer kepemilikan (Anda akan menjadi admin)",
+    "remove": "Keluarkan",
+    "pendingInvitations": "Undangan tertunda",
+    "expiresOn": "kedaluwarsa {{date}}",
+    "withdraw": "Tarik",
+    "leaveTeam": "Keluar dari tim",
+    "renameModal": {
+      "title": "Ubah tim",
+      "save": "Simpan",
+      "name": "Nama tim",
+      "icon": "Ikon"
+    },
+    "deleteModal": {
+      "title": "Hapus tim",
+      "body": "Ini menghapus “{{name}}” secara permanen beserta semua proyek di dalamnya — task, issue, skema, keputusan. Tidak dapat dibatalkan."
+    },
+    "leaveModal": {
+      "title": "Keluar dari tim",
+      "confirm": "Keluar",
+      "body": "Anda akan kehilangan akses ke “{{name}}” dan semua proyeknya. Anda bisa diundang lagi nanti."
+    },
+    "errors": {
+      "loadMembers": "Gagal memuat anggota",
+      "changeRole": "Gagal mengubah peran",
+      "withdrawInvite": "Gagal menarik undangan",
+      "removeMember": "Gagal mengeluarkan anggota",
+      "leave": "Gagal keluar dari tim",
+      "deleteTeam": "Gagal menghapus tim",
+      "rename": "Gagal mengubah tim"
+    },
+    "invites": {
+      "title": "Undangan",
+      "subtitle": "Undangan tim yang menunggu keputusan Anda.",
+      "emptyTitle": "Tidak ada undangan tertunda",
+      "emptyDescription": "Saat seseorang mengundang Anda ke sebuah tim, undangan itu akan muncul di sini.",
+      "meta": "diundang {{created}} · kedaluwarsa {{expires}}",
+      "accept": "Terima",
+      "decline": "Tolak",
+      "refresh": "Muat ulang",
+      "acceptError": "Gagal menerima undangan",
+      "declineError": "Gagal menolak undangan"
+    },
+    "inviteModal": {
+      "title": "Undang anggota",
+      "send": "Kirim undangan",
+      "intro": "Undang pengguna DevHub terdaftar lewat email. Mereka harus menerima undangan sebelum bisa bergabung ke tim ini.",
+      "email": "Email",
+      "emailPlaceholder": "teammate@example.com",
+      "role": "Peran",
+      "sendError": "Gagal mengirim undangan."
+    },
+    "createModal": {
+      "title": "Tim baru",
+      "create": "Buat",
+      "intro": "Tim adalah workspace yang menampung proyek-proyek Anda. Anda bisa mengundang pengguna terdaftar lain untuk berkolaborasi — Anda menjadi pemiliknya.",
+      "name": "Nama",
+      "namePlaceholder": "cth. My Startup",
+      "icon": "Ikon",
+      "createError": "Gagal membuat tim."
+    },
+    "billing": {
+      "panelAria": "Penggunaan",
+      "loadError": "Gagal memuat penggunaan.",
+      "freePlan": "Paket gratis",
+      "activeUntil": "Aktif sampai {{date}}",
+      "activeNoExpiry": "Aktif — tanpa kedaluwarsa (hibah operator)",
+      "proEndingSoon": "Pro berakhir dalam {{duration}} — perbarui untuk menjaga kapasitas tanpa batas.",
+      "lessThanADay": "kurang dari sehari",
+      "days_one": "{{count}} hari",
+      "days_other": "{{count}} hari",
+      "currentPlan": "Paket saat ini",
+      "activeBadge": "Aktif",
+      "free": "Gratis",
+      "members": "Anggota",
+      "projects": "Proyek",
+      "viewPricing": "Lihat Pricing",
+      "contactAdmin": "Hubungi admin tim untuk meningkatkan workspace ini.",
+      "pendingTitle": "Pembayaran tertunda",
+      "pendingBadge": "Menunggu",
+      "pendingMeta": "{{date}} · selesaikan atau batalkan",
+      "resumePayment": "Lanjutkan pembayaran",
+      "cancelPayment": "Batalkan",
+      "resumeError": "Gagal melanjutkan pembayaran.",
+      "cancelError": "Gagal membatalkan pembayaran."
+    },
+    "payment": {
+      "title": "Status pembayaran",
+      "checking": "Memeriksa pembayaran Anda…",
+      "loadError": "Gagal memuat status pembayaran.",
+      "proActive": "Pro aktif",
+      "unlimitedUntil": "Anggota & proyek tanpa batas sampai {{date}}.",
+      "unlimited": "Anggota & proyek tanpa batas.",
+      "lastPayment": "Pembayaran terakhir: Rp {{amount}} · {{date}}",
+      "back": "Kembali ke workspace",
+      "waiting": "Menunggu konfirmasi pembayaran",
+      "instructions": "Selesaikan pembayaran via QRIS / Virtual Account. Halaman ini memeriksa otomatis — Anda juga bisa kembali lagi nanti dari tab Billing di workspace.",
+      "orderCreated": "Order dibuat {{time}}"
+    },
+    "chat": {
+      "today": "Hari ini",
+      "yesterday": "Kemarin",
+      "formerMember": "Mantan anggota",
+      "loadError": "Gagal memuat pesan",
+      "sendFailed": "Gagal mengirim pesan",
+      "emptyTitle": "Belum ada pesan",
+      "emptyDescription": "Mulai percakapan — pesan dibagikan ke semua anggota tim.",
+      "unreadDivider": "Pesan baru",
+      "dismiss": "Abaikan",
+      "notDeleted": "Tidak terhapus —",
+      "copyMessage": "Salin pesan",
+      "deleteMessage": "Hapus pesan",
+      "scrollToBottom": "Gulir ke bawah",
+      "queued_one": "Menunggu koneksi — {{count}} pesan dalam antrean",
+      "queued_other": "Menunggu koneksi — {{count}} pesan dalam antrean",
+      "mentionSearchAria": "Pencarian mention",
+      "keepTyping": "Terus ketik — cari task, issue & lainnya",
+      "searching": "Mencari…",
+      "noMatches": "Tidak ada hasil",
+      "composerTip": "Tip: ketik @ untuk menautkan task, issue, atau milestone",
+      "messageAria": "Pesan",
+      "placeholder": "Ketik pesan…",
+      "enterToSend": "Enter untuk kirim · Shift+Enter untuk baris baru",
+      "sendAria": "Kirim pesan",
+      "chipOpen": "{{title}} — buka di proyek",
+      "chipNotShared": "{{title}} — tidak dibagikan",
+      "entity": {
+        "tasks": "Task",
+        "issues": "Issue",
+        "testCases": "Tes",
+        "decisions": "Keputusan",
+        "techEntries": "Tech",
+        "apiEndpoints": "Endpoint",
+        "apiCollections": "Collection",
+        "milestones": "Milestone",
+        "whiteboards": "Board",
+        "tables": "Tabel",
+        "relations": "Relasi",
+        "schemaVersions": "Schema"
+      }
+    }
+  }
+}

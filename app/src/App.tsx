@@ -6,7 +6,6 @@ import { TeamsProvider } from './state/teams-context';
 import { AuthPage } from './features/auth/AuthPage';
 import { Layout } from './features/layout/Layout';
 import {
-  AdminSkeleton,
   DashboardSkeleton,
   DocsSkeleton,
   InvitesSkeleton,
@@ -31,7 +30,6 @@ const McpDocsPageLazy = lazy(() => import('./features/docs/McpDocsPage').then((m
 const TeamPageLazy = lazy(() => import('./features/teams/TeamPage').then((m) => ({ default: m.TeamPage })));
 const InvitesPageLazy = lazy(() => import('./features/teams/InvitesPage').then((m) => ({ default: m.InvitesPage })));
 const TemplatesPageLazy = lazy(() => import('./features/templates/TemplatesPage').then((m) => ({ default: m.TemplatesPage })));
-const AdminPageLazy = lazy(() => import('./features/admin/AdminPage').then((m) => ({ default: m.AdminPage })));
 const ProjectPageLazy = lazy(() => import('./features/project/ProjectPage').then((m) => ({ default: m.ProjectPage })));
 const PublicProjectPageLazy = lazy(() => import('./features/public/PublicProjectPage').then((m) => ({ default: m.PublicProjectPage })));
 const PricingPageLazy = lazy(() => import('./features/pricing/PricingPage').then((m) => ({ default: m.PricingPage })));
@@ -103,14 +101,6 @@ function Root() {
               element={
                 <RouteBoundary fallback={<TemplatesSkeleton />}>
                   <TemplatesPageLazy />
-                </RouteBoundary>
-              }
-            />
-            <Route
-              path="/admin"
-              element={
-                <RouteBoundary fallback={<AdminSkeleton />}>
-                  <AdminPageLazy />
                 </RouteBoundary>
               }
             />
