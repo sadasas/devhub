@@ -5,6 +5,8 @@ import {
   ArrowRight,
   CalendarBlank,
   FolderSimple,
+  GithubLogo,
+  GoogleLogo,
   IdentificationBadge,
   Key,
   LockKey,
@@ -14,6 +16,7 @@ import {
   UsersThree,
 } from '@phosphor-icons/react';
 import { api } from '../../lib/api';
+import { getErrorMessage } from '../../lib/errors';
 import { formatDate } from '../../lib/utils';
 import { initialsOf } from '../../lib/initials';
 import { avatarColor } from '../../lib/avatar';
@@ -67,7 +70,7 @@ function StatItem({
 
 export function ProfilePage() {
   const { t } = useTranslation('account');
-  const { user } = useAuth();
+  const { user, refresh } = useAuth();
   const { teams } = useTeams();
   const { projects } = useProjects();
   const [activeKeys, setActiveKeys] = useState<number | null>(null);
@@ -75,6 +78,9 @@ export function ProfilePage() {
   const [editOpen, setEditOpen] = useState(false);
   const [changeOpen, setChangeOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [linked, setLinked] = useState<{ provider: string; email: string | null }[] | null>(null);
+  const [linkedError, setLinkedError] = useState<string | null>(null);
+  const [unlinkBusy, setUnlinkBusy] = useState<string | null>(null);
 
   const tabParam = searchParams.get('tab');
   const tab: ProfileTab =
@@ -99,6 +105,39 @@ export function ProfilePage() {
       cancelled = true;
     };
   }, []);
+
+  const fetchLinked = async () => {
+    try {
+      const res = await api.getLinked();
+      setLinked(res.linked);
+      setLinkedError(null);
+    } catch (err) {
+      setLinkedError(getErrorMessage(err, 'Failed to load linked accounts'));
+    }
+  };
+
+  useEffect(() => {
+    if (tab === 'security') fetchLinked();
+  }, [tab]);
+
+  const handleUnlink = async (provider: string) => {
+    if (!confirm(`Unlink ${provider}?`)) return;
+    setUnlinkBusy(provider);
+    setLinkedError(null);
+    try {
+      await api.unlinkProvider(provider);
+      await fetchLinked();
+      await refresh();
+    } catch (err) {
+      setLinkedError(getErrorMessage(err, 'Failed to unlink'));
+    } finally {
+      setUnlinkBusy(null);
+    }
+  };
+
+  const isGoogleLinked = linked?.some((l) => l.provider === 'google') ?? false;
+  const isGithubLinked = linked?.some((l) => l.provider === 'github') ?? false;
+  const returnToProfile = typeof window !== 'undefined' ? `${window.location.origin}/profile?tab=security` : '/profile?tab=security';
 
   if (!user) return null;
 
@@ -126,13 +165,23 @@ export function ProfilePage() {
       <div className="profile-layout">
         <aside className="profile-side">
           <section className="profile-card" aria-label={t('profile.summaryAria')}>
-            <div
-              className="profile-avatar"
-              aria-hidden="true"
-              style={avatarStyle}
-            >
-              {initialsOf(name, user.email)}
-            </div>
+            {user.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={name}
+                className="profile-avatar"
+                style={{ width: 72, height: 72, borderRadius: 16, objectFit: 'cover' }}
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div
+                className="profile-avatar"
+                aria-hidden="true"
+                style={avatarStyle}
+              >
+                {initialsOf(name, user.email)}
+              </div>
+            )}
             <h2 className="profile-name">{name}</h2>
             <p className="profile-email">{user.email}</p>
             {user.bio.trim() !== '' ? (
@@ -157,6 +206,17 @@ export function ProfilePage() {
                   {roleLabel}
                 </span>
               )}
+              {user.providers?.includes('google') && (
+                <span className="profile-chip">
+                  <GoogleLogo size={12} weight="bold" /> Google
+                </span>
+              )}
+              {user.providers?.includes('github') && (
+                <span className="profile-chip">
+                  <GithubLogo size={12} weight="fill" /> GitHub
+                </span>
+              )}
+              {user.hasPassword === false && <span className="profile-chip">OAuth only</span>}
             </div>
             <Button
               variant="secondary"
@@ -309,6 +369,72 @@ export function ProfilePage() {
                 {t('profile.security.changePassword')}
               </Button>
             </div>
+            {!user.hasPassword && (
+              <p className="field-helper" style={{ marginTop: 8, color: 'var(--warning)' }}>
+                This account uses Google/GitHub login. Set a password to enable email login.
+              </p>
+            )}
+          </div>
+
+          <div className="profile-panel">
+            <h3 className="profile-panel-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <ShieldCheck size={14} weight="duotone" /> Connected accounts
+            </h3>
+            <p className="field-helper" style={{ marginBottom: 12 }}>
+              Link Google or GitHub to sign in with one click. Keep your email/password — OAuth is additive.
+            </p>
+            {linkedError && <div className="inline-error" style={{ marginBottom: 10 }}>{linkedError}</div>}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div className="settings-action" style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
+                <div className="settings-action-main" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <GoogleLogo size={18} weight="bold" />
+                  <div>
+                    <div className="settings-action-title">Google</div>
+                    <div className="settings-action-desc">
+                      {isGoogleLinked ? linked?.find((l) => l.provider === 'google')?.email ?? 'Linked' : 'Not linked — scope openid email profile'}
+                    </div>
+                  </div>
+                </div>
+                {isGoogleLinked ? (
+                  <Button variant="ghost" disabled={unlinkBusy === 'google'} onClick={() => handleUnlink('google')}>
+                    {unlinkBusy === 'google' ? '...' : 'Unlink'}
+                  </Button>
+                ) : (
+                  <a
+                    href={`/api/v1/auth/google?returnTo=${encodeURIComponent(returnToProfile)}`}
+                    className="btn btn-secondary"
+                    style={{ textDecoration: 'none', padding: '8px 14px', borderRadius: 8, fontWeight: 600 }}
+                  >
+                    Connect
+                  </a>
+                )}
+              </div>
+              <div className="settings-action" style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
+                <div className="settings-action-main" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <GithubLogo size={18} weight="fill" />
+                  <div>
+                    <div className="settings-action-title">GitHub</div>
+                    <div className="settings-action-desc">
+                      {isGithubLinked ? linked?.find((l) => l.provider === 'github')?.email ?? 'Linked' : 'Not linked — scope user:email read:user'}
+                    </div>
+                  </div>
+                </div>
+                {isGithubLinked ? (
+                  <Button variant="ghost" disabled={unlinkBusy === 'github'} onClick={() => handleUnlink('github')}>
+                    {unlinkBusy === 'github' ? '...' : 'Unlink'}
+                  </Button>
+                ) : (
+                  <a
+                    href={`/api/v1/auth/github?returnTo=${encodeURIComponent(returnToProfile)}`}
+                    className="btn btn-secondary"
+                    style={{ textDecoration: 'none', padding: '8px 14px', borderRadius: 8, fontWeight: 600 }}
+                  >
+                    Connect
+                  </a>
+                )}
+              </div>
+            </div>
+            {linked === null && !linkedError && <p className="field-helper" style={{ marginTop: 8 }}>Loading linked accounts…</p>}
           </div>
         </section>
       )}

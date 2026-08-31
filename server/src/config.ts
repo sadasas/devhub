@@ -44,6 +44,21 @@ const envSchema = z.object({
   PAKASIR_SLUG: z.string().max(200).default(''),
   PAKASIR_API_KEY: z.string().max(500).default(''),
   APP_PUBLIC_URL: z.string().max(500).default(''),
+  // OAuth social login — keep email+password, additive (030_social_auth)
+  GOOGLE_CLIENT_ID: z.string().max(500).default(''),
+  GOOGLE_CLIENT_SECRET: z.string().max(500).default(''),
+  GITHUB_CLIENT_ID: z.string().max(500).default(''),
+  GITHUB_CLIENT_SECRET: z.string().max(500).default(''),
+  // Redirect origins — comma-separated extra allowed origins for OAuth callbacks (e.g. Vercel preview)
+  OAUTH_REDIRECT_ORIGINS: z
+    .string()
+    .default('')
+    .transform((v) =>
+      v
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+    ),
 });
 
 export type Config = z.infer<typeof envSchema>;

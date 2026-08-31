@@ -523,6 +523,10 @@ export interface User {
   bio: string;
   role: 'user' | 'admin';
   createdAt: string;
+  avatarUrl?: string | null;
+  emailVerified?: boolean;
+  hasPassword?: boolean;
+  providers?: string[];
 }
 
 export interface McpKey {

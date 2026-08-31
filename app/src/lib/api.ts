@@ -173,6 +173,14 @@ export const api = {
     }),
   logout: () => request<void>('/auth/logout', { method: 'POST' }),
   me: () => request<User>('/auth/me'),
+  getProviders: () =>
+    request<{ providers: { id: string; enabled: boolean }[]; google: boolean; github: boolean }>('/auth/providers'),
+  getLinked: () =>
+    request<{ linked: { provider: string; provider_account_id: string; email: string | null; avatar_url: string | null; created_at: string }[] }>(
+      '/auth/linked',
+    ),
+  unlinkProvider: (provider: string) =>
+    request<{ ok: true }>(`/auth/linked/${encodeURIComponent(provider)}`, { method: 'DELETE' }),
   forgotPassword: (email: string) =>
     request<{ ok: true; message: string; token?: string }>('/auth/forgot-password', {
       method: 'POST',

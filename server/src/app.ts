@@ -24,6 +24,7 @@ import { searchRouter } from './modules/search/handlers/v1/search.routes.js';
 import { activityRouter } from './modules/activity/handlers/v1/activity.routes.js';
 import { adminRouter } from './modules/admin/handlers/admin.routes.js';
 import { billingPublicRouter, billingRouter } from './modules/billing/handlers/billing.routes.js';
+import { socialRouter } from './modules/auth/handlers/social.routes.js';
 
 declare global {
   namespace Express {
@@ -177,7 +178,6 @@ export function createApp(): express.Express {
   app.use(cookieParser());
   // OAuth discovery + DCR + authorize/token (must be before MCP, no auth)
   app.use(oauthRouter);
-  app.use('/api/v1', oauthRouter); // alias for /api/v1/oauth/* (frontend api.ts uses API_BASE)
   app.use('/api/v1', limiter);
 
   app.get('/api/v1/health', async (_req, res) => {
@@ -190,6 +190,7 @@ export function createApp(): express.Express {
   });
 
   app.use('/api/v1/auth', authRouter);
+  app.use('/api/v1/auth', socialRouter);
   app.use('/api/v1/projects', projectsRouter);
   app.use('/api/v1/projects', entityRouter);
   app.use('/api/v1/projects', activityRouter);

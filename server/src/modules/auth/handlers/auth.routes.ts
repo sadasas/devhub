@@ -4,10 +4,10 @@ import { z } from 'zod';
 import { randomBytes } from 'node:crypto';
 import { pool } from '../../../db/pool.js';
 import { hashPassword, verifyPassword } from '../infrastructure/password.js';
-import { signToken, JWT_TTL_SECONDS } from '../infrastructure/jwt.js';
 import { requireAuth, getUserId } from '../middleware/requireAuth.js';
 import { ApiError } from '../../../shared/errors.js';
 import { SESSION_COOKIE } from '../../../shared/http.js';
+import { setSessionCookie } from '../../../shared/cookie.js';
 import { config } from '../../../config.js';
 import { withTransaction, parseOrThrow } from '../../../shared/db.js';
 import { computeUserStats } from '../application/user-stats.js';
@@ -57,18 +57,6 @@ async function getDummyHash(): Promise<string> {
   return dummyHash;
 }
 
-function setSessionCookie(res: Response, userId: string, version: number): void {
-  // Deploy lintas-situs (FE di Vercel, BE di Render) mewajibkan SameSite=None + Secure
-  // agar cookie sesi ikut dikirim pada fetch/XHR/WS lintas-origin. Produksi = cross-site.
-  res.cookie(SESSION_COOKIE, signToken(userId, version), {
-    httpOnly: true,
-    sameSite: config.NODE_ENV === 'production' ? 'none' : 'lax',
-    secure: config.COOKIE_SECURE,
-    maxAge: JWT_TTL_SECONDS * 1000,
-    path: '/',
-  });
-}
-
 export const authRouter = Router();
 
 authRouter.post('/register', registerLimiter, async (req, res) => {
@@ -109,11 +97,15 @@ authRouter.post('/register', registerLimiter, async (req, res) => {
 
 authRouter.post('/login', loginLimiter, async (req, res) => {
   const { email, password } = parseOrThrow(loginSchema, req.body, 'Invalid login data');
-  const result = await pool.query<{ id: string; password_hash: string; jwt_version: number }>(
+  const result = await pool.query<{ id: string; password_hash: string | null; jwt_version: number }>(
     'SELECT id, password_hash, jwt_version FROM users WHERE email = $1',
     [email],
   );
   const user = result.rows[0];
+  // OAuth-only user has password_hash NULL — cannot login via password
+  if (user && user.password_hash === null) {
+    throw new ApiError(400, 'NO_PASSWORD', 'This account uses Google/GitHub login. Please continue with Google or GitHub, or set a password in Profile.');
+  }
   const valid = await verifyPassword(password, user?.password_hash ?? (await getDummyHash()));
   if (!user || !valid) {
     throw new ApiError(401, 'UNAUTHORIZED', 'Invalid email or password');
@@ -139,13 +131,17 @@ authRouter.patch('/password', passwordLimiter, requireAuth, async (req, res) => 
     req.body,
     'Invalid password data',
   );
-  const result = await pool.query<{ password_hash: string }>(
+  const result = await pool.query<{ password_hash: string | null }>(
     'SELECT password_hash FROM users WHERE id = $1',
     [userId],
   );
   const user = result.rows[0];
-  if (!user || !(await verifyPassword(currentPassword, user.password_hash))) {
-    throw new ApiError(401, 'INVALID_PASSWORD', 'Current password is incorrect');
+  if (!user) throw new ApiError(401, 'UNAUTHORIZED', 'User not found');
+  // OAuth-only (password_hash NULL) -> allow set without currentPassword check
+  if (user.password_hash !== null) {
+    if (!(await verifyPassword(currentPassword, user.password_hash))) {
+      throw new ApiError(401, 'INVALID_PASSWORD', 'Current password is incorrect');
+    }
   }
   const passwordHash = await hashPassword(newPassword);
   const updated = await pool.query<{ jwt_version: number }>(
@@ -252,13 +248,30 @@ authRouter.post('/logout', (req, res) => {
 
 authRouter.get('/me', requireAuth, async (req, res) => {
   const userId = getUserId(req);
-  const result = await pool.query<{ id: string; email: string; display_name: string; bio: string; role: string; created_at: string }>(
-    'SELECT id, email, display_name, bio, role, created_at FROM users WHERE id = $1',
+  const result = await pool.query<{
+    id: string;
+    email: string;
+    display_name: string;
+    bio: string;
+    role: string;
+    avatar_url: string | null;
+    email_verified: boolean;
+    created_at: string;
+    password_hash: string | null;
+  }>(
+    'SELECT id, email, display_name, bio, role, avatar_url, email_verified, created_at, password_hash FROM users WHERE id = $1',
     [userId],
   );
   const user = result.rows[0];
   if (!user) throw new ApiError(401, 'UNAUTHORIZED', 'User not found');
-  res.json(toUser(user));
+  const linked = await pool.query<{ provider: string }>('SELECT provider FROM oauth_accounts WHERE user_id = $1', [userId]);
+  res.json({
+    ...toUser(user as ProfileRow),
+    avatarUrl: user.avatar_url,
+    emailVerified: user.email_verified,
+    hasPassword: user.password_hash !== null,
+    providers: linked.rows.map((r) => r.provider),
+  });
 });
 
 authRouter.get('/me/stats', requireAuth, async (req, res) => {
@@ -271,16 +284,27 @@ authRouter.patch('/profile', requireAuth, async (req, res) => {
   const { displayName, bio } = parseOrThrow(profileSchema, req.body, 'Invalid profile data');
   const result = await pool.query<ProfileRow>(
     `UPDATE users
-     SET display_name = COALESCE($2, display_name),
-         bio = COALESCE($3, bio),
-         updated_at = now()
-     WHERE id = $1
-     RETURNING id, email, display_name, bio, role, created_at`,
+      SET display_name = COALESCE($2, display_name),
+          bio = COALESCE($3, bio),
+          updated_at = now()
+      WHERE id = $1
+      RETURNING id, email, display_name, bio, role, created_at, avatar_url`,
     [userId, displayName ?? null, bio ?? null],
   );
   const user = result.rows[0];
   if (!user) throw new ApiError(401, 'UNAUTHORIZED', 'User not found');
-  res.json(toUser(user));
+  const linked = await pool.query<{ provider: string }>('SELECT provider FROM oauth_accounts WHERE user_id = $1', [userId]);
+  const fresh = await pool.query<{ avatar_url: string | null; email_verified: boolean; password_hash: string | null }>(
+    'SELECT avatar_url, email_verified, password_hash FROM users WHERE id = $1',
+    [userId],
+  );
+  res.json({
+    ...toUser(user),
+    avatarUrl: fresh.rows[0]?.avatar_url ?? null,
+    emailVerified: fresh.rows[0]?.email_verified ?? false,
+    hasPassword: fresh.rows[0]?.password_hash !== null,
+    providers: linked.rows.map((r) => r.provider),
+  });
 });
 
 interface ProfileRow {
@@ -290,6 +314,7 @@ interface ProfileRow {
   bio: string;
   role: string;
   created_at: string;
+  avatar_url?: string | null;
 }
 
 function toUser(row: ProfileRow) {
