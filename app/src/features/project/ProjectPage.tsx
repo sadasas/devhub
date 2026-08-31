@@ -87,8 +87,9 @@ const TABS: { id: ProjectTab; label: string; icon: ReactNode }[] = [
   { id: 'decisions', label: 'tabs.decisions', icon: <Scales size={15} /> },
   { id: 'releases', label: 'tabs.releases', icon: <Rocket size={15} /> },
   { id: 'api', label: 'tabs.api', icon: <Plugs size={15} /> },
-  { id: 'overview', label: 'tabs.overview', icon: <Gauge size={15} /> },
   { id: 'whiteboard', label: 'tabs.whiteboard', icon: <ChalkboardSimple size={15} /> },
+  { id: 'overview', label: 'tabs.overview', icon: <Gauge size={15} /> },
+
 ];
 
 // Stable module-level instance: a fresh provider per render would re-run the
@@ -304,7 +305,7 @@ export function ProjectPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { copied: pidCopied, copy: copyPid } = useCopyFeedback();
 
-if (!project) {
+  if (!project) {
     return (
       <div className="page">
         {projects === null ? (
@@ -439,6 +440,79 @@ if (!project) {
               <ArrowLeft size={14} aria-hidden="true" />
               {t('page.backToProjects')}
             </button>
+            <div className="project-actions">
+              <Button
+                variant="ghost"
+                size="sm"
+                leftIcon={<DownloadSimple size={13} aria-hidden="true" />}
+                onClick={() => void onExport()}
+              >
+                {t('actions.export')}
+              </Button>
+              {role !== 'viewer' && !isArchived && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  leftIcon={<UploadSimple size={13} aria-hidden="true" />}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {t('actions.import')}
+                </Button>
+              )}
+              {isAdmin && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  leftIcon={<ShareNetwork size={13} aria-hidden="true" />}
+                  onClick={() => setShareOpen(true)}
+                >
+                  {project.visibility === 'public' ? t('actions.sharePublic') : t('actions.sharePrivate')}
+                </Button>
+              )}
+              {role !== 'viewer' && !isArchived && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  leftIcon={<BookmarkSimple size={13} aria-hidden="true" />}
+                  onClick={() => setSaveTemplateOpen(true)}
+                >
+                  {t('actions.saveAsTemplate')}
+                </Button>
+              )}
+              {canArchive && !isArchived && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  leftIcon={<Archive size={13} aria-hidden="true" />}
+                  onClick={() => setArchiveConfirm('archive')}
+                  aria-label={`Archive ${project.name}`}
+                >
+                  Archive
+                </Button>
+              )}
+              {canArchive && isArchived && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  leftIcon={<ArrowCounterClockwise size={13} aria-hidden="true" />}
+                  onClick={() => setArchiveConfirm('restore')}
+                  aria-label={`Restore ${project.name}`}
+                >
+                  Restore
+                </Button>
+              )}
+              {isAdmin && (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  leftIcon={<Trash size={13} aria-hidden="true" />}
+                  onClick={() => setConfirmOpen(true)}
+                >
+                  {t('actions.delete')}
+                </Button>
+              )}
+            </div>
+
             <div className="project-title-row">
               <h1 className="page-title">{project.name}</h1>
               <Badge tone={TEAM_ROLE[role].tone}>{TEAM_ROLE[role].label}</Badge>
@@ -472,78 +546,6 @@ if (!project) {
                 {pidCopied ? t('actions.copied') : t('actions.copy')}
               </Button>
             </div>
-          </div>
-          <div className="project-actions">
-            <Button
-              variant="ghost"
-              size="sm"
-              leftIcon={<DownloadSimple size={13} aria-hidden="true" />}
-              onClick={() => void onExport()}
-            >
-              {t('actions.export')}
-            </Button>
-            {role !== 'viewer' && !isArchived && (
-              <Button
-                variant="ghost"
-                size="sm"
-                leftIcon={<UploadSimple size={13} aria-hidden="true" />}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {t('actions.import')}
-              </Button>
-            )}
-            {isAdmin && (
-              <Button
-                variant="ghost"
-                size="sm"
-                leftIcon={<ShareNetwork size={13} aria-hidden="true" />}
-                onClick={() => setShareOpen(true)}
-              >
-                {project.visibility === 'public' ? t('actions.sharePublic') : t('actions.sharePrivate')}
-              </Button>
-            )}
-            {role !== 'viewer' && !isArchived && (
-              <Button
-                variant="ghost"
-                size="sm"
-                leftIcon={<BookmarkSimple size={13} aria-hidden="true" />}
-                onClick={() => setSaveTemplateOpen(true)}
-              >
-                {t('actions.saveAsTemplate')}
-              </Button>
-            )}
-            {canArchive && !isArchived && (
-              <Button
-                variant="ghost"
-                size="sm"
-                leftIcon={<Archive size={13} aria-hidden="true" />}
-                onClick={() => setArchiveConfirm('archive')}
-                aria-label={`Archive ${project.name}`}
-              >
-                Archive
-              </Button>
-            )}
-            {canArchive && isArchived && (
-              <Button
-                variant="primary"
-                size="sm"
-                leftIcon={<ArrowCounterClockwise size={13} aria-hidden="true" />}
-                onClick={() => setArchiveConfirm('restore')}
-                aria-label={`Restore ${project.name}`}
-              >
-                Restore
-              </Button>
-            )}
-            {isAdmin && (
-              <Button
-                variant="danger"
-                size="sm"
-                leftIcon={<Trash size={13} aria-hidden="true" />}
-                onClick={() => setConfirmOpen(true)}
-              >
-                {t('actions.delete')}
-              </Button>
-            )}
           </div>
           <input
             ref={fileInputRef}

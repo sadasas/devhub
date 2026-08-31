@@ -4618,11 +4618,13 @@ a:hover {
 
 .project-heading {
   min-width: 0;
+  width: 100%;
 }
 
 .project-actions {
   display: flex;
   align-items: center;
+  justify-content: end;
   gap: 8px;
   flex-wrap: wrap;
 }

@@ -186,7 +186,7 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const columnsCount = displayTables.reduce((acc, t) => acc + t.columns.length, 0);
 
   return (
-    <div className="page">
+    <div className="">
       <div className="data-list-header">
         <span className="data-list-count">
           {isViewing && selectedVersion ? (
@@ -435,8 +435,8 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
                 <ERD
                   state={displayStateForERD}
                   readOnly={isViewing}
-                  onDeleteRelation={canEditEffective ? setConfirmRel : () => {}}
-                  onNewTable={canEditEffective ? () => setNewTableOpen(true) : () => {}}
+                  onDeleteRelation={canEditEffective ? setConfirmRel : () => { }}
+                  onNewTable={canEditEffective ? () => setNewTableOpen(true) : () => { }}
                 />
                 {displayRelations.length > 0 && (
                   <div className="data-list relation-list">
@@ -493,95 +493,95 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
               <Badge tone="accent">{state.schemaVersions.length}</Badge>
             </button>
           ) : (
-          <div className="versions-section">
-            <div className="data-list-header">
-                            <Button
-                variant="ghost"
-                size="sm"
-                className="btn-icon"
-                aria-label={versionsCollapsed ? 'Expand versions' : 'Minimize versions'}
-                aria-expanded={!versionsCollapsed}
-                aria-controls="versions-list"
-                onClick={() => setVersionsCollapsed((v) => !v)}
-                title={versionsCollapsed ? 'Expand' : 'Minimize'}
-              >
-                <CaretRight size={13} aria-hidden="true" />
-              </Button>
-              <span className="data-list-count">{t('schema.versionsHeading')}</span>
-              <SortControl
-                options={VERSION_SORT_SPECS.map((s) => ({ value: s.key, label: t(s.label) }))}
-                value={versionSortValue}
-                onChange={setVersionSort}
-              />
-              {state.schemaVersions.filter((v) => v.snapshot).length >= 2 && (
+            <div className="versions-section">
+              <div className="data-list-header">
                 <Button
                   variant="ghost"
                   size="sm"
-                  leftIcon={<GitDiff size={13} aria-hidden="true" />}
-                  onClick={() => setDiffOpen(true)}
+                  className="btn-icon"
+                  aria-label={versionsCollapsed ? 'Expand versions' : 'Minimize versions'}
+                  aria-expanded={!versionsCollapsed}
+                  aria-controls="versions-list"
+                  onClick={() => setVersionsCollapsed((v) => !v)}
+                  title={versionsCollapsed ? 'Expand' : 'Minimize'}
                 >
-                  {t('schema.diffVersions')}
+                  <CaretRight size={13} aria-hidden="true" />
                 </Button>
-              )}
-              {canEdit && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  leftIcon={<FloppyDisk size={13} aria-hidden="true" />}
-                  onClick={() => setSaveVersionOpen(true)}
-                >
-                  {t('schema.saveVersion')}
-                </Button>
+                <span className="data-list-count">{t('schema.versionsHeading')}</span>
+                <SortControl
+                  options={VERSION_SORT_SPECS.map((s) => ({ value: s.key, label: t(s.label) }))}
+                  value={versionSortValue}
+                  onChange={setVersionSort}
+                />
+                {state.schemaVersions.filter((v) => v.snapshot).length >= 2 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    leftIcon={<GitDiff size={13} aria-hidden="true" />}
+                    onClick={() => setDiffOpen(true)}
+                  >
+                    {t('schema.diffVersions')}
+                  </Button>
+                )}
+                {canEdit && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    leftIcon={<FloppyDisk size={13} aria-hidden="true" />}
+                    onClick={() => setSaveVersionOpen(true)}
+                  >
+                    {t('schema.saveVersion')}
+                  </Button>
+                )}
+              </div>
+              {state.schemaVersions.length === 0 ? (
+                <EmptyState
+                  icon={<FloppyDisk size={22} />}
+                  title={t('schema.empty.versionsTitle')}
+                  description={t('schema.empty.versionsDesc')}
+                  action={canEdit ? <Button size="sm" variant="ghost" leftIcon={<FloppyDisk size={13} aria-hidden="true" />} onClick={() => setSaveVersionOpen(true)}>{t('schema.saveVersion')}</Button> : undefined}
+                />
+              ) : (
+                <div id="versions-list" className="versions-list">
+                  {applySort(state.schemaVersions, versionSortSpec, versionSortValue?.dir ?? 'asc').map(
+                    (v) => {
+                      const isActive = v.id === selectedVersionId;
+                      const hasSnap = !!v.snapshot;
+                      return (
+                        <button
+                          key={v.id}
+                          type="button"
+                          className={`version-row ${isActive ? 'version-row-active' : ''} ${!hasSnap ? 'version-row-no-snapshot' : ''}`}
+                          onClick={() => toggleVersion(v)}
+                          aria-pressed={isActive}
+                          aria-current={isActive ? 'true' : undefined}
+                          aria-label={t('schema.viewRow.aria', { version: v.version })}
+                          title={hasSnap ? t('schema.viewRow.aria', { version: v.version }) : t('schema.viewRow.noSnapshotTooltip')}
+                        >
+                          <Badge tone="accent">{v.version}</Badge>
+                          {unreadIds?.has(v.id) && (
+                            <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">
+                              New
+                            </span>
+                          )}
+                          <div className="version-main">
+                            <div className="version-notes">{v.notes || t('schema.noNotes')}</div>
+                            <div className="version-date">{t('schema.appliedAt', { date: formatDate(v.appliedAt) })}</div>
+                          </div>
+                          <span className="version-row-eye" aria-hidden="true">
+                            {isActive ? <Eye size={14} weight="fill" /> : <Eye size={14} />}
+                          </span>
+                          {!hasSnap && (
+                            <span className="version-row-warn" aria-hidden="true">
+                              <Warning size={12} />
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                </div>
               )}
             </div>
-            {state.schemaVersions.length === 0 ? (
-              <EmptyState
-                icon={<FloppyDisk size={22} />}
-                title={t('schema.empty.versionsTitle')}
-                description={t('schema.empty.versionsDesc')}
-                action={canEdit ? <Button size="sm" variant="ghost" leftIcon={<FloppyDisk size={13} aria-hidden="true" />} onClick={() => setSaveVersionOpen(true)}>{t('schema.saveVersion')}</Button> : undefined}
-              />
-            ) : (
-              <div id="versions-list" className="versions-list">
-                {applySort(state.schemaVersions, versionSortSpec, versionSortValue?.dir ?? 'asc').map(
-                  (v) => {
-                    const isActive = v.id === selectedVersionId;
-                    const hasSnap = !!v.snapshot;
-                    return (
-                      <button
-                        key={v.id}
-                        type="button"
-                        className={`version-row ${isActive ? 'version-row-active' : ''} ${!hasSnap ? 'version-row-no-snapshot' : ''}`}
-                        onClick={() => toggleVersion(v)}
-                        aria-pressed={isActive}
-                        aria-current={isActive ? 'true' : undefined}
-                        aria-label={t('schema.viewRow.aria', { version: v.version })}
-                        title={hasSnap ? t('schema.viewRow.aria', { version: v.version }) : t('schema.viewRow.noSnapshotTooltip')}
-                      >
-                        <Badge tone="accent">{v.version}</Badge>
-                        {unreadIds?.has(v.id) && (
-                          <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">
-                            New
-                          </span>
-                        )}
-                        <div className="version-main">
-                          <div className="version-notes">{v.notes || t('schema.noNotes')}</div>
-                          <div className="version-date">{t('schema.appliedAt', { date: formatDate(v.appliedAt) })}</div>
-                        </div>
-                        <span className="version-row-eye" aria-hidden="true">
-                          {isActive ? <Eye size={14} weight="fill" /> : <Eye size={14} />}
-                        </span>
-                        {!hasSnap && (
-                          <span className="version-row-warn" aria-hidden="true">
-                            <Warning size={12} />
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-              </div>
-            )}
-          </div>
           )}
         </aside>
       </div>
