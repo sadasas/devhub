@@ -27,6 +27,7 @@ import type {
   WhiteboardEdge,
   WhiteboardElement,
   WhiteboardRefEntity,
+  WhiteboardSticky,
 } from '../../lib/types';
 import { useProjectOptional } from '../../state/project-context';
 import { useNavigate } from 'react-router';
@@ -35,7 +36,6 @@ import { newId } from '../../lib/utils';
 import {
   alignmentGuides,
   alignSelection,
-  clampPopover,
   distributeSelection,
   elementBounds,
   rectsIntersect,
@@ -47,7 +47,6 @@ import {
   truncateToWidth,
   textLineHeight,
   unionBounds,
-  worldToScreen,
   worldViewportRect,
   wrapTextLines,
   wrapToWidth,
@@ -64,7 +63,6 @@ import {
 import {
   EDGE_TOUCH_TOLERANCE,
   edgeEndpoints,
-  edgeMidpoint,
   effectiveArrowStyle,
   elementsAtPoint,
   eraseStrokes,
@@ -80,6 +78,10 @@ import {
   type PortSide,
 } from './edges';
 import {
+  BOUNDARY_COLOR,
+  SHAPE_COLOR,
+  STICKY_COLOR,
+  TEXT_COLOR,
   buildBoundary,
   buildRef,
   buildShape,
@@ -93,7 +95,6 @@ import {
   type WbTool,
 } from './tools';
 import { isModalOrPaletteOpen, isTypingTarget } from '../../lib/keys';
-import { WhiteboardPopover } from './WhiteboardPopover';
 import { RefPicker } from './RefPicker';
 import { buildRefDataMap } from './ref-data';
 import type { WhiteboardHistory } from './useWhiteboardHistory';
@@ -105,6 +106,33 @@ interface WhiteboardCanvasProps {
   readOnly?: boolean;
   readOnlyState?: State | null;
   readOnlyProjectId?: string;
+  selectedIds?: string[];
+  onSelectedChange?: (ids: string[]) => void;
+  onToolChange?: (tool: WbTool) => void;
+  snapOn?: boolean;
+  onSnapChange?: (v: boolean) => void;
+  penColor?: string;
+  penWidth?: number;
+  eraserWidth?: number;
+  stickyColor?: string;
+  stickyTextColor?: string;
+  stickyFontSize?: number;
+  stickyAlign?: string | null;
+  textColor?: string;
+  textFontSize?: number;
+  textAlign?: string | null;
+  shapeColor?: string;
+  shapeLabelColor?: string;
+  shapeFontSize?: number;
+  shapeAlign?: string | null;
+  edgeColor?: string;
+  edgeFontSize?: number;
+  edgeAlign?: string | null;
+  boundaryColor?: string;
+  boundaryLabelColor?: string;
+  boundaryFontSize?: number;
+  boundaryAlign?: string | null;
+  panToId?: string | null;
 }
 
 const DOT_STEP = 32;
@@ -330,14 +358,19 @@ const ElementView = memo(function ElementView({
         );
       }
       case 'sticky': {
-        const fontSize = 12;
+        const fontSize = el.fontSize ?? 12;
+        const align = el.align ?? 'left';
         const lineHeight = textLineHeight(fontSize);
-        const maxLines = Math.max(1, Math.floor((el.h - 8) / lineHeight));
-        const innerW = Math.max(24, el.w - 12);
+        const pad = 8;
+        const maxLines = Math.max(1, Math.floor((el.h - pad * 2) / lineHeight));
+        const innerW = Math.max(24, el.w - pad * 2);
         const lines = wrapTextLines(el.text, fontSize, innerW)
           .slice(0, maxLines)
           .map((line) => truncateToWidth(line, fontSize, innerW));
-        const rot = el.rotation ? `rotate(${el.rotation}, ${el.x + el.w / 2}, ${el.y + el.h / 2})` : undefined;
+        const rot = el.rotation ? `rotate(${el.rotation}, ${el.x + el.w / 2}, ${el.y + el.h /2})` : undefined;
+        const textFill = el.textColor ?? 'rgba(6,5,4,0.85)';
+        const anchor = align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start';
+        const textX = align === 'center' ? el.x + el.w / 2 : align === 'right' ? el.x + el.w - pad : el.x + pad;
         return (
           <g transform={rot}>
             <rect x={el.x} y={el.y} width={el.w} height={el.h} rx={4} fill={el.color} fillOpacity={0.85} />
@@ -345,10 +378,11 @@ const ElementView = memo(function ElementView({
               lines.map((line, i) => (
                 <text
                   key={i}
-                  x={el.x + 6}
-                  y={el.y + 14 + i * lineHeight}
+                  x={textX}
+                  y={el.y + pad + 8 + i * lineHeight}
                   fontSize={fontSize}
-                  fill="rgba(6,5,4,0.85)"
+                  fill={textFill}
+                  textAnchor={anchor as any}
                 >
                   {line}
                 </text>
@@ -358,14 +392,17 @@ const ElementView = memo(function ElementView({
       }
       case 'text': {
         const fontSize = el.fontSize;
+        const align = el.align ?? 'left';
+        const anchor = align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start';
         const rot = el.rotation ? `rotate(${el.rotation}, ${el.x}, ${el.y})` : undefined;
         if (el.w) {
           const lines = wrapTextLines(el.text, fontSize, el.w);
+          const baseX = align === 'center' ? el.x + el.w / 2 : align === 'right' ? el.x + el.w : el.x;
           return (
             <g transform={rot}>
-              <text x={el.x} y={el.y} fontSize={fontSize} fill={el.color}>
+              <text x={baseX} y={el.y} fontSize={fontSize} fill={el.color} textAnchor={anchor as any}>
                 {lines.map((line, i) => (
-                  <tspan key={i} x={el.x} dy={i === 0 ? 0 : textLineHeight(fontSize)}>
+                  <tspan key={i} x={baseX} dy={i === 0 ? 0 : textLineHeight(fontSize)}>
                     {line}
                   </tspan>
                 ))}
@@ -375,15 +412,22 @@ const ElementView = memo(function ElementView({
         }
         return (
           <g transform={rot}>
-            <text x={el.x} y={el.y} fontSize={fontSize} fill={el.color}>
+            <text x={el.x} y={el.y} fontSize={fontSize} fill={el.color} textAnchor={anchor as any}>
               {el.text}
             </text>
           </g>
         );
       }
       case 'shape': {
-        const labelLines = el.label ? wrapToWidth(el.label, 12, Math.max(24, el.w - 12), 4) : [];
+        const pad = 8;
+        const fontSize = el.fontSize ?? 12;
+        const align = el.align ?? 'center';
+        const innerW = Math.max(24, el.w - pad * 2);
+        const labelLines = el.label ? wrapToWidth(el.label, fontSize, innerW, 4) : [];
         const rot = el.rotation ? `rotate(${el.rotation}, ${el.x + el.w / 2}, ${el.y + el.h / 2})` : undefined;
+        const labelFill = el.labelColor ?? el.color;
+        const anchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
+        const textX = align === 'left' ? el.x + pad : align === 'right' ? el.x + el.w - pad : el.x + el.w / 2;
         return (
           <g transform={rot}>
             <path
@@ -396,16 +440,16 @@ const ElementView = memo(function ElementView({
             {labelLines.length > 0 && (
               <text
                 className="wb-shape-label"
-                x={el.x + el.w / 2}
+                x={textX}
                 y={el.y + el.h / 2}
-                textAnchor="middle"
+                textAnchor={anchor as any}
                 dominantBaseline="middle"
-                fontSize={12}
-                fill={el.color}
+                fontSize={fontSize}
+                fill={labelFill}
                 pointerEvents="none"
               >
                 {labelLines.map((line, i) => (
-                  <tspan key={i} x={el.x + el.w / 2} dy={i === 0 ? 0 : 14}>
+                  <tspan key={i} x={textX} dy={i === 0 ? 0 : fontSize + 2}>
                     {line}
                   </tspan>
                 ))}
@@ -465,19 +509,24 @@ const ElementView = memo(function ElementView({
               />
             )}
             {arrow}
-            {el.label && (
-              <text
-                className="wb-edge-label"
-                x={mid.x}
-                y={mid.y}
-                textAnchor="middle"
-                fontSize={11}
-                fill={el.color}
-                pointerEvents="none"
-              >
-                {el.label}
-              </text>
-            )}
+            {el.label && (() => {
+              const fontSize = el.fontSize ?? 11;
+              const align = el.align ?? 'center';
+              const anchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
+              return (
+                <text
+                  className="wb-edge-label"
+                  x={mid.x}
+                  y={mid.y}
+                  textAnchor={anchor as any}
+                  fontSize={fontSize}
+                  fill={el.color}
+                  pointerEvents="none"
+                >
+                  {el.label}
+                </text>
+              );
+            })()}
           </g>
         );
       }
@@ -497,6 +546,8 @@ const ElementView = memo(function ElementView({
               strokeDasharray="6 4"
             />
             {el.label && (() => {
+              const fontSize = el.fontSize ?? 12;
+              const labelColor = (el as { labelColor?: string | null }).labelColor ?? '#e4e4e7';
               const chipW = Math.min(el.label.length * 7.5 + 12, Math.max(20, el.w - 12));
               return (
                 <g transform={`translate(${el.x + 6}, ${el.y + 6})`}>
@@ -509,8 +560,8 @@ const ElementView = memo(function ElementView({
                     fill={el.color}
                     fillOpacity={0.25}
                   />
-                  <text x={0} y={0} fontSize={12} fill="#e4e4e7">
-                    {truncateToWidth(el.label, 12, chipW - 12)}
+                  <text x={0} y={0} fontSize={fontSize} fill={labelColor}>
+                    {truncateToWidth(el.label, fontSize, chipW - 12)}
                   </text>
                 </g>
               );
@@ -614,15 +665,7 @@ interface DraftStroke {
   points: Array<[number, number]>;
 }
 
-interface PopoverState {
-  id: string;
-  kind: 'text' | 'sticky' | 'shape' | 'edge' | 'boundary';
-  wx: number;
-  wy: number;
-  el: WhiteboardElement;
-}
-
-export function WhiteboardCanvas({ board, tool, history, readOnly = false, readOnlyState = null, readOnlyProjectId }: WhiteboardCanvasProps) {
+export function WhiteboardCanvas({ board, tool, history, readOnly = false, readOnlyState = null, readOnlyProjectId, selectedIds: selectedIdsProp, onSelectedChange, onToolChange, snapOn: snapOnProp, onSnapChange, penColor: penColorProp, penWidth: penWidthProp, eraserWidth: eraserWidthProp, stickyColor: stickyColorProp, stickyTextColor: stickyTextColorProp, stickyFontSize: stickyFontSizeProp, stickyAlign: stickyAlignProp, textColor: textColorProp, textFontSize: textFontSizeProp, textAlign: textAlignProp, shapeColor: shapeColorProp, shapeLabelColor: shapeLabelColorProp, shapeFontSize: shapeFontSizeProp, shapeAlign: shapeAlignProp, edgeColor: edgeColorProp, edgeFontSize: edgeFontSizeProp, edgeAlign: edgeAlignProp, boundaryColor: boundaryColorProp, boundaryLabelColor: boundaryLabelColorProp, boundaryFontSize: boundaryFontSizeProp, boundaryAlign: boundaryAlignProp, panToId }: WhiteboardCanvasProps) {
   const { t } = useTranslation('extras');
   const proj = useProjectOptional(null);
   const { canEdit, dispatch, projectId, state } =
@@ -636,8 +679,13 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     [navigate, projectId],
   );
   const [spaceHeld, setSpaceHeld] = useState(false);
-  const [snapOn, setSnapOn] = useState(true);
+  const [internalSnapOn, setInternalSnapOn] = useState(true);
+  const snapOn = snapOnProp ?? internalSnapOn;
   const snap = useCallback((v: number) => (snapOn ? snapToGrid(v) : v), [snapOn]);
+  const toggleSnap = useCallback(() => {
+    if (onSnapChange) onSnapChange(!snapOn);
+    else setInternalSnapOn((v) => !v);
+  }, [onSnapChange, snapOn]);
   const [canvasSize, setCanvasSize] = useState({ w: 800, h: 600 });
   const panEnabled = tool === 'select' || tool === 'view' || spaceHeld;
   const view = useView(panEnabled);
@@ -658,29 +706,14 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
 
   const [draft, setDraft] = useState<DraftStroke | null>(null);
   const draftRef = useRef<DraftStroke | null>(null);
-  const [popover, setPopover] = useState<PopoverState | null>(null);
-  const popoverRef = useRef<HTMLDivElement | null>(null);
-  const [popoverPos, setPopoverPos] = useState<{ x: number; y: number } | null>(null);
-  useLayoutEffect(() => {
-    if (!popover) {
-      setPopoverPos(null);
-      return;
-    }
-    const raw = worldToScreen(view.view, popover.wx, popover.wy + 50);
-    const node = popoverRef.current;
-    const host = node?.parentElement;
-    if (node && host) {
-      const pr = node.getBoundingClientRect();
-      const cr = host.getBoundingClientRect();
-      if (pr.width > 0 && pr.height > 0 && cr.width > 0 && cr.height > 0) {
-        setPopoverPos(clampPopover(raw, cr.width, cr.height, pr.width, pr.height));
-        return;
-      }
-    }
-    setPopoverPos(raw);
-  }, [popover, view.view]);
   const placeStartRef = useRef<{ clientX: number; clientY: number } | null>(null);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [internalSelectedIds, setInternalSelectedIds] = useState<string[]>([]);
+  const selectedIds = selectedIdsProp ?? internalSelectedIds;
+  const setSelectedIds = (next: string[] | ((prev: string[]) => string[])) => {
+    const value = typeof next === 'function' ? (next as (prev: string[]) => string[])(selectedIds) : next;
+    if (onSelectedChange) onSelectedChange(value);
+    else setInternalSelectedIds(value);
+  };
   const [dragOffset, setDragOffset] = useState<DragOffset | null>(null);
   const dragRef = useRef<{ startWorld: Point; originals: Map<string, WhiteboardElement> } | null>(null);
   const panDragRef = useRef(false);
@@ -738,6 +771,24 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     },
     [refRects],
   );
+
+  useEffect(() => {
+    if (!panToId) return;
+    const el = board.elements.find((e) => e.id === panToId);
+    if (!el) return;
+    const bounds = boundsFor(el);
+    const canvasEl = view.ref.current;
+    if (!canvasEl) return;
+    const rect = canvasEl.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+    const cx = bounds.x + bounds.w / 2;
+    const cy = bounds.y + bounds.h / 2;
+    view.setView((prev) => ({
+      ...prev,
+      x: rect.width / 2 - cx * prev.s,
+      y: rect.height / 2 - cy * prev.s,
+    }));
+  }, [panToId, board.elements, boundsFor]);
 
   const visibleElements = useMemo(() => {
     const sortBack = (els: WhiteboardElement[]) =>
@@ -1009,7 +1060,6 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
 
   useEffect(() => {
     if (tool !== 'select' && tool !== 'marquee') {
-      setPopover(null);
       setSelectedIds([]);
       setDragOffset(null);
       resizeRef.current = null;
@@ -1048,10 +1098,11 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     setDraft(null);
     if (!current || !shouldCommitStroke(current.points)) return;
     if (current.tool === 'eraser') {
+      const eraserW = eraserWidthProp ?? ERASER_WIDTH;
       const result = eraseStrokes(
         board.elements,
         current.points.map(([x, y]) => ({ x, y })),
-        ERASER_WIDTH,
+        eraserW,
       );
       if (!result.changed) return;
       history.record();
@@ -1064,10 +1115,12 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     }
     if (board.elements.length >= MAX_ELEMENTS) return;
     history.record();
+    const strokeColor = current.tool === 'pen' ? (penColorProp ?? drawColor(current.tool)) : drawColor(current.tool);
+    const strokeWidth = current.tool === 'pen' ? (penWidthProp ?? drawWidth(current.tool)) : drawWidth(current.tool);
     dispatch({
       type: 'whiteboard/update',
       id: board.id,
-      patch: { elements: [...board.elements, buildStroke(current.tool, current.points)] },
+      patch: { elements: [...board.elements, buildStroke(current.tool, current.points, strokeColor, strokeWidth)] },
     });
   };
 
@@ -1083,32 +1136,24 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     const rect = view.ref.current?.getBoundingClientRect();
     if (!rect) return;
     const pt = screenToWorld(view.view, start.clientX - rect.left, start.clientY - rect.top);
-    const placed = tool === 'sticky' ? buildSticky(pt.x, pt.y) : tool === 'shape' ? buildShape(pt.x, pt.y) : buildText(pt.x, pt.y);
+    let placed: WhiteboardElement;
+    if (tool === 'sticky') {
+      const base = buildSticky(pt.x, pt.y, stickyColorProp ?? STICKY_COLOR, stickyTextColorProp ?? null);
+      placed = { ...base, fontSize: stickyFontSizeProp ?? 12, align: (stickyAlignProp as WhiteboardElement['kind'] extends never ? never : string) ?? 'left' } as WhiteboardElement;
+      (placed as WhiteboardSticky).fontSize = stickyFontSizeProp ?? 12;
+      (placed as WhiteboardSticky).align = (stickyAlignProp ?? 'left') as any;
+    } else if (tool === 'shape') {
+      const base = buildShape(pt.x, pt.y, shapeColorProp ?? SHAPE_COLOR, 'rect', shapeLabelColorProp ?? null);
+      placed = { ...base, fontSize: shapeFontSizeProp ?? 12, align: (shapeAlignProp ?? 'center') as any } as WhiteboardElement;
+    } else {
+      const base = buildText(pt.x, pt.y, textColorProp ?? TEXT_COLOR);
+      placed = { ...base, fontSize: textFontSizeProp ?? 16, align: (textAlignProp ?? 'left') as any } as WhiteboardElement;
+    }
     if (board.elements.length >= MAX_ELEMENTS) return;
     history.record();
     dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...board.elements, placed] } });
-    setPopover({ id: placed.id, kind: placed.kind === 'shape' ? 'shape' : placed.kind === 'text' ? 'text' : 'sticky', wx: pt.x, wy: pt.y, el: placed });
-  };
-
-  const patchElement = (patch: Record<string, unknown>) => {
-    if (!popover) return;
-    const id = popover.id;
-    const next = board.elements.map((el) => (el.id === id ? ({ ...el, ...patch } as WhiteboardElement) : el));
-    setPopover((p) => (p ? { ...p, el: { ...p.el, ...patch } as WhiteboardElement } : p));
-    history.record();
-    dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
-  };
-
-  const closePopover = (save: boolean) => {
-    if (!popover) return;
-    const el = popover.el;
-    const canHaveText = el.kind === 'text' || el.kind === 'sticky';
-    if (!save && canHaveText && el.text === '') {
-      const next = board.elements.filter((item) => item.id !== popover.id);
-      history.record();
-      dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
-    }
-    setPopover(null);
+    setSelectedIds([placed.id]);
+    if (onToolChange) onToolChange('select');
   };
 
   const commitDrag = () => {
@@ -1162,11 +1207,13 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       y1: ep.y1,
       x2: ep.x2,
       y2: ep.y2,
-      color: DEFAULT_EDGE_COLOR,
+      color: edgeColorProp ?? DEFAULT_EDGE_COLOR,
       width: DEFAULT_EDGE_WIDTH,
       arrowhead: true,
       label: '',
       arrowStyle: 'solid',
+      fontSize: edgeFontSizeProp ?? 11,
+      align: (edgeAlignProp ?? 'center') as any,
       sourceNodeId: fromEl.id,
       targetNodeId: target.id,
       sourcePort,
@@ -1175,6 +1222,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     if (board.elements.length >= MAX_ELEMENTS) return;
     history.record();
     dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...board.elements, edge] } });
+    if (onToolChange) onToolChange('select');
   };
 
   const placeRef = (entity: WhiteboardRefEntity, entityId: string) => {
@@ -1205,6 +1253,23 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       return;
     }
     e.currentTarget.setPointerCapture(e.pointerId);
+    // Hit-first for all non-pen/eraser tools: clicking existing element selects it and switches to select
+    if (tool !== 'pen' && tool !== 'eraser' && tool !== 'marquee') {
+      const hitAny = elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects);
+      if (hitAny) {
+        const alreadySelected = selectedIds.includes(hitAny.id);
+        if (!alreadySelected || selectedIds.length !== 1) {
+          setSelectedIds([hitAny.id]);
+        }
+        if (onToolChange && tool !== 'select') onToolChange('select');
+        // prepare drag for select
+        if (!readOnly) {
+          dragRef.current = { startWorld: pt, originals: new Map(board.elements.map((el) => [el.id, el])) };
+        }
+        setDragOffset(null);
+        return;
+      }
+    }
     if (tool === 'select') {
       const resizeTargetEl = selectedIds.length === 1 ? board.elements.find((el) => el.id === selectedIds[0] && RESIZEABLE_KINDS.has(el.kind) && !el.locked) : undefined;
       if (resizeTargetEl) {
@@ -1428,9 +1493,11 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       if (w < 40 || h < 40) return;
       if (board.elements.length >= MAX_ELEMENTS) return;
       history.record();
-      const boundary = buildBoundary(x, y, w, h);
+      const baseB = buildBoundary(x, y, w, h, boundaryColorProp ?? BOUNDARY_COLOR);
+      const boundary = { ...baseB, labelColor: boundaryLabelColorProp ?? '#e4e4e7', fontSize: boundaryFontSizeProp ?? 12, align: (boundaryAlignProp ?? 'left') as any } as typeof baseB;
       dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...board.elements, boundary] } });
       setSelectedIds([boundary.id]);
+      if (onToolChange) onToolChange('select');
       return;
     }
   };
@@ -1490,11 +1557,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     }
     if (hit.kind === 'stroke') return;
     if (readOnly) return;
-    const anchor =
-      hit.kind === 'edge'
-        ? edgeMidpoint({ x1: hit.x1, y1: hit.y1, x2: hit.x2, y2: hit.y2 })
-        : { x: hit.x, y: hit.y };
-    setPopover({ id: hit.id, kind: hit.kind, wx: anchor.x, wy: anchor.y, el: hit });
+    // Double-click now selects the element so the right inspector shows — no overlay popover.
+    setSelectedIds([hit.id]);
   };
 
   return (
@@ -1540,15 +1604,15 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
             (draft.tool === 'eraser' ? (
               <g>
                 {draft.points.map((p, i) => (
-                  <circle key={i} cx={p[0]} cy={p[1]} r={ERASER_WIDTH / 2} fill="rgba(138,138,147,0.35)" />
+                  <circle key={i} cx={p[0]} cy={p[1]} r={(eraserWidthProp ?? ERASER_WIDTH) / 2} fill="rgba(138,138,147,0.35)" />
                 ))}
               </g>
             ) : (
               <polyline
                 points={draft.points.map((p) => `${p[0]},${p[1]}`).join(' ')}
                 fill="none"
-                stroke={drawColor(draft.tool)}
-                strokeWidth={drawWidth(draft.tool)}
+                stroke={draft.tool === 'pen' ? (penColorProp ?? drawColor(draft.tool)) : drawColor(draft.tool)}
+                strokeWidth={draft.tool === 'pen' ? (penWidthProp ?? drawWidth(draft.tool)) : drawWidth(draft.tool)}
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
@@ -1753,7 +1817,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
             title={snapOn ? t('whiteboard.canvas.snapOn') : t('whiteboard.canvas.snapOff')}
             aria-label={snapOn ? t('whiteboard.canvas.snapOn') : t('whiteboard.canvas.snapOff')}
             aria-pressed={snapOn}
-            onClick={() => setSnapOn((v) => !v)}
+            onClick={toggleSnap}
           >
             <MagnetStraight size={15} aria-hidden="true" />
           </button>
@@ -1966,20 +2030,6 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
           );
         })()
       )}
-      {popover &&
-        (() => {
-          const pos = popoverPos ?? worldToScreen(view.view, popover.wx, popover.wy + 50);
-          return (
-            <div ref={popoverRef} className="wb-popover" style={{ left: pos.x, top: pos.y }}>
-              <WhiteboardPopover
-                el={popover.el}
-                onPatch={patchElement}
-                onDone={() => closePopover(true)}
-                onCancel={() => closePopover(false)}
-              />
-            </div>
-          );
-        })()}
       <RefPicker
         open={refPending !== null}
         state={state}

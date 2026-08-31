@@ -112,7 +112,35 @@
       "textLabel": "Text",
       "stickyTextLabel": "Sticky text",
       "typePlaceholder": "Type…",
-      "enterHint": "Enter to finish · Shift+Enter newline"
+      "enterHint": "Enter to finish · Shift+Enter newline",
+      "background": "Background",
+      "textColor": "Text color",
+      "shapeColor": "Border color",
+      "fontSize": "Font size",
+      "align": "Alignment",
+      "align_left": "Left",
+      "align_center": "Center",
+      "align_right": "Right"
+    },
+    "inspector": {
+      "panelLabel": "Element properties",
+      "collapse": "Collapse properties",
+      "expand": "Show properties",
+      "emptyTitle": "No element selected",
+      "emptyDesc": "Select an element on the canvas to edit its details.",
+      "multiTitle": "{{count}} elements selected",
+      "multiDesc": "Move, align, or delete the selection. Edit a single element to change its text and colors.",
+      "clearSelection": "Clear selection"
+    },
+    "layers": {
+      "title": "Layers",
+      "panelLabel": "Layers",
+      "collapse": "Hide layers",
+      "expand": "Show layers",
+      "searchPlaceholder": "Search layers…",
+      "listLabel": "Element layers",
+      "empty": "No layers",
+      "count": "{{count}}"
     },
     "palette": {
       "color": "Color"

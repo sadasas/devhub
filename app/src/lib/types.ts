@@ -177,6 +177,7 @@ export type WhiteboardShapeType =
   | 'hexagon'
   | 'roundedRect';
 export type WhiteboardArrowStyle = 'none' | 'open' | 'solid' | 'diamond' | 'circle';
+export type WhiteboardAlign = 'left' | 'center' | 'right';
 
 export interface WhiteboardStroke {
   id: string;
@@ -199,6 +200,9 @@ export interface WhiteboardSticky {
   h: number;
   color: string;
   text: string;
+  textColor?: string | null;
+  fontSize?: number | null;
+  align?: WhiteboardAlign | null;
   rotation?: number;
   locked?: boolean;
   groupId?: string | null;
@@ -213,6 +217,7 @@ export interface WhiteboardText {
   fontSize: number;
   text: string;
   w?: number | null;
+  align?: WhiteboardAlign | null;
   rotation?: number;
   locked?: boolean;
   groupId?: string | null;
@@ -230,6 +235,9 @@ export interface WhiteboardShape {
   fill: boolean;
   strokeWidth: number;
   label: string;
+  labelColor?: string | null;
+  fontSize?: number | null;
+  align?: WhiteboardAlign | null;
   rotation?: number;
   locked?: boolean;
   groupId?: string | null;
@@ -248,6 +256,8 @@ export interface WhiteboardEdge {
   label: string;
   arrowStyle: WhiteboardArrowStyle;
   dash?: 'solid' | 'dashed' | 'dotted';
+  fontSize?: number | null;
+  align?: WhiteboardAlign | null;
   locked?: boolean;
   groupId?: string | null;
   sourceNodeId?: string | null;
@@ -265,6 +275,9 @@ export interface WhiteboardBoundary {
   h: number;
   color: string;
   label: string;
+  labelColor?: string | null;
+  fontSize?: number | null;
+  align?: WhiteboardAlign | null;
   locked?: boolean;
   groupId?: string | null;
 }

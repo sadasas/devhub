@@ -112,7 +112,35 @@
       "textLabel": "Teks",
       "stickyTextLabel": "Teks sticky",
       "typePlaceholder": "Ketik…",
-      "enterHint": "Enter untuk selesai · Shift+Enter baris baru"
+      "enterHint": "Enter untuk selesai · Shift+Enter baris baru",
+      "background": "Latar",
+      "textColor": "Warna teks",
+      "shapeColor": "Warna border",
+      "fontSize": "Ukuran font",
+      "align": "Perataan",
+      "align_left": "Kiri",
+      "align_center": "Tengah",
+      "align_right": "Kanan"
+    },
+    "inspector": {
+      "panelLabel": "Properti elemen",
+      "collapse": "Sembunyikan properti",
+      "expand": "Tampilkan properti",
+      "emptyTitle": "Tidak ada elemen terpilih",
+      "emptyDesc": "Pilih elemen di kanvas untuk mengedit detailnya.",
+      "multiTitle": "{{count}} elemen terpilih",
+      "multiDesc": "Pindahkan, ratakan, atau hapus seleksi. Pilih satu elemen untuk mengubah teks dan warnanya.",
+      "clearSelection": "Bersihkan seleksi"
+    },
+    "layers": {
+      "title": "Lapisan",
+      "panelLabel": "Lapisan",
+      "collapse": "Sembunyikan lapisan",
+      "expand": "Tampilkan lapisan",
+      "searchPlaceholder": "Cari lapisan…",
+      "listLabel": "Lapisan elemen",
+      "empty": "Tidak ada lapisan",
+      "count": "{{count}}"
     },
     "palette": {
       "color": "Warna"

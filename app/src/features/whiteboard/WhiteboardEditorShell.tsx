@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowClockwise, ArrowCounterClockwise, ArrowLeft, ArrowsInSimple, ArrowsOutSimple, BoundingBox, Cards, Cursor, Eraser, Export, FlowArrow, FrameCorners, HandPointing, Note, PenNib, Selection, TextT } from '@phosphor-icons/react';
+import { ArrowClockwise, ArrowCounterClockwise, ArrowLeft, ArrowsInSimple, ArrowsOutSimple, BoundingBox, Cards, Cursor, Eraser, Export, FlowArrow, FrameCorners, HandPointing, List, MagnetStraight, Note, PenNib, Selection, TextT, SidebarSimple } from '@phosphor-icons/react';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
-import type { State, Whiteboard } from '../../lib/types';
+import type { State, Whiteboard, WhiteboardAlign } from '../../lib/types';
 import { WhiteboardCanvas } from './WhiteboardCanvas';
+import { WhiteboardInspector } from './WhiteboardInspector';
+import { WhiteboardLayers } from './WhiteboardLayers';
 import { SHORTCUTS } from './shortcuts';
 import { isModalOrPaletteOpen, isTypingTarget } from '../../lib/keys';
 import type { WbTool } from './tools';
 import { useWhiteboardHistory } from './useWhiteboardHistory';
 import { buildRefDataMap } from './ref-data';
 import { downloadWhiteboardPdf, downloadWhiteboardPng, downloadWhiteboardSvg } from './export';
+import { useProject } from '../../state/project-context';
 
 interface WhiteboardEditorShellProps {
   board: Whiteboard;
@@ -37,9 +40,15 @@ const TOOLS = [
 ] as const;
 
 const ACTIVE_TOOLS: ReadonlySet<string> = new Set(['view', 'select', 'marquee', 'pen', 'eraser', 'text', 'sticky', 'shape', 'edge', 'ref', 'boundary']);
+const TOOL_GROUPS: Array<ReadonlyArray<(typeof TOOLS)[number]>> = [
+  TOOLS.slice(0, 3) as unknown as ReadonlyArray<(typeof TOOLS)[number]>, // view/select/marquee
+  TOOLS.slice(3, 5) as unknown as ReadonlyArray<(typeof TOOLS)[number]>, // pen/eraser
+  TOOLS.slice(5) as unknown as ReadonlyArray<(typeof TOOLS)[number]>, // text/sticky/shape/edge/ref/boundary
+];
 
 export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditorShellProps) {
   const { t } = useTranslation('extras');
+  const { dispatch } = useProject();
   const [tool, setTool] = useState<WbTool>('select');
   const history = useWhiteboardHistory(board.id, board.elements);
   const historyRef = useRef(history);
@@ -52,6 +61,225 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
   const elementCount = board.elements.length;
   const nearCap = elementCount >= WARN_ELEMENTS;
   const atCap = elementCount >= MAX_ELEMENTS;
+
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [snapOn, setSnapOn] = useState<boolean>(() => {
+    try {
+      const v = localStorage.getItem('wb:snap');
+      return v ? v === '1' : true;
+    } catch {
+      return true;
+    }
+  });
+  const [penColor, setPenColor] = useState<string>(() => {
+    try {
+      return localStorage.getItem('wb:penColor') ?? '#e4e4e7';
+    } catch {
+      return '#e4e4e7';
+    }
+  });
+  const [penWidth, setPenWidth] = useState<number>(() => {
+    try {
+      const v = Number(localStorage.getItem('wb:penWidth'));
+      return Number.isFinite(v) && v >= 1 && v <= 20 ? v : 2;
+    } catch {
+      return 2;
+    }
+  });
+  const [eraserWidth, setEraserWidth] = useState<number>(() => {
+    try {
+      const v = Number(localStorage.getItem('wb:eraserWidth'));
+      return Number.isFinite(v) && v >= 4 && v <= 20 ? v : 6;
+    } catch {
+      return 6;
+    }
+  });
+  const [stickyColor, setStickyColor] = useState<string>(() => {
+    try { return localStorage.getItem('wb:stickyColor') ?? '#e8b955'; } catch { return '#e8b955'; }
+  });
+  const [stickyTextColor, setStickyTextColor] = useState<string>(() => {
+    try { return localStorage.getItem('wb:stickyTextColor') ?? '#1a1a1a'; } catch { return '#1a1a1a'; }
+  });
+  const [stickyFontSize, setStickyFontSize] = useState<number>(() => {
+    try { const v = Number(localStorage.getItem('wb:stickyFontSize')); return Number.isFinite(v) ? v : 12; } catch { return 12; }
+  });
+  const [stickyAlign, setStickyAlign] = useState<WhiteboardAlign>(() => {
+    try { return (localStorage.getItem('wb:stickyAlign') as WhiteboardAlign) ?? 'left'; } catch { return 'left'; }
+  });
+  const [textColor, setTextColor] = useState<string>(() => {
+    try { return localStorage.getItem('wb:textColor') ?? '#e4e4e7'; } catch { return '#e4e4e7'; }
+  });
+  const [textFontSize, setTextFontSize] = useState<number>(() => {
+    try { const v = Number(localStorage.getItem('wb:textFontSize')); return Number.isFinite(v) ? v : 16; } catch { return 16; }
+  });
+  const [textAlign, setTextAlign] = useState<WhiteboardAlign>(() => {
+    try { return (localStorage.getItem('wb:textAlign') as WhiteboardAlign) ?? 'left'; } catch { return 'left'; }
+  });
+  const [shapeColor, setShapeColor] = useState<string>(() => {
+    try { return localStorage.getItem('wb:shapeColor') ?? '#6ea8fe'; } catch { return '#6ea8fe'; }
+  });
+  const [shapeLabelColor, setShapeLabelColor] = useState<string>(() => {
+    try { return localStorage.getItem('wb:shapeLabelColor') ?? '#6ea8fe'; } catch { return '#6ea8fe'; }
+  });
+  const [shapeFontSize, setShapeFontSize] = useState<number>(() => {
+    try { const v = Number(localStorage.getItem('wb:shapeFontSize')); return Number.isFinite(v) ? v : 12; } catch { return 12; }
+  });
+  const [shapeAlign, setShapeAlign] = useState<WhiteboardAlign>(() => {
+    try { return (localStorage.getItem('wb:shapeAlign') as WhiteboardAlign) ?? 'center'; } catch { return 'center'; }
+  });
+  const [edgeColor, setEdgeColor] = useState<string>(() => {
+    try { return localStorage.getItem('wb:edgeColor') ?? '#e4e4e7'; } catch { return '#e4e4e7'; }
+  });
+  const [edgeFontSize, setEdgeFontSize] = useState<number>(() => {
+    try { const v = Number(localStorage.getItem('wb:edgeFontSize')); return Number.isFinite(v) ? v : 11; } catch { return 11; }
+  });
+  const [edgeAlign, setEdgeAlign] = useState<WhiteboardAlign>(() => {
+    try { return (localStorage.getItem('wb:edgeAlign') as WhiteboardAlign) ?? 'center'; } catch { return 'center'; }
+  });
+  const [boundaryColor, setBoundaryColor] = useState<string>(() => {
+    try { return localStorage.getItem('wb:boundaryColor') ?? '#6ea8fe'; } catch { return '#6ea8fe'; }
+  });
+  const [boundaryLabelColor, setBoundaryLabelColor] = useState<string>(() => {
+    try { return localStorage.getItem('wb:boundaryLabelColor') ?? '#e4e4e7'; } catch { return '#e4e4e7'; }
+  });
+  const [boundaryFontSize, setBoundaryFontSize] = useState<number>(() => {
+    try { const v = Number(localStorage.getItem('wb:boundaryFontSize')); return Number.isFinite(v) ? v : 12; } catch { return 12; }
+  });
+  const [boundaryAlign, setBoundaryAlign] = useState<WhiteboardAlign>(() => {
+    try { return (localStorage.getItem('wb:boundaryAlign') as WhiteboardAlign) ?? 'left'; } catch { return 'left'; }
+  });
+  const [panToId, setPanToId] = useState<string | null>(null);
+  const [inspectorCollapsed, setInspectorCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('wb:inspector:collapsed') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const [layersCollapsed, setLayersCollapsed] = useState<boolean>(() => {
+    try {
+      const v = localStorage.getItem('wb:layers:collapsed');
+      return v ? v === '1' : true;
+    } catch {
+      return true;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('wb:inspector:collapsed', inspectorCollapsed ? '1' : '0');
+    } catch {}
+  }, [inspectorCollapsed]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('wb:layers:collapsed', layersCollapsed ? '1' : '0');
+    } catch {}
+  }, [layersCollapsed]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('wb:snap', snapOn ? '1' : '0');
+    } catch {}
+  }, [snapOn]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('wb:penColor', penColor);
+    } catch {}
+  }, [penColor]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('wb:penWidth', String(penWidth));
+    } catch {}
+  }, [penWidth]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('wb:eraserWidth', String(eraserWidth));
+    } catch {}
+  }, [eraserWidth]);
+
+  useEffect(() => { try { localStorage.setItem('wb:stickyColor', stickyColor); } catch {} }, [stickyColor]);
+  useEffect(() => { try { localStorage.setItem('wb:stickyTextColor', stickyTextColor); } catch {} }, [stickyTextColor]);
+  useEffect(() => { try { localStorage.setItem('wb:stickyFontSize', String(stickyFontSize)); } catch {} }, [stickyFontSize]);
+  useEffect(() => { try { localStorage.setItem('wb:stickyAlign', stickyAlign); } catch {} }, [stickyAlign]);
+  useEffect(() => { try { localStorage.setItem('wb:textColor', textColor); } catch {} }, [textColor]);
+  useEffect(() => { try { localStorage.setItem('wb:textFontSize', String(textFontSize)); } catch {} }, [textFontSize]);
+  useEffect(() => { try { localStorage.setItem('wb:textAlign', textAlign); } catch {} }, [textAlign]);
+  useEffect(() => { try { localStorage.setItem('wb:shapeColor', shapeColor); } catch {} }, [shapeColor]);
+  useEffect(() => { try { localStorage.setItem('wb:shapeLabelColor', shapeLabelColor); } catch {} }, [shapeLabelColor]);
+  useEffect(() => { try { localStorage.setItem('wb:shapeFontSize', String(shapeFontSize)); } catch {} }, [shapeFontSize]);
+  useEffect(() => { try { localStorage.setItem('wb:shapeAlign', shapeAlign); } catch {} }, [shapeAlign]);
+  useEffect(() => { try { localStorage.setItem('wb:edgeColor', edgeColor); } catch {} }, [edgeColor]);
+  useEffect(() => { try { localStorage.setItem('wb:edgeFontSize', String(edgeFontSize)); } catch {} }, [edgeFontSize]);
+  useEffect(() => { try { localStorage.setItem('wb:edgeAlign', edgeAlign); } catch {} }, [edgeAlign]);
+  useEffect(() => { try { localStorage.setItem('wb:boundaryColor', boundaryColor); } catch {} }, [boundaryColor]);
+  useEffect(() => { try { localStorage.setItem('wb:boundaryLabelColor', boundaryLabelColor); } catch {} }, [boundaryLabelColor]);
+  useEffect(() => { try { localStorage.setItem('wb:boundaryFontSize', String(boundaryFontSize)); } catch {} }, [boundaryFontSize]);
+  useEffect(() => { try { localStorage.setItem('wb:boundaryAlign', boundaryAlign); } catch {} }, [boundaryAlign]);
+
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [board.id]);
+
+  const selectedElement = useMemo(() => {
+    if (selectedIds.length === 1) {
+      return board.elements.find((e) => e.id === selectedIds[0]) ?? null;
+    }
+    return null;
+  }, [board.elements, selectedIds]);
+
+  const selectedRefData = useMemo(() => {
+    if (selectedElement?.kind === 'ref') {
+      return refDataMap.get(selectedElement.id) ?? null;
+    }
+    return null;
+  }, [selectedElement, refDataMap]);
+
+  const handleInspectorPatch = (patch: Record<string, unknown>) => {
+    if (!selectedElement) return;
+    const next = board.elements.map((el) => (el.id === selectedElement.id ? ({ ...el, ...patch } as typeof el) : el));
+    history.record();
+    dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
+  };
+
+  const handleInspectorDone = () => {
+    // keep selection, just blur - no-op for inline panel (preserve selection)
+  };
+
+  const handleInspectorCancel = () => {
+    if (selectedElement && (selectedElement.kind === 'sticky' || selectedElement.kind === 'text')) {
+      const txt = (selectedElement as { text?: string }).text ?? '';
+      if (txt === '') {
+        const next = board.elements.filter((el) => el.id !== selectedElement.id);
+        history.record();
+        dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
+        setSelectedIds([]);
+        return;
+      }
+    }
+    // for other kinds, just clear selection on cancel when empty not applicable
+    // keep selection - user asked cancel to discard changes, but inline panel has no staged changes
+    // so we just keep selection
+  };
+
+  const handleLayersSelect = (id: string) => {
+    setSelectedIds([id]);
+    setPanToId(id);
+    setTimeout(() => setPanToId(null), 50);
+  };
+
+  const handleLayersToggleLock = (id: string) => {
+    const el = board.elements.find((e) => e.id === id);
+    if (!el || el.kind === 'stroke') return;
+    const next = board.elements.map((e) => (e.id === id ? ({ ...e, locked: !e.locked } as typeof e) : e));
+    history.record();
+    dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
+  };
+
+
 
   useEffect(() => {
     if (!exportOpen) return;
@@ -144,33 +372,51 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
           <ArrowLeft size={14} aria-hidden="true" />
         </Button>
         <div className="sub-tabs" role="toolbar" aria-label={t('whiteboard.toolbar.tools')}>
-          {TOOLS.map((item) => {
-            const active = ACTIVE_TOOLS.has(item.id) && tool === item.id;
-            const blocked = atCap && ADD_TOOLS.has(item.id);
-            const name = t(item.nameKey);
-            return (
+          {TOOL_GROUPS.map((group, gi) => (
+            <span key={gi} className="wb-tool-group" role="group" aria-label={gi === 0 ? 'Select' : gi === 1 ? 'Draw' : 'Insert'}>
+              {group.map((item) => {
+                const active = ACTIVE_TOOLS.has(item.id) && tool === item.id;
+                const blocked = atCap && ADD_TOOLS.has(item.id);
+                const name = t(item.nameKey);
+                return (
               <button
                 key={item.id}
                 type="button"
                 className={`sub-tab${active ? ' sub-tab-active' : ''}`}
                 disabled={!ACTIVE_TOOLS.has(item.id) || blocked}
                 title={blocked ? t('whiteboard.tool.limitReached', { name }) : name}
+                data-tooltip={blocked ? t('whiteboard.tool.limitReached', { name }) : `${name} — ${item.shortcut}`}
                 aria-label={`${name} — ${item.shortcut}`}
                 aria-pressed={active}
                 onClick={() => {
                   if (ACTIVE_TOOLS.has(item.id)) setTool(item.id as WbTool);
                 }}
               >
-                <item.icon size={15} aria-hidden="true" />
-              </button>
-            );
-          })}
+                    <item.icon size={15} aria-hidden="true" />
+                  </button>
+                );
+              })}
+            </span>
+          ))}
+          <span className="wb-sep" aria-hidden="true" />
+          <button
+            type="button"
+            className={`sub-tab${snapOn ? ' sub-tab-active' : ''}`}
+            title={snapOn ? t('whiteboard.canvas.snapOn') : t('whiteboard.canvas.snapOff')}
+            data-tooltip={snapOn ? t('whiteboard.canvas.snapOn') : t('whiteboard.canvas.snapOff')}
+            aria-label={snapOn ? t('whiteboard.canvas.snapOn') : t('whiteboard.canvas.snapOff')}
+            aria-pressed={snapOn}
+            onClick={() => setSnapOn((v) => !v)}
+          >
+            <MagnetStraight size={15} aria-hidden="true" />
+          </button>
           <span className="wb-sep" aria-hidden="true" />
           <button
             type="button"
             className="sub-tab"
             disabled={!history.canUndo}
             title={t('whiteboard.toolbar.undoTitle')}
+            data-tooltip={t('whiteboard.toolbar.undoTitle')}
             aria-label={t('whiteboard.toolbar.undoAria')}
             onClick={history.undo}
           >
@@ -181,6 +427,7 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
             className="sub-tab"
             disabled={!history.canRedo}
             title={t('whiteboard.toolbar.redoTitle')}
+            data-tooltip={t('whiteboard.toolbar.redoTitle')}
             aria-label={t('whiteboard.toolbar.redoAria')}
             onClick={history.redo}
           >
@@ -191,6 +438,7 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
             type="button"
             className="sub-tab"
             title={isFullscreen ? t('whiteboard.toolbar.fsExitTitle') : t('whiteboard.toolbar.fsEnterTitle')}
+            data-tooltip={isFullscreen ? t('whiteboard.toolbar.fsExitTitle') : t('whiteboard.toolbar.fsEnterTitle')}
             aria-label={isFullscreen ? t('whiteboard.toolbar.fsExitAria') : t('whiteboard.toolbar.fsEnterAria')}
             aria-pressed={isFullscreen}
             onClick={toggleFullscreen}
@@ -207,6 +455,7 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
               className="sub-tab"
               disabled={elementCount === 0}
               title={elementCount === 0 ? t('whiteboard.export.emptyTitle') : t('whiteboard.export.title')}
+              data-tooltip={elementCount === 0 ? t('whiteboard.export.emptyTitle') : t('whiteboard.export.title')}
               aria-label={t('whiteboard.export.menuLabel')}
               aria-haspopup="menu"
               aria-expanded={exportOpen}
@@ -252,6 +501,66 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
               </div>
             )}
           </span>
+          {!layersCollapsed && (
+            <>
+              <span className="wb-sep" aria-hidden="true" />
+              <button
+                type="button"
+                className="sub-tab"
+                title={t('whiteboard.layers.collapse')}
+                data-tooltip={t('whiteboard.layers.collapse')}
+                aria-label={t('whiteboard.layers.collapse')}
+                onClick={() => setLayersCollapsed(true)}
+              >
+                <List size={15} aria-hidden="true" />
+              </button>
+            </>
+          )}
+          {layersCollapsed && (
+            <>
+              <span className="wb-sep" aria-hidden="true" />
+              <button
+                type="button"
+                className="sub-tab"
+                title={t('whiteboard.layers.expand')}
+                data-tooltip={t('whiteboard.layers.expand')}
+                aria-label={t('whiteboard.layers.expand')}
+                onClick={() => setLayersCollapsed(false)}
+              >
+                <List size={15} aria-hidden="true" />
+              </button>
+            </>
+          )}
+          {!inspectorCollapsed && (
+            <>
+              <span className="wb-sep" aria-hidden="true" />
+              <button
+                type="button"
+                className="sub-tab"
+                title={t('whiteboard.inspector.collapse')}
+                data-tooltip={t('whiteboard.inspector.collapse')}
+                aria-label={t('whiteboard.inspector.collapse')}
+                onClick={() => setInspectorCollapsed(true)}
+              >
+                <SidebarSimple size={15} aria-hidden="true" />
+              </button>
+            </>
+          )}
+          {inspectorCollapsed && (
+            <>
+              <span className="wb-sep" aria-hidden="true" />
+              <button
+                type="button"
+                className="sub-tab"
+                title={t('whiteboard.inspector.expand')}
+                data-tooltip={t('whiteboard.inspector.expand')}
+                aria-label={t('whiteboard.inspector.expand')}
+                onClick={() => setInspectorCollapsed(false)}
+              >
+                <SidebarSimple size={15} aria-hidden="true" />
+              </button>
+            </>
+          )}
         </div>
         {nearCap && (
           <div className={`wb-cap-banner${atCap ? ' wb-cap-banner-danger' : ''}`} role="alert">
@@ -265,7 +574,104 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
         )}
       </div>
 
-      <WhiteboardCanvas board={board} tool={tool} history={history} />
+      <div className="wb-main">
+        {!layersCollapsed && (
+          <aside className="wb-layers-wrap" role="complementary" aria-label={t('whiteboard.layers.panelLabel')}>
+            <WhiteboardLayers elements={board.elements} selectedIds={selectedIds} onSelect={handleLayersSelect} onToggleLock={handleLayersToggleLock} />
+          </aside>
+        )}
+        <div className="wb-main-canvas">
+          <WhiteboardCanvas
+            board={board}
+            tool={tool}
+            history={history}
+            selectedIds={selectedIds}
+            onSelectedChange={setSelectedIds}
+            snapOn={snapOn}
+            onSnapChange={setSnapOn}
+            penColor={penColor}
+            penWidth={penWidth}
+            eraserWidth={eraserWidth}
+            stickyColor={stickyColor}
+            stickyTextColor={stickyTextColor}
+            stickyFontSize={stickyFontSize}
+            stickyAlign={stickyAlign}
+            textColor={textColor}
+            textFontSize={textFontSize}
+            textAlign={textAlign}
+            shapeColor={shapeColor}
+            shapeLabelColor={shapeLabelColor}
+            shapeFontSize={shapeFontSize}
+            shapeAlign={shapeAlign}
+            edgeColor={edgeColor}
+            edgeFontSize={edgeFontSize}
+            edgeAlign={edgeAlign}
+            boundaryColor={boundaryColor}
+            boundaryLabelColor={boundaryLabelColor}
+            boundaryFontSize={boundaryFontSize}
+            boundaryAlign={boundaryAlign}
+            onToolChange={setTool}
+            panToId={panToId}
+          />
+        </div>
+        {!inspectorCollapsed && (
+          <aside className="wb-side" role="complementary" aria-label={t('whiteboard.inspector.panelLabel')}>
+            <WhiteboardInspector
+              element={tool !== 'select' ? null : selectedElement}
+              selectedCount={tool !== 'select' ? 0 : selectedIds.length}
+              onPatch={handleInspectorPatch}
+              onDone={handleInspectorDone}
+              onCancel={handleInspectorCancel}
+              onCollapse={() => setInspectorCollapsed(true)}
+              tool={tool}
+              penColor={penColor}
+              penWidth={penWidth}
+              onPenColorChange={setPenColor}
+              onPenWidthChange={setPenWidth}
+              eraserWidth={eraserWidth}
+              onEraserWidthChange={setEraserWidth}
+              stickyColor={stickyColor}
+              stickyTextColor={stickyTextColor}
+              stickyFontSize={stickyFontSize}
+              stickyAlign={stickyAlign}
+              onStickyColorChange={setStickyColor}
+              onStickyTextColorChange={setStickyTextColor}
+              onStickyFontSizeChange={setStickyFontSize}
+              onStickyAlignChange={(a) => setStickyAlign(a)}
+              textColor={textColor}
+              textFontSize={textFontSize}
+              textAlign={textAlign}
+              onTextColorChange={setTextColor}
+              onTextFontSizeChange={setTextFontSize}
+              onTextAlignChange={(a) => setTextAlign(a)}
+              shapeColor={shapeColor}
+              shapeLabelColor={shapeLabelColor}
+              shapeFontSize={shapeFontSize}
+              shapeAlign={shapeAlign}
+              onShapeColorChange={setShapeColor}
+              onShapeLabelColorChange={setShapeLabelColor}
+              onShapeFontSizeChange={setShapeFontSize}
+              onShapeAlignChange={(a) => setShapeAlign(a)}
+              edgeColor={edgeColor}
+              edgeFontSize={edgeFontSize}
+              edgeAlign={edgeAlign}
+              onEdgeColorChange={setEdgeColor}
+              onEdgeFontSizeChange={setEdgeFontSize}
+              onEdgeAlignChange={(a) => setEdgeAlign(a)}
+              boundaryColor={boundaryColor}
+              boundaryLabelColor={boundaryLabelColor}
+              boundaryFontSize={boundaryFontSize}
+              boundaryAlign={boundaryAlign}
+              onBoundaryColorChange={setBoundaryColor}
+              onBoundaryLabelColorChange={setBoundaryLabelColor}
+              onBoundaryFontSizeChange={setBoundaryFontSize}
+              onBoundaryAlignChange={(a) => setBoundaryAlign(a)}
+              refTitle={selectedRefData?.title ?? null}
+              refMeta={selectedRefData?.meta ?? null}
+            />
+          </aside>
+        )}
+      </div>
     </div>
   );
 }

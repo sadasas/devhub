@@ -55,8 +55,8 @@ export function shouldCommitStroke(points: readonly [number, number][]): boolean
   return points.length >= 2;
 }
 
-export function buildSticky(x: number, y: number, color: string = STICKY_COLOR): WhiteboardSticky {
-  return { id: newId(), kind: 'sticky', x, y, w: STICKY_W, h: STICKY_H, color, text: '' };
+export function buildSticky(x: number, y: number, color: string = STICKY_COLOR, textColor: string | null = null): WhiteboardSticky {
+  return { id: newId(), kind: 'sticky', x, y, w: STICKY_W, h: STICKY_H, color, text: '', textColor };
 }
 
 export function buildText(x: number, y: number, color: string = TEXT_COLOR): WhiteboardText {
@@ -68,6 +68,7 @@ export function buildShape(
   y: number,
   color: string = SHAPE_COLOR,
   shapeType: WhiteboardShape['shapeType'] = 'rect',
+  labelColor: string | null = null,
 ): WhiteboardShape {
   return {
     id: newId(),
@@ -81,6 +82,7 @@ export function buildShape(
     fill: false,
     strokeWidth: SHAPE_STROKE_WIDTH,
     label: '',
+    labelColor,
   };
 }
 

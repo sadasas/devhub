@@ -43,41 +43,56 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null): string 
       return `<polyline points="${points}" fill="none" stroke="${esc(el.color)}" stroke-width="${el.width}" stroke-linecap="round" stroke-linejoin="round"/>`;
     }
     case 'sticky': {
-      const fontSize = 12;
+      const fontSize = el.fontSize ?? 12;
+      const align = el.align ?? 'left';
+      const anchor = align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start';
       const lineHeight = textLineHeight(fontSize);
-      const maxLines = Math.max(1, Math.floor((el.h - 8) / lineHeight));
-      const innerW = Math.max(24, el.w - 12);
+      const pad = 8;
+      const maxLines = Math.max(1, Math.floor((el.h - pad * 2) / lineHeight));
+      const innerW = Math.max(24, el.w - pad * 2);
       const lines = wrapTextLines(el.text, fontSize, innerW)
         .slice(0, maxLines)
         .map((line) => truncateToWidth(line, fontSize, innerW));
+      const textFill = el.textColor ?? 'rgba(6,5,4,0.85)';
+      const textX = align === 'center' ? el.x + el.w / 2 : align === 'right' ? el.x + el.w - pad : el.x + pad;
       const body = lines
-        .map((line, i) => textNode(el.x + 6, el.y + 14 + i * lineHeight, fontSize, 'rgba(6,5,4,0.85)', line))
+        .map((line, i) => textNode(textX, el.y + pad + 8 + i * lineHeight, fontSize, textFill, line, anchor))
         .join('');
       const rot = el.rotation ? ` transform="rotate(${round(el.rotation)}, ${round(el.x + el.w / 2)}, ${round(el.y + el.h / 2)})"` : '';
       return `<g${rot}><rect x="${round(el.x)}" y="${round(el.y)}" width="${round(el.w)}" height="${round(el.h)}" rx="4" fill="${esc(el.color)}" fill-opacity="0.85"/>${body}</g>`;
     }
     case 'text': {
       const fontSize = el.fontSize;
+      const align = el.align ?? 'left';
+      const anchor = align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start';
       const rot = el.rotation ? ` transform="rotate(${round(el.rotation)}, ${round(el.x)}, ${round(el.y)})"` : '';
       if (el.w) {
         const lines = wrapTextLines(el.text, fontSize, el.w);
+        const baseX = align === 'center' ? el.x + el.w / 2 : align === 'right' ? el.x + el.w : el.x;
         const spans = lines
           .map(
             (line, i) =>
-              `<tspan x="${round(el.x)}" dy="${i === 0 ? 0 : textLineHeight(fontSize)}">${esc(line)}</tspan>`,
+              `<tspan x="${round(baseX)}" dy="${i === 0 ? 0 : textLineHeight(fontSize)}">${esc(line)}</tspan>`,
           )
           .join('');
-        return `<g${rot}><text x="${round(el.x)}" y="${round(el.y)}" font-size="${fontSize}" fill="${esc(el.color)}">${spans}</text></g>`;
+        return `<g${rot}><text x="${round(baseX)}" y="${round(el.y)}" font-size="${fontSize}" fill="${esc(el.color)}" text-anchor="${anchor}">${spans}</text></g>`;
       }
-      return `<g${rot}>${textNode(el.x, el.y, fontSize, el.color, el.text)}</g>`;
+      return `<g${rot}>${textNode(el.x, el.y, fontSize, el.color, el.text, anchor)}</g>`;
     }
     case 'shape': {
-      const labelLines = el.label ? wrapToWidth(el.label, 12, Math.max(24, el.w - 12), 4) : [];
+      const pad = 8;
+      const fontSize = el.fontSize ?? 12;
+      const align = el.align ?? 'center';
+      const anchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
+      const textX = align === 'left' ? el.x + pad : align === 'right' ? el.x + el.w - pad : el.x + el.w / 2;
+      const innerW = Math.max(24, el.w - pad * 2);
+      const labelLines = el.label ? wrapToWidth(el.label, fontSize, innerW, 4) : [];
       const fill = el.fill ? ` fill="${esc(el.color)}" fill-opacity="0.15"` : ' fill="none"';
+      const labelFill = el.labelColor ?? el.color;
       const label =
         labelLines.length > 0
-          ? `<text x="${round(el.x + el.w / 2)}" y="${round(el.y + el.h / 2)}" text-anchor="middle" dominant-baseline="middle" font-size="12" fill="${esc(el.color)}">${labelLines
-              .map((line, i) => `<tspan x="${round(el.x + el.w / 2)}" dy="${i === 0 ? 0 : 14}">${esc(line)}</tspan>`)
+          ? `<text x="${round(textX)}" y="${round(el.y + el.h / 2)}" text-anchor="${anchor}" dominant-baseline="middle" font-size="${fontSize}" fill="${esc(labelFill)}">${labelLines
+              .map((line, i) => `<tspan x="${round(textX)}" dy="${i === 0 ? 0 : fontSize + 2}">${esc(line)}</tspan>`)
               .join('')}</text>`
           : '';
       const rot = el.rotation ? ` transform="rotate(${round(el.rotation)}, ${round(el.x + el.w / 2)}, ${round(el.y + el.h / 2)})"` : '';
@@ -110,13 +125,18 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null): string 
           : '';
       const mid = pathMidpoint(points);
       const dash = (el.dash ?? 'solid') === 'dashed' ? ' stroke-dasharray="8 5"' : (el.dash ?? 'solid') === 'dotted' ? ' stroke-dasharray="2 4"' : '';
-      const label = el.label ? textNode(mid.x, mid.y, 11, el.color, el.label, 'middle') : '';
+      const fontSize = el.fontSize ?? 11;
+      const align = el.align ?? 'center';
+      const anchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
+      const label = el.label ? textNode(mid.x, mid.y, fontSize, el.color, el.label, anchor) : '';
       return `<g><polyline points="${linePoints}" fill="none" stroke="${esc(el.color)}" stroke-width="${el.width}"${dash}/>${arrow}${label}</g>`;
     }
     case 'boundary': {
+      const fontSize = el.fontSize ?? 12;
+      const labelColor = (el as { labelColor?: string | null }).labelColor ?? '#e4e4e7';
       const chipW = Math.min(el.label.length * 7.5 + 12, Math.max(20, el.w - 12));
-const chip = el.label
-        ? `<g transform="translate(${round(el.x + 6)}, ${round(el.y + 6)})"><rect x="-4" y="-16" width="${round(chipW)}" height="18" rx="5" fill="${esc(el.color)}" fill-opacity="0.25"/><text x="0" y="0" font-size="12" fill="#e4e4e7">${esc(truncateToWidth(el.label, 12, chipW - 12))}</text></g>`
+ const chip = el.label
+        ? `<g transform="translate(${round(el.x + 6)}, ${round(el.y + 6)})"><rect x="-4" y="-16" width="${round(chipW)}" height="18" rx="5" fill="${esc(el.color)}" fill-opacity="0.25"/><text x="0" y="0" font-size="${fontSize}" fill="${esc(labelColor)}">${esc(truncateToWidth(el.label, fontSize, chipW - 12))}</text></g>`
         : '';
       return `<g><rect x="${round(el.x)}" y="${round(el.y)}" width="${round(el.w)}" height="${round(el.h)}" rx="8" fill="${esc(el.color)}" fill-opacity="0.05" stroke="${esc(el.color)}" stroke-width="1.5" stroke-dasharray="6 4"/>${chip}</g>`;
     }

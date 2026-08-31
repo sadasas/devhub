@@ -1,6 +1,6 @@
 import { useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { WhiteboardBoundary, WhiteboardEdge, WhiteboardShape, WhiteboardElement } from '../../lib/types';
+import type { WhiteboardBoundary, WhiteboardEdge, WhiteboardShape, WhiteboardSticky, WhiteboardElement } from '../../lib/types';
 import { effectiveArrowStyle } from './edges';
 import { ColorPalette } from './ColorPalette';
 
@@ -141,7 +141,11 @@ export function WhiteboardPopover({ el, onPatch, onDone, onCancel }: WhiteboardP
               }}
             />
           </label>
-          <ColorPalette value={el.color} onChange={(color) => onPatch({ color })} />
+          <ColorPalette value={el.color} onChange={(color) => onPatch({ color })} label={t('whiteboard.popover.shapeColor')} />
+          <label className="field" style={{ marginTop: 8 }}>
+            <span className="field-label">{t('whiteboard.popover.textColor')}</span>
+            <ColorPalette value={(el as WhiteboardShape).labelColor ?? el.color} onChange={(c) => onPatch({ labelColor: c })} label={t('whiteboard.popover.textColor')} />
+          </label>
           <div className="fp-actions">
             <button type="button" className="fp-btn fp-btn-ghost" onClick={onCancel} aria-label={t('whiteboard.popover.cancelChanges')}>
               {t('whiteboard.popover.cancel')}
@@ -251,7 +255,20 @@ export function WhiteboardPopover({ el, onPatch, onDone, onCancel }: WhiteboardP
             )}
             {isText && <span className="fp-hint">{t('whiteboard.popover.enterHint')}</span>}
           </label>
-          <ColorPalette value={elColor()} onChange={(color) => onPatch({ color })} />
+          {isText ? (
+            <ColorPalette value={elColor()} onChange={(color) => onPatch({ color })} label={t('whiteboard.popover.textColor')} />
+          ) : (
+            <>
+              <label className="field" style={{ marginTop: 8 }}>
+                <span className="field-label">{t('whiteboard.popover.background')}</span>
+                <ColorPalette value={elColor()} onChange={(color) => onPatch({ color })} label={t('whiteboard.popover.background')} />
+              </label>
+              <label className="field" style={{ marginTop: 8 }}>
+                <span className="field-label">{t('whiteboard.popover.textColor')}</span>
+                <ColorPalette value={(el as WhiteboardSticky).textColor ?? 'rgba(6,5,4,0.85)'} onChange={(c) => onPatch({ textColor: c })} label={t('whiteboard.popover.textColor')} />
+              </label>
+            </>
+          )}
           <div className="fp-actions">
             <button type="button" className="fp-btn fp-btn-ghost" onClick={onCancel} aria-label={t('whiteboard.popover.cancelChanges')}>
               {t('whiteboard.popover.cancel')}
