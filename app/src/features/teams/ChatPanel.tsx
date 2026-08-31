@@ -25,7 +25,7 @@ import { buildMentionToken, parseChatRefs } from '../../lib/chat-tokens';
 import { entityDeepLink } from '../../lib/deep-link';
 import { getMeta, putMeta } from '../../lib/idb';
 import { realtimeWsUrl, TeamChatSocket, type TeamChatSocketOptions } from '../../lib/realtime-client';
-import { avatarColor, initialsOf } from '../../lib/avatar';
+import { Avatar } from '../../components/Avatar';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { InlineError } from '../../components/InlineError';
@@ -684,7 +684,6 @@ return (
             const pending = m.id.startsWith('local-');
             const failed = failedIds.includes(m.id);
             const deleteFailed = deleteFailedIds.includes(m.id);
-            const color = avatarColor(m.authorId ?? '');
             return (
               <div
                 key={m.id}
@@ -692,16 +691,13 @@ return (
               >
                 <div className="chat-rail">
                   {isGroupStart ? (
-                    <span
+                    <Avatar
+                      src={(m as { authorAvatarUrl?: string | null }).authorAvatarUrl ?? null}
+                      name={m.authorName || t('teams.chat.formerMember')}
+                      id={m.authorId ?? m.authorName}
+                      size={32}
                       className="chat-avatar"
-                      style={{
-                        background: `color-mix(in srgb, ${color} 18%, transparent)`,
-                        color,
-                      }}
-                      aria-hidden="true"
-                    >
-                      {initialsOf(m.authorName || t('teams.chat.formerMember'))}
-                    </span>
+                    />
                   ) : (
                     <span className="chat-rail-time">
                       {new Date(m.createdAt).toLocaleTimeString(undefined, {

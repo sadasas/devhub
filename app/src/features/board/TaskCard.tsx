@@ -5,9 +5,9 @@ import { TASK_PRIORITY, TASK_PRIORITY_SHORT, TASK_STATUS } from '../../lib/label
 import { formatDate, linkedTestCases, shortId } from '../../lib/utils';
 import { taskDueChip } from '../../lib/due-dates';
 import { startLabel } from '../../lib/start-dates';
-import { avatarColor, initialsOf } from '../../lib/avatar';
 import type { Task } from '../../lib/types';
 import { useProject } from '../../state/project-context';
+import { Avatar } from '../../components/Avatar';
 import { Badge } from '../../components/Badge';
 import { PinButton } from '../../components/PinButton';
 import { useTouchDrag } from '../../hooks/useTouchDrag';
@@ -15,6 +15,7 @@ import { useTouchDrag } from '../../hooks/useTouchDrag';
 interface MemberInfo {
   email: string;
   displayName?: string;
+  avatarUrl?: string | null;
 }
 
 interface TaskCardProps {
@@ -86,15 +87,16 @@ export const TaskCard = memo(function TaskCard({
         }}
       >
         <div className="task-card-top">
-          {assigneeName && task.assigneeId && (
+          {assigneeName && task.assigneeId && assignee && (
             <span className="task-avatar" title={assigneeName}>
-              <span
+              <Avatar
+                src={assignee.avatarUrl ?? null}
+                name={assigneeName}
+                email={assignee.email}
+                id={task.assigneeId}
+                size={20}
                 className="task-assignee-avatar"
-                style={{ backgroundColor: avatarColor(task.assigneeId) }}
-                aria-hidden="true"
-              >
-                {initialsOf(assigneeName)}
-              </span>
+              />
               <span className="task-assignee-name">{assigneeName}</span>
               <span className="sr-only">{assigneeName}</span>
             </span>

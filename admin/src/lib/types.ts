@@ -463,6 +463,7 @@ export interface TeamMember {
   id: string;
   email: string;
   displayName?: string;
+  avatarUrl?: string | null;
   role: TeamRole;
   joinedAt: string;
 }
@@ -504,6 +505,7 @@ export interface ChatMessage {
   teamId: string;
   authorId: string | null;
   authorName: string;
+  authorAvatarUrl?: string | null;
   content: string;
   refs: ChatRef[];
   createdAt: string;
@@ -523,6 +525,7 @@ export interface User {
   bio: string;
   role: 'user' | 'admin';
   createdAt: string;
+  avatarUrl?: string | null;
 }
 
 export interface AdminStats {
@@ -554,6 +557,7 @@ export interface AdminUser {
   id: string;
   email: string;
   displayName: string;
+  avatarUrl?: string | null;
   role: 'user' | 'admin';
   teamCount: number;
   createdAt: string;

@@ -4,7 +4,7 @@ import { CaretDown } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../state/project-context';
 import { useAuth } from '../state/auth-context';
-import { avatarColor, initialsOf } from '../lib/avatar';
+import { Avatar } from './Avatar';
 
 const POPOVER_ID = 'presence-listbox';
 const STACK_MAX = 3;
@@ -96,13 +96,15 @@ export function PresenceChip() {
       >
         <span className="presence-avatars" aria-hidden="true">
           {users.slice(0, STACK_MAX).map((u) => (
-            <span
+            <Avatar
               key={u.userId}
+              src={(u as { avatarUrl?: string | null }).avatarUrl ?? null}
+              name={u.name}
+              id={u.userId}
+              size={22}
               className="presence-avatar"
-              style={{ backgroundColor: avatarColor(u.userId) }}
-            >
-              {initialsOf(u.name)}
-            </span>
+              style={{ marginLeft: users.indexOf(u) > 0 ? -8 : 0, border: '2px solid var(--bg-elevated)' } as React.CSSProperties}
+            />
           ))}
         </span>
         {t('presence.chip', { count: users.length })}
@@ -132,13 +134,14 @@ export function PresenceChip() {
             <div className="presence-popover-header">{t('presence.header', { count: users.length })}</div>
             {users.map((u) => (
               <div key={u.userId} className="presence-popover-row">
-                <span className="presence-popover-avatar" aria-hidden="true">
-                  <span
+                <span className="presence-popover-avatar" aria-hidden="true" style={{ position: 'relative', display: 'inline-flex' }}>
+                  <Avatar
+                    src={(u as { avatarUrl?: string | null }).avatarUrl ?? null}
+                    name={u.name}
+                    id={u.userId}
+                    size={28}
                     className="presence-popover-avatar-bg"
-                    style={{ backgroundColor: avatarColor(u.userId) }}
-                  >
-                    {initialsOf(u.name)}
-                  </span>
+                  />
                   <span className="presence-popover-dot" aria-hidden="true" />
                 </span>
                 <span className="presence-popover-meta">

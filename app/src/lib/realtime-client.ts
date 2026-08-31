@@ -28,6 +28,7 @@ export interface StateSync {
 export interface PresenceUser {
   userId: string;
   name: string;
+  avatarUrl?: string | null;
   /** Current user activity (e.g. 'Editing task'), null when idle. */
   activity?: string | null;
 }

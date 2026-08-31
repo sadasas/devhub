@@ -10,6 +10,7 @@ export interface MessageRow {
   content: string;
   refs: unknown;
   created_at: Date;
+  author_avatar_url?: string | null;
 }
 
 export function messageJson(row: MessageRow) {
@@ -18,6 +19,7 @@ export function messageJson(row: MessageRow) {
     teamId: row.team_id,
     authorId: row.author_id,
     authorName: row.author_name,
+    authorAvatarUrl: (row as { author_avatar_url?: string | null }).author_avatar_url ?? null,
     content: row.content,
     refs: row.refs,
     createdAt: row.created_at.toISOString(),
@@ -36,13 +38,21 @@ export async function insertMessage(
   refs: ChatRef[],
 ): Promise<MessageRow> {
   const authorName = await getUserDisplayName(authorId);
+  // Avatar diambil fresh dari users agar foto profil terbaru langsung terlihat di chat
+  const avatarResult = await db.query(
+    'SELECT avatar_url FROM users WHERE id = $1',
+    [authorId],
+  ).catch(() => ({ rows: [] as { avatar_url: string | null }[] }));
+  const avatarUrl = (avatarResult.rows[0] as { avatar_url?: string | null } | undefined)?.avatar_url ?? null;
   const result = await db.query(
     `INSERT INTO team_messages (team_id, author_id, author_name, content, refs)
      VALUES ($1, $2, $3, $4, $5::jsonb)
      RETURNING id, team_id, author_id, author_name, content, refs, created_at`,
     [teamId, authorId, authorName, content, JSON.stringify(refs)],
   );
-  return result.rows[0]!;
+  const row = result.rows[0]! as MessageRow;
+  (row as { author_avatar_url?: string | null }).author_avatar_url = avatarUrl;
+  return row;
 }
 
 export interface ChatResolvedRef {

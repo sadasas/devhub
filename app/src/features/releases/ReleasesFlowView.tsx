@@ -8,7 +8,7 @@ import { MILESTONE_STATUS, TASK_PRIORITY, TASK_STATUS } from '../../lib/labels';
 import type { Decision, Milestone, SchemaVersion, Task } from '../../lib/types';
 import { formatDate, formatRelative, shortId } from '../../lib/utils';
 import { taskDueChip } from '../../lib/due-dates';
-import { avatarColor, initialsOf } from '../../lib/avatar';
+import { Avatar } from '../../components/Avatar';
 import { computeDag } from '../../lib/dag';
 import { computeReadiness } from '../../lib/readiness';
 import { CalendarBlank, CheckCircle, WarningCircle, XCircle, Rocket, Plus, ArrowRight } from '@phosphor-icons/react';
@@ -187,9 +187,14 @@ function DagTaskCard({
           {due.label && <span className={`task-due task-due-${due.tone}`}>{due.label}</span>}
           {task.assigneeId && (
             <span className="task-avatar" title={task.assigneeId}>
-              <span className="task-assignee-avatar" style={{ backgroundColor: avatarColor(task.assigneeId), width: 18, height: 18, fontSize: 9 }}>
-                {initialsOf(task.assigneeId.slice(0, 2))}
-              </span>
+              <Avatar
+                src={null}
+                name={task.assigneeId.slice(0, 2)}
+                id={task.assigneeId}
+                size={18}
+                className="task-assignee-avatar"
+                style={{ width: 18, height: 18, fontSize: 9 } as React.CSSProperties}
+              />
             </span>
           )}
           <Badge tone={TASK_STATUS[task.status].tone} dot>

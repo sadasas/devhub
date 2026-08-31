@@ -106,17 +106,18 @@ async function broadcastPresence(rooms: RoomRegistry, projectId: string): Promis
   if (unique.size === 0) return;
   const userIds = [...unique.keys()];
   try {
-    const result = await pool.query<{ id: string; display_name: string }>(
-      'SELECT id, display_name FROM users WHERE id = ANY($1::uuid[])',
+    const result = await pool.query<{ id: string; display_name: string; avatar_url: string | null }>(
+      'SELECT id, display_name, avatar_url FROM users WHERE id = ANY($1::uuid[])',
       [userIds],
     );
-    const byId = new Map(result.rows.map((r) => [r.id, r.display_name]));
+    const byId = new Map(result.rows.map((r) => [r.id, r]));
     rooms.broadcast(`project:${projectId}`, {
       type: 'presence',
       projectId,
       users: userIds.map((userId) => ({
         userId,
-        name: byId.get(userId) ?? '',
+        name: byId.get(userId)?.display_name ?? '',
+        avatarUrl: byId.get(userId)?.avatar_url ?? null,
         activity: unique.get(userId)?.activity ?? null,
       })),
     });

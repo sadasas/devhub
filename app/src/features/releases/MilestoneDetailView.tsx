@@ -8,7 +8,7 @@ import { MILESTONE_STATUS, TASK_PRIORITY, TASK_STATUS } from "../../lib/labels";
 import type { Decision, Milestone, SchemaVersion, Task, Issue, TestCase } from "../../lib/types";
 import { formatDate, formatRelative, shortId } from "../../lib/utils";
 import { taskDueChip } from "../../lib/due-dates";
-import { avatarColor, initialsOf } from "../../lib/avatar";
+import { Avatar } from "../../components/Avatar";
 import { computeDag } from "../../lib/dag";
 import { computeReadiness } from "../../lib/readiness";
 import { useProject } from "../../state/project-context";
@@ -47,7 +47,14 @@ function DagCard({ task, state, blockedBy, external, onOpen }: { task: Task; sta
           {due.label && <span className={"task-due task-due-" + due.tone}>{due.label}</span>}
           {task.assigneeId && (
             <span className="task-avatar">
-              <span className="task-assignee-avatar" style={{ backgroundColor: avatarColor(task.assigneeId), width: 18, height: 18, fontSize: 9 }}>{initialsOf(task.assigneeId.slice(0, 2))}</span>
+              <Avatar
+                src={null}
+                name={task.assigneeId.slice(0, 2)}
+                id={task.assigneeId}
+                size={18}
+                className="task-assignee-avatar"
+                style={{ width: 18, height: 18, fontSize: 9 } as React.CSSProperties}
+              />
             </span>
           )}
           <Badge tone={TASK_STATUS[task.status].tone} dot>{TASK_STATUS[task.status].label}</Badge>

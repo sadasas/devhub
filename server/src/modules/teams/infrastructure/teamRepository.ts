@@ -105,11 +105,12 @@ export async function listMembers(teamId: string): Promise<Array<{
   id: string;
   email: string;
   displayName: string | null;
+  avatarUrl: string | null;
   role: string;
   joined_at: Date;
 }>> {
   const result = await pool.query(
-    `SELECT u.id, u.email, u.display_name AS "displayName", tm.role, tm.joined_at
+    `SELECT u.id, u.email, u.display_name AS "displayName", u.avatar_url AS "avatarUrl", tm.role, tm.joined_at
      FROM team_members tm
      JOIN users u ON u.id = tm.user_id
      WHERE tm.team_id = $1

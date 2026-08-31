@@ -9,7 +9,7 @@ import { api } from '../../lib/api';
 import { formatDate } from '../../lib/utils';
 import { formatHours } from '../../lib/format';
 import { todayIso } from '../../lib/due-dates';
-import { avatarColor, initialsOf } from '../../lib/avatar';
+import { Avatar } from '../../components/Avatar';
 import { PROJECT_STATUS, TEAM_ROLE } from '../../lib/labels';
 import { TASK_PRIORITY_ORDER } from '../../lib/labels';
 import { computeProjectStats } from '../../lib/stats';
@@ -124,6 +124,7 @@ function OverviewGroupHead({ title, count }: { title: string; count?: string }) 
 interface MemberStat {
   id: string | null;
   email: string;
+  avatarUrl?: string | null;
   open: number;
   done: number;
   est: number;
@@ -161,9 +162,14 @@ function MemberRow({ stat }: { stat: MemberStat }) {
   return (
     <div className={`member-row${unassigned ? ' member-row-unassigned' : ''}`}>
       {stat.id ? (
-        <span className="member-avatar" style={{ backgroundColor: avatarColor(stat.id) }} aria-hidden="true">
-          {initialsOf(stat.email)}
-        </span>
+        <Avatar
+          src={stat.avatarUrl ?? null}
+          name={stat.email}
+          email={stat.email}
+          id={stat.id}
+          size={28}
+          className="member-avatar"
+        />
       ) : (
         <span className="member-avatar member-avatar-unassigned" aria-hidden="true">
           —
@@ -194,10 +200,12 @@ export function OverviewPage({ project }: { project: Project }) {
   const [restoring, setRestoring] = useState(false);
   const [membersLoaded, setMembersLoaded] = useState(false);
   const [memberNames, setMemberNames] = useState<Record<string, string>>({});
+  const [memberAvatars, setMemberAvatars] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
     if (!teamId) {
       setMemberNames({});
+      setMemberAvatars({});
       setMembersLoaded(true);
       return;
     }
@@ -207,12 +215,14 @@ export function OverviewPage({ project }: { project: Project }) {
       .then((list) => {
         if (!cancelled) {
           setMemberNames(Object.fromEntries(list.map((m) => [m.id, m.displayName || m.email])));
+          setMemberAvatars(Object.fromEntries(list.map((m) => [m.id, (m as { avatarUrl?: string | null }).avatarUrl ?? null])));
           setMembersLoaded(true);
         }
       })
       .catch(() => {
         if (!cancelled) {
           setMemberNames({});
+          setMemberAvatars({});
           setMembersLoaded(true);
         }
       });
@@ -294,6 +304,7 @@ export function OverviewPage({ project }: { project: Project }) {
       s = {
         id: key,
         email: key ? (memberNames[key] ?? t('overview.unknownMember')) : t('overview.unassigned'),
+        avatarUrl: key ? (memberAvatars[key] ?? null) : null,
         open: 0,
         done: 0,
         est: 0,

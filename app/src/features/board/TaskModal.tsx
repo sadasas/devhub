@@ -15,6 +15,7 @@ import type { UpdatePatch } from '../../state/project-context';
 import { useProject, wouldCreateCycle } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { ActivityList } from '../../components/ActivityList';
+import { Avatar } from '../../components/Avatar';
 import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { DetailEmpty } from '../../components/DetailList';
@@ -256,10 +257,16 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 {activeField === 'assignee' && canEdit ? (
                   <SearchableSelect id="task-assignee-inline" label="" value={task.assigneeId ?? null} options={members.map((m) => ({ value: m.id, label: m.displayName || m.email }))} onChange={(v) => { update({ assigneeId: v }); setActiveField(null); }} />
                 ) : task.assigneeId ? (
-                  <button type="button" onClick={() => canEdit && setActiveField('assignee')} style={{ display: 'inline-flex', alignItems: 'center', gap: -6, background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default' }}>
-                    <span style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--accent-dim)', border: '2px solid var(--bg-overlay)', display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 600, color: 'var(--accent)' }}>{(members.find(m=>m.id===task.assigneeId)?.displayName || members.find(m=>m.id===task.assigneeId)?.email || '?').slice(0,1).toUpperCase()}</span>
-                    <span style={{ marginLeft: 6, fontSize: 13, color: 'var(--text-secondary)' }}>{members.find(m=>m.id===task.assigneeId)?.displayName || members.find(m=>m.id===task.assigneeId)?.email}</span>
-                  </button>
+                  (() => {
+                    const am = members.find((m) => m.id === task.assigneeId);
+                    const an = am?.displayName || am?.email || '?';
+                    return (
+                      <button type="button" onClick={() => canEdit && setActiveField('assignee')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default' }}>
+                        <Avatar src={am?.avatarUrl ?? null} name={an} email={am?.email} id={task.assigneeId!} size={24} style={{ border: '2px solid var(--bg-overlay)' }} />
+                        <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{an}</span>
+                      </button>
+                    );
+                  })()
                 ) : (
                   <button type="button" onClick={() => canEdit && setActiveField('assignee')} style={{ background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default', color: 'var(--text-muted)', fontSize: 13 }}>—</button>
                 )}

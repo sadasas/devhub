@@ -463,6 +463,7 @@ export interface TeamMember {
   id: string;
   email: string;
   displayName?: string;
+  avatarUrl?: string | null;
   role: TeamRole;
   joinedAt: string;
 }
@@ -504,6 +505,7 @@ export interface ChatMessage {
   teamId: string;
   authorId: string | null;
   authorName: string;
+  authorAvatarUrl?: string | null;
   content: string;
   refs: ChatRef[];
   createdAt: string;

@@ -20,8 +20,7 @@ import {
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import { copyText, formatDate, shortId } from '../../lib/utils';
-import { initialsOf } from '../../lib/initials';
-import { avatarColor } from '../../lib/avatar';
+import { Avatar } from '../../components/Avatar';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { Skeleton } from '../../components/Skeleton';
@@ -155,8 +154,6 @@ export function ProfilePage() {
 
   const name = user.displayName.trim() || user.email;
 
-  const avatarStyle = { '--avatar-fg': avatarColor(user.id) } as React.CSSProperties;
-
   return (
     <div className="page">
       <header className="page-header">
@@ -169,23 +166,16 @@ export function ProfilePage() {
       <div className="profile-layout">
         <aside className="profile-side">
           <section className="profile-card" aria-label={t('profile.summaryAria')}>
-            {user.avatarUrl ? (
-              <img
-                src={user.avatarUrl}
-                alt={name}
-                className="profile-avatar"
-                style={{ width: 72, height: 72, borderRadius: 16, objectFit: 'cover' }}
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <div
-                className="profile-avatar"
-                aria-hidden="true"
-                style={avatarStyle}
-              >
-                {initialsOf(name, user.email)}
-              </div>
-            )}
+            <Avatar
+              src={user.avatarUrl ?? null}
+              name={name}
+              email={user.email}
+              id={user.id}
+              size={72}
+              rounded={16}
+              className="profile-avatar"
+              alt={name}
+            />
             <h2 className="profile-name">{name}</h2>
             <p className="profile-email">{user.email}</p>
             {user.bio.trim() !== '' ? (

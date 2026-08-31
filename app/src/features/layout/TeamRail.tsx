@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { avatarColor, initialsOf as avatarInitials } from '../../lib/avatar';
 import { useAuth } from '../../state/auth-context';
-import { initialsOf } from '../../lib/initials';
+import { Avatar } from '../../components/Avatar';
 
 interface TeamRailProps {
   teams: { id: string; name: string; icon?: string | null; memberCount: number }[] | null;
@@ -157,9 +157,14 @@ export function TeamRail({ teams, activeTeamId, activeMain = 'team', compact = f
           title={user?.email ?? t('sidebar.profile')}
           onClick={() => navigate('/profile')}
         >
-          <span className="team-rail-avatar" aria-hidden="true">
-            {user ? initialsOf(user.displayName, user.email) : '?'}
-          </span>
+          <Avatar
+            src={user?.avatarUrl ?? null}
+            name={user?.displayName || user?.email || '?'}
+            email={user?.email}
+            id={user?.id ?? 'guest'}
+            size={28}
+            className="team-rail-avatar"
+          />
           <span className="team-rail-account-meta">
             <span className="team-rail-account-name" title={user?.displayName || user?.email}>
               {user?.displayName.trim() || user?.email || 'Account'}

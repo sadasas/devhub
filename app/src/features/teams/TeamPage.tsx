@@ -8,6 +8,7 @@ import { TEAM_ROLE } from '../../lib/labels';
 import type { TeamInvitation, TeamMember, TeamRole } from '../../lib/types';
 import { useTeams } from '../../state/teams-context';
 import { useAuth } from '../../state/auth-context';
+import { Avatar } from '../../components/Avatar';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
@@ -268,11 +269,24 @@ export function TeamPage() {
           members.map((m) => {
             const isOwner = m.role === 'owner';
             const roleOptions = isOwner || !isAdmin ? [] : team?.role === 'owner' ? ALL_ROLES : CHANGEABLE_ROLES;
+            const displayName = m.displayName?.trim() ? m.displayName : m.email;
             return (
-              <div key={m.id} className="data-row">
+              <div
+                key={m.id}
+                className="data-row"
+                style={{ gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: 12 }}
+              >
+                <Avatar
+                  src={(m as { avatarUrl?: string | null }).avatarUrl ?? null}
+                  name={displayName}
+                  email={m.email}
+                  id={m.id}
+                  size={40}
+                  style={{ flexShrink: 0 }}
+                />
                 <div className="data-row-main">
                   <span className="data-row-title">
-                    <span className="row-title-text">{m.displayName?.trim() ? m.displayName : m.email}</span>
+                    <span className="row-title-text">{displayName}</span>
                     <Badge tone={TEAM_ROLE[m.role].tone}>{TEAM_ROLE[m.role].label}</Badge>
                   </span>
                   <span className="data-row-meta">{m.displayName?.trim() ? `${m.email} · ${t('teams.joinedOn', { date: new Date(m.joinedAt).toLocaleDateString() })}` : t('teams.joinedOn', { date: new Date(m.joinedAt).toLocaleDateString() })}</span>

@@ -7,13 +7,13 @@ import type { Task } from "../../lib/types";
 import { useProject } from "../../state/project-context";
 import { TASK_STATUS, TASK_PRIORITY, TASK_PRIORITY_SHORT } from "../../lib/labels";
 import { addDaysToDate, barGeometry, clampGroup, isUnscheduled, isWeekend, timelineWindow, headerMonthLabel, todayIso, TIMELINE_COL_WIDTH, type TimelineGroup } from "../../lib/timeline";
-import { avatarColor, initialsOf } from "../../lib/avatar";
+import { Avatar } from "../../components/Avatar";
 import { api } from "../../lib/api";
 
 interface BoardTimelineProps {
   filteredTasks: Task[];
   onOpenTask: (id: string) => void;
-  members: Record<string, { email: string; displayName?: string }>;
+  members: Record<string, { email: string; displayName?: string; avatarUrl?: string | null }>;
   unreadIds?: ReadonlySet<string>;
   userId?: string | null;
   mineOnly?: boolean;
@@ -255,7 +255,15 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds, o
                       <span style={{display:"flex",alignItems:"center",gap:6,minWidth:0,flexShrink:0,marginTop:"auto"}}>
                         {assigneeName ? (
                           <span className="task-avatar" title={assigneeName} style={{gap:4, fontSize:10, minWidth:0}}>
-                            <span className="task-assignee-avatar" style={{width:16,height:16,fontSize:9,backgroundColor: avatarColor(task.assigneeId!)}}>{initialsOf(assigneeName)}</span>
+                            <Avatar
+                              src={assignee?.avatarUrl ?? null}
+                              name={assigneeName}
+                              email={assignee?.email}
+                              id={task.assigneeId!}
+                              size={16}
+                              className="task-assignee-avatar"
+                              style={{ width: 16, height: 16, fontSize: 9 } as React.CSSProperties}
+                            />
                             {showAssigneeName && <span className="task-assignee-name" style={{maxWidth:72, fontSize:10}}>{assigneeName}</span>}
                           </span>
                         ) : (

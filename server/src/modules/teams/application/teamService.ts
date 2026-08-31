@@ -167,6 +167,7 @@ export async function listTeamMembers(userId: string, teamId: string) {
     id: m.id,
     email: m.email,
     displayName: m.displayName ?? '',
+    avatarUrl: (m as { avatarUrl?: string | null }).avatarUrl ?? null,
     role: m.role,
     joinedAt: m.joined_at.toISOString(),
   }));

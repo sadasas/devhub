@@ -33,6 +33,7 @@ export interface AdminUser {
   id: string;
   email: string;
   displayName: string;
+  avatarUrl?: string | null;
   role: string;
   teamCount: number;
   createdAt: string;
@@ -164,7 +165,7 @@ export async function listPlatformUsers(
 
   const [list, total] = await Promise.all([
     pool.query<AdminUser>(
-      `SELECT u.id, u.email, u.display_name AS "displayName", u.role, u.created_at AS "createdAt",
+      `SELECT u.id, u.email, u.display_name AS "displayName", u.avatar_url AS "avatarUrl", u.role, u.created_at AS "createdAt",
               (SELECT count(*)::int FROM team_members tm WHERE tm.user_id = u.id) AS "teamCount",
               (SELECT max(a.created_at) FROM activity_log a WHERE a.author_id = u.id) AS "lastActiveAt",
               (SELECT max(t.plan) FROM team_members tm JOIN teams t ON t.id = tm.team_id WHERE tm.user_id = u.id) AS "plan",

@@ -37,23 +37,24 @@ chatRouter.get('/:teamId/messages', async (req, res) => {
   await requireTeam(userId, req.params.teamId as string);
   const { limit, before, beforeId } = parseOrThrow(listQuerySchema, req.query, 'Invalid query');
 
-  const conditions: string[] = ['team_id = $1'];
+  const conditions: string[] = ['m.team_id = $1'];
   const params: unknown[] = [req.params.teamId];
   if (before && beforeId) {
     params.push(before, beforeId);
     conditions.push(
-      `(created_at < $${params.length - 1}::timestamptz OR (created_at = $${params.length - 1}::timestamptz AND id < $${params.length}))`,
+      `(m.created_at < $${params.length - 1}::timestamptz OR (m.created_at = $${params.length - 1}::timestamptz AND m.id < $${params.length}))`,
     );
   } else if (before) {
     params.push(before);
-    conditions.push(`created_at < $${params.length}::timestamptz`);
+    conditions.push(`m.created_at < $${params.length}::timestamptz`);
   }
   params.push(limit);
-  const result = await pool.query<MessageRow>(
-    `SELECT id, team_id, author_id, author_name, content, refs, created_at
-     FROM team_messages
+  const result = await pool.query<MessageRow & { author_avatar_url?: string | null }>(
+    `SELECT m.id, m.team_id, m.author_id, m.author_name, m.content, m.refs, m.created_at, u.avatar_url AS author_avatar_url
+     FROM team_messages m
+     LEFT JOIN users u ON u.id = m.author_id
      WHERE ${conditions.join(' AND ')}
-     ORDER BY created_at DESC, id DESC
+     ORDER BY m.created_at DESC, m.id DESC
      LIMIT $${params.length}`,
     params,
   );

@@ -8,6 +8,7 @@ import type { AdminUser } from '../../lib/types';
 import { formatRelative } from '../../lib/utils';
 import { formatDateAdmin, formatIdr } from '../../lib/format';
 import { useAuth } from '../../state/auth-context';
+import { Avatar } from '../../components/Avatar';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
@@ -180,11 +181,20 @@ export function UsersTab({ refreshKey, onSettled }: UsersTabProps) {
         <>
           {users.map((u) => {
             const isSelf = u.id === user?.id;
+            const uname = u.displayName?.trim() ? u.displayName : u.email;
             return (
               <div key={u.id} className="data-row">
+                <Avatar
+                  src={(u as { avatarUrl?: string | null }).avatarUrl ?? null}
+                  name={uname}
+                  email={u.email}
+                  id={u.id}
+                  size={36}
+                  style={{ marginRight: 12, flexShrink: 0 }}
+                />
                 <div className="data-row-main">
                   <span className="data-row-title">
-                    <span className="row-title-text">{u.displayName?.trim() ? u.displayName : u.email}</span>
+                    <span className="row-title-text">{uname}</span>
                     <Badge tone={u.role === 'admin' ? 'info' : 'neutral'}>
                       {u.role === 'admin' ? t('admin.role.admin') : t('admin.role.user')}
                     </Badge>
