@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowClockwise, ArrowCounterClockwise, ArrowLeft, ArrowsInSimple, ArrowsOutSimple, BoundingBox, Cards, Cursor, Eraser, Export, FlowArrow, FrameCorners, HandPointing, List, MagnetStraight, Note, PenNib, Selection, TextT, SidebarSimple } from '@phosphor-icons/react';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
-import type { State, Whiteboard, WhiteboardAlign } from '../../lib/types';
+import type { State, Whiteboard, WhiteboardAlign, WhiteboardShapeType, WhiteboardArrowStyle, WhiteboardEdge } from '../../lib/types';
 import { WhiteboardCanvas } from './WhiteboardCanvas';
 import { WhiteboardInspector } from './WhiteboardInspector';
 import { WhiteboardLayers } from './WhiteboardLayers';
@@ -46,6 +46,11 @@ const TOOL_GROUPS: Array<ReadonlyArray<(typeof TOOLS)[number]>> = [
   TOOLS.slice(3, 5) as unknown as ReadonlyArray<(typeof TOOLS)[number]>, // pen/eraser
   TOOLS.slice(5) as unknown as ReadonlyArray<(typeof TOOLS)[number]>, // text/sticky/shape/edge/ref/boundary
 ];
+
+const clampFont = (v: number, def: number) => (Number.isFinite(v) ? Math.max(4, Math.min(72, v)) : def);
+const ALLOWED_SHAPE_TYPES: ReadonlySet<string> = new Set(['rect', 'diamond', 'ellipse', 'cylinder', 'parallelogram', 'hexagon', 'roundedRect']);
+const ALLOWED_ARROW: ReadonlySet<string> = new Set(['none', 'open', 'solid', 'diamond', 'circle']);
+const ALLOWED_DASH: ReadonlySet<string> = new Set(['solid', 'dashed', 'dotted']);
 
 export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }: WhiteboardEditorShellProps) {
   const { t } = useTranslation('extras');
@@ -102,7 +107,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
     try { return localStorage.getItem('wb:stickyTextColor') ?? '#1a1a1a'; } catch { return '#1a1a1a'; }
   });
   const [stickyFontSize, setStickyFontSize] = useState<number>(() => {
-    try { const v = Number(localStorage.getItem('wb:stickyFontSize')); return Number.isFinite(v) ? v : 12; } catch { return 12; }
+    try { const v = Number(localStorage.getItem('wb:stickyFontSize')); return clampFont(v, 12); } catch { return 12; }
   });
   const [stickyAlign, setStickyAlign] = useState<WhiteboardAlign>(() => {
     try { return (localStorage.getItem('wb:stickyAlign') as WhiteboardAlign) ?? 'left'; } catch { return 'left'; }
@@ -111,7 +116,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
     try { return localStorage.getItem('wb:textColor') ?? '#e4e4e7'; } catch { return '#e4e4e7'; }
   });
   const [textFontSize, setTextFontSize] = useState<number>(() => {
-    try { const v = Number(localStorage.getItem('wb:textFontSize')); return Number.isFinite(v) ? v : 16; } catch { return 16; }
+    try { const v = Number(localStorage.getItem('wb:textFontSize')); return clampFont(v, 16); } catch { return 16; }
   });
   const [textAlign, setTextAlign] = useState<WhiteboardAlign>(() => {
     try { return (localStorage.getItem('wb:textAlign') as WhiteboardAlign) ?? 'left'; } catch { return 'left'; }
@@ -123,19 +128,40 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
     try { return localStorage.getItem('wb:shapeLabelColor') ?? '#6ea8fe'; } catch { return '#6ea8fe'; }
   });
   const [shapeFontSize, setShapeFontSize] = useState<number>(() => {
-    try { const v = Number(localStorage.getItem('wb:shapeFontSize')); return Number.isFinite(v) ? v : 12; } catch { return 12; }
+    try { const v = Number(localStorage.getItem('wb:shapeFontSize')); return clampFont(v, 12); } catch { return 12; }
   });
   const [shapeAlign, setShapeAlign] = useState<WhiteboardAlign>(() => {
     try { return (localStorage.getItem('wb:shapeAlign') as WhiteboardAlign) ?? 'center'; } catch { return 'center'; }
+  });
+  const [shapeType, setShapeType] = useState<WhiteboardShapeType>(() => {
+    try { const v = localStorage.getItem('wb:shapeType'); return (v && ALLOWED_SHAPE_TYPES.has(v) ? v : 'rect') as WhiteboardShapeType; } catch { return 'rect'; }
+  });
+  const [shapeLabel, setShapeLabel] = useState<string>(() => {
+    try { return localStorage.getItem('wb:shapeLabel') ?? ''; } catch { return ''; }
+  });
+  const [shapeFill, setShapeFill] = useState<boolean>(() => {
+    try { return localStorage.getItem('wb:shapeFill') === '1'; } catch { return false; }
+  });
+  const [shapeRotation, setShapeRotation] = useState<number>(() => {
+    try { const v = Number(localStorage.getItem('wb:shapeRotation')); return Number.isFinite(v) ? Math.max(-360, Math.min(360, v)) : 0; } catch { return 0; }
   });
   const [edgeColor, setEdgeColor] = useState<string>(() => {
     try { return localStorage.getItem('wb:edgeColor') ?? '#e4e4e7'; } catch { return '#e4e4e7'; }
   });
   const [edgeFontSize, setEdgeFontSize] = useState<number>(() => {
-    try { const v = Number(localStorage.getItem('wb:edgeFontSize')); return Number.isFinite(v) ? v : 11; } catch { return 11; }
+    try { const v = Number(localStorage.getItem('wb:edgeFontSize')); return clampFont(v, 11); } catch { return 11; }
   });
   const [edgeAlign, setEdgeAlign] = useState<WhiteboardAlign>(() => {
     try { return (localStorage.getItem('wb:edgeAlign') as WhiteboardAlign) ?? 'center'; } catch { return 'center'; }
+  });
+  const [edgeLabel, setEdgeLabel] = useState<string>(() => {
+    try { return localStorage.getItem('wb:edgeLabel') ?? ''; } catch { return ''; }
+  });
+  const [edgeArrowStyle, setEdgeArrowStyle] = useState<WhiteboardArrowStyle>(() => {
+    try { const v = localStorage.getItem('wb:edgeArrowStyle'); return (v && ALLOWED_ARROW.has(v) ? v : 'solid') as WhiteboardArrowStyle; } catch { return 'solid'; }
+  });
+  const [edgeDash, setEdgeDash] = useState<NonNullable<WhiteboardEdge['dash']>>(() => {
+    try { const v = localStorage.getItem('wb:edgeDash'); return (v && ALLOWED_DASH.has(v) ? v : 'solid') as NonNullable<WhiteboardEdge['dash']>; } catch { return 'solid'; }
   });
   const [boundaryColor, setBoundaryColor] = useState<string>(() => {
     try { return localStorage.getItem('wb:boundaryColor') ?? '#6ea8fe'; } catch { return '#6ea8fe'; }
@@ -144,10 +170,13 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
     try { return localStorage.getItem('wb:boundaryLabelColor') ?? '#e4e4e7'; } catch { return '#e4e4e7'; }
   });
   const [boundaryFontSize, setBoundaryFontSize] = useState<number>(() => {
-    try { const v = Number(localStorage.getItem('wb:boundaryFontSize')); return Number.isFinite(v) ? v : 12; } catch { return 12; }
+    try { const v = Number(localStorage.getItem('wb:boundaryFontSize')); return clampFont(v, 12); } catch { return 12; }
   });
   const [boundaryAlign, setBoundaryAlign] = useState<WhiteboardAlign>(() => {
     try { return (localStorage.getItem('wb:boundaryAlign') as WhiteboardAlign) ?? 'left'; } catch { return 'left'; }
+  });
+  const [boundaryLabel, setBoundaryLabel] = useState<string>(() => {
+    try { return localStorage.getItem('wb:boundaryLabel') ?? ''; } catch { return ''; }
   });
   const [panToId, setPanToId] = useState<string | null>(null);
   const [inspectorCollapsed, setInspectorCollapsed] = useState<boolean>(() => {
@@ -213,13 +242,21 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
   useEffect(() => { try { localStorage.setItem('wb:shapeLabelColor', shapeLabelColor); } catch {} }, [shapeLabelColor]);
   useEffect(() => { try { localStorage.setItem('wb:shapeFontSize', String(shapeFontSize)); } catch {} }, [shapeFontSize]);
   useEffect(() => { try { localStorage.setItem('wb:shapeAlign', shapeAlign); } catch {} }, [shapeAlign]);
+  useEffect(() => { try { localStorage.setItem('wb:shapeType', shapeType); } catch {} }, [shapeType]);
+  useEffect(() => { try { localStorage.setItem('wb:shapeLabel', shapeLabel); } catch {} }, [shapeLabel]);
+  useEffect(() => { try { localStorage.setItem('wb:shapeFill', shapeFill ? '1' : '0'); } catch {} }, [shapeFill]);
+  useEffect(() => { try { localStorage.setItem('wb:shapeRotation', String(shapeRotation)); } catch {} }, [shapeRotation]);
   useEffect(() => { try { localStorage.setItem('wb:edgeColor', edgeColor); } catch {} }, [edgeColor]);
   useEffect(() => { try { localStorage.setItem('wb:edgeFontSize', String(edgeFontSize)); } catch {} }, [edgeFontSize]);
   useEffect(() => { try { localStorage.setItem('wb:edgeAlign', edgeAlign); } catch {} }, [edgeAlign]);
+  useEffect(() => { try { localStorage.setItem('wb:edgeLabel', edgeLabel); } catch {} }, [edgeLabel]);
+  useEffect(() => { try { localStorage.setItem('wb:edgeArrowStyle', edgeArrowStyle); } catch {} }, [edgeArrowStyle]);
+  useEffect(() => { try { localStorage.setItem('wb:edgeDash', edgeDash); } catch {} }, [edgeDash]);
   useEffect(() => { try { localStorage.setItem('wb:boundaryColor', boundaryColor); } catch {} }, [boundaryColor]);
   useEffect(() => { try { localStorage.setItem('wb:boundaryLabelColor', boundaryLabelColor); } catch {} }, [boundaryLabelColor]);
   useEffect(() => { try { localStorage.setItem('wb:boundaryFontSize', String(boundaryFontSize)); } catch {} }, [boundaryFontSize]);
   useEffect(() => { try { localStorage.setItem('wb:boundaryAlign', boundaryAlign); } catch {} }, [boundaryAlign]);
+  useEffect(() => { try { localStorage.setItem('wb:boundaryLabel', boundaryLabel); } catch {} }, [boundaryLabel]);
 
   useEffect(() => {
     setSelectedIds([]);
@@ -622,13 +659,21 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
             shapeLabelColor={shapeLabelColor}
             shapeFontSize={shapeFontSize}
             shapeAlign={shapeAlign}
+            shapeType={shapeType}
+            shapeLabel={shapeLabel}
+            shapeFill={shapeFill}
+            shapeRotation={shapeRotation}
             edgeColor={edgeColor}
             edgeFontSize={edgeFontSize}
             edgeAlign={edgeAlign}
+            edgeLabel={edgeLabel}
+            edgeArrowStyle={edgeArrowStyle}
+            edgeDash={edgeDash}
             boundaryColor={boundaryColor}
             boundaryLabelColor={boundaryLabelColor}
             boundaryFontSize={boundaryFontSize}
             boundaryAlign={boundaryAlign}
+            boundaryLabel={boundaryLabel}
             onToolChange={setTool}
             panToId={panToId}
           />
@@ -667,24 +712,40 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
               shapeLabelColor={shapeLabelColor}
               shapeFontSize={shapeFontSize}
               shapeAlign={shapeAlign}
+              shapeType={shapeType}
+              shapeLabel={shapeLabel}
+              shapeFill={shapeFill}
+              shapeRotation={shapeRotation}
               onShapeColorChange={setShapeColor}
               onShapeLabelColorChange={setShapeLabelColor}
               onShapeFontSizeChange={setShapeFontSize}
               onShapeAlignChange={(a) => setShapeAlign(a)}
+              onShapeTypeChange={setShapeType}
+              onShapeLabelChange={setShapeLabel}
+              onShapeFillChange={setShapeFill}
+              onShapeRotationChange={setShapeRotation}
               edgeColor={edgeColor}
               edgeFontSize={edgeFontSize}
               edgeAlign={edgeAlign}
+              edgeLabel={edgeLabel}
+              edgeArrowStyle={edgeArrowStyle}
+              edgeDash={edgeDash}
               onEdgeColorChange={setEdgeColor}
               onEdgeFontSizeChange={setEdgeFontSize}
               onEdgeAlignChange={(a) => setEdgeAlign(a)}
+              onEdgeLabelChange={setEdgeLabel}
+              onEdgeArrowStyleChange={setEdgeArrowStyle}
+              onEdgeDashChange={setEdgeDash}
               boundaryColor={boundaryColor}
               boundaryLabelColor={boundaryLabelColor}
               boundaryFontSize={boundaryFontSize}
               boundaryAlign={boundaryAlign}
+              boundaryLabel={boundaryLabel}
               onBoundaryColorChange={setBoundaryColor}
               onBoundaryLabelColorChange={setBoundaryLabelColor}
               onBoundaryFontSizeChange={setBoundaryFontSize}
               onBoundaryAlignChange={(a) => setBoundaryAlign(a)}
+              onBoundaryLabelChange={setBoundaryLabel}
               refTitle={selectedRefData?.title ?? null}
               refMeta={selectedRefData?.meta ?? null}
             />

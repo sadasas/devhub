@@ -28,6 +28,7 @@ import type {
   WhiteboardElement,
   WhiteboardRefEntity,
   WhiteboardSticky,
+  WhiteboardShapeType,
 } from '../../lib/types';
 import { useProjectOptional } from '../../state/project-context';
 import { useNavigate } from 'react-router';
@@ -125,13 +126,21 @@ interface WhiteboardCanvasProps {
   shapeLabelColor?: string;
   shapeFontSize?: number;
   shapeAlign?: string | null;
+  shapeType?: string | null;
+  shapeLabel?: string | null;
+  shapeFill?: boolean;
+  shapeRotation?: number;
   edgeColor?: string;
   edgeFontSize?: number;
   edgeAlign?: string | null;
+  edgeLabel?: string | null;
+  edgeArrowStyle?: string | null;
+  edgeDash?: string | null;
   boundaryColor?: string;
   boundaryLabelColor?: string;
   boundaryFontSize?: number;
   boundaryAlign?: string | null;
+  boundaryLabel?: string | null;
   panToId?: string | null;
 }
 
@@ -665,7 +674,7 @@ interface DraftStroke {
   points: Array<[number, number]>;
 }
 
-export function WhiteboardCanvas({ board, tool, history, readOnly = false, readOnlyState = null, readOnlyProjectId, selectedIds: selectedIdsProp, onSelectedChange, onToolChange, snapOn: snapOnProp, onSnapChange, penColor: penColorProp, penWidth: penWidthProp, eraserWidth: eraserWidthProp, stickyColor: stickyColorProp, stickyTextColor: stickyTextColorProp, stickyFontSize: stickyFontSizeProp, stickyAlign: stickyAlignProp, textColor: textColorProp, textFontSize: textFontSizeProp, textAlign: textAlignProp, shapeColor: shapeColorProp, shapeLabelColor: shapeLabelColorProp, shapeFontSize: shapeFontSizeProp, shapeAlign: shapeAlignProp, edgeColor: edgeColorProp, edgeFontSize: edgeFontSizeProp, edgeAlign: edgeAlignProp, boundaryColor: boundaryColorProp, boundaryLabelColor: boundaryLabelColorProp, boundaryFontSize: boundaryFontSizeProp, boundaryAlign: boundaryAlignProp, panToId }: WhiteboardCanvasProps) {
+export function WhiteboardCanvas({ board, tool, history, readOnly = false, readOnlyState = null, readOnlyProjectId, selectedIds: selectedIdsProp, onSelectedChange, onToolChange, snapOn: snapOnProp, onSnapChange, penColor: penColorProp, penWidth: penWidthProp, eraserWidth: eraserWidthProp, stickyColor: stickyColorProp, stickyTextColor: stickyTextColorProp, stickyFontSize: stickyFontSizeProp, stickyAlign: stickyAlignProp, textColor: textColorProp, textFontSize: textFontSizeProp, textAlign: textAlignProp, shapeColor: shapeColorProp, shapeLabelColor: shapeLabelColorProp, shapeFontSize: shapeFontSizeProp, shapeAlign: shapeAlignProp, shapeType: shapeTypeProp, shapeLabel: shapeLabelProp, shapeFill: shapeFillProp, shapeRotation: shapeRotationProp, edgeColor: edgeColorProp, edgeFontSize: edgeFontSizeProp, edgeAlign: edgeAlignProp, edgeLabel: edgeLabelProp, edgeArrowStyle: edgeArrowStyleProp, edgeDash: edgeDashProp, boundaryColor: boundaryColorProp, boundaryLabelColor: boundaryLabelColorProp, boundaryFontSize: boundaryFontSizeProp, boundaryAlign: boundaryAlignProp, boundaryLabel: boundaryLabelProp, panToId }: WhiteboardCanvasProps) {
   const { t } = useTranslation('extras');
   const proj = useProjectOptional(null);
   const { canEdit, dispatch, projectId, state } =
@@ -1160,15 +1169,23 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     let placed: WhiteboardElement;
     if (tool === 'sticky') {
       const base = buildSticky(pt.x, pt.y, stickyColorProp ?? STICKY_COLOR, stickyTextColorProp ?? null);
-      placed = { ...base, fontSize: stickyFontSizeProp ?? 12, align: (stickyAlignProp as WhiteboardElement['kind'] extends never ? never : string) ?? 'left' } as WhiteboardElement;
-      (placed as WhiteboardSticky).fontSize = stickyFontSizeProp ?? 12;
+      placed = { ...base, fontSize: Math.max(4, Math.min(72, stickyFontSizeProp ?? 12)), align: (stickyAlignProp as WhiteboardElement['kind'] extends never ? never : string) ?? 'left' } as WhiteboardElement;
+      (placed as WhiteboardSticky).fontSize = Math.max(4, Math.min(72, stickyFontSizeProp ?? 12));
       (placed as WhiteboardSticky).align = (stickyAlignProp ?? 'left') as any;
     } else if (tool === 'shape') {
-      const base = buildShape(pt.x, pt.y, shapeColorProp ?? SHAPE_COLOR, 'rect', shapeLabelColorProp ?? null);
-      placed = { ...base, fontSize: shapeFontSizeProp ?? 12, align: (shapeAlignProp ?? 'center') as any } as WhiteboardElement;
+      const base = buildShape(pt.x, pt.y, shapeColorProp ?? SHAPE_COLOR, (shapeTypeProp as WhiteboardShapeType) ?? 'rect', shapeLabelColorProp ?? null);
+      const withDefaults = {
+        ...base,
+        label: shapeLabelProp ?? '',
+        fill: shapeFillProp ?? false,
+        rotation: Math.max(-360, Math.min(360, shapeRotationProp ?? 0)),
+        fontSize: Math.max(4, Math.min(72, shapeFontSizeProp ?? 12)),
+        align: (shapeAlignProp ?? 'center') as any,
+      } as WhiteboardElement;
+      placed = withDefaults;
     } else {
       const base = buildText(pt.x, pt.y, textColorProp ?? TEXT_COLOR);
-      placed = { ...base, fontSize: textFontSizeProp ?? 16, align: (textAlignProp ?? 'left') as any } as WhiteboardElement;
+      placed = { ...base, fontSize: Math.max(4, Math.min(72, textFontSizeProp ?? 16)), align: (textAlignProp ?? 'left') as any } as WhiteboardElement;
     }
     if (board.elements.length >= MAX_ELEMENTS) return;
     history.record();
@@ -1233,9 +1250,10 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       color: edgeColorProp ?? DEFAULT_EDGE_COLOR,
       width: DEFAULT_EDGE_WIDTH,
       arrowhead: true,
-      label: '',
-      arrowStyle: 'solid',
-      fontSize: edgeFontSizeProp ?? 11,
+      label: edgeLabelProp ?? '',
+      arrowStyle: (edgeArrowStyleProp as WhiteboardEdge['arrowStyle']) ?? 'solid',
+      dash: (edgeDashProp as WhiteboardEdge['dash']) ?? 'solid',
+      fontSize: Math.max(4, Math.min(72, edgeFontSizeProp ?? 11)),
       align: (edgeAlignProp ?? 'center') as any,
       sourceNodeId: fromEl.id,
       targetNodeId: target.id,
@@ -1537,7 +1555,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       if (board.elements.length >= MAX_ELEMENTS) return;
       history.record();
       const baseB = buildBoundary(x, y, w, h, boundaryColorProp ?? BOUNDARY_COLOR);
-      const boundary = { ...baseB, labelColor: boundaryLabelColorProp ?? '#e4e4e7', fontSize: boundaryFontSizeProp ?? 12, align: (boundaryAlignProp ?? 'left') as any } as typeof baseB;
+      const boundary = { ...baseB, label: boundaryLabelProp ?? '', labelColor: boundaryLabelColorProp ?? '#e4e4e7', fontSize: Math.max(4, Math.min(72, boundaryFontSizeProp ?? 12)), align: (boundaryAlignProp ?? 'left') as any } as typeof baseB;
       dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...board.elements, boundary] } });
       setSelectedIds([boundary.id]);
       if (onToolChange) onToolChange('select');
