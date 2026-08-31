@@ -70,6 +70,7 @@ export function MilestoneDetailView({ milestone, tasks, issues, testCases, decis
   const [decisionId, setDecisionId] = useState<string | null>(null);
   const flowTasks = useMemo(() => tasks.filter((t) => t.milestoneId === milestone.id), [tasks, milestone.id]);
   const linkedDecisions = useMemo(() => decisions.filter((d) => d.milestoneId === milestone.id), [decisions, milestone.id]);
+  const linkedSchemas = useMemo(() => schemaVersions.filter((s) => s.milestoneId === milestone.id), [schemaVersions, milestone.id]);
   const readiness = useMemo(() => computeReadiness(milestone, flowTasks, issues, testCases), [milestone, flowTasks, issues, testCases]);
   const dag = useMemo(() => computeDag(flowTasks), [flowTasks]);
   const doneTasks = useMemo(() => flowTasks.filter((t) => t.status === "done"), [flowTasks]);
@@ -210,8 +211,8 @@ export function MilestoneDetailView({ milestone, tasks, issues, testCases, decis
                 </div>
                 <div className="release-flow-context-stack">
                   <div className="release-flow-context-section">
-                    <h4 className="field-label">{t("releases.flow.schema")} · {schemaVersions.length}</h4>
-                    {schemaVersions.length === 0 ? <span className="field-helper">{t("schema.empty.versionsDesc")}</span> : <ul className="release-flow-context-list">{schemaVersions.slice(0,3).map((s) => <li key={s.id} className="release-flow-context-item"><span className="font-mono tabular" style={{ fontSize: 12 }}>v{s.version}</span><span className="field-helper">{formatDate(s.appliedAt)}</span></li>)}</ul>}
+                    <h4 className="field-label">{t("releases.flow.schema")} · {linkedSchemas.length}</h4>
+                    {linkedSchemas.length === 0 ? <span className="field-helper">{t("releases.flow.noLinkedSchemas", { defaultValue: "No schema linked to this milestone" })}</span> : <ul className="release-flow-context-list">{linkedSchemas.slice(0,3).map((s) => <li key={s.id} className="release-flow-context-item"><span className="font-mono tabular" style={{ fontSize: 12 }}>v{s.version}</span><span className="field-helper">{formatDate(s.appliedAt)}</span></li>)}</ul>}
                   </div>
                   <div className="release-flow-context-section">
                     <h4 className="field-label">{t("releases.flow.stack")} · {techEntries.length}</h4>

@@ -150,6 +150,7 @@ export const schemaVersionSchema = z.object({
   appliedAt: isoDate,
   notes: z.string().max(5_000).default(''),
   snapshot: schemaSnapshotSchema.optional(),
+  milestoneId: z.string().uuid().nullable().optional(),
 });
 
 export const decisionStatus = z.enum(['proposed', 'accepted', 'rejected', 'superseded']);

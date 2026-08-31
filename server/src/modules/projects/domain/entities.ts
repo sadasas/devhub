@@ -69,6 +69,16 @@ export const ENTITIES: EntityConfig[] = [
     state.tasks = state.tasks.map((t) =>
       t.milestoneId === id ? { ...t, milestoneId: null } : t,
     );
+    state.decisions = state.decisions.map((d) =>
+      (d as unknown as { milestoneId?: string | null }).milestoneId === id
+        ? { ...d, milestoneId: null }
+        : d,
+    );
+    state.schemaVersions = state.schemaVersions.map((v) =>
+      (v as unknown as { milestoneId?: string | null }).milestoneId === id
+        ? { ...v, milestoneId: null }
+        : v,
+    );
   }),
   mk('apiCollections', 'API collection', apiCollectionSchema, (state, id) => {
     state.apiEndpoints = state.apiEndpoints.map((e) =>

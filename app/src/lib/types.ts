@@ -104,6 +104,7 @@ export interface SchemaVersion extends Base {
   appliedAt: string;
   notes: string;
   snapshot?: SchemaSnapshot | null;
+  milestoneId?: string | null;
 }
 
 export interface Decision extends Base {

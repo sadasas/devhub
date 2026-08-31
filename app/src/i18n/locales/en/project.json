@@ -373,7 +373,9 @@
       "versionLabel": "Version",
       "versionPlaceholder": "1.1.0",
       "notesLabel": "Notes",
-      "notesPlaceholder": "What changed in this schema revision? — optional"
+      "notesPlaceholder": "What changed in this schema revision? — optional",
+      "milestoneLabel": "Milestone",
+      "milestonePlaceholder": "No milestone (optional)"
     },
     "diffModal": {
       "title": "Diff schema versions",
@@ -577,7 +579,9 @@
       "decisions": "Decisions",
       "schema": "Schema Versions",
       "stack": "Stack",
-      "viewDetail": "View flow detail →"
+      "viewDetail": "View flow detail →",
+      "noLinkedSchemas": "No schema linked to this milestone",
+      "noLinkedDecisions": "No decisions linked to this milestone. Link a decision in its edit form."
     },
     "detail": {
       "back": "Back to Timeline"

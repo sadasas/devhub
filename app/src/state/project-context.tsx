@@ -227,6 +227,12 @@ export function projectReducer(state: State, action: ProjectAction): State {
         tasks: state.tasks.map((t) =>
           t.milestoneId === action.id ? { ...t, milestoneId: null, updatedAt: nowIso() } : t,
         ),
+        decisions: state.decisions.map((d) =>
+          d.milestoneId === action.id ? { ...d, milestoneId: null, updatedAt: nowIso() } : d,
+        ),
+        schemaVersions: state.schemaVersions.map((v) =>
+          v.milestoneId === action.id ? { ...v, milestoneId: null, updatedAt: nowIso() } : v,
+        ),
       };
 
     case 'apiCollection/add':

@@ -373,7 +373,9 @@
       "versionLabel": "Versi",
       "versionPlaceholder": "1.1.0",
       "notesLabel": "Catatan",
-      "notesPlaceholder": "Apa yang berubah dalam revisi schema ini? — opsional"
+      "notesPlaceholder": "Apa yang berubah dalam revisi schema ini? — opsional",
+      "milestoneLabel": "Milestone",
+      "milestonePlaceholder": "Tanpa milestone (opsional)"
     },
     "diffModal": {
       "title": "Bandingkan versi schema",
@@ -577,7 +579,9 @@
       "decisions": "Keputusan",
       "schema": "Versi Schema",
       "stack": "Stack",
-      "viewDetail": "Lihat detail alur →"
+      "viewDetail": "Lihat detail alur →",
+      "noLinkedSchemas": "Tidak ada schema terkait milestone ini",
+      "noLinkedDecisions": "Tidak ada keputusan terkait milestone ini. Tautkan keputusan di form edit."
     },
     "detail": {
       "back": "Kembali ke Timeline"
