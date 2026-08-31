@@ -128,11 +128,13 @@ export async function getUnreadSummary(userId: string, projectId: string): Promi
               count(*) FILTER (WHERE a.action IN ('created','deleted'))::int AS total
        FROM activity_log a
        JOIN map m ON m.entity = a.entity
+       JOIN projects p ON p.id = a.project_id
+       JOIN team_members tm ON tm.team_id = p.team_id AND tm.user_id = $2
        LEFT JOIN tab_read_watermarks w
               ON w.user_id = $2 AND w.project_id = a.project_id AND w.tab = m.tab
        WHERE a.project_id = $1
          AND a.action IN ('created','deleted')
-         AND a.created_at > COALESCE(w.last_read, 'epoch'::timestamptz)
+         AND a.created_at > COALESCE(GREATEST(w.last_read, tm.joined_at), tm.joined_at)
        GROUP BY m.tab`,
       [projectId, userId],
     ),
@@ -141,11 +143,13 @@ export async function getUnreadSummary(userId: string, projectId: string): Promi
        SELECT a.entity AS entity, a.entity_id AS entity_id, a.action AS action, max(a.created_at) AS latest
        FROM activity_log a
        JOIN map m ON m.entity = a.entity
+       JOIN projects p ON p.id = a.project_id
+       JOIN team_members tm ON tm.team_id = p.team_id AND tm.user_id = $2
        LEFT JOIN tab_read_watermarks w
               ON w.user_id = $2 AND w.project_id = a.project_id AND w.tab = m.tab
        WHERE a.project_id = $1
          AND a.action IN ('created','deleted')
-         AND a.created_at > COALESCE(w.last_read, 'epoch'::timestamptz)
+         AND a.created_at > COALESCE(GREATEST(w.last_read, tm.joined_at), tm.joined_at)
        GROUP BY a.entity, a.entity_id, a.action
        ORDER BY latest DESC`,
       [projectId, userId],
@@ -156,10 +160,12 @@ export async function getUnreadSummary(userId: string, projectId: string): Promi
               a.created_at AS "createdAt", m.tab AS tab
        FROM activity_log a
        JOIN map m ON m.entity = a.entity
-       WHERE a.project_id = $1 AND a.action = 'deleted'
+       JOIN projects p ON p.id = a.project_id
+       JOIN team_members tm ON tm.team_id = p.team_id AND tm.user_id = $2
+       WHERE a.project_id = $1 AND a.action = 'deleted' AND a.created_at > tm.joined_at
        ORDER BY a.created_at DESC
        LIMIT ${DELETED_LIMIT}`,
-      [projectId],
+      [projectId, userId],
     ),
     getWatermarks(userId, projectId),
   ]);
@@ -210,11 +216,13 @@ export async function getUnreadSummariesBatch(
               count(*) FILTER (WHERE a.action IN ('created','deleted'))::int AS total
        FROM activity_log a
        JOIN map m ON m.entity = a.entity
+       JOIN projects p ON p.id = a.project_id
+       JOIN team_members tm ON tm.team_id = p.team_id AND tm.user_id = $2
        LEFT JOIN tab_read_watermarks w
               ON w.user_id = $2 AND w.project_id = a.project_id AND w.tab = m.tab
        WHERE a.project_id = ANY($1::uuid[])
          AND a.action IN ('created','deleted')
-         AND a.created_at > COALESCE(w.last_read, 'epoch'::timestamptz)
+         AND a.created_at > COALESCE(GREATEST(w.last_read, tm.joined_at), tm.joined_at)
        GROUP BY a.project_id, m.tab`,
       [uniqueIds, userId],
     ),
@@ -223,11 +231,13 @@ export async function getUnreadSummariesBatch(
        SELECT a.project_id::text AS project_id, a.entity AS entity, a.entity_id AS entity_id, a.action AS action, max(a.created_at) AS latest
        FROM activity_log a
        JOIN map m ON m.entity = a.entity
+       JOIN projects p ON p.id = a.project_id
+       JOIN team_members tm ON tm.team_id = p.team_id AND tm.user_id = $2
        LEFT JOIN tab_read_watermarks w
               ON w.user_id = $2 AND w.project_id = a.project_id AND w.tab = m.tab
        WHERE a.project_id = ANY($1::uuid[])
          AND a.action IN ('created','deleted')
-         AND a.created_at > COALESCE(w.last_read, 'epoch'::timestamptz)
+         AND a.created_at > COALESCE(GREATEST(w.last_read, tm.joined_at), tm.joined_at)
        GROUP BY a.project_id, a.entity, a.entity_id, a.action
        ORDER BY latest DESC`,
       [uniqueIds, userId],
@@ -240,10 +250,12 @@ export async function getUnreadSummariesBatch(
                      ROW_NUMBER() OVER (PARTITION BY a.project_id ORDER BY a.created_at DESC) AS rn
               FROM activity_log a
               JOIN map m ON m.entity = a.entity
-              WHERE a.project_id = ANY($1::uuid[]) AND a.action = 'deleted'
+              JOIN projects p ON p.id = a.project_id
+              JOIN team_members tm ON tm.team_id = p.team_id AND tm.user_id = $2
+              WHERE a.project_id = ANY($1::uuid[]) AND a.action = 'deleted' AND a.created_at > tm.joined_at
             )
        SELECT project_id, id, entity, "entityId", "authorName", summary, "createdAt", tab FROM ranked WHERE rn <= ${DELETED_LIMIT} ORDER BY "createdAt" DESC`,
-      [uniqueIds],
+      [uniqueIds, userId],
     ),
     pool.query<{ project_id: string; tab: string; last_read: Date }>(
       'SELECT project_id::text AS project_id, tab, last_read FROM tab_read_watermarks WHERE user_id = $1 AND project_id = ANY($2::uuid[])',
