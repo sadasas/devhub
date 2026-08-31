@@ -179,6 +179,7 @@ export function createApp(): express.Express {
   // OAuth discovery + DCR + authorize/token (must be before MCP, no auth)
   app.use(oauthRouter);
   app.use('/api/v1', limiter);
+  app.use('/api/v1', oauthRouter);
 
   app.get('/api/v1/health', async (_req, res) => {
     try {
