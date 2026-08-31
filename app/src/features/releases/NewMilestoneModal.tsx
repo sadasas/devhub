@@ -7,7 +7,8 @@ import type { MilestoneStatus } from "../../lib/types";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { Modal } from "../../components/Modal";
-import { FileText, ArrowsOutSimple } from "@phosphor-icons/react";
+import { FileText } from "@phosphor-icons/react";
+import { MarkdownField } from "../../components/MarkdownField";
 
 interface NewMilestoneModalProps {
   onClose: () => void;
@@ -22,7 +23,6 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
   const [targetDate, setTargetDate] = useState("");
   const [status, setStatus] = useState<MilestoneStatus>("planned");
   const [changelog, setChangelog] = useState("");
-  const [fullscreen, setFullscreen] = useState(false);
 
   const submit = () => {
     if (!name.trim()) return;
@@ -43,81 +43,6 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
     onClose();
   };
 
-  const count = changelog.length;
-  const limit = 20000;
-  const countTone = count > limit * 0.95 ? "var(--status-danger)" : count > limit * 0.8 ? "var(--status-warn)" : "var(--text-muted)";
-
-  const changelogField = (
-    <div style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', borderRadius: 8, padding: 16 }}>
-      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          <FileText size={12} aria-hidden="true" /> {t("releases.newModal.changelogLabel")}
-        </span>
-        <button
-          type="button"
-          className="btn btn-ghost btn-sm btn-icon"
-          aria-label={t('tracker:issues.modal.fullscreenAriaDescription')}
-          title={t('tracker:issues.modal.fullscreenAriaDescription')}
-          onClick={() => setFullscreen(true)}
-        >
-          <ArrowsOutSimple size={14} aria-hidden="true" />
-        </button>
-      </div>
-      <textarea
-        className="textarea"
-        rows={4}
-        value={changelog}
-        onChange={(e) => setChangelog(e.target.value)}
-        placeholder={t("releases.modal.changelogPlaceholder")}
-        maxLength={20000}
-      />
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
-        <span style={{ fontSize: 11, color: countTone, fontFamily: 'var(--font-mono)' }}>
-          {count.toLocaleString()} / {limit.toLocaleString()}
-        </span>
-      </div>
-    </div>
-  );
-
-  if (fullscreen) {
-    return (
-      <Modal
-        open
-        title={t("releases.modal.changelogLabel") + ` - Fullscreen`}
-        onClose={() => setFullscreen(false)}
-        width="lg"
-        className="modal-fullscreen"
-      >
-        <div className="field" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-          <div className="issue-fullscreen-split" style={{ display: 'flex', gap: 16, flex: 1, minHeight: 0, alignItems: 'stretch' }}>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('tracker:issues.modal.editTab')}</div>
-              <textarea
-                className="textarea"
-                style={{ flex: 1, minHeight: 0, height: '100%', resize: 'none' }}
-                value={changelog}
-                onChange={(e) => setChangelog(e.target.value)}
-                placeholder={t("releases.modal.changelogPlaceholder")}
-                maxLength={20000}
-                autoFocus
-              />
-            </div>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('tracker:issues.modal.previewTab')}</div>
-              <div className="md-preview" style={{ flex: 1, minHeight: 0, height: '100%', overflow: 'auto' }}>
-                {changelog.trim() ? <div className="md-blocks" style={{ whiteSpace: 'pre-wrap' }}>{changelog}</div> : <span className="md-preview-empty">{t('project:prd.nothingToPreview')}</span>}
-              </div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-            <p className="field-helper" style={{ margin: 0 }}>{t('tracker:issues.modal.fullscreenHelper')}</p>
-            <span style={{ fontSize: 11, color: countTone, fontFamily: 'var(--font-mono)' }}>{count.toLocaleString()} / {limit.toLocaleString()}</span>
-          </div>
-        </div>
-      </Modal>
-    );
-  }
-
   return (
     <Modal
       open
@@ -136,7 +61,14 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
       }
     >
       <div className="form-stack">
-        <Input label={t("releases.newModal.nameLabel")} autoFocus placeholder={t("releases.newModal.namePlaceholder")} value={name} onChange={(e) => setName(e.target.value)} maxLength={300} />
+        <Input
+          label={t("releases.newModal.nameLabel")}
+          autoFocus
+          placeholder={t("releases.newModal.namePlaceholder")}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={300}
+        />
         <div className="field-row">
           <div className="field">
             <label className="field-label" htmlFor="milestone-version">
@@ -169,7 +101,16 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
             <option value="released">{t("releases.optionStatus.released")}</option>
           </select>
         </div>
-        {changelogField}
+        <MarkdownField
+          label={t("releases.newModal.changelogLabel")}
+          icon={FileText}
+          value={changelog}
+          onChange={setChangelog}
+          placeholder={t("releases.modal.changelogPlaceholder")}
+          helper={t("releases.newModal.changelogHelper")}
+          maxLength={20000}
+          rows={4}
+        />
       </div>
     </Modal>
   );

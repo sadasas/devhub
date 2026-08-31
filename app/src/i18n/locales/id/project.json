@@ -124,7 +124,7 @@
     "cancel": "Batal",
     "save": "Simpan PRD",
     "mdTooltip": "Markdown: \"- butir, 1. bernomor, **tebal**, _miring_, `kode`\"",
-    "helper": "Semua kolom mendukung Markdown — \"- butir, 1. bernomor, **tebal**, _miring_, `kode`\". Gunakan Edit/Preview pada tiap kolom untuk memeriksa hasilnya.",
+    "mdHintShort": "Markdown didukung",
     "modeAria": "mode {{label}}",
     "edit": "Edit",
     "preview": "Preview",

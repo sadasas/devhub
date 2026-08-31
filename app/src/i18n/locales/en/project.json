@@ -124,7 +124,7 @@
     "cancel": "Cancel",
     "save": "Save PRD",
     "mdTooltip": "Markdown: \"- bullet, 1. numbered, **bold**, _italic_, `code`\"",
-    "helper": "Markdown supported in all fields — \"- bullet, 1. numbered, **bold**, _italic_, `code`\". Use Edit/Preview per field to check the result.",
+    "mdHintShort": "Markdown supported",
     "modeAria": "{{label}} mode",
     "edit": "Edit",
     "preview": "Preview",

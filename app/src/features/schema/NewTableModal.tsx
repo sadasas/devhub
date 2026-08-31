@@ -8,6 +8,7 @@ import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { MarkdownField } from '../../components/MarkdownField';
 import type { Column } from '../../lib/types';
 
 interface NewTableModalProps {
@@ -28,7 +29,6 @@ export function NewTableModal({ open, onClose }: NewTableModalProps) {
 
   useEffect(() => {
     if (open) {
-      // reset draft saat modal dibuka — konsisten dengan NewIssueModal
       setName('');
       setComment('');
       setIndexesInput('');
@@ -111,32 +111,39 @@ export function NewTableModal({ open, onClose }: NewTableModalProps) {
           maxLength={128}
         />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '4px 0' }}>
-          {/* Comment — card bg-inset seperti IssueModal description */}
-          <div style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', borderRadius: 8, padding: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <FileText size={12} aria-hidden="true" /> {t('schema.newTableModal.commentLabel')}
-            </div>
-            <textarea
-              className="textarea"
-              rows={2}
-              placeholder={t('schema.newTableModal.commentPlaceholder')}
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              maxLength={10000}
-              aria-label={t('schema.newTableModal.commentLabel')}
-            />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
-              <span style={{ fontSize: 11, color: comment.length > 9000 ? 'var(--status-danger)' : comment.length > 8000 ? 'var(--status-warn)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                {comment.length.toLocaleString()} / {(10000).toLocaleString()}
-              </span>
-            </div>
-          </div>
+          <MarkdownField
+            label={t('schema.newTableModal.commentLabel')}
+            icon={FileText}
+            value={comment}
+            onChange={setComment}
+            placeholder={t('schema.newTableModal.commentPlaceholder')}
+            maxLength={10000}
+            rows={2}
+          />
 
-          {/* Columns — card bg-inset dengan grid editor */}
-          <div style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', borderRadius: 8, padding: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div
+            style={{
+              background: 'var(--bg-inset)',
+              border: '1px solid var(--border-hairline)',
+              borderRadius: 8,
+              padding: 16,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'var(--text-secondary)',
+                marginBottom: 8,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
               <Table size={12} aria-hidden="true" /> {t('schema.table.columnsLabel')}
-              <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: 11 }}>· {columns.filter((c) => c.name.trim()).length} {t('schema.table.columnsLabel').toLowerCase()}</span>
+              <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: 11 }}>
+                · {columns.filter((c) => c.name.trim()).length} {t('schema.table.columnsLabel').toLowerCase()}
+              </span>
             </div>
             <div className="col-edit-grid">
               <div className="col-edit-caption" aria-hidden="true">
@@ -206,9 +213,18 @@ export function NewTableModal({ open, onClose }: NewTableModalProps) {
             </p>
           </div>
 
-          {/* Indexes — inline row 110px label seperti Task/Issue meta row */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, fontSize: 13 }}>
-            <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, paddingTop: 8 }}>
+            <span
+              style={{
+                width: 110,
+                color: 'var(--text-muted)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 12,
+                paddingTop: 8,
+              }}
+            >
               <Table size={12} aria-hidden="true" /> {t('schema.table.indexesLabel')}
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -229,7 +245,18 @@ export function NewTableModal({ open, onClose }: NewTableModalProps) {
                 .map((s) => s.trim())
                 .filter(Boolean)
                 .map((idx) => (
-                  <span key={idx} style={{ padding: '2px 8px', borderRadius: 999, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
+                  <span
+                    key={idx}
+                    style={{
+                      padding: '2px 8px',
+                      borderRadius: 999,
+                      background: 'var(--bg-inset)',
+                      border: '1px solid var(--border-hairline)',
+                      fontSize: 11,
+                      fontFamily: 'var(--font-mono)',
+                      color: 'var(--text-secondary)',
+                    }}
+                  >
                     {idx}
                   </span>
                 ))}
