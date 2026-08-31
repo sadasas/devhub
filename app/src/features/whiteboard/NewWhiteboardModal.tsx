@@ -17,7 +17,7 @@ interface NewWhiteboardModalProps {
 
 export function NewWhiteboardModal({ onClose }: NewWhiteboardModalProps) {
   const { t } = useTranslation('extras');
-  const { state, dispatch } = useProject();
+  const { state, dispatch, canEdit } = useProject();
   usePresenceStatus(t('whiteboard.newModal.presence'));
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -25,6 +25,7 @@ export function NewWhiteboardModal({ onClose }: NewWhiteboardModalProps) {
   const atCap = (state?.whiteboards.length ?? 0) >= MAX_BOARDS;
 
   const submit = () => {
+    if (!canEdit) return;
     if (!name.trim() || atCap) return;
     const template = WHITEBOARD_TEMPLATES.find((t) => t.id === templateId) ?? WHITEBOARD_TEMPLATES[0]!;
     const ts = nowIso();
@@ -53,7 +54,7 @@ export function NewWhiteboardModal({ onClose }: NewWhiteboardModalProps) {
           <Button variant="ghost" onClick={onClose}>
             {t('whiteboard.newModal.cancel')}
           </Button>
-          <Button variant="primary" onClick={submit} disabled={!name.trim() || atCap}>
+          <Button variant="primary" onClick={submit} disabled={!canEdit || !name.trim() || atCap}>
             {t('whiteboard.newModal.create')}
           </Button>
         </>

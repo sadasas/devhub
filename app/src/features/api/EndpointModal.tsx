@@ -17,7 +17,7 @@ interface EndpointModalProps {
 
 export function EndpointModal({ onClose, onCreated, collections }: EndpointModalProps) {
   const { t } = useTranslation('extras');
-  const { dispatch } = useProject();
+  const { dispatch, canEdit } = useProject();
   usePresenceStatus(t('api.endpointModal.presence'));
   const [name, setName] = useState('');
   const [method, setMethod] = useState<ApiMethod>('GET');
@@ -25,6 +25,7 @@ export function EndpointModal({ onClose, onCreated, collections }: EndpointModal
   const [collectionId, setCollectionId] = useState('');
 
   const submit = () => {
+    if (!canEdit) return;
     if (!name.trim() || !path.trim()) return;
     const ts = nowIso();
     const id = newId();
@@ -59,7 +60,7 @@ export function EndpointModal({ onClose, onCreated, collections }: EndpointModal
           <Button variant="ghost" onClick={onClose}>
             {t('api.endpointModal.cancel')}
           </Button>
-          <Button variant="primary" onClick={submit} disabled={!name.trim() || !path.trim()}>
+          <Button variant="primary" onClick={submit} disabled={!canEdit || !name.trim() || !path.trim()}>
             {t('api.endpointModal.create')}
           </Button>
         </>

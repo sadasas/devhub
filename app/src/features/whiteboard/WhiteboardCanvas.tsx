@@ -670,6 +670,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   const proj = useProjectOptional(null);
   const { canEdit, dispatch, projectId, state } =
     proj ?? { canEdit: false, dispatch: noopDispatch, projectId: readOnlyProjectId ?? '', state: readOnlyState };
+  const isReadOnly = readOnly || !canEdit;
   const navigate = useNavigate();
 
   const openRef = useCallback(
@@ -824,6 +825,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   }, [board.elements, edgeDraft, refRects]);
 
   const removeSelection = useCallback(() => {
+    if (isReadOnly) return;
     if (selectedIds.length === 0) return;
     const sel = new Set(selectedIds);
     const lockedIds = new Set(board.elements.filter((el) => el.locked).map((el) => el.id));
@@ -844,10 +846,11 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
     setSelectedIds([]);
     setDragOffset(null);
-  }, [board.id, board.elements, dispatch, history, selectedIds]);
+  }, [board.id, board.elements, dispatch, history, selectedIds, isReadOnly]);
 
   const reorderSelection = useCallback(
     (dir: 1 | -1) => {
+      if (isReadOnly) return;
       if (selectedIds.length === 0) return;
       const sel = new Set(selectedIds);
       const next = [...board.elements];
@@ -868,7 +871,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       history.record();
       dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
     },
-    [board.elements, board.id, dispatch, history, selectedIds],
+    [board.elements, board.id, dispatch, history, selectedIds, isReadOnly],
   );
 
   const copiedElements = useCallback(() => {
@@ -889,6 +892,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
 
   const applyPaste = useCallback(
     (source: WhiteboardElement[], offset: number) => {
+      if (isReadOnly) return;
       if (source.length === 0) return;
       if (board.elements.length + source.length > MAX_ELEMENTS) return;
       const idMap = new Map<string, string>();
@@ -913,19 +917,21 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       setSelectedIds(placed.map((el) => el.id));
       setClipboard(placed);
     },
-    [board.elements, board.id, dispatch, history],
+    [board.elements, board.id, dispatch, history, isReadOnly],
   );
 
   const pasteElements = useCallback(
     (offset: number) => {
+      if (isReadOnly) return;
       if (!clipboard || clipboard.length === 0) return;
       applyPaste(clipboard, offset);
     },
-    [applyPaste, clipboard],
+    [applyPaste, clipboard, isReadOnly],
   );
 
   const onDistribute = useCallback(
     (axis: 'x' | 'y') => () => {
+      if (isReadOnly) return;
       const moves = distributeSelection(
         board.elements.map((el) => ({ id: el.id, ...elementBounds(el) })),
         selectedIds,
@@ -941,11 +947,12 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       history.record();
       dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
     },
-    [board.elements, board.id, dispatch, history, selectedIds],
+    [board.elements, board.id, dispatch, history, selectedIds, isReadOnly],
   );
 
   const onAlign = useCallback(
     (mode: AlignMode) => () => {
+      if (isReadOnly) return;
       const moves = alignSelection(
         board.elements.map((el) => ({ id: el.id, ...elementBounds(el) })),
         selectedIds,
@@ -961,10 +968,11 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       history.record();
       dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
     },
-    [board.elements, board.id, dispatch, history, selectedIds],
+    [board.elements, board.id, dispatch, history, selectedIds, isReadOnly],
   );
 
   const onToggleLock = useCallback(() => {
+    if (isReadOnly) return;
     if (selectedIds.length === 0) return;
     const sel = new Set(selectedIds);
     const selected = board.elements.filter((el) => sel.has(el.id) && el.kind !== 'stroke');
@@ -975,18 +983,20 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     );
     history.record();
     dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
-  }, [board.elements, board.id, dispatch, history, selectedIds]);
+  }, [board.elements, board.id, dispatch, history, selectedIds, isReadOnly]);
 
   const onGroup = useCallback(() => {
+    if (isReadOnly) return;
     const members = board.elements.filter((el) => selectedIds.includes(el.id) && !el.groupId && el.kind !== 'stroke');
     if (members.length < 2) return;
     const gid = newId();
     const next = board.elements.map((el) => (members.includes(el) ? ({ ...el, groupId: gid } as WhiteboardElement) : el));
     history.record();
     dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
-  }, [board.elements, board.id, dispatch, history, selectedIds]);
+  }, [board.elements, board.id, dispatch, history, selectedIds, isReadOnly]);
 
   const onUngroup = useCallback(() => {
+    if (isReadOnly) return;
     const gids = new Set(
       board.elements.filter((el) => selectedIds.includes(el.id) && el.groupId).map((el) => el.groupId) as string[],
     );
@@ -996,7 +1006,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     );
     history.record();
     dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
-  }, [board.elements, board.id, dispatch, history, selectedIds]);
+  }, [board.elements, board.id, dispatch, history, selectedIds, isReadOnly]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -1014,11 +1024,13 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         return;
       }
       if (mod && e.key.toLowerCase() === 'v') {
+        if (isReadOnly) return;
         e.preventDefault();
         pasteElements(24);
         return;
       }
       if (mod && e.key.toLowerCase() === 'd') {
+        if (isReadOnly) return;
         if (selectedIds.length === 0) return;
         e.preventDefault();
         const src = copiedElements();
@@ -1032,6 +1044,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         return;
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (isReadOnly) return;
         if (selectedIds.length === 0) return;
         e.preventDefault();
         removeSelection();
@@ -1056,7 +1069,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlur);
     };
-  }, [selectedIds, removeSelection, copySelection, pasteElements, copiedElements, applyPaste, board.elements]);
+  }, [selectedIds, removeSelection, copySelection, pasteElements, copiedElements, applyPaste, board.elements, isReadOnly]);
 
   useEffect(() => {
     if (tool !== 'select' && tool !== 'marquee') {
@@ -1075,6 +1088,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   };
 
   const startDraw = (e: ReactPointerEvent<SVGSVGElement>) => {
+    if (isReadOnly) return;
     if (e.button !== 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     const pt = worldAt(e);
@@ -1084,6 +1098,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   };
 
   const moveDraw = (e: ReactPointerEvent<SVGSVGElement>) => {
+    if (isReadOnly) return;
     const current = draftRef.current;
     if (!current) return;
     const pt = worldAt(e);
@@ -1093,6 +1108,11 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   };
 
   const endDraw = () => {
+    if (isReadOnly) {
+      draftRef.current = null;
+      setDraft(null);
+      return;
+    }
     const current = draftRef.current;
     draftRef.current = null;
     setDraft(null);
@@ -1132,6 +1152,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   const placeElement = () => {
     const start = placeStartRef.current;
     placeStartRef.current = null;
+    if (isReadOnly) return;
     if (!start || tool !== 'text' && tool !== 'sticky' && tool !== 'shape') return;
     const rect = view.ref.current?.getBoundingClientRect();
     if (!rect) return;
@@ -1161,6 +1182,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     setGuides(null);
     const off = dragOffset;
     setDragOffset(null);
+    if (isReadOnly) return;
     if (!off || (off.dx === 0 && off.dy === 0)) return;
     const sel = new Set(selectedIds);
     const moveIds = new Set(selectedIds);
@@ -1190,6 +1212,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     const d = edgeDraftRef.current;
     edgeDraftRef.current = null;
     setEdgeDraft(null);
+    if (isReadOnly) return;
     if (!d) return;
     const fromEl = board.elements.find((el) => el.id === d.fromId);
     if (!fromEl) return;
@@ -1228,6 +1251,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   const placeRef = (entity: WhiteboardRefEntity, entityId: string) => {
     const pt = refPending;
     setRefPending(null);
+    if (isReadOnly) return;
     if (!pt) return;
     if (board.elements.length >= MAX_ELEMENTS) return;
     history.record();
@@ -1272,7 +1296,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     }
     if (tool === 'select') {
       const resizeTargetEl = selectedIds.length === 1 ? board.elements.find((el) => el.id === selectedIds[0] && RESIZEABLE_KINDS.has(el.kind) && !el.locked) : undefined;
-      if (resizeTargetEl) {
+      if (resizeTargetEl && !isReadOnly) {
         const b = boundsFor(resizeTargetEl);
         const off = dragOffset ?? { dx: 0, dy: 0 };
         const hx = b.x + b.w + off.dx;
@@ -1311,15 +1335,18 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       return;
     }
     if (tool === 'pen' || tool === 'eraser') {
+      if (isReadOnly) return;
       startDraw(e);
       return;
     }
     if (isPlaceTool) {
+      if (isReadOnly) return;
       e.currentTarget.setPointerCapture(e.pointerId);
       placeStartRef.current = { clientX: e.clientX, clientY: e.clientY };
       return;
     }
     if (tool === 'edge') {
+      if (isReadOnly) return;
       const hit = elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects, NO_BOUNDARY);
       if (!hit || hit.kind === 'edge') return;
       const d: EdgeDraft = { fromId: hit.id, fromBounds: boundsFor(hit), cur: pt };
@@ -1328,6 +1355,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       return;
     }
     if (tool === 'boundary') {
+      if (isReadOnly) return;
       e.currentTarget.setPointerCapture(e.pointerId);
       setBoundaryDraft({ x1: pt.x, y1: pt.y, x2: pt.x, y2: pt.y });
       return;
@@ -1339,6 +1367,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       return;
     }
     if (tool === 'ref') {
+      if (isReadOnly) return;
       setRefPending(pt);
       return;
     }
@@ -1350,6 +1379,11 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       return;
     }
     if (tool === 'select') {
+      if (isReadOnly) {
+        // suppress all mutating previews for viewer
+        if (resizeRef.current) setResizePreview(null);
+        return;
+      }
       const pt = worldAt(e);
       if (resizeRef.current) {
         const r = resizeRef.current;
@@ -1395,10 +1429,12 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       return;
     }
     if (tool === 'pen' || tool === 'eraser') {
+      if (isReadOnly) return;
       moveDraw(e);
       return;
     }
     if (tool === 'edge') {
+      if (isReadOnly) return;
       const d = edgeDraftRef.current;
       if (!d) return;
       const next = { ...d, cur: worldAt(e) };
@@ -1416,6 +1452,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       return;
     }
     if (tool === 'boundary') {
+      if (isReadOnly) return;
       const d = boundaryDraft;
       if (!d) return;
       const pt = worldAt(e);
@@ -1452,6 +1489,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         const preview = resizePreview;
         resizeRef.current = null;
         setResizePreview(null);
+        if (isReadOnly) return;
         const targetId = selectedIds.length === 1 ? selectedIds[0] : null;
         if (preview && targetId) {
           history.record();
@@ -1467,24 +1505,29 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         }
         return;
       }
+      if (isReadOnly) return;
       commitDrag();
       return;
     }
     if (tool === 'pen' || tool === 'eraser') {
+      if (isReadOnly) return;
       endDraw();
       return;
     }
     if (isPlaceTool) {
+      if (isReadOnly) return;
       placeElement();
       return;
     }
     if (tool === 'edge') {
+      if (isReadOnly) return;
       commitEdge();
       return;
     }
     if (tool === 'boundary') {
       const d = boundaryDraft;
       setBoundaryDraft(null);
+      if (isReadOnly) return;
       if (!d) return;
       const x = Math.min(d.x1, d.x2);
       const y = Math.min(d.y1, d.y2);
@@ -1556,7 +1599,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       return;
     }
     if (hit.kind === 'stroke') return;
-    if (readOnly) return;
+    if (isReadOnly) return;
     // Double-click now selects the element so the right inspector shows — no overlay popover.
     setSelectedIds([hit.id]);
   };
@@ -1704,7 +1747,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
               selectedIds.length === 1
                 ? (board.elements.find((el) => el.id === selectedIds[0] && RESIZEABLE_KINDS.has(el.kind)) ?? null)
                 : null;
-            if (!target || readOnly) return null;
+            if (!target || isReadOnly) return null;
             const b = boundsFor(target);
             const off = dragOffset ?? { dx: 0, dy: 0 };
             return (

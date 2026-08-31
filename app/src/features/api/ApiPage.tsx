@@ -170,6 +170,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
   }
 
   async function onImportFile(e: ChangeEvent<HTMLInputElement>) {
+    if (!canEdit) return;
     setImportError(null);
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -263,14 +264,16 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
 
   const toolbarButtons = (
     <div className="api-toolbar-actions">
-      <Button
-        variant="ghost"
-        size="sm"
-        leftIcon={<UploadSimple size={13} aria-hidden="true" />}
-        onClick={() => fileInputRef.current?.click()}
-      >
-        {t('api.toolbar.import')}
-      </Button>
+      {canEdit && (
+        <Button
+          variant="ghost"
+          size="sm"
+          leftIcon={<UploadSimple size={13} aria-hidden="true" />}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {t('api.toolbar.import')}
+        </Button>
+      )}
       <Button
         variant="ghost"
         size="sm"

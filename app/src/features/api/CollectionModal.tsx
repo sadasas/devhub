@@ -15,13 +15,14 @@ interface CollectionModalProps {
 
 export function CollectionModal({ onClose, onCreated }: CollectionModalProps) {
   const { t } = useTranslation('extras');
-  const { dispatch, state } = useProject();
+  const { dispatch, state, canEdit } = useProject();
   usePresenceStatus(t('api.collectionModal.presence'));
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const submit = () => {
+    if (!canEdit) return;
     const trimmed = name.trim();
     if (!trimmed) return;
     if (state?.apiCollections.some((c) => c.name.toLowerCase() === trimmed.toLowerCase())) {
@@ -54,7 +55,7 @@ export function CollectionModal({ onClose, onCreated }: CollectionModalProps) {
           <Button variant="ghost" onClick={onClose}>
             {t('api.collectionModal.cancel')}
           </Button>
-          <Button variant="primary" onClick={submit} disabled={!name.trim()}>
+          <Button variant="primary" onClick={submit} disabled={!canEdit || !name.trim()}>
             {t('api.collectionModal.create')}
           </Button>
         </>

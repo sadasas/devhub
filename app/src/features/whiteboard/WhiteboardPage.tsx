@@ -6,7 +6,7 @@ import { WhiteboardList } from './WhiteboardList';
 import { WhiteboardEditorShell } from './WhiteboardEditorShell';
 
 export function WhiteboardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
-  const { state, loading } = useProject();
+  const { state, loading, canEdit } = useProject();
   const [searchParams, setSearchParams] = useSearchParams();
   const [openId, setOpenId] = useEntityOpenParam(searchParams, setSearchParams);
   useEntityDeepLink('whiteboards', setOpenId);
@@ -30,6 +30,7 @@ export function WhiteboardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> 
         <WhiteboardEditorShell
           board={board}
           state={state}
+          readOnly={!canEdit}
           onBack={() => {
             const next = new URLSearchParams(searchParams);
             next.delete('view');

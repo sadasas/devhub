@@ -23,6 +23,7 @@ import { registerAddApiEndpoint } from '../application/tools/add-api-endpoint.js
 import { registerUpdateApiEndpoint } from '../application/tools/update-api-endpoint.js';
 import { registerCreateWhiteboard } from '../application/tools/create-whiteboard.js';
 import { registerUpdateWhiteboard } from '../application/tools/update-whiteboard.js';
+import { registerListWhiteboards } from '../application/tools/list-whiteboards.js';
 
 export const mcpRouter = Router();
 
@@ -61,6 +62,7 @@ mcpRouter.post('/', async (req, res) => {
   registerAddApiCollection(mcpServer);
   registerAddApiEndpoint(mcpServer);
   registerUpdateApiEndpoint(mcpServer);
+  registerListWhiteboards(mcpServer);
   registerCreateWhiteboard(mcpServer);
   registerUpdateWhiteboard(mcpServer);
   const transport = new StreamableHTTPServerTransport({

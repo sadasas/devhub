@@ -54,6 +54,11 @@
       "svg": "Gambar SVG",
       "pdf": "Dokumen PDF"
     },
+    "viewer": {
+      "badge": "Hanya lihat",
+      "banner": "Anda memiliki akses hanya lihat — pengeditan dinonaktifkan.",
+      "readOnlyTip": "Hanya lihat — pengeditan dinonaktifkan"
+    },
     "cap": {
       "badge": "{{count}}/1000 elemen",
       "atLimit": "Batas elemen tercapai — hapus beberapa elemen untuk menambah lagi.",

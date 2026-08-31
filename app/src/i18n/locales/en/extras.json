@@ -54,6 +54,11 @@
       "svg": "SVG image",
       "pdf": "PDF document"
     },
+    "viewer": {
+      "badge": "View only",
+      "banner": "You have view-only access — editing is disabled.",
+      "readOnlyTip": "View only — editing is disabled"
+    },
     "cap": {
       "badge": "{{count}}/1000 elements",
       "atLimit": "Element limit reached — delete elements to add more.",

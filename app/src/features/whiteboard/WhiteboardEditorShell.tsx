@@ -18,6 +18,7 @@ import { useProject } from '../../state/project-context';
 interface WhiteboardEditorShellProps {
   board: Whiteboard;
   state: State;
+  readOnly?: boolean;
   onBack: () => void;
 }
 
@@ -46,7 +47,7 @@ const TOOL_GROUPS: Array<ReadonlyArray<(typeof TOOLS)[number]>> = [
   TOOLS.slice(5) as unknown as ReadonlyArray<(typeof TOOLS)[number]>, // text/sticky/shape/edge/ref/boundary
 ];
 
-export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditorShellProps) {
+export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }: WhiteboardEditorShellProps) {
   const { t } = useTranslation('extras');
   const { dispatch } = useProject();
   const [tool, setTool] = useState<WbTool>('select');
@@ -239,6 +240,7 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
   }, [selectedElement, refDataMap]);
 
   const handleInspectorPatch = (patch: Record<string, unknown>) => {
+    if (readOnly) return;
     if (!selectedElement) return;
     const next = board.elements.map((el) => (el.id === selectedElement.id ? ({ ...el, ...patch } as typeof el) : el));
     history.record();
@@ -250,6 +252,7 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
   };
 
   const handleInspectorCancel = () => {
+    if (readOnly) return;
     if (selectedElement && (selectedElement.kind === 'sticky' || selectedElement.kind === 'text')) {
       const txt = (selectedElement as { text?: string }).text ?? '';
       if (txt === '') {
@@ -272,6 +275,7 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
   };
 
   const handleLayersToggleLock = (id: string) => {
+    if (readOnly) return;
     const el = board.elements.find((e) => e.id === id);
     if (!el || el.kind === 'stroke') return;
     const next = board.elements.map((e) => (e.id === id ? ({ ...e, locked: !e.locked } as typeof e) : e));
@@ -323,16 +327,19 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
         return;
       }
       if (mod && key === 'z' && !e.shiftKey) {
+        if (readOnly) return;
         e.preventDefault();
         historyRef.current.undo();
         return;
       }
       if (mod && key === 'y') {
+        if (readOnly) return;
         e.preventDefault();
         historyRef.current.redo();
         return;
       }
       if (mod && key === 'z' && e.shiftKey) {
+        if (readOnly) return;
         e.preventDefault();
         historyRef.current.redo();
         return;
@@ -343,27 +350,27 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
         setTool('select');
       } else if (key === SHORTCUTS.marquee && ACTIVE_TOOLS.has('marquee')) {
         setTool('marquee');
-      } else if (!atCap && key === SHORTCUTS.pen && ACTIVE_TOOLS.has('pen')) {
+      } else if (!atCap && !readOnly && key === SHORTCUTS.pen && ACTIVE_TOOLS.has('pen')) {
         setTool('pen');
-      } else if (key === SHORTCUTS.eraser && ACTIVE_TOOLS.has('eraser')) {
+      } else if (!readOnly && key === SHORTCUTS.eraser && ACTIVE_TOOLS.has('eraser')) {
         setTool('eraser');
-      } else if (!atCap && key === SHORTCUTS.text && ACTIVE_TOOLS.has('text')) {
+      } else if (!atCap && !readOnly && key === SHORTCUTS.text && ACTIVE_TOOLS.has('text')) {
         setTool('text');
-      } else if (!atCap && key === SHORTCUTS.sticky && ACTIVE_TOOLS.has('sticky')) {
+      } else if (!atCap && !readOnly && key === SHORTCUTS.sticky && ACTIVE_TOOLS.has('sticky')) {
         setTool('sticky');
-      } else if (!atCap && key === SHORTCUTS.shape && ACTIVE_TOOLS.has('shape')) {
+      } else if (!atCap && !readOnly && key === SHORTCUTS.shape && ACTIVE_TOOLS.has('shape')) {
         setTool('shape');
-      } else if (!atCap && key === SHORTCUTS.edge && ACTIVE_TOOLS.has('edge')) {
+      } else if (!atCap && !readOnly && key === SHORTCUTS.edge && ACTIVE_TOOLS.has('edge')) {
         setTool('edge');
-      } else if (!atCap && key === SHORTCUTS.ref && ACTIVE_TOOLS.has('ref')) {
+      } else if (!atCap && !readOnly && key === SHORTCUTS.ref && ACTIVE_TOOLS.has('ref')) {
         setTool('ref');
-      } else if (!atCap && key === SHORTCUTS.boundary && ACTIVE_TOOLS.has('boundary')) {
+      } else if (!atCap && !readOnly && key === SHORTCUTS.boundary && ACTIVE_TOOLS.has('boundary')) {
         setTool('boundary');
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [atCap]);
+  }, [atCap, readOnly]);
 
   return (
     <div className="wb-shell" ref={shellRef}>
@@ -377,18 +384,22 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
               {group.map((item) => {
                 const active = ACTIVE_TOOLS.has(item.id) && tool === item.id;
                 const blocked = atCap && ADD_TOOLS.has(item.id);
+                const readOnlyBlocked = readOnly && item.id !== 'view' && item.id !== 'select' && item.id !== 'marquee';
                 const name = t(item.nameKey);
+                const disabled = !ACTIVE_TOOLS.has(item.id) || blocked || readOnlyBlocked;
+                const tip = readOnlyBlocked ? t('whiteboard.viewer.readOnlyTip') : blocked ? t('whiteboard.tool.limitReached', { name }) : `${name} — ${item.shortcut}`;
                 return (
               <button
                 key={item.id}
                 type="button"
                 className={`sub-tab${active ? ' sub-tab-active' : ''}`}
-                disabled={!ACTIVE_TOOLS.has(item.id) || blocked}
-                title={blocked ? t('whiteboard.tool.limitReached', { name }) : name}
-                data-tooltip={blocked ? t('whiteboard.tool.limitReached', { name }) : `${name} — ${item.shortcut}`}
+                disabled={disabled}
+                title={readOnlyBlocked ? t('whiteboard.viewer.readOnlyTip') : blocked ? t('whiteboard.tool.limitReached', { name }) : name}
+                data-tooltip={tip}
                 aria-label={`${name} — ${item.shortcut}`}
                 aria-pressed={active}
                 onClick={() => {
+                  if (disabled) return;
                   if (ACTIVE_TOOLS.has(item.id)) setTool(item.id as WbTool);
                 }}
               >
@@ -402,10 +413,11 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
           <button
             type="button"
             className={`sub-tab${snapOn ? ' sub-tab-active' : ''}`}
-            title={snapOn ? t('whiteboard.canvas.snapOn') : t('whiteboard.canvas.snapOff')}
-            data-tooltip={snapOn ? t('whiteboard.canvas.snapOn') : t('whiteboard.canvas.snapOff')}
+            title={readOnly ? t('whiteboard.viewer.readOnlyTip') : snapOn ? t('whiteboard.canvas.snapOn') : t('whiteboard.canvas.snapOff')}
+            data-tooltip={readOnly ? t('whiteboard.viewer.readOnlyTip') : snapOn ? t('whiteboard.canvas.snapOn') : t('whiteboard.canvas.snapOff')}
             aria-label={snapOn ? t('whiteboard.canvas.snapOn') : t('whiteboard.canvas.snapOff')}
             aria-pressed={snapOn}
+            disabled={readOnly}
             onClick={() => setSnapOn((v) => !v)}
           >
             <MagnetStraight size={15} aria-hidden="true" />
@@ -414,9 +426,9 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
           <button
             type="button"
             className="sub-tab"
-            disabled={!history.canUndo}
-            title={t('whiteboard.toolbar.undoTitle')}
-            data-tooltip={t('whiteboard.toolbar.undoTitle')}
+            disabled={!history.canUndo || readOnly}
+            title={readOnly ? t('whiteboard.viewer.readOnlyTip') : t('whiteboard.toolbar.undoTitle')}
+            data-tooltip={readOnly ? t('whiteboard.viewer.readOnlyTip') : t('whiteboard.toolbar.undoTitle')}
             aria-label={t('whiteboard.toolbar.undoAria')}
             onClick={history.undo}
           >
@@ -425,9 +437,9 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
           <button
             type="button"
             className="sub-tab"
-            disabled={!history.canRedo}
-            title={t('whiteboard.toolbar.redoTitle')}
-            data-tooltip={t('whiteboard.toolbar.redoTitle')}
+            disabled={!history.canRedo || readOnly}
+            title={readOnly ? t('whiteboard.viewer.readOnlyTip') : t('whiteboard.toolbar.redoTitle')}
+            data-tooltip={readOnly ? t('whiteboard.viewer.readOnlyTip') : t('whiteboard.toolbar.redoTitle')}
             aria-label={t('whiteboard.toolbar.redoAria')}
             onClick={history.redo}
           >
@@ -572,6 +584,12 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
             </span>
           </div>
         )}
+        {readOnly && (
+          <div className="wb-cap-banner" role="status" aria-live="polite">
+            <Badge tone="info">{t('whiteboard.viewer.badge')}</Badge>
+            <span>{t('whiteboard.viewer.banner')}</span>
+          </div>
+        )}
       </div>
 
       <div className="wb-main">
@@ -583,8 +601,9 @@ export function WhiteboardEditorShell({ board, state, onBack }: WhiteboardEditor
         <div className="wb-main-canvas">
           <WhiteboardCanvas
             board={board}
-            tool={tool}
+            tool={readOnly && tool !== 'view' && tool !== 'select' && tool !== 'marquee' ? 'select' : tool}
             history={history}
+            readOnly={readOnly}
             selectedIds={selectedIds}
             onSelectedChange={setSelectedIds}
             snapOn={snapOn}
