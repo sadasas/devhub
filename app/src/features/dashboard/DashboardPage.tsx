@@ -5,7 +5,8 @@ import type { ProjectStats } from '../../lib/stats';
 import { useProjects } from '../../state/projects-context';
 import { useTeams } from '../../state/teams-context';
 import { useAuth } from '../../state/auth-context';
-import { Archive } from '@phosphor-icons/react';
+import { Archive, EnvelopeSimple } from '@phosphor-icons/react';
+import { Link } from 'react-router';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/Skeleton';
@@ -21,7 +22,7 @@ import { WelcomeEmptyNoTeam, WelcomeEmptyNoProject, WelcomeEmptyNoResult } from 
 
 export function DashboardPage() {
   const { projects, loading, error, refresh } = useProjects();
-  const { teams } = useTeams();
+  const { teams, invitations } = useTeams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -258,6 +259,22 @@ export function DashboardPage() {
         outdatedTotal={heroStats.outdated}
         onNewProject={() => setNewOpen(true)}
       />
+
+      {invitations.length > 0 && (
+        <div className="welcome-invites-banner" role="status" aria-live="polite">
+          <span className="welcome-invites-banner-icon" aria-hidden="true">
+            <EnvelopeSimple size={16} weight="duotone" />
+          </span>
+          <span className="welcome-invites-banner-text">
+            {invitations.length === 1
+              ? '1 undangan tim menunggu keputusan Anda'
+              : `${invitations.length} undangan tim menunggu keputusan Anda`}
+          </span>
+          <Link to="/invites" className="welcome-invites-banner-cta">
+            Lihat undangan →
+          </Link>
+        </div>
+      )}
 
       {/* bento 4 stats — boxless, hijau primary, icon 22px — Image 1 */}
       {projects && projects.length > 0 && (
