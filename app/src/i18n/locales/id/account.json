@@ -30,6 +30,21 @@
     "error": {
       "passwordMismatch": "Kata sandi tidak cocok.",
       "generic": "Terjadi kesalahan. Coba lagi."
+    },
+    "oauth": {
+      "returnToHint": "Anda akan diarahkan untuk otorisasi aplikasi eksternal setelah masuk."
+    },
+    "forgot": {
+      "title": "Reset kata sandi",
+      "subtitle": "Masukkan email Anda dan kami akan mengirim link reset.",
+      "link": "Lupa kata sandi?",
+      "submit": "Kirim link reset",
+      "success": "Jika email itu ada, link reset telah dikirim.",
+      "back": "Ingat kata sandi?",
+      "resetTitle": "Atur kata sandi baru",
+      "resetSub": "Pilih kata sandi baru untuk akun Anda.",
+      "resetSubmit": "Perbarui kata sandi",
+      "resetSuccess": "Kata sandi diperbarui — mengalihkan ke login..."
     }
   },
   "dashboard": {
@@ -187,8 +202,8 @@
     "appearanceHint": "Pilih tampilan DevHub. System mengikuti OS Anda."
   },
   "keys": {
-    "title": "API keys",
-    "subtitle": "API key untuk AI coding agent membaca dan memperbarui proyek Anda lewat MCP. Key lengkap hanya ditampilkan sekali saat dibuat.",
+    "title": "MCP Terhubung",
+    "subtitle": "Aplikasi OAuth yang diotorisasi via opencode mcp auth devhub",
     "newKey": "Key baru",
     "copied": "Tersalin",
     "copy": "Salin",

@@ -14,7 +14,7 @@ import {
   Info,
 } from '@phosphor-icons/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '../../components/Button';
@@ -59,6 +59,8 @@ const TOC_ITEMS: { id: string; labelKey: string }[] = [
   { id: 'mcp-project-id', labelKey: 'docs.mcp.toc.projectId' },
   { id: 'mcp-env', labelKey: 'docs.mcp.toc.env' },
   { id: 'mcp-config', labelKey: 'docs.mcp.toc.config' },
+  { id: 'mcp-oauth', labelKey: 'docs.mcp.toc.oauth' },
+  { id: 'mcp-ratelimit', labelKey: 'docs.mcp.toc.ratelimit' },
   { id: 'mcp-restart', labelKey: 'docs.mcp.toc.restart' },
   { id: 'mcp-verify', labelKey: 'docs.mcp.toc.verify' },
   { id: 'mcp-auto-prompt', labelKey: 'docs.mcp.toc.autoPrompt' },
@@ -130,14 +132,12 @@ Before creating a task (session start or mid-session), ask the user whether the 
 
 const AUTO_PROMPT_SNIPPET = `## Prerequisites
 
-Before sync begins, ensure MCP is configured:
+Before sync begins, ensure MCP is configured (OAuth 2.1 PKCE):
 
-1. Check env var DEVHUB_MCP_KEY — if empty, ask user via question tool (custom: true):
-   "DevHub MCP key is not set. Open DevHub → sidebar → API Keys → create a key, then paste it here."
+1. Run \`opencode mcp auth devhub\` — browser opens to DevHub login (form custom), then auto-stores token.
 2. Check env var DEVHUB_PROJECT_ID — if empty, ask user via question tool (custom: true):
    "Project ID is not set. Open a project in DevHub → copy the ID from the header, then paste it here."
-3. If MCP returns 401 (key invalid/expired), ask user again:
-   "MCP key is not valid. Create a new key at DevHub → API Keys → then paste it here."
+3. If MCP returns 401 (token expired), run \`opencode mcp auth devhub\` again.
 4. If MCP is not reachable (server down), log as pending and continue main work.`;
 
 const TASK_LIFECYCLE = `Status: todo → inProgress → review → done
@@ -584,7 +584,6 @@ function DocsVariantTabs({ variants, commitNoteKey }: { variants: VariantFile[];
 // ---------------------------------------------------------------------------
 
 export function McpDocsPage() {
-  const navigate = useNavigate();
   const { t } = useTranslation('extras');
   const [agent, setAgent] = useState<AgentId>(() => getInitialAgent());
   const tocItems: DocsTocItem[] = useMemo(
@@ -626,21 +625,21 @@ export function McpDocsPage() {
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
-
   const psEnv = useMemo(
-    () =>
-      `$env:DEVHUB_MCP_KEY = "devhub_your_key_here"\n$env:DEVHUB_PROJECT_ID = "a1b2c3d4-e5f6-4a7b-9c0d-1234567890ab"  # optional`,
+    () => `$env:DEVHUB_PROJECT_ID = "a1b2c3d4-e5f6-4a7b-9c0d-1234567890ab"  # optional
+# OAuth — run: opencode mcp auth devhub (browser login, token auto-rotated)`,
     [],
   );
   const bashEnv = useMemo(
-    () => `export DEVHUB_MCP_KEY="devhub_your_key_here"\nexport DEVHUB_PROJECT_ID="a1b2c3d4-e5f6-4a7b-9c0d-1234567890ab"  # optional`,
+    () => `export DEVHUB_PROJECT_ID="a1b2c3d4-e5f6-4a7b-9c0d-1234567890ab"  # optional
+# OAuth — run: opencode mcp auth devhub (browser login, token auto-rotated)`,
     [],
   );
 
   const projectIdExample = t('docs.mcp.projectId.headerExample');
   const { copied: copiedPid, copy: copyPid } = useCopyFeedback();
 
-  // Per-agent config snippets
+  // Per-agent config snippets — OAuth public only (no API key)
   const snippets = useMemo(() => {
     const url = mcpUrl;
     return {
@@ -655,18 +654,16 @@ export function McpDocsPage() {
     "devhub": {
       "type": "remote",
       "url": "${url}",
-      "headers": {
-        "Authorization": "Bearer {env:DEVHUB_MCP_KEY}"
-      },
       "enabled": true
     }
   }
-}`,
+}
+// then: opencode mcp auth devhub  -> browser -> login -> token auto-rotated`,
           },
         ],
       },
       claude: {
-        cli: `claude mcp add --transport http devhub ${url} --header "Authorization: Bearer \${DEVHUB_MCP_KEY}"`,
+        cli: `claude mcp add --transport http devhub ${url}`,
         files: [
           {
             file: '.mcp.json  (project)',
@@ -675,10 +672,7 @@ export function McpDocsPage() {
   "mcpServers": {
     "devhub": {
       "type": "http",
-      "url": "${url}",
-      "headers": {
-        "Authorization": "Bearer \${DEVHUB_MCP_KEY}"
-      }
+      "url": "${url}"
     }
   }
 }`,
@@ -690,10 +684,7 @@ export function McpDocsPage() {
   "mcpServers": {
     "devhub": {
       "type": "http",
-      "url": "${url}",
-      "headers": {
-        "Authorization": "Bearer \${DEVHUB_MCP_KEY}"
-      }
+      "url": "${url}"
     }
   }
 }`,
@@ -708,10 +699,7 @@ export function McpDocsPage() {
             code: `{
   "mcpServers": {
     "devhub": {
-      "url": "${url}",
-      "headers": {
-        "Authorization": "Bearer \${DEVHUB_MCP_KEY}"
-      }
+      "url": "${url}"
     }
   }
 }`,
@@ -722,10 +710,7 @@ export function McpDocsPage() {
             code: `{
   "mcpServers": {
     "devhub": {
-      "url": "${url}",
-      "headers": {
-        "Authorization": "Bearer \${DEVHUB_MCP_KEY}"
-      }
+      "url": "${url}"
     }
   }
 }`,
@@ -740,10 +725,7 @@ export function McpDocsPage() {
             code: `{
   "mcpServers": {
     "devhub": {
-      "serverUrl": "${url}",
-      "headers": {
-        "Authorization": "Bearer \${DEVHUB_MCP_KEY}"
-      }
+      "serverUrl": "${url}"
     }
   }
 }`,
@@ -759,10 +741,7 @@ export function McpDocsPage() {
   "servers": {
     "devhub": {
       "type": "http",
-      "url": "${url}",
-      "headers": {
-        "Authorization": "Bearer \${DEVHUB_MCP_KEY}"
-      }
+      "url": "${url}"
     }
   }
 }`,
@@ -774,10 +753,7 @@ export function McpDocsPage() {
   "servers": {
     "devhub": {
       "type": "http",
-      "url": "${url}",
-      "headers": {
-        "Authorization": "Bearer \${DEVHUB_MCP_KEY}"
-      }
+      "url": "${url}"
     }
   }
 }`,
@@ -792,10 +768,7 @@ export function McpDocsPage() {
             code: `{
   "mcpServers": {
     "devhub": {
-      "serverUrl": "${url}",
-      "headers": {
-        "Authorization": "Bearer \${DEVHUB_MCP_KEY}"
-      }
+      "serverUrl": "${url}"
     }
   }
 }`,
@@ -807,7 +780,7 @@ export function McpDocsPage() {
 
   const verifyCurl = useMemo(
     () =>
-      `curl -s -X POST ${mcpUrl} \\\n  -H "Authorization: Bearer $DEVHUB_MCP_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | jq`,
+      `# OAuth — get token via opencode mcp auth devhub, then:\nTOKEN=$(jq -r .access_token ~/.local/share/opencode/mcp-auth.json)\ncurl -s -X POST ${mcpUrl} \\\n  -H "Authorization: Bearer $TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | jq`,
     [mcpUrl],
   );
 
@@ -886,18 +859,21 @@ export function McpDocsPage() {
               </p>
             </section>
 
-            {/* 01 Create key */}
+            {/* 01 OAuth — no key needed */}
             <section id="mcp-key" className="docs-step" tabIndex={-1}>
               <span className="docs-step-num">01</span>
               <div className="docs-step-content">
-                <h2 className="docs-step-title">{t('docs.mcp.step.keyTitle')}</h2>
+                <h2 className="docs-step-title">{t('docs.mcp.step.keyTitle', { defaultValue: 'Authorize via OAuth' })}</h2>
                 <p className="docs-step-desc">
-                  Create a per-user key in DevHub. The raw key is shown once — save it to{' '}
-                  <code className="inline-code">DEVHUB_MCP_KEY</code>.
+                  No API key needed — OAuth public uses PKCE. Run{' '}
+                  <code className="inline-code">opencode mcp auth devhub</code> and log in via the custom form.
                 </p>
-                <Button leftIcon={<Key size={14} weight="bold" aria-hidden="true" />} onClick={() => navigate('/keys')}>
-                  {t('docs.mcp.goToKeys')}
-                </Button>
+                <Callout>
+                  <span>
+                    After <code className="inline-code">opencode mcp auth devhub</code>, token is stored in{' '}
+                    <code className="inline-code">~/.local/share/opencode/mcp-auth.json</code> and auto-refreshed.
+                  </span>
+                </Callout>
               </div>
             </section>
 
@@ -990,31 +966,91 @@ export function McpDocsPage() {
                     </Callout>
                   ) : null}
 
-                  {agent === 'claude' ? (
-                    <Callout>
-                      <span>
-                        CLI uses <code className="inline-code">{'${DEVHUB_MCP_KEY}'}</code> expansion; JSON also supports{' '}
-                        <code className="inline-code">{'${DEVHUB_MCP_KEY}'}</code>. Don&apos;t use{' '}
-                        <code className="inline-code">{'{env:DEVHUB_MCP_KEY}'}</code> (opencode only).
-                      </span>
-                    </Callout>
-                  ) : null}
-                  {agent === 'opencode' ? (
-                    <Callout>
-                      <span>
-                        opencode uses <code className="inline-code">{'{env:DEVHUB_MCP_KEY}'}</code> — not{' '}
-                        <code className="inline-code">{'${DEVHUB_MCP_KEY}'}</code>. Ensure{' '}
-                        <code className="inline-code">enabled: true</code>.
-                      </span>
-                    </Callout>
-                  ) : null}
+                  <Callout>
+                    <span>
+                      OAuth — run <code className="inline-code">opencode mcp auth devhub</code> (browser login, token auto-rotated).
+                      Ensure <code className="inline-code">enabled: true</code>.
+                    </span>
+                  </Callout>
                 </div>
               </div>
             </section>
 
-            {/* 05 Restart */}
-            <section id="mcp-restart" className="docs-step" tabIndex={-1}>
+            {/* 05 OAuth — public flow */}
+            <section id="mcp-oauth" className="docs-step" tabIndex={-1}>
               <span className="docs-step-num">05</span>
+              <div className="docs-step-content">
+                <h2 className="docs-step-title">{t('docs.mcp.step.oauthTitle', { defaultValue: 'OAuth 2.1 PKCE — Public' })}</h2>
+                <p className="docs-step-desc">
+                  {t('docs.mcp.oauth.desc', {
+                    defaultValue: 'OAuth 2.1 PKCE — DevHub is the Authorization Server (PKCE S256 mandatory).',
+                  })}
+                </p>
+                <div className="docs-config-card" style={{ padding: 12 }}>
+                  <p style={{ fontSize: 13, lineHeight: 1.6 }}>
+                    <strong>Discovery:</strong>{' '}
+                    <code className="inline-code">GET /.well-known/oauth-authorization-server</code> &{' '}
+                    <code className="inline-code">/.well-known/oauth-protected-resource</code>
+                    <br />
+                    <strong>Flow:</strong> <code className="inline-code">POST /oauth/register</code> (DCR) →{' '}
+                    <code className="inline-code">GET /oauth/authorize?code_challenge</code> (login via form custom) →{' '}
+                    <code className="inline-code">POST /oauth/token</code> (code+verifier → access_token 15m + refresh 30d rotation)
+                    <br />
+                    <strong>MCP:</strong> <code className="inline-code">Authorization: Bearer &lt;access_token&gt;</code>{' '}
+                    (scope <code className="inline-code">mcp</code>). <code className="inline-code">WWW-Authenticate</code> hints{' '}
+                    <code className="inline-code">resource_metadata</code> on 401.
+                  </p>
+                </div>
+                <CodeBlock
+                  lang="JSON"
+                  file="opencode.json"
+                  code={`{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "devhub": {
+      "type": "remote",
+      "url": "${mcpUrl}",
+      "enabled": true
+    }
+  }
+}
+// then: opencode mcp auth devhub  -> browser -> login -> token auto-rotated`}
+                />
+              </div>
+            </section>
+
+            {/* 06 Rate limit */}
+            <section id="mcp-ratelimit" className="docs-step" tabIndex={-1}>
+              <span className="docs-step-num">06</span>
+              <div className="docs-step-content">
+                <h2 className="docs-step-title">{t('docs.mcp.step.ratelimitTitle', { defaultValue: 'Rate Limits' })}</h2>
+                <div className="docs-config-card" style={{ padding: 12 }}>
+                  <ul style={{ fontSize: 13, lineHeight: 1.6, margin: 0, paddingLeft: 16 }}>
+                    <li>
+                      <code className="inline-code">/api/v1/*</code> 300/15m per IP
+                    </li>
+                    <li>
+                      <code className="inline-code">/mcp</code> 120/15m per IP + 500/15m per token
+                    </li>
+                    <li>
+                      <code className="inline-code">/auth/*</code> 5–10/15m (login/register/password/forgot)
+                    </li>
+                    <li>
+                      <code className="inline-code">429</code> → <code className="inline-code">RATE_LIMITED</code> (draft-7 headers)
+                    </li>
+                  </ul>
+                </div>
+                <p className="docs-step-note">
+                  {t('docs.mcp.ratelimit.note', {
+                    defaultValue: 'Whiteboard: 50 boards / 1000 elements, 5000 tasks/issues.',
+                  })}
+                </p>
+              </div>
+            </section>
+
+            {/* 07 Restart */}
+            <section id="mcp-restart" className="docs-step" tabIndex={-1}>
+              <span className="docs-step-num">07</span>
               <div className="docs-step-content">
                 <h2 className="docs-step-title">{t('docs.mcp.step.restartTitle', { agent: AGENT_META[agent].label })}</h2>
                 <div className="docs-config-card" style={{ padding: 12 }}>
@@ -1076,9 +1112,9 @@ export function McpDocsPage() {
               </div>
             </section>
 
-            {/* 06 Verify */}
+            {/* 08 Verify */}
             <section id="mcp-verify" className="docs-step" tabIndex={-1}>
-              <span className="docs-step-num">06</span>
+              <span className="docs-step-num">08</span>
               <div className="docs-step-content">
                 <h2 className="docs-step-title">{t('docs.mcp.step.verifyTitle')}</h2>
 
@@ -1146,9 +1182,9 @@ export function McpDocsPage() {
               </div>
             </section>
 
-            {/* 07 Auto prompt — 5 variant tabs */}
+            {/* 09 Auto prompt — 5 variant tabs */}
             <section id="mcp-auto-prompt" className="docs-step" tabIndex={-1}>
-              <span className="docs-step-num">07</span>
+              <span className="docs-step-num">09</span>
               <div className="docs-step-content">
                 <h2 className="docs-step-title">{t('docs.mcp.step.autoPromptTitle')}</h2>
                 <p className="docs-step-desc">
@@ -1167,9 +1203,9 @@ export function McpDocsPage() {
               </div>
             </section>
 
-            {/* 08 Agent sync — 5 variant tabs */}
+            {/* 10 Agent sync — 5 variant tabs */}
             <section id="mcp-agentsync" className="docs-step" tabIndex={-1}>
-              <span className="docs-step-num">08</span>
+              <span className="docs-step-num">10</span>
               <div className="docs-step-content">
                 <h2 className="docs-step-title">{t('docs.mcp.step.agentsyncTitle')}</h2>
                 <p className="docs-step-desc">
@@ -1186,7 +1222,10 @@ export function McpDocsPage() {
                   commitNoteKey="docs.mcp.agentsync.commitNote"
                 />
                 <div style={{ marginTop: 12 }}>
-                  <CodeBlock lang="PowerShell" code={`$env:DEVHUB_MCP_KEY = "devhub_your_key_here"      # required — MCP auth\n$env:DEVHUB_PROJECT_ID = "<your-project-uuid>" # optional — default sync target\n\n# Linux/macOS:\nexport DEVHUB_MCP_KEY="devhub_your_key_here"\nexport DEVHUB_PROJECT_ID="<your-project-uuid>"`} />
+                  <CodeBlock
+                    lang="PowerShell"
+                    code={`$env:DEVHUB_PROJECT_ID = "<your-project-uuid>" # optional — default sync target\n# then: opencode mcp auth devhub`}
+                  />
                 </div>
 
                 <h3 className="docs-step-subtitle">{t('docs.mcp.lifecycle.title')}</h3>
@@ -1297,7 +1336,7 @@ export function McpDocsPage() {
               <h2 className="docs-section-title">{t('docs.mcp.nextSteps')}</h2>
               <div className="docs-next-grid">
                 <Link
-                  to="/keys"
+                  to="/connected"
                   className="docs-card"
                   aria-label={`${t('docs.mcp.apiKeysTitle')} — ${t('docs.mcp.apiKeysSub')}`}
                 >
@@ -1317,3 +1356,4 @@ export function McpDocsPage() {
     </div>
   );
 }
+

@@ -3,7 +3,6 @@ import {
   CurrencyCircleDollar,
   EnvelopeSimple,
   FolderSimple,
-  Key,
   MagnifyingGlass,
   Notebook,
   Plugs,
@@ -111,8 +110,8 @@ export function Sidebar({ activeTeamId, activeMain = 'team', onCreateTeam }: Sid
             <span>Tools</span>
           </div>
           <nav className="sidebar-nav" aria-label="Tools">
-            <NavLink to="/keys" className={itemClass()} aria-label={t('sidebar.apiKeys')}>
-              <Key size={15} weight="duotone" aria-hidden="true" />
+            <NavLink to="/connected" className={itemClass()} aria-label={t('sidebar.apiKeys')}>
+              <Plugs size={15} weight="duotone" aria-hidden="true" />
               <span>{t('sidebar.apiKeys')}</span>
             </NavLink>
             <NavLink to="/templates" className={itemClass()} aria-label={t('sidebar.templatesNav')}>
@@ -299,3 +298,6 @@ export function Sidebar({ activeTeamId, activeMain = 'team', onCreateTeam }: Sid
     </aside>
   );
 }
+
+
+

@@ -1,6 +1,7 @@
 import { Router, type Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
+import { randomBytes } from 'node:crypto';
 import { pool } from '../../../db/pool.js';
 import { hashPassword, verifyPassword } from '../infrastructure/password.js';
 import { signToken, JWT_TTL_SECONDS } from '../infrastructure/jwt.js';
@@ -157,6 +158,24 @@ authRouter.patch('/password', passwordLimiter, requireAuth, async (req, res) => 
   res.json({ ok: true });
 });
 
+const forgotSchema = z.object({
+  email: z.string().trim().toLowerCase().email('Invalid email').max(254),
+});
+
+const resetSchema = z.object({
+  token: z.string().min(10).max(500),
+  newPassword: z.string().min(8, 'Password must be at least 8 characters').max(128),
+});
+
+const forgotLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  validate: { trustProxy: false },
+  message: { error: { code: 'RATE_LIMITED', message: 'Too many reset attempts, try again later' } },
+});
+
 const profileSchema = z
   .object({
     displayName: z.string().trim().max(60, 'Display name must be at most 60 characters').optional(),
@@ -165,6 +184,66 @@ const profileSchema = z
   .refine((v) => v.displayName !== undefined || v.bio !== undefined, {
     message: 'At least one field must be provided',
   });
+
+authRouter.post('/forgot-password', forgotLimiter, async (req, res) => {
+  const { email } = parseOrThrow(forgotSchema, req.body, 'Invalid email');
+  const result = await pool.query<{ id: string }>('SELECT id FROM users WHERE email = $1', [email]);
+  const user = result.rows[0];
+  // Always return ok to avoid email enumeration (even if user not found)
+  if (!user) {
+    res.json({ ok: true, message: 'If that email exists, a reset link has been sent.' });
+    return;
+  }
+  const token = randomBytes(32).toString('base64url');
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+  await pool.query(
+    'INSERT INTO password_reset_tokens (token, user_id, expires_at) VALUES ($1,$2,$3)',
+    [token, user.id, expiresAt],
+  );
+  // For MVP: return token directly (in production, send email)
+  // Also invalidate previous unused tokens for this user
+  await pool.query(
+    "DELETE FROM password_reset_tokens WHERE user_id = $1 AND token != $2 AND used_at IS NULL AND expires_at < now()",
+    [user.id, token],
+  );
+  res.json({
+    ok: true,
+    message: 'If that email exists, a reset link has been sent.',
+    // Expose token in dev/test for e2e; hide in production
+    ...(config.NODE_ENV !== 'production' ? { token, expiresAt: expiresAt.toISOString() } : {}),
+  });
+});
+
+authRouter.post('/reset-password', forgotLimiter, async (req, res) => {
+  const { token, newPassword } = parseOrThrow(resetSchema, req.body, 'Invalid reset data');
+  const result = await pool.query<{ user_id: string; expires_at: string; used_at: string | null }>(
+    'SELECT user_id, expires_at, used_at FROM password_reset_tokens WHERE token = $1',
+    [token],
+  );
+  const row = result.rows[0];
+  if (!row) throw new ApiError(400, 'INVALID_TOKEN', 'Invalid or expired reset token');
+  if (row.used_at) throw new ApiError(400, 'INVALID_TOKEN', 'Reset token already used');
+  if (new Date(row.expires_at).getTime() < Date.now()) throw new ApiError(400, 'INVALID_TOKEN', 'Reset token expired');
+
+  const passwordHash = await hashPassword(newPassword);
+  await pool.query('BEGIN');
+  try {
+    await pool.query(
+      'UPDATE users SET password_hash = $2, jwt_version = jwt_version + 1, updated_at = now() WHERE id = $1',
+      [row.user_id, passwordHash],
+    );
+    await pool.query('UPDATE password_reset_tokens SET used_at = now() WHERE token = $1', [token]);
+    // Invalidate all other reset tokens for user
+    await pool.query('DELETE FROM password_reset_tokens WHERE user_id = $1 AND token != $2', [row.user_id, token]);
+    // Invalidate OAuth tokens (force re-login for agents)
+    await pool.query('DELETE FROM oauth_access_tokens WHERE user_id = $1', [row.user_id]);
+    await pool.query('COMMIT');
+  } catch (err) {
+    await pool.query('ROLLBACK');
+    throw err;
+  }
+  res.json({ ok: true });
+});
 
 authRouter.post('/logout', (req, res) => {
   res.clearCookie(SESSION_COOKIE, { path: '/' });

@@ -35,6 +35,7 @@ const PublicProjectPageLazy = lazy(() => import('./features/public/PublicProject
 const PricingPageLazy = lazy(() => import('./features/pricing/PricingPage').then((m) => ({ default: m.PricingPage })));
 const PaymentHistoryPageLazy = lazy(() => import('./features/billing/PaymentHistoryPage').then((m) => ({ default: m.PaymentHistoryPage })));
 const BillingRedirectPageLazy = lazy(() => import('./features/teams/BillingRedirectPage').then((m) => ({ default: m.BillingRedirectPage })));
+const ResetPasswordPageLazy = lazy(() => import('./features/auth/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })));
 const CommandPaletteLazy = lazy(() => import('./components/CommandPalette').then((m) => ({ default: m.CommandPalette })));
 
 function Splash() {
@@ -47,10 +48,26 @@ function Splash() {
   );
 }
 
+function getReturnTo(): string | null {
+  try {
+    const rt = new URLSearchParams(window.location.search).get('returnTo');
+    if (rt && (rt.startsWith('http://localhost:3000/oauth/authorize') || rt.startsWith('https://'))) return rt;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function Root() {
   const { user, loading } = useAuth();
   if (loading) return <Splash />;
   if (!user) return <AuthPage />;
+  // Unified auth: if already logged in and OAuth authorize was requested, redirect back
+  const returnTo = getReturnTo();
+  if (returnTo) {
+    window.location.href = returnTo;
+    return <Splash />;
+  }
   return (
     <TeamsProvider>
       <ProjectsProvider>
@@ -89,7 +106,7 @@ function Root() {
               }
             />
             <Route
-              path="/keys"
+              path="/connected"
               element={
                 <RouteBoundary fallback={<KeysSkeleton />}>
                   <KeysPageLazy />
@@ -144,6 +161,7 @@ function Root() {
                 </RouteBoundary>
               }
             />
+            <Route path="/keys" element={<Navigate to="/connected" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
@@ -179,6 +197,14 @@ export default function App() {
                 </RouteBoundary>
               }
             />
+            <Route
+              path="/reset-password"
+              element={
+                <RouteBoundary fallback={<Skeleton style={{ width: '100%', height: 200 }} />}>
+                  <ResetPasswordPageLazy />
+                </RouteBoundary>
+              }
+            />
             <Route path="/*" element={<Root />} />
           </Routes>
         </BrowserRouter>
@@ -186,3 +212,4 @@ export default function App() {
     </AuthProvider>
   );
 }
+

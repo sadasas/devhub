@@ -97,7 +97,7 @@ export function Layout() {
 
   const derivedMainFromRoute = useMemo<'home' | 'team' | null>(() => {
     if (location.pathname.startsWith('/team/') || location.pathname.startsWith('/project/')) return 'team';
-    if (location.pathname === '/' || location.pathname.startsWith('/invites') || location.pathname.startsWith('/pricing') || location.pathname.startsWith('/payments') || location.pathname.startsWith('/keys') || location.pathname.startsWith('/templates') || location.pathname.startsWith('/docs')) return 'home';
+    if (location.pathname === '/' || location.pathname.startsWith('/invites') || location.pathname.startsWith('/pricing') || location.pathname.startsWith('/payments') || location.pathname.startsWith('/connected') || location.pathname.startsWith('/keys') || location.pathname.startsWith('/templates') || location.pathname.startsWith('/docs')) return 'home';
     return null;
   }, [location.pathname]);
 
@@ -525,3 +525,4 @@ export function Layout() {
     </div>
   );
 }
+

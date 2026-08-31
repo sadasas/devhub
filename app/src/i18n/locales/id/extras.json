@@ -649,10 +649,10 @@
       "intro": "Hubungkan opencode dan agen AI lainnya ke workspace DevHub Anda agar mereka dapat membuat task, melaporkan issue, dan mencatat keputusan langsung dari editor Anda.",
       "setupGuide": "Panduan setup",
       "setupGuideSub": "Buat key, konfigurasikan opencode, dan verifikasi koneksinya",
-      "goToKeys": "Buka API Keys",
+      "goToKeys": "Panduan OAuth",
       "nextSteps": "Langkah selanjutnya",
-      "apiKeysTitle": "API Keys",
-      "apiKeysSub": "Buat atau cabut key yang digunakan agen Anda",
+      "apiKeysTitle": "OAuth",
+      "apiKeysSub": "OAuth 2.1 PKCE — tanpa API key",
       "toc": {
         "prereq": "Sebelum Anda mulai",
         "key": "Buat API key",
@@ -666,7 +666,7 @@
         "autoPrompt": "Auto-prompt"
       },
       "step": {
-        "keyTitle": "Buat API key",
+        "keyTitle": "Otorisasi via OAuth",
         "projectIdTitle": "Dapatkan project ID Anda",
         "envTitle": "Atur variabel env",
         "configTitle": "Buat konfigurasi {{agent}}",
@@ -790,7 +790,7 @@
     "hub": {
       "title": "Jelajahi",
       "quickstartTitle": "Quickstart",
-      "quickstartSub": "≤2 menit — API key, project ID & opencode config",
+      "quickstartSub": "2 menit — OAuth, project ID & opencode config",
       "mcpTitle": "MCP Multi-Agent",
       "mcpSub": "6 agen · Streamable HTTP · Postgres sync",
       "shortcutsTitle": "Pintasan Keyboard",
@@ -807,15 +807,15 @@
     "quickstart": {
       "title": "Quickstart",
       "subtitle": "Terhubung dalam kurang dari 2 menit",
-      "step1Title": "Buat API key",
-      "step1Desc": "Buka API Keys dan buat key. Salin — Anda akan butuh untuk variabel env.",
+      "step1Title": "Otorisasi via OAuth",
+      "step1Desc": "Jalankan opencode mcp auth devhub dan login via form custom. Token auto-rotated.",
       "step2Title": "Dapatkan project ID",
       "step2Desc": "Buka proyek dan salin ID dari header.",
       "step3Title": "Konfigurasi opencode",
       "step3Desc": "Tambahkan server MCP ke opencode.json dan set DEVHUB_MCP_KEY.",
       "verifyTitle": "Verifikasi",
       "verifyDesc": "Restart opencode dan jalankan project_state untuk konfirmasi koneksi.",
-      "goToKeys": "Buka API Keys",
+      "goToKeys": "Panduan OAuth",
       "goToMcp": "Buka panduan MCP"
     }
   }

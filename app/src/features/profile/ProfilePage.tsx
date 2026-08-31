@@ -283,7 +283,7 @@ export function ProfilePage() {
           </div>
 
           <nav className="settings-links" aria-label={t('profile.relatedAria')}>
-            <Link to="/keys">
+            <Link to="/connected">
               {t('profile.links.apiKeys')}
               <ArrowRight size={12} aria-hidden="true" />
             </Link>

@@ -649,10 +649,10 @@
       "intro": "Connect opencode and other AI agents to your DevHub workspace so they can create tasks, file issues, and track decisions directly from your editor.",
       "setupGuide": "Setup guide",
       "setupGuideSub": "Create a key, configure opencode, and verify the connection",
-      "goToKeys": "Go to API Keys",
+      "goToKeys": "OAuth Guide",
       "nextSteps": "Next steps",
-      "apiKeysTitle": "API Keys",
-      "apiKeysSub": "Create or revoke the keys your agents use",
+      "apiKeysTitle": "OAuth",
+      "apiKeysSub": "OAuth 2.1 PKCE — no API keys",
       "toc": {
         "prereq": "Before you begin",
         "key": "Create an API key",
@@ -666,7 +666,7 @@
         "autoPrompt": "Auto-prompt"
       },
       "step": {
-        "keyTitle": "Create an API key",
+        "keyTitle": "Authorize via OAuth",
         "projectIdTitle": "Get your project ID",
         "envTitle": "Set the env variable",
         "configTitle": "Create {{agent}} config",
@@ -790,7 +790,7 @@
     "hub": {
       "title": "Explore",
       "quickstartTitle": "Quickstart",
-      "quickstartSub": "≤2 min — API key, project ID & opencode config",
+      "quickstartSub": "2 min — OAuth, project ID & opencode config",
       "mcpTitle": "MCP Multi-Agent",
       "mcpSub": "6 agents · Streamable HTTP · Postgres sync",
       "shortcutsTitle": "Keyboard Shortcuts",
@@ -807,15 +807,15 @@
     "quickstart": {
       "title": "Quickstart",
       "subtitle": "Get connected in under 2 minutes",
-      "step1Title": "Create an API key",
-      "step1Desc": "Go to API Keys and generate a key. Copy it — you’ll need it for the env variable.",
+      "step1Title": "Authorize via OAuth",
+      "step1Desc": "Run opencode mcp auth devhub and log in via the custom form. Token auto-rotated.",
       "step2Title": "Get your project ID",
       "step2Desc": "Open a project and copy the ID from the header.",
       "step3Title": "Configure opencode",
       "step3Desc": "Add the MCP server to opencode.json and set DEVHUB_MCP_KEY.",
       "verifyTitle": "Verify",
       "verifyDesc": "Restart opencode and run project_state to confirm the connection.",
-      "goToKeys": "Go to API Keys",
+      "goToKeys": "OAuth Guide",
       "goToMcp": "Open MCP guide"
     }
   }

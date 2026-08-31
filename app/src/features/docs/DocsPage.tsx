@@ -207,7 +207,7 @@ export function DocsPage() {
                   <div className="docs-step-content">
                     <h3 className="docs-step-title">{t('docs.quickstart.step1Title')}</h3>
                     <p className="docs-step-desc">{t('docs.quickstart.step1Desc')}</p>
-                    <Link to="/keys" className="btn btn-secondary btn-sm">
+                    <Link to="/connected" className="btn btn-secondary btn-sm">
                       {t('docs.quickstart.goToKeys')}
                     </Link>
                   </div>
@@ -289,3 +289,4 @@ export function DocsPage() {
     </div>
   );
 }
+

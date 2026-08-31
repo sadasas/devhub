@@ -998,8 +998,8 @@
     "quickstart": {
       "title": "Quickstart",
       "subtitle": "Get connected in under 2 minutes",
-      "step1Title": "Create an API key",
-      "step1Desc": "Go to API Keys and generate a key. Copy it — you’ll need it for the env variable.",
+      "step1Title": "Authorize via OAuth",
+      "step1Desc": "Run opencode mcp auth devhub and log in via the custom form. Token auto-rotated.",
       "step2Title": "Get your project ID",
       "step2Desc": "Open a project and copy the ID from the header.",
       "step3Title": "Configure opencode",

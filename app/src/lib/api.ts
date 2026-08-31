@@ -173,6 +173,16 @@ export const api = {
     }),
   logout: () => request<void>('/auth/logout', { method: 'POST' }),
   me: () => request<User>('/auth/me'),
+  forgotPassword: (email: string) =>
+    request<{ ok: true; message: string; token?: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+  resetPassword: (token: string, newPassword: string) =>
+    request<{ ok: true }>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, newPassword }),
+    }),
   changePassword: (currentPassword: string, newPassword: string) =>
     request<{ ok: true }>('/auth/password', {
       method: 'PATCH',
@@ -375,6 +385,11 @@ export const api = {
     const res = await request<{ key: string }>(`/keys/${encodeURIComponent(keyId)}/reveal`);
     return res.key;
   },
+
+  authorizedApps: () =>
+    request<{ apps: Array<{ clientId: string; clientName: string; redirectUris: string[]; scope: string; resource: string; tokenPrefix: string; expiresAt: string; createdAt: string }>; total: number }>('/oauth/authorized-apps'),
+  revokeAuthorizedApp: (clientId: string) =>
+    request<{ ok: true; revoked: number }>(`/oauth/authorized-apps/${encodeURIComponent(clientId)}`, { method: 'DELETE' }),
 
   listTeams: async () => {
     const res = await request<{ teams: Team[] }>('/teams');

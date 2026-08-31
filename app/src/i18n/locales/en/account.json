@@ -30,6 +30,21 @@
     "error": {
       "passwordMismatch": "Passwords do not match.",
       "generic": "Something went wrong. Try again."
+    },
+    "oauth": {
+      "returnToHint": "You will be redirected to authorize the external app after sign in."
+    },
+    "forgot": {
+      "title": "Reset your password",
+      "subtitle": "Enter your email and we will send a reset link.",
+      "link": "Forgot password?",
+      "submit": "Send reset link",
+      "success": "If that email exists, a reset link has been sent.",
+      "back": "Remembered?",
+      "resetTitle": "Set new password",
+      "resetSub": "Choose a new password for your account.",
+      "resetSubmit": "Update password",
+      "resetSuccess": "Password updated — redirecting to login..."
     }
   },
   "dashboard": {
@@ -187,8 +202,8 @@
     "appearanceHint": "Choose how DevHub looks. System follows your OS."
   },
   "keys": {
-    "title": "API keys",
-    "subtitle": "Keys for AI coding agents to read and update your projects over MCP. The full key is shown only once when you create it.",
+    "title": "Connected MCP",
+    "subtitle": "OAuth apps authorized via opencode mcp auth devhub",
     "newKey": "New key",
     "copied": "Copied",
     "copy": "Copy",

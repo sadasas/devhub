@@ -18,6 +18,7 @@ import { templatesRouter } from './modules/templates/handlers/templates.routes.j
 import { mcpRouter } from './modules/mcp/handlers/server.js';
 import { requireMcpKey } from './modules/mcp/handlers/require-key.js';
 import { hashMcpKey } from './modules/keys/infrastructure/keys.js';
+import { oauthRouter } from './modules/oauth/oauth.routes.js';
 import { entityRouter } from './modules/projects/handlers/v1/entity-router.js';
 import { searchRouter } from './modules/search/handlers/v1/search.routes.js';
 import { activityRouter } from './modules/activity/handlers/v1/activity.routes.js';
@@ -43,6 +44,14 @@ export function errorHandler(
   _next: NextFunction,
 ): void {
   if (err instanceof ApiError) {
+    // RFC9728: MCP 401 should hint resource_metadata for OAuth discovery
+    if (err.status === 401 && req.path.startsWith('/mcp')) {
+      const base = `${req.protocol}://${req.get('host')}`;
+      res.setHeader(
+        'WWW-Authenticate',
+        `Bearer resource_metadata="${base}/.well-known/oauth-protected-resource"`,
+      );
+    }
     res.status(err.status).json({
       error: { code: err.code, message: err.message, ...(err.details ? { details: err.details } : {}) },
     });
@@ -164,7 +173,11 @@ export function createApp(): express.Express {
   }
   app.use(requestLogger);
   app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
+  // OAuth discovery + DCR + authorize/token (must be before MCP, no auth)
+  app.use(oauthRouter);
+  app.use('/api/v1', oauthRouter); // alias for /api/v1/oauth/* (frontend api.ts uses API_BASE)
   app.use('/api/v1', limiter);
 
   app.get('/api/v1/health', async (_req, res) => {
@@ -199,3 +212,5 @@ export function createApp(): express.Express {
   app.use(errorHandler);
   return app;
 }
+
+

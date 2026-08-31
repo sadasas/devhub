@@ -82,7 +82,7 @@ export function CommandPalette() {
         icon: <Key size={16} />,
         run: () => {
           setOpen(false);
-          navigate('/keys');
+          navigate('/connected');
         },
       },
       {
@@ -423,3 +423,4 @@ export function CommandPalette() {
     </div>
   );
 }
+

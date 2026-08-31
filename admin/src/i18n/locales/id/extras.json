@@ -998,8 +998,8 @@
     "quickstart": {
       "title": "Quickstart",
       "subtitle": "Terhubung dalam kurang dari 2 menit",
-      "step1Title": "Buat API key",
-      "step1Desc": "Buka API Keys dan buat key. Salin — Anda akan butuh untuk variabel env.",
+      "step1Title": "Otorisasi via OAuth",
+      "step1Desc": "Jalankan opencode mcp auth devhub dan login via form custom. Token auto-rotated.",
       "step2Title": "Dapatkan project ID",
       "step2Desc": "Buka proyek dan salin ID dari header.",
       "step3Title": "Konfigurasi opencode",
