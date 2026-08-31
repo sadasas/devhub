@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import {
   ArrowRight,
   CalendarBlank,
+  Check,
+  Copy,
   FolderSimple,
   GithubLogo,
   GoogleLogo,
@@ -17,28 +19,22 @@ import {
 } from '@phosphor-icons/react';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
-import { formatDate } from '../../lib/utils';
+import { copyText, formatDate, shortId } from '../../lib/utils';
 import { initialsOf } from '../../lib/initials';
 import { avatarColor } from '../../lib/avatar';
-import type { TeamRole } from '../../lib/types';
+import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { Skeleton } from '../../components/Skeleton';
 import { ThemeSwitcher } from '../../components/ThemeSwitcher';
 import { ChangePasswordModal } from './ChangePasswordModal';
 import { ProfileEditModal } from './ProfileEditModal';
 import { ProfileStats } from './ProfileStats';
+import { UnlinkProviderModal } from './UnlinkProviderModal';
 import { useAuth } from '../../state/auth-context';
 import { useProjects } from '../../state/projects-context';
 import { useTeams } from '../../state/teams-context';
 
 type ProfileTab = 'profile' | 'security' | 'account';
-
-const ROLE_LABEL_KEYS: Record<TeamRole, string> = {
-  owner: 'profile.role.owner',
-  admin: 'profile.role.admin',
-  editor: 'profile.role.editor',
-  viewer: 'profile.role.viewer',
-};
 
 function StatItem({
   icon,
@@ -80,7 +76,11 @@ export function ProfilePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [linked, setLinked] = useState<{ provider: string; email: string | null }[] | null>(null);
   const [linkedError, setLinkedError] = useState<string | null>(null);
-  const [unlinkBusy, setUnlinkBusy] = useState<string | null>(null);
+  const [unlinkTarget, setUnlinkTarget] = useState<'google' | 'github' | null>(null);
+  const [unlinkBusy, setUnlinkBusy] = useState(false);
+  const [unlinkError, setUnlinkError] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState(false);
+  const [showFullId, setShowFullId] = useState(false);
 
   const tabParam = searchParams.get('tab');
   const tab: ProfileTab =
@@ -120,18 +120,30 @@ export function ProfilePage() {
     if (tab === 'security') fetchLinked();
   }, [tab]);
 
-  const handleUnlink = async (provider: string) => {
-    if (!confirm(`Unlink ${provider}?`)) return;
-    setUnlinkBusy(provider);
+  const handleUnlinkConfirm = async () => {
+    if (!unlinkTarget) return;
+    setUnlinkBusy(true);
+    setUnlinkError(null);
     setLinkedError(null);
     try {
-      await api.unlinkProvider(provider);
+      await api.unlinkProvider(unlinkTarget);
       await fetchLinked();
       await refresh();
+      setUnlinkTarget(null);
     } catch (err) {
-      setLinkedError(getErrorMessage(err, 'Failed to unlink'));
+      const msg = getErrorMessage(err, t('profile.security.unlinkFailed', { defaultValue: 'Failed to unlink' }));
+      setUnlinkError(msg);
+      setLinkedError(msg);
     } finally {
-      setUnlinkBusy(null);
+      setUnlinkBusy(false);
+    }
+  };
+
+  const handleCopyId = async () => {
+    const ok = await copyText(user!.id);
+    if (ok) {
+      setCopiedId(true);
+      window.setTimeout(() => setCopiedId(false), 2000);
     }
   };
 
@@ -143,14 +155,6 @@ export function ProfilePage() {
 
   const name = user.displayName.trim() || user.email;
 
-  const roleOrder: TeamRole[] = ['viewer', 'editor', 'admin', 'owner'];
-  const topRole: TeamRole | null = teams?.length
-    ? teams.reduce<TeamRole>(
-        (acc, t) => (roleOrder.indexOf(t.role) > roleOrder.indexOf(acc) ? t.role : acc),
-        'viewer',
-      )
-    : null;
-  const roleLabel = topRole ? t(ROLE_LABEL_KEYS[topRole]) : null;
   const avatarStyle = { '--avatar-fg': avatarColor(user.id) } as React.CSSProperties;
 
   return (
@@ -200,12 +204,6 @@ export function ProfilePage() {
                 <CalendarBlank size={12} weight="duotone" aria-hidden="true" />
                 {t('profile.joined', { date: formatDate(user.createdAt) })}
               </span>
-              {roleLabel && (
-                <span className="profile-chip">
-                  <ShieldCheck size={12} weight="duotone" aria-hidden="true" />
-                  {roleLabel}
-                </span>
-              )}
               {user.providers?.includes('google') && (
                 <span className="profile-chip">
                   <GoogleLogo size={12} weight="bold" /> Google
@@ -362,16 +360,18 @@ export function ProfilePage() {
               <div className="settings-action-main">
                 <span className="settings-action-title">{t('profile.security.password')}</span>
                 <span className="settings-action-desc">
-                  {t('profile.security.passwordDesc')}
+                  {user.hasPassword === false ? t('profile.security.passwordSetDesc', { defaultValue: 'No password yet \u2014 set one to enable email login. You can keep using Google/GitHub.' }) : t('profile.security.passwordDesc')}
                 </span>
               </div>
               <Button variant="secondary" onClick={() => setChangeOpen(true)}>
-                {t('profile.security.changePassword')}
+                {user.hasPassword === false
+                  ? t('profile.security.setPassword', { defaultValue: 'Set password' })
+                  : t('profile.security.changePassword')}
               </Button>
             </div>
-            {!user.hasPassword && (
-              <p className="field-helper" style={{ marginTop: 8, color: 'var(--warning)' }}>
-                This account uses Google/GitHub login. Set a password to enable email login.
+            {user.hasPassword === false && (
+              <p className="field-helper" style={{ marginTop: 8, color: 'var(--status-warn)' }}>
+                This account uses Google/GitHub login. Set a password to enable email login and allow unlinking OAuth.
               </p>
             )}
           </div>
@@ -396,8 +396,8 @@ export function ProfilePage() {
                   </div>
                 </div>
                 {isGoogleLinked ? (
-                  <Button variant="ghost" disabled={unlinkBusy === 'google'} onClick={() => handleUnlink('google')}>
-                    {unlinkBusy === 'google' ? '...' : 'Unlink'}
+                  <Button variant="ghost" onClick={() => { setUnlinkError(null); setUnlinkTarget('google'); }}>
+                    {t('profile.security.unlink', { defaultValue: 'Unlink' })}
                   </Button>
                 ) : (
                   <a
@@ -420,8 +420,8 @@ export function ProfilePage() {
                   </div>
                 </div>
                 {isGithubLinked ? (
-                  <Button variant="ghost" disabled={unlinkBusy === 'github'} onClick={() => handleUnlink('github')}>
-                    {unlinkBusy === 'github' ? '...' : 'Unlink'}
+                  <Button variant="ghost" onClick={() => { setUnlinkError(null); setUnlinkTarget('github'); }}>
+                    {t('profile.security.unlink', { defaultValue: 'Unlink' })}
                   </Button>
                 ) : (
                   <a
@@ -441,30 +441,110 @@ export function ProfilePage() {
 
       {tab === 'account' && (
         <section className="profile-tab-panel" aria-label={t('profile.accountPanelAria')}>
-          <div className="profile-panel">
-            <h3 className="profile-panel-title">{t('theme.appearance')}</h3>
-            <p className="field-helper" style={{ marginBottom: 12 }}>
-              {t('theme.appearanceHint')}
+          <div className="profile-panel profile-panel--primary">
+            <h3 className="profile-panel-title profile-panel-title--primary">
+              {t('profile.account.detailTitle', { defaultValue: 'Account details' })}
+            </h3>
+            <p className="field-helper" style={{ marginBottom: 14 }}>
+              {t('profile.account.detailHelper', {
+                defaultValue: 'Email & ID for login, invites, and support.',
+              })}
             </p>
-            <ThemeSwitcher variant="segmented" />
-          </div>
-          <div className="profile-panel">
             <dl className="settings-rows">
               <div className="settings-row">
                 <dt>{t('profile.account.email')}</dt>
-                <dd>{user.email}</dd>
+                <dd style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  <span>{user.email}</span>
+                  {(() => {
+                    const isVerified = user.emailVerified ?? (user.providers?.length ?? 0) > 0;
+                    return (
+                      <Badge tone={isVerified ? 'success' : 'warn'} dot>
+                        {isVerified
+                          ? t('profile.account.verified', { defaultValue: 'Verified' })
+                          : t('profile.account.unverified', { defaultValue: 'Unverified' })}
+                      </Badge>
+                    );
+                  })()}
+                </dd>
               </div>
+              <p className="field-helper field-helper--row">
+                {t('profile.account.emailHelper', { defaultValue: 'Email for login & team invites.' })}
+              </p>
               <div className="settings-row">
                 <dt>{t('profile.account.memberSince')}</dt>
                 <dd>{formatDate(user.createdAt)}</dd>
               </div>
-              <div className="settings-row">
+              <div className="settings-row settings-row--accountId">
                 <dt>{t('profile.account.accountId')}</dt>
-                <dd className="settings-mono" title={user.id}>
-                  {user.id}
+                <dd className="settings-row-value">
+                  <span className="settings-mono" title={user.id} style={{ maxWidth: showFullId ? '100%' : 96, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: showFullId ? 'normal' : 'nowrap', wordBreak: showFullId ? 'break-all' : undefined }}>
+                    {showFullId ? user.id : shortId(user.id)}
+                  </span>
+                  <span className="settings-row-actions">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      leftIcon={copiedId ? <Check size={13} weight="bold" aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
+                      onClick={() => void handleCopyId()}
+                      aria-label={t('profile.account.copyIdAria', { defaultValue: 'Copy account ID' })}
+                      title={user.id}
+                    >
+                      {copiedId
+                        ? t('profile.account.copied', { defaultValue: 'Copied' })
+                        : t('profile.account.copyId', { defaultValue: 'Copy' })}
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setShowFullId((v) => !v)}>
+                      {showFullId
+                        ? t('profile.account.hideFull', { defaultValue: 'Hide' })
+                        : t('profile.account.viewFull', { defaultValue: 'Show full' })}
+                    </Button>
+                  </span>
+                  {copiedId && (
+                    <span className="field-helper" role="status" aria-live="polite" style={{ fontSize: 11 }}>
+                      {t('profile.account.copied', { defaultValue: 'Copied' })}
+                    </span>
+                  )}
                 </dd>
               </div>
+              <p className="field-helper field-helper--row">
+                {t('profile.account.idHelper', {
+                  defaultValue: 'Used when contacting support. Copy copies the full ID.',
+                })}
+              </p>
             </dl>
+          </div>
+
+          <div className="profile-panel profile-panel--secondary">
+            <h3 className="profile-panel-title">{t('profile.account.preferencesTitle', { defaultValue: 'Preferences' })}</h3>
+            <p className="field-helper" style={{ marginBottom: 12 }}>
+              {t('profile.account.preferencesHelper', {
+                defaultValue: 'Light/Dark — System follows your OS.',
+              })}
+            </p>
+            <ThemeSwitcher variant="segmented" />
+          </div>
+
+          <div className="profile-panel">
+            <h3 className="profile-panel-title">{t('profile.account.dataHelpTitle', { defaultValue: 'Data & Help' })}</h3>
+            <p className="field-helper" style={{ marginBottom: 12 }}>
+              {t('profile.account.dataHelpDesc', {
+                defaultValue: 'Your data stays yours — export or import anytime.',
+              })}
+            </p>
+            <nav className="settings-links" aria-label={t('profile.relatedAria')}>
+              <Link to="/connected">
+                {t('profile.links.apiKeys')}
+                <ArrowRight size={12} aria-hidden="true" />
+              </Link>
+              <Link to="/docs/mcp">
+                {t('profile.links.mcpGuide')}
+                <ArrowRight size={12} aria-hidden="true" />
+              </Link>
+              <Link to="/docs">
+                Docs
+                <ArrowRight size={12} aria-hidden="true" />
+              </Link>
+            </nav>
           </div>
         </section>
       )}
@@ -473,6 +553,22 @@ export function ProfilePage() {
 
       <ProfileEditModal open={editOpen} onClose={() => setEditOpen(false)} />
       <ChangePasswordModal open={changeOpen} onClose={() => setChangeOpen(false)} />
+      <UnlinkProviderModal
+        open={unlinkTarget !== null}
+        provider={unlinkTarget}
+        email={unlinkTarget ? (linked?.find((l) => l.provider === unlinkTarget)?.email ?? null) : null}
+        hasPassword={user.hasPassword !== false}
+        linkedCount={linked?.length ?? 0}
+        busy={unlinkBusy}
+        error={unlinkError}
+        onClose={() => {
+          if (!unlinkBusy) {
+            setUnlinkTarget(null);
+            setUnlinkError(null);
+          }
+        }}
+        onConfirm={() => void handleUnlinkConfirm()}
+      />
     </div>
   );
 }

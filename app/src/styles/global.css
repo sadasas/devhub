@@ -8369,6 +8369,44 @@ input[type='checkbox'] {
   color: var(--accent);
 }
 
+.profile-panel--primary .profile-panel-title--primary {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.profile-panel--secondary {
+  background: var(--bg-overlay);
+}
+
+.field-helper--row {
+  margin: -6px 0 8px;
+  padding-left: 0;
+  font-size: 11.5px;
+}
+
+.settings-row--accountId {
+  align-items: center;
+}
+
+.settings-row-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 62%;
+}
+
+.settings-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .profile-panel-empty {
   margin: 0;
   font-size: 13px;
@@ -8850,6 +8888,33 @@ input[type='checkbox'] {
 @media (max-width: 480px) {
   .profile-heat-days {
     display: none;
+  }
+
+  .settings-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .settings-row dt {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .settings-row dd {
+    text-align: left;
+    width: 100%;
+  }
+
+  .settings-row-value {
+    max-width: 100%;
+    justify-content: flex-start;
+  }
+
+  .field-helper--row {
+    padding-left: 0;
   }
 }
 

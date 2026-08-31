@@ -8,6 +8,7 @@ import { InlineError } from '../../components/InlineError';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { FE_LIMITS } from '../../lib/limits';
+import { useAuth } from '../../state/auth-context';
 
 interface ChangePasswordModalProps {
   open: boolean;
@@ -40,6 +41,7 @@ function PasswordToggle({
 
 export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps) {
   const { t } = useTranslation('account');
+  const { user, refresh } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -61,7 +63,21 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
     setChangeSuccess(false);
   }, [open]);
 
-  const canSubmit = currentPassword !== '' && newPassword !== '' && confirmPassword !== '';
+  const isSetMode = user?.hasPassword === false;
+
+  const canSubmit = isSetMode
+    ? newPassword !== '' && confirmPassword !== ''
+    : currentPassword !== '' && newPassword !== '' && confirmPassword !== '';
+
+  const title = isSetMode
+    ? t('profile.changeModal.setTitle', { defaultValue: 'Set password' })
+    : t('profile.changeModal.title');
+  const successText = isSetMode
+    ? t('profile.changeModal.setSuccess', { defaultValue: 'Password set. You can now sign in with email.' })
+    : t('profile.changeModal.success');
+  const submitLabel = isSetMode
+    ? t('profile.changeModal.setSubmit', { defaultValue: 'Set password' })
+    : t('profile.changeModal.update');
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -72,7 +88,8 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
     }
     setChanging(true);
     try {
-      await api.changePassword(currentPassword, newPassword);
+      await api.changePassword(isSetMode ? '' : currentPassword, newPassword);
+      if (refresh) await refresh();
       setChangeSuccess(true);
     } catch (err) {
       setChangeError(getErrorMessage(err, t('profile.changeModal.failed')));
@@ -84,7 +101,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
   return (
     <Modal
       open={open}
-      title={t('profile.changeModal.title')}
+      title={title}
       onClose={onClose}
       width="sm"
       footer={
@@ -101,7 +118,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
               loading={changing}
               disabled={!canSubmit}
             >
-              {t('profile.changeModal.update')}
+              {submitLabel}
             </Button>
           </>
         )
@@ -110,7 +127,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
       {changeSuccess ? (
         <div className="change-success" role="status">
           <CheckCircle size={22} weight="duotone" aria-hidden="true" />
-          <p>{t('profile.changeModal.success')}</p>
+          <p>{successText}</p>
         </div>
       ) : (
         <form
@@ -118,15 +135,24 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
           className="form-stack"
           onSubmit={(e) => void onSubmit(e)}
         >
-          <Input
-            label={t('profile.changeModal.current')}
-            type="password"
-            autoComplete="current-password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            required
-            maxLength={FE_LIMITS.PASSWORD}
-          />
+          {!isSetMode && (
+            <Input
+              label={t('profile.changeModal.current')}
+              type="password"
+              autoComplete="current-password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              required
+              maxLength={FE_LIMITS.PASSWORD}
+            />
+          )}
+          {isSetMode && (
+            <p className="field-helper" style={{ marginBottom: 4 }}>
+              {t('profile.changeModal.setHelper', {
+                defaultValue: 'Choose a password to enable email login. You can still use Google/GitHub.'
+              })}
+            </p>
+          )}
           <Input
             label={t('profile.changeModal.new')}
             type={showNew ? 'text' : 'password'}

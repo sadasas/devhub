@@ -123,13 +123,44 @@
     "security": {
       "password": "Kata sandi",
       "passwordDesc": "Gunakan minimal 8 karakter, berbeda dari kata sandi saat ini.",
-      "changePassword": "Ganti kata sandi"
+      "changePassword": "Ganti kata sandi",
+      "unlink": "Putuskan tautan",
+      "unlinkFailed": "Gagal memutuskan tautan",
+      "unlinkModal": {
+        "title": {
+          "google": "Putuskan tautan Google?",
+          "github": "Putuskan tautan GitHub?"
+        },
+        "body": "Akun {{provider}} {{email}} akan dilepas dari DevHub. Anda tetap bisa masuk dengan kata sandi/email. Tautkan lagi kapan saja dari halaman ini.",
+        "bodyGeneric": "Akun {{provider}} akan dilepas. Anda tetap bisa masuk dengan kata sandi.",
+        "lastMethodWarning": "Ini adalah cara masuk terakhir Anda. Atur kata sandi dulu (Keamanan → Ganti kata sandi), lalu coba lagi.",
+        "confirm": "Putuskan tautan",
+        "cancel": "Batal"
+      },
+      "setPassword": "Atur kata sandi",
+      "passwordSetDesc": "Belum ada kata sandi — atur untuk mengaktifkan login email. Tetap bisa pakai Google/GitHub.",
+      "noPasswordHint": "Akun ini memakai login Google/GitHub. Atur kata sandi untuk mengaktifkan login email dan memungkinkan melepas OAuth."
     },
     "accountPanelAria": "Detail akun",
     "account": {
       "email": "Email",
       "memberSince": "Member sejak",
-      "accountId": "ID Akun"
+      "accountId": "ID Akun",
+      "detailTitle": "Detail akun",
+      "detailHelper": "Email & ID untuk login, invite, dan hubungi support.",
+      "emailHelper": "Email untuk login & invite tim.",
+      "verified": "Terverifikasi",
+      "unverified": "Belum verifikasi",
+      "copyId": "Salin",
+      "copyIdAria": "Salin ID akun",
+      "copied": "Tersalin",
+      "viewFull": "Lihat lengkap",
+      "hideFull": "Sembunyikan",
+      "idHelper": "Dipakai saat hubungi support. Salin menyalin full ID.",
+      "preferencesTitle": "Preferensi",
+      "preferencesHelper": "Terang/Gelap — System ikut OS Anda.",
+      "dataHelpTitle": "Data & Bantuan",
+      "dataHelpDesc": "Data Anda tetap milik Anda — ekspor atau impor kapan saja."
     },
     "editModal": {
       "title": "Edit profil",
@@ -152,7 +183,11 @@
       "confirm": "Konfirmasi kata sandi baru",
       "newHelper": "Minimal 8 karakter dan berbeda dari kata sandi saat ini.",
       "mismatch": "Kata sandi baru dan konfirmasinya tidak cocok.",
-      "failed": "Gagal mengganti kata sandi."
+      "failed": "Gagal mengganti kata sandi.",
+      "setTitle": "Atur kata sandi",
+      "setSuccess": "Kata sandi diatur. Sekarang bisa masuk dengan email.",
+      "setSubmit": "Atur kata sandi",
+      "setHelper": "Pilih kata sandi untuk mengaktifkan login email. Tetap bisa pakai Google/GitHub."
     },
     "passwordToggle": {
       "show": "Tampilkan kata sandi",

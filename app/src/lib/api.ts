@@ -191,10 +191,10 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ token, newPassword }),
     }),
-  changePassword: (currentPassword: string, newPassword: string) =>
+  changePassword: (currentPassword: string | null | undefined, newPassword: string) =>
     request<{ ok: true }>('/auth/password', {
       method: 'PATCH',
-      body: JSON.stringify({ currentPassword, newPassword }),
+      body: JSON.stringify({ currentPassword: currentPassword ?? '', newPassword }),
     }),
   updateProfile: (patch: Partial<Pick<User, 'displayName' | 'bio'>>) =>
     request<User>('/auth/profile', {

@@ -123,13 +123,44 @@
     "security": {
       "password": "Password",
       "passwordDesc": "Use at least 8 characters, different from your current one.",
-      "changePassword": "Change password"
+      "changePassword": "Change password",
+      "unlink": "Unlink",
+      "unlinkFailed": "Failed to unlink",
+      "unlinkModal": {
+        "title": {
+          "google": "Unlink Google?",
+          "github": "Unlink GitHub?"
+        },
+        "body": "{{provider}} account {{email}} will be unlinked from DevHub. You can still sign in with your password. You can reconnect anytime from this page.",
+        "bodyGeneric": "{{provider}} account will be unlinked. You can still sign in with your password.",
+        "lastMethodWarning": "This is your last sign-in method. Set a password first (Security → Change password), then try again.",
+        "confirm": "Unlink",
+        "cancel": "Cancel"
+      },
+      "setPassword": "Set password",
+      "passwordSetDesc": "No password yet — set one to enable email login. You can keep using Google/GitHub.",
+      "noPasswordHint": "This account uses Google/GitHub login. Set a password to enable email login and allow unlinking OAuth."
     },
     "accountPanelAria": "Account details",
     "account": {
       "email": "Email",
       "memberSince": "Member since",
-      "accountId": "Account ID"
+      "accountId": "Account ID",
+      "detailTitle": "Account details",
+      "detailHelper": "Email & ID for login, invites, and support.",
+      "emailHelper": "Email for login & team invites.",
+      "verified": "Verified",
+      "unverified": "Unverified",
+      "copyId": "Copy",
+      "copyIdAria": "Copy account ID",
+      "copied": "Copied",
+      "viewFull": "Show full",
+      "hideFull": "Hide",
+      "idHelper": "Used when contacting support. Copy copies the full ID.",
+      "preferencesTitle": "Preferences",
+      "preferencesHelper": "Light/Dark — System follows your OS.",
+      "dataHelpTitle": "Data & Help",
+      "dataHelpDesc": "Your data stays yours — export or import anytime."
     },
     "editModal": {
       "title": "Edit profile",
@@ -152,7 +183,11 @@
       "confirm": "Confirm new password",
       "newHelper": "At least 8 characters and different from the current password.",
       "mismatch": "New password and confirmation do not match.",
-      "failed": "Failed to change password."
+      "failed": "Failed to change password.",
+      "setTitle": "Set password",
+      "setSuccess": "Password set. You can now sign in with email.",
+      "setSubmit": "Set password",
+      "setHelper": "Choose a password to enable email login. You can still use Google/GitHub."
     },
     "passwordToggle": {
       "show": "Show password",

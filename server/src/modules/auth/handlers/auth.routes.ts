@@ -116,10 +116,13 @@ authRouter.post('/login', loginLimiter, async (req, res) => {
 
 const changePasswordSchema = z
   .object({
-    currentPassword: z.string().min(1, 'Current password is required').max(128),
+    currentPassword: z.string().max(128).optional().or(z.literal('')),
     newPassword: z.string().min(8, 'Password must be at least 8 characters').max(128),
   })
-  .refine((v) => v.currentPassword !== v.newPassword, {
+  .refine((v) => {
+    if (!v.currentPassword) return true;
+    return v.currentPassword !== v.newPassword;
+  }, {
     message: 'New password must be different from the current one',
     path: ['newPassword'],
   });
@@ -139,6 +142,7 @@ authRouter.patch('/password', passwordLimiter, requireAuth, async (req, res) => 
   if (!user) throw new ApiError(401, 'UNAUTHORIZED', 'User not found');
   // OAuth-only (password_hash NULL) -> allow set without currentPassword check
   if (user.password_hash !== null) {
+    if (!currentPassword) throw new ApiError(400, 'MISSING_CURRENT', 'Current password is required');
     if (!(await verifyPassword(currentPassword, user.password_hash))) {
       throw new ApiError(401, 'INVALID_PASSWORD', 'Current password is incorrect');
     }
