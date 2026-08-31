@@ -8,6 +8,7 @@ import { Button } from '../../components/Button';
 import { InlineError } from '../../components/InlineError';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { FE_LIMITS } from '../../lib/limits';
 
 interface PackageModalProps {
   open: boolean;
@@ -173,6 +174,8 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
         <Input
           label={t('api.workbench.name')}
           value={name}
+          maxLength={FE_LIMITS.PACKAGE_NAME}
+          showCount
           onChange={(e) => setName(e.target.value)}
           required
           autoFocus
@@ -181,6 +184,8 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
         <Input
           label={t('api.workbench.description')}
           value={description}
+          maxLength={FE_LIMITS.PACKAGE_DESC}
+          showCount
           onChange={(e) => setDescription(e.target.value)}
           placeholder={t('admin.packageModal.descPlaceholder')}
         />
@@ -188,6 +193,8 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
           <Input
             label={t('admin.packageModal.maxMembers')}
             type="number"
+            min={0}
+            max={999999}
             value={maxMembers}
             onChange={(e) => setMaxMembers(e.target.value)}
             placeholder={t('common:usage.unlimited')}
@@ -195,6 +202,8 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
           <Input
             label={t('admin.packageModal.maxProjects')}
             type="number"
+            min={0}
+            max={999999}
             value={maxProjects}
             onChange={(e) => setMaxProjects(e.target.value)}
             placeholder={t('common:usage.unlimited')}
@@ -203,6 +212,8 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
         <Input
           label={t('admin.packageModal.sortOrder')}
           type="number"
+          min={0}
+          max={999}
           value={sortOrder}
           onChange={(e) => setSortOrder(e.target.value)}
         />
@@ -229,6 +240,8 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
                 label={t('admin.packageModal.durationDays')}
                 aria-label={t('admin.packageModal.durationDaysWithIndex', { index: i + 1, defaultValue: `Price ${i + 1} - Duration (days)` })}
                 type="number"
+                min={1}
+                max={3650}
                 value={String(p.durationDays)}
                 onChange={(e) => updatePrice(i, 'durationDays', Number(e.target.value))}
               />
@@ -236,6 +249,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
                 label={t('admin.packageModal.priceIdr')}
                 aria-label={t('admin.packageModal.priceIdrWithIndex', { index: i + 1, defaultValue: `Price ${i + 1} - Price IDR` })}
                 type="number"
+                min={0}
                 value={String(p.priceIdr)}
                 onChange={(e) => updatePrice(i, 'priceIdr', Number(e.target.value))}
               />
@@ -243,6 +257,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
                 label={t('admin.packageModal.originalPriceIdr')}
                 aria-label={t('admin.packageModal.originalPriceIdrWithIndex', { index: i + 1, defaultValue: `Price ${i + 1} - Original Price IDR` })}
                 type="number"
+                min={0}
                 value={p.originalPriceIdr}
                 placeholder={t('admin.packageModal.noDiscount')}
                 onChange={(e) => updatePrice(i, 'originalPriceIdr', e.target.value)}

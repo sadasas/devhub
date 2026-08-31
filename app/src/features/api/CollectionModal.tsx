@@ -7,6 +7,7 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { Textarea } from '../../components/Textarea';
+import { FE_LIMITS } from '../../lib/limits';
 
 interface CollectionModalProps {
   onClose: () => void;
@@ -68,6 +69,9 @@ export function CollectionModal({ onClose, onCreated }: CollectionModalProps) {
           placeholder={t('api.collectionModal.namePlaceholder')}
           value={name}
           error={error ?? undefined}
+          maxLength={FE_LIMITS.API_COLLECTION_NAME}
+          required
+          showCount
           onChange={(e) => {
             setName(e.target.value);
             if (error) setError(null);
@@ -78,6 +82,8 @@ export function CollectionModal({ onClose, onCreated }: CollectionModalProps) {
           rows={3}
           placeholder={t('api.collection.descPlaceholder')}
           value={description}
+          maxLength={FE_LIMITS.API_COLLECTION_DESC}
+          showCount
           onChange={(e) => setDescription(e.target.value)}
         />
       </div>

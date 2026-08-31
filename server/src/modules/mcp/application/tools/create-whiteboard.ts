@@ -16,11 +16,11 @@ const ELEMENTS_DESCRIPTION =
   '{ kind: "ref", entity: "tasks", entityId: "<task-uuid>", x: 0, y: 0 }';
 
 const inputSchema = z.object({
-  projectId: z.string().describe('UUID of the target project'),
+  projectId: z.string().uuid().describe('UUID of the target project'),
   name: z.string().min(1).max(LIMITS.WHITEBOARD_NAME).describe('Board name'),
   description: z.string().max(LIMITS.WHITEBOARD_DESCRIPTION).default(''),
   elements: z
-    .array(z.record(z.string(), z.unknown()))
+    .array(z.record(z.string().max(100), z.unknown()))
     .max(LIMITS.WHITEBOARD_ELEMENTS)
     .default([])
     .describe(ELEMENTS_DESCRIPTION),

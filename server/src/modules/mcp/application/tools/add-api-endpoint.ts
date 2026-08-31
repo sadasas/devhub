@@ -10,7 +10,7 @@ import { loadState, saveState } from '../state-db.js';
 import { newId, nowIso, textContent, toolError } from '../../domain/entity.js';
 
 const inputSchema = z.object({
-  projectId: z.string().describe('UUID of the target project'),
+  projectId: z.string().uuid().describe('UUID of the target project'),
   collectionId: z.string().uuid().nullable().describe('UUID of the API collection, or null for ungrouped').optional(),
   method: apiMethod,
   path: z.string().min(1).max(500),

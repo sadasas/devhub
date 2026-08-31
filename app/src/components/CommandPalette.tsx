@@ -369,6 +369,7 @@ export function CommandPalette() {
           ref={inputRef}
           className="palette-input"
           value={query}
+          maxLength={200}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t('palette.searchPlaceholder')}
           aria-label={t('palette.searchCommands')}

@@ -6,7 +6,7 @@ import { hours, LIMITS } from '../../../projects/domain/state.js';
 import { deriveActualHours } from '../../../projects/domain/hours.js';
 
 const inputSchema = z.object({
-  projectId: z.string().describe('UUID of the target project'),
+  projectId: z.string().uuid().describe('UUID of the target project'),
   title: z.string().min(1).max(LIMITS.TASK_TITLE),
   status: z.enum(['todo', 'inProgress', 'review', 'done']).default('todo'),
   priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
@@ -15,20 +15,17 @@ const inputSchema = z.object({
   labels: z.array(z.string().max(50)).max(20).default([]),
   milestoneId: z.string().uuid().nullable().optional().describe('Optional milestone to group this task under'),
   dueDate: z
-    .string()
-    .refine((v) => !Number.isNaN(Date.parse(v)), { message: 'Must be a valid ISO date string' })
+    .string().max(100).refine((v) => !Number.isNaN(Date.parse(v)), { message: 'Must be a valid ISO date string' })
     .nullable()
     .optional()
     .describe('Optional due date (YYYY-MM-DD)'),
   startDate: z
-    .string()
-    .refine((v) => !Number.isNaN(Date.parse(v)), { message: 'Must be a valid ISO date string' })
+    .string().max(100).refine((v) => !Number.isNaN(Date.parse(v)), { message: 'Must be a valid ISO date string' })
     .nullable()
     .optional()
     .describe('Optional start date (YYYY-MM-DD)'),
   completedAt: z
-    .string()
-    .refine((v) => !Number.isNaN(Date.parse(v)), { message: 'Must be a valid ISO date string' })
+    .string().max(100).refine((v) => !Number.isNaN(Date.parse(v)), { message: 'Must be a valid ISO date string' })
     .nullable()
     .optional()
     .describe('Optional completion time — auto-set to now when status is done'),

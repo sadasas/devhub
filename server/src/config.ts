@@ -41,9 +41,9 @@ const envSchema = z.object({
     .string()
     .default('true')
     .transform((v) => v === 'true'),
-  PAKASIR_SLUG: z.string().default(''),
-  PAKASIR_API_KEY: z.string().default(''),
-  APP_PUBLIC_URL: z.string().default(''),
+  PAKASIR_SLUG: z.string().max(200).default(''),
+  PAKASIR_API_KEY: z.string().max(500).default(''),
+  APP_PUBLIC_URL: z.string().max(500).default(''),
 });
 
 export type Config = z.infer<typeof envSchema>;

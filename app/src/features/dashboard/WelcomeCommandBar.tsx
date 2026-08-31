@@ -34,6 +34,7 @@ export function WelcomeCommandBar({
           placeholder="Search projects…"
           aria-label="Search projects"
           value={query}
+          maxLength={200}
           onChange={(e) => onQuery(e.target.value)}
         />
         {query && (

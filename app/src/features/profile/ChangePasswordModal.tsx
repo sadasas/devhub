@@ -7,6 +7,7 @@ import { Button } from '../../components/Button';
 import { InlineError } from '../../components/InlineError';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { FE_LIMITS } from '../../lib/limits';
 
 interface ChangePasswordModalProps {
   open: boolean;
@@ -124,6 +125,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             required
+            maxLength={FE_LIMITS.PASSWORD}
           />
           <Input
             label={t('profile.changeModal.new')}
@@ -135,6 +137,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
             required
             className="input-with-slot"
             rightSlot={<PasswordToggle show={showNew} onToggle={() => setShowNew((v) => !v)} />}
+            maxLength={FE_LIMITS.PASSWORD}
           />
           <Input
             label={t('profile.changeModal.confirm')}
@@ -145,6 +148,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
             required
             className="input-with-slot"
             rightSlot={<PasswordToggle show={showConfirm} onToggle={() => setShowConfirm((v) => !v)} />}
+            maxLength={FE_LIMITS.PASSWORD}
           />
           {changeError && <InlineError>{changeError}</InlineError>}
         </form>

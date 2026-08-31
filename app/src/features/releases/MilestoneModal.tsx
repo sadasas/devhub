@@ -9,6 +9,7 @@ import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { Modal } from "../../components/Modal";
 import { FileText, ArrowsOutSimple } from "@phosphor-icons/react";
+import { LIMITS } from "../../lib/limits";
 
 interface MilestoneModalProps {
   milestoneId: string | null;
@@ -147,7 +148,7 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
       }
     >
       <div className="form-stack">
-        <Input label={t("releases.modal.nameLabel")} value={milestone.name} onChange={(e) => update({ name: e.target.value })} />
+        <Input label={t("releases.modal.nameLabel")} value={milestone.name} maxLength={LIMITS.MILESTONE_NAME} required showCount onChange={(e) => update({ name: e.target.value })} />
         <div className="field-row">
           <div className="field">
             <label className="field-label" htmlFor="milestone-version">
@@ -159,6 +160,7 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
               placeholder={t("releases.modal.versionPlaceholder")}
               inputMode="decimal"
               value={milestone.version ?? ""}
+              maxLength={LIMITS.MILESTONE_VERSION}
               onChange={(e) => update({ version: e.target.value.replace(/[^0-9.]/g, "").trim() || null })}
             />
           </div>

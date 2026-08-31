@@ -4,7 +4,7 @@ import { updatePrd } from '../state-db.js';
 import { textContent } from '../../domain/entity.js';
 
 const inputSchema = z.object({
-  projectId: z.string().describe('UUID of the target project'),
+  projectId: z.string().uuid().describe('UUID of the target project'),
   purpose: z.string().max(5_000).describe('Why the project exists and what problem it solves').optional(),
   goals: z.string().max(5_000).describe('Key goals the project should achieve').optional(),
   features: z.string().max(5_000).describe('Planned or in-scope features').optional(),

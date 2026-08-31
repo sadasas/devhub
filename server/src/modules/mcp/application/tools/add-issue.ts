@@ -5,7 +5,7 @@ import { newId, nowIso, textContent } from '../../domain/entity.js';
 import { LIMITS } from '../../../projects/domain/state.js';
 
 const inputSchema = z.object({
-  projectId: z.string().describe('UUID of the target project'),
+  projectId: z.string().uuid().describe('UUID of the target project'),
   title: z.string().min(1).max(LIMITS.ISSUE_TITLE),
   severity: z.enum(['critical', 'high', 'medium', 'low']).default('medium'),
   status: z.enum(['open', 'reproduced', 'fixing', 'resolved', 'wontfix']).default('open'),

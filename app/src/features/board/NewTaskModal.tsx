@@ -15,6 +15,7 @@ import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { MarkdownField } from '../../components/MarkdownField';
+import { FE_LIMITS, LIMITS } from '../../lib/limits';
 
 interface NewTaskModalProps {
   open: boolean;
@@ -121,7 +122,8 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
           placeholder={t('board.newTaskModal.titlePlaceholder')}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          maxLength={500}
+          maxLength={LIMITS.TASK_TITLE}
+          showCount
         />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '4px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
@@ -293,6 +295,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
               className="input"
               type="number"
               min={0}
+              max={FE_LIMITS.ESTIMATE_MAX}
               style={{ width: 100 }}
               placeholder={t('board.newTaskModal.optionalPlaceholder')}
               value={estimate}
@@ -314,13 +317,17 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
             >
               <Tag size={12} aria-hidden="true" /> {t('board.newTaskModal.labelsLabel')}
             </span>
-            <input
-              className="input"
-              style={{ flex: 1 }}
-              placeholder={t('board.newTaskModal.labelsPlaceholder')}
-              value={labels}
-              onChange={(e) => setLabels(e.target.value)}
-            />
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <input
+                className="input"
+                style={{ flex: 1 }}
+                placeholder={t('board.newTaskModal.labelsPlaceholder')}
+                value={labels}
+                maxLength={FE_LIMITS.LABELS_INPUT}
+                onChange={(e) => setLabels(e.target.value)}
+              />
+              <span style={{ fontSize: 11, color: labels.length > Math.floor(FE_LIMITS.LABELS_INPUT * 0.9) ? 'var(--status-danger)' : labels.length > Math.floor(FE_LIMITS.LABELS_INPUT * 0.8) ? 'var(--status-warn)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)', alignSelf: 'flex-end' }}>{labels.length.toLocaleString()} / {FE_LIMITS.LABELS_INPUT.toLocaleString()}</span>
+            </div>
           </div>
 
           <div style={{ marginTop: 8 }}>

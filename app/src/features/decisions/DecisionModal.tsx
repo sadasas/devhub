@@ -73,16 +73,20 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
         <div className="form-stack">
           <>
             {activeField === 'title' && canEdit ? (
-              <input
-                className="input"
-                value={decision.title}
-                autoFocus
-                onChange={(e) => update({ title: e.target.value })}
-                onBlur={() => setActiveField(null)}
-                onKeyDown={(e) => { if (e.key === 'Enter') setActiveField(null); if (e.key === 'Escape') setActiveField(null); }}
-                aria-label={t("decisions.modal.titleLabel")}
-                maxLength={300}
-              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
+                <input
+                  className="input"
+                  value={decision.title}
+                  autoFocus
+                  maxLength={300}
+                  required
+                  onChange={(e) => update({ title: e.target.value })}
+                  onBlur={() => setActiveField(null)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') setActiveField(null); if (e.key === 'Escape') setActiveField(null); }}
+                  aria-label={t("decisions.modal.titleLabel")}
+                />
+                <span style={{ fontSize: 11, color: decision.title.length > 270 ? 'var(--status-danger)' : decision.title.length > 240 ? 'var(--status-warn)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)', alignSelf: 'flex-end' }}>{decision.title.length.toLocaleString()} / {(300).toLocaleString()}</span>
+              </div>
             ) : (
               <h3
                 className="detail-title"

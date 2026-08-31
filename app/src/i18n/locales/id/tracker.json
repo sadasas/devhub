@@ -15,7 +15,7 @@
     "sort": {
       "priority": "Prioritas",
       "estimate": "Estimasi",
-      "title": "Judul",
+      "title": "Nama",
       "createdAt": "Dibuat",
       "dueDate": "Tanggal jatuh tempo"
     },
@@ -58,7 +58,7 @@
       "cancel": "Batal",
       "done": "Selesai",
       "edit": "Edit",
-      "titleLabel": "Judul",
+      "titleLabel": "Nama",
       "statusLabel": "Status",
       "priorityLabel": "Prioritas",
       "milestoneLabel": "Milestone",
@@ -97,7 +97,7 @@
       "title": "Task baru",
       "cancel": "Batal",
       "submit": "Tambah task",
-      "titleLabel": "Judul",
+      "titleLabel": "Nama",
       "titlePlaceholder": "Apa yang perlu dikerjakan?",
       "priorityLabel": "Prioritas",
       "estimateLabel": "Estimasi (jam)",
@@ -146,7 +146,7 @@
       "severity": "Tingkat",
       "status": "Status",
       "createdAt": "Dibuat",
-      "title": "Judul"
+      "title": "Nama"
     },
     "count_one": "{{count}} issue",
     "count_other": "{{count}} issue",
@@ -178,7 +178,7 @@
       "cancel": "Batal",
       "done": "Selesai",
       "edit": "Edit",
-      "titleLabel": "Judul",
+      "titleLabel": "Nama",
       "severityLabel": "Tingkat",
       "statusLabel": "Status",
       "linkedTaskLabel": "Task terkait",
@@ -214,7 +214,7 @@
       "title": "Issue baru",
       "cancel": "Batal",
       "submit": "Catat issue",
-      "titleLabel": "Judul",
+      "titleLabel": "Nama",
       "titlePlaceholder": "Apa yang rusak?",
       "severityLabel": "Tingkat",
       "descriptionPlaceholder": "Apa yang rusak, di mana, dan mengapa — opsional",

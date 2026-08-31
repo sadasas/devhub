@@ -5,8 +5,8 @@ import { applyDefined, findEntity, nowIso, textContent } from '../../domain/enti
 import { LIMITS } from '../../../projects/domain/state.js';
 
 const inputSchema = z.object({
-  projectId: z.string().describe('UUID of the target project'),
-  issueId: z.string().describe('UUID of the issue to update'),
+  projectId: z.string().uuid().describe('UUID of the target project'),
+  issueId: z.string().uuid().describe('UUID of the issue to update'),
   title: z.string().min(1).max(LIMITS.ISSUE_TITLE).optional(),
   severity: z.enum(['critical', 'high', 'medium', 'low']).optional(),
   status: z.enum(['open', 'reproduced', 'fixing', 'resolved', 'wontfix']).optional(),

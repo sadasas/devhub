@@ -11,6 +11,7 @@ import { Logo } from '../../components/Logo';
 import { InlineError } from '../../components/InlineError';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 import { ThemeSwitcher } from '../../components/ThemeSwitcher';
+import { FE_LIMITS } from '../../lib/limits';
 
 export function AuthPage() {
   const { t } = useTranslation('account');
@@ -85,6 +86,7 @@ export function AuthPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder={t('auth.field.emailPlaceholder')}
+            maxLength={FE_LIMITS.EMAIL}
           />
           <Input
             label={t('auth.field.password')}
@@ -92,6 +94,7 @@ export function AuthPage() {
             autoComplete={isRegister ? 'new-password' : 'current-password'}
             required
             minLength={8}
+            maxLength={FE_LIMITS.PASSWORD}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             helper={isRegister ? t('auth.field.passwordRegisterHelper') : undefined}
@@ -104,6 +107,7 @@ export function AuthPage() {
               required
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
+              maxLength={FE_LIMITS.PASSWORD}
             />
           )}
 

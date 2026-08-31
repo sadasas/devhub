@@ -77,7 +77,7 @@ export function NewTechModal({ open, onClose }: NewTechModalProps) {
       }
     >
       <div className="form-stack">
-        <Input label={t("stack.newTechModal.nameLabel")} required autoFocus placeholder={t("stack.newTechModal.namePlaceholder")} value={name} onChange={(e) => setName(e.target.value)} maxLength={200} />
+        <Input label={t("stack.newTechModal.nameLabel")} required autoFocus placeholder={t("stack.newTechModal.namePlaceholder")} value={name} onChange={(e) => setName(e.target.value)} maxLength={300} showCount />
         <Input
           label={t("stack.newTechModal.versionLabel")}
           placeholder={t("stack.newTechModal.versionPlaceholder")}

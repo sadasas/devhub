@@ -24,9 +24,9 @@ const checkoutSchema = z.object({
 });
 
 const webhookSchema = z.object({
-  order_id: z.string().min(1),
+  order_id: z.string().min(1).max(100),
   amount: z.coerce.number().int().positive(),
-  status: z.string().optional(),
+  status: z.string().max(20).optional(),
 });
 
 function requirePakasirConfigured(): void {

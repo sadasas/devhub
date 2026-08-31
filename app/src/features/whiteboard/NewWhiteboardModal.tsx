@@ -66,7 +66,8 @@ export function NewWhiteboardModal({ onClose }: NewWhiteboardModalProps) {
           label={t('whiteboard.newModal.name')}
           required
           autoFocus
-          maxLength={100}
+          maxLength={300}
+          showCount
           placeholder={t('whiteboard.newModal.namePlaceholder')}
           value={name}
           onChange={(e) => setName(e.target.value)}

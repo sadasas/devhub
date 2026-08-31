@@ -8,6 +8,7 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { SearchableSelect } from '../../components/SearchableSelect';
+import { FE_LIMITS } from '../../lib/limits';
 
 interface EndpointModalProps {
   onClose: () => void;
@@ -72,6 +73,9 @@ export function EndpointModal({ onClose, onCreated, collections }: EndpointModal
           autoFocus
           placeholder={t('api.endpointModal.namePlaceholder')}
           value={name}
+          maxLength={FE_LIMITS.API_ENDPOINT_NAME}
+          required
+          showCount
           onChange={(e) => setName(e.target.value)}
         />
         <div className="field-row">
@@ -95,13 +99,15 @@ export function EndpointModal({ onClose, onCreated, collections }: EndpointModal
           </div>
           <div className="field field--grow">
             <label className="field-label" htmlFor="endpoint-path">
-              {t('api.endpointModal.path')}
+              {t('api.endpointModal.path')} <span className="field-required" aria-hidden="true"> *</span>
             </label>
             <input
               id="endpoint-path"
               className="input"
               placeholder="/users/:id"
               value={path}
+              maxLength={FE_LIMITS.API_ENDPOINT_PATH}
+              required
               onChange={(e) => setPath(e.target.value)}
             />
           </div>

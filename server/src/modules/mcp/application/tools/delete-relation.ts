@@ -4,7 +4,7 @@ import { loadState, saveState } from '../state-db.js';
 import { findIndexIn, textContent } from '../../domain/entity.js';
 
 const inputSchema = z.object({
-  projectId: z.string().describe('UUID of the target project'),
+  projectId: z.string().uuid().describe('UUID of the target project'),
   relationId: z.string().uuid(),
 });
 

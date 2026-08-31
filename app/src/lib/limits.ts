@@ -1,0 +1,95 @@
+/**
+ * Single source of truth for max input lengths.
+ * Mirror dari server/src/modules/projects/domain/state.ts LIMITS + FE-specific limits.
+ * Ubah di sini -> sinkron ke semua Input/Textarea maxLength + backend validation.
+ */
+export const LIMITS = {
+  TASK_TITLE: 300,
+  TASK_DESCRIPTION: 10_000,
+  ISSUE_TITLE: 300,
+  ISSUE_DESCRIPTION: 10_000,
+  ISSUE_REPRODUCTION: 10_000,
+  TESTCASE_NAME: 300,
+  TESTCASE_STEPS: 10_000,
+  TESTCASE_EXPECTED: 5_000,
+  DECISION_TITLE: 300,
+  DECISION_CONTEXT: 20_000,
+  DECISION_OPTION: 1_000,
+  DECISION_OPTIONS: 20,
+  DECISION_TEXT: 20_000,
+  DECISION_CONSEQUENCES: 10_000,
+  MILESTONE_NAME: 300,
+  MILESTONE_VERSION: 100,
+  MILESTONE_CHANGELOG: 20_000,
+  BRIEF: 50_000,
+  WHITEBOARD_NAME: 300,
+  WHITEBOARD_DESCRIPTION: 2_000,
+  WHITEBOARD_ELEMENTS: 1_000,
+  WHITEBOARDS_PER_PROJECT: 50,
+  TIMELINE_ORDER: 5000,
+} as const;
+
+// Frontend + shared domain limits (mirror backend zod .max())
+export const FE_LIMITS = {
+  // Auth
+  EMAIL: 254,
+  PASSWORD: 128,
+  DISPLAY_NAME: 60,
+  BIO: 500,
+
+  // Project
+  PROJECT_NAME: 300,
+  PROJECT_DESCRIPTION: 5_000,
+
+  // Team
+  TEAM_NAME: 300,
+
+  // Chat
+  CHAT_MESSAGE: 4000,
+  CHAT_REFS: 10,
+
+  // Search / filter inputs (UX guard)
+  SEARCH: 200,
+  FILTER: 100,
+
+  // Schema / Tech / Column
+  TECH_NAME: 300,
+  TECH_VERSION: 100,
+  TECH_NOTES: 5_000,
+  COLUMN_NAME: 300,
+  COLUMN_TYPE: 100,
+  COLUMN_DEFAULT: 500,
+  COLUMN_COMMENT: 2_000,
+  TABLE_NAME: 300,
+  TABLE_COMMENT: 2_000,
+  INDEX: 500,
+
+  // API
+  API_COLLECTION_NAME: 300,
+  API_COLLECTION_DESC: 2000,
+  API_ENDPOINT_PATH: 500,
+  API_ENDPOINT_NAME: 300,
+  API_ENDPOINT_DESC: 10_000,
+  API_BODY: 50_000,
+  API_HEADER_KEY: 200,
+  API_HEADER_VALUE: 2000,
+  API_HEADER_DESC: 2000,
+  API_PARAM_NAME: 200,
+  API_PARAM_DESC: 2000,
+  API_CONTENT_TYPE: 100,
+  API_RESPONSE_DESC: 5000,
+
+  // Whiteboard
+  WHITEBOARD_STICKY: 500,
+  WHITEBOARD_TEXT: 1000,
+  WHITEBOARD_LABEL: 200,
+
+  // Billing / Package
+  PACKAGE_NAME: 300,
+  PACKAGE_DESC: 500,
+
+  // Generic
+  LABEL: 50,
+  LABELS_INPUT: 1000, // csv 20*50 + commas
+  ESTIMATE_MAX: 10000,
+} as const;

@@ -9,6 +9,7 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { MarkdownField } from '../../components/MarkdownField';
+import { FE_LIMITS } from '../../lib/limits';
 import type { Column } from '../../lib/types';
 
 interface NewTableModalProps {
@@ -108,7 +109,8 @@ export function NewTableModal({ open, onClose }: NewTableModalProps) {
           placeholder={t('schema.newTableModal.namePlaceholder')}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          maxLength={128}
+          maxLength={FE_LIMITS.TABLE_NAME}
+          showCount
         />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '4px 0' }}>
           <MarkdownField
@@ -161,6 +163,8 @@ export function NewTableModal({ open, onClose }: NewTableModalProps) {
                     aria-label={t('schema.table.colAria', { name: c.name || t('schema.table.fbName') })}
                     placeholder={t('schema.table.namePlaceholder')}
                     value={c.name}
+                    maxLength={FE_LIMITS.COLUMN_NAME}
+                    required
                     onChange={(e) => updateColumn(c.id, { name: e.target.value })}
                   />
                   <input
@@ -168,6 +172,8 @@ export function NewTableModal({ open, onClose }: NewTableModalProps) {
                     aria-label={t('schema.table.typeAria', { name: c.name || t('schema.table.fbColumn') })}
                     placeholder={t('schema.table.typePlaceholder')}
                     value={c.type}
+                    maxLength={FE_LIMITS.COLUMN_TYPE}
+                    required
                     onChange={(e) => updateColumn(c.id, { type: e.target.value })}
                   />
                   <label className="col-edit-check" title={t('schema.table.nullableTitle')}>
@@ -191,6 +197,7 @@ export function NewTableModal({ open, onClose }: NewTableModalProps) {
                     aria-label={t('schema.table.defaultAria', { name: c.name || t('schema.table.fbColumn') })}
                     placeholder={t('schema.table.defaultPlaceholder')}
                     value={c.default ?? ''}
+                    maxLength={FE_LIMITS.COLUMN_DEFAULT}
                     onChange={(e) => updateColumn(c.id, { default: e.target.value || null })}
                   />
                   <Button
@@ -232,6 +239,7 @@ export function NewTableModal({ open, onClose }: NewTableModalProps) {
                 className="input"
                 placeholder={t('schema.table.indexesPlaceholder')}
                 value={indexesInput}
+                maxLength={2500}
                 onChange={(e) => setIndexesInput(e.target.value)}
                 aria-label={t('schema.table.indexesLabel')}
               />

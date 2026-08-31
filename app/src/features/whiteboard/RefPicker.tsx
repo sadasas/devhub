@@ -131,6 +131,7 @@ export function RefPicker({ open, state, onPick, onClose }: RefPickerProps) {
           aria-label={t('whiteboard.refPicker.searchAria')}
           autoFocus
           value={query}
+          maxLength={100}
           onChange={(e) => {
             setQuery(e.target.value);
             setActive(0);

@@ -5,7 +5,7 @@ import { textContent } from '../../domain/entity.js';
 import { LIMITS } from '../../../projects/domain/state.js';
 
 const inputSchema = z.object({
-  projectId: z.string().describe('UUID of the project to inspect'),
+  projectId: z.string().uuid().describe('UUID of the project to inspect'),
   limit: z
     .number()
     .int()

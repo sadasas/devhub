@@ -11,6 +11,7 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { InlineError } from '../../components/InlineError';
+import { FE_LIMITS } from '../../lib/limits';
 
 // Mirror server cap (audit 2026-08b, KEYS-1)
 const MAX_KEYS = 10;
@@ -125,6 +126,8 @@ export function NewKeyModal({ open, onClose, onCreated, activeCount = 0 }: NewKe
             placeholder={t('keys.newKeyModal.namePlaceholder')}
             helper={t('keys.newKeyModal.nameHelper')}
             value={name}
+            maxLength={FE_LIMITS.TEAM_NAME}
+            showCount
             onChange={(e) => setName(e.target.value)}
           />
           <p className="field-helper">

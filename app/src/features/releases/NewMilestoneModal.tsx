@@ -68,6 +68,8 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           maxLength={300}
+          required
+          showCount
         />
         <div className="field-row">
           <div className="field">

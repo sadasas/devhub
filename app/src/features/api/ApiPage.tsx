@@ -32,6 +32,7 @@ import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { SortControl } from '../../components/SortControl';
 import { Textarea } from '../../components/Textarea';
+import { FE_LIMITS } from '../../lib/limits';
 import { ApiDocsView } from './ApiDocsView';
 import { ApiMethodChip } from './ApiMethodChip';
 import { CollectionModal } from './CollectionModal';
@@ -404,6 +405,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
             type="search"
             placeholder={t('api.sidebar.searchPlaceholder')}
             value={search}
+            maxLength={FE_LIMITS.SEARCH}
             onChange={(e) => setSearch(e.target.value)}
             aria-label={t('api.sidebar.searchAria')}
           />
@@ -611,6 +613,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                       <input
                         className="input api-path-input"
                         value={selectedEp.path}
+                        maxLength={FE_LIMITS.API_ENDPOINT_PATH}
                         aria-label={t('api.workbench.pathAria')}
                         onChange={(e) => updateEp({ path: e.target.value })}
                       />
@@ -654,6 +657,8 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                   <Input
                     label={t('api.workbench.name')}
                     value={selectedEp.name}
+                    maxLength={FE_LIMITS.API_ENDPOINT_NAME}
+                    showCount
                     onChange={(e) => updateEp({ name: e.target.value })}
                   />
                   <Textarea
@@ -661,6 +666,8 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                     rows={2}
                     placeholder={t('api.workbench.descPlaceholder')}
                     value={selectedEp.description}
+                    maxLength={FE_LIMITS.API_ENDPOINT_DESC}
+                    showCount
                     onChange={(e) => updateEp({ description: e.target.value })}
                   />
 
@@ -697,6 +704,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                             aria-label={t('api.header.keyAria', { n: i + 1 })}
                             placeholder={t('api.header.keyPlaceholder')}
                             value={h.key}
+                            maxLength={FE_LIMITS.API_HEADER_KEY}
                             onChange={(e) => updateHeader(i, { key: e.target.value })}
                           />
                           <input
@@ -704,6 +712,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                             aria-label={t('api.header.valueAria', { n: i + 1 })}
                             placeholder={t('api.header.valuePlaceholder')}
                             value={h.value}
+                            maxLength={FE_LIMITS.API_HEADER_VALUE}
                             onChange={(e) => updateHeader(i, { value: e.target.value })}
                           />
                           <input
@@ -711,6 +720,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                             aria-label={t('api.header.descAria', { n: i + 1 })}
                             placeholder={t('api.header.descPlaceholder')}
                             value={h.description}
+                            maxLength={FE_LIMITS.API_HEADER_DESC}
                             onChange={(e) => updateHeader(i, { description: e.target.value })}
                           />
                           <Button
@@ -748,6 +758,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                             aria-label={t('api.param.nameAria', { n: i + 1 })}
                             placeholder={t('api.param.namePlaceholder')}
                             value={p.name}
+                            maxLength={FE_LIMITS.API_PARAM_NAME}
                             onChange={(e) => updateParam(i, { name: e.target.value })}
                           />
                           <select
@@ -772,6 +783,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                             aria-label={t('api.param.descAria', { n: i + 1 })}
                             placeholder={t('api.param.descPlaceholder')}
                             value={p.description}
+                            maxLength={FE_LIMITS.API_PARAM_DESC}
                             onChange={(e) => updateParam(i, { description: e.target.value })}
                           />
                           <Button
@@ -800,6 +812,8 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                         placeholder={'{\n  "name": "Ada"\n}'}
                         helper={t('api.body.helper')}
                         value={selectedEp.body}
+                        maxLength={FE_LIMITS.API_BODY}
+                        showCount
                         onChange={(e) => updateEp({ body: e.target.value })}
                       />
                     </div>
@@ -840,6 +854,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                                 className="input"
                                 placeholder={t('api.response.contentTypePlaceholder')}
                                 value={r.contentType}
+                                maxLength={FE_LIMITS.API_CONTENT_TYPE}
                                 onChange={(e) => updateResponse(i, { contentType: e.target.value })}
                               />
                             </div>
@@ -856,6 +871,8 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                             label={t('api.workbench.description')}
                             placeholder={t('api.response.descPlaceholder')}
                             value={r.description}
+                            maxLength={FE_LIMITS.API_RESPONSE_DESC}
+                            showCount
                             onChange={(e) => updateResponse(i, { description: e.target.value })}
                           />
                           <Textarea
@@ -864,6 +881,8 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                             className="api-mono-input"
                             placeholder={'{\n  "id": "1"\n}'}
                             value={r.body}
+                            maxLength={FE_LIMITS.API_BODY}
+                            showCount
                             onChange={(e) => updateResponse(i, { body: e.target.value })}
                           />
                         </div>
@@ -899,6 +918,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                     <input
                       className="input api-title-input"
                       value={selectedColl.name}
+                      maxLength={FE_LIMITS.API_COLLECTION_NAME}
                       aria-label={t('api.collection.nameAria')}
                       onChange={(e) => dispatch({ type: 'apiCollection/update', id: selectedColl.id, patch: { name: e.target.value } })}
                     />
@@ -927,6 +947,8 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                   rows={3}
                   placeholder={t('api.collection.descPlaceholder')}
                   value={selectedColl.description}
+                  maxLength={FE_LIMITS.API_COLLECTION_DESC}
+                  showCount
                   onChange={(e) => dispatch({ type: 'apiCollection/update', id: selectedColl.id, patch: { description: e.target.value } })}
                 />
               ) : (

@@ -38,11 +38,11 @@ const INVITE_ROLES: ReadonlySet<TeamRole> = new Set(['admin', 'editor', 'viewer'
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 const createTeamSchema = z.object({
-  name: z.string().trim().min(1, 'Name is required').max(100),
+  name: z.string().trim().min(1, 'Name is required').max(300),
 });
 
 const renameTeamSchema = z.object({
-  name: z.string().trim().min(1, 'Name is required').max(100),
+  name: z.string().trim().min(1, 'Name is required').max(300),
 });
 
 const memberRoleSchema = z.object({

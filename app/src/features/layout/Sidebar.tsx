@@ -203,6 +203,7 @@ export function Sidebar({ activeTeamId, activeMain = 'team', onCreateTeam }: Sid
                     placeholder={t('sidebar.filterPlaceholder', { defaultValue: 'Filter projects…' }) as string}
                     aria-label={t('sidebar.filterPlaceholder', { defaultValue: 'Filter projects' }) as string}
                     value={filterQuery}
+                    maxLength={100}
                     onChange={(e) => setFilterQuery(e.target.value)}
                   />
                 </div>

@@ -5,7 +5,7 @@ import { newId, nowIso, textContent } from '../../domain/entity.js';
 import { LIMITS } from '../../../projects/domain/state.js';
 
 const inputSchema = z.object({
-  projectId: z.string().describe('UUID of the target project'),
+  projectId: z.string().uuid().describe('UUID of the target project'),
   name: z.string().min(1).max(LIMITS.TESTCASE_NAME).describe('Name of the test case'),
   taskId: z.string().uuid().optional().describe('UUID of the related task, if any'),
   issueId: z.string().uuid().optional().describe('UUID of the related issue, if any'),

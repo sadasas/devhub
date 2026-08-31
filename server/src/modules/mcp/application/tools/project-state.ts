@@ -4,7 +4,7 @@ import { loadProjectSnapshot } from '../state-db.js';
 import { textContent } from '../../domain/entity.js';
 
 const inputSchema = z.object({
-  projectId: z.string().describe('UUID of the project to inspect'),
+  projectId: z.string().uuid().describe('UUID of the project to inspect'),
   limit: z
     .number()
     .int()

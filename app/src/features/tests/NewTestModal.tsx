@@ -94,6 +94,7 @@ export function NewTestModal({ open, onClose }: NewTestModalProps) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           maxLength={300}
+          showCount
         />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '4px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>

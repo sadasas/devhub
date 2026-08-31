@@ -22,6 +22,7 @@ import { InlineError } from '../../components/InlineError';
 import { Modal } from '../../components/Modal';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { MarkdownBlocks } from '../../lib/markdown';
+import { FE_LIMITS, LIMITS } from '../../lib/limits';
 
 const STATUS_OPTIONS: TaskStatus[] = ['todo', 'inProgress', 'review', 'done'];
 
@@ -131,14 +132,18 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
           <>
             {/* Title inline */}
             {activeField === 'title' && canEdit ? (
-              <input
-                className="input"
-                value={task.title}
-                autoFocus
-                onChange={(e) => update({ title: e.target.value })}
-                onBlur={() => setActiveField(null)}
-                onKeyDown={(e) => { if (e.key === 'Enter') setActiveField(null); if (e.key === 'Escape') setActiveField(null); }}
-              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
+                <input
+                  className="input"
+                  value={task.title}
+                  autoFocus
+                  maxLength={LIMITS.TASK_TITLE}
+                  onChange={(e) => update({ title: e.target.value })}
+                  onBlur={() => setActiveField(null)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') setActiveField(null); if (e.key === 'Escape') setActiveField(null); }}
+                />
+                <span style={{ fontSize: 11, color: task.title.length > Math.floor(LIMITS.TASK_TITLE * 0.9) ? 'var(--status-danger)' : task.title.length > Math.floor(LIMITS.TASK_TITLE * 0.8) ? 'var(--status-warn)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)', alignSelf: 'flex-end' }}>{task.title.length.toLocaleString()} / {LIMITS.TASK_TITLE.toLocaleString()}</span>
+              </div>
             ) : (
               <h3
                 className="detail-title"
@@ -230,7 +235,10 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                   <Tag size={12} aria-hidden="true" /> Tags
                 </span>
                                 {activeField === 'labels' && canEdit ? (
-                  <input className="input" style={{ flex: 1, maxWidth: 260 }} placeholder={t('board.taskModal.labelsPlaceholder')} value={task.labels.join(', ')} autoFocus onChange={(e) => update({ labels: parseLabels(e.target.value) })} onBlur={() => setActiveField(null)} onKeyDown={(e) => { if (e.key === 'Enter') setActiveField(null); }} />
+                  <div style={{ flex: 1, maxWidth: 260, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <input className="input" style={{ flex: 1 }} placeholder={t('board.taskModal.labelsPlaceholder')} value={task.labels.join(', ')} autoFocus maxLength={FE_LIMITS.LABELS_INPUT} onChange={(e) => update({ labels: parseLabels(e.target.value) })} onBlur={() => setActiveField(null)} onKeyDown={(e) => { if (e.key === 'Enter') setActiveField(null); }} />
+                    <span style={{ fontSize: 11, color: task.labels.join(', ').length > Math.floor(FE_LIMITS.LABELS_INPUT * 0.9) ? 'var(--status-danger)' : task.labels.join(', ').length > Math.floor(FE_LIMITS.LABELS_INPUT * 0.8) ? 'var(--status-warn)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)', alignSelf: 'flex-end' }}>{task.labels.join(', ').length.toLocaleString()} / {FE_LIMITS.LABELS_INPUT.toLocaleString()}</span>
+                  </div>
                 ) : task.labels.length > 0 ? (
                   <button type="button" onClick={() => canEdit && setActiveField('labels')} style={{ display: 'flex', gap: 6, flexWrap: 'wrap', background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default', padding: 0 }}>
                     {task.labels.map((l) => <span key={l} style={{ padding: '2px 8px', borderRadius: 999, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, color: 'var(--text-secondary)' }}>{l}</span>)}
@@ -341,7 +349,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                   <Clock size={12} aria-hidden="true" /> Estimate
                 </span>
                 {activeField === 'estimate' && canEdit ? (
-                  <input className="input" type="number" min={0} style={{ width: 100 }} value={task.estimate ?? ''} autoFocus onChange={(e) => { const v = e.target.value; update({ estimate: v === '' ? undefined : Math.max(0, Number(v)) }); }} onBlur={() => setActiveField(null)} />
+                  <input className="input" type="number" min={0} max={FE_LIMITS.ESTIMATE_MAX} style={{ width: 100 }} value={task.estimate ?? ''} autoFocus onChange={(e) => { const v = e.target.value; const n = Number(v); update({ estimate: v === '' ? undefined : Math.min(FE_LIMITS.ESTIMATE_MAX, Math.max(0, n)) }); }} onBlur={() => setActiveField(null)} />
                 ) : (
                   <button type="button" onClick={() => canEdit && setActiveField('estimate')} style={{ background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default', fontSize: 13, color: 'var(--text-secondary)' }}>
                     {task.estimate != null ? `${task.estimate}h` : '—'} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>· Actual: {task.actualHours != null ? `${task.actualHours}h` : '—'}</span>

@@ -174,6 +174,7 @@ export function SearchableSelect({
             ref={inputRef}
             className="ss-input"
             value={query}
+            maxLength={100}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t('select.search')}
             aria-label={t('select.searchLabel', { what: label ?? t('select.options') })}

@@ -124,7 +124,7 @@ export interface UpdateProjectInput {
 }
 
 const updateProjectSchema = z.object({
-  name: z.string().trim().min(1).max(200).optional(),
+  name: z.string().trim().min(1).max(300).optional(),
   description: z.string().max(5_000).optional(),
   status: projectStatus.optional(),
   visibility: z.enum(['private', 'public']).optional(),

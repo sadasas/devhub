@@ -11,7 +11,7 @@ import { isUuid } from '../../authorization/application/authz.js';
 
 // Nama wajib (audit 2026-08b): key tanpa nama tidak bisa dibedakan di list
 const createKeySchema = z.object({
-  name: z.string().trim().min(1, 'Name is required').max(200),
+  name: z.string().trim().min(1, 'Name is required').max(300),
 });
 
 // Reveal = akses penuh ke secret; rate limit per-IP (pola loginLimiter)

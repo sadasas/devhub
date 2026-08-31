@@ -71,6 +71,7 @@ export function WhiteboardLayers({ elements, selectedIds, onSelect, onToggleLock
           className="wb-layers-input"
           placeholder={t('whiteboard.layers.searchPlaceholder')}
           value={query}
+          maxLength={100}
           onChange={(e) => setQuery(e.target.value)}
         />
       </label>

@@ -4,7 +4,7 @@ import { loadState, saveState } from '../state-db.js';
 import { newId, nowIso, textContent, toolError } from '../../domain/entity.js';
 
 const inputSchema = z.object({
-  projectId: z.string().describe('UUID of the target project'),
+  projectId: z.string().uuid().describe('UUID of the target project'),
   fromTableId: z.string().uuid(),
   fromColumnId: z.string().uuid(),
   toTableId: z.string().uuid(),

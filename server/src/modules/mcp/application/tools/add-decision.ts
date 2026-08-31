@@ -5,7 +5,7 @@ import { newId, nowIso, textContent } from '../../domain/entity.js';
 import { isoDate, LIMITS } from '../../../projects/domain/state.js';
 
 const inputSchema = z.object({
-  projectId: z.string().describe('UUID of the target project'),
+  projectId: z.string().uuid().describe('UUID of the target project'),
   title: z.string().min(1).max(LIMITS.DECISION_TITLE),
   status: z.enum(['proposed', 'accepted', 'rejected', 'superseded']).default('proposed'),
   date: isoDate.default(new Date().toISOString().slice(0, 10)).describe('Decision date YYYY-MM-DD'),

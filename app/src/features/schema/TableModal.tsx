@@ -6,6 +6,7 @@ import type { Column } from '../../lib/types';
 import type { UpdatePatch } from '../../state/project-context';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
+import { FE_LIMITS } from '../../lib/limits';
 import { ActivityList } from '../../components/ActivityList';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
@@ -90,20 +91,24 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
           <>
             {/* Title inline — seperti IssueModal */}
             {activeField === 'name' && canEdit ? (
-              <input
-                className="input"
-                value={table.name}
-                autoFocus
-                onChange={(e) => update({ name: e.target.value })}
-                onBlur={() => setActiveField(null)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') setActiveField(null);
-                  if (e.key === 'Escape') setActiveField(null);
-                }}
-                aria-label={t('schema.table.nameLabel')}
-                placeholder={t('schema.newTableModal.namePlaceholder')}
-                maxLength={128}
-              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
+                <input
+                  className="input"
+                  value={table.name}
+                  autoFocus
+                  maxLength={300}
+                  required
+                  onChange={(e) => update({ name: e.target.value })}
+                  onBlur={() => setActiveField(null)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') setActiveField(null);
+                    if (e.key === 'Escape') setActiveField(null);
+                  }}
+                  aria-label={t('schema.table.nameLabel')}
+                  placeholder={t('schema.newTableModal.namePlaceholder')}
+                />
+                <span style={{ fontSize: 11, color: table.name.length > 270 ? 'var(--status-danger)' : table.name.length > 240 ? 'var(--status-warn)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)', alignSelf: 'flex-end' }}>{table.name.length.toLocaleString()} / {(300).toLocaleString()}</span>
+              </div>
             ) : (
               <h3
                 className="detail-title"
@@ -236,6 +241,8 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                             aria-label={t('schema.table.colAria', { name: c.name || t('schema.table.fbName') })}
                             placeholder={t('schema.table.namePlaceholder')}
                             value={c.name}
+                            maxLength={FE_LIMITS.COLUMN_NAME}
+                            required
                             onChange={(e) => updateColumn(c.id, { name: e.target.value })}
                           />
                           <input
@@ -243,6 +250,8 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                             aria-label={t('schema.table.typeAria', { name: c.name || t('schema.table.fbColumn') })}
                             placeholder={t('schema.table.typePlaceholder')}
                             value={c.type}
+                            maxLength={FE_LIMITS.COLUMN_TYPE}
+                            required
                             onChange={(e) => updateColumn(c.id, { type: e.target.value })}
                           />
                           <label className="col-edit-check" title={t('schema.table.nullableTitle')}>
@@ -266,6 +275,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                             aria-label={t('schema.table.defaultAria', { name: c.name || t('schema.table.fbColumn') })}
                             placeholder={t('schema.table.defaultPlaceholder')}
                             value={c.default ?? ''}
+                            maxLength={FE_LIMITS.COLUMN_DEFAULT}
                             onChange={(e) => updateColumn(c.id, { default: e.target.value || null })}
                           />
                           <Button
@@ -323,6 +333,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                         autoFocus
                         placeholder={t('schema.table.indexesPlaceholder')}
                         value={table.indexes.join(', ')}
+                        maxLength={2500}
                         onChange={(e) => update({ indexes: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
                         onBlur={() => setActiveField(null)}
                         onKeyDown={(e) => {

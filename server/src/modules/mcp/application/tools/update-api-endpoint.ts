@@ -8,8 +8,8 @@ import { loadState, saveState } from '../state-db.js';
 import { applyDefined, nowIso, textContent, toolError } from '../../domain/entity.js';
 
 const inputSchema = z.object({
-  projectId: z.string().describe('UUID of the target project'),
-  endpointId: z.string().describe('UUID of the endpoint to update'),
+  projectId: z.string().uuid().describe('UUID of the target project'),
+  endpointId: z.string().uuid().describe('UUID of the endpoint to update'),
   collectionId: z.string().uuid().nullable().optional().describe('New collection UUID, or null to ungroup'),
   method: apiMethod.optional(),
   path: z.string().min(1).max(500).optional(),

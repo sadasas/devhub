@@ -15,6 +15,7 @@ import { InlineError } from '../../components/InlineError';
 import { Modal } from '../../components/Modal';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { MarkdownBlocks } from '../../lib/markdown';
+import { LIMITS } from '../../lib/limits';
 
 type ActiveField = 'title' | 'severity' | 'status' | 'linkedTask' | 'description' | 'reproduction' | null;
 
@@ -79,19 +80,23 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
           <>
             {/* Title inline */}
             {activeField === 'title' && canEdit ? (
-              <input
-                className="input"
-                value={issue.title}
-                autoFocus
-                onChange={(e) => update({ title: e.target.value })}
-                onBlur={() => setActiveField(null)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') setActiveField(null);
-                  if (e.key === 'Escape') setActiveField(null);
-                }}
-                aria-label={t('issues.modal.titleLabel')}
-                placeholder={t('issues.newModal.titlePlaceholder')}
-              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <input
+                  className="input"
+                  value={issue.title}
+                  autoFocus
+                  maxLength={LIMITS.ISSUE_TITLE}
+                  onChange={(e) => update({ title: e.target.value })}
+                  onBlur={() => setActiveField(null)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') setActiveField(null);
+                    if (e.key === 'Escape') setActiveField(null);
+                  }}
+                  aria-label={t('issues.modal.titleLabel')}
+                  placeholder={t('issues.newModal.titlePlaceholder')}
+                />
+                <span style={{ fontSize: 11, color: issue.title.length > Math.floor(LIMITS.ISSUE_TITLE * 0.9) ? 'var(--status-danger)' : issue.title.length > Math.floor(LIMITS.ISSUE_TITLE * 0.8) ? 'var(--status-warn)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)', alignSelf: 'flex-end' }}>{issue.title.length.toLocaleString()} / {LIMITS.ISSUE_TITLE.toLocaleString()}</span>
+              </div>
             ) : (
               <h3
                 className="detail-title"

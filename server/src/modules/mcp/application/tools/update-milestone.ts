@@ -5,8 +5,8 @@ import { applyDefined, findEntity, nowIso, textContent } from '../../domain/enti
 import { isoDate, LIMITS } from '../../../projects/domain/state.js';
 
 const inputSchema = z.object({
-  projectId: z.string().describe('UUID of the target project'),
-  milestoneId: z.string().describe('UUID of the milestone to update'),
+  projectId: z.string().uuid().describe('UUID of the target project'),
+  milestoneId: z.string().uuid().describe('UUID of the milestone to update'),
   name: z.string().min(1).max(LIMITS.MILESTONE_NAME).optional(),
   version: z.string().max(LIMITS.MILESTONE_VERSION).nullable().optional(),
   targetDate: isoDate.nullable().optional().describe('YYYY-MM-DD'),

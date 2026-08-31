@@ -76,6 +76,7 @@ export function ProfileEditModal({ open, onClose }: ProfileEditModalProps) {
           onChange={(e) => setDisplayName(e.target.value)}
           placeholder={t('profile.editModal.displayNamePlaceholder')}
           maxLength={60}
+          showCount
           autoComplete="name"
         />
         <Textarea
@@ -84,6 +85,7 @@ export function ProfileEditModal({ open, onClose }: ProfileEditModalProps) {
           onChange={(e) => setBio(e.target.value)}
           placeholder={t('profile.editModal.bioPlaceholder')}
           maxLength={500}
+          showCount
           rows={3}
           helper={
             bio.trim() === ''

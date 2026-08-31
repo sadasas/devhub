@@ -5,7 +5,7 @@ import { newId, nowIso, textContent } from '../../domain/entity.js';
 import { isoDate, LIMITS, milestoneStatus } from '../../../projects/domain/state.js';
 
 const inputSchema = z.object({
-  projectId: z.string().describe('UUID of the target project'),
+  projectId: z.string().uuid().describe('UUID of the target project'),
   name: z.string().min(1).max(LIMITS.MILESTONE_NAME).describe('Milestone name (e.g. "M26: Profile Redesign")'),
   version: z.string().max(LIMITS.MILESTONE_VERSION).nullable().optional(),
   targetDate: isoDate.nullable().optional().describe('YYYY-MM-DD'),

@@ -29,6 +29,7 @@ import { avatarColor, initialsOf } from '../../lib/avatar';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { InlineError } from '../../components/InlineError';
+import { FE_LIMITS } from '../../lib/limits';
 
 const PAGE_SIZE = 30;
 const MENTION_DEBOUNCE_MS = 250;
@@ -857,6 +858,7 @@ return (
           placeholder={t('teams.chat.placeholder')}
           title={t('teams.chat.enterToSend')}
           rows={1}
+          maxLength={FE_LIMITS.CHAT_MESSAGE}
           value={draft}
           onInput={(ee) => {
             const ta = ee.currentTarget as HTMLTextAreaElement;
@@ -930,6 +932,9 @@ return (
         >
           <PaperPlaneTilt size={14} aria-hidden="true" />
         </Button>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
+          <span style={{ fontSize: 11, color: draft.length > Math.floor(FE_LIMITS.CHAT_MESSAGE * 0.9) ? 'var(--status-danger)' : draft.length > Math.floor(FE_LIMITS.CHAT_MESSAGE * 0.8) ? 'var(--status-warn)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{draft.length.toLocaleString()} / {FE_LIMITS.CHAT_MESSAGE.toLocaleString()}</span>
         </div>
       </div>
     </div>

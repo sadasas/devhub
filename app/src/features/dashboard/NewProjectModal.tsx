@@ -14,6 +14,7 @@ import { Modal } from '../../components/Modal';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { Textarea } from '../../components/Textarea';
 import { InlineError } from '../../components/InlineError';
+import { FE_LIMITS } from '../../lib/limits';
 
 interface NewProjectModalProps {
   open: boolean;
@@ -93,6 +94,8 @@ export function NewProjectModal({ open, onClose, initialTeamId }: NewProjectModa
           autoFocus
           placeholder={t('dashboard.modal.namePlaceholder')}
           value={name}
+          maxLength={FE_LIMITS.PROJECT_NAME}
+          showCount
           onChange={(e) => setName(e.target.value)}
         />
         <Textarea
@@ -100,6 +103,8 @@ export function NewProjectModal({ open, onClose, initialTeamId }: NewProjectModa
           rows={3}
           placeholder={t('dashboard.modal.descriptionPlaceholder')}
           value={description}
+          maxLength={FE_LIMITS.PROJECT_DESCRIPTION}
+          showCount
           onChange={(e) => setDescription(e.target.value)}
         />
         <div className="field">

@@ -418,7 +418,7 @@
       "date": "Date",
       "status": "Status",
       "createdAt": "Created",
-      "title": "Title"
+      "title": "Name"
     },
     "count_one": "{{count}} decision",
     "count_other": "{{count}} decisions",
@@ -440,7 +440,7 @@
       "cancel": "Cancel",
       "done": "Done",
       "edit": "Edit",
-      "titleLabel": "Title",
+      "titleLabel": "Name",
       "statusLabel": "Status",
       "dateLabel": "Date",
       "contextLabel": "Context",
@@ -463,7 +463,7 @@
       "title": "New decision",
       "cancel": "Cancel",
       "submit": "Add decision",
-      "titleLabel": "Title",
+      "titleLabel": "Name",
       "titlePlaceholder": "e.g. Choose PostgreSQL over MongoDB",
       "statusLabel": "Status",
       "dateLabel": "Date",

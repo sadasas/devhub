@@ -13,7 +13,7 @@ const columnSchema = z.object({
 });
 
 const inputSchema = z.object({
-  projectId: z.string().describe('UUID of the target project'),
+  projectId: z.string().uuid().describe('UUID of the target project'),
   name: z.string().min(1).max(200),
   comment: z.string().max(2_000).default(''),
   columns: z.array(columnSchema).max(200).default([]),

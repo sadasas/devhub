@@ -15,7 +15,7 @@
     "sort": {
       "priority": "Priority",
       "estimate": "Estimate",
-      "title": "Title",
+      "title": "Name",
       "createdAt": "Created",
       "dueDate": "Due date"
     },
@@ -58,7 +58,7 @@
       "cancel": "Cancel",
       "done": "Done",
       "edit": "Edit",
-      "titleLabel": "Title",
+      "titleLabel": "Name",
       "statusLabel": "Status",
       "priorityLabel": "Priority",
       "milestoneLabel": "Milestone",
@@ -97,7 +97,7 @@
       "title": "New task",
       "cancel": "Cancel",
       "submit": "Add task",
-      "titleLabel": "Title",
+      "titleLabel": "Name",
       "titlePlaceholder": "What needs to be done?",
       "priorityLabel": "Priority",
       "estimateLabel": "Estimate (hours)",
@@ -146,7 +146,7 @@
       "severity": "Severity",
       "status": "Status",
       "createdAt": "Created",
-      "title": "Title"
+      "title": "Name"
     },
     "count_one": "{{count}} issue",
     "count_other": "{{count}} issues",
@@ -178,7 +178,7 @@
       "cancel": "Cancel",
       "done": "Done",
       "edit": "Edit",
-      "titleLabel": "Title",
+      "titleLabel": "Name",
       "severityLabel": "Severity",
       "statusLabel": "Status",
       "linkedTaskLabel": "Linked task",
@@ -214,7 +214,7 @@
       "title": "New issue",
       "cancel": "Cancel",
       "submit": "Log issue",
-      "titleLabel": "Title",
+      "titleLabel": "Name",
       "titlePlaceholder": "What's broken?",
       "severityLabel": "Severity",
       "descriptionPlaceholder": "What's broken, where, and why — optional",

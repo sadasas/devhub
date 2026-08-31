@@ -17,6 +17,7 @@ import { Skeleton } from '../../components/Skeleton';
 import { InviteModal } from './InviteModal';
 import { TeamBillingPanel } from './TeamBillingPanel';
 import { InlineError } from '../../components/InlineError';
+import { FE_LIMITS } from '../../lib/limits';
 
 const CHANGEABLE_ROLES: TeamRole[] = ['admin', 'editor', 'viewer'];
 const ALL_ROLES: TeamRole[] = [...CHANGEABLE_ROLES, 'owner'];
@@ -382,6 +383,8 @@ export function TeamPage() {
             required
             autoFocus
             value={renameValue}
+            maxLength={FE_LIMITS.TEAM_NAME}
+            showCount
             onChange={(e) => setRenameValue(e.target.value)}
           />
         </form>

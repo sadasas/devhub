@@ -5,9 +5,9 @@ import { z } from 'zod';
  * input tool MCP agar tidak ada drift (audit 2026-08b, MCP-2).
  */
 export const LIMITS = {
-  TASK_TITLE: 500,
+  TASK_TITLE: 300,
   TASK_DESCRIPTION: 10_000,
-  ISSUE_TITLE: 500,
+  ISSUE_TITLE: 300,
   ISSUE_DESCRIPTION: 10_000,
   ISSUE_REPRODUCTION: 10_000,
   TESTCASE_NAME: 300,
@@ -23,14 +23,14 @@ export const LIMITS = {
   MILESTONE_VERSION: 100,
   MILESTONE_CHANGELOG: 20_000,
   BRIEF: 50_000,
-  WHITEBOARD_NAME: 100,
+  WHITEBOARD_NAME: 300,
   WHITEBOARD_DESCRIPTION: 2_000,
   WHITEBOARD_ELEMENTS: 1_000,
   WHITEBOARDS_PER_PROJECT: 50,
   TIMELINE_ORDER: 5000,
 } as const;
 
-export const isoDate = z.string().refine((v) => !Number.isNaN(Date.parse(v)), {
+export const isoDate = z.string().max(100).refine((v) => !Number.isNaN(Date.parse(v)), {
   message: 'Must be a valid ISO date string',
 });
 
@@ -101,7 +101,7 @@ export const techStatus = z.enum(['current', 'updateAvailable', 'majorUpgrade'])
 
 export const techEntrySchema = z.object({
   ...baseFields,
-  name: z.string().min(1).max(200),
+  name: z.string().min(1).max(300),
   version: z.string().max(100).default(''),
   category: techEntryCategory,
   status: techStatus,
@@ -110,7 +110,7 @@ export const techEntrySchema = z.object({
 
 export const columnSchema = z.object({
   id: z.string().uuid(),
-  name: z.string().min(1).max(200),
+  name: z.string().min(1).max(300),
   type: z.string().min(1).max(100),
   nullable: z.boolean().default(true),
   primaryKey: z.boolean().default(false),
@@ -120,7 +120,7 @@ export const columnSchema = z.object({
 
 export const tableSchema = z.object({
   ...baseFields,
-  name: z.string().min(1).max(200),
+  name: z.string().min(1).max(300),
   comment: z.string().max(2_000).default(''),
   columns: z.array(columnSchema).max(200).default([]),
   indexes: z.array(z.string().max(500)).max(50).default([]),
@@ -204,7 +204,7 @@ export const apiResponseSchema = z.object({
 
 export const apiCollectionSchema = z.object({
   ...baseFields,
-  name: z.string().min(1).max(200),
+  name: z.string().min(1).max(300),
   description: z.string().max(2_000).default(''),
 });
 
@@ -213,7 +213,7 @@ export const apiEndpointSchema = z.object({
   collectionId: z.string().uuid().nullable().optional(),
   method: apiMethod,
   path: z.string().min(1).max(500),
-  name: z.string().min(1).max(200),
+  name: z.string().min(1).max(300),
   description: z.string().max(10_000).default(''),
   headers: z.array(apiHeaderSchema).max(100).default([]),
   params: z.array(apiParamSchema).max(100).default([]),
@@ -371,8 +371,8 @@ export const stateSchema = z.object({
   apiCollections: z.array(apiCollectionSchema).max(500).default([]),
   apiEndpoints: z.array(apiEndpointSchema).max(5_000).default([]),
   whiteboards: z.array(whiteboardSchema).max(LIMITS.WHITEBOARDS_PER_PROJECT).default([]),
-  timelineOrder: z.record(z.string(), z.array(z.string().uuid()).max(5000)).default({}),
-  timelineRow: z.record(z.string(), z.record(z.string(), z.number().int().min(0).max(10000))).default({}),
+  timelineOrder: z.record(z.string().max(100), z.array(z.string().uuid()).max(5000)).default({}),
+  timelineRow: z.record(z.string().max(100), z.record(z.string().max(100), z.number().int().min(0).max(10000))).default({}),
 });
 
 export type State = z.infer<typeof stateSchema>;
@@ -423,7 +423,7 @@ export const emptyState: State = {
 export const exportDocumentSchema = z.object({
   meta: z.object({
     app: z.literal('devhub'),
-    version: z.string(),
+    version: z.string().max(100),
     exportedAt: isoDate,
     projectId: z.string().uuid(),
     // Versi state saat ekspor — dipakai import restore untuk optimistic lock (audit 2026-08b, REST-4)
@@ -436,7 +436,7 @@ export type ExportDocument = z.infer<typeof exportDocumentSchema>;
 
 export const projectSchema = z.object({
   id: z.string().uuid(),
-  name: z.string().min(1).max(200),
+  name: z.string().min(1).max(300),
   description: z.string().max(5_000).default(''),
   status: projectStatus,
   createdAt: isoDate,

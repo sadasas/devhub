@@ -5,8 +5,8 @@ import { applyDefined, findEntity, nowIso, textContent } from '../../domain/enti
 import { LIMITS } from '../../../projects/domain/state.js';
 
 const inputSchema = z.object({
-  projectId: z.string().describe('UUID of the target project'),
-  testCaseId: z.string().describe('UUID of the test case to update'),
+  projectId: z.string().uuid().describe('UUID of the target project'),
+  testCaseId: z.string().uuid().describe('UUID of the test case to update'),
   name: z.string().min(1).max(LIMITS.TESTCASE_NAME).optional(),
   taskId: z.string().uuid().nullable().optional().describe('UUID of the related task, or null to clear'),
   issueId: z.string().uuid().nullable().optional().describe('UUID of the related issue, or null to clear'),

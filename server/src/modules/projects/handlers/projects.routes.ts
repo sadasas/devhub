@@ -21,7 +21,7 @@ import {
 import { broadcastSync } from '../../realtime/infrastructure/broadcast.js';
 
 const createProjectSchema = z.object({
-  name: z.string().trim().min(1, 'Name is required').max(200),
+  name: z.string().trim().min(1, 'Name is required').max(300),
   description: z.string().max(5_000).default(''),
   teamId: z.string().uuid('Team is required'),
   prd: prdSchema.optional(),
@@ -65,7 +65,7 @@ projectsRouter.patch('/:projectId', async (req, res) => {
   broadcastSync(req.params.projectId, version);
 });
 
-const timelineOrderSchema = z.object({ timelineOrder: z.record(z.string(), z.array(z.string().uuid()).max(5000)).default({}) });
+const timelineOrderSchema = z.object({ timelineOrder: z.record(z.string().max(100), z.array(z.string().uuid()).max(5000)).default({}) });
 
 projectsRouter.patch('/:projectId/timeline-order', async (req, res) => {
   const userId = getUserId(req);

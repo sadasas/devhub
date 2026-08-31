@@ -75,6 +75,8 @@ export function NewDecisionModal({ onClose }: NewDecisionModalProps) {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           maxLength={300}
+          required
+          showCount
         />
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '4px 0' }}>

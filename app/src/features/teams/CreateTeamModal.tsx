@@ -9,6 +9,7 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { InlineError } from '../../components/InlineError';
+import { FE_LIMITS } from '../../lib/limits';
 
 interface CreateTeamModalProps {
   open: boolean;
@@ -65,6 +66,8 @@ export function CreateTeamModal({ open, onClose }: CreateTeamModalProps) {
           autoFocus
           placeholder={t('teams.createModal.namePlaceholder')}
           value={name}
+          maxLength={FE_LIMITS.TEAM_NAME}
+          showCount
           onChange={(e) => setName(e.target.value)}
         />
         {error && <InlineError>{error}</InlineError>}
