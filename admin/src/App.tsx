@@ -24,9 +24,6 @@ function AdminGuard() {
       <div className="page" style={{ padding: 32 }}>
         <h1 className="page-title">Forbidden</h1>
         <p className="page-subtitle">Admin access required. Your account ({user.email}) is not an admin.</p>
-        <p style={{ marginTop: 12, fontSize: 13, color: 'var(--text-muted)' }}>
-          Ask an operator to run: <code>UPDATE users SET role = 'admin' WHERE email = '{user.email}';</code>
-        </p>
       </div>
     );
   }
