@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { CheckCircle, Warning } from '@phosphor-icons/react';
+import { CheckCircle, Warning, X } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../state/project-context';
 import { Button } from './Button';
@@ -8,7 +7,8 @@ import { Button } from './Button';
 const SAVED_VISIBLE_MS = 2000;
 
 export function SaveBanner() {
-  const { saveError, saving, retrySave, lastSavedAt, conflict, resolveConflict } = useProject();
+  const { saveError, saving, retrySave, clearSaveError, lastSavedAt, conflict, resolveConflict } =
+    useProject();
   const [showSaved, setShowSaved] = useState(false);
   const { t } = useTranslation();
 
@@ -20,34 +20,40 @@ export function SaveBanner() {
   }, [lastSavedAt]);
 
   if (conflict) {
-    return createPortal(
+    return (
       <div className="save-toast conflict-banner" role="alert" data-testid="save-banner">
         <Warning size={13} weight="bold" aria-hidden="true" />
         <span>{conflict.message}</span>
         <Button variant="ghost" size="sm" onClick={resolveConflict}>
           {t('action.loadLatest')}
         </Button>
-      </div>,
-      document.body,
+      </div>
     );
   }
 
   if (saveError) {
-    return createPortal(
+    return (
       <div className="save-toast save-banner" role="alert" data-testid="save-banner">
         <Warning size={13} weight="bold" aria-hidden="true" />
         <span>{t('save.failed', { error: saveError })}</span>
         <Button variant="ghost" size="sm" onClick={retrySave} loading={saving}>
           {t('action.retry')}
         </Button>
-      </div>,
-      document.body,
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm btn-icon"
+          aria-label="Dismiss"
+          onClick={clearSaveError}
+        >
+          <X size={12} weight="bold" aria-hidden="true" />
+        </button>
+      </div>
     );
   }
 
   if (!saving && !showSaved) return null;
 
-  return createPortal(
+  return (
     <div className="save-toast save-status" role="status" data-testid="save-banner">
       {saving ? (
         t('save.saving')
@@ -57,7 +63,6 @@ export function SaveBanner() {
           {t('save.allSaved')}
         </>
       )}
-    </div>,
-    document.body,
+    </div>
   );
 }

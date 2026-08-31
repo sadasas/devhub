@@ -42,6 +42,7 @@ import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { Modal } from '../../components/Modal';
 import { SaveBanner } from '../../components/SaveBanner';
+import { ToastStack } from '../../components/ToastStack';
 import { Skeleton } from '../../components/Skeleton';
 import { SyncStatusChip } from '../../components/SyncStatusChip';
 import { PresenceChip } from '../../components/PresenceChip';
@@ -572,19 +573,20 @@ export function ProjectPage() {
           project={project}
         />
 
-        <SaveBanner />
-
-        {undoToast && (
-          <ArchiveUndoToast
-            action={undoToast}
-            onUndo={() => {
-              const next = undoToast === 'archived' ? 'active' : 'archived';
-              setUndoToast(null);
-              void handleArchiveToggle(next as 'active' | 'archived');
-            }}
-            onDismiss={() => setUndoToast(null)}
-          />
-        )}
+        <ToastStack>
+          <SaveBanner />
+          {undoToast && (
+            <ArchiveUndoToast
+              action={undoToast}
+              onUndo={() => {
+                const next = undoToast === 'archived' ? 'active' : 'archived';
+                setUndoToast(null);
+                void handleArchiveToggle(next as 'active' | 'archived');
+              }}
+              onDismiss={() => setUndoToast(null)}
+            />
+          )}
+        </ToastStack>
 
         <Modal
           open={confirmOpen}

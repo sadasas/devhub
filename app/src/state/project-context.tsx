@@ -398,6 +398,7 @@ interface ProjectContextValue {
   setStatus: (text: string | null) => void;
   dispatch: (action: ProjectAction) => void;
   retrySave: () => void;
+  clearSaveError: () => void;
   resolveConflict: () => void;
 }
 
@@ -582,6 +583,10 @@ export function ProjectProvider({
     if (savingRef.current) return;
     void flushMutations();
   }, [flushMutations]);
+
+  const clearSaveError = useCallback(() => {
+    setSaveError(null);
+  }, []);
 
   const resolveConflict = useCallback(async () => {
     setConflict(null);
@@ -842,9 +847,10 @@ export function ProjectProvider({
       setStatus,
       dispatch,
       retrySave,
+      clearSaveError,
       resolveConflict,
     }),
-    [projectId, teamId, state, loading, error, saveError, saving, lastSavedAt, role, isArchived, conflict, isOffline, pendingCount, presence, subscribeActivity, setStatus, dispatch, retrySave, resolveConflict],
+    [projectId, teamId, state, loading, error, saveError, saving, lastSavedAt, role, isArchived, conflict, isOffline, pendingCount, presence, subscribeActivity, setStatus, dispatch, retrySave, clearSaveError, resolveConflict],
   );
 
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;

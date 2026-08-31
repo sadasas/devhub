@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { Archive, ArrowCounterClockwise, X } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 
@@ -24,7 +23,7 @@ export function ArchiveUndoToast({ action, onUndo, onDismiss, durationMs = 10000
   const label = action === 'archived' ? 'Project archived.' : 'Project restored.';
   const undoLabel = action === 'archived' ? 'Undo' : 'Undo';
   const icon = action === 'archived' ? <Archive size={13} aria-hidden="true" /> : <ArrowCounterClockwise size={13} aria-hidden="true" />;
-  const content = (
+  return (
     <div className="save-toast save-toast--undo" role="status" aria-live="polite" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       {icon}
       <span>{label}</span>
@@ -36,6 +35,4 @@ export function ArchiveUndoToast({ action, onUndo, onDismiss, durationMs = 10000
       </button>
     </div>
   );
-  if (typeof document === 'undefined') return content;
-  return createPortal(content, document.body);
 }
