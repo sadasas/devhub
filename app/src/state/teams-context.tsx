@@ -11,8 +11,8 @@ interface TeamsContextValue {
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
-  createTeam: (name: string) => Promise<Team>;
-  renameTeam: (teamId: string, name: string) => Promise<void>;
+  createTeam: (name: string, icon?: string | null) => Promise<Team>;
+  renameTeam: (teamId: string, name: string, icon?: string | null) => Promise<void>;
   deleteTeam: (teamId: string) => Promise<void>;
   inviteMember: (teamId: string, email: string, role: Exclude<TeamRole, 'owner'>) => Promise<void>;
   acceptInvitation: (teamId: string, invitationId: string) => Promise<void>;
@@ -56,8 +56,8 @@ export function TeamsProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const createTeam = useCallback(
-    async (name: string) => {
-      const team = await api.createTeam(name);
+    async (name: string, icon?: string | null) => {
+      const team = await api.createTeam(name, icon ?? null);
       setTeams((prev) => (prev ? [...prev, team] : [team]));
       return team;
     },
@@ -65,9 +65,13 @@ export function TeamsProvider({ children }: { children: ReactNode }) {
   );
 
   const renameTeam = useCallback(
-    async (teamId: string, name: string) => {
-      await api.renameTeam(teamId, name);
-      setTeams((prev) => (prev ? prev.map((t) => (t.id === teamId ? { ...t, name } : t)) : prev));
+    async (teamId: string, name: string, icon?: string | null) => {
+      await api.renameTeam(teamId, name, icon);
+      setTeams((prev) =>
+        prev
+          ? prev.map((t) => (t.id === teamId ? { ...t, name, ...(icon !== undefined ? { icon } : {}) } : t))
+          : prev,
+      );
     },
     [],
   );

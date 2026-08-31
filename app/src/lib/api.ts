@@ -385,15 +385,15 @@ export const api = {
     const res = await request<{ teams: Team[] }>('/teams');
     return res.teams;
   },
-  createTeam: (name: string) =>
+  createTeam: (name: string, icon?: string | null) =>
     request<{ team: Team }>('/teams', {
       method: 'POST',
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, ...(icon !== undefined ? { icon } : {}) }),
     }).then((r) => r.team),
-  renameTeam: (teamId: string, name: string) =>
+  renameTeam: (teamId: string, name: string, icon?: string | null) =>
     request<{ ok: true }>(`/teams/${encodeURIComponent(teamId)}`, {
       method: 'PATCH',
-      body: JSON.stringify({ name }),
+      body: JSON.stringify(icon !== undefined ? { name, icon } : { name }),
     }),
   deleteTeam: (teamId: string) =>
     request<{ ok: true }>(`/teams/${encodeURIComponent(teamId)}`, { method: 'DELETE' }),

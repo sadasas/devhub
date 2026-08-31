@@ -43,6 +43,7 @@ export const FE_LIMITS = {
 
   // Team
   TEAM_NAME: 300,
+  TEAM_ICON: 10,
 
   // Chat
   CHAT_MESSAGE: 4000,

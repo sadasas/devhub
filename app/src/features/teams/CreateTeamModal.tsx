@@ -21,6 +21,7 @@ export function CreateTeamModal({ open, onClose }: CreateTeamModalProps) {
   const { createTeam } = useTeams();
   const navigate = useNavigate();
   const [name, setName] = useState('');
+  const [icon, setIcon] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -29,8 +30,10 @@ export function CreateTeamModal({ open, onClose }: CreateTeamModalProps) {
     setError(null);
     setSubmitting(true);
     try {
-      const team = await createTeam(name.trim());
+      const trimmedIcon = icon.trim() || null;
+      const team = await createTeam(name.trim(), trimmedIcon);
       setName('');
+      setIcon('');
       onClose();
       navigate(`/team/${team.id}`);
     } catch (err) {
@@ -60,16 +63,29 @@ export function CreateTeamModal({ open, onClose }: CreateTeamModalProps) {
         <p className="modal-copy">
           {t('teams.createModal.intro')}
         </p>
-        <Input
-          label={t('teams.createModal.name')}
-          required
-          autoFocus
-          placeholder={t('teams.createModal.namePlaceholder')}
-          value={name}
-          maxLength={FE_LIMITS.TEAM_NAME}
-          showCount
-          onChange={(e) => setName(e.target.value)}
-        />
+        <div className="form-row">
+          <div style={{ flex: '0 0 96px' }}>
+            <Input
+              label={t('teams.createModal.icon')}
+              value={icon}
+              placeholder="😀"
+              maxLength={FE_LIMITS.TEAM_ICON}
+              onChange={(e) => setIcon(e.target.value)}
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <Input
+              label={t('teams.createModal.name')}
+              required
+              autoFocus
+              placeholder={t('teams.createModal.namePlaceholder')}
+              value={name}
+              maxLength={FE_LIMITS.TEAM_NAME}
+              showCount
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+        </div>
         {error && <InlineError>{error}</InlineError>}
       </form>
     </Modal>

@@ -450,6 +450,7 @@ export interface BillingStatus {
 export interface Team {
   id: string;
   name: string;
+  icon?: string | null;
   role: TeamRole;
   plan: TeamPlan;
   planPackageName: string;

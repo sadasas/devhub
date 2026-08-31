@@ -177,6 +177,9 @@ export function Sidebar({ activeTeamId, activeMain = 'team', onCreateTeam }: Sid
             <>
               <div className="sidebar-section sidebar-section-row">
                 <span className="sidebar-team-active-label" title={activeTeam.name}>
+                  {activeTeam.icon?.trim() ? (
+                    <span aria-hidden="true" style={{ fontSize: 14, lineHeight: 1 }}>{activeTeam.icon.trim()}</span>
+                  ) : null}
                   <span className="sidebar-item-label">{activeTeam.name}</span>
                 </span>
                 <span className="sidebar-count-muted" aria-label={`${teamProjectsAll.length} projects`}>

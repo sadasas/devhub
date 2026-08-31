@@ -4,6 +4,7 @@ import { withTransaction } from '../../../shared/db.js';
 export interface TeamListRow {
   id: string;
   name: string;
+  icon: string | null;
   role: string;
   plan: 'free' | 'pro';
   plan_package_name: string;
@@ -14,7 +15,7 @@ export interface TeamListRow {
 
 export async function listTeams(userId: string): Promise<TeamListRow[]> {
   const result = await pool.query(
-    `SELECT t.id, t.name, t.created_at, t.updated_at, tm.role, t.plan,
+    `SELECT t.id, t.name, t.icon, t.created_at, t.updated_at, tm.role, t.plan,
             COALESCE(cur.name, fr.name) AS plan_package_name,
             (SELECT count(*)::int FROM team_members m WHERE m.team_id = t.id) AS member_count
      FROM teams t
@@ -35,15 +36,16 @@ export async function listTeams(userId: string): Promise<TeamListRow[]> {
 export interface CreatedTeam {
   id: string;
   name: string;
+  icon: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export async function insertTeamWithOwner(name: string, ownerId: string): Promise<CreatedTeam> {
+export async function insertTeamWithOwner(name: string, ownerId: string, icon?: string | null): Promise<CreatedTeam> {
   return withTransaction(pool, async (client) => {
     const inserted = await client.query<{ id: string; created_at: Date; updated_at: Date }>(
-      'INSERT INTO teams (name, created_by) VALUES ($1, $2) RETURNING id, created_at, updated_at',
-      [name, ownerId],
+      'INSERT INTO teams (name, icon, created_by) VALUES ($1, $2, $3) RETURNING id, created_at, updated_at',
+      [name, icon ?? null, ownerId],
     );
     const id = inserted.rows[0]?.id;
     if (!id) throw new Error('Failed to create team');
@@ -51,7 +53,7 @@ export async function insertTeamWithOwner(name: string, ownerId: string): Promis
       'INSERT INTO team_members (team_id, user_id, role) VALUES ($1, $2, $3)',
       [id, ownerId, 'owner'],
     );
-    return { id, name, createdAt: inserted.rows[0]!.created_at, updatedAt: inserted.rows[0]!.updated_at };
+    return { id, name, icon: icon ?? null, createdAt: inserted.rows[0]!.created_at, updatedAt: inserted.rows[0]!.updated_at };
   });
 }
 
@@ -82,8 +84,12 @@ export async function countMembers(teamId: string): Promise<number> {
   return Number(count.rows[0]?.count ?? 0);
 }
 
-export async function renameTeam(teamId: string, name: string): Promise<void> {
-  await pool.query('UPDATE teams SET name = $2, updated_at = now() WHERE id = $1', [teamId, name]);
+export async function renameTeam(teamId: string, name: string, icon?: string | null): Promise<void> {
+  if (icon === undefined) {
+    await pool.query('UPDATE teams SET name = $2, updated_at = now() WHERE id = $1', [teamId, name]);
+  } else {
+    await pool.query('UPDATE teams SET name = $2, icon = $3, updated_at = now() WHERE id = $1', [teamId, name, icon]);
+  }
 }
 
 export async function teamHasProjects(teamId: string): Promise<boolean> {

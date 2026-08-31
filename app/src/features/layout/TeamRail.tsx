@@ -6,7 +6,7 @@ import { useAuth } from '../../state/auth-context';
 import { initialsOf } from '../../lib/initials';
 
 interface TeamRailProps {
-  teams: { id: string; name: string; memberCount: number }[] | null;
+  teams: { id: string; name: string; icon?: string | null; memberCount: number }[] | null;
   activeTeamId: string | null;
   activeMain?: 'home' | 'team';
   compact?: boolean;
@@ -73,6 +73,7 @@ export function TeamRail({ teams, activeTeamId, activeMain = 'team', compact = f
             const isHovered = hoveredId === team.id;
             const initials = avatarInitials(team.name);
             const bg = avatarColor(team.id);
+            const hasIcon = Boolean(team.icon?.trim());
             return (
               <button
                 key={team.id}
@@ -98,8 +99,12 @@ export function TeamRail({ teams, activeTeamId, activeMain = 'team', compact = f
                   onHoverItem?.(null);
                 }}
               >
-                <span className="team-rail-icon" style={{ background: bg }} aria-hidden="true">
-                  {initials.slice(0, 2)}
+                <span
+                  className="team-rail-icon"
+                  style={hasIcon ? { background: 'transparent', fontSize: 16, border: '1px solid var(--border-hairline)' } : { background: bg }}
+                  aria-hidden="true"
+                >
+                  {hasIcon ? team.icon!.trim() : initials.slice(0, 2)}
                   {team.memberCount > 0 && (
                     <span className="team-rail-icon-bubble" aria-hidden="true">
                       {team.memberCount > 99 ? '99+' : team.memberCount}

@@ -41,6 +41,7 @@ export function TeamPage() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [renameValue, setRenameValue] = useState('');
+  const [renameIcon, setRenameIcon] = useState('');
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -76,8 +77,11 @@ export function TeamPage() {
   }, [loadMembers, loadPendingInvites]);
 
   useEffect(() => {
-    if (renameOpen) setRenameValue(team?.name ?? '');
-  }, [renameOpen, team?.name]);
+    if (renameOpen) {
+      setRenameValue(team?.name ?? '');
+      setRenameIcon(team?.icon ?? '');
+    }
+  }, [renameOpen, team?.name, team?.icon]);
 
   async function onChangeRole(member: TeamMember, role: TeamRole) {
     if (role === member.role) return;
@@ -152,7 +156,8 @@ export function TeamPage() {
     setRenaming(true);
     setActionError(null);
     try {
-      await renameTeam(teamId, renameValue.trim());
+      const trimmedIcon = renameIcon.trim() || null;
+      await renameTeam(teamId, renameValue.trim(), trimmedIcon);
       setRenameOpen(false);
     } catch (err) {
       setActionError(getErrorMessage(err, t('teams.errors.rename')));
@@ -171,6 +176,9 @@ export function TeamPage() {
           </button>
           {team ? (
             <div className="project-title-row">
+              {team.icon?.trim() ? (
+                <span aria-hidden="true" style={{ fontSize: 20, lineHeight: 1 }}>{team.icon.trim()}</span>
+              ) : null}
               <h1 className="page-title">{team.name}</h1>
               <Badge tone={TEAM_ROLE[team.role].tone}>{TEAM_ROLE[team.role].label}</Badge>
               <Badge tone={team.plan === 'pro' ? 'info' : 'neutral'}>
@@ -378,15 +386,28 @@ export function TeamPage() {
         }
       >
         <form id="rename-team-form" className="form-stack" onSubmit={onRename} noValidate>
-          <Input
-            label={t('teams.renameModal.name')}
-            required
-            autoFocus
-            value={renameValue}
-            maxLength={FE_LIMITS.TEAM_NAME}
-            showCount
-            onChange={(e) => setRenameValue(e.target.value)}
-          />
+          <div className="form-row">
+            <div style={{ flex: '0 0 96px' }}>
+              <Input
+                label={t('teams.renameModal.icon')}
+                value={renameIcon}
+                placeholder="😀"
+                maxLength={FE_LIMITS.TEAM_ICON}
+                onChange={(e) => setRenameIcon(e.target.value)}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <Input
+                label={t('teams.renameModal.name')}
+                required
+                autoFocus
+                value={renameValue}
+                maxLength={FE_LIMITS.TEAM_NAME}
+                showCount
+                onChange={(e) => setRenameValue(e.target.value)}
+              />
+            </div>
+          </div>
         </form>
       </Modal>
 

@@ -39,10 +39,12 @@ const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 const createTeamSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(300),
+  icon: z.string().trim().max(10).optional().nullable(),
 });
 
 const renameTeamSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(300),
+  icon: z.string().trim().max(10).optional().nullable(),
 });
 
 const memberRoleSchema = z.object({
@@ -57,6 +59,7 @@ const inviteSchema = z.object({
 function teamJson(row: {
   id: string;
   name: string;
+  icon?: string | null;
   role: string;
   plan?: string;
   plan_package_name?: string;
@@ -67,6 +70,7 @@ function teamJson(row: {
   return {
     id: row.id,
     name: row.name,
+    icon: row.icon ?? null,
     role: row.role,
     plan: row.plan ?? 'free',
     planPackageName: row.plan_package_name ?? 'Free',
@@ -81,12 +85,14 @@ export async function listTeamsForUser(userId: string) {
 }
 
 export async function createTeam(userId: string, body: unknown) {
-  const { name } = parseOrThrow(createTeamSchema, body, 'Invalid team data');
-  const result = await insertTeamWithOwner(name, userId);
+  const { name, icon } = parseOrThrow(createTeamSchema, body, 'Invalid team data');
+  const normalizedIcon = icon?.trim() ? icon.trim() : null;
+  const result = await insertTeamWithOwner(name, userId, normalizedIcon);
   return {
     team: {
       id: result.id,
       name: result.name,
+      icon: result.icon,
       role: 'owner',
       plan: 'free',
       memberCount: 1,
@@ -117,6 +123,7 @@ export async function getTeam(userId: string, teamId: string) {
     team: {
       id: row.id,
       name: row.name,
+      icon: (row as { icon?: string | null }).icon ?? null,
       role: row.role,
       plan: row.plan,
       memberCount,
@@ -130,8 +137,13 @@ export async function renameTeamById(userId: string, teamId: string, body: unkno
   const row = await getTeamWithRole(userId, teamId);
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Team not found');
   assertAdmin(row.role);
-  const { name } = parseOrThrow(renameTeamSchema, body, 'Invalid team data');
-  await renameTeam(row.id, name);
+  const { name, icon } = parseOrThrow(renameTeamSchema, body, 'Invalid team data');
+  if (icon !== undefined) {
+    const normalizedIcon = icon?.trim() ? icon.trim() : null;
+    await renameTeam(row.id, name, normalizedIcon);
+  } else {
+    await renameTeam(row.id, name);
+  }
 }
 
 export async function deleteTeamById(userId: string, teamId: string): Promise<void> {

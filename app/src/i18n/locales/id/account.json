@@ -266,7 +266,7 @@
     "backToDashboard": "Dashboard",
     "subtitle": "Anggota tim berbagi setiap proyek di workspace ini.",
     "invite": "Undang",
-    "rename": "Ganti nama",
+    "rename": "Ubah tim",
     "deleteTeam": "Hapus tim",
     "memberCount": "{{count}} anggota",
     "tabsAria": "Bagian tim",
@@ -282,9 +282,10 @@
     "withdraw": "Tarik",
     "leaveTeam": "Keluar dari tim",
     "renameModal": {
-      "title": "Ganti nama tim",
+      "title": "Ubah tim",
       "save": "Simpan",
-      "name": "Nama tim"
+      "name": "Nama tim",
+      "icon": "Ikon"
     },
     "deleteModal": {
       "title": "Hapus tim",
@@ -302,7 +303,7 @@
       "removeMember": "Gagal mengeluarkan anggota",
       "leave": "Gagal keluar dari tim",
       "deleteTeam": "Gagal menghapus tim",
-      "rename": "Gagal mengganti nama tim"
+      "rename": "Gagal mengubah tim"
     },
     "invites": {
       "title": "Undangan",
@@ -331,6 +332,7 @@
       "intro": "Tim adalah workspace yang menampung proyek-proyek Anda. Anda bisa mengundang pengguna terdaftar lain untuk berkolaborasi — Anda menjadi pemiliknya.",
       "name": "Nama",
       "namePlaceholder": "cth. My Startup",
+      "icon": "Ikon",
       "createError": "Gagal membuat tim."
     },
     "billing": {

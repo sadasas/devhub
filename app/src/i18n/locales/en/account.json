@@ -266,7 +266,7 @@
     "backToDashboard": "Dashboard",
     "subtitle": "Team members share every project in this workspace.",
     "invite": "Invite",
-    "rename": "Rename",
+    "rename": "Edit team",
     "deleteTeam": "Delete team",
     "memberCount": "{{count}} members",
     "tabsAria": "Team sections",
@@ -282,9 +282,10 @@
     "withdraw": "Withdraw",
     "leaveTeam": "Leave team",
     "renameModal": {
-      "title": "Rename team",
+      "title": "Edit team",
       "save": "Save",
-      "name": "Team name"
+      "name": "Team name",
+      "icon": "Icon"
     },
     "deleteModal": {
       "title": "Delete team",
@@ -302,7 +303,7 @@
       "removeMember": "Failed to remove member",
       "leave": "Failed to leave team",
       "deleteTeam": "Failed to delete team",
-      "rename": "Failed to rename team"
+      "rename": "Failed to update team"
     },
     "invites": {
       "title": "Invitations",
@@ -331,6 +332,7 @@
       "intro": "A team is a workspace that holds your projects. You can invite other registered users to collaborate — you become the owner.",
       "name": "Name",
       "namePlaceholder": "e.g. My Startup",
+      "icon": "Icon",
       "createError": "Failed to create team."
     },
     "billing": {
