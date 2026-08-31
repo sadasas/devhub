@@ -10,6 +10,8 @@ import {
   deleteProject,
   exportProject,
   getProject,
+  getProjectDailyStats,
+  getProjectNextUp,
   getProjectState,
   getProjectStats,
   importProject,
@@ -43,6 +45,20 @@ projectsRouter.get('/', async (req, res) => {
 projectsRouter.get('/stats', async (req, res) => {
   const userId = getUserId(req);
   res.json({ projects: await getProjectStats(userId) });
+});
+
+projectsRouter.get('/stats/daily', async (req, res) => {
+  const userId = getUserId(req);
+  const rawDays = typeof req.query.days === 'string' ? Number.parseInt(req.query.days, 10) : 7;
+  const days = Number.isFinite(rawDays) ? Math.min(Math.max(rawDays, 1), 30) : 7;
+  res.json({ days: await getProjectDailyStats(userId, days) });
+});
+
+projectsRouter.get('/stats/next-up', async (req, res) => {
+  const userId = getUserId(req);
+  const rawLimit = typeof req.query.limit === 'string' ? Number.parseInt(req.query.limit, 10) : 3;
+  const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 20) : 3;
+  res.json({ tasks: await getProjectNextUp(userId, limit) });
 });
 
 projectsRouter.post('/', async (req, res) => {

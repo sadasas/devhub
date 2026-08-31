@@ -6,6 +6,7 @@ interface WelcomeHeroMicroProps {
   done: number;
   totalTasks: number;
   openIssues: number;
+  overdue: number;
   outdated: number;
   onFilter?: (kind: 'all' | 'attention' | 'issues' | 'outdated') => void;
   activeFilter?: string;
@@ -17,6 +18,7 @@ export function WelcomeHeroMicro({
   done,
   totalTasks,
   openIssues,
+  overdue,
   outdated,
   onFilter,
   activeFilter,
@@ -45,8 +47,8 @@ export function WelcomeHeroMicro({
     {
       key: 'attention',
       label: 'Overdue Tasks',
-      value: Math.max(0, totalTasks - done > 0 ? Math.min(needsAttention, totalTasks - done) : 0),
-      sub: needsAttention > 0 ? 'due today + overdue' : 'nothing overdue',
+      value: overdue,
+      sub: overdue > 0 ? `${overdue} overdue` : 'nothing overdue',
       icon: Clock,
       tone: 'danger' as const,
       onClick: () => onFilter?.('attention'),

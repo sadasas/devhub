@@ -14,8 +14,9 @@ interface WelcomeProjectRowProps {
 
 function getDotTone(stats?: ProjectStats | null): string {
   if (!stats) return 'var(--text-muted)';
-  if (stats.openIssues > 3 || stats.outdatedDeps > 2) return 'var(--status-danger)';
-  if (stats.openIssues > 0 || stats.outdatedDeps > 0) return 'var(--status-warn)';
+  const overdue = (stats as ProjectStats & { overdueTasks?: number }).overdueTasks ?? 0;
+  if (stats.openIssues > 3 || stats.outdatedDeps > 2 || overdue > 2) return 'var(--status-danger)';
+  if (stats.openIssues > 0 || stats.outdatedDeps > 0 || overdue > 0) return 'var(--status-warn)';
   if (stats.totalTasks > 0 && stats.doneTasks === stats.totalTasks) return 'var(--status-success)';
   return 'var(--accent)';
 }
@@ -34,6 +35,7 @@ export const WelcomeProjectRow = memo(function WelcomeProjectRow({
   const progressPct = hasTasks ? Math.round((stats!.doneTasks / stats!.totalTasks) * 100) : 0;
   const showIssues = !!(stats && stats.openIssues > 0);
   const showOutdated = !!(stats && stats.outdatedDeps > 0);
+  const showOverdue = !!((stats as ProjectStats & { overdueTasks?: number })?.overdueTasks);
   const isExpandable = !!(project.description?.trim() || stats?.nextMilestone);
 
   return (
@@ -85,6 +87,13 @@ export const WelcomeProjectRow = memo(function WelcomeProjectRow({
             </span>
           )}
 
+          {showOverdue && (
+            <span className="welcome-row-overdue tabular" title={`${(stats as ProjectStats & { overdueTasks?: number }).overdueTasks} overdue tasks`}>
+              <Clock size={11} aria-hidden="true" />
+              {(stats as ProjectStats & { overdueTasks?: number }).overdueTasks}
+            </span>
+          )}
+
           {stats?.nextMilestone ? (
             <span className="welcome-row-milestone" title={stats.nextMilestone.name}>
               <FolderOpen size={11} aria-hidden="true" />
@@ -100,14 +109,23 @@ export const WelcomeProjectRow = memo(function WelcomeProjectRow({
             {formatRelative(project.updatedAt)}
           </span>
 
-          <span className="welcome-spark" aria-hidden="true" title="7-day activity">
-            <i style={{ height: 4 }} />
-            <i className="on" style={{ height: 6 }} />
-            <i className="on" style={{ height: 10 }} />
-            <i style={{ height: 4 }} />
-            <i className="on" style={{ height: 8 }} />
-            <i style={{ height: 5 }} />
-            <i className="on" style={{ height: 9 }} />
+          <span
+            className="welcome-spark"
+            aria-hidden="true"
+            title={
+              hasTasks
+                ? `${stats!.doneTasks}/${stats!.totalTasks} done${stats!.overdueTasks ? ` · ${stats!.overdueTasks} overdue` : ''}`
+                : 'No tasks yet'
+            }
+          >
+            {hasTasks
+              ? Array.from({ length: 7 }, (_, i) => {
+                  const seed = project.id.charCodeAt(i % project.id.length) + i * 7;
+                  const base = 4 + (seed % 7);
+                  const isOn = stats!.doneTasks > (i * stats!.totalTasks) / 7;
+                  return <i key={i} className={isOn ? 'on' : undefined} style={{ height: base }} />;
+                })
+              : Array.from({ length: 7 }, (_, i) => <i key={i} style={{ height: 3, opacity: 0.15 }} />)}
           </span>
 
           <CaretRight size={12} weight="bold" aria-hidden="true" className="welcome-row-chevron" />

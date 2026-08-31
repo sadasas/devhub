@@ -34,13 +34,27 @@ export interface ProjectStats {
   doneTasks: number;
   openIssues: number;
   outdatedDeps: number;
+  overdueTasks: number;
   totalMilestones: number;
   releasedMilestones: number;
   nextMilestone: Milestone | null;
 }
 
+function toDateOnly(iso: string): string {
+  return iso.slice(0, 10);
+}
+
+function isOverdueTask(task: State['tasks'][number], todayStr: string): boolean {
+  if (task.status === 'done') return false;
+  const due = task.dueDate;
+  if (!due) return false;
+  const dueStr = toDateOnly(due);
+  return dueStr < todayStr;
+}
+
 export function computeProjectStats(state: State): ProjectStats {
   const now = Date.now();
+  const todayStr = new Date().toISOString().slice(0, 10);
   const upcoming = state.milestones
     .filter((m) => m.status !== 'released' && m.targetDate && Date.parse(m.targetDate) >= now)
     .sort((a, b) => Date.parse(a.targetDate!) - Date.parse(b.targetDate!));
@@ -49,10 +63,95 @@ export function computeProjectStats(state: State): ProjectStats {
     doneTasks: state.tasks.filter((t) => t.status === 'done').length,
     openIssues: state.issues.filter((i) => !['resolved', 'wontfix'].includes(i.status)).length,
     outdatedDeps: state.techEntries.filter((t) => t.status !== 'current').length,
+    overdueTasks: state.tasks.filter((t) => isOverdueTask(t, todayStr)).length,
     totalMilestones: state.milestones.length,
     releasedMilestones: state.milestones.filter((m) => m.status === 'released').length,
     nextMilestone: upcoming[0] ?? null,
   };
+}
+
+export interface DailyStat {
+  date: string;
+  created: number;
+  done: number;
+}
+
+export function computeDailyStatsForStates(states: Array<{ state: State }>, days: number): DailyStat[] {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const today = new Date(todayStr + 'T00:00:00.000Z');
+  const dates: string[] = [];
+  const map = new Map<string, DailyStat>();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setUTCDate(today.getUTCDate() - i);
+    const ds = d.toISOString().slice(0, 10);
+    dates.push(ds);
+    map.set(ds, { date: ds, created: 0, done: 0 });
+  }
+  const allowed = new Set(dates);
+  for (const { state } of states) {
+    for (const t of state.tasks) {
+      const cDate = t.createdAt ? toDateOnly(t.createdAt) : null;
+      if (cDate && allowed.has(cDate)) {
+        map.get(cDate)!.created += 1;
+      }
+      if (t.status === 'done') {
+        const doneDateRaw = t.completedAt ?? t.updatedAt;
+        const dDate = doneDateRaw ? toDateOnly(doneDateRaw) : null;
+        if (dDate && allowed.has(dDate)) {
+          map.get(dDate)!.done += 1;
+        }
+      }
+    }
+  }
+  return dates.map((d) => map.get(d)!);
+}
+
+export interface NextUpTask {
+  projectId: string;
+  projectName: string;
+  taskId: string;
+  title: string;
+  dueDate: string;
+  priority: State['tasks'][number]['priority'];
+  status: State['tasks'][number]['status'];
+}
+
+const priorityRank: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
+
+export function computeNextUpForStates(
+  rows: Array<{ id: string; name: string; state: State }>,
+  userId: string,
+  limit: number,
+): NextUpTask[] {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const out: NextUpTask[] = [];
+  for (const { id, name, state } of rows) {
+    for (const t of state.tasks) {
+      if (t.status === 'done') continue;
+      if (!t.dueDate) continue;
+      if (t.assigneeId !== userId) continue;
+      const dueStr = toDateOnly(t.dueDate);
+      if (dueStr > todayStr) continue;
+      out.push({
+        projectId: id,
+        projectName: name,
+        taskId: t.id,
+        title: t.title,
+        dueDate: t.dueDate,
+        priority: t.priority,
+        status: t.status,
+      });
+    }
+  }
+  out.sort((a, b) => {
+    const d = a.dueDate.localeCompare(b.dueDate);
+    if (d !== 0) return d;
+    const pr = (priorityRank[a.priority] ?? 9) - (priorityRank[b.priority] ?? 9);
+    if (pr !== 0) return pr;
+    return a.title.localeCompare(b.title);
+  });
+  return out.slice(0, limit);
 }
 
 export function projectJson(row: ProjectRow) {
@@ -89,6 +188,27 @@ export async function getProjectStats(userId: string): Promise<Array<{ projectId
     const parsed = stateSchema.safeParse(row.data);
     return { projectId: row.id, ...computeProjectStats(parsed.success ? parsed.data : emptyState) };
   });
+}
+
+export async function getProjectDailyStats(userId: string, days: number): Promise<DailyStat[]> {
+  const rows = await listProjectStats(userId);
+  const states = rows.map((r) => {
+    const parsed = stateSchema.safeParse(r.data);
+    return { state: parsed.success ? parsed.data : emptyState };
+  });
+  return computeDailyStatsForStates(states, days);
+}
+
+export async function getProjectNextUp(userId: string, limit: number): Promise<NextUpTask[]> {
+  const rows = await listProjectStats(userId);
+  // need project name; listProjectStats only returns id+data, so fetch name via listProjects
+  const metaRows = await listProjects(userId);
+  const nameById = new Map(metaRows.map((r) => [r.id, r.name]));
+  const enriched = rows.map((r) => {
+    const parsed = stateSchema.safeParse(r.data);
+    return { id: r.id, name: nameById.get(r.id) ?? r.id, state: parsed.success ? parsed.data : emptyState };
+  });
+  return computeNextUpForStates(enriched, userId, limit);
 }
 
 export interface CreateProjectInput {

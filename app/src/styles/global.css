@@ -3324,6 +3324,33 @@ a:hover {
   color: var(--text-muted);
 }
 
+.task-activity-loading {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.task-activity-empty {
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 12px;
+}
+
+.welcome-queue-loading {
+  grid-column: 1 / -1;
+}
+
+.welcome-queue-empty {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 8px 4px;
+  font-style: italic;
+}
+
 .task-activity-tooltip {
   font-family: var(--font-mono);
   font-size: 10px;
@@ -3857,7 +3884,8 @@ a:hover {
 }
 
 .welcome-row-issues,
-.welcome-row-outdated {
+.welcome-row-outdated,
+.welcome-row-overdue {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -3869,6 +3897,10 @@ a:hover {
 }
 
 .welcome-row-outdated {
+  color: var(--status-danger);
+}
+
+.welcome-row-overdue {
   color: var(--status-danger);
 }
 

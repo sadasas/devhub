@@ -217,6 +217,16 @@ export const api = {
     const res = await request<{ projects: Array<{ projectId: string } & ProjectStats> }>('/projects/stats');
     return res.projects;
   },
+  projectDailyStats: async (days = 7) => {
+    const res = await request<{ days: Array<{ date: string; created: number; done: number }> }>(`/projects/stats/daily?days=${days}`);
+    return res.days;
+  },
+  projectNextUp: async (limit = 3) => {
+    const res = await request<{ tasks: Array<{ projectId: string; projectName: string; taskId: string; title: string; dueDate: string; priority: string; status: string }> }>(
+      `/projects/stats/next-up?limit=${limit}`,
+    );
+    return res.tasks;
+  },
   patchProject: (
     projectId: string,
     patch: Partial<Pick<Project, 'name' | 'description' | 'status' | 'visibility' | 'prd'> & { publicTabs: PublicTab[] }>,

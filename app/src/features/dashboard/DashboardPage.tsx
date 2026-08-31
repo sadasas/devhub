@@ -30,13 +30,20 @@ export function DashboardPage() {
   const [teamCreateOpen, setTeamCreateOpen] = useState(false);
   const [stats, setStats] = useState<Record<string, ProjectStats>>({});
   const [statsLoading, setStatsLoading] = useState(false);
+  const [daily, setDaily] = useState<Array<{ date: string; created: number; done: number }> | null>(null);
+  const [dailyLoading, setDailyLoading] = useState(false);
+  const [nextUp, setNextUp] = useState<Array<{ projectId: string; projectName: string; taskId: string; title: string; dueDate: string; priority: string; status: string }> | null>(null);
+  const [nextUpLoading, setNextUpLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  // URL state: ?q & ?sort & ?team & ?status (+ ?new legacy)
+  // URL state: ?q & ?sort & ?team & ?status & ?filter (+ ?new legacy)
   const queryParam = searchParams.get('q') ?? '';
   const sortParam = (searchParams.get('sort') as SortOption | null) ?? 'updated';
   const teamParam = searchParams.get('team') ?? 'all';
   const statusParam = searchParams.get('status') as 'archived' | 'all' | null;
+  const filterParam = searchParams.get('filter') as 'all' | 'issues' | 'attention' | 'outdated' | null;
+  const activeFilter: 'all' | 'issues' | 'attention' | 'outdated' | null =
+    filterParam === 'issues' || filterParam === 'attention' || filterParam === 'outdated' || filterParam === 'all' ? filterParam : null;
   const showMode: 'active' | 'archived' | 'all' = statusParam === 'archived' ? 'archived' : statusParam === 'all' ? 'all' : 'active';
 
   const [queryDraft, setQueryDraft] = useState(queryParam);
@@ -86,6 +93,56 @@ export function DashboardPage() {
     };
   }, [projects]);
 
+  // daily activity fetch (decorative but real)
+  useEffect(() => {
+    if (!projects || projects.length === 0) {
+      setDaily([]);
+      return;
+    }
+    let cancelled = false;
+    setDailyLoading(true);
+    api
+      .projectDailyStats(7)
+      .then((days) => {
+        if (cancelled) return;
+        setDaily(days);
+      })
+      .catch(() => {
+        if (!cancelled) setDaily([]);
+      })
+      .finally(() => {
+        if (!cancelled) setDailyLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [projects]);
+
+  // next up fetch (3 tasks due <= today assigned to you)
+  useEffect(() => {
+    if (!projects || projects.length === 0 || !user) {
+      setNextUp([]);
+      return;
+    }
+    let cancelled = false;
+    setNextUpLoading(true);
+    api
+      .projectNextUp(3)
+      .then((tasks) => {
+        if (cancelled) return;
+        setNextUp(tasks);
+      })
+      .catch(() => {
+        if (!cancelled) setNextUp([]);
+      })
+      .finally(() => {
+        if (!cancelled) setNextUpLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [projects, user]);
+
   const archiveCounts = useMemo(() => {
     if (!projects) return { active: 0, archived: 0, all: 0 };
     let active = 0;
@@ -103,10 +160,12 @@ export function DashboardPage() {
 
   // derived global hero stats
   const heroStats = useMemo(() => {
-    if (!projects || projects.length === 0) return { total: 0, needsAttention: 0, done: 0, totalTasks: 0, openIssues: 0, outdated: 0 };
+    if (!projects || projects.length === 0)
+      return { total: 0, needsAttention: 0, done: 0, totalTasks: 0, openIssues: 0, overdue: 0, outdated: 0 };
     let done = 0;
     let totalTasks = 0;
     let openIssues = 0;
+    let overdue = 0;
     let outdated = 0;
     let needsAttention = 0;
     for (const p of projects) {
@@ -116,10 +175,11 @@ export function DashboardPage() {
         totalTasks += st.totalTasks;
         openIssues += st.openIssues;
         outdated += st.outdatedDeps;
-        if (st.openIssues > 0 || st.outdatedDeps > 0) needsAttention += 1;
+        overdue += st.overdueTasks ?? 0;
+        if (st.openIssues > 0 || st.outdatedDeps > 0 || (st.overdueTasks ?? 0) > 0) needsAttention += 1;
       }
     }
-    return { total: projects.length, needsAttention, done, totalTasks, openIssues, outdated };
+    return { total: projects.length, needsAttention, done, totalTasks, openIssues, overdue, outdated };
   }, [projects, stats]);
 
   // filter + sort
@@ -133,6 +193,14 @@ export function DashboardPage() {
     // team filter
     if (teamFilter !== 'all') {
       list = list.filter((p) => p.teamId === teamFilter);
+    }
+    // bento attention filter (?filter=)
+    if (activeFilter === 'issues') {
+      list = list.filter((p) => (stats[p.id]?.openIssues ?? 0) > 0);
+    } else if (activeFilter === 'attention') {
+      list = list.filter((p) => (stats[p.id]?.overdueTasks ?? 0) > 0);
+    } else if (activeFilter === 'outdated') {
+      list = list.filter((p) => (stats[p.id]?.outdatedDeps ?? 0) > 0);
     }
     // query filter (name + description + teamName)
     if (q) {
@@ -154,7 +222,7 @@ export function DashboardPage() {
       return Date.parse(b.p.updatedAt) - Date.parse(a.p.updatedAt);
     });
     return sorted.map((x) => x.p);
-  }, [projects, deferredQuery, teamFilter, sort, stats, showMode]);
+  }, [projects, deferredQuery, teamFilter, sort, stats, showMode, activeFilter]);
 
   // grouping adaptive
   const isSingleTeam = (teams?.length ?? 0) <= 1;
@@ -235,7 +303,22 @@ export function DashboardPage() {
     });
   };
 
+  const commitFilter = (kind: 'all' | 'issues' | 'attention' | 'outdated') => {
+    startTransition(() => {
+      const next = new URLSearchParams(searchParams);
+      if (kind === 'all') next.delete('filter');
+      else next.set('filter', kind);
+      // also adjust sort to make filter meaningful
+      if (kind === 'issues') next.set('sort', 'issues');
+      else if (kind === 'attention') next.set('sort', 'issues');
+      else if (kind === 'outdated') next.set('sort', 'progress');
+      else next.delete('sort');
+      setSearchParams(next, { replace: true });
+    });
+  };
+
   const handleOpen = (id: string) => navigate(`/project/${id}`);
+  const handleOpenTask = (projectId: string, taskId: string) => navigate(`/project/${projectId}?tab=board&task=${taskId}`);
 
   // exclusive chain: error > loading > empty (no team / no project / no result) > data
   // teams null = still loading teams
@@ -284,41 +367,36 @@ export function DashboardPage() {
           done={heroStats.done}
           totalTasks={heroStats.totalTasks}
           openIssues={heroStats.openIssues}
+          overdue={heroStats.overdue}
           outdated={heroStats.outdated}
-          onFilter={(kind) => {
-            if (kind === 'all') {
-              commitTeam('all');
-              commitQuery('');
-            } else if (kind === 'issues' || kind === 'attention') {
-              commitSort('issues');
-            } else if (kind === 'outdated') {
-              commitSort('progress');
-            }
-          }}
+          activeFilter={activeFilter ?? undefined}
+          onFilter={(kind) => commitFilter(kind)}
         />
       )}
 
-      {/* task activity — statik 7 day, angka langsung */}
+      {/* task activity — 7 day real from /stats/daily */}
       {projects && projects.length > 0 && (
         <div className="task-activity" aria-label="Tasks activity">
           <div className="task-activity-head">
             <span className="task-activity-title">Tasks Activity — last 7 days</span>
+            {dailyLoading && <span className="task-activity-loading" aria-hidden="true">…</span>}
           </div>
-          <div className="task-activity-bars" role="img" aria-label="Tasks created vs done last 7 days">
-            {[
-              { day: 'S', created: 2, done: 1 },
-              { day: 'M', created: 3, done: 2 },
-              { day: 'T', created: 1, done: 4 },
-              { day: 'W', created: 2, done: 2 },
-              { day: 'T', created: 0, done: 1 },
-              { day: 'F', created: 1, done: 0 },
-              { day: 'S', created: 2, done: 3 },
-            ].map((d, idx) => {
-              const max = 4;
+          <div className="task-activity-bars" role="list" aria-label="Tasks created vs done last 7 days">
+            {(daily ?? []).map((d) => {
+              const dateObj = new Date(d.date + 'T00:00:00.000Z');
+              const day = dateObj.toLocaleDateString('en-US', { weekday: 'narrow', timeZone: 'UTC' });
+              const max = Math.max(1, ...((daily ?? []).map((x) => Math.max(x.created, x.done, 1))));
               const hDone = (d.done / max) * 56 + 8;
               const hCreated = (d.created / max) * 48 + 8;
+              const isEmpty = d.created === 0 && d.done === 0;
               return (
-                <div key={`${d.day}-${idx}`} className="task-activity-bar">
+                <div
+                  key={d.date}
+                  className="task-activity-bar"
+                  role="listitem"
+                  aria-label={`${d.date}: ${d.created} created, ${d.done} done`}
+                  title={`${d.date}: ${d.created} created · ${d.done} done`}
+                >
                   <div className="task-activity-values" aria-hidden="true">
                     <span className="task-activity-value task-activity-value-created">{d.created > 0 ? d.created : ''}</span>
                     <span className="task-activity-value task-activity-value-done">{d.done > 0 ? d.done : ''}</span>
@@ -326,19 +404,21 @@ export function DashboardPage() {
                   <div className="task-activity-track">
                     <div
                       className="task-activity-col task-activity-col-created"
-                      style={{ height: hCreated }}
-                      title={`Created ${d.created}`}
+                      style={{ height: isEmpty ? 4 : hCreated, opacity: isEmpty ? 0.2 : 1 }}
+                      aria-hidden="true"
                     />
                     <div
                       className="task-activity-col task-activity-col-done"
-                      style={{ height: hDone }}
-                      title={`Done ${d.done}`}
+                      style={{ height: isEmpty ? 4 : hDone, opacity: isEmpty ? 0.2 : 1 }}
+                      aria-hidden="true"
                     />
                   </div>
-                  <span className="task-activity-day">{d.day}</span>
+                  <span className="task-activity-day">{day}</span>
                 </div>
               );
             })}
+            {daily && daily.length === 0 && <span className="task-activity-empty">No activity yet</span>}
+            {!daily && !dailyLoading && <span className="task-activity-empty">No data</span>}
           </div>
         </div>
       )}
@@ -407,31 +487,61 @@ export function DashboardPage() {
         <WelcomeEmptyNoResult query={deferredQuery.trim()} onClear={() => commitQuery('')} />
       ) : (
         <div className="welcome-content">
-          {/* keep queue — part of Image 1 */}
+          {/* next up — 3 tasks due <= today assigned to you */}
           <div className="welcome-queue" role="list" aria-label="Next actions">
             <div className="welcome-queue-head">
               <span>Next up — what to do today</span>
-              <span className="welcome-queue-sub">assignee: you · due ≤ today</span>
+              <span className="welcome-queue-sub">assignee: you · due ≤ today{nextUp && nextUp.length > 0 ? ` · ${nextUp.length} overdue` : ''}</span>
             </div>
-            {filteredSorted.slice(0, 1).map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                className="welcome-queue-card"
-                role="listitem"
-                onClick={() => handleOpen(p.id)}
-                aria-label={`Open ${p.name}`}
-              >
-                <span className="welcome-queue-num">1</span>
-                <span className="welcome-queue-main">
-                  <span className="welcome-queue-title">Open project</span>
-                  <span className="welcome-queue-project">
-                    {p.name} · Continue work
+            {nextUpLoading ? (
+              <div className="welcome-queue-loading" aria-busy="true">
+                <Skeleton style={{ width: '100%', height: 56, borderRadius: 12 }} />
+              </div>
+            ) : nextUp && nextUp.length > 0 ? (
+              nextUp.map((t, idx) => (
+                <button
+                  key={t.taskId}
+                  type="button"
+                  className="welcome-queue-card"
+                  role="listitem"
+                  onClick={() => handleOpenTask(t.projectId, t.taskId)}
+                  aria-label={`Open task ${t.title} in ${t.projectName}, due ${t.dueDate}`}
+                  title={`${t.projectName} · ${t.title}`}
+                >
+                  <span className="welcome-queue-num">{idx + 1}</span>
+                  <span className="welcome-queue-main">
+                    <span className="welcome-queue-title" title={t.title}>
+                      {t.title}
+                    </span>
+                    <span className="welcome-queue-project">
+                      {t.projectName} · {t.priority} · due {t.dueDate.slice(0, 10)}
+                    </span>
                   </span>
-                </span>
-                <span className="welcome-queue-cta">Open →</span>
-              </button>
-            ))}
+                  <span className="welcome-queue-cta">Open →</span>
+                </button>
+              ))
+            ) : (
+              filteredSorted.slice(0, 1).map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className="welcome-queue-card"
+                  role="listitem"
+                  onClick={() => handleOpen(p.id)}
+                  aria-label={`Open ${p.name}`}
+                >
+                  <span className="welcome-queue-num">1</span>
+                  <span className="welcome-queue-main">
+                    <span className="welcome-queue-title">Open project</span>
+                    <span className="welcome-queue-project">{p.name} · Continue work</span>
+                  </span>
+                  <span className="welcome-queue-cta">Open →</span>
+                </button>
+              ))
+            )}
+            {!nextUpLoading && nextUp && nextUp.length === 0 && filteredSorted.length === 0 && (
+              <p className="welcome-queue-empty">Nothing due today — all clear.</p>
+            )}
           </div>
           {isSingleTeam || teamFilter !== 'all' ? (
             <WelcomeProjectList>
