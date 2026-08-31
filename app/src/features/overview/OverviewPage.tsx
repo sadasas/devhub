@@ -7,6 +7,7 @@ import { useProject } from '../../state/project-context';
 import { useProjects } from '../../state/projects-context';
 import { api } from '../../lib/api';
 import { formatDate } from '../../lib/utils';
+import { formatHours } from '../../lib/format';
 import { todayIso } from '../../lib/due-dates';
 import { avatarColor, initialsOf } from '../../lib/avatar';
 import { PROJECT_STATUS, TEAM_ROLE } from '../../lib/labels';
@@ -94,7 +95,7 @@ function Bars({ rows }: { rows: { label: string; value: number; color: string }[
           <div className="bar-track">
             <div className="bar-fill" style={{ width: `${(r.value / max) * 100}%`, background: r.color }} />
           </div>
-          <span className="bar-value">{r.value}</span>
+          <span className="bar-value">{formatHours(r.value)}</span>
         </div>
       ))}
     </div>
@@ -281,8 +282,8 @@ export function OverviewPage({ project }: { project: Project }) {
     value: state.issues.filter((i) => i.severity === s).length,
     color: SEVERITY_COLOR[s],
   }));
-  const estimateHours = state.tasks.reduce((sum, t) => sum + (t.estimate ?? 0), 0);
-  const actualHours = state.tasks.reduce((sum, t) => sum + (t.actualHours ?? 0), 0);
+  const estimateHours = Math.round(state.tasks.reduce((sum, t) => sum + (t.estimate ?? 0), 0) * 10) / 10;
+  const actualHours = Math.round(state.tasks.reduce((sum, t) => sum + (t.actualHours ?? 0), 0) * 10) / 10;
 
   const today = todayIso();
   const memberMap = new Map<string | null, MemberStat>();
@@ -407,7 +408,7 @@ export function OverviewPage({ project }: { project: Project }) {
             <StatCard title={t('overview.stat.issuesBySeverity')} value="">
               <Bars rows={severityRows} />
             </StatCard>
-            <StatCard title={t('overview.stat.estVsActual')} value={`${actualHours}h / ${estimateHours}h`}>
+            <StatCard title={t('overview.stat.estVsActual')} value={`${formatHours(actualHours)}h / ${formatHours(estimateHours)}h`}>
               <Bars
                 rows={[
                   { label: t('overview.stat.estimate'), value: estimateHours, color: 'var(--accent)' },

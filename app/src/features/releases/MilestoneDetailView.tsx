@@ -5,7 +5,7 @@ import { Button } from "../../components/Button";
 import { InlineError } from "../../components/InlineError";
 import { ConfirmDeleteDialog } from "../../components/ConfirmDeleteDialog";
 import { MILESTONE_STATUS, TASK_PRIORITY, TASK_STATUS } from "../../lib/labels";
-import type { Decision, Milestone, SchemaVersion, Task, TechEntry, Issue, TestCase } from "../../lib/types";
+import type { Decision, Milestone, SchemaVersion, Task, Issue, TestCase } from "../../lib/types";
 import { formatDate, formatRelative, shortId } from "../../lib/utils";
 import { taskDueChip } from "../../lib/due-dates";
 import { avatarColor, initialsOf } from "../../lib/avatar";
@@ -23,7 +23,6 @@ interface Props {
   testCases: TestCase[];
   decisions: Decision[];
   schemaVersions: SchemaVersion[];
-  techEntries: TechEntry[];
   onBack: () => void;
   onEdit: () => void;
   onOpenTask: (id: string) => void;
@@ -63,7 +62,7 @@ function DagCard({ task, state, blockedBy, external, onOpen }: { task: Task; sta
   );
 }
 
-export function MilestoneDetailView({ milestone, tasks, issues, testCases, decisions, schemaVersions, techEntries, onBack, onEdit, onOpenTask, canEdit }: Props) {
+export function MilestoneDetailView({ milestone, tasks, issues, testCases, decisions, schemaVersions, onBack, onEdit, onOpenTask, canEdit }: Props) {
   const { t } = useTranslation("project");
   const { dispatch } = useProject();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -213,10 +212,6 @@ export function MilestoneDetailView({ milestone, tasks, issues, testCases, decis
                   <div className="release-flow-context-section">
                     <h4 className="field-label">{t("releases.flow.schema")} · {linkedSchemas.length}</h4>
                     {linkedSchemas.length === 0 ? <span className="field-helper">{t("releases.flow.noLinkedSchemas", { defaultValue: "No schema linked to this milestone" })}</span> : <ul className="release-flow-context-list">{linkedSchemas.slice(0,3).map((s) => <li key={s.id} className="release-flow-context-item"><span className="font-mono tabular" style={{ fontSize: 12 }}>v{s.version}</span><span className="field-helper">{formatDate(s.appliedAt)}</span></li>)}</ul>}
-                  </div>
-                  <div className="release-flow-context-section">
-                    <h4 className="field-label">{t("releases.flow.stack")} · {techEntries.length}</h4>
-                    {techEntries.length === 0 ? <span className="field-helper">{t("stack.emptyDesc")}</span> : <ul className="release-flow-context-list">{techEntries.slice(0,5).map((e) => <li key={e.id} className="release-flow-context-item"><span style={{ fontSize: 13 }}>{e.name} v{e.version}</span><Badge tone={e.status === "current" ? "success" : e.status === "majorUpgrade" ? "danger" : "warn"}>{e.status}</Badge></li>)}</ul>}
                   </div>
                 </div>
               </div>

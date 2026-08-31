@@ -72,7 +72,6 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
           testCases={state.testCases}
           decisions={state.decisions}
           schemaVersions={state.schemaVersions}
-          techEntries={state.techEntries}
           onBack={() => setMid(null)}
           onEdit={() => setEditId(selectedMilestone.id)}
           onOpenTask={setTaskEditId}

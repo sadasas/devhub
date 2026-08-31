@@ -25,3 +25,9 @@ export function compactId(n: number): string {
   if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace('.0', '')}rb`;
   return String(n);
 }
+
+export function formatHours(n: number): string {
+  const rounded = Math.round(n * 10) / 10;
+  if (!Number.isFinite(rounded)) return '0';
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}

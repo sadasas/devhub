@@ -5,7 +5,7 @@ import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { InlineError } from '../../components/InlineError';
 import { MILESTONE_STATUS, TASK_PRIORITY, TASK_STATUS } from '../../lib/labels';
-import type { Decision, Milestone, SchemaVersion, Task, TechEntry } from '../../lib/types';
+import type { Decision, Milestone, SchemaVersion, Task } from '../../lib/types';
 import { formatDate, formatRelative, shortId } from '../../lib/utils';
 import { taskDueChip } from '../../lib/due-dates';
 import { avatarColor, initialsOf } from '../../lib/avatar';
@@ -20,7 +20,6 @@ interface ReleasesFlowViewProps {
   testCases: import('../../lib/types').TestCase[];
   decisions: Decision[];
   schemaVersions: SchemaVersion[];
-  techEntries: TechEntry[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   onEditMilestone: (id: string) => void;
@@ -217,7 +216,6 @@ export function ReleasesFlowView({
   testCases,
   decisions,
   schemaVersions,
-  techEntries,
   selectedId,
   onSelect,
   onEditMilestone,
@@ -418,21 +416,6 @@ export function ReleasesFlowView({
                         <li key={s.id} className="release-flow-context-item">
                           <span className="font-mono tabular" style={{ fontSize: 12 }}>v{s.version}</span>
                           <span className="field-helper">{formatDate(s.appliedAt)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-                <div className="release-flow-context-section">
-                  <h4 className="field-label">{t('releases.flow.stack', { defaultValue: 'Stack' })} · {techEntries.length}</h4>
-                  {techEntries.length === 0 ? (
-                    <span className="field-helper">{t('stack.emptyDesc')}</span>
-                  ) : (
-                    <ul className="release-flow-context-list">
-                      {techEntries.slice(0, 5).map((e) => (
-                        <li key={e.id} className="release-flow-context-item">
-                          <span style={{ fontSize: 13 }}>{e.name} v{e.version}</span>
-                          <Badge tone={e.status === 'current' ? 'success' : e.status === 'majorUpgrade' ? 'danger' : 'warn'}>{e.status}</Badge>
                         </li>
                       ))}
                     </ul>
