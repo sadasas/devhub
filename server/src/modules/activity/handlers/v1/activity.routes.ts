@@ -9,6 +9,7 @@ import type { ActivityEntry } from '../../application/activity.js';
 import { STATE_COLLECTIONS } from '../../application/activity.js';
 import {
   READABLE_TABS,
+  getUnreadSummariesBatch,
   getUnreadSummary,
   setWatermark,
 } from '../../application/unread.js';
@@ -70,6 +71,27 @@ activityRouter.get('/:projectId/activity', async (req, res) => {
     items: result.rows,
     nextCursor: last && result.rows.length === query.limit ? last.createdAt : null,
   });
+});
+
+// Batch unread for sidebar badges — must be before :projectId routes.
+activityRouter.post('/activity/unread/batch', async (req, res) => {
+  const userId = getUserId(req);
+  const parsed = parseOrThrow(
+    z.object({ projectIds: z.array(z.string().uuid()).min(1).max(100) }),
+    req.body,
+    'Invalid batch request',
+  );
+  // Verify access to all projects (do not leak existence)
+  const idSet = [...new Set(parsed.projectIds)];
+  const rows = await pool.query<{ id: string }>(
+    `SELECT p.id::text AS id FROM projects p JOIN team_members tm ON tm.team_id=p.team_id WHERE p.id=ANY($1::uuid[]) AND tm.user_id=$2`,
+    [idSet, userId],
+  );
+  const allowed = new Set(rows.rows.map((r) => r.id));
+  const denied = idSet.find((id) => !allowed.has(id));
+  if (denied) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
+  const summaries = await getUnreadSummariesBatch(userId, idSet);
+  res.json({ summaries });
 });
 
 // Badge unread server-side (ADR M32): watermark dibaca dari DB, agregat SQL.

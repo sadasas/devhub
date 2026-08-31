@@ -335,6 +335,12 @@ export const api = {
   fetchActivityUnread: (projectId: string) =>
     request<ActivityUnreadSummary>(`/projects/${encodeURIComponent(projectId)}/activity/unread`),
 
+  fetchActivityUnreadBatch: (projectIds: string[]) =>
+    request<{ summaries: Record<string, ActivityUnreadSummary> }>('/projects/activity/unread/batch', {
+      method: 'POST',
+      body: JSON.stringify({ projectIds }),
+    }),
+
   /** Tandai tab sudah dibaca; server yang menulis timestamp now(). */
   setTabReadWatermark: (projectId: string, tab: string) =>
     request<{ ok: true }>(

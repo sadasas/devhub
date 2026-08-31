@@ -54,7 +54,9 @@ export function useTabUnread(
     const tabs = [...pendingWritesRef.current];
     pendingWritesRef.current.clear();
     for (const tab of tabs) {
-      void api.setTabReadWatermark(projectId, tab).catch(() => {});
+      void api.setTabReadWatermark(projectId, tab).then(() => {
+        try { window.dispatchEvent(new CustomEvent('devhub:read-watermark', { detail: { projectId, tab } })); } catch { /* ignore */ }
+      }).catch(() => {});
     }
   }, [projectId]);
 

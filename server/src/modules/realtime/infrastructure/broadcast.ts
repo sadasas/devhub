@@ -63,3 +63,11 @@ export function broadcastActivity(projectId: string, entry: unknown): void {
     entry,
   });
 }
+
+export function broadcastActivityToTeam(teamId: string, projectId: string, entry: unknown): void {
+  registry?.broadcast(`team:${teamId}`, {
+    type: 'activity:new',
+    projectId,
+    entry,
+  });
+}

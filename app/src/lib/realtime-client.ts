@@ -283,6 +283,7 @@ export interface TeamChatHandlers {
   onJoinedTeam?: () => void;
   onMessageNew?: (teamId: string, message: ChatMessage) => void;
   onMessageSent?: (teamId: string, message: ChatMessage) => void;
+  onActivity?: (msg: ActivityNew) => void;
 }
 
 export interface TeamChatSocketOptions extends TeamChatHandlers {
@@ -355,6 +356,8 @@ export class TeamChatSocket {
     } else if (type === 'message:sent') {
       const m = msg as { teamId: string; message: ChatMessage };
       this.opts.onMessageSent?.(m.teamId, m.message);
+    } else if (type === 'activity:new') {
+      this.opts.onActivity?.(msg as ActivityNew);
     }
   }
 

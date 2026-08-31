@@ -8,7 +8,7 @@ import {
   type ActivityDraft,
   type ActivityEntry,
 } from '../../activity/application/activity.js';
-import { broadcastActivity } from '../../realtime/infrastructure/broadcast.js';
+import { broadcastActivity, broadcastActivityToTeam } from '../../realtime/infrastructure/broadcast.js';
 
 /**
  * Mutasi state project dalam satu transaksi dengan pessimistic lock
@@ -24,8 +24,8 @@ export async function mutateProject(
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const result = await client.query<{ data: unknown; version: number; role: string; status: string }>(
-      `SELECT p.data, p.version, p.status, tm.role
+    const result = await client.query<{ data: unknown; version: number; role: string; status: string; team_id: string }>(
+      `SELECT p.data, p.version, p.status, p.team_id, tm.role
        FROM projects p
        JOIN team_members tm ON tm.team_id = p.team_id
        WHERE p.id = $1 AND tm.user_id = $2
@@ -78,7 +78,11 @@ export async function mutateProject(
     await client.query('COMMIT');
     const version = updated.rows[0]?.version;
     if (!version) throw new ApiError(500, 'INTERNAL', 'Failed to persist state');
-    if (activityEntry) broadcastActivity(projectId, activityEntry);
+    if (activityEntry) {
+      broadcastActivity(projectId, activityEntry);
+      const teamId = row.team_id as string | undefined;
+      if (teamId) broadcastActivityToTeam(teamId, projectId, activityEntry);
+    }
     return { version, state };
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});

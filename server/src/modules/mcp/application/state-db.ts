@@ -4,7 +4,7 @@ import { stateSchema, type State } from '../../projects/domain/state.js';
 import { mergePrd, normalizePrd, type Prd, type PrdPatch } from '../../projects/domain/prd.js';
 import { getMcpUserId, setLoadedStateVersion, getLoadedStateVersion } from './context.js';
 import { getProjectWithRole } from '../../authorization/application/authz.js';
-import { broadcastActivity, broadcastSync } from '../../realtime/infrastructure/broadcast.js';
+import { broadcastActivity, broadcastActivityToTeam, broadcastSync } from '../../realtime/infrastructure/broadcast.js';
 import { diffStateDrafts, insertActivity, pruneActivity, type ActivityEntry } from '../../activity/application/activity.js';
 
 async function findRow(projectId: string) {
@@ -106,8 +106,10 @@ export async function saveState(projectId: string, state: State): Promise<void> 
       throw new McpError(ErrorCode.InternalError, 'Failed to persist state');
     }
     broadcastSync(projectId, version);
+    const mcpTeamId = (row as { team_id?: string }).team_id ?? (row as { teamId?: string }).teamId ?? null;
     for (const entry of entries) {
       broadcastActivity(projectId, entry);
+      if (mcpTeamId) broadcastActivityToTeam(mcpTeamId, projectId, entry);
     }
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
