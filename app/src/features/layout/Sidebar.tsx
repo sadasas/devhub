@@ -142,10 +142,6 @@ export function Sidebar({ activeTeamId, activeMain = 'team', onCreateTeam }: Sid
               <Notebook size={15} weight="duotone" aria-hidden="true" />
               <span>{t('sidebar.docs')}</span>
             </NavLink>
-            <NavLink to="/docs/mcp" className={itemClass()} aria-label="MCP">
-              <Plugs size={15} weight="duotone" aria-hidden="true" />
-              <span>MCP</span>
-            </NavLink>
           </nav>
         </>
       ) : (
