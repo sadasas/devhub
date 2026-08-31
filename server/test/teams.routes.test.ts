@@ -91,7 +91,8 @@ describe('teams routes', () => {
     expect(members).toHaveLength(2);
     expect(members.find((m) => m.email === 'editor@test.dev')?.role).toBe('editor');
     expect(members.find((m) => m.email === 'owner@test.dev')?.role).toBe('owner');
-    expect(members[0]?.displayName).toBe('');
+    expect(members.find((m) => m.email === 'owner@test.dev')?.displayName).toBe('owner@test.dev');
+    expect(members.find((m) => m.email === 'editor@test.dev')?.displayName).toBe('editor@test.dev');
   });
 
   it('rejects invitations without an existing account', async () => {

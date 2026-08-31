@@ -81,7 +81,7 @@ authRouter.post('/register', registerLimiter, async (req, res) => {
   try {
     userId = await withTransaction(pool, async (client) => {
       const result = await client.query<{ id: string }>(
-        'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id',
+        'INSERT INTO users (email, password_hash, display_name) VALUES ($1, $2, $1) RETURNING id',
         [email, passwordHash],
       );
       const id = result.rows[0]?.id;

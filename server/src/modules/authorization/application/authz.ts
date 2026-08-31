@@ -11,6 +11,17 @@ export async function getUserEmail(userId: string): Promise<string> {
   return email;
 }
 
+export async function getUserDisplayName(userId: string): Promise<string> {
+  const result = await pool.query<{ display_name: string; email: string }>(
+    'SELECT display_name, email FROM users WHERE id = $1',
+    [userId],
+  );
+  const row = result.rows[0];
+  if (!row) throw new ApiError(401, 'UNAUTHORIZED', 'Authentication required');
+  const name = row.display_name?.trim();
+  return name ? name : row.email;
+}
+
 export const TEAM_ROLES = ['owner', 'admin', 'editor', 'viewer'] as const;
 export type TeamRole = (typeof TEAM_ROLES)[number];
 

@@ -184,7 +184,7 @@ export function UsersTab({ refreshKey, onSettled }: UsersTabProps) {
               <div key={u.id} className="data-row">
                 <div className="data-row-main">
                   <span className="data-row-title">
-                    <span className="row-title-text">{u.email}</span>
+                    <span className="row-title-text">{u.displayName?.trim() ? u.displayName : u.email}</span>
                     <Badge tone={u.role === 'admin' ? 'info' : 'neutral'}>
                       {u.role === 'admin' ? t('admin.role.admin') : t('admin.role.user')}
                     </Badge>
@@ -194,6 +194,7 @@ export function UsersTab({ refreshKey, onSettled }: UsersTabProps) {
                     {isSelf && <Badge tone="neutral">{t('admin.you')}</Badge>}
                   </span>
                   <span className="data-row-meta">
+                    {u.displayName?.trim() && u.displayName !== u.email ? `${u.email} · ` : ''}
                     {t('admin.users.joined', {
                       count: u.teamCount,
                       joined: formatDateAdmin(u.createdAt),

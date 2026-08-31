@@ -264,10 +264,10 @@ export function TeamPage() {
               <div key={m.id} className="data-row">
                 <div className="data-row-main">
                   <span className="data-row-title">
-                    <span className="row-title-text">{m.email}</span>
+                    <span className="row-title-text">{m.displayName?.trim() ? m.displayName : m.email}</span>
                     <Badge tone={TEAM_ROLE[m.role].tone}>{TEAM_ROLE[m.role].label}</Badge>
                   </span>
-                  <span className="data-row-meta">{t('teams.joinedOn', { date: new Date(m.joinedAt).toLocaleDateString() })}</span>
+                  <span className="data-row-meta">{m.displayName?.trim() ? `${m.email} · ${t('teams.joinedOn', { date: new Date(m.joinedAt).toLocaleDateString() })}` : t('teams.joinedOn', { date: new Date(m.joinedAt).toLocaleDateString() })}</span>
                 </div>
                 <div className="data-row-side">
                   {roleOptions.length > 0 && (

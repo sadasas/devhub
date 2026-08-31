@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getUserEmail } from '../../authorization/application/authz.js';
+import { getUserDisplayName } from '../../authorization/application/authz.js';
 import type { ChatRef, ChatRefEntity } from '../domain/chat.js';
 
 export interface MessageRow {
@@ -35,7 +35,7 @@ export async function insertMessage(
   content: string,
   refs: ChatRef[],
 ): Promise<MessageRow> {
-  const authorName = await getUserEmail(authorId);
+  const authorName = await getUserDisplayName(authorId);
   const result = await db.query(
     `INSERT INTO team_messages (team_id, author_id, author_name, content, refs)
      VALUES ($1, $2, $3, $4, $5::jsonb)
