@@ -13150,11 +13150,20 @@ button.admin-plan-card {
 }
 .team-rail-compact .team-rail-home-label,
 .team-rail-compact .team-rail-section-label,
-.team-rail-compact .team-rail-account-meta,
-.team-rail-compact .team-rail-create span {
+.team-rail-compact .team-rail-account-meta {
   opacity: 0;
   visibility: hidden;
   max-width: 0;
+  pointer-events: none;
+  transition-delay: 220ms, 220ms, 220ms;
+}
+.team-rail-compact .team-rail-create span {
+  position: absolute;
+  width: 0;
+  opacity: 0;
+  visibility: hidden;
+  max-width: 0;
+  overflow: hidden;
   pointer-events: none;
   transition-delay: 220ms, 220ms, 220ms;
 }
@@ -13202,7 +13211,7 @@ button.admin-plan-card {
   padding: 0 10px;
   justify-content: center;
   align-self: stretch;
-  gap: 6px;
+  gap: 0;
   margin: 0;
   transition-delay: 220ms;
 }
