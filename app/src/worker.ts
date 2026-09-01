@@ -97,6 +97,7 @@ export default {
     }
 
     // Fallback to static assets (SPA)
-    return env.ASSETS.fetch(request);
+    if (env.ASSETS) return env.ASSETS.fetch(request);
+    return new Response('Not Found', { status: 404 });
   },
 } as any;
