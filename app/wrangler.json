@@ -2,8 +2,12 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "devhub-app",
   "compatibility_date": "2026-08-21",
+  "main": "./src/worker.ts",
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application"
+  },
+  "vars": {
+    "SUGA_ORIGIN": "https://51vjnl29rmug-production-2c2y9lr8.us-central1.suga.run"
   }
 }
