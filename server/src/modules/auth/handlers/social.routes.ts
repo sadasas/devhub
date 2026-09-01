@@ -28,7 +28,7 @@ const socialLimiter = rateLimit({
 
 function baseUrl(req: import('express').Request): string {
   const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol;
-  const host = req.get('host') || `localhost:${config.PORT}`;
+  const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || `localhost:${config.PORT}`;
   return `${proto}://${host}`;
 }
 

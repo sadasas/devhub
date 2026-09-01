@@ -18,7 +18,9 @@ export default {
     const isWs = url.pathname.startsWith('/ws');
 
     if (isApi || isWs) {
-      const targetUrl = new URL(url.pathname + url.search, env.SUGA_ORIGIN);
+      const rawOrigin = env.SUGA_ORIGIN?.trim() || '';
+      const sugaOrigin = rawOrigin.startsWith('http') ? rawOrigin : `https://${rawOrigin}`;
+      const targetUrl = new URL(url.pathname + url.search, sugaOrigin);
 
       const headers = new Headers(request.headers);
       // Forward original host/proto for server's baseUrl() & frontendOrigin()
