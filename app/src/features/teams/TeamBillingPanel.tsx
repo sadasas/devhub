@@ -25,6 +25,9 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
   const [bannerBusy, setBannerBusy] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [bannerError, setBannerError] = useState<string | null>(null);
+  const [bannerBusyScheduled, setBannerBusyScheduled] = useState(false);
+  const [confirmCancelScheduled, setConfirmCancelScheduled] = useState(false);
+  const [bannerErrorScheduled, setBannerErrorScheduled] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -67,7 +70,7 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
   const plan = data?.team.plan ?? 'free';
   const expires = data?.team.planExpiresAt ?? null;
   const pendingPayment = data?.payments.find((p) => p.status === 'pending') ?? null;
-
+  const pendingPkg = data?.team.pendingPackage ?? null;
 
   async function onCancelPending() {
     if (!pendingPayment) return;
@@ -92,6 +95,27 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
     }
   }
 
+  async function onCancelScheduled() {
+    if (!pendingPkg) return;
+    setBannerErrorScheduled(null);
+    setBannerBusyScheduled(true);
+    try {
+      await api.cancelScheduled(teamId);
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              team: { ...prev.team, pendingPackage: null },
+            }
+          : prev,
+      );
+    } catch (err) {
+      setBannerErrorScheduled(getErrorMessage(err, t('teams.billing.cancelScheduledError', { defaultValue: 'Gagal membatalkan jadwal.' })));
+    } finally {
+      setBannerBusyScheduled(false);
+    }
+  }
+
   let expiryMeta: string;
   if (plan === 'pro') {
     expiryMeta = expires
@@ -109,7 +133,7 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
   return (
     <section className="tab-panel billing-panel" aria-label={t('teams.billing.panelAria')}>
       {plan === 'pro' && daysLeft !== null && daysLeft <= 7 && (
-        <InlineError>
+        <InlineError className="billing-warn">
           {t('teams.billing.proEndingSoon', {
             duration:
               daysLeft <= 0
@@ -158,6 +182,62 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
             busy={bannerBusy}
             onConfirm={() => { setConfirmCancel(false); void onCancelPending(); }}
             onClose={() => { if (!bannerBusy) setConfirmCancel(false); }}
+          />
+        </>
+      )}
+      {pendingPkg && (
+        <>
+          <div className="billing-card billing-card--pending" role="status" aria-live="polite">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <h3 className="billing-card-title">{t('teams.billing.scheduledTitle', { defaultValue: 'Downgrade terjadwal' })}</h3>
+              <Badge tone="warn" dot>{t('teams.billing.scheduledBadge', { defaultValue: 'Terjadwal' })}</Badge>
+              <Badge tone="neutral">{t('teams.billing.scheduledActivate', { defaultValue: 'Aktif {{date}}', date: new Date(pendingPkg.activateAt).toLocaleDateString() })}</Badge>
+            </div>
+            <div className="billing-plan-row">
+              <span className="billing-plan-name">{pendingPkg.name}</span>
+              <span className="billing-meta">
+                {t('teams.billing.scheduledDesc', { defaultValue: 'Downgrade ke {{name}} terjadwal — akan aktif saat paket saat ini berakhir.', name: pendingPkg.name })} · {pendingPkg.durationDays} {t('teams.billing.scheduledDuration', { defaultValue: '{{count}} hari', count: pendingPkg.durationDays })}
+              </span>
+            </div>
+            <div className="billing-pending-grid">
+              <UsageMeter
+                label={t('teams.billing.members')}
+                used={data!.usage.members.used}
+                limit={pendingPkg.maxMembers}
+              />
+              <UsageMeter
+                label={t('teams.billing.projects')}
+                used={data!.usage.projects.used}
+                limit={pendingPkg.maxProjects}
+              />
+            </div>
+            {bannerErrorScheduled && <InlineError>{bannerErrorScheduled}</InlineError>}
+            <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={bannerBusyScheduled}
+                onClick={() => setConfirmCancelScheduled(true)}
+              >
+                {t('teams.billing.cancelScheduled', { defaultValue: 'Batalkan jadwal' })}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => navigate(`/pricing?teamId=${teamId}`)}
+              >
+                {t('teams.billing.viewDetail', { defaultValue: 'Lihat detail' })}
+              </Button>
+            </div>
+          </div>
+          <ConfirmDeleteDialog
+            open={confirmCancelScheduled}
+            title={t('teams.billing.cancelScheduledTitle', { defaultValue: 'Batalkan downgrade terjadwal?' })}
+            description={t('teams.billing.cancelScheduledDesc', { defaultValue: 'Downgrade ke "{{name}}" tidak akan diaktifkan. Paket saat ini tetap sampai kedaluwarsa.', name: pendingPkg.name })}
+            confirmLabel={t('teams.billing.cancelScheduledConfirm', { defaultValue: 'Ya, batalkan' })}
+            busy={bannerBusyScheduled}
+            onConfirm={() => { setConfirmCancelScheduled(false); void onCancelScheduled(); }}
+            onClose={() => { if (!bannerBusyScheduled) setConfirmCancelScheduled(false); }}
           />
         </>
       )}

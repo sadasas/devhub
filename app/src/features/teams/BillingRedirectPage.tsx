@@ -322,6 +322,7 @@ export function BillingRedirectPage() {
   const workspaceName: string | null = (detailPayment?.teamName ?? data?.team.name ?? null) as string | null;
   const workspaceMismatch =
     !!detailPayment && !!teamId && detailPayment.teamId !== teamId;
+  const pendingScheduled = (data as BillingStatus | null)?.team.pendingPackage ?? null;
 
   const renderHeroIcon = () => {
     const size = 20;
@@ -440,6 +441,15 @@ export function BillingRedirectPage() {
               <Button variant="ghost" size="sm" leftIcon={<Trash size={13} aria-hidden="true" />} disabled={busy !== null} loading={busy === 'cancel'} onClick={() => setConfirmCancel(true)}>{t('teams.billing.cancelPayment', { defaultValue: 'Batalkan' })}</Button>
             </div>
             <p className="billing-redirect-help" style={{ marginTop: 4 }}>Butuh bantuan? Hubungi admin tim dengan Order ID di atas.</p>
+            {pendingScheduled && (
+              <p className="billing-redirect-help" style={{ color: 'var(--status-warn)', marginTop: 6 }}>
+                {t('teams.payment.scheduledHelp', {
+                  defaultValue: `Downgrade terjadwal ke ${pendingScheduled.name} akan aktif ${new Date(pendingScheduled.activateAt).toLocaleDateString('id-ID')}. Batalkan di Billing.`,
+                  name: pendingScheduled.name,
+                  date: new Date(pendingScheduled.activateAt).toLocaleDateString('id-ID'),
+                })}
+              </p>
+            )}
             <p className="sr-only" aria-live="polite">Mengecek otomatis tiap 5 detik</p>
           </section>
           <ConfirmDeleteDialog
@@ -496,6 +506,15 @@ export function BillingRedirectPage() {
               <Button variant="primary" onClick={() => (window.location.href = `/team/${teamId || detailPayment?.teamId || ''}?tab=usage`)}>{t('teams.payment.back', { defaultValue: 'Kembali ke workspace' })}</Button>
             </div>
             <p className="billing-redirect-help">Kwitansi dikirim ke email. Sisa hari dari paket sebelumnya telah ditambahkan.</p>
+            {pendingScheduled && (
+              <p className="billing-redirect-help" style={{ color: 'var(--status-warn)', marginTop: 8 }}>
+                {t('teams.payment.scheduledHelp', {
+                  defaultValue: `Downgrade terjadwal ke ${pendingScheduled.name} akan aktif ${new Date(pendingScheduled.activateAt).toLocaleDateString('id-ID')}. Batalkan di Billing.`,
+                  name: pendingScheduled.name,
+                  date: new Date(pendingScheduled.activateAt).toLocaleDateString('id-ID'),
+                })}
+              </p>
+            )}
           </section>
         )}
 

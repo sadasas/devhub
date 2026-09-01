@@ -2,6 +2,7 @@ import { Check, Star, Infinity as InfinityIcon } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import type { BillingPackage, PackagePrice } from '../../lib/types';
 import { Button } from '../../components/Button';
+import { Badge } from '../../components/Badge';
 import { formatIdr } from '../../lib/format';
 
 type TFunc = (k: string, o?: Record<string, unknown>) => string;
@@ -36,6 +37,10 @@ export function PricingCard({
   actionError,
   variant,
   onRequireWorkspace,
+  isCurrent = false,
+  isScheduled = false,
+  isRenewal = false,
+  isDowngradeBlocked = false,
 }: {
   pkg: BillingPackage;
   isFeatured?: boolean;
@@ -47,6 +52,10 @@ export function PricingCard({
   actionError?: string | null;
   variant?: string;
   onRequireWorkspace?: (pkgId: string) => void;
+  isCurrent?: boolean;
+  isScheduled?: boolean;
+  isRenewal?: boolean;
+  isDowngradeBlocked?: boolean;
 }) {
   const { t } = useTranslation('extras');
   const benefits = computeBenefits(t, pkg);
@@ -57,7 +66,7 @@ export function PricingCard({
 
   return (
     <section
-      className={`pricing-card${isFeatured ? ' pricing-card-pro pricing-card-featured' : ''}${isFree ? ' pricing-card-free' : ''}`}
+      className={`pricing-card${isFeatured ? ' pricing-card-pro pricing-card-featured' : ''}${isFree ? ' pricing-card-free' : ''}${isCurrent ? ' pricing-card--current' : ''}${isScheduled ? ' pricing-card--scheduled' : ''}${isDowngradeBlocked ? ' pricing-card--blocked' : ''}`}
       aria-labelledby={`plan-${pkg.id}`}
       data-featured={isFeatured || undefined}
     >
@@ -74,6 +83,20 @@ export function PricingCard({
           {pkg.name}
           {isFeatured && <InfinityIcon size={16} weight="bold" aria-hidden="true" className="pricing-plan-icon" />}
         </h2>
+        {(isScheduled || isCurrent) && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+            {isScheduled && (
+              <Badge tone="warn" dot>
+                {t('pricing.scheduled', { defaultValue: 'Terjadwal' })}
+              </Badge>
+            )}
+            {isCurrent && !isScheduled && (
+              <Badge tone="success" dot>
+                {t('pricing.currentPackage', { defaultValue: 'Paket sekarang' })}
+              </Badge>
+            )}
+          </div>
+        )}
         {pkg.description && <p className="pricing-plan-desc">{pkg.description}</p>}
       </div>
       <div className="pricing-price-block">
@@ -131,6 +154,12 @@ export function PricingCard({
           <>
             {(() => {
               const ctaId = `pricing-cta-hint-${pkg.id}`;
+              const ctaLabel = isRenewal
+                ? t('pricing.renewCta', { defaultValue: 'Perpanjang 30 hari — stack' })
+                : primaryPrice
+                  ? t('pricing.ctaWithPrice', { name: pkg.name, price: formatIdr(primaryPrice.priceIdr) })
+                  : t('pricing.cta', { name: pkg.name });
+              const isDisabled = isDowngradeBlocked ? true : !!disabledReason;
               return (
                 <>
                   <Button
@@ -138,10 +167,14 @@ export function PricingCard({
                     size="md"
                     className="pricing-cta-btn"
                     aria-describedby={disabledReason ? ctaId : undefined}
-                    aria-disabled={disabledReason ? true : undefined}
-                    disabled={busy || anyBusy}
+                    aria-disabled={isDisabled ? true : undefined}
+                    disabled={busy || anyBusy || isDowngradeBlocked}
                     loading={busy}
                     onClick={() => {
+                      if (isDowngradeBlocked) {
+                        if (primaryPrice) onBuy(primaryPrice.id);
+                        return;
+                      }
                       if (disabledReason) {
                         onRequireWorkspace?.(pkg.id);
                         return;
@@ -149,9 +182,7 @@ export function PricingCard({
                       if (primaryPrice) onBuy(primaryPrice.id);
                     }}
                   >
-                    {primaryPrice
-                      ? t('pricing.ctaWithPrice', { name: pkg.name, price: formatIdr(primaryPrice.priceIdr) })
-                      : t('pricing.cta', { name: pkg.name })}
+                    {ctaLabel}
                   </Button>
                   {disabledReason && !busy && (
                     <p id={ctaId} className="pricing-cta-hint">

@@ -11585,6 +11585,24 @@ input[type='checkbox'] {
   opacity: 0.98;
 }
 
+.pricing-card--scheduled {
+  border-color: var(--status-warn);
+  box-shadow: 0 0 0 1px var(--status-warn), var(--shadow-raised);
+}
+
+.pricing-card--current {
+  border-color: var(--status-success);
+  box-shadow: 0 0 0 1px var(--status-success), var(--shadow-raised);
+}
+
+.pricing-card--blocked {
+  opacity: 0.88;
+}
+
+.pricing-card--blocked .pricing-cta-btn:disabled {
+  opacity: 0.5;
+}
+
 .pricing-badge-pro {
   position: absolute;
   top: -10px;
@@ -12368,6 +12386,53 @@ input[type='checkbox'] {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.billing-card--pending {
+  background: var(--status-warn-dim);
+  border: 1px solid color-mix(in srgb, var(--status-warn) 22%, transparent);
+  border-left: 3px solid var(--status-warn);
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+}
+
+.billing-card--pending:hover {
+  border-color: color-mix(in srgb, var(--status-warn) 32%, transparent);
+  border-left-color: var(--status-warn);
+}
+
+.billing-card--pending:focus-within {
+  outline: 2px solid var(--status-warn);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.billing-pending-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+  .billing-pending-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .billing-card--pending {
+    transition: none;
+  }
+}
+
+.field-error.billing-warn {
+  color: var(--status-warn) !important;
+  background: var(--status-warn-dim);
+  border: 1px solid color-mix(in srgb, var(--status-warn) 20%, transparent);
+  border-radius: var(--radius-input);
+  padding: 8px 10px;
 }
 
 /* ============================================================

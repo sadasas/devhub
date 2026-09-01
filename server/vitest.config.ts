@@ -6,7 +6,10 @@ import { defineConfig } from 'vitest/config';
 const envDir = path.dirname(fileURLToPath(import.meta.url));
 loadEnv({ path: path.join(envDir, '.env'), quiet: true });
 
-process.env.DATABASE_URL = process.env.DATABASE_URL_TEST ?? process.env.DATABASE_URL ?? '';
+if (!process.env.DATABASE_URL_TEST) {
+  throw new Error('DATABASE_URL_TEST is required for tests — refusing to run against dev DB');
+}
+process.env.DATABASE_URL = process.env.DATABASE_URL_TEST;
 process.env.NODE_ENV = 'test';
 if (process.env.JWT_SECRET === 'change-me-to-a-random-string-of-at-least-32-chars') {
   process.env.JWT_SECRET = 'devhub-test-secret-0123456789-abcdefghijklmnop';

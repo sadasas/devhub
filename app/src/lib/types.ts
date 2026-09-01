@@ -433,6 +433,16 @@ export interface BillingUsageItem {
   limit: number | null;
 }
 
+export interface BillingPendingPackage {
+  id: string;
+  name: string;
+  maxMembers: number | null;
+  maxProjects: number | null;
+  durationDays: number;
+  activateAt: string;
+  createdAt: string;
+}
+
 export interface BillingStatus {
   team: {
     id: string;
@@ -440,6 +450,8 @@ export interface BillingStatus {
     plan: TeamPlan;
     planExpiresAt: string | null;
     planPackageName: string;
+    planPackageId?: string | null;
+    pendingPackage?: BillingPendingPackage | null;
   };
   usage: {
     members: BillingUsageItem;

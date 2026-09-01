@@ -54,6 +54,45 @@ function mockPakasirDetail(
   });
 }
 
+async function createLimitedPackage(
+  name: string,
+  maxMembers: number | null,
+  maxProjects: number | null,
+  priceIdr = 100_000,
+  durationDays = 30,
+): Promise<{ id: string; name: string; max_members: number | null; max_projects: number | null; priceId: string }> {
+  const pkgRes = await pool.query<{ id: string }>(
+    `INSERT INTO billing_packages (name, description, is_free, max_members, max_projects, sort_order) VALUES ($1,'',false,$2,$3, 10) RETURNING id`,
+    [name, maxMembers, maxProjects],
+  );
+  const pkgId = pkgRes.rows[0]!.id;
+  const priceRes = await pool.query<{ id: string }>(
+    `INSERT INTO billing_package_prices (package_id, duration_days, price_idr, sort_order) VALUES ($1,$2,$3,0) RETURNING id`,
+    [pkgId, durationDays, priceIdr],
+  );
+  return { id: pkgId, name, max_members: maxMembers, max_projects: maxProjects, priceId: priceRes.rows[0]!.id };
+}
+
+async function getTeamPending(teamId: string) {
+  const res = await pool.query<{
+    plan_pending_package_id: string | null;
+    plan_pending_duration: number | null;
+    plan_pending_created_at: Date | null;
+    plan_package_id: string | null;
+    plan_expires_at: Date | null;
+    plan: string;
+  }>('SELECT plan_pending_package_id, plan_pending_duration, plan_pending_created_at, plan_package_id, plan_expires_at, plan FROM teams WHERE id = $1', [teamId]);
+  return res.rows[0]!;
+}
+
+async function getTeamPlanRow(teamId: string) {
+  const res = await pool.query<{ plan: string; plan_package_id: string | null; plan_expires_at: Date | null; plan_pending_package_id: string | null }>(
+    'SELECT plan, plan_package_id, plan_expires_at, plan_pending_package_id FROM teams WHERE id = $1',
+    [teamId],
+  );
+  return res.rows[0]!;
+}
+
 async function teamExpiresAt(teamId: string): Promise<Date | null> {
   const res = await pool.query<{ plan_expires_at: Date | null }>(
     'SELECT plan_expires_at FROM teams WHERE id = $1',
@@ -484,5 +523,178 @@ describe('billing Pakasir + paket dinamis (ADR-044/045)', () => {
     );
     expect(row.rows[0]?.status).toBe('cancelled');
     expect(await teamExpiresAt(teamId)).toBeNull();
+  });
+
+  // ---------- B2: renewal / upgrade / downgrade + pending lazy ----------
+
+  it('downgrade checkout blocked when project count exceeds target limit (402 PLAN_LIMIT)', async () => {
+    // Basic 5 proyek / 10 member → dari Pro unlimited adalah downgrade
+    const basic = await createLimitedPackage('Basic', 10, 5, 100_000, 30);
+    await pool.query("UPDATE teams SET plan='pro', plan_package_id=$2, plan_expires_at=now()+interval '10 days' WHERE id=$1", [teamId, (await getProPackage()).id]);
+    for (let i = 0; i < 6; i++) await createProject(owner, `P${i}`, teamId);
+    const paymentsBefore = await pool.query('SELECT count(*)::int as n FROM team_payments');
+    const res = await checkout(owner, { teamId, packageId: basic.id, priceId: basic.priceId });
+    expect(res.status).toBe(402);
+    expect(res.body.error.code).toBe('PLAN_LIMIT');
+    expect(res.body.error.details).toMatchObject({ resource: 'projects', limit: 5, used: 6, pendingPackageName: 'Basic' });
+    const paymentsAfter = await pool.query('SELECT count(*)::int as n FROM team_payments');
+    expect(paymentsAfter.rows[0].n).toBe(paymentsBefore.rows[0].n); // jangan insert pending_payment
+  });
+
+  it('downgrade checkout blocked when member count exceeds target limit (402)', async () => {
+    const small = await createLimitedPackage('Small', 2, null, 80_000, 30);
+    await pool.query("UPDATE teams SET plan='pro', plan_package_id=$2, plan_expires_at=now()+interval '10 days' WHERE id=$1", [teamId, (await getProPackage()).id]);
+    const u2 = await register('u2@test.dev');
+    const u3 = await register('u3@test.dev');
+    await inviteUser(owner, u2, teamId, 'editor');
+    await inviteUser(owner, u3, teamId, 'editor');
+    // sekarang memberCount = 3 > limit 2
+    const res = await checkout(owner, { teamId, packageId: small.id, priceId: small.priceId });
+    expect(res.status).toBe(402);
+    expect(res.body.error.details).toMatchObject({ resource: 'members', limit: 2, used: 3 });
+  });
+
+  it('downgrade checkout allowed within limit and webhook schedules pending (not instant)', async () => {
+    const basic = await createLimitedPackage('Basic', 10, 5, 100_000, 30);
+    const pro = await getProPackage();
+    await pool.query("UPDATE teams SET plan='pro', plan_package_id=$2, plan_expires_at=now()+interval '10 days', plan_pending_package_id=NULL WHERE id=$1", [teamId, pro.id]);
+    for (let i = 0; i < 3; i++) await createProject(owner, `P${i}`, teamId);
+    const co = await checkout(owner, { teamId, packageId: basic.id, priceId: basic.priceId });
+    expect(co.status).toBe(200);
+    const pendingRowBefore = await getTeamPending(teamId);
+    expect(pendingRowBefore.plan_pending_package_id).toBeNull();
+    expect(pendingRowBefore.plan_package_id).toBe(pro.id);
+    const expiresBefore = pendingRowBefore.plan_expires_at!.getTime();
+
+    vi.stubGlobal('fetch', mockPakasirDetail('completed', co.body.orderId, 100_000));
+    const wh = await request(app).post('/api/v1/billing/webhook').send({ order_id: co.body.orderId, amount: 100_000 });
+    expect(wh.body).toEqual({ ok: true });
+
+    const after = await getTeamPending(teamId);
+    expect(after.plan_package_id).toBe(pro.id); // masih Pro, belum instan
+    expect(after.plan_pending_package_id).toBe(basic.id);
+    expect(after.plan_pending_duration).toBe(30);
+    expect(after.plan_pending_created_at).not.toBeNull();
+    // expiry tidak berubah (belum GREATEST)
+    expect(after.plan_expires_at!.getTime()).toBe(expiresBefore);
+    // pembayaran completed
+    const pay = await pool.query<{ status: string }>('SELECT status FROM team_payments WHERE order_id=$1', [co.body.orderId]);
+    expect(pay.rows[0].status).toBe('completed');
+  });
+
+  it('downgrade pending activates lazily after expiry (tanpa cron)', async () => {
+    const basic = await createLimitedPackage('Basic', 10, 5, 100_000, 30);
+    const pro = await getProPackage();
+    await pool.query("UPDATE teams SET plan='pro', plan_package_id=$2, plan_expires_at=now()+interval '10 days' WHERE id=$1", [teamId, pro.id]);
+    const co = await checkout(owner, { teamId, packageId: basic.id, priceId: basic.priceId });
+    vi.stubGlobal('fetch', mockPakasirDetail('completed', co.body.orderId, 100_000));
+    await request(app).post('/api/v1/billing/webhook').send({ order_id: co.body.orderId, amount: 100_000 });
+
+    // paksa expiry lewat
+    await pool.query("UPDATE teams SET plan_expires_at = now() - interval '1 minute' WHERE id=$1", [teamId]);
+    const before = await getTeamPending(teamId);
+    expect(before.plan_pending_package_id).toBe(basic.id);
+
+    // trigger lazy activation via getBillingOverview / getEffectiveUsage
+    const overview = await request(app).get(`/api/v1/billing/status/${teamId}`).set('Cookie', owner).set('X-Forwarded-For', uniqueIp());
+    expect(overview.status).toBe(200);
+
+    const after = await getTeamPending(teamId);
+    expect(after.plan_package_id).toBe(basic.id);
+    expect(after.plan_pending_package_id).toBeNull();
+    expect(after.plan_pending_duration).toBeNull();
+    expect(after.plan_pending_created_at).toBeNull();
+    expect(after.plan_expires_at!.getTime()).toBeGreaterThan(Date.now() + 29 * DAY - 60_000);
+    expect(overview.body.usage.projects.limit).toBe(5);
+    expect(overview.body.team.planPackageName).toBe('Basic');
+  });
+
+  it('downgrade with permanent grant (plan_expires_at NULL) bypasses pending and is instant', async () => {
+    const basic = await createLimitedPackage('Basic', 10, 5, 100_000, 30);
+    const pro = await getProPackage();
+    // grant permanen
+    await pool.query("UPDATE teams SET plan='pro', plan_package_id=$2, plan_expires_at=NULL, plan_pending_package_id=NULL WHERE id=$1", [teamId, pro.id]);
+    const co = await checkout(owner, { teamId, packageId: basic.id, priceId: basic.priceId });
+    expect(co.status).toBe(200);
+    vi.stubGlobal('fetch', mockPakasirDetail('completed', co.body.orderId, 100_000));
+    await request(app).post('/api/v1/billing/webhook').send({ order_id: co.body.orderId, amount: 100_000 });
+
+    const after = await getTeamPending(teamId);
+    expect(after.plan_package_id).toBe(basic.id);
+    expect(after.plan_pending_package_id).toBeNull();
+    expect(after.plan_expires_at).not.toBeNull();
+    expect(after.plan_expires_at!.getTime()).toBeGreaterThan(Date.now() + 29 * DAY - 60_000);
+  });
+
+  it('upgrade from limited to Pro is instant and clears pending', async () => {
+    const basic = await createLimitedPackage('Basic', 5, 5, 100_000, 30);
+    const pro = await getProPackage();
+    // tim di Basic dengan pending downgrade ke Small
+    const small = await createLimitedPackage('Small', 2, 2, 50_000, 30);
+    await pool.query("UPDATE teams SET plan='pro', plan_package_id=$2, plan_expires_at=now()+interval '10 days', plan_pending_package_id=$3, plan_pending_duration=30, plan_pending_created_at=now() WHERE id=$1", [teamId, basic.id, small.id]);
+    const beforePending = await getTeamPending(teamId);
+    expect(beforePending.plan_pending_package_id).toBe(small.id);
+
+    const co = await checkout(owner, { teamId, packageId: pro.id, priceId: pro.price30Id });
+    expect(co.status).toBe(200);
+    const expiryBefore = (await getTeamPending(teamId)).plan_expires_at!.getTime();
+    vi.stubGlobal('fetch', mockPakasirDetail('completed', co.body.orderId, 250_000));
+    await request(app).post('/api/v1/billing/webhook').send({ order_id: co.body.orderId, amount: 250_000 });
+
+    const after = await getTeamPending(teamId);
+    expect(after.plan_package_id).toBe(pro.id);
+    expect(after.plan_pending_package_id).toBeNull();
+    expect(after.plan_expires_at!.getTime()).toBeGreaterThan(expiryBefore);
+  });
+
+  it('same package renewal stacks instantly (GREATEST) and keeps pending if any', async () => {
+    const pro = await getProPackage();
+    const basic = await createLimitedPackage('Basic', 5, 5, 80_000, 30);
+    const startExpiry = Date.now() + 10 * DAY;
+    await pool.query("UPDATE teams SET plan='pro', plan_package_id=$2, plan_expires_at=$3, plan_pending_package_id=$4, plan_pending_duration=30, plan_pending_created_at=now() WHERE id=$1", [teamId, pro.id, new Date(startExpiry), basic.id]);
+    const co = await checkout(owner, { teamId, packageId: pro.id, priceId: pro.price30Id });
+    expect(co.status).toBe(200);
+    vi.stubGlobal('fetch', mockPakasirDetail('completed', co.body.orderId, 250_000));
+    await request(app).post('/api/v1/billing/webhook').send({ order_id: co.body.orderId, amount: 250_000 });
+
+    const after = await getTeamPending(teamId);
+    expect(after.plan_package_id).toBe(pro.id);
+    // pending tetap karena same-type tidak clear
+    expect(after.plan_pending_package_id).toBe(basic.id);
+    expect(after.plan_expires_at!.getTime()).toBeGreaterThan(startExpiry + 29 * DAY);
+    expect(after.plan_expires_at!.getTime()).toBeLessThan(startExpiry + 31 * DAY + 60_000);
+  });
+
+  it('downgrade overwrites existing pending', async () => {
+    const basic = await createLimitedPackage('Basic', 10, 5, 100_000, 30);
+    const premium = await createLimitedPackage('Premium', 20, 20, 200_000, 30);
+    const pro = await getProPackage();
+    await pool.query("UPDATE teams SET plan='pro', plan_package_id=$2, plan_expires_at=now()+interval '10 days', plan_pending_package_id=$3, plan_pending_duration=30 WHERE id=$1", [teamId, pro.id, premium.id]);
+    const co = await checkout(owner, { teamId, packageId: basic.id, priceId: basic.priceId });
+    expect(co.status).toBe(200);
+    vi.stubGlobal('fetch', mockPakasirDetail('completed', co.body.orderId, 100_000));
+    await request(app).post('/api/v1/billing/webhook').send({ order_id: co.body.orderId, amount: 100_000 });
+
+    const after = await getTeamPending(teamId);
+    expect(after.plan_pending_package_id).toBe(basic.id);
+    expect(after.plan_pending_duration).toBe(30);
+  });
+
+  it('webhook downgrade is idempotent (second call does not re-schedule)', async () => {
+    const basic = await createLimitedPackage('Basic', 10, 5, 100_000, 30);
+    const pro = await getProPackage();
+    await pool.query("UPDATE teams SET plan='pro', plan_package_id=$2, plan_expires_at=now()+interval '10 days' WHERE id=$1", [teamId, pro.id]);
+    const co = await checkout(owner, { teamId, packageId: basic.id, priceId: basic.priceId });
+    const fetchMock = mockPakasirDetail('completed', co.body.orderId, 100_000);
+    vi.stubGlobal('fetch', fetchMock);
+    const body = { order_id: co.body.orderId, amount: 100_000 };
+    await request(app).post('/api/v1/billing/webhook').send(body);
+    const firstPending = await getTeamPending(teamId);
+    const second = await request(app).post('/api/v1/billing/webhook').send(body);
+    expect(second.body).toEqual({ ok: true });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const secondPending = await getTeamPending(teamId);
+    expect(secondPending.plan_pending_package_id).toBe(firstPending.plan_pending_package_id);
+    expect(secondPending.plan_expires_at!.getTime()).toBe(firstPending.plan_expires_at!.getTime());
   });
 });

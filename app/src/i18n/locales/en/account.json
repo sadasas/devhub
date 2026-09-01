@@ -431,7 +431,18 @@
       "resumePayment": "Lanjutkan pembayaran",
       "cancelPayment": "Batalkan",
       "resumeError": "Gagal melanjutkan pembayaran.",
-      "cancelError": "Gagal membatalkan pembayaran."
+      "cancelError": "Gagal membatalkan pembayaran.",
+      "scheduledTitle": "Scheduled downgrade",
+      "scheduledBadge": "Scheduled",
+      "scheduledActivate": "Activates {{date}}",
+      "scheduledDesc": "Downgrade to {{name}} is scheduled — will activate when current plan expires.",
+      "scheduledDuration": "{{count}} days",
+      "cancelScheduled": "Cancel schedule",
+      "viewDetail": "View details",
+      "cancelScheduledTitle": "Cancel scheduled downgrade?",
+      "cancelScheduledDesc": "Downgrade to \"{{name}}\" will not be activated. Your current plan will remain until expiry.",
+      "cancelScheduledConfirm": "Yes, cancel",
+      "cancelScheduledError": "Failed to cancel schedule."
     },
     "payment": {
       "workspace": "Workspace",

@@ -527,6 +527,11 @@ export const api = {
   listPackages: () => request<{ packages: BillingPackage[] }>('/billing/packages'),
   billingStatus: (teamId: string) =>
     request<BillingStatus>(`/billing/status/${encodeURIComponent(teamId)}`),
+  cancelScheduled: (teamId: string) =>
+    request<{ ok: boolean }>('/billing/scheduled/cancel', {
+      method: 'POST',
+      body: JSON.stringify({ teamId }),
+    }),
   paymentHistory: () => request<{ payments: PaymentHistoryItem[] }>('/billing/payments'),
   getPayment: (orderId: string) =>
     request<{ payment: PaymentHistoryItem }>(`/billing/payments/${encodeURIComponent(orderId)}`),

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireAuth, getUserId } from '../../auth/middleware/requireAuth.js';
-import { cancelPayment, getBillingOverview, getPayment, getPaymentHistory, handleWebhook, resumePayment, startCheckout } from '../application/billingService.js';
+import { cancelPayment, cancelScheduledDowngrade, getBillingOverview, getPayment, getPaymentHistory, handleWebhook, resumePayment, startCheckout } from '../application/billingService.js';
 import { listPublicPackages } from '../application/packagesPublic.js';
 
 /** Webhook Pakasir + daftar paket — TANPA requireAuth. */
@@ -35,6 +35,17 @@ billingRouter.post('/cancel/:orderId', async (req, res) => {
 billingRouter.get('/status/:teamId', async (req, res) => {
   const userId = getUserId(req);
   res.json(await getBillingOverview(userId, req.params.teamId ?? ''));
+});
+
+billingRouter.post('/scheduled/cancel', async (req, res) => {
+  const userId = getUserId(req);
+  const body = req.body as { teamId?: string } | undefined;
+  const teamId = body?.teamId ?? '';
+  if (!teamId) {
+    res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'teamId required' } });
+    return;
+  }
+  res.json(await cancelScheduledDowngrade(userId, teamId));
 });
 
 billingRouter.get('/payments', async (req, res) => {

@@ -3,6 +3,13 @@ import { pool } from '../src/db/pool.js';
 import { migrate } from '../src/db/migrate.js';
 
 export async function resetDb(): Promise<void> {
+  const url = process.env.DATABASE_URL ?? '';
+  if (!url.includes('devhub_test')) {
+    throw new Error(`Refuse TRUNCATE: DATABASE_URL must point to devhub_test, got ${url}`);
+  }
+  if (process.env.NODE_ENV !== 'test') {
+    throw new Error(`Refuse TRUNCATE: NODE_ENV must be test, got ${process.env.NODE_ENV}`);
+  }
   await pool.query(
     'TRUNCATE billing_package_prices, billing_packages, team_payments, mcp_keys, projects, users RESTART IDENTITY CASCADE',
   );

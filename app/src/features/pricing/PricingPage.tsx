@@ -3,8 +3,8 @@ import { ArrowLeft, CaretDown, Lock, Lightning, ShieldCheck } from '@phosphor-ic
 import { useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
-import { getErrorMessage } from '../../lib/errors';
-import type { BillingPackage } from '../../lib/types';
+import { getErrorMessage, isPlanLimitError } from '../../lib/errors';
+import type { BillingPackage, BillingStatus } from '../../lib/types';
 import { Button } from '../../components/Button';
 import { InlineError } from '../../components/InlineError';
 import { SearchableSelect } from '../../components/SearchableSelect';
@@ -14,8 +14,17 @@ import { useTeams } from '../../state/teams-context';
 import { BillingToggle } from './BillingToggle';
 import { PricingCard } from './PricingCard';
 import { PricingCompare } from './PricingCompare';
+import { PlanLimitModal, type PlanLimitResource } from '../../components/PlanLimitModal';
 
 const FAQ_ITEM_KEYS = ['upgrade', 'trial', 'payment', 'timing', 'expired'] as const;
+
+function isDowngrade(curMembers: number | null, curProjects: number | null, pkg: BillingPackage): boolean {
+  const curM = curMembers === null ? Infinity : curMembers;
+  const curP = curProjects === null ? Infinity : curProjects;
+  const tgtM = pkg.maxMembers === null ? Infinity : pkg.maxMembers;
+  const tgtP = pkg.maxProjects === null ? Infinity : pkg.maxProjects;
+  return tgtM < curM || tgtP < curP;
+}
 
 export function PricingPage() {
   const { t } = useTranslation('extras');
@@ -34,6 +43,13 @@ export function PricingPage() {
   const errorRef = useRef<HTMLParagraphElement>(null);
   const workspaceBarRef = useRef<HTMLDivElement>(null);
   const [highlightWorkspace, setHighlightWorkspace] = useState(false);
+  const [billingStatus, setBillingStatus] = useState<BillingStatus | null>(null);
+  const [limitModal, setLimitModal] = useState<{
+    open: boolean;
+    resource: PlanLimitResource | null;
+    details: { limit: number; used: number } | null;
+    targetName: string | null;
+  }>({ open: false, resource: null, details: null, targetName: null });
 
   useEffect(() => {
     if (queryTeamId) setSelectedTeamId(queryTeamId);
@@ -60,6 +76,25 @@ export function PricingPage() {
     else if (!durations.includes(selectedDurationDays)) setSelectedDurationDays(durations[0]!);
   }, [durations, selectedDurationDays]);
 
+  useEffect(() => {
+    if (!effectiveTeamId) {
+      setBillingStatus(null);
+      return;
+    }
+    let cancelled = false;
+    api
+      .billingStatus(effectiveTeamId)
+      .then((st) => {
+        if (!cancelled) setBillingStatus(st);
+      })
+      .catch(() => {
+        if (!cancelled) setBillingStatus(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveTeamId]);
+
   function requestWorkspaceFocus(pkgId: string) {
     const msg = t('pricing.errors.pickWorkspace');
     setActionError({ pkgId, message: msg });
@@ -79,12 +114,37 @@ export function PricingPage() {
       requestWorkspaceFocus(pkgId);
       return;
     }
+    // pre-check downgrade over-limit to open modal instantly without API roundtrip
+    if (billingStatus) {
+      const pkg = packages?.find((p) => p.id === pkgId);
+      if (pkg && isDowngrade(billingStatus.usage.members.limit, billingStatus.usage.projects.limit, pkg)) {
+        const overMembers = pkg.maxMembers !== null && billingStatus.usage.members.used > pkg.maxMembers;
+        const overProjects = pkg.maxProjects !== null && billingStatus.usage.projects.used > pkg.maxProjects;
+        if (overMembers || overProjects) {
+          const resource: PlanLimitResource = overMembers ? 'members' : 'projects';
+          const limit = resource === 'members' ? (pkg.maxMembers as number) : (pkg.maxProjects as number);
+          const used = resource === 'members' ? billingStatus.usage.members.used : billingStatus.usage.projects.used;
+          setLimitModal({ open: true, resource, details: { limit, used }, targetName: pkg.name });
+          return;
+        }
+      }
+    }
     setActionError(null);
     setBusyKey(`${pkgId}:${priceId}`);
     try {
       const result = await api.startCheckout(effectiveTeamId, pkgId, priceId);
       window.location.assign(result.url);
     } catch (err) {
+      if (isPlanLimitError(err)) {
+        const details = err.details as { resource?: string; limit?: number; used?: number; pendingPackageName?: string } | undefined;
+        const resource: PlanLimitResource = details?.resource === 'projects' ? 'projects' : 'members';
+        const limit = typeof details?.limit === 'number' ? details.limit : 0;
+        const used = typeof details?.used === 'number' ? details.used : 0;
+        const pkg = packages?.find((p) => p.id === pkgId);
+        setLimitModal({ open: true, resource, details: { limit, used }, targetName: pkg?.name ?? (details?.pendingPackageName as string) ?? null });
+        setBusyKey(null);
+        return;
+      }
       setActionError({ pkgId, message: getErrorMessage(err, t('pricing.errors.checkout')) });
       setBusyKey(null);
       requestAnimationFrame(() => errorRef.current?.focus());
@@ -105,6 +165,14 @@ export function PricingPage() {
   };
 
   const workspaceHasError = !!actionError?.message;
+
+  const currentPackageId = (() => {
+    if (!billingStatus || !packages) return null;
+    if (billingStatus.team.planPackageId) return billingStatus.team.planPackageId;
+    const byName = packages.find((p) => p.name === billingStatus.team.planPackageName);
+    return byName?.id ?? null;
+  })();
+  const pendingPackageId = billingStatus?.team.pendingPackage?.id ?? null;
 
   return (
     <div className="page pricing-page">
@@ -187,12 +255,30 @@ export function PricingPage() {
                     null)
                   : (pkg.prices[0] ?? null);
               const isSelectedBusy = busyKey?.startsWith(`${pkg.id}:`) ?? false;
-              const disabledReason = !user ? null : !effectiveTeamId ? t('pricing.errors.pickWorkspace') : null;
+              const isCurrent = currentPackageId === pkg.id;
+              const isScheduled = pendingPackageId === pkg.id;
+              let downgradeBlockedReason: string | null = null;
+              let isDowngradeFlag = false;
+              if (billingStatus) {
+                isDowngradeFlag = isDowngrade(billingStatus.usage.members.limit, billingStatus.usage.projects.limit, pkg);
+                if (isDowngradeFlag) {
+                  const overMembers = pkg.maxMembers !== null && billingStatus.usage.members.used > pkg.maxMembers;
+                  const overProjects = pkg.maxProjects !== null && billingStatus.usage.projects.used > pkg.maxProjects;
+                  if (overMembers || overProjects) {
+                    const limit = overMembers ? (pkg.maxMembers as number) : (pkg.maxProjects as number);
+                    const used = overMembers ? billingStatus.usage.members.used : billingStatus.usage.projects.used;
+                    downgradeBlockedReason = t('pricing.downgradeBlockedHint', { used, limit, defaultValue: `Melebihi pemakaianmu (${used}/${limit})` });
+                  }
+                }
+              }
+              const pickWorkspaceReason = !user ? null : !effectiveTeamId ? t('pricing.errors.pickWorkspace') : null;
+              const disabledReason = downgradeBlockedReason ?? pickWorkspaceReason ?? null;
+              const isRenewal = isCurrent;
               return (
                 <PricingCard
                   key={pkg.id}
                   pkg={pkg}
-                  isFeatured={i === 0}
+                  isFeatured={i === 0 && !isCurrent && !isScheduled}
                   selectedPrice={selectedPrice}
                   onBuy={(pid: string) => handleBuy(pkg.id, pid)}
                   busy={isSelectedBusy}
@@ -200,6 +286,10 @@ export function PricingPage() {
                   disabledReason={disabledReason}
                   actionError={actionError?.pkgId === pkg.id ? actionError.message : null}
                   onRequireWorkspace={requestWorkspaceFocus}
+                  isCurrent={isCurrent}
+                  isScheduled={isScheduled}
+                  isRenewal={isRenewal}
+                  isDowngradeBlocked={!!downgradeBlockedReason}
                 />
               );
             })}
@@ -266,6 +356,15 @@ export function PricingPage() {
           </Button>
         )}
       </div>
+      <PlanLimitModal
+        open={limitModal.open}
+        resource={limitModal.resource}
+        teamId={effectiveTeamId}
+        onClose={() => setLimitModal({ open: false, resource: null, details: null, targetName: null })}
+        details={limitModal.details}
+        mode="downgrade-blocked"
+        targetPackageName={limitModal.targetName}
+      />
     </div>
   );
 }

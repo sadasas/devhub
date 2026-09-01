@@ -431,7 +431,18 @@
       "resumePayment": "Lanjutkan pembayaran",
       "cancelPayment": "Batalkan",
       "resumeError": "Gagal melanjutkan pembayaran.",
-      "cancelError": "Gagal membatalkan pembayaran."
+      "cancelError": "Gagal membatalkan pembayaran.",
+      "scheduledTitle": "Downgrade terjadwal",
+      "scheduledBadge": "Terjadwal",
+      "scheduledActivate": "Aktif {{date}}",
+      "scheduledDesc": "Downgrade ke {{name}} terjadwal — akan aktif saat paket saat ini berakhir.",
+      "scheduledDuration": "{{count}} hari",
+      "cancelScheduled": "Batalkan jadwal",
+      "viewDetail": "Lihat detail",
+      "cancelScheduledTitle": "Batalkan downgrade terjadwal?",
+      "cancelScheduledDesc": "Downgrade ke \"{{name}}\" tidak akan diaktifkan. Paket saat ini tetap sampai kedaluwarsa.",
+      "cancelScheduledConfirm": "Ya, batalkan",
+      "cancelScheduledError": "Gagal membatalkan jadwal."
     },
     "payment": {
       "workspace": "Workspace",
