@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { ArrowRight, Eye, EyeSlash, TerminalWindow, GithubLogo, GoogleLogo } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { getErrorMessage } from '../../lib/errors';
+import { API_BASE } from '../../lib/api';
 import { useAuth } from '../../state/auth-context';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
@@ -165,7 +166,7 @@ export function AuthPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {oauthProviders.google && (
                   <a
-                    href={`/api/v1/auth/google${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`}
+                    href={`${API_BASE}/auth/google${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`}
                     className="btn btn-secondary"
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', fontWeight: 600 }}
                   >
@@ -174,7 +175,7 @@ export function AuthPage() {
                 )}
                 {oauthProviders.github && (
                   <a
-                    href={`/api/v1/auth/github${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`}
+                    href={`${API_BASE}/auth/github${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`}
                     className="btn btn-secondary"
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', fontWeight: 600 }}
                   >

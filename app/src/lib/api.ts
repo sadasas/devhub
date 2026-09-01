@@ -24,7 +24,7 @@ import type {
 import type { ProjectStats } from './stats';
 import type { ExportDocument } from './types';
 
-const API_BASE: string = import.meta.env.VITE_API_URL ?? '/api/v1';
+export const API_BASE: string = import.meta.env.VITE_API_URL ?? '/api/v1';
 const REQUEST_TIMEOUT_MS = 15_000;
 
 let unauthorizedHandler: (() => void) | null = null;

@@ -17,7 +17,7 @@ import {
   UserCircle,
   UsersThree,
 } from '@phosphor-icons/react';
-import { api } from '../../lib/api';
+import { api, API_BASE } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import { copyText, formatDate, shortId } from '../../lib/utils';
 import { Avatar } from '../../components/Avatar';
@@ -410,8 +410,8 @@ export function ProfilePage() {
                     {t('profile.security.unlink', { defaultValue: 'Unlink' })}
                   </Button>
                 ) : (
-                  <a
-                    href={`/api/v1/auth/google?returnTo=${encodeURIComponent(returnToProfile)}`}
+                   <a
+                    href={`${API_BASE}/auth/google?returnTo=${encodeURIComponent(returnToProfile)}`}
                     className="btn btn-secondary"
                     style={{ textDecoration: 'none', padding: '8px 14px', borderRadius: 8, fontWeight: 600 }}
                   >
@@ -434,8 +434,8 @@ export function ProfilePage() {
                     {t('profile.security.unlink', { defaultValue: 'Unlink' })}
                   </Button>
                 ) : (
-                  <a
-                    href={`/api/v1/auth/github?returnTo=${encodeURIComponent(returnToProfile)}`}
+                   <a
+                    href={`${API_BASE}/auth/github?returnTo=${encodeURIComponent(returnToProfile)}`}
                     className="btn btn-secondary"
                     style={{ textDecoration: 'none', padding: '8px 14px', borderRadius: 8, fontWeight: 600 }}
                   >
