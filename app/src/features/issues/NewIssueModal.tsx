@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { FileText, Bug, WarningCircle } from '@phosphor-icons/react';
+import { Bug, FileText, WarningCircle } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { newId, nowIso } from '../../lib/utils';
 import type { IssueSeverity } from '../../lib/types';
@@ -70,7 +70,7 @@ export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
           <Button variant="ghost" onClick={onClose}>
             {t('issues.newModal.cancel')}
           </Button>
-          <Button type="submit" form="new-issue-form" disabled={!title.trim()}>
+          <Button type="submit" form="new-issue-form" leftIcon={<Bug size={13} aria-hidden="true" />} disabled={!title.trim()}>
             {t('issues.newModal.submit')}
           </Button>
         </>

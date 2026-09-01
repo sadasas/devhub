@@ -119,8 +119,8 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
             />
           )}
           {canEdit && (
-            <Button size="sm" onClick={() => setOpenNew(true)}>
-              <Plus size={14} aria-hidden="true" /> {t("releases.newMilestone")}
+            <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => setOpenNew(true)}>
+              {t("releases.newMilestone")}
             </Button>
           )}
         </span>

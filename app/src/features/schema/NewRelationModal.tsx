@@ -5,6 +5,7 @@ import { newId, nowIso } from '../../lib/utils';
 import type { OnDelete, RelationCardinality } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
+import { Plus } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
 import { InlineError } from '../../components/InlineError';
@@ -71,7 +72,7 @@ export function NewRelationModal({ open, onClose }: NewRelationModalProps) {
           <Button variant="ghost" onClick={onClose}>
             {t('schema.relationModal.cancel')}
           </Button>
-          <Button type="submit" form="new-relation-form" disabled={invalid}>
+          <Button type="submit" form="new-relation-form" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} disabled={invalid}>
             {t('schema.relationModal.submit')}
           </Button>
         </>

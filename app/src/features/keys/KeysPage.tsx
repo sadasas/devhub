@@ -124,7 +124,7 @@ export function KeysPage() {
                 </div>
               </div>
               <div className="data-row-side">
-                <Button size="sm" variant="ghost" loading={revoking === app.clientId} onClick={() => void onRevoke(app.clientId)} leftIcon={<Trash size={12} aria-hidden="true" />}>
+                <Button size="sm" variant="ghost" loading={revoking === app.clientId} onClick={() => void onRevoke(app.clientId)} leftIcon={<Trash size={13} aria-hidden="true" />}>
                   Revoke
                 </Button>
               </div>

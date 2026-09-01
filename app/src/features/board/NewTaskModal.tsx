@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { FileText, Flag, Clock, CalendarBlank as CalendarIcon, Tag, User } from '@phosphor-icons/react';
+import { FileText, Flag, Clock, CalendarBlank as CalendarIcon, Tag, User, Plus } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { newId, nowIso, parseLabels } from '../../lib/utils';
 import { TASK_PRIORITY, TASK_PRIORITY_ORDER } from '../../lib/labels';
@@ -108,7 +108,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
           <Button variant="ghost" onClick={onClose}>
             {t('board.newTaskModal.cancel')}
           </Button>
-          <Button type="submit" form="new-task-form" disabled={!title.trim() || !!startAfterDue(startDateInput, dueDateInput)}>
+          <Button type="submit" form="new-task-form" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} disabled={!title.trim() || !!startAfterDue(startDateInput, dueDateInput)}>
             {t('board.newTaskModal.submit')}
           </Button>
         </>

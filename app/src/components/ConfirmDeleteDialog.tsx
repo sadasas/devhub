@@ -31,7 +31,7 @@ export function ConfirmDeleteDialog({
       width="sm"
       footer={
         <>
-          <Button variant="secondary" leftIcon={<X size={12} aria-hidden="true" />} onClick={onClose} disabled={busy}>
+          <Button variant="secondary" leftIcon={<X size={13} aria-hidden="true" />} onClick={onClose} disabled={busy}>
             {t('action.cancel')}
           </Button>
           <Button

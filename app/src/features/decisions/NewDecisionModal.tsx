@@ -61,7 +61,7 @@ export function NewDecisionModal({ onClose }: NewDecisionModalProps) {
           <Button variant="ghost" onClick={onClose}>
             {t("decisions.newModal.cancel")}
           </Button>
-          <Button variant="primary" onClick={submit} disabled={!title.trim()}>
+          <Button variant="primary" leftIcon={<Scales size={13} aria-hidden="true" />} onClick={submit} disabled={!title.trim()}>
             {t("decisions.newModal.submit")}
           </Button>
         </>

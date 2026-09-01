@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../../components/Button";
-import { CaretLeft, CaretRight, Plus } from "@phosphor-icons/react";
+import { CalendarBlank, CaretLeft, CaretRight, Plus } from "@phosphor-icons/react";
 import { useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { Task } from "../../lib/types";
@@ -179,7 +179,7 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds, o
               {t("board.addTask",{defaultValue:"New task"})}
             </Button>
           )}
-          <Button variant="ghost" size="sm" onClick={onToday}>{t("board.timeline.today",{defaultValue:"Today"})}</Button>
+          <Button variant="ghost" size="sm" leftIcon={<CalendarBlank size={13} aria-hidden="true" />} onClick={onToday}>{t("board.timeline.today",{defaultValue:"Today"})}</Button>
           <label className="toolbar-check" style={{fontSize:12}}><input type="checkbox" checked={hideCompleted} onChange={e=>setHideCompleted(e.target.checked)} />{t("board.cal.hideCompleted",{defaultValue:"Hide completed"})}</label>
         </div>
       </div>

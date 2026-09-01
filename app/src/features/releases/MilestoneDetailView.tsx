@@ -94,7 +94,7 @@ export function MilestoneDetailView({ milestone, tasks, issues, testCases, decis
   return (
     <div className="release-detail">
       <div className="release-detail-header">
-        <Button variant="ghost" size="sm" onClick={onBack} leftIcon={<ArrowLeft size={13} />}>{t("releases.detail.back", { defaultValue: "Kembali ke Timeline" })}</Button>
+        <Button variant="ghost" size="sm" onClick={onBack} leftIcon={<ArrowLeft size={13} aria-hidden="true" />}>{t("releases.detail.back", { defaultValue: "Kembali ke Timeline" })}</Button>
         <span className="flex-1" />
         {canEdit && (
           <Button variant="danger" size="sm" leftIcon={<Trash size={13} aria-hidden="true" />} onClick={() => setConfirmOpen(true)}>

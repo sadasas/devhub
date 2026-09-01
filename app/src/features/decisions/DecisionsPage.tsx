@@ -93,8 +93,8 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
             onChange={setSort}
           />
           {canEdit && (
-            <Button size="sm" onClick={() => setOpenNew(true)}>
-              <Plus size={14} aria-hidden="true" /> {t('decisions.newDecision')}
+            <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => setOpenNew(true)}>
+              {t('decisions.newDecision')}
             </Button>
           )}
         </span>
@@ -107,8 +107,8 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
           description={t('decisions.emptyDesc')}
           action={
             canEdit && (
-              <Button size="sm" onClick={() => setOpenNew(true)}>
-                <Plus size={14} /> {t('decisions.newDecision')}
+              <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => setOpenNew(true)}>
+                {t('decisions.newDecision')}
               </Button>
             )
           }

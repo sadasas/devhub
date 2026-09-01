@@ -98,7 +98,7 @@ export function IssuesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
             onChange={setSort}
           />
           {canEdit && (
-            <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
+            <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => setCreating(true)}>
               {t('issues.newIssue')}
             </Button>
           )}
@@ -112,7 +112,7 @@ export function IssuesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           description={t('issues.emptyDesc')}
           action={
             canEdit && (
-              <Button leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
+              <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setCreating(true)}>
                 {t('issues.logIssue')}
               </Button>
             )

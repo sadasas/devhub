@@ -79,7 +79,7 @@ export function NewTestModal({ open, onClose }: NewTestModalProps) {
           <Button variant="ghost" onClick={onClose}>
             {t('tests.newModal.cancel')}
           </Button>
-          <Button type="submit" form="new-test-form" disabled={!name.trim()}>
+          <Button type="submit" form="new-test-form" leftIcon={<ListChecks size={13} aria-hidden="true" />} disabled={!name.trim()}>
             {t('tests.newModal.submit')}
           </Button>
         </>

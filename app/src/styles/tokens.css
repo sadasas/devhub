@@ -7,6 +7,7 @@
   --bg-base: #0f0f11;
   --bg-elevated: #18181b;
   --bg-overlay: #1e1e21;
+  --bg-overlay-hover: #252529;
   --bg-inset: #131316;
 
   /* Borders — hairline soft */
@@ -125,6 +126,7 @@ html[data-theme='light'] {
   --bg-base: #f4f3f0;
   --bg-elevated: #fffcf8;
   --bg-overlay: #ffffff;
+  --bg-overlay-hover: #f0eeea;
   --bg-inset: #f9f7f4;
 
   --border-hairline: rgba(0, 0, 0, 0.07);

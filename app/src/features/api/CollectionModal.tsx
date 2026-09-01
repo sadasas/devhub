@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { newId, nowIso } from '../../lib/utils';
+import { FolderPlus } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
@@ -56,7 +57,7 @@ export function CollectionModal({ onClose, onCreated }: CollectionModalProps) {
           <Button variant="ghost" onClick={onClose}>
             {t('api.collectionModal.cancel')}
           </Button>
-          <Button variant="primary" onClick={submit} disabled={!canEdit || !name.trim()}>
+          <Button variant="primary" leftIcon={<FolderPlus size={13} aria-hidden="true" />} onClick={submit} disabled={!canEdit || !name.trim()}>
             {t('api.collectionModal.create')}
           </Button>
         </>

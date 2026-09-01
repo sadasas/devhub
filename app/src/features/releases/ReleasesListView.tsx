@@ -74,7 +74,7 @@ export function ReleasesListView({ milestones, tasks, unreadIds, canEdit, onSele
   const { t } = useTranslation("project");
   if (milestones.length === 0) {
     return (
-      <EmptyState icon={<Rocket size={22} />} title={t("releases.emptyTitle")} description={t("releases.emptyDesc")} action={canEdit && <Button size="sm" onClick={onNew}><Plus size={14} /> {t("releases.newMilestone")}</Button>} />
+      <EmptyState icon={<Rocket size={22} />} title={t("releases.emptyTitle")} description={t("releases.emptyDesc")} action={canEdit && <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={onNew}>{t("releases.newMilestone")}</Button>} />
     );
   }
   const active = milestones.filter((mm) => mm.status === "inProgress");

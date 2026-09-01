@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { newId, nowIso } from '../../lib/utils';
+import { Plus } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
@@ -54,7 +55,7 @@ export function NewWhiteboardModal({ onClose }: NewWhiteboardModalProps) {
           <Button variant="ghost" onClick={onClose}>
             {t('whiteboard.newModal.cancel')}
           </Button>
-          <Button variant="primary" onClick={submit} disabled={!canEdit || !name.trim() || atCap}>
+          <Button variant="primary" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={submit} disabled={!canEdit || !name.trim() || atCap}>
             {t('whiteboard.newModal.create')}
           </Button>
         </>

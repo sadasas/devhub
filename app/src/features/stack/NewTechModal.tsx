@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FileText } from "@phosphor-icons/react";
+import { FileText, Plus } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
 import { useProject } from "../../state/project-context";
 import { usePresenceStatus } from "../../hooks/usePresenceStatus";
@@ -70,7 +70,7 @@ export function NewTechModal({ open, onClose }: NewTechModalProps) {
           <Button variant="ghost" onClick={onClose}>
             {t("stack.newTechModal.cancel")}
           </Button>
-          <Button variant="primary" onClick={submit} disabled={!name.trim()}>
+          <Button variant="primary" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={submit} disabled={!name.trim()}>
             {t("stack.newTechModal.submit")}
           </Button>
         </>

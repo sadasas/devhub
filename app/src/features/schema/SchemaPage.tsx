@@ -243,7 +243,7 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
             </Button>
           )}
           {canEditEffective && (
-            <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setNewTableOpen(true)}>
+            <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => setNewTableOpen(true)}>
               {t('schema.page.newTable')}
             </Button>
           )}
@@ -349,7 +349,7 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
                   description={isViewing ? t('schema.viewBanner.noTablesDesc') : t('schema.empty.tablesDesc')}
                   action={
                     !isViewing && canEditEffective ? (
-                      <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setNewTableOpen(true)}>
+                      <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => setNewTableOpen(true)}>
                         {t('schema.page.newTable', { defaultValue: 'Create table' })}
                       </Button>
                     ) : undefined

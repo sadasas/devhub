@@ -252,8 +252,8 @@ export function ReleasesFlowView({
         description={t('releases.flow.emptyDescFlow', { defaultValue: 'No releases yet. Create a milestone with status In Progress to see the step-by-step flow.' })}
         action={
           canEdit && (
-            <Button size="sm" onClick={onNewMilestone}>
-              <Plus size={14} /> {t('releases.newMilestone')}
+            <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={onNewMilestone}>
+              {t('releases.newMilestone')}
             </Button>
           )
         }
@@ -320,8 +320,8 @@ export function ReleasesFlowView({
         <div className="release-flow-empty">
           <p className="field-helper">{t('releases.modal.noTasksAssigned')}</p>
           {canEdit && (
-            <Button size="sm" onClick={() => onOpenTask('NEW')}>
-              <Plus size={14} /> {t('releases.flow.addTask', { defaultValue: 'Add task to this release' })}
+            <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => onOpenTask('NEW')}>
+              {t('releases.flow.addTask', { defaultValue: 'Add task to this release' })}
             </Button>
           )}
         </div>

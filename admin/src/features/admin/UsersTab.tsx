@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CaretLeft, CaretRight, MagnifyingGlass, UsersThree, X } from '@phosphor-icons/react';
+import { ArrowClockwise, CaretLeft, CaretRight, MagnifyingGlass, UsersThree, X } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { api } from '../../lib/api';
@@ -162,7 +162,7 @@ export function UsersTab({ refreshKey, onSettled }: UsersTabProps) {
       {error ? (
         <InlineError className="mb-12">
           {error}{' '}
-          <Button variant="secondary" size="sm" onClick={() => void loadUsers()}>
+          <Button variant="secondary" size="sm" leftIcon={<ArrowClockwise size={13} aria-hidden="true" />} onClick={() => void loadUsers()}>
             {t('admin.retry')}
           </Button>
         </InlineError>

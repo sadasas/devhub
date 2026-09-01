@@ -8,6 +8,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   size?: Size;
   loading?: boolean;
+  /** Icon di kiri text — WAJIB dekoratif. Otomatis dibungkus aria-hidden, tapi caller tetap disarankan pass aria-hidden="true" pada icon. */
   leftIcon?: ReactNode;
 }
 
@@ -31,9 +32,11 @@ export function Button({
     >
       {loading ? (
         <CircleNotch className="btn-spinner" size={14} weight="bold" aria-hidden="true" />
-      ) : (
-        leftIcon
-      )}
+      ) : leftIcon ? (
+        <span aria-hidden="true" className="btn-icon-wrap" style={{ display: 'inline-flex' }}>
+          {leftIcon}
+        </span>
+      ) : null}
       {children}
     </button>
   );

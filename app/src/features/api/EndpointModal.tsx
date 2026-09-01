@@ -4,6 +4,7 @@ import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { newId, nowIso } from '../../lib/utils';
 import type { ApiCollection, ApiMethod } from '../../lib/types';
+import { Plus } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
@@ -61,7 +62,7 @@ export function EndpointModal({ onClose, onCreated, collections }: EndpointModal
           <Button variant="ghost" onClick={onClose}>
             {t('api.endpointModal.cancel')}
           </Button>
-          <Button variant="primary" onClick={submit} disabled={!canEdit || !name.trim() || !path.trim()}>
+          <Button variant="primary" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={submit} disabled={!canEdit || !name.trim() || !path.trim()}>
             {t('api.endpointModal.create')}
           </Button>
         </>

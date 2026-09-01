@@ -8,6 +8,7 @@ import type { PlanLimitResource } from '../../components/PlanLimitModal';
 import { PlanLimitModal } from '../../components/PlanLimitModal';
 import { useProjects } from '../../state/projects-context';
 import { useTeams } from '../../state/teams-context';
+import { Plus } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
@@ -81,7 +82,7 @@ export function NewProjectModal({ open, onClose, initialTeamId }: NewProjectModa
           <Button variant="ghost" onClick={onClose}>
             {t('common:action.cancel')}
           </Button>
-          <Button type="submit" form="new-project-form" loading={submitting} disabled={!name.trim() || (teams?.length ?? 0) === 0}>
+          <Button type="submit" form="new-project-form" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} loading={submitting} disabled={!name.trim() || (teams?.length ?? 0) === 0}>
             {t('dashboard.modal.create')}
           </Button>
         </>

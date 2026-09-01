@@ -87,7 +87,7 @@ export function WhiteboardList({ onOpen, loading = false, unreadIds }: Whiteboar
             onChange={setSort}
           />
           {canEdit && !atCap && (
-            <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setOpenNew(true)}>
+            <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => setOpenNew(true)}>
               {t('whiteboard.list.newBoard')}
             </Button>
           )}
@@ -101,7 +101,7 @@ export function WhiteboardList({ onOpen, loading = false, unreadIds }: Whiteboar
           description={t('whiteboard.list.emptyDesc')}
           action={
             canEdit && (
-              <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setOpenNew(true)}>
+              <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => setOpenNew(true)}>
                 {t('whiteboard.list.newBoard')}
               </Button>
             )

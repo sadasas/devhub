@@ -169,7 +169,7 @@ a:hover {
 
 .btn-secondary:hover:not(:disabled) {
   border: none;
-  background: #1b1b20;
+  background: var(--bg-overlay-hover);
 }
 
 .btn-ghost {

@@ -95,7 +95,7 @@ export function NewTableModal({ open, onClose }: NewTableModalProps) {
           <Button variant="ghost" onClick={onClose}>
             {t('schema.newTableModal.cancel')}
           </Button>
-          <Button type="submit" form="new-table-form" disabled={!name.trim()}>
+          <Button type="submit" form="new-table-form" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} disabled={!name.trim()}>
             {t('schema.newTableModal.submit')}
           </Button>
         </>

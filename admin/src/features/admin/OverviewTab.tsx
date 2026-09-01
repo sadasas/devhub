@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  ArrowClockwise,
   ChartLine,
   CurrencyCircleDollar,
   FolderSimple,
@@ -88,7 +89,7 @@ export function OverviewTab({ refreshKey, onSettled }: OverviewTabProps) {
       {statsError && stats === null ? (
         <InlineError className="mb-12">
           {statsError}{' '}
-          <Button variant="ghost" size="sm" onClick={() => void loadOverview()}>
+          <Button variant="ghost" size="sm" leftIcon={<ArrowClockwise size={13} aria-hidden="true" />} onClick={() => void loadOverview()}>
             {t('admin.retry')}
           </Button>
         </InlineError>
@@ -97,7 +98,7 @@ export function OverviewTab({ refreshKey, onSettled }: OverviewTabProps) {
           {statsError && stats !== null && (
             <InlineError className="mb-12">
               {statsError}{' '}
-              <Button variant="ghost" size="sm" onClick={() => void loadOverview()}>
+              <Button variant="ghost" size="sm" leftIcon={<ArrowClockwise size={13} aria-hidden="true" />} onClick={() => void loadOverview()}>
                 {t('admin.retry')}
               </Button>
             </InlineError>
@@ -227,7 +228,7 @@ export function OverviewTab({ refreshKey, onSettled }: OverviewTabProps) {
             {activityError ? (
               <InlineError className="mb-12">
                 {activityError}{' '}
-                <Button variant="ghost" size="sm" onClick={() => void loadActivityChart()}>
+                <Button variant="ghost" size="sm" leftIcon={<ArrowClockwise size={13} aria-hidden="true" />} onClick={() => void loadActivityChart()}>
                   {t('admin.retry')}
                 </Button>
               </InlineError>

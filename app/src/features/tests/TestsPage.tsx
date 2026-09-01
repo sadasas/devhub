@@ -92,7 +92,7 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
             onChange={setSort}
           />
           {canEdit && (
-            <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
+            <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => setCreating(true)}>
               {t('tests.newTestCase')}
             </Button>
           )}
@@ -106,7 +106,7 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           description={t('tests.emptyDesc')}
           action={
             canEdit && (
-              <Button leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
+              <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setCreating(true)}>
                 {t('tests.addTestCase')}
               </Button>
             )

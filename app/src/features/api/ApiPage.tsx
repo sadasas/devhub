@@ -317,10 +317,10 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
             <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => setShowEndpoint(true)}>
               {t('api.toolbar.newEndpoint')}
             </Button>
-            <Button size="sm" variant="outline" leftIcon={<FolderPlus size={13} aria-hidden="true" />} onClick={() => setShowCollection(true)}>
+            <Button size="sm" variant="ghost" leftIcon={<FolderPlus size={13} aria-hidden="true" />} onClick={() => setShowCollection(true)}>
               {t('api.toolbar.newCollection')}
             </Button>
-            <Button size="sm" variant="outline" leftIcon={<UploadSimple size={13} aria-hidden="true" />} onClick={() => fileInputRef.current?.click()}>
+            <Button size="sm" variant="ghost" leftIcon={<UploadSimple size={13} aria-hidden="true" />} onClick={() => fileInputRef.current?.click()}>
               {t('api.toolbar.import')}
             </Button>
           </div>
@@ -736,7 +736,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                       {selectedEp.headers.length === 0 && (
                         <p className="api-rows-empty">{t('api.header.empty')}</p>
                       )}
-                      <Button variant="ghost" size="sm" onClick={() => updateEp({ headers: [...selectedEp.headers, { key: '', value: '', description: '' }] })}>
+                      <Button variant="ghost" size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => updateEp({ headers: [...selectedEp.headers, { key: '', value: '', description: '' }] })}>
                         {t('api.header.add')}
                       </Button>
                     </div>
@@ -797,7 +797,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                         </div>
                       ))}
                       {selectedEp.params.length === 0 && <p className="api-rows-empty">{t('api.param.empty')}</p>}
-                      <Button variant="ghost" size="sm" onClick={() => updateEp({ params: [...selectedEp.params, { name: '', in: 'query', required: false, description: '' }] })}>
+                      <Button variant="ghost" size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => updateEp({ params: [...selectedEp.params, { name: '', in: 'query', required: false, description: '' }] })}>
                         {t('api.param.add')}
                       </Button>
                     </div>
@@ -891,6 +891,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                       <Button
                         variant="ghost"
                         size="sm"
+                        leftIcon={<Plus size={13} aria-hidden="true" />}
                         onClick={() =>
                           updateEp({
                             responses: [...selectedEp.responses, { status: 200, contentType: '', description: '', body: '' }],
@@ -1011,7 +1012,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
             <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
               {t('api.delete.cancel')}
             </Button>
-            <Button variant="danger" onClick={onDeleteTarget}>
+            <Button variant="danger" leftIcon={<Trash size={13} aria-hidden="true" />} onClick={onDeleteTarget}>
               {t('api.delete.confirm')}
             </Button>
           </>

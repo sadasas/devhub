@@ -141,7 +141,7 @@ export function SearchableSelect({
         <span className={!selected && !allowEmpty ? 'ss-trigger-text ss-trigger-placeholder' : 'ss-trigger-text'}>
           {display}
         </span>
-        <CaretDown size={12} className="ss-trigger-icon" />
+        <CaretDown size={12} className="ss-trigger-icon" aria-hidden="true" />
       </button>
       {open &&
         createPortal(

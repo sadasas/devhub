@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CaretLeft, CaretRight } from '@phosphor-icons/react';
+import { ArrowClockwise, CaretLeft, CaretRight } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { api } from '../../lib/api';
@@ -115,7 +115,7 @@ export function TeamsTab({ refreshKey, onSettled }: TeamsTabProps) {
       {error ? (
         <InlineError className="mb-12">
           {error}{' '}
-          <Button variant="secondary" size="sm" onClick={() => void loadTeams()}>
+          <Button variant="secondary" size="sm" leftIcon={<ArrowClockwise size={13} aria-hidden="true" />} onClick={() => void loadTeams()}>
             {t('admin.retry')}
           </Button>
         </InlineError>

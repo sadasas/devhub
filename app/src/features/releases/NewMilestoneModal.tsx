@@ -7,7 +7,7 @@ import type { MilestoneStatus } from "../../lib/types";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { Modal } from "../../components/Modal";
-import { FileText } from "@phosphor-icons/react";
+import { FileText, Plus } from "@phosphor-icons/react";
 import { MarkdownField } from "../../components/MarkdownField";
 
 interface NewMilestoneModalProps {
@@ -54,7 +54,7 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
           <Button variant="ghost" onClick={onClose}>
             {t("releases.newModal.cancel")}
           </Button>
-          <Button variant="primary" onClick={submit} disabled={!name.trim()}>
+          <Button variant="primary" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={submit} disabled={!name.trim()}>
             {t("releases.newModal.submit")}
           </Button>
         </>

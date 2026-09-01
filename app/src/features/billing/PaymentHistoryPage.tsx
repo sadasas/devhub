@@ -209,7 +209,7 @@ export function PaymentHistoryPage() {
                         size="sm"
                         variant="ghost"
                         disabled={busy}
-                        leftIcon={<Trash size={14} aria-hidden="true" />}
+                        leftIcon={<Trash size={13} aria-hidden="true" />}
                         aria-label={t('billing.cancelAria', {
                           defaultValue: `Batalkan pembayaran ${p.packageName} order ${p.orderId.slice(0, 8)}`,
                           packageName: p.packageName,
@@ -223,7 +223,7 @@ export function PaymentHistoryPage() {
                         size="sm"
                         variant="primary"
                         loading={busy}
-                        leftIcon={<ArrowSquareOut size={14} weight="bold" aria-hidden="true" />}
+                        leftIcon={<ArrowSquareOut size={13} weight="bold" aria-hidden="true" />}
                         aria-label={t('billing.resumeAria', {
                           defaultValue: `Lanjutkan pembayaran ${p.packageName} untuk ${p.teamName}`,
                           packageName: p.packageName,

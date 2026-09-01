@@ -153,7 +153,7 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
             />
           )}
           {canEdit && (
-            <Button size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
+            <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => setCreating(true)}>
               {t('stack.newEntry')}
             </Button>
           )}
@@ -167,7 +167,7 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           description={t('stack.emptyDesc')}
           action={
             canEdit && (
-              <Button leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => setCreating(true)}>
+              <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setCreating(true)}>
                 {t('stack.addEntry')}
               </Button>
             )
