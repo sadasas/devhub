@@ -17,7 +17,23 @@ export default {
     // WebSocket upgrade for /ws
     const isWs = url.pathname.startsWith('/ws');
 
-    if (isApi || isWs) {
+    // WebSocket upgrade must be proxied with webSocket passthrough, not generic fetch
+    if (isWs) {
+      if (request.headers.get('Upgrade') !== 'websocket') {
+        return new Response('Expected Upgrade: websocket', { status: 426 });
+      }
+      const rawOrigin = env.SUGA_ORIGIN?.trim() || '';
+      const sugaOrigin = rawOrigin.startsWith('http') ? rawOrigin : `https://${rawOrigin}`;
+      const targetUrl = new URL(url.pathname + url.search, sugaOrigin);
+      const wsReq = new Request(targetUrl.toString(), request);
+      wsReq.headers.set('x-forwarded-host', url.host);
+      wsReq.headers.set('x-forwarded-proto', url.protocol.slice(0, -1));
+      const cfIp = request.headers.get('cf-connecting-ip');
+      if (cfIp) wsReq.headers.set('x-real-ip', cfIp);
+      return fetch(wsReq);
+    }
+
+    if (isApi) {
       const rawOrigin = env.SUGA_ORIGIN?.trim() || '';
       const sugaOrigin = rawOrigin.startsWith('http') ? rawOrigin : `https://${rawOrigin}`;
       const targetUrl = new URL(url.pathname + url.search, sugaOrigin);
@@ -72,9 +88,6 @@ export default {
         const rewritten = c.replace(/Domain=[^;]+;?\s*/gi, '');
         resHeaders.append('Set-Cookie', rewritten);
       }
-
-      // Remove content-encoding/length that may be invalid after streaming
-      // Let runtime handle
 
       return new Response(sugaRes.body, {
         status: sugaRes.status,
