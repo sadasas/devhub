@@ -8,7 +8,7 @@ import { usePresenceStatus } from "../../hooks/usePresenceStatus";
 import { Button } from "../../components/Button";
 import { Input } from "../../components/Input";
 import { Modal } from "../../components/Modal";
-import { FileText, ArrowsOutSimple } from "@phosphor-icons/react";
+import { Check, FileText, ArrowsOutSimple } from "@phosphor-icons/react";
 import { LIMITS } from "../../lib/limits";
 
 interface MilestoneModalProps {
@@ -141,7 +141,7 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
           <Button variant="ghost" onClick={cancelEditing}>
             {t("releases.modal.cancel")}
           </Button>
-          <Button variant="primary" onClick={finishEditing}>
+          <Button variant="primary" leftIcon={<Check size={13} weight="bold" aria-hidden="true" />} onClick={finishEditing}>
             {t("releases.modal.done")}
           </Button>
         </>

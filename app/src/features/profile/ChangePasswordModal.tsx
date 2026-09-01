@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle, Eye, EyeSlash } from '@phosphor-icons/react';
+import { Check, CheckCircle, Eye, EyeSlash, Key } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
@@ -106,7 +106,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
       width="sm"
       footer={
         changeSuccess ? (
-          <Button onClick={onClose}>{t('profile.changeModal.done')}</Button>
+          <Button leftIcon={<Check size={13} weight="bold" aria-hidden="true" />} onClick={onClose}>{t('profile.changeModal.done')}</Button>
         ) : (
           <>
             <Button variant="ghost" onClick={onClose} disabled={changing}>
@@ -115,6 +115,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
             <Button
               type="submit"
               form="change-password-form"
+              leftIcon={<Key size={13} aria-hidden="true" />}
               loading={changing}
               disabled={!canSubmit}
             >

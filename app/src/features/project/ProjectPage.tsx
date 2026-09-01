@@ -680,7 +680,7 @@ export function ProjectPage() {
               <Button variant="ghost" onClick={() => setConfirmOpen(false)}>
                 {t('deleteModal.cancel')}
               </Button>
-              <Button variant="danger" loading={deleting} onClick={() => void onDelete()}>
+              <Button variant="danger" leftIcon={<Trash size={13} aria-hidden="true" />} loading={deleting} onClick={() => void onDelete()}>
                 {t('deleteModal.confirm')}
               </Button>
             </>
@@ -704,6 +704,7 @@ export function ProjectPage() {
               </Button>
               <Button
                 variant={archiveConfirm === 'archive' ? 'primary' : 'ghost'}
+                leftIcon={archiveConfirm === 'archive' ? <Archive size={13} aria-hidden="true" /> : <ArrowCounterClockwise size={13} aria-hidden="true" />}
                 loading={archiving}
                 onClick={() => void handleArchiveToggle(archiveConfirm === 'archive' ? 'archived' : 'active')}
               >
@@ -730,7 +731,7 @@ export function ProjectPage() {
               <Button variant="ghost" onClick={() => setImportDoc(null)}>
                 {t('importModal.cancel')}
               </Button>
-              <Button variant="primary" loading={importing} onClick={() => void onConfirmImport()}>
+              <Button variant="primary" leftIcon={<UploadSimple size={13} aria-hidden="true" />} loading={importing} onClick={() => void onConfirmImport()}>
                 {t('importModal.confirm')}
               </Button>
             </>

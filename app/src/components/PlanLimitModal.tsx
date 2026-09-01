@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router';
+import { ArrowRight } from '@phosphor-icons/react';
 import { Button } from './Button';
 import { Modal } from './Modal';
 
@@ -35,7 +36,7 @@ export function PlanLimitModal({ open, resource, teamId, onClose }: PlanLimitMod
           <Button variant="ghost" onClick={onClose}>
             Not now
           </Button>
-          <Button variant="primary" onClick={onGoPricing}>
+          <Button variant="primary" leftIcon={<ArrowRight size={13} aria-hidden="true" />} onClick={onGoPricing}>
             Lihat Pricing
           </Button>
         </>

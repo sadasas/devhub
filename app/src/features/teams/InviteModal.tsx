@@ -5,6 +5,7 @@ import { getErrorMessage, isPlanLimitError } from '../../lib/errors';
 import { TEAM_ROLE } from '../../lib/labels';
 import type { TeamRole } from '../../lib/types';
 import { useTeams } from '../../state/teams-context';
+import { Envelope } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
@@ -64,7 +65,7 @@ export function InviteModal({ teamId, open, onClose, onInvited }: InviteModalPro
             <Button variant="ghost" onClick={onClose}>
               {t('common:action.cancel')}
             </Button>
-            <Button type="submit" form="invite-form" loading={submitting} disabled={!email.trim()}>
+            <Button type="submit" form="invite-form" leftIcon={<Envelope size={13} aria-hidden="true" />} loading={submitting} disabled={!email.trim()}>
               {t('teams.inviteModal.send')}
             </Button>
           </>

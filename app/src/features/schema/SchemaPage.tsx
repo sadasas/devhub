@@ -616,6 +616,7 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
             </Button>
             <Button
               variant="danger"
+              leftIcon={<Trash size={13} aria-hidden="true" />}
               onClick={() => {
                 if (confirmRel) dispatch({ type: 'relation/remove', id: confirmRel.id });
                 setConfirmRel(null);

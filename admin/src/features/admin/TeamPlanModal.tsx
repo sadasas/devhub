@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check } from '@phosphor-icons/react';
+import { ArrowClockwise, ArrowLeft, Check, FloppyDisk, X } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
@@ -156,7 +156,7 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
       width="md"
       footer={
         <>
-          <Button variant="secondary" size="sm" disabled={busy} onClick={() => {
+          <Button variant="secondary" size="sm" leftIcon={stage === 'confirm' ? <ArrowLeft size={13} aria-hidden="true" /> : <X size={13} aria-hidden="true" />} disabled={busy} onClick={() => {
             if (stage === 'confirm') setStage('edit');
             else onClose();
           }}>
@@ -164,6 +164,7 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
           </Button>
           <Button
             size="sm"
+            leftIcon={<FloppyDisk size={13} aria-hidden="true" />}
             loading={busy}
             disabled={!canProceed || busy}
             onClick={handlePrimaryAction}
@@ -242,7 +243,7 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
               ) : packagesError ? (
                 <InlineError>
                   {packagesError}{' '}
-                  <Button variant="ghost" size="sm" onClick={() => void loadPackages()}>
+                  <Button variant="ghost" size="sm" leftIcon={<ArrowClockwise size={13} aria-hidden="true" />} onClick={() => void loadPackages()}>
                     {t('admin.retry')}
                   </Button>
                 </InlineError>

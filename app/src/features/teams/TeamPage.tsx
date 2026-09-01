@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowLeft, ChartLineUp, Envelope, Trash, UsersThree } from '@phosphor-icons/react';
+import { ArrowLeft, ChartLineUp, Envelope, FloppyDisk, SignOut, Trash, UsersThree } from '@phosphor-icons/react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
@@ -405,6 +405,7 @@ export function TeamPage() {
             <Button
               type="submit"
               form="rename-team-form"
+              leftIcon={<FloppyDisk size={13} aria-hidden="true" />}
               loading={renaming}
               disabled={!renameValue.trim()}
             >
@@ -449,7 +450,7 @@ export function TeamPage() {
             <Button variant="ghost" onClick={() => setDeleteOpen(false)}>
               {t('common:action.cancel')}
             </Button>
-            <Button variant="danger" loading={deleting} onClick={() => void onDelete()}>
+            <Button variant="danger" leftIcon={<Trash size={13} aria-hidden="true" />} loading={deleting} onClick={() => void onDelete()}>
               {t('common:action.delete')}
             </Button>
           </>
@@ -470,7 +471,7 @@ export function TeamPage() {
             <Button variant="ghost" onClick={() => setLeaveOpen(false)}>
               {t('common:action.cancel')}
             </Button>
-            <Button variant="danger" loading={deleting} onClick={() => void onLeave()}>
+            <Button variant="danger" leftIcon={<SignOut size={13} aria-hidden="true" />} loading={deleting} onClick={() => void onLeave()}>
               {t('teams.leaveModal.confirm')}
             </Button>
           </>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
+import { FloppyDisk } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 import { InlineError } from '../../components/InlineError';
 import { Input } from '../../components/Input';
@@ -63,7 +64,7 @@ export function ProfileEditModal({ open, onClose }: ProfileEditModalProps) {
           <Button variant="ghost" onClick={onClose} disabled={saving}>
             {t('common:action.cancel')}
           </Button>
-          <Button type="submit" form="profile-edit-form" loading={saving} disabled={!dirty}>
+          <Button type="submit" form="profile-edit-form" leftIcon={<FloppyDisk size={13} aria-hidden="true" />} loading={saving} disabled={!dirty}>
             {t('profile.editModal.save')}
           </Button>
         </>

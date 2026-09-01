@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BookmarkSimple, Copy } from '@phosphor-icons/react';
+import { ArrowClockwise, BookmarkSimple, Copy, Trash } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
@@ -87,7 +87,7 @@ export function TemplatesPage() {
       {error ? (
         <div className="form-stack">
           <InlineError>{error}</InlineError>
-          <Button variant="secondary" size="sm" onClick={() => setAttempt((a) => a + 1)}>
+          <Button variant="secondary" size="sm" leftIcon={<ArrowClockwise size={13} aria-hidden="true" />} onClick={() => setAttempt((a) => a + 1)}>
             {t('templates.retry')}
           </Button>
         </div>
@@ -188,11 +188,11 @@ export function TemplatesPage() {
               {t('templates.cancel')}
             </Button>
             {confirming ? (
-              <Button variant="danger" loading={deleting} onClick={() => void onDelete()}>
+              <Button variant="danger" leftIcon={<Trash size={13} aria-hidden="true" />} loading={deleting} onClick={() => void onDelete()}>
                 {t('templates.confirmDelete')}
               </Button>
             ) : (
-              <Button variant="danger" onClick={() => setConfirming(true)}>
+              <Button variant="danger" leftIcon={<Trash size={13} aria-hidden="true" />} onClick={() => setConfirming(true)}>
                 {t('templates.delete')}
               </Button>
             )}

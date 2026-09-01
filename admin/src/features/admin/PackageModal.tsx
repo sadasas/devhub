@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { AdminPackage } from '../../lib/types';
+import { FloppyDisk, Plus, Trash, X } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 import { InlineError } from '../../components/InlineError';
 import { Input } from '../../components/Input';
@@ -160,10 +161,10 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
       width="md"
       footer={
         <>
-          <Button variant="secondary" onClick={onClose} disabled={busy}>
+          <Button variant="secondary" leftIcon={<X size={13} aria-hidden="true" />} onClick={onClose} disabled={busy}>
             {t('templates.cancel')}
           </Button>
-          <Button type="submit" form="pkg-form" loading={busy} disabled={busy}>
+          <Button type="submit" form="pkg-form" leftIcon={isEdit ? <FloppyDisk size={13} aria-hidden="true" /> : <Plus size={13} weight="bold" aria-hidden="true" />} loading={busy} disabled={busy}>
             {busy ? t('admin.teamPlan.saving') : isEdit ? t('admin.packageModal.saveChanges') : t('admin.packageModal.create')}
           </Button>
         </>
@@ -229,7 +230,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
         <div className="form-section">
           <div className="form-section-head">
             <span className="form-section-title">{t('admin.packageModal.prices')}</span>
-            <Button type="button" variant="ghost" size="sm" onClick={addPrice}>
+            <Button type="button" variant="ghost" size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={addPrice}>
               {t('admin.packageModal.addPrice')}
             </Button>
           </div>
@@ -267,6 +268,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
                   type="button"
                   variant="ghost"
                   size="sm"
+                  leftIcon={<Trash size={13} aria-hidden="true" />}
                   onClick={() => removePrice(i)}
                   aria-label={t('admin.packageModal.removePriceWithIndex', { index: i + 1, defaultValue: `Remove price ${i + 1}` })}
                 >

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { newId, nowIso } from '../../lib/utils';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
+import { FloppyDisk } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
@@ -60,7 +61,7 @@ export function SaveVersionModal({ open, onClose }: SaveVersionModalProps) {
           <Button variant="ghost" onClick={onClose}>
             {t('schema.saveVersionModal.cancel')}
           </Button>
-          <Button type="submit" form="save-version-form" disabled={!version.trim()}>
+          <Button type="submit" form="save-version-form" leftIcon={<FloppyDisk size={13} aria-hidden="true" />} disabled={!version.trim()}>
             {t('schema.saveVersionModal.submit')}
           </Button>
         </>

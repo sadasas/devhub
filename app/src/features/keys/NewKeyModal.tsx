@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link } from 'react-router';
-import { Check, Copy } from '@phosphor-icons/react';
+import { Check, Copy, Key } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
@@ -108,12 +108,12 @@ export function NewKeyModal({ open, onClose, onCreated, activeCount = 0 }: NewKe
             <Button variant="ghost" onClick={handleClose}>
               {t('common:action.cancel')}
             </Button>
-            <Button type="submit" form="new-key-form" loading={submitting} disabled={!name.trim()}>
+            <Button type="submit" form="new-key-form" leftIcon={<Key size={13} aria-hidden="true" />} loading={submitting} disabled={!name.trim()}>
               {t('keys.newKeyModal.create')}
             </Button>
           </>
         ) : (
-          <Button onClick={onDone}>{t('keys.newKeyModal.done')}</Button>
+          <Button leftIcon={<Check size={13} weight="bold" aria-hidden="true" />} onClick={onDone}>{t('keys.newKeyModal.done')}</Button>
         )
       }
     >

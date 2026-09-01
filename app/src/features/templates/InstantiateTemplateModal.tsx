@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage, isPlanLimitError } from '../../lib/errors';
 import type { ProjectTemplate } from '../../lib/types';
+import { Copy } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
@@ -65,7 +66,7 @@ export function InstantiateTemplateModal({ open, template, onClose }: Instantiat
             <Button variant="ghost" onClick={onClose}>
               {t('templates.cancel')}
             </Button>
-            <Button type="submit" form="instantiate-form" loading={submitting} disabled={!name.trim()}>
+            <Button type="submit" form="instantiate-form" leftIcon={<Copy size={13} aria-hidden="true" />} loading={submitting} disabled={!name.trim()}>
               {t('templates.createProject')}
             </Button>
           </>

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import {} from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import { useTeams } from '../../state/teams-context';
+import { Plus } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
@@ -53,7 +54,7 @@ export function CreateTeamModal({ open, onClose }: CreateTeamModalProps) {
           <Button variant="ghost" onClick={onClose}>
             {t('common:action.cancel')}
           </Button>
-          <Button type="submit" form="create-team-form" loading={submitting} disabled={!name.trim()}>
+          <Button type="submit" form="create-team-form" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} loading={submitting} disabled={!name.trim()}>
             {t('teams.createModal.create')}
           </Button>
         </>

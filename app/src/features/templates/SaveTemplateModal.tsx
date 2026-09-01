@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
+import { BookmarkSimple } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
@@ -59,7 +60,7 @@ export function SaveTemplateModal({ open, projectId, projectName, onClose }: Sav
             {saved ? t('templates.close') : t('templates.cancel')}
           </Button>
           {!saved && (
-            <Button type="submit" form="save-template-form" loading={submitting} disabled={!name.trim()}>
+            <Button type="submit" form="save-template-form" leftIcon={<BookmarkSimple size={13} aria-hidden="true" />} loading={submitting} disabled={!name.trim()}>
               {t('templates.save')}
             </Button>
           )}

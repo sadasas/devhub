@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react';
-import { FileText } from '@phosphor-icons/react';
+import { FileText, FloppyDisk } from '@phosphor-icons/react';
 import { getErrorMessage } from '../../lib/errors';
 import { EMPTY_PRD, PRD_SECTIONS } from '../../lib/prd';
 import { useTranslation } from 'react-i18next';
@@ -63,7 +63,7 @@ export function EditPrdModal({ open, onClose, project }: EditPrdModalProps) {
           <Button variant="ghost" onClick={onClose} disabled={saving}>
             {t('prd.cancel')}
           </Button>
-          <Button type="submit" form="edit-prd-form" loading={saving} disabled={!dirty}>
+          <Button type="submit" form="edit-prd-form" leftIcon={<FloppyDisk size={13} aria-hidden="true" />} loading={saving} disabled={!dirty}>
             {t('prd.save')}
           </Button>
         </>
