@@ -32,6 +32,8 @@ export function PricingPage() {
   const [selectedDurationDays, setSelectedDurationDays] = useState<number | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const errorRef = useRef<HTMLParagraphElement>(null);
+  const workspaceBarRef = useRef<HTMLDivElement>(null);
+  const [highlightWorkspace, setHighlightWorkspace] = useState(false);
 
   useEffect(() => {
     if (queryTeamId) setSelectedTeamId(queryTeamId);
@@ -58,11 +60,23 @@ export function PricingPage() {
     else if (!durations.includes(selectedDurationDays)) setSelectedDurationDays(durations[0]!);
   }, [durations, selectedDurationDays]);
 
+  function requestWorkspaceFocus(pkgId: string) {
+    const msg = t('pricing.errors.pickWorkspace');
+    setActionError({ pkgId, message: msg });
+    setHighlightWorkspace(true);
+    window.setTimeout(() => setHighlightWorkspace(false), 1600);
+    requestAnimationFrame(() => {
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      workspaceBarRef.current?.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'center' });
+      const trigger = workspaceBarRef.current?.querySelector<HTMLElement>('#pricing-workspace-select');
+      if (trigger) trigger.focus();
+      else errorRef.current?.focus();
+    });
+  }
+
   async function handleBuy(pkgId: string, priceId: string) {
     if (!effectiveTeamId) {
-      const msg = t('pricing.errors.pickWorkspace');
-      setActionError({ pkgId, message: msg });
-      requestAnimationFrame(() => errorRef.current?.focus());
+      requestWorkspaceFocus(pkgId);
       return;
     }
     setActionError(null);
@@ -128,8 +142,15 @@ export function PricingPage() {
       ) : (
         <>
           {packages && paidPkgs.length > 0 && (
-            <div className="pricing-workspace-wrap">
-              <div className="pricing-workspace-bar" role="region" aria-label={t('pricing.workspaceBarAria')}>
+            <div
+              ref={workspaceBarRef}
+              className={`pricing-workspace-wrap${highlightWorkspace ? ' pricing-workspace-wrap--highlight' : ''}`}
+            >
+              <div
+                className={`pricing-workspace-bar${highlightWorkspace ? ' pricing-workspace-bar--error pricing-workspace-bar--shake' : ''}`}
+                role="region"
+                aria-label={t('pricing.workspaceBarAria')}
+              >
                 <label className="pricing-workspace-label" htmlFor="pricing-workspace-select">
                   {t('pricing.workspaceBarLabel')}
                 </label>
@@ -178,6 +199,7 @@ export function PricingPage() {
                   anyBusy={anyBusy}
                   disabledReason={disabledReason}
                   actionError={actionError?.pkgId === pkg.id ? actionError.message : null}
+                  onRequireWorkspace={requestWorkspaceFocus}
                 />
               );
             })}

@@ -11386,6 +11386,34 @@ input[type='checkbox'] {
   color: var(--status-danger);
 }
 
+.pricing-workspace-bar--error {
+  border-color: var(--status-danger);
+  box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.18);
+}
+
+.pricing-workspace-bar--shake {
+  animation: pricing-shake 320ms ease;
+}
+
+@keyframes pricing-shake {
+  0%,
+  100% {
+    transform: none;
+  }
+  30% {
+    transform: translateX(-4px);
+  }
+  60% {
+    transform: translateX(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pricing-workspace-bar--shake {
+    animation: none;
+  }
+}
+
 .pricing-workspace-hint {
   font-size: 12px;
   color: var(--text-muted);

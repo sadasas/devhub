@@ -35,6 +35,7 @@ export function PricingCard({
   disabledReason,
   actionError,
   variant,
+  onRequireWorkspace,
 }: {
   pkg: BillingPackage;
   isFeatured?: boolean;
@@ -45,6 +46,7 @@ export function PricingCard({
   disabledReason?: string | null;
   actionError?: string | null;
   variant?: string;
+  onRequireWorkspace?: (pkgId: string) => void;
 }) {
   const { t } = useTranslation('extras');
   const benefits = computeBenefits(t, pkg);
@@ -140,7 +142,10 @@ export function PricingCard({
                     disabled={busy || anyBusy}
                     loading={busy}
                     onClick={() => {
-                      if (disabledReason) return;
+                      if (disabledReason) {
+                        onRequireWorkspace?.(pkg.id);
+                        return;
+                      }
                       if (primaryPrice) onBuy(primaryPrice.id);
                     }}
                   >
