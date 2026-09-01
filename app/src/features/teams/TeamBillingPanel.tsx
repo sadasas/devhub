@@ -8,6 +8,7 @@ import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { Skeleton } from '../../components/Skeleton';
 import { InlineError } from '../../components/InlineError';
+import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { UsageMeter } from '../../components/UsageMeter';
 
 interface TeamBillingPanelProps {
@@ -22,6 +23,7 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bannerBusy, setBannerBusy] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
   const [bannerError, setBannerError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -66,18 +68,6 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
   const expires = data?.team.planExpiresAt ?? null;
   const pendingPayment = data?.payments.find((p) => p.status === 'pending') ?? null;
 
-  async function onResumePending() {
-    if (!pendingPayment) return;
-    setBannerError(null);
-    setBannerBusy(true);
-    try {
-      const res = await api.resumePayment(pendingPayment.orderId);
-      window.location.assign(res.url);
-    } catch (err) {
-      setBannerError(getErrorMessage(err, t('teams.billing.resumeError')));
-      setBannerBusy(false);
-    }
-  }
 
   async function onCancelPending() {
     if (!pendingPayment) return;
@@ -129,7 +119,8 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
         </InlineError>
       )}
       {pendingPayment && (
-        <div className="billing-card">
+        <>
+          <div className="billing-card">
           <h3 className="billing-card-title">{t('teams.billing.pendingTitle')}</h3>
           <div className="billing-plan-row">
             <span className="billing-plan-name">
@@ -143,23 +134,32 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
           {bannerError && <InlineError>{bannerError}</InlineError>}
           <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
             <Button
-              variant="primary"
+              variant="secondary"
               size="sm"
-              loading={bannerBusy}
-              onClick={() => void onResumePending()}
+              onClick={() => navigate(`/billing/${teamId}?orderId=${pendingPayment.orderId}`)}
             >
-              {t('teams.billing.resumePayment')}
+              Detail
             </Button>
             <Button
               variant="ghost"
               size="sm"
               disabled={bannerBusy}
-              onClick={() => void onCancelPending()}
+              onClick={() => setConfirmCancel(true)}
             >
               {t('teams.billing.cancelPayment')}
             </Button>
           </div>
         </div>
+        <ConfirmDeleteDialog
+            open={confirmCancel}
+            title={t('billing.cancelTitle', { defaultValue: 'Batalkan pembayaran?' })}
+            description={pendingPayment ? t('billing.cancelDesc', { defaultValue: '"' + pendingPayment.packageName + '" untuk "' + (data?.team.name ?? '') + '" \u00b7 Rp ' + pendingPayment.amount.toLocaleString('id-ID') + ' akan dibatalkan. Link Pakasir akan kadaluarsa.', packageName: pendingPayment.packageName, teamName: data?.team.name ?? '', amount: pendingPayment.amount.toLocaleString('id-ID') }) : t('billing.cancelDescFallback', { defaultValue: 'Pembayaran ini akan dibatalkan. Link Pakasir akan kadaluarsa.' })}
+            confirmLabel={t('billing.confirmCancel', { defaultValue: 'Ya, batalkan' })}
+            busy={bannerBusy}
+            onConfirm={() => { setConfirmCancel(false); void onCancelPending(); }}
+            onClose={() => { if (!bannerBusy) setConfirmCancel(false); }}
+          />
+        </>
       )}
       <div className="billing-card">
         <h3 className="billing-card-title">{t('teams.billing.currentPlan')}</h3>

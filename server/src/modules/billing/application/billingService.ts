@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { parseOrThrow } from '../../../shared/db.js';
+import { pool } from '../../../db/pool.js';
 import { config } from '../../../config.js';
 import { randomUUID } from 'node:crypto';
 import { ApiError } from '../../../shared/errors.js';
@@ -71,7 +72,14 @@ export async function startCheckout(userId: string, body: unknown): Promise<Chec
 
   let url = `${PAKASIR_PAY_BASE}/pay/${config.PAKASIR_SLUG}/${price.price_idr}?order_id=${encodeURIComponent(orderId)}`;
   if (config.APP_PUBLIC_URL) {
-    url += `&redirect=${encodeURIComponent(`${config.APP_PUBLIC_URL.replace(/\/$/, '')}/billing/${teamId}`)}`;
+    let origin: string;
+    try {
+      origin = new URL(config.APP_PUBLIC_URL).origin;
+    } catch {
+      origin = (config.APP_PUBLIC_URL.split(/[?#]/)[0] ?? config.APP_PUBLIC_URL).replace(/\/$/, '');
+    }
+    const redirect = `${origin}/billing/${teamId}?orderId=${encodeURIComponent(orderId)}`;
+    url += `&redirect=${encodeURIComponent(redirect)}`;
   }
   return {
     orderId,
@@ -109,7 +117,14 @@ export async function resumePayment(userId: string, orderId: string): Promise<{ 
 
   let url = `${PAKASIR_PAY_BASE}/pay/${config.PAKASIR_SLUG}/${payment.amount}?order_id=${encodeURIComponent(orderId)}`;
   if (config.APP_PUBLIC_URL) {
-    url += `&redirect=${encodeURIComponent(`${config.APP_PUBLIC_URL.replace(/\/$/, '')}/billing/${payment.team_id}`)}`;
+    let origin: string;
+    try {
+      origin = new URL(config.APP_PUBLIC_URL).origin;
+    } catch {
+      origin = (config.APP_PUBLIC_URL.split(/[?#]/)[0] ?? config.APP_PUBLIC_URL).replace(/\/$/, '');
+    }
+    const redirect = `${origin}/billing/${payment.team_id}?orderId=${encodeURIComponent(orderId)}`;
+    url += `&redirect=${encodeURIComponent(redirect)}`;
   }
   return { url };
 }
@@ -171,6 +186,7 @@ function serializePayment(row: {
   status: string;
   created_at: Date;
   completed_at: Date | null;
+  team_id?: string;
   team_name?: string;
 }) {
   return {
@@ -181,6 +197,7 @@ function serializePayment(row: {
     status: row.status,
     createdAt: row.created_at.toISOString(),
     completedAt: row.completed_at ? row.completed_at.toISOString() : null,
+    ...(row.team_id !== undefined ? { teamId: row.team_id } : {}),
     ...(row.team_name !== undefined ? { teamName: row.team_name } : {}),
   };
 }
@@ -213,6 +230,16 @@ export async function getBillingOverview(userId: string, teamId: string) {
     },
     payments: payments.map(serializePayment),
   };
+}
+
+
+export async function getPayment(userId: string, orderId: string) {
+  const payment = await findPaymentByOrderId(orderId);
+  if (!payment) throw new ApiError(404, 'NOT_FOUND', 'Payment not found');
+  await assertPaymentAccess(userId, payment);
+  const teamRes = await pool.query<{ name: string }>('SELECT name FROM teams WHERE id = $1', [payment.team_id]);
+  const teamName = teamRes.rows[0]?.name ?? null;
+  return { payment: serializePayment({ ...payment, team_name: teamName ?? payment.team_id } as any) };
 }
 
 export async function getPaymentHistory(userId: string) {

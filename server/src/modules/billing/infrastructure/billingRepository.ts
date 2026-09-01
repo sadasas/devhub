@@ -289,3 +289,4 @@ export async function deletePackage(packageId: string): Promise<boolean> {
   const res = await pool.query('DELETE FROM billing_packages WHERE id = $1', [packageId]);
   return (res.rowCount ?? 0) > 0;
 }
+

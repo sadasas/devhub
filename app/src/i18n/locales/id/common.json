@@ -24,7 +24,11 @@
     "retry": "Coba lagi",
     "reload": "Muat ulang",
     "tryAgain": "Coba lagi",
-    "loadLatest": "Muat versi terbaru"
+    "loadLatest": "Muat versi terbaru",
+    "signIn": "Masuk",
+    "backToHome": "Kembali ke Beranda",
+    "refresh": "Cek Status",
+    "copied": "Tersalin"
   },
   "save": {
     "saving": "Menyimpan…",

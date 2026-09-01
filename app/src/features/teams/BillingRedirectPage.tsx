@@ -1,126 +1,395 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { CheckCircle, Warning } from '@phosphor-icons/react';
-import { Link, useParams } from 'react-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  CheckCircle,
+  ClockCountdown,
+  Copy,
+  Lock,
+  XCircle,
+  ArrowSquareOut,
+  Trash,
+} from '@phosphor-icons/react';
+import { Link, useParams, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../lib/api';
+import { api, ApiError } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
-import type { BillingStatus } from '../../lib/types';
+import type { BillingPayment, BillingStatus, PaymentHistoryItem } from '../../lib/types';
+import { Badge } from '../../components/Badge';
+import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { Button } from '../../components/Button';
 import { InlineError } from '../../components/InlineError';
 import { Skeleton } from '../../components/Skeleton';
 
 const POLL_MS = 5_000;
+const POLL_MAX = 24;
+const POLL_BACKOFF_AFTER = 6;
+const POLL_MS_SLOW = 10_000;
+
+type DisplayState = 'loading' | 'unauthenticated' | 'pending' | 'success' | 'failed';
+
+function shortId(id: string) {
+  return id.slice(0, 8);
+}
+
+function isExpiredPlan(expiresAt: string | null): boolean {
+  if (!expiresAt) return false;
+  return Date.parse(expiresAt) < Date.now();
+}
 
 export function BillingRedirectPage() {
   const { t } = useTranslation('account');
   const { teamId = '' } = useParams<{ teamId: string }>();
+  const [searchParams] = useSearchParams();
+  const orderIdQuery = searchParams.get('orderId');
+
   const [data, setData] = useState<BillingStatus | null>(null);
+  const [detailPayment, setDetailPayment] = useState<PaymentHistoryItem | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<'resume' | 'cancel' | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+
   const timerRef = useRef<number | null>(null);
+  const pollCountRef = useRef(0);
 
   const load = useCallback(async () => {
+    setActionError(null);
     try {
+      if (orderIdQuery) {
+        const res = await api.getPayment(orderIdQuery);
+        setDetailPayment(res.payment);
+        // Keep data for team name fallback, but detail is primary
+        try {
+          const status = await api.billingStatus(teamId);
+          setData(status);
+        } catch {}
+        setError(null);
+        setErrorCode(null);
+        return res.payment as unknown as BillingStatus;
+      }
       const status = await api.billingStatus(teamId);
       setData(status);
+      setDetailPayment(null);
       setError(null);
+      setErrorCode(null);
       return status;
     } catch (err) {
-      setError(getErrorMessage(err, t('teams.payment.loadError')));
+      if (err instanceof ApiError && err.status === 401) {
+        setErrorCode('UNAUTHORIZED');
+        setError(null);
+      } else {
+        const msg = getErrorMessage(err, t('teams.payment.loadError', { defaultValue: 'Gagal memuat pembayaran.' }));
+        setError(msg);
+        setErrorCode(err instanceof ApiError ? err.code : 'UNKNOWN');
+      }
       return null;
+    } finally {
+      setLoading(false);
     }
-  }, [teamId, t]);
+  }, [teamId, t, orderIdQuery]);
 
   useEffect(() => {
+    setLoading(true);
     void load();
     return () => {
       if (timerRef.current !== null) window.clearInterval(timerRef.current);
     };
   }, [load]);
 
-  // Poll selama masih ada pembayaran pending; berhenti saat pro aktif.
-  useEffect(() => {
-    if (!data) return;
+  const targetPayment: BillingPayment | PaymentHistoryItem | null = useMemo(() => {
+    if (orderIdQuery && detailPayment) return detailPayment as unknown as BillingPayment;
+    if (!data || data.payments.length === 0) return null;
+    if (orderIdQuery) {
+      const found = data.payments.find((p) => p.orderId === orderIdQuery);
+      if (found) return found;
+    }
+    const pending = [...data.payments].filter((p) => p.status === 'pending').sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+    if (pending) return pending;
+    const completed = [...data.payments].filter((p) => p.status === 'completed').sort((a, b) => (b.completedAt ?? b.createdAt).localeCompare(a.completedAt ?? a.createdAt))[0];
+    if (completed) return completed;
+    return [...data.payments].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null;
+  }, [data, orderIdQuery, detailPayment]);
+
+  const displayState: DisplayState = useMemo(() => {
+    if (loading && !data && !detailPayment && !errorCode) return 'loading';
+    if (errorCode === 'UNAUTHORIZED') return 'unauthenticated';
+    if (error && !data && !detailPayment) return 'failed';
+    if (orderIdQuery && detailPayment) {
+      if (detailPayment.status === 'pending') return 'pending';
+      if (detailPayment.status === 'completed') return 'success';
+      return 'failed';
+    }
+    if (!data) return 'loading';
+    if (data.team.plan === 'pro' && !isExpiredPlan(data.team.planExpiresAt)) return 'success';
     const hasPending = data.payments.some((p) => p.status === 'pending');
-    if (!hasPending || data.team.plan === 'pro') {
+    if (hasPending) return 'pending';
+    return 'failed';
+  }, [loading, data, detailPayment, error, errorCode, orderIdQuery]);
+
+  const hasPending = data?.payments.some((p) => p.status === 'pending') ?? false;
+  const failedVariant: 'cancelled' | 'expired' | 'failed' | null = useMemo(() => {
+    if (displayState !== 'failed' || !data) return null;
+    if (targetPayment?.status === 'cancelled') return 'cancelled';
+    if (data.team.planExpiresAt && isExpiredPlan(data.team.planExpiresAt)) return 'expired';
+    return 'failed';
+  }, [displayState, data, targetPayment]);
+
+  const shouldPoll = displayState === 'pending' && hasPending;
+
+  useEffect(() => {
+    if (!shouldPoll) {
       if (timerRef.current !== null) {
         window.clearInterval(timerRef.current);
         timerRef.current = null;
       }
+      pollCountRef.current = 0;
       return;
     }
-    if (timerRef.current === null) {
-      timerRef.current = window.setInterval(() => void load(), POLL_MS);
-    }
-  }, [data, load]);
+    const schedule = () => {
+      const interval = pollCountRef.current >= POLL_BACKOFF_AFTER ? POLL_MS_SLOW : POLL_MS;
+      timerRef.current = window.setInterval(() => {
+        if (document.visibilityState === 'hidden') return;
+        pollCountRef.current += 1;
+        void load();
+        if (pollCountRef.current >= POLL_MAX) {
+          if (timerRef.current !== null) {
+            window.clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
+        } else if (pollCountRef.current === POLL_BACKOFF_AFTER) {
+          if (timerRef.current !== null) window.clearInterval(timerRef.current);
+          timerRef.current = window.setInterval(() => {
+            if (document.visibilityState === 'hidden') return;
+            pollCountRef.current += 1;
+            void load();
+            if (pollCountRef.current >= POLL_MAX && timerRef.current !== null) {
+              window.clearInterval(timerRef.current);
+              timerRef.current = null;
+            }
+          }, POLL_MS_SLOW);
+        }
+      }, interval);
+    };
+    pollCountRef.current = 0;
+    schedule();
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible' && shouldPoll && timerRef.current === null && pollCountRef.current < POLL_MAX) void load();
+    };
+    const onPageHide = () => {
+      if (timerRef.current !== null) {
+        window.clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', onPageHide);
+    return () => {
+      if (timerRef.current !== null) window.clearInterval(timerRef.current);
+      timerRef.current = null;
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', onPageHide);
+    };
+  }, [shouldPoll, load]);
 
-  const paid = data?.payments.find((p) => p.status === 'completed');
+  const handleResume = async () => {
+    if (!targetPayment || targetPayment.status !== 'pending') return;
+    setBusy('resume');
+    setActionError(null);
+    try {
+      const res = await api.resumePayment(targetPayment.orderId);
+      window.location.assign(res.url);
+    } catch (err) {
+      setActionError(getErrorMessage(err, t('teams.billing.resumeError', { defaultValue: 'Gagal melanjutkan pembayaran.' })));
+      setBusy(null);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!targetPayment || targetPayment.status !== 'pending') return;
+    setBusy('cancel');
+    setActionError(null);
+    try {
+      await api.cancelPayment(targetPayment.orderId);
+      await load();
+    } catch (err) {
+      setActionError(getErrorMessage(err, t('teams.billing.cancelError', { defaultValue: 'Gagal membatalkan.' })));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleCopy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {}
+  };
+
+  const renderHeroIcon = () => {
+    const size = 22;
+    const weight = 'duotone' as const;
+    if (displayState === 'success') return <span className="billing-redirect-icon billing-redirect-icon--success" aria-hidden="true"><CheckCircle size={size} weight={weight} /></span>;
+    if (displayState === 'pending') return <span className="billing-redirect-icon billing-redirect-icon--pending" aria-hidden="true"><ClockCountdown size={size} weight={weight} /></span>;
+    if (displayState === 'failed') return <span className="billing-redirect-icon billing-redirect-icon--danger" aria-hidden="true"><XCircle size={size} weight={weight} /></span>;
+    if (displayState === 'unauthenticated') return <span className="billing-redirect-icon billing-redirect-icon--neutral" aria-hidden="true"><Lock size={size} weight={weight} /></span>;
+    return null;
+  };
 
   return (
-    <div className="page">
-      <header className="page-header">
-        <div>
-          <h1 className="page-title">{t('teams.payment.title')}</h1>
-          <p className="page-subtitle">{data?.team.name ?? t('teams.payment.checking')}</p>
-        </div>
+    <div className="billing-redirect-shell">
+      <header className="billing-redirect-header">
+        <Link to="/" className="billing-redirect-logo" aria-label="DevHub">DevHub</Link>
+        <span className="billing-redirect-header-meta">Secure payment · Pakasir</span>
       </header>
 
-      {error && <InlineError>{error}</InlineError>}
-
-      {!data && !error && (
-        <div role="status" aria-live="polite" aria-busy="true" aria-label="Loading billing status">
-          <span className="sr-only">Loading billing status…</span>
-          <div aria-hidden="true">
-            <Skeleton style={{ width: '100%', height: 72, borderRadius: 12 }} />
-            <Skeleton style={{ width: '100%', height: 48, marginTop: 8, borderRadius: 12 }} />
+      <main className="billing-redirect-page" aria-labelledby="billing-redirect-title">
+        {displayState === 'loading' && (
+          <div className="billing-redirect-card" role="status" aria-live="polite" aria-busy="true" aria-label="Loading billing status">
+            <span className="sr-only">Memuat pembayaran…</span>
+            <div aria-hidden="true" style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <Skeleton style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0 }} />
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <Skeleton style={{ width: 110, height: 18, borderRadius: 6 }} />
+                  <Skeleton style={{ width: 64, height: 18, borderRadius: 999 }} />
+                  <Skeleton style={{ width: 32, height: 18, borderRadius: 999 }} />
+                </div>
+                <Skeleton style={{ width: '88%', height: 13, borderRadius: 6 }} />
+                <Skeleton style={{ width: '62%', height: 11, borderRadius: 6 }} />
+              </div>
+            </div>
+            <div aria-hidden="true" style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <Skeleton style={{ width: 158, height: 32, borderRadius: 8 }} />
+              <Skeleton style={{ width: 84, height: 32, borderRadius: 8 }} />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {data && data.team.plan === 'pro' && (
-        <section className="billing-card" role="status">
-          <div className="billing-plan-row">
-            <CheckCircle size={22} weight="duotone" aria-hidden="true" />
-            <span className="billing-plan-name">{t('teams.payment.proActive')}</span>
-          </div>
-          <p className="billing-meta">
-            {data.team.planExpiresAt
-              ? t('teams.payment.unlimitedUntil', { date: new Date(data.team.planExpiresAt).toLocaleDateString() })
-              : t('teams.payment.unlimited')}
-          </p>
-          {paid && (
-            <p className="billing-meta">
-              {t('teams.payment.lastPayment', {
-                amount: paid.amount.toLocaleString('id-ID'),
-                date: paid.completedAt ? new Date(paid.completedAt).toLocaleDateString() : '',
-              })}
-            </p>
-          )}
-          <Button
-            variant="primary"
-            onClick={() => (window.location.href = `/team/${teamId}?tab=usage`)}
-          >
-            {t('teams.payment.back')}
-          </Button>
-        </section>
-      )}
+        {displayState === 'unauthenticated' && (
+          <section className="billing-redirect-card billing-redirect-card--neutral" role="alert" aria-live="assertive">
+            <div className="billing-redirect-hero">
+              {renderHeroIcon()}
+              <div>
+                <h1 id="billing-redirect-title" className="billing-redirect-title">{t('teams.payment.loginRequired', { defaultValue: 'Login diperlukan' })}</h1>
+                <p className="billing-redirect-subtitle">{t('teams.payment.loginRequiredDesc', { defaultValue: 'Masuk dulu untuk melihat status pembayaran.' })}</p>
+              </div>
+            </div>
+            <div className="billing-redirect-actions">
+              <Button variant="primary" onClick={() => { const rt = `${window.location.pathname}${window.location.search}`; window.location.href = `/?returnTo=${encodeURIComponent(rt)}`; }}>{t('common:action.signIn', { defaultValue: 'Masuk' })}</Button>
+              <Link className="billing-redirect-link" to="/">{t('common:action.backToHome', { defaultValue: 'Beranda' })}</Link>
+            </div>
+          </section>
+        )}
 
-      {data && data.team.plan !== 'pro' && (
-        <section className="billing-card" role="status" aria-busy="true">
-          <div className="billing-plan-row">
-            <Warning size={20} weight="duotone" aria-hidden="true" />
-            <span className="billing-plan-name">{t('teams.payment.waiting')}</span>
-          </div>
-          <p className="billing-meta">
-            {t('teams.payment.instructions')}
-          </p>
-          {data.payments.some((p) => p.status === 'pending') && (
-            <p className="billing-meta">{t('teams.payment.orderCreated', { time: new Date().toLocaleTimeString() })}</p>
-          )}
-            <Link className="back-btn" to={`/team/${teamId}?tab=usage`}>
-            {t('teams.payment.back')}
-          </Link>
-        </section>
-      )}
+        {error && displayState !== 'unauthenticated' && displayState !== 'loading' && !data && (
+          <section className="billing-redirect-card billing-redirect-card--danger" role="alert">
+            <div className="billing-redirect-hero">
+              <span className="billing-redirect-icon billing-redirect-icon--danger" aria-hidden="true"><XCircle size={22} weight="duotone" /></span>
+              <div>
+                <h1 className="billing-redirect-title">{t('teams.payment.loadErrorTitle', { defaultValue: 'Gagal memuat pembayaran' })}</h1>
+                <p className="billing-redirect-subtitle">{error}</p>
+              </div>
+            </div>
+            <div className="billing-redirect-actions">
+              <Button variant="secondary" onClick={() => void load()}>{t('common:action.retry', { defaultValue: 'Coba lagi' })}</Button>
+            </div>
+          </section>
+        )}
+
+        {data && displayState === 'pending' && targetPayment && (
+          <>
+            <section className="billing-redirect-card" role="status" aria-live="polite">
+            <div className="billing-redirect-hero">
+              {renderHeroIcon()}
+              <div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <h1 id="billing-redirect-title" className="billing-redirect-title">{targetPayment.packageName}</h1>
+                  <Badge tone="warn" dot>{t('teams.billing.pendingBadge', { defaultValue: 'Menunggu' })}</Badge>
+                  <Badge tone="info">Pro</Badge>
+                </div>
+                <p className="billing-redirect-subtitle">Selesaikan pembayaran untuk {targetPayment.packageName} · Rp {targetPayment.amount.toLocaleString('id-ID')} via QRIS / VA. Paket aktif otomatis setelah terbayar.</p>
+                <div className="billing-redirect-meta">
+                  <span className="billing-redirect-mono">Order {shortId(targetPayment.orderId)} · Rp {targetPayment.amount.toLocaleString('id-ID')}</span>
+                  <button type="button" className="billing-redirect-copy" onClick={() => void handleCopy(targetPayment.orderId)} aria-label="Copy order ID"><Copy size={12} aria-hidden="true" /> {copied ? t('common:copied', { defaultValue: 'Tersalin' }) : 'Copy'}</button>
+                </div>
+              </div>
+            </div>
+            {actionError && <InlineError>{actionError}</InlineError>}
+            <div className="billing-redirect-actions">
+              <Button variant="primary" size="sm" leftIcon={<ArrowSquareOut size={13} weight="bold" aria-hidden="true" />} loading={busy === 'resume'} disabled={busy !== null} onClick={() => void handleResume()}>{t('teams.billing.resumePayment', { defaultValue: 'Lanjutkan pembayaran' })}</Button>
+              <Button variant="ghost" size="sm" leftIcon={<Trash size={13} aria-hidden="true" />} disabled={busy !== null} loading={busy === 'cancel'} onClick={() => setConfirmCancel(true)}>{t('teams.billing.cancelPayment', { defaultValue: 'Batalkan' })}</Button>
+            </div>
+            <p className="billing-redirect-help" style={{ marginTop: 4 }}>Butuh bantuan? Hubungi admin tim dengan Order ID di atas.</p>
+          </section>
+          <ConfirmDeleteDialog
+            open={confirmCancel}
+            title={t('billing.cancelTitle', { defaultValue: 'Batalkan pembayaran?' })}
+            description={targetPayment ? t('billing.cancelDesc', { defaultValue: '"' + targetPayment.packageName + '" untuk "' + (data?.team.name ?? '') + '" \u00b7 Rp ' + targetPayment.amount.toLocaleString('id-ID') + ' akan dibatalkan. Link Pakasir akan kadaluarsa.', packageName: targetPayment.packageName, teamName: data?.team.name ?? '', amount: targetPayment.amount.toLocaleString('id-ID') }) : t('billing.cancelDescFallback', { defaultValue: 'Pembayaran ini akan dibatalkan. Link Pakasir akan kadaluarsa.' })}
+            confirmLabel={t('billing.confirmCancel', { defaultValue: 'Ya, batalkan' })}
+            busy={busy === 'cancel'}
+            onConfirm={() => { setConfirmCancel(false); void handleCancel(); }}
+            onClose={() => { if (busy !== 'cancel') setConfirmCancel(false); }}
+          />
+          </>
+        )}
+
+        {data && displayState === 'pending' && !targetPayment && (
+          <section className="billing-redirect-card" role="status" aria-live="polite">
+            <div className="billing-redirect-hero">
+              {renderHeroIcon()}
+              <div>
+                <h1 className="billing-redirect-title">{t('teams.payment.waiting', { defaultValue: 'Menunggu pembayaran' })}</h1>
+                <p className="billing-redirect-subtitle">Selesaikan pembayaran via QRIS / VA.</p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {data && displayState === 'success' && (
+          <section className="billing-redirect-card billing-redirect-card--success" role="status" aria-live="polite">
+            <div className="billing-redirect-hero">
+              {renderHeroIcon()}
+              <div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <h1 id="billing-redirect-title" className="billing-redirect-title">{targetPayment ? targetPayment.packageName : t('teams.payment.proActive', { defaultValue: 'Pro aktif' })}</h1>
+                  <Badge tone="success" dot>{t('teams.billing.activeBadge', { defaultValue: 'Lunas' })}</Badge>
+                  <Badge tone="info">Pro</Badge>
+                </div>
+                <p className="billing-redirect-subtitle">{data.team.planExpiresAt ? t('teams.payment.unlimitedUntil', { defaultValue: 'Aktif sampai {{date}}.', date: new Date(data.team.planExpiresAt).toLocaleDateString('id-ID') }) : t('teams.payment.unlimited', { defaultValue: 'Paket Pro aktif.' })}</p>
+                {targetPayment && <p className="billing-redirect-meta">Order {shortId(targetPayment.orderId)} · Rp {targetPayment.amount.toLocaleString('id-ID')}</p>}
+              </div>
+            </div>
+            <div className="billing-redirect-actions">
+              <Button variant="primary" onClick={() => (window.location.href = `/team/${teamId}?tab=usage`)}>{t('teams.payment.back', { defaultValue: 'Kembali ke workspace' })}</Button>
+            </div>
+          </section>
+        )}
+
+        {data && displayState === 'failed' && (
+          <section className="billing-redirect-card billing-redirect-card--danger" role="alert">
+            <div className="billing-redirect-hero">
+              {renderHeroIcon()}
+              <div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <h1 id="billing-redirect-title" className="billing-redirect-title">{targetPayment ? targetPayment.packageName : (failedVariant === 'cancelled' ? t('teams.payment.cancelledTitle', { defaultValue: 'Pembayaran dibatalkan' }) : failedVariant === 'expired' ? t('teams.payment.expiredTitle', { defaultValue: 'Masa Pro habis' }) : t('teams.payment.failedTitle', { defaultValue: 'Pembayaran belum berhasil' }))}</h1>
+                  <Badge tone="danger" dot>{failedVariant === 'cancelled' ? 'Batal' : 'Gagal'}</Badge>
+                  <Badge tone="info">Pro</Badge>
+                </div>
+                <p className="billing-redirect-subtitle">{failedVariant === 'cancelled' ? t('teams.payment.cancelledDesc', { defaultValue: 'Link pembayaran kadaluarsa.' }) : failedVariant === 'expired' ? t('teams.payment.expiredDesc', { defaultValue: 'Langganan habis. Perpanjang untuk lanjut.' }) : t('teams.payment.failedDesc', { defaultValue: 'Pembayaran belum masuk.' })}</p>
+                {targetPayment && <p className="billing-redirect-meta">Order {shortId(targetPayment.orderId)} · Rp {targetPayment.amount.toLocaleString('id-ID')}</p>}
+              </div>
+            </div>
+            <div className="billing-redirect-actions">
+              <Button variant="primary" size="sm" onClick={() => (window.location.href = `/pricing?teamId=${teamId}`)}>{t('teams.payment.newPayment', { defaultValue: 'Lihat Paket' })}</Button>
+              <Link className="billing-redirect-link" to={`/team/${teamId}?tab=usage`}>{t('teams.payment.back', { defaultValue: 'Kembali ke workspace' })}</Link>
+            </div>
+            <p className="billing-redirect-help">Butuh bantuan? Hubungi admin tim dengan Order ID.</p>
+          </section>
+        )}
+      </main>
     </div>
   );
 }

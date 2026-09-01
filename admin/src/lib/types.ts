@@ -418,6 +418,7 @@ export interface BillingPayment {
 
 export interface PaymentHistoryItem {
   orderId: string;
+  teamId: string;
   teamName: string;
   packageName: string;
   durationDays: number | null;

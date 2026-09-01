@@ -24,7 +24,11 @@
     "retry": "Retry",
     "reload": "Reload",
     "tryAgain": "Try again",
-    "loadLatest": "Load latest"
+    "loadLatest": "Load latest",
+    "signIn": "Sign in",
+    "backToHome": "Back to Home",
+    "refresh": "Check Status",
+    "copied": "Copied"
   },
   "save": {
     "saving": "Saving…",

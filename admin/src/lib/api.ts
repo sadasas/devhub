@@ -576,4 +576,6 @@ export const api = {
   billingStatus: (teamId: string) =>
     request<BillingStatus>(`/billing/status/${encodeURIComponent(teamId)}`),
   paymentHistory: () => request<{ payments: PaymentHistoryItem[] }>('/billing/payments'),
+  getPayment: (orderId: string) =>
+    request<{ payment: PaymentHistoryItem }>(`/billing/payments/${encodeURIComponent(orderId)}`),
 };

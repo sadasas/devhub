@@ -125,7 +125,7 @@ describe('billing Pakasir + paket dinamis (ADR-044/045)', () => {
     expect(res.body.url).toContain('https://app.pakasir.com/pay/devhub-test/250000');
     expect(res.body.url).toContain(`order_id=${encodeURIComponent(res.body.orderId)}`);
     expect(res.body.url).toContain(
-      `redirect=${encodeURIComponent(`https://app.test/billing/${teamId}`)}`,
+      `redirect=${encodeURIComponent(`https://app.test/billing/${teamId}?orderId=${res.body.orderId}`)}`,
     );
 
     const row = await pool.query<{
@@ -384,7 +384,7 @@ describe('billing Pakasir + paket dinamis (ADR-044/045)', () => {
     expect(res.body.url).toContain('https://app.pakasir.com/pay/devhub-test/250000');
     expect(res.body.url).toContain(`order_id=${encodeURIComponent(co.body.orderId)}`);
     expect(res.body.url).toContain(
-      `redirect=${encodeURIComponent(`https://app.test/billing/${teamId}`)}`,
+      `redirect=${encodeURIComponent(`https://app.test/billing/${teamId}?orderId=${co.body.orderId}`)}`,
     );
   });
 

@@ -51,18 +51,6 @@ export function PaymentHistoryPage() {
     void load();
   }, [load]);
 
-  async function onResume(orderId: string) {
-    setActionError(null);
-    setBusyOrderId(orderId);
-    try {
-      const res = await api.resumePayment(orderId);
-      window.location.assign(res.url);
-    } catch (err) {
-      setActionError(getErrorMessage(err, t('billing.errors.resume')));
-      setBusyOrderId(null);
-    }
-  }
-
   async function onConfirmCancel() {
     if (!confirmId) return;
     const orderId = confirmId;
@@ -203,38 +191,38 @@ export function PaymentHistoryPage() {
                       formatDate={formatDateAdmin}
                     />
                   </BillingLedger.Main>
-                  {isPending && (
-                    <BillingLedger.Actions>
+                  <BillingLedger.Actions>
+                    {isPending && (
                       <Button
                         size="sm"
                         variant="ghost"
                         disabled={busy}
                         leftIcon={<Trash size={13} aria-hidden="true" />}
-                        aria-label={t('billing.cancelAria', {
-                          defaultValue: `Batalkan pembayaran ${p.packageName} order ${p.orderId.slice(0, 8)}`,
+                        aria-label={t("billing.cancelAria", {
+                          defaultValue: "Batalkan pembayaran " + p.packageName + " order " + p.orderId.slice(0, 8),
                           packageName: p.packageName,
                           orderId: p.orderId,
                         })}
                         onClick={() => setConfirmId(p.orderId)}
                       >
-                        {t('billing.cancelPayment')}
+                        {t("billing.cancelPayment")}
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        loading={busy}
-                        leftIcon={<ArrowSquareOut size={13} weight="bold" aria-hidden="true" />}
-                        aria-label={t('billing.resumeAria', {
-                          defaultValue: `Lanjutkan pembayaran ${p.packageName} untuk ${p.teamName}`,
-                          packageName: p.packageName,
-                          teamName: p.teamName,
-                        })}
-                        onClick={() => void onResume(p.orderId)}
-                      >
-                        {t('billing.resume')}
-                      </Button>
-                    </BillingLedger.Actions>
-                  )}
+                    )}
+                    <Button
+                      size="sm"
+                      variant={isPending ? "ghost" : "secondary"}
+                      disabled={busy}
+                      leftIcon={<ArrowSquareOut size={13} weight="bold" aria-hidden="true" />}
+                      aria-label={t("billing.detailAria", {
+                        defaultValue: "Lihat detail pembayaran " + p.packageName + " order " + p.orderId.slice(0, 8),
+                        packageName: p.packageName,
+                        orderId: p.orderId,
+                      })}
+                      onClick={() => navigate("/billing/" + p.teamId + "?orderId=" + p.orderId)}
+                    >
+                      {t("billing.detail", { defaultValue: "Detail" })}
+                    </Button>
+                  </BillingLedger.Actions>
                 </BillingLedger.Row>
               );
             })}
