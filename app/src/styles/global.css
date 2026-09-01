@@ -1395,6 +1395,18 @@ html[data-theme='light'] .splash-bg {
   display: none;
 }
 
+.team-rail-icon-bubble-unread {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.team-rail-count-unread {
+  color: #fff;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+}
+
 .team-rail-name {
   flex: 1;
   min-width: 0;

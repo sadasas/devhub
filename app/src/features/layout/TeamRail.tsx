@@ -12,6 +12,7 @@ interface TeamRailProps {
   compact?: boolean;
   collapsed?: boolean;
   hoveredId?: string | null;
+  unreadByTeam?: Record<string, number>;
   onToggleCollapsed?: () => void;
   onSelectTeam: (teamId: string) => void;
   onSelectHome: () => void;
@@ -19,7 +20,7 @@ interface TeamRailProps {
   onHoverItem?: (id: string | null) => void;
 }
 
-export function TeamRail({ teams, activeTeamId, activeMain = 'team', compact = false, collapsed = false, hoveredId = null, onToggleCollapsed, onSelectTeam, onSelectHome, onCreateTeam, onHoverItem }: TeamRailProps) {
+export function TeamRail({ teams, activeTeamId, activeMain = 'team', compact = false, collapsed = false, hoveredId = null, unreadByTeam, onToggleCollapsed, onSelectTeam, onSelectHome, onCreateTeam, onHoverItem }: TeamRailProps) {
   const { t } = useTranslation('shell');
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -74,17 +75,20 @@ export function TeamRail({ teams, activeTeamId, activeMain = 'team', compact = f
             const initials = avatarInitials(team.name);
             const bg = avatarColor(team.id);
             const hasIcon = Boolean(team.icon?.trim());
+            const unread = unreadByTeam?.[team.id] ?? 0;
+            const hasUnread = unread > 0;
+            const unreadLabel = hasUnread ? `${unread} unread` : `${team.memberCount} members`;
             return (
               <button
                 key={team.id}
                 type="button"
                 role="listitem"
                 className={`team-rail-item${isActive ? ' team-rail-item-active' : ''}${isHovered ? ' team-rail-item-hovered' : ''}`}
-                aria-label={`${team.name}, ${team.memberCount} members`}
+                aria-label={`${team.name}, ${unreadLabel}`}
                 aria-current={isActive ? 'true' : undefined}
                 aria-expanded={isHovered ? true : undefined}
                 aria-controls="sidebar-region"
-                title={`${team.name} — ${team.memberCount} members`}
+                title={hasUnread ? `${team.name} — ${unread} unread` : `${team.name} — ${team.memberCount} members`}
                 onClick={() => onSelectTeam(team.id)}
                 onPointerEnter={() => onHoverItem?.(team.id)}
                 onPointerLeave={(e) => {
@@ -105,18 +109,20 @@ export function TeamRail({ teams, activeTeamId, activeMain = 'team', compact = f
                   aria-hidden="true"
                 >
                   {hasIcon ? team.icon!.trim() : initials.slice(0, 2)}
-                  {team.memberCount > 0 && (
-                    <span className="team-rail-icon-bubble" aria-hidden="true">
-                      {team.memberCount > 99 ? '99+' : team.memberCount}
+                  {hasUnread && (
+                    <span className="team-rail-icon-bubble team-rail-icon-bubble-unread" aria-hidden="true">
+                      {unread > 99 ? '99+' : unread}
                     </span>
                   )}
                 </span>
                 <span className="team-rail-name" title={team.name}>
                   {team.name}
                 </span>
-                <span className="team-rail-count" aria-hidden="true">
-                  {team.memberCount}
-                </span>
+                {hasUnread && (
+                  <span className="team-rail-count team-rail-count-unread" aria-hidden="true">
+                    {unread > 99 ? '99+' : unread}
+                  </span>
+                )}
               </button>
             );
           })

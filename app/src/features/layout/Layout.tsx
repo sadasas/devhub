@@ -14,6 +14,7 @@ import { useProjects } from '../../state/projects-context';
 import { useAuth } from '../../state/auth-context';
 import { CreateTeamModal } from '../teams/CreateTeamModal';
 import { ProjectChatWidget } from '../project/ProjectChatWidget';
+import { useTeamUnread } from '../../hooks/useTeamUnread';
 
 const RAIL_ACTIVE_KEY = 'devhub:rail:activeTeam';
 const SIDEBAR_COLLAPSED_KEY = 'devhub:layout:sidebarCollapsed';
@@ -57,6 +58,7 @@ export function Layout() {
   const { teams } = useTeams();
   const { projects } = useProjects();
   const { user } = useAuth();
+  const teamUnread = useTeamUnread(teams, projects);
 
   const isSecondVisible = useMemo(() => {
     if (!collapsed) return true; // pinned docked — always visible
@@ -471,6 +473,7 @@ export function Layout() {
             activeMain={activeMain}
             compact={railCompact}
             collapsed={collapsed}
+            unreadByTeam={teamUnread}
             onToggleCollapsed={handleToggleCollapsed}
             onSelectTeam={handleSelectTeam}
             onSelectHome={handleSelectHome}
@@ -493,6 +496,7 @@ export function Layout() {
               teams={teams}
               activeTeamId={activeTeamId}
               activeMain={activeMain}
+              unreadByTeam={teamUnread}
               onSelectTeam={handleSelectTeam}
               onSelectHome={handleSelectHome}
               onCreateTeam={() => setCreateTeamOpen(true)}
