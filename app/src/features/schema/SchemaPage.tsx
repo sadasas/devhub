@@ -151,10 +151,23 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
 
   if (loading) {
     return (
-      <div className="data-list">
-        <Skeleton className="data-row" style={{ height: 44 }} />
-        <Skeleton className="data-row" style={{ height: 44 }} />
-        <Skeleton className="data-row" style={{ height: 44 }} />
+      <div className="data-list" role="status" aria-live="polite" aria-busy="true" aria-label="Loading schema">
+        <span className="sr-only">Loading schema…</span>
+        <div aria-hidden="true" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="data-row" style={{ height: 56, gap: 12 }}>
+              <div className="data-row-main" style={{ gap: 6 }}>
+                <Skeleton style={{ width: `${50 + i * 5}%`, height: 14 }} />
+                <Skeleton style={{ width: '70%', height: 11, opacity: 0.8 }} />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Skeleton style={{ width: 64, height: 11, borderRadius: 999 }} />
+                  <Skeleton style={{ width: 48, height: 11 }} />
+                  <Skeleton style={{ width: 44, height: 11 }} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

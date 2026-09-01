@@ -115,11 +115,6 @@ export function PaymentHistoryPage() {
       <p role="status" aria-live="polite" className="sr-only">
         {payments === null && !error ? t('admin.loading') : statusMsg ? statusMsg : ''}
       </p>
-      {statusMsg && (
-        <p role="status" aria-live="polite" className="sr-only">
-          {statusMsg}
-        </p>
-      )}
 
       {error ? (
         <InlineError className="mb-12">
@@ -139,14 +134,18 @@ export function PaymentHistoryPage() {
         <BillingLedger aria-busy="true" aria-label={t('billing.title')}>
           <ul role="list" className="billing-list" aria-hidden="true">
             {[0, 1, 2].map((i) => (
-              <li key={i} className="billing-row" aria-hidden="true">
-                <div className="billing-main" style={{ gap: 6 }}>
+              <li key={i} className="billing-row" aria-hidden="true" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <div className="billing-main" style={{ gap: 6, flex: 1 }}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <Skeleton style={{ width: 96, height: 15, borderRadius: 4 }} />
                     <Skeleton style={{ width: 56, height: 18, borderRadius: 999 }} />
                   </div>
                   <Skeleton style={{ width: '62%', height: 11, borderRadius: 4 }} />
                   <Skeleton style={{ width: '42%', height: 11, borderRadius: 4 }} />
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexShrink: 0, opacity: 0.7 }}>
+                  <Skeleton style={{ width: 96, height: 32, borderRadius: 8 }} />
+                  <Skeleton style={{ width: 96, height: 32, borderRadius: 8 }} />
                 </div>
               </li>
             ))}

@@ -461,17 +461,25 @@ export function DashboardPage() {
           </Button>
         </div>
       ) : loading ? (
-        <div className="welcome-skeleton" aria-busy="true" aria-label="Loading projects">
+        <div className="welcome-skeleton" role="status" aria-busy="true" aria-live="polite" aria-label="Loading projects">
           <span className="sr-only">Loading projects…</span>
-          {[0, 1, 2, 3, 4].map((i) => (
-            <div key={i} className="welcome-row-skeleton">
-              <Skeleton style={{ width: 6, height: 6, borderRadius: 999 }} />
-              <Skeleton style={{ width: 140, height: 14 }} />
-              <Skeleton style={{ width: 80, height: 11 }} />
-              <Skeleton style={{ width: 40, height: 4 }} />
-              <Skeleton style={{ width: 56, height: 11 }} />
-            </div>
-          ))}
+          <div aria-hidden="true">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} className="welcome-row-skeleton" style={{ height: 52, display: 'flex', alignItems: 'center', gap: 10, padding: '0 10px' }}>
+                <Skeleton style={{ width: 6, height: 6, borderRadius: 999, flexShrink: 0 }} />
+                <Skeleton style={{ width: 140, height: 14, flexShrink: 0 }} />
+                <Skeleton style={{ width: 80, height: 11, flexShrink: 0, opacity: 0.85 }} />
+                <Skeleton style={{ width: 40, height: 4, borderRadius: 999, flexShrink: 0 }} />
+                <Skeleton style={{ width: 24, height: 16, borderRadius: 999, flexShrink: 0, opacity: 0.7 }} />
+                <Skeleton style={{ width: 56, height: 11, flexShrink: 0, opacity: 0.7 }} />
+                <span style={{ display: 'flex', gap: 3, marginLeft: 'auto', flexShrink: 0 }}>
+                  {Array.from({ length: 7 }).map((_, j) => (
+                    <Skeleton key={j} style={{ width: 4, height: 6 + (j % 3) * 2, borderRadius: 2 }} />
+                  ))}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       ) : teamsEmpty ? (
         <WelcomeEmptyNoTeam onCreateTeam={() => setTeamCreateOpen(true)} />
@@ -494,8 +502,11 @@ export function DashboardPage() {
               <span className="welcome-queue-sub">assignee: you · due ≤ today{nextUp && nextUp.length > 0 ? ` · ${nextUp.length} overdue` : ''}</span>
             </div>
             {nextUpLoading ? (
-              <div className="welcome-queue-loading" aria-busy="true">
-                <Skeleton style={{ width: '100%', height: 56, borderRadius: 12 }} />
+              <div className="welcome-queue-loading" role="status" aria-busy="true" aria-label="Loading next actions">
+                <span className="sr-only">Loading next actions…</span>
+                <div aria-hidden="true">
+                  <Skeleton style={{ width: '100%', height: 56, borderRadius: 12 }} />
+                </div>
               </div>
             ) : nextUp && nextUp.length > 0 ? (
               nextUp.map((t, idx) => (

@@ -11,6 +11,7 @@ import {
   InvitesSkeleton,
   KeysSkeleton,
   McpDocsSkeleton,
+  PaymentHistorySkeleton,
   PricingSkeleton,
   ProfileSkeleton,
   ProjectSkeleton,
@@ -21,6 +22,7 @@ import {
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { RouteBoundary } from './components/RouteBoundary';
 import { Skeleton } from './components/Skeleton';
+import { Splash } from './components/Splash';
 
 const DashboardPageLazy = lazy(() => import('./features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })));
 const KeysPageLazy = lazy(() => import('./features/keys/KeysPage').then((m) => ({ default: m.KeysPage })));
@@ -38,15 +40,7 @@ const BillingRedirectPageLazy = lazy(() => import('./features/teams/BillingRedir
 const ResetPasswordPageLazy = lazy(() => import('./features/auth/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })));
 const CommandPaletteLazy = lazy(() => import('./components/CommandPalette').then((m) => ({ default: m.CommandPalette })));
 
-function Splash() {
-  return (
-    <div style={{ minHeight: '100dvh', padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <Skeleton style={{ width: 180, height: 28 }} />
-      <Skeleton style={{ width: '100%', height: 220 }} />
-      <Skeleton style={{ width: '100%', height: 220 }} />
-    </div>
-  );
-}
+
 
 function getReturnTo(): string | null {
   try {
@@ -60,13 +54,13 @@ function getReturnTo(): string | null {
 
 function Root() {
   const { user, loading } = useAuth();
-  if (loading) return <Splash />;
+  if (loading) return <Splash mode="brand" />;
   if (!user) return <AuthPage />;
   // Unified auth: if already logged in and OAuth authorize was requested, redirect back
   const returnTo = getReturnTo();
   if (returnTo) {
     window.location.href = returnTo;
-    return <Splash />;
+    return <Splash mode="shell" />;
   }
   return (
     <TeamsProvider>
@@ -156,7 +150,7 @@ function Root() {
             <Route
               path="/payments"
               element={
-                <RouteBoundary fallback={<PricingSkeleton />}>
+                <RouteBoundary fallback={<PaymentHistorySkeleton />}>
                   <PaymentHistoryPageLazy />
                 </RouteBoundary>
               }
@@ -200,7 +194,7 @@ export default function App() {
             <Route
               path="/reset-password"
               element={
-                <RouteBoundary fallback={<Skeleton style={{ width: '100%', height: 200 }} />}>
+                <RouteBoundary fallback={<div role="status" aria-label="Loading reset password" aria-busy="true" style={{ padding: 24 }}><span className="sr-only">Loading reset password…</span><div aria-hidden="true"><Skeleton style={{ width: '100%', height: 200, borderRadius: 12 }} /></div></div>}>
                   <ResetPasswordPageLazy />
                 </RouteBoundary>
               }

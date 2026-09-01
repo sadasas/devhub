@@ -217,18 +217,42 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
 
   if (loading) {
     return (
-      <div className="kanban">
-        {COLUMNS.map((col) => (
-          <div key={col} className="kanban-col" aria-hidden="true">
-            <div className="kanban-col-header">
-              <span>{columnLabels[col]}</span>
+      <div className="kanban" role="status" aria-live="polite" aria-busy="true" aria-label="Loading board">
+        <span className="sr-only">Loading board…</span>
+        <div aria-hidden="true" style={{ display: 'contents' }}>
+          {COLUMNS.map((col) => (
+            <div key={col} className="kanban-col">
+              <div className="kanban-col-header">
+                <span>{columnLabels[col]}</span>
+                <Skeleton style={{ width: 24, height: 11, borderRadius: 999, marginLeft: 6 }} />
+              </div>
+              <div className="kanban-col-body">
+                {[0, 1].map((i) => (
+                  <div
+                    key={i}
+                    className="task-card"
+                    style={{ padding: 10, gap: 6, display: 'flex', flexDirection: 'column', minHeight: 88 }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Skeleton style={{ width: 20, height: 20, borderRadius: '50%' }} />
+                      <Skeleton style={{ width: 36, height: 18, borderRadius: 999 }} />
+                    </div>
+                    <Skeleton style={{ width: '85%', height: 14 }} />
+                    <Skeleton style={{ width: '60%', height: 14, opacity: 0.9 }} />
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <Skeleton style={{ width: 48, height: 16, borderRadius: 6 }} />
+                      <Skeleton style={{ width: 52, height: 16, borderRadius: 6 }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, alignItems: 'center' }}>
+                      <Skeleton style={{ width: 64, height: 11 }} />
+                      <Skeleton style={{ width: 44, height: 11, borderRadius: 999 }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="kanban-col-body">
-              <Skeleton style={{ height: 84, width: '100%' }} />
-              <Skeleton style={{ height: 84, width: '100%' }} />
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     );
   }
@@ -459,11 +483,14 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       {view === 'calendar' ? (
         <Suspense
           fallback={
-            <div className="due-cal-skeleton" aria-busy="true" aria-live="polite">
-              <Skeleton style={{ height: 36, width: '100%', marginBottom: 10 }} />
-              <Skeleton style={{ height: 112, width: '100%', marginBottom: 8 }} />
-              <Skeleton style={{ height: 112, width: '100%', marginBottom: 8 }} />
-              <Skeleton style={{ height: 112, width: '100%' }} />
+            <div className="due-cal-skeleton" role="status" aria-busy="true" aria-live="polite" aria-label="Loading calendar">
+              <span className="sr-only">Loading calendar…</span>
+              <div aria-hidden="true">
+                <Skeleton style={{ height: 36, width: '100%', marginBottom: 10, borderRadius: 8 }} />
+                <Skeleton style={{ height: 112, width: '100%', marginBottom: 8, borderRadius: 12 }} />
+                <Skeleton style={{ height: 112, width: '100%', marginBottom: 8, borderRadius: 12 }} />
+                <Skeleton style={{ height: 112, width: '100%', borderRadius: 12 }} />
+              </div>
             </div>
           }
         >

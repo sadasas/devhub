@@ -205,8 +205,18 @@ export function ProfileStats() {
       </div>
 
       {error ? null : loading ? (
-        <div className="profile-heat-skeleton" aria-hidden="true">
-          <Skeleton className="skeleton-row" style={{ width: '100%', height: 112 }} />
+        <div className="profile-heat-skeleton" role="status" aria-live="polite" aria-busy="true" aria-label="Loading heatmap">
+          <span className="sr-only">Loading heatmap…</span>
+          <div aria-hidden="true" style={{ display: 'grid', gridTemplateColumns: 'repeat(26, 10px)', gap: 3, overflow: 'hidden', height: 84 }}>
+            {Array.from({ length: 26 * 7 }).map((_, i) => (
+              <Skeleton key={i} style={{ width: 10, height: 10, borderRadius: 2, opacity: 0.5 + (i % 7) * 0.07 }} />
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 3, marginTop: 8, opacity: 0.6 }}>
+            {Array.from({ length: 12 }).map((_, i) => (
+              <Skeleton key={i} style={{ width: 28, height: 6, borderRadius: 2 }} />
+            ))}
+          </div>
         </div>
       ) : (
         <ContributionHeatmap days={stats!.days} />

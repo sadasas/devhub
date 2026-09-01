@@ -286,7 +286,17 @@ export function ProfilePage() {
                 {t('profile.yourTeams')}
               </h3>
               {teams === null ? (
-                <Skeleton className="skeleton-row-sm" style={{ width: 180, height: 18 }} />
+                <div role="status" aria-busy="true" aria-label="Loading teams">
+                  <span className="sr-only">Loading teams…</span>
+                  <div aria-hidden="true" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <Skeleton style={{ width: 20, height: 20, borderRadius: 6, flexShrink: 0 }} />
+                        <Skeleton style={{ width: 96 + i * 12, height: 14 }} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               ) : teams.length === 0 ? (
                 <p className="profile-panel-empty">{t('profile.noTeams')}</p>
               ) : (
@@ -311,7 +321,17 @@ export function ProfilePage() {
                 {t('profile.yourProjects')}
               </h3>
               {projects === null ? (
-                <Skeleton className="skeleton-row-sm" style={{ width: 180, height: 18 }} />
+                <div role="status" aria-busy="true" aria-label="Loading projects">
+                  <span className="sr-only">Loading projects…</span>
+                  <div aria-hidden="true" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <Skeleton style={{ width: 20, height: 20, borderRadius: 6, flexShrink: 0 }} />
+                        <Skeleton style={{ width: 96 + i * 10, height: 14 }} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               ) : projects.length === 0 ? (
                 <p className="profile-panel-empty">{t('profile.noProjects')}</p>
               ) : (

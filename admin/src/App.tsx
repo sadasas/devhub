@@ -7,10 +7,13 @@ import { Skeleton } from './components/Skeleton';
 
 function Splash() {
   return (
-    <div style={{ minHeight: '100dvh', padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <Skeleton style={{ width: 180, height: 28 }} />
-      <Skeleton style={{ width: '100%', height: 220 }} />
-      <Skeleton style={{ width: '100%', height: 220 }} />
+    <div role="status" aria-live="polite" aria-busy="true" aria-label="Loading admin" style={{ minHeight: '100dvh', padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <span className="sr-only">Loading admin…</span>
+      <div aria-hidden="true" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <Skeleton style={{ width: 180, height: 28, borderRadius: 6 }} />
+        <Skeleton style={{ width: '100%', height: 220, borderRadius: 12 }} />
+        <Skeleton style={{ width: '100%', height: 220, borderRadius: 12 }} />
+      </div>
     </div>
   );
 }

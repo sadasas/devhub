@@ -196,10 +196,28 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
           </Button>
         </InlineError>
       ) : packages === null ? (
-        <div className="admin-packages-grid">
-          {[0, 1, 2].map((i) => (
-            <Skeleton key={i} style={{ width: '100%', height: 160 }} />
-          ))}
+        <div className="admin-packages-grid" role="status" aria-busy="true" aria-label="Loading packages">
+          <span className="sr-only">Loading packages…</span>
+          <div aria-hidden="true" style={{ display: 'contents' }}>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="admin-package-card" style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Skeleton style={{ width: 120, height: 16 }} />
+                  <Skeleton style={{ width: 56, height: 18, borderRadius: 999 }} />
+                </div>
+                <Skeleton style={{ width: '80%', height: 11 }} />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Skeleton style={{ width: 72, height: 11, borderRadius: 999 }} />
+                  <Skeleton style={{ width: 72, height: 11, borderRadius: 999 }} />
+                </div>
+                <Skeleton style={{ width: '100%', height: 36, borderRadius: 8, marginTop: 8 }} />
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+                  <Skeleton style={{ width: 64, height: 28, borderRadius: 8 }} />
+                  <Skeleton style={{ width: 64, height: 28, borderRadius: 8 }} />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       ) : filteredPackages!.length === 0 ? (
         <EmptyState

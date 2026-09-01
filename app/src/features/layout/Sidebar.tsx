@@ -147,11 +147,21 @@ export function Sidebar({ activeTeamId, activeMain = 'team', onCreateTeam }: Sid
       ) : (
         <>
           {teamsLoading ? (
-            <>
-              <Skeleton className="sidebar-skeleton" />
-              <Skeleton className="sidebar-skeleton" />
-              <Skeleton className="sidebar-skeleton" />
-            </>
+            <div role="status" aria-label="Loading teams" aria-busy="true">
+              <span className="sr-only">Loading teams…</span>
+              <div aria-hidden="true" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 8px' }}>
+                <Skeleton style={{ width: '70%', height: 11, marginBottom: 4 }} />
+                <Skeleton style={{ width: '100%', height: 36, borderRadius: 8 }} />
+                <Skeleton style={{ width: '100%', height: 28, borderRadius: 8, marginTop: 4 }} />
+                {[0, 1, 2].map((i) => (
+                  <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '6px 6px' }}>
+                    <Skeleton style={{ width: 14, height: 14, borderRadius: 4, flexShrink: 0 }} />
+                    <Skeleton style={{ width: `${60 + i * 5}%`, height: 12 }} />
+                    <Skeleton style={{ width: 16, height: 16, borderRadius: 999, marginLeft: 'auto', opacity: 0.6 }} />
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : !activeTeam ? (
             <div className="sidebar-empty">
               <p>{t('sidebar.noTeamsYet')}</p>

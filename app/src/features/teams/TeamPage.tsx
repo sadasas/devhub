@@ -188,7 +188,7 @@ export function TeamPage() {
               <Badge tone="neutral">{t('teams.memberCount', { count: team.memberCount })}</Badge>
             </div>
           ) : (
-            <Skeleton style={{ width: 200, height: 24, marginTop: 8 }} />
+            <span role="status" aria-label="Loading team"><span className="sr-only">Loading team…</span><span aria-hidden="true"><Skeleton style={{ width: 200, height: 24, marginTop: 8, borderRadius: 6 }} /></span></span>
           )}
           <p className="page-subtitle">{t('teams.subtitle')}</p>
         </div>
@@ -253,10 +253,24 @@ export function TeamPage() {
         <>
       <section className="tab-panel" role="tabpanel" aria-labelledby="team-tab-members">
             {members === null ? (
-          <>
-            <Skeleton style={{ width: '100%', height: 48 }} />
-            <Skeleton style={{ width: '100%', height: 48, marginTop: 8 }} />
-          </>
+          <div role="status" aria-live="polite" aria-busy="true" aria-label="Loading members">
+            <span className="sr-only">Loading members…</span>
+            <div aria-hidden="true" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[0, 1].map((i) => (
+                <div key={i} className="data-row" style={{ gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: 12, height: 56 }}>
+                  <Skeleton style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0 }} />
+                  <div className="data-row-main" style={{ gap: 6 }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <Skeleton style={{ width: 120, height: 14 }} />
+                      <Skeleton style={{ width: 48, height: 16, borderRadius: 6 }} />
+                    </div>
+                    <Skeleton style={{ width: '60%', height: 11 }} />
+                  </div>
+                  <Skeleton style={{ width: 72, height: 28, borderRadius: 8, flexShrink: 0 }} />
+                </div>
+              ))}
+            </div>
+          </div>
         ) : members.length === 0 ? (
           <div className="page-empty">
             <EmptyState

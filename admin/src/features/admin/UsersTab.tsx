@@ -167,10 +167,24 @@ export function UsersTab({ refreshKey, onSettled }: UsersTabProps) {
           </Button>
         </InlineError>
       ) : users === null ? (
-        <>
-          <Skeleton style={{ width: '100%', height: 48 }} />
-          <Skeleton style={{ width: '100%', height: 48, marginTop: 8 }} />
-        </>
+        <div role="status" aria-busy="true" aria-label="Loading users">
+          <span className="sr-only">Loading users…</span>
+          <div aria-hidden="true" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {[0, 1].map((i) => (
+              <div key={i} className="data-row" style={{ height: 56, gap: 12, gridTemplateColumns: 'auto 1fr' }}>
+                <Skeleton style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0 }} />
+                <div className="data-row-main" style={{ gap: 6 }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <Skeleton style={{ width: 120, height: 14 }} />
+                    <Skeleton style={{ width: 48, height: 16, borderRadius: 6 }} />
+                    <Skeleton style={{ width: 36, height: 16, borderRadius: 6, opacity: 0.7 }} />
+                  </div>
+                  <Skeleton style={{ width: '75%', height: 11, opacity: 0.8 }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       ) : users.length === 0 ? (
         <EmptyState
           icon={<UsersThree size={22} aria-hidden="true" />}

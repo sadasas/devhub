@@ -120,10 +120,24 @@ export function TeamsTab({ refreshKey, onSettled }: TeamsTabProps) {
           </Button>
         </InlineError>
       ) : teams === null ? (
-        <>
-          <Skeleton style={{ width: '100%', height: 48 }} />
-          <Skeleton style={{ width: '100%', height: 48, marginTop: 8 }} />
-        </>
+        <div role="status" aria-busy="true" aria-label="Loading teams">
+          <span className="sr-only">Loading teams…</span>
+          <div aria-hidden="true" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {[0, 1].map((i) => (
+              <div key={i} className="data-row" style={{ height: 56 }}>
+                <div className="data-row-main" style={{ gap: 6 }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <Skeleton style={{ width: '40%', height: 14 }} />
+                    <Skeleton style={{ width: 64, height: 18, borderRadius: 999 }} />
+                    <Skeleton style={{ width: 48, height: 18, borderRadius: 6 }} />
+                  </div>
+                  <Skeleton style={{ width: '70%', height: 11, opacity: 0.8 }} />
+                </div>
+                <Skeleton style={{ width: 88, height: 28, borderRadius: 8 }} />
+              </div>
+            ))}
+          </div>
+        </div>
       ) : filteredTeams!.length === 0 ? (
         <EmptyState
           icon={<span aria-hidden="true" />}

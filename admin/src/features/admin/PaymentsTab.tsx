@@ -115,11 +115,23 @@ export function PaymentsTab({ refreshKey, onSettled }: PaymentsTabProps) {
           </Button>
         </InlineError>
       ) : payments === null ? (
-        <>
-          <Skeleton style={{ width: '100%', height: 48 }} />
-          <Skeleton style={{ width: '100%', height: 48, marginTop: 8 }} />
-          <Skeleton style={{ width: '100%', height: 48, marginTop: 8 }} />
-        </>
+        <div role="status" aria-busy="true" aria-label="Loading payments">
+          <span className="sr-only">Loading payments…</span>
+          <div aria-hidden="true" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="data-row" style={{ height: 56 }}>
+                <div className="data-row-main" style={{ gap: 6 }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <Skeleton style={{ width: '40%', height: 14 }} />
+                    <Skeleton style={{ width: 48, height: 18, borderRadius: 6 }} />
+                  </div>
+                  <Skeleton style={{ width: '70%', height: 11, opacity: 0.8 }} />
+                </div>
+                <Skeleton style={{ width: 56, height: 11, borderRadius: 999 }} />
+              </div>
+            ))}
+          </div>
+        </div>
       ) : payments.length === 0 ? (
         <EmptyState
           icon={<Receipt size={22} aria-hidden="true" />}

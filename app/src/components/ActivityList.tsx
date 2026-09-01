@@ -169,10 +169,13 @@ export function ActivityList({ projectId, entity, entityId }: ActivityListProps)
   if (error) return <InlineError>{error}</InlineError>;
   if (items === null) {
     return (
-      <div className="activity-list" aria-busy="true">
-        <Skeleton style={{ width: '100%', height: '14px' }} />
-        <Skeleton style={{ width: '80%', height: '14px' }} />
-        <Skeleton style={{ width: '60%', height: '14px' }} />
+      <div className="activity-list" role="status" aria-live="polite" aria-busy="true" aria-label="Loading activity">
+        <span className="sr-only">Loading activity…</span>
+        <div aria-hidden="true">
+          <Skeleton style={{ width: '100%', height: '14px' }} />
+          <Skeleton style={{ width: '80%', height: '14px' }} />
+          <Skeleton style={{ width: '60%', height: '14px' }} />
+        </div>
       </div>
     );
   }

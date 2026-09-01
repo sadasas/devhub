@@ -233,17 +233,36 @@ export function OverviewPage({ project }: { project: Project }) {
 
   if (loading) {
     return (
-      <div aria-hidden="true">
-        <Skeleton style={{ width: 220, height: 20, marginBottom: 16 }} />
-        <Skeleton style={{ width: '100%', height: 14, marginBottom: 8 }} />
-        <Skeleton style={{ width: '70%', height: 14, marginBottom: 24 }} />
-        <div className="stats-grid">
-          <Skeleton className="data-row" />
-          <Skeleton className="data-row" />
-          <Skeleton className="data-row" />
-          <Skeleton className="data-row" />
+      <div role="status" aria-busy="true" aria-live="polite" aria-label="Loading overview">
+        <span className="sr-only">Loading overview…</span>
+        <div aria-hidden="true">
+          <Skeleton style={{ width: 220, height: 20, marginBottom: 8 }} />
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} style={{ width: 96, height: 18, borderRadius: 999 }} />
+            ))}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 10, marginBottom: 22 }}>
+            {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <Skeleton key={i} style={{ height: 68, borderRadius: 12 }} />
+            ))}
+          </div>
+          <div className="stats-grid">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} style={{ height: 160, borderRadius: 12 }} />
+            ))}
+          </div>
+          <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="member-row" style={{ height: 40, gap: 12, alignItems: 'center' }}>
+                <Skeleton style={{ width: 28, height: 28, borderRadius: '50%' }} />
+                <Skeleton style={{ width: 120, height: 14 }} />
+                <Skeleton style={{ width: '40%', height: 6, borderRadius: 999 }} />
+                <Skeleton style={{ width: 44, height: 11 }} />
+              </div>
+            ))}
+          </div>
         </div>
-        <Skeleton style={{ width: '100%', height: 200, marginTop: 22 }} />
       </div>
     );
   }
@@ -449,12 +468,18 @@ export function OverviewPage({ project }: { project: Project }) {
         <section className="overview-group" aria-label={t('overview.membersSectionAria')}>
           <OverviewGroupHead title={t('overview.membersTitle')} count={t('overview.assignedCount', { count: memberStats.filter((s) => s.id !== null).length })} />
           {!membersLoaded ? (
-            <div className="member-list" aria-hidden="true">
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="member-row">
-                  <Skeleton className="skeleton-row" style={{ width: 120, height: 14 }} />
-                </div>
-              ))}
+            <div className="member-list" role="status" aria-busy="true" aria-label="Loading members">
+              <span className="sr-only">Loading members…</span>
+              <div aria-hidden="true">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="member-row" style={{ height: 40, gap: 12, alignItems: 'center' }}>
+                    <Skeleton style={{ width: 28, height: 28, borderRadius: '50%' }} />
+                    <Skeleton style={{ width: 120, height: 14 }} />
+                    <Skeleton style={{ width: '40%', height: 6, borderRadius: 999 }} />
+                    <Skeleton style={{ width: 44, height: 11 }} />
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
             <div className="member-list">

@@ -42,15 +42,27 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
 
   if (loading) {
     return (
-      <div className="data-list" aria-hidden="true">
-        <div className="data-row">
-          <Skeleton style={{ height: 16, width: '60%' }} />
-        </div>
-        <div className="data-row">
-          <Skeleton style={{ height: 16, width: '45%' }} />
-        </div>
-        <div className="data-row">
-          <Skeleton style={{ height: 16, width: '70%' }} />
+      <div className="data-list" role="status" aria-live="polite" aria-busy="true" aria-label="Loading tests">
+        <span className="sr-only">Loading tests…</span>
+        <div aria-hidden="true">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="data-row" style={{ height: 56 }}>
+              <div className="data-row-main" style={{ gap: 6 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <Skeleton style={{ width: '55%', height: 14 }} />
+                  <Skeleton style={{ width: 48, height: 11, borderRadius: 999, opacity: 0.6 }} />
+                </div>
+                <Skeleton style={{ width: '70%', height: 11, opacity: 0.8 }} />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Skeleton style={{ width: 64, height: 11, borderRadius: 999 }} />
+                  <Skeleton style={{ width: 44, height: 11 }} />
+                </div>
+              </div>
+              <div className="data-row-side" style={{ justifyContent: 'flex-start', gap: 4 }}>
+                <Skeleton style={{ width: 56, height: 18, borderRadius: 999 }} />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );

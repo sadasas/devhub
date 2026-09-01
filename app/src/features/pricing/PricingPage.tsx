@@ -105,20 +105,25 @@ export function PricingPage() {
       </header>
       {error && <InlineError>{error}</InlineError>}
       {packages === null && !error ? (
-        <div
-          className="pricing-grid pricing-grid-featured"
-          aria-busy="true"
-          aria-label={t('pricing.loadingAria', { defaultValue: 'Memuat paket' })}
-        >
-          {[0, 1].map((i) => (
-            <div key={i} className="pricing-card" aria-hidden="true">
-              <Skeleton style={{ width: 90, height: 16 }} />
-              <Skeleton style={{ width: 160, height: 30, marginTop: 12 }} />
-              <Skeleton className="skeleton-row" style={{ marginTop: 14 }} />
-              <Skeleton className="skeleton-row" style={{ marginTop: 8 }} />
-              <Skeleton style={{ width: '100%', height: 36, marginTop: 16 }} />
+        <div role="status" aria-busy="true" aria-live="polite" aria-label={t('pricing.loadingAria', { defaultValue: 'Memuat paket' })}>
+          <span className="sr-only">{t('pricing.loadingAria', { defaultValue: 'Memuat paket' })}…</span>
+          <div aria-hidden="true">
+            <Skeleton style={{ width: '100%', height: 44, borderRadius: 8, marginBottom: 12 }} />
+            <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 16 }}>
+              <Skeleton style={{ width: 180, height: 32, borderRadius: 999 }} />
             </div>
-          ))}
+            <div className="pricing-grid pricing-grid-featured">
+              {[0, 1].map((i) => (
+                <div key={i} className="pricing-card">
+                  <Skeleton style={{ width: 90, height: 16 }} />
+                  <Skeleton style={{ width: 160, height: 30, marginTop: 12 }} />
+                  <Skeleton className="skeleton-row" style={{ marginTop: 14 }} />
+                  <Skeleton className="skeleton-row" style={{ marginTop: 8 }} />
+                  <Skeleton style={{ width: '100%', height: 36, marginTop: 16, borderRadius: 8 }} />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       ) : (
         <>

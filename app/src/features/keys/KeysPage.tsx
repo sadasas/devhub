@@ -59,15 +59,33 @@ export function KeysPage() {
         </div>
       </header>
       {error && <InlineError>{error}</InlineError>}
-      {apps === null ? (
-        <div className="data-list" aria-hidden="true">
-          {[0, 1].map((i) => (
-            <div key={i} className="data-row">
-              <Skeleton style={{ width: '40%' }} />
-            </div>
-          ))}
+      {apps === null && !error ? (
+        <div className="data-list" role="status" aria-live="polite" aria-busy="true" aria-label="Loading connected apps">
+          <span className="sr-only">Loading connected apps…</span>
+          <div aria-hidden="true">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="data-row" style={{ height: 64 }}>
+                <div className="data-row-main" style={{ gap: 4 }}>
+                  <div className="data-row-title">
+                    <Skeleton className="skeleton-row" style={{ width: '45%' }} />
+                    <Skeleton style={{ width: 8, height: 8, borderRadius: 999 }} />
+                  </div>
+                  <div className="data-row-meta">
+                    <Skeleton className="skeleton-row-xs" style={{ width: 88 }} />
+                    <Skeleton className="skeleton-row-sm" style={{ width: 120 }} />
+                  </div>
+                  <div className="data-row-meta">
+                    <Skeleton className="skeleton-row-sm" style={{ width: '60%', height: 11 }} />
+                  </div>
+                </div>
+                <div className="data-row-side">
+                  <Skeleton className="skeleton-row-sm" style={{ width: 56, height: 28, borderRadius: 8 }} />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      ) : apps.length === 0 ? (
+      ) : apps !== null && apps.length === 0 ? (
         <div className="page-empty">
           <EmptyState
             icon={<ShieldCheck size={22} />}
@@ -81,7 +99,7 @@ export function KeysPage() {
             }
           />
         </div>
-      ) : (
+      ) : apps !== null && apps.length > 0 ? (
         <div className="data-list">
           <div className="data-list-header">
             <span className="data-list-count">{apps.length} connected app{apps.length !== 1 ? 's' : ''}</span>
@@ -113,7 +131,7 @@ export function KeysPage() {
             </div>
           ))}
         </div>
-      )}
+      ) : null}
       <div className="auth-banner" style={{ marginTop: 24 }}>
         <ShieldCheck size={14} weight="duotone" aria-hidden="true" />
         <p>

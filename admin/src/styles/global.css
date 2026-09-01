@@ -856,12 +856,12 @@ a:hover {
   border-radius: var(--radius-sm);
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.05) 25%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0.05) 75%
+    rgba(255, 255, 255, 0.06) 25%,
+    rgba(255, 255, 255, 0.13) 50%,
+    rgba(255, 255, 255, 0.06) 75%
   );
   background-size: 200% 100%;
-  animation: skeleton-shimmer 1.4s var(--ease-out) infinite;
+  animation: skeleton-shimmer 1.4s linear infinite;
 }
 
 @keyframes skeleton-shimmer {
@@ -870,6 +870,20 @@ a:hover {
   }
   to {
     background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none !important;
+    background: var(--bg-overlay);
+  }
+}
+
+@media (forced-colors: active) {
+  .skeleton {
+    border: 1px solid CanvasText;
+    forced-color-adjust: auto;
   }
 }
 
@@ -900,6 +914,18 @@ a:hover {
 .skeleton-tab {
   height: 36px;
   width: 84px;
+}
+
+.skeleton-avatar-sm {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+
+.skeleton-avatar-md {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
 }
 
 .skeleton-avatar {
@@ -10255,9 +10281,9 @@ input[type='checkbox'] {
 .chat-scroll-fab:hover { background: var(--accent); color: var(--text-on-accent); border-color: var(--accent); }
 .chat-scroll-fab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; box-shadow: 0 0 0 4px rgba(93, 182, 155, 0.22); }
 .chat-skeleton-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
-.chat-skeleton-avatar { flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; background: var(--bg-overlay); }
+.chat-skeleton-avatar { flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; }
 .chat-skeleton-lines { flex: 1 1 auto; display: flex; flex-direction: column; gap: 6px; }
-.chat-skeleton-lines span { height: 10px; border-radius: var(--radius-sm); background: var(--bg-overlay); }
+.chat-skeleton-lines span { height: 10px; border-radius: var(--radius-sm); }
 .chat-skeleton-lines span:first-child { width: 60%; }
 .chat-skeleton-lines span:last-child { width: 40%; }
 .chat-offline-strip { display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-family: var(--font-mono); font-size: 11px; color: var(--status-warn); background: var(--status-warn-dim); border-top: 1px solid var(--border-hairline); }
@@ -13429,7 +13455,7 @@ html[data-theme='light'] .skeleton {
   background: linear-gradient(
     90deg,
     rgba(0, 0, 0, 0.04) 25%,
-    rgba(0, 0, 0, 0.07) 50%,
+    rgba(0, 0, 0, 0.1) 50%,
     rgba(0, 0, 0, 0.04) 75%
   );
   background-size: 200% 100%;

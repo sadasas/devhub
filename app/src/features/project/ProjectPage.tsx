@@ -101,79 +101,160 @@ function TabSkeleton({ tab }: { tab: ProjectTab }) {
   const { t } = useTranslation('project');
   if (tab === 'board') {
     return (
-      <div className="kanban" aria-hidden="true">
-        {['skeleton.todo', 'skeleton.inProgress', 'skeleton.review', 'skeleton.done'].map((key) => (
-          <div key={key} className="kanban-col">
-            <div className="kanban-col-header">
-              <span>{t(key)}</span>
+      <div className="kanban" role="status" aria-busy="true" aria-label="Loading board">
+        <span className="sr-only">Loading board…</span>
+        <div aria-hidden="true" style={{ display: 'contents' }}>
+          {['skeleton.todo', 'skeleton.inProgress', 'skeleton.review', 'skeleton.done'].map((key) => (
+            <div key={key} className="kanban-col">
+              <div className="kanban-col-header">
+                <span>{t(key)}</span>
+                <Skeleton style={{ width: 24, height: 11, borderRadius: 999, marginLeft: 6 }} />
+              </div>
+              <div className="kanban-col-body">
+                {[0, 1].map((j) => (
+                  <div
+                    key={j}
+                    className="task-card"
+                    style={{ padding: 10, gap: 6, display: 'flex', flexDirection: 'column', minHeight: 88 }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Skeleton style={{ width: 20, height: 20, borderRadius: '50%' }} />
+                      <Skeleton style={{ width: 36, height: 18, borderRadius: 999 }} />
+                    </div>
+                    <Skeleton style={{ width: '85%', height: 14 }} />
+                    <Skeleton style={{ width: '60%', height: 14, opacity: 0.9 }} />
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <Skeleton style={{ width: 48, height: 16, borderRadius: 6 }} />
+                      <Skeleton style={{ width: 52, height: 16, borderRadius: 6 }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, alignItems: 'center' }}>
+                      <Skeleton style={{ width: 64, height: 11 }} />
+                      <Skeleton style={{ width: 44, height: 11, borderRadius: 999 }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="kanban-col-body">
-              <Skeleton style={{ height: 84, width: '100%' }} />
-              <Skeleton style={{ height: 84, width: '100%' }} />
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     );
   }
 
   if (tab === 'whiteboard') {
     return (
-      <div className="project-grid" aria-hidden="true">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="project-card">
-            <Skeleton className="skeleton-row" />
-            <Skeleton className="skeleton-row skeleton-row-sm" />
-            <Skeleton className="skeleton-row skeleton-row-sm" />
-          </div>
-        ))}
+      <div className="project-grid" role="status" aria-busy="true" aria-label="Loading whiteboards">
+        <span className="sr-only">Loading whiteboards…</span>
+        <div aria-hidden="true" style={{ display: 'contents' }}>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="project-card" style={{ padding: 14, gap: 8, display: 'flex', flexDirection: 'column' }}>
+              <Skeleton style={{ width: '70%', height: 14 }} />
+              <Skeleton style={{ width: '100%', height: 11, opacity: 0.85 }} />
+              <Skeleton style={{ width: '65%', height: 11, opacity: 0.85 }} />
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
+                <Skeleton style={{ width: 56, height: 16, borderRadius: 999 }} />
+                <Skeleton style={{ width: 64, height: 11 }} />
+                <Skeleton style={{ width: 44, height: 11 }} />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   if (tab === 'overview') {
     return (
-      <div aria-hidden="true">
-        <Skeleton style={{ width: 220, height: 20, marginBottom: 16 }} />
-        <Skeleton style={{ width: '100%', height: 14, marginBottom: 8 }} />
-        <Skeleton style={{ width: '70%', height: 14, marginBottom: 24 }} />
-        <div className="stats-grid">
-          <Skeleton className="data-row" />
-          <Skeleton className="data-row" />
-          <Skeleton className="data-row" />
-          <Skeleton className="data-row" />
+      <div role="status" aria-busy="true" aria-label="Loading overview">
+        <span className="sr-only">Loading overview…</span>
+        <div aria-hidden="true">
+          <Skeleton style={{ width: 220, height: 20, marginBottom: 8 }} />
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} style={{ width: 96, height: 18, borderRadius: 999 }} />
+            ))}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 10, marginBottom: 22 }}>
+            {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <Skeleton key={i} style={{ height: 68, borderRadius: 12 }} />
+            ))}
+          </div>
+          <div className="stats-grid">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} style={{ height: 160, borderRadius: 12 }} />
+            ))}
+          </div>
+          <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="member-row" style={{ height: 40, gap: 12, alignItems: 'center' }}>
+                <Skeleton style={{ width: 28, height: 28, borderRadius: '50%' }} />
+                <Skeleton style={{ width: 120, height: 14 }} />
+                <Skeleton style={{ width: '40%', height: 6, borderRadius: 999 }} />
+                <Skeleton style={{ width: 44, height: 11 }} />
+              </div>
+            ))}
+          </div>
         </div>
-        <Skeleton style={{ width: '100%', height: 200, marginTop: 22 }} />
       </div>
     );
   }
 
   if (tab === 'api') {
     return (
-      <div aria-hidden="true">
-        <div className="data-list">
-          <div className="data-row">
-            <Skeleton style={{ height: 16, width: '70%' }} />
+      <div role="status" aria-busy="true" aria-label="Loading API">
+        <span className="sr-only">Loading API…</span>
+        <div aria-hidden="true">
+          <div className="data-list">
+            <div className="data-row" style={{ height: 56 }}>
+              <div className="data-row-main" style={{ gap: 6 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <Skeleton style={{ width: 48, height: 18, borderRadius: 6 }} />
+                  <Skeleton style={{ width: '55%', height: 14 }} />
+                </div>
+                <Skeleton style={{ width: '60%', height: 11, opacity: 0.8 }} />
+              </div>
+              <Skeleton style={{ width: 48, height: 16, borderRadius: 999 }} />
+            </div>
+            <div className="data-row" style={{ height: 56 }}>
+              <div className="data-row-main" style={{ gap: 6 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <Skeleton style={{ width: 48, height: 18, borderRadius: 6 }} />
+                  <Skeleton style={{ width: '45%', height: 14 }} />
+                </div>
+                <Skeleton style={{ width: '70%', height: 11, opacity: 0.8 }} />
+              </div>
+              <Skeleton style={{ width: 48, height: 16, borderRadius: 999 }} />
+            </div>
           </div>
-          <div className="data-row">
-            <Skeleton style={{ height: 16, width: '50%' }} />
-          </div>
+          <Skeleton style={{ height: 320, width: '100%', borderRadius: 12, marginTop: 12 }} />
         </div>
-        <Skeleton style={{ height: 320, width: '100%' }} />
       </div>
     );
   }
 
   return (
-    <div className="data-list" aria-hidden="true">
-      {[0, 1, 2].map((i) => (
-        <div key={i} className="data-row">
-          <div className="data-row-main">
-            <Skeleton className="skeleton-row" />
-            <Skeleton className="skeleton-row skeleton-row-sm" />
+    <div className="data-list" role="status" aria-busy="true" aria-label="Loading">
+      <span className="sr-only">Loading…</span>
+      <div aria-hidden="true">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="data-row" style={{ height: 56 }}>
+            <div className="data-row-main" style={{ gap: 6 }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <Skeleton style={{ width: 48, height: 18, borderRadius: 6 }} />
+                <Skeleton style={{ width: `${55 - i * 5}%`, height: 14 }} />
+              </div>
+              <Skeleton style={{ width: '70%', height: 11, opacity: 0.8 }} />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Skeleton style={{ width: 64, height: 11, borderRadius: 999 }} />
+                <Skeleton style={{ width: 44, height: 11 }} />
+              </div>
+            </div>
+            <div className="data-row-side">
+              <Skeleton style={{ width: 56, height: 18, borderRadius: 999 }} />
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
@@ -222,6 +303,7 @@ function ProjectUnreadArea({
         id="project-tabpanel"
         aria-labelledby={`project-tab-${tab}`}
         tabIndex={0}
+        aria-busy={undefined}
       >
         <Suspense fallback={<TabSkeleton tab={tab} />}>
           {tab === 'board' ? (

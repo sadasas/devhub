@@ -67,10 +67,13 @@ export function BillingRedirectPage() {
       {error && <InlineError>{error}</InlineError>}
 
       {!data && !error && (
-        <>
-          <Skeleton style={{ width: '100%', height: 72 }} />
-          <Skeleton style={{ width: '100%', height: 48, marginTop: 8 }} />
-        </>
+        <div role="status" aria-live="polite" aria-busy="true" aria-label="Loading billing status">
+          <span className="sr-only">Loading billing status…</span>
+          <div aria-hidden="true">
+            <Skeleton style={{ width: '100%', height: 72, borderRadius: 12 }} />
+            <Skeleton style={{ width: '100%', height: 48, marginTop: 8, borderRadius: 12 }} />
+          </div>
+        </div>
       )}
 
       {data && data.team.plan === 'pro' && (

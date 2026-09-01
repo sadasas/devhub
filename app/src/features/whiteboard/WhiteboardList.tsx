@@ -40,14 +40,22 @@ export function WhiteboardList({ onOpen, loading = false, unreadIds }: Whiteboar
 
   if (loading || !state) {
     return (
-      <div className="project-grid" aria-hidden="true">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="project-card">
-            <Skeleton className="skeleton-row" />
-            <Skeleton className="skeleton-row skeleton-row-sm" />
-            <Skeleton className="skeleton-row skeleton-row-sm" />
-          </div>
-        ))}
+      <div className="project-grid" role="status" aria-live="polite" aria-busy="true" aria-label="Loading whiteboards">
+        <span className="sr-only">Loading whiteboards…</span>
+        <div aria-hidden="true" style={{ display: 'contents' }}>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="project-card" style={{ padding: 14, gap: 8, display: 'flex', flexDirection: 'column' }}>
+              <Skeleton style={{ width: '70%', height: 14 }} />
+              <Skeleton style={{ width: '100%', height: 11, opacity: 0.85 }} />
+              <Skeleton style={{ width: '65%', height: 11, opacity: 0.85 }} />
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
+                <Skeleton style={{ width: 56, height: 16, borderRadius: 999 }} />
+                <Skeleton style={{ width: 64, height: 11 }} />
+                <Skeleton style={{ width: 44, height: 11 }} />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
