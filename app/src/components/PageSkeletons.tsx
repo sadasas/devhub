@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { SKELETON_SIZES } from '../lib/skeleton-presets';
 import { Skeleton } from './Skeleton';
 
 interface PageShellProps {
@@ -27,7 +28,7 @@ function HeaderBlock({ back, action }: { back?: boolean; action?: boolean }) {
         <Skeleton style={{ width: 220, height: 24, marginTop: back ? 10 : 0 }} />
         <Skeleton className="skeleton-row" style={{ marginTop: 8, width: 300, maxWidth: '100%' }} />
       </div>
-      {action && <Skeleton className="skeleton-btn" />}
+      {action && <Skeleton className="skeleton-btn" style={{ width: SKELETON_SIZES.btn.w, height: SKELETON_SIZES.btn.h }} />}
     </header>
   );
 }
@@ -37,11 +38,18 @@ function TaskCardSkeleton() {
     <div
       className="task-card"
       aria-hidden="true"
-      style={{ padding: 10, gap: 6, display: 'flex', flexDirection: 'column' }}
+      style={{
+        padding: 10,
+        gap: 6,
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: SKELETON_SIZES.taskCard.minHeight,
+        maxHeight: SKELETON_SIZES.taskCard.maxHeight,
+      }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Skeleton style={{ width: 20, height: 20, borderRadius: '50%' }} />
-        <Skeleton style={{ width: 36, height: 18, borderRadius: 999 }} />
+        <Skeleton style={{ width: SKELETON_SIZES.avatar.sm, height: SKELETON_SIZES.avatar.sm, borderRadius: '50%' }} />
+        <Skeleton style={{ width: SKELETON_SIZES.badge.smallW, height: SKELETON_SIZES.badge.smallH, borderRadius: 999 }} />
       </div>
       <Skeleton style={{ width: '85%', height: 14 }} />
       <Skeleton style={{ width: '60%', height: 14, opacity: 0.9 }} />
@@ -140,7 +148,7 @@ export function DashboardSkeleton() {
         <Skeleton style={{ width: 160, height: 20, marginBottom: 12 }} />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12, marginBottom: 16 }}>
           {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} style={{ height: 88, borderRadius: 16 }} />
+            <Skeleton key={i} style={{ height: SKELETON_SIZES.taskCard.height, borderRadius: 16 }} />
           ))}
         </div>
         <div style={{ marginBottom: 16 }}>
@@ -149,7 +157,11 @@ export function DashboardSkeleton() {
         <Skeleton style={{ height: 44, marginBottom: 8, borderRadius: 8 }} />
         <div className="welcome-skeleton" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           {[0, 1, 2, 3, 4].map((i) => (
-            <div key={i} className="welcome-row-skeleton" style={{ height: 52, display: 'flex', alignItems: 'center', gap: 10, padding: '0 10px', borderBottom: '1px solid var(--border-hairline)' }}>
+            <div
+              key={i}
+              className="welcome-row-skeleton"
+              style={{ height: SKELETON_SIZES.welcomeRow.height, display: 'flex', alignItems: 'center', gap: 10, padding: '0 10px', borderBottom: '1px solid var(--border-hairline)' }}
+            >
               <Skeleton style={{ width: 6, height: 6, borderRadius: 999, flexShrink: 0 }} />
               <Skeleton style={{ width: 140, height: 14, flexShrink: 0 }} />
               <Skeleton style={{ width: 80, height: 11, flexShrink: 0, opacity: 0.85 }} />
@@ -158,7 +170,7 @@ export function DashboardSkeleton() {
               <Skeleton style={{ width: 56, height: 11, flexShrink: 0, opacity: 0.7 }} />
               <span style={{ display: 'flex', gap: 3, marginLeft: 'auto', flexShrink: 0 }}>
                 {Array.from({ length: 7 }).map((_, j) => (
-                  <Skeleton key={j} style={{ width: 4, height: 6 + (j % 3) * 2, borderRadius: 2 }} />
+                  <Skeleton key={j} style={{ width: SKELETON_SIZES.heatCell.size, height: 6 + (j % 3) * 2, borderRadius: 2 }} />
                 ))}
               </span>
             </div>
@@ -216,13 +228,19 @@ export function TeamSkeleton() {
           <div
             key={i}
             className="data-row"
-            style={{ gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: 12, height: 56, marginTop: i ? 8 : undefined }}
+            style={{
+              gridTemplateColumns: 'auto 1fr auto',
+              alignItems: 'center',
+              gap: 12,
+              height: SKELETON_SIZES.dataRow.height,
+              marginTop: i ? 8 : undefined,
+            }}
           >
-            <Skeleton style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0 }} />
+            <Skeleton style={{ width: SKELETON_SIZES.avatar.team, height: SKELETON_SIZES.avatar.team, borderRadius: '50%', flexShrink: 0 }} />
             <div className="data-row-main" style={{ gap: 6 }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <Skeleton style={{ width: 120, height: 14 }} />
-                <Skeleton style={{ width: 48, height: 16, borderRadius: 6 }} />
+                <Skeleton style={{ width: SKELETON_SIZES.badge.w, height: SKELETON_SIZES.badge.h, borderRadius: 6 }} />
               </div>
               <Skeleton style={{ width: '60%', height: 11 }} />
             </div>
@@ -252,7 +270,7 @@ export function KeysSkeleton() {
       <HeaderBlock action />
       <div className="data-list" aria-hidden="true">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="data-row" style={{ height: 56 }}>
+          <div key={i} className="data-row" style={{ height: SKELETON_SIZES.dataRow.height }}>
             <div className="data-row-main" style={{ gap: 4 }}>
               <div className="data-row-title">
                 <Skeleton className="skeleton-row" style={{ width: '45%' }} />
@@ -280,11 +298,11 @@ export function TemplatesSkeleton() {
       <HeaderBlock />
       <div className="data-list" aria-hidden="true">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="data-row" style={{ height: 56 }}>
+          <div key={i} className="data-row" style={{ height: SKELETON_SIZES.dataRow.height }}>
             <div className="data-row-main" style={{ gap: 6 }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <Skeleton style={{ width: '55%', height: 14 }} />
-                <Skeleton style={{ width: 48, height: 16, borderRadius: 999, opacity: 0.7 }} />
+                <Skeleton style={{ width: SKELETON_SIZES.badge.w, height: SKELETON_SIZES.badge.h, borderRadius: 999, opacity: 0.7 }} />
               </div>
               <Skeleton style={{ width: '38%', height: 11 }} />
               <div style={{ display: 'flex', gap: 8 }}>
@@ -367,7 +385,7 @@ export function PricingSkeleton() {
               <Skeleton className="skeleton-row" style={{ marginTop: 14 }} />
               <Skeleton className="skeleton-row" style={{ marginTop: 8 }} />
               <Skeleton className="skeleton-row" style={{ width: '70%', marginTop: 8 }} />
-              <Skeleton style={{ width: '100%', height: 36, marginTop: 16, borderRadius: 8 }} />
+              <Skeleton style={{ width: '100%', height: SKELETON_SIZES.pricingCard.height, marginTop: 16, borderRadius: 8 }} />
             </div>
           ))}
         </div>
