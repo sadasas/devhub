@@ -14199,8 +14199,8 @@ details[open] > .milestone-group-summary::before {
 }
 
 /* ============================================================
-   Billing Redirect — /billing/:teamId cockpit (M35)
-   Center 520px, dense-terminal ledger editorial
+   Billing Redirect — /billing/:teamId cockpit (M35 redesigned)
+   Ledger editorial 560px, invariant Workspace · Nama + facts grid
    ============================================================ */
 
 .billing-redirect-shell {
@@ -14244,10 +14244,10 @@ details[open] > .milestone-group-summary::before {
 
 .billing-redirect-page {
   flex: 1;
-  max-width: 520px;
+  max-width: 560px;
   width: 100%;
   margin: 0 auto;
-  padding: 48px 24px 32px;
+  padding: 40px 24px 32px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -14256,12 +14256,12 @@ details[open] > .milestone-group-summary::before {
 .billing-redirect-card {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   padding: 20px 20px 16px;
   background: var(--bg-elevated);
   border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-raised), var(--shadow-inset-highlight);
+  border-radius: 12px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.18), var(--shadow-inset-highlight);
   animation: billing-redirect-in 180ms var(--ease-out);
 }
 
@@ -14295,30 +14295,31 @@ details[open] > .milestone-group-summary::before {
 }
 
 .billing-redirect-icon {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: 8px;
   flex-shrink: 0;
-  border: 1px solid transparent;
+  border: 1px solid var(--border-hairline);
+  background: var(--bg-inset);
 }
 
 .billing-redirect-icon--success {
   color: var(--accent);
-  background: var(--accent-dim);
+  background: var(--bg-inset);
   border-color: rgba(93, 182, 155, 0.18);
 }
 
 .billing-redirect-icon--pending {
-  color: var(--status-warn);
-  background: var(--status-warn-dim);
-  border-color: rgba(201, 169, 106, 0.18);
+  color: var(--text-muted);
+  background: var(--bg-inset);
+  border-color: var(--border-hairline);
 }
 
 .billing-redirect-icon--danger {
   color: var(--status-danger);
-  background: var(--status-danger-dim);
+  background: var(--bg-inset);
   border-color: rgba(214, 122, 122, 0.18);
 }
 
@@ -14329,7 +14330,7 @@ details[open] > .milestone-group-summary::before {
 }
 
 .billing-redirect-title {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.25;
@@ -14339,10 +14340,97 @@ details[open] > .milestone-group-summary::before {
 
 .billing-redirect-subtitle {
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.6;
   color: var(--text-muted);
   margin: 0;
-  max-width: 42ch;
+  max-width: 38ch;
+}
+
+/* L1a — invariant workspace eyebrow (text, Workspace · Nama) */
+.billing-context {
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text-muted);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  min-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  margin: 0 0 2px;
+}
+
+.billing-context-dot {
+  color: var(--border-strong);
+  flex-shrink: 0;
+}
+
+.billing-context-name {
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 32ch;
+  font-weight: 500;
+}
+
+.billing-context--loading {
+  opacity: 0.9;
+}
+
+/* L1c — facts ledger (inset dl grid) */
+.billing-facts {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 0;
+  background: var(--bg-inset);
+  border: 1px solid var(--border-hairline);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+.billing-facts dt {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-hairline);
+  border-right: 1px solid var(--border-hairline);
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.billing-facts dd {
+  font-size: 12.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-hairline);
+  margin: 0;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.billing-facts dt:last-of-type,
+.billing-facts dd:last-of-type {
+  border-bottom: none;
+}
+
+.billing-facts dd .billing-redirect-mono {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .billing-redirect-meta {
@@ -14369,10 +14457,14 @@ details[open] > .milestone-group-summary::before {
   color: var(--text-secondary);
   background: var(--bg-inset);
   border: 1px solid var(--border-hairline);
-  padding: 2px 6px;
+  padding: 4px 8px;
   border-radius: 6px;
   font-size: 11px;
   letter-spacing: -0.01em;
+  line-height: 1;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .billing-redirect-copy {
@@ -14386,12 +14478,20 @@ details[open] > .milestone-group-summary::before {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 2px 4px;
-  border-radius: 4px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  min-height: 28px;
+  min-width: 62px;
+  justify-content: center;
 }
 
 .billing-redirect-copy:hover {
   background: var(--accent-dim);
+}
+
+.billing-redirect-copy:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .billing-redirect-note {
@@ -14410,7 +14510,7 @@ details[open] > .milestone-group-summary::before {
   gap: 8px;
   flex-wrap: wrap;
   align-items: center;
-  margin-top: 4px;
+  margin-top: 12px;
 }
 
 .billing-redirect-link {
@@ -14429,7 +14529,8 @@ details[open] > .milestone-group-summary::before {
 .billing-redirect-divider {
   height: 1px;
   background: var(--border-hairline);
-  margin: 4px 0;
+  opacity: 0.6;
+  margin: 12px 0 0;
 }
 
 .billing-redirect-usage {
@@ -14443,6 +14544,7 @@ details[open] > .milestone-group-summary::before {
   line-height: 1.5;
   color: var(--text-muted);
   margin: 0;
+  max-width: 44ch;
 }
 
 .billing-redirect-footer {
@@ -14454,10 +14556,24 @@ details[open] > .milestone-group-summary::before {
 }
 
 .billing-redirect-back {
-  max-width: 520px;
+  max-width: 560px;
   width: 100%;
   margin: 0 auto;
   padding: 0 24px 32px;
+}
+
+@media (max-width: 480px) {
+  .billing-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .billing-facts dt {
+    border-right: none;
+  }
+
+  .billing-context-name {
+    max-width: 18ch;
+  }
 }
 
 @media (max-width: 640px) {
@@ -14479,12 +14595,12 @@ details[open] > .milestone-group-summary::before {
   }
 
   .billing-redirect-title {
-    font-size: 17px;
+    font-size: 16px;
   }
 
   .billing-redirect-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    flex-direction: column-reverse;
+    align-items: stretch;
     gap: 8px;
     width: 100%;
   }
@@ -14492,6 +14608,11 @@ details[open] > .milestone-group-summary::before {
   .billing-redirect-actions .btn {
     width: 100%;
     min-height: 36px;
+  }
+
+  .billing-redirect-actions .btn-primary,
+  .billing-redirect-actions .btn.btn-primary {
+    min-height: 40px;
   }
 
   .billing-redirect-back {

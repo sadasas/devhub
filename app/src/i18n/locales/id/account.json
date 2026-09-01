@@ -434,6 +434,17 @@
       "cancelError": "Gagal membatalkan pembayaran."
     },
     "payment": {
+      "workspace": "Workspace",
+      "workspaceAria": "Workspace: {{name}}",
+      "facts": {
+        "package": "Paket",
+        "duration": "Durasi",
+        "amount": "Jumlah",
+        "order": "Order ID",
+        "created": "Dibuat",
+        "completed": "Selesai",
+        "expires": "Aktif sampai"
+      },
       "title": "Status pembayaran",
       "checking": "Memeriksa pembayaran Anda…",
       "loadError": "Gagal memuat status pembayaran.",

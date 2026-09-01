@@ -434,6 +434,17 @@
       "cancelError": "Gagal membatalkan pembayaran."
     },
     "payment": {
+      "workspace": "Workspace",
+      "workspaceAria": "Workspace: {{name}}",
+      "facts": {
+        "package": "Package",
+        "duration": "Duration",
+        "amount": "Amount",
+        "order": "Order ID",
+        "created": "Created",
+        "completed": "Completed",
+        "expires": "Active until"
+      },
       "title": "Payment status",
       "checking": "Checking your payment…",
       "loadError": "Failed to load payment status.",
