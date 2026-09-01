@@ -331,6 +331,29 @@
     "expiresOn": "kedaluwarsa {{date}}",
     "withdraw": "Tarik",
     "leaveTeam": "Keluar dari tim",
+    "removeModal": {
+      "title": "Keluarkan anggota?",
+      "body": "“{{name}}” akan kehilangan akses ke “{{team}}” dan semua project di dalamnya. Mereka bisa diundang lagi nanti.",
+      "confirm": "Keluarkan"
+    },
+    "withdrawModal": {
+      "title": "Tarik undangan?",
+      "body": "Undangan untuk “{{email}}” akan dibatalkan. Anda bisa mengundang lagi nanti.",
+      "confirm": "Tarik"
+    },
+    "changeRoleModal": {
+      "title": "Ubah peran — {{name}}",
+      "intro": "Pilih peran yang sesuai. Peran menentukan apa yang bisa dilakukan di workspace ini.",
+      "openAria": "Ubah peran {{name}}",
+      "save": "Simpan peran",
+      "desc": {
+        "owner": "Pemilik — akses penuh, bisa hapus team dan transfer kepemilikan",
+        "admin": "Admin — bisa undang, ubah peran, atur billing, dan hapus project",
+        "editor": "Editor — bisa buat dan edit semua project",
+        "viewer": "Viewer — hanya lihat & export, tidak bisa edit (tetap bisa chat)"
+      },
+      "transferWarn": "Transfer kepemilikan: kamu akan turun jadi Admin. Tidak bisa dibatalkan tanpa bantuan owner baru."
+    },
     "renameModal": {
       "title": "Ubah tim",
       "save": "Simpan",

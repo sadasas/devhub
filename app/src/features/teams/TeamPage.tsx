@@ -17,6 +17,8 @@ import { Modal } from '../../components/Modal';
 import { Skeleton } from '../../components/Skeleton';
 import { InviteModal } from './InviteModal';
 import { TeamBillingPanel } from './TeamBillingPanel';
+import { ChangeRoleModal } from './ChangeRoleModal';
+import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { InlineError } from '../../components/InlineError';
 import { FE_LIMITS } from '../../lib/limits';
 
@@ -47,6 +49,11 @@ export function TeamPage() {
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [renaming, setRenaming] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<TeamMember | null>(null);
+  const [withdrawTarget, setWithdrawTarget] = useState<TeamInvitation | null>(null);
+  const [roleTarget, setRoleTarget] = useState<TeamMember | null>(null);
+  const [roleBusy, setRoleBusy] = useState(false);
+  const [roleError, setRoleError] = useState<string | null>(null);
 
   const isAdmin = team?.role === 'owner' || team?.role === 'admin';
 
@@ -84,17 +91,21 @@ export function TeamPage() {
     }
   }, [renameOpen, team?.name, team?.icon]);
 
-  async function onChangeRole(member: TeamMember, role: TeamRole) {
-    if (role === member.role) return;
-    setBusyId(member.id);
+  async function onConfirmRole(role: TeamRole) {
+    if (!roleTarget || role === roleTarget.role) return;
+    setRoleBusy(true);
+    setRoleError(null);
     setActionError(null);
+    setBusyId(roleTarget.id);
     try {
-      await api.setMemberRole(teamId, member.id, role);
-      setMembers((prev) => (prev ? prev.map((m) => (m.id === member.id ? { ...m, role } : m)) : prev));
+      await api.setMemberRole(teamId, roleTarget.id, role);
+      setMembers((prev) => (prev ? prev.map((m) => (m.id === roleTarget.id ? { ...m, role } : m)) : prev));
       if (role === 'owner') await refresh();
+      setRoleTarget(null);
     } catch (err) {
-      setActionError(getErrorMessage(err, t('teams.errors.changeRole')));
+      setRoleError(getErrorMessage(err, t('teams.errors.changeRole')));
     } finally {
+      setRoleBusy(false);
       setBusyId(null);
     }
   }
@@ -105,6 +116,7 @@ export function TeamPage() {
     try {
       await api.declineInvitation(teamId, inv.id);
       setPendingInvites((prev) => (prev ? prev.filter((i) => i.id !== inv.id) : prev));
+      setWithdrawTarget(null);
     } catch (err) {
       setActionError(getErrorMessage(err, t('teams.errors.withdrawInvite')));
     } finally {
@@ -119,6 +131,7 @@ export function TeamPage() {
       await api.removeMember(teamId, member.id);
       setMembers((prev) => (prev ? prev.filter((m) => m.id !== member.id) : prev));
       await refresh();
+      setRemoveTarget(null);
     } catch (err) {
       setActionError(getErrorMessage(err, t('teams.errors.removeMember')));
     } finally {
@@ -307,23 +320,17 @@ export function TeamPage() {
                 </div>
                 <div className="data-row-side">
                   {roleOptions.length > 0 && (
-                    <select
-                      className="select select-role"
-                      value={m.role}
-                      disabled={busyId === m.id}
-                      title={
-                        roleOptions.includes('owner')
-                          ? t('teams.transferOwnership')
-                          : undefined
-                      }
-                      onChange={(e) => void onChangeRole(m, e.target.value as TeamRole)}
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setRoleError(null);
+                        setRoleTarget(m);
+                      }}
+                      aria-label={t('teams.changeRoleModal.openAria', { name: displayName })}
                     >
-                      {roleOptions.map((r) => (
-                        <option key={r} value={r}>
-                          {TEAM_ROLE[r].label}
-                        </option>
-                      ))}
-                    </select>
+                      {TEAM_ROLE[m.role].label} <span aria-hidden="true">▾</span>
+                    </Button>
                   )}
                   {!isOwner && isAdmin && (
                     <Button
@@ -331,7 +338,7 @@ export function TeamPage() {
                       size="sm"
                       className="text-danger"
                       loading={busyId === m.id}
-                      onClick={() => void onRemoveMember(m)}
+                      onClick={() => setRemoveTarget(m)}
                     >
                       {t('teams.remove')}
                     </Button>
@@ -362,7 +369,7 @@ export function TeamPage() {
                   variant="ghost"
                   size="sm"
                   loading={busyId === inv.id}
-                  onClick={() => void onWithdrawInvite(inv)}
+                  onClick={() => setWithdrawTarget(inv)}
                 >
                   {t('teams.withdraw')}
                 </Button>
@@ -390,6 +397,36 @@ export function TeamPage() {
           void refresh();
           void loadPendingInvites();
         }}
+      />
+
+      <ConfirmDeleteDialog
+        open={!!removeTarget}
+        title={t('teams.removeModal.title')}
+        description={t('teams.removeModal.body', { name: removeTarget?.email ?? '', team: team?.name ?? '' })}
+        confirmLabel={t('teams.removeModal.confirm')}
+        busy={busyId === removeTarget?.id}
+        onClose={() => setRemoveTarget(null)}
+        onConfirm={() => removeTarget && void onRemoveMember(removeTarget)}
+      />
+
+      <ConfirmDeleteDialog
+        open={!!withdrawTarget}
+        title={t('teams.withdrawModal.title')}
+        description={t('teams.withdrawModal.body', { email: withdrawTarget?.email ?? '' })}
+        confirmLabel={t('teams.withdraw')}
+        busy={busyId === withdrawTarget?.id}
+        onClose={() => setWithdrawTarget(null)}
+        onConfirm={() => withdrawTarget && void onWithdrawInvite(withdrawTarget)}
+      />
+
+      <ChangeRoleModal
+        open={!!roleTarget}
+        member={roleTarget}
+        teamRole={team?.role}
+        busy={roleBusy}
+        error={roleError}
+        onClose={() => setRoleTarget(null)}
+        onConfirm={onConfirmRole}
       />
 
       <Modal

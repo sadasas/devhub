@@ -331,6 +331,29 @@
     "expiresOn": "expires {{date}}",
     "withdraw": "Withdraw",
     "leaveTeam": "Leave team",
+    "removeModal": {
+      "title": "Remove member?",
+      "body": "“{{name}}” will lose access to “{{team}}” and every project inside it. You can re-invite them later.",
+      "confirm": "Remove"
+    },
+    "withdrawModal": {
+      "title": "Withdraw invitation?",
+      "body": "Invitation for “{{email}}” will be cancelled. You can invite again later.",
+      "confirm": "Withdraw"
+    },
+    "changeRoleModal": {
+      "title": "Change role — {{name}}",
+      "intro": "Choose the right role. Roles control what they can do in this workspace.",
+      "openAria": "Change role for {{name}}",
+      "save": "Save role",
+      "desc": {
+        "owner": "Owner — full access, can delete team and transfer ownership",
+        "admin": "Admin — can invite, change roles, manage billing and delete projects",
+        "editor": "Editor — can create and edit all projects",
+        "viewer": "Viewer — can view & export only, cannot edit (can still chat)"
+      },
+      "transferWarn": "Transfer ownership: you will become Admin. Cannot be undone without the new owner."
+    },
     "renameModal": {
       "title": "Edit team",
       "save": "Save",
