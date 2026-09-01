@@ -10,6 +10,7 @@ billingPublicRouter.post('/webhook', async (req, res) => {
   res.json(await handleWebhook(req.body));
 });
 
+
 billingPublicRouter.get('/packages', async (_req, res) => {
   res.json({ packages: await listPublicPackages() });
 });
