@@ -41,6 +41,14 @@ const paymentsQuerySchema = z.object({
   teamId: z.string().uuid().optional(),
 });
 
+const webhookLogsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+  orderId: z.string().max(100).optional(),
+  teamId: z.string().uuid().optional(),
+  verifyOk: z.enum(['true', 'false']).optional(),
+});
+
 export const adminRouter = Router();
 adminRouter.use(requireAuth, requireAdmin);
 
@@ -100,4 +108,11 @@ adminRouter.delete('/packages/:packageId', async (req, res) => {
 adminRouter.get('/payments', async (req, res) => {
   const { limit, offset, status, teamId } = parseOrThrow(paymentsQuerySchema, req.query, 'Invalid query parameters');
   res.json(await listAllPayments(limit, offset, status, teamId));
+});
+
+adminRouter.get('/payments/webhook-logs', async (req, res) => {
+  const { limit, offset, orderId, teamId, verifyOk } = parseOrThrow(webhookLogsQuerySchema, req.query, 'Invalid query parameters');
+  const { listWebhookLogs } = await import('../../billing/infrastructure/billingRepository.js');
+  const verifyOkBool = verifyOk === 'true' ? true : verifyOk === 'false' ? false : undefined;
+  res.json(await listWebhookLogs({ orderId, teamId, verifyOk: verifyOkBool, limit, offset }));
 });

@@ -170,9 +170,11 @@ describe('admin routes', () => {
     // ADMIN-C1: field plan harus terkirim agar UI tidak menampilkan "Free" palsu
     expect(teams.every((t) => t.plan === 'free' || t.plan === 'pro')).toBe(true);
 
+    const proPkg = await pool.query<{ id: string }>("SELECT id FROM billing_packages WHERE name='Pro' LIMIT 1");
+    const proId = proPkg.rows[0]?.id;
     await pool.query(
-      `UPDATE teams SET plan = 'pro', plan_expires_at = now() + interval '30 days' WHERE id = $1`,
-      [teamId],
+      `UPDATE teams SET plan = 'pro', plan_package_id = $2, plan_expires_at = now() + interval '30 days' WHERE id = $1`,
+      [teamId, proId],
     );
     const proRes = await request(app)
       .get('/api/v1/admin/teams')

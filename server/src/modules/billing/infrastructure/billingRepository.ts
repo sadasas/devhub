@@ -1,6 +1,6 @@
 import { pool } from '../../../db/pool.js';
 import { withTransaction } from '../../../shared/db.js';
-import type { PackagePriceRow, PackageRow, TeamPaymentRow } from '../domain/billing.js';
+import type { BillingWebhookLogRow, PackagePriceRow, PackageRow, TeamPaymentRow } from '../domain/billing.js';
 
 export interface InsertPaymentInput {
   teamId: string;
@@ -288,5 +288,81 @@ export async function countPackageReferences(packageId: string): Promise<number>
 export async function deletePackage(packageId: string): Promise<boolean> {
   const res = await pool.query('DELETE FROM billing_packages WHERE id = $1', [packageId]);
   return (res.rowCount ?? 0) > 0;
+}
+
+// ---------- Webhook logs ----------
+
+export interface InsertWebhookLogInput {
+  orderId: string;
+  amount?: number | null;
+  incomingStatus?: string | null;
+  rawBody: unknown;
+  headers: Record<string, unknown>;
+  ip?: string | null;
+  verifyOk?: boolean | null;
+  verifyPayload?: unknown | null;
+  teamId?: string | null;
+  paymentId?: string | null;
+  durationMs?: number | null;
+}
+
+export async function insertWebhookLog(input: InsertWebhookLogInput): Promise<BillingWebhookLogRow> {
+  const res = await pool.query<BillingWebhookLogRow>(
+    `INSERT INTO billing_webhook_logs (order_id, amount, incoming_status, raw_body, headers, ip, verify_ok, verify_payload, team_id, payment_id, duration_ms)
+     VALUES ($1,$2,$3,$4::jsonb,$5::jsonb,$6,$7,$8::jsonb,$9,$10,$11)
+     RETURNING *`,
+    [
+      input.orderId,
+      input.amount ?? null,
+      input.incomingStatus ?? null,
+      JSON.stringify(input.rawBody ?? {}),
+      JSON.stringify(input.headers ?? {}),
+      input.ip ?? null,
+      input.verifyOk ?? null,
+      input.verifyPayload != null ? JSON.stringify(input.verifyPayload) : null,
+      input.teamId ?? null,
+      input.paymentId ?? null,
+      input.durationMs ?? null,
+    ],
+  );
+  return res.rows[0]!;
+}
+
+export interface ListWebhookLogsParams {
+  orderId?: string;
+  teamId?: string;
+  verifyOk?: boolean;
+  limit: number;
+  offset: number;
+}
+
+export async function listWebhookLogs(params: ListWebhookLogsParams): Promise<{ logs: BillingWebhookLogRow[]; total: number }> {
+  const conditions: string[] = [];
+  const values: unknown[] = [];
+  let idx = 1;
+  if (params.orderId) {
+    conditions.push(`order_id = $${idx}`);
+    values.push(params.orderId);
+    idx += 1;
+  }
+  if (params.teamId) {
+    conditions.push(`team_id = $${idx}`);
+    values.push(params.teamId);
+    idx += 1;
+  }
+  if (params.verifyOk !== undefined) {
+    conditions.push(`verify_ok = $${idx}`);
+    values.push(params.verifyOk);
+    idx += 1;
+  }
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const [list, total] = await Promise.all([
+    pool.query<BillingWebhookLogRow>(
+      `SELECT * FROM billing_webhook_logs ${where} ORDER BY created_at DESC LIMIT $${idx} OFFSET $${idx + 1}`,
+      [...values, params.limit, params.offset],
+    ),
+    pool.query<{ total: number }>(`SELECT count(*)::int AS total FROM billing_webhook_logs ${where}`, values),
+  ]);
+  return { logs: list.rows, total: total.rows[0]?.total ?? 0 };
 }
 

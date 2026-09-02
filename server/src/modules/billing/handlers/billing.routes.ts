@@ -7,7 +7,12 @@ import { listPublicPackages } from '../application/packagesPublic.js';
 export const billingPublicRouter = Router();
 
 billingPublicRouter.post('/webhook', async (req, res) => {
-  res.json(await handleWebhook(req.body));
+  const meta = {
+    ip: req.ip ?? (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ?? req.socket.remoteAddress ?? null,
+    headers: req.headers as unknown as Record<string, unknown>,
+    startedAt: process.hrtime.bigint(),
+  };
+  res.json(await handleWebhook(req.body, meta));
 });
 
 

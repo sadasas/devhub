@@ -35,3 +35,19 @@ export interface PackagePriceRow {
   sort_order: number;
   is_active: boolean;
 }
+
+export interface BillingWebhookLogRow {
+  id: string;
+  order_id: string;
+  amount: number | null;
+  incoming_status: string | null;
+  raw_body: unknown;
+  headers: Record<string, unknown>;
+  ip: string | null;
+  verify_ok: boolean | null;
+  verify_payload: unknown | null;
+  team_id: string | null;
+  payment_id: string | null;
+  duration_ms: number | null;
+  created_at: Date;
+}

@@ -12,12 +12,14 @@ import {
   findActivePrice,
   findPaymentByOrderId,
   insertPendingPayment,
+  insertWebhookLog,
   listPaymentsByUser,
   listTeamPayments,
   markPaymentCompleted,
 } from '../infrastructure/billingRepository.js';
 import { activateTeamPackage, getEffectiveUsage } from '../../plans/application/quotaService.js';
 import { isDowngrade, PLAN_LIMIT_CODE } from '../../plans/domain/plans.js';
+import { logger } from '../../../shared/logger.js';
 
 const checkoutSchema = z.object({
   teamId: z.string().uuid(),
@@ -171,41 +173,197 @@ export async function cancelPayment(userId: string, orderId: string): Promise<{ 
 }
 
 /** Webhook Pakasir tidak bertanda tangan — verifikasi wajib server-to-server. */
-async function verifyWithPakasir(orderId: string, amount: number): Promise<boolean> {
+async function verifyWithPakasir(
+  orderId: string,
+  amount: number,
+): Promise<{ ok: boolean; payload: unknown | null }> {
   const url =
     `${PAKASIR_PAY_BASE}/api/transactiondetail?project=${encodeURIComponent(config.PAKASIR_SLUG)}` +
     `&amount=${amount}&order_id=${encodeURIComponent(orderId)}` +
     `&api_key=${encodeURIComponent(config.PAKASIR_API_KEY)}`;
   try {
     const res = await fetch(url);
-    if (!res.ok) return false;
+    if (!res.ok) return { ok: false, payload: null };
     const data = (await res.json()) as PakasirTransaction;
-    return (
+    const ok =
       data.transaction?.status === 'completed' &&
       data.transaction.amount === amount &&
-      data.transaction.order_id === orderId
-    );
+      data.transaction.order_id === orderId;
+    return { ok, payload: data };
   } catch {
-    return false;
+    return { ok: false, payload: null };
   }
 }
 
-export async function handleWebhook(body: unknown): Promise<{ ok: boolean }> {
+export interface WebhookMeta {
+  ip?: string | null;
+  headers?: Record<string, unknown>;
+  startedAt?: bigint;
+}
+
+function filterHeaders(headers: Record<string, unknown>): Record<string, unknown> {
+  const blocked = new Set(['authorization', 'cookie', 'x-api-key', 'api_key', 'api-key']);
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(headers ?? {})) {
+    if (blocked.has(k.toLowerCase())) continue;
+    // simpan string saja, batasi panjang
+    const val = typeof v === 'string' ? v.slice(0, 500) : Array.isArray(v) ? String(v[0]).slice(0, 500) : String(v).slice(0, 500);
+    out[k] = val;
+  }
+  return out;
+}
+
+async function persistWebhookLog(args: {
+  orderId: string;
+  amount: number | null;
+  incomingStatus: string | null;
+  rawBody: unknown;
+  headers: Record<string, unknown>;
+  ip: string | null;
+  verifyOk: boolean | null;
+  verifyPayload: unknown | null;
+  teamId: string | null;
+  paymentId: string | null;
+  startedAt?: bigint;
+}): Promise<void> {
+  try {
+    const durationMs =
+      args.startedAt != null ? Number((process.hrtime.bigint() - args.startedAt) / 1_000_000n) : null;
+    await insertWebhookLog({
+      orderId: args.orderId,
+      amount: args.amount,
+      incomingStatus: args.incomingStatus,
+      rawBody: args.rawBody,
+      headers: filterHeaders(args.headers),
+      ip: args.ip,
+      verifyOk: args.verifyOk,
+      verifyPayload: args.verifyPayload,
+      teamId: args.teamId,
+      paymentId: args.paymentId,
+      durationMs,
+    });
+  } catch (err) {
+    logger.warn('webhook log persist failed', {
+      orderId: args.orderId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
+export async function handleWebhook(body: unknown, meta?: WebhookMeta): Promise<{ ok: boolean }> {
+  const startedAt = meta?.startedAt ?? process.hrtime.bigint();
+  const headers = meta?.headers ?? {};
+  const ip = meta?.ip ?? null;
   // Payload tak dikenal / mismatch tetap 200 — jangan bocorkan keberadaan order.
   const parsed = webhookSchema.safeParse(body);
-  if (!parsed.success) return { ok: true };
-  const { order_id, amount } = parsed.data;
+  if (!parsed.success) {
+    const rawOrderId = typeof (body as Record<string, unknown>)?.order_id === 'string' ? String((body as Record<string, unknown>).order_id) : 'unknown';
+    const rawAmount = typeof (body as Record<string, unknown>)?.amount === 'number' ? Number((body as Record<string, unknown>).amount) : null;
+    const rawStatus = typeof (body as Record<string, unknown>)?.status === 'string' ? String((body as Record<string, unknown>).status) : null;
+    await persistWebhookLog({
+      orderId: rawOrderId.slice(0, 100),
+      amount: rawAmount,
+      incomingStatus: rawStatus,
+      rawBody: body,
+      headers,
+      ip,
+      verifyOk: null,
+      verifyPayload: null,
+      teamId: null,
+      paymentId: null,
+      startedAt,
+    });
+    return { ok: true };
+  }
+  const { order_id, amount, status } = parsed.data;
 
   const payment = await findPaymentByOrderId(order_id);
-  if (!payment || payment.amount !== amount) return { ok: true };
-  if (payment.status === 'completed') return { ok: true };
+  if (!payment || payment.amount !== amount) {
+    await persistWebhookLog({
+      orderId: order_id,
+      amount,
+      incomingStatus: status ?? null,
+      rawBody: body,
+      headers,
+      ip,
+      verifyOk: null,
+      verifyPayload: null,
+      teamId: payment?.team_id ?? null,
+      paymentId: payment?.id ?? null,
+      startedAt,
+    });
+    return { ok: true };
+  }
+  if (payment.status === 'completed') {
+    await persistWebhookLog({
+      orderId: order_id,
+      amount,
+      incomingStatus: status ?? null,
+      rawBody: body,
+      headers,
+      ip,
+      verifyOk: null,
+      verifyPayload: null,
+      teamId: payment.team_id,
+      paymentId: payment.id,
+      startedAt,
+    });
+    return { ok: true };
+  }
 
-  requirePakasirConfigured();
-  if (!(await verifyWithPakasir(order_id, payment.amount))) return { ok: false };
+  // Pakasir belum dikonfigurasi → log lalu lempar 403 (handler akan map ke JSON)
+  try {
+    requirePakasirConfigured();
+  } catch (err) {
+    await persistWebhookLog({
+      orderId: order_id,
+      amount,
+      incomingStatus: status ?? null,
+      rawBody: body,
+      headers,
+      ip,
+      verifyOk: null,
+      verifyPayload: null,
+      teamId: payment.team_id,
+      paymentId: payment.id,
+      startedAt,
+    });
+    throw err;
+  }
+  const verify = await verifyWithPakasir(order_id, payment.amount);
+  if (!verify.ok) {
+    await persistWebhookLog({
+      orderId: order_id,
+      amount,
+      incomingStatus: status ?? null,
+      rawBody: body,
+      headers,
+      ip,
+      verifyOk: false,
+      verifyPayload: verify.payload,
+      teamId: payment.team_id,
+      paymentId: payment.id,
+      startedAt,
+    });
+    return { ok: false };
+  }
 
   const completed = await markPaymentCompleted(order_id);
-  // Idempoten: kedua kalinya markPaymentCompleted return null → skip aktivasi
+  // Idempoten: kedua kalinya markPaymentCompleted return null → skip aktivasi (sudah di-log via payment.status completed di atas, tapi race tetap perlu log)
   if (!completed || !completed.package_id || !completed.duration_days) {
+    await persistWebhookLog({
+      orderId: order_id,
+      amount,
+      incomingStatus: status ?? null,
+      rawBody: body,
+      headers,
+      ip,
+      verifyOk: true,
+      verifyPayload: verify.payload,
+      teamId: payment.team_id,
+      paymentId: payment.id,
+      startedAt,
+    });
     return { ok: true };
   }
   const teamId = completed.team_id;
@@ -218,7 +376,22 @@ export async function handleWebhook(body: unknown): Promise<{ ok: boolean }> {
     [packageId],
   );
   const targetPkg = targetRes.rows[0];
-  if (!targetPkg) return { ok: true };
+  if (!targetPkg) {
+    await persistWebhookLog({
+      orderId: order_id,
+      amount,
+      incomingStatus: status ?? null,
+      rawBody: body,
+      headers,
+      ip,
+      verifyOk: true,
+      verifyPayload: verify.payload,
+      teamId,
+      paymentId: completed.id,
+      startedAt,
+    });
+    return { ok: true };
+  }
 
   // Load usage efektif setelah lazy-activation (getEffectiveUsage sudah menangani pending expiry)
   const usage = await getEffectiveUsage(teamId);
@@ -259,6 +432,19 @@ export async function handleWebhook(body: unknown): Promise<{ ok: boolean }> {
       );
     }
   }
+  await persistWebhookLog({
+    orderId: order_id,
+    amount,
+    incomingStatus: status ?? null,
+    rawBody: body,
+    headers,
+    ip,
+    verifyOk: true,
+    verifyPayload: verify.payload,
+    teamId,
+    paymentId: completed.id,
+    startedAt,
+  });
   return { ok: true };
 }
 
