@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
 import { applyDefined, findEntity, newId, nowIso, textContent, toolError } from '../../domain/entity.js';
 import { whiteboardElementSchema, LIMITS, type WhiteboardElement } from '../../../projects/domain/state.js';
+import { validateWhiteboardShowcase } from '../../../projects/domain/validate-whiteboard.js';
 
 const ELEMENTS_DESCRIPTION =
   'Full replacement of the board elements (max 1000). Each element: { id?, kind: "stroke"|"sticky"|"text"|"shape"|"edge"|"boundary"|"ref", ...fields }. ' +
@@ -51,6 +52,12 @@ export function registerUpdateWhiteboard(server: McpServer): void {
               .join('; ')}`,
           );
         }
+        // Showcase validation (Archify-style)
+        const showcase = validateWhiteboardShowcase(parsed.data);
+        if (!showcase.ok) {
+          const first = showcase.diagnostics[0]!;
+          return toolError(`Showcase validation failed: ${first.message} | fix: ${first.supportedFixes[0]} | evidence: ${JSON.stringify(first.evidence)}`);
+        }
         elements = parsed.data;
       }
       applyDefined(board, {
@@ -73,3 +80,5 @@ export function registerUpdateWhiteboard(server: McpServer): void {
     },
   );
 }
+
+

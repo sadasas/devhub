@@ -88,7 +88,8 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null): string 
       const innerW = Math.max(24, el.w - pad * 2);
       const labelLines = el.label ? wrapToWidth(el.label, fontSize, innerW, 4) : [];
       const fill = el.fill ? ` fill="${esc(el.color)}" fill-opacity="0.15"` : ' fill="none"';
-      const labelFill = el.labelColor ?? el.color;
+      const isLightFill = el.fill && ["#e4e4e7","#6ea8fe","#f2b8c6","#34c38e","#a78bfa","#e8b955"].includes(el.color);
+  const labelFill = el.labelColor ?? (isLightFill ? "#0f172a" : el.color);
       const label =
         labelLines.length > 0
           ? `<text x="${round(textX)}" y="${round(el.y + el.h / 2)}" text-anchor="${anchor}" dominant-baseline="middle" font-size="${fontSize}" fill="${esc(labelFill)}">${labelLines

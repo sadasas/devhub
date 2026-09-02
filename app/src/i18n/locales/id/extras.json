@@ -204,6 +204,26 @@
       "gitflow": {
         "name": "Gitflow",
         "desc": "Model branching (main / develop / feature / hotfix)"
+      },
+      "architecture": {
+        "name": "Arsitektur",
+        "desc": "Service, DB, boundary — untuk peta sistem"
+      },
+      "workflow": {
+        "name": "Alur Kerja",
+        "desc": "Lanes & langkah — untuk Order-ke-3PL"
+      },
+      "sequence": {
+        "name": "Sekuens",
+        "desc": "Partisipan & pesan — untuk panggilan API"
+      },
+      "dataflow": {
+        "name": "Alur Data",
+        "desc": "Stage & lineage — untuk PII & ETL"
+      },
+      "lifecycle": {
+        "name": "Siklus Hidup",
+        "desc": "State & transisi — untuk status order"
       }
     }
   },

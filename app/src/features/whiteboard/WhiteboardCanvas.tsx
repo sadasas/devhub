@@ -43,6 +43,7 @@ import {
   refCardLayout,
   refCardRect,
   screenToWorld,
+  worldToScreen,
   shapePath,
   snapToGrid,
   truncateToWidth,
@@ -434,7 +435,8 @@ const ElementView = memo(function ElementView({
         const innerW = Math.max(24, el.w - pad * 2);
         const labelLines = el.label ? wrapToWidth(el.label, fontSize, innerW, 4) : [];
         const rot = el.rotation ? `rotate(${el.rotation}, ${el.x + el.w / 2}, ${el.y + el.h / 2})` : undefined;
-        const labelFill = el.labelColor ?? el.color;
+        const isLightFill = el.fill && ["#e4e4e7","#6ea8fe","#f2b8c6","#34c38e","#a78bfa","#e8b955"].includes(el.color);
+        const labelFill = el.labelColor ?? (isLightFill ? "#0f172a" : el.color);
         const anchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
         const textX = align === 'left' ? el.x + pad : align === 'right' ? el.x + el.w - pad : el.x + el.w / 2;
         return (
@@ -556,7 +558,7 @@ const ElementView = memo(function ElementView({
             />
             {el.label && (() => {
               const fontSize = el.fontSize ?? 12;
-              const labelColor = (el as { labelColor?: string | null }).labelColor ?? '#e4e4e7';
+              const labelColor = (el as { labelColor?: string | null }).labelColor ?? '#f1f5f9';
               const chipW = Math.min(el.label.length * 7.5 + 12, Math.max(20, el.w - 12));
               return (
                 <g transform={`translate(${el.x + 6}, ${el.y + 6})`}>
@@ -1319,7 +1321,11 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         const off = dragOffset ?? { dx: 0, dy: 0 };
         const hx = b.x + b.w + off.dx;
         const hy = b.y + b.h + off.dy;
-        if (Math.abs(pt.x - hx) <= 6 && Math.abs(pt.y - hy) <= 6) {
+        // Use screen-space hit test - 20px generous (was 6 world = 1.8px at zoom 0.3)
+        const handleSize = 10 / Math.max(0.3, view.view.s);
+        const screenHandle = worldToScreen(view.view, hx, hy);
+        const screenPt = worldToScreen(view.view, pt.x, pt.y);
+        if (Math.hypot(screenPt.x - screenHandle.x, screenPt.y - screenHandle.y) <= handleSize) {
           resizeRef.current = { startWorld: pt, startW: b.w, startH: b.h, startX: b.x, startY: b.y };
           return;
         }
@@ -1768,16 +1774,27 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
             if (!target || isReadOnly) return null;
             const b = boundsFor(target);
             const off = dragOffset ?? { dx: 0, dy: 0 };
+            const handleSize = 10 / Math.max(0.3, view.view.s);
             return (
               <rect
-                x={b.x + b.w + off.dx - 5}
-                y={b.y + b.h + off.dy - 5}
-                width={10}
-                height={10}
+                x={b.x + b.w + off.dx - handleSize / 2}
+                y={b.y + b.h + off.dy - handleSize / 2}
+                width={handleSize}
+                height={handleSize}
                 fill="var(--accent)"
                 stroke="var(--bg-base)"
-                strokeWidth={1.5}
+                strokeWidth={1.5 / view.view.s}
                 style={{ cursor: 'nwse-resize' }}
+                pointerEvents="all"
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  (e.currentTarget as Element).setPointerCapture?.((e as any).pointerId);
+                  const svg = view.ref.current;
+                  if (!svg) return;
+                  const rect = svg.getBoundingClientRect();
+                  const pt = screenToWorld(view.view, e.clientX - rect.left, e.clientY - rect.top);
+                  resizeRef.current = { startWorld: pt, startW: b.w, startH: b.h, startX: b.x, startY: b.y };
+                }}
                 data-testid="wb-resize-handle"
               />
             );

@@ -204,6 +204,26 @@
       "gitflow": {
         "name": "Gitflow",
         "desc": "Branching model (main / develop / feature / hotfix)"
+      },
+      "architecture": {
+        "name": "Architecture",
+        "desc": "Services, DB, boundaries — for system maps"
+      },
+      "workflow": {
+        "name": "Workflow",
+        "desc": "Lanes & steps — for Order-to-3PL, CI/CD"
+      },
+      "sequence": {
+        "name": "Sequence",
+        "desc": "Participants & messages — for API calls"
+      },
+      "dataflow": {
+        "name": "Dataflow",
+        "desc": "Stages & lineage — for PII & ETL"
+      },
+      "lifecycle": {
+        "name": "Lifecycle",
+        "desc": "States & transitions — for order status"
       }
     }
   },

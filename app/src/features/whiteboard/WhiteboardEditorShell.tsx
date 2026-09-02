@@ -627,6 +627,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
             <span>{t('whiteboard.viewer.banner')}</span>
           </div>
         )}
+
       </div>
 
       <div className="wb-main">
@@ -755,3 +756,6 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
     </div>
   );
 }
+
+
+
