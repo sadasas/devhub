@@ -18,7 +18,7 @@ export function EmptyState({ icon, title, description, action, doodle, doodleTon
       ) : (
         <div className="empty-state-icon">{icon}</div>
       )}
-      <h3 className="empty-state-title">{title}</h3>
+      <h2 className="empty-state-title">{title}</h2>
       {description && <p className="empty-state-desc">{description}</p>}
       {action && <div className="empty-state-action">{action}</div>}
     </div>

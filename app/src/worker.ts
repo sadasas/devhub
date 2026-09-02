@@ -11,6 +11,7 @@ export default {
     const isApi =
       url.pathname.startsWith('/api/') ||
       url.pathname.startsWith('/mcp') ||
+      url.pathname.startsWith('/oauth/') ||
       url.pathname === '/health' ||
       url.pathname.startsWith('/.well-known/');
 

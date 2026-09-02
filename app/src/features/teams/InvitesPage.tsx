@@ -55,7 +55,7 @@ export function InvitesPage() {
       <header className="page-header">
         <div>
           <button type="button" className="back-btn" onClick={() => navigate('/')}>
-            <ArrowLeft size={14} aria-hidden="true" />
+            <ArrowLeft size={18} weight="bold" aria-hidden="true" />
             {t('teams.backToDashboard')}
           </button>
           <h1 className="page-title">{t('teams.invites.title')}</h1>
@@ -71,7 +71,7 @@ export function InvitesPage() {
       ) : invitations.length === 0 ? (
         <div className="page-empty">
           <EmptyState
-            icon={<Envelope size={22} />}
+            icon={<Envelope size={24} weight="duotone" />}
             title={t('teams.invites.emptyTitle')}
             description={t('teams.invites.emptyDescription')}
           />
@@ -93,14 +93,14 @@ export function InvitesPage() {
             </div>
             <div className="data-row-side">
               <Button
-                size="sm"
+                size="md"
                 loading={busyId === inv.id}
                 onClick={() => void onAccept(inv.id, inv.teamId)}
               >
                 {t('teams.invites.accept')}
               </Button>
               <Button
-                size="sm"
+                size="md"
                 variant="ghost"
                 className="text-danger"
                 loading={busyId === inv.id}
@@ -115,7 +115,7 @@ export function InvitesPage() {
 
       {invitations.length > 0 && (
         <div className="page-footer">
-          <Button variant="ghost" size="sm" onClick={() => void refresh()}>
+          <Button variant="ghost" size="md" onClick={() => void refresh()}>
             {t('teams.invites.refresh')}
           </Button>
         </div>
