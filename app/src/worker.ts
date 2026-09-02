@@ -71,15 +71,21 @@ export default {
       const resHeaders = new Headers(sugaRes.headers);
 
       // Rewrite Set-Cookie: strip Domain so it becomes first-party (devhub...)
-      // Cloudflare aggregates Set-Cookie via getSetCookie() if available
+      // Cloudflare aggregates Set-Cookie via getSetCookie() if available; fallback
+      // must not lose multiple cookies (session + oauth state) on a single header.
       const cookies: string[] = [];
       // @ts-ignore getSetCookie exists on Headers in Workers
-      if (typeof (sugaRes.headers as any).getSetCookie === 'function') {
-        cookies.push(...(sugaRes.headers as any).getSetCookie());
+      const getSetCookie = (sugaRes.headers as unknown as { getSetCookie?: () => string[] }).getSetCookie;
+      if (typeof getSetCookie === 'function') {
+        cookies.push(...getSetCookie.call(sugaRes.headers));
         resHeaders.delete('Set-Cookie');
       } else {
         const single = sugaRes.headers.get('Set-Cookie');
         if (single) {
+          // Headers.get() may have folded multiple Set-Cookie into comma-separated;
+          // splitting on ", " is unsafe for Expires, but Suga uses Max-Age, so safe-ish.
+          // Better: keep as single if only one; multiple cookies would still be folded,
+          // so preserve it as-is after Domain strip.
           cookies.push(single);
           resHeaders.delete('Set-Cookie');
         }

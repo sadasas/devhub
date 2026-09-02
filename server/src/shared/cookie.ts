@@ -28,7 +28,7 @@ export function setOAuthStateCookie(
   const payload = Buffer.from(JSON.stringify({ state, codeVerifier, returnTo, intent })).toString('base64url');
   res.cookie(`${OAUTH_STATE_COOKIE_PREFIX}${provider}`, payload, {
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: config.NODE_ENV === 'production' ? 'none' : 'lax',
     secure: config.COOKIE_SECURE,
     maxAge: OAUTH_STATE_TTL_MS,
     path: '/',
@@ -39,7 +39,7 @@ export function clearOAuthStateCookie(res: Response, provider: 'google' | 'githu
   res.clearCookie(`${OAUTH_STATE_COOKIE_PREFIX}${provider}`, {
     path: '/',
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: config.NODE_ENV === 'production' ? 'none' : 'lax',
     secure: config.COOKIE_SECURE,
   });
 }
