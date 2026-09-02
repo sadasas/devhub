@@ -47,7 +47,7 @@ Solo operation: the operator is on-call 24/7. This document defines **what count
 ### 3.3 Diagnose (after stabilization)
 
 - Root-cause from logs (structured JSON lines, grep by time window).
-- For security incidents: check auth logs, rate-limit hits, MCP access logs (`mcp_keys.last_used_at`); rotate `JWT_SECRET`, revoke exposed MCP keys (`DELETE /api/keys/:id`), rotate DB credentials.
+- For security incidents: check auth logs, rate-limit hits, MCP access logs (`oauth_access_tokens.expires_at` / `oauth_clients`); rotate `JWT_SECRET`, revoke exposed OAuth clients (`DELETE /oauth/authorized-apps/:clientId` or `POST /oauth/revoke`), rotate DB credentials.
 - Never jump to conclusions; write findings in the postmortem.
 
 ### 3.4 Resolve & Recover

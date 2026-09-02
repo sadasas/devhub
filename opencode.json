@@ -3,8 +3,9 @@
   "mcp": {
     "devhub": {
       "type": "remote",
-      "url": "http://localhost:3000/mcp",
+      "url": "https://devhub.nrawangbatin.my.id/mcp",
       "enabled": true
     }
   }
 }
+// OAuth — run: opencode mcp auth devhub (browser login, token auto-rotated; scopes mcp / mcp:read / mcp:write)

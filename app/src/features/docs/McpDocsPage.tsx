@@ -346,9 +346,13 @@ function getMcpUrl(): string {
   const raw =
     (import.meta.env.VITE_API_URL as string | undefined) ||
     (typeof window !== 'undefined' ? window.location.origin : '');
-  const base = raw.replace(/\/+$/, '');
-  if (!base) return 'http://localhost:3000/mcp';
-  return `${base}/mcp`;
+  // VITE_API_URL is often https://host/api/v1 — MCP lives at /mcp, not /api/v1/mcp
+  const stripped = raw.replace(/\/api\/v1\/?$/i, '').replace(/\/+$/, '');
+  if (!stripped) return 'http://localhost:3000/mcp';
+  // If raw was already an origin or unknown path, keep it; otherwise use stripped origin
+  // Safer to drop query/hash and keep origin when VITE_API_URL ends with /api/v1
+  if (/\/api\/v1\/?$/i.test(raw)) return `${stripped}/mcp`;
+  return `${stripped}/mcp`;
 }
 
 function getInitialAgent(): AgentId {
@@ -657,8 +661,7 @@ export function McpDocsPage() {
       "enabled": true
     }
   }
-}
-// then: opencode mcp auth devhub  -> browser -> login -> token auto-rotated`,
+}`,
           },
         ],
       },
@@ -826,6 +829,87 @@ export function McpDocsPage() {
           <AgentPicker selected={agent} onSelect={setAgent} />
 
           <div className="docs-body">
+            {/* 00 How it connects — DI MCP (moved from DocsPage overview) */}
+            <section id="mcp-how-it-connects" className="docs-section" tabIndex={-1}>
+              <h2 className="docs-section-title">{t('docs.hub.diagramTitle', { defaultValue: 'How it connects' })}</h2>
+              <p className="docs-step-desc" style={{ marginBottom: 12 }}>
+                {t('docs.hub.diagramCaption', {
+                  defaultValue: 'Browser & agents → Streamable HTTP → Postgres. Agents and browser share the same API.',
+                })}
+              </p>
+              <figure className="docs-diagram" aria-labelledby="mcp-diagram-title" style={{ marginTop: 8 }}>
+                <figcaption id="mcp-diagram-title" className="sr-only">
+                  {t('docs.hub.diagramCaption')}
+                </figcaption>
+                <div className="docs-diagram-card" role="img" aria-label={t('docs.hub.diagramCaption')}>
+                  <svg
+                    viewBox="0 0 720 140"
+                    width="100%"
+                    height="140"
+                    preserveAspectRatio="xMidYMid meet"
+                    aria-hidden="true"
+                    className="docs-diagram-svg"
+                  >
+                    <defs>
+                      <marker
+                        id="mcp-docs-arrow"
+                        viewBox="0 0 10 10"
+                        refX="8"
+                        refY="5"
+                        markerWidth="6"
+                        markerHeight="6"
+                        orient="auto-start-reverse"
+                      >
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent)" />
+                      </marker>
+                    </defs>
+                    <g>
+                      <rect x="12" y="36" width="150" height="68" rx="12" fill="var(--bg-elevated)" stroke="var(--border-hairline)" />
+                      <text x="87" y="62" textAnchor="middle" fontSize="12" fontWeight="600" fill="var(--text-primary)" fontFamily="var(--font-sans)">
+                        {t('docs.hub.browserLabel', { defaultValue: 'Browser' })}
+                      </text>
+                      <text x="87" y="80" textAnchor="middle" fontSize="10" fill="var(--text-muted)" fontFamily="var(--font-mono)">
+                        {t('docs.hub.agentLabel', { defaultValue: 'Agent' })}
+                      </text>
+                    </g>
+                    <line x1="162" y1="70" x2="228" y2="70" stroke="var(--accent)" strokeWidth="1.8" markerEnd="url(#mcp-docs-arrow)" />
+                    <g>
+                      <rect x="228" y="24" width="264" height="92" rx="12" fill="var(--bg-elevated)" stroke="var(--border-hairline)" />
+                      <text x="360" y="58" textAnchor="middle" fontSize="12" fontWeight="600" fill="var(--text-primary)" fontFamily="var(--font-mono)">
+                        {t('docs.hub.mcpLabel', { defaultValue: 'POST /mcp' })}
+                      </text>
+                      <text x="360" y="76" textAnchor="middle" fontSize="10" fill="var(--text-muted)" fontFamily="var(--font-mono)">
+                        {t('docs.hub.transportLabel', { defaultValue: 'Streamable HTTP' })}
+                      </text>
+                      <text x="360" y="92" textAnchor="middle" fontSize="9" fill="var(--text-muted)" fontFamily="var(--font-mono)">
+                        {mcpUrl}
+                      </text>
+                    </g>
+                    <line x1="492" y1="70" x2="560" y2="70" stroke="var(--accent)" strokeWidth="1.8" markerEnd="url(#mcp-docs-arrow)" />
+                    <g>
+                      <rect x="560" y="36" width="148" height="68" rx="12" fill="var(--bg-elevated)" stroke="var(--border-hairline)" />
+                      <text x="634" y="62" textAnchor="middle" fontSize="12" fontWeight="600" fill="var(--text-primary)" fontFamily="var(--font-sans)">
+                        {t('docs.hub.postgresLabel', { defaultValue: 'Postgres' })}
+                      </text>
+                      <text x="634" y="80" textAnchor="middle" fontSize="10" fill="var(--text-muted)" fontFamily="var(--font-mono)">
+                        Postgres
+                      </text>
+                    </g>
+                  </svg>
+                  <p className="docs-diagram-meta">
+                    <span className="docs-diagram-label">{t('docs.hub.apiUrlLabel', { defaultValue: 'API URL' })}:</span>{' '}
+                    <code className="inline-code">{mcpUrl}</code>
+                  </p>
+                </div>
+              </figure>
+            </section>
+
+            {/* Phase A — Setup (long page) */}
+            <div className="docs-phase-header" aria-hidden="true">
+              <span className="docs-phase-kicker">Phase 1 — Setup</span>
+              <span className="docs-phase-title">Hubungkan agent ke DevHub</span>
+            </div>
+
             {/* Prereqs */}
             <section id="mcp-prereq" className="docs-prereq" tabIndex={-1}>
               <h2 className="docs-section-title">{t('docs.mcp.toc.prereq')}</h2>
@@ -853,7 +937,7 @@ export function McpDocsPage() {
                 Endpoint: <code className="inline-code">POST {mcpUrl}</code>
                 {apiUrl ? (
                   <span style={{ marginLeft: 6, color: 'var(--text-muted)', fontSize: 12 }}>
-                    ({apiUrl}/mcp — Streamable HTTP, Bearer per-user key)
+                    ({apiUrl}/mcp — Streamable HTTP, OAuth Bearer — scopes mcp / mcp:read / mcp:write)
                   </span>
                 ) : null}
               </p>
@@ -966,15 +1050,23 @@ export function McpDocsPage() {
                     </Callout>
                   ) : null}
 
-                  <Callout>
+                  <Callout tone="success">
                     <span>
-                      OAuth — run <code className="inline-code">opencode mcp auth devhub</code> (browser login, token auto-rotated).
-                      Ensure <code className="inline-code">enabled: true</code>.
+                      <strong>Next:</strong> jalankan <code className="inline-code">opencode mcp auth devhub</code> → browser → login via
+                      form custom → token auto-rotated &amp; disimpan di{' '}
+                      <code className="inline-code">~/.local/share/opencode/mcp-auth.json</code>. Pastikan{' '}
+                      <code className="inline-code">enabled: true</code>.
                     </span>
                   </Callout>
                 </div>
               </div>
             </section>
+
+            {/* Phase B — References (still long page, not collapsible) */}
+            <div className="docs-phase-header" aria-hidden="true">
+              <span className="docs-phase-kicker">Phase 2 — Reference</span>
+              <span className="docs-phase-title">Cara kerja &amp; batas</span>
+            </div>
 
             {/* 05 OAuth — public flow */}
             <section id="mcp-oauth" className="docs-step" tabIndex={-1}>
@@ -1001,21 +1093,6 @@ export function McpDocsPage() {
                     <code className="inline-code">resource_metadata</code> on 401.
                   </p>
                 </div>
-                <CodeBlock
-                  lang="JSON"
-                  file="opencode.json"
-                  code={`{
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "devhub": {
-      "type": "remote",
-      "url": "${mcpUrl}",
-      "enabled": true
-    }
-  }
-}
-// then: opencode mcp auth devhub  -> browser -> login -> token auto-rotated`}
-                />
               </div>
             </section>
 
@@ -1047,6 +1124,12 @@ export function McpDocsPage() {
                 </p>
               </div>
             </section>
+
+            {/* Phase C — Run (long page, sticky) */}
+            <div className="docs-phase-header" aria-hidden="true">
+              <span className="docs-phase-kicker">Phase 3 — Run</span>
+              <span className="docs-phase-title">Restart &amp; verifikasi</span>
+            </div>
 
             {/* 07 Restart */}
             <section id="mcp-restart" className="docs-step" tabIndex={-1}>
@@ -1181,6 +1264,12 @@ export function McpDocsPage() {
                 </ul>
               </div>
             </section>
+
+            {/* Phase D — Automate (long page) */}
+            <div className="docs-phase-header" aria-hidden="true">
+              <span className="docs-phase-kicker">Phase 4 — Automate</span>
+              <span className="docs-phase-title">Agent auto-sync</span>
+            </div>
 
             {/* 09 Auto prompt — 5 variant tabs */}
             <section id="mcp-auto-prompt" className="docs-step" tabIndex={-1}>

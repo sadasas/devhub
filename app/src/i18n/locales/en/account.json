@@ -270,7 +270,7 @@
       "readGuide": "Read the MCP guide"
     },
     "error": {
-      "load": "Failed to load API keys.",
+      "load": "Failed to load authorized apps.",
       "revoke": "Failed to revoke key.",
       "copy": "Failed to copy key.",
       "create": "Failed to create key."
@@ -294,7 +294,7 @@
       "capWarning": "You have {{active}} of {{max}} active keys — the maximum is {{max}}. Revoke an unused key before creating another.",
       "copyNow": "Copy this key now — it is shown only once.",
       "copyKey": "Copy key",
-      "envVarAria": "Copy as DEVHUB_MCP_KEY environment variable",
+      "envVarAria": "Copy OAuth token (from opencode mcp-auth.json)",
       "envVarTitle": "Copy as env var",
       "loseNote": "If you lose it, you can copy it again later from the API keys list.",
       "nextSteps": "Next steps — test it against your MCP server:",

@@ -28,9 +28,7 @@ export function DocsPage() {
   const { t } = useTranslation('extras');
   const location = useLocation();
 
-  const apiUrl =
-    (import.meta.env.VITE_API_URL as string | undefined) ||
-    (typeof window !== 'undefined' ? window.location.origin : '');
+  void (import.meta.env.VITE_API_URL as string | undefined);
 
   useEffect(() => {
     if (!location.hash) return;
@@ -125,75 +123,6 @@ export function DocsPage() {
                 </Link>
               </div>
             </section>
-
-            <figure className="docs-diagram" aria-labelledby="docs-diagram-title">
-              <figcaption id="docs-diagram-title" className="docs-diagram-title">
-                {t('docs.hub.diagramTitle')}
-              </figcaption>
-              <div className="docs-diagram-card" role="img" aria-label={t('docs.hub.diagramCaption')}>
-                <svg
-                  viewBox="0 0 720 140"
-                  width="100%"
-                  height="140"
-                  preserveAspectRatio="xMidYMid meet"
-                  aria-hidden="true"
-                  className="docs-diagram-svg"
-                >
-                  <defs>
-                    <marker id="docs-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent)" />
-                    </marker>
-                  </defs>
-
-                  {/* Browser box */}
-                  <g>
-                    <rect x="12" y="36" width="150" height="68" rx="12" fill="var(--bg-elevated)" stroke="var(--border-hairline)" />
-                    <text x="87" y="62" textAnchor="middle" fontSize="12" fontWeight="600" fill="var(--text-primary)" fontFamily="var(--font-sans)">
-                      {t('docs.hub.browserLabel')}
-                    </text>
-                    <text x="87" y="80" textAnchor="middle" fontSize="10" fill="var(--text-muted)" fontFamily="var(--font-mono)">
-                      {t('docs.hub.agentLabel')}
-                    </text>
-                  </g>
-
-                  {/* Arrow 1 */}
-                  <line x1="162" y1="70" x2="228" y2="70" stroke="var(--accent)" strokeWidth="1.8" markerEnd="url(#docs-arrow)" />
-
-                  {/* MCP box */}
-                  <g>
-                    <rect x="228" y="24" width="264" height="92" rx="12" fill="var(--bg-elevated)" stroke="var(--border-hairline)" />
-                    <text x="360" y="58" textAnchor="middle" fontSize="12" fontWeight="600" fill="var(--text-primary)" fontFamily="var(--font-mono)">
-                      {t('docs.hub.mcpLabel')}
-                    </text>
-                    <text x="360" y="76" textAnchor="middle" fontSize="10" fill="var(--text-muted)" fontFamily="var(--font-mono)">
-                      {t('docs.hub.transportLabel')}
-                    </text>
-                    <text x="360" y="92" textAnchor="middle" fontSize="9" fill="var(--text-muted)" fontFamily="var(--font-mono)">
-                      {apiUrl ? `${apiUrl.replace(/\/$/, '')}/mcp` : '/mcp'}
-                    </text>
-                  </g>
-
-                  {/* Arrow 2 */}
-                  <line x1="492" y1="70" x2="560" y2="70" stroke="var(--accent)" strokeWidth="1.8" markerEnd="url(#docs-arrow)" />
-
-                  {/* Postgres box */}
-                  <g>
-                    <rect x="560" y="36" width="148" height="68" rx="12" fill="var(--bg-elevated)" stroke="var(--border-hairline)" />
-                    <text x="634" y="62" textAnchor="middle" fontSize="12" fontWeight="600" fill="var(--text-primary)" fontFamily="var(--font-sans)">
-                      {t('docs.hub.postgresLabel')}
-                    </text>
-                    <text x="634" y="80" textAnchor="middle" fontSize="10" fill="var(--text-muted)" fontFamily="var(--font-mono)">
-                      Postgres
-                    </text>
-                  </g>
-                </svg>
-                <p className="docs-diagram-caption">{t('docs.hub.diagramCaption')}</p>
-                <p className="docs-diagram-meta">
-                  <span className="docs-diagram-label">{t('docs.hub.apiUrlLabel')}:</span>{' '}
-                  <code className="inline-code">{apiUrl ? `${apiUrl.replace(/\/$/, '')}/mcp` : '/mcp'}</code>
-                </p>
-              </div>
-            </figure>
 
             <section id="quickstart" className="docs-section" tabIndex={-1}>
               <h2 className="docs-section-title">{t('docs.quickstart.title')}</h2>

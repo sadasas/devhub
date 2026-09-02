@@ -170,24 +170,26 @@ Base { id: string (UUID), createdAt: ISO, updatedAt: ISO, authorId?: string }
 
 ### 3.4 MCP Tools
 
-| Tool | Signature (brief) |
-|---|---|
-| `project_state` | (projectId) → full state |
-| `update_prd` | (projectId, {purpose, goals, features, scope, outOfScope}) → PRD |
-| `plan_project` | (projectId, brief) → tasks + estimates + milestones |
-| `create_task` | (projectId, task) → task |
-| `update_task` | (projectId, taskId, {status, actualHours}) → task |
-| `add_issue` | (projectId, issue) → issue |
-| `update_issue` | (projectId, issueId, {status, severity, linkedTaskId}) → issue |
-| `add_decision` | (projectId, adr) → adr |
-| `add_milestone` | (projectId, name, {status, version, targetDate, changelog}) → milestone |
-| `update_milestone` | (projectId, milestoneId, {changelog, status}) → milestone |
-| `add_table` | (projectId, name, columns[]) → table |
-| `add_relation` | (projectId, tableIds, columnIds, cardinality) → relation (duplicates rejected) |
-| `delete_relation` | (projectId, relationId) → deleted relation |
-| `add_tech` | (projectId, name, version, category) → tech entry |
-| `add_test_case` | (projectId, name, taskId?, issueId?, steps?, expected?, status?) → test case |
-| `update_test_case` | (projectId, testCaseId, {name, status, steps, expected, taskId, issueId}) → test case |
+Auth: OAuth 2.1 PKCE bearer (`scope mcp` / `mcp:read` / `mcp:write`) — `opencode mcp auth devhub` (see [MCP Guide](../03-engineering/mcp-integration.md)).
+
+| Tool | Signature (brief) | Scope |
+|---|---|---|
+| `project_state` | (projectId) → full state | `mcp` or `mcp:read` |
+| `update_prd` | (projectId, {purpose, goals, features, scope, outOfScope}) → PRD | `mcp` / `mcp:write` |
+| `plan_project` | (projectId, brief) → tasks + estimates + milestones | `mcp` or `mcp:read` |
+| `create_task` | (projectId, task) → task | `mcp` / `mcp:write` |
+| `update_task` | (projectId, taskId, {status, actualHours}) → task | `mcp` / `mcp:write` |
+| `add_issue` | (projectId, issue) → issue | `mcp` / `mcp:write` |
+| `update_issue` | (projectId, issueId, {status, severity, linkedTaskId}) → issue | `mcp` / `mcp:write` |
+| `add_decision` | (projectId, adr) → adr | `mcp` / `mcp:write` |
+| `add_milestone` | (projectId, name, {status, version, targetDate, changelog}) → milestone | `mcp` / `mcp:write` |
+| `update_milestone` | (projectId, milestoneId, {changelog, status}) → milestone | `mcp` / `mcp:write` |
+| `add_table` | (projectId, name, columns[]) → table | `mcp` / `mcp:write` |
+| `add_relation` | (projectId, tableIds, columnIds, cardinality) → relation (duplicates rejected) | `mcp` / `mcp:write` |
+| `delete_relation` | (projectId, relationId) → deleted relation | `mcp` / `mcp:write` |
+| `add_tech` | (projectId, name, version, category) → tech entry | `mcp` / `mcp:write` |
+| `add_test_case` | (projectId, name, taskId?, issueId?, steps?, expected?, status?) → test case | `mcp` / `mcp:write` |
+| `update_test_case` | (projectId, testCaseId, {name, status, steps, expected, taskId, issueId}) → test case | `mcp` / `mcp:write` |
 
 ---
 

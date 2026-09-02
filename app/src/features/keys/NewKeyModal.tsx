@@ -36,9 +36,11 @@ export function NewKeyModal({ open, onClose, onCreated, activeCount = 0 }: NewKe
   const { copied: curlCopied, copy: copyCurl } = useCopyFeedback();
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const curlSnippet = `curl -X POST ${origin}/mcp \\
-  -H "Authorization: Bearer $DEVHUB_MCP_KEY" \\
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'`;
+  const curlSnippet = `TOKEN=$(jq -r .access_token ~/.local/share/opencode/mcp-auth.json)
+curl -s -X POST ${origin}/mcp \\
+  -H "Authorization: Bearer $TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | jq`;
 
   useEffect(() => {
     if (!open) return;
@@ -83,7 +85,7 @@ export function NewKeyModal({ open, onClose, onCreated, activeCount = 0 }: NewKe
 
   async function onCopyEnv() {
     if (!created) return;
-    await copy(`DEVHUB_MCP_KEY="${created.key}"`);
+    await copy(created.key);
   }
 
   async function onCopyCurl() {

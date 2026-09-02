@@ -178,7 +178,7 @@ enum TaskStatus { Todo, InProgress, Review, Done }
 - All handlers async; central error middleware; never throw into Express default handler.
 - SQL: parameterized queries only; transactions for multi-statement ops (e.g., import).
 - Routes: kebab-case paths; consistent error codes (see §7).
-- MCP tools: one file per tool in `server/src/modules/mcp/application/tools/`, each exporting `{ name, schema, handler }`. MCP auth: per-user keys (`server/src/modules/mcp/handlers/require-key.ts` + `modules/keys/infrastructure/keys.ts`); every tool DB access scoped by user via `modules/mcp/application/state-db.ts`. Server layout: modular monolith per bounded context — see ADR-041.
+- MCP tools: one file per tool in `server/src/modules/mcp/application/tools/`, each exporting `{ name, schema, handler }`. MCP auth: OAuth bearer (`server/src/modules/mcp/handlers/require-key.ts` + `modules/oauth/oauth.routes.ts`, scopes `mcp`/`mcp:read`/`mcp:write`); every tool DB access scoped by user via `modules/mcp/application/state-db.ts`. Server layout: modular monolith per bounded context — see ADR-041.
 
 ---
 

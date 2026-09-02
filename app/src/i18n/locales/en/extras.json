@@ -666,7 +666,7 @@
       "apiKeysSub": "OAuth 2.1 PKCE — no API keys",
       "toc": {
         "prereq": "Before you begin",
-        "key": "Create an API key",
+        "key": "Authorize via OAuth",
         "projectId": "Get your project ID",
         "env": "Set the env variable",
         "config": "Create opencode.json",
@@ -685,7 +685,7 @@
         "verifyTitle": "Verify the connection",
         "autoPromptTitle": "Let your agent ask for missing config",
         "agentsyncTitle": "Automate your workflow (agent auto-sync)",
-        "keyDesc": "Create a per-user key in DevHub. The raw key is shown once — save it to {{key}}."
+        "keyDesc": "Authorize via OAuth — run opencode mcp auth devhub and log in via the custom form."
       },
       "prereq": {
         "opencodeStrong": "opencode is installed",
@@ -693,7 +693,7 @@
         "reachableStrong": "DevHub is reachable",
         "reachableDesc": "Check /api/health returns ok before continuing.",
         "loggedInStrong": "You are logged in",
-        "loggedInDesc": "API keys are per-user, so you need an active account.",
+        "loggedInDesc": "OAuth is per-user, so you need an active account and a valid token (opencode mcp auth devhub).",
         "agentStrong": "{{agent}} is installed",
         "agentDesc": "This guide is configured for {{agent}}, but any MCP client works with the same server.",
         "fallbackInstalled": "is installed"
@@ -713,9 +713,9 @@
         "tableSymptom": "Symptom",
         "tableFix": "Fix",
         "row401AllSymptom": "401 on every call",
-        "row401AllFix": "Wrong, expired, or revoked key. Create a new one in API Keys, update DEVHUB_MCP_KEY, restart the client.",
+        "row401AllFix": "Token expired or revoked. Run opencode mcp auth devhub again. Check Profile → Authorized Apps to revoke stale clients.",
         "row401ScopedSymptom": "401 only for some projects",
-        "row401ScopedFix": "Key is user-scoped: it can only access projects owned by the user who created it.",
+        "row401ScopedFix": "Token is user-scoped: it can only access projects owned by / visible to the user who authorized it. For write, ensure scope mcp or mcp:write.",
         "row400Symptom": "400 on tool call (validation error)",
         "row400Fix": "Invalid arguments per zod schema; run project_state to see exact field names.",
         "rowProjectIdSymptom": "Missing/unknown projectId",
@@ -751,7 +751,7 @@
       "env": {
         "powershell": "PowerShell",
         "bash": "bash / zsh",
-        "hint": "Keep the key in env — do not commit it to git."
+        "hint": "Set only DEVHUB_PROJECT_ID (optional). OAuth token is managed by the client — do not commit tokens."
       },
       "projectId": {
         "tip": "Copy the project ID from the header of your project page.",
@@ -823,7 +823,7 @@
       "step2Title": "Get your project ID",
       "step2Desc": "Open a project and copy the ID from the header.",
       "step3Title": "Configure opencode",
-      "step3Desc": "Add the MCP server to opencode.json and set DEVHUB_MCP_KEY.",
+      "step3Desc": "Add the MCP server to opencode.json (no header) — then run opencode mcp auth devhub.",
       "verifyTitle": "Verify",
       "verifyDesc": "Restart opencode and run project_state to confirm the connection.",
       "goToKeys": "OAuth Guide",

@@ -45,7 +45,8 @@
 | [ADR-010](#adr-010) | V1 deploys publicly (multi-user), not local-file mode | Accepted | 2026-08-09 |
 | [ADR-011](#adr-011) | No in-app AI chat UI; AI integration via MCP tools only | Accepted | 2026-08-09 |
 | [ADR-012](#adr-012) | Task dependencies, test cases, milestones promoted to V1 | Accepted | 2026-08-09 |
-| [ADR-013](#adr-013) | MCP auth: per-user API keys, not a shared server secret | Accepted | 2026-08-10 |
+| [ADR-013](#adr-013) | MCP auth: per-user API keys, not a shared server secret | Superseded by [ADR-049](#adr-049) | 2026-08-10 |
+| [ADR-049](#adr-049) | MCP auth: OAuth 2.1 PKCE public — DCR + scoped bearer (no API keys) | Accepted | 2026-09-02 |
 | [ADR-016](#adr-016) | URL-based routing with react-router v7 | Accepted | 2026-08-11 |
 | [ADR-017](#adr-017) | Public read-only project sharing (`/p/:projectId`) | Accepted | 2026-08-12 |
 | [ADR-019](#adr-019) | API docs: collections + endpoints with OpenAPI import/export | Accepted | 2026-08-12 |
@@ -126,7 +127,7 @@
 ### ADR-013
 **MCP auth: per-user API keys, not a shared server secret**
 
-- **Status:** Accepted (2026-08-10)
+- **Status:** Superseded by [ADR-049](#adr-049) (2026-09-02)
 - **Context:** ADR-006 used one global `MCP_API_KEY` env var for all MCP clients. With public multi-user deploy (ADR-010), that meant any holder of the key could read and modify **all** projects of **all** users — the MCP tools did not check `owner_id`, unlike the REST API. The REST side already had per-user identity (`requireAuth` → `req.userId`); MCP had none.
 - **Decision:** MCP access uses per-user API keys:
   - New `mcp_keys` table: `id, user_id (FK → users, ON DELETE CASCADE), name, key_hash (SHA-256 of the raw key — raw key is never stored), prefix, created_at, last_used_at, revoked_at`.
@@ -135,6 +136,7 @@
   - `MCP_API_KEY` env var is removed entirely — no shared backdoor.
 - **Consequences:** Positive — MCP tools are now user-scoped (closes cross-user access); keys can be revoked individually without restarting the server or editing agent configs; per-key `last_used_at` gives an audit trail; key rotation = create new + revoke old. Negative — users must create a key before agents can connect (small onboarding step); an extra table + endpoints to maintain.
 - **Alternatives considered:** Per-project keys (rejected: friction — one key per project to manage, and keys would live in per-repo configs); keeping `MCP_API_KEY` as dev-only fallback (rejected: reintroduces an unscoped access path); admin key alongside per-user keys (rejected: least-privilege violation).
+- **Superseded because:** API keys reintroduced manual secret handling (copy-paste, env leakage via `opencode.json`, no standard revocation UX). OAuth 2.1 PKCE with DCR + bearer rotation removes manual secrets, adds scoped tokens (`mcp`/`mcp:read`/`mcp:write`), and uses the same session login agents already know. See ADR-049.
 
 ### ADR-007
 **Zero UI runtime dependencies except @phosphor-icons/react**
@@ -634,4 +636,23 @@
   - **Frontend (`app/src/features/auth/AuthPage.tsx`):** `useEffect` `api.getProviders()` public → state `{google,github}`; di atas form render tombol `Continue with Google/GitHub` (`/api/v1/auth/google?returnTo=` preserve, `GithubLogo`/`GoogleLogo` phosphor) + divider `or`, error `oauth_error` dari URL via `getOAuthError()`. `app/src/lib/api.ts:174-180` `getProviders/getLinked/unlinkProvider`. `ProfilePage.tsx` security tab → panel Connected accounts (2 `settings-action` cards, `returnToProfile` = `origin/profile?tab=security`, Connect → redirect, Linked → email + Unlink with confirm + `refresh()`), avatar sync (`img` if `avatarUrl` else initials), chips `Google/GitHub/OAuth only`. `state/auth-context.tsx` tambah `refresh()` (`api.me`).
   - **Hardening:** `isValidReturnTo` allowlist, state+PKCE 10m httpOnly Lax, `redirect_uri` exact `${baseUrl(req)}/api/v1/auth/<provider>/callback`, rateLimit social 20/15m, `hashMcpKey` key-limiter MCP tetap, `mcpKey` dual bearer tidak tersentuh (MCP OAuth outbound terpisah).
 - **Consequences:** Positive — custom tetap primary, OAuth additive tanpa breaking; auto-link aman verified-only; `providers` public menghilangkan flicker pre-login; avatar sync + guard prevent lockout; linking saat logged-in via session-aware branch; no dep baru (0 npm). Negative — `password_hash` nullable menambah branch di login/password; GitHub private email tanpa primary verified → `400 EMAIL_NOT_AVAILABLE`; `returnTo` https-wide masih broad (tradeoff MCP authorize deep-link vs strict allowlist); `api.me` + `api.getProviders` = 2 request di boot AuthPage (dapat diparalel).
-- **Alternatives:** `passport-google-oauth20/passport-github2` (ditolak: session + heavier, tidak PKCE native); `arctic@3` (ditolak: deprecated @oslojs/*); kolom `users.google_id/github_id` (ditolak: tidak extensible, normalized `oauth_accounts` lebih bersih); auto-link tanpa verified (ditolak: takeover via unverified provider email); `/providers` auth-required (ditolak: tombol tidak muncul pre-login). 
+- **Alternatives:** `passport-google-oauth20/passport-github2` (ditolak: session + heavier, tidak PKCE native); `arctic@3` (ditolak: deprecated @oslojs/*); kolom `users.google_id/github_id` (ditolak: tidak extensible, normalized `oauth_accounts` lebih bersih); auto-link tanpa verified (ditolak: takeover via unverified provider email); `/providers` auth-required (ditolak: tombol tidak muncul pre-login).
+
+---
+
+### ADR-049
+**MCP auth: OAuth 2.1 PKCE public — DCR + scoped bearer (no API keys)**
+
+- **Status:** Accepted (2026-09-02) — M OAuth v0.31.0
+- **Context:** ADR-013 mengganti shared `MCP_API_KEY` dengan per-user API keys (`mcp_keys`, `POST /api/keys`, `DEVHUB_MCP_KEY`). Itu menutup cross-user access tapi reintroduce manual secret handling: raw key tampil sekali, disimpan di env/shell, bocor via `opencode.json` literal (audit 2026-08b SEC-1, `gitleaks.toml` + `githooks/pre-commit`), rotasi manual (`DELETE /api/keys/:id`), dan tidak ada konsep scope. Sementara server sudah memiliki OAuth **outbound** sebagai Authorization Server untuk MCP (`server/src/modules/oauth/oauth.routes.ts:30-323`, RFC 8414 discovery `/.well-known/oauth-authorization-server`, RFC 9728 `/.well-known/oauth-protected-resource` + `WWW-Authenticate: resource_metadata`, DCR RFC 7591 `POST /oauth/register`, PKCE S256 `GET /oauth/authorize` + `POST /oauth/token`, refresh rotation, `oauth_clients`/`oauth_authorization_codes`/`oauth_access_tokens`) yang awalnya berdampingan dengan API key (`requireMcpKey` dual bearer). Inbound social login (ADR-048, `oauth_accounts`, `password_hash` nullable) menambah kebingungan inbound vs outbound. Kebutuhan: satu flow standar tanpa manual key, scoped, auto-refresh, dan UX yang sama dengan social login (browser → custom form).
+- **Decision:**
+  - **Auth model:** MCP **hanya OAuth 2.1 PKCE public client**. `mcp_keys` + `POST /api/keys` + `DEVHUB_MCP_KEY` + `Api Keys` page dihapus total dari docs dan UI (kode legacy tetap ada untuk migrasi DB tapi tidak terdokumentasi). Semua agent pakai `Authorization: Bearer <access_token>` hasil PKCE.
+  - **Flow:** `GET /.well-known/oauth-authorization-server` + `/.well-known/oauth-protected-resource` (resource = `https://devhub.nrawangbatin.my.id/mcp`) → `POST /oauth/register` (DCR, `redirect_uris`, `token_endpoint_auth_method: none`) → `GET /oauth/authorize?code_challenge` (session cookie, auto-approve) → `POST /oauth/token` (`authorization_code` + `code_verifier` → `access_token` 15m + `refresh_token` 30d) → `POST /oauth/token` (`refresh_token` rotation: old row `DELETE`, new pair).
+  - **Scopes:** `mcp` (default, full — `mcp:read + mcp:write`), `mcp:read` (hanya `project_state`/`plan_project`/`list_whiteboards`), `mcp:write` (hanya write tools). Validasi di `requireMcpKey:49` (`mcp` || `mcp:read` || `mcp:write`); `mcp:read` ditolak untuk write, `mcp:write` ditolak untuk `mcp:read`-only enforcement (403 `Insufficient OAuth scope`).
+  - **Middleware:** `requireMcpKey` hapus prioritas key, hanya `oauth_access_tokens` lookup + `expires_at` check + scope gate → `req.userId`; ownership enforcement `state-db.ts` (`owner_id`/`team_members`) identik dengan REST.
+  - **Client config:** tanpa `headers`. `opencode.json` hanya `type: remote, url: https://devhub.nrawangbatin.my.id/mcp, enabled: true` + `opencode mcp auth devhub` (client simpan di `~/.local/share/opencode/mcp-auth.json`, auto-refresh). Sama untuk Claude/Cursor/Windsurf/VS Code/Gemini — hanya `url`/`serverUrl`, no header.
+  - **Management:** `GET /oauth/authorized-apps` + `DELETE /oauth/authorized-apps/:clientId` + `POST /oauth/revoke` gantikan `GET/POST/DELETE /api/keys`. UI di **Profile → Authorized Apps**.
+  - **Ops:** `TRUST_PROXY=true` + `baseUrl` pakai `X-Forwarded-Host/Proto` agar discovery balikan origin publik (`devhub.nrawangbatin.my.id`), bukan `suga.run`. Rate limit `/mcp` 120/15m per IP + 500/15m per token (`mcpKeyLimiter` keyed by token hash).
+- **Consequences:** Positive — nol manual secret, no `DEVHUB_MCP_KEY` leakage, scope least-privilege (`mcp:read` untuk viewer agent), refresh rotation otomatis, re-auth cukup `opencode mcp auth devhub`, satu UX dengan social login. Negative — discovery extra 1-2 request di awal; agent harus support DCR + PKCE (opencode/Claude/Cursor/Windsurf/VS Code/Gemini semua support); token 15m berarti clock skew bisa 401 (client auto-refresh handle). Migrasi: user lama jalankan `opencode mcp auth devhub` sekali, cabut key lama manual via DB jika perlu.
+- **Alternatives:** Keep per-user API keys (ditolak: manual env, leakage, no scope, audit SEC-1 berulang); per-project OAuth client (ditolak: friction 1 client per project); JWT self-contained tanpa DB (ditolak: revocation butuh denylist); hapus scope granular, single `mcp` (ditolak: viewer use-case butuh read-only).
+

@@ -5,7 +5,7 @@
 | **Document status** | Draft (Phase 0) |
 | **Version** | 1.0 |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-10 |
+| **Last updated** | 2026-09-02 |
 | **Related documents** | [PRD](../01-project/prd.md) · [ADR Log](adr.md) · [Security Design](security-design.md) · [MCP Guide](../03-engineering/mcp-integration.md) |
 
 ---
@@ -41,7 +41,7 @@ This document specifies the technical architecture for DevHub V1: system context
                     │  DevHub API Server           │
    AI Agent  ─────► │  Node + Express (server/)    │
    (opencode,       │  • auth  • projects  • state  │
-    Claude...)      │  • export/import • MCP        │
+    Claude...)      │  • export/import • MCP (OAuth)│
                     └──────────────┬───────────────┘
                                    │ pg
                     ┌──────────────▼───────────────┐
@@ -52,7 +52,7 @@ This document specifies the technical architecture for DevHub V1: system context
 
 **Actors:**
 - **Solo Dev (human):** registers, logs in, manages projects via the web app.
-- **AI Agent (machine):** connects to the MCP endpoint with an API key; reads/updates project state.
+- **AI Agent (machine):** connects to the MCP endpoint via OAuth 2.1 PKCE bearer token; reads/updates project state.
 
 **Design note:** The AI agent does **not** read the database or files directly — it only uses MCP tools. This was a locked decision (ADR-003) to keep the data boundary clear.
 
@@ -96,12 +96,12 @@ server/src/
 ├── db/                               # pg Pool + migrations/*.sql
 └── modules/
     ├── auth/            # handlers/ · application/user-stats · infrastructure/jwt+password · middleware/
+    ├── oauth/           # handlers/oauth.routes (DCR, authorize, token, revoke, discovery RFC8414/9728)
     ├── authorization/   # application/authz (role checks, dipakai lintas modul)
     ├── projects/        # handlers/(routes+v1/entity-router) · application/(projectService, entityService) · domain/(state, prd, sharing, hours, entities) · infrastructure/projectRepository
     ├── teams/           # handlers/(teams+chat) · application/(teamService, chat) · domain/chat · infrastructure/teamRepository
     ├── activity/        # handlers/v1/activity · application/activity (+recordActivity)
     ├── search/          # handlers/v1/search · application/search
-    ├── keys/            # handlers/keys · infrastructure/keys+key-crypto
     ├── templates/       # handlers/templates
     ├── public/          # handlers/public
     ├── mcp/             # handlers/(server, require-key) · application/(state-db, context, tools/*) · domain/entity
@@ -112,16 +112,16 @@ server/src/
 
 | Component | Responsibility |
 |---|---|
-| `modules/auth` | register / login / logout; JWT issuance; httpOnly cookie management |
+| `modules/auth` | register / login / logout; JWT issuance; httpOnly cookie management; social linking (`oauth_accounts`) |
+| `modules/oauth` | OAuth 2.1 Authorization Server for MCP: DCR, PKCE authorize, token (code + refresh rotation), revoke, discovery, authorized-apps |
 | `modules/projects` | CRUD project, state JSONB (GET/PUT), export/import, granular entity v1 |
 | `modules/teams` | CRUD team, member & role management, invitations, team chat |
-| `modules/keys` | per-user MCP API keys: create / list / revoke |
-| `modules/mcp` | Model Context Protocol server (streamable HTTP) + tool implementations |
+| `modules/mcp` | Model Context Protocol server (streamable HTTP) + tool implementations (OAuth bearer `scope mcp`/`mcp:read`/`mcp:write`) |
 | `modules/realtime` | WebSocket server, room registry, broadcast diff/activity/sync |
 | `modules/activity` | activity log: diff state → entries, prune, stats feed |
 | `modules/search` | cross-entity search dalam satu project |
 | `shared/` | ApiError, db helpers, logger, id util — tanpa business logic |
-| `db` | pg Pool + migrations (users, teams, projects, invitations, mcp_keys, activity_log, team_messages) |
+| `db` | pg Pool + migrations (users, teams, projects, invitations, oauth_clients/authorization_codes/access_tokens, activity_log, team_messages) |
 
 ### 3.3 Database (PostgreSQL)
 
@@ -132,7 +132,9 @@ server/src/
 | `team_members` | Team membership + role | team_id (FK → teams), user_id (FK → users), role (owner/admin/editor/viewer), joined_at, PK (team_id, user_id) |
 | `projects` | Team-scoped projects | id (UUID PK), team_id (FK → teams, NOT NULL), name, description, status, data (JSONB), created_at, updated_at |
 | `invitations` | Invite flow (email-only, registered users) | id (UUID PK), team_id (FK → teams), email, role, token (UUID, unique), status (pending/accepted/declined), expires_at (7-day TTL), created_by (FK → users), created_at |
-| `mcp_keys` | Per-user MCP API keys | id (UUID PK), user_id (FK → users), name, key_hash (SHA-256, raw key never stored), prefix, created_at, last_used_at, revoked_at |
+| `oauth_clients` | OAuth DCR public clients | client_id (PK), redirect_uris (text[]), client_name, client_uri, created_at |
+| `oauth_authorization_codes` | PKCE authorization codes | code (PK), client_id (FK), user_id (FK → users), redirect_uri, scope, code_challenge, code_challenge_method, resource, expires_at, used_at |
+| `oauth_access_tokens` | Bearer tokens (rotation) | token (PK), client_id (FK), user_id (FK → users), scope, resource, expires_at, refresh_token (unique), refresh_expires_at, created_at |
 
 **Why JSONB?** See ADR-002. The 10-entity state model is a single JSON document per project. Indexed fields: `team_id` (projects), `user_id` (team_members), `email`+`status` (invitations).
 
@@ -202,9 +204,6 @@ Base URL: `/api`. All endpoints JSON. Auth via httpOnly cookie `devhub_session`.
 | POST | `/api/auth/login` | No | Login, set cookie |
 | POST | `/api/auth/logout` | Yes | Clear cookie |
 | GET | `/api/auth/me` | Yes | Current user info |
-| GET | `/api/keys` | Yes | List my **active** MCP API keys (`?page=&perPage=`, revoked hidden — GitHub pattern) |
-| POST | `/api/keys` | Yes | Create an MCP API key (returns raw key once) |
-| DELETE | `/api/keys/:id` | Yes | Revoke an MCP API key |
 | GET | `/api/teams` | Yes | List my teams + my role + member count |
 | POST | `/api/teams` | Yes | Create team (creator becomes owner) |
 | GET | `/api/teams/invitations` | Yes | List my pending invitations |
@@ -226,9 +225,19 @@ Base URL: `/api`. All endpoints JSON. Auth via httpOnly cookie `devhub_session`.
 | PUT | `/api/projects/:id/state` | Yes | Replace state (zod-validated) |
 | GET | `/api/projects/:id/export` | Yes | Download JSON snapshot |
 | POST | `/api/projects/:id/import` | Yes | Import JSON snapshot |
+| GET | `/.well-known/oauth-authorization-server` | No | OAuth discovery (RFC 8414) |
+| GET | `/.well-known/oauth-protected-resource` | No | Protected resource metadata (RFC 9728) |
+| POST | `/oauth/register` | No | DCR — register public client (PKCE) |
+| GET | `/oauth/authorize` | No* | Authorize — `code_challenge` + S256, redirects to login if no session |
+| POST | `/oauth/token` | No | Token — `authorization_code` + `code_verifier` / `refresh_token` (rotation) |
+| POST | `/oauth/revoke` | No | Revoke token |
+| GET | `/oauth/authorized-apps` | Yes | List authorized clients (session) |
+| DELETE | `/oauth/authorized-apps/:clientId` | Yes | Revoke client (session) |
 | GET | `/api/v1/health` | No | Health check (monitoring) |
 
-**Note:** all project state mutations (`PUT /state`, MCP write tools, import restore) require a member role of `owner`/`admin`/`editor`; `viewer` is read-only at both the API and MCP layers.
+`*` `GET /oauth/authorize` requires an active session cookie; otherwise 302 to login with `returnTo`.
+
+**Note:** all project state mutations (`PUT /state`, MCP write tools, import restore) require a member role of `owner`/`admin`/`editor`; `viewer` is read-only at both the API and MCP layers. MCP scopes: `mcp` (full), `mcp:read` (read-only tools), `mcp:write` (write tools).
 
 Versioning contract, request/response examples, and error format: see the in-app API reference (`app/src/features/api/`), the server route contracts under `server/src/api/`, and the zod schemas in `server/src/schema/`.
 
@@ -251,56 +260,58 @@ Versioning contract, request/response examples, and error format: see the in-app
 ### 7.1 Protocol
 
 - **Transport:** Model Context Protocol, streamable HTTP (remote server).
-- **Auth:** per-user API key via `Authorization: Bearer <key>`; keys are created by each user via `POST /api/keys` and stored as SHA-256 hashes in `mcp_keys`; validated on every request and bound to the owning user (see ADR-013).
+- **Auth:** OAuth 2.1 PKCE public client via `Authorization: Bearer <access_token>` — scope `mcp` (full) / `mcp:read` / `mcp:write`. Discovery at `/.well-known/oauth-authorization-server` + `/.well-known/oauth-protected-resource`. DCR at `POST /oauth/register`, authorize `GET /oauth/authorize` (PKCE S256), token `POST /oauth/token` (15m access + 30d refresh rotation). See ADR-049.
 - **Endpoint:** `POST /mcp` (exposed on the same Express server or a dedicated port in production).
-- **Authorization:** every MCP tool access is team-member-scoped exactly like the REST API — a key can only access projects in teams the owning user belongs to, and write tools are rejected for `viewer` role.
+- **Authorization:** every MCP tool access is team-member-scoped exactly like the REST API — a token can only access projects in teams the owning user belongs to, and write tools are rejected for `viewer` role + scope check (`mcp`/`mcp:write`).
 
 ### 7.2 Tools
 
-| Tool | Description |
-|---|---|
-| `project_state` | Returns the full state of a project by id (tasks, issues, milestones, tech stack, schema tables/columns/relations) plus project meta (name, description, status, PRD) |
-| `update_prd` | Edits the product brief (purpose, goals, features, scope, out-of-scope) |
-| `plan_project` | Given a brief, proposes tasks with estimates + milestones (pure suggestion — does not write) |
-| `create_task` | Creates a task (zod-validated) |
-| `update_task` | Updates status and/or actualHours of a task |
-| `add_issue` | Creates an issue |
-| `update_issue` | Updates an issue (status, severity, title, description, reproduction, linked task) |
-| `add_decision` | Creates an ADR decision entry |
-| `add_milestone` | Creates a milestone (default status `planned`) |
-| `update_milestone` | Updates milestone status/changelog |
-| `add_table` | Creates a schema table with columns/indexes |
-| `add_relation` | Creates a schema relation between two tables (rejects identical duplicates) |
-| `delete_relation` | Deletes a schema relation by id |
-| `add_tech` | Creates a tech stack entry |
-| `add_test_case` | Creates a test case (optionally linked to a task or issue) |
-| `update_test_case` | Updates a test case (status, steps, expected, linked task/issue) |
+| Tool | Description | Scope |
+|---|---|---|
+| `project_state` | Returns the full state of a project by id (tasks, issues, milestones, tech stack, schema tables/columns/relations) plus project meta (name, description, status, PRD) | `mcp` or `mcp:read` |
+| `update_prd` | Edits the product brief (purpose, goals, features, scope, out-of-scope) | `mcp` / `mcp:write` |
+| `plan_project` | Given a brief, proposes tasks with estimates + milestones (pure suggestion — does not write) | `mcp` or `mcp:read` |
+| `create_task` | Creates a task (zod-validated) | `mcp` / `mcp:write` |
+| `update_task` | Updates status and/or actualHours of a task | `mcp` / `mcp:write` |
+| `add_issue` | Creates an issue | `mcp` / `mcp:write` |
+| `update_issue` | Updates an issue (status, severity, title, description, reproduction, linked task) | `mcp` / `mcp:write` |
+| `add_decision` | Creates an ADR decision entry | `mcp` / `mcp:write` |
+| `add_milestone` | Creates a milestone (default status `planned`) | `mcp` / `mcp:write` |
+| `update_milestone` | Updates milestone status/changelog | `mcp` / `mcp:write` |
+| `add_table` | Creates a schema table with columns/indexes | `mcp` / `mcp:write` |
+| `add_relation` | Creates a schema relation between two tables (rejects identical duplicates) | `mcp` / `mcp:write` |
+| `delete_relation` | Deletes a schema relation by id | `mcp` / `mcp:write` |
+| `add_tech` | Creates a tech stack entry | `mcp` / `mcp:write` |
+| `add_test_case` | Creates a test case (optionally linked to a task or issue) | `mcp` / `mcp:write` |
+| `update_test_case` | Updates a test case (status, steps, expected, linked task/issue) | `mcp` / `mcp:write` |
 
 All tools return normalized responses with `updatedAt` so agents can detect external changes.
 
 ### 7.3 Example Agent Loop (opencode)
 
 ```
-1. Agent:  mcp__devhub__project_state({ projectId })          → sees current board
-2. Agent:  mcp__devhub__plan_project({ projectId, brief })    → proposes plan
-3. Agent:  mcp__devhub__create_task({...})                    → writes tasks
-4. Agent:  implements code (outside DevHub)
-5. Agent:  mcp__devhub__update_task({ status: "Done", actualHours }) → board updates
-6. Browser: polling GET /state every 5s (tab visible) → UI reflects changes
+1. Agent:  opencode mcp auth devhub                       → OAuth PKCE browser login, token stored + auto-refreshed
+2. Agent:  mcp__devhub__project_state({ projectId })          → sees current board
+3. Agent:  mcp__devhub__plan_project({ projectId, brief })    → proposes plan
+4. Agent:  mcp__devhub__create_task({...})                    → writes tasks
+5. Agent:  implements code (outside DevHub)
+6. Agent:  mcp__devhub__update_task({ status: "Done", actualHours }) → board updates
+7. Browser: WebSocket state:diff/sync → UI reflects changes (polling fallback only)
 ```
 
-Client configuration (opencode.json) — `DEVHUB_MCP_KEY` is a key created by the user via `POST /api/keys`:
+Client configuration (opencode.json) — OAuth, no header:
 
 ```jsonc
 {
   "mcp": {
     "devhub": {
       "type": "remote",
-      "url": "https://devhub.example.com/mcp",
-      "headers": { "Authorization": "Bearer {env:DEVHUB_MCP_KEY}" }
+      "url": "https://devhub.nrawangbatin.my.id/mcp",
+      "enabled": true
     }
   }
 }
+// then: opencode mcp auth devhub  → browser → login via custom form → token auto-rotated
 ```
 
 Full spec: [MCP Integration Guide](../03-engineering/mcp-integration.md).
@@ -339,8 +350,7 @@ docker-compose.yml (local dev):  postgres:16-alpine on :5432
 | `PORT` | No | Default 3000 |
 | `NODE_ENV` | No | `development` / `production` (cookie Secure flag) |
 | `COOKIE_SECURE` | No | Force Secure cookies when behind TLS proxy |
-
-MCP keys are **not** environment config: each user manages their own via the app's **API Keys** page (backed by `POST /api/keys`), stored hashed in Postgres.
+| `TRUST_PROXY` | No | `true` when behind reverse proxy (required for OAuth discovery origin) |
 
 See [Deployment Runbook](../05-operations/deployment-runbook.md).
 
@@ -358,7 +368,7 @@ See [Deployment Runbook](../05-operations/deployment-runbook.md).
 | DB | PostgreSQL + JSONB | Reliability + flexible payload (ADR-002) |
 | Auth | bcryptjs + jsonwebtoken + cookie-parser | Pure-JS (Windows-safe), httpOnly cookie (ADR-005) |
 | Rate limit | express-rate-limit | Brute-force defense |
-| AI | @modelcontextprotocol/sdk | Official SDK (ADR-006) |
+| AI | @modelcontextprotocol/sdk | Official SDK (ADR-049 OAuth) |
 
 ---
 
@@ -367,8 +377,8 @@ See [Deployment Runbook](../05-operations/deployment-runbook.md).
 | Layer | Scope | Tooling |
 |---|---|---|
 | Server unit | auth, zod schemas, state rules | vitest + supertest |
-| Server integration | API round-trips, auth flow | vitest + test Postgres (docker) |
-| MCP | tool contracts, auth rejection | vitest |
+| Server integration | API round-trips, auth flow, OAuth PKCE | vitest + test Postgres (docker) |
+| MCP | tool contracts, OAuth scope rejection | vitest |
 | UI | reducer logic, export/import | vitest |
 | E2E (Phase 2) | critical paths | Playwright |
 

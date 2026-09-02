@@ -52,7 +52,7 @@ Generate secrets:
 openssl rand -base64 48   # JWT_SECRET
 ```
 
-MCP keys are **not** deployment secrets — each user creates their own via `POST /api/keys` (stored hashed in Postgres). No `MCP_API_KEY` env var exists.
+MCP uses OAuth — no deployment secret for MCP. Tokens are obtained via `opencode mcp auth devhub` (PKCE) and stored client-side; revocation via Profile → Authorized Apps.
 
 ---
 
@@ -161,11 +161,9 @@ One push to `main` can trigger deploys on Cloudflare (frontend) and Suga (backen
 | `PG_POOL_MAX` | No | Max pg pool connections (default 20; set **6** on memory-constrained hosts like Suga free) |
 | `NODE_ENV` | No | `production` for prod behaviors |
 | `COOKIE_SECURE` | No | `true` behind TLS (forced in production) |
-| `TRUST_PROXY` | No | `true` when behind a reverse proxy — required so rate limiting and client IPs work correctly (otherwise every request appears to come from the proxy IP) |
+| `TRUST_PROXY` | No | `true` when behind a reverse proxy — required so rate limiting, client IPs, and OAuth discovery origin (`/.well-known/*` → `https://devhub.nrawangbatin.my.id`) work correctly |
 | `CORS_ORIGIN` | FE split | Comma-separated origins allowed for cross-origin REST + WS (e.g. `https://devhub-app.<account>.workers.dev`). Empty = same-origin only |
 | `VITE_API_URL` (Cloudflare build variable) | FE split | `https://<hash>.suga.run/api/v1` — SPA fetch base + WebSocket origin (see `realtime-client.ts`) |
-
-MCP keys live in Postgres (`mcp_keys` table), not env — each user manages their own via the app's **API Keys** page (`POST /api/keys`).
 
 **Cookie / cross-site:** FE (Cloudflare) and BE (Suga) are different origins, so the session cookie is sent with `SameSite=None; Secure` in production (`auth.routes.ts` sets `sameSite: none` when `NODE_ENV=production`). Development keeps `SameSite=Lax` (HTTP, same-origin).
 
@@ -191,9 +189,9 @@ MCP keys live in Postgres (`mcp_keys` table), not env — each user manages thei
 - [ ] Migrations applied (auto at boot, or `npm run db:migrate` against the deployed DB)
 - [ ] `GET /api/v1/health` → `ok`
 - [ ] SPA (hosted separately) loads and calls `/api` cross-origin (check `CORS_ORIGIN`)
-- [ ] Register an account → login → create project → create an MCP key via the app's **API Keys** page (or `POST /api/keys`)
+- [ ] Register an account → login → create project → `opencode mcp auth devhub` (browser OAuth PKCE)
 - [ ] Cookie header shows `HttpOnly; SameSite=None; Secure` (production, cross-site) — `SameSite=Lax` in dev
-- [ ] `/mcp` rejects without key, works with a per-user key (curl, see [MCP Guide §7](../03-engineering/mcp-integration.md#7-troubleshooting))
+- [ ] `/mcp` rejects without token, works with OAuth bearer (curl with `jq -r .access_token ~/.local/share/opencode/mcp-auth.json`, see [MCP Guide §7](../03-engineering/mcp-integration.md#7-testing-the-mcp-server))
 - [ ] Backup cron in place (next section)
 
 ---
@@ -228,7 +226,7 @@ MCP keys live in Postgres (`mcp_keys` table), not env — each user manages thei
 | Postgres minor upgrade | Per provider window | Test locally first |
 | Backup restore drill | Quarterly | See [Backup & Recovery](backup-recovery.md) §5 |
 | Log rotation | Automated | See [Monitoring](monitoring.md) |
-| MCP key rotation | On exposure | Create new via `POST /api/keys`, update agent configs, revoke old via `DELETE /api/keys/:id` |
+| MCP token rotation | On exposure | `DELETE /oauth/authorized-apps/:clientId` or `POST /oauth/revoke`, then `opencode mcp auth devhub` |
 | `JWT_SECRET` rotation | On exposure or yearly | Session invalidation on rotation (all cookies invalid) |
 
 ---

@@ -846,7 +846,7 @@
       "apiKeysSub": "Buat atau cabut key yang digunakan agen Anda",
       "toc": {
         "prereq": "Sebelum Anda mulai",
-        "key": "Buat API key",
+        "key": "Otorisasi via OAuth",
         "projectId": "Dapatkan project ID Anda",
         "env": "Atur variabel env",
         "config": "Buat opencode.json",
@@ -865,7 +865,7 @@
         "verifyTitle": "Verifikasi koneksi",
         "autoPromptTitle": "Biarakan agen Anda meminta konfigurasi yang belum ada",
         "agentsyncTitle": "Otomatiskan alur kerja Anda (auto-sync agen)",
-        "keyDesc": "Buat key per-pengguna di DevHub. Key mentah hanya tampil sekali — simpan ke {{key}}."
+        "keyDesc": "Otorisasi via OAuth — jalankan opencode mcp auth devhub dan login via form custom."
       },
       "prereq": {
         "opencodeStrong": "opencode sudah terpasang",
@@ -873,7 +873,7 @@
         "reachableStrong": "DevHub dapat dijangkau",
         "reachableDesc": "Pastikan /api/health mengembalikan ok sebelum melanjutkan.",
         "loggedInStrong": "Anda sudah masuk",
-        "loggedInDesc": "API keys bersifat per-pengguna, jadi Anda membutuhkan akun yang aktif.",
+        "loggedInDesc": "OAuth bersifat per-pengguna, jadi Anda butuh akun aktif dan token valid (opencode mcp auth devhub).",
         "agentStrong": "{{agent}} sudah terpasang",
         "agentDesc": "Panduan ini dikonfigurasi untuk {{agent}}, tetapi klien MCP mana pun dapat digunakan dengan server yang sama.",
         "fallbackInstalled": "sudah terpasang"
@@ -893,9 +893,9 @@
         "tableSymptom": "Gejala",
         "tableFix": "Perbaikan",
         "row401AllSymptom": "401 pada setiap panggilan",
-        "row401AllFix": "Key salah, kedaluwarsa, atau dicabut. Buat yang baru di API Keys, perbarui DEVHUB_MCP_KEY, restart client.",
+        "row401AllFix": "Token kedaluwarsa atau dicabut. Jalankan opencode mcp auth devhub lagi. Cek Profile → Authorized Apps untuk revoke client lama.",
         "row401ScopedSymptom": "401 hanya untuk beberapa proyek",
-        "row401ScopedFix": "Key bersifat per-pengguna: hanya bisa akses proyek milik pembuat key tersebut.",
+        "row401ScopedFix": "Token bersifat per-pengguna: hanya bisa akses proyek milik/punya akses user yang otorisasi. Untuk write, pastikan scope mcp atau mcp:write.",
         "row400Symptom": "400 pada tool call (validasi)",
         "row400Fix": "Argumen tidak valid sesuai skema zod; jalankan project_state untuk melihat nama field yang tepat.",
         "rowProjectIdSymptom": "projectId hilang/tidak dikenal",
@@ -931,7 +931,7 @@
       "env": {
         "powershell": "PowerShell",
         "bash": "bash / zsh",
-        "hint": "Simpan key di env — jangan commit ke git."
+        "hint": "Set hanya DEVHUB_PROJECT_ID (opsional). Token OAuth dikelola client — jangan commit token."
       },
       "projectId": {
         "tip": "Salin project ID dari header halaman proyek Anda.",
@@ -1003,10 +1003,10 @@
       "step2Title": "Dapatkan project ID",
       "step2Desc": "Buka proyek dan salin ID dari header.",
       "step3Title": "Konfigurasi opencode",
-      "step3Desc": "Tambahkan server MCP ke opencode.json dan set DEVHUB_MCP_KEY.",
+      "step3Desc": "Tambahkan server MCP ke opencode.json (tanpa header) — lalu jalankan opencode mcp auth devhub.",
       "verifyTitle": "Verifikasi",
       "verifyDesc": "Restart opencode dan jalankan project_state untuk konfirmasi koneksi.",
-      "goToKeys": "Buka API Keys",
+      "goToKeys": "Panduan OAuth",
       "goToMcp": "Buka panduan MCP"
     }
   }

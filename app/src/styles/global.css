@@ -7440,6 +7440,46 @@ input[type='checkbox'] {
   color: var(--status-warn);
 }
 
+.docs-callout-success {
+  border-color: color-mix(in srgb, var(--accent) 32%, transparent);
+  border-left-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-elevated));
+}
+
+.docs-callout-success .docs-callout-icon {
+  color: var(--accent);
+}
+
+/* Phase headers — long page, sticky grouping (readability) */
+.docs-phase-header {
+  position: sticky;
+  top: 46px; /* under agent picker */
+  z-index: 2;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 28px 0 14px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--bg-base) 92%, transparent);
+  border: 1px solid var(--border-hairline);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-input);
+  backdrop-filter: blur(8px);
+}
+.docs-phase-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.docs-phase-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 /* Agent picker — sticky pill tabs */
 .docs-agent-picker-wrap {
   position: sticky;

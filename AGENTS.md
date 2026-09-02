@@ -20,14 +20,12 @@ If not reachable, log as pending, continue main work, and retry at end of sessio
 
 ## Prerequisites
 
-Before sync begins, ensure MCP is configured:
+Before sync begins, ensure MCP is configured (OAuth 2.1 PKCE):
 
-1. Check env var `DEVHUB_MCP_KEY` — if empty, ask user via `question` tool (custom: true):
-   "DevHub MCP key is not set. Open DevHub → sidebar → API Keys → create a key, then paste it here."
+1. Run `opencode mcp auth devhub` — browser opens to DevHub login (custom form), then auto-stores token. Verify with `opencode mcp list` (expect `devhub: connected`).
 2. Check env var `DEVHUB_PROJECT_ID` — if empty, ask user via `question` tool (custom: true):
    "Project ID is not set. Open a project in DevHub → copy the ID from the header, then paste it here."
-3. If MCP returns 401 (key invalid/expired), ask user again:
-   "MCP key is not valid. Create a new key at DevHub → API Keys → then paste it here."
+3. If MCP returns 401 (token expired or scope insufficient), run `opencode mcp auth devhub` again (access 15m, refresh 30d rotation — re-auth refreshes).
 4. If MCP is not reachable (server down), log as pending and continue main work.
 
 ## Project target resolution (hierarchical)

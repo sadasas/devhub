@@ -244,7 +244,7 @@
       "capWarning": "Anda memiliki {{active}} dari {{max}} key aktif — maksimumnya {{max}}. Cabut key yang tidak terpakai sebelum membuat yang baru.",
       "copyNow": "Salin key ini sekarang — hanya ditampilkan sekali.",
       "copyKey": "Salin key",
-      "envVarAria": "Salin sebagai variabel lingkungan DEVHUB_MCP_KEY",
+      "envVarAria": "Salin token OAuth (dari opencode mcp-auth.json)",
       "envVarTitle": "Salin sebagai env var",
       "loseNote": "Jika hilang, Anda bisa menyalinnya lagi nanti dari daftar API key.",
       "nextSteps": "Langkah berikutnya — uji terhadap server MCP Anda:",

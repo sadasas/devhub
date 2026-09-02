@@ -135,7 +135,7 @@ export function KeysPage() {
       <div className="auth-banner" style={{ marginTop: 24 }}>
         <ShieldCheck size={14} weight="duotone" aria-hidden="true" />
         <p>
-          MCP: <code>Authorization: Bearer &lt;access_token&gt;</code> (scope <code>mcp</code>) — next refresh in 15m.
+          MCP: <code>Authorization: Bearer &lt;access_token&gt;</code> (scopes <code>mcp</code> / <code>mcp:read</code> / <code>mcp:write</code>) — next refresh in 15m.
         </p>
       </div>
     </div>
