@@ -23,8 +23,9 @@ export function setOAuthStateCookie(
   state: string,
   codeVerifier: string,
   returnTo: string | null,
+  intent: 'login' | 'link' = 'login',
 ): void {
-  const payload = Buffer.from(JSON.stringify({ state, codeVerifier, returnTo })).toString('base64url');
+  const payload = Buffer.from(JSON.stringify({ state, codeVerifier, returnTo, intent })).toString('base64url');
   res.cookie(`${OAUTH_STATE_COOKIE_PREFIX}${provider}`, payload, {
     httpOnly: true,
     sameSite: 'lax',
@@ -35,5 +36,19 @@ export function setOAuthStateCookie(
 }
 
 export function clearOAuthStateCookie(res: Response, provider: 'google' | 'github'): void {
-  res.clearCookie(`${OAUTH_STATE_COOKIE_PREFIX}${provider}`, { path: '/' });
+  res.clearCookie(`${OAUTH_STATE_COOKIE_PREFIX}${provider}`, {
+    path: '/',
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: config.COOKIE_SECURE,
+  });
+}
+
+export function clearSessionCookie(res: Response): void {
+  res.clearCookie(SESSION_COOKIE, {
+    path: '/',
+    httpOnly: true,
+    sameSite: config.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: config.COOKIE_SECURE,
+  });
 }

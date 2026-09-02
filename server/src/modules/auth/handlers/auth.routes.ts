@@ -6,8 +6,7 @@ import { pool } from '../../../db/pool.js';
 import { hashPassword, verifyPassword } from '../infrastructure/password.js';
 import { requireAuth, getUserId } from '../middleware/requireAuth.js';
 import { ApiError } from '../../../shared/errors.js';
-import { SESSION_COOKIE } from '../../../shared/http.js';
-import { setSessionCookie } from '../../../shared/cookie.js';
+import { clearSessionCookie, setSessionCookie } from '../../../shared/cookie.js';
 import { config } from '../../../config.js';
 import { withTransaction, parseOrThrow } from '../../../shared/db.js';
 import { computeUserStats } from '../application/user-stats.js';
@@ -246,11 +245,15 @@ authRouter.post('/reset-password', forgotLimiter, async (req, res) => {
 });
 
 authRouter.post('/logout', (req, res) => {
-  res.clearCookie(SESSION_COOKIE, { path: '/' });
+  clearSessionCookie(res);
+  // Prevent caching of logout response / stale auth state
+  res.setHeader('Cache-Control', 'no-store');
   res.json({ ok: true });
 });
 
 authRouter.get('/me', requireAuth, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
   const userId = getUserId(req);
   const result = await pool.query<{
     id: string;

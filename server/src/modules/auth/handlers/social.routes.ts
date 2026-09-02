@@ -61,17 +61,23 @@ function getReturnToFromReq(req: import('express').Request): string | null {
   return isValidReturnTo(rt);
 }
 
-function getOAuthStateCookie(req: import('express').Request, provider: 'google' | 'github'): { state: string; codeVerifier: string; returnTo: string | null } | null {
+function getOAuthStateCookie(req: import('express').Request, provider: 'google' | 'github'): { state: string; codeVerifier: string; returnTo: string | null; intent: 'login' | 'link' } | null {
   const raw = (req.cookies as Record<string, string | undefined>)?.[`${OAUTH_STATE_COOKIE_PREFIX}${provider}`];
   if (!raw) return null;
   try {
     const json = Buffer.from(raw, 'base64url').toString('utf8');
-    const parsed = JSON.parse(json) as { state: string; codeVerifier: string; returnTo: string | null };
+    const parsed = JSON.parse(json) as { state: string; codeVerifier: string; returnTo: string | null; intent?: 'login' | 'link' };
     if (!parsed.state || !parsed.codeVerifier) return null;
-    return parsed;
+    return { state: parsed.state, codeVerifier: parsed.codeVerifier, returnTo: parsed.returnTo ?? null, intent: parsed.intent === 'link' ? 'link' : 'login' };
   } catch {
     return null;
   }
+}
+
+function getOAuthIntent(req: import('express').Request): 'login' | 'link' {
+  const raw = (req.query.intent as string | undefined)?.toLowerCase();
+  if (raw === 'link') return 'link';
+  return 'login';
 }
 
 function generatePkce(): { verifier: string; challenge: string } {
@@ -130,9 +136,10 @@ socialRouter.delete('/linked/:provider', requireAuth, async (req, res) => {
 socialRouter.get('/google', socialLimiter, (req, res) => {
   if (!config.GOOGLE_CLIENT_ID || !config.GOOGLE_CLIENT_SECRET) throw new ApiError(500, 'OAUTH_NOT_CONFIGURED', 'Google OAuth not configured');
   const returnTo = getReturnToFromReq(req);
+  const intent = getOAuthIntent(req);
   const state = generateState();
   const { verifier, challenge } = generatePkce();
-  setOAuthStateCookie(res, 'google', state, verifier, returnTo);
+  setOAuthStateCookie(res, 'google', state, verifier, returnTo, intent);
   const redirectUri = `${baseUrl(req)}/api/v1/auth/google/callback`;
   const params = new URLSearchParams({
     client_id: config.GOOGLE_CLIENT_ID,
@@ -153,9 +160,10 @@ socialRouter.get('/google', socialLimiter, (req, res) => {
 socialRouter.get('/github', socialLimiter, (req, res) => {
   if (!config.GITHUB_CLIENT_ID || !config.GITHUB_CLIENT_SECRET) throw new ApiError(500, 'OAUTH_NOT_CONFIGURED', 'GitHub OAuth not configured');
   const returnTo = getReturnToFromReq(req);
+  const intent = getOAuthIntent(req);
   const state = generateState();
   const { verifier, challenge } = generatePkce();
-  setOAuthStateCookie(res, 'github', state, verifier, returnTo);
+  setOAuthStateCookie(res, 'github', state, verifier, returnTo, intent);
   const redirectUri = `${baseUrl(req)}/api/v1/auth/github/callback`;
   const params = new URLSearchParams({
     client_id: config.GITHUB_CLIENT_ID,
@@ -329,11 +337,20 @@ socialRouter.get('/google/callback', socialLimiter, async (req, res) => {
       displayName: profileJson.name || profileJson.email.split('@')[0] || 'User',
       avatarUrl: profileJson.picture || null,
     };
-    // If already logged in -> treat as linking flow (Connect in Profile)
+    const intent = stored.intent ?? 'login';
     const sessionUserId = await verifySession((req.cookies as Record<string, string | undefined>)?.[SESSION_COOKIE]);
     let userId: string;
     let jwtVersion: number;
-    if (sessionUserId) {
+    // intent=login -> selalu login/buat user baru, abaikan sesi lama (fix: logout tapi cookie sisa = akun nyangkut)
+    if (intent === 'login') {
+      const r = await handleOAuthLogin(res, profile);
+      userId = r.userId;
+      jwtVersion = r.jwtVersion;
+    } else {
+      // intent=link -> harus sudah login, tempel akun ke user yang sedang login
+      if (!sessionUserId) {
+        throw new ApiError(401, 'UNAUTHORIZED', 'You must be logged in to link an account.');
+      }
       const existing = await pool.query<{ user_id: string }>(
         'SELECT user_id FROM oauth_accounts WHERE provider = $1 AND provider_account_id = $2',
         [profile.provider, profile.providerAccountId],
@@ -361,10 +378,6 @@ socialRouter.get('/google/callback', socialLimiter, async (req, res) => {
         userId = sessionUserId;
         jwtVersion = u.rows[0]!.jwt_version;
       }
-    } else {
-      const r = await handleOAuthLogin(res, profile);
-      userId = r.userId;
-      jwtVersion = r.jwtVersion;
     }
     setSessionCookie(res, userId, jwtVersion);
     const dest = frontendRedirect(req, stored.returnTo, 'google');
@@ -441,10 +454,18 @@ socialRouter.get('/github/callback', socialLimiter, async (req, res) => {
       displayName: userJson.name || userJson.login || email.split('@')[0] || 'User',
       avatarUrl: userJson.avatar_url || null,
     };
+    const intent = stored.intent ?? 'login';
     const sessionUserId = await verifySession((req.cookies as Record<string, string | undefined>)?.[SESSION_COOKIE]);
     let userId: string;
     let jwtVersion: number;
-    if (sessionUserId) {
+    if (intent === 'login') {
+      const r = await handleOAuthLogin(res, profile);
+      userId = r.userId;
+      jwtVersion = r.jwtVersion;
+    } else {
+      if (!sessionUserId) {
+        throw new ApiError(401, 'UNAUTHORIZED', 'You must be logged in to link an account.');
+      }
       const existing = await pool.query<{ user_id: string }>(
         'SELECT user_id FROM oauth_accounts WHERE provider = $1 AND provider_account_id = $2',
         [profile.provider, profile.providerAccountId],
@@ -472,10 +493,6 @@ socialRouter.get('/github/callback', socialLimiter, async (req, res) => {
         userId = sessionUserId;
         jwtVersion = u.rows[0]!.jwt_version;
       }
-    } else {
-      const r = await handleOAuthLogin(res, profile);
-      userId = r.userId;
-      jwtVersion = r.jwtVersion;
     }
     setSessionCookie(res, userId, jwtVersion);
     const dest = frontendRedirect(req, stored.returnTo, 'github');

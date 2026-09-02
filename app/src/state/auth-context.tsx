@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from 'react';
 import { api, setUnauthorizedHandler } from '../lib/api';
 import { isNetworkError } from '../lib/idb-provider';
-import { getMeta, putMeta } from '../lib/idb';
+import { clearAllMeta, deleteMeta, getMeta, putMeta } from '../lib/idb';
 import type { User } from '../lib/types';
 
 interface AuthContextValue {
@@ -50,7 +50,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    setUnauthorizedHandler(() => setUser(null));
+    setUnauthorizedHandler(() => {
+      setUser(null);
+      void deleteMeta('user').catch(() => {});
+    });
     return () => setUnauthorizedHandler(null);
   }, []);
 
@@ -58,22 +61,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await api.login(email, password);
     const u = await api.me();
     setUser(u);
+    void putMeta('user', u).catch(() => {});
   }, []);
 
   const register = useCallback(async (email: string, password: string) => {
     await api.register(email, password);
     const u = await api.me();
     setUser(u);
+    void putMeta('user', u).catch(() => {});
   }, []);
 
   const logout = useCallback(async () => {
-    await api.logout();
-    setUser(null);
+    try {
+      await api.logout();
+    } finally {
+      setUser(null);
+      // Hapus cache offline agar akun lama (nrawang) tidak muncul lagi setelah ganti akun
+      try {
+        await clearAllMeta();
+      } catch {
+        // best-effort: fallback hapus key user saja
+        try { await deleteMeta('user'); } catch { /* ignore */ }
+      }
+      // Hapus cache Service Worker jika ada
+      try {
+        if (typeof caches !== 'undefined') {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((k) => caches.delete(k)));
+        }
+      } catch { /* ignore */ }
+      try { localStorage.removeItem('devhub:unread:legacy'); } catch { /* ignore */ }
+    }
   }, []);
 
   const refresh = useCallback(async () => {
     const u = await api.me();
     setUser(u);
+    void putMeta('user', u).catch(() => {});
   }, []);
 
   const value = useMemo(

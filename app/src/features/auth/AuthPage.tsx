@@ -166,7 +166,7 @@ export function AuthPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {oauthProviders.google && (
                   <a
-                    href={`${API_BASE}/auth/google${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`}
+                    href={`${API_BASE}/auth/google?intent=login${returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : ''}`}
                     className="btn btn-secondary"
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', fontWeight: 600 }}
                   >
@@ -175,7 +175,7 @@ export function AuthPage() {
                 )}
                 {oauthProviders.github && (
                   <a
-                    href={`${API_BASE}/auth/github${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`}
+                    href={`${API_BASE}/auth/github?intent=login${returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : ''}`}
                     className="btn btn-secondary"
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', fontWeight: 600 }}
                   >

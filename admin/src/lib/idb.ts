@@ -167,3 +167,17 @@ export async function putMeta(key: string, value: unknown): Promise<void> {
   tx.objectStore(STORE_META).put({ key, value, savedAt: Date.now() } satisfies MetaRecord);
   await waitTx(tx);
 }
+
+export async function deleteMeta(key: string): Promise<void> {
+  const db = await openDevHubDb();
+  const tx = db.transaction(STORE_META, 'readwrite');
+  tx.objectStore(STORE_META).delete(key);
+  await waitTx(tx);
+}
+
+export async function clearAllMeta(): Promise<void> {
+  const db = await openDevHubDb();
+  const tx = db.transaction(STORE_META, 'readwrite');
+  tx.objectStore(STORE_META).clear();
+  await waitTx(tx);
+}

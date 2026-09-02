@@ -67,9 +67,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   let res: Response;
   try {
+    // Hindari cache browser/SW untuk auth endpoints (fix akun nyangkut)
+    const isAuthPath = path.startsWith('/auth/');
     res = await fetch(`${API_BASE}${path}`, {
       credentials: 'include',
       headers,
+      cache: isAuthPath ? 'no-store' : undefined,
       ...rest,
       signal: controller.signal,
     });

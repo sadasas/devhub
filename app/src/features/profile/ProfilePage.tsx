@@ -410,14 +410,14 @@ export function ProfilePage() {
                     {t('profile.security.unlink', { defaultValue: 'Unlink' })}
                   </Button>
                 ) : (
-                   <a
-                    href={`${API_BASE}/auth/google?returnTo=${encodeURIComponent(returnToProfile)}`}
-                    className="btn btn-secondary"
-                    style={{ textDecoration: 'none', padding: '8px 14px', borderRadius: 8, fontWeight: 600 }}
+                    <a
+                     href={`${API_BASE}/auth/google?intent=link&returnTo=${encodeURIComponent(returnToProfile)}`}
+                     className="btn btn-secondary"
+                     style={{ textDecoration: 'none', padding: '8px 14px', borderRadius: 8, fontWeight: 600 }}
                   >
-                    Connect
+                     Connect
                   </a>
-                )}
+                 )}
               </div>
               <div className="settings-action" style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
                 <div className="settings-action-main" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -434,12 +434,12 @@ export function ProfilePage() {
                     {t('profile.security.unlink', { defaultValue: 'Unlink' })}
                   </Button>
                 ) : (
-                   <a
-                    href={`${API_BASE}/auth/github?returnTo=${encodeURIComponent(returnToProfile)}`}
-                    className="btn btn-secondary"
-                    style={{ textDecoration: 'none', padding: '8px 14px', borderRadius: 8, fontWeight: 600 }}
+                    <a
+                     href={`${API_BASE}/auth/github?intent=link&returnTo=${encodeURIComponent(returnToProfile)}`}
+                     className="btn btn-secondary"
+                     style={{ textDecoration: 'none', padding: '8px 14px', borderRadius: 8, fontWeight: 600 }}
                   >
-                    Connect
+                     Connect
                   </a>
                 )}
               </div>
