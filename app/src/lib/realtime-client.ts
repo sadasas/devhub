@@ -106,7 +106,20 @@ export function applyStateDiff(state: State, diff: StateDiff, ownKeys: ReadonlyS
 /* Socket URL                                                          */
 /* ------------------------------------------------------------------ */
 
-const API_BASE = import.meta.env.VITE_API_URL ?? '/api/v1';
+function resolveApiBase(): string {
+  const env = (import.meta.env.VITE_API_URL as string | undefined)?.trim();
+  if (!env || env === '/api/v1') return '/api/v1';
+  if (/^https?:\/\//i.test(env)) {
+    try {
+      const envOrigin = new URL(env).origin;
+      if (typeof window !== 'undefined' && window.location.origin !== envOrigin) return '/api/v1';
+    } catch {
+      return '/api/v1';
+    }
+  }
+  return env;
+}
+const API_BASE = resolveApiBase();
 
 export function realtimeWsUrl(apiBase: string = API_BASE): string {
   if (apiBase.startsWith('http://') || apiBase.startsWith('https://')) {

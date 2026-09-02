@@ -24,7 +24,27 @@ import type {
 import type { ProjectStats } from './stats';
 import type { ExportDocument } from './types';
 
-export const API_BASE: string = import.meta.env.VITE_API_URL ?? '/api/v1';
+function resolveApiBase(): string {
+  const env = (import.meta.env.VITE_API_URL as string | undefined)?.trim();
+  if (!env || env === '/api/v1') return '/api/v1';
+  // Absolute cross-site (VITE_API_URL=https://<hash>.suga.run/api/v1) but page is on
+  // devhub.nrawangbatin.my.id via Worker reverse proxy -> cookie devhub_session is
+  // first-party on devhub, not sent to suga.run -> me 401 loop. After 5983bd3
+  // redirect_uri is devhub, so API must also be devhub (relative) to send cookie.
+  if (/^https?:\/\//i.test(env)) {
+    try {
+      const envOrigin = new URL(env).origin;
+      if (typeof window !== 'undefined' && window.location.origin !== envOrigin) {
+        // Cross-origin: force same-origin via Worker to keep session cookie
+        return '/api/v1';
+      }
+    } catch {
+      return '/api/v1';
+    }
+  }
+  return env;
+}
+export const API_BASE: string = resolveApiBase();
 const REQUEST_TIMEOUT_MS = 15_000;
 
 let unauthorizedHandler: (() => void) | null = null;
