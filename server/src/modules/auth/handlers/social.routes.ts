@@ -15,6 +15,7 @@ import {
 import { SESSION_COOKIE } from '../../../shared/http.js';
 import { verifySession } from '../infrastructure/jwt.js';
 import { getBaseUrl as baseUrl } from '../../../shared/baseUrl.js';
+import { logger } from '../../../shared/logger.js';
 
 export const socialRouter = Router();
 
@@ -136,6 +137,16 @@ socialRouter.get('/google', socialLimiter, (req, res) => {
   const { verifier, challenge } = generatePkce();
   setOAuthStateCookie(res, 'google', state, verifier, returnTo, intent);
   const redirectUri = `${baseUrl(req)}/api/v1/auth/google/callback`;
+  logger.info('oauth google start', {
+    requestId: (req as unknown as { id?: string }).id,
+    redirectUri,
+    baseUrl: baseUrl(req),
+    host: req.get('host'),
+    xForwardedHost: req.headers['x-forwarded-host'],
+    xForwardedProto: req.headers['x-forwarded-proto'],
+    intent,
+    hasStateCookie: true,
+  });
   const params = new URLSearchParams({
     client_id: config.GOOGLE_CLIENT_ID,
     redirect_uri: redirectUri,
@@ -295,12 +306,34 @@ socialRouter.get('/google/callback', socialLimiter, async (req, res) => {
   const state = req.query.state as string | undefined;
   const err = req.query.error as string | undefined;
   const stored = getOAuthStateCookie(req, 'google');
+  logger.info('oauth google callback hit', {
+    requestId: (req as unknown as { id?: string }).id,
+    hasCode: Boolean(code),
+    hasState: Boolean(state),
+    hasStored: Boolean(stored),
+    stateMatch: stored ? state === stored.state : null,
+    host: req.get('host'),
+    xForwardedHost: req.headers['x-forwarded-host'],
+    xForwardedProto: req.headers['x-forwarded-proto'],
+    baseUrl: baseUrl(req),
+    storedReturnTo: stored?.returnTo ?? null,
+    err: err ?? null,
+  });
   // Clear cookie early to avoid replay
   clearOAuthStateCookie(res, 'google');
   if (err) {
+    logger.warn('oauth google callback error param', { requestId: (req as unknown as { id?: string }).id, err });
     return res.redirect(302, frontendRedirect(req, stored?.returnTo ?? null, 'google', `Google OAuth error: ${err}`));
   }
   if (!code || !state || !stored || state !== stored.state) {
+    logger.warn('oauth google invalid state', {
+      requestId: (req as unknown as { id?: string }).id,
+      hasCode: Boolean(code),
+      hasState: Boolean(state),
+      hasStored: Boolean(stored),
+      stateMatch: stored ? state === stored.state : false,
+      cookieHeader: req.headers.cookie?.slice(0,120) ?? null,
+    });
     return res.redirect(302, frontendRedirect(req, stored?.returnTo ?? null, 'google', 'Invalid OAuth state'));
   }
   try {
@@ -320,6 +353,15 @@ socialRouter.get('/google/callback', socialLimiter, async (req, res) => {
       }).toString(),
     });
     const tokenJson = (await tokenRes.json().catch(() => null)) as { access_token?: string; error?: string; error_description?: string } | null;
+    logger.info('oauth google token response', {
+      requestId: (req as unknown as { id?: string }).id,
+      redirectUri,
+      tokenOk: tokenRes.ok,
+      hasAccessToken: Boolean(tokenJson?.access_token),
+      error: tokenJson?.error ?? null,
+      errorDescription: tokenJson?.error_description ?? null,
+      status: tokenRes.status,
+    });
     if (!tokenRes.ok || !tokenJson?.access_token) {
       throw new ApiError(500, 'OAUTH_EXCHANGE_FAILED', tokenJson?.error_description || tokenJson?.error || 'Failed to exchange code');
     }
@@ -385,8 +427,15 @@ socialRouter.get('/google/callback', socialLimiter, async (req, res) => {
     }
     setSessionCookie(res, userId, jwtVersion);
     const dest = frontendRedirect(req, stored.returnTo, 'google');
+    logger.info('oauth google success', { requestId: (req as unknown as { id?: string }).id, userId, dest, redirectUri });
     res.redirect(302, dest);
   } catch (e) {
+    const redirectUriForLog = `${baseUrl(req)}/api/v1/auth/google/callback`;
+    logger.warn('oauth google callback failed', {
+      requestId: (req as unknown as { id?: string }).id,
+      error: e instanceof ApiError ? `${e.code}:${e.message}` : (e instanceof Error ? e.message : String(e)),
+      redirectUri: redirectUriForLog,
+    });
     const msg = e instanceof ApiError ? e.message : 'Google login failed';
     // If EMAIL_NOT_VERIFIED, show clearer message
     res.redirect(302, frontendRedirect(req, stored.returnTo, 'google', msg));
@@ -402,6 +451,16 @@ socialRouter.get('/github/callback', socialLimiter, async (req, res) => {
   const state = req.query.state as string | undefined;
   const err = req.query.error as string | undefined;
   const stored = getOAuthStateCookie(req, 'github');
+  logger.info('oauth github callback hit', {
+    requestId: (req as unknown as { id?: string }).id,
+    hasCode: Boolean(code),
+    hasState: Boolean(state),
+    hasStored: Boolean(stored),
+    stateMatch: stored ? state === stored.state : null,
+    host: req.get('host'),
+    xForwardedHost: req.headers['x-forwarded-host'],
+    baseUrl: baseUrl(req),
+  });
   clearOAuthStateCookie(res, 'github');
   if (err) {
     return res.redirect(302, frontendRedirect(req, stored?.returnTo ?? null, 'github', `GitHub OAuth error: ${err}`));
