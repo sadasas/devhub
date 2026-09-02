@@ -3,7 +3,7 @@ import { join, relative, sep } from 'node:path'
 import { createHash } from 'node:crypto'
 import { pathToFileURL } from 'node:url'
 
-const CACHE_NAME = 'devhub-v1'
+const CACHE_NAME = 'devhub-v2'
 
 export function collectAssets(distDir) {
   const entries = []
@@ -57,8 +57,8 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-  // Jangan cache API — biar /auth/me tidak nyangkut akun lama (nrawang)
-  if (url.pathname.startsWith('/api/')) return;
+  // Jangan cache API/WS — biar OAuth & /auth/me tidak nyangkut
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/ws') || url.pathname.startsWith('/mcp')) return;
   if (request.mode === 'navigate') {
     event.respondWith(fetch(request).catch(() => caches.match('/index.html', { ignoreSearch: true })));
     return;

@@ -17,7 +17,7 @@ import {
   UserCircle,
   UsersThree,
 } from '@phosphor-icons/react';
-import { api, API_BASE } from '../../lib/api';
+import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import { copyText, formatDate, shortId } from '../../lib/utils';
 import { Avatar } from '../../components/Avatar';
@@ -411,7 +411,9 @@ export function ProfilePage() {
                   </Button>
                 ) : (
                     <a
-                     href={`${API_BASE}/auth/google?intent=link&returnTo=${encodeURIComponent(returnToProfile)}`}
+                     href={`/api/v1/auth/google?intent=link&returnTo=${encodeURIComponent(returnToProfile)}`}
+                     rel="external"
+                     data-external="true"
                      className="btn btn-secondary"
                      style={{ textDecoration: 'none', padding: '8px 14px', borderRadius: 8, fontWeight: 600 }}
                   >
@@ -435,13 +437,15 @@ export function ProfilePage() {
                   </Button>
                 ) : (
                     <a
-                     href={`${API_BASE}/auth/github?intent=link&returnTo=${encodeURIComponent(returnToProfile)}`}
+                     href={`/api/v1/auth/github?intent=link&returnTo=${encodeURIComponent(returnToProfile)}`}
+                     rel="external"
+                     data-external="true"
                      className="btn btn-secondary"
                      style={{ textDecoration: 'none', padding: '8px 14px', borderRadius: 8, fontWeight: 600 }}
                   >
                      Connect
                   </a>
-                )}
+                 )}
               </div>
             </div>
             {linked === null && !linkedError && <p className="field-helper" style={{ marginTop: 8 }}>Loading linked accounts…</p>}

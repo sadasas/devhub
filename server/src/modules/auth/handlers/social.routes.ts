@@ -148,6 +148,9 @@ socialRouter.get('/google', socialLimiter, (req, res) => {
     prompt: 'select_account',
   });
   const url = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Vary', 'Cookie');
   res.redirect(302, url);
 });
 
@@ -169,6 +172,9 @@ socialRouter.get('/github', socialLimiter, (req, res) => {
     code_challenge_method: 'S256',
   });
   const url = `https://github.com/login/oauth/authorize?${params.toString()}`;
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Vary', 'Cookie');
   res.redirect(302, url);
 });
 
@@ -282,6 +288,9 @@ function frontendRedirect(req: import('express').Request, returnTo: string | nul
 
 // --- Google callback ---
 socialRouter.get('/google/callback', socialLimiter, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Vary', 'Cookie');
   const code = req.query.code as string | undefined;
   const state = req.query.state as string | undefined;
   const err = req.query.error as string | undefined;
@@ -386,6 +395,9 @@ socialRouter.get('/google/callback', socialLimiter, async (req, res) => {
 
 // --- GitHub callback ---
 socialRouter.get('/github/callback', socialLimiter, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Vary', 'Cookie');
   const code = req.query.code as string | undefined;
   const state = req.query.state as string | undefined;
   const err = req.query.error as string | undefined;
