@@ -5,18 +5,11 @@ import { pool } from '../../db/pool.js';
 import { config } from '../../config.js';
 import { ApiError } from '../../shared/errors.js';
 import { parseOrThrow } from '../../shared/db.js';
+import { getBaseUrl as baseUrl } from '../../shared/baseUrl.js';
 import { verifySession } from '../auth/infrastructure/jwt.js';
 import { SESSION_COOKIE } from '../../shared/http.js';
 
 export const oauthRouter = Router();
-
-function baseUrl(req: import('express').Request): string {
-  // For OAuth discovery, use request host (server URL) — not APP_PUBLIC_URL (frontend)
-  // APP_PUBLIC_URL is for billing redirects, OAuth issuer must be the MCP server itself
-  const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol;
-  const host = req.get('host') || `localhost:${config.PORT}`;
-  return `${proto}://${host}`;
-}
 
 function generateToken(prefix = ''): string {
   return `${prefix}${randomBytes(32).toString('base64url')}`;

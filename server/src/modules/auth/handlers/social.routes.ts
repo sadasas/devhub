@@ -14,6 +14,7 @@ import {
 } from '../../../shared/cookie.js';
 import { SESSION_COOKIE } from '../../../shared/http.js';
 import { verifySession } from '../infrastructure/jwt.js';
+import { getBaseUrl as baseUrl } from '../../../shared/baseUrl.js';
 
 export const socialRouter = Router();
 
@@ -25,12 +26,6 @@ const socialLimiter = rateLimit({
   validate: { trustProxy: false },
   message: { error: { code: 'RATE_LIMITED', message: 'Too many OAuth attempts' } },
 });
-
-function baseUrl(req: import('express').Request): string {
-  const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol;
-  const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || `localhost:${config.PORT}`;
-  return `${proto}://${host}`;
-}
 
 function frontendOrigin(): string {
   if (config.APP_PUBLIC_URL) {

@@ -7,6 +7,7 @@ import { randomUUID } from 'node:crypto';
 import { config } from './config.js';
 import { logger } from './shared/logger.js';
 import { ApiError } from './shared/errors.js';
+import { getBaseUrl } from './shared/baseUrl.js';
 import { pool } from './db/pool.js';
 import { authRouter } from './modules/auth/handlers/auth.routes.js';
 import { projectsRouter } from './modules/projects/handlers/projects.routes.js';
@@ -47,7 +48,7 @@ export function errorHandler(
   if (err instanceof ApiError) {
     // RFC9728: MCP 401 should hint resource_metadata for OAuth discovery
     if (err.status === 401 && req.path.startsWith('/mcp')) {
-      const base = `${req.protocol}://${req.get('host')}`;
+      const base = getBaseUrl(req);
       res.setHeader(
         'WWW-Authenticate',
         `Bearer resource_metadata="${base}/.well-known/oauth-protected-resource"`,

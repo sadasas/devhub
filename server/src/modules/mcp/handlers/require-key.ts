@@ -1,12 +1,13 @@
 import type { NextFunction, Request, Response } from 'express';
 import { pool } from '../../../db/pool.js';
 import { ApiError } from '../../../shared/errors.js';
+import { getBaseUrl } from '../../../shared/baseUrl.js';
 import { hashMcpKey } from '../../keys/infrastructure/keys.js';
 
 export async function requireMcpKey(req: Request, res: Response, next: NextFunction): Promise<void> {
   const header = req.headers.authorization ?? '';
   const [scheme, token] = header.split(' ');
-  const base = `${req.protocol}://${req.get('host')}`;
+  const base = getBaseUrl(req);
   const wwwAuth = `Bearer resource_metadata="${base}/.well-known/oauth-protected-resource"`;
   if (scheme !== 'Bearer' || !token) {
     res.setHeader('WWW-Authenticate', wwwAuth);
