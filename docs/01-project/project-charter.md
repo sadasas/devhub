@@ -5,7 +5,7 @@
 | **Document status** | Active |
 | **Owner** | Project Owner (operator) |
 | **Documentation standard** | Enterprise project documentation |
-| **Last updated** | 2026-08-22 |
+| **Last updated** | 2026-09-03 |
 | **Related documents** | [PRD](prd.md) · [Roadmap](roadmap.md) · [Technical Design](../02-architecture/technical-design.md) |
 
 ---
@@ -14,15 +14,15 @@
 
 DevHub is a project management application purpose-built for **programming projects**. Where general-purpose tools (Linear, Jira, ClickUp) assume teams and process, DevHub preserves the *technical memory* of a project: tech stack versions, database schema, architectural decisions, test case checklists, and developer-velocity stats.
 
-DevHub is developed as a **hosted SaaS** for software projects of any size — from solo projects to small teams.
+DevHub is developed as a **hosted SaaS** for software projects of any size — from solo builders to large engineering organizations (2 → 2,000 engineers).
 
 ---
 
 ## 2. Vision
 
-> A developer's project memory. Track what you build, why you built it that way, and how fast you build it — without team-focused pricing or self-hosting setup overhead.
+> An engineering team's memory. Track what you build, why you built it that way, and how fast you build it — from solo builder to platform org 500+ — without per-seat tax or self-hosting overhead.
 
-**Problem statement:** Existing project management tools ignore the technical layer of software projects. No mainstream tool answers: *"Which dependency is outdated?"*, *"Why did we choose this DB?"*, *"What does our schema look like now?"*, *"Are we faster than last quarter?"*. Solo developers lose this information constantly; DevHub preserves it by design.
+**Problem statement:** Existing project management tools ignore the technical layer of software projects. No mainstream tool answers: *"Which dependency is outdated?"*, *"Why did we choose this DB?"*, *"What does our schema look like now?"*, *"Are we faster than last quarter?"*. Engineering teams — solo to large orgs (50–2,000) — lose this information constantly; DevHub preserves it by design as a complementary technical-memory layer to Jira/Linear.
 
 ---
 
@@ -144,8 +144,9 @@ Git CLI integration, API endpoint inventory, templates, PWA offline, multi-devic
 |---|---|---|
 | Build to sell? | **Yes** — hosted SaaS. (Superseded; see [ADR-021](../02-architecture/adr.md#adr-021)) | Superseded |
 | Future monetization | **Freemium 2-tier** — Free (2 member / 3 proyek), Pro $15/bln flat per workspace (member & proyek unlimited); open core ditolak; agent-metering fase berikutnya. Lihat [ADR-043](../02-architecture/adr.md#adr-043) | Locked |
-| Target user | Developers building software projects (solo to small teams) | Locked: SaaS multi-user |
-| Collaboration | Architecturally prepared (Base fields + sync provider), actual sync V3 | Locked |
+| Target user | Engineering teams (solo → large engineering orgs, 2 → 2,000 engineers) — complementary technical memory to Jira/Linear | Updated 2026-09-03 per ADR-050 |
+| Collaboration | Teams shipped (owner/admin/editor/viewer) + WS realtime; Org layer + Scale tier + portfolio → next (ADR-050) | In progress |
+| Enterprise | Engineering Scale tier (per-seat custom for 50–2,000) + SSO/SCIM deferred to design-partner validation (ADR-050) | Planned: crawl |
 
 ---
 

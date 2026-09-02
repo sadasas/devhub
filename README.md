@@ -1,6 +1,6 @@
 # DevHub
 
-> Developer-grade project management for programming projects. Track tasks, bugs, test cases, your tech stack, database schema, architectural decisions, releases, and velocity — everything your project needs, in one workspace.
+> Engineering-grade project management — from solo builder to large orgs (2 → 2,000 engineers). Track tasks, bugs, test cases, your tech stack, database schema, architectural decisions, releases, and velocity — everything your engineering team needs, in one workspace. Complementary to Jira/Linear.
 
 > **Your data stays yours.** Export or import the full state of any project as JSON, anytime.
 
@@ -27,7 +27,7 @@
 
 ## Overview
 
-DevHub is a project management application designed specifically for **programming projects**. Unlike general-purpose PM tools (Linear, Jira, ClickUp) that assume teams, DevHub captures the *technical memory* of a project:
+DevHub is a project management application designed specifically for **engineering teams** — solo to large orgs. Unlike general-purpose PM tools that assume process over tech, DevHub captures the *technical memory* of a project:
 
 - **Tech Stack Ledger** — what versions of what dependencies you use, and when a major upgrade is due.
 - **Database Schema Manager** — define tables, columns, and relations, with a visual ERD and schema versioning.
@@ -35,7 +35,7 @@ DevHub is a project management application designed specifically for **programmi
 - **Decision Log (ADR)** — why you chose this library or architecture, so you remember in 6 months.
 - **Dev-style tracking** — tasks with estimates, issues with reproduction steps, test case checklists, milestones with changelogs.
 
-**Target user:** developers building software projects who want a lightweight but *technically deep* tracker.
+**Target user:** engineering teams (2 → 2,000 engineers) — solo builders to platform orgs — who want a lightweight but *technically deep* tracker complementary to Jira/Linear.
 
 ---
 

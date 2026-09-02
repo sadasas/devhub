@@ -5,7 +5,7 @@
 | **Document status** | Draft (Phase 0) |
 | **Version** | 1.0 |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-09-02 |
+| **Last updated** | 2026-09-03 |
 | **Related documents** | [PRD](../01-project/prd.md) · [ADR Log](adr.md) · [Security Design](security-design.md) · [MCP Guide](../03-engineering/mcp-integration.md) |
 
 ---
@@ -31,27 +31,27 @@ This document specifies the technical architecture for DevHub V1: system context
 ## 2. System Context (C4 Level 1)
 
 ```
-                    ┌──────────────────────────────┐
-   Solo Dev  ─────► │  DevHub Web App              │
-   (browser)        │  Vite + React + TS (app/)    │
-                    └──────────────┬───────────────┘
-                                   │ HTTPS /api
-                                   │ (fetch, credentials: include)
-                    ┌──────────────▼───────────────┐
-                    │  DevHub API Server           │
-   AI Agent  ─────► │  Node + Express (server/)    │
-   (opencode,       │  • auth  • projects  • state  │
-    Claude...)      │  • export/import • MCP (OAuth)│
-                    └──────────────┬───────────────┘
-                                   │ pg
-                    ┌──────────────▼───────────────┐
-                    │  PostgreSQL                   │
-                    │  users · projects (JSONB)     │
-                    └──────────────────────────────┘
+                     ┌──────────────────────────────┐
+ Engineering Team ─► │  DevHub Web App              │
+ (browser, solo →    │  Vite + React + TS (app/)    │
+  large org)         └──────────────┬───────────────┘
+                                    │ HTTPS /api
+                                    │ (fetch, credentials: include)
+                     ┌──────────────▼───────────────┐
+                     │  DevHub API Server           │
+    AI Agent  ─────► │  Node + Express (server/)    │
+    (opencode,       │  • auth  • projects  • state  │
+     Claude...)      │  • export/import • MCP (OAuth)│
+                     └──────────────┬───────────────┘
+                                    │ pg
+                     ┌──────────────▼───────────────┐
+                     │  PostgreSQL                   │
+                     │  users · projects (JSONB)     │
+                     └──────────────────────────────┘
 ```
 
 **Actors:**
-- **Solo Dev (human):** registers, logs in, manages projects via the web app.
+- **Engineering Team (human):** solo builder to large org (2 → 2,000 engineers); registers, logs in, manages projects across teams; complementary technical-memory layer to Jira/Linear.
 - **AI Agent (machine):** connects to the MCP endpoint via OAuth 2.1 PKCE bearer token; reads/updates project state.
 
 **Design note:** The AI agent does **not** read the database or files directly — it only uses MCP tools. This was a locked decision (ADR-003) to keep the data boundary clear.

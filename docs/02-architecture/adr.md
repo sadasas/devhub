@@ -67,6 +67,7 @@
 | [ADR-046](#adr-046) | i18n multi-bahasa EN+ID: react-i18next, auto-detect + localStorage, server error tetap EN | Accepted | 2026-08-24 |
 | [ADR-047](#adr-047) | Light/Dark theme: global pref html[data-theme], inline FOUC, warm-zinc light tokens, shell cluster + palette + Profile | Accepted | 2026-08-26 |
 | [ADR-048](#adr-048) | OAuth social login Google & GitHub — keep email+password, inbound PKCE, auto-link verified, public providers | Accepted | 2026-08-31 |
+| [ADR-050](#adr-050) | Target market expansion: solo → large engineering orgs (2 → 2,000) — complementary to Jira/Linear | Accepted | 2026-09-03 |
 
 ---
 
@@ -655,4 +656,20 @@
   - **Ops:** `TRUST_PROXY=true` + `baseUrl` pakai `X-Forwarded-Host/Proto` agar discovery balikan origin publik (`devhub.nrawangbatin.my.id`), bukan `suga.run`. Rate limit `/mcp` 120/15m per IP + 500/15m per token (`mcpKeyLimiter` keyed by token hash).
 - **Consequences:** Positive — nol manual secret, no `DEVHUB_MCP_KEY` leakage, scope least-privilege (`mcp:read` untuk viewer agent), refresh rotation otomatis, re-auth cukup `opencode mcp auth devhub`, satu UX dengan social login. Negative — discovery extra 1-2 request di awal; agent harus support DCR + PKCE (opencode/Claude/Cursor/Windsurf/VS Code/Gemini semua support); token 15m berarti clock skew bisa 401 (client auto-refresh handle). Migrasi: user lama jalankan `opencode mcp auth devhub` sekali, cabut key lama manual via DB jika perlu.
 - **Alternatives:** Keep per-user API keys (ditolak: manual env, leakage, no scope, audit SEC-1 berulang); per-project OAuth client (ditolak: friction 1 client per project); JWT self-contained tanpa DB (ditolak: revocation butuh denylist); hapus scope granular, single `mcp` (ditolak: viewer use-case butuh read-only).
+
+---
+
+### ADR-050
+**Target market expansion: solo → large engineering orgs (2 → 2,000) — complementary to Jira/Linear**
+
+- **Status:** Accepted (2026-09-03)
+- **Context:** DevHub diposisikan sejak ADR-001 sebagai personal dev hub untuk solo dev ("technical memory"), lalu ADR-010/021 mengunci hosted SaaS multi-user (teams, invites, roles owner/admin/editor/viewer, realtime WS) untuk small teams (2–10). Permintaan owner 2026-09-03: perluas target ke **engineering besar (large orgs 50–2,000 engineers)** — platform/scaleup/unicorn/divisi platform bank/fintech — bukan `semua kalangan (B2C)` dan bukan enterprise general non-tech. Audits 2026-08 menilai DevHub 30% enterprise-ready: teams+roles+activity+realtime ada, tapi belum Org layer, portfolio rollup, SAML/SCIM, audit export, scale pricing. Pasar 2026: Jira Standard $7.91/u, Premium $14.54/u, Enterprise custom; Linear $10/$16 + custom; semua per-seat custom di enterprise. Flat $15 unlimited (ADR-043) sinyal SMB — procurement eng besar expect per-seat custom + annual discount + PO/invoice. JSONB 1 dokumen/project cap 2mb (`express.json`) fine untuk <5k tasks tapi rawan jebol di 50k+ lintas 200 project.
+- **Decision:**
+  - **Positioning:** `Engineering teams 2 → 2,000 — from solo builder to large engineering orgs. One technical memory for stack, schema, ADR & delivery — complementary to Jira/Linear, not replacement.` Mempertahankan moat (stack ledger, schema ERD diff, ADR, API docs, MCP agents) yang Jira/Linear tidak punya; Jira/Linear tetap system of delivery, DevHub sebagai system of memory.
+  - **Personas (PRD 1.3):** `Builder / Small Team (core, 2–10)`, `Large Engineering Org (scale 50–2,000, dozens teams/services)` dan `Engineering Manager (buyer, 10–500, SSO/audit/scale pricing)` dipertahankan bersama `AI Agent`.
+  - **Crawl → Walk, bukan big bang:** Validasi dulu via 5 interview EM + fake door `Scale — Custom — SSO • Portfolio • Audit` + 2 design-partner LOI (30-day pilot). Build hanya jika CTR/LOI terpenuhi. Deferred: SOC2 Type II, FedRAMP, data residency, LDAP, SCIM 2.0 full (JIT cukup untuk 10–20 pilot).
+  - **Roadmap delta (deferred to ADR-050 crawl):** Org layer `orgs → teams → projects` + Engineering Scale tier per-seat custom di `billing_packages` (extend ADR-045, `Pro $15 flat` tetap untuk SMB) + portfolio rollup + cross-project `blockedBy` + SAML SSO via WorkOS (3 hari vs 4 minggu manual) + audit export API. `Pro flat` tidak dihapus — dua tier hidup berdampingan (SMB flat, Scale per-seat).
+  - **Docs updated:** Charter §11 Target user, §1 Executive Summary & §2 Vision + problem statement, PRD 1.2/1.3 & user stories (`Solo Dev` → `Builder / Large Eng member`), Technical Design C4 actors (`Solo Dev` → `Engineering Team solo→large`), README Overview & target user. User stories tetap `As a Builder / Large Eng member` agar tidak narrow ke solo.
+- **Consequences:** Positive — TAM melebar tanpa bunuh SMB (flat tetap); complementary positioning hindari head-to-head vs Jira; crawl validasi murah sebelum 6–12 bulan compliance. Negative — docs & landing harus konsisten (sudah diupdate); workload `Org + SSO + Scale + portfolio` ≈ 5–6 minggu bila crawl GO; flat vs per-seat coexistence butuh UI pricing yang jelas; eng besar akan tanya SOC2 sebelum PO — jawaban harus `Type I in progress, Type II roadmap` bukan `sudah certified`.
+- **Alternatives:** `Semua kalangan B2C` (ditolak: bunuh moat, red ocean vs Notion/ClickUp/monday tanpa funding); `Enterprise general` non-tech (ditolak: DevHub dev-centric tidak relevan untuk HR/marketing murni); `Tetap small team only` (ditolak owner: limit growth, padahal technical memory dibutuhkan juga di 50–2,000); `Loncat langsung SOC2 + SCIM full` (ditolak: 6–12 bulan + $30-50k audit, velocity mati sebelum validasi).
 
