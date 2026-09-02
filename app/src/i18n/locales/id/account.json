@@ -238,7 +238,7 @@
   },
   "keys": {
     "title": "MCP Terhubung",
-    "subtitle": "Aplikasi OAuth yang diotorisasi via opencode mcp auth devhub",
+    "subtitle": "OAuth 2.1 PKCE · masa berlaku token 15mnt",
     "newKey": "Key baru",
     "copied": "Tersalin",
     "copy": "Salin",
@@ -265,9 +265,9 @@
       "prefixTitle": "Salin prefix (key dibuat sebelum ada dukungan enkripsi)"
     },
     "empty": {
-      "title": "Belum ada API key",
-      "description": "Buat key agar AI coding agent dapat membaca dan memperbarui proyek Anda lewat MCP.",
-      "readGuide": "Baca panduan MCP"
+      "title": "Belum ada aplikasi terhubung",
+      "description": "Jalankan opencode mcp auth devhub untuk menghubungkan agen pertama Anda.",
+      "readGuide": "Panduan OAuth"
     },
     "error": {
       "load": "Gagal memuat API key.",
@@ -310,7 +310,14 @@
       "envVarTitle": "Variabel lingkungan",
       "envVarDesc": "Atur key Anda di environment, lalu arahkan opencode.json ke sana:",
       "envVarCopyAria": "Salin variabel lingkungan"
-    }
+    },
+    "banner": "Authorization: Bearer <access_token> (scopes mcp / mcp:read / mcp:write)",
+    "bannerSuffix": "Token diperbarui otomatis sebelum kedaluwarsa.",
+    "connectedCount_one": "{{count}} aplikasi terhubung",
+    "connectedCount_other": "{{count}} aplikasi terhubung",
+    "loading": "Memuat aplikasi terhubung...",
+    "revokeConfirm": "Cabut aplikasi ini? Token akan berhenti bekerja.",
+    "active": "Aktif"
   },
   "teams": {
     "backToDashboard": "Dashboard",

@@ -54,6 +54,29 @@ export function formatRelative(iso: string | null | undefined): string {
   return shortDateNoYear().format(new Date(then));
 }
 
+export function formatExpiry(iso: string | null | undefined, nowMs = Date.now()): string {
+  if (!iso) return '—';
+  const then = Date.parse(iso);
+  if (Number.isNaN(then)) return '—';
+  const diffMs = then - nowMs;
+  if (diffMs > 0) {
+    const min = Math.floor(diffMs / 60_000);
+    if (min < 1) return i18n.t('common:time.inMoments');
+    if (min < 60) return i18n.t('common:time.inMin', { count: min });
+    const h = Math.floor(min / 60);
+    if (h < 24) return i18n.t('common:time.inHour', { count: h });
+    const d = Math.floor(h / 24);
+    if (d < 7) return i18n.t('common:time.inDay', { count: d });
+    return shortDateNoYear().format(new Date(then));
+  }
+  const absMin = Math.floor(Math.abs(diffMs) / 60_000);
+  if (absMin < 1) return i18n.t('common:time.expiredJustNow');
+  if (absMin < 60) return i18n.t('common:time.expiredMin', { count: absMin });
+  const h = Math.floor(absMin / 60);
+  if (h < 24) return i18n.t('common:time.expiredHour', { count: h });
+  return i18n.t('common:time.expiredDay', { count: Math.floor(h / 24) });
+}
+
 export function newId(): string {
   return crypto.randomUUID();
 }

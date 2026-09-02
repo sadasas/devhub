@@ -238,7 +238,7 @@
   },
   "keys": {
     "title": "Connected MCP",
-    "subtitle": "OAuth apps authorized via opencode mcp auth devhub",
+    "subtitle": "OAuth 2.1 PKCE · 15m token expiry",
     "newKey": "New key",
     "copied": "Copied",
     "copy": "Copy",
@@ -265,9 +265,9 @@
       "prefixTitle": "Copy prefix (key created before encryption support)"
     },
     "empty": {
-      "title": "No API keys yet",
-      "description": "Create a key to let AI coding agents read and update your projects over MCP.",
-      "readGuide": "Read the MCP guide"
+      "title": "No connected apps",
+      "description": "Run opencode mcp auth devhub to connect your first agent.",
+      "readGuide": "OAuth Guide"
     },
     "error": {
       "load": "Failed to load authorized apps.",
@@ -310,7 +310,14 @@
       "envVarTitle": "Environment variable",
       "envVarDesc": "Set your key in your environment, then point opencode.json at it:",
       "envVarCopyAria": "Copy environment variable"
-    }
+    },
+    "banner": "Authorization: Bearer <access_token> (scopes mcp / mcp:read / mcp:write)",
+    "bannerSuffix": "Tokens auto-refresh before expiry.",
+    "connectedCount_one": "{{count}} connected app",
+    "connectedCount_other": "{{count}} connected apps",
+    "loading": "Loading connected apps...",
+    "revokeConfirm": "Revoke this app? Token will stop working.",
+    "active": "Active"
   },
   "teams": {
     "backToDashboard": "Dashboard",
