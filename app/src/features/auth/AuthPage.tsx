@@ -169,7 +169,7 @@ export function AuthPage() {
                     rel="external"
                     data-external="true"
                     className="btn btn-secondary"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', fontWeight: 600 }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textDecoration: 'none', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-input)', padding: '10px 14px', fontWeight: 600 }}
                   >
                     <GoogleLogo size={18} weight="bold" /> Continue with Google
                   </a>
@@ -180,16 +180,16 @@ export function AuthPage() {
                     rel="external"
                     data-external="true"
                     className="btn btn-secondary"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', fontWeight: 600 }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textDecoration: 'none', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-input)', padding: '10px 14px', fontWeight: 600 }}
                   >
                     <GithubLogo size={18} weight="fill" /> Continue with GitHub
                   </a>
                 )}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '2px 0' }}>
-                <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                <span style={{ fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>or</span>
-                <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                <div style={{ flex: 1, height: 1, background: 'var(--border-hairline)' }} />
+                <span style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>or</span>
+                <div style={{ flex: 1, height: 1, background: 'var(--border-hairline)' }} />
               </div>
             </>
           )}
@@ -229,7 +229,7 @@ export function AuthPage() {
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
-                  color: 'var(--muted)',
+                  color: 'var(--text-muted)',
                   display: 'flex',
                   alignItems: 'center',
                 }}
@@ -260,7 +260,7 @@ export function AuthPage() {
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
-                  color: 'var(--muted)',
+                  color: 'var(--text-muted)',
                   display: 'flex',
                   alignItems: 'center',
                 }}
@@ -286,7 +286,7 @@ export function AuthPage() {
             </div>
           )}
           {returnTo && !isForgot && (
-            <p style={{ fontSize: 12, color: 'var(--muted)', textAlign: 'center', margin: 0 }}>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', margin: 0 }}>
               {t('auth.oauth.returnToHint', 'You will be redirected to authorize the external app after sign in.')}
             </p>
           )}

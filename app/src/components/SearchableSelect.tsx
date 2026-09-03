@@ -156,6 +156,12 @@ export function SearchableSelect({
             } else if (e.key === 'ArrowUp') {
               e.preventDefault();
               setIndex((i) => Math.max(i - 1, 0));
+            } else if (e.key === 'Home') {
+              e.preventDefault();
+              setIndex(0);
+            } else if (e.key === 'End') {
+              e.preventDefault();
+              setIndex(Math.max(rows.length - 1, 0));
             } else if (e.key === 'Enter') {
               e.preventDefault();
               const row = rows[index];
@@ -184,9 +190,11 @@ export function SearchableSelect({
             aria-activedescendant={rows[index] ? `${id}-option-${rows[index].value ?? 'empty'}` : undefined}
           />
           <div className="ss-list" id={`${id}-listbox`} role="listbox" aria-label={label ?? t('select.options')}>
-            {rows.length === 0 && <div className="ss-empty">{t('select.noMatches', { query })}</div>}
+            {rows.length === 0 && <div className="ss-empty" role="status" aria-live="polite">{t('select.noMatches', { query })}</div>}
+            <div aria-live="polite" className="sr-only">{t('select.resultsCount', { count: rows.length, defaultValue: `${rows.length} options` })}</div>
             {rows.map((row, i) => {
               const isActive = i === index;
+              const isSelected = row.value === value || (row.value === null && value == null);
               const key = row.value ?? 'empty';
               return (
                 <button
@@ -194,7 +202,7 @@ export function SearchableSelect({
                   id={`${id}-option-${key}`}
                   type="button"
                   role="option"
-                  aria-selected={isActive}
+                  aria-selected={isSelected}
                   className={isActive ? 'ss-option ss-option-active' : 'ss-option'}
                   onMouseEnter={() => setIndex(i)}
                   onClick={() => select(row.value)}

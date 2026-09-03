@@ -14,6 +14,10 @@
   --border-hairline: rgba(255, 255, 255, 0.07);
   --border-strong: rgba(255, 255, 255, 0.11);
 
+  /* Surfaces hover — tokenized hover states (replaces hardcoded rgba) */
+  --surface-hover: rgba(255, 255, 255, 0.06);
+  --surface-hover-strong: rgba(255, 255, 255, 0.08);
+
   /* Text — soft, WCAG AA 4.5:1+ */
   --text-primary: #e8e8ea;
   --text-secondary: #a8a8b0;
@@ -132,9 +136,12 @@ html[data-theme='light'] {
   --border-hairline: rgba(0, 0, 0, 0.07);
   --border-strong: rgba(0, 0, 0, 0.11);
 
+  --surface-hover: rgba(0, 0, 0, 0.04);
+  --surface-hover-strong: rgba(0, 0, 0, 0.06);
+
   --text-primary: #1c1c1f;
   --text-secondary: #5a5a64;
-  --text-muted: #7a7a85;
+  --text-muted: #6e6e78;
   --text-on-accent: #ffffff;
 
   --accent: #4a8b6f;

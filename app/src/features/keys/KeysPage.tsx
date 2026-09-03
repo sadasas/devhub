@@ -141,7 +141,7 @@ export function KeysPage() {
                     );
                   })()}
                 </div>
-                <div className="data-row-meta" style={{ fontSize: 12, color: 'var(--muted)' }}>
+                <div className="data-row-meta" style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                   {app.redirectUris[0]} · {new Date(app.createdAt).toLocaleDateString()}
                 </div>
               </div>

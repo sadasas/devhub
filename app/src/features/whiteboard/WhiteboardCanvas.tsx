@@ -27,6 +27,7 @@ import type {
   WhiteboardEdge,
   WhiteboardElement,
   WhiteboardRefEntity,
+  WhiteboardShape,
   WhiteboardSticky,
   WhiteboardShapeType,
 } from '../../lib/types';
@@ -82,7 +83,11 @@ import {
 import {
   BOUNDARY_COLOR,
   SHAPE_COLOR,
+  SHAPE_H,
+  SHAPE_W,
   STICKY_COLOR,
+  STICKY_H,
+  STICKY_W,
   TEXT_COLOR,
   buildBoundary,
   buildRef,
@@ -1061,6 +1066,39 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         removeSelection();
         return;
       }
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        if (isReadOnly) return;
+        if (selectedIds.length === 0) return;
+        e.preventDefault();
+        const step = e.shiftKey ? 1 : 8;
+        let dx = 0;
+        let dy = 0;
+        if (e.key === 'ArrowLeft') dx = -step;
+        if (e.key === 'ArrowRight') dx = step;
+        if (e.key === 'ArrowUp') dy = -step;
+        if (e.key === 'ArrowDown') dy = step;
+        const sel = new Set(selectedIds);
+        const moveIds = new Set(selectedIds);
+        const groupIds = new Set(board.elements.filter((el) => sel.has(el.id) && (el as any).groupId).map((el) => (el as any).groupId as string));
+        for (const el of board.elements) {
+          if ((el as any).groupId && groupIds.has((el as any).groupId)) moveIds.add(el.id);
+        }
+        const next = board.elements.map((el) => {
+          if ((el as any).locked) return el;
+          if (!moveIds.has(el.id)) return el;
+          if ((el as any).kind === 'stroke') {
+            return { ...el, points: (el as any).points.map(([x, y]: [number, number]) => [x + dx, y + dy] as [number, number]) };
+          }
+          if ((el as any).kind === 'edge') {
+            if ((el as any).sourceNodeId || (el as any).targetNodeId) return el;
+            return { ...el, x1: (el as any).x1 + dx, y1: (el as any).y1 + dy, x2: (el as any).x2 + dx, y2: (el as any).y2 + dy };
+          }
+          return { ...el, x: (el as any).x + dx, y: (el as any).y + dy };
+        });
+        history.record();
+        dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
+        return;
+      }
       if (e.key === 'Escape') {
         setSelectedIds([]);
         setDragOffset(null);
@@ -1628,8 +1666,48 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     setSelectedIds([hit.id]);
   };
 
+  const handleCanvasKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (isReadOnly) return;
+    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      const placeTools: WbTool[] = ['sticky', 'text', 'shape'];
+      if (!placeTools.includes(tool)) return;
+      if (e.target !== e.currentTarget) return;
+      e.preventDefault();
+      const el = view.ref.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+      const world = screenToWorld(view.view, cx, cy);
+      let newEl: WhiteboardElement | null = null;
+      if (tool === 'sticky')
+        newEl = buildSticky(world.x - STICKY_W / 2, world.y - STICKY_H / 2, stickyColorProp ?? STICKY_COLOR, stickyTextColorProp ?? null) as WhiteboardElement;
+      else if (tool === 'text') newEl = buildText(world.x, world.y, textColorProp ?? TEXT_COLOR) as WhiteboardElement;
+      else if (tool === 'shape')
+        newEl = buildShape(
+          world.x - SHAPE_W / 2,
+          world.y - SHAPE_H / 2,
+          shapeColorProp ?? SHAPE_COLOR,
+          (shapeTypeProp as unknown as WhiteboardShape['shapeType']) ?? 'rect',
+          shapeLabelColorProp ?? null,
+        ) as WhiteboardElement;
+      if (!newEl) return;
+      if (board.elements.length >= MAX_ELEMENTS) return;
+      history.record();
+      dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...board.elements, newEl] } });
+      setSelectedIds([newEl.id]);
+      onToolChange?.('select');
+    }
+  };
+
   return (
-    <div className="wb-canvas" role="group" aria-label={t('whiteboard.canvas.label', { name: board.name, count: board.elements.length })} tabIndex={0}>
+    <div
+      className="wb-canvas"
+      role="group"
+      aria-label={t('whiteboard.canvas.label', { name: board.name, count: board.elements.length })}
+      tabIndex={0}
+      onKeyDown={handleCanvasKeyDown}
+    >
       <svg
         ref={view.ref}
         className={`wb-svg ${view.dragging ? 'dragging' : ''}`}

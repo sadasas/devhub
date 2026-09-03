@@ -34,9 +34,10 @@ interface ModalProps {
   width?: ModalWidth;
   className?: string;
   initialFocusRef?: React.RefObject<HTMLElement | null>;
+  ariaDescribedBy?: string;
 }
 
-export function Modal({ open, title, onClose, children, footer, width = "md", className, initialFocusRef }: ModalProps) {
+export function Modal({ open, title, onClose, children, footer, width = "md", className, initialFocusRef, ariaDescribedBy }: ModalProps) {
   const titleId = useId();
   const { t } = useTranslation();
   const dialogRef = useFocusTrap<HTMLDivElement>(open, initialFocusRef);
@@ -73,6 +74,7 @@ export function Modal({ open, title, onClose, children, footer, width = "md", cl
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        aria-describedby={ariaDescribedBy}
       >
         <header className="modal-header">
           <h2 id={titleId} className="modal-title">

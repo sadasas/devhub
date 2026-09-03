@@ -62,7 +62,7 @@ export function Avatar({ src, name, email, id, size = 28, rounded, className, st
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: bg,
-        color: '#fff',
+        color: 'var(--text-on-accent)',
         fontWeight: 600,
         fontSize: Math.max(9, Math.round(size * 0.38)),
         lineHeight: 1,

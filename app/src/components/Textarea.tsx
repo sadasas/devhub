@@ -12,6 +12,9 @@ interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
 export function Textarea({ label, error, helper, id, className = '', required, showCount, ...rest }: TextareaProps) {
   const autoId = useId();
   const textareaId = id ?? autoId;
+  const errId = error ? `${textareaId}-error` : undefined;
+  const helpId = helper && !error ? `${textareaId}-helper` : undefined;
+  const describedBy = [errId, helpId].filter(Boolean).join(' ') || undefined;
   const max = rest.maxLength;
   const rawValue = (rest.value as unknown) ?? (rest.defaultValue as unknown) ?? '';
   const count = String(rawValue).length;
@@ -37,6 +40,7 @@ export function Textarea({ label, error, helper, id, className = '', required, s
         className={`textarea ${error ? 'textarea-error' : ''} ${className}`}
         aria-invalid={error ? true : undefined}
         aria-required={required ? true : undefined}
+        aria-describedby={describedBy}
         required={required}
         {...rest}
       />
@@ -44,17 +48,17 @@ export function Textarea({ label, error, helper, id, className = '', required, s
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             {error ? (
-              <InlineError>{error}</InlineError>
+              <InlineError id={errId}>{error}</InlineError>
             ) : helper ? (
-              <p className="field-helper" style={{ margin: 0 }}>{helper}</p>
+              <p id={helpId} className="field-helper" style={{ margin: 0 }}>{helper}</p>
             ) : null}
           </div>
           <span style={{ fontSize: 11, color: countColor, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', flexShrink: 0 }}>{count.toLocaleString()} / {(max as number).toLocaleString()}</span>
         </div>
       ) : error ? (
-        <InlineError>{error}</InlineError>
+        <InlineError id={errId}>{error}</InlineError>
       ) : helper ? (
-        <p className="field-helper">{helper}</p>
+        <p id={helpId} className="field-helper">{helper}</p>
       ) : null}
     </div>
   );

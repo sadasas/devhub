@@ -22,13 +22,22 @@ export function Input({
   ...rest
 }: InputProps) {
   const autoId = useId();
+  const errAutoId = useId();
+  const helperAutoId = useId();
   const inputId = id ?? autoId;
+  const errId = error ? `${inputId}-error` : undefined;
+  const helpId = helper && !error ? `${inputId}-helper` : undefined;
+  // Use stable generated ids for aria-describedby but tie to inputId for uniqueness
+  void errAutoId;
+  void helperAutoId;
+  const describedBy = [errId, helpId].filter(Boolean).join(' ') || undefined;
   const input = (
     <input
       id={inputId}
       className={`input ${error ? 'input-error' : ''} ${className}`}
       aria-invalid={error ? true : undefined}
       aria-required={required ? true : undefined}
+      aria-describedby={describedBy}
       required={required}
       {...rest}
     />
@@ -65,17 +74,17 @@ export function Input({
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             {error ? (
-              <InlineError>{error}</InlineError>
+              <InlineError id={errId}>{error}</InlineError>
             ) : helper ? (
-              <p className="field-helper" style={{ margin: 0 }}>{helper}</p>
+              <p id={helpId} className="field-helper" style={{ margin: 0 }}>{helper}</p>
             ) : null}
           </div>
           <span style={{ fontSize: 11, color: countColor, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', flexShrink: 0 }}>{count.toLocaleString()} / {(max as number).toLocaleString()}</span>
         </div>
       ) : error ? (
-        <InlineError>{error}</InlineError>
+        <InlineError id={errId}>{error}</InlineError>
       ) : helper ? (
-        <p className="field-helper">{helper}</p>
+        <p id={helpId} className="field-helper">{helper}</p>
       ) : null}
     </div>
   );

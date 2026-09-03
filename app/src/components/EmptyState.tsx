@@ -16,7 +16,7 @@ export function EmptyState({ icon, title, description, action, doodle, doodleTon
       {doodle ? (
         <DoodleIllustration variant={doodle} tone={doodleTone} size={140} />
       ) : (
-        <div className="empty-state-icon">{icon}</div>
+        <div className="empty-state-icon" aria-hidden="true">{icon}</div>
       )}
       <h2 className="empty-state-title">{title}</h2>
       {description && <p className="empty-state-desc">{description}</p>}

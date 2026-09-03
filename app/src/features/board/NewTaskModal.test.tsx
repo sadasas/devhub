@@ -74,7 +74,7 @@ describe('NewTaskModal milestone picker', () => {
 
   it('dispatches task/add with the chosen milestone', () => {
     renderModal();
-    fireEvent.change(screen.getByLabelText(/Title/), { target: { value: 'Ship calendar' } });
+    fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'Ship calendar' } });
     fireEvent.click(screen.getByRole('button', { name: /Milestone/ }));
     fireEvent.click(screen.getByRole('option', { name: /V0\.3\.0/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Add task' }));
@@ -88,7 +88,7 @@ describe('NewTaskModal milestone picker', () => {
 
   it('dispatches task/add with the chosen due date', () => {
     renderModal();
-    fireEvent.change(screen.getByLabelText(/Title/), { target: { value: 'Ship calendar' } });
+    fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'Ship calendar' } });
     fireEvent.change(screen.getByLabelText(/Due date/), { target: { value: '2026-08-20' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add task' }));
     expect(mocks.dispatch).toHaveBeenCalledWith(
@@ -101,7 +101,7 @@ describe('NewTaskModal milestone picker', () => {
 
   it('sends a null due date when left empty', () => {
     renderModal();
-    fireEvent.change(screen.getByLabelText(/Title/), { target: { value: 'Ship calendar' } });
+    fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'Ship calendar' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add task' }));
     expect(mocks.dispatch).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -113,7 +113,7 @@ describe('NewTaskModal milestone picker', () => {
 
   it('dispatches task/add with the chosen start date', () => {
     renderModal();
-    fireEvent.change(screen.getByLabelText(/Title/), { target: { value: 'Ship calendar' } });
+    fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'Ship calendar' } });
     fireEvent.change(screen.getByLabelText(/Start date/), { target: { value: '2026-08-14' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add task' }));
     expect(mocks.dispatch).toHaveBeenCalledWith(
@@ -126,7 +126,7 @@ describe('NewTaskModal milestone picker', () => {
 
   it('sends a null start date when left empty', () => {
     renderModal();
-    fireEvent.change(screen.getByLabelText(/Title/), { target: { value: 'Ship calendar' } });
+    fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'Ship calendar' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add task' }));
     expect(mocks.dispatch).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -145,7 +145,7 @@ describe('NewTaskModal milestone picker', () => {
 
   it('keeps no milestone when the None option is chosen', () => {
     renderModal({ milestoneId: MILESTONE_A });
-    fireEvent.change(screen.getByLabelText(/Title/), { target: { value: 'Ship calendar' } });
+    fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'Ship calendar' } });
     fireEvent.click(screen.getByRole('button', { name: /Milestone/ }));
     fireEvent.click(screen.getByRole('option', { name: 'None' }));
     fireEvent.click(screen.getByRole('button', { name: 'Add task' }));

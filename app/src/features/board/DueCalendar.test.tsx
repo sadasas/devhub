@@ -5,6 +5,11 @@ import { DueCalendar } from './DueCalendar';
 
 const mocks = vi.hoisted(() => ({ dispatch: vi.fn(), setStatus: vi.fn() }));
 
+vi.mock('../../lib/due-dates', async () => {
+  const actual = await vi.importActual<typeof import('../../lib/due-dates')>('../../lib/due-dates');
+  return { ...actual, todayIso: () => '2026-08-15' };
+});
+
 vi.mock('../../state/project-context', () => ({
   useProject: () => ({ state: mockState, dispatch: mocks.dispatch, canEdit: true, setStatus: mocks.setStatus }),
 }));

@@ -8,6 +8,9 @@ import type { Task } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { registerDrop } from '../../lib/drop-registry';
 import { useTouchDrag } from '../../hooks/useTouchDrag';
+import { Modal } from '../../components/Modal';
+import { Button } from '../../components/Button';
+import { Input } from '../../components/Input';
 
 interface DueCalendarProps {
   onOpenTask: (taskId: string) => void;
@@ -29,6 +32,7 @@ interface CalTaskChipProps {
   onOpenTask: (taskId: string) => void;
   onTouchDrop?: (taskId: string, dropKey: string | null) => void;
   onDragOffset?: (offset: number, start: string | null) => void;
+  onMove?: (taskId: string) => void;
   style?: React.CSSProperties;
   classNameExtra?: string;
 }
@@ -40,15 +44,17 @@ const STATUS_ICON: Record<string, React.ReactNode> = {
   done: <CheckCircle size={14} weight="fill" aria-hidden="true" />,
 };
 
-function CalTaskChip({ task, date, segmentStart, span, onOpenTask, onTouchDrop, onDragOffset, style, classNameExtra }: CalTaskChipProps) {
-  const { canEdit } = useProject();
+function CalTaskChip({ task, date, segmentStart, span, onOpenTask, onTouchDrop, onDragOffset, onMove, style, classNameExtra }: CalTaskChipProps) {
+  const { canEdit, dispatch } = useProject() as unknown as { canEdit: boolean; dispatch: (a: unknown) => void };
+  void dispatch;
   const ref = useRef<HTMLButtonElement>(null);
   const handleTouchDrop = useCallback(
     (dropKey: string | null) => onTouchDrop?.(task.id, dropKey),
     [task.id, onTouchDrop],
   );
   useTouchDrag(ref, { enabled: canEdit && !!onTouchDrop, onDrop: handleTouchDrop });
-  const title = date ? `${task.title} \u00b7 ${dueLabel(date, todayIso())}` : undefined;
+  const title = date ? `${task.title} \u00b7 ${dueLabel(date, todayIso())}` : task.title;
+  const ariaLabel = canEdit && onMove ? `${task.title}. Press M to move date, Enter to open.` : title;
   const rawTone = task.status === 'done' ? taskDueChip(task).tone : date ? dueTone(dueBucket(date, todayIso())) : 'neutral';
   const tone = rawTone as 'danger' | 'warn' | 'success' | 'neutral';
   const isDone = task.status === 'done';
@@ -59,10 +65,18 @@ function CalTaskChip({ task, date, segmentStart, span, onOpenTask, onTouchDrop, 
       className={`due-cal-task due-cal-task-${tone}${isDone ? ' due-cal-task-done' : ''} ${classNameExtra ?? ''}`}
       draggable={canEdit}
       title={title}
+      aria-label={ariaLabel}
       style={style}
       onClick={(e) => {
         e.stopPropagation();
         onOpenTask(task.id);
+      }}
+      onKeyDown={(e) => {
+        if (canEdit && onMove && (e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+          e.preventDefault();
+          e.stopPropagation();
+          onMove(task.id);
+        }
       }}
       onDragStart={(e) => {
         e.stopPropagation();
@@ -109,6 +123,8 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
     try { localStorage.setItem("due-cal-strip-collapsed", stripCollapsed ? "1" : "0"); } catch {}
   }, [stripCollapsed]);
   const dragGrabDateRef = useRef<string | null>(null);
+  const [moveTaskId, setMoveTaskId] = useState<string | null>(null);
+  const [moveDateDraft, setMoveDateDraft] = useState<string>('');
   const { t } = useTranslation('tracker');
 
   const anchorDate = parseIso(anchor);
@@ -307,6 +323,20 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
     [canEdit, state, dispatch],
   );
 
+  const openMove = useCallback((taskId: string) => {
+    const t = state?.tasks.find((x) => x.id === taskId);
+    setMoveTaskId(taskId);
+    setMoveDateDraft(t?.dueDate ?? '');
+  }, [state]);
+
+  const confirmMove = () => {
+    if (!moveTaskId) return;
+    const val = moveDateDraft.trim();
+    if (val === '') moveToDate(moveTaskId, null);
+    else if (/^\d{4}-\d{2}-\d{2}$/.test(val)) moveToDate(moveTaskId, val);
+    setMoveTaskId(null);
+  };
+
   useEffect(() => {
     const unregisters = cells.map((date) =>
       registerDrop(`date:${date}`, (id) => moveToDate(id, date)),
@@ -335,6 +365,9 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
     return (
       <div
         key={date}
+        role="gridcell"
+        aria-label={date}
+        aria-selected={focused === date}
         className={`due-cal-cell${dimmed ? ' due-cal-dim' : ''}${isToday ? ' due-cal-today' : ''}`}
         data-date={date}
         data-drop-key={`date:${date}`}
@@ -423,7 +456,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
       </div>
 
       <div className="due-cal-body">
-        <div className={`due-cal-grid due-cal-${weekMode ? 'week' : 'month'}`} style={{ position: 'relative', gridTemplateRows: gridRowTemplate }}>
+        <div className={`due-cal-grid due-cal-${weekMode ? 'week' : 'month'}`} role="grid" aria-label={t('board.cal.month')} style={{ position: 'relative', gridTemplateRows: gridRowTemplate }}>
           {WEEKDAY_LABELS.map((d) => (
             <div key={d} className="due-cal-head">
               {t(`board.cal.weekday.${d.toLowerCase()}`)}
@@ -447,6 +480,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
               onOpenTask={onOpenTask}
               onTouchDrop={onTouchDrop}
               onDragOffset={(_, grabDate) => { dragGrabDateRef.current = grabDate; }}
+              onMove={openMove}
               classNameExtra="due-cal-span"
               style={{
                 position: 'absolute',
@@ -560,11 +594,6 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
         id="due-cal-strip"
         className={`due-cal-strip ${stripCollapsed ? 'is-collapsed' : ''}`}
         data-drop-key="clear"
-        role={stripCollapsed ? 'button' : undefined}
-        tabIndex={stripCollapsed ? 0 : undefined}
-        aria-label={stripCollapsed ? t('board.cal.expandUnscheduled') : undefined}
-        onClick={stripCollapsed ? () => setStripCollapsed(false) : undefined}
-        onKeyDown={stripCollapsed ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setStripCollapsed(false); } } : undefined}
         onDragOver={(e) => {
           e.preventDefault();
           e.dataTransfer.dropEffect = 'move';
@@ -597,10 +626,30 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
         </div>
         {!stripCollapsed && unscheduled.length === 0 && <span className="due-cal-strip-empty">{t('board.cal.stripEmpty')}</span>}
         {!stripCollapsed && unscheduled.map((t) => (
-          <CalTaskChip key={t.id} task={t} onOpenTask={onOpenTask} onTouchDrop={onTouchDrop} onDragOffset={(_, grabDate) => { dragGrabDateRef.current = grabDate; }} />
+          <CalTaskChip key={t.id} task={t} onOpenTask={onOpenTask} onTouchDrop={onTouchDrop} onDragOffset={(_, grabDate) => { dragGrabDateRef.current = grabDate; }} onMove={openMove} />
         ))}
       </aside>
       </div>
+      <Modal
+        open={moveTaskId !== null}
+        title={t('board.cal.moveTitle', { defaultValue: 'Move task' })}
+        onClose={() => setMoveTaskId(null)}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setMoveTaskId(null)}>{t('action.cancel', { defaultValue: 'Cancel' })}</Button>
+            <Button variant="primary" onClick={confirmMove}>{t('action.save', { defaultValue: 'Save' })}</Button>
+          </>
+        }
+      >
+        <Input
+          id="move-date-input"
+          label={t('board.cal.moveLabel', { defaultValue: 'Due date (YYYY-MM-DD, empty to clear)' })}
+          type="date"
+          value={moveDateDraft}
+          onChange={(e) => setMoveDateDraft(e.target.value)}
+          helper={t('board.cal.moveHint', { defaultValue: 'Leave empty to move to No date. Press M on a chip to open this dialog.' })}
+        />
+      </Modal>
     </div>
   );
 }

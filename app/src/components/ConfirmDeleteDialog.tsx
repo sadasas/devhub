@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { Trash, X } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { Button } from './Button';
@@ -23,12 +24,14 @@ export function ConfirmDeleteDialog({
   onClose,
 }: ConfirmDeleteDialogProps) {
   const { t } = useTranslation();
+  const descId = useId();
   return (
     <Modal
       open={open}
       title={title}
       onClose={busy ? undefined : onClose}
       width="sm"
+      ariaDescribedBy={descId}
       footer={
         <>
           <Button variant="secondary" leftIcon={<X size={13} aria-hidden="true" />} onClick={onClose} disabled={busy}>
@@ -46,7 +49,7 @@ export function ConfirmDeleteDialog({
         </>
       }
     >
-      <p className="modal-copy">{description}</p>
+      <p id={descId} className="modal-copy">{description}</p>
     </Modal>
   );
 }

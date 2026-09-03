@@ -483,7 +483,7 @@ export function Layout() {
           />
         </div>
         <div className="sidebar-shell" data-visible={isSecondVisible ? 'true' : 'false'} aria-hidden={collapsed && !isSecondVisible} onPointerEnter={handleHoverGroupEnter} onPointerLeave={handleHoverGroupLeave}>
-          <div id="sidebar-region" className="sidebar-region" inert={collapsed && !isSecondVisible ? '' as any : undefined} aria-hidden={collapsed && !isSecondVisible}>
+          <div id="sidebar-region" className="sidebar-region" inert={collapsed && !isSecondVisible ? true : undefined} aria-hidden={collapsed && !isSecondVisible ? true : undefined}>
             <Sidebar activeTeamId={sidebarTeamId} activeMain={sidebarMain} onCreateTeam={() => setCreateTeamOpen(true)} />
           </div>
           {!collapsed && <div className="sidebar-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" onPointerDown={onHandlePointerDown} onDoubleClick={handleToggleCollapsed} />}

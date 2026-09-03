@@ -97,7 +97,7 @@ export function ResetPasswordPage() {
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: 'var(--muted)',
+                color: 'var(--text-muted)',
                 display: 'flex',
               }}
             >

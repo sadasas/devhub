@@ -395,7 +395,7 @@ export function ProfilePage() {
             </p>
             {linkedError && <div className="inline-error" style={{ marginBottom: 10 }}>{linkedError}</div>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div className="settings-action" style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
+              <div className="settings-action" style={{ border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-input)', padding: '12px 14px' }}>
                 <div className="settings-action-main" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <GoogleLogo size={18} weight="bold" />
                   <div>
@@ -421,7 +421,7 @@ export function ProfilePage() {
                   </a>
                  )}
               </div>
-              <div className="settings-action" style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
+              <div className="settings-action" style={{ border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-input)', padding: '12px 14px' }}>
                 <div className="settings-action-main" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <GithubLogo size={18} weight="fill" />
                   <div>

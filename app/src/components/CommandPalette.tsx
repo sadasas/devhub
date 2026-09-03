@@ -378,8 +378,9 @@ export function CommandPalette() {
           aria-controls="palette-list"
           aria-activedescendant={filtered[index] ? `palette-option-${filtered[index].id}` : undefined}
         />
+        <div aria-live="polite" className="sr-only">{t('palette.resultsCount', { count: filtered.length, defaultValue: `${filtered.length} results` })}</div>
         <div className="palette-list" id="palette-list" role="listbox" aria-label={t('palette.commandsList')}>
-          {filtered.length === 0 && <div className="palette-empty">{t('palette.noMatches', { query })}</div>}
+          {filtered.length === 0 && <div className="palette-empty" role="status">{t('palette.noMatches', { query })}</div>}
           {groups.map((g) => (
             <div key={g}>
               <div className="palette-group">{g}</div>
