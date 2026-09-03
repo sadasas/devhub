@@ -94,29 +94,43 @@ export async function setTeamPlan(
     effectivePackageId = fallback.rows[0]?.id ?? null;
   }
 
-  // Snapshot histori + expiry atomik (1 sumber: duration -> expiry, keduanya tulis bersama)
+  // Snapshot histori + expiry atomik (1 sumber: duration -> expiry, keduanya tulis bersama) — parameterized, no interpolation
   const durationVal = plan === 'pro' && durationDays ? durationDays : null;
-  const expiry =
-    plan === 'pro' && effectivePackageId && durationVal
-      ? `GREATEST(COALESCE(plan_expires_at, now()), now()) + make_interval(days => ${durationVal})`
-      : plan === 'pro' && effectivePackageId
-        ? `GREATEST(COALESCE(plan_expires_at, now()), now()) + interval '30 days'`
-        : 'NULL';
-
-  console.log(expiry);
-
-
-  // Jika pro dengan durasi, stacking; jika free, clear semua
-  const result = await pool.query<{ id: string; plan: TeamPlan; plan_duration_days: number | null }>(
-    `UPDATE teams SET
-       plan = $2,
-       plan_package_id = CASE WHEN $2 = 'pro' THEN $3::uuid ELSE NULL END,
-       plan_duration_days = CASE WHEN $2 = 'pro' THEN $4::int ELSE NULL END,
-       plan_expires_at = ${expiry}
-     WHERE id = $1
-     RETURNING id, plan, plan_duration_days`,
-    [teamId, plan, effectivePackageId, durationVal],
-  );
+  let result: { rows: Array<{ id: string; plan: TeamPlan; plan_duration_days: number | null }> };
+  if (plan === 'pro' && effectivePackageId && durationVal) {
+    result = await pool.query<{ id: string; plan: TeamPlan; plan_duration_days: number | null }>(
+      `UPDATE teams SET
+         plan = $2,
+         plan_package_id = $3::uuid,
+         plan_duration_days = $4::int,
+         plan_expires_at = GREATEST(COALESCE(plan_expires_at, now()), now()) + make_interval(days => $4::int)
+       WHERE id = $1
+       RETURNING id, plan, plan_duration_days`,
+      [teamId, plan, effectivePackageId, durationVal],
+    );
+  } else if (plan === 'pro' && effectivePackageId) {
+    result = await pool.query<{ id: string; plan: TeamPlan; plan_duration_days: number | null }>(
+      `UPDATE teams SET
+         plan = $2,
+         plan_package_id = $3::uuid,
+         plan_duration_days = NULL,
+         plan_expires_at = GREATEST(COALESCE(plan_expires_at, now()), now()) + interval '30 days'
+       WHERE id = $1
+       RETURNING id, plan, plan_duration_days`,
+      [teamId, plan, effectivePackageId],
+    );
+  } else {
+    result = await pool.query<{ id: string; plan: TeamPlan; plan_duration_days: number | null }>(
+      `UPDATE teams SET
+         plan = $2,
+         plan_package_id = NULL,
+         plan_duration_days = NULL,
+         plan_expires_at = NULL
+       WHERE id = $1
+       RETURNING id, plan, plan_duration_days`,
+      [teamId, plan],
+    );
+  }
   const row = result.rows[0];
   if (!row) return null;
   return { id: row.id, plan: row.plan, planDurationDays: row.plan_duration_days };

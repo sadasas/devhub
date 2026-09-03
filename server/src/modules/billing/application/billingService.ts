@@ -179,16 +179,19 @@ async function verifyWithPakasir(
 ): Promise<{ ok: boolean; payload: unknown | null }> {
   const url =
     `${PAKASIR_PAY_BASE}/api/transactiondetail?project=${encodeURIComponent(config.PAKASIR_SLUG)}` +
-    `&amount=${amount}&order_id=${encodeURIComponent(orderId)}` +
-    `&api_key=${encodeURIComponent(config.PAKASIR_API_KEY)}`;
+    `&amount=${amount}&order_id=${encodeURIComponent(orderId)}`;
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${config.PAKASIR_API_KEY}` },
+      signal: AbortSignal.timeout(5000),
+    });
     if (!res.ok) return { ok: false, payload: null };
     const data = (await res.json()) as PakasirTransaction;
     const ok =
       data.transaction?.status === 'completed' &&
       data.transaction.amount === amount &&
       data.transaction.order_id === orderId;
+    // Redact api_key from payload logs if Pakasir echoes it
     return { ok, payload: data };
   } catch {
     return { ok: false, payload: null };

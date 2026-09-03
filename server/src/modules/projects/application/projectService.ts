@@ -256,11 +256,18 @@ export async function updateProject(
   userId: string,
   projectId: string,
   body: unknown,
+  ifMatch?: string,
 ): Promise<{ row: ProjectRow; version: number }> {
   const row = await getProjectWithRole(userId, projectId);
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
   assertWrite(row.role);
   const input = parseOrThrow(updateProjectSchema, body, 'Invalid project data');
+  let expectedVersion: number | undefined;
+  if (typeof ifMatch === 'string' && ifMatch.trim().length > 0) {
+    const parsed = Number.parseInt(ifMatch.trim().replace(/^"(.*)"$/, '$1'), 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) throw new ApiError(400, 'VALIDATION_ERROR', 'Invalid If-Match header');
+    expectedVersion = parsed;
+  }
   if (row.status === 'archived') {
     const hasOther = input.name !== undefined || input.description !== undefined || input.visibility !== undefined || input.publicTabs !== undefined || input.prd !== undefined;
     const isRestore = input.status === 'active';
@@ -279,8 +286,16 @@ export async function updateProject(
     publicTabs: input.publicTabs,
     prd: input.prd !== undefined ? JSON.stringify(mergePrd(input.prd, normalizePrd(row.prd))) : null,
   };
-  const updated = await updateProjectMeta(projectId, patch);
-  if (!updated) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
+  const updated = await updateProjectMeta(projectId, patch, expectedVersion);
+  if (!updated) {
+    if (expectedVersion !== undefined) {
+      const fresh = await getProjectWithRole(userId, projectId);
+      throw new ApiError(409, 'CONFLICT', 'The project was modified by someone else. Reload to see the latest version.', {
+        current: { version: fresh?.version ?? null },
+      });
+    }
+    throw new ApiError(404, 'NOT_FOUND', 'Project not found');
+  }
   const fresh = await getProjectWithRole(userId, projectId);
   return { row: fresh!, version: fresh!.version };
 }

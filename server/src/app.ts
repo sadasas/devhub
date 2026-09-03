@@ -174,8 +174,19 @@ export function createApp(): express.Express {
     );
   }
   app.use(requestLogger);
-  app.use(express.json({ limit: '10mb' }));
-  app.use(express.urlencoded({ extended: true }));
+  // OAuth endpoints at root need rate-limiting too (H7): brute-force DCR / code verifier
+  const oauthLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 60,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    validate: { trustProxy: false },
+    message: { error: { code: 'RATE_LIMITED', message: 'Too many OAuth requests, try again later' } },
+  });
+  app.use('/oauth', oauthLimiter);
+  app.use('/.well-known', oauthLimiter);
+  app.use(express.json({ limit: '2mb' }));
+  app.use(express.urlencoded({ limit: '1mb', extended: true }));
   app.use(cookieParser());
   // OAuth discovery + DCR + authorize/token (must be before MCP, no auth)
   app.use(oauthRouter);

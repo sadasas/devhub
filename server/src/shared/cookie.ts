@@ -4,10 +4,10 @@ import { JWT_TTL_SECONDS, signToken } from '../modules/auth/infrastructure/jwt.j
 import { SESSION_COOKIE } from './http.js';
 
 export function setSessionCookie(res: Response, userId: string, version: number): void {
-  // Lintas-situs FE Vercel + BE Render -> SameSite=None + Secure di production
+  // CF Workers now same-origin via /api proxy (worker.ts), so Lax is sufficient and blocks CSRF.
   res.cookie(SESSION_COOKIE, signToken(userId, version), {
     httpOnly: true,
-    sameSite: config.NODE_ENV === 'production' ? 'none' : 'lax',
+    sameSite: 'lax',
     secure: config.COOKIE_SECURE,
     maxAge: JWT_TTL_SECONDS * 1000,
     path: '/',
@@ -28,7 +28,7 @@ export function setOAuthStateCookie(
   const payload = Buffer.from(JSON.stringify({ state, codeVerifier, returnTo, intent })).toString('base64url');
   res.cookie(`${OAUTH_STATE_COOKIE_PREFIX}${provider}`, payload, {
     httpOnly: true,
-    sameSite: config.NODE_ENV === 'production' ? 'none' : 'lax',
+    sameSite: 'lax',
     secure: config.COOKIE_SECURE,
     maxAge: OAUTH_STATE_TTL_MS,
     path: '/',
@@ -39,7 +39,7 @@ export function clearOAuthStateCookie(res: Response, provider: 'google' | 'githu
   res.clearCookie(`${OAUTH_STATE_COOKIE_PREFIX}${provider}`, {
     path: '/',
     httpOnly: true,
-    sameSite: config.NODE_ENV === 'production' ? 'none' : 'lax',
+    sameSite: 'lax',
     secure: config.COOKIE_SECURE,
   });
 }
@@ -48,7 +48,7 @@ export function clearSessionCookie(res: Response): void {
   res.clearCookie(SESSION_COOKIE, {
     path: '/',
     httpOnly: true,
-    sameSite: config.NODE_ENV === 'production' ? 'none' : 'lax',
+    sameSite: 'lax',
     secure: config.COOKIE_SECURE,
   });
 }

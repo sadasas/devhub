@@ -42,10 +42,22 @@ function frontendOrigin(): string {
 function isValidReturnTo(rt: string | null): string | null {
   if (!rt) return null;
   try {
-    // Allow backend OAuth authorize flow + any https (for now) + localhost frontend
-    if (rt.startsWith('http://localhost:3000/oauth/authorize')) return rt;
-    if (rt.startsWith('http://localhost:5173')) return rt;
-    if (rt.startsWith('https://')) return rt;
+    const url = new URL(rt);
+    // localhost allowlist for dev
+    if (url.origin === 'http://localhost:3000' && url.pathname.startsWith('/oauth/authorize')) return rt;
+    if (url.origin === 'http://localhost:5173') return rt;
+    const allowedOrigins = new Set<string>();
+    if (config.APP_PUBLIC_URL) {
+      try { allowedOrigins.add(new URL(config.APP_PUBLIC_URL).origin); } catch {}
+    }
+    for (const o of config.OAUTH_REDIRECT_ORIGINS) {
+      try { allowedOrigins.add(new URL(o).origin); } catch {}
+      // also allow raw origin strings without path
+      if (o.startsWith('https://') || o.startsWith('http://')) {
+        try { allowedOrigins.add(new URL(o).origin); } catch {}
+      }
+    }
+    if (allowedOrigins.has(url.origin)) return rt;
     return null;
   } catch {
     return null;
@@ -516,7 +528,7 @@ socialRouter.get('/github/callback', socialLimiter, async (req, res) => {
       provider: 'github',
       providerAccountId: String(userJson.id),
       email,
-      emailVerified: primaryVerified || Boolean(userJson.email),
+      emailVerified: primaryVerified,
       displayName: userJson.name || userJson.login || email.split('@')[0] || 'User',
       avatarUrl: userJson.avatar_url || null,
     };

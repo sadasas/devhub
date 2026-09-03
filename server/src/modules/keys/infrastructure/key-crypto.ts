@@ -16,8 +16,12 @@ const CONTEXT = Buffer.from('devhub-mcp-key-enc', 'utf8');
 const IV_LEN = 12;
 
 function encryptionKey(): Buffer {
+  // H8 fix: use dedicated MCP_KEY_ENC_KEY if set, fallback to JWT_SECRET-derived for backward compat.
+  const secret = config.MCP_KEY_ENC_KEY && config.MCP_KEY_ENC_KEY.length >= 32
+    ? config.MCP_KEY_ENC_KEY
+    : config.JWT_SECRET;
   return Buffer.from(
-    hkdfSync('sha256', Buffer.from(config.JWT_SECRET, 'utf8'), ENC_SALT, CONTEXT, 32),
+    hkdfSync('sha256', Buffer.from(secret, 'utf8'), ENC_SALT, CONTEXT, 32),
   );
 }
 

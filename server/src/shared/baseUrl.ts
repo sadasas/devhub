@@ -7,6 +7,11 @@ import { config } from '../config.js';
  * Falls back to Host/protocol for local dev.
  */
 export function getBaseUrl(req: Request): string {
+  // Only trust X-Forwarded-* when behind trusted proxy (TRUST_PROXY=true),
+  // otherwise Host header poisoning via client-supplied X-Forwarded-Host is possible (H2).
+  if (!config.TRUST_PROXY) {
+    return `${req.protocol}://${req.get('host') || `localhost:${config.PORT}`}`;
+  }
   const protoHeader = req.headers['x-forwarded-proto'] as string | undefined;
   const proto = protoHeader?.split(',')[0]?.trim() || req.protocol;
   const hostHeader = req.headers['x-forwarded-host'] as string | undefined;

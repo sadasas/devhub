@@ -76,7 +76,9 @@ projectsRouter.get('/:projectId', async (req, res) => {
 
 projectsRouter.patch('/:projectId', async (req, res) => {
   const userId = getUserId(req);
-  const { row, version } = await updateProject(userId, req.params.projectId, req.body);
+  const ifMatch = typeof req.headers['if-match'] === 'string' ? req.headers['if-match'] : undefined;
+  const { row, version } = await updateProject(userId, req.params.projectId, req.body, ifMatch);
+  res.setHeader('ETag', `"${version}"`);
   res.json(projectJson(row));
   broadcastSync(req.params.projectId, version);
 });

@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
+import { createHash } from 'node:crypto';
 import { pool } from '../../../db/pool.js';
 import { ApiError } from '../../../shared/errors.js';
 import { getBaseUrl } from '../../../shared/baseUrl.js';
@@ -34,12 +35,21 @@ export async function requireMcpKey(req: Request, res: Response, next: NextFunct
     return;
   }
 
-  // 2) Try OAuth access token
+  // 2) Try OAuth access token (hash lookup with plaintext fallback for pre-migration rows)
+  const tokenHash = createHash('sha256').update(token).digest('hex');
   const oauthResult = await pool.query<{ user_id: string; scope: string; expires_at: string }>(
-    'SELECT user_id, scope, expires_at FROM oauth_access_tokens WHERE token = $1',
-    [token],
+    'SELECT user_id, scope, expires_at FROM oauth_access_tokens WHERE token_hash = $1 OR token = $1',
+    [tokenHash],
   );
-  const oauthRow = oauthResult.rows[0];
+  // fallback plaintext check for rows where token_hash not yet backfilled
+  let oauthRow = oauthResult.rows[0];
+  if (!oauthRow) {
+    const fallback = await pool.query<{ user_id: string; scope: string; expires_at: string }>(
+      'SELECT user_id, scope, expires_at FROM oauth_access_tokens WHERE token = $1',
+      [token],
+    );
+    oauthRow = fallback.rows[0];
+  }
   if (oauthRow) {
     if (new Date(oauthRow.expires_at).getTime() < Date.now()) {
       res.setHeader('WWW-Authenticate', `${wwwAuth}, error="invalid_token", error_description="token expired"`);

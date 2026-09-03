@@ -59,6 +59,7 @@ const envSchema = z.object({
         .map((s) => s.trim())
         .filter(Boolean),
     ),
+  MCP_KEY_ENC_KEY: z.string().max(500).default(''),
 });
 
 export type Config = z.infer<typeof envSchema>;

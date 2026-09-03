@@ -68,9 +68,37 @@ export async function insertProject(
 export async function updateProjectMeta(
   projectId: string,
   patch: ProjectMetaPatch,
+  expectedVersion?: number,
 ): Promise<ProjectVersionRow | undefined> {
   // Metadata project juga menaikkan version (audit 2026-08b, API-8/DB-16):
   // semua mutasi project menggeser version agar optimistic lock konsisten.
+  // If-Match optional: jika diberi, WHERE version = expectedVersion untuk cegah lost-update (C3).
+  if (expectedVersion !== undefined) {
+    const updated = await pool.query<ProjectVersionRow & { updated_at: Date }>(
+      `UPDATE projects SET
+         name = COALESCE($2, name),
+         description = COALESCE($3, description),
+         status = COALESCE($4, status),
+         visibility = COALESCE($5, visibility),
+         public_tabs = COALESCE($6::jsonb, public_tabs),
+         prd = COALESCE($7::jsonb, prd),
+         version = version + 1,
+         updated_at = now()
+       WHERE id = $1 AND version = $8
+       RETURNING id, updated_at, version`,
+      [
+        projectId,
+        patch.name ?? null,
+        patch.description ?? null,
+        patch.status ?? null,
+        patch.visibility ?? null,
+        patch.publicTabs !== undefined ? JSON.stringify(patch.publicTabs) : null,
+        patch.prd ?? null,
+        expectedVersion,
+      ],
+    );
+    return updated.rows[0];
+  }
   const updated = await pool.query<ProjectVersionRow & { updated_at: Date }>(
     `UPDATE projects SET
        name = COALESCE($2, name),
@@ -106,6 +134,10 @@ export async function updateProjectState(
   state: string,
   expectedVersion: number,
 ): Promise<ProjectVersionRow | undefined> {
+  if (Buffer.byteLength(state, 'utf8') > 10 * 1024 * 1024) {
+    const { ApiError } = await import('../../../shared/errors.js');
+    throw new ApiError(413, 'PAYLOAD_TOO_LARGE', 'Project state exceeds 10MB limit');
+  }
   const updated = await pool.query<ProjectVersionRow>(
     `UPDATE projects SET data = $2::jsonb, version = version + 1, updated_at = now()
      WHERE id = $1 AND version = $3
@@ -120,6 +152,10 @@ export async function restoreProjectState(
   state: string,
   stateVersion: number,
 ): Promise<ProjectVersionRow | undefined> {
+  if (Buffer.byteLength(state, 'utf8') > 10 * 1024 * 1024) {
+    const { ApiError } = await import('../../../shared/errors.js');
+    throw new ApiError(413, 'PAYLOAD_TOO_LARGE', 'Project state exceeds 10MB limit');
+  }
   const restored = await pool.query<ProjectVersionRow>(
     'UPDATE projects SET data = $2::jsonb, version = version + 1, updated_at = now() WHERE id = $1 AND version = $3 RETURNING id, version',
     [projectId, state, stateVersion],
@@ -131,6 +167,10 @@ export async function restoreProjectStateUnconditional(
   projectId: string,
   state: string,
 ): Promise<void> {
+  if (Buffer.byteLength(state, 'utf8') > 10 * 1024 * 1024) {
+    const { ApiError } = await import('../../../shared/errors.js');
+    throw new ApiError(413, 'PAYLOAD_TOO_LARGE', 'Project state exceeds 10MB limit');
+  }
   await pool.query(
     'UPDATE projects SET data = $2::jsonb, version = version + 1, updated_at = now() WHERE id = $1',
     [projectId, state],

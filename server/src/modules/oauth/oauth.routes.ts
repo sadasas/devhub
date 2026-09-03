@@ -66,6 +66,21 @@ const registerSchema = z.object({
 
 oauthRouter.post('/oauth/register', async (req, res) => {
   const parsed = parseOrThrow(registerSchema, req.body, 'Invalid client metadata');
+  // DCR allowlist (C1): only allow redirect_uris whose origin is in APP_PUBLIC_URL or OAUTH_REDIRECT_ORIGINS,
+  // plus localhost for dev. Prevents evil.com registration.
+  const allowedOrigins = new Set<string>();
+  if (config.APP_PUBLIC_URL) { try { allowedOrigins.add(new URL(config.APP_PUBLIC_URL).origin); } catch {} }
+  for (const o of config.OAUTH_REDIRECT_ORIGINS) { try { allowedOrigins.add(new URL(o).origin); } catch {} }
+  const isDev = config.NODE_ENV !== 'production';
+  for (const uri of parsed.redirect_uris) {
+    let origin: string;
+    try { origin = new URL(uri).origin; } catch { throw new ApiError(400, 'INVALID_REQUEST', `Invalid redirect_uri: ${uri}`); }
+    const isLocalhost = origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:');
+    if (isLocalhost && isDev) continue;
+    if (allowedOrigins.has(origin)) continue;
+    // Allow loopback for MCP local clients (e.g. http://localhost:*) in dev, otherwise reject
+    throw new ApiError(400, 'INVALID_REQUEST', `redirect_uri origin not allowed: ${origin}`);
+  }
   const clientId = `devhub_${randomBytes(16).toString('hex')}`;
   const clientSecret = null; // public clients - PKCE only, no secret per OAuth 2.1
   await pool.query(
@@ -147,7 +162,29 @@ oauthRouter.get('/oauth/authorize', async (req, res) => {
     throw new ApiError(401, 'UNAUTHORIZED', `Login required. Go to ${loginUrl.toString()}`);
   }
 
-  // Auto-approve for now (consent screen could be added later)
+  // Consent check (C1): require ?consent=allow or POST consent. Without consent, return need_consent hint.
+  // Clients like opencode can show consent UI; browser flow will redirect to /login?returnTo with consent param.
+  const consent = (req.query.consent as string | undefined)?.toLowerCase();
+  const hasConsentHeader = req.headers['x-oauth-consent'] === 'allow';
+  if (consent !== 'allow' && !hasConsentHeader) {
+    // Check if client was already consented by this user (remember consent per client+user)
+    const consented = await pool.query('SELECT 1 FROM oauth_consents WHERE user_id=$1 AND client_id=$2', [userId, parsed.client_id]);
+    if (!consented.rows[0]) {
+      const acceptsHtml = (req.headers.accept || '').includes('text/html');
+      if (acceptsHtml) {
+        // Simple HTML consent page — no extra deps
+        const clientName = parsed.client_id;
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.status(200).send(`<!doctype html><html><head><meta charset="utf-8"><title>Authorize ${clientName}</title></head><body style="font-family:system-ui;padding:2rem;max-width:480px;margin:auto"><h2>Authorize ${clientName}?</h2><p>Scope: <code>${parsed.scope}</code></p><p>This app will have access to your projects via MCP.</p><a href="${baseUrl(req)}${req.originalUrl}${req.originalUrl.includes('?') ? '&' : '?'}consent=allow" style="display:inline-block;padding:0.6rem 1.2rem;background:#0e7a4a;color:#fff;border-radius:6px;text-decoration:none">Allow</a> <a href="/" style="margin-left:1rem">Deny</a></body></html>`);
+        return;
+      }
+      // Non-browser (MCP client) — return structured hint instead of auto-approve
+      res.status(403).json({ error: { code: 'CONSENT_REQUIRED', message: 'User consent required. Retry with ?consent=allow or X-OAuth-Consent: allow header after user approval.' } });
+      return;
+    }
+  }
+  // Remember consent for future auto-approve
+  await pool.query('INSERT INTO oauth_consents (user_id, client_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [userId, parsed.client_id]);
   const code = generateToken('devhub_code_');
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min
   await pool.query(
@@ -190,7 +227,7 @@ oauthRouter.post('/oauth/token', async (req, res) => {
     });
     const parsed = parseOrThrow(schema, body, 'Invalid token request');
 
-    const codeRes = await pool.query<{
+    const atom = await pool.query<{
       code: string;
       client_id: string;
       user_id: string;
@@ -200,12 +237,10 @@ oauthRouter.post('/oauth/token', async (req, res) => {
       expires_at: string;
       used_at: string | null;
       resource: string | null;
-    }>('SELECT * FROM oauth_authorization_codes WHERE code = $1', [parsed.code]);
+    }>('UPDATE oauth_authorization_codes SET used_at = now() WHERE code = $1 AND used_at IS NULL AND expires_at > now() RETURNING *', [parsed.code]);
 
-    const row = codeRes.rows[0];
-    if (!row) throw new ApiError(400, 'INVALID_GRANT', 'Invalid code');
-    if (row.used_at) throw new ApiError(400, 'INVALID_GRANT', 'Code already used');
-    if (new Date(row.expires_at).getTime() < Date.now()) throw new ApiError(400, 'INVALID_GRANT', 'Code expired');
+    const row = atom.rows[0];
+    if (!row) throw new ApiError(400, 'INVALID_GRANT', 'Invalid code, already used or expired');
     if (row.client_id !== parsed.client_id) throw new ApiError(400, 'INVALID_GRANT', 'client_id mismatch');
     if (row.redirect_uri !== parsed.redirect_uri) throw new ApiError(400, 'INVALID_GRANT', 'redirect_uri mismatch');
 
@@ -215,11 +250,10 @@ oauthRouter.post('/oauth/token', async (req, res) => {
       throw new ApiError(400, 'INVALID_GRANT', 'PKCE verification failed');
     }
 
-    // Mark used
-    await pool.query('UPDATE oauth_authorization_codes SET used_at = now() WHERE code = $1', [parsed.code]);
-
     const accessToken = generateToken('devhub_at_');
     const refreshToken = generateToken('devhub_rt_');
+    const tokenHash = createHash('sha256').update(accessToken).digest('hex');
+    const refreshHash = createHash('sha256').update(refreshToken).digest('hex');
     const expiresIn = 15 * 60; // 15 min
     const refreshExpiresIn = 30 * 24 * 60 * 60; // 30 days
     const expiresAt = new Date(Date.now() + expiresIn * 1000);
@@ -227,9 +261,9 @@ oauthRouter.post('/oauth/token', async (req, res) => {
 
     await pool.query(
       `INSERT INTO oauth_access_tokens 
-       (token, client_id, user_id, scope, resource, expires_at, refresh_token, refresh_expires_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [accessToken, parsed.client_id, row.user_id, row.scope, row.resource, expiresAt, refreshToken, refreshExpiresAt],
+       (token, token_hash, client_id, user_id, scope, resource, expires_at, refresh_token, refresh_token_hash, refresh_expires_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      [accessToken, tokenHash, parsed.client_id, row.user_id, row.scope, row.resource, expiresAt, refreshToken, refreshHash, refreshExpiresAt],
     );
 
     res.json({
@@ -251,6 +285,7 @@ oauthRouter.post('/oauth/token', async (req, res) => {
     });
     const parsed = parseOrThrow(schema, body, 'Invalid refresh request');
 
+    const refreshHash = createHash('sha256').update(parsed.refresh_token).digest('hex');
     const tokenRes = await pool.query<{
       token: string;
       client_id: string;
@@ -258,16 +293,31 @@ oauthRouter.post('/oauth/token', async (req, res) => {
       scope: string;
       resource: string | null;
       refresh_expires_at: string;
-    }>('SELECT * FROM oauth_access_tokens WHERE refresh_token = $1', [parsed.refresh_token]);
+    }>('SELECT * FROM oauth_access_tokens WHERE refresh_token_hash = $1 OR refresh_token = $1', [refreshHash]);
 
-    const row = tokenRes.rows[0];
+    // fallback: if lookup by hash failed, try plaintext hash comparison via app (for rows not yet backfilled)
+    let row = tokenRes.rows[0];
+    if (!row) {
+      const fallback = await pool.query<{
+        token: string;
+        client_id: string;
+        user_id: string;
+        scope: string;
+        resource: string | null;
+        refresh_expires_at: string;
+        refresh_token: string;
+      }>('SELECT * FROM oauth_access_tokens WHERE refresh_token = $1', [parsed.refresh_token]);
+      row = fallback.rows[0];
+      if (!row) throw new ApiError(400, 'INVALID_GRANT', 'Invalid refresh_token');
+    }
     if (!row) throw new ApiError(400, 'INVALID_GRANT', 'Invalid refresh_token');
     if (new Date(row.refresh_expires_at).getTime() < Date.now())
       throw new ApiError(400, 'INVALID_GRANT', 'Refresh token expired');
     if (row.client_id !== parsed.client_id) throw new ApiError(400, 'INVALID_GRANT', 'client_id mismatch');
 
-    // Rotation: invalidate old, issue new
-    await pool.query('DELETE FROM oauth_access_tokens WHERE refresh_token = $1', [parsed.refresh_token]);
+    // Rotation: invalidate old, issue new (delete by hash or plaintext)
+    await pool.query('DELETE FROM oauth_access_tokens WHERE refresh_token_hash = $1 OR refresh_token = $1', [refreshHash]);
+    await pool.query('DELETE FROM oauth_access_tokens WHERE refresh_token = $1', [parsed.refresh_token]).catch(() => {});
 
     const newAccess = generateToken('devhub_at_');
     const newRefresh = generateToken('devhub_rt_');
@@ -284,11 +334,13 @@ oauthRouter.post('/oauth/token', async (req, res) => {
       newScope = [...requested].join(' ') || row.scope;
     }
 
+    const newAccessHash = createHash('sha256').update(newAccess).digest('hex');
+    const newRefreshHash = createHash('sha256').update(newRefresh).digest('hex');
     await pool.query(
       `INSERT INTO oauth_access_tokens 
-       (token, client_id, user_id, scope, resource, expires_at, refresh_token, refresh_expires_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [newAccess, parsed.client_id, row.user_id, newScope, row.resource, expiresAt, newRefresh, refreshExpiresAt],
+       (token, token_hash, client_id, user_id, scope, resource, expires_at, refresh_token, refresh_token_hash, refresh_expires_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      [newAccess, newAccessHash, parsed.client_id, row.user_id, newScope, row.resource, expiresAt, newRefresh, newRefreshHash, refreshExpiresAt],
     );
 
     res.json({

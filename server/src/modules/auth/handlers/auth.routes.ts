@@ -225,22 +225,17 @@ authRouter.post('/reset-password', forgotLimiter, async (req, res) => {
   if (new Date(row.expires_at).getTime() < Date.now()) throw new ApiError(400, 'INVALID_TOKEN', 'Reset token expired');
 
   const passwordHash = await hashPassword(newPassword);
-  await pool.query('BEGIN');
-  try {
-    await pool.query(
+  await withTransaction(pool, async (client) => {
+    await client.query(
       'UPDATE users SET password_hash = $2, jwt_version = jwt_version + 1, updated_at = now() WHERE id = $1',
       [row.user_id, passwordHash],
     );
-    await pool.query('UPDATE password_reset_tokens SET used_at = now() WHERE token = $1', [token]);
+    await client.query('UPDATE password_reset_tokens SET used_at = now() WHERE token = $1', [token]);
     // Invalidate all other reset tokens for user
-    await pool.query('DELETE FROM password_reset_tokens WHERE user_id = $1 AND token != $2', [row.user_id, token]);
+    await client.query('DELETE FROM password_reset_tokens WHERE user_id = $1 AND token != $2', [row.user_id, token]);
     // Invalidate OAuth tokens (force re-login for agents)
-    await pool.query('DELETE FROM oauth_access_tokens WHERE user_id = $1', [row.user_id]);
-    await pool.query('COMMIT');
-  } catch (err) {
-    await pool.query('ROLLBACK');
-    throw err;
-  }
+    await client.query('DELETE FROM oauth_access_tokens WHERE user_id = $1', [row.user_id]);
+  });
   res.json({ ok: true });
 });
 

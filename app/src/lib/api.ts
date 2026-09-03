@@ -253,10 +253,12 @@ export const api = {
   patchProject: (
     projectId: string,
     patch: Partial<Pick<Project, 'name' | 'description' | 'status' | 'visibility' | 'prd'> & { publicTabs: PublicTab[] }>,
+    version?: number,
   ) =>
     request<Project>(`/projects/${encodeURIComponent(projectId)}`, {
       method: 'PATCH',
       body: JSON.stringify(patch),
+      headers: version !== undefined ? { 'If-Match': `"${version}"` } : undefined,
     }),
   deleteProject: (projectId: string) =>
     request<void>(`/projects/${encodeURIComponent(projectId)}`, { method: 'DELETE' }),
