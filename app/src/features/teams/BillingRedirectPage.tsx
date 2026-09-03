@@ -75,17 +75,14 @@ function WorkspaceEyebrow({ name, loading }: { name: string | null; loading?: bo
 
 function PaymentFacts({
   payment,
-  team,
 }: {
   payment: (BillingPayment | PaymentHistoryItem) | null;
-  team: BillingStatus['team'] | null;
 }) {
   if (!payment) return null;
   const duration = (payment as { durationDays?: number | null }).durationDays ?? null;
   const amount = payment.amount;
   const createdAt = payment.createdAt;
   const completedAt = (payment as { completedAt?: string | null }).completedAt ?? null;
-  // team may provide planExpiresAt for success state but facts focus on payment itself
   return (
     <dl className="billing-facts">
       <dt>Paket</dt>
@@ -111,12 +108,6 @@ function PaymentFacts({
         <>
           <dt>Selesai</dt>
           <dd>{formatDateShort(completedAt)}</dd>
-        </>
-      )}
-      {team?.planExpiresAt && (
-        <>
-          <dt>Aktif sampai</dt>
-          <dd>{formatDateShort(team.planExpiresAt)}</dd>
         </>
       )}
     </dl>
@@ -148,11 +139,8 @@ export function BillingRedirectPage() {
       if (orderIdQuery) {
         const res = await api.getPayment(orderIdQuery);
         setDetailPayment(res.payment);
-        // Keep data for team name fallback, but detail is primary
-        try {
-          const status = await api.billingStatus(teamId);
-          setData(status);
-        } catch {}
+        // Detail is pure order — no billingStatus fetch (was 2nd call 1.68kB). Workspace info from payment.teamName only.
+        setData(null);
         setError(null);
         setErrorCode(null);
         return res.payment as unknown as BillingStatus;
@@ -318,11 +306,10 @@ export function BillingRedirectPage() {
     } catch {}
   };
 
-  // Invariant workspace name: detailPayment primary, fallback data.team.name
-  const workspaceName: string | null = (detailPayment?.teamName ?? data?.team.name ?? null) as string | null;
+  // Invariant workspace name: detailPayment primary (pure order, no billingStatus)
+  const workspaceName: string | null = (detailPayment?.teamName ?? null) as string | null;
   const workspaceMismatch =
     !!detailPayment && !!teamId && detailPayment.teamId !== teamId;
-  const pendingScheduled = (data as BillingStatus | null)?.team.pendingPackage ?? null;
 
   const renderHeroIcon = () => {
     const size = 20;
@@ -430,7 +417,7 @@ export function BillingRedirectPage() {
                 Order ini milik workspace lain: {detailPayment?.teamName}
               </p>
             )}
-            <PaymentFacts payment={targetPayment} team={data?.team ?? null} />
+            <PaymentFacts payment={targetPayment} />
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 6 }}>
               <span className="billing-redirect-mono" title={targetPayment.orderId}>Order {shortId(targetPayment.orderId)} · Rp {targetPayment.amount.toLocaleString('id-ID')}</span>
               <button type="button" className="billing-redirect-copy" onClick={() => void handleCopy(targetPayment.orderId)} aria-label="Copy order ID"><Copy size={12} aria-hidden="true" /> {copied ? t('common:copied', { defaultValue: 'Tersalin' }) : 'Copy'}</button>
@@ -441,15 +428,6 @@ export function BillingRedirectPage() {
               <Button variant="ghost" size="sm" leftIcon={<Trash size={13} aria-hidden="true" />} disabled={busy !== null} loading={busy === 'cancel'} onClick={() => setConfirmCancel(true)}>{t('teams.billing.cancelPayment', { defaultValue: 'Batalkan' })}</Button>
             </div>
             <p className="billing-redirect-help" style={{ marginTop: 4 }}>Butuh bantuan? Hubungi admin tim dengan Order ID di atas.</p>
-            {pendingScheduled && (
-              <p className="billing-redirect-help" style={{ color: 'var(--status-warn)', marginTop: 6 }}>
-                {t('teams.payment.scheduledHelp', {
-                  defaultValue: `Downgrade terjadwal ke ${pendingScheduled.name} akan aktif ${new Date(pendingScheduled.activateAt).toLocaleDateString('id-ID')}. Batalkan di Billing.`,
-                  name: pendingScheduled.name,
-                  date: new Date(pendingScheduled.activateAt).toLocaleDateString('id-ID'),
-                })}
-              </p>
-            )}
             <p className="sr-only" aria-live="polite">Mengecek otomatis tiap 5 detik</p>
           </section>
           <ConfirmDeleteDialog
@@ -495,7 +473,7 @@ export function BillingRedirectPage() {
                 </p>
               </div>
             </div>
-            <PaymentFacts payment={targetPayment} team={data?.team ?? null} />
+            <PaymentFacts payment={targetPayment} />
             {targetPayment && (
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 6 }}>
                 <span className="billing-redirect-mono" title={targetPayment.orderId}>Order {shortId(targetPayment.orderId)} · Rp {targetPayment.amount.toLocaleString('id-ID')}</span>
@@ -506,15 +484,6 @@ export function BillingRedirectPage() {
               <Button variant="primary" onClick={() => (window.location.href = `/team/${teamId || detailPayment?.teamId || ''}?tab=usage`)}>{t('teams.payment.back', { defaultValue: 'Kembali ke workspace' })}</Button>
             </div>
             <p className="billing-redirect-help">Kwitansi dikirim ke email. Sisa hari dari paket sebelumnya telah ditambahkan.</p>
-            {pendingScheduled && (
-              <p className="billing-redirect-help" style={{ color: 'var(--status-warn)', marginTop: 8 }}>
-                {t('teams.payment.scheduledHelp', {
-                  defaultValue: `Downgrade terjadwal ke ${pendingScheduled.name} akan aktif ${new Date(pendingScheduled.activateAt).toLocaleDateString('id-ID')}. Batalkan di Billing.`,
-                  name: pendingScheduled.name,
-                  date: new Date(pendingScheduled.activateAt).toLocaleDateString('id-ID'),
-                })}
-              </p>
-            )}
           </section>
         )}
 
@@ -532,7 +501,7 @@ export function BillingRedirectPage() {
                 <p className="billing-redirect-subtitle">{failedVariant === 'cancelled' ? t('teams.payment.cancelledDesc', { defaultValue: 'Link pembayaran kadaluarsa.' }) : failedVariant === 'expired' ? t('teams.payment.expiredDesc', { defaultValue: 'Langganan habis. Perpanjang untuk lanjut.' }) : t('teams.payment.failedDesc', { defaultValue: 'Pembayaran belum masuk.' })}</p>
               </div>
             </div>
-            <PaymentFacts payment={targetPayment} team={data?.team ?? null} />
+            <PaymentFacts payment={targetPayment} />
             {targetPayment && (
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 6 }}>
                 <span className="billing-redirect-mono" title={targetPayment.orderId}>Order {shortId(targetPayment.orderId)} · Rp {targetPayment.amount.toLocaleString('id-ID')}</span>

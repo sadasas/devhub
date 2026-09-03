@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { CaretDoubleLeft, CaretDoubleRight, Plus, SquaresFour } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -19,6 +20,61 @@ interface TeamRailProps {
   onCreateTeam: () => void;
   onHoverItem?: (id: string | null) => void;
 }
+
+const TeamRailItem = memo(function TeamRailItem({
+  team,
+  isActive,
+  isHovered,
+  unread,
+  onSelectTeam,
+  onHoverItem,
+}: {
+  team: { id: string; name: string; icon?: string | null; memberCount: number };
+  isActive: boolean;
+  isHovered: boolean;
+  unread: number;
+  onSelectTeam: (id: string) => void;
+  onHoverItem?: (id: string | null) => void;
+}) {
+  const initials = avatarInitials(team.name);
+  const bg = avatarColor(team.id);
+  const hasIcon = Boolean(team.icon?.trim());
+  const hasUnread = unread > 0;
+  const unreadLabel = hasUnread ? `${unread} unread` : `${team.memberCount} members`;
+  return (
+    <button
+      key={team.id}
+      type="button"
+      role="listitem"
+      className={`team-rail-item${isActive ? ' team-rail-item-active' : ''}${isHovered ? ' team-rail-item-hovered' : ''}`}
+      aria-label={`${team.name}, ${unreadLabel}`}
+      aria-current={isActive ? 'true' : undefined}
+      aria-expanded={isHovered ? true : undefined}
+      aria-controls="sidebar-region"
+      title={hasUnread ? `${team.name} — ${unread} unread` : `${team.name} — ${team.memberCount} members`}
+      onClick={() => onSelectTeam(team.id)}
+      onPointerEnter={() => onHoverItem?.(team.id)}
+      onPointerLeave={(e) => {
+        const rt = e.relatedTarget as Node | null;
+        if (rt && document.getElementById('sidebar-region')?.contains(rt)) return;
+        onHoverItem?.(null);
+      }}
+      onFocus={() => onHoverItem?.(team.id)}
+      onBlur={(e) => {
+        const rt = e.relatedTarget as Node | null;
+        if (rt && (document.getElementById('sidebar-region')?.contains(rt) || (e.currentTarget as HTMLElement).closest('.desktop-sidebar-group')?.contains(rt))) return;
+        onHoverItem?.(null);
+      }}
+    >
+      <span className="team-rail-icon" style={hasIcon ? { background: 'transparent', fontSize: 16, border: '1px solid var(--border-hairline)' } : { background: bg }} aria-hidden="true">
+        {hasIcon ? team.icon!.trim() : initials.slice(0, 2)}
+        {hasUnread && <span className="team-rail-icon-bubble team-rail-icon-bubble-unread" aria-hidden="true">{unread > 99 ? '99+' : unread}</span>}
+      </span>
+      <span className="team-rail-name" title={team.name}>{team.name}</span>
+      {hasUnread && <span className="team-rail-count team-rail-count-unread" aria-hidden="true">{unread > 99 ? '99+' : unread}</span>}
+    </button>
+  );
+});
 
 export function TeamRail({ teams, activeTeamId, activeMain = 'team', compact = false, collapsed = false, hoveredId = null, unreadByTeam, onToggleCollapsed, onSelectTeam, onSelectHome, onCreateTeam, onHoverItem }: TeamRailProps) {
   const { t } = useTranslation('shell');
@@ -69,63 +125,17 @@ export function TeamRail({ teams, activeTeamId, activeMain = 'team', compact = f
             No teams
           </div>
         ) : (
-          teams.map((team) => {
-            const isActive = team.id === activeTeamId && activeMain === 'team';
-            const isHovered = hoveredId === team.id;
-            const initials = avatarInitials(team.name);
-            const bg = avatarColor(team.id);
-            const hasIcon = Boolean(team.icon?.trim());
-            const unread = unreadByTeam?.[team.id] ?? 0;
-            const hasUnread = unread > 0;
-            const unreadLabel = hasUnread ? `${unread} unread` : `${team.memberCount} members`;
-            return (
-              <button
-                key={team.id}
-                type="button"
-                role="listitem"
-                className={`team-rail-item${isActive ? ' team-rail-item-active' : ''}${isHovered ? ' team-rail-item-hovered' : ''}`}
-                aria-label={`${team.name}, ${unreadLabel}`}
-                aria-current={isActive ? 'true' : undefined}
-                aria-expanded={isHovered ? true : undefined}
-                aria-controls="sidebar-region"
-                title={hasUnread ? `${team.name} — ${unread} unread` : `${team.name} — ${team.memberCount} members`}
-                onClick={() => onSelectTeam(team.id)}
-                onPointerEnter={() => onHoverItem?.(team.id)}
-                onPointerLeave={(e) => {
-                  const rt = e.relatedTarget as Node | null;
-                  if (rt && document.getElementById('sidebar-region')?.contains(rt)) return;
-                  onHoverItem?.(null);
-                }}
-                onFocus={() => onHoverItem?.(team.id)}
-                onBlur={(e) => {
-                  const rt = e.relatedTarget as Node | null;
-                  if (rt && (document.getElementById('sidebar-region')?.contains(rt) || (e.currentTarget as HTMLElement).closest('.desktop-sidebar-group')?.contains(rt))) return;
-                  onHoverItem?.(null);
-                }}
-              >
-                <span
-                  className="team-rail-icon"
-                  style={hasIcon ? { background: 'transparent', fontSize: 16, border: '1px solid var(--border-hairline)' } : { background: bg }}
-                  aria-hidden="true"
-                >
-                  {hasIcon ? team.icon!.trim() : initials.slice(0, 2)}
-                  {hasUnread && (
-                    <span className="team-rail-icon-bubble team-rail-icon-bubble-unread" aria-hidden="true">
-                      {unread > 99 ? '99+' : unread}
-                    </span>
-                  )}
-                </span>
-                <span className="team-rail-name" title={team.name}>
-                  {team.name}
-                </span>
-                {hasUnread && (
-                  <span className="team-rail-count team-rail-count-unread" aria-hidden="true">
-                    {unread > 99 ? '99+' : unread}
-                  </span>
-                )}
-              </button>
-            );
-          })
+          teams.map((team) => (
+            <TeamRailItem
+              key={team.id}
+              team={team}
+              isActive={team.id === activeTeamId && activeMain === 'team'}
+              isHovered={hoveredId === team.id}
+              unread={unreadByTeam?.[team.id] ?? 0}
+              onSelectTeam={onSelectTeam}
+              onHoverItem={onHoverItem}
+            />
+          ))
         )}
       </div>
 

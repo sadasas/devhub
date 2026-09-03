@@ -9,7 +9,7 @@ import {
   Plus,
   Receipt,
 } from '@phosphor-icons/react';
-import { useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { NavLink, type NavLinkProps } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useProjects } from '../../state/projects-context';
@@ -18,13 +18,37 @@ import { Button } from '../../components/Button';
 import { Logo } from '../../components/Logo';
 import { Skeleton } from '../../components/Skeleton';
 import { NewProjectModal } from '../dashboard/NewProjectModal';
-import { useSidebarUnread } from '../../hooks/useSidebarUnread';
+import { useActivityUnread } from '../../state/ActivityUnreadContext';
 
 interface SidebarProps {
   activeTeamId?: string | null;
   activeMain?: 'home' | 'team';
   onCreateTeam?: () => void;
 }
+
+const ProjectRow = memo(function ProjectRow({
+  p,
+  badge,
+  itemClass,
+}: {
+  p: { id: string; name: string };
+  badge: { new: number; deleted: number; total: number };
+  itemClass: (extra?: string) => NavLinkProps['className'];
+}) {
+  const hasBadge = badge.total > 0;
+  return (
+    <NavLink key={p.id} to={`/project/${p.id}`} className={itemClass('sidebar-project-item')} title={p.name}>
+      <FolderSimple size={14} weight="duotone" aria-hidden="true" />
+      <span className="sidebar-item-label">{p.name}</span>
+      {hasBadge && (
+        <span className="sidebar-project-badges" aria-label={`${badge.new} new, ${badge.deleted} deleted in ${p.name}`} title={`${badge.new} new · ${badge.deleted} deleted`}>
+          {badge.new > 0 && <span className="tab-badge tab-badge-new" aria-hidden="true">{badge.new > 99 ? '99+' : badge.new}</span>}
+          {badge.deleted > 0 && <span className="tab-badge tab-badge-deleted" aria-hidden="true">{badge.deleted > 99 ? '99+' : badge.deleted}</span>}
+        </span>
+      )}
+    </NavLink>
+  );
+});
 
 export function Sidebar({ activeTeamId, activeMain = 'team', onCreateTeam }: SidebarProps) {
   const { projects } = useProjects();
@@ -67,11 +91,8 @@ export function Sidebar({ activeTeamId, activeMain = 'team', onCreateTeam }: Sid
   }, [teamProjectsAll, lowerQuery]);
   const filteredProjects = filteredActive;
 
-  // Badge unread per project — hanya active, archived TIDAK (req 1)
-  const unreadByProject = useSidebarUnread(
-    activeMain === 'team' ? activeTeamId ?? null : null,
-    filteredActive.map((p) => p.id),
-  );
+  // Badge unread per project — via shared ActivityUnreadContext (single batch in Layout)
+  const { getBadge } = useActivityUnread();
 
   const itemClass =
     (extra = ''): NavLinkProps['className'] =>
@@ -223,39 +244,9 @@ export function Sidebar({ activeTeamId, activeMain = 'team', onCreateTeam }: Sid
                     </div>
                   )
                 ) : (
-                  filteredProjects.map((p) => {
-                    const badge = unreadByProject[p.id];
-                    const hasBadge = badge && badge.total > 0;
-                    return (
-                      <NavLink
-                        key={p.id}
-                        to={`/project/${p.id}`}
-                        className={itemClass('sidebar-project-item')}
-                        title={p.name}
-                      >
-                        <FolderSimple size={14} weight="duotone" aria-hidden="true" />
-                        <span className="sidebar-item-label">{p.name}</span>
-                        {hasBadge && (
-                          <span
-                            className="sidebar-project-badges"
-                            aria-label={`${badge.new} new, ${badge.deleted} deleted in ${p.name}`}
-                            title={`${badge.new} new · ${badge.deleted} deleted`}
-                          >
-                            {badge.new > 0 && (
-                              <span className="tab-badge tab-badge-new" aria-hidden="true">
-                                {badge.new > 99 ? '99+' : badge.new}
-                              </span>
-                            )}
-                            {badge.deleted > 0 && (
-                              <span className="tab-badge tab-badge-deleted" aria-hidden="true">
-                                {badge.deleted > 99 ? '99+' : badge.deleted}
-                              </span>
-                            )}
-                          </span>
-                        )}
-                      </NavLink>
-                    );
-                  })
+                  filteredProjects.map((p) => (
+                    <ProjectRow key={p.id} p={p} badge={getBadge(p.id)} itemClass={itemClass} />
+                  ))
                 )}
                 {filteredArchived.length > 0 && (
                   <>

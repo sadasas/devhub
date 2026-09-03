@@ -343,16 +343,9 @@ const AUTO_PROMPT_VARIANT_SNIPPETS: Record<string, string> = {
 // ---------------------------------------------------------------------------
 
 function getMcpUrl(): string {
-  const raw =
-    (import.meta.env.VITE_API_URL as string | undefined) ||
-    (typeof window !== 'undefined' ? window.location.origin : '');
-  // VITE_API_URL is often https://host/api/v1 — MCP lives at /mcp, not /api/v1/mcp
-  const stripped = raw.replace(/\/api\/v1\/?$/i, '').replace(/\/+$/, '');
-  if (!stripped) return 'http://localhost:3000/mcp';
-  // If raw was already an origin or unknown path, keep it; otherwise use stripped origin
-  // Safer to drop query/hash and keep origin when VITE_API_URL ends with /api/v1
-  if (/\/api\/v1\/?$/i.test(raw)) return `${stripped}/mcp`;
-  return `${stripped}/mcp`;
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  if (!origin) return '';
+  return `${origin.replace(/\/+$/, '')}/mcp`;
 }
 
 function getInitialAgent(): AgentId {
@@ -783,7 +776,9 @@ export function McpDocsPage() {
 
   const verifyCurl = useMemo(
     () =>
-      `# OAuth — get token via opencode mcp auth devhub, then:\nTOKEN=$(jq -r .access_token ~/.local/share/opencode/mcp-auth.json)\ncurl -s -X POST ${mcpUrl} \\\n  -H "Authorization: Bearer $TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | jq`,
+      !mcpUrl
+        ? '# Open docs in browser to see verify command (window.location.origin/mcp)'
+        : `# OAuth — get token via opencode mcp auth devhub, then:\nTOKEN=$(jq -r .access_token ~/.local/share/opencode/mcp-auth.json)\ncurl -s -X POST ${mcpUrl} \\\n  -H "Authorization: Bearer $TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | jq`,
     [mcpUrl],
   );
 

@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 import { AuthProvider, useAuth } from './state/auth-context';
 import { ProjectsProvider } from './state/projects-context';
 import { TeamsProvider } from './state/teams-context';
+import { ActivityUnreadProvider } from './state/ActivityUnreadContext';
 import { AuthPage } from './features/auth/AuthPage';
 import { Layout } from './features/layout/Layout';
 import {
@@ -65,8 +66,9 @@ function Root() {
   return (
     <TeamsProvider>
       <ProjectsProvider>
-        <Routes>
-          <Route element={<Layout />}>
+        <ActivityUnreadProvider>
+          <Routes>
+            <Route element={<Layout />}>
             <Route
               path="/"
               element={
@@ -158,12 +160,13 @@ function Root() {
             <Route path="/keys" element={<Navigate to="/connected" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
-        </Routes>
-        <ErrorBoundary>
-          <Suspense fallback={null}>
-            <CommandPaletteLazy />
-          </Suspense>
-        </ErrorBoundary>
+          </Routes>
+          <ErrorBoundary>
+            <Suspense fallback={null}>
+              <CommandPaletteLazy />
+            </Suspense>
+          </ErrorBoundary>
+        </ActivityUnreadProvider>
       </ProjectsProvider>
     </TeamsProvider>
   );
