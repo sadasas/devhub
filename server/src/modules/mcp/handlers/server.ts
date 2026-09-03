@@ -24,11 +24,12 @@ import { registerUpdateApiEndpoint } from '../application/tools/update-api-endpo
 import { registerCreateWhiteboard } from '../application/tools/create-whiteboard.js';
 import { registerUpdateWhiteboard } from '../application/tools/update-whiteboard.js';
 import { registerListWhiteboards } from '../application/tools/list-whiteboards.js';
+import { registerValidateWhiteboard } from '../application/tools/validate-whiteboard.js';
 
 export const mcpRouter = Router();
 
-// MCP stateless POST-only (audit 2026-08b, MCP-5): GET/SSE tidak didukung —
-// 405 dengan Allow header, bukan 404 yang menyesatkan.
+// MCP stateless POST-only (audit 2026-08b, MCP-5): GET/SSE not supported —
+// 405 with Allow header, not a misleading 404.
 mcpRouter.get('/', (_req, res) => {
   res.setHeader('Allow', 'POST');
   res.status(405).json({
@@ -65,6 +66,7 @@ mcpRouter.post('/', async (req, res) => {
   registerListWhiteboards(mcpServer);
   registerCreateWhiteboard(mcpServer);
   registerUpdateWhiteboard(mcpServer);
+  registerValidateWhiteboard(mcpServer);
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
