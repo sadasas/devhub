@@ -631,6 +631,15 @@ a:hover {
   font-weight: 600;
 }
 
+.sort-menu-row:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sort-menu-row:disabled:hover {
+  background: none;
+}
+
 /* Language switcher — reuses .sort-control/.sort-menu */
 .lang-menu {
   min-width: 180px;
@@ -2565,8 +2574,9 @@ html[data-theme='light'] .splash-bg {
   }
 
   .erd-canvas {
-    height: 360px;
-    min-height: 280px;
+    height: 62vh;
+    height: 62dvh;
+    min-height: 320px;
   }
 
   .field-row {
@@ -5933,6 +5943,7 @@ html[data-theme='light'] .splash-bg {
 .data-list-actions {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .field-row {
@@ -6169,22 +6180,104 @@ html[data-theme='light'] .splash-bg {
   fill: var(--accent);
 }
 
+/* ERD — U3 connect handles. One ○ per column row edge (left + right):
+   visible dot r5 + invisible hit-area r10. Hidden until the node is
+   hovered / focus-within, but always on for touch ((hover: none)). */
+.erd-handle {
+  opacity: 0;
+  cursor: crosshair;
+  outline: none;
+}
+
+.erd-node:hover .erd-handle,
+.erd-node:focus-within .erd-handle,
+.erd-handle:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .erd-handle {
+    opacity: 1;
+  }
+}
+
+.erd-handle-dot {
+  fill: var(--bg-elevated);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+.erd-handle-hit {
+  fill: transparent;
+  stroke: transparent;
+  pointer-events: all;
+}
+
+.erd-handle:focus-visible .erd-handle-dot {
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 3px var(--accent-ring));
+}
+
+.erd-handle-armed .erd-handle-dot {
+  fill: var(--accent);
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 3px var(--accent-ring));
+}
+
+/* U3 live connect temp line — accent stroke (ronde 2), no interaction. */
+.erd-connect-temp {
+  pointer-events: none;
+}
+
+.erd-connect-temp .erd-handle-dot {
+  pointer-events: none;
+}
+
+.erd-connect-temp line.erd-rel-line,
+.erd-connect-temp .erd-connect-line {
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+/* Ronde 3 ITEM 1a: panah follow-connect — fill via CSS (var() invalid di atribut SVG). */
+.erd-arrow-head {
+  fill: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .erd-handle {
+    transition: none;
+  }
+}
+
 .erd-rel {
   cursor: pointer;
   outline: none;
 }
 
-.erd-rel polyline {
+.erd-rel polyline.erd-rel-line {
   stroke: var(--border-strong);
   stroke-width: 1.5;
   transition: stroke var(--duration-fast) var(--ease-out);
 }
 
-.erd-rel:hover polyline {
+.erd-rel polyline.erd-rel-hit {
+  stroke: transparent;
+  stroke-width: 14;
+  pointer-events: stroke;
+}
+
+.erd-rel:hover polyline.erd-rel-line {
   stroke: var(--accent);
 }
 
-.erd-rel:focus-visible polyline {
+.erd-rel:focus-visible polyline.erd-rel-line {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 3px var(--accent-ring));
+}
+
+.erd-rel-selected polyline.erd-rel-line {
   stroke: var(--accent);
   stroke-width: 2.5;
   filter: drop-shadow(0 0 3px var(--accent-ring));
@@ -6215,12 +6308,17 @@ html[data-theme='light'] .splash-bg {
   letter-spacing: 0.02em;
 }
 
+.erd-canvas-mode .erd-hint {
+  display: none;
+}
+
 .erd-zoom {
   position: absolute;
   right: 10px;
   bottom: 10px;
   display: flex;
   gap: 6px;
+  z-index: 6;
 }
 
 .erd-zoom .btn {
@@ -6232,6 +6330,766 @@ html[data-theme='light'] .splash-bg {
   justify-content: center;
 }
 
+/* Ronde 5 ITEM 5: zoom ke kiri panel overlay (340 + 24 = 364), sejajar bawah panel. */
+.erd-canvas-main .erd-zoom {
+  right: 364px;
+  bottom: 12px;
+  z-index: 7;
+}
+
+/* Mode presentasi: hanya kanvas. Panel/topbar di-unmount di TSX;
+   zoom + tooltip disembunyikan di sini. Pan/zoom tetap jalan. */
+.erd-canvas-mode-presenting .erd-zoom,
+.erd-canvas-mode-presenting .erd-col-tip {
+  display: none !important;
+}
+
+.erd-present-exit {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 8;
+  width: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-raised);
+}
+
+.erd-present-exit:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (hover: none) {
+  .erd-present-exit {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* ERD canvas mode (U1) — fullscreen shell + floating pill toolbar.
+   z-index: 31 sits above app nav (10) + team-chat launcher/drawer (30) but
+   BELOW modal (40) / modal-backdrop (50), so dialogs opened from the pill
+   (New table, New relation, Export, delete confirm) stay on top.
+   Deliberately NOT following the .board-shell--fullscreen precedent (z 51),
+   which covers modals. */
+.erd-canvas-mode {
+  position: fixed;
+  inset: 0;
+  z-index: 31;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-base);
+  color: var(--text-primary);
+}
+/* R1: hide the team-chat launcher + drawer while the ERD canvas overlay is
+   open. The launcher stays in the DOM (test-compat) — only visually removed. */
+body[data-erd-canvas="open"] .chat-launcher {
+  display: none !important;
+  visibility: hidden;
+  pointer-events: none;
+}
+body[data-erd-canvas="open"] .chat-drawer { display: none !important; }
+
+.erd-canvas-mode-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  padding: 12px 16px 8px;
+}
+
+.erd-canvas-mode-title,
+.erd-canvas-mode-pill,
+.erd-canvas-mode-close {
+  pointer-events: auto;
+}
+
+.erd-canvas-mode-close {
+  flex-shrink: 0;
+  width: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  margin-left: auto;
+}
+
+.erd-canvas-mode-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.erd-canvas-mode-title {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.erd-canvas-mode-pill {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 32px);
+  margin-inline: 0;
+  padding: 4px 6px;
+  overflow: visible;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-input);
+  box-shadow: var(--shadow-raised);
+}
+
+.erd-canvas-mode-pill .btn,
+.erd-canvas-mode-pill .schema-issues-badge {
+  flex-shrink: 0;
+  min-height: 36px;
+}
+
+/* Pill icon-only square buttons (New Table / New Relation / Tidy / Export):
+   36px ghost squares, label lives in .sr-only + aria-label/title. */
+.erd-canvas-mode-pill .btn {
+  width: 36px;
+  min-width: 36px;
+  padding: 0;
+}
+
+/* Pill tooltips — mirror of .board-toolbar .sub-tab[data-tooltip]. */
+.erd-canvas-mode-pill [data-tooltip] {
+  position: relative;
+}
+
+.erd-canvas-mode-pill [data-tooltip]:hover::after,
+.erd-canvas-mode-pill [data-tooltip]:focus-visible::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #111827;
+  color: #f9fafb;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid #111827;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
+  box-shadow: var(--shadow-raised);
+  opacity: 0;
+  animation: wb-tip-in 0.12s forwards;
+}
+
+.erd-canvas-mode-pill [data-tooltip]:hover::before,
+.erd-canvas-mode-pill [data-tooltip]:focus-visible::before {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: #111827;
+  pointer-events: none;
+  z-index: 10;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .erd-canvas-mode-pill [data-tooltip]:hover::after,
+  .erd-canvas-mode-pill [data-tooltip]:focus-visible::after { animation: none; opacity: 1; }
+}
+
+.erd-canvas-mode-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.erd-canvas-mode-body .erd-canvas {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 320px;
+  border: none;
+  border-radius: 0;
+  background-color: var(--bg-base);
+  background-image: radial-gradient(circle, var(--border-strong) 1.1px, transparent 1.1px);
+  background-size: 20px 20px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .erd-canvas-mode-body .erd-canvas { background-image: none; }
+}
+
+/* Canvas tooltip (kolom + relasi) — chrome sama seperti tooltip pill toolbar. */
+.erd-col-tip {
+  position: absolute;
+  z-index: var(--z-overlay);
+  max-width: min(280px, calc(100% - 16px));
+  min-width: 180px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-raised);
+  font-size: 11px;
+  color: var(--text-primary);
+  pointer-events: none;
+}
+
+.erd-col-tip::before {
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: 18px;
+  border: 5px solid transparent;
+  border-right-color: var(--border-strong);
+  pointer-events: none;
+}
+
+.erd-col-tip-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.erd-col-tip-name {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.erd-col-tip-type {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.erd-col-tip-badges {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.erd-col-tip-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border-hairline);
+  background: var(--bg-inset);
+  color: var(--text-secondary);
+}
+
+.erd-col-tip-badge-pk {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent-ring);
+}
+
+.erd-col-tip-badge-unique {
+  background: var(--bg-inset);
+  color: var(--text-muted);
+  border-color: var(--border-hairline);
+}
+
+.erd-col-tip-badge-notnull {
+  background: var(--bg-inset);
+  color: var(--text-secondary);
+  border-color: var(--border-hairline);
+}
+
+.erd-col-tip-divider {
+  height: 1px;
+  background: var(--border-hairline);
+  margin: 2px 0;
+}
+
+.erd-col-tip-row {
+  display: flex;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.erd-col-tip-label {
+  font-weight: 700;
+  flex-shrink: 0;
+  color: var(--text-primary);
+}
+
+.erd-col-tip-value {
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.erd-col-tip-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  word-break: break-word;
+}
+
+.erd-col-tip-comment {
+  font-size: 11px;
+  color: var(--text-muted);
+  word-break: break-word;
+}
+
+/* Connect-armed cursor: pending tap-tap source waits for the second column. */
+.erd-canvas.erd-connect-armed {
+  cursor: crosshair;
+}
+
+.erd-canvas-mode-body .schema-issues-strip {
+  flex-shrink: 0;
+}
+
+/* U4 props panel — overlay dock on the fullscreen canvas (ronde 2). */
+.erd-canvas-main {
+  position: relative;
+  height: 100%;
+  display: flex;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.erd-canvas-main .erd-canvas {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.erd-canvas-panel {
+  width: 340px;
+  flex-shrink: 0;
+  min-height: 320px;
+  max-height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-card);
+}
+
+.erd-canvas-main .erd-canvas-panel {
+  position: absolute;
+  top: 64px;
+  right: 12px;
+  bottom: 12px;
+  width: 340px;
+  z-index: 5;
+  box-shadow: var(--shadow-raised);
+}
+
+.erd-canvas-panel-empty {
+  justify-content: flex-start;
+}
+
+/* Ronde 3 ITEM 3a: empty panel ikut bottom:12 (full) + placeholder tengah. */
+.erd-canvas-main .erd-canvas-panel-empty {
+  max-height: calc(100% - 76px);
+}
+
+.erd-panel-empty-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  min-height: 120px;
+}
+
+.erd-panel-empty-body .erd-panel-title {
+  text-align: center;
+}
+
+.erd-panel-empty-body .field-helper {
+  text-align: center;
+  margin: 0;
+}
+
+/* Ronde 5 ITEM 1+3: tab bar + tabpanel Tables|Relations + daftar expandable. */
+.erd-panel-tabs {
+  flex-shrink: 0;
+}
+
+/* Konten tab mengisi sisa tinggi (flex:1, scroll, min-height:0) agar issues selalu paling bawah. */
+.erd-panel-tabpanel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+}
+
+.erd-panel-tabpanel[hidden] {
+  display: none;
+}
+
+.erd-panel-tables-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.erd-panel-tables-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--bg-inset);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.erd-panel-tables-item:hover {
+  background: var(--surface-hover);
+}
+
+.erd-panel-tables-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.erd-panel-tables-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.erd-panel-chevron {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.erd-panel-chevron-open {
+  transform: rotate(180deg);
+}
+
+.erd-panel-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-hairline);
+}
+
+.erd-panel-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.erd-panel-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.erd-panel-x {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.erd-panel-x:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.erd-panel-x:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.erd-panel-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.erd-panel-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.erd-panel-subtitle {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.erd-panel-count {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.erd-panel-read {
+  font-size: 13px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.erd-panel-rel-label {
+  font-size: 12px;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.erd-panel-cols {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.erd-panel-col {
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--bg-inset);
+  padding: 6px 8px;
+}
+
+.erd-panel-col-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.erd-panel-col-toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.erd-panel-col-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.erd-panel-col-name {
+  font-size: 12px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.erd-panel-col-type {
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.erd-panel-unique {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.erd-panel-col-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-hairline);
+}
+
+.erd-panel-checks {
+  display: flex;
+  gap: 12px;
+}
+
+.erd-panel-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.erd-panel-indexes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.erd-panel-index {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg-inset);
+  border: 1px solid var(--border-hairline);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.erd-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+@media (max-width: 860px) {
+  .erd-canvas-mode-top {
+    gap: 8px;
+    padding: 10px 12px 6px;
+  }
+  .erd-canvas-mode-title {
+    max-width: 40vw;
+  }
+  .erd-canvas-mode-pill {
+    position: static;
+    transform: none;
+    order: 3;
+    flex-basis: 100%;
+    max-width: 100%;
+    margin-inline: 0;
+    overflow-x: auto;
+  }
+  .erd-canvas-mode-body {
+    padding: 6px 12px 12px;
+    gap: 12px;
+    overflow-y: auto;
+  }
+  /* U4: panel becomes a bottom-sheet on mobile. */
+  .erd-canvas-main {
+    flex-direction: column;
+    height: auto;
+  }
+  .erd-canvas-main .erd-canvas {
+    min-height: 280px;
+  }
+  .erd-canvas-panel {
+    width: auto;
+    min-height: 0;
+    max-height: 60dvh;
+  }
+  .erd-canvas-main .erd-canvas-panel {
+    position: static;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    width: auto;
+    z-index: auto;
+    box-shadow: none;
+  }
+  .erd-canvas-main .erd-canvas-panel-empty {
+    max-height: 60dvh;
+  }
+  /* Ronde 5 ITEM 5: mobile — zoom kembali right:10 agar tak tertutup bottom-sheet. */
+  .erd-canvas-main .erd-zoom {
+    right: 10px;
+    bottom: 10px;
+  }
+}
+
+@media (hover: none) {
+  .erd-canvas-mode-close,
+  .erd-canvas-mode-pill .btn,
+  .erd-canvas-mode-pill .schema-issues-badge {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
 .col-edit-grid {
   display: flex;
   flex-direction: column;
@@ -6241,7 +7099,7 @@ html[data-theme='light'] .splash-bg {
 
 .col-edit-caption {
   display: grid;
-  grid-template-columns: 1fr 1fr 56px 44px 1fr 28px;
+  grid-template-columns: 1fr 1fr 44px 36px 0.9fr 1fr 44px 28px;
   gap: 8px;
   font-family: var(--font-mono);
   font-size: 10px;
@@ -6252,9 +7110,17 @@ html[data-theme='light'] .splash-bg {
 
 .col-edit-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 56px 44px 1fr 28px;
+  grid-template-columns: 1fr 1fr 44px 36px 0.9fr 1fr 44px 28px;
   gap: 8px;
   align-items: center;
+}
+
+/* U7: input comment inline — single-line, overflow visual ditangani ellipsis. */
+.col-edit-row .col-comment-input {
+  min-width: 0;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .col-edit-check {
@@ -6263,6 +7129,18 @@ html[data-theme='light'] .splash-bg {
   justify-content: center;
   height: 100%;
   margin: 0;
+}
+
+/* U6: combobox tipe kolom di grid — SearchableSelect + input custom ditumpuk di kolom type. */
+.col-type-combo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.col-type-combo .ss-wrap {
+  min-width: 0;
 }
 
 input[type='checkbox'] {
@@ -6278,7 +7156,7 @@ input[type='checkbox'] {
   }
   .col-edit-caption,
   .col-edit-row {
-    min-width: 560px;
+    min-width: 760px;
   }
   .detail-col-caption,
   .detail-col-row {
@@ -6294,7 +7172,9 @@ input[type='checkbox'] {
     grid-template-columns: 1fr 1fr 28px;
     grid-template-areas:
       'name type del'
-      'null pk default';
+      'null pk unique'
+      'default default default'
+      'comment comment comment';
     gap: 8px;
     padding: 10px;
     background: var(--bg-inset);
@@ -6304,8 +7184,10 @@ input[type='checkbox'] {
   .col-edit-row input:nth-of-type(1) {
     grid-area: name;
   }
-  .col-edit-row input:nth-of-type(2) {
+  /* U6: kolom type kini .col-type-combo (bukan input langsung). */
+  .col-edit-row .col-type-combo {
     grid-area: type;
+    min-width: 0;
   }
   .col-edit-row .col-edit-check:nth-of-type(1) {
     grid-area: null;
@@ -6327,8 +7209,22 @@ input[type='checkbox'] {
     font-size: 10px;
     color: var(--text-muted);
   }
-  .col-edit-row input:nth-of-type(3) {
+  .col-edit-row input:nth-of-type(2) {
     grid-area: default;
+  }
+  /* U7: comment inline + unique di mobile — masing-masing satu baris penuh / sel. */
+  .col-edit-row input:nth-of-type(3) {
+    grid-area: comment;
+  }
+  .col-edit-row .col-edit-check:nth-of-type(3) {
+    grid-area: unique;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+  .col-edit-row .col-edit-check:nth-of-type(3)::after {
+    content: 'Unique';
+    font-size: 10px;
+    color: var(--text-muted);
   }
   .col-edit-row .btn-icon {
     grid-area: del;
@@ -6341,6 +7237,272 @@ input[type='checkbox'] {
 
 .relation-list .data-list-count {
   padding: 4px 10px;
+}
+
+/* Schema — F2-3 Issues badge + strip (Locate). Warn via tokens, never hardcode hex. */
+.schema-subtabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.schema-subtabs-row .sub-tabs {
+  margin-bottom: 0;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.schema-issues-badge {
+  flex-shrink: 0;
+  cursor: pointer;
+  min-height: 36px;
+  font-family: var(--font-mono);
+  border: none;
+}
+
+.schema-issues-badge:hover {
+  filter: brightness(1.08);
+}
+
+.schema-issues-badge:focus-visible {
+  outline: 2px solid var(--status-warn);
+  outline-offset: 2px;
+}
+
+.schema-issues-strip {
+  border: 1px solid var(--border-hairline);
+  border-left: 3px solid var(--status-warn);
+  border-radius: var(--radius-card);
+  background: var(--status-warn-dim);
+  padding: 10px 12px;
+}
+
+.schema-issues-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--status-warn);
+  margin-bottom: 8px;
+}
+
+/* Issues header doubles as the collapse toggle (button variant). */
+.schema-issues-head-button {
+  width: 100%;
+  padding: 2px;
+  margin: 0 0 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.schema-issues-head-button > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.schema-issues-head-button:hover {
+  background: var(--surface-hover);
+}
+
+.schema-issues-head-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Focus target for the badge "open + focus" flow (plain tab). */
+.schema-issues-focus {
+  outline: none;
+}
+
+.schema-issues-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.schema-issues-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+}
+
+.schema-issues-icon {
+  flex-shrink: 0;
+}
+
+.schema-issues-msg {
+  flex: 1;
+  min-width: 200px;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.schema-issues-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.schema-issues-actions .btn {
+  min-height: 36px;
+}
+
+/* Schema U5 — Issues as bottom-most collapsible section inside the props panel.
+   Scrolls with the panel (panel has overflow-y auto; bottom-sheet 60dvh on mobile). */
+.erd-panel-issues {
+  flex-shrink: 0;
+}
+
+.erd-panel-issues-head {
+  margin-bottom: 0;
+}
+
+.erd-panel-issues-head span {
+  flex: 1;
+  min-width: 0;
+}
+
+.erd-panel-issues-toggle {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.erd-panel-issues-toggle:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.erd-panel-issues-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.erd-panel-issues .schema-issues-list {
+  margin-top: 8px;
+}
+
+/* Panel-only boxless rows — the regular strip keeps its card visuals. */
+.erd-panel-issues .schema-issues-row {
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border-hairline);
+  border-radius: 0;
+  padding: 6px 0;
+}
+
+.erd-panel-issues .schema-issues-row:last-child { border-bottom: none; }
+
+.erd-panel-issues-empty {
+  margin: 8px 0 0;
+}
+
+/* Schema — F2-5 Tidy action next to the Issues badge (sub-tabs row right side). */
+.schema-subtabs-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.schema-subtabs-actions .btn {
+  min-height: 36px;
+}
+
+@media (hover: none) {
+  .schema-issues-badge,
+  .schema-issues-actions .btn,
+  .schema-subtabs-actions .btn,
+  .erd-panel-issues-toggle {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* ERD — F2-5 draggable nodes. Tidy animates via transform (180ms ease-out);
+   instant snap when the user prefers reduced motion. */
+.erd-node {
+  cursor: grab;
+  outline: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .erd-node {
+    transition: transform 180ms ease-out;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .erd-node {
+    transition: none;
+  }
+}
+
+.erd-node-dragging {
+  cursor: grabbing;
+  transition: none;
+}
+
+.erd-node:focus-visible .erd-table-body {
+  stroke: var(--accent);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 3px var(--accent-ring));
+}
+
+.erd-node-dragging .erd-table-body {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.erd-table-highlight .erd-table-body {
+  stroke: var(--status-warn);
+  stroke-width: 2;
+}
+
+.erd-table-highlight .erd-table-header {
+  fill: var(--status-warn-dim);
+}
+
+/* Ronde 5 ITEM 4a: seleksi kanvas — stroke accent 2px + glow ringan.
+   Dibedakan dari .erd-table-highlight (locate = warn). */
+.erd-node-selected .erd-table-body {
+  stroke: var(--accent);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 3px var(--accent-ring));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .erd-table-highlight .erd-table-body {
+    transition: stroke var(--duration-fast) var(--ease-out);
+  }
 }
 
 .versions-section {
@@ -6643,7 +7805,8 @@ input[type='checkbox'] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .erd-rel polyline { transition: none; }
+  .erd-rel polyline.erd-rel-line { transition: none; }
+  .erd-node { transition: none; }
 }
 
 /* ============================================================
@@ -10453,10 +11616,16 @@ input[type='checkbox'] {
 .diff-tone { display: flex; align-items: center; }
 .diff-tone-added { color: var(--status-success); }
 .diff-tone-removed { color: var(--status-danger); }
+.diff-tone-modified { color: var(--status-info); }
 .diff-section-list { list-style: none; display: flex; flex-direction: column; gap: 4px; padding: 0; margin: 0; }
 .diff-row { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid var(--border-hairline); border-radius: var(--radius-sm); }
 .diff-row-added { background: var(--status-success-dim); }
 .diff-row-removed { background: var(--status-danger-dim); }
+.diff-row-modified { background: var(--status-info-dim); }
+.diff-row-stacked { flex-direction: column; align-items: stretch; }
+.diff-row-head { display: flex; gap: 8px; align-items: center; }
+.diff-changes { list-style: none; display: flex; flex-direction: column; gap: 2px; padding: 0 0 0 20px; margin: 0; }
+.diff-change { font-size: 12px; color: var(--text-secondary); }
 .diff-empty { font-size: 13px; color: var(--text-muted); }
 .tab-panel-loading { display:flex; flex-direction:column; gap:12px; }
 /* Whiteboard — list + editor shell */

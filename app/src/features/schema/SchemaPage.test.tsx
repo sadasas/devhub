@@ -54,7 +54,7 @@ function version(over: Partial<SchemaVersion> = {}): SchemaVersion {
 function renderPage(unreadIds?: ReadonlySet<string>) {
   return render(
     <MemoryRouter>
-      <SchemaPage unreadIds={unreadIds} />
+      <SchemaPage projectName="Demo Project" unreadIds={unreadIds} />
     </MemoryRouter>,
   );
 }
@@ -93,7 +93,87 @@ describe('SchemaPage', () => {
     expect(side?.textContent).toContain('Schema versions');
 
     fireEvent.click(screen.getByRole('tab', { name: /ERD/ }));
-    expect(await screen.findByText(/drag to pan/)).toBeDefined();
+    // Canvas hint removed (ronde 6): ERD itself must render instead.
+    expect(document.querySelector('.erd-canvas svg')).not.toBeNull();
+    expect(document.querySelector('.erd-hint')).toBeNull();
     expect(document.querySelector('.schema-side')?.textContent).toContain('Schema versions');
+  });
+
+  it('shows Export for viewers without New table/relation actions', () => {
+    useProjectMock.mockReturnValue({
+      state: {
+        tables: [table(), table({ id: 'tb2', name: 'projects' })],
+        relations: [relation()],
+        schemaVersions: [version(), version({ id: 'sv2', version: 'v0.2.0' })],
+      },
+      loading: false,
+      error: null,
+      canEdit: false,
+      dispatch: vi.fn(),
+    });
+    renderPage();
+    expect(screen.getByRole('button', { name: /Export schema as/i })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /New table/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /New relation/ })).toBeNull();
+  });
+
+  it('labels Export with the snapshot version when viewing ?v=', () => {
+    render(
+      <MemoryRouter initialEntries={['/project/p1?tab=schema&v=sv1']}>
+        <SchemaPage projectName="Demo Project" />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('button', { name: /Export v0\.1\.0 as/i })).toBeTruthy();
+  });
+
+  it('F2-5 Tidy: visible for editors in ERD, dispatches clear + announces, focus stays', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: {
+        tables: [table(), table({ id: 'tb2', name: 'projects' })],
+        relations: [relation()],
+        schemaVersions: [version(), version({ id: 'sv2', version: 'v0.2.0' })],
+        erdLayout: { tb1: { x: 400, y: 300 } },
+      },
+      loading: false,
+      error: null,
+      canEdit: true,
+      projectId: 'p1',
+      dispatch,
+    });
+    render(
+      <MemoryRouter initialEntries={['/p/p1?tab=schema&schemaView=erd']}>
+        <SchemaPage projectName="Demo Project" />
+      </MemoryRouter>,
+    );
+    const tidy = screen.getByRole('button', { name: /^Tidy$|^Rapikan$/ });
+    // jsdom fireEvent.click does not focus like a real browser — focus first
+    // to mirror the real "focus stays on the button" behaviour.
+    tidy.focus();
+    fireEvent.click(tidy);
+    expect(dispatch).toHaveBeenCalledWith({ type: 'erdLayout/clear' });
+    expect(screen.getByText(/tidied|dirapikan/i)).toBeTruthy();
+    expect(document.activeElement).toBe(tidy);
+  });
+
+  it('F2-5 Tidy: hidden for viewers and in snapshot mode (read-only)', () => {
+    useProjectMock.mockReturnValue({
+      state: {
+        tables: [table(), table({ id: 'tb2', name: 'projects' })],
+        relations: [relation()],
+        schemaVersions: [version(), version({ id: 'sv2', version: 'v0.2.0' })],
+      },
+      loading: false,
+      error: null,
+      canEdit: false,
+      projectId: 'p1',
+      dispatch: vi.fn(),
+    });
+    render(
+      <MemoryRouter initialEntries={['/p/p1?tab=schema&schemaView=erd']}>
+        <SchemaPage projectName="Demo Project" />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole('button', { name: /^Tidy$|^Rapikan$/ })).toBeNull();
   });
 });

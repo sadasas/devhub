@@ -481,4 +481,19 @@ M34 v0.24.0 — paket langganan dikelola dari database oleh admin (bukan konstan
 
 ---
 
+## 27. Canvas Revision R1–R11 (v0.11.x — milestone DevHub "Canvas Revision R1–R7" v0.34.2)
+
+Revisi berlapis overlay ERD fullscreen (`?schemaView=erd&canvas=1`) lintas 6 ronde review, seluruhnya terverifikasi hijau (lint 0 error, app 261/261 test schema, build app+server hijau):
+
+| Fokus | Isi |
+|---|---|
+| R1–R7 | Chat launcher hidden (`body[data-erd-canvas]`); issues boxless (teks + divider); fix klik seleksi — lazy pointer capture (klik node/relasi kembali menyeleksi panel); dot-grid + bg-base; pill icon-only kotak; tooltip pill + kartu kolom; panah follow-connect accent + crosshair + Esc |
+| R9 (panel) | Tab Properties dihapus → Tables\|Relations; detail expandable inline (reuse editor, satu terbuka); klik canvas → tab+item auto-buka + scroll + `aria-current` (tanpa curi fokus); issues selalu bawah semua tab; highlight seleksi (`erd-node-selected` + rel = hover); zoom ke kiri panel |
+| R10 (issues UX) | Badge tanpa toggle (buka + scroll + fokus); collapse hanya via header yang selalu terlihat; hint ERD dihapus; `<title>` native dihapus semua mode; tooltip kolom mengikuti kursor |
+| R11 (presentasi) | Mode presentasi = Fullscreen API + unmount chrome (topbar/panel/zoom/tooltip) + readOnly paksa; keluar via X floating/Esc/browser (sinkron `fullscreenchange`); fallback chrome-hidden bila API ditolak; tombol Import icon-only di pill (reuse modal) |
+
+Keputusan kunci: presentasi memakai Fullscreen API (bukan CSS semu) dengan unmount — bukan CSS-hide — agar fokus/SR bersih; seleksi dipertahankan saat keluar.
+
+---
+
 *End of Roadmap.*

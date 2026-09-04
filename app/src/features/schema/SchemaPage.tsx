@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { ArrowLeft, CaretLeft, CaretRight, Eye, FloppyDisk, GitDiff, Graph, LinkSimple, List, Plus, Trash, Warning } from '@phosphor-icons/react';
+import { ArrowLeft, Broom, CaretLeft, CaretRight, CornersOut, Eye, FloppyDisk, GitDiff, Graph, LinkSimple, List, Plus, Presentation, Trash, UploadSimple, Warning } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { formatDate, relationLabel as formatRelation, shortId } from '../../lib/utils';
 import type { Relation, SchemaVersion, Table } from '../../lib/types';
 import { applySort, type SortSpec } from '../../lib/sort';
 import { useProject } from '../../state/project-context';
+import { api } from '../../lib/api';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { useSortParam } from '../../hooks/useSortParam';
 import { Badge } from '../../components/Badge';
@@ -14,7 +15,13 @@ import { EmptyState } from '../../components/EmptyState';
 import { Modal } from '../../components/Modal';
 import { Skeleton } from '../../components/Skeleton';
 import { SortControl } from '../../components/SortControl';
-import { ERD } from './ERD';
+import { ERD, type ERDLocateRequest, type ERDViewportHandle, type ErdPosition } from './ERD';
+import { ERDCanvasMode } from './ERDCanvasMode';
+import { ERDCanvasPanel } from './ERDCanvasPanel';
+import { lintSchema } from './schema-lint';
+import { SchemaIssuesStrip } from './SchemaIssuesStrip';
+import { SchemaExportMenu } from './SchemaExportMenu';
+import { ImportSchemaModal } from './ImportSchemaModal';
 import { NewRelationModal } from './NewRelationModal';
 import { NewTableModal } from './NewTableModal';
 import { SaveVersionModal } from './SaveVersionModal';
@@ -33,9 +40,9 @@ const VERSION_SORT_SPECS: SortSpec<SchemaVersion>[] = [
   { key: 'appliedAt', label: 'schema.sort.applied', get: (v) => v.appliedAt },
 ];
 
-export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
+export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: ReadonlySet<string>; projectName?: string }) {
   const { t } = useTranslation('project');
-  const { state, loading, error, dispatch, canEdit } = useProject();
+  const { state, loading, error, dispatch, canEdit, projectId } = useProject();
   const [searchParams, setSearchParams] = useSearchParams();
   const viewParam = searchParams.get('schemaView');
   const view: SchemaView = viewParam === 'erd' ? 'erd' : 'tables';
@@ -52,19 +59,86 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     },
     [setSearchParams],
   );
+  // U1: fullscreen canvas overlay — only on top of the ERD view.
+  const canvasOpen = view === 'erd' && searchParams.get('canvas') === '1';
+  const openCanvas = useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        p.set('schemaView', 'erd');
+        p.set('canvas', '1');
+        return p;
+      },
+      { replace: true },
+    );
+  }, [setSearchParams]);
+  const closeCanvas = useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        p.delete('canvas');
+        return p;
+      },
+      { replace: true },
+    );
+  }, [setSearchParams]);
   const { value: sortValue, setSort } = useSortParam();
   const effectiveSort = sortValue ?? { key: 'createdAt', dir: 'desc' as const };
   const { value: versionSortValue, setSort: setVersionSort } = useSortParam('sortv');
   const tableSortSpec = TABLE_SORT_SPECS.find((s) => s.key === effectiveSort.key) ?? null;
   const versionSortSpec = VERSION_SORT_SPECS.find((s) => s.key === versionSortValue?.key) ?? null;
   const [newTableOpen, setNewTableOpen] = useState(false);
+  // U2: pending placement for the next created table (canvas center / dblclick
+  // point). Null = grid fallback (plain tab + header buttons).
+  const [newTablePos, setNewTablePos] = useState<ErdPosition | null>(null);
+  const [createdStatus, setCreatedStatus] = useState('');
+  const erdCanvasViewportRef = useRef<ERDViewportHandle | null>(null);
   const [tableId, setTableId] = useState<string | null>(null);
   useEntityDeepLink('tables', setTableId);
   const [newRelationOpen, setNewRelationOpen] = useState(false);
+  // U3: connect-drag prefill — set just before opening so NewRelationModal's
+  // open-transition effect picks it up; cleared on close (header [+ Relation]
+  // opens with empty fields, existing behaviour).
+  const [relationPrefill, setRelationPrefill] = useState<{
+    from: { tableId: string; columnId: string };
+    to: { tableId: string; columnId: string };
+  } | null>(null);
+  const handleConnectColumns = useCallback(
+    (args: { fromTableId: string; fromColumnId: string; toTableId: string; toColumnId: string }) => {
+      setRelationPrefill({
+        from: { tableId: args.fromTableId, columnId: args.fromColumnId },
+        to: { tableId: args.toTableId, columnId: args.toColumnId },
+      });
+      setNewRelationOpen(true);
+    },
+    [],
+  );
+  const closeNewRelation = useCallback(() => {
+    setNewRelationOpen(false);
+    setRelationPrefill(null);
+  }, []);
   const [confirmRel, setConfirmRel] = useState<Relation | null>(null);
   const [saveVersionOpen, setSaveVersionOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [diffOpen, setDiffOpen] = useState(false);
   const [versionsCollapsed, setVersionsCollapsed] = useState(false);
+  // U4: selection-driven props panel (canvas mode only). ERD lifts node
+  // clicks via onSelectTable + relation clicks via onSelectRelation;
+  // the panel itself never steals focus (announce lives in ERD).
+  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+  const [selectedRelationId, setSelectedRelationId] = useState<string | null>(null);
+  const handleSelectTable = useCallback((id: string | null) => {
+    setSelectedTableId(id);
+    if (id !== null) setSelectedRelationId(null);
+  }, []);
+  const handleSelectRelation = useCallback((id: string | null) => {
+    setSelectedRelationId(id);
+    if (id !== null) setSelectedTableId(null);
+  }, []);
+  const handleClosePanelSelection = useCallback(() => {
+    setSelectedTableId(null);
+    setSelectedRelationId(null);
+  }, []);
 
   const tabTablesRef = useRef<HTMLButtonElement>(null);
   const tabErdRef = useRef<HTMLButtonElement>(null);
@@ -96,6 +170,188 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   }, [state, isViewing, displayTables, displayRelations]);
   const canEditEffective = canEdit && !isViewing;
 
+  // U4: derived panel selection from the display snapshot (live or ?v=).
+  // Stale ids (deleted table/relation) resolve to null → empty variant.
+  const selectedTable = useMemo(
+    () => displayTables.find((t) => t.id === selectedTableId) ?? null,
+    [displayTables, selectedTableId],
+  );
+  const selectedRelation = useMemo(
+    () => displayRelations.find((r) => r.id === selectedRelationId) ?? null,
+    [displayRelations, selectedRelationId],
+  );
+  const panelSelectionOpen = selectedTable !== null || selectedRelation !== null;
+
+  // U4: clear the panel when the canvas closes or the selection goes stale.
+  // Presenting resets together with the canvas.
+  const [presenting, setPresenting] = useState(false);
+  const [presentStatus, setPresentStatus] = useState('');
+  const presentBtnRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    if (!canvasOpen) {
+      setSelectedTableId(null);
+      setSelectedRelationId(null);
+      setPresenting(false);
+    }
+  }, [canvasOpen]);
+  const handleEnterPresenting = useCallback(() => {
+    setPresenting(true);
+    setPresentStatus(t('schema.canvas.presentAnnounce'));
+    // Fullscreen beneran di elemen overlay; gagal/unsupported → tetap jalan
+    // sebagai chrome-hidden (fallback graceful).
+    try {
+      const el = document.querySelector('.erd-canvas-mode') as HTMLElement | null;
+      const req = el?.requestFullscreen?.() as Promise<void> | undefined;
+      req?.catch?.(() => {});
+    } catch {
+      /* abaikan — mode chrome-hidden tetap berlaku */
+    }
+  }, [t]);
+  const handleExitPresenting = useCallback(() => {
+    try {
+      const p = document.exitFullscreen?.() as Promise<void> | undefined;
+      p?.catch?.(() => {});
+    } catch {
+      /* abaikan */
+    }
+    setPresenting(false);
+    setPresentStatus('');
+  }, []);
+  // Tombol Present di-unmount selama presentasi (top bar hidden) → fokus
+  // balik harus menunggu remount, jadi via effect, bukan di handler.
+  const prevPresentingRef = useRef(presenting);
+  useEffect(() => {
+    const was = prevPresentingRef.current;
+    prevPresentingRef.current = presenting;
+    if (was && !presenting) presentBtnRef.current?.focus({ preventScroll: true });
+  }, [presenting]);
+  // Sinkron bila user keluar fullscreen via browser (Esc native / F11):
+  // fullscreenchange tanpa fullscreenElement = sudah tidak fullscreen.
+  useEffect(() => {
+    if (!canvasOpen) return undefined;
+    const onFsChange = () => {
+      if (!document.fullscreenElement) setPresenting(false);
+    };
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, [canvasOpen]);
+  useEffect(() => {
+    if (selectedTableId && !displayTables.some((t) => t.id === selectedTableId)) {
+      setSelectedTableId(null);
+    }
+  }, [displayTables, selectedTableId]);
+  useEffect(() => {
+    if (selectedRelationId && !displayRelations.some((r) => r.id === selectedRelationId)) {
+      setSelectedRelationId(null);
+    }
+  }, [displayRelations, selectedRelationId]);
+  // U4: deleting the shown relation via the page-level confirm also empties the panel.
+  useEffect(() => {
+    if (confirmRel === null && selectedRelationId && !displayRelations.some((r) => r.id === selectedRelationId)) {
+      setSelectedRelationId(null);
+    }
+  }, [confirmRel, displayRelations, selectedRelationId]);
+
+  // F2-3: non-blocking lint from the snapshot-safe display snapshot (live or ?v=).
+  const schemaIssues = useMemo(
+    () => lintSchema(displayTables, displayRelations),
+    [displayTables, displayRelations],
+  );
+  const [issuesOpen, setIssuesOpen] = useState(true);
+  const issuesStripWrapRef = useRef<HTMLDivElement | null>(null);
+  const prevIssuesOpenRef = useRef(issuesOpen);
+  // Badge tidak toggle: selalu buka + antar fokus ke strip. Collapse hanya
+  // lewat header strip. Tutup via header membiarkan fokus di header.
+  const focusIssuesStrip = useCallback(() => {
+    const raf = requestAnimationFrame(() => {
+      const el = issuesStripWrapRef.current;
+      if (!el) return;
+      try {
+        el.scrollIntoView({ block: 'nearest' });
+      } catch {
+        /* no-op */
+      }
+      el.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  useEffect(() => {
+    const was = prevIssuesOpenRef.current;
+    prevIssuesOpenRef.current = issuesOpen;
+    if (issuesOpen && !was) focusIssuesStrip();
+    return undefined;
+  }, [issuesOpen, focusIssuesStrip]);
+  const [locateRequest, setLocateRequest] = useState<ERDLocateRequest | null>(null);
+  const [tidyStatus, setTidyStatus] = useState('');
+  const handleLocate = useCallback((targetTableId: string) => {
+    setLocateRequest((prev) => ({ tableId: targetTableId, nonce: (prev?.nonce ?? 0) + 1 }));
+  }, []);
+  const handleOpenTable = useCallback(
+    (targetTableId: string) => {
+      if (isViewing) return;
+      setTableId(targetTableId);
+    },
+    [isViewing],
+  );
+
+  // F2-5: commit a node move — optimistic dispatch + bulk persist (BoardTimeline pattern).
+  const handleMoveTable = useCallback(
+    (tableId: string, pos: { x: number; y: number }) => {
+      if (!canEditEffective || !state) return;
+      dispatch({ type: 'erdLayout/set', tableId, pos });
+      const next = { ...(state.erdLayout ?? {}), [tableId]: { ...pos } };
+      api.patchErdLayout(projectId, next).catch(() => {});
+    },
+    [canEditEffective, state, dispatch, projectId],
+  );
+
+  // F2-5: Tidy — clear stored overrides so the grid recomputes as default.
+  // Focus stays on the button naturally; the status live-region announces completion.
+  const handleTidy = useCallback(() => {
+    if (!canEditEffective) return;
+    dispatch({ type: 'erdLayout/clear' });
+    api.patchErdLayout(projectId, {}).catch(() => {});
+    setTidyStatus(t('schema.erd.tidyDone'));
+  }, [canEditEffective, dispatch, projectId, t]);
+
+  // U2: open NewTable without placement (grid fallback) — plain tab + header.
+  const openNewTableDefault = useCallback(() => {
+    setNewTablePos(null);
+    setNewTableOpen(true);
+  }, []);
+
+  // U2: canvas [+ Table] pill — place at the visible viewport center
+  // (world = ((w/2−x)/s, (h/2−y)/s)) read on demand via the ERD handle.
+  const handleCanvasNewTable = useCallback(() => {
+    const center = erdCanvasViewportRef.current?.getViewportCenterWorld() ?? null;
+    setNewTablePos(center);
+    setNewTableOpen(true);
+  }, []);
+
+  // U2: canvas empty-background dblclick — place at the click point (precise).
+  const handleCanvasEmptyDoubleClick = useCallback(
+    (pos: ErdPosition) => {
+      if (!canEditEffective) return;
+      setNewTablePos({ ...pos });
+      setNewTableOpen(true);
+    },
+    [canEditEffective],
+  );
+
+  // U2: after create — 2s highlight via the F2-3 locate path + SR announce.
+  const handleTableCreated = useCallback(
+    (tableId: string, tableName: string) => {
+      setLocateRequest((prev) => ({ tableId, nonce: (prev?.nonce ?? 0) + 1 }));
+      setCreatedStatus(t('schema.erd.tableCreated', { name: tableName }));
+    },
+    [t],
+  );
+
+  const closeNewTable = useCallback(() => {
+    setNewTableOpen(false);
+    setNewTablePos(null);
+  }, []);
+
   const toggleVersion = useCallback(
     (v: SchemaVersion) => {
       setSearchParams(
@@ -126,6 +382,8 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
 
   useEffect(() => {
     if (!isViewing) return;
+    // U1 tiered Esc: canvas overlay closes first, snapshot exit on the next Esc.
+    if (canvasOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
@@ -135,7 +393,7 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isViewing, diffOpen, exitViewing]);
+  }, [isViewing, diffOpen, exitViewing, canvasOpen]);
 
   const handleTabKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -232,6 +490,22 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
             value={sortValue}
             onChange={setSort}
           />
+          <SchemaExportMenu
+            tables={displayTables}
+            relations={displayRelations}
+            projectName={projectName}
+            versionLabel={isViewing && selectedVersion ? selectedVersion.version : null}
+          />
+          {canEditEffective && (
+            <Button
+              variant="ghost"
+              size="sm"
+              leftIcon={<UploadSimple size={13} aria-hidden="true" />}
+              onClick={() => setImportOpen(true)}
+            >
+              {t('schema.page.import')}
+            </Button>
+          )}
           {canEditEffective && (
             <Button
               variant="ghost"
@@ -243,44 +517,95 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
             </Button>
           )}
           {canEditEffective && (
-            <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => setNewTableOpen(true)}>
+            <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={openNewTableDefault}>
               {t('schema.page.newTable')}
             </Button>
           )}
         </div>
       </div>
 
-      <div className="sub-tabs" role="tablist" aria-label={t('schema.page.viewAria')}>
-        <button
-          ref={tabTablesRef}
-          type="button"
-          className={`sub-tab ${view === 'tables' ? 'sub-tab-active' : ''}`}
-          onClick={() => setView('tables')}
-          onKeyDown={handleTabKeyDown}
-          role="tab"
-          id="tab-tables"
-          aria-selected={view === 'tables'}
-          aria-controls="panel-tables"
-          tabIndex={view === 'tables' ? 0 : -1}
-        >
-          <List size={13} aria-hidden="true" />
-          {t('schema.page.tablesTab')}
-        </button>
-        <button
-          ref={tabErdRef}
-          type="button"
-          className={`sub-tab ${view === 'erd' ? 'sub-tab-active' : ''}`}
-          onClick={() => setView('erd')}
-          onKeyDown={handleTabKeyDown}
-          role="tab"
-          id="tab-erd"
-          aria-selected={view === 'erd'}
-          aria-controls="panel-erd"
-          tabIndex={view === 'erd' ? 0 : -1}
-        >
-          <Graph size={13} aria-hidden="true" />
-          {t('schema.page.erdTab')}
-        </button>
+      <div className="schema-subtabs-row">
+        <div className="sub-tabs" role="tablist" aria-label={t('schema.page.viewAria')}>
+          <button
+            ref={tabTablesRef}
+            type="button"
+            className={`sub-tab ${view === 'tables' ? 'sub-tab-active' : ''}`}
+            onClick={() => setView('tables')}
+            onKeyDown={handleTabKeyDown}
+            role="tab"
+            id="tab-tables"
+            aria-selected={view === 'tables'}
+            aria-controls="panel-tables"
+            tabIndex={view === 'tables' ? 0 : -1}
+          >
+            <List size={13} aria-hidden="true" />
+            {t('schema.page.tablesTab')}
+          </button>
+          <button
+            ref={tabErdRef}
+            type="button"
+            className={`sub-tab ${view === 'erd' ? 'sub-tab-active' : ''}`}
+            onClick={() => setView('erd')}
+            onKeyDown={handleTabKeyDown}
+            role="tab"
+            id="tab-erd"
+            aria-selected={view === 'erd'}
+            aria-controls="panel-erd"
+            tabIndex={view === 'erd' ? 0 : -1}
+          >
+            <Graph size={13} aria-hidden="true" />
+            {t('schema.page.erdTab')}
+          </button>
+        </div>
+        <div className="schema-subtabs-actions">
+          {view === 'erd' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              leftIcon={<CornersOut size={13} aria-hidden="true" />}
+              onClick={openCanvas}
+              aria-label={t('schema.canvas.open')}
+              title={t('schema.canvas.open')}
+            >
+              {t('schema.canvas.open')}
+            </Button>
+          )}
+          {view === 'erd' && canEditEffective && (
+            <Button
+              variant="ghost"
+              size="sm"
+              leftIcon={<Broom size={13} aria-hidden="true" />}
+              onClick={handleTidy}
+              aria-label={t('schema.erd.tidy')}
+              title={t('schema.erd.tidyHint')}
+            >
+              {t('schema.erd.tidy')}
+            </Button>
+          )}
+          {view === 'erd' && schemaIssues.length > 0 && (
+            <button
+              type="button"
+              className="badge badge-warn schema-issues-badge"
+              onClick={() => {
+                if (!issuesOpen) setIssuesOpen(true);
+                focusIssuesStrip();
+              }}
+              aria-controls="schema-issues-strip"
+              aria-live="polite"
+              aria-label={t('schema.issues.badgeAria', { count: schemaIssues.length })}
+              title={t('schema.issues.badgeAria', { count: schemaIssues.length })}
+            >
+              <Warning size={13} aria-hidden="true" />
+              {t('schema.issues.badge', { count: schemaIssues.length })}
+            </button>
+          )}
+        </div>
+      </div>
+      <div role="status" aria-live="polite" className="sr-only">
+        {tidyStatus}
+      </div>
+      <div role="status" aria-live="polite" className="sr-only">
+        {createdStatus}
       </div>
 
       {isViewing && selectedVersion && (
@@ -349,7 +674,7 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
                   description={isViewing ? t('schema.viewBanner.noTablesDesc') : t('schema.empty.tablesDesc')}
                   action={
                     !isViewing && canEditEffective ? (
-                      <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => setNewTableOpen(true)}>
+                      <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={openNewTableDefault}>
                         {t('schema.page.newTable', { defaultValue: 'Create table' })}
                       </Button>
                     ) : undefined
@@ -447,10 +772,29 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
               <div className="erd-wrap">
                 <ERD
                   state={displayStateForERD}
-                  readOnly={isViewing}
+                  readOnly={!canEditEffective}
+                  locateRequest={locateRequest}
                   onDeleteRelation={canEditEffective ? setConfirmRel : () => { }}
-                  onNewTable={canEditEffective ? () => setNewTableOpen(true) : () => { }}
+                  onNewTable={canEditEffective ? openNewTableDefault : () => { }}
+                  onMoveTable={canEditEffective ? handleMoveTable : undefined}
+                  onOpenTable={handleOpenTable}
+                  onConnectColumns={canEditEffective ? handleConnectColumns : undefined}
                 />
+                {schemaIssues.length > 0 && !canvasOpen && (
+                  <div ref={issuesStripWrapRef} tabIndex={-1} className="schema-issues-focus">
+                    <SchemaIssuesStrip
+                      idPrefix="schema-issues"
+                      issues={schemaIssues}
+                      tables={displayTables}
+                      relations={displayRelations}
+                      isViewing={isViewing}
+                      onLocate={handleLocate}
+                      onOpenTable={handleOpenTable}
+                      open={issuesOpen}
+                      onToggle={() => setIssuesOpen(false)}
+                    />
+                  </div>
+                )}
                 {displayRelations.length > 0 && (
                   <div className="data-list relation-list">
                     <span className="data-list-count">{t('schema.relationsHeading')}</span>
@@ -599,10 +943,147 @@ export function SchemaPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
         </aside>
       </div>
 
-      <NewTableModal open={newTableOpen} onClose={() => setNewTableOpen(false)} />
+      {canvasOpen && (
+        <ERDCanvasMode
+          projectName={projectName}
+          onClose={closeCanvas}
+          panelSelectionOpen={panelSelectionOpen}
+          onClosePanelSelection={handleClosePanelSelection}
+          presenting={presenting}
+          onExitPresenting={handleExitPresenting}
+          toolbar={
+            <>
+              {canEditEffective && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCanvasNewTable}
+                  aria-label={t('schema.page.newTable')}
+                  data-tooltip={t('schema.page.newTable')}
+                >
+                  <Plus size={15} weight="bold" aria-hidden="true" />
+                  <span className="sr-only">{t('schema.page.newTable')}</span>
+                </Button>
+              )}
+              {canEditEffective && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setNewRelationOpen(true)}
+                  aria-label={t('schema.page.newRelation')}
+                  data-tooltip={t('schema.page.newRelation')}
+                >
+                  <LinkSimple size={15} aria-hidden="true" />
+                  <span className="sr-only">{t('schema.page.newRelation')}</span>
+                </Button>
+              )}
+              {canEditEffective && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleTidy}
+                  aria-label={t('schema.erd.tidy')}
+                  data-tooltip={t('schema.erd.tidyHint')}
+                >
+                  <Broom size={15} aria-hidden="true" />
+                  <span className="sr-only">{t('schema.erd.tidy')}</span>
+                </Button>
+              )}
+              <SchemaExportMenu
+                tables={displayTables}
+                relations={displayRelations}
+                projectName={projectName}
+                versionLabel={isViewing && selectedVersion ? selectedVersion.version : null}
+                iconOnly
+              />
+              {canEditEffective && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setImportOpen(true)}
+                  aria-label={t('schema.page.import')}
+                  data-tooltip={t('schema.page.import')}
+                >
+                  <UploadSimple size={15} aria-hidden="true" />
+                  <span className="sr-only">{t('schema.page.import')}</span>
+                </Button>
+              )}
+              <button
+                ref={presentBtnRef}
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={handleEnterPresenting}
+                aria-label={t('schema.canvas.present')}
+                data-tooltip={t('schema.canvas.present')}
+              >
+                <Presentation size={15} aria-hidden="true" />
+                <span className="sr-only">{t('schema.canvas.present')}</span>
+              </button>
+            </>
+          }
+        >
+          <div role="status" aria-live="polite" className="sr-only">
+            {presentStatus}
+          </div>
+          <div className="erd-canvas-main">
+            <ERD
+              state={displayStateForERD}
+              readOnly={presenting || !canEditEffective}
+              locateRequest={locateRequest}
+              onDeleteRelation={canEditEffective && !presenting ? setConfirmRel : () => { }}
+              onNewTable={canEditEffective && !presenting ? handleCanvasNewTable : () => { }}
+              onMoveTable={canEditEffective && !presenting ? handleMoveTable : undefined}
+              onOpenTable={presenting ? undefined : handleOpenTable}
+              onDoubleClickEmpty={canEditEffective && !presenting ? handleCanvasEmptyDoubleClick : undefined}
+              onConnectColumns={canEditEffective && !presenting ? handleConnectColumns : undefined}
+              viewportRef={erdCanvasViewportRef}
+              onSelectTable={presenting ? undefined : handleSelectTable}
+              onSelectRelation={presenting ? undefined : handleSelectRelation}
+              panelSelectionOpen={presenting ? false : panelSelectionOpen}
+              onClosePanelSelection={handleClosePanelSelection}
+              selectedTableId={selectedTableId}
+              selectedRelationId={selectedRelationId}
+              presenting={presenting}
+            />
+            {!presenting && (
+              <ERDCanvasPanel
+                table={selectedTable}
+                relation={selectedRelation}
+                tables={displayTables}
+                readOnly={!canEditEffective}
+                onClose={handleClosePanelSelection}
+                onOpenTable={isViewing ? undefined : handleOpenTable}
+                onDeleteRelation={canEditEffective ? setConfirmRel : () => { }}
+                issues={schemaIssues}
+                relations={displayRelations}
+                isViewing={isViewing}
+                onLocateIssue={handleLocate}
+                onOpenIssueTable={handleOpenTable}
+                issuesOpen={issuesOpen}
+                onToggleIssues={() => setIssuesOpen((v) => !v)}
+                onSelectTable={handleSelectTable}
+                onSelectRelation={handleSelectRelation}
+              />
+            )}
+          </div>
+        </ERDCanvasMode>
+      )}
+
+      <NewTableModal
+        open={newTableOpen}
+        initialPosition={newTablePos ?? undefined}
+        onCreated={handleTableCreated}
+        onClose={closeNewTable}
+      />
       <TableModal tableId={tableId} onClose={() => setTableId(null)} />
-      <NewRelationModal open={newRelationOpen} onClose={() => setNewRelationOpen(false)} />
+      <NewRelationModal
+        open={newRelationOpen}
+        initialFrom={relationPrefill?.from ?? undefined}
+        initialTo={relationPrefill?.to ?? undefined}
+        onClose={closeNewRelation}
+      />
       <SaveVersionModal open={saveVersionOpen} onClose={() => setSaveVersionOpen(false)} />
+      <ImportSchemaModal open={importOpen} onClose={() => setImportOpen(false)} />
       <DiffVersionModal open={diffOpen} versions={state.schemaVersions} onClose={() => setDiffOpen(false)} />
       <Modal
         open={confirmRel !== null}
