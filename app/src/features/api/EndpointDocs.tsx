@@ -19,6 +19,7 @@ export function EndpointDocs({ endpoint }: { endpoint: ApiEndpoint }) {
 
   return (
     <div className="api-docs-endpoint">
+      <h4 className="preview-title">{endpoint.name}</h4>
       <div className="api-docs-endpoint-head">
         <div className="api-workbench-method">
           <ApiMethodChip method={endpoint.method} />
@@ -42,7 +43,6 @@ export function EndpointDocs({ endpoint }: { endpoint: ApiEndpoint }) {
           {copied ? t('api.workbench.copied') : t('api.workbench.copy')}
         </Button>
       </div>
-      <h2 className="preview-title">{endpoint.name}</h2>
       {endpoint.description && (
         <div className="preview-block">
           <div className="preview-label">{t('api.docs.description')}</div>
@@ -52,7 +52,13 @@ export function EndpointDocs({ endpoint }: { endpoint: ApiEndpoint }) {
       {endpoint.params.length > 0 && (
         <div className="preview-block">
           <div className="preview-label">{t('api.docs.parameters')}</div>
-          <table className="preview-table">
+          <table className="preview-table preview-table--params">
+            <colgroup>
+              <col className="col-param-name" />
+              <col className="col-param-in" />
+              <col className="col-param-required" />
+              <col className="col-param-desc" />
+            </colgroup>
             <thead>
               <tr>
                 <th>{t('api.col.name')}</th>
@@ -77,7 +83,12 @@ export function EndpointDocs({ endpoint }: { endpoint: ApiEndpoint }) {
       {endpoint.headers.length > 0 && (
         <div className="preview-block">
           <div className="preview-label">{t('api.docs.headers')}</div>
-          <table className="preview-table">
+          <table className="preview-table preview-table--headers">
+            <colgroup>
+              <col className="col-header-key" />
+              <col className="col-header-value" />
+              <col className="col-header-desc" />
+            </colgroup>
             <thead>
               <tr>
                 <th>{t('api.col.key')}</th>

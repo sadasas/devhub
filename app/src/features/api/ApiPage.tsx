@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import type { ChangeEvent, MouseEvent as ReactMouseEvent } from 'react';
+import type { ChangeEvent, MouseEvent as ReactMouseEvent, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   BookOpen,
   CaretRight,
   Check,
   Copy,
-  DownloadSimple,
+
   Folder,
   FolderPlus,
   PencilSimple,
@@ -14,15 +14,16 @@ import {
   Plus,
   Trash,
   UploadSimple,
+  X,
 } from '@phosphor-icons/react';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { useNewParam } from '../../hooks/useNewParam';
 import { useSortParam } from '../../hooks/useSortParam';
 import { applySort, type SortSpec } from '../../lib/sort';
-import { newId } from '../../lib/utils';
-import { fromOpenApi, toOpenApi } from '../../lib/openapi';
-import type { ApiCollection, ApiEndpoint, ApiMethod, ApiParam } from '../../lib/types';
+import { formatDate, matchesApiEndpoint, newId, normalizeApiKey } from '../../lib/utils';
+import { BODY_METHODS, fromOpenApi, toOpenApi } from '../../lib/openapi';
+import type { ApiCollection, ApiEndpoint, ApiMethod, ApiParam, State } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { Button } from '../../components/Button';
 import { ActivityList } from '../../components/ActivityList';
@@ -30,14 +31,17 @@ import { EmptyState } from '../../components/EmptyState';
 import { InlineError } from '../../components/InlineError';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { SearchableSelect } from '../../components/SearchableSelect';
 import { SortControl } from '../../components/SortControl';
 import { Textarea } from '../../components/Textarea';
 import { FE_LIMITS } from '../../lib/limits';
 import { ApiDocsView } from './ApiDocsView';
+import { ApiExportMenu } from './ApiExportMenu';
 import { ApiMethodChip } from './ApiMethodChip';
 import { CollectionModal } from './CollectionModal';
 import { EndpointDocs } from './EndpointDocs';
 import { EndpointModal } from './EndpointModal';
+import { buildApiPdfTitle, printApiNode } from './printApi';
 
 type ApiTab = 'headers' | 'params' | 'body' | 'responses';
 type ApiMode = 'workspace' | 'docs';
@@ -64,9 +68,16 @@ const API_ENDPOINT_SORT_SPECS: SortSpec<ApiEndpoint>[] = [
 const SIDEBAR_MIN = 220;
 const SIDEBAR_MAX = 360;
 const SIDEBAR_KEY = 'api-sidebar-width';
+const OPENAPI_MAX_BYTES = 5 * 1024 * 1024;
+const OPENAPI_MAX_LABEL = '5 MB';
 
 function parseDefaultWidth(): number {
-  const raw = localStorage.getItem(SIDEBAR_KEY);
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(SIDEBAR_KEY);
+  } catch {
+    raw = null;
+  }
   const n = raw ? Number(raw) : 264;
   if (!Number.isFinite(n)) return 264;
   return Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, n));
@@ -75,6 +86,20 @@ function parseDefaultWidth(): number {
 function safeFileName(name: string): string {
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   return `devhub-${slug || 'api'}-openapi.yaml`;
+}
+
+function highlightMatch(text: string, query: string): ReactNode {
+  const q = query.trim();
+  if (!q) return text;
+  const index = text.toLowerCase().indexOf(q.toLowerCase());
+  if (index === -1) return text;
+  return (
+    <>
+      {text.slice(0, index)}
+      <mark>{text.slice(index, index + q.length)}</mark>
+      {text.slice(index + q.length)}
+    </>
+  );
 }
 
 interface ApiPageProps {
@@ -96,6 +121,12 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
   const [showEndpoint, setShowEndpoint] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [importNotice, setImportNotice] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [collError, setCollError] = useState<string | null>(null);
+  const [epError, setEpError] = useState<string | null>(null);
+  const editSnapshot = useRef<State | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { copied, copy } = useCopyFeedback();
 
@@ -107,60 +138,89 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
 
   useEffect(() => {
     if (selection?.type === 'endpoint') setTab('headers');
+    setEditing(false);
+    editSnapshot.current = null;
+    setCollError(null);
+    setEpError(null);
   }, [selection]);
 
   useEntityDeepLink('apiEndpoints', (id) => setSelection({ type: 'endpoint', id }));
   useEntityDeepLink('apiCollections', (id) => setSelection({ type: 'collection', id }));
   useNewParam(() => setShowCollection(true), '1', canEdit);
   useNewParam(() => setShowEndpoint(true), 'endpoint', canEdit);
-  const { value: sortValue, setSort } = useSortParam();
-  const effectiveSort = sortValue ?? { key: 'createdAt', dir: 'desc' as const };
-  const collectionSortSpec = API_COLLECTION_SORT_SPECS.find((s) => s.key === effectiveSort.key) ?? null;
-  const endpointSortSpec = API_ENDPOINT_SORT_SPECS.find((s) => s.key === effectiveSort.key) ?? null;
+  const { value: collectionSort, setSort: setCollectionSort } = useSortParam();
+  const { value: endpointSort, setSort: setEndpointSort } = useSortParam('sortE');
+  const effectiveCollectionSort = collectionSort ?? { key: 'createdAt', dir: 'desc' as const };
+  const effectiveEndpointSort = endpointSort ?? { key: 'createdAt', dir: 'desc' as const };
+  const collectionSortSpec =
+    API_COLLECTION_SORT_SPECS.find((s) => s.key === effectiveCollectionSort.key) ?? null;
+  const endpointSortSpec =
+    API_ENDPOINT_SORT_SPECS.find((s) => s.key === effectiveEndpointSort.key) ?? null;
 
   if (!state) return null;
 
   const query = search.trim().toLowerCase();
+
   const visibleCollections = applySort(
     query
       ? collections.filter(
           (c) =>
             c.name.toLowerCase().includes(query) ||
-            endpoints.some(
-              (e) =>
-                e.collectionId === c.id &&
-                (e.name.toLowerCase().includes(query) || e.path.toLowerCase().includes(query)),
-            ),
+            endpoints.some((e) => e.collectionId === c.id && matchesApiEndpoint(e, query)),
         )
       : collections,
     collectionSortSpec,
-    effectiveSort.dir,
+    effectiveCollectionSort.dir,
   );
   const ungrouped = endpoints.filter((e) => !e.collectionId);
   const visibleUngrouped = applySort(
-    query
-      ? ungrouped.filter(
-          (e) => e.name.toLowerCase().includes(query) || e.path.toLowerCase().includes(query),
-        )
-      : ungrouped,
+    ungrouped.filter((e) => matchesApiEndpoint(e, query)),
     endpointSortSpec,
-    effectiveSort.dir,
+    effectiveEndpointSort.dir,
   );
-
-  function matchesEndpoint(e: ApiEndpoint): boolean {
-    return e.name.toLowerCase().includes(query) || e.path.toLowerCase().includes(query);
-  }
+  const ungroupedOpen = query ? true : !collapsed['__ungrouped__'];
+  const matchCount = query
+    ? endpoints.filter((e) => matchesApiEndpoint(e, query)).length +
+      collections.filter((c) => c.name.toLowerCase().includes(query)).length
+    : 0;
 
   function endpointCount(collectionId: string | null): number {
     return endpoints.filter((e) => e.collectionId === collectionId).length;
   }
 
+  function startEditing() {
+    if (!canEdit || !state) return;
+    editSnapshot.current = structuredClone(state);
+    setEditing(true);
+  }
+
+  function cancelEditing() {
+    if (editSnapshot.current) {
+      dispatch({ type: 'replace', state: editSnapshot.current });
+      editSnapshot.current = null;
+    }
+    setEditing(false);
+  }
+
+  function finishEditing() {
+    editSnapshot.current = null;
+    setEditing(false);
+  }
+
+  function setSidebarWidthClamped(w: number) {
+    const clamped = Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, Math.round(w)));
+    setSidebarWidth(clamped);
+    try {
+      localStorage.setItem(SIDEBAR_KEY, String(clamped));
+    } catch {
+      /* private mode: keep the width in memory only */
+    }
+  }
+
   function onResizeStart(e: ReactMouseEvent) {
     e.preventDefault();
     const onMove = (ev: MouseEvent) => {
-      const w = Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, ev.clientX));
-      setSidebarWidth(w);
-      localStorage.setItem(SIDEBAR_KEY, String(w));
+      setSidebarWidthClamped(ev.clientX);
     };
     const onUp = () => {
       window.removeEventListener('mousemove', onMove);
@@ -170,15 +230,18 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
     window.addEventListener('mouseup', onUp);
   }
 
-  async function onImportFile(e: ChangeEvent<HTMLInputElement>) {
+  async function importOpenApiFile(file: File) {
     if (!canEdit) return;
     setImportError(null);
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
+    setImportNotice(null);
+    if (file.size > OPENAPI_MAX_BYTES) {
+      setImportError(t('api.import.tooLarge', { file: file.name, max: OPENAPI_MAX_LABEL }));
+      return;
+    }
     try {
       const text = await file.text();
       const imported = fromOpenApi(text);
+      const seenKeys = new Set(endpoints.map((ep) => normalizeApiKey(ep.method, ep.path)));
       const idMap = new Map<string, string>();
       for (const c of imported.collections) {
         const existing = collections.find((x) => x.name.toLowerCase() === c.name.toLowerCase());
@@ -188,7 +251,16 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
           dispatch({ type: 'apiCollection/add', collection: { ...c, id } });
         }
       }
+      let addedEndpoints = 0;
+      let skippedEndpoints = 0;
       for (const ep of imported.endpoints) {
+        const key = normalizeApiKey(ep.method, ep.path);
+        if (seenKeys.has(key)) {
+          skippedEndpoints += 1;
+          continue;
+        }
+        seenKeys.add(key);
+        addedEndpoints += 1;
         dispatch({
           type: 'apiEndpoint/add',
           endpoint: {
@@ -199,11 +271,27 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
         });
       }
       if (imported.collections.length === 0 && imported.endpoints.length === 0) {
-        setImportError(t('api.import.emptyFile'));
+        setImportError(t('api.import.emptyFile', { file: file.name }));
+      } else {
+        setImportNotice(
+          t('api.import.summary', {
+            added: addedEndpoints,
+            skipped: skippedEndpoints,
+            collections: imported.collections.length,
+          }),
+        );
       }
     } catch (err) {
-      setImportError(err instanceof Error ? err.message : t('api.import.failed'));
+      const reason = err instanceof Error ? err.message : t('api.import.failed');
+      setImportError(t('api.import.failedWithFile', { file: file.name, reason }));
     }
+  }
+
+  async function onImportFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    await importOpenApiFile(file);
   }
 
   function onExport() {
@@ -216,6 +304,28 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
     a.download = safeFileName(projectName);
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function onExportPdf() {
+    if (!state) return;
+    printApiNode(
+      <>
+        <ApiDocsView
+          projectName={projectName}
+          projectDescription={projectDescription}
+          collections={state.apiCollections}
+          endpoints={state.apiEndpoints}
+          milestones={state.milestones}
+          canEdit={false}
+          onNewEndpoint={() => undefined}
+          onImport={() => undefined}
+        />
+        <div className="api-print-footer" aria-hidden="true">
+          {t('api.docs.printFooter', { date: formatDate(new Date().toISOString()) })}
+        </div>
+      </>,
+      buildApiPdfTitle(projectName),
+    );
   }
 
   function onDeleteTarget() {
@@ -233,6 +343,23 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
   function updateEp(patch: Partial<ApiEndpoint>) {
     if (!selectedEp) return;
     dispatch({ type: 'apiEndpoint/update', id: selectedEp.id, patch });
+  }
+
+  function updateMethodPath(patch: { method?: ApiMethod; path?: string }) {
+    if (!selectedEp) return;
+    const method = patch.method ?? selectedEp.method;
+    const path = patch.path ?? selectedEp.path;
+    if (
+      path.trim() !== '' &&
+      endpoints.some(
+        (e) => e.id !== selectedEp.id && normalizeApiKey(e.method, e.path) === normalizeApiKey(method, path),
+      )
+    ) {
+      setEpError(t('api.duplicateEndpoint'));
+      return;
+    }
+    if (epError) setEpError(null);
+    updateEp(patch);
   }
 
   function updateHeader(i: number, patch: Partial<ApiEndpoint['headers'][number]>) {
@@ -275,14 +402,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
           {t('api.toolbar.import')}
         </Button>
       )}
-      <Button
-        variant="ghost"
-        size="sm"
-        leftIcon={<DownloadSimple size={13} aria-hidden="true" />}
-        onClick={onExport}
-      >
-        {t('api.toolbar.export')}
-      </Button>
+      <ApiExportMenu onExportOpenApi={onExport} onExportPdf={onExportPdf} />
       {canEdit && (
         <>
           <Button
@@ -367,17 +487,37 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
             </button>
           </div>
         </div>
-        {mode === 'workspace' && (
-          <SortControl
-            options={API_COLLECTION_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: t(s.label) }))}
-            value={sortValue}
-            onChange={setSort}
-          />
-        )}
-        {toolbarButtons}
+        <div className="api-toolbar-second">
+          {mode === 'workspace' && (
+            <div className="api-sort-pair">
+              <SortControl
+                label={t('api.sort.collections')}
+                options={API_COLLECTION_SORT_SPECS.map((s) => ({ value: s.key, label: t(s.label) }))}
+                value={collectionSort}
+                onChange={setCollectionSort}
+              />
+              <SortControl
+                label={t('api.sort.endpoints')}
+                options={API_ENDPOINT_SORT_SPECS.map((s) => ({ value: s.key, label: t(s.label) }))}
+                value={endpointSort}
+                onChange={setEndpointSort}
+              />
+            </div>
+          )}
+          {toolbarButtons}
+        </div>
       </div>
 
-      {importError && <InlineError className="mb-12">{importError}</InlineError>}
+      {(importError || importNotice) && (
+        <div className="api-import-sticky">
+          {importError && <InlineError className="mb-12">{importError}</InlineError>}
+          {importNotice && (
+            <p className="api-import-notice mb-12" role="status">
+              {importNotice}
+            </p>
+          )}
+        </div>
+      )}
 
       <input
         ref={fileInputRef}
@@ -393,35 +533,79 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
           projectDescription={projectDescription}
           collections={collections}
           endpoints={endpoints}
+          milestones={state.milestones}
           canEdit={canEdit}
           onNewEndpoint={() => setShowEndpoint(true)}
           onImport={() => fileInputRef.current?.click()}
         />
       ) : (
         <div className="api-panes">
-        <aside className="api-sidebar" style={{ width: sidebarWidth }} aria-label={t('api.sidebar.aria')}>
-          <input
-            className="api-sidebar-search"
-            type="search"
-            placeholder={t('api.sidebar.searchPlaceholder')}
-            value={search}
-            maxLength={FE_LIMITS.SEARCH}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label={t('api.sidebar.searchAria')}
-          />
+        <aside
+          className={`api-sidebar${dragging ? ' api-drop-active' : ''}`}
+          style={{ width: sidebarWidth }}
+          aria-label={t('api.sidebar.aria')}
+          onDragOver={(e) => {
+            if (!canEdit) return;
+            e.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => {
+            if (!canEdit) return;
+            e.preventDefault();
+            setDragging(false);
+            const file = e.dataTransfer.files?.[0];
+            if (file) void importOpenApiFile(file);
+          }}
+        >
+          <div className="api-search-wrap">
+            <input
+              className="api-sidebar-search"
+              type="search"
+              placeholder={t('api.sidebar.searchPlaceholder')}
+              value={search}
+              maxLength={FE_LIMITS.SEARCH}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label={t('api.sidebar.searchAria')}
+            />
+            {search && (
+              <button
+                type="button"
+                className="api-search-clear"
+                aria-label={t('api.sidebar.clearSearch')}
+                onClick={() => setSearch('')}
+              >
+                <X size={12} weight="bold" aria-hidden="true" />
+              </button>
+            )}
+          </div>
+          {query && (
+            <p className="api-search-count" role="status">
+              {t('api.sidebar.results', { count: matchCount })}
+            </p>
+          )}
           <div className="api-sidebar-scroll">
             {collections.length === 0 && ungrouped.length === 0 ? (
               <p className="api-sidebar-empty">
                 {t('api.sidebar.empty')}
               </p>
+            ) : query && visibleCollections.length === 0 && visibleUngrouped.length === 0 ? (
+              <div className="api-search-empty">
+                <p className="api-sidebar-empty">
+                  {t('api.sidebar.noResults', { query: search.trim() })}
+                </p>
+                <Button variant="ghost" size="sm" onClick={() => setSearch('')}>
+                  {t('api.sidebar.clearSearch')}
+                </Button>
+              </div>
             ) : (
               <div className="api-tree">
                 {visibleCollections.map((c) => {
-                  const isOpen = !collapsed[c.id];
+                  const isOpen = query ? true : !collapsed[c.id];
                   const epList = applySort(
-                    endpoints.filter((e) => e.collectionId === c.id && (!query || matchesEndpoint(e))),
+                    endpoints.filter((e) => e.collectionId === c.id && matchesApiEndpoint(e, query)),
                     endpointSortSpec,
-                    effectiveSort.dir,
+                    effectiveEndpointSort.dir,
                   );
                   return (
                     <div key={c.id} className="api-tree-group">
@@ -449,7 +633,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                           onClick={() => setSelection({ type: 'collection', id: c.id })}
                         >
                           <Folder size={14} className="api-tree-folder" aria-hidden="true" />
-                          <span className="api-tree-item-title">{c.name}</span>
+                          <span className="api-tree-item-title">{highlightMatch(c.name, query)}</span>
                           <span className="api-tree-count">{endpointCount(c.id)}</span>
                           {unreadIds?.has(c.id) && (
                             <>
@@ -483,7 +667,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                                   onClick={() => setSelection({ type: 'endpoint', id: e.id })}
                                 >
                                   <ApiMethodChip method={e.method} />
-                                  <span className="api-tree-item-title">{e.name}</span>
+                                  <span className="api-tree-item-title">{highlightMatch(e.name, query)}</span>
                                   {unreadIds?.has(e.id) && (
                                     <>
                                       <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">New</span>
@@ -502,7 +686,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                                   </button>
                                 )}
                               </div>
-                              <div className="api-tree-item-path">{e.path}</div>
+                              <div className="api-tree-item-path">{highlightMatch(e.path, query)}</div>
                             </div>
                           ))}
                         </div>
@@ -516,7 +700,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                         <button
                         type="button"
                         className="api-tree-caret-btn"
-                        aria-label={collapsed['__ungrouped__'] ? t('api.tree.expandUngrouped') : t('api.tree.collapseUngrouped')}
+                        aria-label={ungroupedOpen ? t('api.tree.collapseUngrouped') : t('api.tree.expandUngrouped')}
                       onClick={(ev) => {
                         ev.stopPropagation();
                         setCollapsed((prev) => ({ ...prev, ['__ungrouped__']: !prev['__ungrouped__'] }));
@@ -524,7 +708,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                     >
                       <CaretRight
                         size={12}
-                        className={`api-tree-caret ${!collapsed['__ungrouped__'] ? 'api-tree-caret-open' : ''}`}
+                        className={`api-tree-caret ${ungroupedOpen ? 'api-tree-caret-open' : ''}`}
                         aria-hidden="true"
                       />
                     </button>
@@ -532,7 +716,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                       <span className="api-tree-item-title">{t('api.tree.ungrouped')}</span>
                       <span className="api-tree-count">{visibleUngrouped.length}</span>
                     </div>
-                    {!collapsed['__ungrouped__'] && (
+                    {ungroupedOpen && (
                       <div className="api-tree-children">
                         {visibleUngrouped.map((e) => (
                           <div
@@ -546,7 +730,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                                 onClick={() => setSelection({ type: 'endpoint', id: e.id })}
                               >
                                 <ApiMethodChip method={e.method} />
-                                <span className="api-tree-item-title">{e.name}</span>
+                                <span className="api-tree-item-title">{highlightMatch(e.name, query)}</span>
                                 {unreadIds?.has(e.id) && (
                                   <>
                                     <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">New</span>
@@ -565,7 +749,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                                 </button>
                               )}
                             </div>
-                            <div className="api-tree-item-path">{e.path}</div>
+                            <div className="api-tree-item-path">{highlightMatch(e.path, query)}</div>
                           </div>
                         ))}
                       </div>
@@ -582,44 +766,42 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
           role="separator"
           aria-orientation="vertical"
           aria-label={t('api.resizer.aria')}
+          tabIndex={0}
           onMouseDown={onResizeStart}
+          onKeyDown={(e) => {
+            if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+            e.preventDefault();
+            setSidebarWidthClamped(sidebarWidth + (e.key === 'ArrowRight' ? 16 : -16));
+          }}
         />
 
         <main className="api-main">
           {selectedEp ? (
             <>
-            {canEdit ? (
+            {canEdit && editing ? (
               <>
                 <div className="api-workbench-header">
                   <div className="api-workbench-method">
-                    {canEdit ? (
-                      <select
-                        className="select api-method-select"
-                        value={selectedEp.method}
-                        aria-label={t('api.workbench.methodAria')}
-                        onChange={(e) => updateEp({ method: e.target.value as ApiMethod })}
-                      >
-                        <option value="GET">GET</option>
-                        <option value="POST">POST</option>
-                        <option value="PUT">PUT</option>
-                        <option value="PATCH">PATCH</option>
-                        <option value="DELETE">DELETE</option>
-                        <option value="OPTIONS">OPTIONS</option>
-                      </select>
-                    ) : (
-                      <ApiMethodChip method={selectedEp.method} />
-                    )}
-                    {canEdit ? (
-                      <input
-                        className="input api-path-input"
-                        value={selectedEp.path}
-                        maxLength={FE_LIMITS.API_ENDPOINT_PATH}
-                        aria-label={t('api.workbench.pathAria')}
-                        onChange={(e) => updateEp({ path: e.target.value })}
-                      />
-                    ) : (
-                      <code className="api-path-view">{selectedEp.path}</code>
-                    )}
+                    <select
+                      className="select api-method-select"
+                      value={selectedEp.method}
+                      aria-label={t('api.workbench.methodAria')}
+                      onChange={(e) => updateMethodPath({ method: e.target.value as ApiMethod })}
+                    >
+                      <option value="GET">GET</option>
+                      <option value="POST">POST</option>
+                      <option value="PUT">PUT</option>
+                      <option value="PATCH">PATCH</option>
+                      <option value="DELETE">DELETE</option>
+                      <option value="OPTIONS">OPTIONS</option>
+                    </select>
+                    <input
+                      className="input api-path-input"
+                      value={selectedEp.path}
+                      maxLength={FE_LIMITS.API_ENDPOINT_PATH}
+                      aria-label={t('api.workbench.pathAria')}
+                      onChange={(e) => updateMethodPath({ path: e.target.value })}
+                    />
                   </div>
                   <div className="api-workbench-actions">
                     <Button
@@ -639,19 +821,16 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                     >
                       {copied ? t('api.workbench.copied') : t('api.workbench.copy')}
                     </Button>
-                    {canEdit && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="api-delete-btn"
-                        aria-label={t('api.tree.deleteEndpoint')}
-                        title={t('api.tree.deleteEndpoint')}
-                        leftIcon={<Trash size={13} aria-hidden="true" />}
-                        onClick={() => setDeleteTarget({ kind: 'endpoint', id: selectedEp.id, name: selectedEp.name })}
-                      />
-                    )}
+                    <Button variant="ghost" size="sm" onClick={cancelEditing}>
+                      {t('api.workbench.cancel')}
+                    </Button>
+                    <Button variant="primary" size="sm" onClick={finishEditing}>
+                      {t('api.workbench.done')}
+                    </Button>
                   </div>
                 </div>
+
+                {epError && <InlineError className="mb-12">{epError}</InlineError>}
 
                 <div className="api-editor">
                   <Input
@@ -669,6 +848,17 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                     maxLength={FE_LIMITS.API_ENDPOINT_DESC}
                     showCount
                     onChange={(e) => updateEp({ description: e.target.value })}
+                  />
+                  <SearchableSelect
+                    id="api-workbench-collection"
+                    label={t('api.endpointModal.collection')}
+                    value={selectedEp.collectionId ?? null}
+                    options={collections.map((c) => ({ value: c.id, label: c.name }))}
+                    emptyLabel={t('api.endpointModal.noneUngrouped')}
+                    onChange={(v) => {
+                      updateEp({ collectionId: v });
+                      if (v) setCollapsed((prev) => ({ ...prev, [v]: false }));
+                    }}
                   />
 
                   <div className="tabs mt-4" role="tablist" aria-label={t('api.workbench.tabsAria')}>
@@ -696,6 +886,9 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                         <span>{t('api.col.value')}</span>
                         <span>{t('api.col.description')}</span>
                         <span />
+                      </div>
+                      <div className="api-legend" aria-hidden="true">
+                        {t('api.col.key')}{' · '}{t('api.col.value')}{' · '}{t('api.col.description')}
                       </div>
                       {selectedEp.headers.map((h, i) => (
                         <div key={i} className="api-kv-grid">
@@ -750,6 +943,9 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                         <span className="api-req-label">{t('api.col.required')}</span>
                         <span>{t('api.col.description')}</span>
                         <span />
+                      </div>
+                      <div className="api-legend" aria-hidden="true">
+                        {t('api.col.name')}{' · '}{t('api.col.in')}{' · '}{t('api.col.required')}{' · '}{t('api.col.description')}
                       </div>
                       {selectedEp.params.map((p, i) => (
                         <div key={i} className="api-param-grid">
@@ -810,7 +1006,11 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                         rows={12}
                         className="api-mono-input"
                         placeholder={'{\n  "name": "Ada"\n}'}
-                        helper={t('api.body.helper')}
+                        helper={
+                          BODY_METHODS.includes(selectedEp.method)
+                            ? t('api.body.helper')
+                            : t('api.body.notExported', { method: selectedEp.method })
+                        }
                         value={selectedEp.body}
                         maxLength={FE_LIMITS.API_BODY}
                         showCount
@@ -905,7 +1105,21 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                 </div>
               </>
             ) : (
-              <EndpointDocs endpoint={selectedEp} />
+              <>
+                {canEdit && (
+                  <div className="api-read-actions">
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      leftIcon={<PencilSimple size={13} aria-hidden="true" />}
+                      onClick={startEditing}
+                    >
+                      {t('api.workbench.edit')}
+                    </Button>
+                  </div>
+                )}
+                <EndpointDocs endpoint={selectedEp} />
+              </>
             )}
             <h4 className="detail-subtitle">{t('api.activity')}</h4>
             <ActivityList projectId={projectId} entity="apiEndpoints" entityId={selectedEp.id} />
@@ -921,7 +1135,21 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                       value={selectedColl.name}
                       maxLength={FE_LIMITS.API_COLLECTION_NAME}
                       aria-label={t('api.collection.nameAria')}
-                      onChange={(e) => dispatch({ type: 'apiCollection/update', id: selectedColl.id, patch: { name: e.target.value } })}
+                      aria-invalid={collError ? true : undefined}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (
+                          v.trim() !== '' &&
+                          collections.some(
+                            (c) => c.id !== selectedColl.id && c.name.toLowerCase() === v.trim().toLowerCase(),
+                          )
+                        ) {
+                          setCollError(t('api.collectionModal.duplicate'));
+                        } else {
+                          if (collError) setCollError(null);
+                          dispatch({ type: 'apiCollection/update', id: selectedColl.id, patch: { name: v } });
+                        }
+                      }}
                     />
                   ) : (
                     <h2 className="preview-title">{selectedColl.name}</h2>
@@ -942,6 +1170,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                   )}
                 </div>
               </div>
+              {collError && <InlineError className="mb-12">{collError}</InlineError>}
               {canEdit ? (
                 <Textarea
                   label={t('api.workbench.description')}

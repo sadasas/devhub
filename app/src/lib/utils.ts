@@ -1,5 +1,5 @@
 import { i18n, getAppLocale } from '../i18n';
-import type { Task, TestCase } from './types';
+import type { ApiEndpoint, Task, TestCase } from './types';
 
 const shortDateCache = new Map<string, Intl.DateTimeFormat>();
 
@@ -93,6 +93,24 @@ export function isTaskCompletable(task: Task, testCases: TestCase[]): boolean {
   const linked = linkedTestCases(task.id, testCases);
   if (linked.length === 0) return true;
   return linked.every((tc) => tc.status === 'pass');
+}
+
+/** Shared API search predicate (sidebar tree + docs view): name, path, method, description. Empty query matches everything. */
+export function matchesApiEndpoint(e: ApiEndpoint, query: string): boolean {
+  if (!query) return true;
+  return (
+    e.name.toLowerCase().includes(query) ||
+    e.path.toLowerCase().includes(query) ||
+    e.method.toLowerCase().includes(query) ||
+    (e.description ? e.description.toLowerCase().includes(query) : false)
+  );
+}
+
+/** Normalized identity for duplicate detection: METHOD + lowercased path without trailing slash. */
+export function normalizeApiKey(method: string, path: string): string {
+  const trimmed = path.trim();
+  const noSlash = trimmed.length > 1 ? trimmed.replace(/\/+$/, '') : trimmed;
+  return `${method.trim().toUpperCase()} ${noSlash.toLowerCase()}`;
 }
 
 export function nowIso(): string {

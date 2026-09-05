@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
-import { newId, nowIso } from '../../lib/utils';
+import { newId, normalizeApiKey, nowIso } from '../../lib/utils';
 import type { ApiCollection, ApiMethod } from '../../lib/types';
 import { Plus } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
+import { InlineError } from '../../components/InlineError';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { SearchableSelect } from '../../components/SearchableSelect';
@@ -19,16 +20,24 @@ interface EndpointModalProps {
 
 export function EndpointModal({ onClose, onCreated, collections }: EndpointModalProps) {
   const { t } = useTranslation('extras');
-  const { dispatch, canEdit } = useProject();
+  const { dispatch, canEdit, state } = useProject();
   usePresenceStatus(t('api.endpointModal.presence'));
   const [name, setName] = useState('');
   const [method, setMethod] = useState<ApiMethod>('GET');
   const [path, setPath] = useState('/');
   const [collectionId, setCollectionId] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   const submit = () => {
     if (!canEdit) return;
     if (!name.trim() || !path.trim()) return;
+    const clash = (state?.apiEndpoints ?? []).some(
+      (e) => normalizeApiKey(e.method, e.path) === normalizeApiKey(method, path.trim()),
+    );
+    if (clash) {
+      setError(t('api.duplicateEndpoint'));
+      return;
+    }
     const ts = nowIso();
     const id = newId();
     dispatch({
@@ -77,7 +86,10 @@ export function EndpointModal({ onClose, onCreated, collections }: EndpointModal
           maxLength={FE_LIMITS.API_ENDPOINT_NAME}
           required
           showCount
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => {
+            setName(e.target.value);
+            if (error) setError(null);
+          }}
         />
         <div className="field-row">
           <div className="field">
@@ -88,7 +100,10 @@ export function EndpointModal({ onClose, onCreated, collections }: EndpointModal
               id="endpoint-method"
               className="select"
               value={method}
-              onChange={(e) => setMethod(e.target.value as ApiMethod)}
+              onChange={(e) => {
+                setMethod(e.target.value as ApiMethod);
+                if (error) setError(null);
+              }}
             >
               <option value="GET">GET</option>
               <option value="POST">POST</option>
@@ -109,10 +124,14 @@ export function EndpointModal({ onClose, onCreated, collections }: EndpointModal
               value={path}
               maxLength={FE_LIMITS.API_ENDPOINT_PATH}
               required
-              onChange={(e) => setPath(e.target.value)}
+              onChange={(e) => {
+                setPath(e.target.value);
+                if (error) setError(null);
+              }}
             />
           </div>
         </div>
+        {error && <InlineError>{error}</InlineError>}
         <div className="field">
           <SearchableSelect
             id="endpoint-collection"

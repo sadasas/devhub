@@ -5,7 +5,7 @@ import type { ApiCollection } from '../../lib/types';
 import { EndpointModal } from './EndpointModal';
 
 vi.mock('../../state/project-context', () => ({
-  useProject: () => ({ dispatch: mockDispatch, setStatus: vi.fn() }),
+  useProject: () => ({ dispatch: mockDispatch, canEdit: true, setStatus: vi.fn() }),
 }));
 
 const COL_A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
@@ -41,7 +41,7 @@ describe('EndpointModal collection select', () => {
 
   it('assigns the endpoint to a collection', () => {
     render(<MemoryRouter><EndpointModal onClose={vi.fn()} onCreated={vi.fn()} collections={collections} /></MemoryRouter>);
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'List users' } });
+    fireEvent.change(screen.getByLabelText('Name', { exact: false }), { target: { value: 'List users' } });
     fireEvent.click(screen.getByRole('button', { name: 'Collection' }));
     fireEvent.click(screen.getByRole('option', { name: 'Users API' }));
     fireEvent.click(screen.getByRole('button', { name: 'Create endpoint' }));
@@ -51,7 +51,7 @@ describe('EndpointModal collection select', () => {
 
   it('keeps the endpoint ungrouped by default', () => {
     render(<MemoryRouter><EndpointModal onClose={vi.fn()} onCreated={vi.fn()} collections={collections} /></MemoryRouter>);
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'List users' } });
+    fireEvent.change(screen.getByLabelText('Name', { exact: false }), { target: { value: 'List users' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create endpoint' }));
     const added = mockDispatch.mock.calls.find((c) => c[0].type === 'apiEndpoint/add');
     expect(added?.[0].endpoint.collectionId).toBeNull();

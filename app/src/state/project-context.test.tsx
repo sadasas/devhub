@@ -689,6 +689,59 @@ describe('milestone unlink on removal', () => {
   });
 });
 
+describe('apiCollection remove cascade', () => {
+  it('moves endpoints to Ungrouped instead of deleting them', () => {
+    const state = makeState();
+    state.apiCollections = [
+      {
+        id: 'c1',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+        name: 'Users',
+        description: '',
+      },
+    ];
+    const ts = '2026-01-01T00:00:00.000Z';
+    state.apiEndpoints = [
+      {
+        id: 'e1',
+        createdAt: ts,
+        updatedAt: ts,
+        collectionId: 'c1',
+        method: 'GET',
+        path: '/users',
+        name: 'List users',
+        description: '',
+        headers: [],
+        params: [],
+        body: '',
+        responses: [],
+      },
+      {
+        id: 'e2',
+        createdAt: ts,
+        updatedAt: ts,
+        collectionId: null,
+        method: 'GET',
+        path: '/ping',
+        name: 'Ping',
+        description: '',
+        headers: [],
+        params: [],
+        body: '',
+        responses: [],
+      },
+    ];
+
+    const next = projectReducer(state, { type: 'apiCollection/remove', id: 'c1' });
+
+    expect(next.apiCollections).toHaveLength(0);
+    expect(next.apiEndpoints).toHaveLength(2);
+    expect(next.apiEndpoints.find((e) => e.id === 'e1')?.collectionId).toBeNull();
+    expect(next.apiEndpoints.find((e) => e.id === 'e2')?.collectionId).toBeNull();
+  });
+});
+
 describe('whiteboard reducer', () => {
   it('adds, updates and removes whiteboards without side effects on other entities', () => {
     const state = makeState();

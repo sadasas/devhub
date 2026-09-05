@@ -18,9 +18,10 @@ interface SortControlProps {
   value: SortControlValue | null;
   onChange: (v: SortControlValue | null) => void;
   allowNone?: boolean;
+  label?: string;
 }
 
-export function SortControl({ options, value, onChange, allowNone = true }: SortControlProps) {
+export function SortControl({ options, value, onChange, allowNone = true, label }: SortControlProps) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
@@ -48,7 +49,17 @@ export function SortControl({ options, value, onChange, allowNone = true }: Sort
   };
 
   return (
-    <div className="sort-control" ref={wrapRef}>
+    <div
+      className="sort-control"
+      ref={wrapRef}
+      role={label ? 'group' : undefined}
+      aria-label={label ?? undefined}
+    >
+      {label && (
+        <span className="sort-control-label" aria-hidden="true">
+          {label}
+        </span>
+      )}
       <button
         type="button"
         className="btn btn-ghost btn-sm sort-control-trigger"

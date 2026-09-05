@@ -8,6 +8,8 @@ import { newId } from './utils';
 
 const METHODS: ApiMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
 
+export const BODY_METHODS: ApiMethod[] = ['POST', 'PUT', 'PATCH'];
+
 function parseMaybeJson(body: string): string | unknown {
   const trimmed = body.trim();
   if (!trimmed) return '';
@@ -59,7 +61,7 @@ export function toOpenApi(
     }
     if (parameters.length > 0) operation.parameters = parameters;
 
-    const hasBodyMethod = endpoint.method === 'POST' || endpoint.method === 'PUT' || endpoint.method === 'PATCH';
+    const hasBodyMethod = BODY_METHODS.includes(endpoint.method);
     if (hasBodyMethod && endpoint.body) {
       operation.requestBody = {
         content: { 'application/json': { example: parseMaybeJson(endpoint.body) } },

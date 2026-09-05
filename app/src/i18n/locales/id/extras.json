@@ -232,7 +232,9 @@
       "name": "Nama",
       "created": "Dibuat",
       "method": "Method",
-      "path": "Path"
+      "path": "Path",
+      "collections": "Koleksi",
+      "endpoints": "Endpoint"
     },
     "count": {
       "collections_one": "{{count}} koleksi",
@@ -248,6 +250,10 @@
     "toolbar": {
       "import": "Impor OpenAPI",
       "export": "Ekspor OpenAPI",
+      "exportPdf": "Ekspor PDF",
+      "exportPdfHint": "Unduh snapshot PDF (pilih Save as PDF di dialog cetak)",
+      "exportMenu": "Ekspor",
+      "exportMenuAria": "Ekspor dokumentasi API sebagai",
       "newCollection": "Koleksi baru",
       "newEndpoint": "Endpoint baru"
     },
@@ -258,8 +264,12 @@
     },
     "sidebar": {
       "aria": "Koleksi API",
-      "searchPlaceholder": "Cari endpoint…",
+      "searchPlaceholder": "Cari koleksi dan endpoint…",
       "searchAria": "Cari endpoint",
+      "clearSearch": "Bersihkan pencarian",
+      "results_one": "{{count}} hasil",
+      "results_other": "{{count}} hasil",
+      "noResults": "Tidak ada yang cocok dengan \"{{query}}\".",
       "empty": "Belum ada koleksi. Buat satu atau impor dokumen OpenAPI."
     },
     "tree": {
@@ -286,7 +296,10 @@
       "name": "Nama",
       "description": "Deskripsi",
       "descPlaceholder": "Apa fungsi endpoint ini?",
-      "tabsAria": "Detail endpoint"
+      "tabsAria": "Detail endpoint",
+      "edit": "Ubah",
+      "done": "Selesai",
+      "cancel": "Batal"
     },
     "tab": {
       "headers": "Headers",
@@ -326,7 +339,8 @@
     },
     "body": {
       "label": "Body request",
-      "helper": "Contoh body JSON. Hanya dikirim saat method mendukung body."
+      "helper": "Contoh body JSON. Hanya diekspor untuk POST, PUT dan PATCH.",
+      "notExported": "Tidak diekspor untuk {{method}} — hanya POST, PUT dan PATCH yang menyertakan request body."
     },
     "response": {
       "status": "Status",
@@ -339,7 +353,8 @@
       "add": "Tambah response",
       "remove": "Hapus response"
     },
-    "activity": "Aktivitas",
+      "activity": "Aktivitas",
+      "duplicateEndpoint": "Endpoint dengan method dan path ini sudah ada.",
     "collection": {
       "nameAria": "Nama koleksi",
       "descPlaceholder": "Apa yang dikelompokkan koleksi ini?",
@@ -354,8 +369,11 @@
       "endpointDesc": "Ini menghapus “{{name}}” secara permanen."
     },
     "import": {
-      "emptyFile": "Tidak ada endpoint atau koleksi (tag) yang ditemukan di berkas.",
-      "failed": "Gagal mengimpor dokumen OpenAPI."
+      "emptyFile": "Tidak ada endpoint atau koleksi yang ditemukan di “{{file}}”.",
+      "failed": "Gagal mengimpor dokumen OpenAPI.",
+      "failedWithFile": "Gagal mengimpor “{{file}}”: {{reason}}",
+      "tooLarge": "“{{file}}” terlalu besar (maks {{max}}).",
+      "summary": "Impor selesai — {{added}} endpoint ditambah, {{skipped}} duplikat dilewati, {{collections}} koleksi."
     },
     "docs": {
       "overview": "Ringkasan",
@@ -365,7 +383,10 @@
       "parameters": "Parameter",
       "headers": "Header",
       "responses": "Response",
-      "yes": "ya"
+      "yes": "ya",
+      "printFooter": "Dibuat dengan DevHub pada {{date}}",
+      "printDate": "Dibuat pada {{date}}",
+      "printVersion": "Versi {{version}}"
     },
     "collectionModal": {
       "presence": "Membuat koleksi API",
