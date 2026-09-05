@@ -283,6 +283,8 @@ export function WhiteboardInspector({ element, selectedCount, onPatch, tool, pen
     if (e.key !== 'Enter') return;
     if (shiftInsertsNewline && e.shiftKey) return;
     e.preventDefault();
+    // Plain Enter finishes editing (blur); Shift+Enter keeps a newline in textareas.
+    e.currentTarget.blur();
   };
 
   const renderAlign = (value: string | null | undefined) => (

@@ -140,6 +140,7 @@ export function NewTestModal({ open, onClose }: NewTestModalProps) {
               <SearchableSelect
                 id="new-test-task"
                 label=""
+                ariaLabel={t('tests.newModal.linkedTaskLabel')}
                 value={taskId || null}
                 options={state.tasks.map((t) => ({ value: t.id, label: t.title }))}
                 onChange={(v) => setTaskId(v ?? '')}
@@ -164,6 +165,7 @@ export function NewTestModal({ open, onClose }: NewTestModalProps) {
               <SearchableSelect
                 id="new-test-issue"
                 label=""
+                ariaLabel={t('tests.newModal.linkedIssueLabel')}
                 value={issueId || null}
                 options={state.issues.map((i) => ({ value: i.id, label: i.title }))}
                 onChange={(v) => setIssueId(v ?? '')}

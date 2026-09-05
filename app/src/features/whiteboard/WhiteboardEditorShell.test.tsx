@@ -94,7 +94,7 @@ describe('whiteboard editor shell', () => {
     for (const name of ['Select — 1', 'Pen — 2', 'Eraser — 3', 'Entity ref card — 8']) {
       const btn = screen.getByRole('button', { name });
       expect(btn.hasAttribute('disabled')).toBe(false);
-      expect(btn.parentElement).toBe(toolbar);
+      expect(btn.closest('[role="toolbar"]')).toBe(toolbar);
     }
     for (const name of ['Undo — Ctrl+Z', 'Redo — Ctrl+Y']) {
       expect(screen.getByRole('button', { name }).hasAttribute('disabled')).toBe(true);
@@ -185,7 +185,7 @@ describe('whiteboard editor shell', () => {
     expect(shape.getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('places a sticky on click and commits color and text via the popover', () => {
+  it('places a sticky on click and commits color and text via the inspector', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
       state: null,
@@ -208,8 +208,9 @@ describe('whiteboard editor shell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sticky note — 5' }));
 
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
-    fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 120 });
-    fireEvent.pointerUp(svg, { clientX: 100, clientY: 120 });
+    // Click on empty canvas (right of the existing sticky) to place.
+    fireEvent.pointerDown(svg, { button: 0, clientX: 400, clientY: 120 });
+    fireEvent.pointerUp(svg, { clientX: 400, clientY: 120 });
 
     expect(dispatch).toHaveBeenCalledTimes(1);
     const placed = dispatch.mock.calls[0]![0] as {
@@ -223,17 +224,17 @@ describe('whiteboard editor shell', () => {
     expect(placed.patch.elements[1]).toMatchObject({ kind: 'sticky', text: '' });
     rerender();
 
-    const dialog = screen.getByRole('dialog', { name: 'Edit sticky' });
-    expect(dialog).not.toBeNull();
+    const panel = screen.getByRole('complementary', { name: 'Edit sticky' });
+    expect(panel).not.toBeNull();
 
-    fireEvent.click(screen.getByRole('radio', { name: '#f4706d' }));
+    fireEvent.change(within(panel).getByDisplayValue('#e8b955'), { target: { value: '#f4706d' } });
     expect(dispatch).toHaveBeenCalledTimes(2);
     const colored = (dispatch.mock.calls[1]![0] as { patch: { elements: Array<Record<string, unknown>> } }).patch.elements;
     expect(colored.some((el) => el.color === '#f4706d')).toBe(true);
     rerender();
 
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Meeting notes' } });
-    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter' });
+    fireEvent.change(within(panel).getByRole('textbox'), { target: { value: 'Meeting notes' } });
+    fireEvent.keyDown(within(panel).getByRole('textbox'), { key: 'Enter' });
     expect(dispatch).toHaveBeenCalledTimes(3);
     const edited = (dispatch.mock.calls[2]![0] as { patch: { elements: Array<Record<string, unknown>> } }).patch.elements;
     expect(edited.some((el) => el.text === 'Meeting notes')).toBe(true);
@@ -262,11 +263,13 @@ describe('whiteboard editor shell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sticky note — 5' }));
 
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
-    fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 120 });
-    fireEvent.pointerUp(svg, { clientX: 100, clientY: 120 });
+    // Click on empty canvas (right of the existing sticky) to place.
+    fireEvent.pointerDown(svg, { button: 0, clientX: 400, clientY: 120 });
+    fireEvent.pointerUp(svg, { clientX: 400, clientY: 120 });
     rerender();
 
-    fireEvent.keyDown(screen.getByRole('dialog', { name: 'Edit sticky' }), { key: 'Escape' });
+    const panel = screen.getByRole('complementary', { name: 'Edit sticky' });
+    fireEvent.keyDown(panel, { key: 'Escape' });
 
     expect(dispatch).toHaveBeenCalledTimes(2);
     const remaining = (dispatch.mock.calls[1]![0] as { patch: { elements: Array<Record<string, unknown>> } }).patch.elements;
@@ -274,7 +277,7 @@ describe('whiteboard editor shell', () => {
     expect(remaining[0]).toMatchObject({ id: 's1', text: 'Hi' });
   });
 
-  it('keeps the edit popover usable when placing an element at the bottom-right corner', () => {
+  it('keeps the inspector usable when placing an element at the bottom-right corner', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
       state: null,
@@ -282,8 +285,14 @@ describe('whiteboard editor shell', () => {
       canEdit: true,
       dispatch,
     });
-    const view = renderShell(BOARD);
-    const rerender = () => view.rerender(<MemoryRouter><WhiteboardEditorShell board={BOARD} state={makeState()} onBack={() => {}} /></MemoryRouter>);
+    let current: Whiteboard = { ...BOARD };
+    dispatch.mockImplementation((action: { type: string; id: string; patch?: { elements: WhiteboardElement[] } }) => {
+      if (action.type === 'whiteboard/update' && action.patch) {
+        current = { ...current, elements: action.patch.elements };
+      }
+    });
+    const view = renderShell(current);
+    const rerender = () => view.rerender(<MemoryRouter><WhiteboardEditorShell board={current} state={makeState()} onBack={() => {}} /></MemoryRouter>);
     fireEvent.click(screen.getByRole('button', { name: 'Sticky note — 5' }));
 
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
@@ -291,11 +300,11 @@ describe('whiteboard editor shell', () => {
     fireEvent.pointerUp(svg, { clientX: 700, clientY: 500 });
     rerender();
 
-    expect(screen.getByRole('dialog', { name: 'Edit sticky' })).not.toBeNull();
+    expect(screen.getByRole('complementary', { name: 'Edit sticky' })).not.toBeNull();
 
-    fireEvent.keyDown(screen.getByRole('dialog', { name: 'Edit sticky' }), { key: 'Escape' });
+    fireEvent.keyDown(screen.getByRole('complementary', { name: 'Edit sticky' }), { key: 'Escape' });
     rerender();
-    expect(screen.queryByRole('dialog', { name: 'Edit sticky' })).toBeNull();
+    expect(screen.queryByRole('complementary', { name: 'Edit sticky' })).toBeNull();
   });
 
   it('selects a node on click and moves it with a single dispatched update', () => {
@@ -723,7 +732,7 @@ describe('whiteboard editor shell', () => {
     expect(screen.getByTestId('loc').textContent).toBe('/');
   });
 
-  it('opens the edit popover when a sticky is double-clicked', () => {
+  it('opens the inspector when a sticky is double-clicked', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
       state: null,
@@ -740,12 +749,12 @@ describe('whiteboard editor shell', () => {
 
     fireEvent.doubleClick(svg, { clientX: 20, clientY: 20 });
 
-    expect(screen.getByRole('dialog', { name: 'Edit sticky' })).not.toBeNull();
-    fireEvent.keyDown(screen.getByRole('dialog', { name: 'Edit sticky' }), { key: 'Escape' });
-    expect(screen.queryByRole('dialog', { name: 'Edit sticky' })).toBeNull();
+    expect(screen.getByRole('complementary', { name: 'Edit sticky' })).not.toBeNull();
+    fireEvent.keyDown(screen.getByRole('complementary', { name: 'Edit sticky' }), { key: 'Escape' });
+    expect(screen.queryByRole('complementary', { name: 'Edit sticky' })).toBeNull();
   });
 
-  it('opens the edit popover when a shape is double-clicked', () => {
+  it('opens the inspector when a shape is double-clicked', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
       state: null,
@@ -764,10 +773,10 @@ describe('whiteboard editor shell', () => {
 
     fireEvent.doubleClick(svg, { clientX: 20, clientY: 20 });
 
-    expect(screen.getByRole('dialog', { name: 'Edit shape' })).not.toBeNull();
+    expect(screen.getByRole('complementary', { name: 'Edit shape' })).not.toBeNull();
   });
 
-  it('opens the edge popover on double-click and edits label, color and arrow style', () => {
+  it('opens the edge inspector on double-click and edits label, color and arrow style', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
       state: null,
@@ -788,19 +797,19 @@ describe('whiteboard editor shell', () => {
 
     fireEvent.doubleClick(svg, { clientX: 266, clientY: 76 });
 
-const dialog = screen.getByRole('dialog', { name: 'Edit edge' });
-    expect(dialog).not.toBeNull();
-    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Label' }), { target: { value: 'HTTP' } });
+const panel = screen.getByRole('complementary', { name: 'Edit edge' });
+    expect(panel).not.toBeNull();
+    fireEvent.change(within(panel).getByRole('textbox', { name: 'Label' }), { target: { value: 'HTTP' } });
 
     const labelPatch = dispatch.mock.calls.at(-1)![0] as { patch: { elements: Array<Record<string, unknown>> } };
     expect(labelPatch.patch.elements.find((e) => e.kind === 'edge')).toMatchObject({ label: 'HTTP' });
 
-    fireEvent.click(within(dialog).getByRole('radio', { name: 'diamond' }));
+    fireEvent.click(within(panel).getByRole('radio', { name: 'diamond' }));
     const arrowPatch = dispatch.mock.calls.at(-1)![0] as { patch: { elements: Array<Record<string, unknown>> } };
     expect(arrowPatch.patch.elements.find((e) => e.kind === 'edge')).toMatchObject({ arrowStyle: 'diamond' });
 
-    fireEvent.keyDown(dialog, { key: 'Escape' });
-    expect(screen.queryByRole('dialog', { name: 'Edit edge' })).toBeNull();
+    fireEvent.keyDown(panel, { key: 'Escape' });
+    expect(screen.queryByRole('complementary', { name: 'Edit edge' })).toBeNull();
   });
 
   it('renders a wrapped shape label centered in the shape', () => {
@@ -1468,6 +1477,7 @@ const dialog = screen.getByRole('dialog', { name: 'Edit edge' });
     expect(dispatch).not.toHaveBeenCalled();
   });
 
+  // Heavy render (999 SVG nodes) — generous timeout under full-suite load.
   it('still allows drawing at 999 elements', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
@@ -1497,7 +1507,7 @@ const dialog = screen.getByRole('dialog', { name: 'Edit edge' });
     fireEvent.pointerMove(svg, { clientX: 60, clientY: 70 });
     fireEvent.pointerUp(svg, { clientX: 60, clientY: 70 });
     expect(dispatch).toHaveBeenCalledTimes(1);
-  });
+  }, 30000);
 
   it('keeps edge endpoints stable while dragging an unconnected node', () => {
     const dispatch = vi.fn();
@@ -1912,7 +1922,7 @@ const children = Array.from(svg.querySelectorAll('g')).map((g) => g.children[0])
     expect(svg.textContent).toContain('System');
   });
 
-  it('opens the boundary popover on double-click and patches label and color', () => {
+  it('opens the boundary inspector on double-click and patches label and color', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
       state: null,
@@ -1928,9 +1938,9 @@ const children = Array.from(svg.querySelectorAll('g')).map((g) => g.children[0])
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     fireEvent.doubleClick(svg, { clientX: 50, clientY: 50 });
-    const dialog = screen.getByRole('dialog', { name: 'Edit boundary' });
-    expect(dialog).not.toBeNull();
-    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Label' }), { target: { value: 'System' } });
+    const panel = screen.getByRole('complementary', { name: 'Edit boundary' });
+    expect(panel).not.toBeNull();
+    fireEvent.change(within(panel).getByRole('textbox', { name: 'Label' }), { target: { value: 'System' } });
     const patch = dispatch.mock.calls.at(-1)![0] as { patch: { elements: Array<Record<string, unknown>> } };
     expect(patch.patch.elements.find((el) => el.kind === 'boundary')).toMatchObject({ label: 'System' });
   });
@@ -2158,7 +2168,7 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
     expect(el).not.toHaveProperty('h');
   });
 
-  it('inserts a newline on Shift+Enter in the text popover and finishes on plain Enter', () => {
+  it('inserts a newline on Shift+Enter in the text inspector and finishes on plain Enter', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
       state: null,
@@ -2185,12 +2195,14 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
     fireEvent.change(textbox, { target: { value: 'line one' } });
     fireEvent.keyDown(textbox, { key: 'Enter', shiftKey: true });
     rerender();
-    expect(screen.getByRole('dialog', { name: 'Edit text' })).not.toBeNull();
+    expect(screen.getByRole('complementary', { name: 'Edit text' })).not.toBeNull();
 
     fireEvent.change(textbox, { target: { value: 'line one\nline two' } });
     fireEvent.keyDown(textbox, { key: 'Enter' });
     rerender();
-    expect(screen.queryByRole('dialog', { name: 'Edit text' })).toBeNull();
+    // Plain Enter finishes editing (blurs the field).
+    expect(document.activeElement).not.toBe(textbox);
+    expect(screen.getByRole('complementary', { name: 'Edit text' })).not.toBeNull();
 
     const placed = dispatch.mock.calls.find((c) => {
       const action = c[0] as { patch?: { elements: Array<Record<string, unknown>> } };

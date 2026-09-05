@@ -244,6 +244,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
               <SearchableSelect
                 id="new-task-assignee"
                 label=""
+                ariaLabel={t('board.newTaskModal.assigneeLabel')}
                 value={assignee}
                 options={members.map((m) => ({ value: m.id, label: m.displayName || m.email }))}
                 onChange={setAssignee}
@@ -252,7 +253,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
             </div>
           </div>
 
-          {state && (
+          {state && state.milestones.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
               <span
                 style={{
@@ -270,6 +271,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
                 <SearchableSelect
                   id="new-task-milestone"
                   label=""
+                  ariaLabel={t('board.newTaskModal.milestoneLabel')}
                   value={milestone}
                   options={state.milestones.map((m) => ({ value: m.id, label: m.name }))}
                   onChange={setMilestone}

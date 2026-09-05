@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import type { State, Task } from '../../lib/types';
 import { TaskModal } from './TaskModal';
@@ -84,7 +84,7 @@ describe('TaskModal milestone select', () => {
     setStatusMock.mockClear();
     listMembersMock.mockReset();
     fetchActivityMock.mockReset();
-    fetchActivityMock.mockResolvedValue({ items: [] });
+    fetchActivityMock.mockResolvedValue([]);
     listMembersMock.mockResolvedValue([
       { id: 'm1', email: 'adit@test.dev', role: 'editor', joinedAt: '2026-01-01T00:00:00.000Z' },
       { id: 'm2', email: 'rani@test.dev', role: 'viewer', joinedAt: '2026-01-01T00:00:00.000Z' },
@@ -114,9 +114,15 @@ describe('TaskModal milestone select', () => {
     expect(setStatusMock).toHaveBeenLastCalledWith('Viewing Board');
   });
 
+  /** Value button inside the icon-row labelled `rowLabel` (per-field inline edit). */
+  function rowButton(rowLabel: string, buttonName: string | RegExp) {
+    const row = screen.getByText(rowLabel).closest('div')!;
+    return within(row).getByRole('button', { name: buttonName });
+  }
+
   it('assigns a milestone from the searchable select', () => {
     render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(rowButton('Milestone', '—'));
     fireEvent.click(screen.getByRole('button', { name: 'Milestone' }));
     fireEvent.change(screen.getByRole('combobox', { name: 'Search Milestone' }), { target: { value: '0.3' } });
     fireEvent.click(screen.getByRole('option', { name: /V0\.3\.0/ }));
@@ -131,7 +137,7 @@ describe('TaskModal milestone select', () => {
     mockState = makeState();
     mockState.tasks = [makeTask({ milestoneId: MILESTONE_A })];
     render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(rowButton('Milestone', 'V0.2.0'));
     fireEvent.click(screen.getByRole('button', { name: 'Milestone' }));
     fireEvent.click(screen.getByRole('option', { name: 'None' }));
     expect(mockDispatch).toHaveBeenCalledWith({
@@ -151,8 +157,8 @@ describe('TaskModal milestone select', () => {
     ];
     render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
     expect(screen.getByText('Done late 3d')).toBeTruthy();
-    expect(screen.getByText('Aug 10, 2026')).toBeTruthy();
-    expect(screen.getByText('Aug 13, 2026')).toBeTruthy();
+    expect(screen.getByText(/Aug 10, 2026/)).toBeTruthy();
+    expect(screen.getByText(/Aug 13, 2026/)).toBeTruthy();
   });
 
   it('omits the done date when the task is not done', () => {
@@ -162,7 +168,7 @@ describe('TaskModal milestone select', () => {
 
   it('assigns a member from the assignee select', async () => {
     render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(rowButton('Assignees', '—'));
     fireEvent.click(screen.getByRole('button', { name: 'Assignee' }));
     fireEvent.change(screen.getByRole('combobox', { name: 'Search Assignee' }), { target: { value: 'adit' } });
     fireEvent.click(await screen.findByRole('option', { name: /adit@test\.dev/ }));
@@ -173,10 +179,10 @@ describe('TaskModal milestone select', () => {
     });
   });
 
-  it('clears the assignee via the None row', () => {
+  it('clears the assignee via the None row', async () => {
     mockState.tasks = [makeTask({ assigneeId: 'm1' })];
     render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'adit@test.dev' }));
     fireEvent.click(screen.getByRole('button', { name: 'Assignee' }));
     fireEvent.click(screen.getByRole('option', { name: 'None' }));
     expect(mockDispatch).toHaveBeenCalledWith({
@@ -189,8 +195,8 @@ describe('TaskModal milestone select', () => {
   it('shows the auto actual hours in read mode and hides the manual input in edit mode', () => {
     mockState.tasks = [makeTask({ status: 'done', actualHours: 24.5 })];
     render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
-    expect(screen.getByText('24.5h')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    expect(screen.getByText(/24\.5h/)).toBeTruthy();
+    fireEvent.click(rowButton('Estimate', /Actual/));
     expect(screen.queryByLabelText('Actual (hours)')).toBeNull();
     expect(screen.getByLabelText('Estimate (hours)')).toBeTruthy();
   });

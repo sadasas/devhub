@@ -145,7 +145,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
                     <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>
                   )}
                   {canEdit && (activeField === 'task' ? (
-                    <SearchableSelect id="test-task-full" label="" value={test.taskId} options={state.tasks.map((x) => ({ value: x.id, label: x.title }))} onChange={(v) => { update({ taskId: v }); setActiveField(null); }} />
+                    <SearchableSelect id="test-task-full" label="" ariaLabel={t('tests.modal.linkedTaskLabel')} value={test.taskId} options={state.tasks.map((x) => ({ value: x.id, label: x.title }))} onChange={(v) => { update({ taskId: v }); setActiveField(null); }} />
                   ) : (
                     <button type="button" className="btn btn-ghost btn-sm" onClick={() => setActiveField('task')}>{linkedTask ? t('issues.modal.change') : t('issues.modal.add')}</button>
                   ))}
@@ -167,7 +167,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
                     <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>
                   )}
                   {canEdit && (activeField === 'issue' ? (
-                    <SearchableSelect id="test-issue-full" label="" value={test.issueId} options={state.issues.map((x) => ({ value: x.id, label: x.title }))} onChange={(v) => { update({ issueId: v }); setActiveField(null); }} />
+                    <SearchableSelect id="test-issue-full" label="" ariaLabel={t('tests.modal.linkedIssueLabel')} value={test.issueId} options={state.issues.map((x) => ({ value: x.id, label: x.title }))} onChange={(v) => { update({ issueId: v }); setActiveField(null); }} />
                   ) : (
                     <button type="button" className="btn btn-ghost btn-sm" onClick={() => setActiveField('issue')}>{linkedIssue ? t('issues.modal.change') : t('issues.modal.add')}</button>
                   ))}

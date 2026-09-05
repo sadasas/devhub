@@ -38,13 +38,21 @@ describe('useTabShortcuts', () => {
     expect(onSelect).toHaveBeenCalledWith('whiteboard');
   });
 
-  it('does not switch on plain digits or with ctrl/meta/shift modifiers', () => {
-    const { onSelect } = setup();
+  it('switches primary tabs on plain digits 1-4 only, never with ctrl/meta/shift', () => {
+    const primary = setup();
     press('2');
+    expect(primary.onSelect).toHaveBeenCalledWith('issues');
+
+    const beyond = setup();
+    press('5');
+    expect(beyond.onSelect).not.toHaveBeenCalled();
+
+    const modified = setup();
     press('2', { ctrlKey: true });
     press('2', { metaKey: true });
     press('2', { shiftKey: true });
-    expect(onSelect).not.toHaveBeenCalled();
+    press('2', { altKey: true, shiftKey: true });
+    expect(modified.onSelect).not.toHaveBeenCalled();
   });
 
   it('cycles to the next and previous tab with brackets', () => {

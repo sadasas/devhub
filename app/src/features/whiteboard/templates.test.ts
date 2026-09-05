@@ -2,14 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { WHITEBOARD_TEMPLATES } from './templates';
 
 describe('whiteboard templates', () => {
-  it('exposes a blank default plus five SDLC presets', () => {
+  it('exposes a blank default plus five Archify presets', () => {
     expect(WHITEBOARD_TEMPLATES.map((t) => t.id)).toEqual([
       'blank',
-      'kanban',
-      'ci-cd',
-      'roadmap',
-      'release-train',
-      'gitflow',
+      'architecture',
+      'workflow',
+      'sequence',
+      'dataflow',
+      'lifecycle',
     ]);
   });
 
@@ -37,19 +37,19 @@ describe('whiteboard templates', () => {
     }
   });
 
-  it('sizes the kanban preset with four columns', () => {
-    const kanban = WHITEBOARD_TEMPLATES.find((t) => t.id === 'kanban')!;
-    const boundaries = kanban.build().filter((e) => e.kind === 'boundary');
+  it('sizes the workflow preset with four lanes', () => {
+    const workflow = WHITEBOARD_TEMPLATES.find((t) => t.id === 'workflow')!;
+    const boundaries = workflow.build().filter((e) => e.kind === 'boundary');
     expect(boundaries.map((b) => (b as { label: string }).label)).toEqual([
-      'Todo',
-      'In Progress',
-      'Review',
-      'Done',
+      'Developer',
+      'AI Agent',
+      'CLI / Validator',
+      'Artifact',
     ]);
   });
 
-  it('keeps the CI/CD preset under 20 elements', () => {
-    const ci = WHITEBOARD_TEMPLATES.find((t) => t.id === 'ci-cd')!;
-    expect(ci.build().length).toBeLessThan(20);
+  it('keeps the architecture preset under 20 elements', () => {
+    const arch = WHITEBOARD_TEMPLATES.find((t) => t.id === 'architecture')!;
+    expect(arch.build().length).toBeLessThan(20);
   });
 });

@@ -60,7 +60,7 @@ describe('NewKeyModal', () => {
     expect(onCreated).toHaveBeenCalledWith(createdKey);
   });
 
-  it('shows next steps with a curl test command and the MCP guide link after creation', async () => {
+  it('shows next steps with an OAuth curl test command and the MCP guide link after creation', async () => {
     apiMock.createKey.mockResolvedValue(createdKey);
     renderModal();
 
@@ -68,7 +68,7 @@ describe('NewKeyModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create key' }));
 
     expect(await screen.findByText(/Next steps/)).not.toBeNull();
-    expect(screen.getAllByText(/curl -X POST/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/curl -s -X POST/).length).toBeGreaterThan(0);
     const guideLink = screen.getByRole('link', { name: /Full MCP integration guide/ });
     expect(guideLink.getAttribute('href')).toBe('/docs/mcp');
   });
@@ -85,7 +85,7 @@ describe('NewKeyModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy curl test command' }));
     await waitFor(() =>
-      expect(writeText).toHaveBeenCalledWith(expect.stringContaining('curl -X POST')),
+      expect(writeText).toHaveBeenCalledWith(expect.stringContaining('curl -s -X POST')),
     );
   });
 
@@ -103,7 +103,7 @@ describe('NewKeyModal', () => {
     expect(onCreated).toHaveBeenCalledWith(createdKey);
   });
 
-  it('copies the env-var snippet to the clipboard', async () => {
+  it('copies the raw OAuth token to the clipboard', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
     apiMock.createKey.mockResolvedValue(createdKey);
@@ -113,8 +113,8 @@ describe('NewKeyModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create key' }));
     await screen.findByText(createdKey.key);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Copy as DEVHUB_MCP_KEY environment variable' }));
-    expect(writeText).toHaveBeenCalledWith(`DEVHUB_MCP_KEY="${createdKey.key}"`);
+    fireEvent.click(screen.getByRole('button', { name: 'Copy OAuth token (from opencode mcp-auth.json)' }));
+    expect(writeText).toHaveBeenCalledWith(createdKey.key);
   });
 
   it('disables the create button until a name is provided', () => {

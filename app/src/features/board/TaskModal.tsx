@@ -221,6 +221,9 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                         <span style={{ color: 'var(--text-muted)' }}>→</span>
                         {task.dueDate ? formatDate(task.dueDate) : '—'}
                         {task.dueDate && <span className={`task-due task-due-${taskDueChip(task).tone}`} style={{ marginLeft: 6 }}>{taskDueChip(task).label}</span>}
+                        {task.status === 'done' && task.completedAt && (
+                          <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>· {t('board.taskModal.doneDateLabel')}: {formatDate(task.completedAt)}</span>
+                        )}
                       </>
                     ) : '—'}
                   </button>
@@ -255,7 +258,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                   <User size={12} aria-hidden="true" /> Assignees
                 </span>
                 {activeField === 'assignee' && canEdit ? (
-                  <SearchableSelect id="task-assignee-inline" label="" value={task.assigneeId ?? null} options={members.map((m) => ({ value: m.id, label: m.displayName || m.email }))} onChange={(v) => { update({ assigneeId: v }); setActiveField(null); }} />
+                  <SearchableSelect id="task-assignee-inline" label="" ariaLabel={t('board.taskModal.assigneeLabel')} value={task.assigneeId ?? null} options={members.map((m) => ({ value: m.id, label: m.displayName || m.email }))} onChange={(v) => { update({ assigneeId: v }); setActiveField(null); }} />
                 ) : task.assigneeId ? (
                   (() => {
                     const am = members.find((m) => m.id === task.assigneeId);
@@ -343,7 +346,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                   <Tag size={12} aria-hidden="true" /> Milestone
                 </span>
                 {activeField === 'milestone' && canEdit ? (
-                  <SearchableSelect id="task-milestone" label="" value={task.milestoneId} options={state!.milestones.map((m) => ({ value: m.id, label: m.name }))} onChange={(v) => { update({ milestoneId: v }); setActiveField(null); }} />
+                  <SearchableSelect id="task-milestone" label="" ariaLabel={t('board.taskModal.milestoneLabel')} value={task.milestoneId} options={state!.milestones.map((m) => ({ value: m.id, label: m.name }))} onChange={(v) => { update({ milestoneId: v }); setActiveField(null); }} />
                 ) : (
                   <button type="button" onClick={() => canEdit && setActiveField('milestone')} style={{ background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default', fontSize: 13, color: milestone ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
                     {milestone ? milestone.name : '—'}
@@ -356,7 +359,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                   <Clock size={12} aria-hidden="true" /> Estimate
                 </span>
                 {activeField === 'estimate' && canEdit ? (
-                  <input className="input" type="number" min={0} max={FE_LIMITS.ESTIMATE_MAX} style={{ width: 100 }} value={task.estimate ?? ''} autoFocus onChange={(e) => { const v = e.target.value; const n = Number(v); update({ estimate: v === '' ? undefined : Math.min(FE_LIMITS.ESTIMATE_MAX, Math.max(0, n)) }); }} onBlur={() => setActiveField(null)} />
+                  <input className="input" type="number" min={0} max={FE_LIMITS.ESTIMATE_MAX} style={{ width: 100 }} value={task.estimate ?? ''} autoFocus aria-label={t('board.taskModal.estimateLabel')} onChange={(e) => { const v = e.target.value; const n = Number(v); update({ estimate: v === '' ? undefined : Math.min(FE_LIMITS.ESTIMATE_MAX, Math.max(0, n)) }); }} onBlur={() => setActiveField(null)} />
                 ) : (
                   <button type="button" onClick={() => canEdit && setActiveField('estimate')} style={{ background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default', fontSize: 13, color: 'var(--text-secondary)' }}>
                     {task.estimate != null ? `${task.estimate}h` : '—'} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>· Actual: {task.actualHours != null ? `${task.actualHours}h` : '—'}</span>

@@ -85,7 +85,7 @@ describe('IssueModal linked task select', () => {
   it('links a task from the searchable select', () => {
     render(<MemoryRouter><IssueModal issueId={ISSUE_ID} onClose={vi.fn()} /></MemoryRouter>);
     // inline flow: click + Add to enter linkedTask edit, then open SearchableSelect trigger
-    fireEvent.click(screen.getByRole('button', { name: 'Add linked task' }));
+    fireEvent.click(screen.getByRole('button', { name: '+ Add' }));
     fireEvent.click(screen.getByRole('button', { name: 'Linked task' }));
     fireEvent.change(screen.getByRole('combobox', { name: 'Search Linked task' }), { target: { value: 'invites' } });
     fireEvent.click(screen.getByRole('option', { name: 'Add invites' }));
@@ -99,7 +99,7 @@ describe('IssueModal linked task select', () => {
   it('unlinks the task via the None row', () => {
     mockState.issues = [makeIssue({ linkedTaskId: TASK_A })];
     render(<MemoryRouter><IssueModal issueId={ISSUE_ID} onClose={vi.fn()} /></MemoryRouter>);
-    fireEvent.click(screen.getByRole('button', { name: 'Change linked task' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Change Linked task' }));
     fireEvent.click(screen.getByRole('button', { name: 'Linked task' }));
     fireEvent.click(screen.getByRole('option', { name: 'None' }));
     expect(mockDispatch).toHaveBeenCalledWith({
@@ -111,11 +111,11 @@ describe('IssueModal linked task select', () => {
 
   it('renders inline fields mirroring TaskModal', () => {
     render(<MemoryRouter><IssueModal issueId={ISSUE_ID} onClose={vi.fn()} /></MemoryRouter>);
-    // Title is inline editable
-    expect(screen.getByRole('button', { name: /Click to edit Title/i })).toBeDefined();
+    // Title is inline editable (Title->Name unification)
+    expect(screen.getByRole('button', { name: /Click to edit Name/i })).toBeDefined();
     // Severity and status pills
-    expect(screen.getByRole('button', { name: 'Ubah Severity' })).toBeDefined();
-    expect(screen.getByRole('button', { name: 'Ubah Status' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Change Severity' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Change Status' })).toBeDefined();
     // Description and reproduction cards
     expect(screen.getByRole('button', { name: 'Edit Description' })).toBeDefined();
     expect(screen.getByRole('button', { name: 'Edit Reproduction steps' })).toBeDefined();
@@ -127,8 +127,8 @@ describe('IssueModal linked task select', () => {
 
   it('edits title inline', () => {
     render(<MemoryRouter><IssueModal issueId={ISSUE_ID} onClose={vi.fn()} /></MemoryRouter>);
-    fireEvent.click(screen.getByRole('button', { name: /Click to edit Title/i }));
-    const input = screen.getByRole('textbox', { name: 'Title' }) as HTMLInputElement;
+    fireEvent.click(screen.getByRole('button', { name: /Click to edit Name/i }));
+    const input = screen.getByRole('textbox', { name: 'Name' }) as HTMLInputElement;
     expect(input).toBeDefined();
     fireEvent.change(input, { target: { value: 'New title' } });
     expect(mockDispatch).toHaveBeenCalledWith({
@@ -140,7 +140,7 @@ describe('IssueModal linked task select', () => {
 
   it('edits severity via pill select', () => {
     render(<MemoryRouter><IssueModal issueId={ISSUE_ID} onClose={vi.fn()} /></MemoryRouter>);
-    fireEvent.click(screen.getByRole('button', { name: 'Ubah Severity' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Change Severity' }));
     const select = document.querySelector('.select') as HTMLSelectElement;
     expect(select).not.toBeNull();
     fireEvent.change(select, { target: { value: 'critical' } });

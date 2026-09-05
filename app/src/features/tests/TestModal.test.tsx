@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import type { State, TestCase } from '../../lib/types';
 import { TestModal } from './TestModal';
@@ -69,9 +69,15 @@ describe('TestModal linked selects', () => {
     vi.restoreAllMocks();
   });
 
+  /** Add/Change button inside the icon-row labelled `rowLabel` (per-field inline edit). */
+  function rowButton(rowLabel: string, buttonName: string | RegExp) {
+    const row = screen.getByText(rowLabel).closest('div')!;
+    return within(row).getByRole('button', { name: buttonName });
+  }
+
   it('links a task when editing', () => {
     render(<MemoryRouter><TestModal testId={TEST_ID} onClose={vi.fn()} /></MemoryRouter>);
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(rowButton('Linked task', '+ Add'));
     fireEvent.click(screen.getByRole('button', { name: 'Linked task' }));
     fireEvent.click(screen.getByRole('option', { name: 'Ship chat' }));
     expect(mockDispatch).toHaveBeenCalledWith({
@@ -84,7 +90,7 @@ describe('TestModal linked selects', () => {
   it('unlinks a task via the None row', () => {
     mockState.testCases = [makeTestCase({ taskId: TASK_A })];
     render(<MemoryRouter><TestModal testId={TEST_ID} onClose={vi.fn()} /></MemoryRouter>);
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(rowButton('Linked task', 'Change'));
     fireEvent.click(screen.getByRole('button', { name: 'Linked task' }));
     fireEvent.click(screen.getByRole('option', { name: 'None' }));
     expect(mockDispatch).toHaveBeenCalledWith({

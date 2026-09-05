@@ -573,6 +573,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
                       <SearchableSelect
                         id="issue-linked-task-inline"
                         label={t('issues.modal.linkedTaskLabel')}
+                        ariaLabel={t('issues.modal.linkedTaskLabel')}
                         value={issue.linkedTaskId ?? null}
                         options={state.tasks.map((t) => ({ value: t.id, label: t.title }))}
                         onChange={(v) => {

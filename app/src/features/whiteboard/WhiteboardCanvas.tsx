@@ -1100,6 +1100,16 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         return;
       }
       if (e.key === 'Escape') {
+        // Cancel removes a just-placed empty sticky/text (old popover-cancel
+        // behavior, kept through the inspector migration).
+        if (!isReadOnly && selectedIds.length === 1) {
+          const sel = board.elements.find((el) => el.id === selectedIds[0]);
+          const txt = sel ? (sel as unknown as { text?: unknown }).text : undefined;
+          if (sel && (sel.kind === 'sticky' || sel.kind === 'text') && (txt ?? '') === '') {
+            history.record();
+            dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: board.elements.filter((el) => el.id !== sel.id) } });
+          }
+        }
         setSelectedIds([]);
         setDragOffset(null);
         marqueeRef.current = null;
@@ -1335,15 +1345,18 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       return;
     }
     e.currentTarget.setPointerCapture(e.pointerId);
-    // Hit-first for all non-pen/eraser tools: clicking existing element selects it and switches to select
-    if (tool !== 'pen' && tool !== 'eraser' && tool !== 'marquee') {
+    // Hit-first for place/ref/boundary tools: clicking an existing element
+    // selects it and switches to select. Select has its own shift-aware logic
+    // below (keeps multi-selection for group drags, resize handles); edge
+    // starts drafts from nodes in the edge branch below.
+    if (tool !== 'pen' && tool !== 'eraser' && tool !== 'marquee' && tool !== 'select' && tool !== 'edge') {
       const hitAny = elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects);
       if (hitAny) {
         const alreadySelected = selectedIds.includes(hitAny.id);
         if (!alreadySelected || selectedIds.length !== 1) {
           setSelectedIds([hitAny.id]);
         }
-        if (onToolChange && tool !== 'select') onToolChange('select');
+        if (onToolChange) onToolChange('select');
         // prepare drag for select
         if (!readOnly) {
           dragRef.current = { startWorld: pt, originals: new Map(board.elements.map((el) => [el.id, el])) };

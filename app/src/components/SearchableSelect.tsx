@@ -12,6 +12,8 @@ export interface SearchableOption {
 interface SearchableSelectProps {
   id: string;
   label?: string;
+  /** Accessible name for the trigger when no visible label is desired (e.g. grid cells). */
+  ariaLabel?: string;
   value: string | null | undefined;
   options: SearchableOption[];
   placeholder?: string;
@@ -24,6 +26,7 @@ interface SearchableSelectProps {
 export function SearchableSelect({
   id,
   label,
+  ariaLabel,
   value,
   options,
   placeholder,
@@ -44,6 +47,9 @@ export function SearchableSelect({
   const resolvedPlaceholder = placeholder ?? t('select.placeholder');
 
   const selected = options.find((o) => o.value === value);
+  // Accessible name source: explicit ariaLabel wins (icon-row pattern),
+  // then a non-empty visible label, then the generic fallback.
+  const nameSource = (ariaLabel ?? label) || t('select.options');
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -136,6 +142,7 @@ export function SearchableSelect({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={`${id}-listbox`}
+        aria-label={ariaLabel}
         onClick={() => setOpen((o) => !o)}
       >
         <span className={!selected && !allowEmpty ? 'ss-trigger-text ss-trigger-placeholder' : 'ss-trigger-text'}>
@@ -183,13 +190,13 @@ export function SearchableSelect({
             maxLength={100}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t('select.search')}
-            aria-label={t('select.searchLabel', { what: label ?? t('select.options') })}
+            aria-label={t('select.searchLabel', { what: nameSource })}
             role="combobox"
             aria-expanded="true"
             aria-controls={`${id}-listbox`}
             aria-activedescendant={rows[index] ? `${id}-option-${rows[index].value ?? 'empty'}` : undefined}
           />
-          <div className="ss-list" id={`${id}-listbox`} role="listbox" aria-label={label ?? t('select.options')}>
+          <div className="ss-list" id={`${id}-listbox`} role="listbox" aria-label={nameSource}>
             {rows.length === 0 && <div className="ss-empty" role="status" aria-live="polite">{t('select.noMatches', { query })}</div>}
             <div aria-live="polite" className="sr-only">{t('select.resultsCount', { count: rows.length, defaultValue: `${rows.length} options` })}</div>
             {rows.map((row, i) => {

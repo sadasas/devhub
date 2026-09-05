@@ -56,7 +56,7 @@ describe('sw-precache', () => {
 
   it('renders a service worker with precache list, cache name and handlers', () => {
     const code = renderServiceWorker([{ url: '/index.html', revision: 'aaa1110000' }])
-    expect(code).toContain('const CACHE = "devhub-v1";')
+    expect(code).toContain('const CACHE = "devhub-v2";')
     expect(code).toContain('"/index.html?v=aaa1110000"')
     expect(code).toContain("self.addEventListener('install'")
     expect(code).toContain("self.addEventListener('activate'")
