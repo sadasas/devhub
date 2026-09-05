@@ -191,6 +191,13 @@ export function ActivityList({ projectId, entity, entityId }: ActivityListProps)
   const displayValue = (field: string, value: unknown): string => {
     if (value === null || value === undefined) return '—';
     if (typeof value === 'boolean') return value ? t('activity.yes') : t('activity.no');
+    if (typeof value === 'object') {
+      try {
+        return JSON.stringify(value) ?? '—';
+      } catch {
+        return '—';
+      }
+    }
     if (['dueDate', 'startDate', 'targetDate', 'completedAt', 'createdAt', 'updatedAt'].includes(field) && typeof value === 'string') {
       const d = String(value).slice(0, 10);
       if (/^\d{4}-\d{2}-\d{2}/.test(d)) {

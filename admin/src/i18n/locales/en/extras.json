@@ -534,6 +534,9 @@
       "deactivate": "Deactivate",
       "deleteTitle": "Delete package",
       "deleteDesc": "Delete \"{{name}}\"? This cannot be undone.",
+      "featured": "Recommended",
+      "setFeatured": "Set as recommended",
+      "featuredSet": "\"{{name}}\" is now recommended",
       "errors": {
         "load": "Failed to load packages",
         "update": "Failed to update package",
@@ -550,6 +553,7 @@
       "maxMembers": "Max members",
       "maxProjects": "Max projects",
       "sortOrder": "Sort order",
+      "featured": "Mark as recommended",
       "prices": "Prices",
       "addPrice": "Add price",
       "durationDays": "Duration (days)",

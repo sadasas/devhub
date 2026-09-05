@@ -611,6 +611,7 @@ export interface AdminPackage {
   maxProjects: number | null;
   sortOrder: number;
   isActive: boolean;
+  isFeatured: boolean;
   prices: AdminPackagePrice[];
 }
 

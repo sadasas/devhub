@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CheckCircle, Package } from '@phosphor-icons/react';
+import { CheckCircle, Package, PencilSimple, Star, Trash } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { api } from '../../lib/api';
@@ -90,10 +90,29 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
       if (idx >= 0) {
         const next = [...prev];
         next[idx] = saved;
+        // hanya satu rekomendasi — clear flag paket lain secara lokal
+        if (saved.isFeatured) {
+          return next.map((p) => (p.id === saved.id ? p : p.isFeatured ? { ...p, isFeatured: false } : p));
+        }
         return next;
       }
       return [...prev, saved];
     });
+  }
+
+  async function onSetFeatured(pkg: AdminPackage) {
+    setBusyPackageId(pkg.id);
+    setError(null);
+    try {
+      const saved = await api.adminPatchPackage(pkg.id, { isFeatured: true });
+      onPackageSaved(saved);
+      setToast(t('admin.packages.featuredSet', { name: pkg.name }));
+      window.setTimeout(() => setToast(null), 5000);
+    } catch (err) {
+      setError(getErrorMessage(err, t('admin.packages.errors.update')));
+    } finally {
+      setBusyPackageId(null);
+    }
   }
 
   function onDeletePackage(pkg: AdminPackage) {
@@ -234,6 +253,11 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
                 <Badge tone={pkg.isActive ? 'success' : 'neutral'}>
                   {pkg.isActive ? t('admin.packages.active') : t('admin.packages.inactive')}
                 </Badge>
+                {pkg.isFeatured && (
+                  <Badge tone="accent" dot>
+                    {t('admin.packages.featured')}
+                  </Badge>
+                )}
               </div>
               {pkg.description && (
                 <p className="admin-package-desc">{pkg.description}</p>
@@ -264,11 +288,23 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
                 <Button
                   variant="danger"
                   size="sm"
+                  leftIcon={<Trash size={13} aria-hidden="true" />}
                   disabled={busyPackageId === pkg.id}
                   onClick={() => void onDeletePackage(pkg)}
                 >
                   {t('templates.delete')}
                 </Button>
+                {!pkg.isFeatured && !pkg.isFree && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    leftIcon={<Star size={13} aria-hidden="true" />}
+                    disabled={busyPackageId === pkg.id}
+                    onClick={() => void onSetFeatured(pkg)}
+                  >
+                    {t('admin.packages.setFeatured')}
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -281,6 +317,7 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
                 <Button
                   variant="secondary"
                   size="sm"
+                  leftIcon={<PencilSimple size={13} aria-hidden="true" />}
                   disabled={busyPackageId === pkg.id}
                   onClick={() => { setEditingPackage(pkg); setPackageModalOpen(true); }}
                 >

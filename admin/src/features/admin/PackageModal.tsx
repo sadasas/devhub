@@ -38,6 +38,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
   const [maxProjects, setMaxProjects] = useState('');
   const [sortOrder, setSortOrder] = useState('0');
   const [isActive, setIsActive] = useState(true);
+  const [isFeatured, setIsFeatured] = useState(false);
   const [prices, setPrices] = useState<PriceRow[]>([newPriceRow()]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +52,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
       setMaxProjects(pkg.maxProjects === null ? '' : String(pkg.maxProjects));
       setSortOrder(String(pkg.sortOrder));
       setIsActive(pkg.isActive);
+      setIsFeatured(pkg.isFeatured);
       setPrices(
         pkg.prices.length > 0
           ? pkg.prices.map((p) => ({
@@ -68,6 +70,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
       setMaxProjects('');
       setSortOrder('0');
       setIsActive(true);
+      setIsFeatured(false);
       setPrices([newPriceRow()]);
     }
     setError(null);
@@ -130,6 +133,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
         maxProjects: parsedProjects,
         sortOrder: parsedSort,
         isActive,
+        isFeatured,
         prices: prices
           .filter((p) => p.durationDays > 0)
           .map((p) => ({
@@ -225,6 +229,14 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
             onChange={(e) => setIsActive(e.target.checked)}
           />
           {t('admin.packages.active')}
+        </label>
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={isFeatured}
+            onChange={(e) => setIsFeatured(e.target.checked)}
+          />
+          {t('admin.packageModal.featured')}
         </label>
 
         <div className="form-section">

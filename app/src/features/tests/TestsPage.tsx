@@ -107,7 +107,7 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           action={
             canEdit && (
               <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setCreating(true)}>
-                {t('tests.addTestCase')}
+                {t('tests.newTestCase')}
               </Button>
             )
           }

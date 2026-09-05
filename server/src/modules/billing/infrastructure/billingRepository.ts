@@ -105,7 +105,7 @@ async function attachPrices(packages: PackageRow[]): Promise<PackageWithPrices[]
 /** Paket aktif + harga aktif — untuk permukaan publik (pricing, modal upgrade). */
 export async function listActivePackages(): Promise<PackageWithPrices[]> {
   const res = await pool.query<PackageRow>(
-    `SELECT id, name, description, is_free, max_members, max_projects, sort_order, is_active
+    `SELECT id, name, description, is_free, max_members, max_projects, sort_order, is_active, is_featured
      FROM billing_packages WHERE is_active ORDER BY sort_order, created_at`,
   );
   const withPrices = await attachPrices(res.rows);
@@ -118,7 +118,7 @@ export async function listActivePackages(): Promise<PackageWithPrices[]> {
 /** Semua paket termasuk nonaktif + semua harga — untuk admin. */
 export async function listAllPackages(): Promise<PackageWithPrices[]> {
   const res = await pool.query<PackageRow>(
-    `SELECT id, name, description, is_free, max_members, max_projects, sort_order, is_active
+    `SELECT id, name, description, is_free, max_members, max_projects, sort_order, is_active, is_featured
      FROM billing_packages ORDER BY sort_order, created_at`,
   );
   return attachPrices(res.rows);
@@ -128,7 +128,7 @@ export async function findActivePackage(
   packageId: string,
 ): Promise<PackageWithPrices | null> {
   const res = await pool.query<PackageRow>(
-    `SELECT id, name, description, is_free, max_members, max_projects, sort_order, is_active
+    `SELECT id, name, description, is_free, max_members, max_projects, sort_order, is_active, is_featured
      FROM billing_packages WHERE id = $1 AND is_active`,
     [packageId],
   );
@@ -159,6 +159,7 @@ export interface CreatePackageInput {
   maxProjects?: number | null;
   sortOrder?: number;
   isActive?: boolean;
+  isFeatured?: boolean;
 }
 
 export async function createPackage(input: CreatePackageInput): Promise<PackageRow> {
@@ -170,9 +171,9 @@ export async function createPackage(input: CreatePackageInput): Promise<PackageR
     }
   }
   const res = await pool.query<PackageRow>(
-    `INSERT INTO billing_packages (name, description, is_free, max_members, max_projects, sort_order, is_active)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
-     RETURNING id, name, description, is_free, max_members, max_projects, sort_order, is_active`,
+    `INSERT INTO billing_packages (name, description, is_free, max_members, max_projects, sort_order, is_active, is_featured)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     RETURNING id, name, description, is_free, max_members, max_projects, sort_order, is_active, is_featured`,
     [
       input.name,
       input.description ?? '',
@@ -181,6 +182,7 @@ export async function createPackage(input: CreatePackageInput): Promise<PackageR
       input.maxProjects ?? null,
       input.sortOrder ?? 0,
       input.isActive ?? true,
+      input.isFeatured ?? false,
     ],
   );
   return res.rows[0]!;
@@ -196,6 +198,7 @@ export async function updatePackageFields(
     maxProjects: number | null;
     sortOrder: number;
     isActive: boolean;
+    isFeatured: boolean;
   }>,
 ): Promise<PackageRow | null> {
   const map: Record<string, string> = {
@@ -206,6 +209,7 @@ export async function updatePackageFields(
     maxProjects: 'max_projects',
     sortOrder: 'sort_order',
     isActive: 'is_active',
+    isFeatured: 'is_featured',
   };
   const sets: string[] = [];
   const values: unknown[] = [];
@@ -221,15 +225,28 @@ export async function updatePackageFields(
   values.push(packageId);
   const res = await pool.query<PackageRow>(
     `UPDATE billing_packages SET ${sets.join(', ')} WHERE id = $${i}
-     RETURNING id, name, description, is_free, max_members, max_projects, sort_order, is_active`,
+     RETURNING id, name, description, is_free, max_members, max_projects, sort_order, is_active, is_featured`,
     values,
   );
   return res.rows[0] ?? null;
 }
 
+/** Tandai satu paket sebagai rekomendasi; yang lain di-clear atomik (maks satu featured). */
+export async function setFeaturedExclusive(packageId: string): Promise<PackageRow | null> {
+  return withTransaction(pool, async (client) => {
+    await client.query('UPDATE billing_packages SET is_featured = false WHERE is_featured AND id <> $1', [packageId]);
+    const res = await client.query<PackageRow>(
+      `UPDATE billing_packages SET is_featured = true, updated_at = now() WHERE id = $1
+       RETURNING id, name, description, is_free, max_members, max_projects, sort_order, is_active, is_featured`,
+      [packageId],
+    );
+    return res.rows[0] ?? null;
+  });
+}
+
 export async function findPackageById(packageId: string): Promise<PackageRow | null> {
   const res = await pool.query<PackageRow>(
-    `SELECT id, name, description, is_free, max_members, max_projects, sort_order, is_active
+    `SELECT id, name, description, is_free, max_members, max_projects, sort_order, is_active, is_featured
      FROM billing_packages WHERE id = $1`,
     [packageId],
   );

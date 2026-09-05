@@ -320,6 +320,13 @@ export interface Whiteboard extends Base {
   elements: WhiteboardElement[];
 }
 
+export interface ErdPosition {
+  x: number;
+  y: number;
+}
+
+export type ErdLayout = Record<string, ErdPosition>;
+
 export interface State {
   tasks: Task[];
   issues: Issue[];
@@ -335,6 +342,7 @@ export interface State {
   whiteboards: Whiteboard[];
   timelineOrder?: Record<string, string[]>;
   timelineRow?: Record<string, Record<string, number>>;
+  erdLayout?: ErdLayout;
 }
 
 export interface ExportMeta {
@@ -403,6 +411,8 @@ export interface BillingPackage {
   isFree: boolean;
   maxMembers: number | null;
   maxProjects: number | null;
+  sortOrder: number;
+  isFeatured: boolean;
   prices: PackagePrice[];
 }
 

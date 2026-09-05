@@ -9,6 +9,8 @@ export interface PublicPackage {
   isFree: boolean;
   maxMembers: number | null;
   maxProjects: number | null;
+  sortOrder: number;
+  isFeatured: boolean;
   prices: Array<{ id: string; durationDays: number; priceIdr: number; originalPriceIdr: number | null }>;
 }
 
@@ -20,6 +22,8 @@ export function serializePackagePublic(row: PackageWithPrices): PublicPackage {
     isFree: row.is_free,
     maxMembers: row.max_members,
     maxProjects: row.max_projects,
+    sortOrder: row.sort_order,
+    isFeatured: row.is_featured,
     prices: row.prices
       .filter((p: PackagePriceRow) => p.is_active)
       .map((p: PackagePriceRow) => ({

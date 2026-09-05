@@ -60,8 +60,7 @@ describe('SortControl', () => {
     expect(onChange).toHaveBeenCalledWith(null);
   });
 
-  it('closes the menu on Escape', () => {
-    render(<SortControl options={OPTIONS} value={null} onChange={() => {}} />);
+  it('closes the menu on Escape', () => {    render(<SortControl options={OPTIONS} value={null} onChange={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: /Sort/ }));
     expect(screen.getByRole('menu')).toBeTruthy();
     fireEvent.keyDown(window, { key: 'Escape' });
@@ -74,5 +73,36 @@ describe('SortControl', () => {
     expect(trigger.getAttribute('aria-expanded')).toBe('false');
     fireEvent.click(trigger);
     expect(screen.getByRole('button', { name: /Sort/ }).getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('shows the direction group even without an active sort', () => {
+    render(<SortControl options={OPTIONS} value={null} onChange={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /Sort/ }));
+    expect(screen.getByRole('menuitemradio', { name: 'Ascending' })).toBeTruthy();
+    expect(screen.getByRole('menuitemradio', { name: 'Descending' })).toBeTruthy();
+  });
+
+  it('applies direction + key in a single opening', () => {
+    const onChange = vi.fn();
+    render(<SortControl options={OPTIONS} value={null} onChange={onChange} />);
+    fireEvent.click(screen.getByRole('button', { name: /Sort/ }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Descending' }));
+    // menu tetap buka, belum ada onChange
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole('menu')).toBeTruthy();
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Created' }));
+    expect(onChange).toHaveBeenCalledWith({ key: 'createdAt', dir: 'desc' });
+  });
+
+  it('moves focus with ArrowDown/ArrowUp inside the menu', () => {
+    render(<SortControl options={OPTIONS} value={null} onChange={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /Sort/ }));
+    const menu = screen.getByRole('menu');
+    fireEvent.keyDown(menu, { key: 'ArrowDown' });
+    expect(document.activeElement?.textContent).toBe('Name');
+    fireEvent.keyDown(menu, { key: 'ArrowDown' });
+    expect(document.activeElement?.textContent).toBe('Created');
+    fireEvent.keyDown(menu, { key: 'ArrowUp' });
+    expect(document.activeElement?.textContent).toBe('Name');
   });
 });

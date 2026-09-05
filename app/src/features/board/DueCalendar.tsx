@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CaretLeft, CaretRight, Circle, Clock, Eye, CheckCircle } from '@phosphor-icons/react';
+import { CaretLeft, CaretRight, Check, Circle, Clock, Eye, CheckCircle } from
+'@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { addDaysIso, inMonth, isoOf, monthMatrix, monthName, parseIso, weekDays } from '../../lib/calendar';
 import { dueBucket, dueLabel, dueTone, taskDueChip, todayIso } from '../../lib/due-dates';
@@ -637,7 +638,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
         footer={
           <>
             <Button variant="ghost" onClick={() => setMoveTaskId(null)}>{t('action.cancel', { defaultValue: 'Cancel' })}</Button>
-            <Button variant="primary" onClick={confirmMove}>{t('action.save', { defaultValue: 'Save' })}</Button>
+            <Button variant="primary" leftIcon={<Check size={13} weight="bold" aria-hidden="true" />} onClick={confirmMove}>{t('action.save', { defaultValue: 'Save' })}</Button>
           </>
         }
       >

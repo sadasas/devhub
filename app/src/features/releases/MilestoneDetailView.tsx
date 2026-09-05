@@ -13,7 +13,7 @@ import { computeDag } from "../../lib/dag";
 import { computeReadiness } from "../../lib/readiness";
 import { useProject } from "../../state/project-context";
 import { MarkdownBlocks } from "../../lib/markdown";
-import { ArrowLeft, CalendarBlank, CheckCircle, WarningCircle, XCircle, Trash, CaretRight } from "@phosphor-icons/react";
+import { ArrowLeft, CalendarBlank, CheckCircle, WarningCircle, XCircle, Trash, CaretRight, PencilSimple } from "@phosphor-icons/react";
 import { DecisionModal } from "../decisions/DecisionModal";
 
 interface Props {
@@ -101,7 +101,7 @@ export function MilestoneDetailView({ milestone, tasks, issues, testCases, decis
             {t("releases.modal.delete", { defaultValue: "Delete" })}
           </Button>
         )}
-        {canEdit && <Button size="sm" variant="primary" onClick={onEdit}>{t("releases.editAria")}</Button>}
+        {canEdit && <Button size="sm" variant="primary" leftIcon={<PencilSimple size={13} aria-hidden="true" />} onClick={onEdit}>{t("releases.editAria")}</Button>}
       </div>
 
       <div className="release-flow-hero">

@@ -11,7 +11,8 @@ import { taskDueChip } from '../../lib/due-dates';
 import { Avatar } from '../../components/Avatar';
 import { computeDag } from '../../lib/dag';
 import { computeReadiness } from '../../lib/readiness';
-import { CalendarBlank, CheckCircle, WarningCircle, XCircle, Rocket, Plus, ArrowRight } from '@phosphor-icons/react';
+import { CalendarBlank, CheckCircle, WarningCircle, XCircle, Rocket,
+Plus, ArrowRight, PencilSimple } from '@phosphor-icons/react';
 
 interface ReleasesFlowViewProps {
   milestones: Milestone[];
@@ -73,7 +74,7 @@ function Hero({
         </div>
         <div className="release-flow-hero-side">
           {canEdit && (
-            <Button size="sm" variant="ghost" onClick={onEdit}>
+            <Button size="sm" variant="ghost" leftIcon={<PencilSimple size={13} aria-hidden="true" />} onClick={onEdit}>
               {t('releases.editAria')}
             </Button>
           )}

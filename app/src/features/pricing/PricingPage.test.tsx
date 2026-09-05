@@ -11,8 +11,8 @@ vi.mock('../../state/auth-context', () => ({ useAuth: () => ({ user: mockUser })
 vi.mock('../../state/teams-context', () => ({ useTeams: () => ({ teams: mockTeams }) }));
 function renderPage(initialEntries?: string[]) { return render(<MemoryRouter initialEntries={initialEntries}><PricingPage /></MemoryRouter>); }
 const PACKAGES: BillingPackage[] = [
-  { id: 'pkg-free', name: 'Free', description: 'For getting started', isFree: true, maxMembers: 2, maxProjects: 3, prices: [] },
-  { id: 'pkg-pro', name: 'Pro', description: 'Unlimited members & projects', isFree: false, maxMembers: null, maxProjects: null, prices: [{ id: 'pr-30', durationDays: 30, priceIdr: 250_000, originalPriceIdr: null }, { id: 'pr-365', durationDays: 365, priceIdr: 2_500_000, originalPriceIdr: null }] },
+  { id: 'pkg-free', name: 'Free', description: 'For getting started', isFree: true, maxMembers: 2, maxProjects: 3, sortOrder: 0, isFeatured: false, prices: [] },
+  { id: 'pkg-pro', name: 'Pro', description: 'Unlimited members & projects', isFree: false, maxMembers: null, maxProjects: null, sortOrder: 1, isFeatured: true, prices: [{ id: 'pr-30', durationDays: 30, priceIdr: 250_000, originalPriceIdr: null }, { id: 'pr-365', durationDays: 365, priceIdr: 2_500_000, originalPriceIdr: null }] },
 ];
 describe('PricingPage (single-page flow)', () => {
   beforeEach(() => { mockListPackages.mockReset().mockResolvedValue({ packages: PACKAGES }); mockStartCheckout.mockReset(); });
@@ -42,7 +42,7 @@ describe('PricingPage (single-page flow)', () => {
   it('renders trust section', async () => { renderPage(); expect(await screen.findByText(/Secure payment|Pembayaran aman/)).toBeDefined(); expect(screen.getByText(/Powered by Pakasir/)).toBeDefined(); });
   it('shows checkout error on the correct card when multiple paid packages', async () => {
     mockUser = { id: 'u1' }; mockTeams = [{ id: 't1', name: 'Test Team' }];
-    const PACKAGES_3: BillingPackage[] = [PACKAGES[0]!, PACKAGES[1]!, { id: 'pkg-biz', name: 'Business', description: 'Business tier', isFree: false, maxMembers: null, maxProjects: null, prices: [{ id: 'bz-30', durationDays: 30, priceIdr: 500_000, originalPriceIdr: null }] }];
+    const PACKAGES_3: BillingPackage[] = [PACKAGES[0]!, PACKAGES[1]!, { id: 'pkg-biz', name: 'Business', description: 'Business tier', isFree: false, maxMembers: null, maxProjects: null, sortOrder: 2, isFeatured: false, prices: [{ id: 'bz-30', durationDays: 30, priceIdr: 500_000, originalPriceIdr: null }] }];
     mockListPackages.mockResolvedValueOnce({ packages: PACKAGES_3 }); mockStartCheckout.mockRejectedValueOnce(new Error('Billing disabled'));
     renderPage(['/pricing?teamId=t1']);
     await screen.findByRole('heading', { name: /Pro/ }); expect(screen.getByRole('heading', { name: 'Business' })).toBeDefined();
@@ -50,13 +50,37 @@ describe('PricingPage (single-page flow)', () => {
     const bizCard = screen.getByRole('heading', { name: 'Business' }).closest('section')!; expect(await within(bizCard).findByText(/Failed to start checkout|Gagal memulai checkout/)).toBeDefined();
     const proCard = screen.getByRole('heading', { name: /Pro/ }).closest('section')!; expect(within(proCard).queryByText(/Failed to start checkout|Gagal memulai checkout/)).toBeNull();
   });
-  it('prevents double checkout while one is in flight', async () => {
-    mockUser = { id: 'u1' }; mockTeams = [{ id: 't1', name: 'Test Team' }];
-    const PACKAGES_3: BillingPackage[] = [PACKAGES[0]!, PACKAGES[1]!, { id: 'pkg-biz', name: 'Business', description: 'Business tier', isFree: false, maxMembers: null, maxProjects: null, prices: [{ id: 'bz-30', durationDays: 30, priceIdr: 500_000, originalPriceIdr: null }] }];
+  it('prevents double checkout while one is in flight', async () => {    mockUser = { id: 'u1' }; mockTeams = [{ id: 't1', name: 'Test Team' }];
+    const PACKAGES_3: BillingPackage[] = [PACKAGES[0]!, PACKAGES[1]!, { id: 'pkg-biz', name: 'Business', description: 'Business tier', isFree: false, maxMembers: null, maxProjects: null, sortOrder: 2, isFeatured: false, prices: [{ id: 'bz-30', durationDays: 30, priceIdr: 500_000, originalPriceIdr: null }] }];
     mockListPackages.mockResolvedValueOnce({ packages: PACKAGES_3 }); let resolveCheckout!: (v: unknown) => void; mockStartCheckout.mockImplementationOnce(() => new Promise((r) => { resolveCheckout = r; }));
     renderPage(['/pricing?teamId=t1']); await screen.findByRole('heading', { name: /Pro/ });
     const proBtn = screen.getByRole('button', { name: /Upgrade to Pro|Upgrade ke Pro/ }); fireEvent.click(proBtn); await waitFor(() => { expect(mockStartCheckout).toHaveBeenCalledTimes(1); });
     const bizBtn = screen.getByRole('button', { name: /Upgrade to Business|Upgrade ke Business/ }); fireEvent.click(bizBtn); expect(mockStartCheckout).toHaveBeenCalledTimes(1);
     await act(async () => { resolveCheckout({ url: 'http://example.com' }); });
+  });
+  it('badges the package flagged isFeatured instead of the first paid package', async () => {
+    const flagged: BillingPackage[] = [
+      { ...PACKAGES[0]! },
+      { ...PACKAGES[1]!, isFeatured: false },
+      { id: 'pkg-biz', name: 'Business', description: 'Business tier', isFree: false, maxMembers: null, maxProjects: null, sortOrder: 2, isFeatured: true, prices: [{ id: 'bz-30', durationDays: 30, priceIdr: 500_000, originalPriceIdr: null }] },
+    ];
+    mockListPackages.mockResolvedValueOnce({ packages: flagged });
+    renderPage();
+    await screen.findByRole('heading', { name: 'Business' });
+    const bizCard = screen.getByRole('heading', { name: 'Business' }).closest('section')!;
+    const proCard = screen.getByRole('heading', { name: /Pro/ }).closest('section')!;
+    expect(bizCard.hasAttribute('data-featured')).toBe(true);
+    expect(proCard.hasAttribute('data-featured')).toBe(false);
+  });
+  it('falls back to the first paid package when nothing is flagged', async () => {
+    const unflagged: BillingPackage[] = [
+      { ...PACKAGES[0]! },
+      { ...PACKAGES[1]!, isFeatured: false },
+    ];
+    mockListPackages.mockResolvedValueOnce({ packages: unflagged });
+    renderPage();
+    await screen.findByRole('heading', { name: /Pro/ });
+    const proCard = screen.getByRole('heading', { name: /Pro/ }).closest('section')!;
+    expect(proCard.hasAttribute('data-featured')).toBe(true);
   });
 });

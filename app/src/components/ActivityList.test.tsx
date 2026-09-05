@@ -94,4 +94,29 @@ describe('ActivityList', () => {
     render(<ActivityList projectId={PROJECT_ID} entity="tasks" entityId={ENTITY_ID} />);
     expect(await screen.findByText('boom')).toBeTruthy();
   });
+
+  it('renders object change values as JSON instead of [object Object]', async () => {
+    vi.spyOn(api, 'fetchActivity').mockResolvedValue([
+      makeEntry({
+        changes: {
+          headers: { from: { P: '1' }, to: { P: '2' } },
+        },
+      }),
+    ]);
+    render(<ActivityList projectId={PROJECT_ID} entity="tasks" entityId={ENTITY_ID} />);
+    expect(await screen.findByText('Headers')).toBeTruthy();
+    expect(screen.queryByText(/\[object Object\]/)).toBeNull();
+    expect(screen.getByText('{"P":"1"} → {"P":"2"}')).toBeTruthy();
+  });
+
+  it('renders very long unbroken summaries without breaking the row', async () => {
+    const longTitle = `s${'s'.repeat(153)}`;
+    vi.spyOn(api, 'fetchActivity').mockResolvedValue([makeEntry({ summary: longTitle })]);
+    const { container } = render(
+      <ActivityList projectId={PROJECT_ID} entity="tasks" entityId={ENTITY_ID} />,
+    );
+    expect(await screen.findByText(longTitle)).toBeTruthy();
+    const summary = container.querySelector('.activity-summary');
+    expect(summary?.textContent).toBe(longTitle);
+  });
 });

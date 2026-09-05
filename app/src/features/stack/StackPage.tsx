@@ -168,7 +168,7 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           action={
             canEdit && (
               <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setCreating(true)}>
-                {t('stack.addEntry')}
+                {t('stack.newEntry')}
               </Button>
             )
           }

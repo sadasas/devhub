@@ -534,6 +534,9 @@
       "deactivate": "Nonaktifkan",
       "deleteTitle": "Hapus paket",
       "deleteDesc": "Hapus \"{{name}}\"? Tindakan ini tidak dapat dibatalkan.",
+      "featured": "Rekomendasi",
+      "setFeatured": "Jadikan rekomendasi",
+      "featuredSet": "\"{{name}}\" kini jadi rekomendasi",
       "errors": {
         "load": "Gagal memuat paket",
         "update": "Gagal memperbarui paket",
@@ -550,6 +553,7 @@
       "maxMembers": "Maks anggota",
       "maxProjects": "Maks proyek",
       "sortOrder": "Urutan",
+      "featured": "Tandai sebagai rekomendasi",
       "prices": "Harga",
       "addPrice": "Tambah harga",
       "durationDays": "Durasi (hari)",

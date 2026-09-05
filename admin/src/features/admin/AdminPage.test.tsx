@@ -189,6 +189,7 @@ describe('AdminPage', () => {
         maxProjects: null,
         sortOrder: 1,
         isActive: true,
+        isFeatured: true,
         prices: [
           { id: 'price-1', durationDays: 30, priceIdr: 250000 },
           { id: 'price-2', durationDays: 365, priceIdr: 2500000 },

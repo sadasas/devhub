@@ -58,7 +58,11 @@ export function PricingPage() {
   const effectiveTeamId =
     queryTeamId && teams?.some((team) => team.id === queryTeamId) ? queryTeamId : selectedTeamId;
   const freePkgs = (packages ?? []).filter((p) => p.isFree);
-  const paidPkgs = (packages ?? []).filter((p) => !p.isFree);
+  const paidPkgs = (packages ?? [])
+    .filter((p) => !p.isFree)
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  // Rekomendasi dari data (is_featured); fallback ke paket paid pertama agar selalu ada badge.
+  const featuredPaidId = paidPkgs.find((p) => p.isFeatured)?.id ?? paidPkgs[0]?.id ?? null;
   const anyBusy = busyKey !== null;
 
   const durations = useMemo(() => {
@@ -195,7 +199,7 @@ export function PricingPage() {
               <Skeleton style={{ width: 180, height: 32, borderRadius: 999 }} />
             </div>
             <div className="pricing-grid pricing-grid-featured">
-              {[0, 1].map((i) => (
+              {[0, 1, 2].map((i) => (
                 <div key={i} className="pricing-card">
                   <Skeleton style={{ width: 90, height: 16 }} />
                   <Skeleton style={{ width: 160, height: 30, marginTop: 12 }} />
@@ -247,7 +251,19 @@ export function PricingPage() {
             <BillingToggle packages={packages} value={selectedDurationDays} onChange={setSelectedDurationDays} />
           )}
           <div className="pricing-grid pricing-grid-featured">
-            {paidPkgs.map((pkg, i) => {
+            {freePkgs.map((pkg) => (
+              <PricingCard
+                key={pkg.id}
+                pkg={pkg}
+                isFeatured={false}
+                selectedPrice={null}
+                onBuy={() => {}}
+                busy={false}
+                anyBusy={anyBusy}
+                variant="free"
+              />
+            ))}
+            {paidPkgs.map((pkg) => {
               const selectedPrice =
                 selectedDurationDays != null
                   ? (pkg.prices.find((p) => p.durationDays === selectedDurationDays) ??
@@ -278,7 +294,7 @@ export function PricingPage() {
                 <PricingCard
                   key={pkg.id}
                   pkg={pkg}
-                  isFeatured={i === 0 && !isCurrent && !isScheduled}
+                  isFeatured={pkg.id === featuredPaidId && !isCurrent && !isScheduled}
                   selectedPrice={selectedPrice}
                   onBuy={(pid: string) => handleBuy(pkg.id, pid)}
                   busy={isSelectedBusy}
@@ -293,18 +309,6 @@ export function PricingPage() {
                 />
               );
             })}
-            {freePkgs.map((pkg) => (
-              <PricingCard
-                key={pkg.id}
-                pkg={pkg}
-                isFeatured={false}
-                selectedPrice={null}
-                onBuy={() => {}}
-                busy={false}
-                anyBusy={anyBusy}
-                variant="free"
-              />
-            ))}
           </div>
           {packages && <PricingCompare packages={packages} />}
         </>

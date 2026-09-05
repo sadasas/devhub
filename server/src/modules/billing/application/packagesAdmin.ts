@@ -8,6 +8,7 @@ import {
   findPackageById,
   listAllPackages,
   replacePackagePrices,
+  setFeaturedExclusive,
   updatePackageFields,
 } from '../infrastructure/billingRepository.js';
 
@@ -19,6 +20,7 @@ const packageInputSchema = z.object({
   maxProjects: z.number().int().positive().nullable().optional(),
   sortOrder: z.number().int().min(0).max(999).optional(),
   isActive: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
 });
 
 const createSchema = packageInputSchema.extend({
@@ -54,6 +56,7 @@ export function serializePackage(row: {
   max_projects: number | null;
   sort_order: number;
   is_active: boolean;
+  is_featured: boolean;
   prices: Array<{ id: string; duration_days: number; price_idr: number; original_price_idr: number | null; sort_order: number; is_active: boolean }>;
 }) {
   return {
@@ -65,6 +68,7 @@ export function serializePackage(row: {
     maxProjects: row.max_projects,
     sortOrder: row.sort_order,
     isActive: row.is_active,
+    isFeatured: row.is_featured,
     prices: row.prices.map((p) => ({
       id: p.id,
       durationDays: p.duration_days,
@@ -83,6 +87,10 @@ export async function listPackagesForAdmin() {
 
 function mapDuplicate(err: unknown): never {
   if (typeof err === 'object' && err !== null && (err as { code?: string }).code === '23505') {
+    const constraint = (err as { constraint?: string }).constraint ?? '';
+    if (constraint.includes('featured')) {
+      throw new ApiError(409, 'CONFLICT', 'Another package is already marked as recommended');
+    }
     throw new ApiError(409, 'CONFLICT', 'A free plan already exists');
   }
   throw err as Error;
@@ -90,11 +98,21 @@ function mapDuplicate(err: unknown): never {
 
 export async function createNewPackage(body: unknown) {
   const input = parseOrThrow(createSchema, body, 'Invalid package data');
+  if (input.isFree && input.isFeatured) {
+    throw new ApiError(400, 'VALIDATION_ERROR', 'Free packages cannot be marked as recommended');
+  }
   let row;
   try {
     row = await createPackage(input);
   } catch (err) {
     mapDuplicate(err);
+  }
+  if (input.isFeatured) {
+    try {
+      await setFeaturedExclusive(row.id);
+    } catch (err) {
+      mapDuplicate(err);
+    }
   }
   if (input.prices.length > 0) {
     await replacePackagePrices(row.id, input.prices);
@@ -109,13 +127,30 @@ async function requireExisting(packageId: string) {
 }
 
 export async function patchPackage(packageId: string, body: unknown) {
-  await requireExisting(packageId);
+  const existing = await requireExisting(packageId);
   const input = parseOrThrow(patchSchema, body, 'Invalid package data');
-  const { prices, ...fields } = input;
+  const { prices, isFeatured, ...fields } = input;
+  const willBeFree = fields.isFree ?? existing.is_free;
+  if (isFeatured === true && willBeFree) {
+    throw new ApiError(400, 'VALIDATION_ERROR', 'Free packages cannot be marked as recommended');
+  }
   try {
     await updatePackageFields(packageId, fields);
   } catch (err) {
     mapDuplicate(err);
+  }
+  if (isFeatured === true) {
+    try {
+      await setFeaturedExclusive(packageId);
+    } catch (err) {
+      mapDuplicate(err);
+    }
+  } else if (isFeatured === false) {
+    try {
+      await updatePackageFields(packageId, { isFeatured: false });
+    } catch (err) {
+      mapDuplicate(err);
+    }
   }
   if (prices !== undefined) {
     await replacePackagePrices(packageId, prices);

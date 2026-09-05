@@ -113,7 +113,7 @@ export function IssuesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           action={
             canEdit && (
               <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setCreating(true)}>
-                {t('issues.logIssue')}
+                {t('issues.newIssue')}
               </Button>
             )
           }

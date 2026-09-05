@@ -2960,6 +2960,9 @@ html[data-theme='light'] .splash-bg {
   font-size: 13px;
   line-height: 1.5;
   color: var(--text-primary);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
 }
 
 .activity-author {
@@ -2984,6 +2987,8 @@ html[data-theme='light'] .splash-bg {
 
 .activity-summary {
   color: var(--text-primary);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .activity-time {
@@ -3023,6 +3028,10 @@ html[data-theme='light'] .splash-bg {
 .activity-arrow {
   font-family: var(--font-mono);
   font-size: 12px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .detail-chips {
@@ -5722,8 +5731,8 @@ html[data-theme='light'] .splash-bg {
 }
 
 .save-banner {
-  border: none;
-  background: var(--status-danger-dim);
+  border: 1px solid var(--status-danger);
+  background: color-mix(in srgb, var(--status-danger) 12%, var(--bg-overlay));
   color: var(--status-danger);
 }
 
@@ -5734,8 +5743,8 @@ html[data-theme='light'] .splash-bg {
 }
 
 .conflict-banner {
-  border: none;
-  background: var(--status-warn-dim);
+  border: 1px solid var(--status-warn);
+  background: color-mix(in srgb, var(--status-warn) 14%, var(--bg-overlay));
   color: var(--status-warn);
 }
 
@@ -13044,7 +13053,7 @@ input[type='checkbox'] {
 
 .pricing-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
   align-items: stretch;
 }

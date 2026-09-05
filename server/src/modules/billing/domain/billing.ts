@@ -24,6 +24,7 @@ export interface PackageRow {
   max_projects: number | null;
   sort_order: number;
   is_active: boolean;
+  is_featured: boolean;
 }
 
 export interface PackagePriceRow {

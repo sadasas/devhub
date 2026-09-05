@@ -387,6 +387,50 @@ describe('billing Pakasir + paket dinamis (ADR-044/045)', () => {
     expect(forbidden.status).toBe(403);
   });
 
+  it('admin marks exactly one package as recommended (is_featured)', async () => {
+    const adminEmail = 'platform-admin@test.dev';
+    const admin = await register(adminEmail);
+    await pool.query("UPDATE users SET role = 'admin' WHERE email = $1", [adminEmail]);
+    const auth = (r: request.Test) => r.set('Cookie', admin).set('X-Forwarded-For', uniqueIp());
+
+    const mk = (name: string) =>
+      auth(request(app).post('/api/v1/admin/packages')).send({
+        name,
+        maxMembers: null,
+        maxProjects: null,
+        sortOrder: 5,
+        prices: [{ durationDays: 30, priceIdr: 100_000 }],
+      });
+    const aId = (await mk('TierA')).body.id as string;
+    const bId = (await mk('TierB')).body.id as string;
+
+    const featA = await auth(request(app).patch(`/api/v1/admin/packages/${aId}`)).send({ isFeatured: true });
+    expect(featA.status).toBe(200);
+    expect(featA.body.isFeatured).toBe(true);
+
+    const featB = await auth(request(app).patch(`/api/v1/admin/packages/${bId}`)).send({ isFeatured: true });
+    expect(featB.status).toBe(200);
+    expect(featB.body.isFeatured).toBe(true);
+
+    // Eksklusif: A ikut clear.
+    const list = await auth(request(app).get('/api/v1/admin/packages'));
+    const byId = Object.fromEntries((list.body.packages as Array<{ id: string; isFeatured: boolean }>).map((p) => [p.id, p.isFeatured]));
+    expect(byId[aId]).toBe(false);
+    expect(byId[bId]).toBe(true);
+
+    // Terekspos ke publik.
+    const pub = await request(app).get('/api/v1/billing/packages');
+    const pubById = Object.fromEntries((pub.body.packages as Array<{ id: string; isFeatured: boolean }>).map((p) => [p.id, p.isFeatured]));
+    expect(pubById[bId]).toBe(true);
+
+    // Paket free tidak boleh jadi rekomendasi.
+    const freeId = await pool
+      .query<{ id: string }>('SELECT id FROM billing_packages WHERE is_free')
+      .then((r) => r.rows[0]!.id);
+    const featFree = await auth(request(app).patch(`/api/v1/admin/packages/${freeId}`)).send({ isFeatured: true });
+    expect(featFree.status).toBe(400);
+  });
+
   it('admin editing Free limits applies immediately to quotas', async () => {
     const adminEmail = 'platform-admin@test.dev';
     const admin = await register(adminEmail);

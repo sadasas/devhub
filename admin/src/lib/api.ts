@@ -529,6 +529,7 @@ export const api = {
     maxProjects?: number | null;
     sortOrder?: number;
     isActive?: boolean;
+    isFeatured?: boolean;
     prices?: Array<{ durationDays: number; priceIdr: number }>;
   }) =>
     request<AdminPackage>('/admin/packages', {
@@ -545,6 +546,7 @@ export const api = {
       maxProjects?: number | null;
       sortOrder?: number;
       isActive?: boolean;
+      isFeatured?: boolean;
       prices?: Array<{ durationDays: number; priceIdr: number }>;
     },
   ) =>
