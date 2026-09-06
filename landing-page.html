@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevHub - Technical Memory for Engineering Teams</title>
+    <style>
+        /* DevHub Design Tokens */
+        :root {
+            /* Surfaces — warm soft dark, never pure #000 */
+            --bg-base: #0f0f11;
+            --bg-elevated: #18181b;
+            --bg-overlay: #1e1e21;
+            --bg-inset: #131316;
+            
+            /* Borders — hairline soft */
+            --border-hairline: rgba(255, 255, 255, 0.07);
+            --border-strong: rgba(255, 255, 255, 0.11);
+            
+            /* Text — soft, WCAG AA 4.5:1+ */
+            --text-primary: #e8e8ea;
+            --text-secondary: #a8a8b0;
+            --text-muted: #8e8e98;
+            --text-on-accent: #ffffff;
+            
+            /* Accent — sage soft (ex-emerald #34c38e -> muted) */
+            --accent: #5db69b;
+            --accent-hover: #6bc1a7;
+            --accent-pressed: #4fa48c;
+            --accent-dim: rgba(93, 182, 155, 0.12);
+            
+            /* Radius — soft flat */
+            --radius-card: 12px;
+            --radius-input: 8px;
+            --radius-pill: 999px;
+            
+            /* Typography */
+            --font-sans: 'Geist Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            --font-mono: 'Geist Mono Variable', 'Cascadia Code', 'Consolas', monospace;
+            
+            /* Layout */
+            --container-max: 1200px;
+            
+            /* Motion */
+            --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+            --duration-normal: 180ms;
+        }
+
+        /* Reset & Base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Typography */
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            letter-spacing: -0.02em;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--text-primary) 0%, #d8d8da 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        h2 {
+            font-size: 2.25rem;
+            margin-bottom: 2rem;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        p {
+            font-size: 1.125rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .text-muted {
+            color: var(--text-muted);
+        }
+
+        .text-accent {
+            color: var(--accent);
+        }
+
+        .font-mono {
+            font-family: var(--font-mono);
+        }
+
+        /* Layout Utilities */
+        .container {
+            max-width: var(--container-max);
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .grid {
+            display: grid;
+            gap: 2rem;
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .grid-4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        /* Button Components */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.875rem 1.75rem;
+            font-size: 1rem;
+            font-weight: 500;
+            text-decoration: none;
+            border-radius: var(--radius-input);
+            transition: all var(--duration-normal) var(--ease-out);
+            cursor: pointer;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background-color: var(--accent);
+            color: var(--text-on-accent);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(93, 182, 155, 0.2);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+            background-color: var(--accent-pressed);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-hairline);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--bg-elevated);
+            border-color: var(--border-strong);
+        }
+
+        .btn-secondary:active {
+            background-color: var(--bg-overlay);
+        }
+
+        .btn-icon {
+            gap: 0.75rem;
+        }
+
+        /* Navigation */
+        .nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background-color: rgba(15, 15, 17, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-hairline);
+            padding: 1rem 0;
+        }
+
+        .nav-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .nav-logo svg {
+            width: 32px;
+            height: 32px;
+            fill: var(--accent);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 1rem;
+            transition: color var(--duration-normal);
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .nav-accent {
+            color: var(--accent);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 4rem 0 6rem;
+            background: radial-gradient(circle at top right, rgba(93, 182, 155, 0.08), transparent 40%),
+                        radial-gradient(circle at bottom left, rgba(93, 182, 155, 0.06), transparent 40%);
+        }
+
+        .hero-content {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .hero-text h1 {
+            margin-bottom: 1.5rem;
+            font-size: 3.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .hero-text p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            margin-bottom: 2.5rem;
+            max-width: 550px;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .hero-visual {
+            position: relative;
+        }
+
+        .hero-visual-card {
+            background: linear-gradient(135deg, #161619 0%, #18181b 100%);
+            border-radius: var(--radius-card);
+            border: 1px solid var(--border-hairline);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-raised);
+        }
+
+        .hero-visual-card::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            bottom: -1px;
+            background: linear-gradient(45deg, transparent 30%, rgba(93, 182, 155, 0.1) 50%, transparent 70%);
+            border-radius: var(--radius-card);
+            z-index: -1;
+            filter: blur(10px);
+            opacity: 0.5;
+        }
+
+        .terminal-window {
+            background-color: var(--bg-inset);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-hairline);
+        }
+
+        .terminal-header {
+            display: flex;
+            gap: 6px;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-hairline);
+        }
+
+        .terminal-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .terminal-dot-red { background-color: #ff5f56; }
+        .terminal-dot-yellow { background-color: #ffbd2e; }
+        .terminal-dot-green { background-color: #27c93f; }
+
+        .terminal-body {
+            padding: 1.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            line-height: 1.6;
+            color: var(--text-primary);
+        }
+
+        .terminal-line {
+            margin-bottom: 0.5rem;
+        }
+
+        .terminal-prompt {
+            color: var(--accent);
+        }
+
+        .terminal-path {
+            color: var(--accent);
+        }
+
+        .terminal-cmd {
+            color: var(--text-primary);
+        }
+
+        /* Features Section */
+        .features {
+            padding: 6rem 0;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-header h2 {
+            font-size: 2.5rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background-color: var(--bg-elevated);
+            border: 1px solid var(--border-hairline);
+            border-radius: var(--radius-card);
+            padding: 2.5rem;
+            transition: all var(--duration-normal) var(--ease-out);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--border-strong);
+            box-shadow: 0 8px 24px rgba(93, 182, 155, 0.06);
+        }
+
+        .feature-icon {
+            width: 56px;
+            height: 56px;
+            background: var(--accent-dim);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            fill: var(--accent);
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .feature-card p {
+            font-size: 1rem;
+            margin-bottom: 0;
+            color: var(--text-secondary);
+        }
+
+        /* How It Works */
+        .how-it-works {
+            padding: 6rem 0;
+            background-color: var(--bg-elevated);
+        }
+
+        .how-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .step {
+            text-align: center;
+        }
+
+        .step-number {
+            font-size: 4rem;
+            font-weight: 700;
+            color: var(--accent);
+            opacity: 0.2;
+            margin-bottom: 1.5rem;
+            font-family: var(--font-mono);
+        }
+
+        .step-card {
+            background-color: var(--bg-overlay);
+            border-radius: var(--radius-card);
+            padding: 2.5rem;
+            border: 1px solid var(--border-hairline);
+        }
+
+        .step-card h3 {
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        /* Pricing Section */
+        .pricing {
+            padding: 6rem 0;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+            justify-items: center;
+        }
+
+        .pricing-card {
+            width: 100%;
+            max-width: 420px;
+            background-color: var(--bg-elevated);
+            border-radius: var(--radius-card);
+            border: 1px solid var(--border-hairline);
+            padding: 2.5rem;
+            position: relative;
+        }
+
+        .pricing-card.popular {
+            background: linear-gradient(135deg, #18181b 0%, #1e1e21 100%);
+            border: 1px solid var(--accent);
+            box-shadow: 0 8px 32px rgba(93, 182, 155, 0.12);
+        }
+
+        .popular-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--accent);
+            color: var(--text-on-accent);
+            padding: 0.375rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border-radius: var(--radius-pill);
+        }
+
+        .pricing-features {
+            margin: 2rem 0 2.5rem;
+        }
+
+        .pricing-features li {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .pricing-features li svg {
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            fill: var(--accent);
+        }
+
+        .price-cardfooter {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-hairline);
+        }
+
+        /* FAQ Section */
+        .faq {
+            padding: 6rem 0;
+        }
+
+        .faq-item {
+            border-bottom: 1px solid var(--border-hairline);
+        }
+
+        .faq-question {
+            width: 100%;
+            padding: 1.5rem 0;
+            text-align: left;
+            background: none;
+            border: none;
+            font-size: 1.125rem;
+            color: var(--text-primary);
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: inherit;
+            transition: color var(--duration-normal);
+        }
+
+        .faq-question:hover {
+            color: var(--accent);
+        }
+
+        .faq-question svg {
+            transition: transform var(--duration-normal) var(--ease-out);
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height var(--duration-normal) var(--ease-out);
+            opacity: 0;
+        }
+
+        .faq-item.active .faq-answer {
+            max-height: 500px;
+            opacity: 1;
+        }
+
+        .faq-item.active .faq-question svg {
+            transform: rotate(180deg);
+        }
+
+        .faq-content {
+            padding-top: 1rem;
+            padding-left: 0;
+            margin: 0;
+        }
+
+        /* Final CTA */
+        .cta-banner {
+            padding: 6rem 0;
+            text-align: center;
+            background: linear-gradient(135deg, rgba(93, 182, 155, 0.08) 0%, rgba(15, 15, 17, 1) 100%);
+            border-top: 1px solid var(--border-hairline);
+        }
+
+        /* Footer */
+        .footer {
+            padding: 4rem 0 2rem;
+            border-top: 1px solid var(--border-hairline);
+            background-color: var(--bg-elevated);
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 3rem;
+            margin-bottom: 3rem;
+        }
+
+        .footer-brand p {
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .footer-col h4 {
+            font-size: 1rem;
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-col ul {
+            list-style: none;
+        }
+
+        .footer-col li {
+            margin-bottom: 0.75rem;
+        }
+
+        .footer-col a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9375rem;
+            transition: color var(--duration-normal);
+        }
+
+        .footer-col a:hover {
+            color: var(--text-primary);
+        }
+
+        .footer-bottom {
+            display: flex;
+            justify-content: space-between;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-hairline);
+            font-size: 0.9375rem;
+            color: var(--text-muted);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .hero-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .hero-text h1 {
+                font-size: 2.75rem;
+            }
+
+            .hero-text p {
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+            .hero-cta {
+                justify-content: center;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .how-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .hero {
+                padding: 3rem 0 5rem;
+            }
+
+            h1 {
+                font-size: 2.25rem;
+            }
+
+            h2 {
+                font-size: 1.75rem;
+            }
+
+            .grid-2,
+            .grid-3,
+            .grid-4 {
+                grid-template-columns: 1fr;
+            }
+
+            .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .footer-bottom {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+        }
+
+        /* Focus Styles */
+        :focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
+        /* Reduced Motion */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="container nav-content">
+            <a href="#" class="nav-logo">
+                <!-- DevHub Logo with Terminal-style Dev icon -->
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L2 22H22L12 2ZM12 5.5L18.5 20H5.5L12 5.5Z" />
+                    <path d="M12 8C10.34 8 9 9.34 9 11C9 12.66 10.34 14 12 14C13.66 14 15 12.66 15 11C15 9.34 13.66 8 12 8ZM11 11C11 11.55 11.45 12 12 12C12.55 12 13 11.55 13 11C13 10.45 12.55 10 12 10C11.45 10 11 10.45 11 11Z" fill="var(--accent)" />
+                    <path d="M12 3L5 21H19L12 3ZM12 6L17.5 19H6.5L12 6Z" opacity="0.3" />
+                    <path d="M12 9.5L8.5 14.5H15.5L12 9.5Z" fill="var(--accent)" />
+                </svg>
+                DevHub
+            </a>
+            
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#how-it-works">How It Works</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+                <li><a href="#faq">FAQ</a></li>
+            </ul>
+            
+            <a href="#" class="btn btn-primary">Get Started</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        <div class="container hero-content">
+            <div class="hero-text">
+                <h1>Technical Memory for Engineering Teams</h1>
+                <p>DevHub is the complementary layer to Jira/Linear that captures your team's technical context — schema, ADRs, tech stack, and decisions — in oneplace for faster onboarding and better decision-making.</p>
+                <div class="hero-cta">
+                    <a href="#" class="btn btn-primary btn-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM16.5 13H13V16.5C13 17.33 12.33 18 11.5 18C10.67 18 10 17.33 10 16.5V13H6.5C5.67 13 5 12.33 5 11.5C5 10.67 5.67 10 6.5 10H10V6.5C10 5.67 10.67 5 11.5 5C12.33 5 13 5.67 13 6.5V10H16.5C17.33 10 18 10.67 18 11.5C18 12.33 17.33 13 16.5 13Z" />
+                        </svg>
+                        Start for Free
+                    </a>
+                    <a href="#" class="btn btn-secondary btn-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M8 5V19L19 12L8 5Z" />
+                        </svg>
+                        View Demo
+                    </a>
+                </div>
+            </div>
+            
+            <div class="hero-visual">
+                <div class="hero-visual-card">
+                    <div class="terminal-window">
+                        <div class="terminal-header">
+                            <div class="terminal-dot terminal-dot-red"></div>
+                            <div class="terminal-dot terminal-dot-yellow"></div>
+                            <div class="terminal-dot terminal-dot-green"></div>
+                        </div>
+                        <div class="terminal-body">
+                            <div class="terminal-line">
+                                <span class="terminal-prompt">➜</span>
+                                <span class="terminal-path">~/devhub</span>
+                                <span class="terminal-cmd">devhub project create</span>
+                            </div>
+                            <div class="terminal-line">
+                                <span class="terminal-cmd">✓ Created project "meta-service"</span>
+                            </div>
+                            <div class="terminal-line">
+                                <span class="terminal-prompt">➜</span>
+                                <span class="terminal-path">~/devhub</span>
+                                <span class="terminal-cmd">devhub sq</span>
+                            </div>
+                            <div class="terminal-line" style="color: #c9a96a;">
+                                <span class="terminal-cmd">Schema updated: users (3 columns)</span>
+                            </div>
+                            <div class="terminal-line">
+                                <span class="terminal-prompt">➜</span>
+                                <span class="terminal-path">~/devhub</span>
+                                <span class="terminal-cmd">devhub add adr</span>
+                            </div>
+                            <div class="terminal-line" style="color: #5db69b;">
+                                <span class="terminal-cmd">✓ ADR-001: Database sharding strategy accepted</span>
+                            </div>
+                            <div class="terminal-line" style="color: #7ba4d9;">
+                                <span class="terminal-cmd">✓ Tech stack: PostgreSQL 15, Redis 7</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Small floating cards for visual interest -->
+                    <div style="position: absolute; top: -20px; right: -20px; background: var(--bg-overlay); border: 1px solid var(--border-hairline); border-radius: var(--radius-card); padding: 1rem; width: 160px; box-shadow: 8px 8px 24px rgba(0,0,0,0.2);">
+                        <div style="color: var(--accent); font-size: 0.75rem; margin-bottom: 0.5rem;">TECH STACK</div>
+                        <div style="font-family: var(--font-mono); font-size: 0.875rem; color: var(--text-primary);">React 18</div>
+                        <div style="font-family: var(--font-mono); font-size: 0.875rem; color: var(--text-primary);">TypeScript</div>
+                        <div style="font-family: var(--font-mono); font-size: 0.875rem; color: var(--text-primary);">PostgreSQL</div>
+                        <div style="font-family: var(--font-mono); font-size: 0.875rem; color: var(--text-primary);">Next.js</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-header">
+                <h2>Everything Your Team Needs</h2>
+                <p class="text-muted">Core functionality for engineering teams — from solo builders to large organizations</p>
+            </div>
+            
+            <div class="features-grid">
+                <!-- Tech Stack Registry -->
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M4 6H20V8H4V6M4 11H20V13H4V11M4 16H20V18H4V16M7 3V21H2V3H7ZM10 3V21H15V3H10ZM18 3V21H23V3H18Z" />
+                            <path d="M6 8H8V10H6V8M6 13H8V15H6V13M6 18H8V20H6V18M11 8H13V10H11V8M11 13H13V15H11V13M11 18H13V20H11V18M16 8H18V10H16V8M16 13H18V15H16V13M16 18H18V20H16V18Z" opacity="0.5" />
+                        </svg>
+                    </div>
+                    <h3>Tech Stack Registry</h3>
+                    <p>Track dependencies across frontend, backend, database, and tooling. Never lose track of upgrade status again with visual status indicators and notes.</p>
+                </div>
+                
+                <!-- Schema + ERD -->
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M20 2H4C2.9 2 2 2.9 2 4V20C2 21.1 2.9 22 4 22H20C21.1 22 22 21.1 22 20V4C22 2.9 21.1 2 20 2M20 20H4V4H20V20M16 16H8V14H16V16M16 12H8V10H16V12M16 8H8V6H16V8Z" />
+                            <circle cx="8" cy="8" r="1" fill="#5db69b"/>
+                            <circle cx="12" cy="8" r="1" fill="#5db69b"/>
+                            <circle cx="16" cy="8" r="1" fill="#5db69b"/>
+                            <circle cx="8" cy="12" r="1" fill="#5db69b"/>
+                            <circle cx="12" cy="12" r="1" fill="#5db69b"/>
+                            <circle cx="16" cy="12" r="1" fill="#5db69b"/>
+                        </svg>
+                    </div>
+                    <h3>Schema + ERD</h3>
+                    <p>Visualize your database design with a live ERD that updates as you define tables, columns, relations, and schema versions with full version control.</p>
+                </div>
+                
+                <!-- ADR Log -->
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2M18 20H6V4H13V9H18V20M11 11H13V13H11V11M11 15H13V17H11V15M9 11H11V13H9V11M9 15H11V17H9V15M15 11H17V13H15V11M15 15H17V17H15V15Z" />
+                            <path d="M7 11H9V13H7V11Z" opacity="0.7" fill="#5db69b"/>
+                            <path d="M7 15H9V17H7V15Z" opacity="0.7" fill="#5db69b"/>
+                            <path d="M15 11H17V13H15V11Z" opacity="0.7" fill="#5db69b"/>
+                            <path d="M15 15H17V17H15V15Z" opacity="0.7" fill="#5db69b"/>
+                        </svg>
+                    </div>
+                    <h3>Decision Log (ADR)</h3>
+                    <p>Record architecture decisions with context, options considered, and consequences. Keep your team aligned with writable, searchable ADR history.</p>
+                </div>
+                
+                <!-- Team Collaboration -->
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M16 11C18.21 11 20 9.21 20 7C20 4.79 18.21 3 16 3C13.79 3 12 4.79 12 7C12 9.21 13.79 11 16 11M16 13C12.69 13 10 15.69 10 19V21H22V19C22 15.69 19.31 13 16 13M6 11C8.21 11 10 9.21 10 7C10 4.79 8.21 3 6 3C3.79 3 2 4.79 2 7C2 9.21 3.79 11 6 11M6 13C3.68 13 2 14.68 2 17V20H10V17C10 14.68 8.32 13 6 13M16 5C17.1 5 18 5.9 18 7C18 8.1 17.1 9 16 9C14.9 9 14 8.1 14 7C14 5.9 14.9 5 16 5Z" />
+                            <path d="M6 15H10V17H6V15Z" opacity="0.7" fill="#5db69b"/>
+                            <path d="M16 17H19V19H16V17Z" opacity="0.7" fill="#5db69b"/>
+                        </svg>
+                    </div>
+                    <h3>Team Collaboration</h3>
+                    <p>Bring developers, managers, and AI agents together. Built for modern teams with lightweight task tracking, issues, and test cases for comprehensive project management.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section id="how-it-works" class="how-it-works">
+        <div class="container">
+            <div class="section-header">
+                <h2>How DevHub Works</h2>
+                <p class="text-muted">Experience the DevHub workflow in three simple steps</p>
+            </div>
+            
+            <div class="how-grid">
+                <div class="step">
+                    <div class="step-number">01</div>
+                    <div class="step-card">
+                        <h3>Connect Your Project</h3>
+                        <p>Create a DevHub project and connect your engineering workflow. Import from JSON or start fresh with your first task, schema, or decision.</p>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">02</div>
+                    <div class="step-card">
+                        <h3>Build Technical Memory</h3>
+                        <p>Document your tech stack, database schema with visual ERD, and architectural decisions. Create test cases and track issues with full context.</p>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">03</div>
+                    <div class="step-card">
+                        <h3>Collaborate & Scale</h3>
+                        <p>Onboard new engineers in hours, not weeks. AI agents can read your project state and help build faster with complete technical context.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="pricing">
+        <div class="container">
+            <div class="section-header">
+                <h2>Simple, Transparent Pricing</h2>
+                <p class="text-muted">Start for free, upgrade when you need more</p>
+            </div>
+            
+            <div class="pricing-grid">
+                <!-- Free Tier -->
+                <div class="pricing-card">
+                    <h3>Free</h3>
+                    <div style="font-size: 2.5rem; font-weight: 700; margin: 1.5rem 0;">
+                        $0<span style="font-size: 1rem; font-weight: 400; color: var(--text-secondary);">/workspace/month</span>
+                    </div>
+                    <p class="text-muted">Perfect for solo builders and small teams</p>
+                    
+                    <ul class="pricing-features">
+                        <li>
+                            <svg viewBox="0 0 24 24">
+                                <path d="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59L9 16.17Z" />
+                            </svg>
+                            Unlimited projects
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24">
+                                <path d="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59L9 16.17Z" />
+                            </svg>
+                            Up to 2 team members
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24">
+                                <path d="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59L9 16.17Z" />
+                            </svg>
+                            All core features
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24">
+                                <path d="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59L9 16.17Z" />
+                            </svg>
+                            JSON export/import
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24">
+                                <path d="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59L9 16.17Z" />
+                            </svg>
+                            SDK & API access
+                        </li>
+                    </ul>
+                    
+                    <a href="#" class="btn btn-secondary" style="width: 100%; margin-bottom: 1rem;">Start for Free</a>
+                </div>
+                
+                <!-- Pro Tier -->
+                <div class="pricing-card popular">
+                    <div class="popular-badge">Most Popular</div>
+                    <h3>Pro</h3>
+                    <div style="font-size: 2.5rem; font-weight: 700; margin: 1.5rem 0;">
+                        $15<span style="font-size: 1rem; font-weight: 400; color: var(--text-secondary);">/workspace/month</span>
+                    </div>
+                    <p class="text-muted">For growing teams that need collaboration</p>
+                    
+                    <ul class="pricing-features">
+                        <li>
+                            <svg viewBox="0 0 24 24">
+                                <path d="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59L9 16.17Z" />
+                            </svg>
+                            Up to 10 team members
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24">
+                                <path d="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59L9 16.17Z" />
+                            </svg>
+                            Everything in Free
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24">
+                                <path d="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59L9 16.17Z" />
+                            </svg>
+                            Advanced analytics
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24">
+                                <path d="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59L9 16.17Z" />
+                            </svg>
+                            Priority support
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24">
+                                <path d="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59L9 16.17Z" />
+                            </svg>
+                            API rate limits increased
+                        </li>
+                    </ul>
+                    
+                    <a href="#" class="btn btn-primary" style="width: 100%;">Get Started with Pro</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="faq">
+        <div class="container">
+            <div class="section-header">
+                <h2>Frequently Asked Questions</h2>
+                <p class="text-muted">Everything you need to know about DevHub</p>
+            </div>
+            
+            <div class="faq-list">
+                <!-- Question 1 -->
+                <div class="faq-item">
+                    <button class="faq-question">
+                        What is DevHub?
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M7.41 8.59L12 13.17L16.59 8.59L18 10L12 16L6 10L7.41 8.59Z" />
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p class="faq-content">DevHub is a hosted SaaS project management application designed specifically for engineering teams. It combines lightweight task/issue tracking with developer-specific modules — tech stack ledger, database schema + ERD, ADR decision log, test cases, and velocity stats — into one hosted application.</p>
+                    </div>
+                </div>
+                
+                <!-- Question 2 -->
+                <div class="faq-item">
+                    <button class="faq-question">
+                        How is DevHub different from Jira or Linear?
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M7.41 8.59L12 13.17L16.59 8.59L18 10L12 16L6 10L7.41 8.59Z" />
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p class="faq-content">DevHub is the <strong>complementary technical-memory layer</strong> to Jira/Linear. While those tools focus on general project management, DevHub captures the technical context that's often lost: database schemas, architecture decisions (ADRs), tech stack dependencies, and technical debt tracking.</p>
+                    </div>
+                </div>
+                
+                <!-- Question 3 -->
+                <div class="faq-item">
+                    <button class="faq-question">
+                        Is DevHub self-hosted or hosted?
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M7.41 8.59L12 13.17L16.59 8.59L18 10L12 16L6 10L7.41 8.59Z" />
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p class="faq-content">DevHub is a <strong>hosted SaaS application only</strong>. Self-hosting is not supported in V1. We guarantee data portability via JSON export/import, so your data is never locked in.</p>
+                    </div>
+                </div>
+                
+                <!-- Question 4 -->
+                <div class="faq-item">
+                    <button class="faq-question">
+                        Can I use DevHub with AI agents?
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M7.41 8.59L12 13.17L16.59 8.59L18 10L12 16L6 10L7.41 8.59Z" />
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p class="faq-content">Yes! DevHub is designed with AI agents in mind. Our MCP (Model Communication Protocol) integration allows AI agents like opencode, Claude, and others to read project state, create tasks, update status, and help build faster with complete technical context.</p>
+                    </div>
+                </div>
+                
+                <!-- Question 5 -->
+                <div class="faq-item">
+                    <button class="faq-question">
+                        What happens to my data when I export?
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M7.41 8.59L12 13.17L16.59 8.59L18 10L12 16L6 10L7.41 8.59Z" />
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p class="faq-content">When you export, you get a complete JSON backup of your project including all tasks, issues, test cases, tech stack entries, schema definitions, and decisions. You can import this JSON to restore your project or move to another instance.</p>
+                    </div>
+                </div>
+                
+                <!-- Question 6 -->
+                <div class="faq-item">
+                    <button class="faq-question">
+                        Is there a free trial for Pro?
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M7.41 8.59L12 13.17L16.59 8.59L18 10L12 16L6 10L7.41 8.59Z" />
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p class="faq-content">Yes! The Free tier lets you try DevHub with up to 2 members and 3 projects. When you're ready to upgrade, our Pro tier costs $15/workspace/month with up to 10 team members. You can upgrade at any time.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="cta-banner">
+        <div class="container">
+            <h2 style="font-size: 2.5rem; margin-bottom: 1.5rem; color: var(--text-primary);">Ready to bring technical memory to your team?</h2>
+            <p class="text-muted" style="font-size: 1.25rem; margin-bottom: 2.5rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+                Join engineering teams who use DevHub to onboard faster, make better decisions, and keep their technical context organized.
+            </p>
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <a href="#" class="btn btn-primary btn-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM16.5 13H13V16.5C13 17.33 12.33 18 11.5 18C10.67 18 10 17.33 10 16.5V13H6.5C5.67 13 5 12.33 5 11.5C5 10.67 5.67 10 6.5 10H10V6.5C10 5.67 10.67 5 11.5 5C12.33 5 13 5.67 13 6.5V10H16.5C17.33 10 18 10.67 18 11.5C18 12.33 17.33 13 16.5 13Z" />
+                    </svg>
+                    Start Your Free Trial
+                </a>
+                <a href="#" class="btn btn-secondary btn-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8 5V19L19 12L8 5Z" />
+                    </svg>
+                    Schedule Demo
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col footer-brand">
+                    <a href="#" class="nav-logo" style="text-decoration: none; color: inherit; margin-bottom: 1rem; display: inline-flex;">
+                        <svg viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg" style="fill: var(--accent); margin-right: 8px;">
+                            <path d="M12 2L2 22H22L12 2ZM12 5.5L18.5 20H5.5L12 5.5Z" />
+                            <path d="M12 8C10.34 8 9 9.34 9 11C9 12.66 10.34 14 12 14C13.66 14 15 12.66 15 11C15 9.34 13.66 8 12 8Z" fill="var(--accent)" />
+                        </svg>
+                        DevHub
+                    </a>
+                    <p>Technical memory for engineering teams. The complementary layer to Jira/Linear that captures your team's technical context.</p>
+                </div>
+                
+                <div class="footer-col">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="#">Features</a></li>
+                        <li><a href="#">Integrations</a></li>
+                        <li><a href="#">Pricing</a></li>
+                        <li><a href="#">Changelog</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-col">
+                    <h4>Resources</h4>
+                    <ul>
+                        <li><a href="#">Documentation</a></li>
+                        <li><a href="#">API Reference</a></li>
+                        <li><a href="#">Community</a></li>
+                        <li><a href="#">Status</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-col">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="#">About</a></li>
+                        <li><a href="#">Careers</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <div>&copy; 2026 DevHub Inc. All rights reserved.</div>
+                <div>
+                    <a href="#" style="color: var(--text-secondary); margin-right: 1.5rem; text-decoration: none;">Privacy</a>
+                    <a href="#" style="color: var(--text-secondary); margin-right: 1.5rem; text-decoration: none;">Terms</a>
+                    <a href="#" style="color: var(--text-secondary); text-decoration: none;">Security</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // FAQ Accordion
+        document.addEventListener('DOMContentLoaded', function() {
+            const faqItems = document.querySelectorAll('.faq-item');
+            
+            faqItems.forEach(item => {
+                const button = item.querySelector('.faq-question');
+                
+                button.addEventListener('click', () => {
+                    // Toggle current item
+                    const isActive = item.classList.contains('active');
+                    
+                    // Close all items
+                    faqItems.forEach(faq => {
+                        faq.classList.remove('active');
+                    });
+                    
+                    // Open current item if it wasn't already active
+                    if (!isActive) {
+                        item.classList.add('active');
+                    }
+                });
+            });
+            
+            // Keyboard navigation for FAQ
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    faqItems.forEach(faq => {
+                        faq.classList.remove('active');
+                    });
+                }
+            });
+            
+            // Smooth scroll for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+            
+            // Sticky nav shadow on scroll
+            const nav = document.querySelector('.nav');
+            
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 10) {
+                    nav.style.boxShadow = '0 2px 12px rgba(0, 0, 0, 0.2)';
+                } else {
+                    nav.style.boxShadow = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

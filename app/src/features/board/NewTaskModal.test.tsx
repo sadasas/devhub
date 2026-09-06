@@ -72,6 +72,41 @@ describe('NewTaskModal milestone picker', () => {
     expect(screen.getByLabelText('Milestone').textContent).toContain('V0.2.0');
   });
 
+  it('shows the property label on empty pills and the value once set', () => {
+    renderModal({ milestoneId: MILESTONE_A });
+    expect(screen.getByRole('button', { name: 'Assignee' })).toBeTruthy();
+    expect(screen.getByLabelText('Milestone').textContent).toContain('V0.2.0');
+  });
+
+  it('opens the input popup directly from the estimate pill', () => {
+    renderModal();
+    fireEvent.click(screen.getByRole('button', { name: /Estimate \(hours\)/ }));
+    expect(screen.getByRole('dialog', { name: /Estimate \(hours\)/ })).toBeTruthy();
+  });
+
+  it('submits numeric estimate from the popup input', () => {
+    renderModal();
+    fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'Ship calendar' } });
+    fireEvent.click(screen.getByRole('button', { name: /Estimate \(hours\)/ }));
+    fireEvent.change(screen.getByRole('spinbutton', { name: /Estimate \(hours\)/ }), { target: { value: '8' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add task' }));
+    expect(mocks.dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'task/add',
+        task: expect.objectContaining({ estimate: 8 }),
+      }),
+    );
+  });
+
+  it('toggles fullscreen via the expand button and Ctrl+Shift+F', () => {
+    renderModal();
+    expect(document.querySelector('.modal-composer--fullscreen')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Expand to fullscreen' }));
+    expect(document.querySelector('.modal-composer--fullscreen')).toBeTruthy();
+    fireEvent.keyDown(window, { key: 'F', ctrlKey: true, shiftKey: true });
+    expect(document.querySelector('.modal-composer--fullscreen')).toBeNull();
+  });
+
   it('dispatches task/add with the chosen milestone', () => {
     renderModal();
     fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'Ship calendar' } });
@@ -86,15 +121,19 @@ describe('NewTaskModal milestone picker', () => {
     );
   });
 
-  it('dispatches task/add with the chosen due date', () => {
+  it('dispatches task/add with the range picked from the date picker', () => {
     renderModal();
     fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'Ship calendar' } });
-    fireEvent.change(screen.getByLabelText(/Due date/), { target: { value: '2026-08-20' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Date' }));
+    const now = new Date();
+    const iso = (day: number) => `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    fireEvent.click(screen.getByRole('button', { name: iso(10) }));
+    fireEvent.click(screen.getByRole('button', { name: iso(20) }));
     fireEvent.click(screen.getByRole('button', { name: 'Add task' }));
     expect(mocks.dispatch).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'task/add',
-        task: expect.objectContaining({ title: 'Ship calendar', dueDate: '2026-08-20' }),
+        task: expect.objectContaining({ title: 'Ship calendar', startDate: iso(10), dueDate: iso(20) }),
       }),
     );
   });
@@ -111,19 +150,6 @@ describe('NewTaskModal milestone picker', () => {
     );
   });
 
-  it('dispatches task/add with the chosen start date', () => {
-    renderModal();
-    fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'Ship calendar' } });
-    fireEvent.change(screen.getByLabelText(/Start date/), { target: { value: '2026-08-14' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add task' }));
-    expect(mocks.dispatch).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: 'task/add',
-        task: expect.objectContaining({ title: 'Ship calendar', startDate: '2026-08-14' }),
-      }),
-    );
-  });
-
   it('sends a null start date when left empty', () => {
     renderModal();
     fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'Ship calendar' } });
@@ -136,11 +162,22 @@ describe('NewTaskModal milestone picker', () => {
     );
   });
 
-  it('warns when the start date is after the due date', () => {
+  it('normalizes a backwards range pick without warning', () => {
     renderModal();
-    fireEvent.change(screen.getByLabelText(/Due date/), { target: { value: '2026-08-14' } });
-    fireEvent.change(screen.getByLabelText(/Start date/), { target: { value: '2026-08-20' } });
-    expect(screen.getByText('Start date is after the due date.')).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'Ship calendar' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Date' }));
+    const now = new Date();
+    const iso = (day: number) => `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    fireEvent.click(screen.getByRole('button', { name: iso(20) }));
+    fireEvent.click(screen.getByRole('button', { name: iso(10) }));
+    expect(screen.queryByText('Start date is after the due date.')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Add task' }));
+    expect(mocks.dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'task/add',
+        task: expect.objectContaining({ startDate: iso(10), dueDate: iso(20) }),
+      }),
+    );
   });
 
   it('keeps no milestone when the None option is chosen', () => {

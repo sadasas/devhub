@@ -57,8 +57,8 @@ describe('dueColumnDate', () => {
 describe('dueLabel', () => {
   const TODAY = '2026-08-17';
   it('formats overdue with a day count', () => {
-    expect(dueLabel('2026-08-16', TODAY)).toBe('Overdue 1d');
-    expect(dueLabel('2026-08-14', TODAY)).toBe('Overdue 3d');
+    expect(dueLabel('2026-08-16', TODAY)).toBe('OD 1d');
+    expect(dueLabel('2026-08-14', TODAY)).toBe('OD 3d');
   });
   it('labels today and tomorrow', () => {
     expect(dueLabel('2026-08-17', TODAY)).toBe('Due today');
@@ -124,12 +124,12 @@ describe('taskDueChip', () => {
   it('falls back to active overdue for done tasks without completedAt', () => {
     expect(
       taskDueChip({ status: 'done', dueDate: '2026-08-16', completedAt: null }, TODAY),
-    ).toEqual({ label: 'Overdue 1d', tone: 'danger' });
+    ).toEqual({ label: 'OD 1d', tone: 'danger' });
   });
 
   it('keeps active labeling for open tasks', () => {
     expect(
       taskDueChip({ status: 'todo', dueDate: '2026-08-16', completedAt: null }, TODAY),
-    ).toEqual({ label: 'Overdue 1d', tone: 'danger' });
+    ).toEqual({ label: 'OD 1d', tone: 'danger' });
   });
 });

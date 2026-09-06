@@ -79,4 +79,16 @@ describe('NewTestModal linked selects', () => {
     expect(added?.[0].testCase.taskId).toBe(TASK_A);
     expect(added?.[0].testCase.issueId).toBe(ISSUE_A);
   });
+
+  it('shows status label pill by default and falls back to pending on submit', () => {
+    render(<MemoryRouter><NewTestModal open onClose={vi.fn()} /></MemoryRouter>);
+    expect(document.querySelector('[data-prop="status"] .prop-ic svg')).toBeTruthy();
+    expect(document.querySelector('[data-prop="task"] .prop-ic svg')).toBeTruthy();
+    expect(document.querySelector('[data-prop="issue"] .prop-ic svg')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Status' })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'Test default status' } });
+    fireEvent.submit(document.getElementById('new-test-form')!);
+    const added = mockDispatch.mock.calls.find((c) => c[0].type === 'testCase/add');
+    expect(added?.[0].testCase.status).toBe('pending');
+  });
 });

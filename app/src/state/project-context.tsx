@@ -24,6 +24,7 @@ import type {
   ApiCollection,
   ApiEndpoint,
   Decision,
+  ErdLayout,
   Issue,
   Milestone,
   Relation,
@@ -61,6 +62,7 @@ export type ProjectAction =
   | { type: 'table/update'; id: string; patch: UpdatePatch<Table> }
   | { type: 'table/remove'; id: string }
   | { type: 'relation/add'; relation: Relation }
+  | { type: 'relation/update'; id: string; patch: UpdatePatch<Relation> }
   | { type: 'relation/remove'; id: string }
   | { type: 'schemaVersion/add'; version: SchemaVersion }
   | { type: 'decision/add'; decision: Decision }
@@ -78,6 +80,8 @@ export type ProjectAction =
   | { type: 'whiteboard/add'; whiteboard: Whiteboard }
   | { type: 'whiteboard/update'; id: string; patch: UpdatePatch<Whiteboard> }
   | { type: 'whiteboard/remove'; id: string }
+  | { type: 'erdLayout/set'; tableId: string; pos: ErdLayout[string] }
+  | { type: 'erdLayout/clear' }
   | { type: 'timeline/reorder'; laneKey: string; ids: string[] };
 
 /* ------------------------------------------------------------------ */
@@ -94,6 +98,7 @@ function updateIn<T extends { id: string }>(list: T[], id: string, patch: Partia
 export function projectReducer(state: State, action: ProjectAction): State {
   // ensure timelineOrder exists for old projects
   if (!(state as any).timelineOrder) (state as any).timelineOrder = {};
+  if (!(state as any).erdLayout) (state as any).erdLayout = {};
   switch (action.type) {
     case 'replace':
       return action.state;
@@ -203,6 +208,8 @@ export function projectReducer(state: State, action: ProjectAction): State {
 
     case 'relation/add':
       return { ...state, relations: [action.relation, ...state.relations] };
+    case 'relation/update':
+      return { ...state, relations: updateIn<Relation>(state.relations, action.id, action.patch) };
     case 'relation/remove':
       return { ...state, relations: state.relations.filter((r) => r.id !== action.id) };
 
@@ -277,6 +284,18 @@ export function projectReducer(state: State, action: ProjectAction): State {
       return {
         ...state,
         whiteboards: state.whiteboards.filter((w) => w.id !== action.id),
+      };
+
+    case 'erdLayout/set':
+      return {
+        ...state,
+        erdLayout: { ...(state.erdLayout ?? {}), [action.tableId]: { ...action.pos } },
+      };
+
+    case 'erdLayout/clear':
+      return {
+        ...state,
+        erdLayout: {},
       };
 
     case 'timeline/reorder':

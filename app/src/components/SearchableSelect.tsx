@@ -1,4 +1,5 @@
 import { useLayoutEffect, useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { CaretDown } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +8,8 @@ export interface SearchableOption {
   value: string;
   label: string;
   hint?: string;
+  /** Ikon opsional di depan label opsi (mis. Avatar anggota). */
+  icon?: ReactNode;
 }
 
 interface SearchableSelectProps {
@@ -19,8 +22,22 @@ interface SearchableSelectProps {
   placeholder?: string;
   allowEmpty?: boolean;
   emptyLabel?: string;
+  /**
+   * Text shown on the trigger when there is no value (e.g. the property
+   * label: "Assignee"). Falls back to emptyLabel. The clear-row inside the
+   * listbox keeps using emptyLabel.
+   */
+  triggerEmptyLabel?: string;
   disabled?: boolean;
   onChange: (value: string | null) => void;
+  /** Buka dropdown langsung saat mount (dipakai klik-to-edit TaskModal). */
+  defaultOpen?: boolean;
+  /**
+   * Tampilkan kolom pencarian di dalam dropdown. `false` untuk opsi
+   * sedikit (mis. category/status TechModal) — panel langsung fokus,
+   * navigasi keyboard tetap jalan.
+   */
+  searchable?: boolean;
 }
 
 export function SearchableSelect({
@@ -32,10 +49,13 @@ export function SearchableSelect({
   placeholder,
   allowEmpty = true,
   emptyLabel,
+  triggerEmptyLabel,
   disabled = false,
   onChange,
+  defaultOpen = false,
+  searchable = true,
 }: SearchableSelectProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [query, setQuery] = useState('');
   const [index, setIndex] = useState(0);
   const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
@@ -58,7 +78,7 @@ export function SearchableSelect({
   }, [options, query]);
 
   const rows = useMemo(() => {
-    const base = filtered as { value: string | null; label: string; hint?: string }[];
+    const base = filtered as { value: string | null; label: string; hint?: string; icon?: ReactNode }[];
     if (allowEmpty && !query.trim()) {
       return [{ value: null, label: resolvedEmptyLabel }, ...base];
     }
@@ -69,9 +89,12 @@ export function SearchableSelect({
     if (open) {
       setQuery('');
       setIndex(0);
-      requestAnimationFrame(() => inputRef.current?.focus());
+      requestAnimationFrame(() => {
+        if (searchable) inputRef.current?.focus();
+        else panelRef.current?.focus();
+      });
     }
-  }, [open]);
+  }, [open, searchable]);
 
   useEffect(() => {
     setIndex(0);
@@ -116,7 +139,7 @@ export function SearchableSelect({
     };
   }, [open]);
 
-  const display = selected?.label ?? (allowEmpty ? resolvedEmptyLabel : resolvedPlaceholder);
+  const display = selected?.label ?? triggerEmptyLabel ?? (allowEmpty ? resolvedEmptyLabel : resolvedPlaceholder);
 
   const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -155,6 +178,7 @@ export function SearchableSelect({
           <div
             ref={panelRef}
             className="ss-panel"
+            tabIndex={searchable ? undefined : -1}
             style={pos ? { top: pos.top, left: pos.left, width: pos.width } : undefined}
           onKeyDown={(e) => {
             if (e.key === 'ArrowDown') {
@@ -183,6 +207,7 @@ export function SearchableSelect({
             }
           }}
         >
+          {searchable && (
           <input
             ref={inputRef}
             className="ss-input"
@@ -196,6 +221,7 @@ export function SearchableSelect({
             aria-controls={`${id}-listbox`}
             aria-activedescendant={rows[index] ? `${id}-option-${rows[index].value ?? 'empty'}` : undefined}
           />
+          )}
           <div className="ss-list" id={`${id}-listbox`} role="listbox" aria-label={nameSource}>
             {rows.length === 0 && <div className="ss-empty" role="status" aria-live="polite">{t('select.noMatches', { query })}</div>}
             <div aria-live="polite" className="sr-only">{t('select.resultsCount', { count: rows.length, defaultValue: `${rows.length} options` })}</div>
@@ -214,6 +240,7 @@ export function SearchableSelect({
                   onMouseEnter={() => setIndex(i)}
                   onClick={() => select(row.value)}
                 >
+                  {row.icon ? <span className="ss-option-icon" aria-hidden="true">{row.icon}</span> : null}
                   <span className="ss-option-label">{row.label}</span>
                   {row.hint && <span className="ss-hint">{row.hint}</span>}
                 </button>

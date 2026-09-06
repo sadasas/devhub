@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { newId, nowIso } from '../../lib/utils';
@@ -11,12 +11,21 @@ import { Modal } from '../../components/Modal';
 import { InlineError } from '../../components/InlineError';
 import { SearchableSelect } from '../../components/SearchableSelect';
 
+/** U3: one endpoint prefilled from an ERD connect-drag (table + column ids). */
+export interface RelationEndpoint {
+  tableId: string;
+  columnId: string;
+}
+
 interface NewRelationModalProps {
   open: boolean;
   onClose: () => void;
+  /** U3 additive-optional: prefill from an ERD connect-drag; user can still change everything. */
+  initialFrom?: RelationEndpoint | null;
+  initialTo?: RelationEndpoint | null;
 }
 
-export function NewRelationModal({ open, onClose }: NewRelationModalProps) {
+export function NewRelationModal({ open, onClose, initialFrom = null, initialTo = null }: NewRelationModalProps) {
   const { t } = useTranslation('project');
   const { state, dispatch } = useProject();
   usePresenceStatus('Creating relation', open);
@@ -26,6 +35,23 @@ export function NewRelationModal({ open, onClose }: NewRelationModalProps) {
   const [toColumnId, setToColumnId] = useState('');
   const [cardinality, setCardinality] = useState<RelationCardinality>('1:N');
   const [onDelete, setOnDelete] = useState<OnDelete>('cascade');
+
+  // U3: apply the prefill once per open (open transition only, so later user
+  // edits are never clobbered by parent re-renders with fresh object ids).
+  // Starts closed so a first mount with open already true still prefills.
+  const prevOpenRef = useRef(false);
+  useEffect(() => {
+    const wasOpen = prevOpenRef.current;
+    prevOpenRef.current = open;
+    if (open && !wasOpen) {
+      setFromTableId(initialFrom?.tableId ?? '');
+      setFromColumnId(initialFrom?.columnId ?? '');
+      setToTableId(initialTo?.tableId ?? '');
+      setToColumnId(initialTo?.columnId ?? '');
+      setCardinality('1:N');
+      setOnDelete('cascade');
+    }
+  }, [open, initialFrom, initialTo]);
 
   const fromTable = state?.tables.find((t) => t.id === fromTableId);
   const toTable = state?.tables.find((t) => t.id === toTableId);

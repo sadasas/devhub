@@ -140,8 +140,8 @@
     "startsPrefix": "Mulai {{date}}"
   },
   "due": {
-    "overdueDays_one": "Terlambat {{count}} hr",
-    "overdueDays_other": "Terlambat {{count}} hr",
+    "overdueDays_one": "TL {{count}} hr",
+    "overdueDays_other": "TL {{count}} hr",
     "today": "Jatuh tempo hari ini",
     "tomorrow": "Jatuh tempo besok",
     "dated": "Jatuh tempo {{date}}",

@@ -197,7 +197,7 @@ export function serializeWhiteboard(
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${round(x)} ${round(y)} ${round(w)} ${round(h)}" width="${round(w)}" height="${round(h)}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif">${body}</svg>`;
 }
 
-function safeFileName(name: string): string {
+export function safeFileName(name: string): string {
   const cleaned = name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
@@ -205,7 +205,7 @@ function safeFileName(name: string): string {
   return cleaned || 'whiteboard';
 }
 
-function triggerDownload(href: string, filename: string): void {
+export function triggerDownload(href: string, filename: string): void {
   const a = document.createElement('a');
   a.href = href;
   a.download = filename;

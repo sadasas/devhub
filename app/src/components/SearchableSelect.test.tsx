@@ -121,4 +121,34 @@ describe('SearchableSelect', () => {
     const gamma = screen.getByRole('option', { name: /Gamma/ });
     expect(gamma.textContent).toContain('g');
   });
+
+  it('shows triggerEmptyLabel on the trigger but keeps the None row', () => {
+    renderSelect({ triggerEmptyLabel: 'Assignee' });
+    expect(screen.getByRole('button', { name: 'Assignee' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Assignee' }));
+    expect(screen.getByRole('option', { name: 'None' })).toBeTruthy();
+  });
+
+  it('shows the selected label over triggerEmptyLabel when a value is set', () => {
+    renderSelect({ value: 'b', triggerEmptyLabel: 'Assignee' });
+    expect(screen.getByRole('button', { name: 'Beta' })).toBeTruthy();
+  });
+
+  it('opens the options immediately when defaultOpen is set', () => {
+    renderSelect({ defaultOpen: true });
+    expect(screen.getByRole('listbox')).toBeTruthy();
+    expect(screen.getAllByRole('option').map((o) => o.querySelector('.ss-option-label')?.textContent)).toEqual(['None', 'Alpha', 'Beta', 'Gamma']);
+  });
+
+  it('renders per-option icons when provided', () => {
+    renderSelect({
+      defaultOpen: true,
+      options: [
+        { value: 'a', label: 'Alpha', icon: <span data-testid="opt-icon">A</span> },
+        { value: 'b', label: 'Beta' },
+      ],
+    });
+    expect(screen.getByTestId('opt-icon')).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Beta' }).querySelector('.ss-option-icon')).toBeNull();
+  });
 });

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { ArrowsOutSimple, FileText } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
@@ -15,6 +15,10 @@ interface MarkdownFieldProps {
   rows?: number;
   maxLength?: number;
   id?: string;
+  /** 'bare' = borderless + autogrow + fokus berarti edit (tanpa toggle). */
+  variant?: 'default' | 'bare';
+  /** @deprecated Diabaikan — mode bare kini fokus=edit otomatis. Jangan dipakai di kode baru. */
+  previewToggle?: boolean;
 }
 
 export function MarkdownField({
@@ -27,9 +31,22 @@ export function MarkdownField({
   rows = 4,
   maxLength = 10000,
   id,
+  variant = 'default',
+  previewToggle: _previewToggle = false,
 }: MarkdownFieldProps) {
   const { t } = useTranslation(['project', 'tracker']);
   const [fullscreen, setFullscreen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const bareRef = useRef<HTMLTextAreaElement | null>(null);
+  // Autogrow tanpa batas untuk varian bare — yang scroll parent-nya, bukan textarea.
+  useLayoutEffect(() => {
+    if (variant !== 'bare') return;
+    const el = bareRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  });
   const count = value.length;
   const warnThreshold = Math.floor(maxLength * 0.8);
   const dangerThreshold = Math.floor(maxLength * 0.9);
@@ -42,6 +59,77 @@ export function MarkdownField({
 
   return (
     <>
+      {variant === 'bare' ? (
+        <div className="md-bare">
+          <div className="md-bare-head">
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <Icon size={12} aria-hidden="true" /> {label}
+            </span>
+            <span className="spacer" />
+          </div>
+          {editing || value.length === 0 ? (
+            <textarea
+              ref={bareRef}
+              id={id}
+              className="textarea-bare"
+              rows={1}
+              placeholder={placeholder}
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              onFocus={() => { setFocused(true); setEditing(true); }}
+              onBlur={() => { setFocused(false); setEditing(false); }}
+              maxLength={maxLength}
+              aria-label={label}
+            />
+          ) : (
+            <div
+              className="md-preview md-preview-click"
+              role="button"
+              tabIndex={0}
+              aria-label={label}
+              onClick={() => {
+                setEditing(true);
+                requestAnimationFrame(() => bareRef.current?.focus());
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setEditing(true);
+                  requestAnimationFrame(() => bareRef.current?.focus());
+                }
+              }}
+            >
+              {value.trim() ? (
+                <MarkdownBlocks text={value} />
+              ) : (
+                <span className="md-preview-empty">{t('project:prd.nothingToPreview')}</span>
+              )}
+            </div>
+          )}
+          <div style={{ marginTop: 6, minHeight: 18 }}>
+            {helper && (
+              <p className="field-helper" style={{ margin: 0 }}>
+                {helper}
+              </p>
+            )}
+            <span
+              title={t('project:prd.mdTooltip')}
+              style={{
+                fontSize: 11,
+                color: 'var(--text-muted)',
+                fontFamily: 'var(--font-mono)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                visibility: focused ? 'visible' : 'hidden',
+              }}
+              aria-hidden={!focused}
+            >
+              {t('project:prd.mdHintShort')}
+            </span>
+          </div>
+        </div>
+      ) : (
       <div
         style={{
           background: 'var(--bg-inset)',
@@ -125,9 +213,10 @@ export function MarkdownField({
             }}
           >
             {count.toLocaleString()} / {maxLength.toLocaleString()}
-          </span>
+            </span>
+          </div>
         </div>
-      </div>
+      )}
       {fullscreen && (
         <Modal
           open

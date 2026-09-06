@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
-import { Trash, Flag, CalendarBlank as CalendarIcon, User, Clock, Tag, LinkSimple, ListChecks, FileText, ArrowsOutSimple } from '@phosphor-icons/react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
+import { createPortal } from 'react-dom';
+import { Trash, Clock, LinkSimple, FileText, CheckCircle } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import {
   TASK_PRIORITY,
   TASK_PRIORITY_ORDER,
   TASK_STATUS,
 } from '../../lib/labels';
-import { formatDate, formatRelative, isTaskCompletable, linkedTestCases, parseLabels } from '../../lib/utils';
+import { formatDate, formatRelative, isDigitKey, isTaskCompletable, linkedTestCases, parseLabels, sanitizeIntegerInput } from '../../lib/utils';
 import { api } from '../../lib/api';
 import { taskDueChip } from '../../lib/due-dates';
 import { startAfterDue } from '../../lib/start-dates';
@@ -18,11 +20,13 @@ import { ActivityList } from '../../components/ActivityList';
 import { Avatar } from '../../components/Avatar';
 import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
+import { PropRow } from '../../components/PropRow';
+import { DetailShell } from '../../components/DetailShell';
+import { DatePicker } from '../../components/DatePicker';
 import { DetailEmpty } from '../../components/DetailList';
 import { InlineError } from '../../components/InlineError';
-import { Modal } from '../../components/Modal';
+import { MarkdownField } from '../../components/MarkdownField';
 import { SearchableSelect } from '../../components/SearchableSelect';
-import { MarkdownBlocks } from '../../lib/markdown';
 import { FE_LIMITS, LIMITS } from '../../lib/limits';
 
 const STATUS_OPTIONS: TaskStatus[] = ['todo', 'inProgress', 'review', 'done'];
@@ -34,13 +38,119 @@ interface TaskModalProps {
 
 export function TaskModal({ taskId, onClose }: TaskModalProps) {
   const { t } = useTranslation(['tracker','project']);
-  const { state, dispatch, canEdit, projectId, teamId } = useProject();
-  const [activeField, setActiveField] = useState<string | null>(null);
+  const { state, dispatch, canEdit, projectId, teamId, saving, lastSavedAt } = useProject();
+  const [hotProp, setHotProp] = useState<string | null>(null);
+  /** Popup labels: draft mentah (koma bebas diketik) + posisi panel. */
+  const [labelsOpen, setLabelsOpen] = useState(false);
+  const [labelsDraft, setLabelsDraft] = useState('');
+  const [labelsPos, setLabelsPos] = useState<{ top: number; left: number } | null>(null);
+  const labelsRowRef = useRef<HTMLDivElement>(null);
+  const labelsPopRef = useRef<HTMLDivElement>(null);
+  const labelsCancelRef = useRef(false);
+  /** Popup estimate: panel terposisi, nilai live dari task. */
+  const [estimateOpen, setEstimateOpen] = useState(false);
+  const [estimatePos, setEstimatePos] = useState<{ top: number; left: number } | null>(null);
+  const estimateRowRef = useRef<HTMLDivElement>(null);
+  const estimatePopRef = useRef<HTMLDivElement>(null);
+
+  const openLabels = () => {
+    if (!task) return;
+    setLabelsDraft(task.labels.join(', '));
+    labelsCancelRef.current = false;
+    setLabelsPos(null);
+    setLabelsOpen(true);
+  };
+  const commitLabels = () => {
+    if (!labelsCancelRef.current && task) update({ labels: parseLabels(labelsDraft) });
+    labelsCancelRef.current = false;
+    setLabelsOpen(false);
+  };
+  const measurePop = (
+    anchor: HTMLElement | null,
+    panel: HTMLElement | null,
+    setPos: Dispatch<SetStateAction<{ top: number; left: number } | null>>,
+  ) => {
+    if (!anchor) return;
+    const r = anchor.getBoundingClientRect();
+    const h = panel?.offsetHeight ?? 140;
+    const w = 260;
+    const below = r.bottom + 6;
+    const top = window.innerHeight - below >= h + 8 ? below : Math.max(8, r.top - h - 6);
+    const left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8));
+    setPos((p) => (p && p.top === top && p.left === left ? p : { top, left }));
+  };
+
+  useLayoutEffect(() => {
+    if (!labelsOpen) return;
+    const compute = () => measurePop(labelsRowRef.current, labelsPopRef.current, setLabelsPos);
+    compute();
+    window.addEventListener('scroll', compute, true);
+    window.addEventListener('resize', compute);
+    return () => {
+      window.removeEventListener('scroll', compute, true);
+      window.removeEventListener('resize', compute);
+    };
+  }, [labelsOpen]);
+
+  useEffect(() => {
+    if (!labelsOpen) return;
+    const onDown = (e: PointerEvent) => {
+      if (!labelsPopRef.current?.contains(e.target as Node)) commitLabels();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { labelsCancelRef.current = true; setLabelsOpen(false); }
+    };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [labelsOpen, labelsDraft]);
+
+  useLayoutEffect(() => {
+    if (!estimateOpen) return;
+    const compute = () => measurePop(estimateRowRef.current, estimatePopRef.current, setEstimatePos);
+    compute();
+    window.addEventListener('scroll', compute, true);
+    window.addEventListener('resize', compute);
+    return () => {
+      window.removeEventListener('scroll', compute, true);
+      window.removeEventListener('resize', compute);
+    };
+  }, [estimateOpen]);
+
+  useEffect(() => {
+    if (!estimateOpen) return;
+    const onDown = (e: PointerEvent) => {
+      if (!estimatePopRef.current?.contains(e.target as Node)) setEstimateOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setEstimateOpen(false);
+    };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [estimateOpen]);
+  const [pickingBlocker, setPickingBlocker] = useState(false);
+  /** Chip blocked-by; tombol × hanya saat baris hot (mode edit). */
+  const blockerChip = (bt: { id: string; title: string }, removable: boolean) => (
+    <span key={bt.id} style={{ padding: '2px 8px', borderRadius: 999, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+      <LinkSimple size={10} aria-hidden="true" /> {bt.title} {removable ? (
+        <button type="button" onClick={() => toggleBlocker(bt.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, padding: '0 2px', lineHeight: 1 }} aria-label={`Remove blocker ${bt.title}`}>×</button>
+      ) : (
+        <span aria-hidden="true" style={{ color: 'var(--text-muted)', fontSize: 12, padding: '0 2px', lineHeight: 1, visibility: 'hidden' }}>×</span>
+      )}
+    </span>
+  );
   const [cycleWarn, setCycleWarn] = useState<string | null>(null);
   const [doneWarn, setDoneWarn] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [fullscreenField, setFullscreenField] = useState<string | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
+  const titleRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     if (teamId) {
@@ -54,11 +164,21 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
   }, [teamId]);
 
   useEffect(() => {
-    setActiveField(null);
+    setHotProp(null);
+    setPickingBlocker(false);
     setCycleWarn(null);
     setDoneWarn(null);
     setConfirmOpen(false);
   }, [taskId]);
+
+  // Judul autogrow tanpa batas — yang scroll .composer-scroll, bukan textarea.
+  useLayoutEffect(() => {
+    const ta = titleRef.current;
+    if (ta) {
+      ta.style.height = 'auto';
+      ta.style.height = `${ta.scrollHeight}px`;
+    }
+  });
 
   const task = state?.tasks.find((t) => t.id === taskId);
   usePresenceStatus(t('board.taskModal.presenceEditing'), task != null);
@@ -111,340 +231,368 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
 
   return (
     <>
-    <Modal
-      open
+    <DetailShell
       title={t('board.taskModal.viewTitle')}
       onClose={onClose}
-      width="lg"
       footer={
         canEdit ? (
-          <Button
-            variant="danger"
-            size="sm"
-            leftIcon={<Trash size={13} aria-hidden="true" />}
-            onClick={() => setConfirmOpen(true)}
-          >
-            {t('board.taskModal.delete')}
-          </Button>
+          <>
+            <Button
+              variant="danger"
+              size="sm"
+              leftIcon={<Trash size={13} aria-hidden="true" />}
+              onClick={() => setConfirmOpen(true)}
+            >
+              {t('board.taskModal.delete')}
+            </Button>
+            {(saving || lastSavedAt) && (
+              <span className="save-state" role="status">
+                {saving ? (
+                  t('board.taskModal.autosaveSaving')
+                ) : (
+                  <>
+                    <CheckCircle size={13} weight="bold" aria-hidden="true" />
+                    {t('board.taskModal.autosaveSaved')}
+                  </>
+                )}
+              </span>
+            )}
+          </>
         ) : undefined
       }
-    >
-      <div className="form-stack">
-          <>
-            {/* Title inline */}
-            {activeField === 'title' && canEdit ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
-                <input
-                  className="input"
-                  value={task.title}
-                  autoFocus
-                  maxLength={LIMITS.TASK_TITLE}
-                  onChange={(e) => update({ title: e.target.value })}
-                  onBlur={() => setActiveField(null)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') setActiveField(null); if (e.key === 'Escape') setActiveField(null); }}
-                />
-                <span style={{ fontSize: 11, color: task.title.length > Math.floor(LIMITS.TASK_TITLE * 0.9) ? 'var(--status-danger)' : task.title.length > Math.floor(LIMITS.TASK_TITLE * 0.8) ? 'var(--status-warn)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)', alignSelf: 'flex-end' }}>{task.title.length.toLocaleString()} / {LIMITS.TASK_TITLE.toLocaleString()}</span>
-              </div>
-            ) : (
-              <h3
-                className="detail-title"
-                onClick={() => canEdit && setActiveField('title')}
-                style={{ cursor: canEdit ? 'text' : undefined, padding: '4px 6px', margin: '-4px -6px', borderRadius: 6 }}
-                onMouseEnter={(e) => { if (canEdit) (e.currentTarget as HTMLElement).style.background = 'var(--bg-inset)'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-                title={canEdit ? 'Click to edit' : undefined}
-              >
-                {task.title || <DetailEmpty>Untitled task</DetailEmpty>}
-              </h3>
-            )}
-            {/* Fintech clean - no pinned bar, no section icons per row */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 18, padding: '4px 0' }}>
-              {/* Created time - like Fintech */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                  <Clock size={12} aria-hidden="true" /> Created time
-                </span>
-                <span style={{ color: 'var(--text-secondary)' }}>{formatDate(task.createdAt)} {new Date(task.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-              </div>
-
-              {/* Status - dot + peach pill like In Research */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                  <Flag size={12} aria-hidden="true" /> Status
-                </span>
-                {activeField === 'status' && canEdit ? (
-                  <select className="select" style={{ width: 160 }} value={task.status} autoFocus onChange={(e) => { changeStatus(e.target.value as TaskStatus); setActiveField(null); }} onBlur={() => setActiveField(null)}>
-                    {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{TASK_STATUS[s].label}</option>)}
-                  </select>
-                ) : (
-                  <button type="button" onClick={() => canEdit && setActiveField('status')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 999, background: task.status === 'done' ? 'var(--status-success-dim)' : task.status === 'review' ? 'var(--status-warn-dim)' : task.status === 'inProgress' ? 'var(--status-info-dim)' : 'var(--bg-inset)', border: 'none', cursor: canEdit ? 'pointer' : 'default', fontSize: 12 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: TASK_STATUS[task.status].tone === 'success' ? 'var(--status-success)' : TASK_STATUS[task.status].tone === 'warn' ? 'var(--status-warn)' : TASK_STATUS[task.status].tone === 'info' ? 'var(--status-info)' : 'var(--text-muted)', flexShrink: 0 }} />
+      sidebarHead={t('board.taskModal.propertiesLabel')}
+      sidebar={<>
+              <PropRow
+                propKey="status"
+                label={t('board.taskModal.statusLabel')}
+                hot={hotProp === 'status'}
+                setHot={setHotProp}
+                canEdit={canEdit}
+                view={(
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 999, background: task.status === 'done' ? 'var(--status-success-dim)' : task.status === 'review' ? 'var(--status-warn-dim)' : task.status === 'inProgress' ? 'var(--status-info-dim)' : 'var(--bg-inset)', fontSize: 12 }}>
                     {TASK_STATUS[task.status].label}
-                  </button>
-                )}
-              </div>
-              {doneWarn && <InlineError>{doneWarn}</InlineError>}
-
-              {/* Priority - pill biru tipis */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                  <Flag size={12} aria-hidden="true" /> Priority
-                </span>
-                {activeField === 'priority' && canEdit ? (
-                  <select className="select" style={{ width: 160 }} value={task.priority} autoFocus onChange={(e) => { update({ priority: e.target.value as TaskPriority }); setActiveField(null); }} onBlur={() => setActiveField(null)}>
-                    {TASK_PRIORITY_ORDER.map((p) => <option key={p} value={p}>{TASK_PRIORITY[p].label}</option>)}
-                  </select>
-                ) : (
-                  <button type="button" onClick={() => canEdit && setActiveField('priority')} style={{ padding: '2px 8px', borderRadius: 999, background: 'var(--status-info-dim)', border: '1px solid rgba(123,164,217,0.15)', fontSize: 11, color: 'var(--status-info)', cursor: canEdit ? 'pointer' : 'default' }}>
-                    {TASK_PRIORITY[task.priority].label}
-                  </button>
-                )}
-              </div>
-
-              {/* Dates - combined Start → Due */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                  <CalendarIcon size={12} aria-hidden="true" /> Dates
-                </span>
-                {activeField === 'dates' && canEdit ? (
-                  <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <input className="input" type="date" style={{ width: 140 }} value={task.startDate?.slice(0, 10) ?? ''} onChange={(e) => update({ startDate: e.target.value === '' ? null : e.target.value })} />
-                    <span style={{ color: 'var(--text-muted)' }}>→</span>
-                    <input className="input" type="date" style={{ width: 140 }} value={task.dueDate?.slice(0, 10) ?? ''} onChange={(e) => update({ dueDate: e.target.value === '' ? null : e.target.value })} />
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setActiveField(null)} disabled={!!dateWarn}>OK</button>
                   </span>
-                ) : (
-                  <button type="button" onClick={() => canEdit && setActiveField('dates')} style={{ background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default', fontSize: 13, color: task.dueDate || task.startDate ? 'var(--text-secondary)' : 'var(--text-muted)', padding: '2px 6px', margin: '-2px -6px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    {task.startDate || task.dueDate ? (
-                      <>
-                        {task.startDate ? formatDate(task.startDate) : '—'}
-                        <span style={{ color: 'var(--text-muted)' }}>→</span>
-                        {task.dueDate ? formatDate(task.dueDate) : '—'}
-                        {task.dueDate && <span className={`task-due task-due-${taskDueChip(task).tone}`} style={{ marginLeft: 6 }}>{taskDueChip(task).label}</span>}
-                        {task.status === 'done' && task.completedAt && (
-                          <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>· {t('board.taskModal.doneDateLabel')}: {formatDate(task.completedAt)}</span>
-                        )}
-                      </>
-                    ) : '—'}
-                  </button>
                 )}
-              </div>
+                control={(
+                  <SearchableSelect defaultOpen searchable={false} id="task-status" label="" ariaLabel={t('board.taskModal.statusLabel')} value={task.status} allowEmpty={false} options={STATUS_OPTIONS.map((s) => ({ value: s, label: TASK_STATUS[s].label }))} onChange={(v) => { if (v) { changeStatus(v as TaskStatus); setHotProp(null); } }} />
+                )}
+              />
+              {/* Priority */}
+              <PropRow
+                propKey="priority"
+                label={t('board.newTaskModal.priorityLabel')}
+                hot={hotProp === 'priority'}
+                setHot={setHotProp}
+                canEdit={canEdit}
+                view={(
+                  <span style={{ padding: '2px 8px', borderRadius: 999, background: task.priority === 'urgent' ? 'var(--status-danger-dim)' : task.priority === 'high' ? 'var(--status-warn-dim)' : task.priority === 'medium' ? 'var(--status-info-dim)' : 'var(--bg-inset)', fontSize: 11, color: task.priority === 'urgent' ? 'var(--status-danger)' : task.priority === 'high' ? 'var(--status-warn)' : task.priority === 'medium' ? 'var(--status-info)' : 'var(--text-secondary)' }}>
+                    {TASK_PRIORITY[task.priority].label}
+                  </span>
+                )}
+                control={(
+                  <SearchableSelect defaultOpen searchable={false} id="task-priority" label="" ariaLabel={t('board.newTaskModal.priorityLabel')} value={task.priority} allowEmpty={false} options={TASK_PRIORITY_ORDER.map((p) => ({ value: p, label: TASK_PRIORITY[p].label }))} onChange={(v) => { if (v) { update({ priority: v as TaskPriority }); setHotProp(null); } }} />
+                )}
+              />
+
+              {/* Dates */}
+              <PropRow
+                propKey="dates"
+                label={t('board.taskModal.dateLabel')}
+                hot={hotProp === 'dates'}
+                setHot={setHotProp}
+                canEdit={canEdit}
+                view={!(task.startDate || task.dueDate) ? (
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>—</span>
+                ) : (
+                  <span style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', maxWidth: '100%' }}>
+                    <span>
+                      {task.startDate ? formatDate(task.startDate) : t('board.taskModal.startDateLabel')}
+                      {' - '}
+                      {task.dueDate ? formatDate(task.dueDate) : t('board.taskModal.dueDateLabel')}
+                    </span>
+                    {task.dueDate && taskDueChip(task).tone === 'danger' && (
+                      <span style={{ display: 'block', marginTop: 4 }}>
+                        <span className={`task-due task-due-${taskDueChip(task).tone}`}>{taskDueChip(task).label}</span>
+                      </span>
+                    )}
+                    {task.status === 'done' && task.completedAt && (
+                      <span style={{ display: 'block', color: 'var(--text-muted)', marginTop: 4 }}>· {t('board.taskModal.doneDateLabel')}: {formatDate(task.completedAt)}</span>
+                    )}
+                  </span>
+                )}
+                control={(
+                  <DatePicker
+                    id="task-dates"
+                    mode="range"
+                    start={task.startDate?.slice(0, 10) ?? null}
+                    end={task.dueDate?.slice(0, 10) ?? null}
+                    onApply={(s, e) => { update({ startDate: s, dueDate: e }); setHotProp(null); }}
+                    onClose={() => setHotProp(null)}
+                  />
+                )}
+              />
+
+
+
               {dateWarn && <InlineError>{dateWarn}</InlineError>}
 
-
-
-              {/* Tags - pill abu tipis */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                  <Tag size={12} aria-hidden="true" /> Tags
-                </span>
-                                {activeField === 'labels' && canEdit ? (
-                  <div style={{ flex: 1, maxWidth: 260, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <input className="input" style={{ flex: 1 }} placeholder={t('board.taskModal.labelsPlaceholder')} value={task.labels.join(', ')} autoFocus maxLength={FE_LIMITS.LABELS_INPUT} onChange={(e) => update({ labels: parseLabels(e.target.value) })} onBlur={() => setActiveField(null)} onKeyDown={(e) => { if (e.key === 'Enter') setActiveField(null); }} />
-                    <span style={{ fontSize: 11, color: task.labels.join(', ').length > Math.floor(FE_LIMITS.LABELS_INPUT * 0.9) ? 'var(--status-danger)' : task.labels.join(', ').length > Math.floor(FE_LIMITS.LABELS_INPUT * 0.8) ? 'var(--status-warn)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)', alignSelf: 'flex-end' }}>{task.labels.join(', ').length.toLocaleString()} / {FE_LIMITS.LABELS_INPUT.toLocaleString()}</span>
-                  </div>
-                ) : task.labels.length > 0 ? (
-                  <button type="button" onClick={() => canEdit && setActiveField('labels')} style={{ display: 'flex', gap: 6, flexWrap: 'wrap', background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default', padding: 0 }}>
-                    {task.labels.map((l) => <span key={l} style={{ padding: '2px 8px', borderRadius: 999, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, color: 'var(--text-secondary)' }}>{l}</span>)}
+              {/* Tags */}
+              <div
+                className="prop"
+                data-prop="labels"
+                data-hot={labelsOpen || undefined}
+                ref={labelsRowRef}
+              >
+                <span className="prop-label">{t('board.taskModal.labelsLabel')}</span>
+                {canEdit ? (
+                  <button
+                    type="button"
+                    className="prop-view"
+                    onClick={() => (labelsOpen ? commitLabels() : openLabels())}
+                  >
+                    {task.labels.length > 0 ? (
+                      <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {task.labels.map((l) => <span key={l} style={{ padding: '2px 8px', borderRadius: 999, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, color: 'var(--text-secondary)' }}>{l}</span>)}
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>
+                    )}
                   </button>
+                ) : task.labels.length > 0 ? (
+                  <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {task.labels.map((l) => <span key={l} style={{ padding: '2px 8px', borderRadius: 999, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, color: 'var(--text-secondary)' }}>{l}</span>)}
+                  </span>
                 ) : (
-                  <button type="button" onClick={() => canEdit && setActiveField('labels')} style={{ background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default', color: 'var(--text-muted)', fontSize: 13 }}>—</button>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>
                 )}
+                {canEdit && <span className="prop-chev" aria-hidden="true">›</span>}
               </div>
+              {labelsOpen && createPortal(
+                <div
+                  ref={labelsPopRef}
+                  className="prop-menu prop-pop"
+                  role="dialog"
+                  aria-label={t('board.taskModal.labelsLabel')}
+                  style={labelsPos ? { top: labelsPos.top, left: labelsPos.left } : { visibility: 'hidden' }}
+                >
+                  <div className="prop-pop-label">{t('board.taskModal.labelsLabel')}</div>
+                  <input
+                    autoFocus
+                    className="input"
+                    placeholder={t('board.taskModal.labelsPlaceholder')}
+                    value={labelsDraft}
+                    maxLength={FE_LIMITS.LABELS_INPUT}
+                    onChange={(e) => setLabelsDraft(e.target.value)}
+                    onBlur={commitLabels}
+                    onKeyDown={(e) => { if (e.key === 'Enter') commitLabels(); }}
+                    aria-label={t('board.taskModal.labelsLabel')}
+                  />
+                </div>,
+                document.body,
+              )}
 
-              {/* Assignees - avatar overlap */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                  <User size={12} aria-hidden="true" /> Assignees
-                </span>
-                {activeField === 'assignee' && canEdit ? (
-                  <SearchableSelect id="task-assignee-inline" label="" ariaLabel={t('board.taskModal.assigneeLabel')} value={task.assigneeId ?? null} options={members.map((m) => ({ value: m.id, label: m.displayName || m.email }))} onChange={(v) => { update({ assigneeId: v }); setActiveField(null); }} />
-                ) : task.assigneeId ? (
+              {/* Assignees */}
+              <PropRow
+                propKey="assignee"
+                label={t('board.taskModal.assigneeLabel')}
+                hot={hotProp === 'assignee'}
+                setHot={setHotProp}
+                canEdit={canEdit}
+                view={task.assigneeId ? (
                   (() => {
                     const am = members.find((m) => m.id === task.assigneeId);
                     const an = am?.displayName || am?.email || '?';
                     return (
-                      <button type="button" onClick={() => canEdit && setActiveField('assignee')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                         <Avatar src={am?.avatarUrl ?? null} name={an} email={am?.email} id={task.assigneeId!} size={24} style={{ border: '2px solid var(--bg-overlay)' }} />
                         <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{an}</span>
-                      </button>
+                      </span>
                     );
                   })()
                 ) : (
-                  <button type="button" onClick={() => canEdit && setActiveField('assignee')} style={{ background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default', color: 'var(--text-muted)', fontSize: 13 }}>—</button>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>
                 )}
-              </div>
+                control={(
+                  <SearchableSelect defaultOpen id="task-assignee-inline" label="" ariaLabel={t('board.taskModal.assigneeLabel')} value={task.assigneeId ?? null} options={members.map((m) => { const n = m.displayName || m.email; return { value: m.id, label: n, icon: <Avatar src={m.avatarUrl ?? null} name={n} email={m.email} id={m.id} size={20} alt="" /> }; })} onChange={(v) => { update({ assigneeId: v }); setHotProp(null); }} triggerEmptyLabel={t('board.taskModal.assigneeLabel')} />
+                )}
+              />
 
-              {/* Description - card abu muda - disamakan dengan IssueModal */
-              <div style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', borderRadius: 8, padding: 16, marginTop: 8 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    <FileText size={12} aria-hidden="true" /> {t('board.taskModal.descriptionLabel')}
+              {/* Milestone */}
+              <PropRow
+                propKey="milestone"
+                label={t('board.taskModal.milestoneLabel')}
+                hot={hotProp === 'milestone'}
+                setHot={setHotProp}
+                canEdit={canEdit}
+                view={(
+                  <span style={{ fontSize: 13, color: milestone ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
+                    {milestone ? milestone.name : '—'}
                   </span>
+                )}
+                control={(
+                  <SearchableSelect defaultOpen id="task-milestone" label="" ariaLabel={t('board.taskModal.milestoneLabel')} value={task.milestoneId} options={state!.milestones.map((m) => ({ value: m.id, label: m.name }))} onChange={(v) => { update({ milestoneId: v }); setHotProp(null); }} triggerEmptyLabel={t('board.taskModal.milestoneLabel')} />
+                )}
+              />
+
+              {/* Estimate */}
+              <div
+                className="prop"
+                data-prop="estimate"
+                data-hot={estimateOpen || undefined}
+                ref={estimateRowRef}
+              >
+                <span className="prop-label">{t('board.taskModal.estimateLabel')}</span>
+                {canEdit ? (
                   <button
                     type="button"
-                    className="btn btn-ghost btn-sm btn-icon"
-                    aria-label={t('tracker:issues.modal.fullscreenAriaDescription')}
-                    title={t('tracker:issues.modal.fullscreenAriaDescription')}
-                    onClick={() => setFullscreenField('description')}
+                    className="prop-view"
+                    onClick={() => { setEstimatePos(null); setEstimateOpen((v) => !v); }}
                   >
-                    <ArrowsOutSimple size={14} aria-hidden="true" />
-                  </button>
-                </div>
-                {activeField === 'description' && canEdit ? (
-                  <>
-                    <textarea
-                      className="textarea"
-                      value={task.description}
-                      autoFocus
-                      rows={4}
-                      placeholder={t('board.newTaskModal.descriptionLabel')}
-                      onChange={(e) => update({ description: e.target.value })}
-                      onBlur={() => setActiveField(null)}
-                      aria-label={t('board.taskModal.descriptionLabel')}
-                      maxLength={10000}
-                    />
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
-                      <span style={{ fontSize: 11, color: task.description.length > 9000 ? 'var(--status-danger)' : task.description.length > 8000 ? 'var(--status-warn)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                        {task.description.length.toLocaleString()} / {(10000).toLocaleString()}
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <div
-                    onClick={() => canEdit && setActiveField('description')}
-                    role={canEdit ? 'button' : undefined}
-                    tabIndex={canEdit ? 0 : undefined}
-                    onKeyDown={(e) => {
-                      if (canEdit && (e.key === 'Enter' || e.key === ' ')) {
-                        e.preventDefault();
-                        setActiveField('description');
-                      }
-                    }}
-                    aria-label={canEdit ? 'Edit ' + t('board.taskModal.descriptionLabel') : undefined}
-                    style={{
-                      cursor: canEdit ? 'text' : undefined,
-                      fontSize: 13,
-                      lineHeight: 1.6,
-                      color: task.description.trim() ? 'var(--text-secondary)' : 'var(--text-muted)',
-                      minHeight: 40,
-                      overflowWrap: 'anywhere',
-                    }}
-                  >
-                    {task.description.trim() ? (
-                      <MarkdownBlocks text={task.description} />
+                    {task.estimate != null ? (
+                      <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{task.estimate}h</span>
                     ) : (
-                      t('board.taskModal.noDescription')
+                      <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>—</span>
                     )}
-                  </div>
-                )}
-              </div>
-
-              /* All details directly with icons - no View details collapse */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                  <Tag size={12} aria-hidden="true" /> Milestone
-                </span>
-                {activeField === 'milestone' && canEdit ? (
-                  <SearchableSelect id="task-milestone" label="" ariaLabel={t('board.taskModal.milestoneLabel')} value={task.milestoneId} options={state!.milestones.map((m) => ({ value: m.id, label: m.name }))} onChange={(v) => { update({ milestoneId: v }); setActiveField(null); }} />
-                ) : (
-                  <button type="button" onClick={() => canEdit && setActiveField('milestone')} style={{ background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default', fontSize: 13, color: milestone ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
-                    {milestone ? milestone.name : '—'}
                   </button>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                  <Clock size={12} aria-hidden="true" /> Estimate
-                </span>
-                {activeField === 'estimate' && canEdit ? (
-                  <input className="input" type="number" min={0} max={FE_LIMITS.ESTIMATE_MAX} style={{ width: 100 }} value={task.estimate ?? ''} autoFocus aria-label={t('board.taskModal.estimateLabel')} onChange={(e) => { const v = e.target.value; const n = Number(v); update({ estimate: v === '' ? undefined : Math.min(FE_LIMITS.ESTIMATE_MAX, Math.max(0, n)) }); }} onBlur={() => setActiveField(null)} />
+                ) : task.estimate != null ? (
+                  <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{task.estimate}h</span>
                 ) : (
-                  <button type="button" onClick={() => canEdit && setActiveField('estimate')} style={{ background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default', fontSize: 13, color: 'var(--text-secondary)' }}>
-                    {task.estimate != null ? `${task.estimate}h` : '—'} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>· Actual: {task.actualHours != null ? `${task.actualHours}h` : '—'}</span>
-                  </button>
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>—</span>
                 )}
+                {canEdit && <span className="prop-chev" aria-hidden="true">›</span>}
               </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                  <LinkSimple size={12} aria-hidden="true" /> Blocked by
-                </span>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, flex: 1, alignItems: 'center' }}>
-                  {blockedTasks.length > 0 ? blockedTasks.map((bt) => (
-                    <span key={bt.id} style={{ padding: '2px 8px', borderRadius: 999, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <LinkSimple size={10} aria-hidden="true" /> {bt.title} {canEdit && <button onClick={() => toggleBlocker(bt.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>×</button>}
-                    </span>
-                  )) : <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>}
-                  {canEdit && (activeField === 'blockedBy' ? (
-                    <SearchableSelect id="blockedBy-picker" label="" value={null} options={otherTasks.filter(ot => !task.blockedBy.includes(ot.id)).map(ot => ({ value: ot.id, label: ot.title }))} onChange={(v) => { if (v) { toggleBlocker(v); setActiveField(null); } }} />
+              {estimateOpen && createPortal(
+                <div
+                  ref={estimatePopRef}
+                  className="prop-menu prop-pop"
+                  role="dialog"
+                  aria-label={t('board.taskModal.estimateLabel')}
+                  style={estimatePos ? { top: estimatePos.top, left: estimatePos.left } : { visibility: 'hidden' }}
+                >
+                  <div className="prop-pop-label">{t('board.taskModal.estimateLabel')}</div>
+                  <input
+                    autoFocus
+                    className="input"
+                    type="number"
+                    min={0}
+                    max={FE_LIMITS.ESTIMATE_MAX}
+                    value={task.estimate ?? ''}
+                    aria-label={t('board.taskModal.estimateLabel')}
+                    placeholder={t('board.taskModal.estimateLabel')}
+                    inputMode="numeric"
+                    onChange={(e) => { const v = sanitizeIntegerInput(e.target.value); const n = Number(v); update({ estimate: v === '' ? undefined : Math.min(FE_LIMITS.ESTIMATE_MAX, Math.max(0, n)) }); }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') setEstimateOpen(false);
+                      else if (!isDigitKey(e.key)) e.preventDefault();
+                    }}
+                  />
+                </div>,
+                document.body,
+              )}
+              <PropRow
+                propKey="actual"
+                label={t('board.taskModal.actualLabel')}
+                hot={false}
+                setHot={setHotProp}
+                canEdit={false}
+                view={(
+                  <span style={{ fontSize: 13, color: task.actualHours != null ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
+                    {task.actualHours != null ? `${task.actualHours}h` : '—'}
+                  </span>
+                )}
+                control={<span />}
+              />
+              <div
+                data-blocked-row
+                data-prop="blockedBy"
+                data-hot={(hotProp === 'blockedBy' || pickingBlocker) || undefined}
+                className="prop"
+                style={{ fontSize: 13 }}
+                onMouseEnter={() => { if (canEdit && !pickingBlocker) setHotProp('blockedBy'); }}
+                onMouseLeave={(e) => { if (!e.currentTarget.contains(document.activeElement) && !document.querySelector('.ss-panel')) { setHotProp(null); setPickingBlocker(false); } }}
+                onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null) && !document.querySelector('.ss-panel')) { setHotProp(null); setPickingBlocker(false); } }}
+                onKeyDown={(e) => { if (e.key === 'Escape') { setHotProp(null); setPickingBlocker(false); } }}
+              >
+                <span className="prop-label">Blocked by</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, flex: 1, minWidth: 0, alignItems: 'center', order: 2, flexBasis: '100%' }}>
+                  {canEdit && (hotProp === 'blockedBy' || pickingBlocker) ? (
+                    <>
+                      {blockedTasks.map((bt) => blockerChip(bt, true))}
+                      {pickingBlocker ? (
+                        <SearchableSelect defaultOpen id="blockedBy-picker" label="" value={null} options={otherTasks.filter(ot => !task.blockedBy.includes(ot.id)).map(ot => ({ value: ot.id, label: ot.title }))} onChange={(v) => { if (v) { toggleBlocker(v); setPickingBlocker(false); } }} />
+                      ) : (
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPickingBlocker(true)}>+ Add</button>
+                      )}
+                    </>
+                  ) : canEdit ? (
+                    <button type="button" className="prop-view" onClick={() => setHotProp('blockedBy')}>
+                      {blockedTasks.length > 0 ? blockedTasks.map((bt) => blockerChip(bt, false)) : <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>}
+                    </button>
                   ) : (
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setActiveField('blockedBy')}>+ Add</button>
-                  ))}
+                    <>{blockedTasks.length > 0 ? blockedTasks.map((bt) => blockerChip(bt, false)) : <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>}</>
+                  )}
                 </div>
+                {canEdit && <span className="prop-chev" aria-hidden="true">›</span>}
               </div>
               {cycleWarn && <InlineError>{cycleWarn}</InlineError>}
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                  <ListChecks size={12} aria-hidden="true" /> Test cases
-                </span>
-                <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                  {testCases.length === 0 ? 'No linked' : `${testCases.length} linked`}
-                </span>
-              </div>
+              <PropRow
+                propKey="testCases"
+                label={t('board.taskModal.testCasesLabel')}
+                hot={false}
+                setHot={setHotProp}
+                canEdit={false}
+                view={(
+                  <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                    {testCases.length === 0 ? '—' : `${testCases.length} linked`}
+                  </span>
+                )}
+                control={<span />}
+              />
+      </>}
+    >
+            {canEdit ? (
+              <textarea
+                ref={titleRef}
+                className="composer-title"
+                rows={1}
+                value={task.title}
+                autoFocus
+                maxLength={LIMITS.TASK_TITLE}
+                onChange={(e) => update({ title: e.target.value })}
+                aria-label={t('board.taskModal.titleLabel')}
+                placeholder={t('board.taskModal.untitled')}
+              />
+            ) : (
+              <h3
+                className="detail-title"
+                style={{ padding: '4px 6px', margin: '-4px -6px' }}
+              >
+                {task.title || <DetailEmpty>Untitled task</DetailEmpty>}
+              </h3>
+            )}
+            <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
+              <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                <Clock size={12} aria-hidden="true" /> {t('issues.modal.createdTimeLabel')}
+              </span>
+              <span style={{ color: 'var(--text-secondary)' }}>{formatDate(task.createdAt)} {new Date(task.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
+            <MarkdownField
+              label={t('board.taskModal.descriptionLabel')}
+              icon={FileText}
+              value={task.description}
+              onChange={(v) => update({ description: v })}
+              placeholder={t('board.newTaskModal.descriptionLabel')}
+              maxLength={10000}
+              rows={4}
+              variant="bare"
+              previewToggle
+            />
+            {doneWarn && <InlineError>{doneWarn}</InlineError>}
+
             <h4 className="detail-subtitle">Activity</h4>
             <ActivityList projectId={projectId} entity="tasks" entityId={task.id} />
             <p className="field-helper">Updated {formatRelative(task.updatedAt)}</p>
-          </>
-        </div>
-    </Modal>
-    {fullscreenField === 'description' && (
-        <Modal
-          open
-          title={`${t('board.taskModal.descriptionLabel')} — Fullscreen`}
-          onClose={() => setFullscreenField(null)}
-          width="lg"
-          className="modal-fullscreen"
-        >
-          <div className="field">
-            <div className="issue-fullscreen-split" style={{ display: 'flex', gap: 16, flex: 1, minHeight: 0, alignItems: 'stretch' }}>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('tracker:issues.modal.editTab')}</div>
-                <textarea
-                  className="textarea"
-                  style={{ flex: 1, minHeight: 0, height: '100%', resize: 'none' }}
-                  value={task.description}
-                  autoFocus={canEdit}
-                  readOnly={!canEdit}
-                  placeholder={t('board.newTaskModal.descriptionLabel')}
-                  onChange={(e) => canEdit && update({ description: e.target.value })}
-                  aria-label={t('board.taskModal.descriptionLabel')}
-                  maxLength={10000}
-                />
-              </div>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('tracker:issues.modal.previewTab')}</div>
-                <div className="md-preview" style={{ flex: 1, minHeight: 0, height: '100%', overflow: 'auto' }}>
-                  {task.description.trim() ? (
-                    <MarkdownBlocks text={task.description} />
-                  ) : (
-                    <span className="md-preview-empty">{t('project:prd.nothingToPreview')}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-              <p className="field-helper" style={{ margin: 0 }}>{canEdit ? t('tracker:issues.modal.fullscreenHelper') : t('tracker:issues.modal.fullscreenHelperReadOnly')}</p>
-              <span style={{ fontSize: 11, color: task.description.length > 9000 ? 'var(--status-danger)' : task.description.length > 8000 ? 'var(--status-warn)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                {task.description.length.toLocaleString()} / {(10000).toLocaleString()}
-              </span>
-            </div>
-          </div>
-        </Modal>
-      )}
+    </DetailShell>
     <ConfirmDeleteDialog
       open={confirmOpen}
       title="Delete task?"

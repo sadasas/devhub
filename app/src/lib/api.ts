@@ -268,6 +268,12 @@ export const api = {
       body: JSON.stringify({ timelineOrder }),
       headers: version !== undefined ? { 'If-Match': `"${version}"` } : undefined,
     }),
+  patchErdLayout: (projectId: string, erdLayout: Record<string, { x: number; y: number }>, version?: number) =>
+    request<{ ok: true; version: number }>(`/projects/${encodeURIComponent(projectId)}/erd-layout`, {
+      method: 'PATCH',
+      body: JSON.stringify({ erdLayout }),
+      headers: version !== undefined ? { 'If-Match': `"${version}"` } : undefined,
+    }),
 
   exportProjectDoc: (projectId: string) =>
     request<ExportDocument>(`/projects/${encodeURIComponent(projectId)}/export`),

@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
-import { Trash, Tag, Clock, FileText, ArrowsOutSimple } from '@phosphor-icons/react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { CheckCircle, Clock, FileText, Trash } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
-import { TECH_CATEGORY, TECH_STATUS } from '../../lib/labels';
+import { TECH_CATEGORY } from '../../lib/labels';
 import { formatDate, formatRelative } from '../../lib/utils';
 import type { TechEntry, TechEntryCategory, TechStatus } from '../../lib/types';
 import type { UpdatePatch } from '../../state/project-context';
@@ -11,52 +12,180 @@ import { ActivityList } from '../../components/ActivityList';
 import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { DetailEmpty } from '../../components/DetailList';
-import { Modal } from '../../components/Modal';
+import { DetailShell } from '../../components/DetailShell';
+import { MarkdownField } from '../../components/MarkdownField';
+import { PropRow } from '../../components/PropRow';
+import { SearchableSelect } from '../../components/SearchableSelect';
 import { MarkdownBlocks } from '../../lib/markdown';
-
-type ActiveField = 'name' | 'version' | 'category' | 'status' | 'notes' | null;
+import { FE_LIMITS } from '../../lib/limits';
 
 interface TechModalProps {
   entryId: string | null;
   onClose: () => void;
 }
 
+const CATEGORY_OPTIONS: TechEntryCategory[] = ['frontend', 'backend', 'database', 'tooling'];
+const STATUS_OPTIONS: TechStatus[] = ['current', 'updateAvailable', 'majorUpgrade'];
+
 export function TechModal({ entryId, onClose }: TechModalProps) {
-  const { t } = useTranslation(['project','tracker']);
-  const { state, dispatch, canEdit, projectId } = useProject();
-  const [activeField, setActiveField] = useState<ActiveField>(null);
+  const { t } = useTranslation(['project', 'tracker']);
+  const { state, dispatch, canEdit, projectId, saving, lastSavedAt } = useProject();
+  const [hotProp, setHotProp] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [fullscreenField, setFullscreenField] = useState<ActiveField>(null);
-  const { t: tTracker } = useTranslation('tracker');
+  const nameRef = useRef<HTMLTextAreaElement | null>(null);
+  const [versionPopup, setVersionPopup] = useState<{ anchor: { top: number; bottom: number; left: number } } | null>(null);
+  const [versionPos, setVersionPos] = useState<{ top: number; left: number } | null>(null);
+  const versionPopRef = useRef<HTMLDivElement | null>(null);
+  const [versionDraft, setVersionDraft] = useState<string | null>(null);
+  const versionCancelRef = useRef(false);
 
   useEffect(() => {
-    setActiveField(null);
+    setHotProp(null);
     setConfirmOpen(false);
-    setFullscreenField(null);
+    setVersionPopup(null);
+    setVersionPos(null);
+    setVersionDraft(null);
+    versionCancelRef.current = false;
   }, [entryId]);
+
+  // Nama autogrow tanpa batas — yang scroll .composer-scroll, bukan textarea.
+  useLayoutEffect(() => {
+    const ta = nameRef.current;
+    if (ta) {
+      ta.style.height = 'auto';
+      ta.style.height = `${ta.scrollHeight}px`;
+    }
+  });
 
   const entry = entryId ? state?.techEntries.find((x) => x.id === entryId) : undefined;
   usePresenceStatus('Editing tech entry', entry != null);
-  if (!state || !entry) return null;
 
   const update = (patch: UpdatePatch<TechEntry>) => {
+    if (!entry) return;
     dispatch({ type: 'tech/update', id: entry.id, patch });
   };
+
+  // Ukur tinggi asli panel setelah render (sebelum paint) lalu tempelkan ke pill.
+  const measureVersionPopup = useCallback(() => {
+    if (!versionPopup) return;
+    const h = versionPopRef.current?.offsetHeight ?? 0;
+    const w = 240;
+    const below = versionPopup.anchor.bottom + 6;
+    const fitsBelow = window.innerHeight - below >= h + 8;
+    const next = {
+      top: fitsBelow ? below : Math.max(8, versionPopup.anchor.top - h - 6),
+      left: Math.max(8, Math.min(versionPopup.anchor.left, window.innerWidth - w - 8)),
+    };
+    setVersionPos((prev) => (prev && prev.top === next.top && prev.left === next.left ? prev : next));
+  }, [versionPopup]);
+
+  useLayoutEffect(() => {
+    if (versionPopup) measureVersionPopup();
+  }, [versionPopup, measureVersionPopup]);
+
+  useEffect(() => {
+    if (!versionPopup) return;
+    window.addEventListener('resize', measureVersionPopup);
+    return () => window.removeEventListener('resize', measureVersionPopup);
+  }, [versionPopup, measureVersionPopup]);
+
+  useEffect(() => {
+    if (!versionPopup) return;
+    const onDown = (e: PointerEvent) => {
+      const target = e.target as Element | null;
+      if (versionPopRef.current?.contains(target as Node) || target?.closest?.('[data-pop-anchor="version"]')) return;
+      if (!versionCancelRef.current && versionDraft !== null && entry && versionDraft !== entry.version) {
+        dispatch({ type: 'tech/update', id: entry.id, patch: { version: versionDraft } });
+      }
+      setVersionPopup(null);
+      setVersionDraft(null);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        versionCancelRef.current = true;
+        setVersionPopup(null);
+        setVersionDraft(null);
+      }
+    };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [versionPopup, versionDraft, entry, dispatch]);
+
+  // Satu popup dalam satu waktu: buka version menutup baris hot, dan sebaliknya.
+  useEffect(() => {
+    if (hotProp && versionPopup) {
+      setVersionPopup(null);
+      setVersionDraft(null);
+    }
+  }, [hotProp, versionPopup]);
+
+  if (!state || !entry) return null;
 
   const remove = () => {
     dispatch({ type: 'tech/remove', id: entry.id });
     onClose();
   };
 
+  const categoryTone = TECH_CATEGORY[entry.category].tone;
+  const categoryBg =
+    categoryTone === 'info'
+      ? 'var(--status-info-dim)'
+      : categoryTone === 'accent'
+        ? 'var(--accent-dim)'
+        : categoryTone === 'warn'
+          ? 'var(--status-warn-dim)'
+          : 'var(--bg-inset)';
+
+  const statusBg =
+    entry.status === 'current'
+      ? 'var(--status-success-dim)'
+      : entry.status === 'majorUpgrade'
+        ? 'var(--status-danger-dim)'
+        : 'var(--status-warn-dim)';
+
+  function openVersionPopup(anchor: HTMLElement) {
+    if (!entry) return;
+    versionCancelRef.current = false;
+    setHotProp(null);
+    setVersionDraft(entry.version);
+    const r = anchor.getBoundingClientRect();
+    setVersionPopup({ anchor: { top: r.top, bottom: r.bottom, left: r.left } });
+    setVersionPos(null);
+  }
+
+  const commitVersionDraft = () => {
+    if (versionCancelRef.current) return;
+    if (versionDraft !== null && versionDraft !== entry.version) {
+      update({ version: versionDraft });
+    }
+    setVersionPopup(null);
+    setVersionDraft(null);
+  };
+
+  const cancelVersionDraft = () => {
+    versionCancelRef.current = true;
+    setVersionPopup(null);
+    setVersionDraft(null);
+  };
+
+  const versionLabel = t('stack.techModal.versionLabel');
+  const versionView = entry.version ? (
+    <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>{entry.version}</span>
+  ) : (
+    <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>—</span>
+  );
+
   return (
-    <>
-      <Modal
-        open={entryId !== null}
-        title={t('stack.techModal.viewTitle')}
-        onClose={fullscreenField ? () => setFullscreenField(null) : onClose}
-        width="lg"
-        footer={
-          canEdit ? (
+    <DetailShell
+      title={t('stack.techModal.viewTitle')}
+      onClose={onClose}
+      footer={
+        canEdit ? (
+          <>
             <Button
               variant="danger"
               size="sm"
@@ -65,180 +194,198 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
             >
               {t('stack.techModal.delete')}
             </Button>
-          ) : undefined
-        }
-      >
-        <div className="form-stack">
-          <>
-            {activeField === 'name' && canEdit ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
-                <input
-                  className="input"
-                  value={entry.name}
-                  autoFocus
-                  maxLength={300}
-                  required
-                  onChange={(e) => update({ name: e.target.value })}
-                  onBlur={() => setActiveField(null)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') setActiveField(null); if (e.key === 'Escape') setActiveField(null); }}
-                  aria-label={t('stack.techModal.nameLabel')}
-                />
-                <span style={{ fontSize: 11, color: entry.name.length > 270 ? 'var(--status-danger)' : entry.name.length > 240 ? 'var(--status-warn)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)', alignSelf: 'flex-end' }}>{entry.name.length.toLocaleString()} / {(300).toLocaleString()}</span>
-              </div>
-            ) : (
-              <h3
-                className="detail-title"
-                onClick={() => canEdit && setActiveField('name')}
-                style={{ cursor: canEdit ? 'text' : undefined, padding: '4px 6px', margin: '-4px -6px', borderRadius: 6 }}
-                onMouseEnter={(e) => { if (canEdit) (e.currentTarget as HTMLElement).style.background = 'var(--bg-inset)'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-                title={canEdit ? t('issues.modal.clickToEdit') : undefined}
-                role={canEdit ? 'button' : undefined}
-                tabIndex={canEdit ? 0 : undefined}
-                onKeyDown={(e) => { if (canEdit && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setActiveField('name'); } }}
-              >
-                {entry.name || <DetailEmpty>{t('stack.techModal.noNotes')}</DetailEmpty>}
-              </h3>
+            {(saving || lastSavedAt) && (
+              <span className="save-state" role="status">
+                {saving ? (
+                  t('tracker:board.taskModal.autosaveSaving')
+                ) : (
+                  <>
+                    <CheckCircle size={13} weight="bold" aria-hidden="true" />
+                    {t('tracker:board.taskModal.autosaveSaved')}
+                  </>
+                )}
+              </span>
             )}
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '4px 0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                  <Clock size={12} aria-hidden="true" /> {tTracker('issues.modal.createdTimeLabel')}
-                </span>
-                <span style={{ color: 'var(--text-secondary)' }}>{formatDate(entry.createdAt)} {new Date(entry.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                  <Tag size={12} aria-hidden="true" /> {t('stack.techModal.categoryLabel')}
-                </span>
-                {activeField === 'category' && canEdit ? (
-                  <select className="select" style={{ width: 160 }} value={entry.category} autoFocus onChange={(e) => { update({ category: e.target.value as TechEntryCategory }); setActiveField(null); }} onBlur={() => setActiveField(null)}>
-                    <option value="frontend">{t('stack.optionCategory.frontend')}</option>
-                    <option value="backend">{t('stack.optionCategory.backend')}</option>
-                    <option value="database">{t('stack.optionCategory.database')}</option>
-                    <option value="tooling">{t('stack.optionCategory.tooling')}</option>
-                  </select>
-                ) : (
-                  <button type="button" onClick={() => canEdit && setActiveField('category')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 999, background: TECH_CATEGORY[entry.category].tone === 'info' ? 'var(--status-info-dim)' : TECH_CATEGORY[entry.category].tone === 'accent' ? 'var(--accent-dim)' : TECH_CATEGORY[entry.category].tone === 'warn' ? 'var(--status-warn-dim)' : 'var(--bg-inset)', border: 'none', cursor: canEdit ? 'pointer' : 'default', fontSize: 12 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: TECH_CATEGORY[entry.category].tone === 'info' ? 'var(--status-info)' : TECH_CATEGORY[entry.category].tone === 'accent' ? 'var(--accent)' : TECH_CATEGORY[entry.category].tone === 'warn' ? 'var(--status-warn)' : 'var(--text-muted)', flexShrink: 0 }} />
-                    {t(`stack.category.${entry.category}`)}
-                  </button>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                  <Tag size={12} aria-hidden="true" /> {t('stack.techModal.statusLabel')}
-                </span>
-                {activeField === 'status' && canEdit ? (
-                  <select className="select" style={{ width: 160 }} value={entry.status} autoFocus onChange={(e) => { update({ status: e.target.value as TechStatus }); setActiveField(null); }} onBlur={() => setActiveField(null)}>
-                    <option value="current">{t('stack.optionStatus.current')}</option>
-                    <option value="updateAvailable">{t('stack.optionStatus.updateAvailable')}</option>
-                    <option value="majorUpgrade">{t('stack.optionStatus.majorUpgrade')}</option>
-                  </select>
-                ) : (
-                  <button type="button" onClick={() => canEdit && setActiveField('status')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 999, background: entry.status === 'current' ? 'var(--status-success-dim)' : entry.status === 'majorUpgrade' ? 'var(--status-danger-dim)' : 'var(--status-warn-dim)', border: 'none', cursor: canEdit ? 'pointer' : 'default', fontSize: 12 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: TECH_STATUS[entry.status].tone === 'success' ? 'var(--status-success)' : TECH_STATUS[entry.status].tone === 'danger' ? 'var(--status-danger)' : 'var(--status-warn)', flexShrink: 0 }} />
-                    {t(`stack.statusBadge.${entry.status}`)}
-                  </button>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                  <Tag size={12} aria-hidden="true" /> {t('stack.techModal.versionLabel')}
-                </span>
-                {activeField === 'version' && canEdit ? (
-                  <input className="input" style={{ width: 160 }} value={entry.version} autoFocus onChange={(e) => update({ version: e.target.value.replace(/[^0-9.]/g, '') })} onBlur={() => setActiveField(null)} placeholder={t('stack.techModal.versionPlaceholder')} maxLength={100} inputMode="decimal" pattern="[0-9.]*" />
-                ) : (
-                  <button type="button" onClick={() => canEdit && setActiveField('version')} style={{ background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default', fontSize: 13, color: entry.version ? 'var(--text-secondary)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                    {entry.version || '—'}
-                  </button>
-                )}
-              </div>
-
-              <div style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', borderRadius: 8, padding: 16, marginTop: 8 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    <FileText size={12} aria-hidden="true" /> {t('stack.techModal.notesLabel')}
-                  </span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                    <button type="button" className="btn btn-ghost btn-sm btn-icon" aria-label={t('tracker:issues.modal.fullscreenAriaDescription')} title={t('tracker:issues.modal.fullscreenAriaDescription')} onClick={() => setFullscreenField('notes')}>
-                      <ArrowsOutSimple size={14} aria-hidden="true" />
-                    </button>
-                  </span>
-                </div>
-                {activeField === 'notes' && canEdit ? (
-                  <textarea
-                    className="textarea"
-                    value={entry.notes}
-                    autoFocus
-                    rows={4}
-                    placeholder={t('stack.newTechModal.notesPlaceholder')}
-                    onChange={(e) => update({ notes: e.target.value })}
-                    onBlur={() => setActiveField(null)}
-                    aria-label={t('stack.techModal.notesLabel')}
-                    maxLength={5000}
-                  />
-                ) : (
-                  <div
-                    onClick={() => canEdit && setActiveField('notes')}
-                    role={canEdit ? 'button' : undefined}
-                    tabIndex={canEdit ? 0 : undefined}
-                    onKeyDown={(e) => { if (canEdit && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setActiveField('notes'); } }}
-                    aria-label={canEdit ? 'Edit ' + t('stack.techModal.notesLabel') : undefined}
-                    style={{ cursor: canEdit ? 'text' : undefined, fontSize: 13, lineHeight: 1.6, color: entry.notes.trim() ? 'var(--text-secondary)' : 'var(--text-muted)', minHeight: 40, overflowWrap: 'anywhere' }}
-                  >
-                    {entry.notes.trim() ? <MarkdownBlocks text={entry.notes} /> : t('stack.techModal.noNotes')}
-                  </div>
-                )}
-                {activeField === 'notes' && canEdit && (
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
-                    <span style={{ fontSize: 11, color: entry.notes.length > 4500 ? 'var(--status-danger)' : entry.notes.length > 4000 ? 'var(--status-warn)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                      {entry.notes.length.toLocaleString()} / {(5000).toLocaleString()}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <h4 className="detail-subtitle">{t('stack.techModal.activity')}</h4>
-            <ActivityList projectId={projectId} entity="techEntries" entityId={entry.id} />
-            <p className="field-helper">{t('stack.techModal.updated', { time: formatRelative(entry.updatedAt) })}</p>
           </>
-        </div>
-      </Modal>
-      {fullscreenField === 'notes' && (
-        <Modal open title={`${t('stack.techModal.notesLabel')} — Fullscreen`} onClose={() => setFullscreenField(null)} width="lg" className="modal-fullscreen">
-          <div className="field">
-            <div className="issue-fullscreen-split" style={{ display: 'flex', gap: 16, flex: 1, minHeight: 0, alignItems: 'stretch' }}>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('tracker:issues.modal.editTab')}</div>
-                <textarea className="textarea" style={{ flex: 1, minHeight: 0, height: '100%', resize: 'none' }} value={entry.notes} autoFocus={canEdit} readOnly={!canEdit} onChange={(e) => canEdit && update({ notes: e.target.value })} maxLength={5000} aria-label={t('stack.techModal.notesLabel')} />
-              </div>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('tracker:issues.modal.previewTab')}</div>
-                <div className="md-preview" style={{ flex: 1, minHeight: 0, height: '100%', overflow: 'auto' }}>
-                  {entry.notes.trim() ? <MarkdownBlocks text={entry.notes} /> : <span className="md-preview-empty">{t('project:prd.nothingToPreview')}</span>}
-                </div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-              <p className="field-helper" style={{ margin: 0 }}>{canEdit ? t('tracker:issues.modal.fullscreenHelper') : t('tracker:issues.modal.fullscreenHelperReadOnly')}</p>
-              <span style={{ fontSize: 11, color: entry.notes.length > 4500 ? 'var(--status-danger)' : entry.notes.length > 4000 ? 'var(--status-warn)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{entry.notes.length.toLocaleString()} / {(5000).toLocaleString()}</span>
-            </div>
+        ) : undefined
+      }
+      sidebarHead={t('tracker:board.taskModal.propertiesLabel')}
+      sidebar={
+        <>
+          <PropRow
+            propKey="category"
+            label={t('stack.techModal.categoryLabel')}
+            hot={hotProp === 'category'}
+            setHot={setHotProp}
+            canEdit={canEdit}
+            view={(
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 999, background: categoryBg, fontSize: 12 }}>
+                {t(`stack.category.${entry.category}`)}
+              </span>
+            )}
+            control={(
+              <SearchableSelect
+                defaultOpen
+                searchable={false}
+                id="tech-category"
+                label=""
+                ariaLabel={t('stack.techModal.categoryLabel')}
+                value={entry.category}
+                allowEmpty={false}
+                options={CATEGORY_OPTIONS.map((c) => ({ value: c, label: t(`stack.optionCategory.${c}`) }))}
+                onChange={(v) => { if (v) { update({ category: v as TechEntryCategory }); setHotProp(null); } }}
+              />
+            )}
+          />
+          <PropRow
+            propKey="status"
+            label={t('stack.techModal.statusLabel')}
+            hot={hotProp === 'status'}
+            setHot={setHotProp}
+            canEdit={canEdit}
+            view={(
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 999, background: statusBg, fontSize: 12 }}>
+                {t(`stack.statusBadge.${entry.status}`)}
+              </span>
+            )}
+            control={(
+              <SearchableSelect
+                defaultOpen
+                searchable={false}
+                id="tech-status"
+                label=""
+                ariaLabel={t('stack.techModal.statusLabel')}
+                value={entry.status}
+                allowEmpty={false}
+                options={STATUS_OPTIONS.map((s) => ({ value: s, label: t(`stack.optionStatus.${s}`) }))}
+                onChange={(v) => { if (v) { update({ status: v as TechStatus }); setHotProp(null); } }}
+              />
+            )}
+          />
+          <div className="prop" data-prop="version">
+            <span className="prop-label">{versionLabel}</span>
+            {canEdit ? (
+              <button
+                type="button"
+                className="prop-view"
+                data-pop-anchor="version"
+                onClick={(e) => {
+                  if (versionPopup) {
+                    if (!versionCancelRef.current && versionDraft !== null && versionDraft !== entry.version) {
+                      update({ version: versionDraft });
+                    }
+                    setVersionPopup(null);
+                    setVersionDraft(null);
+                  } else {
+                    openVersionPopup(e.currentTarget);
+                  }
+                }}
+              >
+                {versionView}
+              </button>
+            ) : (
+              versionView
+            )}
+            {canEdit ? (
+              <span className="prop-chev" aria-hidden="true">
+                ›
+              </span>
+            ) : null}
           </div>
-        </Modal>
+          {versionPopup && createPortal(
+            <div
+              ref={versionPopRef}
+              className="prop-menu prop-pop"
+              role="dialog"
+              tabIndex={-1}
+              aria-label={versionLabel}
+              style={versionPos ? { top: versionPos.top, left: versionPos.left } : { visibility: 'hidden' }}
+            >
+              <div className="prop-pop-label">{versionLabel}</div>
+              <input
+                autoFocus
+                className="input"
+                value={versionDraft ?? ''}
+                onChange={(e) => setVersionDraft(e.target.value.replace(/[^0-9.]/g, ''))}
+                placeholder={t('stack.techModal.versionPlaceholder')}
+                maxLength={FE_LIMITS.TECH_VERSION}
+                inputMode="decimal"
+                pattern="[0-9.]*"
+                aria-label={versionLabel}
+                onBlur={() => { if (!versionCancelRef.current) commitVersionDraft(); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); commitVersionDraft(); }
+                  else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cancelVersionDraft(); }
+                }}
+              />
+            </div>,
+            document.body,
+          )}
+        </>
+      }
+      after={(
+        <ConfirmDeleteDialog
+          open={confirmOpen}
+          title={t('stack.techModal.deleteConfirmTitle')}
+          description={t('stack.techModal.deleteConfirmBody')}
+          onClose={() => setConfirmOpen(false)}
+          onConfirm={remove}
+        />
       )}
-      <ConfirmDeleteDialog
-        open={confirmOpen}
-        title={t('stack.techModal.deleteConfirmTitle')}
-        description={t('stack.techModal.deleteConfirmBody')}
-        onClose={() => setConfirmOpen(false)}
-        onConfirm={remove}
-      />
-    </>
+    >
+      {canEdit ? (
+        <textarea
+          ref={nameRef}
+          className="composer-title"
+          rows={1}
+          value={entry.name}
+          autoFocus
+          maxLength={FE_LIMITS.TECH_NAME}
+          onChange={(e) => update({ name: e.target.value })}
+          aria-label={t('stack.techModal.nameLabel')}
+          placeholder={t('stack.newTechModal.namePlaceholder')}
+        />
+      ) : (
+        <h3
+          className="detail-title"
+          style={{ padding: '4px 6px', margin: '-4px -6px' }}
+        >
+          {entry.name || <DetailEmpty>{t('stack.techModal.noNotes')}</DetailEmpty>}
+        </h3>
+      )}
+      <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
+        <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+          <Clock size={12} aria-hidden="true" /> {t('tracker:issues.modal.createdTimeLabel')}
+        </span>
+        <span style={{ color: 'var(--text-secondary)' }}>{formatDate(entry.createdAt)} {new Date(entry.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+      </div>
+      {canEdit ? (
+        <MarkdownField
+          label={t('stack.techModal.notesLabel')}
+          icon={FileText}
+          value={entry.notes}
+          onChange={(v) => update({ notes: v })}
+          placeholder={t('stack.newTechModal.notesPlaceholder')}
+          maxLength={FE_LIMITS.TECH_NOTES}
+          rows={4}
+          variant="bare"
+          previewToggle
+        />
+      ) : (
+        <div className="md-bare">
+          <div className="md-bare-head">
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <FileText size={12} aria-hidden="true" /> {t('stack.techModal.notesLabel')}
+            </span>
+          </div>
+          <div style={{ fontSize: 13, lineHeight: 1.6, color: entry.notes.trim() ? 'var(--text-secondary)' : 'var(--text-muted)', minHeight: 40, overflowWrap: 'anywhere' }}>
+            {entry.notes.trim() ? <MarkdownBlocks text={entry.notes} /> : t('stack.techModal.noNotes')}
+          </div>
+        </div>
+      )}
+      <h4 className="detail-subtitle">{t('stack.techModal.activity')}</h4>
+      <ActivityList projectId={projectId} entity="techEntries" entityId={entry.id} />
+      <p className="field-helper">{t('stack.techModal.updated', { time: formatRelative(entry.updatedAt) })}</p>
+    </DetailShell>
   );
 }

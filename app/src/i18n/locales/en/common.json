@@ -140,8 +140,8 @@
     "startsPrefix": "Starts {{date}}"
   },
   "due": {
-    "overdueDays_one": "Overdue {{count}}d",
-    "overdueDays_other": "Overdue {{count}}d",
+    "overdueDays_one": "OD {{count}}d",
+    "overdueDays_other": "OD {{count}}d",
     "today": "Due today",
     "tomorrow": "Due tomorrow",
     "dated": "Due {{date}}",

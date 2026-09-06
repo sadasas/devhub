@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Bug, FileText, WarningCircle } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
@@ -7,9 +7,12 @@ import type { IssueSeverity } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { Button } from '../../components/Button';
-import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { SearchableSelect } from '../../components/SearchableSelect';
 import { MarkdownField } from '../../components/MarkdownField';
+import { LIMITS } from '../../lib/limits';
+
+const SEVERITY_OPTIONS: IssueSeverity[] = ['critical', 'high', 'medium', 'low'];
 
 interface NewIssueModalProps {
   open: boolean;
@@ -21,18 +24,30 @@ export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
   const { t } = useTranslation(['tracker', 'project']);
   usePresenceStatus(t('issues.newModal.presenceCreating'), open);
   const [title, setTitle] = useState('');
-  const [severity, setSeverity] = useState<IssueSeverity>('medium');
+  const [severity, setSeverity] = useState<IssueSeverity | ''>('');
   const [description, setDescription] = useState('');
   const [reproduction, setReproduction] = useState('');
+  const titleRef = useRef<HTMLTextAreaElement | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const barRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!open) {
       setTitle('');
-      setSeverity('medium');
+      setSeverity('');
       setDescription('');
       setReproduction('');
     }
   }, [open]);
+
+  // Judul autogrow tanpa batas — yang scroll .composer-scroll, bukan textarea.
+  useLayoutEffect(() => {
+    const ta = titleRef.current;
+    if (ta) {
+      ta.style.height = 'auto';
+      ta.style.height = `${ta.scrollHeight}px`;
+    }
+  });
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -45,7 +60,7 @@ export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
         createdAt: ts,
         updatedAt: ts,
         title: title.trim(),
-        severity,
+        severity: severity === '' ? 'medium' : severity,
         status: 'open',
         description: description.trim(),
         reproduction: reproduction.trim(),
@@ -53,7 +68,7 @@ export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
       },
     });
     setTitle('');
-    setSeverity('medium');
+    setSeverity('');
     setDescription('');
     setReproduction('');
     onClose();
@@ -65,6 +80,7 @@ export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
       title={t('issues.newModal.title')}
       onClose={onClose}
       width="lg"
+      className="modal-composer"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
@@ -76,63 +92,69 @@ export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
         </>
       }
     >
-      <form id="new-issue-form" className="form-stack" onSubmit={onSubmit} noValidate>
-        <Input
-          label={t('issues.newModal.titleLabel')}
-          required
-          autoFocus
-          placeholder={t('issues.newModal.titlePlaceholder')}
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          maxLength={500}
-        />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '4px 0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-            <span
-              style={{
-                width: 110,
-                color: 'var(--text-muted)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: 12,
-              }}
-            >
-              <WarningCircle size={12} aria-hidden="true" /> {t('issues.newModal.severityLabel')}
-            </span>
-            <select
-              id="new-issue-severity"
-              className="select"
-              style={{ width: 160 }}
-              value={severity}
-              onChange={(e) => setSeverity(e.target.value as IssueSeverity)}
-            >
-              <option value="critical">{t('issues.severity.critical')}</option>
-              <option value="high">{t('issues.severity.high')}</option>
-              <option value="medium">{t('issues.severity.medium')}</option>
-              <option value="low">{t('issues.severity.low')}</option>
-            </select>
-          </div>
-
+      <form id="new-issue-form" className="composer-form" onSubmit={onSubmit} noValidate>
+        <div
+          className="composer-scroll"
+          ref={scrollRef}
+          onScroll={(e) => {
+            barRef.current?.classList.toggle('is-stuck', (e.target as HTMLDivElement).scrollTop > 4);
+          }}
+        >
+          <textarea
+            ref={titleRef}
+            className="composer-title"
+            rows={1}
+            required
+            autoFocus
+            placeholder={t('issues.newModal.titlePlaceholder')}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={LIMITS.ISSUE_TITLE}
+            aria-label={t('issues.newModal.titleLabel')}
+          />
           <MarkdownField
             label={t('issues.modal.descriptionLabel')}
             icon={FileText}
             value={description}
             onChange={setDescription}
             placeholder={t('issues.newModal.descriptionPlaceholder')}
-            maxLength={10000}
+            maxLength={LIMITS.ISSUE_DESCRIPTION}
             rows={4}
+            variant="bare"
+            previewToggle
           />
-
           <MarkdownField
             label={t('issues.newModal.reproductionStepsLabel')}
             icon={Bug}
             value={reproduction}
             onChange={setReproduction}
             placeholder={t('issues.newModal.reproductionPlaceholder')}
-            maxLength={10000}
+            maxLength={LIMITS.ISSUE_REPRODUCTION}
             rows={4}
+            variant="bare"
+            previewToggle
           />
+        </div>
+        <div className="composer-propbar" ref={barRef}>
+          <span
+            className="prop"
+            data-prop="severity"
+            data-label={t('issues.newModal.severityLabel')}
+          >
+            <span className="prop-ic" aria-hidden="true"><WarningCircle size={14} /></span>
+            <span className="sr-only">{t('issues.newModal.severityLabel')}</span>
+            <SearchableSelect
+              id="new-issue-severity"
+              label=""
+              ariaLabel={t('issues.newModal.severityLabel')}
+              searchable={false}
+              value={severity || null}
+              allowEmpty={false}
+              triggerEmptyLabel={t('issues.newModal.severityLabel')}
+              options={SEVERITY_OPTIONS.map((s) => ({ value: s, label: t(`issues.severity.${s}`) }))}
+              onChange={(v) => { if (v) setSeverity(v as IssueSeverity); }}
+            />
+          </span>
         </div>
       </form>
     </Modal>

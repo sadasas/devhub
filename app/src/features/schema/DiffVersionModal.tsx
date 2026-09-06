@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
-import { Minus, Plus } from '@phosphor-icons/react';
+import { Minus, PencilSimple, Plus } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
-import type { SchemaVersion } from '../../lib/types';
+import type { Relation, SchemaSnapshot, SchemaVersion } from '../../lib/types';
 import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { columnLabel, diffSnapshots } from './schema-diff';
+import { relationLabel } from '../../lib/utils';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 
 interface DiffVersionModalProps {
@@ -34,6 +35,12 @@ export function DiffVersionModal({ open, versions, onClose }: DiffVersionModalPr
     [from, to],
   );
   const empty = !from || !to || from.id === to.id;
+  const humanRelation = (r: Relation, snap: SchemaSnapshot | null | undefined): string =>
+    t('schema.diffModal.itemRelationHuman', {
+      label: relationDisplayLabel(r, snap),
+      cardinality: r.cardinality,
+      onDelete: r.onDelete,
+    });
 
   return (
     <Modal open={open} title={t('schema.diffModal.title')} onClose={onClose} width="lg" footer={<Button variant="ghost" onClick={onClose}>{t('schema.diffModal.close')}</Button>}>
@@ -100,14 +107,41 @@ export function DiffVersionModal({ open, versions, onClose }: DiffVersionModalPr
             <DiffSection
               title={t('schema.diffModal.relationsAdded', { count: diff.relationsAdded.length })}
               tone="added"
-              items={diff.relationsAdded.map((r) => t('schema.diffModal.itemRelation', { cardinality: r.cardinality, id: r.id.slice(0, 8) }))}
+              items={diff.relationsAdded.map((r) => humanRelation(r, to?.snapshot))}
             />
           )}
           {diff.relationsRemoved.length > 0 && (
             <DiffSection
               title={t('schema.diffModal.relationsRemoved', { count: diff.relationsRemoved.length })}
               tone="removed"
-              items={diff.relationsRemoved.map((r) => t('schema.diffModal.itemRelation', { cardinality: r.cardinality, id: r.id.slice(0, 8) }))}
+              items={diff.relationsRemoved.map((r) => humanRelation(r, from?.snapshot))}
+            />
+          )}
+          {diff.tablesModified.length > 0 && (
+            <DiffSection
+              title={t('schema.diffModal.tablesModified', { count: diff.tablesModified.length })}
+              tone="modified"
+              items={diff.tablesModified.map((m) => ({ label: m.table.name, details: m.changes }))}
+            />
+          )}
+          {diff.columnsModified.length > 0 && (
+            <DiffSection
+              title={t('schema.diffModal.columnsModified', { count: diff.columnsModified.length })}
+              tone="modified"
+              items={diff.columnsModified.map((m) => ({
+                label: `${m.tableName}.${columnLabel(m.column)}`,
+                details: m.changes,
+              }))}
+            />
+          )}
+          {diff.relationsChanged.length > 0 && (
+            <DiffSection
+              title={t('schema.diffModal.relationsChanged', { count: diff.relationsChanged.length })}
+              tone="modified"
+              items={diff.relationsChanged.map((m) => ({
+                label: humanRelation(m.relation, to?.snapshot),
+                details: m.changes,
+              }))}
             />
           )}
           {diff.tablesAdded.length === 0 &&
@@ -115,7 +149,10 @@ export function DiffVersionModal({ open, versions, onClose }: DiffVersionModalPr
             diff.columnsAdded.length === 0 &&
             diff.columnsRemoved.length === 0 &&
             diff.relationsAdded.length === 0 &&
-            diff.relationsRemoved.length === 0 && (
+            diff.relationsRemoved.length === 0 &&
+            diff.tablesModified.length === 0 &&
+            diff.columnsModified.length === 0 &&
+            diff.relationsChanged.length === 0 && (
               <p className="diff-empty">{t('schema.diffModal.noDifferences')}</p>
             )}
         </div>
@@ -124,33 +161,81 @@ export function DiffVersionModal({ open, versions, onClose }: DiffVersionModalPr
   );
 }
 
+type DiffItem = string | { label: string; details?: string[] };
+
+type DiffTone = 'added' | 'removed' | 'modified';
+
 function DiffSection({
   title,
   tone,
   items,
 }: {
   title: string;
-  tone: 'added' | 'removed';
-  items: string[];
+  tone: DiffTone;
+  items: DiffItem[];
 }) {
+  const ToneIcon = tone === 'added' ? Plus : tone === 'removed' ? Minus : PencilSimple;
   return (
     <section className="diff-section">
       <h4 className="diff-section-title">
         <span className={`diff-tone diff-tone-${tone}`} aria-hidden="true">
-          {tone === 'added' ? <Plus size={12} weight="bold" /> : <Minus size={12} weight="bold" />}
+          <ToneIcon size={12} weight="bold" />
         </span>
         {title}
       </h4>
       <ul className="diff-section-list">
-        {items.map((item) => (
-          <li key={item} className={`diff-row diff-row-${tone}`}>
-            <span className={`diff-tone diff-tone-${tone}`} aria-hidden="true">
-              {tone === 'added' ? <Plus size={12} weight="bold" /> : <Minus size={12} weight="bold" />}
-            </span>
-            <span className="font-mono">{item}</span>
-          </li>
-        ))}
+        {items.map((entry, idx) => {
+          const label = typeof entry === 'string' ? entry : entry.label;
+          const details = typeof entry === 'string' ? undefined : entry.details;
+          if (!details || details.length === 0) {
+            return (
+              <li key={`${label}::${idx}`} className={`diff-row diff-row-${tone}`}>
+                <span className={`diff-tone diff-tone-${tone}`} aria-hidden="true">
+                  <ToneIcon size={12} weight="bold" />
+                </span>
+                <span className="font-mono">{label}</span>
+              </li>
+            );
+          }
+          return (
+            <li key={`${label}::${idx}`} className={`diff-row diff-row-${tone} diff-row-stacked`}>
+              <span className="diff-row-head">
+                <span className={`diff-tone diff-tone-${tone}`} aria-hidden="true">
+                  <ToneIcon size={12} weight="bold" />
+                </span>
+                <span className="font-mono">{label}</span>
+              </span>
+              <ul className="diff-changes">
+                {details.map((change) => (
+                  <li key={change} className="font-mono diff-change">
+                    {change}
+                  </li>
+                ))}
+              </ul>
+            </li>
+          );
+        })}
       </ul>
     </section>
+  );
+}
+
+/**
+ * Resolve a human-readable `table.column → table.column` label for a relation
+ * from the compared snapshot (never live state). Falls back to the
+ * 8-char id prefix only when the table/column is missing in that snapshot
+ * (e.g. dropped on that side of the comparison).
+ */
+function relationDisplayLabel(r: Relation, snap: SchemaSnapshot | null | undefined): string {
+  const tables = snap?.tables ?? [];
+  const fromTable = tables.find((tb) => tb.id === r.fromTableId);
+  const toTable = tables.find((tb) => tb.id === r.toTableId);
+  const fromColumn = fromTable?.columns?.find((c) => c.id === r.fromColumnId);
+  const toColumn = toTable?.columns?.find((c) => c.id === r.toColumnId);
+  return relationLabel(
+    fromTable?.name ?? r.fromTableId.slice(0, 8),
+    fromColumn?.name ?? r.fromColumnId.slice(0, 8),
+    toTable?.name ?? r.toTableId.slice(0, 8),
+    toColumn?.name ?? r.toColumnId.slice(0, 8),
   );
 }

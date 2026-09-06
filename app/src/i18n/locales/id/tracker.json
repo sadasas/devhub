@@ -68,6 +68,7 @@
       "doneDateLabel": "Tanggal selesai",
       "estimateLabel": "Estimasi (jam)",
       "actualLabel": "Aktual",
+      "propertiesLabel": "Properti",
       "labelsLabel": "Label",
       "labelsPlaceholder": "contoh, dipisah koma",
       "descriptionLabel": "Deskripsi",
@@ -88,9 +89,23 @@
       "cannotMarkDone_one": "Tidak dapat menandai selesai: {{count}} test case belum lulus.",
       "cannotMarkDone_other": "Tidak dapat menandai selesai: {{count}} test case belum lulus.",
       "dateWarn": "Tanggal mulai berada setelah tanggal jatuh tempo.",
+      "dateLabel": "Tanggal",
       "cycleWarn": "Ini akan membuat siklus dependensi.",
       "deleteConfirmTitle": "Hapus task?",
-      "deleteConfirmBody": "Ini menghapus task secara permanen. Tindakan ini tidak dapat dibatalkan."
+      "deleteConfirmBody": "Ini menghapus task secara permanen. Tindakan ini tidak dapat dibatalkan.",
+      "autosaveSaving": "Menyimpan…",
+      "autosaveSaved": "Semua perubahan tersimpan"
+    },
+    "datePicker": {
+      "today": "Hari ini",
+      "cancel": "Batal",
+      "apply": "Terapkan",
+      "clear": "Hapus",
+      "prevMonth": "Bulan sebelumnya",
+      "nextMonth": "Bulan berikutnya",
+      "startLabel": "Mulai",
+      "endLabel": "Selesai",
+      "dialogLabel": "Pilih tanggal"
     },
     "newTaskModal": {
       "presenceCreating": "Membuat task",
@@ -108,7 +123,9 @@
       "labelsLabel": "Label",
       "labelsPlaceholder": "contoh, dipisah koma",
       "milestoneLabel": "Milestone",
-      "descriptionLabel": "Deskripsi"
+      "descriptionLabel": "Deskripsi",
+      "expandView": "Bentangkan layar penuh",
+      "contractView": "Keluar layar penuh"
     },
     "cal": {
       "viewLabel": "Tampilan kalender",

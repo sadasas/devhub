@@ -7,6 +7,7 @@ import type { UpdatePatch } from '../../state/project-context';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { FE_LIMITS } from '../../lib/limits';
+import { isUniqueIndex, toggleUnique } from './column-helpers';
 import { ActivityList } from '../../components/ActivityList';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
@@ -14,6 +15,7 @@ import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { DetailEmpty } from '../../components/DetailList';
 import { InlineError } from '../../components/InlineError';
 import { Modal } from '../../components/Modal';
+import { ColumnTypeCombobox } from './ColumnTypeCombobox';
 
 type ActiveField = 'name' | 'comment' | 'indexes' | null;
 
@@ -232,6 +234,8 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                         <span className="col-edit-check">{t('schema.table.captionNull')}</span>
                         <span className="col-edit-check">{t('schema.table.captionPk')}</span>
                         <span>{t('schema.table.captionDefault')}</span>
+                        <span>{t('schema.table.captionComment')}</span>
+                        <span className="col-edit-check">{t('schema.table.captionUnique')}</span>
                         <span />
                       </div>
                       {table.columns.map((c) => (
@@ -245,14 +249,12 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                             required
                             onChange={(e) => updateColumn(c.id, { name: e.target.value })}
                           />
-                          <input
-                            className="input"
-                            aria-label={t('schema.table.typeAria', { name: c.name || t('schema.table.fbColumn') })}
-                            placeholder={t('schema.table.typePlaceholder')}
+                          <ColumnTypeCombobox
+                            id={`col-type-${c.id}`}
                             value={c.type}
-                            maxLength={FE_LIMITS.COLUMN_TYPE}
-                            required
-                            onChange={(e) => updateColumn(c.id, { type: e.target.value })}
+                            onChange={(next) => updateColumn(c.id, { type: next })}
+                            ariaLabel={t('schema.table.typeAria', { name: c.name || t('schema.table.fbColumn') })}
+                            customAriaLabel={t('schema.table.typeCustomAria', { name: c.name || t('schema.table.fbColumn') })}
                           />
                           <label className="col-edit-check" title={t('schema.table.nullableTitle')}>
                             <input
@@ -278,6 +280,26 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                             maxLength={FE_LIMITS.COLUMN_DEFAULT}
                             onChange={(e) => updateColumn(c.id, { default: e.target.value || null })}
                           />
+                          <input
+                            className="input col-comment-input"
+                            aria-label={t('schema.table.columnCommentAria', { name: c.name || t('schema.table.fbColumn') })}
+                            placeholder={t('schema.table.columnCommentPlaceholder')}
+                            value={c.comment}
+                            maxLength={FE_LIMITS.COLUMN_COMMENT}
+                            onChange={(e) => updateColumn(c.id, { comment: e.target.value })}
+                          />
+                          <label
+                            className="col-edit-check"
+                            title={c.name.trim() === '' ? t('schema.table.uniqueDisabledTitle') : t('schema.table.uniqueTitle')}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isUniqueIndex(table.indexes, c.name)}
+                              disabled={c.name.trim() === ''}
+                              aria-label={t('schema.table.uniqueAria', { name: c.name || t('schema.table.fbUnnamed') })}
+                              onChange={() => update({ indexes: toggleUnique(table.indexes, c.name) })}
+                            />
+                          </label>
                           <Button
                             variant="ghost"
                             size="sm"

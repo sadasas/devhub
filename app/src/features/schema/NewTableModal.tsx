@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { FileText, Plus, Table, X } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { newId, nowIso } from '../../lib/utils';
+import { api } from '../../lib/api';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { Button } from '../../components/Button';
@@ -10,16 +11,25 @@ import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { MarkdownField } from '../../components/MarkdownField';
 import { FE_LIMITS } from '../../lib/limits';
+import { isUniqueIndex, toggleUnique } from './column-helpers';
+import { ColumnTypeCombobox } from './ColumnTypeCombobox';
 import type { Column } from '../../lib/types';
 
 interface NewTableModalProps {
   open: boolean;
   onClose: () => void;
+  /**
+   * U2: world-coords placement for the new node (viewport center from the
+   * canvas [+ Table] pill, or the dblclick point). Omitted → grid fallback.
+   */
+  initialPosition?: { x: number; y: number } | null;
+  /** U2: fired after a successful create so the caller can highlight + announce. */
+  onCreated?: (tableId: string, tableName: string) => void;
 }
 
-export function NewTableModal({ open, onClose }: NewTableModalProps) {
+export function NewTableModal({ open, onClose, initialPosition = null, onCreated }: NewTableModalProps) {
   const { t } = useTranslation('project');
-  const { dispatch } = useProject();
+  const { state, dispatch, projectId } = useProject();
   usePresenceStatus(t('schema.newTableModal.presenceCreating'), open);
   const [name, setName] = useState('');
   const [comment, setComment] = useState('');
@@ -41,6 +51,15 @@ export function NewTableModal({ open, onClose }: NewTableModalProps) {
     setColumns((prev) => prev.map((c) => (c.id === columnId ? { ...c, ...patch } : c)));
   };
 
+  // U7: indexesInput adalah string koma — toggle unique operasi pada array hasil split lalu join kembali.
+  const indexesList = indexesInput
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const toggleUniqueFor = (colName: string) => {
+    setIndexesInput(toggleUnique(indexesList, colName).join(', '));
+  };
+
   const addColumn = () => {
     setColumns((prev) => [...prev, { id: newId(), name: '', type: '', nullable: true, primaryKey: false, comment: '', default: null }]);
   };
@@ -56,6 +75,7 @@ export function NewTableModal({ open, onClose }: NewTableModalProps) {
     e.preventDefault();
     if (!name.trim()) return;
     const ts = nowIso();
+    const trimmedName = name.trim();
     const cleanedColumns = columns
       .filter((c) => c.name.trim() !== '')
       .map((c) => ({
@@ -69,18 +89,31 @@ export function NewTableModal({ open, onClose }: NewTableModalProps) {
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
+    const id = newId();
     dispatch({
       type: 'table/add',
       table: {
-        id: newId(),
+        id,
         createdAt: ts,
         updatedAt: ts,
-        name: name.trim(),
+        name: trimmedName,
         comment: comment.trim(),
         columns: cleanedColumns,
         indexes,
       },
     });
+    // U2: persist placement like handleMoveTable (dispatch is local-only for
+    // erdLayout — the bulk PATCH is what reaches the server).
+    if (initialPosition !== undefined && initialPosition !== null && Number.isFinite(initialPosition.x) && Number.isFinite(initialPosition.y)) {
+      const pos = {
+        x: Math.round(initialPosition.x * 10) / 10,
+        y: Math.round(initialPosition.y * 10) / 10,
+      };
+      dispatch({ type: 'erdLayout/set', tableId: id, pos });
+      const next = { ...(state?.erdLayout ?? {}), [id]: { ...pos } };
+      api.patchErdLayout(projectId, next).catch(() => {});
+    }
+    onCreated?.(id, trimmedName);
     onClose();
   }
 
@@ -154,6 +187,8 @@ export function NewTableModal({ open, onClose }: NewTableModalProps) {
                 <span className="col-edit-check">{t('schema.table.captionNull')}</span>
                 <span className="col-edit-check">{t('schema.table.captionPk')}</span>
                 <span>{t('schema.table.captionDefault')}</span>
+                <span>{t('schema.table.captionComment')}</span>
+                <span className="col-edit-check">{t('schema.table.captionUnique')}</span>
                 <span />
               </div>
               {columns.map((c) => (
@@ -167,14 +202,12 @@ export function NewTableModal({ open, onClose }: NewTableModalProps) {
                     required
                     onChange={(e) => updateColumn(c.id, { name: e.target.value })}
                   />
-                  <input
-                    className="input"
-                    aria-label={t('schema.table.typeAria', { name: c.name || t('schema.table.fbColumn') })}
-                    placeholder={t('schema.table.typePlaceholder')}
+                  <ColumnTypeCombobox
+                    id={`new-col-type-${c.id}`}
                     value={c.type}
-                    maxLength={FE_LIMITS.COLUMN_TYPE}
-                    required
-                    onChange={(e) => updateColumn(c.id, { type: e.target.value })}
+                    onChange={(next) => updateColumn(c.id, { type: next })}
+                    ariaLabel={t('schema.table.typeAria', { name: c.name || t('schema.table.fbColumn') })}
+                    customAriaLabel={t('schema.table.typeCustomAria', { name: c.name || t('schema.table.fbColumn') })}
                   />
                   <label className="col-edit-check" title={t('schema.table.nullableTitle')}>
                     <input
@@ -200,6 +233,26 @@ export function NewTableModal({ open, onClose }: NewTableModalProps) {
                     maxLength={FE_LIMITS.COLUMN_DEFAULT}
                     onChange={(e) => updateColumn(c.id, { default: e.target.value || null })}
                   />
+                  <input
+                    className="input col-comment-input"
+                    aria-label={t('schema.table.columnCommentAria', { name: c.name || t('schema.table.fbColumn') })}
+                    placeholder={t('schema.table.columnCommentPlaceholder')}
+                    value={c.comment}
+                    maxLength={FE_LIMITS.COLUMN_COMMENT}
+                    onChange={(e) => updateColumn(c.id, { comment: e.target.value })}
+                  />
+                  <label
+                    className="col-edit-check"
+                    title={c.name.trim() === '' ? t('schema.table.uniqueDisabledTitle') : t('schema.table.uniqueTitle')}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isUniqueIndex(indexesList, c.name)}
+                      disabled={c.name.trim() === ''}
+                      aria-label={t('schema.table.uniqueAria', { name: c.name || t('schema.table.fbUnnamed') })}
+                      onChange={() => toggleUniqueFor(c.name)}
+                    />
+                  </label>
                   <Button
                     variant="ghost"
                     size="sm"

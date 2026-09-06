@@ -36,6 +36,7 @@ beforeEach(() => {
   chatApi.getUnreadCount.mockReset().mockResolvedValue(0);
   chatApi.setMessagesRead.mockReset().mockResolvedValue({ ok: true });
   chatPanelProps.current = {};
+  delete document.body.dataset.erdCanvas;
 });
 
 describe('ProjectChatWidget', () => {
@@ -95,5 +96,24 @@ describe('ProjectChatWidget', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.getByTestId('chat-panel')).toBeTruthy();
     textarea.remove();
+  });
+
+  it('R1: launcher stays in DOM when ERD canvas flag is set, hidden via CSS (test-compat)', async () => {
+    document.body.dataset.erdCanvas = 'open';
+    try {
+      renderWidget();
+      const launcher = await screen.findByRole('button', { name: /Open team chat/ });
+      // Element MUST stay mounted — hiding is CSS-only (display:none).
+      expect(launcher.classList.contains('chat-launcher')).toBe(true);
+      expect(document.body.matches('[data-erd-canvas="open"]')).toBe(true);
+      // jsdom CSS assertion mirroring global.css rule.
+      const style = document.createElement('style');
+      style.textContent = 'body[data-erd-canvas="open"] .chat-launcher { display: none; }';
+      document.head.appendChild(style);
+      expect(getComputedStyle(launcher).display).toBe('none');
+      style.remove();
+    } finally {
+      delete document.body.dataset.erdCanvas;
+    }
   });
 });

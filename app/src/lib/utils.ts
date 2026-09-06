@@ -139,6 +139,24 @@ export function parseLabels(input: string): string[] {
     .slice(0, 20);
 }
 
+/** Buang semua karakter non-angka/desimal dari input estimate (input teks). */
+export function sanitizeDecimalInput(input: string): string {
+  return input.replace(/[^0-9.]/g, '');
+}
+
+/** Buang semua karakter non-digit — estimate hanya bilangan bulat. */
+export function sanitizeIntegerInput(input: string): string {
+  return input.replace(/[^0-9]/g, '');
+}
+
+/**
+ * Guard keystroke input angka: true untuk digit + tombol kontrol
+ * (Backspace, Delete, Tab, panah, Enter, Escape, dsb.).
+ */
+export function isDigitKey(key: string): boolean {
+  return key.length !== 1 || /[0-9]/.test(key);
+}
+
 export function relationLabel(
   fromTable: string | undefined,
   fromColumn: string | undefined,

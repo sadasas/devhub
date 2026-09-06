@@ -316,7 +316,10 @@ function ProjectUnreadArea({
           ) : tab === 'stack' ? (
             <StackPageLazy unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new} />
           ) : tab === 'schema' ? (
-            <SchemaPageLazy unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new} />
+            <SchemaPageLazy
+              projectName={project.name}
+              unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new}
+            />
           ) : tab === 'decisions' ? (
             <DecisionsPageLazy unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new} />
           ) : tab === 'releases' ? (

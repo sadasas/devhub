@@ -225,6 +225,14 @@ export const projectStatus = z.enum(['active', 'archived']);
 
 export const whiteboardCoord = z.number().min(-100_000).max(100_000);
 
+export const erdPositionSchema = z.object({
+  x: whiteboardCoord,
+  y: whiteboardCoord,
+});
+
+// Hapus tabel → entri erdLayout yatim TIDAK dihapus (diabaikan reader).
+export const erdLayoutSchema = z.record(z.string().uuid(), erdPositionSchema).optional().default({});
+
 export const whiteboardElementId = z.string().uuid();
 
 const whiteboardStrokeSchema = z.object({
@@ -373,6 +381,7 @@ export const stateSchema = z.object({
   whiteboards: z.array(whiteboardSchema).max(LIMITS.WHITEBOARDS_PER_PROJECT).default([]),
   timelineOrder: z.record(z.string().max(100), z.array(z.string().uuid()).max(5000)).default({}),
   timelineRow: z.record(z.string().max(100), z.record(z.string().max(100), z.number().int().min(0).max(10000))).default({}),
+  erdLayout: erdLayoutSchema,
 });
 
 export type State = z.infer<typeof stateSchema>;
@@ -402,6 +411,8 @@ export type WhiteboardShape = z.infer<typeof whiteboardShapeSchema>;
 export type WhiteboardEdge = z.infer<typeof whiteboardEdgeSchema>;
 export type WhiteboardRef = z.infer<typeof whiteboardRefSchema>;
 export type Whiteboard = z.infer<typeof whiteboardSchema>;
+export type ErdPosition = z.infer<typeof erdPositionSchema>;
+export type ErdLayout = z.infer<typeof erdLayoutSchema>;
 
 export const emptyState: State = {
   tasks: [],
@@ -418,6 +429,7 @@ export const emptyState: State = {
   whiteboards: [],
   timelineOrder: {},
   timelineRow: {},
+  erdLayout: {},
 };
 
 export const exportDocumentSchema = z.object({

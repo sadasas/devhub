@@ -55,7 +55,7 @@ describe('TaskCard', () => {
     const past = new Date(Date.now() - 3 * 86_400_000).toISOString().slice(0, 10);
     render(<TaskCard task={task({ dueDate: past })} onOpen={() => {}} />);
     expect(document.querySelector('.task-due-danger')).toBeTruthy();
-    expect(screen.getByText(/Overdue/)).toBeTruthy();
+    expect(screen.getByText(/OD \d+d/)).toBeTruthy();
   });
 
   it('omits the due chip when there is no due date', () => {

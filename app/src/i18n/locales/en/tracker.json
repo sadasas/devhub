@@ -68,6 +68,7 @@
       "doneDateLabel": "Done date",
       "estimateLabel": "Estimate (hours)",
       "actualLabel": "Actual",
+      "propertiesLabel": "Properties",
       "labelsLabel": "Labels",
       "labelsPlaceholder": "comma, separated",
       "descriptionLabel": "Description",
@@ -88,9 +89,23 @@
       "cannotMarkDone_one": "Cannot mark done: {{count}} test case is not passed yet.",
       "cannotMarkDone_other": "Cannot mark done: {{count}} test cases are not passed yet.",
       "dateWarn": "Start date is after the due date.",
+      "dateLabel": "Date",
       "cycleWarn": "This would create a dependency cycle.",
       "deleteConfirmTitle": "Delete task?",
-      "deleteConfirmBody": "This permanently deletes the task. This cannot be undone."
+      "deleteConfirmBody": "This permanently deletes the task. This cannot be undone.",
+      "autosaveSaving": "Saving…",
+      "autosaveSaved": "All changes saved"
+    },
+    "datePicker": {
+      "today": "Today",
+      "cancel": "Cancel",
+      "apply": "Apply",
+      "clear": "Clear",
+      "prevMonth": "Previous month",
+      "nextMonth": "Next month",
+      "startLabel": "Start",
+      "endLabel": "End",
+      "dialogLabel": "Choose date"
     },
     "newTaskModal": {
       "presenceCreating": "Creating task",
@@ -108,7 +123,9 @@
       "labelsLabel": "Labels",
       "labelsPlaceholder": "comma, separated",
       "milestoneLabel": "Milestone",
-      "descriptionLabel": "Description"
+      "descriptionLabel": "Description",
+      "expandView": "Expand to fullscreen",
+      "contractView": "Exit fullscreen"
     },
     "cal": {
       "viewLabel": "Calendar view",

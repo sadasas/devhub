@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
-import { X } from "@phosphor-icons/react";
+import { ArrowsInSimple, ArrowsOutSimple, X } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useFocusTrap } from "../hooks/useFocusTrap";
@@ -35,9 +35,15 @@ interface ModalProps {
   className?: string;
   initialFocusRef?: React.RefObject<HTMLElement | null>;
   ariaDescribedBy?: string;
+  /** Tampilkan tombol expand di header (fullscreen ringan ala composer). */
+  expandable?: boolean;
+  expanded?: boolean;
+  onToggleExpand?: () => void;
+  expandLabel?: string;
+  collapseLabel?: string;
 }
 
-export function Modal({ open, title, onClose, children, footer, width = "md", className, initialFocusRef, ariaDescribedBy }: ModalProps) {
+export function Modal({ open, title, onClose, children, footer, width = "md", className, initialFocusRef, ariaDescribedBy, expandable = false, expanded = false, onToggleExpand, expandLabel, collapseLabel }: ModalProps) {
   const titleId = useId();
   const { t } = useTranslation();
   const dialogRef = useFocusTrap<HTMLDivElement>(open, initialFocusRef);
@@ -80,6 +86,23 @@ export function Modal({ open, title, onClose, children, footer, width = "md", cl
           <h2 id={titleId} className="modal-title">
             {title}
           </h2>
+          <div style={{ display: 'flex', gap: 4 }}>
+          {expandable && expandLabel && collapseLabel && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm btn-icon modal-expand-btn"
+              onClick={onToggleExpand}
+              aria-label={expanded ? collapseLabel : expandLabel}
+              aria-pressed={expanded}
+              title={expanded ? collapseLabel : expandLabel}
+            >
+              {expanded ? (
+                <ArrowsInSimple size={14} aria-hidden="true" />
+              ) : (
+                <ArrowsOutSimple size={14} aria-hidden="true" />
+              )}
+            </button>
+          )}
           <button
             type="button"
             className="btn btn-ghost btn-sm btn-icon"
@@ -89,6 +112,7 @@ export function Modal({ open, title, onClose, children, footer, width = "md", cl
           >
             <X size={14} weight="bold" aria-hidden="true" />
           </button>
+          </div>
         </header>
         <div className="modal-body">{children}</div>
         {footer && <footer className="modal-footer">{footer}</footer>}

@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import type { State, TestCase } from '../../lib/types';
 import { TestModal } from './TestModal';
 
 vi.mock('../../state/project-context', () => ({
-  useProject: () => ({ state: mockState, dispatch: mockDispatch, canEdit: true, projectId: 'p1', setStatus: vi.fn() }),
+  useProject: () => ({ state: mockState, dispatch: mockDispatch, canEdit: true, projectId: 'p1', saving: false, lastSavedAt: null, setStatus: vi.fn() }),
 }));
 
 const TEST_ID = '33333333-3333-4333-8333-333333333333';
@@ -69,16 +69,9 @@ describe('TestModal linked selects', () => {
     vi.restoreAllMocks();
   });
 
-  /** Add/Change button inside the icon-row labelled `rowLabel` (per-field inline edit). */
-  function rowButton(rowLabel: string, buttonName: string | RegExp) {
-    const row = screen.getByText(rowLabel).closest('div')!;
-    return within(row).getByRole('button', { name: buttonName });
-  }
-
   it('links a task when editing', () => {
     render(<MemoryRouter><TestModal testId={TEST_ID} onClose={vi.fn()} /></MemoryRouter>);
-    fireEvent.click(rowButton('Linked task', '+ Add'));
-    fireEvent.click(screen.getByRole('button', { name: 'Linked task' }));
+    fireEvent.click(document.querySelector('[data-prop="task"] .prop-view') as Element);
     fireEvent.click(screen.getByRole('option', { name: 'Ship chat' }));
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'testCase/update',
@@ -90,13 +83,51 @@ describe('TestModal linked selects', () => {
   it('unlinks a task via the None row', () => {
     mockState.testCases = [makeTestCase({ taskId: TASK_A })];
     render(<MemoryRouter><TestModal testId={TEST_ID} onClose={vi.fn()} /></MemoryRouter>);
-    fireEvent.click(rowButton('Linked task', 'Change'));
-    fireEvent.click(screen.getByRole('button', { name: 'Linked task' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ship chat' }));
     fireEvent.click(screen.getByRole('option', { name: 'None' }));
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'testCase/update',
       id: TEST_ID,
       patch: { taskId: null },
     });
+  });
+
+  it('opens status options in a single activator click', () => {
+    render(<MemoryRouter><TestModal testId={TEST_ID} onClose={vi.fn()} /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: 'Pending' }));
+    expect(screen.getByRole('option', { name: 'Pass' })).toBeTruthy();
+  });
+
+  it('returns to view after picking a task', () => {
+    render(<MemoryRouter><TestModal testId={TEST_ID} onClose={vi.fn()} /></MemoryRouter>);
+    fireEvent.click(document.querySelector('[data-prop="task"] .prop-view') as Element);
+    fireEvent.click(screen.getByRole('option', { name: 'Ship chat' }));
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: 'testCase/update',
+      id: TEST_ID,
+      patch: { taskId: TASK_A },
+    });
+    const row = document.querySelector('[data-prop="task"]');
+    expect(row?.querySelector('.prop-view')).toBeTruthy();
+    expect(document.querySelector('#test-task')).toBeNull();
+  });
+
+  it('marks the row hot while its control is mounted', () => {
+    render(<MemoryRouter><TestModal testId={TEST_ID} onClose={vi.fn()} /></MemoryRouter>);
+    const row = document.querySelector('[data-prop="task"]');
+    expect(row?.getAttribute('data-hot')).toBeNull();
+    fireEvent.click(document.querySelector('[data-prop="task"] .prop-view') as Element);
+    expect(row?.getAttribute('data-hot')).toBeTruthy();
+  });
+
+  it('renders label columns without icons and a dotless status badge', () => {
+    render(<MemoryRouter><TestModal testId={TEST_ID} onClose={vi.fn()} /></MemoryRouter>);
+    expect(document.querySelector('[data-prop="status"] .prop-label')?.textContent).toBe('Status');
+    expect(document.querySelector('[data-prop="task"] .prop-label')?.textContent).toBe('Linked task');
+    expect(document.querySelector('[data-prop="issue"] .prop-label')?.textContent).toBe('Linked issue');
+    expect(document.querySelector('[data-prop="status"] .prop-ic')).toBeNull();
+    const badge = document.querySelector('[data-prop="status"] .prop-view > span');
+    expect(badge?.textContent).toContain('Pending');
+    expect(badge?.querySelector('span')).toBeNull();
   });
 });

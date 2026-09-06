@@ -96,6 +96,21 @@ projectsRouter.patch('/:projectId/timeline-order', async (req, res) => {
   broadcastSync(req.params.projectId, version);
 });
 
+const erdLayoutBodySchema = z.object({
+  erdLayout: z.record(z.string().uuid(), z.object({ x: z.number().min(-100_000).max(100_000), y: z.number().min(-100_000).max(100_000) })).default({}),
+});
+
+projectsRouter.patch('/:projectId/erd-layout', async (req, res) => {
+  const userId = getUserId(req);
+  const body = parseOrThrow(erdLayoutBodySchema, req.body, 'Invalid ERD layout');
+  const ifMatch = typeof req.headers['if-match'] === 'string' ? req.headers['if-match'].replace(/^"(.*)"$/, '$1') : undefined;
+  const { version } = await mutateProject(userId, req.params.projectId, ifMatch, (state) => {
+    (state as any).erdLayout = body.erdLayout;
+  });
+  res.json({ ok: true, version });
+  broadcastSync(req.params.projectId, version);
+});
+
 projectsRouter.delete('/:projectId', async (req, res) => {
   const userId = getUserId(req);
   await deleteProject(userId, req.params.projectId);

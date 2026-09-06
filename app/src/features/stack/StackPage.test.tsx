@@ -49,6 +49,10 @@ describe('StackPage', () => {
     renderPage(new Set(['t1']));
     expect(document.querySelectorAll('.unread-pill').length).toBe(1);
     expect(screen.getAllByText('New').length).toBe(1);
+    // i18n: teks ter-render, bukan raw key
+    expect(screen.getByText('React')).toBeTruthy();
+    expect(screen.queryByText(/board\.taskModal/)).toBeNull();
+    expect(screen.queryByText(/issues\.modal/)).toBeNull();
   });
 
   it('renders no unread dots without unreadIds', () => {
