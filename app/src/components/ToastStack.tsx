@@ -7,7 +7,7 @@ interface Props {
 
 export function ToastStack({ children }: Props) {
   const content = (
-    <div className="toast-stack" aria-live="polite" aria-relevant="additions text">
+    <div className="toast-stack">
       {children}
     </div>
   );

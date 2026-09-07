@@ -4,6 +4,7 @@ import { CaretLeft, CaretRight, Check, Circle, Clock, Eye, CheckCircle } from
 import { useTranslation } from 'react-i18next';
 import { addDaysIso, inMonth, isoOf, monthMatrix, monthName, parseIso, weekDays } from '../../lib/calendar';
 import { dueBucket, dueLabel, dueTone, taskDueChip, todayIso } from '../../lib/due-dates';
+import { getAppLocale } from '../../i18n';
 
 import type { Task } from '../../lib/types';
 import { useProject } from '../../state/project-context';
@@ -45,6 +46,41 @@ const STATUS_ICON: Record<string, React.ReactNode> = {
   done: <CheckCircle size={14} weight="fill" aria-hidden="true" />,
 };
 
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia(query).matches
+      : false,
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia(query);
+    const update = () => setMatches(mq.matches);
+    update();
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', update);
+      return () => mq.removeEventListener('change', update);
+    }
+    mq.addListener(update);
+    return () => mq.removeListener(update);
+  }, [query]);
+  return matches;
+}
+
+function formatDayAriaLabel(isoDate: string): string {
+  try {
+    return parseIso(isoDate).toLocaleDateString(getAppLocale(), {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      timeZone: 'UTC',
+    });
+  } catch {
+    return isoDate;
+  }
+}
+
 function CalTaskChip({ task, date, segmentStart, span, onOpenTask, onTouchDrop, onDragOffset, onMove, style, classNameExtra }: CalTaskChipProps) {
   const { canEdit, dispatch } = useProject() as unknown as { canEdit: boolean; dispatch: (a: unknown) => void };
   void dispatch;
@@ -67,6 +103,7 @@ function CalTaskChip({ task, date, segmentStart, span, onOpenTask, onTouchDrop, 
       draggable={canEdit}
       title={title}
       aria-label={ariaLabel}
+      aria-keyshortcuts={canEdit && onMove ? 'm Enter' : 'Enter'}
       style={style}
       onClick={(e) => {
         e.stopPropagation();
@@ -108,6 +145,7 @@ function CalTaskChip({ task, date, segmentStart, span, onOpenTask, onTouchDrop, 
 }
 
 const MAX_VISIBLE = 3;
+const MAX_VISIBLE_MOBILE = 2;
 
 export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop, mineOnly, onToggleMine, showMineFilter }: DueCalendarProps) {
   const { state, canEdit, dispatch } = useProject();
@@ -115,6 +153,11 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
   const [weekMode, setWeekMode] = useState(false);
   const [hideCompleted, setHideCompleted] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
+  // C6/H3-mobile: 2 chips per cell on ≤640px, 3 on desktop. Coarse pointers
+  // get an explicit + button instead of whole-cell tap-to-create.
+  const isMobileCal = useMediaQuery('(max-width: 640px)');
+  const isCoarse = useMediaQuery('(pointer: coarse)');
+  const maxVisible = isMobileCal ? MAX_VISIBLE_MOBILE : MAX_VISIBLE;
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [expandedCells, setExpandedCells] = useState<Set<string>>(new Set());
   const [stripCollapsed, setStripCollapsed] = useState<boolean>(() => {
@@ -220,11 +263,11 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
       }
       // For max visible, we need per-row max lanes needed
       const totalLanes = lanes.length;
-      const overflow = Math.max(0, totalLanes - MAX_VISIBLE);
+      const overflow = Math.max(0, totalLanes - maxVisible);
       result.set(row, { segments: segs as any, lanes: lanes as any, overflow } as any);
     }
     return result;
-  }, [spanningSegments]);
+  }, [spanningSegments, maxVisible]);
 
   const segmentsWithLane = useMemo(() => {
     const result: Array<(typeof spanningSegments)[number] & { lane: number }> = [];
@@ -243,8 +286,8 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
           if (i === lanes.length - 1) lane = lanes.length;
         }
         const wouldBeLane = lane === lanes.length ? lanes.length : lane;
-        // if not expanded and would be >= MAX_VISIBLE, skip (will be in +N)
-        if (!isExpanded && wouldBeLane >= MAX_VISIBLE) {
+        // if not expanded and would be >= maxVisible, skip (will be in +N)
+        if (!isExpanded && wouldBeLane >= maxVisible) {
           // skip rendering this segment, it will be counted in more
           continue;
         }
@@ -254,16 +297,20 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
       }
     }
     return result;
-  }, [spanningSegments, rowGroups, expandedRows]);
+  }, [spanningSegments, rowGroups, expandedRows, maxVisible]);
 
   // Row heights: if expanded, height follows max lanes, else 112
+  // C6 mobile: empty rows collapse to 72px, collapsed rows fit
+  // maxVisible(2) lanes (28 + 2*26 + 28 = 108). Desktop stays 112/140.
   const rowHeights = useMemo(() => {
+    const emptyH = isMobileCal ? 72 : 112;
+    const collapsedH = isMobileCal ? 28 + MAX_VISIBLE_MOBILE * 26 + 28 : 140;
     const heights: number[] = [];
     const numRows = weekMode ? 1 : 6;
     for (let r = 0; r < numRows; r++) {
       const group = rowGroups.get(r);
       if (!group) {
-        heights.push(112);
+        heights.push(emptyH);
         continue;
       }
       const totalLanes = (group as any).lanes?.length ?? 0;
@@ -271,11 +318,11 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
         const pos = dateToPos.get(d);
         return pos?.row === r;
       });
-      const needed = isRowExpanded ? Math.max(140, 28 + totalLanes * 26 + 28) : 140;
+      const needed = isRowExpanded ? Math.max(collapsedH, 28 + totalLanes * 26 + 28) : collapsedH;
       heights.push(needed);
     }
     return heights;
-  }, [rowGroups, expandedRows, expandedCells, weekMode, dateToPos]);
+  }, [rowGroups, expandedRows, expandedCells, weekMode, dateToPos, isMobileCal]);
 
   const nav = (dir: number) => {
     if (weekMode) {
@@ -363,12 +410,17 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
   const cell = (date: string) => {
     const dimmed = !weekMode && !inMonth(date, year, month);
     const isToday = date === today;
+    const dayLabel = formatDayAriaLabel(date);
+    // Coarse pointers: whole-cell tap conflicts with scroll (accidental
+    // quick-create on tap-scroll). Only the explicit + button creates.
+    const showQuickAdd = isCoarse;
     return (
       <div
         key={date}
         role="gridcell"
-        aria-label={date}
+        aria-label={dayLabel}
         aria-selected={focused === date}
+        aria-keyshortcuts="ArrowRight ArrowLeft ArrowDown ArrowUp PageDown PageUp Enter"
         className={`due-cal-cell${dimmed ? ' due-cal-dim' : ''}${isToday ? ' due-cal-today' : ''}`}
         data-date={date}
         data-drop-key={`date:${date}`}
@@ -383,7 +435,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
           else if (e.key === 'PageUp') nav(-1);
           else if (e.key === 'Enter') onQuickCreate(date);
         }}
-        onClick={() => onQuickCreate(date)}
+        onClick={showQuickAdd ? () => setFocused(date) : () => onQuickCreate(date)}
         onDragOver={(e) => {
           e.preventDefault();
           e.dataTransfer.dropEffect = 'move';
@@ -391,6 +443,20 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
         onDrop={onDrop(date)}
       >
         <span className="due-cal-daynum">{date.slice(8)}</span>
+        {showQuickAdd && (
+          <button
+            type="button"
+            className="due-cal-quickadd"
+            aria-label={`${t('board.cal.addTask', { defaultValue: 'Add task' })} — ${dayLabel}`}
+            style={{ minWidth: 44, minHeight: 44, display: 'grid', placeItems: 'center', fontSize: 18, lineHeight: 1 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onQuickCreate(date);
+            }}
+          >
+            <span aria-hidden="true">+</span>
+          </button>
+        )}
       </div>
     );
   };
@@ -458,12 +524,30 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
 
       <div className="due-cal-body">
         <div className={`due-cal-grid due-cal-${weekMode ? 'week' : 'month'}`} role="grid" aria-label={t('board.cal.month')} style={{ position: 'relative', gridTemplateRows: gridRowTemplate }}>
-          {WEEKDAY_LABELS.map((d) => (
-            <div key={d} className="due-cal-head">
-              {t(`board.cal.weekday.${d.toLowerCase()}`)}
+          <div role="row" style={{ display: 'contents' }}>
+            {WEEKDAY_LABELS.map((d, i) => (
+              <div
+                key={d}
+                role="columnheader"
+                aria-colindex={i + 1}
+                {...({ scope: 'col' } as React.TdHTMLAttributes<HTMLDivElement>)}
+                className="due-cal-head"
+              >
+                {t(`board.cal.weekday.${d.toLowerCase()}`)}
+              </div>
+            ))}
+          </div>
+          {weekMode ? (
+            <div role="row" style={{ display: 'contents' }}>
+              {cells.map(cell)}
             </div>
-          ))}
-          {cells.map(cell)}
+          ) : (
+            [0, 1, 2, 3, 4, 5].map((r) => (
+              <div key={r} role="row" style={{ display: 'contents' }}>
+                {cells.slice(r * 7, r * 7 + 7).map((date) => cell(date))}
+              </div>
+            ))
+          )}
         <div className="due-cal-spans-container" style={{ position: 'absolute', top: '28px', left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
           <div style={{ position: 'relative', width: '100%', height: '100%' }}>
         {segmentsWithLane.map(({ task, row, colStart, span, lane, startDate }) => {
@@ -498,16 +582,16 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
         {/* lihat yang lain per cell - di dalam cell */}
         {cells.map(date => {
           const covering = spanningSegments.filter(s => date >= s.startDate && date <= s.endDate).length;
-          if (covering <= MAX_VISIBLE) return null;
+          if (covering <= maxVisible) return null;
           const pos = dateToPos.get(date);
           if (!pos) return null;
           const row = pos.row;
           const col = pos.col;
           const isExpanded = expandedCells.has(date) || expandedRows.has(row);
           if (isExpanded) return null;
-          const overflow = covering - MAX_VISIBLE;
+          const overflow = covering - maxVisible;
           const rowTop = rowHeights.slice(0, row).reduce((a,b)=>a+b+1,0);
-          const top = rowTop + 28 + MAX_VISIBLE * 26; // lane 3 di dalam cell
+          const top = rowTop + 28 + maxVisible * 26; // lane berikutnya di dalam cell
           const left = `calc(${col} * ((100% - 6px) / 7 + 1px) + 4px)`;
           const width = `calc((100% - 6px) / 7 - 8px)`;
           return (

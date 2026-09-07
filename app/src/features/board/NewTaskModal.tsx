@@ -125,7 +125,8 @@ export function NewTaskModal({ open, status, milestoneId, dueDate: _dueDate, sta
     return () => window.removeEventListener('resize', measurePopup);
   }, [popup, measurePopup]);
 
-  // Fokus ke panel untuk popup non-teks; input teks sudah autoFocus sendiri.
+  // Fokus ke panel untuk popup non-teks; input teks tanpa autoFocus
+  // (coarse-pointer: hindari keyboard virtual) — fokus awal diatur useFocusTrap di Modal.
   useEffect(() => {
     if (popup && popup.key !== 'estimate' && popup.key !== 'labels') {
       popRef.current?.focus({ preventScroll: true });
@@ -275,7 +276,6 @@ export function NewTaskModal({ open, status, milestoneId, dueDate: _dueDate, sta
       onChange={(e) => setEstimate(sanitizeIntegerInput(e.target.value))}
       inputMode="numeric"
       aria-label={t('board.newTaskModal.estimateLabel')}
-      autoFocus
       onKeyDown={(e) => {
         if (e.key === 'Enter') setPopup(null);
         else if (!isDigitKey(e.key)) e.preventDefault();
@@ -291,7 +291,6 @@ export function NewTaskModal({ open, status, milestoneId, dueDate: _dueDate, sta
       maxLength={FE_LIMITS.LABELS_INPUT}
       onChange={(e) => setLabels(e.target.value)}
       aria-label={t('board.newTaskModal.labelsLabel')}
-      autoFocus
       onKeyDown={(e) => {
         if (e.key === 'Enter') setPopup(null);
       }}
@@ -338,7 +337,6 @@ export function NewTaskModal({ open, status, milestoneId, dueDate: _dueDate, sta
             className="composer-title"
             rows={1}
             required
-            autoFocus
             placeholder={t('board.newTaskModal.titlePlaceholder')}
             value={title}
             onChange={(e) => setTitle(e.target.value)}

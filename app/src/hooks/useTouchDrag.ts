@@ -8,6 +8,62 @@ const SCROLL_STEP_PX = 12;
 interface UseTouchDragOptions {
   enabled: boolean;
   onDrop: (dropKey: string | null) => void;
+  /** Accessible task name used in the live-region announcement. Falls back to the element's own label/text. */
+  label?: string;
+  /** Optional extra announcer (e.g. app-wide live region). Called with the same message written to the local live region. */
+  onAnnounce?: (message: string) => void;
+}
+
+const LIVE_REGION_ID = 'touch-drag-live';
+
+function ensureLiveRegion(): HTMLElement | null {
+  if (typeof document === 'undefined') return null;
+  let live = document.getElementById(LIVE_REGION_ID);
+  if (!live) {
+    live = document.createElement('div');
+    live.id = LIVE_REGION_ID;
+    live.setAttribute('role', 'status');
+    live.setAttribute('aria-live', 'polite');
+    live.className = 'sr-only';
+    document.body.appendChild(live);
+  }
+  return live;
+}
+
+function announce(message: string): void {
+  // Mirror to the app-wide announcer when present (Layout listens for this).
+  try {
+    window.dispatchEvent(new CustomEvent('devhub:announce', { detail: { message } }));
+  } catch {
+    // ignore — live region below is the guaranteed path
+  }
+  const live = ensureLiveRegion();
+  if (!live) return;
+  // Clear-then-set so repeated identical moves are re-announced.
+  live.textContent = '';
+  window.setTimeout(() => {
+    const current = document.getElementById(LIVE_REGION_ID);
+    if (current) current.textContent = message;
+  }, 30);
+}
+
+function labelFor(el: HTMLElement, fallback?: string): string {
+  if (fallback) return fallback;
+  const aria = el.getAttribute('aria-label');
+  if (aria) {
+    // CalTaskChip labels look like "Title. Press M …" — keep just the title.
+    const first = aria.split('.')[0]?.trim();
+    if (first) return first.length > 80 ? `${first.slice(0, 77)}…` : first;
+  }
+  const text = el.textContent?.trim().replace(/\s+/g, ' ');
+  if (text) return text.length > 80 ? `${text.slice(0, 77)}…` : text;
+  return 'Task';
+}
+
+function prettyDropKey(key: string): string {
+  if (key === 'clear') return 'Tanpa tanggal';
+  if (key.startsWith('date:')) return key.slice('date:'.length);
+  return key;
 }
 
 export function useTouchDrag<T extends HTMLElement>(
@@ -16,11 +72,26 @@ export function useTouchDrag<T extends HTMLElement>(
 ) {
   const onDropRef = useRef(options.onDrop);
   onDropRef.current = options.onDrop;
+  const labelRef = useRef(options.label);
+  labelRef.current = options.label;
+  const announceRef = useRef(options.onAnnounce);
+  announceRef.current = options.onAnnounce;
 
   useEffect(() => {
     const el = ref.current;
     if (!el || !options.enabled) return;
-    if (typeof window.matchMedia === 'function' && window.matchMedia('(hover: hover)').matches) return;
+    // H3: no hover-based early return — touch/pen gate lives in onPointerDown
+    // via e.pointerType !== 'mouse', so hybrid laptops keep working.
+
+    // Discoverability: expose the keyboard equivalents (kanban ArrowLeft/
+    // ArrowRight in BoardPage, calendar "M" in CalTaskChip) to AT.
+    const hadShortcuts = el.hasAttribute('aria-keyshortcuts');
+    if (!hadShortcuts) {
+      el.setAttribute(
+        'aria-keyshortcuts',
+        el.classList.contains('due-cal-task') ? 'm Enter' : 'ArrowLeft ArrowRight',
+      );
+    }
 
     let timer: number | undefined;
     let dragging = false;
@@ -106,6 +177,10 @@ export function useTouchDrag<T extends HTMLElement>(
       const key = dropKeyAt(e.clientX, e.clientY);
       setActive(null);
       e.preventDefault();
+      const name = labelFor(el, labelRef.current);
+      const msg = key ? `Task ${name} pindah ke ${prettyDropKey(key)}` : `Task ${name} tidak dipindah`;
+      announce(msg);
+      announceRef.current?.(msg);
       onDropRef.current(key);
     };
 
@@ -130,6 +205,7 @@ export function useTouchDrag<T extends HTMLElement>(
 
     return () => {
       clearTimer();
+      if (!hadShortcuts) el.removeAttribute('aria-keyshortcuts');
       el.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', finish);

@@ -15,6 +15,7 @@ import { useAuth } from '../../state/auth-context';
 import { CreateTeamModal } from '../teams/CreateTeamModal';
 import { ProjectChatWidget } from '../project/ProjectChatWidget';
 import { useActivityUnread } from '../../state/ActivityUnreadContext';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 const RAIL_ACTIVE_KEY = 'devhub:rail:activeTeam';
 const SIDEBAR_COLLAPSED_KEY = 'devhub:layout:sidebarCollapsed';
@@ -52,6 +53,8 @@ export function Layout() {
   const railLeaveTimeoutRef = useRef<number | null>(null);
   const itemHoverTimeoutRef = useRef<number | null>(null);
   const hoverGroupLeaveRef = useRef<number | null>(null);
+  const hamburgerRef = useRef<HTMLButtonElement | null>(null);
+  const drawerRef = useFocusTrap<HTMLDivElement>(navOpen);
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation('shell');
@@ -426,7 +429,18 @@ export function Layout() {
   const isChatInlineOpen = chatOpen && !isMobileChat;
   return (
     <div className="layout" data-collapsed={collapsed ? 'true' : undefined} data-rail-hover={isRailHovered ? 'true' : undefined} data-second-visible={isSecondVisible ? 'true' : undefined} data-hover-expand={isRailHovered ? 'true' : undefined} data-chat-open={isChatInlineOpen ? 'true' : undefined} style={{ ['--sidebar-w' as any]: `${sidebarWidth}px`, ['--chat-w' as any]: `${isChatInlineOpen ? chatWidth : 0}px` } as React.CSSProperties}>
-      <a className="skip-link" href="#main-content">
+      <a
+        className="skip-link"
+        href="#main-content"
+        onClick={(e) => {
+          e.preventDefault();
+          const el = document.getElementById('main-content');
+          if (el) {
+            el.focus({ preventScroll: true });
+            el.scrollIntoView({ block: 'start' });
+          }
+        }}
+      >
         {t('layout.skipToContent')}
       </a>
       <div className="app-prefs" aria-label="Preferences">
@@ -435,11 +449,13 @@ export function Layout() {
       </div>
       <header className="topbar">
         <button
+          ref={hamburgerRef}
           type="button"
           className="topbar-btn"
           onClick={() => setNavOpen((o) => !o)}
           aria-label={navOpen ? t('layout.closeNav') : t('layout.openNav')}
           aria-expanded={navOpen}
+          aria-controls="mobile-nav-drawer"
         >
           <List size={18} weight="bold" aria-hidden="true" />
         </button>
@@ -489,7 +505,16 @@ export function Layout() {
           {!collapsed && <div className="sidebar-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" onPointerDown={onHandlePointerDown} onDoubleClick={handleToggleCollapsed} />}
         </div>
       </div>
-      <div className={`sidebar-drawer${navOpen ? ' sidebar-open' : ''}`}>
+      <div
+        ref={drawerRef}
+        id="mobile-nav-drawer"
+        className={`sidebar-drawer${navOpen ? ' sidebar-open' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('sidebar.teamsNav')}
+        aria-hidden={!navOpen ? true : undefined}
+        inert={!navOpen ? true : undefined}
+      >
         <div className="sidebar-drawer-inner">
           <div className="team-rail-mobile">
             <TeamRail
@@ -505,7 +530,7 @@ export function Layout() {
           <Sidebar activeTeamId={activeTeamId} activeMain={activeMain} onCreateTeam={() => setCreateTeamOpen(true)} />
         </div>
       </div>
-      <main className="main" id="main-content">
+      <main className="main" id="main-content" tabIndex={-1} inert={navOpen ? true : undefined}>
         <Outlet />
       </main>
       {user && activeTeamId && (() => {

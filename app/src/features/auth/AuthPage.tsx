@@ -224,14 +224,17 @@ export function AuthPage() {
                 onClick={() => setShowPassword((v) => !v)}
                 style={{
                   position: 'absolute',
-                  right: 12,
-                  top: 34,
+                  right: 4,
+                  top: 26,
+                  width: 44,
+                  height: 44,
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
                   color: 'var(--text-muted)',
-                  display: 'flex',
-                  alignItems: 'center',
+                  display: 'grid',
+                  placeItems: 'center',
+                  padding: 0,
                 }}
               >
                 {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
@@ -255,14 +258,17 @@ export function AuthPage() {
                 onClick={() => setShowConfirm((v) => !v)}
                 style={{
                   position: 'absolute',
-                  right: 12,
-                  top: 34,
+                  right: 4,
+                  top: 26,
+                  width: 44,
+                  height: 44,
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
                   color: 'var(--text-muted)',
-                  display: 'flex',
-                  alignItems: 'center',
+                  display: 'grid',
+                  placeItems: 'center',
+                  padding: 0,
                 }}
               >
                 {showConfirm ? <EyeSlash size={18} /> : <Eye size={18} />}

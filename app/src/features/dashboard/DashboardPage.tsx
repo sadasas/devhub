@@ -388,7 +388,7 @@ export function DashboardPage() {
       {projects && projects.length > 0 && (
         <div className="task-activity" aria-label="Tasks activity">
           <div className="task-activity-head">
-            <span className="task-activity-title">Tasks Activity — last 7 days</span>
+            <h2 className="task-activity-title">Tasks Activity — last 7 days</h2>
             {dailyLoading && <span className="task-activity-loading" aria-hidden="true">…</span>}
           </div>
           <div className="task-activity-bars" role="list" aria-label="Tasks created vs done last 7 days">
@@ -551,7 +551,7 @@ export function DashboardPage() {
           {/* next up — 3 tasks due <= today assigned to you */}
           <div className="welcome-queue" role="list" aria-label="Next actions">
             <div className="welcome-queue-head">
-              <span>Next up — what to do today</span>
+              <h2 style={{ font: 'inherit', margin: 0 }}>Next up — what to do today</h2>
               <span className="welcome-queue-sub">assignee: you · due ≤ today{nextUp && nextUp.length > 0 ? ` · ${nextUp.length} overdue` : ''}</span>
             </div>
             {nextUpLoading ? (
