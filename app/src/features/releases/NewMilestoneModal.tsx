@@ -193,7 +193,6 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
             value={changelog}
             onChange={setChangelog}
             placeholder={t("releases.modal.changelogPlaceholder")}
-            helper={t("releases.newModal.changelogHelper")}
             maxLength={LIMITS.MILESTONE_CHANGELOG}
             rows={4}
             variant="bare"

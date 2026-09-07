@@ -47,15 +47,6 @@ export function MarkdownField({
     el.style.height = 'auto';
     el.style.height = `${el.scrollHeight}px`;
   });
-  const count = value.length;
-  const warnThreshold = Math.floor(maxLength * 0.8);
-  const dangerThreshold = Math.floor(maxLength * 0.9);
-  const countColor =
-    count > dangerThreshold
-      ? 'var(--status-danger)'
-      : count > warnThreshold
-        ? 'var(--status-warn)'
-        : 'var(--text-muted)';
 
   return (
     <>
@@ -176,7 +167,7 @@ export function MarkdownField({
         <div
           style={{
             display: 'flex',
-            justifyContent: 'space-between',
+            justifyContent: 'flex-start',
             alignItems: 'flex-start',
             gap: 12,
             marginTop: 6,
@@ -202,18 +193,6 @@ export function MarkdownField({
               {t('project:prd.mdHintShort')}
             </span>
           </div>
-          <span
-            style={{
-              fontSize: 11,
-              color: countColor,
-              fontFamily: 'var(--font-mono)',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-              alignSelf: 'flex-end',
-            }}
-          >
-            {count.toLocaleString()} / {maxLength.toLocaleString()}
-            </span>
           </div>
         </div>
       )}
@@ -303,17 +282,6 @@ export function MarkdownField({
                   {t('project:prd.mdHintShort')}
                 </span>
               </div>
-              <span
-                style={{
-                  fontSize: 11,
-                  color: countColor,
-                  fontFamily: 'var(--font-mono)',
-                  whiteSpace: 'nowrap',
-                  alignSelf: 'flex-end',
-                }}
-              >
-                {count.toLocaleString()} / {maxLength.toLocaleString()}
-              </span>
             </div>
           </div>
         </Modal>

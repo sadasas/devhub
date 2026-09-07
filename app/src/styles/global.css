@@ -878,7 +878,7 @@ a:hover {
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  border-bottom: 1px solid var(--border-hairline);
+  border-bottom: 0;
 }
 
 .modal-title {
@@ -897,7 +897,7 @@ a:hover {
   justify-content: flex-end;
   gap: 8px;
   padding: 12px 16px;
-  border-top: 1px solid var(--border-hairline);
+  border-top: 0;
 }
 
 .modal-footer:has(.save-state) {
@@ -6416,6 +6416,7 @@ html[data-theme='light'] .splash-bg {
   gap: 8px;
   padding: 10px 12px;
   border-bottom: 1px solid var(--border-hairline);
+  min-width: 0;
 }
 
 .kanban-col-label {
@@ -6423,11 +6424,16 @@ html[data-theme='light'] .splash-bg {
   font-weight: 600;
   color: var(--text-secondary);
   letter-spacing: 0.01em;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .kanban-col-count {
   font-size: 11px;
   color: var(--text-muted);
+  flex-shrink: 0;
 }
 
 .kanban-milestone-header {
@@ -6556,7 +6562,10 @@ html[data-theme='light'] .splash-bg {
   font-size: 13px;
   font-weight: 500;
   line-height: 1.4;
+  min-width: 0;
+  max-width: 100%;
   overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .task-avatar {
@@ -16924,7 +16933,7 @@ details[open] > .milestone-group-summary::before {
 .modal--expanded .modal-body { max-height: 85vh; }
 .modal-fullscreen { width: min(1360px, calc(100vw - 24px)); max-width: none; max-height: calc(100dvh - 24px - env(safe-area-inset-bottom, 0px)); height: calc(100dvh - 24px - env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; margin: 0 auto; }
 .modal-fullscreen .modal-body { flex: 1; min-height: 0; max-height: none; overflow: hidden; display: flex; flex-direction: column; padding-bottom: 0; }
-.modal-fullscreen .modal-footer { position: relative; flex-shrink: 0; background: var(--bg-elevated); border-top: 1px solid var(--border-hairline); padding: 12px 16px; box-shadow: 0 -8px 16px rgba(0, 0, 0, 0.18); }
+.modal-fullscreen .modal-footer { position: relative; flex-shrink: 0; background: var(--bg-elevated); border-top: 0; padding: 12px 16px; box-shadow: 0 -8px 16px rgba(0, 0, 0, 0.18); }
 .modal-fullscreen .form-stack { flex: 1; min-height: 0; }
 .modal-fullscreen textarea { scrollbar-gutter: stable; overscroll-behavior: contain; scroll-padding-bottom: 16px; overflow-wrap: anywhere; word-break: break-word; width: 100%; min-width: 0; }
 .modal-fullscreen .md-preview { scrollbar-gutter: stable; overscroll-behavior: contain; overflow-wrap: anywhere; word-break: break-word; min-width: 0; }

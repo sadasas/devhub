@@ -116,7 +116,7 @@
       "titlePlaceholder": "What needs to be done?",
       "priorityLabel": "Priority",
       "estimateLabel": "Estimate (hours)",
-      "optionalPlaceholder": "Optional",
+      "descriptionPlaceholder": "Add details, context, or acceptance criteria…",
       "dueDateLabel": "Due date",
       "startDateLabel": "Start date",
       "dateWarn": "Start date is after the due date.",
@@ -233,9 +233,9 @@
       "titleLabel": "Name",
       "titlePlaceholder": "What's broken?",
       "severityLabel": "Severity",
-      "descriptionPlaceholder": "What's broken, where, and why — optional",
+      "descriptionPlaceholder": "What's broken, where, and why",
       "reproductionStepsLabel": "Reproduction steps",
-      "reproductionPlaceholder": "Steps to reproduce, expected vs actual — optional"
+      "reproductionPlaceholder": "Steps to reproduce, expected vs actual"
     }
   },
   "tests": {
@@ -293,9 +293,9 @@
       "linkedTaskLabel": "Linked task",
       "linkedIssueLabel": "Linked issue",
       "stepsLabel": "Steps",
-      "stepsPlaceholder": "1. … 2. … — optional",
+      "stepsPlaceholder": "1. … 2. …",
       "expectedLabel": "Expected result",
-      "expectedPlaceholder": "What should happen — optional"
+      "expectedPlaceholder": "What should happen"
     }
   },
   "prd": {

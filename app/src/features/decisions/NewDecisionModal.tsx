@@ -151,7 +151,6 @@ export function NewDecisionModal({ onClose }: NewDecisionModalProps) {
             value={options}
             onChange={setOptions}
             placeholder={t('decisions.newModal.optionsPlaceholder')}
-            helper={t('decisions.newModal.optionsHelper')}
             maxLength={LIMITS.DECISION_OPTION}
             rows={3}
             variant="bare"
@@ -162,6 +161,7 @@ export function NewDecisionModal({ onClose }: NewDecisionModalProps) {
             icon={Scales}
             value={decision}
             onChange={setDecision}
+            placeholder={t('decisions.newModal.decisionPlaceholder')}
             maxLength={LIMITS.DECISION_TEXT}
             rows={3}
             variant="bare"

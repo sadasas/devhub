@@ -116,7 +116,7 @@
       "titlePlaceholder": "Apa yang perlu dikerjakan?",
       "priorityLabel": "Prioritas",
       "estimateLabel": "Estimasi (jam)",
-      "optionalPlaceholder": "Opsional",
+      "descriptionPlaceholder": "Tulis detail, konteks, atau kriteria selesai…",
       "dueDateLabel": "Tanggal jatuh tempo",
       "startDateLabel": "Tanggal mulai",
       "dateWarn": "Tanggal mulai berada setelah tanggal jatuh tempo.",
@@ -233,9 +233,9 @@
       "titleLabel": "Nama",
       "titlePlaceholder": "Apa yang rusak?",
       "severityLabel": "Tingkat",
-      "descriptionPlaceholder": "Apa yang rusak, di mana, dan mengapa — opsional",
+      "descriptionPlaceholder": "Apa yang rusak, di mana, dan mengapa",
       "reproductionStepsLabel": "Langkah reproduksi",
-      "reproductionPlaceholder": "Langkah reproduksi, hasil yang diharapkan vs aktual — opsional"
+      "reproductionPlaceholder": "Langkah reproduksi, hasil yang diharapkan vs aktual"
     }
   },
   "tests": {
@@ -293,9 +293,9 @@
       "linkedTaskLabel": "Task terkait",
       "linkedIssueLabel": "Issue terkait",
       "stepsLabel": "Langkah",
-      "stepsPlaceholder": "1. … 2. … — opsional",
+      "stepsPlaceholder": "1. … 2. …",
       "expectedLabel": "Hasil yang diharapkan",
-      "expectedPlaceholder": "Apa yang seharusnya terjadi — opsional"
+      "expectedPlaceholder": "Apa yang seharusnya terjadi"
     }
   },
   "prd": {

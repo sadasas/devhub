@@ -86,7 +86,6 @@ export function EditPrdModal({ open, onClose, project }: EditPrdModalProps) {
             id={`prd-${s.key}`}
             label={t(`prd.section.${s.key}.label`)}
             icon={s.icon}
-            helper={t(`prd.section.${s.key}.helper`)}
             value={draft[s.key]}
             onChange={(value) => setDraft((d) => ({ ...d, [s.key]: value }))}
             placeholder={t(`prd.section.${s.key}.helper`)}

@@ -233,7 +233,6 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
             aria-label={t('decisions.modal.optionsLabel')}
             maxLength={LIMITS.DECISION_OPTION}
           />
-          <p className="field-helper" style={{ margin: '6px 0 0' }}>{t('decisions.modal.optionsHelper')}</p>
         </div>
       ) : (
         <div className="md-bare">
@@ -256,7 +255,7 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
           icon={Scales}
           value={decision.decision}
           onChange={(v) => update({ decision: v })}
-          placeholder={t('decisions.newModal.decisionLabel')}
+          placeholder={t('decisions.newModal.decisionPlaceholder')}
           maxLength={LIMITS.DECISION_TEXT}
           rows={3}
           variant="bare"

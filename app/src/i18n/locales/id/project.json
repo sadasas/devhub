@@ -238,7 +238,7 @@
       "categoryLabel": "Kategori",
       "statusLabel": "Status",
       "notesLabel": "Catatan",
-      "notesPlaceholder": "Opsional"
+      "notesPlaceholder": "mis. Untuk apa dipakai, kenapa dipilih…"
     }
   },
   "schema": {
@@ -441,7 +441,7 @@
       "nameLabel": "Nama",
       "namePlaceholder": "users",
       "commentLabel": "Komentar",
-      "commentPlaceholder": "Untuk apa tabel ini? — opsional",
+      "commentPlaceholder": "Untuk apa tabel ini?",
       "presenceCreating": "Membuat tabel"
     },
     "relationModal": {
@@ -468,9 +468,9 @@
       "versionLabel": "Versi",
       "versionPlaceholder": "1.1.0",
       "notesLabel": "Catatan",
-      "notesPlaceholder": "Apa yang berubah dalam revisi schema ini? — opsional",
+      "notesPlaceholder": "Apa yang berubah dalam revisi schema ini?",
       "milestoneLabel": "Milestone",
-      "milestonePlaceholder": "Tanpa milestone (opsional)"
+      "milestonePlaceholder": "Tanpa milestone"
     },
     "diffModal": {
       "title": "Bandingkan versi schema",
@@ -602,7 +602,6 @@
       "dateLabel": "Tanggal",
       "contextLabel": "Konteks",
       "optionsLabel": "Opsi yang dipertimbangkan",
-      "optionsHelper": "Satu opsi per baris",
       "decisionLabel": "Keputusan",
       "consequencesLabel": "Konsekuensi",
       "updated": "Diperbarui {{time}}",
@@ -627,9 +626,9 @@
       "contextLabel": "Konteks",
       "contextPlaceholder": "Apa yang mendasari keputusan ini? Masalah apa yang sedang diselesaikan?",
       "optionsLabel": "Opsi yang dipertimbangkan",
-      "optionsHelper": "Satu opsi per baris",
       "optionsPlaceholder": "Opsi A: …\nOpsi B: …",
       "decisionLabel": "Keputusan",
+      "decisionPlaceholder": "Apa keputusannya dan kenapa itu dipilih?",
       "consequencesLabel": "Konsekuensi",
       "consequencesPlaceholder": "Apa yang berubah sebagai hasilnya?"
     }
@@ -688,7 +687,7 @@
       "deleteConfirmBody": "Ini menghapus milestone secara permanen. Task yang tertaut akan lepas penugasannya. Tindakan ini tidak dapat dibatalkan.",
       "changelogHelp": "Markdown: **tebal**, _miring_, `kode`, [tautan](https://...)",
       "changelogHelp2": "## judul, - poin, 1. bernomor, > kutipan, ```blok kode```",
-      "changelogPlaceholder": "- poin, **tebal**, _miring_, `kode`"
+      "changelogPlaceholder": "Tulis yang berubah di rilis ini, mis. - Login SSO bisa dipakai"
     },
     "newModal": {
       "title": "Milestone baru",
@@ -700,8 +699,7 @@
       "versionPlaceholder": "0.1.0",
       "targetDateLabel": "Tanggal target",
       "statusLabel": "Status",
-      "changelogLabel": "Changelog",
-      "changelogHelper": "Apa yang dirilis pada release ini"
+      "changelogLabel": "Changelog"
     },
     "overdue": "Terlambat",
     "group": {

@@ -238,7 +238,7 @@
       "categoryLabel": "Category",
       "statusLabel": "Status",
       "notesLabel": "Notes",
-      "notesPlaceholder": "Optional"
+      "notesPlaceholder": "e.g. What it's used for, why it was chosen…"
     }
   },
   "schema": {
@@ -441,7 +441,7 @@
       "nameLabel": "Name",
       "namePlaceholder": "users",
       "commentLabel": "Comment",
-      "commentPlaceholder": "What is this table for? — optional",
+      "commentPlaceholder": "What is this table for?",
       "presenceCreating": "Creating table"
     },
     "relationModal": {
@@ -468,9 +468,9 @@
       "versionLabel": "Version",
       "versionPlaceholder": "1.1.0",
       "notesLabel": "Notes",
-      "notesPlaceholder": "What changed in this schema revision? — optional",
+      "notesPlaceholder": "What changed in this schema revision?",
       "milestoneLabel": "Milestone",
-      "milestonePlaceholder": "No milestone (optional)"
+      "milestonePlaceholder": "No milestone"
     },
     "diffModal": {
       "title": "Diff schema versions",
@@ -602,7 +602,6 @@
       "dateLabel": "Date",
       "contextLabel": "Context",
       "optionsLabel": "Options considered",
-      "optionsHelper": "One option per line",
       "decisionLabel": "Decision",
       "consequencesLabel": "Consequences",
       "updated": "Updated {{time}}",
@@ -627,9 +626,9 @@
       "contextLabel": "Context",
       "contextPlaceholder": "What led to this decision? What problem is being solved?",
       "optionsLabel": "Options considered",
-      "optionsHelper": "One option per line",
       "optionsPlaceholder": "Option A: …\nOption B: …",
       "decisionLabel": "Decision",
+      "decisionPlaceholder": "What was decided and why?",
       "consequencesLabel": "Consequences",
       "consequencesPlaceholder": "What changes as a result?"
     }
@@ -688,7 +687,7 @@
       "deleteConfirmBody": "This permanently deletes the milestone. Tasks linked to it will be unassigned. This cannot be undone.",
       "changelogHelp": "Markdown: **bold**, _italic_, `code`, [link](https://...)",
       "changelogHelp2": "## heading, - bullet, 1. numbered, > quote, ```code block```",
-      "changelogPlaceholder": "- bullet, **bold**, _italic_, `code`"
+      "changelogPlaceholder": "List what changed in this release, e.g. - SSO login works"
     },
     "newModal": {
       "title": "New milestone",
@@ -700,8 +699,7 @@
       "versionPlaceholder": "0.1.0",
       "targetDateLabel": "Target date",
       "statusLabel": "Status",
-      "changelogLabel": "Changelog",
-      "changelogHelper": "What shipped with this release"
+      "changelogLabel": "Changelog"
     },
     "overdue": "Overdue",
     "group": {

@@ -247,7 +247,6 @@ export function NewTaskModal({ open, status, milestoneId, dueDate: _dueDate, sta
       value={assignee}
       options={members.map((m) => ({ value: m.id, label: m.displayName || m.email }))}
       onChange={setAssignee}
-      placeholder={t('board.newTaskModal.optionalPlaceholder')}
       triggerEmptyLabel={t('board.taskModal.assigneeLabel')}
     />
   );
@@ -351,7 +350,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate: _dueDate, sta
             icon={FileText}
             value={description}
             onChange={setDescription}
-            placeholder={t('board.newTaskModal.optionalPlaceholder')}
+            placeholder={t('board.newTaskModal.descriptionPlaceholder')}
             maxLength={10000}
             rows={4}
             variant="bare"

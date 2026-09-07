@@ -109,7 +109,6 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                   aria-label={t('schema.table.nameLabel')}
                   placeholder={t('schema.newTableModal.namePlaceholder')}
                 />
-                <span style={{ fontSize: 11, color: table.name.length > 270 ? 'var(--status-danger)' : table.name.length > 240 ? 'var(--status-warn)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)', alignSelf: 'flex-end' }}>{table.name.length.toLocaleString()} / {(300).toLocaleString()}</span>
               </div>
             ) : (
               <h3
@@ -182,11 +181,6 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                       aria-label={t('schema.table.commentLabel')}
                       maxLength={10000}
                     />
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
-                      <span style={{ fontSize: 11, color: table.comment.length > 9000 ? 'var(--status-danger)' : table.comment.length > 8000 ? 'var(--status-warn)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                        {table.comment.length.toLocaleString()} / {(10000).toLocaleString()}
-                      </span>
-                    </div>
                   </>
                 ) : (
                   <div
@@ -425,11 +419,8 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                 </div>
               </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginTop: 8 }}>
               <p className="field-helper" style={{ margin: 0 }}>{canEdit ? t('tracker:issues.modal.fullscreenHelper') : t('tracker:issues.modal.fullscreenHelperReadOnly')}</p>
-              <span style={{ fontSize: 11, color: table.comment.length > 9000 ? 'var(--status-danger)' : table.comment.length > 8000 ? 'var(--status-warn)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                {table.comment.length.toLocaleString()} / {(10000).toLocaleString()}
-              </span>
             </div>
           </div>
         </Modal>

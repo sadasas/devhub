@@ -288,11 +288,8 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
                     </div>
                   </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginTop: 8 }}>
                   <p className="field-helper" style={{ margin: 0 }}>{canEdit ? t('tracker:issues.modal.fullscreenHelper') : t('tracker:issues.modal.fullscreenHelperReadOnly')}</p>
-                  <span style={{ fontSize: 11, color: issue.description.length > 9000 ? 'var(--status-danger)' : issue.description.length > 8000 ? 'var(--status-warn)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                    {issue.description.length.toLocaleString()} / {(LIMITS.ISSUE_DESCRIPTION).toLocaleString()}
-                  </span>
                 </div>
               </div>
             </Modal>
@@ -333,11 +330,8 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
                     </div>
                   </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginTop: 8 }}>
                   <p className="field-helper" style={{ margin: 0 }}>{canEdit ? t('tracker:issues.modal.fullscreenHelper') : t('tracker:issues.modal.fullscreenHelperReadOnly')}</p>
-                  <span style={{ fontSize: 11, color: issue.reproduction.length > 9000 ? 'var(--status-danger)' : issue.reproduction.length > 8000 ? 'var(--status-warn)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                    {issue.reproduction.length.toLocaleString()} / {(LIMITS.ISSUE_REPRODUCTION).toLocaleString()}
-                  </span>
                 </div>
               </div>
             </Modal>

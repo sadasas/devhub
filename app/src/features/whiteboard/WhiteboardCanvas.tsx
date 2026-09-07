@@ -181,6 +181,44 @@ const RESIZE_MIN = 20;
 /** Rotate handle: screen-space hit radius (px) + gap above the element (world units at s=1). */
 const ROTATE_HIT = 12;
 const ROTATE_GAP = 26;
+/** Right dock overlay width (288px panel + margins) + top toolbar height for occlusion flip. */
+const DOCK_OVERLAY_W = 308;
+const TOP_OVERLAY_H = 58;
+
+/**
+ * Rotate-handle world position in the UNROTATED frame — always below (or flipped
+ * above) the element's AABB. Never orbits with element rotation, so the handle
+ * can't end up hidden behind the element/panels when the element is flipped.
+ */
+function rotateHandleWorld(b: Rect, s: number, flipped: boolean): { x: number; y: number } {
+  return { x: b.x + b.w / 2, y: flipped ? b.y - ROTATE_GAP / s : b.y + b.h + ROTATE_GAP / s };
+}
+
+/**
+ * Occlusion flip: prefer below; flip above when the below-handle would fall
+ * under the right dock overlay or outside the canvas, provided above is visible.
+ * Shared by render + hit test so both always agree.
+ */
+function shouldFlipRotateHandle(
+  view: { x: number; y: number; s: number },
+  svgRect: { width: number; height: number } | null,
+  b: Rect,
+  s: number,
+  off: { dx: number; dy: number },
+): boolean {
+  if (!svgRect) return false;
+  const below = worldToScreen(view, b.x + b.w / 2 + off.dx, b.y + b.h + ROTATE_GAP / s + off.dy);
+  const underDock =
+    below.x > svgRect.width - DOCK_OVERLAY_W &&
+    below.y > TOP_OVERLAY_H - 12 &&
+    below.y < svgRect.height - 8;
+  const outBottom = below.y > svgRect.height - 18;
+  if (!underDock && !outBottom) return false;
+  const above = worldToScreen(view, b.x + b.w / 2 + off.dx, b.y - ROTATE_GAP / s + off.dy);
+  if (above.y < TOP_OVERLAY_H || above.y > svgRect.height - 8) return false;
+  if (above.x > svgRect.width - DOCK_OVERLAY_W && above.y > TOP_OVERLAY_H - 12) return false;
+  return true;
+}
 const noopDispatch = () => {};
 const DEFAULT_EDGE_COLOR = '#e4e4e7';
 const DEFAULT_EDGE_WIDTH = 2;
@@ -1326,7 +1364,12 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       const s = Math.max(0.3, view.view.s);
       const c = rotationCenter(target, b);
       const deg = (target as { rotation?: number }).rotation ?? 0;
-      const hp = rotatePoint(b.x + b.w / 2, b.y + b.h + ROTATE_GAP / s, c.x, c.y, deg);
+      // Fixed-frame handle (never orbits with rotation) + occlusion flip.
+      // Frozen while dragging so the handle can't jump mid-gesture.
+      const dragging = rotateRef.current?.id === target.id;
+      const svgRect = view.ref.current?.getBoundingClientRect() ?? null;
+      const flipped = !dragging && shouldFlipRotateHandle(view.view, svgRect, b, s, off);
+      const hp = rotateHandleWorld(b, s, flipped);
       const screenHandle = worldToScreen(view.view, hp.x + off.dx, hp.y + off.dy);
       const screenPt = worldToScreen(view.view, pt.x, pt.y);
       if (Math.hypot(screenPt.x - screenHandle.x, screenPt.y - screenHandle.y) > ROTATE_HIT) return null;
@@ -1924,8 +1967,9 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
             />
           )}
           {(() => {
-            // WB-5/15: selection adornments live in the element's rotated frame so the
-            // resize handle sits on the visual corner and the rotate handle stays on top.
+            // WB-5/15: resize handle lives in the element's rotated frame (visual corner).
+            // The rotate handle stays in the FIXED frame below/above the AABB — it must
+            // not orbit with rotation, or it ends up hidden when the element is flipped.
             const target = selectedIds.length === 1 ? (board.elements.find((el) => el.id === selectedIds[0]) ?? null) : null;
             if (!target || isReadOnly) return null;
             const canResize = RESIZEABLE_KINDS.has(target.kind) && !target.locked;
@@ -1941,8 +1985,13 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
             const c = rotationCenter(target, b);
             const rotAttr = shownRot ? `rotate(${shownRot}, ${c.x}, ${c.y})` : undefined;
             const rotR = 8 / s;
-            const rotY = b.y + b.h + ROTATE_GAP / s;
-            const rotX = b.x + b.w / 2;
+            const dragging = rotateRef.current?.id === target.id;
+            const svgRect = view.ref.current?.getBoundingClientRect() ?? null;
+            const flipped = !dragging && shouldFlipRotateHandle(view.view, svgRect, b, s, off);
+            const hp = rotateHandleWorld(b, s, flipped);
+            const rotX = hp.x;
+            const rotY = hp.y;
+            const stemY = flipped ? b.y : b.y + b.h;
             const startRotate = (clientX: number, clientY: number) => {
               const svg = view.ref.current;
               if (!svg) return;
@@ -1981,38 +2030,38 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                       data-testid="wb-resize-handle"
                     />
                   )}
-                  {canRotate && (
-                    <g>
-                      <line
-                        x1={rotX}
-                        y1={b.y + b.h}
-                        x2={rotX}
-                        y2={rotY}
-                        stroke="var(--accent)"
-                        strokeWidth={1.5 / view.view.s}
-                        pointerEvents="none"
-                      />
-                      <circle
-                        cx={rotX}
-                        cy={rotY}
-                        r={rotR}
-                        fill="var(--bg-elevated)"
-                        stroke="var(--accent)"
-                        strokeWidth={1.5 / view.view.s}
-                        style={{ cursor: 'grab' }}
-                        pointerEvents="all"
-                        onPointerDown={(e) => {
-                          e.stopPropagation();
-                          (e.currentTarget as Element).setPointerCapture?.((e as any).pointerId);
-                          startRotate(e.clientX, e.clientY);
-                        }}
-                        data-testid="wb-rotate-handle"
-                      >
-                        <title>{`${Math.round(shownRot)}°`}</title>
-                      </circle>
-                    </g>
-                  )}
                 </g>
+                {canRotate && (
+                  <g>
+                    <line
+                      x1={rotX}
+                      y1={stemY}
+                      x2={rotX}
+                      y2={rotY}
+                      stroke="var(--accent)"
+                      strokeWidth={1.5 / view.view.s}
+                      pointerEvents="none"
+                    />
+                    <circle
+                      cx={rotX}
+                      cy={rotY}
+                      r={rotR}
+                      fill="var(--bg-elevated)"
+                      stroke="var(--accent)"
+                      strokeWidth={1.5 / view.view.s}
+                      style={{ cursor: 'grab' }}
+                      pointerEvents="all"
+                      onPointerDown={(e) => {
+                        e.stopPropagation();
+                        (e.currentTarget as Element).setPointerCapture?.((e as any).pointerId);
+                        startRotate(e.clientX, e.clientY);
+                      }}
+                      data-testid="wb-rotate-handle"
+                    >
+                      <title>{`${Math.round(shownRot)}°`}</title>
+                    </circle>
+                  </g>
+                )}
               </g>
             );
           })()}

@@ -584,7 +584,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               icon={FileText}
               value={task.description}
               onChange={(v) => update({ description: v })}
-              placeholder={t('board.newTaskModal.descriptionLabel')}
+              placeholder={t('board.newTaskModal.descriptionPlaceholder')}
               maxLength={10000}
               rows={4}
               variant="bare"
