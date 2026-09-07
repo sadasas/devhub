@@ -9,6 +9,8 @@ import {
   AlignTop,
   ArrowDown,
   ArrowUp,
+  ArrowsHorizontal,
+  ArrowsVertical,
   Columns,
   CornersOut,
   Intersect,
@@ -40,20 +42,24 @@ import {
   alignSelection,
   distributeSelection,
   elementBounds,
+  matchSizeSelection,
+  type MatchSizeMode,
   rectsIntersect,
   refCardLayout,
   refCardRect,
+  rotatePoint,
+  rotationCenter,
   screenToWorld,
   worldToScreen,
   shapePath,
   snapToGrid,
+  snapRotation,
   truncateToWidth,
   textLineHeight,
   unionBounds,
   worldViewportRect,
   wrapTextLines,
   wrapToWidth,
-  zoomAtPoint,
   CHIP_CHAR_W,
   REF_LAYOUT,
   type AlignMode,
@@ -61,8 +67,8 @@ import {
   type Rect,
   type RefCardBlock,
   type RefCardData,
-  type ViewState,
 } from './geometry';
+import { useCanvasView } from '../../lib/useCanvasView';
 import {
   EDGE_TOUCH_TOLERANCE,
   edgeEndpoints,
@@ -116,6 +122,10 @@ interface WhiteboardCanvasProps {
   selectedIds?: string[];
   onSelectedChange?: (ids: string[]) => void;
   onToolChange?: (tool: WbTool) => void;
+  /** WB-6/WB-10: surface transient hints, optionally with a one-shot action. */
+  onNotice?: (msg: string, action?: { label: string; run: () => void }) => void;
+  /** WB-17: presentation mode — hide all chrome (zoom, hint, minimap, selection bar). */
+  hideChrome?: boolean;
   snapOn?: boolean;
   onSnapChange?: (v: boolean) => void;
   penColor?: string;
@@ -135,7 +145,6 @@ interface WhiteboardCanvasProps {
   shapeType?: string | null;
   shapeLabel?: string | null;
   shapeFill?: boolean;
-  shapeRotation?: number;
   edgeColor?: string;
   edgeFontSize?: number;
   edgeAlign?: string | null;
@@ -150,8 +159,6 @@ interface WhiteboardCanvasProps {
   panToId?: string | null;
 }
 
-const DOT_STEP = 32;
-
 const TOOL_CURSOR: Record<WbTool, string> = {
   view: 'grab',
   select: 'grab',
@@ -165,132 +172,19 @@ const TOOL_CURSOR: Record<WbTool, string> = {
   ref: 'crosshair',
   boundary: 'crosshair',
 };
-const MIN_ZOOM = 0.3;
-const MAX_ZOOM = 3;
 const MAX_ELEMENTS = 1000;
 const NO_BOUNDARY: ReadonlySet<string> = new Set(['boundary']);
 const RESIZEABLE_KINDS: ReadonlySet<string> = new Set(['shape', 'sticky', 'boundary', 'text']);
+/** Kinds with a schema `rotation` field (server state.ts) — inline rotate handle targets. */
+const ROTATABLE_KINDS: ReadonlySet<string> = new Set(['shape', 'sticky', 'text']);
 const RESIZE_MIN = 20;
+/** Rotate handle: screen-space hit radius (px) + gap above the element (world units at s=1). */
+const ROTATE_HIT = 12;
+const ROTATE_GAP = 26;
 const noopDispatch = () => {};
 const DEFAULT_EDGE_COLOR = '#e4e4e7';
 const DEFAULT_EDGE_WIDTH = 2;
 
-function useView(panEnabled: boolean) {
-  const [view, setView] = useState<ViewState>({ x: 16, y: 16, s: 1 });
-  const [dragging, setDragging] = useState(false);
-  const dragStartRef = useRef<{ pointerX: number; pointerY: number; x: number; y: number } | null>(null);
-  const svgRef = useRef<SVGSVGElement | null>(null);
-  const viewRef = useRef(view);
-  viewRef.current = view;
-
-  useEffect(() => {
-    const el = svgRef.current;
-    if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      const rect = el.getBoundingClientRect();
-      const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
-      setView((v) => zoomAtPoint(v, e.clientX - rect.left, e.clientY - rect.top, factor, MIN_ZOOM, MAX_ZOOM));
-    };
-    el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
-  }, []);
-
-  // Pinch zoom — two-finger touch gestures take over pan/tool interactions.
-  useEffect(() => {
-    const el = svgRef.current;
-    if (!el) return;
-    const pointers = new Map<number, { x: number; y: number }>();
-    let pinchStart: { dist: number; cx: number; cy: number; view: ViewState } | null = null;
-    let pinching = false;
-
-    const onPointerDown = (e: PointerEvent) => {
-      if (e.pointerType === 'mouse') return;
-      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      if (pointers.size >= 2) {
-        e.stopPropagation();
-        if (!pinching) {
-          const pts = [...pointers.values()];
-          const a = pts[0];
-          const b = pts[1];
-          if (!a || !b) return;
-          const rect = el.getBoundingClientRect();
-          pinchStart = {
-            dist: Math.hypot(a.x - b.x, a.y - b.y),
-            cx: (a.x + b.x) / 2 - rect.left,
-            cy: (a.y + b.y) / 2 - rect.top,
-            view: viewRef.current,
-          };
-          pinching = true;
-          dragStartRef.current = null;
-          setDragging(false);
-        }
-      }
-    };
-
-    const onPointerMove = (e: PointerEvent) => {
-      if (!pointers.has(e.pointerId)) return;
-      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      if (!pinching || !pinchStart || pointers.size < 2) return;
-      e.stopPropagation();
-      const pts = [...pointers.values()];
-      const a = pts[0];
-      const b = pts[1];
-      if (!a || !b) return;
-      const rect = el.getBoundingClientRect();
-      const dist = Math.hypot(a.x - b.x, a.y - b.y);
-      const cx = (a.x + b.x) / 2 - rect.left;
-      const cy = (a.y + b.y) / 2 - rect.top;
-      if (pinchStart.dist <= 0) return;
-      const factor = dist / pinchStart.dist;
-      const base = zoomAtPoint(pinchStart.view, pinchStart.cx, pinchStart.cy, factor, MIN_ZOOM, MAX_ZOOM);
-      setView({ ...base, x: base.x + (cx - pinchStart.cx), y: base.y + (cy - pinchStart.cy) });
-    };
-
-    const endPointer = (e: PointerEvent) => {
-      pointers.delete(e.pointerId);
-      if (pinching && pointers.size < 2) {
-        pinching = false;
-        pinchStart = null;
-      }
-    };
-
-    el.addEventListener('pointerdown', onPointerDown);
-    el.addEventListener('pointermove', onPointerMove);
-    el.addEventListener('pointerup', endPointer);
-    el.addEventListener('pointercancel', endPointer);
-    return () => {
-      el.removeEventListener('pointerdown', onPointerDown);
-      el.removeEventListener('pointermove', onPointerMove);
-      el.removeEventListener('pointerup', endPointer);
-      el.removeEventListener('pointercancel', endPointer);
-    };
-  }, []);
-
-  const onPointerDown = (e: ReactPointerEvent<SVGSVGElement>) => {
-    if (e.button !== 0 || !panEnabled) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    dragStartRef.current = { pointerX: e.clientX, pointerY: e.clientY, x: view.x, y: view.y };
-    setDragging(true);
-  };
-
-  const onPointerMove = (e: ReactPointerEvent<SVGSVGElement>) => {
-    const start = dragStartRef.current;
-    if (!start) return;
-    setView((v) => ({
-      ...v,
-      x: start.x + (e.clientX - start.pointerX),
-      y: start.y + (e.clientY - start.pointerY),
-    }));
-  };
-
-  const endDrag = () => {
-    dragStartRef.current = null;
-    setDragging(false);
-  };
-
-  return { view, setView, dragging, onPointerDown, onPointerMove, onPointerUp: endDrag, onPointerCancel: endDrag, ref: svgRef };
-}
 
 interface DragOffset {
   dx: number;
@@ -668,10 +562,21 @@ const ElementView = memo(function ElementView({
       node
     );
 
+  // WB-5/15: selection outline follows element rotation (was axis-aligned AABB).
+  const selectionOutline = (() => {
+    if (!selected || el.kind === 'edge' || el.kind === 'stroke') return null;
+    const bounds = boundsProp ?? elementBounds(el);
+    const rect = outline(bounds);
+    const rot = (el as { rotation?: number }).rotation ?? 0;
+    if (!rot || !ROTATABLE_KINDS.has(el.kind)) return rect;
+    const c = rotationCenter(el, bounds);
+    return <g transform={`rotate(${rot}, ${c.x}, ${c.y})`}>{rect}</g>;
+  })();
+
   return withOffset(
     <g>
       {content}
-      {selected && el.kind !== 'edge' && el.kind !== 'stroke' && outline(boundsProp ?? elementBounds(el))}
+      {selectionOutline}
     </g>,
   );
 });
@@ -681,7 +586,7 @@ interface DraftStroke {
   points: Array<[number, number]>;
 }
 
-export function WhiteboardCanvas({ board, tool, history, readOnly = false, readOnlyState = null, readOnlyProjectId, selectedIds: selectedIdsProp, onSelectedChange, onToolChange, snapOn: snapOnProp, onSnapChange, penColor: penColorProp, penWidth: penWidthProp, eraserWidth: eraserWidthProp, stickyColor: stickyColorProp, stickyTextColor: stickyTextColorProp, stickyFontSize: stickyFontSizeProp, stickyAlign: stickyAlignProp, textColor: textColorProp, textFontSize: textFontSizeProp, textAlign: textAlignProp, shapeColor: shapeColorProp, shapeLabelColor: shapeLabelColorProp, shapeFontSize: shapeFontSizeProp, shapeAlign: shapeAlignProp, shapeType: shapeTypeProp, shapeLabel: shapeLabelProp, shapeFill: shapeFillProp, shapeRotation: shapeRotationProp, edgeColor: edgeColorProp, edgeFontSize: edgeFontSizeProp, edgeAlign: edgeAlignProp, edgeLabel: edgeLabelProp, edgeArrowStyle: edgeArrowStyleProp, edgeDash: edgeDashProp, boundaryColor: boundaryColorProp, boundaryLabelColor: boundaryLabelColorProp, boundaryFontSize: boundaryFontSizeProp, boundaryAlign: boundaryAlignProp, boundaryLabel: boundaryLabelProp, panToId }: WhiteboardCanvasProps) {
+export function WhiteboardCanvas({ board, tool, history, readOnly = false, readOnlyState = null, readOnlyProjectId, selectedIds: selectedIdsProp, onSelectedChange, onToolChange, snapOn: snapOnProp, onSnapChange, penColor: penColorProp, penWidth: penWidthProp, eraserWidth: eraserWidthProp, stickyColor: stickyColorProp, stickyTextColor: stickyTextColorProp, stickyFontSize: stickyFontSizeProp, stickyAlign: stickyAlignProp, textColor: textColorProp, textFontSize: textFontSizeProp, textAlign: textAlignProp, shapeColor: shapeColorProp, shapeLabelColor: shapeLabelColorProp, shapeFontSize: shapeFontSizeProp, shapeAlign: shapeAlignProp, shapeType: shapeTypeProp, shapeLabel: shapeLabelProp, shapeFill: shapeFillProp, onNotice: onNoticeProp, edgeColor: edgeColorProp, edgeFontSize: edgeFontSizeProp, edgeAlign: edgeAlignProp, edgeLabel: edgeLabelProp, edgeArrowStyle: edgeArrowStyleProp, edgeDash: edgeDashProp, boundaryColor: boundaryColorProp, boundaryLabelColor: boundaryLabelColorProp, boundaryFontSize: boundaryFontSizeProp, boundaryAlign: boundaryAlignProp, boundaryLabel: boundaryLabelProp, panToId, hideChrome = false }: WhiteboardCanvasProps) {
   const { t } = useTranslation('extras');
   const proj = useProjectOptional(null);
   const { canEdit, dispatch, projectId, state } =
@@ -705,7 +610,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   }, [onSnapChange, snapOn]);
   const [canvasSize, setCanvasSize] = useState({ w: 800, h: 600 });
   const panEnabled = tool === 'select' || tool === 'view' || spaceHeld;
-  const view = useView(panEnabled);
+  const view = useCanvasView(panEnabled);
 
   useEffect(() => {
     const el = view.ref.current;
@@ -745,6 +650,18 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   const [clipboard, setClipboard] = useState<WhiteboardElement[] | null>(null);
   const [resizePreview, setResizePreview] = useState<{ w: number; h: number } | null>(null);
   const resizeRef = useRef<{ startWorld: Point; startW: number; startH: number; startX: number; startY: number } | null>(null);
+  // WB-5: inline rotate gesture — ref holds the drag, preview holds live degrees.
+  const [rotatePreview, setRotatePreview] = useState<number | null>(null);
+  const rotateRef = useRef<{ id: string; center: Point; startAng: number; startRot: number } | null>(null);
+  // WB-10: one-step trash — last explicitly deleted elements, restorable via notice.
+  const trashRef = useRef<WhiteboardElement[] | null>(null);
+  // Latest elements for the deferred restore action (avoids stale closures).
+  const elementsRef = useRef(board.elements);
+  elementsRef.current = board.elements;
+
+  useEffect(() => {
+    trashRef.current = null;
+  }, [board.id]);
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const [viewport, setViewport] = useState<Rect | null>(null);
@@ -840,6 +757,28 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     return { fromEl, hover };
   }, [board.elements, edgeDraft, refRects]);
 
+  // WB-10: re-adds the last explicitly deleted elements (cap-guarded).
+  const restoreTrash = useCallback(() => {
+    if (isReadOnly) return;
+    const trashed = trashRef.current;
+    if (!trashed || trashed.length === 0) return;
+    const current = elementsRef.current;
+    // skip ids already back (e.g. restored via undo first)
+    const fresh = trashed.filter((t) => !current.some((el) => el.id === t.id));
+    if (fresh.length === 0) {
+      trashRef.current = null;
+      return;
+    }
+    if (current.length + fresh.length > MAX_ELEMENTS) {
+      onNoticeProp?.(t('whiteboard.canvas.restoreAtCap'));
+      return;
+    }
+    trashRef.current = null;
+    history.record();
+    dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...current, ...fresh] } });
+    setSelectedIds(fresh.map((el) => el.id));
+  }, [board.id, dispatch, history, isReadOnly, onNoticeProp, t]);
+
   const removeSelection = useCallback(() => {
     if (isReadOnly) return;
     if (selectedIds.length === 0) return;
@@ -858,11 +797,20 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       for (const el of next) if (el.kind === 'ref' && prev.has(el.id)) keep.add(el.id);
       return keep.size === prev.size ? prev : keep;
     });
+    const removed = board.elements.filter((el) => !next.includes(el));
     history.record();
     dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
     setSelectedIds([]);
     setDragOffset(null);
-  }, [board.id, board.elements, dispatch, history, selectedIds, isReadOnly]);
+    // WB-10: stash for one-step restore (survives reload-unaware undo).
+    if (removed.length > 0) {
+      trashRef.current = removed;
+      onNoticeProp?.(t('whiteboard.canvas.deletedN', { count: removed.length }), {
+        label: t('whiteboard.canvas.restore'),
+        run: restoreTrash,
+      });
+    }
+  }, [board.id, board.elements, dispatch, history, selectedIds, isReadOnly, onNoticeProp, t, restoreTrash]);
 
   const reorderSelection = useCallback(
     (dir: 1 | -1) => {
@@ -959,6 +907,28 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         if (pos === undefined || el.locked) return el;
         if (el.kind === 'edge' || el.kind === 'stroke') return el;
         return { ...el, ...(axis === 'x' ? { x: pos } : { y: pos }) };
+      });
+      history.record();
+      dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
+    },
+    [board.elements, board.id, dispatch, history, selectedIds, isReadOnly],
+  );
+
+  const onMatchSize = useCallback(
+    (mode: MatchSizeMode) => () => {
+      if (isReadOnly) return;
+      const moves = matchSizeSelection(
+        board.elements.map((el) => ({ id: el.id, ...elementBounds(el) })),
+        selectedIds,
+        mode,
+      );
+      if (moves.size === 0) return;
+      const next = board.elements.map((el) => {
+        const size = moves.get(el.id);
+        if (size === undefined || el.locked) return el;
+        if (el.kind === 'edge' || el.kind === 'stroke') return el;
+        if (el.kind === 'text') return { ...el, w: Math.min(Math.max(20, size.w), 2000) };
+        return { ...el, w: size.w, h: size.h };
       });
       history.record();
       dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
@@ -1112,6 +1082,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         }
         setSelectedIds([]);
         setDragOffset(null);
+        rotateRef.current = null;
+        setRotatePreview(null);
         marqueeRef.current = null;
         setMarquee(null);
       }
@@ -1136,6 +1108,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       setDragOffset(null);
       resizeRef.current = null;
       setResizePreview(null);
+      rotateRef.current = null;
+      setRotatePreview(null);
       marqueeRef.current = null;
       setMarquee(null);
     }
@@ -1216,25 +1190,26 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     const rect = view.ref.current?.getBoundingClientRect();
     if (!rect) return;
     const pt = screenToWorld(view.view, start.clientX - rect.left, start.clientY - rect.top);
+    // WB-6: newborn elements respect the snap toggle like drags do.
+    const spt = { x: snap(pt.x), y: snap(pt.y) };
     let placed: WhiteboardElement;
     if (tool === 'sticky') {
-      const base = buildSticky(pt.x, pt.y, stickyColorProp ?? STICKY_COLOR, stickyTextColorProp ?? null);
+      const base = buildSticky(spt.x, spt.y, stickyColorProp ?? STICKY_COLOR, stickyTextColorProp ?? null);
       placed = { ...base, fontSize: Math.max(4, Math.min(72, stickyFontSizeProp ?? 12)), align: (stickyAlignProp as WhiteboardElement['kind'] extends never ? never : string) ?? 'left' } as WhiteboardElement;
       (placed as WhiteboardSticky).fontSize = Math.max(4, Math.min(72, stickyFontSizeProp ?? 12));
       (placed as WhiteboardSticky).align = (stickyAlignProp ?? 'left') as any;
     } else if (tool === 'shape') {
-      const base = buildShape(pt.x, pt.y, shapeColorProp ?? SHAPE_COLOR, (shapeTypeProp as WhiteboardShapeType) ?? 'rect', shapeLabelColorProp ?? null);
+      const base = buildShape(spt.x, spt.y, shapeColorProp ?? SHAPE_COLOR, (shapeTypeProp as WhiteboardShapeType) ?? 'rect', shapeLabelColorProp ?? null);
       const withDefaults = {
         ...base,
         label: shapeLabelProp ?? '',
         fill: shapeFillProp ?? false,
-        rotation: Math.max(-360, Math.min(360, shapeRotationProp ?? 0)),
         fontSize: Math.max(4, Math.min(72, shapeFontSizeProp ?? 12)),
         align: (shapeAlignProp ?? 'center') as any,
       } as WhiteboardElement;
       placed = withDefaults;
     } else {
-      const base = buildText(pt.x, pt.y, textColorProp ?? TEXT_COLOR);
+      const base = buildText(spt.x, spt.y, textColorProp ?? TEXT_COLOR);
       placed = { ...base, fontSize: Math.max(4, Math.min(72, textFontSizeProp ?? 16)), align: (textAlignProp ?? 'left') as any } as WhiteboardElement;
     }
     if (board.elements.length >= MAX_ELEMENTS) return;
@@ -1284,7 +1259,11 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     const fromEl = board.elements.find((el) => el.id === d.fromId);
     if (!fromEl) return;
     const target = elementsAtPoint(board.elements, d.cur, EDGE_TOUCH_TOLERANCE, refRects, NO_BOUNDARY);
-    if (!target || target.id === d.fromId) return;
+    // WB-6: dropping on empty space/self is a silent no-op no more.
+    if (!target || target.id === d.fromId) {
+      if (!isReadOnly) onNoticeProp?.(t('whiteboard.canvas.edgeDropEmpty'));
+      return;
+    }
     const fromBounds = boundsFor(fromEl);
     const toBounds = boundsFor(target);
     const sourcePort: PortSide = portSideToward(fromBounds, d.cur);
@@ -1313,6 +1292,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     if (board.elements.length >= MAX_ELEMENTS) return;
     history.record();
     dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...board.elements, edge] } });
+    // WB-6: select the new edge so its label is one click away in the inspector.
+    setSelectedIds([edge.id]);
     if (onToolChange) onToolChange('select');
   };
 
@@ -1333,10 +1314,32 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   const handlePointerDown = (e: ReactPointerEvent<SVGSVGElement>) => {
     if (e.button !== 0) return;
     const pt = worldAt(e);
+    // WB-5: selection-handle hit tests (screen space). Handles can float over
+    // empty canvas (e.g. rotate handle below the element), so the pan guard
+    // below must not swallow them.
+    const hitRotateHandle = (): { id: string; center: Point; startAng: number; startRot: number } | null => {
+      if (selectedIds.length !== 1 || isReadOnly) return null;
+      const target = board.elements.find((el) => el.id === selectedIds[0] && ROTATABLE_KINDS.has(el.kind) && !el.locked);
+      if (!target) return null;
+      const b = boundsFor(target);
+      const off = dragOffset ?? { dx: 0, dy: 0 };
+      const s = Math.max(0.3, view.view.s);
+      const c = rotationCenter(target, b);
+      const deg = (target as { rotation?: number }).rotation ?? 0;
+      const hp = rotatePoint(b.x + b.w / 2, b.y + b.h + ROTATE_GAP / s, c.x, c.y, deg);
+      const screenHandle = worldToScreen(view.view, hp.x + off.dx, hp.y + off.dy);
+      const screenPt = worldToScreen(view.view, pt.x, pt.y);
+      if (Math.hypot(screenPt.x - screenHandle.x, screenPt.y - screenHandle.y) > ROTATE_HIT) return null;
+      return {
+        id: target.id,
+        center: { x: c.x + off.dx, y: c.y + off.dy },
+        startAng: (Math.atan2(pt.y - (c.y + off.dy), pt.x - (c.x + off.dx)) * 180) / Math.PI,
+        startRot: deg,
+      };
+    };
     if (
       tool === 'view' ||
-      spaceHeld ||
-      (tool === 'select' && !elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects))
+      spaceHeld
     ) {
       setSelectedIds([]);
       setDragOffset(null);
@@ -1366,12 +1369,22 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       }
     }
     if (tool === 'select') {
+      // WB-5: rotate-handle hit test (screen space, before resize — different corner).
+      const rh = hitRotateHandle();
+      if (rh) {
+        rotateRef.current = { id: rh.id, center: rh.center, startAng: rh.startAng, startRot: rh.startRot };
+        return;
+      }
       const resizeTargetEl = selectedIds.length === 1 ? board.elements.find((el) => el.id === selectedIds[0] && RESIZEABLE_KINDS.has(el.kind) && !el.locked) : undefined;
       if (resizeTargetEl && !isReadOnly) {
         const b = boundsFor(resizeTargetEl);
         const off = dragOffset ?? { dx: 0, dy: 0 };
-        const hx = b.x + b.w + off.dx;
-        const hy = b.y + b.h + off.dy;
+        // WB-5: corner follows element rotation (matches the adornment group).
+        const rdeg = (resizeTargetEl as { rotation?: number }).rotation ?? 0;
+        const rc = rotationCenter(resizeTargetEl, b);
+        const corner = rotatePoint(b.x + b.w, b.y + b.h, rc.x, rc.y, rdeg);
+        const hx = corner.x + off.dx;
+        const hy = corner.y + off.dy;
         // Use screen-space hit test - 20px generous (was 6 world = 1.8px at zoom 0.3)
         const handleSize = 10 / Math.max(0.3, view.view.s);
         const screenHandle = worldToScreen(view.view, hx, hy);
@@ -1383,13 +1396,26 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       }
       const hit = elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects);
       if (!hit) {
-        view.onPointerDown(e);
+        // WB-7: empty-drag in select starts a marquee (pan via Space/view tool).
+        // Viewers keep pan-on-empty for navigation.
+        if (isReadOnly) {
+          setSelectedIds([]);
+          setDragOffset(null);
+          panDragRef.current = true;
+          view.onPointerDown(e);
+          return;
+        }
+        const m = { x1: pt.x, y1: pt.y, x2: pt.x, y2: pt.y, shift: e.shiftKey };
+        marqueeRef.current = m;
+        setMarquee(m);
         return;
       }
       if (hit.kind === 'ref' && !e.shiftKey) {
         const b = boundsFor(hit);
         const t = REF_LAYOUT.toggle;
-        if (pointInRect(pt, { x: b.x + b.w - t.rightOff, y: b.y + t.topOff, w: t.w, h: t.h })) {
+        // WB-8: 20px effective hit area (visual stays 14px).
+        const pad = 3;
+        if (pointInRect(pt, { x: b.x + b.w - t.rightOff - pad, y: b.y + t.topOff - pad, w: t.w + pad * 2, h: t.h + pad * 2 })) {
           toggleCollapse(hit.id);
           return;
         }
@@ -1457,9 +1483,20 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       if (isReadOnly) {
         // suppress all mutating previews for viewer
         if (resizeRef.current) setResizePreview(null);
+        if (rotateRef.current) setRotatePreview(null);
         return;
       }
       const pt = worldAt(e);
+      // WB-5: live rotation degrees (Shift = 45° steps).
+      if (rotateRef.current) {
+        const r = rotateRef.current;
+        const ang = (Math.atan2(pt.y - r.center.y, pt.x - r.center.x) * 180) / Math.PI;
+        let delta = ang - r.startAng;
+        while (delta > 180) delta -= 360;
+        while (delta < -180) delta += 360;
+        setRotatePreview(snapRotation(r.startRot + delta, e.shiftKey));
+        return;
+      }
       if (resizeRef.current) {
         const r = resizeRef.current;
         const dx = pt.x - r.startWorld.x;
@@ -1476,6 +1513,14 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
           return;
         }
         setResizePreview({ w, h });
+        return;
+      }
+      // WB-7: marquee started from select-tool empty-drag.
+      if (marqueeRef.current) {
+        const m = marqueeRef.current;
+        const next = { ...m, x2: pt.x, y2: pt.y };
+        marqueeRef.current = next;
+        setMarquee(next);
         return;
       }
       if (!dragRef.current) return;
@@ -1537,6 +1582,23 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     }
   };
 
+  /** WB-7: shared marquee commit for the marquee tool and select-tool empty-drag. */
+  const commitMarquee = () => {
+    const m = marqueeRef.current;
+    marqueeRef.current = null;
+    setMarquee(null);
+    if (!m) return;
+    const rect: Rect = {
+      x: Math.min(m.x1, m.x2),
+      y: Math.min(m.y1, m.y2),
+      w: Math.abs(m.x2 - m.x1),
+      h: Math.abs(m.y2 - m.y1),
+    };
+    const hits = board.elements.filter((el) => rectsIntersect(boundsFor(el), rect));
+    setSelectedIds(m.shift ? Array.from(new Set([...selectedIds, ...hits.map((el) => el.id)])) : hits.map((el) => el.id));
+    setDragOffset(null);
+  };
+
   const handlePointerUp = (_e: ReactPointerEvent<SVGSVGElement>) => {
     if (spaceHeld || panDragRef.current) {
       panDragRef.current = false;
@@ -1544,22 +1606,34 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       return;
     }
     if (tool === 'marquee') {
-      const m = marqueeRef.current;
-      marqueeRef.current = null;
-      setMarquee(null);
-      if (!m) return;
-      const rect: Rect = {
-        x: Math.min(m.x1, m.x2),
-        y: Math.min(m.y1, m.y2),
-        w: Math.abs(m.x2 - m.x1),
-        h: Math.abs(m.y2 - m.y1),
-      };
-      const hits = board.elements.filter((el) => rectsIntersect(boundsFor(el), rect));
-      setSelectedIds(m.shift ? Array.from(new Set([...selectedIds, ...hits.map((el) => el.id)])) : hits.map((el) => el.id));
-      setDragOffset(null);
+      commitMarquee();
       return;
     }
     if (tool === 'select') {
+      // WB-7: marquee started from empty-drag commits the same way.
+      if (marqueeRef.current) {
+        commitMarquee();
+        return;
+      }
+      // WB-5: commit inline rotation.
+      if (rotateRef.current) {
+        const r = rotateRef.current;
+        const preview = rotatePreview;
+        rotateRef.current = null;
+        setRotatePreview(null);
+        if (isReadOnly) return;
+        if (preview !== null && preview !== r.startRot) {
+          history.record();
+          dispatch({
+            type: 'whiteboard/update',
+            id: board.id,
+            patch: {
+              elements: board.elements.map((el) => (el.id === r.id ? { ...el, rotation: preview } : el)),
+            },
+          });
+        }
+        return;
+      }
       if (resizeRef.current) {
         const preview = resizePreview;
         resizeRef.current = null;
@@ -1632,6 +1706,10 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       setGuides(null);
       resizeRef.current = null;
       setResizePreview(null);
+      rotateRef.current = null;
+      setRotatePreview(null);
+      marqueeRef.current = null;
+      setMarquee(null);
       return;
     }
     if (tool === 'pen' || tool === 'eraser') {
@@ -1731,18 +1809,6 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         onPointerCancel={handlePointerCancel}
         onDoubleClick={handleDoubleClick}
       >
-        <defs>
-          <pattern id="wb-dots" width={DOT_STEP} height={DOT_STEP} patternUnits="userSpaceOnUse">
-            <circle cx={1} cy={1} r={1} fill="var(--border-hairline)" />
-          </pattern>
-        </defs>
-        <rect
-          x={viewport?.x ?? 0}
-          y={viewport?.y ?? 0}
-          width={viewport?.w ?? 1000}
-          height={viewport?.h ?? 800}
-          fill="url(#wb-dots)"
-        />
         <g transform={`translate(${view.view.x} ${view.view.y}) scale(${view.view.s})`}>
           {visibleElements.map((el) => (
             <ElementView
@@ -1858,36 +1924,96 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
             />
           )}
           {(() => {
-            const target =
-              selectedIds.length === 1
-                ? (board.elements.find((el) => el.id === selectedIds[0] && RESIZEABLE_KINDS.has(el.kind)) ?? null)
-                : null;
+            // WB-5/15: selection adornments live in the element's rotated frame so the
+            // resize handle sits on the visual corner and the rotate handle stays on top.
+            const target = selectedIds.length === 1 ? (board.elements.find((el) => el.id === selectedIds[0]) ?? null) : null;
             if (!target || isReadOnly) return null;
+            const canResize = RESIZEABLE_KINDS.has(target.kind) && !target.locked;
+            const canRotate = ROTATABLE_KINDS.has(target.kind) && !target.locked;
+            if (!canResize && !canRotate) return null;
             const b = boundsFor(target);
             const off = dragOffset ?? { dx: 0, dy: 0 };
-            const handleSize = 10 / Math.max(0.3, view.view.s);
+            const s = Math.max(0.3, view.view.s);
+            const handleSize = 10 / s;
+            const shownRot = target.id === rotateRef.current?.id && rotatePreview !== null
+              ? rotatePreview
+              : ((target as { rotation?: number }).rotation ?? 0);
+            const c = rotationCenter(target, b);
+            const rotAttr = shownRot ? `rotate(${shownRot}, ${c.x}, ${c.y})` : undefined;
+            const rotR = 8 / s;
+            const rotY = b.y + b.h + ROTATE_GAP / s;
+            const rotX = b.x + b.w / 2;
+            const startRotate = (clientX: number, clientY: number) => {
+              const svg = view.ref.current;
+              if (!svg) return;
+              const rect = svg.getBoundingClientRect();
+              const p = screenToWorld(view.view, clientX - rect.left, clientY - rect.top);
+              rotateRef.current = {
+                id: target.id,
+                center: { x: c.x + off.dx, y: c.y + off.dy },
+                startAng: (Math.atan2(p.y - (c.y + off.dy), p.x - (c.x + off.dx)) * 180) / Math.PI,
+                startRot: shownRot,
+              };
+            };
             return (
-              <rect
-                x={b.x + b.w + off.dx - handleSize / 2}
-                y={b.y + b.h + off.dy - handleSize / 2}
-                width={handleSize}
-                height={handleSize}
-                fill="var(--accent)"
-                stroke="var(--bg-base)"
-                strokeWidth={1.5 / view.view.s}
-                style={{ cursor: 'nwse-resize' }}
-                pointerEvents="all"
-                onPointerDown={(e) => {
-                  e.stopPropagation();
-                  (e.currentTarget as Element).setPointerCapture?.((e as any).pointerId);
-                  const svg = view.ref.current;
-                  if (!svg) return;
-                  const rect = svg.getBoundingClientRect();
-                  const pt = screenToWorld(view.view, e.clientX - rect.left, e.clientY - rect.top);
-                  resizeRef.current = { startWorld: pt, startW: b.w, startH: b.h, startX: b.x, startY: b.y };
-                }}
-                data-testid="wb-resize-handle"
-              />
+              <g transform={`translate(${off.dx} ${off.dy})`}>
+                <g transform={rotAttr}>
+                  {canResize && (
+                    <rect
+                      x={b.x + b.w - handleSize / 2}
+                      y={b.y + b.h - handleSize / 2}
+                      width={handleSize}
+                      height={handleSize}
+                      fill="var(--accent)"
+                      stroke="var(--bg-base)"
+                      strokeWidth={1.5 / view.view.s}
+                      style={{ cursor: 'nwse-resize' }}
+                      pointerEvents="all"
+                      onPointerDown={(e) => {
+                        e.stopPropagation();
+                        (e.currentTarget as Element).setPointerCapture?.((e as any).pointerId);
+                        const svg = view.ref.current;
+                        if (!svg) return;
+                        const rect = svg.getBoundingClientRect();
+                        const pt = screenToWorld(view.view, e.clientX - rect.left, e.clientY - rect.top);
+                        resizeRef.current = { startWorld: pt, startW: b.w, startH: b.h, startX: b.x, startY: b.y };
+                      }}
+                      data-testid="wb-resize-handle"
+                    />
+                  )}
+                  {canRotate && (
+                    <g>
+                      <line
+                        x1={rotX}
+                        y1={b.y + b.h}
+                        x2={rotX}
+                        y2={rotY}
+                        stroke="var(--accent)"
+                        strokeWidth={1.5 / view.view.s}
+                        pointerEvents="none"
+                      />
+                      <circle
+                        cx={rotX}
+                        cy={rotY}
+                        r={rotR}
+                        fill="var(--bg-elevated)"
+                        stroke="var(--accent)"
+                        strokeWidth={1.5 / view.view.s}
+                        style={{ cursor: 'grab' }}
+                        pointerEvents="all"
+                        onPointerDown={(e) => {
+                          e.stopPropagation();
+                          (e.currentTarget as Element).setPointerCapture?.((e as any).pointerId);
+                          startRotate(e.clientX, e.clientY);
+                        }}
+                        data-testid="wb-rotate-handle"
+                      >
+                        <title>{`${Math.round(shownRot)}°`}</title>
+                      </circle>
+                    </g>
+                  )}
+                </g>
+              </g>
             );
           })()}
           {guides &&
@@ -1941,18 +2067,14 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
             })()}
         </g>
       </svg>
+      {!hideChrome && (
       <div className="erd-zoom" role="group" aria-label={t('whiteboard.canvas.zoomGroup')}>
         <button
           type="button"
           className="erd-zoom-btn"
           title={t('whiteboard.canvas.zoomIn')}
           aria-label={t('whiteboard.canvas.zoomIn')}
-          onClick={() => {
-            const el = view.ref.current;
-            if (!el) return;
-            const rect = el.getBoundingClientRect();
-            view.setView((v) => zoomAtPoint(v, rect.width / 2, rect.height / 2, 1.25, MIN_ZOOM, MAX_ZOOM));
-          }}
+            onClick={() => view.zoomAt(1.25)}
         >
           <MagnifyingGlassPlus size={15} aria-hidden="true" />
         </button>
@@ -1961,12 +2083,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
           className="erd-zoom-btn"
           title={t('whiteboard.canvas.zoomOut')}
           aria-label={t('whiteboard.canvas.zoomOut')}
-          onClick={() => {
-            const el = view.ref.current;
-            if (!el) return;
-            const rect = el.getBoundingClientRect();
-            view.setView((v) => zoomAtPoint(v, rect.width / 2, rect.height / 2, 1 / 1.25, MIN_ZOOM, MAX_ZOOM));
-          }}
+            onClick={() => view.zoomAt(1 / 1.25)}
         >
           <MagnifyingGlassMinus size={15} aria-hidden="true" />
         </button>
@@ -1975,7 +2092,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
           className="erd-zoom-btn"
           title={t('whiteboard.canvas.resetView')}
           aria-label={t('whiteboard.canvas.resetView')}
-          onClick={() => view.setView({ x: 16, y: 16, s: 1 })}
+          onClick={() => view.resetView()}
         >
           <CornersOut size={15} aria-hidden="true" />
         </button>
@@ -1992,8 +2109,31 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
           </button>
         )}
       </div>
-      {canEdit && selectedIds.length > 0 && (
-        <div className="wb-selection-bar" role="group" aria-label={t('whiteboard.canvas.selectionActions')}>
+      )}
+      {canEdit && !hideChrome && selectedIds.length > 0 && (() => {
+        // WB-18: float the bar above the selection (below it when too close to the top).
+        const sel = board.elements.filter((el) => selectedIds.includes(el.id));
+        if (sel.length === 0) return null;
+        const off = dragOffset ?? { dx: 0, dy: 0 };
+        const b = unionBounds(
+          sel.map((el) => {
+            const r = boundsFor(el);
+            return { x: r.x + off.dx, y: r.y + off.dy, w: r.w, h: r.h };
+          }),
+        );
+        const topPt = worldToScreen(view.view, b.x + b.w / 2, b.y);
+        const botPt = worldToScreen(view.view, b.x + b.w / 2, b.y + b.h);
+        const GAP = 12;
+        const below = topPt.y < 68;
+        const fx = Math.min(Math.max(topPt.x, 120), Math.max(120, canvasSize.w - 120));
+        const fy = below ? botPt.y + GAP : topPt.y - GAP;
+        return (
+        <div
+          className="wb-selection-bar wb-selection-float"
+          role="group"
+          aria-label={t('whiteboard.canvas.selectionActions')}
+          style={{ left: fx, top: fy, transform: below ? 'translateX(-50%)' : 'translate(-50%,-100%)' }}
+        >
           {(() => {
             const hasLocked = board.elements.some((el) => selectedIds.includes(el.id) && el.locked);
             return (
@@ -2116,6 +2256,28 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
               </button>
             </>
           )}
+          {selectedIds.length >= 2 && (
+            <>
+              <button
+                type="button"
+                className="wb-selection-btn"
+                title={t('whiteboard.canvas.matchWidth')}
+                aria-label={t('whiteboard.canvas.matchWidth')}
+                onClick={onMatchSize('width')}
+              >
+                <ArrowsHorizontal size={15} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="wb-selection-btn"
+                title={t('whiteboard.canvas.matchHeight')}
+                aria-label={t('whiteboard.canvas.matchHeight')}
+                onClick={onMatchSize('height')}
+              >
+                <ArrowsVertical size={15} aria-hidden="true" />
+              </button>
+            </>
+          )}
           <button
             type="button"
             className="wb-selection-btn"
@@ -2144,9 +2306,12 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
             <Trash size={15} aria-hidden="true" />
           </button>
         </div>
-      )}
+        );
+      })()}
+      {!hideChrome && (
       <span className="wb-hint">{t('whiteboard.canvas.hint')}</span>
-      {board.elements.length > 0 && (
+      )}
+      {!hideChrome && board.elements.length > 0 && (
         (() => {
           const bounds = unionBounds(board.elements.map((el) => elementBounds(el)));
           const vp = worldViewportRect(view.view, canvasSize.w, canvasSize.h);

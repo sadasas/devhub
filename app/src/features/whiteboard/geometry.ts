@@ -387,16 +387,43 @@ export function distributeSelection(
 ): Map<string, number> {
   const sel = elements.filter((el) => ids.includes(el.id));
   if (sel.length < 3) return new Map();
-  const sorted = [...sel].sort((a, b) => (axis === 'x' ? a.x - b.x : a.y - b.y));
-  const first = sorted[0]!;
-  const last = sorted[sorted.length - 1]!;
-  const firstPos = axis === 'x' ? first.x : first.y;
-  const lastPos = axis === 'x' ? last.x : last.y;
-  const gap = (lastPos - firstPos) / (sorted.length - 1);
+  // WB-9: distribute CENTERS so unequal widths keep even visual gaps.
+  const center = (el: { x: number; y: number; w: number; h: number }) =>
+    axis === 'x' ? el.x + el.w / 2 : el.y + el.h / 2;
+  const size = (el: { w: number; h: number }) => (axis === 'x' ? el.w : el.h);
+  const sorted = [...sel].sort((a, b) => center(a) - center(b));
+  const firstC = center(sorted[0]!);
+  const lastC = center(sorted[sorted.length - 1]!);
+  const gap = (lastC - firstC) / (sorted.length - 1);
   const out = new Map<string, number>();
   for (let i = 1; i < sorted.length - 1; i += 1) {
     const el = sorted[i]!;
-    out.set(el.id, firstPos + gap * i);
+    out.set(el.id, firstC + gap * i - size(el) / 2);
+  }
+  return out;
+}
+
+export type MatchSizeMode = 'width' | 'height' | 'both';
+
+/**
+ * WB-9: match the size of the selection to the most recently selected element
+ * (last id in `ids` is the reference, Figma key-object style).
+ */
+export function matchSizeSelection(
+  elements: Array<{ id: string; w: number; h: number }>,
+  ids: string[],
+  mode: MatchSizeMode,
+): Map<string, { w: number; h: number }> {
+  const sel = elements.filter((el) => ids.includes(el.id));
+  if (sel.length < 2) return new Map();
+  const ref = sel.find((el) => el.id === ids[ids.length - 1]) ?? sel[0]!;
+  const out = new Map<string, { w: number; h: number }>();
+  for (const el of sel) {
+    if (el.id === ref.id) continue;
+    out.set(el.id, {
+      w: mode === 'height' ? el.w : ref.w,
+      h: mode === 'width' ? el.h : ref.h,
+    });
   }
   return out;
 }
@@ -477,3 +504,33 @@ export function wrapText(text: string, maxChars: number, maxLines: number): stri
 }
 
 export { TEXT_LINE_H };
+
+/** Rotate (px,py) around (cx,cy) by deg degrees clockwise (SVG y-down). */
+export function rotatePoint(px: number, py: number, cx: number, cy: number, deg: number): { x: number; y: number } {
+  const rad = (deg * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  const dx = px - cx;
+  const dy = py - cy;
+  return { x: cx + dx * cos - dy * sin, y: cy + dx * sin + dy * cos };
+}
+
+export const ROTATE_SNAP = 15;
+export const ROTATE_SNAP_SHIFT = 45;
+
+/** Snap a rotation angle: 15° steps, 45° with Shift. Clamped to ±360 like the schema. */
+export function snapRotation(deg: number, shift: boolean): number {
+  const step = shift ? ROTATE_SNAP_SHIFT : ROTATE_SNAP;
+  return Math.max(-360, Math.min(360, Math.round(deg / step) * step));
+}
+
+/**
+ * Rotation pivot matching the render transform: text rotates around (x,y),
+ * every other kind around its bounds center.
+ */
+export function rotationCenter(el: { kind: string; x?: number; y?: number }, bounds: Rect): { x: number; y: number } {
+  if (el.kind === 'text' && typeof el.x === 'number' && typeof el.y === 'number') {
+    return { x: el.x, y: el.y };
+  }
+  return { x: bounds.x + bounds.w / 2, y: bounds.y + bounds.h / 2 };
+}

@@ -1,4 +1,4 @@
-import type { Whiteboard, WhiteboardElement } from '../../lib/types';
+import type { Whiteboard, WhiteboardEdge, WhiteboardElement } from '../../lib/types';
 import {
   elementBounds,
   refCardLayout,
@@ -14,9 +14,32 @@ import {
   type Rect,
   type RefCardData,
 } from './geometry';
-import { effectiveArrowStyle, orthogonalPath, pathMidpoint, type Point } from './edges';
+import { effectiveArrowStyle, orthogonalPath, pathMidpoint, portPoint, portToward, type Point } from './edges';
 
 const EXPORT_MARGIN = 32;
+
+/** WB-4: baked canvas background (standalone SVG files can't resolve CSS vars). */
+export type ExportTheme = 'light' | 'dark';
+export type ExportBackground = 'theme' | 'transparent';
+export interface ExportOptions {
+  background?: ExportBackground;
+  theme?: ExportTheme;
+}
+
+export interface DownloadOptions extends ExportOptions {
+  onError?: () => void;
+}
+
+const EXPORT_BG: Record<ExportTheme, string> = { light: '#f4f3f0', dark: '#0f0f11' };
+const EXPORT_DOT: Record<ExportTheme, string> = { light: 'rgba(0,0,0,0.11)', dark: 'rgba(255,255,255,0.11)' };
+
+function resolveExportTheme(explicit?: ExportTheme): ExportTheme {
+  if (explicit) return explicit;
+  if (typeof document !== 'undefined') {
+    return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+  }
+  return 'dark';
+}
 
 function esc(text: string): string {
   return text
@@ -36,7 +59,36 @@ function round(v: number): number {
   return Math.round(v * 10) / 10;
 }
 
-function elementSvg(el: WhiteboardElement, refData: RefCardData | null): string {
+/** Bounds + lookup shared by elementSvg so node-attached edges resolve like the canvas. */
+interface ExportCtx {
+  byId: ReadonlyMap<string, WhiteboardElement>;
+  refData?: ReadonlyMap<string, RefCardData | null>;
+}
+
+function ctxBounds(el: WhiteboardElement, ctx: ExportCtx): Rect {
+  if (el.kind === 'ref') return refCardRect(el, ctx.refData?.get(el.id) ?? null, false);
+  return elementBounds(el);
+}
+
+/** Mirror of WhiteboardCanvas `derivedEdges`: recompute attached endpoints from node bounds. */
+function resolveEdgeEndpoints(el: WhiteboardEdge, ctx: ExportCtx): { x1: number; y1: number; x2: number; y2: number } {
+  if (el.sourceNodeId && el.targetNodeId) {
+    const src = ctx.byId.get(el.sourceNodeId);
+    const dst = ctx.byId.get(el.targetNodeId);
+    if (src && dst) {
+      const sb = ctxBounds(src, ctx);
+      const tb = ctxBounds(dst, ctx);
+      const sc = { x: sb.x + sb.w / 2, y: sb.y + sb.h / 2 };
+      const tc = { x: tb.x + tb.w / 2, y: tb.y + tb.h / 2 };
+      const p1 = el.sourcePort ? portPoint(sb, el.sourcePort) : portToward(sb, tc);
+      const p2 = el.targetPort ? portPoint(tb, el.targetPort) : portToward(tb, sc);
+      return { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y };
+    }
+  }
+  return { x1: el.x1, y1: el.y1, x2: el.x2, y2: el.y2 };
+}
+
+function elementSvg(el: WhiteboardElement, refData: RefCardData | null, ctx: ExportCtx): string {
   switch (el.kind) {
     case 'stroke': {
       const points = el.points.map(([px, py]) => `${round(px)},${round(py)}`).join(' ');
@@ -100,7 +152,9 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null): string 
       return `<g${rot}><path d="${shapePath(el)}"${fill} stroke="${esc(el.color)}" stroke-width="${el.strokeWidth}"/>${label}</g>`;
     }
     case 'edge': {
-      const ep = { x1: el.x1, y1: el.y1, x2: el.x2, y2: el.y2 };
+      // WB-1: recompute node-attached endpoints exactly like the live canvas
+      // (WhiteboardCanvas derivedEdges) — raw x1/y1/x2/y2 go stale after a drag.
+      const ep = resolveEdgeEndpoints(el, ctx);
       const path = el.sourcePort && el.targetPort ? orthogonalPath(ep, el.sourcePort, el.targetPort) : null;
       const points: Point[] = path ?? [
         { x: ep.x1, y: ep.y1 },
@@ -184,17 +238,28 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null): string 
 export function serializeWhiteboard(
   elements: readonly WhiteboardElement[],
   refData?: ReadonlyMap<string, RefCardData | null>,
+  opts?: ExportOptions,
 ): string {
-  const bounds: Rect = unionBounds(elements.map((el) => (el.kind === 'ref' ? refCardRect(el, refData?.get(el.id) ?? null, false) : elementBounds(el))));
+  const ctx: ExportCtx = { byId: new Map(elements.map((el) => [el.id, el])), refData };
+  const bounds: Rect = unionBounds(elements.map((el) => ctxBounds(el, ctx)));
   const x = bounds.x - EXPORT_MARGIN;
   const y = bounds.y - EXPORT_MARGIN;
   const w = bounds.w + EXPORT_MARGIN * 2;
   const h = bounds.h + EXPORT_MARGIN * 2;
+  // WB-4: bake the canvas background (theme-aware) unless transparency is asked.
+  let chrome = '';
+  if ((opts?.background ?? 'theme') === 'theme') {
+    const theme = resolveExportTheme(opts?.theme);
+    chrome =
+      `<defs><pattern id="wb-export-dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1.1" fill="${EXPORT_DOT[theme]}"/></pattern></defs>` +
+      `<rect x="${round(x)}" y="${round(y)}" width="${round(w)}" height="${round(h)}" fill="${EXPORT_BG[theme]}"/>` +
+      `<rect x="${round(x)}" y="${round(y)}" width="${round(w)}" height="${round(h)}" fill="url(#wb-export-dots)"/>`;
+  }
   const body = [...elements]
     .sort((a, b) => Number(b.kind === 'boundary') - Number(a.kind === 'boundary'))
-    .map((el) => elementSvg(el, el.kind === 'ref' ? (refData?.get(el.id) ?? null) : null))
+    .map((el) => elementSvg(el, el.kind === 'ref' ? (refData?.get(el.id) ?? null) : null, ctx))
     .join('');
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${round(x)} ${round(y)} ${round(w)} ${round(h)}" width="${round(w)}" height="${round(h)}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif">${body}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${round(x)} ${round(y)} ${round(w)} ${round(h)}" width="${round(w)}" height="${round(h)}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif">${chrome}${body}</svg>`;
 }
 
 export function safeFileName(name: string): string {
@@ -218,8 +283,9 @@ export function triggerDownload(href: string, filename: string): void {
 export function downloadWhiteboardSvg(
   board: Whiteboard,
   refData?: ReadonlyMap<string, RefCardData | null>,
+  opts?: ExportOptions,
 ): void {
-  const svg = serializeWhiteboard(board.elements, refData);
+  const svg = serializeWhiteboard(board.elements, refData, opts);
   const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
   triggerDownload(url, `${safeFileName(board.name)}.svg`);
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
@@ -229,8 +295,9 @@ export function downloadWhiteboardSvg(
 export function downloadWhiteboardPdf(
   board: Whiteboard,
   refData?: ReadonlyMap<string, RefCardData | null>,
+  opts?: DownloadOptions,
 ): void {
-  const svg = serializeWhiteboard(board.elements, refData);
+  const svg = serializeWhiteboard(board.elements, refData, opts);
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(board.name)}</title><style>
     body { margin: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
     h1 { font-size: 16px; margin: 0 0 16px; color: #222; }
@@ -238,7 +305,10 @@ export function downloadWhiteboardPdf(
     @media print { body { margin: 0; } h1 { display: none; } }
   </style></head><body><h1>${esc(board.name)}</h1>${svg}</body></html>`;
   const win = window.open('', '_blank');
-  if (!win) return;
+  if (!win) {
+    opts?.onError?.();
+    return;
+  }
   win.document.open();
   win.document.write(html);
   win.document.close();
@@ -250,8 +320,9 @@ export function downloadWhiteboardPdf(
 export function downloadWhiteboardPng(
   board: Whiteboard,
   refData?: ReadonlyMap<string, RefCardData | null>,
+  opts?: DownloadOptions,
 ): void {
-  const svg = serializeWhiteboard(board.elements, refData);
+  const svg = serializeWhiteboard(board.elements, refData, opts);
   const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
   const img = new Image();
   img.onload = () => {
@@ -261,13 +332,19 @@ export function downloadWhiteboardPng(
       canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
       canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
       const ctx = canvas.getContext('2d');
-      if (!ctx) return;
+      if (!ctx) {
+        opts?.onError?.();
+        return;
+      }
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       triggerDownload(canvas.toDataURL('image/png'), `${safeFileName(board.name)}.png`);
     } finally {
       URL.revokeObjectURL(url);
     }
   };
-  img.onerror = () => URL.revokeObjectURL(url);
+  img.onerror = () => {
+    URL.revokeObjectURL(url);
+    opts?.onError?.();
+  };
   img.src = url;
 }

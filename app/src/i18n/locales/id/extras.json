@@ -30,7 +30,12 @@
       "fsEnterTitle": "Layar penuh (F)",
       "fsExitTitle": "Keluar layar penuh (F)",
       "fsEnterAria": "Layar penuh — F",
-      "fsExitAria": "Keluar layar penuh — F"
+      "fsExitAria": "Keluar layar penuh — F",
+      "presentTitle": "Presentasi",
+      "presentAria": "Presentasikan board",
+      "presentExitTitle": "Keluar presentasi (Esc)",
+      "presentExitAria": "Keluar presentasi",
+      "canvasMode": "Kanvas"
     },
     "tool": {
       "view": "Hanya lihat",
@@ -41,6 +46,7 @@
       "text": "Teks",
       "sticky": "Sticky note",
       "shape": "Shape",
+      "shapeMenu": "Tipe shape",
       "edge": "Garis",
       "ref": "Kartu referensi entitas",
       "boundary": "Batas",
@@ -52,7 +58,13 @@
       "menuLabel": "Ekspor diagram",
       "png": "Gambar PNG",
       "svg": "Gambar SVG",
-      "pdf": "Dokumen PDF"
+      "pdf": "Dokumen PDF",
+      "pdfBlocked": "Popup diblokir — izinkan popup untuk situs ini guna mencetak PDF",
+      "pngFailed": "Gagal merender gambar PNG — coba SVG saja",
+      "pngSelection": "PNG seleksi",
+      "svgSelection": "SVG seleksi",
+      "pdfSelection": "PDF seleksi",
+      "transparent": "Latar transparan"
     },
     "viewer": {
       "badge": "Hanya lihat",
@@ -72,6 +84,10 @@
       "resetView": "Atur ulang tampilan",
       "snapOn": "Snap ke grid: aktif",
       "snapOff": "Snap ke grid: nonaktif",
+      "edgeDropEmpty": "Jatuhkan di atas shape untuk menyambung — edge butuh target",
+      "deletedN": "{{count}} elemen dihapus",
+      "restore": "Kembalikan",
+      "restoreAtCap": "Board penuh — hapus elemen dulu sebelum mengembalikan",
       "selectionActions": "Aksi seleksi",
       "lock": "Kunci seleksi",
       "unlock": "Buka kunci seleksi",
@@ -85,6 +101,8 @@
       "alignBottom": "Rata bawah",
       "distributeH": "Sebar horizontal",
       "distributeV": "Sebar vertikal",
+      "matchWidth": "Samakan lebar dengan terakhir dipilih",
+      "matchHeight": "Samakan tinggi dengan terakhir dipilih",
       "bringForward": "Majukan",
       "sendBackward": "Mundurkan",
       "deleteSelectedTitle": "Hapus yang dipilih (Del)",
@@ -135,7 +153,8 @@
       "emptyDesc": "Pilih elemen di kanvas untuk mengedit detailnya.",
       "multiTitle": "{{count}} elemen terpilih",
       "multiDesc": "Pindahkan, ratakan, atau hapus seleksi. Pilih satu elemen untuk mengubah teks dan warnanya.",
-      "clearSelection": "Bersihkan seleksi"
+      "clearSelection": "Bersihkan seleksi",
+      "openSource": "Buka sumber"
     },
     "layers": {
       "title": "Lapisan",
@@ -166,7 +185,8 @@
       "badgeApiColl": "Kol. API",
       "badgeEndpoint": "Endpoint",
       "columns": "{{count}} kolom",
-      "endpoints": "{{count}} endpoint"
+      "endpoints": "{{count}} endpoint",
+      "more": "+{{count}} lagi — persempit pencarian"
     },
     "newModal": {
       "presence": "Membuat whiteboard",

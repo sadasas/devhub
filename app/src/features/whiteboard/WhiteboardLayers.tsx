@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LockSimple, LockSimpleOpen, MagnifyingGlass } from '@phosphor-icons/react';
+import { CaretDown, CaretUp, LockSimple, LockSimpleOpen, MagnifyingGlass } from '@phosphor-icons/react';
 import type { WhiteboardElement } from '../../lib/types';
 
 interface WhiteboardLayersProps {
@@ -9,6 +9,9 @@ interface WhiteboardLayersProps {
   onSelect: (id: string) => void;
   onToggleLock: (id: string) => void;
   onReorder?: (ids: string[]) => void;
+  /** WB-11: panel collapses upward via its header; Properties never collapses. */
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 function elementLabel(el: WhiteboardElement): string {
@@ -45,7 +48,7 @@ function kindIcon(kind: WhiteboardElement['kind']): string {
   }
 }
 
-export function WhiteboardLayers({ elements, selectedIds, onSelect, onToggleLock }: WhiteboardLayersProps) {
+export function WhiteboardLayers({ elements, selectedIds, onSelect, onToggleLock, collapsed = false, onToggleCollapse }: WhiteboardLayersProps) {
   const { t } = useTranslation('extras');
   const [query, setQuery] = useState('');
 
@@ -61,11 +64,23 @@ export function WhiteboardLayers({ elements, selectedIds, onSelect, onToggleLock
 
   return (
     <div className="wb-layers">
-      <div className="wb-layers-head">
+      <button
+        type="button"
+        className="wb-layers-head"
+        aria-expanded={!collapsed}
+        aria-label={collapsed ? t('whiteboard.layers.expand') : t('whiteboard.layers.collapse')}
+        title={collapsed ? t('whiteboard.layers.expand') : t('whiteboard.layers.collapse')}
+        onClick={() => onToggleCollapse?.()}
+      >
         <span className="wb-layers-title">{t('whiteboard.layers.title')}</span>
         <span className="wb-layers-count">{elements.length}</span>
-      </div>
-      <label className="wb-layers-search">
+        <span className="wb-layers-caret" aria-hidden="true">
+          {collapsed ? <CaretDown size={12} /> : <CaretUp size={12} />}
+        </span>
+      </button>
+      {!collapsed && (
+        <>
+          <label className="wb-layers-search">
         <MagnifyingGlass size={12} aria-hidden="true" />
         <input
           className="wb-layers-input"
@@ -108,6 +123,8 @@ export function WhiteboardLayers({ elements, selectedIds, onSelect, onToggleLock
           })
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }

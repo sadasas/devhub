@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { WhiteboardBoundary, WhiteboardEdge, WhiteboardShape, WhiteboardShapeType, WhiteboardArrowStyle, WhiteboardSticky, WhiteboardText, WhiteboardElement, WhiteboardAlign } from '../../lib/types';
+import type { WhiteboardBoundary, WhiteboardEdge, WhiteboardShape, WhiteboardArrowStyle, WhiteboardSticky, WhiteboardText, WhiteboardElement, WhiteboardAlign } from '../../lib/types';
 import { effectiveArrowStyle } from './edges';
 import { ColorPalette } from './ColorPalette';
 
@@ -10,7 +10,6 @@ interface WhiteboardInspectorProps {
   onPatch: (patch: Record<string, unknown>) => void;
   onDone?: () => void;
   onCancel?: () => void;
-  onCollapse?: () => void;
   tool?: string;
   penColor?: string;
   penWidth?: number;
@@ -36,18 +35,14 @@ interface WhiteboardInspectorProps {
   shapeLabelColor?: string;
   shapeFontSize?: number;
   shapeAlign?: WhiteboardAlign | null;
-  shapeType?: WhiteboardShapeType | null;
   shapeLabel?: string;
   shapeFill?: boolean;
-  shapeRotation?: number;
   onShapeColorChange?: (c: string) => void;
   onShapeLabelColorChange?: (c: string) => void;
   onShapeFontSizeChange?: (v: number) => void;
   onShapeAlignChange?: (a: WhiteboardAlign) => void;
-  onShapeTypeChange?: (v: WhiteboardShapeType) => void;
   onShapeLabelChange?: (v: string) => void;
   onShapeFillChange?: (v: boolean) => void;
-  onShapeRotationChange?: (v: number) => void;
   edgeColor?: string;
   edgeFontSize?: number;
   edgeAlign?: WhiteboardAlign | null;
@@ -72,9 +67,10 @@ interface WhiteboardInspectorProps {
   onBoundaryLabelChange?: (v: string) => void;
   refTitle?: string | null;
   refMeta?: string | null;
+  /** WB-8: jump to the linked entity (deep-link). */
+  onOpenRef?: () => void;
 }
 
-const SHAPE_TYPES = ['rect', 'diamond', 'ellipse', 'cylinder', 'parallelogram', 'hexagon', 'roundedRect'] as const;
 const ARROW_STYLES = ['none', 'open', 'solid', 'diamond', 'circle'] as const;
 const DASH_STYLES = ['solid', 'dashed', 'dotted'] as const;
 const ALIGN_OPTIONS = ['left', 'center', 'right'] as const;
@@ -94,7 +90,7 @@ function editLabelKey(kind: WhiteboardElement['kind']): string {
   }
 }
 
-export function WhiteboardInspector({ element, selectedCount, onPatch, tool, penColor, penWidth, onPenColorChange, onPenWidthChange, eraserWidth, onEraserWidthChange, stickyColor, stickyTextColor, stickyFontSize, stickyAlign, onStickyColorChange, onStickyTextColorChange, onStickyFontSizeChange, onStickyAlignChange, textColor, textFontSize, textAlign, onTextColorChange, onTextFontSizeChange, onTextAlignChange, shapeColor, shapeLabelColor, shapeFontSize, shapeAlign, shapeType, shapeLabel, shapeFill, shapeRotation, onShapeColorChange, onShapeLabelColorChange, onShapeFontSizeChange, onShapeAlignChange, onShapeTypeChange, onShapeLabelChange, onShapeFillChange, onShapeRotationChange, edgeColor, edgeFontSize, edgeAlign, edgeLabel, edgeArrowStyle, edgeDash, onEdgeColorChange, onEdgeFontSizeChange, onEdgeAlignChange, onEdgeLabelChange, onEdgeArrowStyleChange, onEdgeDashChange, boundaryColor, boundaryLabelColor, boundaryFontSize, boundaryAlign, boundaryLabel, onBoundaryColorChange, onBoundaryLabelColorChange, onBoundaryFontSizeChange, onBoundaryAlignChange, onBoundaryLabelChange, refTitle, refMeta }: WhiteboardInspectorProps) {
+export function WhiteboardInspector({ element, selectedCount, onPatch, tool, penColor, penWidth, onPenColorChange, onPenWidthChange, eraserWidth, onEraserWidthChange, stickyColor, stickyTextColor, stickyFontSize, stickyAlign, onStickyColorChange, onStickyTextColorChange, onStickyFontSizeChange, onStickyAlignChange, textColor, textFontSize, textAlign, onTextColorChange, onTextFontSizeChange, onTextAlignChange, shapeColor, shapeLabelColor, shapeFontSize, shapeAlign, shapeLabel, shapeFill, onShapeColorChange, onShapeLabelColorChange, onShapeFontSizeChange, onShapeAlignChange, onShapeLabelChange, onShapeFillChange, edgeColor, edgeFontSize, edgeAlign, edgeLabel, edgeArrowStyle, edgeDash, onEdgeColorChange, onEdgeFontSizeChange, onEdgeAlignChange, onEdgeLabelChange, onEdgeArrowStyleChange, onEdgeDashChange, boundaryColor, boundaryLabelColor, boundaryFontSize, boundaryAlign, boundaryLabel, onBoundaryColorChange, onBoundaryLabelColorChange, onBoundaryFontSizeChange, onBoundaryAlignChange, onBoundaryLabelChange, refTitle, refMeta, onOpenRef }: WhiteboardInspectorProps) {
   const { t } = useTranslation('extras');
   const firstInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -177,19 +173,8 @@ export function WhiteboardInspector({ element, selectedCount, onPatch, tool, pen
       return (
         <div className="wb-inspector" role="complementary" aria-label={t('whiteboard.tool.shape')}>
           <div className="wb-inspector-head"><span className="wb-inspector-title">{t('whiteboard.tool.shape')}</span></div>
-          <div className="fp-segmented fp-segmented-wrap" role="radiogroup" aria-label={t('whiteboard.popover.shapeType')}>
-            {SHAPE_TYPES.map((st) => (
-              <button key={st} type="button" role="radio" aria-checked={(shapeType ?? 'rect') === st} className={`fp-seg${(shapeType ?? 'rect') === st ? ' fp-seg-active' : ''}`} onClick={() => onShapeTypeChange?.(st)}>{st}</button>
-            ))}
-          </div>
           <label className="field"><span className="field-label">{t('whiteboard.popover.label')}</span><input className="input" value={shapeLabel ?? ''} maxLength={200} placeholder={t('whiteboard.popover.placeholderDecide')} onChange={(e) => onShapeLabelChange?.(e.target.value)} /></label>
           <label className="fp-check"><input type="checkbox" checked={shapeFill ?? false} onChange={(e) => onShapeFillChange?.(e.target.checked)} />{t('whiteboard.popover.filled')}</label>
-          <div className="fp-segmented" role="radiogroup" aria-label={t('whiteboard.popover.rotationGroup')}>
-            {[0, 90, 180, 270].map((deg) => (
-              <button key={deg} type="button" role="radio" aria-checked={((shapeRotation ?? 0) % 360) === deg} className={`fp-seg${((shapeRotation ?? 0) % 360) === deg ? ' fp-seg-active' : ''}`} onClick={() => onShapeRotationChange?.(deg)}>{deg}°</button>
-            ))}
-          </div>
-          <label className="field"><span className="field-label">{t('whiteboard.popover.rotation')}</span><input className="input" type="number" min={-360} max={360} step={1} value={shapeRotation ?? 0} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v)) onShapeRotationChange?.(Math.max(-360, Math.min(360, v))); }} /></label>
           <label className="field"><span className="field-label">{t('whiteboard.popover.shapeColor')}</span><ColorPalette value={shapeColor!} onChange={onShapeColorChange!} label={t('whiteboard.popover.shapeColor')} /></label>
           <label className="field"><span className="field-label">{t('whiteboard.popover.textColor')}</span><ColorPalette value={shapeLabelColor ?? shapeColor!} onChange={(c) => onShapeLabelColorChange?.(c)} label={t('whiteboard.popover.textColor')} /></label>
           <label className="field"><span className="field-label">{t('whiteboard.popover.fontSize')}</span><div className="wb-font-slider"><input type="range" min={4} max={48} step={1} value={Math.max(4, Math.min(72, shapeFontSize ?? 12))} onChange={(e) => onShapeFontSizeChange?.(Number(e.target.value))} aria-label={t('whiteboard.popover.fontSize')} /><input type="number" className="input wb-font-input" min={4} max={72} step={1} value={Math.max(4, Math.min(72, shapeFontSize ?? 12))} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v)) onShapeFontSizeChange?.(Math.max(4, Math.min(72, v))); }} /></div></label>
@@ -255,6 +240,11 @@ export function WhiteboardInspector({ element, selectedCount, onPatch, tool, pen
         </div>
         <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{refTitle ?? element.entity}</p>
         {refMeta && <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{refMeta}</p>}
+        {onOpenRef && (
+          <button type="button" className="btn btn-secondary btn-sm" style={{ marginTop: 8 }} onClick={onOpenRef}>
+            {t('whiteboard.inspector.openSource')}
+          </button>
+        )}
         <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>{t('whiteboard.inspector.refReadOnly', { defaultValue: 'This card is read-only. Edit the source entity.' })}</p>
       </div>
     );
@@ -343,20 +333,6 @@ export function WhiteboardInspector({ element, selectedCount, onPatch, tool, pen
       </div>
       {isShape ? (
         <>
-          <div className="fp-segmented fp-segmented-wrap" role="radiogroup" aria-label={t('whiteboard.popover.shapeType')}>
-            {SHAPE_TYPES.map((st) => (
-              <button
-                key={st}
-                type="button"
-                role="radio"
-                aria-checked={(element as WhiteboardShape).shapeType === st}
-                className={`fp-seg${(element as WhiteboardShape).shapeType === st ? ' fp-seg-active' : ''}`}
-                onClick={() => onPatch({ shapeType: st })}
-              >
-                {st}
-              </button>
-            ))}
-          </div>
           <label className="field">
             <span className="field-label">{t('whiteboard.popover.label')}</span>
             <input
@@ -382,35 +358,6 @@ export function WhiteboardInspector({ element, selectedCount, onPatch, tool, pen
               }}
             />
             {t('whiteboard.popover.filled')}
-          </label>
-          <div className="fp-segmented" role="radiogroup" aria-label={t('whiteboard.popover.rotationGroup')}>
-            {[0, 90, 180, 270].map((deg) => (
-              <button
-                key={deg}
-                type="button"
-                role="radio"
-                aria-checked={((element as WhiteboardShape).rotation ?? 0) % 360 === deg}
-                className={`fp-seg${((element as WhiteboardShape).rotation ?? 0) % 360 === deg ? ' fp-seg-active' : ''}`}
-                onClick={() => onPatch({ rotation: deg })}
-              >
-                {deg}°
-              </button>
-            ))}
-          </div>
-          <label className="field">
-            <span className="field-label">{t('whiteboard.popover.rotation')}</span>
-            <input
-              className="input"
-              type="number"
-              min={-360}
-              max={360}
-              step={1}
-              value={(element as WhiteboardShape).rotation ?? 0}
-              onChange={(e) => {
-                const v = Number(e.target.value);
-                if (Number.isFinite(v)) onPatch({ rotation: Math.max(-360, Math.min(360, v)) });
-              }}
-            />
           </label>
           <label className="field">
             <span className="field-label">{t('whiteboard.popover.shapeColor')}</span>

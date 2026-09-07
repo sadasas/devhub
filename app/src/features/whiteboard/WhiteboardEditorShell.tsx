@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { ArrowClockwise, ArrowCounterClockwise, ArrowLeft, ArrowsInSimple, ArrowsOutSimple, BoundingBox, Cards, Cursor, Eraser, Export, FlowArrow, FrameCorners, HandPointing, List, MagnetStraight, Note, PenNib, Selection, TextT, SidebarSimple } from '@phosphor-icons/react';
+import { ArrowClockwise, ArrowCounterClockwise, ArrowLeft, ArrowsOutSimple, BoundingBox, Cards, Cursor, Eraser, Export, FlowArrow, FrameCorners, HandPointing, MagnetStraight, Note, PenNib, Presentation, Selection, TextT, X } from '@phosphor-icons/react';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
-import type { State, Whiteboard, WhiteboardAlign, WhiteboardShapeType, WhiteboardArrowStyle, WhiteboardEdge } from '../../lib/types';
+import type { State, Whiteboard, WhiteboardAlign, WhiteboardShape, WhiteboardShapeType, WhiteboardArrowStyle, WhiteboardEdge } from '../../lib/types';
 import { WhiteboardCanvas } from './WhiteboardCanvas';
 import { WhiteboardInspector } from './WhiteboardInspector';
 import { WhiteboardLayers } from './WhiteboardLayers';
@@ -12,8 +13,10 @@ import { isModalOrPaletteOpen, isTypingTarget } from '../../lib/keys';
 import type { WbTool } from './tools';
 import { useWhiteboardHistory } from './useWhiteboardHistory';
 import { buildRefDataMap } from './ref-data';
+import { shapePath } from './geometry';
 import { downloadWhiteboardPdf, downloadWhiteboardPng, downloadWhiteboardSvg } from './export';
 import { useProject } from '../../state/project-context';
+import { entityDeepLink } from '../../lib/deep-link';
 
 interface WhiteboardEditorShellProps {
   board: Whiteboard;
@@ -54,21 +57,68 @@ const ALLOWED_DASH: ReadonlySet<string> = new Set(['solid', 'dashed', 'dotted'])
 
 export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }: WhiteboardEditorShellProps) {
   const { t } = useTranslation('extras');
-  const { dispatch } = useProject();
+  const { dispatch, projectId } = useProject();
+  const navigate = useNavigate();
   const [tool, setTool] = useState<WbTool>('select');
   const history = useWhiteboardHistory(board.id, board.elements);
   const historyRef = useRef(history);
   historyRef.current = history;
-  const shellRef = useRef<HTMLDivElement | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [presenting, setPresenting] = useState(false);
+  const shellRef = useRef<HTMLDivElement | null>(null);
+  const presentBtnRef = useRef<HTMLButtonElement | null>(null);
+  const [shapeMenuOpen, setShapeMenuOpen] = useState(false);
+  const [shapeMenuPos, setShapeMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const toolbarRef = useRef<HTMLDivElement | null>(null);
+  const shapeBtnRef = useRef<HTMLButtonElement | null>(null);
+  const shapeMenuRef = useRef<HTMLDivElement | null>(null);
+  const shapeHoverTimer = useRef<number | null>(null);
+  const exitBtnRef = useRef<HTMLButtonElement | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement | null>(null);
+  // WB-3/WB-6/WB-10: transient canvas notice (export failure, edge hint, trash restore).
+  interface NoticeAction {
+    label: string;
+    run: () => void;
+  }
+  const [notice, setNotice] = useState<{ msg: string; action?: NoticeAction } | null>(null);
+  const noticeTimer = useRef<number | null>(null);
+  const flashNotice = (msg: string, action?: NoticeAction) => {
+    setNotice({ msg, action });
+    if (noticeTimer.current !== null) window.clearTimeout(noticeTimer.current);
+    noticeTimer.current = window.setTimeout(() => setNotice(null), 6000);
+  };
+  useEffect(() => () => {
+    if (noticeTimer.current !== null) window.clearTimeout(noticeTimer.current);
+  }, []);
+  // WB-4: transparent-background toggle (default bakes the theme canvas BG).
+  const [exportTransparent, setExportTransparent] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('wb:exportTransparent') === '1';
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem('wb:exportTransparent', exportTransparent ? '1' : '0');
+    } catch {}
+  }, [exportTransparent]);
+  const exportOpts = { background: (exportTransparent ? 'transparent' : 'theme') as const };
   const refDataMap = useMemo(() => buildRefDataMap(board.elements, state), [board.elements, state]);
   const elementCount = board.elements.length;
   const nearCap = elementCount >= WARN_ELEMENTS;
   const atCap = elementCount >= MAX_ELEMENTS;
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  // WB-4: per-selection export source (elements + their ref data).
+  const { selectedElements, selectedRefData: selectionRefData } = useMemo(() => {
+    const els = board.elements.filter((el) => selectedIds.includes(el.id));
+    return {
+      selectedElements: els,
+      selectedRefData: new Map(els.map((el) => [el.id, refDataMap.get(el.id) ?? null] as const)),
+    };
+  }, [board.elements, selectedIds, refDataMap]);
   const [snapOn, setSnapOn] = useState<boolean>(() => {
     try {
       const v = localStorage.getItem('wb:snap');
@@ -142,9 +192,6 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
   const [shapeFill, setShapeFill] = useState<boolean>(() => {
     try { return localStorage.getItem('wb:shapeFill') === '1'; } catch { return false; }
   });
-  const [shapeRotation, setShapeRotation] = useState<number>(() => {
-    try { const v = Number(localStorage.getItem('wb:shapeRotation')); return Number.isFinite(v) ? Math.max(-360, Math.min(360, v)) : 0; } catch { return 0; }
-  });
   const [edgeColor, setEdgeColor] = useState<string>(() => {
     try { return localStorage.getItem('wb:edgeColor') ?? '#e4e4e7'; } catch { return '#e4e4e7'; }
   });
@@ -179,13 +226,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
     try { return localStorage.getItem('wb:boundaryLabel') ?? ''; } catch { return ''; }
   });
   const [panToId, setPanToId] = useState<string | null>(null);
-  const [inspectorCollapsed, setInspectorCollapsed] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('wb:inspector:collapsed') === '1';
-    } catch {
-      return false;
-    }
-  });
+  // WB-11: only Layers collapses (via its panel header); Properties always visible.
   const [layersCollapsed, setLayersCollapsed] = useState<boolean>(() => {
     try {
       const v = localStorage.getItem('wb:layers:collapsed');
@@ -194,12 +235,6 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
       return true;
     }
   });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('wb:inspector:collapsed', inspectorCollapsed ? '1' : '0');
-    } catch {}
-  }, [inspectorCollapsed]);
 
   useEffect(() => {
     try {
@@ -245,7 +280,6 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
   useEffect(() => { try { localStorage.setItem('wb:shapeType', shapeType); } catch {} }, [shapeType]);
   useEffect(() => { try { localStorage.setItem('wb:shapeLabel', shapeLabel); } catch {} }, [shapeLabel]);
   useEffect(() => { try { localStorage.setItem('wb:shapeFill', shapeFill ? '1' : '0'); } catch {} }, [shapeFill]);
-  useEffect(() => { try { localStorage.setItem('wb:shapeRotation', String(shapeRotation)); } catch {} }, [shapeRotation]);
   useEffect(() => { try { localStorage.setItem('wb:edgeColor', edgeColor); } catch {} }, [edgeColor]);
   useEffect(() => { try { localStorage.setItem('wb:edgeFontSize', String(edgeFontSize)); } catch {} }, [edgeFontSize]);
   useEffect(() => { try { localStorage.setItem('wb:edgeAlign', edgeAlign); } catch {} }, [edgeAlign]);
@@ -288,6 +322,13 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
     // keep selection, just blur - no-op for inline panel (preserve selection)
   };
 
+  // WB-8: jump from a ref card to its source entity.
+  const handleOpenRef = () => {
+    if (selectedElement?.kind === 'ref') {
+      navigate(entityDeepLink(projectId, selectedElement.entity, selectedElement.entityId));
+    }
+  };
+
   const handleInspectorCancel = () => {
     if (readOnly) return;
     if (selectedElement && (selectedElement.kind === 'sticky' || selectedElement.kind === 'text')) {
@@ -323,12 +364,19 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
 
 
   useEffect(() => {
-    if (!exportOpen) return;
+    if (!exportOpen && !shapeMenuOpen) return;
     const onPointerDown = (e: PointerEvent) => {
-      if (!exportMenuRef.current?.contains(e.target as Node)) setExportOpen(false);
+      const target = e.target as Node;
+      if (!exportMenuRef.current?.contains(target)) setExportOpen(false);
+      if (!shapeMenuRef.current?.contains(target) && !shapeBtnRef.current?.contains(target)) {
+        setShapeMenuOpen(false);
+      }
     };
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setExportOpen(false);
+      if (e.key === 'Escape') {
+        setExportOpen(false);
+        setShapeMenuOpen(false);
+      }
     };
     window.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('keydown', onKeyDown);
@@ -336,21 +384,181 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
       window.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [exportOpen]);
+  }, [exportOpen, shapeMenuOpen]);
 
-  const toggleFullscreen = () => {
-    if (document.fullscreenElement) {
-      void document.exitFullscreen();
+  // WB-24: fixed-position pill tooltip (immune to scroll-container clipping).
+  // Driven by delegation over [data-tooltip]; native title attrs removed from pill buttons.
+  const [pillTip, setPillTip] = useState<{ text: string; top: number; left: number } | null>(null);
+  const pillTipTimer = useRef<number | null>(null);
+  const cancelPillTipTimer = () => {
+    if (pillTipTimer.current !== null) {
+      window.clearTimeout(pillTipTimer.current);
+      pillTipTimer.current = null;
+    }
+  };
+  const hidePillTip = () => {
+    cancelPillTipTimer();
+    setPillTip(null);
+  };
+  const showPillTip = (anchor: HTMLElement, immediate = false) => {
+    const text = anchor.getAttribute('data-tooltip');
+    if (!text) return;
+    cancelPillTipTimer();
+    const place = () => {
+      const r = anchor.getBoundingClientRect();
+      setPillTip({
+        text,
+        top: r.bottom + 8,
+        left: Math.min(Math.max(r.left + r.width / 2, 90), Math.max(90, window.innerWidth - 90)),
+      });
+    };
+    if (immediate) place();
+    else pillTipTimer.current = window.setTimeout(place, 150);
+  };
+  const onPillMouseOver = (e: React.MouseEvent) => {
+    const anchor = (e.target as HTMLElement).closest?.('[data-tooltip]') as HTMLElement | null;
+    if (anchor) showPillTip(anchor);
+    else hidePillTip();
+  };
+  const onPillFocusIn = (e: React.FocusEvent) => {
+    const anchor = (e.target as HTMLElement).closest?.('[data-tooltip]') as HTMLElement | null;
+    if (anchor) showPillTip(anchor, true);
+  };
+  useEffect(() => () => cancelPillTipTimer(), []);
+  useEffect(() => {
+    if (!pillTip) return;
+    const hide = () => setPillTip(null);
+    window.addEventListener('scroll', hide, true);
+    window.addEventListener('resize', hide);
+    return () => {
+      window.removeEventListener('scroll', hide, true);
+      window.removeEventListener('resize', hide);
+    };
+  }, [pillTip]);
+
+  const openShapeMenu = () => {
+    setExportOpen(false);
+    const btn = shapeBtnRef.current;
+    const bar = toolbarRef.current;
+    if (btn && bar) {
+      const r = btn.getBoundingClientRect();
+      const pill = bar.getBoundingClientRect();
+      setShapeMenuPos({
+        top: r.bottom - pill.top + 6,
+        left: Math.max(0, Math.min(r.left - pill.left, pill.width - 190)),
+      });
     } else {
-      void shellRef.current?.requestFullscreen();
+      setShapeMenuPos(null);
+    }
+    setShapeMenuOpen(true);
+  };
+
+  const toggleShapeMenu = () => {
+    if (shapeMenuOpen) setShapeMenuOpen(false);
+    else openShapeMenu();
+  };
+
+  // WB-21: hover intent open/close (click still toggles).
+  const cancelShapeHoverTimer = () => {
+    if (shapeHoverTimer.current !== null) {
+      window.clearTimeout(shapeHoverTimer.current);
+      shapeHoverTimer.current = null;
+    }
+  };
+  const scheduleOpenShapeMenu = () => {
+    cancelShapeHoverTimer();
+    shapeHoverTimer.current = window.setTimeout(openShapeMenu, 200);
+  };
+  const scheduleCloseShapeMenu = () => {
+    cancelShapeHoverTimer();
+    shapeHoverTimer.current = window.setTimeout(() => setShapeMenuOpen(false), 300);
+  };
+  useEffect(() => () => cancelShapeHoverTimer(), []);
+
+  // WB-24: hide the pill tip whenever the tool changes.
+  useEffect(() => {
+    setPillTip(null);
+  }, [tool]);
+
+  const pickShapeType = (st: WhiteboardShapeType) => {
+    setShapeType(st);
+    if (selectedElement?.kind === 'shape') {
+      handleInspectorPatch({ shapeType: st });
+    } else {
+      setTool('shape');
+    }
+    setShapeMenuOpen(false);
+  };
+
+  const exitToNormal = () => {
+    try {
+      const p = document.exitFullscreen?.() as Promise<void> | undefined;
+      p?.catch?.(() => {});
+    } catch {
+      /* abaikan — overlay tetap ditutup */
+    }
+    setPresenting(false);
+    setIsFullscreen(false);
+  };
+
+  // WB-20: presentasi = true browser fullscreen (pola schema R11) + hide chrome.
+  // Gagal/unsupported → tetap jalan sebagai overlay fullscreen (fallback graceful).
+  const handleEnterPresenting = () => {
+    setExportOpen(false);
+    setShapeMenuOpen(false);
+    setIsFullscreen(true);
+    setPresenting(true);
+    try {
+      const req = shellRef.current?.requestFullscreen?.() as Promise<void> | undefined;
+      req?.catch?.(() => {});
+    } catch {
+      /* abaikan — mode overlay tetap berlaku */
     }
   };
 
+  const handleExitPresenting = () => {
+    exitToNormal();
+  };
+
+  const toggleFullscreen = () => {
+    setIsFullscreen((v) => !v);
+  };
+
+  // WB-17: overlay modes lock body scroll.
   useEffect(() => {
-    const onFsChange = () => setIsFullscreen(document.fullscreenElement === shellRef.current);
+    if (!isFullscreen && !presenting) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isFullscreen, presenting]);
+
+  // WB-17: focus the exit control when entering an overlay mode.
+  useEffect(() => {
+    if (isFullscreen || presenting) exitBtnRef.current?.focus();
+  }, [isFullscreen, presenting]);
+
+  // WB-20: sinkron bila user keluar fullscreen via browser (Esc native):
+  // fullscreenchange tanpa fullscreenElement = sudah tidak fullscreen.
+  useEffect(() => {
+    const onFsChange = () => {
+      if (!document.fullscreenElement) {
+        setPresenting(false);
+        setIsFullscreen(false);
+      }
+    };
     document.addEventListener('fullscreenchange', onFsChange);
     return () => document.removeEventListener('fullscreenchange', onFsChange);
   }, []);
+
+  // WB-20: fokus kembali ke tombol Present saat keluar presentasi.
+  const prevPresentingRef = useRef(presenting);
+  useEffect(() => {
+    const was = prevPresentingRef.current;
+    prevPresentingRef.current = presenting;
+    if (was && !presenting) presentBtnRef.current?.focus({ preventScroll: true });
+  }, [presenting]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -360,8 +568,29 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
       const mod = e.ctrlKey || e.metaKey;
       if (key === 'f' || key === 'F') {
         e.preventDefault();
-        toggleFullscreen();
+        // WB-17: F steps out of present first, otherwise toggles fullscreen.
+        if (presenting) handleExitPresenting();
+        else toggleFullscreen();
         return;
+      }
+      // WB-17: tiered Esc — shape menu, then present, then fullscreen.
+      // (Export menu owns its Esc; canvas clears selection itself.)
+      if (key === 'Escape') {
+        if (shapeMenuOpen) {
+          e.preventDefault();
+          setShapeMenuOpen(false);
+          return;
+        }
+        if (presenting) {
+          e.preventDefault();
+          handleExitPresenting();
+          return;
+        }
+        if (isFullscreen) {
+          e.preventDefault();
+          setIsFullscreen(false);
+          return;
+        }
       }
       if (mod && key === 'z' && !e.shiftKey) {
         if (readOnly) return;
@@ -407,241 +636,30 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [atCap, readOnly]);
+  }, [atCap, readOnly, presenting, isFullscreen, shapeMenuOpen]);
 
   return (
-    <div className="wb-shell" ref={shellRef}>
-      <div className="board-toolbar">
-        <Button variant="ghost" size="sm" className="back-btn" onClick={onBack} aria-label={t('whiteboard.toolbar.back')}>
-          <ArrowLeft size={14} aria-hidden="true" />
-        </Button>
-        <div className="sub-tabs" role="toolbar" aria-label={t('whiteboard.toolbar.tools')}>
-          {TOOL_GROUPS.map((group, gi) => (
-            <span key={gi} className="wb-tool-group" role="group" aria-label={gi === 0 ? 'Select' : gi === 1 ? 'Draw' : 'Insert'}>
-              {group.map((item) => {
-                const active = ACTIVE_TOOLS.has(item.id) && tool === item.id;
-                const blocked = atCap && ADD_TOOLS.has(item.id);
-                const readOnlyBlocked = readOnly && item.id !== 'view' && item.id !== 'select' && item.id !== 'marquee';
-                const name = t(item.nameKey);
-                const disabled = !ACTIVE_TOOLS.has(item.id) || blocked || readOnlyBlocked;
-                const tip = readOnlyBlocked ? t('whiteboard.viewer.readOnlyTip') : blocked ? t('whiteboard.tool.limitReached', { name }) : `${name} — ${item.shortcut}`;
-                return (
-              <button
-                key={item.id}
-                type="button"
-                className={`sub-tab${active ? ' sub-tab-active' : ''}`}
-                disabled={disabled}
-                title={readOnlyBlocked ? t('whiteboard.viewer.readOnlyTip') : blocked ? t('whiteboard.tool.limitReached', { name }) : name}
-                data-tooltip={tip}
-                aria-label={`${name} — ${item.shortcut}`}
-                aria-pressed={active}
-                onClick={() => {
-                  if (disabled) return;
-                  if (ACTIVE_TOOLS.has(item.id)) setTool(item.id as WbTool);
-                }}
-              >
-                    <item.icon size={15} aria-hidden="true" />
-                  </button>
-                );
-              })}
-            </span>
-          ))}
-          <span className="wb-sep" aria-hidden="true" />
-          <button
-            type="button"
-            className={`sub-tab${snapOn ? ' sub-tab-active' : ''}`}
-            title={readOnly ? t('whiteboard.viewer.readOnlyTip') : snapOn ? t('whiteboard.canvas.snapOn') : t('whiteboard.canvas.snapOff')}
-            data-tooltip={readOnly ? t('whiteboard.viewer.readOnlyTip') : snapOn ? t('whiteboard.canvas.snapOn') : t('whiteboard.canvas.snapOff')}
-            aria-label={snapOn ? t('whiteboard.canvas.snapOn') : t('whiteboard.canvas.snapOff')}
-            aria-pressed={snapOn}
-            disabled={readOnly}
-            onClick={() => setSnapOn((v) => !v)}
-          >
-            <MagnetStraight size={15} aria-hidden="true" />
-          </button>
-          <span className="wb-sep" aria-hidden="true" />
-          <button
-            type="button"
-            className="sub-tab"
-            disabled={!history.canUndo || readOnly}
-            title={readOnly ? t('whiteboard.viewer.readOnlyTip') : t('whiteboard.toolbar.undoTitle')}
-            data-tooltip={readOnly ? t('whiteboard.viewer.readOnlyTip') : t('whiteboard.toolbar.undoTitle')}
-            aria-label={t('whiteboard.toolbar.undoAria')}
-            onClick={history.undo}
-          >
-            <ArrowCounterClockwise size={15} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="sub-tab"
-            disabled={!history.canRedo || readOnly}
-            title={readOnly ? t('whiteboard.viewer.readOnlyTip') : t('whiteboard.toolbar.redoTitle')}
-            data-tooltip={readOnly ? t('whiteboard.viewer.readOnlyTip') : t('whiteboard.toolbar.redoTitle')}
-            aria-label={t('whiteboard.toolbar.redoAria')}
-            onClick={history.redo}
-          >
-            <ArrowClockwise size={15} aria-hidden="true" />
-          </button>
-          <span className="wb-sep" aria-hidden="true" />
-          <button
-            type="button"
-            className="sub-tab"
-            title={isFullscreen ? t('whiteboard.toolbar.fsExitTitle') : t('whiteboard.toolbar.fsEnterTitle')}
-            data-tooltip={isFullscreen ? t('whiteboard.toolbar.fsExitTitle') : t('whiteboard.toolbar.fsEnterTitle')}
-            aria-label={isFullscreen ? t('whiteboard.toolbar.fsExitAria') : t('whiteboard.toolbar.fsEnterAria')}
-            aria-pressed={isFullscreen}
-            onClick={toggleFullscreen}
-          >
-            {isFullscreen ? (
-              <ArrowsInSimple size={15} aria-hidden="true" />
-            ) : (
-              <ArrowsOutSimple size={15} aria-hidden="true" />
-            )}
-          </button>
-          <span className="wb-export-wrap">
-            <button
-              type="button"
-              className="sub-tab"
-              disabled={elementCount === 0}
-              title={elementCount === 0 ? t('whiteboard.export.emptyTitle') : t('whiteboard.export.title')}
-              data-tooltip={elementCount === 0 ? t('whiteboard.export.emptyTitle') : t('whiteboard.export.title')}
-              aria-label={t('whiteboard.export.menuLabel')}
-              aria-haspopup="menu"
-              aria-expanded={exportOpen}
-              onClick={() => setExportOpen((open) => !open)}
-            >
-              <Export size={15} aria-hidden="true" />
-            </button>
-            {exportOpen && (
-              <div ref={exportMenuRef} className="wb-export-menu" role="menu" aria-label={t('whiteboard.export.menuLabel')}>
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="wb-export-item"
-                  onClick={() => {
-                    setExportOpen(false);
-                    downloadWhiteboardPng(board, refDataMap);
-                  }}
-                >
-                  {t('whiteboard.export.png')}
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="wb-export-item"
-                  onClick={() => {
-                    setExportOpen(false);
-                    downloadWhiteboardSvg(board, refDataMap);
-                  }}
-                >
-                  {t('whiteboard.export.svg')}
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="wb-export-item"
-                  onClick={() => {
-                    setExportOpen(false);
-                    downloadWhiteboardPdf(board, refDataMap);
-                  }}
-                >
-                  {t('whiteboard.export.pdf')}
-                </button>
-              </div>
-            )}
-          </span>
-          {!layersCollapsed && (
-            <>
-              <span className="wb-sep" aria-hidden="true" />
-              <button
-                type="button"
-                className="sub-tab"
-                title={t('whiteboard.layers.collapse')}
-                data-tooltip={t('whiteboard.layers.collapse')}
-                aria-label={t('whiteboard.layers.collapse')}
-                onClick={() => setLayersCollapsed(true)}
-              >
-                <List size={15} aria-hidden="true" />
-              </button>
-            </>
-          )}
-          {layersCollapsed && (
-            <>
-              <span className="wb-sep" aria-hidden="true" />
-              <button
-                type="button"
-                className="sub-tab"
-                title={t('whiteboard.layers.expand')}
-                data-tooltip={t('whiteboard.layers.expand')}
-                aria-label={t('whiteboard.layers.expand')}
-                onClick={() => setLayersCollapsed(false)}
-              >
-                <List size={15} aria-hidden="true" />
-              </button>
-            </>
-          )}
-          {!inspectorCollapsed && (
-            <>
-              <span className="wb-sep" aria-hidden="true" />
-              <button
-                type="button"
-                className="sub-tab"
-                title={t('whiteboard.inspector.collapse')}
-                data-tooltip={t('whiteboard.inspector.collapse')}
-                aria-label={t('whiteboard.inspector.collapse')}
-                onClick={() => setInspectorCollapsed(true)}
-              >
-                <SidebarSimple size={15} aria-hidden="true" />
-              </button>
-            </>
-          )}
-          {inspectorCollapsed && (
-            <>
-              <span className="wb-sep" aria-hidden="true" />
-              <button
-                type="button"
-                className="sub-tab"
-                title={t('whiteboard.inspector.expand')}
-                data-tooltip={t('whiteboard.inspector.expand')}
-                aria-label={t('whiteboard.inspector.expand')}
-                onClick={() => setInspectorCollapsed(false)}
-              >
-                <SidebarSimple size={15} aria-hidden="true" />
-              </button>
-            </>
-          )}
+    <div className={`wb-shell${isFullscreen ? ' wb-fullscreen' : ''}${presenting ? ' wb-presenting' : ''}`} ref={shellRef}>
+      {!isFullscreen && !presenting && (
+        <div className="wb-topbar">
+          <Button variant="ghost" size="sm" className="back-btn" onClick={onBack} aria-label={t('whiteboard.toolbar.back')}>
+            <ArrowLeft size={14} aria-hidden="true" />
+          </Button>
+          <span className="wb-board-name" title={board.name}>{board.name}</span>
+          <span className="wb-topbar-spacer" aria-hidden="true" />
+          <Button variant="ghost" size="sm" leftIcon={<ArrowsOutSimple size={13} aria-hidden="true" />} onClick={toggleFullscreen} aria-label={t('whiteboard.toolbar.fsEnterAria')} title={t('whiteboard.toolbar.fsEnterTitle')}>
+            {t('whiteboard.toolbar.canvasMode')}
+          </Button>
         </div>
-        {nearCap && (
-          <div className={`wb-cap-banner${atCap ? ' wb-cap-banner-danger' : ''}`} role="alert">
-            <Badge tone={atCap ? 'danger' : 'warn'}>{t('whiteboard.cap.badge', { count: elementCount })}</Badge>
-            <span>
-              {atCap
-                ? t('whiteboard.cap.atLimit')
-                : t('whiteboard.cap.nearLimit')}
-            </span>
-          </div>
-        )}
-        {readOnly && (
-          <div className="wb-cap-banner" role="status" aria-live="polite">
-            <Badge tone="info">{t('whiteboard.viewer.badge')}</Badge>
-            <span>{t('whiteboard.viewer.banner')}</span>
-          </div>
-        )}
-
-      </div>
-
+      )}
       <div className="wb-main">
-        {!layersCollapsed && (
-          <aside className="wb-layers-wrap" role="complementary" aria-label={t('whiteboard.layers.panelLabel')}>
-            <WhiteboardLayers elements={board.elements} selectedIds={selectedIds} onSelect={handleLayersSelect} onToggleLock={handleLayersToggleLock} />
-          </aside>
-        )}
         <div className="wb-main-canvas">
           <WhiteboardCanvas
             board={board}
             tool={readOnly && tool !== 'view' && tool !== 'select' && tool !== 'marquee' ? 'select' : tool}
             history={history}
-            readOnly={readOnly}
+            readOnly={readOnly || presenting}
+            hideChrome={presenting}
             selectedIds={selectedIds}
             onSelectedChange={setSelectedIds}
             snapOn={snapOn}
@@ -663,7 +681,6 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
             shapeType={shapeType}
             shapeLabel={shapeLabel}
             shapeFill={shapeFill}
-            shapeRotation={shapeRotation}
             edgeColor={edgeColor}
             edgeFontSize={edgeFontSize}
             edgeAlign={edgeAlign}
@@ -676,10 +693,264 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
             boundaryAlign={boundaryAlign}
             boundaryLabel={boundaryLabel}
             onToolChange={setTool}
+            onNotice={flashNotice}
             panToId={panToId}
           />
+      {!presenting && (
+      <div
+        className="board-toolbar"
+        ref={toolbarRef}
+        onMouseOver={onPillMouseOver}
+        onMouseOut={hidePillTip}
+        onFocusCapture={onPillFocusIn}
+        onBlurCapture={hidePillTip}
+      >
+        <div className="sub-tabs wb-tool-scroll" role="toolbar" aria-label={t('whiteboard.toolbar.tools')}>
+          {TOOL_GROUPS.map((group, gi) => (
+            <span key={gi} className="wb-tool-group" role="group" aria-label={gi === 0 ? 'Select' : gi === 1 ? 'Draw' : 'Insert'}>
+              {group.map((item) => {
+                const active = ACTIVE_TOOLS.has(item.id) && tool === item.id;
+                const blocked = atCap && ADD_TOOLS.has(item.id);
+                const readOnlyBlocked = readOnly && item.id !== 'view' && item.id !== 'select' && item.id !== 'marquee';
+                const name = t(item.nameKey);
+                const disabled = !ACTIVE_TOOLS.has(item.id) || blocked || readOnlyBlocked;
+                const tip = readOnlyBlocked ? t('whiteboard.viewer.readOnlyTip') : blocked ? t('whiteboard.tool.limitReached', { name }) : `${name} — ${item.shortcut}`;
+                const mainButton = (
+              <button
+                key={item.id}
+                type="button"
+                className={`sub-tab${active ? ' sub-tab-active' : ''}`}
+                disabled={disabled}
+                data-tooltip={tip}
+                aria-label={`${name} — ${item.shortcut}`}
+                aria-pressed={active}
+                onClick={() => {
+                  if (disabled) return;
+                  if (ACTIVE_TOOLS.has(item.id)) setTool(item.id as WbTool);
+                }}
+              >
+                    <item.icon size={15} aria-hidden="true" />
+                  </button>
+                );
+                if (item.id !== 'shape') return mainButton;
+                // WB-23: single shape button opens the visual type popup (no caret).
+                return (
+                  <button
+                    key={item.id}
+                    ref={shapeBtnRef}
+                    type="button"
+                    className={`sub-tab${active ? ' sub-tab-active' : ''}`}
+                    disabled={disabled}
+                    data-tooltip={tip}
+                    aria-label={`${name} — ${item.shortcut}`}
+                    aria-pressed={active}
+                    aria-haspopup="menu"
+                    aria-expanded={shapeMenuOpen}
+                    onClick={() => {
+                      if (disabled) return;
+                      toggleShapeMenu();
+                    }}
+                    onMouseEnter={scheduleOpenShapeMenu}
+                    onMouseLeave={scheduleCloseShapeMenu}
+                  >
+                    <item.icon size={15} aria-hidden="true" />
+                  </button>
+                );
+              })}
+            </span>
+          ))}
         </div>
-        {!inspectorCollapsed && (
+        <div className="wb-tool-actions">
+          <span className="wb-sep" aria-hidden="true" />
+          <button
+            type="button"
+            className={`sub-tab${snapOn ? ' sub-tab-active' : ''}`}
+            data-tooltip={readOnly ? t('whiteboard.viewer.readOnlyTip') : snapOn ? t('whiteboard.canvas.snapOn') : t('whiteboard.canvas.snapOff')}
+            aria-label={snapOn ? t('whiteboard.canvas.snapOn') : t('whiteboard.canvas.snapOff')}
+            aria-pressed={snapOn}
+            disabled={readOnly}
+            onClick={() => setSnapOn((v) => !v)}
+          >
+            <MagnetStraight size={15} aria-hidden="true" />
+          </button>
+          <span className="wb-sep" aria-hidden="true" />
+          <button
+            type="button"
+            className="sub-tab"
+            disabled={!history.canUndo || readOnly}
+            data-tooltip={readOnly ? t('whiteboard.viewer.readOnlyTip') : t('whiteboard.toolbar.undoTitle')}
+            aria-label={t('whiteboard.toolbar.undoAria')}
+            onClick={history.undo}
+          >
+            <ArrowCounterClockwise size={15} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="sub-tab"
+            disabled={!history.canRedo || readOnly}
+            data-tooltip={readOnly ? t('whiteboard.viewer.readOnlyTip') : t('whiteboard.toolbar.redoTitle')}
+            aria-label={t('whiteboard.toolbar.redoAria')}
+            onClick={history.redo}
+          >
+            <ArrowClockwise size={15} aria-hidden="true" />
+          </button>
+          <span className="wb-sep" aria-hidden="true" />
+          <button
+            type="button"
+            ref={presentBtnRef}
+            className="sub-tab"
+            data-tooltip={t('whiteboard.toolbar.presentTitle')}
+            aria-label={t('whiteboard.toolbar.presentAria')}
+            onClick={handleEnterPresenting}
+          >
+            <Presentation size={15} aria-hidden="true" />
+          </button>
+          <span className="wb-export-wrap">
+            <button
+              type="button"
+              className="sub-tab"
+              disabled={elementCount === 0}
+              data-tooltip={elementCount === 0 ? t('whiteboard.export.emptyTitle') : t('whiteboard.export.title')}
+              aria-label={t('whiteboard.export.menuLabel')}
+              aria-haspopup="menu"
+              aria-expanded={exportOpen}
+              onClick={() => setExportOpen((open) => !open)}
+            >
+              <Export size={15} aria-hidden="true" />
+            </button>
+            {exportOpen && (
+              <div ref={exportMenuRef} className="wb-export-menu" role="menu" aria-label={t('whiteboard.export.menuLabel')}>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="wb-export-item"
+                  onClick={() => {
+                    setExportOpen(false);
+                    downloadWhiteboardPng(board, refDataMap, { ...exportOpts, onError: () => flashNotice(t('whiteboard.export.pngFailed')) });
+                  }}
+                >
+                  {t('whiteboard.export.png')}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="wb-export-item"
+                  onClick={() => {
+                    setExportOpen(false);
+                    downloadWhiteboardSvg(board, refDataMap, exportOpts);
+                  }}
+                >
+                  {t('whiteboard.export.svg')}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="wb-export-item"
+                  onClick={() => {
+                    setExportOpen(false);
+                    downloadWhiteboardPdf(board, refDataMap, { ...exportOpts, onError: () => flashNotice(t('whiteboard.export.pdfBlocked')) });
+                  }}
+                >
+                  {t('whiteboard.export.pdf')}
+                </button>
+                {selectedElements.length > 0 && (
+                  <>
+                    <div className="wb-export-sep" role="separator" aria-hidden="true" />
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="wb-export-item"
+                      onClick={() => {
+                        setExportOpen(false);
+                        const sel = { ...board, elements: selectedElements };
+                        downloadWhiteboardPng(sel, selectionRefData, { ...exportOpts, onError: () => flashNotice(t('whiteboard.export.pngFailed')) });
+                      }}
+                    >
+                      {t('whiteboard.export.pngSelection')}
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="wb-export-item"
+                      onClick={() => {
+                        setExportOpen(false);
+                        const sel = { ...board, elements: selectedElements };
+                        downloadWhiteboardSvg(sel, selectionRefData, exportOpts);
+                      }}
+                    >
+                      {t('whiteboard.export.svgSelection')}
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="wb-export-item"
+                      onClick={() => {
+                        setExportOpen(false);
+                        const sel = { ...board, elements: selectedElements };
+                        downloadWhiteboardPdf(sel, selectionRefData, { ...exportOpts, onError: () => flashNotice(t('whiteboard.export.pdfBlocked')) });
+                      }}
+                    >
+                      {t('whiteboard.export.pdfSelection')}
+                    </button>
+                  </>
+                )}
+                <div className="wb-export-sep" role="separator" aria-hidden="true" />
+                <button
+                  type="button"
+                  role="menuitemcheckbox"
+                  aria-checked={exportTransparent}
+                  className="wb-export-item"
+                  onClick={() => setExportTransparent((v) => !v)}
+                >
+                  {t('whiteboard.export.transparent')}
+                </button>
+              </div>
+            )}
+          </span>
+        </div>
+        {shapeMenuOpen && (
+          <div
+            ref={shapeMenuRef}
+            className="wb-export-menu wb-shape-menu"
+            role="menu"
+            aria-label={t('whiteboard.tool.shapeMenu')}
+            style={shapeMenuPos ? { position: 'absolute', top: shapeMenuPos.top, left: shapeMenuPos.left } : undefined}
+            onMouseEnter={cancelShapeHoverTimer}
+            onMouseLeave={scheduleCloseShapeMenu}
+          >
+            {([...ALLOWED_SHAPE_TYPES] as WhiteboardShapeType[]).map((st) => {
+              const thumb: WhiteboardShape = {
+                id: `thumb-${st}`, kind: 'shape', shapeType: st,
+                x: 4, y: 8, w: 32, h: 24, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '',
+              };
+              return (
+                <button
+                  key={st}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={shapeType === st}
+                  aria-label={st}
+                  data-tooltip={st}
+                  className="wb-export-item wb-shape-opt"
+                  onClick={() => pickShapeType(st)}
+                >
+                  <svg viewBox="0 0 40 40" width={40} height={40} aria-hidden="true">
+                    <path d={shapePath(thumb)} fill="none" stroke="currentColor" strokeWidth={2} />
+                  </svg>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      )}
+      {pillTip && !presenting && (
+        <div className="wb-tip-fixed" role="tooltip" style={{ top: pillTip.top, left: pillTip.left }}>
+          {pillTip.text}
+        </div>
+      )}
+      {!presenting && (
+            <div className="wb-dock-right">
           <aside className="wb-side" role="complementary" aria-label={t('whiteboard.inspector.panelLabel')}>
             <WhiteboardInspector
               element={tool !== 'select' ? null : selectedElement}
@@ -687,7 +958,6 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
               onPatch={handleInspectorPatch}
               onDone={handleInspectorDone}
               onCancel={handleInspectorCancel}
-              onCollapse={() => setInspectorCollapsed(true)}
               tool={tool}
               penColor={penColor}
               penWidth={penWidth}
@@ -713,18 +983,14 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
               shapeLabelColor={shapeLabelColor}
               shapeFontSize={shapeFontSize}
               shapeAlign={shapeAlign}
-              shapeType={shapeType}
               shapeLabel={shapeLabel}
               shapeFill={shapeFill}
-              shapeRotation={shapeRotation}
               onShapeColorChange={setShapeColor}
               onShapeLabelColorChange={setShapeLabelColor}
               onShapeFontSizeChange={setShapeFontSize}
               onShapeAlignChange={(a) => setShapeAlign(a)}
-              onShapeTypeChange={setShapeType}
               onShapeLabelChange={setShapeLabel}
               onShapeFillChange={setShapeFill}
-              onShapeRotationChange={setShapeRotation}
               edgeColor={edgeColor}
               edgeFontSize={edgeFontSize}
               edgeAlign={edgeAlign}
@@ -749,10 +1015,68 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
               onBoundaryLabelChange={setBoundaryLabel}
               refTitle={selectedRefData?.title ?? null}
               refMeta={selectedRefData?.meta ?? null}
+              onOpenRef={handleOpenRef}
             />
           </aside>
-        )}
+          <aside className="wb-layers-wrap" role="complementary" aria-label={t('whiteboard.layers.panelLabel')}>
+            <WhiteboardLayers elements={board.elements} selectedIds={selectedIds} onSelect={handleLayersSelect} onToggleLock={handleLayersToggleLock} collapsed={layersCollapsed} onToggleCollapse={() => setLayersCollapsed((v) => !v)} />
+          </aside>
+            </div>
+      )}
+      {!presenting && isFullscreen && (
+        <div className="wb-board-title" aria-hidden="true">{board.name}</div>
+      )}
+      {(isFullscreen || presenting) && (
+        <button
+          ref={exitBtnRef}
+          type="button"
+          className="wb-exit-overlay"
+          aria-label={presenting ? t('whiteboard.toolbar.presentExitAria') : t('whiteboard.toolbar.fsExitAria')}
+          title={presenting ? t('whiteboard.toolbar.presentExitTitle') : t('whiteboard.toolbar.fsExitTitle')}
+          onClick={exitToNormal}
+        >
+          <X size={15} aria-hidden="true" />
+        </button>
+      )}
+        </div>
       </div>
+      {!presenting && (notice || nearCap || readOnly) && (
+        <div className="wb-status-row">
+        {notice && (
+          <div className="wb-cap-banner wb-cap-banner-danger" role="alert">
+            <span>{notice.msg}</span>
+            {notice.action && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  notice.action?.run();
+                  setNotice(null);
+                }}
+              >
+                {notice.action.label}
+              </button>
+            )}
+          </div>
+        )}
+        {nearCap && (
+          <div className={`wb-cap-banner${atCap ? ' wb-cap-banner-danger' : ''}`} role="alert">
+            <Badge tone={atCap ? 'danger' : 'warn'}>{t('whiteboard.cap.badge', { count: elementCount })}</Badge>
+            <span>
+              {atCap
+                ? t('whiteboard.cap.atLimit')
+                : t('whiteboard.cap.nearLimit')}
+            </span>
+          </div>
+        )}
+        {readOnly && (
+          <div className="wb-cap-banner" role="status" aria-live="polite">
+            <Badge tone="info">{t('whiteboard.viewer.badge')}</Badge>
+            <span>{t('whiteboard.viewer.banner')}</span>
+          </div>
+        )}
+        </div>
+      )}
     </div>
   );
 }

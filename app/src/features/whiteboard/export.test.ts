@@ -48,7 +48,8 @@ describe('serializeWhiteboard', () => {
   it('serializes an edge with an orthogonal path when ports are present', () => {
     const elements: WhiteboardElement[] = [
       { id: 'a', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' },
-      { id: 'b', kind: 'sticky', x: 200, y: 0, w: 100, h: 60, color: '#e8b955', text: 'B' },
+      // B sits below A so right->left ports need Manhattan routing (raw coords are stale).
+      { id: 'b', kind: 'sticky', x: 200, y: 200, w: 100, h: 60, color: '#e8b955', text: 'B' },
       {
         id: 'e1',
         kind: 'edge',
@@ -106,5 +107,49 @@ describe('serializeWhiteboard', () => {
     const svg = serializeWhiteboard([]);
     expect(svg).toContain('viewBox="-32 -32 64 64"');
     expect(svg.endsWith('</svg>')).toBe(true);
+  });
+
+  it('WB-4: bakes the theme canvas background by default', () => {
+    const svg = serializeWhiteboard([sticky(0, 0)]);
+    expect(svg).toContain('fill="#0f0f11"');
+    expect(svg).toContain('wb-export-dots');
+  });
+
+  it('WB-4: omits the background when transparency is asked', () => {
+    const svg = serializeWhiteboard([sticky(0, 0)], undefined, { background: 'transparent' });
+    expect(svg).not.toContain('wb-export-dots');
+    expect(svg).not.toContain('#0f0f11');
+  });
+
+  it('WB-4: bakes the light background for the light theme', () => {
+    const svg = serializeWhiteboard([sticky(0, 0)], undefined, { theme: 'light' });
+    expect(svg).toContain('fill="#f4f3f0"');
+  });
+
+  it('WB-1: recomputes node-attached edge endpoints instead of stale raw coords', () => {
+    // Node B "moved" to x=300 but the stored edge still points at x=200.
+    const elements: WhiteboardElement[] = [
+      { id: 'a', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' },
+      { id: 'b', kind: 'sticky', x: 300, y: 0, w: 100, h: 60, color: '#e8b955', text: 'B' },
+      {
+        id: 'e1',
+        kind: 'edge',
+        x1: 100,
+        y1: 30,
+        x2: 200,
+        y2: 30,
+        color: '#8b5cf6',
+        width: 2,
+        arrowhead: true,
+        arrowStyle: 'solid',
+        label: '',
+        sourceNodeId: 'a',
+        targetNodeId: 'b',
+      },
+    ];
+    const svg = serializeWhiteboard(elements);
+    const m = svg.match(/<polyline points="([^"]+)" fill="none" stroke="#8b5cf6"/);
+    expect(m).not.toBeNull();
+    expect(m![1]).toBe('100,30 300,30');
   });
 });

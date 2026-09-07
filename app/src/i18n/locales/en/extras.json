@@ -30,7 +30,12 @@
       "fsEnterTitle": "Fullscreen (F)",
       "fsExitTitle": "Exit fullscreen (F)",
       "fsEnterAria": "Fullscreen — F",
-      "fsExitAria": "Exit fullscreen — F"
+      "fsExitAria": "Exit fullscreen — F",
+      "presentTitle": "Present",
+      "presentAria": "Present board",
+      "presentExitTitle": "Exit presentation (Esc)",
+      "presentExitAria": "Exit presentation",
+      "canvasMode": "Canvas"
     },
     "tool": {
       "view": "View only",
@@ -41,6 +46,7 @@
       "text": "Text",
       "sticky": "Sticky note",
       "shape": "Shape",
+      "shapeMenu": "Shape type",
       "edge": "Edge",
       "ref": "Entity ref card",
       "boundary": "Boundary",
@@ -52,7 +58,13 @@
       "menuLabel": "Export diagram",
       "png": "PNG image",
       "svg": "SVG image",
-      "pdf": "PDF document"
+      "pdf": "PDF document",
+      "pdfBlocked": "Popup blocked — allow popups for this site to print the PDF",
+      "pngFailed": "Could not render the PNG image — try SVG instead",
+      "pngSelection": "PNG selection",
+      "svgSelection": "SVG selection",
+      "pdfSelection": "PDF selection",
+      "transparent": "Transparent background"
     },
     "viewer": {
       "badge": "View only",
@@ -72,6 +84,10 @@
       "resetView": "Reset view",
       "snapOn": "Snap to grid: on",
       "snapOff": "Snap to grid: off",
+      "edgeDropEmpty": "Drop onto a shape to connect — edges need a target",
+      "deletedN": "Deleted {{count}} element(s)",
+      "restore": "Restore",
+      "restoreAtCap": "Board is full — delete elements before restoring",
       "selectionActions": "Selection actions",
       "lock": "Lock selection",
       "unlock": "Unlock selection",
@@ -85,6 +101,8 @@
       "alignBottom": "Align bottom",
       "distributeH": "Distribute horizontally",
       "distributeV": "Distribute vertically",
+      "matchWidth": "Match width to last selected",
+      "matchHeight": "Match height to last selected",
       "bringForward": "Bring forward",
       "sendBackward": "Send backward",
       "deleteSelectedTitle": "Delete selected (Del)",
@@ -135,7 +153,8 @@
       "emptyDesc": "Select an element on the canvas to edit its details.",
       "multiTitle": "{{count}} elements selected",
       "multiDesc": "Move, align, or delete the selection. Edit a single element to change its text and colors.",
-      "clearSelection": "Clear selection"
+      "clearSelection": "Clear selection",
+      "openSource": "Open source"
     },
     "layers": {
       "title": "Layers",
@@ -166,7 +185,8 @@
       "badgeApiColl": "API Coll.",
       "badgeEndpoint": "Endpoint",
       "columns": "{{count}} columns",
-      "endpoints": "{{count}} endpoints"
+      "endpoints": "{{count}} endpoints",
+      "more": "+{{count}} more — refine your search"
     },
     "newModal": {
       "presence": "Creating whiteboard",

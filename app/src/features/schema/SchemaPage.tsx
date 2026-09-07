@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { ArrowLeft, Broom, CaretLeft, CaretRight, CornersOut, Eye, FloppyDisk, GitDiff, Graph, LinkSimple, List, Plus, Presentation, Trash, UploadSimple, Warning } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowsOutSimple, Broom, CaretLeft, CaretRight, Eye, FloppyDisk, GitDiff, Graph, LinkSimple, List, Plus, Presentation, Trash, UploadSimple, Warning } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { formatDate, relationLabel as formatRelation, shortId } from '../../lib/utils';
 import type { Relation, SchemaVersion, Table } from '../../lib/types';
@@ -562,7 +562,7 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
             <Button
               variant="ghost"
               size="sm"
-              leftIcon={<CornersOut size={13} aria-hidden="true" />}
+              leftIcon={<ArrowsOutSimple size={13} aria-hidden="true" />}
               onClick={openCanvas}
               aria-label={t('schema.canvas.open')}
               title={t('schema.canvas.open')}

@@ -193,10 +193,49 @@ function lifecycle(): WhiteboardElement[] {
   return els;
 }
 
+// --- WB-9: honest kanban + CI/CD starters (i18n names already exist) ---
+
+function kanban(): WhiteboardElement[] {
+  const els: WhiteboardElement[] = [];
+  const cols: Array<[string, string]> = [
+    ["Todo", C.warn],
+    ["In Progress", C.info],
+    ["Review", C.violet],
+    ["Done", C.accent],
+  ];
+  cols.forEach(([label, color], i) => {
+    els.push(boundary(40 + i * 270, 80, label, 250, 400, color));
+  });
+  const c1 = shape(70, 150, "Design review", 190, 56, C.warn);
+  const c2 = shape(70, 230, "API contract", 190, 56, C.warn);
+  const c3 = shape(340, 150, "Export menu", 190, 56, C.info);
+  const c4 = shape(610, 150, "Rotate handle", 190, 56, C.violet);
+  const c5 = shape(880, 150, "Undo history", 190, 56, C.accent);
+  els.push(c1, c2, c3, c4, c5);
+  return els;
+}
+
+function cicd(): WhiteboardElement[] {
+  const els: WhiteboardElement[] = [];
+  const n1 = shape(40, 200, "Commit", 150, 56, C.primary);
+  const n2 = shape(270, 200, "Build", 150, 56, C.info);
+  const n3 = shape(500, 200, "Test", 150, 56, C.warn);
+  const n4 = shape(730, 200, "Approval", 150, 56, C.pink);
+  const n5 = shape(960, 200, "Deploy", 150, 56, C.accent);
+  els.push(n1, n2, n3, n4, n5);
+  els.push(edge(190, 228, 270, 228, "push", C.primary, n1.id, n2.id));
+  els.push(edge(420, 228, 500, 228, "artifacts", C.info, n2.id, n3.id));
+  els.push(edge(650, 228, 730, 228, "pass", C.warn, n3.id, n4.id));
+  els.push(edge(880, 228, 960, 228, "approve", C.pink, n4.id, n5.id));
+  return els;
+}
+
 export const WHITEBOARD_TEMPLATES: WhiteboardTemplate[] = [
   { id: "blank", name: "Blank", description: "Empty canvas — start from scratch", build: () => [] },
+  { id: "kanban", name: "Kanban", description: "Todo / In Progress / Review / Done columns", build: kanban },
+  { id: "ci-cd", name: "CI/CD pipeline", description: "Commit → Build → Test → Approval → Deploy", build: cicd },
   { id: "architecture", name: "Architecture", description: "Services, DB, boundaries — for system maps", build: architecture },
-  { id: "workflow", name: "Workflow", description: "Lanes & steps — for Order-to-3PL, CI/CD", build: workflow },
+  { id: "workflow", name: "Workflow", description: "Lanes & steps — for team handoffs", build: workflow },
   { id: "sequence", name: "Sequence", description: "Participants & messages — for API calls", build: sequence },
   { id: "dataflow", name: "Dataflow", description: "Stages & lineage — for PII & ETL", build: dataflow },
   { id: "lifecycle", name: "Lifecycle", description: "States & transitions — for order status", build: lifecycle },

@@ -8,11 +8,15 @@ import {
   clampPopover,
   distributeSelection,
   elementBounds,
+  matchSizeSelection,
   panBy,
   refCardLayout,
   refCardRect,
+  rotatePoint,
+  rotationCenter,
   screenToWorld,
   shapePath,
+  snapRotation,
   snapToGrid,
   TEXT_LINE_H,
   textLineHeight,
@@ -107,6 +111,34 @@ describe('distributeSelection', () => {
   });
   it('requires at least 3 selected', () => {
     expect(distributeSelection(els, ['a', 'b'], 'x').size).toBe(0);
+  });
+  it('WB-9: distributes centers so unequal widths keep even gaps', () => {
+    const wide = [
+      { id: 'a', x: 0, y: 0, w: 100, h: 10 },
+      { id: 'b', x: 150, y: 0, w: 20, h: 10 },
+      { id: 'c', x: 300, y: 0, w: 100, h: 10 },
+    ];
+    // centers 50, 160, 350 → gap 150 → b center 200 → x = 190
+    expect(distributeSelection(wide, ['a', 'b', 'c'], 'x').get('b')).toBe(190);
+  });
+});
+
+describe('WB-9 matchSizeSelection', () => {
+  const els = [
+    { id: 'a', w: 100, h: 60 },
+    { id: 'b', w: 200, h: 30 },
+    { id: 'c', w: 150, h: 90 },
+  ];
+  it('matches width/height/both to the most recently selected element', () => {
+    expect(matchSizeSelection(els, ['a', 'b', 'c'], 'width').get('a')).toEqual({ w: 150, h: 60 });
+    expect(matchSizeSelection(els, ['a', 'b', 'c'], 'height').get('b')).toEqual({ w: 200, h: 90 });
+    expect(matchSizeSelection(els, ['a', 'b', 'c'], 'both').get('a')).toEqual({ w: 150, h: 90 });
+  });
+  it('skips the reference element and requires at least 2 selected', () => {
+    const out = matchSizeSelection(els, ['a', 'b', 'c'], 'both');
+    expect(out.has('c')).toBe(false);
+    expect(out.size).toBe(2);
+    expect(matchSizeSelection(els, ['a'], 'both').size).toBe(0);
   });
 });
 
@@ -546,4 +578,30 @@ describe('shapePath', () => {
   });
 });
 
+describe('WB-5 rotation helpers', () => {
+  it('rotatePoint turns 90° clockwise in y-down space', () => {
+    const p = rotatePoint(10, 0, 0, 0, 90);
+    expect(p.x).toBeCloseTo(0);
+    expect(p.y).toBeCloseTo(10);
+  });
+
+  it('rotatePoint is identity at 0°', () => {
+    expect(rotatePoint(3, -4, 1, 1, 0)).toEqual({ x: 3, y: -4 });
+  });
+
+  it('snapRotation snaps to 15° (45° with Shift) and clamps ±360', () => {
+    expect(snapRotation(41.8, false)).toBe(45);
+    expect(snapRotation(41.8, true)).toBe(45);
+    expect(snapRotation(30, true)).toBe(45);
+    expect(snapRotation(20, true)).toBe(0);
+    expect(snapRotation(500, false)).toBe(360);
+    expect(snapRotation(-500, false)).toBe(-360);
+  });
+
+  it('rotationCenter uses (x,y) for text and bounds center otherwise', () => {
+    expect(rotationCenter({ kind: 'text', x: 5, y: 7 }, { x: 5, y: 7, w: 100, h: 20 })).toEqual({ x: 5, y: 7 });
+    expect(rotationCenter({ kind: 'shape' }, { x: 0, y: 0, w: 100, h: 60 })).toEqual({ x: 50, y: 30 });
+  });
+});
+// closes describe('clampPopover') — shapePath + WB-5 blocks are nested inside it
 });

@@ -82,7 +82,7 @@ export function WhiteboardList({ onOpen, loading = false, unreadIds }: Whiteboar
         </span>
         <span className="data-list-actions">
           <SortControl
-            options={BOARD_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: t(s.label) }))}
+            options={BOARD_SORT_SPECS.map((s) => ({ value: s.key, label: t(s.label) }))}
             value={sortValue}
             onChange={setSort}
           />

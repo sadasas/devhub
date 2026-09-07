@@ -39,7 +39,7 @@ export function RefPicker({ open, state, onPick, onClose }: RefPickerProps) {
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const options = useMemo<RefOption[]>(() => {
+  const { options, truncated } = useMemo<{ options: RefOption[]; truncated: number }>(() => {
     const badge = (key: string) => t(key);
     const q = query.trim().toLowerCase();
     const match = (...fields: string[]) => !q || fields.some((f) => f.toLowerCase().includes(q));
@@ -53,46 +53,49 @@ export function RefPicker({ open, state, onPick, onClose }: RefPickerProps) {
     const apiCollections = state?.apiCollections ?? [];
     const apiEndpoints = state?.apiEndpoints ?? [];
     const out: RefOption[] = [];
+    let matched = 0;
     const push = (opt: RefOption | null) => {
-      if (opt && out.length < MAX_OPTIONS) out.push(opt);
+      if (!opt) return;
+      matched += 1;
+      if (out.length < MAX_OPTIONS) out.push(opt);
     };
     for (const t of tasks) {
-      if (!match(t.title)) continue;
+      if (!match(t.title, t.status ?? '', t.id)) continue;
       push({ entity: 'tasks', id: t.id, title: t.title, status: labelOf(TASK_STATUS, t.status), badge: badge('whiteboard.refPicker.badgeTask') });
     }
     for (const i of issues) {
-      if (!match(i.title)) continue;
+      if (!match(i.title, i.severity ?? '', i.status ?? '', i.id)) continue;
       push({ entity: 'issues', id: i.id, title: i.title, status: `${labelOf(ISSUE_SEVERITY, i.severity)} · ${labelOf(ISSUE_STATUS, i.status)}`, badge: badge('whiteboard.refPicker.badgeIssue') });
     }
     for (const tc of testCases) {
-      if (!match(tc.name)) continue;
+      if (!match(tc.name, tc.status ?? '', tc.id)) continue;
       push({ entity: 'testCases', id: tc.id, title: tc.name, status: labelOf(TEST_CASE_STATUS, tc.status), badge: badge('whiteboard.refPicker.badgeTestCase') });
     }
     for (const m of milestones) {
-      if (!match(m.name)) continue;
+      if (!match(m.name, m.status ?? '', m.id)) continue;
       push({ entity: 'milestones', id: m.id, title: m.name, status: labelOf(MILESTONE_STATUS, m.status), badge: badge('whiteboard.refPicker.badgeMilestone') });
     }
     for (const t of techEntries) {
-      if (!match(t.name)) continue;
+      if (!match(t.name, t.status ?? '', t.version ?? '', t.id)) continue;
       push({ entity: 'techEntries', id: t.id, title: t.name, status: `${labelOf(TECH_STATUS, t.status)} · ${t.version || '—'}`, badge: badge('whiteboard.refPicker.badgeTech') });
     }
     for (const d of decisions) {
-      if (!match(d.title)) continue;
+      if (!match(d.title, d.status ?? '', d.id)) continue;
       push({ entity: 'decisions', id: d.id, title: d.title, status: labelOf(DECISION_STATUS, d.status), badge: badge('whiteboard.refPicker.badgeDecision') });
     }
     for (const tb of tables) {
-      if (!match(tb.name)) continue;
+      if (!match(tb.name, tb.id)) continue;
       push({ entity: 'tables', id: tb.id, title: tb.name, status: t('whiteboard.refPicker.columns', { count: tb.columns.length }), badge: badge('whiteboard.refPicker.badgeTable') });
     }
     for (const c of apiCollections) {
-      if (!match(c.name)) continue;
+      if (!match(c.name, c.id)) continue;
       push({ entity: 'apiCollections', id: c.id, title: c.name, status: t('whiteboard.refPicker.endpoints', { count: apiEndpoints.filter((e) => e.collectionId === c.id).length }), badge: badge('whiteboard.refPicker.badgeApiColl') });
     }
     for (const e of apiEndpoints) {
-      if (!match(e.name, e.path)) continue;
+      if (!match(e.name, e.path, e.method ?? '', e.id)) continue;
       push({ entity: 'apiEndpoints', id: e.id, title: e.name, status: `${e.method} ${e.path}`, badge: badge('whiteboard.refPicker.badgeEndpoint') });
     }
-    return out;
+    return { options: out, truncated: matched - out.length };
   }, [state, query, t]);
 
   useEffect(() => {
@@ -158,6 +161,9 @@ export function RefPicker({ open, state, onPick, onClose }: RefPickerProps) {
               </li>
             ))}
           </ul>
+        )}
+        {truncated > 0 && (
+          <p className="ref-picker-more">{t('whiteboard.refPicker.more', { count: truncated })}</p>
         )}
       </div>
     </Modal>

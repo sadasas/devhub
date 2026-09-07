@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { useState } from 'react';
+import { fireEvent, render, screen, within, act } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router';
 import type { State, Whiteboard, WhiteboardElement } from '../../lib/types';
 import { WhiteboardEditorShell } from './WhiteboardEditorShell';
@@ -1100,7 +1101,7 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
     expect(undone).toHaveLength(0);
   });
 
-  it('pans the canvas when dragging empty space with the select tool', () => {
+  it('WB-7: dragging empty space with the select tool starts a marquee (pan via Space/view)', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
       state: null,
@@ -1118,14 +1119,36 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
     // World = client - 16; (184,184) is empty space, not the sticky at (0,0,100,60).
     fireEvent.pointerDown(svg, { button: 0, clientX: 200, clientY: 200 });
     fireEvent.pointerMove(svg, { clientX: 210, clientY: 210 });
+    expect(document.querySelector('[data-testid="wb-marquee"]')).not.toBeNull();
     fireEvent.pointerMove(svg, { clientX: 240, clientY: 240 });
     fireEvent.pointerUp(svg, { clientX: 240, clientY: 240 });
 
+    // marquee box (184..224) misses the sticky → selection cleared, no pan, no dispatch
+    expect(document.querySelector('[data-testid="wb-marquee"]')).toBeNull();
     const g = document.querySelector('svg.wb-svg > g') as SVGGraphicsElement;
-    // Absolute-from-start pan: two moves totaling +40,+40 land exactly at 56,56
-    // (a cumulative-delta bug would accumulate to 66,66).
-    expect(g.getAttribute('transform')).toContain('translate(56 56)');
+    expect(g.getAttribute('transform')).toContain('translate(16 16)');
     expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('WB-7: select-tool marquee selects intersecting elements', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      ...BOARD,
+      elements: [{ id: 'a', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' }],
+    };
+    renderShell(board);
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    // drag a box covering the sticky: world (-20,-20)..(150,100)
+    fireEvent.pointerDown(svg, { button: 0, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(svg, { clientX: 166, clientY: 116 });
+    fireEvent.pointerUp(svg, { clientX: 166, clientY: 116 });
+    expect(document.querySelectorAll('[data-testid="wb-selection"]').length).toBeGreaterThan(0);
   });
 
   it('eraser removes pen stroke points along its path', () => {
@@ -1556,36 +1579,87 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
     fireEvent.pointerUp(svg, { clientX: 80, clientY: 120 });
   });
 
-  it('toggles browser fullscreen with the toolbar button and the F key', () => {
+  it('WB-16/17/19: top bar holds back + name left, Canvas button right', () => {
+    renderShell(BOARD);
+    const shell = document.querySelector('.wb-shell') as HTMLElement;
+    expect(shell.classList.contains('wb-fullscreen')).toBe(false);
+    // top bar outside the canvas: back + title left, Canvas button right
+    const topbar = document.querySelector('.wb-topbar') as HTMLElement;
+    expect(topbar).not.toBeNull();
+    expect(topbar.querySelector('.back-btn')).not.toBeNull();
+    expect(topbar.textContent).toContain('Plan');
+    expect(topbar.textContent).toContain('Canvas');
+    // no in-canvas title in normal mode
+    expect(document.querySelector('.wb-board-title')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Exit fullscreen — F' })).toBeNull();
+
+    // enter fullscreen overlay from the top bar
+    fireEvent.click(screen.getByRole('button', { name: 'Fullscreen — F' }));
+    expect(shell.classList.contains('wb-fullscreen')).toBe(true);
+    // back + topbar gone; title overlay + X visible inside the canvas
+    expect(document.querySelector('.wb-topbar')).toBeNull();
+    expect(document.querySelector('.wb-board-title')?.textContent).toBe('Plan');
+    const exitBtn = screen.getByRole('button', { name: 'Exit fullscreen — F' });
+    expect(exitBtn.closest('.wb-main-canvas')).not.toBeNull();
+
+    // F key exits back to normal
+    fireEvent.keyDown(window, { key: 'f' });
+    expect(shell.classList.contains('wb-fullscreen')).toBe(false);
+    screen.getByRole('button', { name: 'Fullscreen — F' });
+  });
+
+  it('WB-17/20: Escape and X exit presentation straight to normal', () => {
+    renderShell(BOARD);
+    const shell = document.querySelector('.wb-shell') as HTMLElement;
+    // enter presentation from the pill (true browser fullscreen + hidden chrome)
+    fireEvent.click(screen.getByRole('button', { name: 'Present board' }));
+    expect(shell.classList.contains('wb-presenting')).toBe(true);
+    // all chrome hidden, canvas + X remain
+    expect(document.querySelector('.board-toolbar')).toBeNull();
+    expect(document.querySelector('.wb-dock-right')).toBeNull();
+    expect(document.querySelector('.wb-board-title')).toBeNull();
+    expect(document.querySelector('svg.wb-svg')).not.toBeNull();
+    screen.getByRole('button', { name: 'Exit presentation' });
+
+    // Esc exits presentation straight to normal mode
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(shell.classList.contains('wb-presenting')).toBe(false);
+    expect(shell.classList.contains('wb-fullscreen')).toBe(false);
+    expect(document.querySelector('.wb-topbar')).not.toBeNull();
+    expect(document.querySelector('.board-toolbar')).not.toBeNull();
+
+    // X also exits everything to normal
+    fireEvent.click(screen.getByRole('button', { name: 'Present board' }));
+    expect(shell.classList.contains('wb-presenting')).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Exit presentation' }));
+    expect(shell.classList.contains('wb-presenting')).toBe(false);
+    expect(shell.classList.contains('wb-fullscreen')).toBe(false);
+    expect(document.querySelector('.wb-topbar')).not.toBeNull();
+  });
+
+  it('WB-20: present requests browser fullscreen; browser Esc syncs back', () => {
     renderShell(BOARD);
     const shell = document.querySelector('.wb-shell') as HTMLElement;
     const requestFullscreen = Element.prototype.requestFullscreen as ReturnType<typeof vi.fn>;
-    const exitFullscreen = Document.prototype.exitFullscreen as ReturnType<typeof vi.fn>;
-
-    screen.getByRole('button', { name: 'Fullscreen — F' }).click();
+    fireEvent.click(screen.getByRole('button', { name: 'Present board' }));
     expect(requestFullscreen).toHaveBeenCalledTimes(1);
-
-    Object.defineProperty(document, 'fullscreenElement', { value: shell, writable: true, configurable: true });
-    fireEvent(document, new Event('fullscreenchange'));
-    const exitBtn = screen.getByRole('button', { name: 'Exit fullscreen — F' });
-    expect(exitBtn.getAttribute('aria-pressed')).toBe('true');
-
-    fireEvent.keyDown(window, { key: 'f' });
-    expect(exitFullscreen).toHaveBeenCalledTimes(1);
-
+    expect(shell.classList.contains('wb-presenting')).toBe(true);
+    // browser takes over Esc: fullscreenchange without an element exits to normal
     Object.defineProperty(document, 'fullscreenElement', { value: null, writable: true, configurable: true });
     fireEvent(document, new Event('fullscreenchange'));
-    screen.getByRole('button', { name: 'Fullscreen — F' });
+    expect(shell.classList.contains('wb-presenting')).toBe(false);
+    expect(shell.classList.contains('wb-fullscreen')).toBe(false);
+    expect(document.querySelector('.wb-topbar')).not.toBeNull();
   });
 
   it('does not toggle fullscreen while typing', () => {
     renderShell(BOARD);
-    const requestFullscreen = Element.prototype.requestFullscreen as ReturnType<typeof vi.fn>;
+    const shell = document.querySelector('.wb-shell') as HTMLElement;
     const input = document.createElement('input');
     document.body.appendChild(input);
     input.focus();
     fireEvent.keyDown(input, { key: 'f' });
-    expect(requestFullscreen).not.toHaveBeenCalled();
+    expect(shell.classList.contains('wb-fullscreen')).toBe(false);
     input.remove();
   });
 
@@ -2110,6 +2184,56 @@ const el = action.patch.elements.find((e) => e.id === 'a');
     expect(el).toMatchObject({ w: 140, h: 96 });
   });
 
+  it('WB-5: shows the rotate handle for a selected shape and commits snapped rotation', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      ...BOARD,
+      elements: [{ id: 'a', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '' }],
+    };
+    renderShell(board);
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+    fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
+    expect(document.querySelector('[data-testid="wb-rotate-handle"]')).not.toBeNull();
+
+    // WB-22: handle below the shape — world (50,86) → client (66,102); start angle +90°.
+    fireEvent.pointerDown(svg, { button: 0, clientX: 66, clientY: 102 });
+    // Drag to world (100,86): angle atan2(56,50) ≈ 48.2° → delta ≈ -41.8° → snap -45°.
+    fireEvent.pointerMove(svg, { clientX: 116, clientY: 102 });
+    fireEvent.pointerUp(svg, { clientX: 116, clientY: 102 });
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+    const el = action.patch.elements.find((e) => e.id === 'a');
+    expect(el).toMatchObject({ rotation: -45 });
+  });
+
+  it('WB-5: hides the rotate handle for non-rotatable kinds', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      ...BOARD,
+      elements: [{ id: 'b1', kind: 'boundary', x: 0, y: 0, w: 200, h: 120, color: '#6ea8fe', label: '' }],
+    };
+    renderShell(board);
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+    fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
+    expect(document.querySelector('[data-testid="wb-rotate-handle"]')).toBeNull();
+    expect(document.querySelector('[data-testid="wb-resize-handle"]')).not.toBeNull();
+  });
+
 it('clamps resize to the minimum size and hides the handle for non-resizeable kinds', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
@@ -2258,6 +2382,384 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       expect(blob.type).toBe('image/svg+xml');
       clickSpy.mockRestore();
     });
+
+    it('WB-3: shows an alert notice when the PDF popup is blocked', () => {
+      const openSpy = vi.fn().mockReturnValue(null);
+      Object.defineProperty(window, 'open', { value: openSpy, configurable: true });
+      renderShell({ ...BOARD, elements: [STICKY] });
+      fireEvent.click(screen.getByRole('button', { name: 'Export diagram' }));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'PDF document' }));
+      expect(openSpy).toHaveBeenCalledTimes(1);
+      const alert = screen.getByRole('alert');
+      expect(alert.textContent).toContain('Popup blocked');
+    });
   });
 
+  describe('WB-6 edge UX', () => {
+    const AB: WhiteboardElement[] = [
+      { id: 'a', kind: 'sticky', x: 0, y: 0, w: 200, h: 120, color: '#e8b955', text: 'A' },
+      { id: 'b', kind: 'sticky', x: 300, y: 0, w: 200, h: 120, color: '#e8b955', text: 'B' },
+    ];
+
+    function renderEdgeBoard() {
+      const dispatch = vi.fn();
+      useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+      renderShell({ ...BOARD, elements: AB });
+      fireEvent.click(screen.getByRole('button', { name: 'Edge — 7' }));
+      return { dispatch, svg: document.querySelector('svg.wb-svg') as SVGSVGElement };
+    }
+
+    it('shows a notice (not silence) when an edge is dropped on empty space', () => {
+      const { dispatch, svg } = renderEdgeBoard();
+      fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+      fireEvent.pointerMove(svg, { clientX: 500, clientY: 400 });
+      fireEvent.pointerUp(svg, { clientX: 500, clientY: 400 });
+      expect(dispatch).not.toHaveBeenCalled();
+      expect(screen.getByRole('alert').textContent).toContain('Drop onto a shape');
+    });
+
+    it('selects a newly drawn edge so its label is one click away', () => {
+      // live harness: dispatch applies the patch so selection resolves against fresh elements
+      function LiveShell() {
+        const [elements, setElements] = useState(AB);
+        const dispatch = (action: { patch: { elements: WhiteboardElement[] } }) => {
+          setElements(action.patch.elements);
+        };
+        useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+        return (
+          <MemoryRouter>
+            <WhiteboardEditorShell board={{ ...BOARD, elements }} state={makeState()} onBack={() => {}} />
+          </MemoryRouter>
+        );
+      }
+      render(<LiveShell />);
+      fireEvent.click(screen.getByRole('button', { name: 'Edge — 7' }));
+      const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+      fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+      fireEvent.pointerMove(svg, { clientX: 320, clientY: 80 });
+      fireEvent.pointerUp(svg, { clientX: 320, clientY: 80 });
+      expect(screen.getByRole('complementary', { name: 'Edit edge' })).not.toBeNull();
+    });
+  });
+
+  describe('WB-6 snap on place', () => {
+    it('snaps a newborn sticky to the grid', () => {
+      const dispatch = vi.fn();
+      useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+      renderShell({ ...BOARD, elements: [] });
+      fireEvent.click(screen.getByRole('button', { name: 'Sticky note — 5' }));
+      const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+      // client (40,40) → world (24,24) → within snap radius of grid 32
+      fireEvent.pointerDown(svg, { button: 0, clientX: 40, clientY: 40 });
+      fireEvent.pointerUp(svg, { clientX: 40, clientY: 40 });
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+      expect(action.patch.elements[0]).toMatchObject({ x: 32, y: 32 });
+    });
+  });
+
+  describe('WB-8 ref discoverability', () => {
+    function renderRefBoard() {
+      const dispatch = vi.fn();
+      useProjectMock.mockReturnValue({
+        state: {
+          tasks: [{ id: 't1', title: 'Build login', status: 'todo', priority: 'medium' }],
+          issues: [],
+        },
+        role: 'owner',
+        canEdit: true,
+        projectId: 'p1',
+        dispatch,
+      });
+      renderShellWithProbe({
+        ...BOARD,
+        elements: [{ id: 'r1', kind: 'ref', entity: 'tasks', entityId: 't1', x: 0, y: 0 }],
+      });
+      return dispatch;
+    }
+
+    it('opens the source entity from the inspector Open button', () => {
+      renderRefBoard();
+      const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+      fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+      fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
+      fireEvent.click(screen.getByRole('button', { name: 'Open source' }));
+      expect(screen.getByTestId('loc').textContent).toBe('/project/p1?tab=board&entity=tasks&id=t1');
+    });
+
+    it('matches picker search against status and id, not just title', () => {
+      useProjectMock.mockReturnValue({
+        state: {
+          tasks: [
+            { id: 't1', title: 'Build login', status: 'todo' },
+            { id: 't2', title: 'Unrelated chore', status: 'done' },
+          ],
+          issues: [],
+        },
+        role: 'owner',
+        canEdit: true,
+        dispatch: vi.fn(),
+      });
+      renderShell(BOARD);
+      fireEvent.click(screen.getByRole('button', { name: 'Entity ref card — 8' }));
+      const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+      fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 120 });
+      fireEvent.pointerUp(svg, { clientX: 100, clientY: 120 });
+      const dialog = screen.getByRole('dialog', { name: 'Link an entity' });
+      fireEvent.change(within(dialog).getByRole('textbox'), { target: { value: 'done' } });
+      expect(within(dialog).getByRole('button', { name: /Unrelated chore/ })).not.toBeNull();
+      expect(within(dialog).queryByRole('button', { name: /Build login/ })).toBeNull();
+    });
+
+    it('shows a truncated hint when more than 50 entities match', () => {
+      const tasks = Array.from({ length: 55 }, (_, i) => ({ id: `t${i}`, title: `Task ${i}`, status: 'todo' }));
+      useProjectMock.mockReturnValue({
+        state: { tasks, issues: [] },
+        role: 'owner',
+        canEdit: true,
+        dispatch: vi.fn(),
+      });
+      renderShell(BOARD);
+      fireEvent.click(screen.getByRole('button', { name: 'Entity ref card — 8' }));
+      const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+      fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 120 });
+      fireEvent.pointerUp(svg, { clientX: 100, clientY: 120 });
+      const dialog = screen.getByRole('dialog', { name: 'Link an entity' });
+      expect(dialog.textContent).toContain('+5 more');
+    });
+  });
+
+  describe('WB-15 shape dropdown', () => {
+    it('WB-23: opens the image popup from the shape button and places the picked type', () => {
+      const dispatch = vi.fn();
+      useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+      renderShell(BOARD);
+      expect(screen.queryByRole('button', { name: 'Shape type' })).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Shape — 6' }));
+      const menu = screen.getByRole('menu', { name: 'Shape type' });
+      const items = within(menu).getAllByRole('menuitemradio');
+      expect(items).toHaveLength(7);
+      // options are vector previews, not text
+      expect(menu.querySelectorAll('svg').length).toBe(7);
+      fireEvent.click(within(menu).getByRole('menuitemradio', { name: 'diamond' }));
+      expect(screen.queryByRole('menu', { name: 'Shape type' })).toBeNull();
+      // shape tool active with diamond default; place it
+      const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+      fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 100 });
+      fireEvent.pointerUp(svg, { clientX: 100, clientY: 100 });
+      const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+      expect(action.patch.elements[0]).toMatchObject({ kind: 'shape', shapeType: 'diamond' });
+    });
+
+    it('patches a selected shape without leaving the inspector', () => {
+      const dispatch = vi.fn();
+      useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+      renderShell({
+        ...BOARD,
+        elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '' }],
+      });
+      const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+      fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+      fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
+      fireEvent.click(screen.getByRole('button', { name: 'Shape — 6' }));
+      fireEvent.click(screen.getByRole('menuitemradio', { name: 'ellipse' }));
+      const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+      expect(action.patch.elements[0]).toMatchObject({ id: 's1', shapeType: 'ellipse' });
+    });
+
+    it('WB-21: opens the shape menu on hover intent', () => {
+      vi.useFakeTimers();
+      try {
+        useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch: vi.fn() });
+        renderShell(BOARD);
+        const shapeBtn = screen.getByRole('button', { name: 'Shape — 6' });
+        fireEvent.mouseEnter(shapeBtn);
+        expect(screen.queryByRole('menu', { name: 'Shape type' })).toBeNull();
+        act(() => {
+          vi.advanceTimersByTime(250);
+        });
+        expect(screen.getByRole('menu', { name: 'Shape type' })).not.toBeNull();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('WB-25: shape options show tooltips and the popup fits content', () => {
+      vi.useFakeTimers();
+      try {
+        useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch: vi.fn() });
+        renderShell(BOARD);
+        fireEvent.click(screen.getByRole('button', { name: 'Shape — 6' }));
+        const menu = screen.getByRole('menu', { name: 'Shape type' });
+        const diamond = within(menu).getByRole('menuitemradio', { name: 'diamond' });
+        fireEvent.mouseOver(diamond);
+        act(() => {
+          vi.advanceTimersByTime(200);
+        });
+        const tip = screen.getByRole('tooltip');
+        expect(tip.textContent).toBe('diamond');
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('WB-24: shows a fixed pill tooltip on hover and hides on leave', () => {
+      vi.useFakeTimers();
+      try {
+        useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch: vi.fn() });
+        renderShell(BOARD);
+        const pen = screen.getByRole('button', { name: 'Pen — 2' });
+        fireEvent.mouseOver(pen);
+        expect(document.querySelector('.wb-tip-fixed')).toBeNull();
+        act(() => {
+          vi.advanceTimersByTime(200);
+        });
+        const tip = screen.getByRole('tooltip');
+        expect(tip.textContent).toBe('Pen — 2');
+        expect(tip.classList.contains('wb-tip-fixed')).toBe(true);
+        fireEvent.mouseOut(pen);
+        expect(screen.queryByRole('tooltip')).toBeNull();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('has no shape-type grid left in the inspector', () => {
+      const dispatch = vi.fn();
+      useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+      renderShell({
+        ...BOARD,
+        elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '' }],
+      });
+      const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+      fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+      fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
+      expect(screen.getByRole('complementary', { name: 'Edit shape' })).not.toBeNull();
+      expect(screen.queryByRole('radiogroup', { name: 'Shape type' })).toBeNull();
+    });
+  });
+
+  describe('WB-18 floating selection bar', () => {
+    it('positions the bar above the selected element', () => {
+      const dispatch = vi.fn();
+      useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+      renderShell({
+        ...BOARD,
+        elements: [{ id: 's1', kind: 'sticky', x: 0, y: 200, w: 100, h: 60, color: '#e8b955', text: 'A' }],
+      });
+      const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+      // world (84,230) → client (100,246)
+      fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 246 });
+      fireEvent.pointerUp(svg, { clientX: 100, clientY: 246 });
+      const bar = document.querySelector('.wb-selection-bar') as HTMLElement;
+      expect(bar).not.toBeNull();
+      // bbox center x=50 → screen 66; top y=200 → screen 216; above → top 216-12=204
+      expect(bar.style.left).toBe('120px');
+      expect(bar.style.top).toBe('204px');
+    });
+  });
+    const STICKY_L: WhiteboardElement = { id: 's1', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' };
+
+    it('renders the toolbar pill and dock inside the canvas container', () => {
+      renderShell({ ...BOARD, elements: [STICKY_L] });
+      const wrap = document.querySelector('.wb-main-canvas');
+      expect(wrap).not.toBeNull();
+      expect(wrap?.querySelector('.board-toolbar')).not.toBeNull();
+      const dock = wrap?.querySelector('.wb-dock-right');
+      expect(dock).not.toBeNull();
+      expect(dock?.querySelectorAll('aside').length).toBe(2);
+    });
+
+    it('has no toolbar collapse buttons; Properties stays mounted', () => {
+      renderShell({ ...BOARD, elements: [STICKY_L] });
+      // the only 'Show layers' button is the panel header itself (toolbar toggles removed)
+      expect(screen.getAllByRole('button', { name: 'Show layers' })).toHaveLength(1);
+      expect(screen.queryByRole('button', { name: 'Hide layers' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Show properties' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Collapse properties' })).toBeNull();
+      expect(screen.getByRole('complementary', { name: 'Element properties' })).not.toBeNull();
+    });
+
+    it('toggles the Layers list from its panel header', () => {
+      renderShell({ ...BOARD, elements: [STICKY_L] });
+      // collapsed by default: header visible, list hidden
+      const header = screen.getByRole('button', { name: 'Show layers' });
+      expect(header.getAttribute('aria-expanded')).toBe('false');
+      expect(screen.queryByRole('listbox', { name: 'Element layers' })).toBeNull();
+      fireEvent.click(header);
+      expect(header.getAttribute('aria-expanded')).toBe('true');
+      expect(screen.getByRole('listbox', { name: 'Element layers' })).not.toBeNull();
+    });
+
+    it('WB-4: shows selection export items only when something is selected', () => {
+      renderShell({ ...BOARD, elements: [STICKY_L] });
+      fireEvent.click(screen.getByRole('button', { name: 'Export diagram' }));
+      expect(screen.queryByRole('menuitem', { name: 'PNG selection' })).toBeNull();
+      fireEvent.keyDown(window, { key: 'Escape' });
+      // select the sticky, then reopen the menu
+      const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+      fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+      fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
+      fireEvent.click(screen.getByRole('button', { name: 'Export diagram' }));
+      expect(screen.getByRole('menuitem', { name: 'PNG selection' })).not.toBeNull();
+      expect(screen.getByRole('menuitem', { name: 'SVG selection' })).not.toBeNull();
+    });
+
+    it('WB-4: toggles the transparent-background checkbox', () => {
+      renderShell({ ...BOARD, elements: [STICKY_L] });
+      fireEvent.click(screen.getByRole('button', { name: 'Export diagram' }));
+      const box = screen.getByRole('menuitemcheckbox', { name: 'Transparent background' });
+      expect(box.getAttribute('aria-checked')).toBe('false');
+      fireEvent.click(box);
+      expect(box.getAttribute('aria-checked')).toBe('true');
+    });
+
+    it('WB-10: deleting offers one-step restore from the notice', () => {
+      function LiveShell() {
+        const [elements, setElements] = useState([STICKY_L]);
+        const dispatch = (action: { patch: { elements: WhiteboardElement[] } }) => {
+          setElements(action.patch.elements);
+        };
+        useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+        return (
+          <MemoryRouter>
+            <WhiteboardEditorShell board={{ ...BOARD, elements }} state={makeState()} onBack={() => {}} />
+          </MemoryRouter>
+        );
+      }
+      render(<LiveShell />);
+      const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+      fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+      fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
+      fireEvent.keyDown(window, { key: 'Delete' });
+      const alert = screen.getByRole('alert');
+      expect(alert.textContent).toContain('Deleted 1');
+      expect((document.querySelector('svg.wb-svg') as SVGSVGElement).textContent).toBe('');
+      fireEvent.click(screen.getByRole('button', { name: 'Restore' }));
+      // restored sticky is back on the canvas
+      expect((document.querySelector('svg.wb-svg') as SVGSVGElement).textContent).toContain('A');
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+
+    it('WB-9: match width resizes the selection to the last selected element', () => {
+      const dispatch = vi.fn();
+      useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+      renderShell({
+        ...BOARD,
+        elements: [
+          { id: 'a', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '' },
+          { id: 'b', kind: 'shape', shapeType: 'rect', x: 200, y: 0, w: 150, h: 80, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '' },
+        ],
+      });
+      const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+      // marquee over both shapes (world -20..390 x, -20..100 y)
+      fireEvent.pointerDown(svg, { button: 0, clientX: 0, clientY: 0 });
+      fireEvent.pointerMove(svg, { clientX: 406, clientY: 116 });
+      fireEvent.pointerUp(svg, { clientX: 406, clientY: 116 });
+      fireEvent.click(screen.getByRole('button', { name: 'Match width to last selected' }));
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+      expect(action.patch.elements.find((e) => e.id === 'a')).toMatchObject({ w: 150, h: 60 });
+      expect(action.patch.elements.find((e) => e.id === 'b')).toMatchObject({ w: 150, h: 80 });
+    });
 });

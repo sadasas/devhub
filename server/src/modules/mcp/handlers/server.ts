@@ -23,6 +23,7 @@ import { registerAddApiEndpoint } from '../application/tools/add-api-endpoint.js
 import { registerUpdateApiEndpoint } from '../application/tools/update-api-endpoint.js';
 import { registerCreateWhiteboard } from '../application/tools/create-whiteboard.js';
 import { registerUpdateWhiteboard } from '../application/tools/update-whiteboard.js';
+import { registerPatchWhiteboard } from '../application/tools/patch-whiteboard.js';
 import { registerListWhiteboards } from '../application/tools/list-whiteboards.js';
 import { registerValidateWhiteboard } from '../application/tools/validate-whiteboard.js';
 
@@ -66,6 +67,7 @@ mcpRouter.post('/', async (req, res) => {
   registerListWhiteboards(mcpServer);
   registerCreateWhiteboard(mcpServer);
   registerUpdateWhiteboard(mcpServer);
+  registerPatchWhiteboard(mcpServer);
   registerValidateWhiteboard(mcpServer);
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,

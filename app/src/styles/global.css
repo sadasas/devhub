@@ -12780,6 +12780,229 @@ input[type='checkbox'] {
 .wb-card-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 0; background: none; border: none; text-align: left; font: inherit; color: inherit; cursor: pointer; border-radius: var(--radius-sm); }
 .wb-card-main:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent-ring); }
 .wb-shell { display: flex; flex-direction: column; gap: 16px; }
+/* WB-2: .sub-tabs overflow-x:auto membuat overflow-y ikut clip sehingga
+   .wb-export-menu (di bawah tombol) dan tooltip hover (di atas tombol)
+   terpotong. Di toolbar whiteboard, izinkan overflow + wrap. */
+.wb-shell .board-toolbar .sub-tabs { overflow: visible; flex-wrap: wrap; }
+/* WB-13: toolbar pill + dock overlay inside the canvas (mirrors schema ERD canvas-mode).
+   The toolbar div now lives inside .wb-main-canvas; banners moved to .wb-status-row. */
+.wb-shell { position: relative; }
+.wb-main-canvas { position: relative; }
+.wb-shell .board-toolbar {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 25;
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 20px);
+  flex-wrap: nowrap;
+  justify-content: center;
+  padding: 4px 8px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-input);
+  box-shadow: var(--shadow-raised);
+}
+.wb-shell .board-toolbar .sub-tabs {
+  background: none;
+  border: none;
+  margin-bottom: 0;
+  padding: 0;
+}
+/* WB-21/WB-25/WB-26: single-row pill, no overflow — all tools always visible. */
+.wb-shell .board-toolbar .wb-tool-scroll {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow: visible;
+  max-width: 100%;
+  gap: 2px;
+}
+/* WB-26: uniform rhythm — 28px cells, 2px gaps everywhere, sep as 1px cell. */
+.wb-shell .board-toolbar {
+  gap: 2px;
+  padding: 4px;
+}
+.wb-shell .board-toolbar .wb-tool-scroll .sub-tab,
+.wb-shell .board-toolbar .wb-tool-actions .sub-tab {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.wb-shell .board-toolbar .wb-tool-group { gap: 2px; }
+.wb-shell .board-toolbar .wb-tool-actions { gap: 2px; }
+.wb-shell .board-toolbar .wb-sep { margin: 0 2px; flex-shrink: 0; align-self: center; }
+/* Tooltips inside the scroll strip may clip while scrolled; native title remains. */
+.wb-export-menu.wb-shape-menu { z-index: 70; display: grid; grid-template-columns: repeat(2, auto); gap: 2px; padding: 4px; width: max-content; min-width: 0; }
+.wb-export-item.wb-shape-opt { padding: 4px; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; }
+.wb-export-item.wb-shape-opt svg { display: block; }
+.wb-export-item.wb-shape-opt:hover { color: var(--accent); }
+.wb-export-item.wb-shape-opt[aria-checked="true"] { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--bg-elevated); }
+.wb-shell .board-toolbar .wb-tool-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.wb-shell .board-toolbar .wb-tool-group { flex-shrink: 0; }
+/* WB-15/16: outside top bar (back left, name + fullscreen right). */
+.wb-topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.wb-topbar-spacer { flex: 1 1 auto; }
+.wb-board-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* WB-16/WB-19: board title overlay, top-left inside canvas. */
+.wb-board-title {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  z-index: 13;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  max-width: 38%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+/* WB-16/WB-19: exit control, top-right inside canvas in overlay modes. */
+.wb-exit-overlay {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.wb-exit-overlay:hover { color: var(--text-primary); background: var(--surface-hover); }
+/* WB-17: fullscreen + presentation overlays (schema ERD canvas-mode pattern). */
+.wb-shell.wb-fullscreen,
+.wb-shell.wb-presenting {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--bg-base);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+}
+.wb-shell.wb-fullscreen .wb-main,
+.wb-shell.wb-presenting .wb-main { flex: 1 1 auto; min-height: 0; }
+.wb-shell.wb-fullscreen .wb-canvas,
+.wb-shell.wb-presenting .wb-canvas { height: auto; flex: 1 1 auto; min-height: 0; }
+.wb-shell.wb-fullscreen .wb-side,
+.wb-shell.wb-presenting .wb-side,
+.wb-shell.wb-fullscreen .wb-layers-wrap,
+.wb-shell.wb-presenting .wb-layers-wrap { max-height: none; }
+/* WB-18: selection bar floats above the selected element. */
+.wb-selection-bar.wb-selection-float {
+  right: auto;
+  top: auto;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  box-shadow: var(--shadow-raised);
+  border-color: var(--border-strong);
+}
+/* WB-24: pill tooltips are a fixed-position React tooltip (immune to scroll
+   clipping). The legacy ::after/::before chips are disabled inside the pill. */
+.wb-shell .board-toolbar .sub-tab[data-tooltip]:hover::after,
+.wb-shell .board-toolbar .sub-tab[data-tooltip]:hover::before,
+.wb-shell .board-toolbar .sub-tab[data-tooltip]:focus-visible::after,
+.wb-shell .board-toolbar .sub-tab[data-tooltip]:focus-visible::before {
+  display: none;
+}
+.wb-tip-fixed {
+  position: fixed;
+  z-index: 80;
+  transform: translateX(-50%);
+  background: #111827;
+  color: #f9fafb;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid #111827;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: var(--shadow-raised);
+}
+/* Right dock: Properties (always visible) + Layers (header-collapsible). */
+.wb-dock-right {
+  position: absolute;
+  top: 58px;
+  right: 10px;
+  bottom: 10px;
+  width: 288px;
+  max-width: calc(100% - 20px);
+  z-index: 14;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  pointer-events: none;
+}
+.wb-dock-right > aside { pointer-events: auto; min-height: 0; }
+.wb-dock-right .wb-side {
+  width: auto;
+  flex: 1 1 auto;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-raised);
+  max-height: none;
+}
+.wb-dock-right .wb-layers-wrap {
+  width: auto;
+  flex: 0 1 auto;
+  max-height: 42%;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-raised);
+}
+.wb-status-row { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+/* WB-11: layers header is the collapse toggle. */
+button.wb-layers-head {
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border-hairline);
+  padding: 0 0 6px;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  color: inherit;
+}
+button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent-ring); }
+.wb-layers-caret { margin-left: auto; display: inline-flex; color: var(--text-muted); }
 .wb-template-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0; padding: 0; border: none; }
 .wb-template-grid legend { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
 .wb-template-option { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--border-hairline); border-radius: var(--radius-card); background: var(--bg-elevated); cursor: pointer; }
@@ -12788,10 +13011,13 @@ input[type='checkbox'] {
 .wb-template-option:focus-within { box-shadow: 0 0 0 2px var(--accent-ring); }
 .wb-template-name { font-size: 12.5px; font-weight: 600; color: var(--text-primary); }
 .wb-template-desc { font-size: 11px; color: var(--text-muted); }
-.wb-canvas { position: relative; height: calc(100dvh - 340px); min-height: 480px; border: 1px solid var(--border-hairline); border-radius: var(--radius-card); background: var(--bg-inset); overflow: hidden; user-select: none; overscroll-behavior: contain; }
+.wb-canvas { position: relative; height: calc(100dvh - 340px); min-height: 480px; border: 1px solid var(--border-hairline); border-radius: var(--radius-card); background-color: var(--bg-base); background-image: radial-gradient(circle, var(--border-strong) 1.1px, transparent 1.1px); background-size: 20px 20px; overflow: hidden; user-select: none; overscroll-behavior: contain; }
 
 @media (max-width: 860px) {
   .wb-canvas { height: 62dvh; min-height: 320px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wb-canvas { background-image: none; }
 }
 .wb-svg { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
 .wb-svg.dragging { cursor: grabbing; }
@@ -12805,6 +13031,7 @@ input[type='checkbox'] {
 .wb-export-menu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 20; display: flex; flex-direction: column; min-width: 140px; padding: 4px; background: var(--bg-overlay); border: 1px solid var(--border-strong); border-radius: var(--radius-card); box-shadow: var(--shadow-raised); }
 .wb-export-item { padding: 6px 10px; font-size: 12.5px; text-align: left; background: none; border: none; border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; }
 .wb-export-item:hover { background: var(--bg-elevated); color: var(--text-primary); }
+.wb-export-sep { height: 1px; background: var(--border-hairline); margin: 4px 6px; }
 .wb-popover { position: absolute; z-index: 5; width: 220px; padding: 12px; background: var(--bg-overlay); border: 1px solid var(--border-strong); border-radius: var(--radius-card); box-shadow: var(--shadow-raised); font-size: 12.5px; }
 .wb-main { display: flex; gap: 16px; align-items: stretch; min-width: 0; }
 .wb-main-canvas { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
@@ -12871,6 +13098,7 @@ input[type='checkbox'] {
 .ref-picker-title { font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ref-picker-status { flex-shrink: 0; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-muted); }
 .ref-picker-empty { padding: 12px 0; font-size: 12.5px; color: var(--text-muted); }
+.ref-picker-more { margin: 8px 0 0; font-size: 12px; color: var(--text-muted); }
 .wb-delete-btn { position: absolute; top: 10px; right: 10px; z-index: 5; width: 30px; height: 30px; padding: 0; display: flex; align-items: center; justify-content: center; background: var(--bg-overlay); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--status-danger); cursor: pointer; box-shadow: var(--shadow-raised); }
 .wb-delete-btn:hover { background: var(--status-danger-dim); border-color: var(--status-danger); }
 .wb-cap-banner { display: flex; align-items: center; gap: 10px; padding: 6px 12px; font-size: 12px; color: var(--text-muted); background: var(--status-warn-dim); border: 1px solid var(--status-warn); border-radius: var(--radius-sm); }

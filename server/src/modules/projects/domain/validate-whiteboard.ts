@@ -236,8 +236,13 @@ export function validateWhiteboardShowcase(elements: WhiteboardElement[]): White
     }
   }
 
-  // 8. redundant-parts - sticky/shape without any edge (check via ID or proximity 30px)
+  // 8. redundant-parts - sticky/shape without any edge (check via ID or proximity 30px).
+  // WB-10: only for diagram boards (≥1 edge). Pure brainstorming boards
+  // (stickies/text, no edges) allow orphans — otherwise MCP brainstorming is unusable.
   {
+    if (!elements.some((e) => e.kind === "edge")) {
+      // no diagram edges: skip orphan check entirely
+    } else {
     const connected = new Set<string>();
     for (const e of elements) if (e.kind === "edge") { if ((e as any).sourceNodeId) connected.add((e as any).sourceNodeId); if ((e as any).targetNodeId) connected.add((e as any).targetNodeId); }
     for (const el of elements) {
@@ -260,6 +265,7 @@ export function validateWhiteboardShowcase(elements: WhiteboardElement[]): White
         diagnostics.push(diag("whiteboard/redundant-parts", `${el.kind} ${el.id} orphan without edge`, { elementId: el.id }, {}, ["connect to edge or remove"]));
         if (diagnostics.length >= 3) return { ok: false, diagnostics };
         break;
+      }
       }
     }
   }

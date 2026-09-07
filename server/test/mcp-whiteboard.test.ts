@@ -43,13 +43,13 @@ async function fetchState(cookie: string, projectId: string) {
 }
 
 const STICKY = { kind: 'sticky', x: 0, y: 0, w: 200, h: 120, color: '#e8b955', text: 'Architecture' };
-const TEXT_EL = { kind: 'text', x: 0, y: 160, color: '#e4e4e7', fontSize: 16, text: 'Layer' };
+const TEXT_EL = { kind: 'text', x: 0, y: 200, color: '#e4e4e7', fontSize: 16, text: 'Layer' };
 const EDGE_EL = {
   kind: 'edge',
   x1: 0,
-  y1: 0,
+  y1: 150,
   x2: 200,
-  y2: 0,
+  y2: 150,
   color: '#8b5cf6',
   width: 2,
   arrowhead: true,
@@ -259,5 +259,103 @@ describe('MCP whiteboard tools', () => {
     expect(res.status).toBe(200);
     expect(res.body.result?.isError).toBe(true);
     expect(res.body.result?.content?.[0]?.text).toContain('No write access');
+  });
+
+  it('WB-10: patch adds, updates and deletes elements granularly', async () => {
+    const cookie = await register('wb-patch@test.dev');
+    const projectId = await createProject(cookie);
+    const key = await createKey(cookie);
+
+    const created = await toolText(key, 'create_whiteboard', {
+      projectId,
+      name: 'Patch me',
+      elements: [STICKY, TEXT_EL],
+    });
+    const boardId = (JSON.parse(created) as { id: string }).id;
+    const before = await fetchState(cookie, projectId);
+    const stickyId = before.whiteboards[0]!.elements.find((e) => e.kind === 'sticky')!.id;
+    const textId = before.whiteboards[0]!.elements.find((e) => e.kind === 'text')!.id;
+
+    const patched = await toolText(key, 'patch_whiteboard', {
+      projectId,
+      whiteboardId: boardId,
+      add: [{ ...TEXT_EL, text: 'appended' }],
+      update: [{ id: stickyId, patch: { text: 'renamed' } }],
+      delete: [textId],
+    });
+    expect(JSON.parse(patched)).toMatchObject({ added: 1, updated: 1, deleted: 1, elementCount: 2 });
+
+    const after = await fetchState(cookie, projectId);
+    const texts = after.whiteboards[0]!.elements.map((e) => (e as { text?: string }).text).sort();
+    expect(texts).toEqual(['appended', 'renamed']);
+  });
+
+  it('WB-10: patch cascades incident edges when a node is deleted', async () => {
+    const cookie = await register('wb-patch-edge@test.dev');
+    const projectId = await createProject(cookie);
+    const key = await createKey(cookie);
+
+    const created = await toolText(key, 'create_whiteboard', { projectId, name: 'Edges' });
+    const boardId = (JSON.parse(created) as { id: string }).id;
+    const nodeA = '11111111-1111-4111-8111-111111111111';
+    const nodeB = '22222222-2222-4222-8222-222222222222';
+    const edgeC = '33333333-3333-4333-8333-333333333333';
+    await toolText(key, 'patch_whiteboard', {
+      projectId,
+      whiteboardId: boardId,
+      add: [
+        { ...STICKY, id: nodeA, text: 'A' },
+        { ...STICKY, id: nodeB, x: 300, text: 'B' },
+        { ...EDGE_EL, id: edgeC, sourceNodeId: nodeA, targetNodeId: nodeB },
+      ],
+    });
+
+    const patched = await toolText(key, 'patch_whiteboard', {
+      projectId,
+      whiteboardId: boardId,
+      delete: [nodeA],
+    });
+    expect(JSON.parse(patched)).toMatchObject({ deleted: 2, elementCount: 1 });
+
+    const after = await fetchState(cookie, projectId);
+    expect(after.whiteboards[0]!.elements.map((e) => e.id)).toEqual([nodeB]);
+  });
+
+  it('WB-10: patch rejects unknown ids, kind changes and duplicates', async () => {
+    const cookie = await register('wb-patch-bad@test.dev');
+    const projectId = await createProject(cookie);
+    const key = await createKey(cookie);
+
+    const created = await toolText(key, 'create_whiteboard', {
+      projectId,
+      name: 'Strict',
+      elements: [STICKY],
+    });
+    const boardId = (JSON.parse(created) as { id: string }).id;
+    const stickyId = (await fetchState(cookie, projectId)).whiteboards[0]!.elements[0]!.id;
+
+    const unknown = await toolCall(key, 'patch_whiteboard', {
+      projectId,
+      whiteboardId: boardId,
+      update: [{ id: '00000000-0000-4000-8000-000000000000', patch: { text: 'x' } }],
+    });
+    expect(unknown.body.result?.isError).toBe(true);
+    expect(unknown.body.result?.content?.[0]?.text).toContain('Unknown element id');
+
+    const kindChange = await toolCall(key, 'patch_whiteboard', {
+      projectId,
+      whiteboardId: boardId,
+      update: [{ id: stickyId, patch: { kind: 'text' } }],
+    });
+    expect(kindChange.body.result?.isError).toBe(true);
+    expect(kindChange.body.result?.content?.[0]?.text).toContain('immutable');
+
+    const dup = await toolCall(key, 'patch_whiteboard', {
+      projectId,
+      whiteboardId: boardId,
+      add: [{ ...TEXT_EL, id: stickyId }],
+    });
+    expect(dup.body.result?.isError).toBe(true);
+    expect(dup.body.result?.content?.[0]?.text).toContain('Duplicate element id');
   });
 });
