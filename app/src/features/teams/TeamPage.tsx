@@ -39,7 +39,11 @@ export function TeamPage() {
   const [pendingInvites, setPendingInvites] = useState<TeamInvitation[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [leaveError, setLeaveError] = useState<string | null>(null);
+  const [renameError, setRenameError] = useState<string | null>(null);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
@@ -79,7 +83,11 @@ export function TeamPage() {
   useEffect(() => {
     setMembers(null);
     setPendingInvites(null);
-    setActionError(null);
+    setDeleteError(null);
+    setLeaveError(null);
+    setRenameError(null);
+    setRemoveError(null);
+    setWithdrawError(null);
     void loadMembers();
     void loadPendingInvites();
   }, [loadMembers, loadPendingInvites]);
@@ -95,7 +103,6 @@ export function TeamPage() {
     if (!roleTarget || role === roleTarget.role) return;
     setRoleBusy(true);
     setRoleError(null);
-    setActionError(null);
     setBusyId(roleTarget.id);
     try {
       await api.setMemberRole(teamId, roleTarget.id, role);
@@ -112,13 +119,13 @@ export function TeamPage() {
 
   async function onWithdrawInvite(inv: TeamInvitation) {
     setBusyId(inv.id);
-    setActionError(null);
+    setWithdrawError(null);
     try {
       await api.declineInvitation(teamId, inv.id);
       setPendingInvites((prev) => (prev ? prev.filter((i) => i.id !== inv.id) : prev));
       setWithdrawTarget(null);
     } catch (err) {
-      setActionError(getErrorMessage(err, t('teams.errors.withdrawInvite')));
+      setWithdrawError(getErrorMessage(err, t('teams.errors.withdrawInvite')));
     } finally {
       setBusyId(null);
     }
@@ -126,14 +133,14 @@ export function TeamPage() {
 
   async function onRemoveMember(member: TeamMember) {
     setBusyId(member.id);
-    setActionError(null);
+    setRemoveError(null);
     try {
       await api.removeMember(teamId, member.id);
       setMembers((prev) => (prev ? prev.filter((m) => m.id !== member.id) : prev));
       await refresh();
       setRemoveTarget(null);
     } catch (err) {
-      setActionError(getErrorMessage(err, t('teams.errors.removeMember')));
+      setRemoveError(getErrorMessage(err, t('teams.errors.removeMember')));
     } finally {
       setBusyId(null);
     }
@@ -142,25 +149,25 @@ export function TeamPage() {
   async function onLeave() {
     if (!team || !user) return;
     setDeleting(true);
-    setActionError(null);
+    setLeaveError(null);
     try {
       await api.removeMember(teamId, user.id);
       await refresh();
       navigate('/');
     } catch (err) {
-      setActionError(getErrorMessage(err, t('teams.errors.leave')));
+      setLeaveError(getErrorMessage(err, t('teams.errors.leave')));
       setDeleting(false);
     }
   }
 
   async function onDelete() {
     setDeleting(true);
-    setActionError(null);
+    setDeleteError(null);
     try {
       await deleteTeam(teamId);
       navigate('/');
     } catch (err) {
-      setActionError(getErrorMessage(err, t('teams.errors.deleteTeam')));
+      setDeleteError(getErrorMessage(err, t('teams.errors.deleteTeam')));
       setDeleting(false);
     }
   }
@@ -168,13 +175,13 @@ export function TeamPage() {
   async function onRename(e: React.FormEvent) {
     e.preventDefault();
     setRenaming(true);
-    setActionError(null);
+    setRenameError(null);
     try {
       const trimmedIcon = renameIcon.trim() || null;
       await renameTeam(teamId, renameValue.trim(), trimmedIcon);
       setRenameOpen(false);
     } catch (err) {
-      setActionError(getErrorMessage(err, t('teams.errors.rename')));
+      setRenameError(getErrorMessage(err, t('teams.errors.rename')));
     } finally {
       setRenaming(false);
     }
@@ -217,7 +224,7 @@ export function TeamPage() {
             </Button>
           )}
           {team && isAdmin && (
-            <Button variant="ghost" size="sm" onClick={() => setRenameOpen(true)}>
+            <Button variant="ghost" size="sm" onClick={() => { setRenameError(null); setRenameOpen(true); }}>
               {t('teams.rename')}
             </Button>
           )}
@@ -226,7 +233,7 @@ export function TeamPage() {
               variant="danger"
               size="sm"
               leftIcon={<Trash size={13} aria-hidden="true" />}
-              onClick={() => setDeleteOpen(true)}
+              onClick={() => { setDeleteError(null); setDeleteOpen(true); }}
             >
               {t('teams.deleteTeam')}
             </Button>
@@ -235,7 +242,6 @@ export function TeamPage() {
       </header>
 
       {loadError && <InlineError>{loadError}</InlineError>}
-      {actionError && <InlineError>{actionError}</InlineError>}
 
       <div className="sub-tabs" role="tablist" aria-label={t('teams.tabsAria')}>
         <button
@@ -338,7 +344,7 @@ export function TeamPage() {
                       size="sm"
                       className="text-danger"
                       loading={busyId === m.id}
-                      onClick={() => setRemoveTarget(m)}
+                      onClick={() => { setRemoveError(null); setRemoveTarget(m); }}
                     >
                       {t('teams.remove')}
                     </Button>
@@ -369,7 +375,7 @@ export function TeamPage() {
                   variant="ghost"
                   size="sm"
                   loading={busyId === inv.id}
-                  onClick={() => setWithdrawTarget(inv)}
+                  onClick={() => { setWithdrawError(null); setWithdrawTarget(inv); }}
                 >
                   {t('teams.withdraw')}
                 </Button>
@@ -381,7 +387,7 @@ export function TeamPage() {
 
       {team && team.role !== 'owner' && tab === 'members' && (
         <div className="page-footer">
-          <Button variant="ghost" size="sm" className="text-danger" onClick={() => setLeaveOpen(true)}>
+          <Button variant="ghost" size="sm" className="text-danger" onClick={() => { setLeaveError(null); setLeaveOpen(true); }}>
             {t('teams.leaveTeam')}
           </Button>
         </div>
@@ -405,7 +411,8 @@ export function TeamPage() {
         description={t('teams.removeModal.body', { name: removeTarget?.email ?? '', team: team?.name ?? '' })}
         confirmLabel={t('teams.removeModal.confirm')}
         busy={busyId === removeTarget?.id}
-        onClose={() => setRemoveTarget(null)}
+        error={removeError}
+        onClose={() => { setRemoveTarget(null); setRemoveError(null); }}
         onConfirm={() => removeTarget && void onRemoveMember(removeTarget)}
       />
 
@@ -415,7 +422,8 @@ export function TeamPage() {
         description={t('teams.withdrawModal.body', { email: withdrawTarget?.email ?? '' })}
         confirmLabel={t('teams.withdraw')}
         busy={busyId === withdrawTarget?.id}
-        onClose={() => setWithdrawTarget(null)}
+        error={withdrawError}
+        onClose={() => { setWithdrawTarget(null); setWithdrawError(null); }}
         onConfirm={() => withdrawTarget && void onWithdrawInvite(withdrawTarget)}
       />
 
@@ -432,7 +440,7 @@ export function TeamPage() {
       <Modal
         open={renameOpen}
         title={t('teams.renameModal.title')}
-        onClose={() => setRenameOpen(false)}
+        onClose={() => { setRenameOpen(false); setRenameError(null); }}
         width="sm"
         footer={
           <>
@@ -451,6 +459,7 @@ export function TeamPage() {
           </>
         }
       >
+        {renameError && <InlineError>{renameError}</InlineError>}
         <form id="rename-team-form" className="form-stack" onSubmit={onRename} noValidate>
           <div className="form-row">
             <div style={{ flex: '0 0 96px' }}>
@@ -480,7 +489,7 @@ export function TeamPage() {
       <Modal
         open={deleteOpen}
         title={t('teams.deleteModal.title')}
-        onClose={() => setDeleteOpen(false)}
+        onClose={() => { setDeleteOpen(false); setDeleteError(null); }}
         width="sm"
         footer={
           <>
@@ -496,12 +505,13 @@ export function TeamPage() {
         <p className="modal-copy">
           {t('teams.deleteModal.body', { name: team?.name })}
         </p>
+        {deleteError && <InlineError>{deleteError}</InlineError>}
       </Modal>
 
       <Modal
         open={leaveOpen}
         title={t('teams.leaveModal.title')}
-        onClose={() => setLeaveOpen(false)}
+        onClose={() => { setLeaveOpen(false); setLeaveError(null); }}
         width="sm"
         footer={
           <>
@@ -517,6 +527,7 @@ export function TeamPage() {
         <p className="modal-copy">
           {t('teams.leaveModal.body', { name: team?.name })}
         </p>
+        {leaveError && <InlineError>{leaveError}</InlineError>}
       </Modal>
     </div>
   );

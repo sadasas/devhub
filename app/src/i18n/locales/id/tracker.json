@@ -41,7 +41,8 @@
     "doneProgress": "{{done}}/{{total}} selesai",
     "fullscreen": {
       "enter": "Layar penuh — F",
-      "exit": "Keluar layar penuh — F"
+      "exit": "Keluar layar penuh — F",
+      "canvasLabel": "Kanvas"
     },
     "taskCard": {
       "actualEstimate": "aktual / estimasi (jam)",
@@ -147,6 +148,13 @@
       "daySummary_other": "{{count}} task",
       "daySummaryDone_one": "{{count}} task · {{done}} selesai",
       "daySummaryDone_other": "{{count}} task · {{done}} selesai",
+      "monthPicker": {
+        "pickMonth": "Pilih bulan",
+        "dialogLabel": "Pilih bulan dan tahun",
+        "prevYear": "Tahun sebelumnya",
+        "nextYear": "Tahun berikutnya",
+        "thisMonth": "Bulan ini"
+      },
       "weekday": {
         "mon": "Sen",
         "tue": "Sel",

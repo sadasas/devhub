@@ -1,5 +1,6 @@
 import { memo, useState } from 'react';
 import { CaretRight, CaretDown, FolderOpen, WarningCircle, Bug, Clock } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { formatDate, formatRelative } from '../../lib/utils';
 import type { Project } from '../../lib/types';
 import type { ProjectStats } from '../../lib/stats';
@@ -29,6 +30,7 @@ export const WelcomeProjectRow = memo(function WelcomeProjectRow({
   onOpen,
 }: WelcomeProjectRowProps) {
   const [expanded, setExpanded] = useState(false);
+  const { t } = useTranslation('account');
   const isArchived = archived ?? project.status === 'archived';
   const dotColor = isArchived ? 'var(--text-muted)' : getDotTone(stats ?? null);
   const hasTasks = !!(stats && stats.totalTasks > 0);
@@ -44,14 +46,14 @@ export const WelcomeProjectRow = memo(function WelcomeProjectRow({
         type="button"
         className={`welcome-row${isArchived ? ' welcome-row--archived' : ''}`}
         onClick={() => onOpen(project.id)}
-        aria-label={`Open ${project.name}${isArchived ? ', archived' : ''}, ${stats ? `${stats.doneTasks} of ${stats.totalTasks} done, ${stats.openIssues} open issues` : 'no stats yet'}`}
+        aria-label={stats ? t('dashboard.welcome.row.openAria', { name: project.name, archived: isArchived ? t('dashboard.welcome.row.archivedSuffix') : '', done: stats.doneTasks, total: stats.totalTasks, issues: stats.openIssues }) : t('dashboard.welcome.row.openAriaNoStats', { name: project.name, archived: isArchived ? t('dashboard.welcome.row.archivedSuffix') : '' })}
       >
         <span className="welcome-row-main">
           <span className="welcome-row-dot" style={{ background: dotColor }} aria-hidden="true" />
           <span className="welcome-row-title" title={project.name}>
             {project.name}
           </span>
-          {isArchived && <span className="badge welcome-row-badge-archived">Archived</span>}
+          {isArchived && <span className="badge welcome-row-badge-archived">{t('dashboard.welcome.row.archivedBadge')}</span>}
           <span className="welcome-row-team" title={project.teamName}>
             {project.teamName}
           </span>
@@ -59,7 +61,7 @@ export const WelcomeProjectRow = memo(function WelcomeProjectRow({
 
         <span className="welcome-row-meta">
           {hasTasks ? (
-            <span className="welcome-row-progress" title={`${stats!.doneTasks} of ${stats!.totalTasks} tasks done`}>
+            <span className="welcome-row-progress" title={t('dashboard.welcome.row.progressTitle', { done: stats!.doneTasks, total: stats!.totalTasks })}>
               <span className="welcome-row-track" aria-hidden="true">
                 <span className="welcome-row-fill" style={{ width: `${progressPct}%`, background: dotColor }} />
               </span>
@@ -74,21 +76,21 @@ export const WelcomeProjectRow = memo(function WelcomeProjectRow({
           )}
 
           {showIssues && (
-            <span className="welcome-row-issues tabular" title={`${stats!.openIssues} open issues`}>
+            <span className="welcome-row-issues tabular" title={t('dashboard.welcome.row.issuesTitle', { issues: stats!.openIssues })}>
               <Bug size={11} aria-hidden="true" />
               {stats!.openIssues}
             </span>
           )}
 
           {showOutdated && (
-            <span className="welcome-row-outdated tabular" title={`${stats!.outdatedDeps} outdated deps`}>
+            <span className="welcome-row-outdated tabular" title={t('dashboard.welcome.row.outdatedTitle', { count: stats!.outdatedDeps })}>
               <WarningCircle size={11} aria-hidden="true" />
               {stats!.outdatedDeps}
             </span>
           )}
 
           {showOverdue && (
-            <span className="welcome-row-overdue tabular" title={`${(stats as ProjectStats & { overdueTasks?: number }).overdueTasks} overdue tasks`}>
+            <span className="welcome-row-overdue tabular" title={t('dashboard.welcome.row.overdueTitle', { count: (stats as ProjectStats & { overdueTasks?: number }).overdueTasks })}>
               <Clock size={11} aria-hidden="true" />
               {(stats as ProjectStats & { overdueTasks?: number }).overdueTasks}
             </span>
@@ -114,8 +116,8 @@ export const WelcomeProjectRow = memo(function WelcomeProjectRow({
             aria-hidden="true"
             title={
               hasTasks
-                ? `${stats!.doneTasks}/${stats!.totalTasks} done${stats!.overdueTasks ? ` · ${stats!.overdueTasks} overdue` : ''}`
-                : 'No tasks yet'
+                ? `${t('dashboard.welcome.row.sparkTitle', { done: stats!.doneTasks, total: stats!.totalTasks })}${stats!.overdueTasks ? t('dashboard.welcome.row.sparkOverdue', { count: stats!.overdueTasks }) : ''}`
+                : t('dashboard.welcome.row.sparkEmpty')
             }
           >
             {hasTasks
@@ -137,7 +139,7 @@ export const WelcomeProjectRow = memo(function WelcomeProjectRow({
           type="button"
           className="welcome-row-expand-btn"
           aria-expanded={expanded}
-          aria-label={expanded ? 'Collapse details' : 'Expand details'}
+          aria-label={expanded ? t('dashboard.welcome.row.collapse') : t('dashboard.welcome.row.expand')}
           onClick={(e) => {
             e.stopPropagation();
             setExpanded((v) => !v);
@@ -149,7 +151,7 @@ export const WelcomeProjectRow = memo(function WelcomeProjectRow({
             aria-hidden="true"
             style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 120ms var(--ease-out)' }}
           />
-          {expanded ? 'Less' : 'More'}
+          {expanded ? t('dashboard.welcome.row.less') : t('dashboard.welcome.row.more')}
         </button>
       )}
 
@@ -158,12 +160,12 @@ export const WelcomeProjectRow = memo(function WelcomeProjectRow({
           {project.description?.trim() ? (
             <p className="welcome-row-desc">{project.description}</p>
           ) : (
-            <p className="welcome-row-desc welcome-row-desc-empty">No description — add context to remember why this project exists.</p>
+            <p className="welcome-row-desc welcome-row-desc-empty">{t('dashboard.welcome.row.noDesc')}</p>
           )}
           {stats?.nextMilestone && (
             <p className="welcome-row-next">
-              Next: <strong>{stats.nextMilestone.name}</strong>
-              {stats.nextMilestone.targetDate ? ` · ${formatDate(stats.nextMilestone.targetDate)}` : ''} · {stats.totalTasks - stats.doneTasks} tasks left
+              {t('dashboard.welcome.row.nextPrefix')} <strong>{stats.nextMilestone.name}</strong>
+              {stats.nextMilestone.targetDate ? t('dashboard.welcome.row.nextDate', { date: formatDate(stats.nextMilestone.targetDate) }) : ''}{t('dashboard.welcome.row.nextLeft', { count: stats.totalTasks - stats.doneTasks })}
             </p>
           )}
         </div>

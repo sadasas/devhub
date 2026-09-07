@@ -23,7 +23,6 @@
     "profile": "Profil",
     "signedIn": "Sudah masuk",
     "signOut": "Keluar",
-    "replayTour": "Ulangi tur",
     "help": "Bantuan"
   },
   "theme": {
@@ -58,7 +57,6 @@
     "newApiEndpoint": "Endpoint API baru",
     "newWhiteboard": "Whiteboard baru",
     "toggleTeamChat": "Toggle team chat",
-    "replayTour": "Ulangi tur",
     "searching": "Mencari…",
     "noMatches": "Tidak ada hasil untuk “{{query}}”",
     "hintNavigate": "navigasi",

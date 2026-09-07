@@ -140,3 +140,37 @@ describe('BoardPage only my tasks filter', () => {
     expect(document.querySelectorAll('[data-testid="task-card"]').length).toBe(2);
   });
 });
+
+describe('BoardPage calendar toolbar filters', () => {
+  it('shows Only my tasks + Hide completed next to fullscreen in calendar view', async () => {
+    renderBoard('/?view=calendar');
+    const hideBox = await screen.findByRole('checkbox', { name: 'Hide completed' });
+    const actions = hideBox.closest('.board-toolbar-actions')!;
+    expect(actions).toBeTruthy();
+    const mineBox = screen.getByRole('checkbox', { name: 'Only my tasks' });
+    expect(mineBox.closest('.board-toolbar-actions')).toBe(actions);
+    const fsBtn = screen.getByRole('button', { name: /Fullscreen/ });
+    expect(fsBtn.closest('.board-toolbar-actions')).toBe(actions);
+    expect(fsBtn.textContent).toContain('Canvas');
+    // Order: mine, hide, fullscreen.
+    expect(mineBox.compareDocumentPosition(hideBox) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(hideBox.compareDocumentPosition(fsBtn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Calendar's own toolbar no longer renders the filters.
+    expect(document.querySelector('.due-cal-toolbar .due-cal-hide')).toBeNull();
+  });
+
+  it('hides completed chips when Hide completed is toggled', async () => {
+    mockState.tasks = [
+      makeTask('55555555-5555-4555-8555-555555555555', 'Done chip', 'u1', 'done'),
+      makeTask('66666666-6666-4666-8666-666666666666', 'Open chip', 'u1', 'todo'),
+    ];
+    mockState.tasks[0]!.dueDate = '2026-09-08';
+    mockState.tasks[1]!.dueDate = '2026-09-08';
+    renderBoard('/?view=calendar');
+    await screen.findByText('Open chip');
+    expect(screen.getByText('Done chip')).toBeTruthy();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Hide completed' }));
+    expect(screen.queryByText('Done chip')).toBeNull();
+    expect(screen.getByText('Open chip')).toBeTruthy();
+  });
+});

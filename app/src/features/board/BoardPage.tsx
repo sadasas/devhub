@@ -106,6 +106,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const [overKey, setOverKey] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [newTaskAt, setNewTaskAt] = useState<NewTaskTarget | null>(null);
+  const [calHideCompleted, setCalHideCompleted] = useState(false);
   const [doneBlockedMsg, setDoneBlockedMsg] = useState<string | null>(null);
   const [members, setMembers] = useState<Record<string, { email: string; displayName?: string }>>({});
   const doneBlockedTimer = useRef<number | undefined>(undefined);
@@ -464,16 +465,41 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
               )}
             </>
           )}
+          {view === 'calendar' && (
+            <>
+              {userId && (
+                <label
+                  className="toolbar-check"
+                  title={mineOnly ? t('board.showAllTasks') : t('board.showOnlyMine')}
+                >
+                  <input
+                    type="checkbox"
+                    checked={mineOnly}
+                    onChange={(e) => setMine(e.target.checked)}
+                  />
+                  {t('board.onlyMyTasks')}
+                </label>
+              )}
+              <label className="toolbar-check">
+                <input
+                  type="checkbox"
+                  checked={calHideCompleted}
+                  onChange={(e) => setCalHideCompleted(e.target.checked)}
+                />
+                {t('board.cal.hideCompleted')}
+              </label>
+            </>
+          )}
           <Button
             variant="ghost"
             size="sm"
-            className="btn-icon"
             aria-pressed={isFs}
             aria-label={isFs ? t('board.fullscreen.exit', { defaultValue: 'Exit fullscreen — F' }) : t('board.fullscreen.enter', { defaultValue: 'Fullscreen — F' })}
             title={isFs ? t('board.fullscreen.exit', { defaultValue: 'Exit fullscreen (F)' }) : t('board.fullscreen.enter', { defaultValue: 'Fullscreen (F)' })}
             onClick={toggleFs}
+            leftIcon={isFs ? <ArrowsInSimple size={15} aria-hidden="true" /> : <ArrowsOutSimple size={15} aria-hidden="true" />}
           >
-            {isFs ? <ArrowsInSimple size={15} aria-hidden="true" /> : <ArrowsOutSimple size={15} aria-hidden="true" />}
+            {t('board.fullscreen.canvasLabel')}
           </Button>
         </div>
       </div>
@@ -496,12 +522,10 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
         >
           <DueCalendar
             onOpenTask={openTask}
-            onQuickCreate={(dueDate) => setNewTaskAt({ dueDate })}
+            onQuickCreate={(dueDate) => setNewTaskAt({ startDate: dueDate, dueDate })}
             taskFilter={mineOnly && userId ? (t) => t.assigneeId === userId : undefined}
             onTouchDrop={handleTouchDrop}
-            mineOnly={mineOnly}
-            onToggleMine={userId ? setMine : undefined}
-            showMineFilter={!!userId}
+            hideCompleted={calHideCompleted}
           />
         </Suspense>
       ) : (

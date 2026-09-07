@@ -2,6 +2,7 @@ import { useId } from 'react';
 import { Trash, X } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { Button } from './Button';
+import { InlineError } from './InlineError';
 import { Modal } from './Modal';
 
 interface ConfirmDeleteDialogProps {
@@ -10,6 +11,7 @@ interface ConfirmDeleteDialogProps {
   description: string;
   confirmLabel?: string;
   busy?: boolean;
+  error?: string | null;
   onConfirm: () => void;
   onClose: () => void;
 }
@@ -20,6 +22,7 @@ export function ConfirmDeleteDialog({
   description,
   confirmLabel,
   busy = false,
+  error,
   onConfirm,
   onClose,
 }: ConfirmDeleteDialogProps) {
@@ -50,6 +53,7 @@ export function ConfirmDeleteDialog({
       }
     >
       <p id={descId} className="modal-copy">{description}</p>
+      {error && <InlineError>{error}</InlineError>}
     </Modal>
   );
 }

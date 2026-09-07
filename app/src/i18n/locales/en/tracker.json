@@ -41,7 +41,8 @@
     "doneProgress": "{{done}}/{{total}} done",
     "fullscreen": {
       "enter": "Fullscreen — F",
-      "exit": "Exit fullscreen — F"
+      "exit": "Exit fullscreen — F",
+      "canvasLabel": "Canvas"
     },
     "taskCard": {
       "actualEstimate": "actual / estimate (hours)",
@@ -147,6 +148,13 @@
       "daySummary_other": "{{count}} tasks",
       "daySummaryDone_one": "{{count}} task · {{done}} done",
       "daySummaryDone_other": "{{count}} tasks · {{done}} done",
+      "monthPicker": {
+        "pickMonth": "Pick month",
+        "dialogLabel": "Pick month and year",
+        "prevYear": "Previous year",
+        "nextYear": "Next year",
+        "thisMonth": "This month"
+      },
       "weekday": {
         "mon": "Mon",
         "tue": "Tue",

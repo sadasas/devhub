@@ -15,13 +15,13 @@ export function WelcomeHeader({ displayName, projectCount, openIssuesTotal, outd
   const subtitle =
     projectCount === 0
       ? t('dashboard.subtitle')
-      : `${projectCount} ${projectCount === 1 ? 'project' : 'projects'} · ${openIssuesTotal} ${openIssuesTotal === 1 ? 'open issue' : 'open issues'}${outdatedTotal > 0 ? ` · ${outdatedTotal} outdated` : ''}`;
+      : `${t('dashboard.welcome.projects', { count: projectCount })} · ${t('dashboard.welcome.openIssues', { count: openIssuesTotal })}${outdatedTotal > 0 ? t('dashboard.welcome.outdatedSuffix', { count: outdatedTotal }) : ''}`;
 
   return (
     <header className="page-header welcome-header">
       <div className="welcome-header-copy">
         <h1 className="page-title">
-          {t('dashboard.welcomeTitle', { defaultValue: `Welcome back, ${displayName}`, name: displayName })}
+          {t('dashboard.welcome.title', { name: displayName })}
         </h1>
         <p className="page-subtitle">{subtitle}</p>
       </div>

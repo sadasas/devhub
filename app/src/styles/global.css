@@ -1431,6 +1431,69 @@ a:hover {
   filter: brightness(1.08);
 }
 
+/* Month picker (DueCalendar toolbar): 3x4 month grid in a dp-panel shell */
+.mp-panel {
+  gap: 0;
+}
+.mp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  overflow-y: auto;
+  min-height: 0;
+}
+.mp-month {
+  appearance: none;
+  border: 1px solid transparent;
+  background: none;
+  border-radius: 8px;
+  padding: 10px 4px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  min-height: 44px;
+}
+.mp-month:hover {
+  background: var(--bg-inset);
+}
+.mp-month.this {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.mp-month.selected,
+.mp-month.selected:hover {
+  background: var(--accent);
+  color: var(--text-on-accent);
+  font-weight: 600;
+}
+.mp-month:focus-visible {
+  outline: 2px solid var(--status-info);
+  outline-offset: -2px;
+}
+
+/* DueCalendar month label as picker trigger (visual unchanged) */
+.due-cal-month-trigger {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 2px 4px;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+}
+.due-cal-month-trigger:hover {
+  background: var(--bg-inset);
+}
+.due-cal-month-trigger:focus-visible {
+  outline: 2px solid var(--status-info);
+  outline-offset: 1px;
+}
+
 .prop-view {
   appearance: none;
   background: none;
@@ -13968,14 +14031,7 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
   font-size: 13px;
 }
 
-.due-cal-hide {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--text-muted);
-  cursor: pointer;
-}
+
 
 .due-cal-grid {
   display: grid;
@@ -14007,7 +14063,8 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 
 .due-cal-cell {
   min-width: 0;
-  min-height: 140px;
+  min-height: 0;
+  height: 100%;
   overflow: hidden;
   padding: 6px;
   background: var(--bg-overlay);
@@ -14043,8 +14100,12 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 }
 
 .due-cal-today {
+  position: relative;
+  z-index: 1;
   background: var(--accent-dim);
-  box-shadow: inset 0 0 0 2px var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: 6px;
 }
 
 .due-cal-daynum {
@@ -18255,9 +18316,4 @@ html[data-theme='light'] .tour-overlay-dim {
   .tour-pill {
     transition: none !important;
   }
-}
-
-/* Replay entry in sidebar Help group */
-.sidebar-replay-tour {
-  width: 100%;
 }

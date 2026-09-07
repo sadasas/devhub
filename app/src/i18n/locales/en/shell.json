@@ -23,7 +23,6 @@
     "profile": "Profile",
     "signedIn": "Signed in",
     "signOut": "Sign out",
-    "replayTour": "Replay tour",
     "help": "Help"
   },
   "theme": {
@@ -58,7 +57,6 @@
     "newApiEndpoint": "New API endpoint",
     "newWhiteboard": "New whiteboard",
     "toggleTeamChat": "Toggle team chat",
-    "replayTour": "Replay tour",
     "searching": "Searching…",
     "noMatches": "No matches for “{{query}}”",
     "hintNavigate": "navigate",

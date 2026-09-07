@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDaysIso, inMonth, isoOf, mondayOf, monthMatrix, monthName, parseIso, weekDays } from './calendar';
+import { addDaysIso, inMonth, isoOf, mondayOf, monthMatrix, monthName, parseIso, visibleMonthMatrix, weekDays } from './calendar';
 
 describe('calendar helpers', () => {
   it('round-trips parse and format', () => {
@@ -25,6 +25,17 @@ describe('calendar helpers', () => {
     expect(weeks[5]![6]).toBe('2026-09-06');
     expect(inMonth('2026-08-01', 2026, 7)).toBe(true);
     expect(inMonth('2026-07-27', 2026, 7)).toBe(false);
+  });
+
+  it('trims trailing all-outside weeks (strict visible matrix)', () => {
+    // September 2026 fits in 5 rows (last week Oct 5-11 all outside).
+    const sep = visibleMonthMatrix(2026, 8);
+    expect(sep).toHaveLength(5);
+    expect(sep.flat()).toHaveLength(35);
+    expect(sep[0]![0]).toBe('2026-08-31');
+    expect(sep[4]![6]).toBe('2026-10-04');
+    // August 2026 genuinely needs 6 rows.
+    expect(visibleMonthMatrix(2026, 7)).toHaveLength(6);
   });
 
   it('returns Monday-start weeks for a week view', () => {

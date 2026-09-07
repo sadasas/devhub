@@ -155,24 +155,30 @@ export function DashboardSkeleton() {
           <Skeleton style={{ height: 72, width: '100%', borderRadius: 12 }} />
         </div>
         <Skeleton style={{ height: 44, marginBottom: 8, borderRadius: 8 }} />
-        <div className="welcome-skeleton" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-          {[0, 1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="welcome-row-skeleton"
-              style={{ height: SKELETON_SIZES.welcomeRow.height, display: 'flex', alignItems: 'center', gap: 10, padding: '0 10px', borderBottom: '1px solid var(--border-hairline)' }}
-            >
-              <Skeleton style={{ width: 6, height: 6, borderRadius: 999, flexShrink: 0 }} />
-              <Skeleton style={{ width: 140, height: 14, flexShrink: 0 }} />
-              <Skeleton style={{ width: 80, height: 11, flexShrink: 0, opacity: 0.85 }} />
-              <Skeleton style={{ width: 40, height: 4, borderRadius: 999, flexShrink: 0 }} />
-              <Skeleton style={{ width: 24, height: 16, borderRadius: 999, flexShrink: 0, opacity: 0.7 }} />
-              <Skeleton style={{ width: 56, height: 11, flexShrink: 0, opacity: 0.7 }} />
-              <span style={{ display: 'flex', gap: 3, marginLeft: 'auto', flexShrink: 0 }}>
-                {Array.from({ length: 7 }).map((_, j) => (
-                  <Skeleton key={j} style={{ width: SKELETON_SIZES.heatCell.size, height: 6 + (j % 3) * 2, borderRadius: 2 }} />
-                ))}
-              </span>
+        <div className="welcome-list">
+          {Array.from({ length: SKELETON_SIZES.welcomeRow.count }).map((_, i) => (
+            <div key={i} className="welcome-row-wrap">
+              <div className="welcome-row">
+                <span className="welcome-row-main">
+                  <span className="welcome-row-dot" style={{ background: 'var(--text-muted)', opacity: 0.35 }} />
+                  <Skeleton style={{ flex: '1 1 auto', maxWidth: 220, minWidth: 80, height: 13 }} />
+                  <Skeleton style={{ width: 84, height: 18, borderRadius: 999, flexShrink: 0 }} />
+                </span>
+                <span className="welcome-row-meta">
+                  <span className="welcome-row-progress">
+                    <Skeleton style={{ width: 56, height: 4, borderRadius: 6, flexShrink: 0 }} />
+                    <Skeleton style={{ width: 30, height: 11, flexShrink: 0 }} />
+                  </span>
+                  <Skeleton style={{ width: 24, height: 16, borderRadius: 999, flexShrink: 0, opacity: 0.7 }} />
+                  <Skeleton style={{ width: 56, height: 11, flexShrink: 0, opacity: 0.7 }} />
+                  <span className="welcome-spark">
+                    {Array.from({ length: 7 }).map((_, j) => (
+                      <Skeleton key={j} style={{ width: 3, height: 6 + (j % 3) * 2, borderRadius: 2 }} />
+                    ))}
+                  </span>
+                  <span className="welcome-row-chevron" style={{ width: 12, opacity: 0 }} />
+                </span>
+              </div>
             </div>
           ))}
         </div>

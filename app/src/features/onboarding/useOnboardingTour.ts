@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import {
-  TOUR_REPLAY_EVENT,
   TOUR_TOTAL,
-  clearReplayPending,
   clearTourStep,
   isTourFinished,
   isTourSkipped,
@@ -27,7 +25,6 @@ export interface OnboardingTour {
   goTo: (step: number) => void;
   skip: () => void;
   finish: () => void;
-  replay: () => void;
 }
 
 function getSnapshot(): number {
@@ -114,18 +111,5 @@ export function useOnboardingTour(): OnboardingTour {
     trackTourEvent('tour_finished', {});
   }, []);
 
-  const replay = useCallback(() => {
-    clearReplayPending();
-    trackTourEvent('tour_replayed', {});
-    start(0);
-  }, [start]);
-
-  // Global replay entry (Sidebar Help + command palette + docs).
-  useEffect(() => {
-    const onReplay = () => replay();
-    window.addEventListener(TOUR_REPLAY_EVENT, onReplay);
-    return () => window.removeEventListener(TOUR_REPLAY_EVENT, onReplay);
-  }, [replay]);
-
-  return { active, step, total: TOUR_TOTAL, skipped, finished, start, next, back, goTo, skip, finish, replay };
+  return { active, step, total: TOUR_TOTAL, skipped, finished, start, next, back, goTo, skip, finish };
 }

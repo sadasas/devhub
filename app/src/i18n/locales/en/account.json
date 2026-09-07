@@ -81,6 +81,139 @@
       "team": "Team",
       "teamEmptyHint": "You have no teams yet — create one from the sidebar, then return here to add a project.",
       "selectTeam": "Select team"
+    },
+    "welcome": {
+      "title": "Welcome back, {{name}}",
+      "projects_one": "{{count}} project",
+      "projects_other": "{{count}} projects",
+      "openIssues_one": "{{count}} open issue",
+      "openIssues_other": "{{count}} open issues",
+      "outdatedSuffix": " · {{count}} outdated",
+      "hero": {
+        "summaryAria": "Workspace summary",
+        "totalLabel": "Total Projects",
+        "needsAttention": "{{count}} need attention",
+        "allClear": "all clear",
+        "issuesLabel": "Open Issues",
+        "noOpenIssues": "no open issues",
+        "open": "{{count}} open",
+        "overdueLabel": "Overdue Tasks",
+        "overdue": "{{count}} overdue",
+        "nothingOverdue": "nothing overdue",
+        "healthLabel": "Stack Health",
+        "upToDate": "all up to date",
+        "outdated": "{{count}} outdated"
+      },
+      "search": {
+        "filterAria": "Filter projects",
+        "placeholder": "Search projects…",
+        "aria": "Search projects",
+        "clearAria": "Clear search",
+        "sortLabel": "Sort",
+        "sortAria": "Sort projects",
+        "sortUpdated": "Updated",
+        "sortName": "Name",
+        "sortIssues": "Issues",
+        "sortProgress": "Progress",
+        "teamLabel": "Team",
+        "teamAria": "Filter by team",
+        "allTeams": "All teams",
+        "count_one": "{{count}} project",
+        "count_other": "{{count}} projects"
+      },
+      "activity": {
+        "aria": "Tasks activity",
+        "title": "Tasks Activity — last 7 days",
+        "barsAria": "Tasks created vs done last 7 days",
+        "itemAria": "{{date}}: {{created}} created, {{done}} done",
+        "created": "{{count}} created",
+        "done": "{{count}} done",
+        "createdKey": "C",
+        "doneKey": "D",
+        "zero": "0",
+        "empty": "No activity yet",
+        "noData": "No data"
+      },
+      "queue": {
+        "aria": "Next actions",
+        "title": "Next up — what to do today",
+        "sub": "assignee: you · due ≤ today",
+        "subOverdue": "assignee: you · due ≤ today · {{count}} overdue",
+        "loadingAria": "Loading next actions",
+        "loadingText": "Loading next actions…",
+        "openTaskAria": "Open task {{title}} in {{project}}, due {{due}}",
+        "openProjectAria": "Open {{name}}",
+        "openTitle": "Open project",
+        "continueWork": "Continue work",
+        "open": "Open →",
+        "empty": "Nothing due today — all clear."
+      },
+      "filter": {
+        "aria": "Filter by status",
+        "active": "Active ({{count}})",
+        "all": "All ({{count}})",
+        "archived": "Archived ({{count}})"
+      },
+      "invites_one": "1 team invitation waiting for your decision",
+      "invites_other": "{{count}} team invitations waiting for your decision",
+      "invites": {
+        "cta": "View invitations →"
+      },
+      "group": {
+        "project_one": "{{count}} project",
+        "project_other": "{{count}} projects",
+        "open": "{{count}} open",
+        "allProjects": "All projects",
+        "unnamedTeam": "Team"
+      },
+      "row": {
+        "openAria": "Open {{name}}{{archived}}, {{done}} of {{total}} done, {{issues}} open issues",
+        "openAriaNoStats": "Open {{name}}{{archived}}, no stats yet",
+        "archivedSuffix": ", archived",
+        "archivedBadge": "Archived",
+        "progressTitle": "{{done}} of {{total}} tasks done",
+        "issuesTitle": "{{issues}} open issues",
+        "outdatedTitle": "{{count}} outdated deps",
+        "overdueTitle": "{{count}} overdue tasks",
+        "sparkTitle": "{{done}}/{{total}} done",
+        "sparkOverdue": " · {{count}} overdue",
+        "sparkEmpty": "No tasks yet",
+        "expand": "Expand details",
+        "collapse": "Collapse details",
+        "more": "More",
+        "less": "Less",
+        "noDesc": "No description — add context to remember why this project exists.",
+        "nextPrefix": "Next:",
+        "nextDate": " · {{date}}",
+        "nextLeft": " · {{count}} tasks left"
+      },
+      "empty": {
+        "noTeamTitle": "Create a team first",
+        "noTeamDesc": "DevHub organizes projects inside teams — create a team from the sidebar, then come back to add your first project.",
+        "createTeam": "Create team",
+        "noProjectTitle": "No projects yet",
+        "noProjectIn": "No projects in {{name}}",
+        "noProjectDesc": "Create your first project to track tasks, issues, your tech stack and more.",
+        "createProject": "Create project",
+        "import": "Import",
+        "noResultTitle": "No results for “{{query}}”",
+        "noResultDesc": "Try a different keyword or clear the filter to see all projects.",
+        "clearFilter": "Clear filter",
+        "archivedTitle": "No archived projects",
+        "archivedDesc": "Archived projects are read-only and hidden from Active view."
+      },
+      "footer": {
+        "quickActions": "Quick actions",
+        "createTeam": "Create team",
+        "browseTemplates": "Browse templates",
+        "press": "Press",
+        "toJump": "to jump"
+      },
+      "status": {
+        "loading": "Loading projects",
+        "loadingText": "Loading projects…",
+        "retry": "Retry"
+      }
     }
   },
   "profile": {

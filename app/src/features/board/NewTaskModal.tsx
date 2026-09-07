@@ -30,7 +30,7 @@ interface NewTaskModalProps {
   onClose: () => void;
 }
 
-export function NewTaskModal({ open, status, milestoneId, dueDate: _dueDate, startDate: _startDate, onClose }: NewTaskModalProps) {
+export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, onClose }: NewTaskModalProps) {
   const { state, dispatch, teamId } = useProject();
   const { t } = useTranslation(['tracker', 'project']);
   usePresenceStatus(t('board.newTaskModal.presenceCreating'), open);
@@ -59,12 +59,12 @@ export function NewTaskModal({ open, status, milestoneId, dueDate: _dueDate, sta
       setTitle('');
       setExpanded(false);
       setMilestone(milestoneId ?? null);
-      // Tanggal selalu mulai kosong (tampil label) — prefill konteks papan dimatikan.
-      setDueDateInput('');
-      setStartDateInput('');
+      // Prefill dari konteks papan (mis. tanggal yang diklik di calendar).
+      setDueDateInput(dueDate?.slice(0, 10) ?? '');
+      setStartDateInput(startDate?.slice(0, 10) ?? '');
       setAssignee(null);
     }
-  }, [open, milestoneId]);
+  }, [open, milestoneId, dueDate, startDate]);
 
   useEffect(() => {
     if (open && teamId) {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useDeferredValue, useTransition } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import type { ProjectStats } from '../../lib/stats';
 import { useProjects } from '../../state/projects-context';
@@ -16,9 +17,10 @@ import { NewProjectModal } from './NewProjectModal';
 import { CreateTeamModal } from '../teams/CreateTeamModal';
 import { OnboardingWizard } from '../onboarding/OnboardingWizard';
 import { useOnboardingTour } from '../onboarding/useOnboardingTour';
-import { consumeReplayPending, hasTourStep, readTourStep } from '../onboarding/tour-events';
+import { hasTourStep, readTourStep } from '../onboarding/tour-events';
 import { fastForwardStep } from '../onboarding/tour-dom';
 import { WelcomeHeader } from './WelcomeHeader';
+import { WelcomeListSkeleton } from './WelcomeListSkeleton';
 import { WelcomeHeroMicro } from './WelcomeHeroMicro';
 import { WelcomeCommandBar, type SortOption } from './WelcomeCommandBar';
 import { WelcomeProjectRow } from './WelcomeProjectRow';
@@ -26,6 +28,7 @@ import { WelcomeGroup, WelcomeProjectList } from './WelcomeProjectList';
 import { WelcomeEmptyNoTeam, WelcomeEmptyNoProject, WelcomeEmptyNoResult } from './WelcomeEmptyStrip';
 
 export function DashboardPage() {
+  const { t } = useTranslation('account');
   const { projects, loading, error, refresh } = useProjects();
   const { teams, invitations } = useTeams();
   const { user } = useAuth();
@@ -235,7 +238,7 @@ export function DashboardPage() {
   const isSingleTeam = (teams?.length ?? 0) <= 1;
   const groups = useMemo(() => {
     if (isSingleTeam || teamFilter !== 'all') {
-      return [{ teamId: 'all', teamName: teamFilter !== 'all' ? (teams?.find((tm) => tm.id === teamFilter)?.name ?? 'Team') : 'All projects', projects: filteredSorted }];
+      return [{ teamId: 'all', teamName: teamFilter !== 'all' ? (teams?.find((tm) => tm.id === teamFilter)?.name ?? t('dashboard.welcome.group.unnamedTeam')) : t('dashboard.welcome.group.allProjects'), projects: filteredSorted }];
     }
     const map = new Map<string, { teamName: string; projects: typeof filteredSorted }>();
     for (const p of filteredSorted) {
@@ -246,7 +249,7 @@ export function DashboardPage() {
     return Array.from(map.entries())
       .map(([teamId, v]) => ({ teamId, teamName: v.teamName, projects: v.projects }))
       .toSorted((a, b) => a.teamName.localeCompare(b.teamName));
-  }, [filteredSorted, isSingleTeam, teamFilter, teams]);
+  }, [filteredSorted, isSingleTeam, teamFilter, teams, t]);
 
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(() => new Set());
   // auto-expand logic: single team -> expanded, multi -> all expanded default, search narrows -> only teams with match stay expanded
@@ -375,12 +378,6 @@ export function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tourCanAutoStart, loading]);
 
-  // Cross-route replay (Sidebar Help / palette): consume pending flag on mount.
-  useEffect(() => {
-    if (consumeReplayPending()) tour.replay();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const handleTourNext = () => {
     // From the Create-project spotlight, continue inside the workspace
     // when a project already exists (auto ?tab=board&tour=1).
@@ -438,12 +435,10 @@ export function DashboardPage() {
             <EnvelopeSimple size={16} weight="duotone" />
           </span>
           <span className="welcome-invites-banner-text">
-            {invitations.length === 1
-              ? '1 undangan tim menunggu keputusan Anda'
-              : `${invitations.length} undangan tim menunggu keputusan Anda`}
+            {t('dashboard.welcome.invites', { count: invitations.length })}
           </span>
           <Link to="/invites" className="welcome-invites-banner-cta">
-            Lihat undangan →
+            {t('dashboard.welcome.invites.cta')}
           </Link>
         </div>
       )}
@@ -465,12 +460,12 @@ export function DashboardPage() {
 
       {/* task activity — 7 day real from /stats/daily */}
       {projects && projects.length > 0 && (
-        <div className="task-activity" aria-label="Tasks activity">
+        <div className="task-activity" aria-label={t('dashboard.welcome.activity.aria')}>
           <div className="task-activity-head">
-            <h2 className="task-activity-title">Tasks Activity — last 7 days</h2>
+            <h2 className="task-activity-title">{t('dashboard.welcome.activity.title')}</h2>
             {dailyLoading && <span className="task-activity-loading" aria-hidden="true">…</span>}
           </div>
-          <div className="task-activity-bars" role="list" aria-label="Tasks created vs done last 7 days">
+          <div className="task-activity-bars" role="list" aria-label={t('dashboard.welcome.activity.barsAria')}>
             {(daily ?? []).map((d) => {
               const dateObj = new Date(d.date + 'T00:00:00.000Z');
               const day = dateObj.toLocaleDateString('en-US', { weekday: 'narrow', timeZone: 'UTC' });
@@ -490,36 +485,36 @@ export function DashboardPage() {
                   tone="dark"
                   title={fullDate}
                   description={
-                    <span className="task-activity-tip-rows">
-                      <span className="task-activity-tip-row">
-                        <span className="task-activity-tip-dot task-activity-tip-dot-created" aria-hidden="true" />
-                        {d.created} created
+                      <span className="task-activity-tip-rows">
+                        <span className="task-activity-tip-row">
+                          <span className="task-activity-tip-dot task-activity-tip-dot-created" aria-hidden="true" />
+                          {t('dashboard.welcome.activity.created', { count: d.created })}
+                        </span>
+                        <span className="task-activity-tip-row">
+                          <span className="task-activity-tip-dot task-activity-tip-dot-done" aria-hidden="true" />
+                          {t('dashboard.welcome.activity.done', { count: d.done })}
+                        </span>
                       </span>
-                      <span className="task-activity-tip-row">
-                        <span className="task-activity-tip-dot task-activity-tip-dot-done" aria-hidden="true" />
-                        {d.done} done
-                      </span>
-                    </span>
                   }
                 >
                   <div
                     className="task-activity-bar"
                     role="listitem"
                     tabIndex={0}
-                    aria-label={`${fullDate}: ${d.created} created, ${d.done} done`}
+                    aria-label={t('dashboard.welcome.activity.itemAria', { date: fullDate, created: d.created, done: d.done })}
                   >
                     <div className="task-activity-values" aria-hidden="true">
                       {isEmpty ? (
-                        <span className="task-activity-value-empty">0</span>
+                        <span className="task-activity-value-empty">{t('dashboard.welcome.activity.zero')}</span>
                       ) : (
                         <>
                           <span className="task-activity-value-wrap">
                             <span className="task-activity-value task-activity-value-created">{d.created}</span>
-                            <span className="task-activity-value-key">C</span>
+                            <span className="task-activity-value-key">{t('dashboard.welcome.activity.createdKey')}</span>
                           </span>
                           <span className="task-activity-value-wrap">
                             <span className="task-activity-value task-activity-value-done">{d.done}</span>
-                            <span className="task-activity-value-key">D</span>
+                            <span className="task-activity-value-key">{t('dashboard.welcome.activity.doneKey')}</span>
                           </span>
                         </>
                       )}
@@ -547,8 +542,8 @@ export function DashboardPage() {
                 </Tooltip>
               );
             })}
-            {daily && daily.length === 0 && <span className="task-activity-empty">No activity yet</span>}
-            {!daily && !dailyLoading && <span className="task-activity-empty">No data</span>}
+            {daily && daily.length === 0 && <span className="task-activity-empty">{t('dashboard.welcome.activity.empty')}</span>}
+            {!daily && !dailyLoading && <span className="task-activity-empty">{t('dashboard.welcome.activity.noData')}</span>}
           </div>
         </div>
       )}
@@ -567,7 +562,7 @@ export function DashboardPage() {
         teams={teams}
       />
       {projects && projects.length > 0 && (
-        <div className="archive-filter" role="tablist" aria-label="Filter by status">
+        <div className="archive-filter" role="tablist" aria-label={t('dashboard.welcome.filter.aria')}>
           {(['active', 'all', 'archived'] as const).map((v) => (
             <button
               key={v}
@@ -577,7 +572,7 @@ export function DashboardPage() {
               className={showMode === v ? 'archive-filter-btn archive-filter-btn-active' : 'archive-filter-btn'}
               onClick={() => commitStatus(v)}
             >
-              {v === 'active' ? `Active (${archiveCounts.active})` : v === 'all' ? `All (${archiveCounts.all})` : `Archived (${archiveCounts.archived})`}
+              {v === 'active' ? t('dashboard.welcome.filter.active', { count: archiveCounts.active }) : v === 'all' ? t('dashboard.welcome.filter.all', { count: archiveCounts.all }) : t('dashboard.welcome.filter.archived', { count: archiveCounts.archived })}
             </button>
           ))}
         </div>
@@ -589,29 +584,13 @@ export function DashboardPage() {
         <div className="welcome-error-wrap">
           <InlineError>{error}</InlineError>
           <Button variant="ghost" size="sm" onClick={() => refresh()} style={{ marginTop: 8 }}>
-            Retry
+            {t('dashboard.welcome.status.retry')}
           </Button>
         </div>
       ) : loading ? (
-        <div className="welcome-skeleton" role="status" aria-busy="true" aria-live="polite" aria-label="Loading projects">
-          <span className="sr-only">Loading projects…</span>
-          <div aria-hidden="true">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <div key={i} className="welcome-row-skeleton" style={{ height: 52, display: 'flex', alignItems: 'center', gap: 10, padding: '0 10px' }}>
-                <Skeleton style={{ width: 6, height: 6, borderRadius: 999, flexShrink: 0 }} />
-                <Skeleton style={{ width: 140, height: 14, flexShrink: 0 }} />
-                <Skeleton style={{ width: 80, height: 11, flexShrink: 0, opacity: 0.85 }} />
-                <Skeleton style={{ width: 40, height: 4, borderRadius: 999, flexShrink: 0 }} />
-                <Skeleton style={{ width: 24, height: 16, borderRadius: 999, flexShrink: 0, opacity: 0.7 }} />
-                <Skeleton style={{ width: 56, height: 11, flexShrink: 0, opacity: 0.7 }} />
-                <span style={{ display: 'flex', gap: 3, marginLeft: 'auto', flexShrink: 0 }}>
-                  {Array.from({ length: 7 }).map((_, j) => (
-                    <Skeleton key={j} style={{ width: 4, height: 6 + (j % 3) * 2, borderRadius: 2 }} />
-                  ))}
-                </span>
-              </div>
-            ))}
-          </div>
+        <div className="welcome-skeleton" role="status" aria-busy="true" aria-live="polite" aria-label={t('dashboard.welcome.status.loading')}>
+          <span className="sr-only">{t('dashboard.welcome.status.loadingText')}</span>
+          <WelcomeListSkeleton />
         </div>
       ) : teamsEmpty ? (
         <WelcomeEmptyNoTeam onCreateTeam={() => setTeamCreateOpen(true)} />
@@ -620,47 +599,47 @@ export function DashboardPage() {
       ) : filteredEmpty && showMode === 'archived' && !deferredQuery.trim() ? (
         <EmptyState
           icon={<Archive size={22} weight="duotone" aria-hidden="true" />}
-          title="No archived projects"
-          description="Archived projects are read-only and hidden from Active view."
+          title={t('dashboard.welcome.empty.archivedTitle')}
+          description={t('dashboard.welcome.empty.archivedDesc')}
         />
       ) : filteredEmpty ? (
         <WelcomeEmptyNoResult query={deferredQuery.trim()} onClear={() => commitQuery('')} />
       ) : (
         <div className="welcome-content">
           {/* next up — 3 tasks due <= today assigned to you */}
-          <div className="welcome-queue" role="list" aria-label="Next actions">
+          <div className="welcome-queue" role="list" aria-label={t('dashboard.welcome.queue.aria')}>
             <div className="welcome-queue-head">
-              <h2 style={{ font: 'inherit', margin: 0 }}>Next up — what to do today</h2>
-              <span className="welcome-queue-sub">assignee: you · due ≤ today{nextUp && nextUp.length > 0 ? ` · ${nextUp.length} overdue` : ''}</span>
+              <h2 style={{ font: 'inherit', margin: 0 }}>{t('dashboard.welcome.queue.title')}</h2>
+              <span className="welcome-queue-sub">{nextUp && nextUp.length > 0 ? t('dashboard.welcome.queue.subOverdue', { count: nextUp.length }) : t('dashboard.welcome.queue.sub')}</span>
             </div>
             {nextUpLoading ? (
-              <div className="welcome-queue-loading" role="status" aria-busy="true" aria-label="Loading next actions">
-                <span className="sr-only">Loading next actions…</span>
+              <div className="welcome-queue-loading" role="status" aria-busy="true" aria-label={t('dashboard.welcome.queue.loadingAria')}>
+                <span className="sr-only">{t('dashboard.welcome.queue.loadingText')}</span>
                 <div aria-hidden="true">
                   <Skeleton style={{ width: '100%', height: 56, borderRadius: 12 }} />
                 </div>
               </div>
             ) : nextUp && nextUp.length > 0 ? (
-              nextUp.map((t, idx) => (
+              nextUp.map((item, idx) => (
                 <button
-                  key={t.taskId}
+                  key={item.taskId}
                   type="button"
                   className="welcome-queue-card"
                   role="listitem"
-                  onClick={() => handleOpenTask(t.projectId, t.taskId)}
-                  aria-label={`Open task ${t.title} in ${t.projectName}, due ${t.dueDate}`}
-                  title={`${t.projectName} · ${t.title}`}
+                  onClick={() => handleOpenTask(item.projectId, item.taskId)}
+                  aria-label={t('dashboard.welcome.queue.openTaskAria', { title: item.title, project: item.projectName, due: item.dueDate.slice(0, 10) })}
+                  title={`${item.projectName} · ${item.title}`}
                 >
                   <span className="welcome-queue-num">{idx + 1}</span>
                   <span className="welcome-queue-main">
-                    <span className="welcome-queue-title" title={t.title}>
-                      {t.title}
+                    <span className="welcome-queue-title" title={item.title}>
+                      {item.title}
                     </span>
                     <span className="welcome-queue-project">
-                      {t.projectName} · {t.priority} · due {t.dueDate.slice(0, 10)}
+                      {item.projectName} · {item.priority} · due {item.dueDate.slice(0, 10)}
                     </span>
                   </span>
-                  <span className="welcome-queue-cta">Open →</span>
+                  <span className="welcome-queue-cta">{t('dashboard.welcome.queue.open')}</span>
                 </button>
               ))
             ) : (
@@ -671,19 +650,19 @@ export function DashboardPage() {
                   className="welcome-queue-card"
                   role="listitem"
                   onClick={() => handleOpen(p.id)}
-                  aria-label={`Open ${p.name}`}
+                  aria-label={t('dashboard.welcome.queue.openProjectAria', { name: p.name })}
                 >
                   <span className="welcome-queue-num">1</span>
                   <span className="welcome-queue-main">
-                    <span className="welcome-queue-title">Open project</span>
-                    <span className="welcome-queue-project">{p.name} · Continue work</span>
+                    <span className="welcome-queue-title">{t('dashboard.welcome.queue.openTitle')}</span>
+                    <span className="welcome-queue-project">{p.name} · {t('dashboard.welcome.queue.continueWork')}</span>
                   </span>
-                  <span className="welcome-queue-cta">Open →</span>
+                  <span className="welcome-queue-cta">{t('dashboard.welcome.queue.open')}</span>
                 </button>
               ))
             )}
             {!nextUpLoading && nextUp && nextUp.length === 0 && filteredSorted.length === 0 && (
-              <p className="welcome-queue-empty">Nothing due today — all clear.</p>
+              <p className="welcome-queue-empty">{t('dashboard.welcome.queue.empty')}</p>
             )}
           </div>
           {isSingleTeam || teamFilter !== 'all' ? (
@@ -721,18 +700,18 @@ export function DashboardPage() {
             ))
           )}
 
-          <footer className="welcome-footer" aria-label="Quick actions">
-            <span className="welcome-footer-muted">Quick actions</span>
+          <footer className="welcome-footer" aria-label={t('dashboard.welcome.footer.quickActions')}>
+            <span className="welcome-footer-muted">{t('dashboard.welcome.footer.quickActions')}</span>
             <span className="welcome-footer-actions">
               <Button variant="ghost" size="sm" onClick={() => setTeamCreateOpen(true)}>
-                Create team
+                {t('dashboard.welcome.footer.createTeam')}
               </Button>
               <Button variant="ghost" size="sm" onClick={() => navigate('/templates')}>
-                Browse templates
+                {t('dashboard.welcome.footer.browseTemplates')}
               </Button>
               <span className="welcome-footer-hint" aria-hidden="true">
-                Press <kbd className="welcome-kbd welcome-kbd-sm">⌘</kbd>
-                <kbd className="welcome-kbd welcome-kbd-sm">K</kbd> to jump
+                {t('dashboard.welcome.footer.press')} <kbd className="welcome-kbd welcome-kbd-sm">⌘</kbd>
+                <kbd className="welcome-kbd welcome-kbd-sm">K</kbd> {t('dashboard.welcome.footer.toJump')}
               </span>
             </span>
           </footer>

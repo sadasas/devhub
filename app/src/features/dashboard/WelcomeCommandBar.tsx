@@ -1,4 +1,5 @@
 import { MagnifyingGlass, CaretDown, X } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import type { Team } from '../../lib/types';
 
 type SortOption = 'updated' | 'name' | 'issues' | 'progress';
@@ -24,21 +25,22 @@ export function WelcomeCommandBar({
   count,
   teams,
 }: WelcomeCommandBarProps) {
+  const { t } = useTranslation('account');
   return (
-    <div className="welcome-command-bar" role="search" aria-label="Filter projects">
+    <div className="welcome-command-bar" role="search" aria-label={t('dashboard.welcome.search.filterAria')}>
       <div className="welcome-search">
         <MagnifyingGlass size={14} aria-hidden="true" className="welcome-search-icon" />
         <input
           type="text"
           className="welcome-search-input"
-          placeholder="Search projects…"
-          aria-label="Search projects"
+          placeholder={t('dashboard.welcome.search.placeholder')}
+          aria-label={t('dashboard.welcome.search.aria')}
           value={query}
           maxLength={200}
           onChange={(e) => onQuery(e.target.value)}
         />
         {query && (
-          <button type="button" className="welcome-search-clear" aria-label="Clear search" onClick={() => onQuery('')}>
+          <button type="button" className="welcome-search-clear" aria-label={t('dashboard.welcome.search.clearAria')} onClick={() => onQuery('')}>
             <X size={12} weight="bold" aria-hidden="true" />
           </button>
         )}
@@ -50,33 +52,33 @@ export function WelcomeCommandBar({
 
       <div className="welcome-command-actions">
         <label className="welcome-command-label">
-          <span className="welcome-command-label-text">Sort</span>
+          <span className="welcome-command-label-text">{t('dashboard.welcome.search.sortLabel')}</span>
           <span className="welcome-select-wrap">
             <select
               className="welcome-select"
               value={sort}
               onChange={(e) => onSort(e.target.value as SortOption)}
-              aria-label="Sort projects"
+              aria-label={t('dashboard.welcome.search.sortAria')}
             >
-              <option value="updated">Updated</option>
-              <option value="name">Name</option>
-              <option value="issues">Issues</option>
-              <option value="progress">Progress</option>
+              <option value="updated">{t('dashboard.welcome.search.sortUpdated')}</option>
+              <option value="name">{t('dashboard.welcome.search.sortName')}</option>
+              <option value="issues">{t('dashboard.welcome.search.sortIssues')}</option>
+              <option value="progress">{t('dashboard.welcome.search.sortProgress')}</option>
             </select>
             <CaretDown size={10} aria-hidden="true" className="welcome-select-caret" />
           </span>
         </label>
 
         <label className="welcome-command-label">
-          <span className="welcome-command-label-text">Team</span>
+          <span className="welcome-command-label-text">{t('dashboard.welcome.search.teamLabel')}</span>
           <span className="welcome-select-wrap">
             <select
               className="welcome-select"
               value={teamFilter}
               onChange={(e) => onTeamFilter(e.target.value as string | 'all')}
-              aria-label="Filter by team"
+              aria-label={t('dashboard.welcome.search.teamAria')}
             >
-              <option value="all">All teams</option>
+              <option value="all">{t('dashboard.welcome.search.allTeams')}</option>
               {(teams ?? []).map((tm) => (
                 <option key={tm.id} value={tm.id}>
                   {tm.name}
@@ -88,7 +90,7 @@ export function WelcomeCommandBar({
         </label>
 
         <span className="welcome-count tabular" aria-live="polite" aria-atomic="true">
-          {count} {count === 1 ? 'project' : 'projects'}
+          {t('dashboard.welcome.search.count', { count })}
         </span>
       </div>
     </div>

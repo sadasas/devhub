@@ -97,6 +97,13 @@ describe('DueCalendar', () => {
     expect(document.querySelectorAll('.due-cal-cell').length).toBe(42);
   });
 
+  it('renders 5 rows (35 cells) for September 2026', () => {
+    renderCalendar();
+    fireEvent.click(screen.getByRole('button', { name: 'Next month' }));
+    expect(screen.getByText('September 2026')).toBeTruthy();
+    expect(document.querySelectorAll('.due-cal-cell').length).toBe(35);
+  });
+
   it('shows task chips on their due date', () => {
     renderCalendar();
     const chip = screen.getByText('Ship calendar');
@@ -168,10 +175,13 @@ describe('DueCalendar', () => {
     expect(document.querySelectorAll('.due-cal-cell').length).toBe(42);
   });
 
-  it('hides completed tasks when the toggle is on', () => {
+  it('hides completed tasks when hideCompleted is set (controlled from the board toolbar)', () => {
     mockState.tasks[0]!.status = 'done';
-    renderCalendar();
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Hide completed' }));
+    const { rerender } = render(
+      <DueCalendar onOpenTask={vi.fn()} onQuickCreate={vi.fn()} hideCompleted={false} />,
+    );
+    expect(screen.getByText('Ship calendar')).toBeTruthy();
+    rerender(<DueCalendar onOpenTask={vi.fn()} onQuickCreate={vi.fn()} hideCompleted />);
     expect(screen.queryByText('Ship calendar')).toBeNull();
   });
 
@@ -249,6 +259,21 @@ describe('DueCalendar', () => {
     );
     expect(screen.getByText('Ship calendar')).toBeTruthy();
     expect(screen.getByText('No date task')).toBeTruthy();
+  });
+
+  it('opens the month picker from the month label and jumps to the picked month', () => {
+    renderCalendar();
+    fireEvent.click(screen.getByRole('button', { name: /Pick month|Pilih bulan/i }));
+    expect(screen.getByRole('dialog', { name: /month and year|bulan dan tahun/i })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Sep 2026/i }));
+    expect(screen.getByText('September 2026')).toBeTruthy();
+  });
+
+  it('marks the today cell with due-cal-today (outline ring, not inset shadow)', () => {
+    renderCalendar();
+    const todayCell = document.querySelector('[data-date="2026-08-15"]')!;
+    expect(todayCell.classList.contains('due-cal-today')).toBe(true);
+    expect(todayCell.classList.contains('due-cal-cell')).toBe(true);
   });
 
   it('renders multi-day task spanning 25-28 as 4 cells wide', () => {

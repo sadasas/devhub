@@ -4,7 +4,7 @@ export const SKELETON_SIZES = {
   dataRow: { height: 56, count: 3 },
   dataRowCompact: { height: 48, count: 2 },
   taskCard: { height: 88, minHeight: 84, maxHeight: 110 },
-  welcomeRow: { height: 52 },
+  welcomeRow: { height: 52, count: 5 },
   pricingCard: { height: 160 },
   avatar: { sm: 20, md: 28, lg: 56, team: 40 },
   badge: { w: 56, h: 18, smallW: 48, smallH: 18 },

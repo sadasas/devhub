@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CaretLeft, CaretRight, Check, Circle, Clock, Eye, CheckCircle } from
 '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
-import { addDaysIso, inMonth, isoOf, monthMatrix, monthName, parseIso, weekDays } from '../../lib/calendar';
+import { addDaysIso, inMonth, isoOf, monthName, parseIso, visibleMonthMatrix, weekDays } from '../../lib/calendar';
 import { dueBucket, dueLabel, dueTone, taskDueChip, todayIso } from '../../lib/due-dates';
 import { getAppLocale } from '../../i18n';
 
@@ -13,15 +13,15 @@ import { useTouchDrag } from '../../hooks/useTouchDrag';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
+import { MonthPicker } from '../../components/MonthPicker';
 
 interface DueCalendarProps {
   onOpenTask: (taskId: string) => void;
   onQuickCreate: (dueDate: string) => void;
   taskFilter?: (t: Task) => boolean;
   onTouchDrop?: (taskId: string, dropKey: string | null) => void;
-  mineOnly?: boolean;
-  onToggleMine?: (v: boolean) => void;
-  showMineFilter?: boolean;
+  /** Controlled from the board toolbar; defaults to false when omitted. */
+  hideCompleted?: boolean;
 }
 
 const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -147,11 +147,13 @@ function CalTaskChip({ task, date, segmentStart, span, onOpenTask, onTouchDrop, 
 const MAX_VISIBLE = 3;
 const MAX_VISIBLE_MOBILE = 2;
 
-export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop, mineOnly, onToggleMine, showMineFilter }: DueCalendarProps) {
+export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop, hideCompleted = false }: DueCalendarProps) {
   const { state, canEdit, dispatch } = useProject();
   const [anchor, setAnchor] = useState(todayIso());
+  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
+  const monthLabelRef = useRef<HTMLButtonElement>(null);
   const [weekMode, setWeekMode] = useState(false);
-  const [hideCompleted, setHideCompleted] = useState(false);
+
   const [focused, setFocused] = useState<string | null>(null);
   // C6/H3-mobile: 2 chips per cell on ≤640px, 3 on desktop. Coarse pointers
   // get an explicit + button instead of whole-cell tap-to-create.
@@ -176,7 +178,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
   const month = anchorDate.getUTCMonth();
   const today = todayIso();
 
-  const weeks = useMemo(() => monthMatrix(year, month), [year, month]);
+  const weeks = useMemo(() => visibleMonthMatrix(year, month), [year, month]);
   const flatCells = useMemo(() => (weekMode ? weekDays(anchor) : weeks.flat()), [weekMode, anchor, weeks]);
   const cells = flatCells;
 
@@ -204,7 +206,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
   const spanningSegments = useMemo(() => {
     const segments: Array<{ task: Task; row: number; colStart: number; span: number; startDate: string; endDate: string }> = [];
     const visibleStart = weekMode ? weekDays(anchor)[0]! : weeks[0]![0]!;
-    const visibleEnd = weekMode ? weekDays(anchor)[6]! : weeks[5]![6]!;
+    const visibleEnd = weekMode ? weekDays(anchor)[6]! : weeks[weeks.length - 1]![6]!;
     for (const task of state?.tasks ?? []) {
       if (!task.dueDate) continue;
       if (hideCompleted && task.status === 'done') continue;
@@ -306,7 +308,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
     const emptyH = isMobileCal ? 72 : 112;
     const collapsedH = isMobileCal ? 28 + MAX_VISIBLE_MOBILE * 26 + 28 : 140;
     const heights: number[] = [];
-    const numRows = weekMode ? 1 : 6;
+    const numRows = weekMode ? 1 : weeks.length;
     for (let r = 0; r < numRows; r++) {
       const group = rowGroups.get(r);
       if (!group) {
@@ -322,7 +324,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
       heights.push(needed);
     }
     return heights;
-  }, [rowGroups, expandedRows, expandedCells, weekMode, dateToPos, isMobileCal]);
+  }, [rowGroups, expandedRows, expandedCells, weekMode, weeks.length, dateToPos, isMobileCal]);
 
   const nav = (dir: number) => {
     if (weekMode) {
@@ -472,7 +474,35 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
           <button type="button" className="btn btn-ghost btn-sm btn-icon" aria-label={t('board.cal.prevMonth')} onClick={() => nav(-1)}>
             <CaretLeft size={14} aria-hidden="true" />
           </button>
-          <span className="due-cal-month-name">{monthName(year, month)}</span>
+          <button
+            ref={monthLabelRef}
+            type="button"
+            className="due-cal-month-name due-cal-month-trigger"
+            aria-haspopup="dialog"
+            aria-expanded={monthPickerOpen}
+            aria-label={t('board.cal.monthPicker.pickMonth')}
+            title={t('board.cal.monthPicker.pickMonth')}
+            onClick={() => setMonthPickerOpen((v) => !v)}
+          >
+            {monthName(year, month)}
+          </button>
+          {monthPickerOpen && (
+            <MonthPicker
+              id="due-cal-month-picker"
+              anchorEl={monthLabelRef.current}
+              viewYear={year}
+              viewMonth={month}
+              onPick={(y, m) => {
+                setAnchor(isoOf(new Date(Date.UTC(y, m, 1))));
+                setMonthPickerOpen(false);
+                monthLabelRef.current?.focus();
+              }}
+              onClose={() => {
+                setMonthPickerOpen(false);
+                monthLabelRef.current?.focus();
+              }}
+            />
+          )}
           <button type="button" className="btn btn-ghost btn-sm btn-icon" aria-label={t('board.cal.nextMonth')} onClick={() => nav(1)}>
             <CaretRight size={14} aria-hidden="true" />
           </button>
@@ -500,26 +530,6 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
             {t('board.cal.week')}
           </button>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          {showMineFilter && onToggleMine && (
-            <label className="due-cal-hide">
-              <input
-                type="checkbox"
-                checked={!!mineOnly}
-                onChange={(e) => onToggleMine(e.target.checked)}
-              />
-              {t('board.onlyMyTasks')}
-            </label>
-          )}
-          <label className="due-cal-hide">
-            <input
-              type="checkbox"
-              checked={hideCompleted}
-              onChange={(e) => setHideCompleted(e.target.checked)}
-            />
-            {t('board.cal.hideCompleted')}
-          </label>
-        </div>
       </div>
 
       <div className="due-cal-body">
@@ -542,7 +552,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
               {cells.map(cell)}
             </div>
           ) : (
-            [0, 1, 2, 3, 4, 5].map((r) => (
+            weeks.map((_, r) => (
               <div key={r} role="row" style={{ display: 'contents' }}>
                 {cells.slice(r * 7, r * 7 + 7).map((date) => cell(date))}
               </div>

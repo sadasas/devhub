@@ -1,17 +1,19 @@
 import { Plus, UploadSimple, MagnifyingGlass, Users } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/Button';
 
 export function WelcomeEmptyNoTeam({ onCreateTeam }: { onCreateTeam: () => void }) {
+  const { t } = useTranslation('account');
   return (
     <div className="welcome-empty-strip" role="status" aria-live="polite">
       <span className="welcome-empty-icon" aria-hidden="true">
         <Users size={20} weight="duotone" />
       </span>
-      <h3 className="welcome-empty-title">Create a team first</h3>
-      <p className="welcome-empty-desc">DevHub organizes projects inside teams — create a team from the sidebar, then come back to add your first project.</p>
+      <h3 className="welcome-empty-title">{t('dashboard.welcome.empty.noTeamTitle')}</h3>
+      <p className="welcome-empty-desc">{t('dashboard.welcome.empty.noTeamDesc')}</p>
       <div className="welcome-empty-actions">
         <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={onCreateTeam} data-tour-id="create-team">
-          Create team
+          {t('dashboard.welcome.empty.createTeam')}
         </Button>
       </div>
     </div>
@@ -27,20 +29,21 @@ export function WelcomeEmptyNoProject({
   onCreate: () => void;
   onImport?: () => void;
 }) {
+  const { t } = useTranslation('account');
   return (
     <div className="welcome-empty-strip" role="status">
       <span className="welcome-empty-icon" aria-hidden="true">
         <Plus size={20} weight="duotone" />
       </span>
-      <h3 className="welcome-empty-title">{teamName ? `No projects in ${teamName}` : 'No projects yet'}</h3>
-      <p className="welcome-empty-desc">Mulai technical memory pertama. Create a project to track tasks, issues, stack and more.</p>
+      <h3 className="welcome-empty-title">{teamName ? t('dashboard.welcome.empty.noProjectIn', { name: teamName }) : t('dashboard.welcome.empty.noProjectTitle')}</h3>
+      <p className="welcome-empty-desc">{t('dashboard.welcome.empty.noProjectDesc')}</p>
       <div className="welcome-empty-actions">
         <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={onCreate} data-tour-id="create-project">
-          Create project
+          {t('dashboard.welcome.empty.createProject')}
         </Button>
         {onImport && (
           <Button variant="ghost" leftIcon={<UploadSimple size={14} aria-hidden="true" />} onClick={onImport}>
-            Import
+            {t('dashboard.welcome.empty.import')}
           </Button>
         )}
       </div>
@@ -49,16 +52,17 @@ export function WelcomeEmptyNoProject({
 }
 
 export function WelcomeEmptyNoResult({ query, onClear }: { query: string; onClear: () => void }) {
+  const { t } = useTranslation('account');
   return (
     <div className="welcome-empty-strip welcome-empty-strip-muted" role="status">
       <span className="welcome-empty-icon" aria-hidden="true">
         <MagnifyingGlass size={20} aria-hidden="true" />
       </span>
-      <h3 className="welcome-empty-title">No results for “{query}”</h3>
-      <p className="welcome-empty-desc">Try a different keyword or clear the filter to see all projects.</p>
+      <h3 className="welcome-empty-title">{t('dashboard.welcome.empty.noResultTitle', { query })}</h3>
+      <p className="welcome-empty-desc">{t('dashboard.welcome.empty.noResultDesc')}</p>
       <div className="welcome-empty-actions">
         <Button variant="ghost" onClick={onClear}>
-          Clear filter
+          {t('dashboard.welcome.empty.clearFilter')}
         </Button>
       </div>
     </div>

@@ -119,49 +119,11 @@ export type TourEvent =
   | 'tour_started'
   | 'tour_step'
   | 'tour_skipped'
-  | 'tour_finished'
-  | 'tour_replayed';
+  | 'tour_finished';
 /**
  * Tracking stub — no-op by design (no backend yet).
  * Kept as console.debug so future analytics can hook in one place.
  */
 export function trackTourEvent(event: TourEvent, data?: Record<string, unknown>): void {
   console.debug('[tour]', event, data ?? {});
-}
-
-export const TOUR_REPLAY_EVENT = 'devhub:replay-tour';
-const TOUR_REPLAY_PENDING_KEY = 'devhub:tour:replay-pending';
-
-/** Sidebar / palette / Help entry-point: ask the mounted tour hook to restart. */
-export function requestTourReplay(): void {
-  // Pending flag covers the navigate('/')-then-mount race (lazy Dashboard).
-  try {
-    localStorage.setItem(TOUR_REPLAY_PENDING_KEY, '1');
-  } catch {
-    /* ignore */
-  }
-  try {
-    window.dispatchEvent(new CustomEvent(TOUR_REPLAY_EVENT));
-  } catch {
-    /* ignore */
-  }
-}
-
-/** Consumed once by the Dashboard tour hook after a cross-route replay. */
-export function consumeReplayPending(): boolean {
-  try {
-    if (localStorage.getItem(TOUR_REPLAY_PENDING_KEY) !== '1') return false;
-    localStorage.removeItem(TOUR_REPLAY_PENDING_KEY);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export function clearReplayPending(): void {
-  try {
-    localStorage.removeItem(TOUR_REPLAY_PENDING_KEY);
-  } catch {
-    /* ignore */
-  }
 }

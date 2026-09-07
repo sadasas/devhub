@@ -38,6 +38,15 @@ export function monthMatrix(year: number, month: number): string[][] {
   return weeks;
 }
 
+/**
+ * Month matrix trimmed to the weeks that contain at least one day of the
+ * month (strict: trailing all-outside weeks are dropped). Returns 4-6 weeks
+ * depending on the month instead of a fixed 6.
+ */
+export function visibleMonthMatrix(year: number, month: number): string[][] {
+  return monthMatrix(year, month).filter((week) => week.some((d) => inMonth(d, year, month)));
+}
+
 export function weekDays(anchorIso: string): string[] {
   const start = mondayOf(anchorIso);
   return Array.from({ length: 7 }, (_, i) => addDaysIso(start, i));

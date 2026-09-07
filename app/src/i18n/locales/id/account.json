@@ -81,6 +81,139 @@
       "team": "Tim",
       "teamEmptyHint": "Anda belum punya tim — buat tim dari sidebar, lalu kembali ke sini untuk menambahkan proyek.",
       "selectTeam": "Pilih tim"
+    },
+    "welcome": {
+      "title": "Selamat datang kembali, {{name}}",
+      "projects_one": "{{count}} proyek",
+      "projects_other": "{{count}} proyek",
+      "openIssues_one": "{{count}} issue terbuka",
+      "openIssues_other": "{{count}} issue terbuka",
+      "outdatedSuffix": " · {{count}} usang",
+      "hero": {
+        "summaryAria": "Ringkasan workspace",
+        "totalLabel": "Total Proyek",
+        "needsAttention": "{{count}} perlu perhatian",
+        "allClear": "semua beres",
+        "issuesLabel": "Issue Terbuka",
+        "noOpenIssues": "tidak ada issue terbuka",
+        "open": "{{count}} terbuka",
+        "overdueLabel": "Task Terlambat",
+        "overdue": "{{count}} terlambat",
+        "nothingOverdue": "tidak ada yang terlambat",
+        "healthLabel": "Kesehatan Stack",
+        "upToDate": "semua mutakhir",
+        "outdated": "{{count}} usang"
+      },
+      "search": {
+        "filterAria": "Filter proyek",
+        "placeholder": "Cari proyek…",
+        "aria": "Cari proyek",
+        "clearAria": "Hapus pencarian",
+        "sortLabel": "Urut",
+        "sortAria": "Urutkan proyek",
+        "sortUpdated": "Diperbarui",
+        "sortName": "Nama",
+        "sortIssues": "Issue",
+        "sortProgress": "Progres",
+        "teamLabel": "Tim",
+        "teamAria": "Filter berdasarkan tim",
+        "allTeams": "Semua tim",
+        "count_one": "{{count}} proyek",
+        "count_other": "{{count}} proyek"
+      },
+      "activity": {
+        "aria": "Aktivitas task",
+        "title": "Aktivitas Task — 7 hari terakhir",
+        "barsAria": "Task dibuat vs selesai 7 hari terakhir",
+        "itemAria": "{{date}}: {{created}} dibuat, {{done}} selesai",
+        "created": "{{count}} dibuat",
+        "done": "{{count}} selesai",
+        "createdKey": "B",
+        "doneKey": "S",
+        "zero": "0",
+        "empty": "Belum ada aktivitas",
+        "noData": "Tidak ada data"
+      },
+      "queue": {
+        "aria": "Aksi berikutnya",
+        "title": "Berikutnya — kerjakan hari ini",
+        "sub": "assignee: kamu · jatuh tempo ≤ hari ini",
+        "subOverdue": "assignee: kamu · jatuh tempo ≤ hari ini · {{count}} terlambat",
+        "loadingAria": "Memuat aksi berikutnya",
+        "loadingText": "Memuat aksi berikutnya…",
+        "openTaskAria": "Buka task {{title}} di {{project}}, jatuh tempo {{due}}",
+        "openProjectAria": "Buka {{name}}",
+        "openTitle": "Buka proyek",
+        "continueWork": "Lanjutkan kerja",
+        "open": "Buka →",
+        "empty": "Tidak ada jatuh tempo hari ini — semua beres."
+      },
+      "filter": {
+        "aria": "Filter berdasarkan status",
+        "active": "Aktif ({{count}})",
+        "all": "Semua ({{count}})",
+        "archived": "Diarsipkan ({{count}})"
+      },
+      "invites_one": "1 undangan tim menunggu keputusan Anda",
+      "invites_other": "{{count}} undangan tim menunggu keputusan Anda",
+      "invites": {
+        "cta": "Lihat undangan →"
+      },
+      "group": {
+        "project_one": "{{count}} proyek",
+        "project_other": "{{count}} proyek",
+        "open": "{{count}} terbuka",
+        "allProjects": "Semua proyek",
+        "unnamedTeam": "Tim"
+      },
+      "row": {
+        "openAria": "Buka {{name}}{{archived}}, {{done}} dari {{total}} selesai, {{issues}} issue terbuka",
+        "openAriaNoStats": "Buka {{name}}{{archived}}, belum ada statistik",
+        "archivedSuffix": ", diarsipkan",
+        "archivedBadge": "Diarsipkan",
+        "progressTitle": "{{done}} dari {{total}} task selesai",
+        "issuesTitle": "{{issues}} issue terbuka",
+        "outdatedTitle": "{{count}} dependensi usang",
+        "overdueTitle": "{{count}} task terlambat",
+        "sparkTitle": "{{done}}/{{total}} selesai",
+        "sparkOverdue": " · {{count}} terlambat",
+        "sparkEmpty": "Belum ada task",
+        "expand": "Bentangkan detail",
+        "collapse": "Ciutkan detail",
+        "more": "Selengkapnya",
+        "less": "Ringkas",
+        "noDesc": "Tidak ada deskripsi — tambahkan konteks agar ingat kenapa proyek ini ada.",
+        "nextPrefix": "Berikutnya:",
+        "nextDate": " · {{date}}",
+        "nextLeft": " · tersisa {{count}} task"
+      },
+      "empty": {
+        "noTeamTitle": "Buat tim terlebih dahulu",
+        "noTeamDesc": "DevHub mengorganisasi proyek di dalam tim — buat tim dari sidebar, lalu kembali ke sini untuk menambahkan proyek pertama Anda.",
+        "createTeam": "Buat tim",
+        "noProjectTitle": "Belum ada proyek",
+        "noProjectIn": "Belum ada proyek di {{name}}",
+        "noProjectDesc": "Buat proyek pertama Anda untuk melacak task, issue, tech stack, dan lainnya.",
+        "createProject": "Buat proyek",
+        "import": "Impor",
+        "noResultTitle": "Tidak ada hasil untuk “{{query}}”",
+        "noResultDesc": "Coba kata kunci lain atau hapus filter untuk melihat semua proyek.",
+        "clearFilter": "Hapus filter",
+        "archivedTitle": "Tidak ada proyek arsip",
+        "archivedDesc": "Proyek arsip bersifat baca-saja dan disembunyikan dari tampilan Aktif."
+      },
+      "footer": {
+        "quickActions": "Aksi cepat",
+        "createTeam": "Buat tim",
+        "browseTemplates": "Jelajahi template",
+        "press": "Tekan",
+        "toJump": "untuk lompat"
+      },
+      "status": {
+        "loading": "Memuat proyek",
+        "loadingText": "Memuat proyek…",
+        "retry": "Coba lagi"
+      }
     }
   },
   "profile": {

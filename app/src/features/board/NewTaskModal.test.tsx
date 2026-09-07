@@ -180,6 +180,20 @@ describe('NewTaskModal milestone picker', () => {
     );
   });
 
+  it('prefills start and due dates passed from the calendar click', () => {
+    renderModal({ startDate: '2026-09-08', dueDate: '2026-09-08' });
+    // Pill no longer shows the empty "Date" label.
+    expect(screen.queryByRole('button', { name: 'Date' })).toBeNull();
+    fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'Calendar task' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add task' }));
+    expect(mocks.dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'task/add',
+        task: expect.objectContaining({ title: 'Calendar task', startDate: '2026-09-08', dueDate: '2026-09-08' }),
+      }),
+    );
+  });
+
   it('keeps no milestone when the None option is chosen', () => {
     renderModal({ milestoneId: MILESTONE_A });
     fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'Ship calendar' } });
