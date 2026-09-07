@@ -130,7 +130,7 @@ describe('TeamPage', () => {
     expect(await screen.findByText('Team A')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Leave team' }));
     const dialog = screen.getByRole('dialog', { name: 'Leave team' });
-    fireEvent.click(screen.getByRole('button', { name: 'Leave', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'Leave' }));
     expect(await screen.findByText('Leave failed')).toBeTruthy();
     expect(dialog.textContent).toContain('Leave failed');
   });
