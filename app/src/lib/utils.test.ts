@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sanitizeDecimalInput, sanitizeIntegerInput, isDigitKey } from './utils';
+import { sanitizeDecimalInput, sanitizeIntegerInput, isDigitKey, parseLabels } from './utils';
 
 describe('sanitizeDecimalInput', () => {
   it('keeps digits and decimal points', () => {
@@ -50,5 +50,17 @@ describe('isDigitKey', () => {
     expect(isDigitKey('-')).toBe(false);
     expect(isDigitKey('+')).toBe(false);
     expect(isDigitKey('a')).toBe(false);
+  });
+});
+
+describe('parseLabels', () => {
+  it('dedupes repeated labels to avoid duplicate React keys', () => {
+    expect(parseLabels('d, d')).toEqual(['d']);
+    expect(parseLabels('a, b, a, c, b')).toEqual(['a', 'b', 'c']);
+  });
+
+  it('trims, drops empties and caps at 20', () => {
+    expect(parseLabels('  a ,, b , ')).toEqual(['a', 'b']);
+    expect(parseLabels(Array.from({ length: 25 }, (_, i) => `l${i}`).join(','))).toHaveLength(20);
   });
 });

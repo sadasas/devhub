@@ -510,10 +510,10 @@ const ElementView = memo(function ElementView({
                   let lx = x + pad;
                   return (
                     <g key={`l${ri}`}>
-                      {row.labels.map((label) => {
+                      {row.labels.map((label, li) => {
                         const cw = label.length * CHIP_CHAR_W + 12;
                         const chip = (
-                          <g key={label}>
+                          <g key={`${label}-${li}`}>
                             <rect x={lx} y={y + row.y - 9} width={cw} height={13} rx={3} fill="rgba(110,168,254,0.18)" />
                             <text x={lx + 6} y={y + row.y} fontSize={9} fill="#8a8a93">
                               {label}

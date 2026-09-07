@@ -132,11 +132,12 @@ export function deriveActualHours(params: {
 }
 
 export function parseLabels(input: string): string[] {
-  return input
+  const parsed = input
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)
     .slice(0, 20);
+  return [...new Set(parsed)];
 }
 
 /** Buang semua karakter non-angka/desimal dari input estimate (input teks). */

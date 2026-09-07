@@ -190,7 +190,7 @@ export function ProfileStats() {
   return (
     <section className="profile-heat" aria-label={t('profile.activity.sectionAria')}>
       <div className="profile-heat-head">
-        <p className="profile-heat-total">
+        <div className="profile-heat-total">
           {loading ? (
             <Skeleton className="skeleton-row" style={{ width: 220, height: 18 }} />
           ) : error ? (
@@ -201,7 +201,7 @@ export function ProfileStats() {
               {t('profile.activity.totalSuffix')}
             </>
           )}
-        </p>
+        </div>
       </div>
 
       {error ? null : loading ? (

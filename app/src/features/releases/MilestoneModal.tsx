@@ -8,6 +8,7 @@ import type { UpdatePatch } from "../../state/project-context";
 import { useProject } from "../../state/project-context";
 import { usePresenceStatus } from "../../hooks/usePresenceStatus";
 import { Button } from "../../components/Button";
+import { InlineError } from "../../components/InlineError";
 import { DatePicker } from "../../components/DatePicker";
 import { DetailShell } from "../../components/DetailShell";
 import { MarkdownField } from "../../components/MarkdownField";
@@ -106,6 +107,8 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
 
   if (!state || !milestone) return null;
 
+  const nameEmpty = milestone.name.trim() === '';
+
   const statusLabels: Record<MilestoneStatus, string> = {
     planned: t("releases.optionStatus.planned"),
     inProgress: t("releases.optionStatus.inProgress"),
@@ -183,7 +186,7 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
           <Button variant="ghost" onClick={cancelEditing}>
             {t("releases.modal.cancel")}
           </Button>
-          <Button variant="primary" leftIcon={<Check size={13} weight="bold" aria-hidden="true" />} onClick={finishEditing}>
+          <Button variant="primary" leftIcon={<Check size={13} weight="bold" aria-hidden="true" />} onClick={finishEditing} disabled={nameEmpty}>
             {t("releases.modal.done")}
           </Button>
         </>
@@ -251,6 +254,7 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
           maxLength={LIMITS.MILESTONE_NAME}
           onChange={(e) => update({ name: e.target.value })}
           aria-label={t("releases.modal.nameLabel")}
+          aria-invalid={nameEmpty}
         />
       ) : (
         <h3
@@ -260,6 +264,7 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
           {milestone.name}
         </h3>
       )}
+      {nameEmpty && <InlineError>{t("tracker:issues.modal.titleRequired")}</InlineError>}
       <div className="detail-created" style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 13 }}>
         <span style={{ width: 110, color: "var(--text-muted)", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12 }}>
           {t("tracker:issues.modal.createdTimeLabel")}

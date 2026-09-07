@@ -10,6 +10,7 @@ import { ActivityList } from '../../components/ActivityList';
 import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { PropRow } from '../../components/PropRow';
+import { InlineError } from '../../components/InlineError';
 import { DetailShell } from '../../components/DetailShell';
 import { DetailEmpty } from '../../components/DetailList';
 import { MarkdownField } from '../../components/MarkdownField';
@@ -60,6 +61,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
 
   const linkedTask = test.taskId ? state.tasks.find((x) => x.id === test.taskId) : undefined;
   const linkedIssue = test.issueId ? state.issues.find((x) => x.id === test.issueId) : undefined;
+  const nameEmpty = test.name.trim() === '';
 
   return (
     <DetailShell
@@ -76,7 +78,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
             >
               {t('tests.modal.delete')}
             </Button>
-            {(saving || lastSavedAt) && (
+            {(saving || lastSavedAt) && !nameEmpty && (
               <span className="save-state" role="status">
                 {saving ? (
                   t('board.taskModal.autosaveSaving')
@@ -159,6 +161,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
           maxLength={LIMITS.TESTCASE_NAME}
           onChange={(e) => update({ name: e.target.value })}
           aria-label={t('tests.modal.nameLabel')}
+          aria-invalid={nameEmpty}
           placeholder={t('tests.newModal.namePlaceholder')}
         />
       ) : (
@@ -169,6 +172,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
           {test.name || <DetailEmpty>{t('tests.modal.noSteps')}</DetailEmpty>}
         </h3>
       )}
+      {nameEmpty && <InlineError>{t('tracker:issues.modal.titleRequired')}</InlineError>}
       <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
         <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
           <Clock size={12} aria-hidden="true" /> {t('tracker:issues.modal.createdTimeLabel')}

@@ -10,6 +10,7 @@ import { ActivityList } from '../../components/ActivityList';
 import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { DetailEmpty } from '../../components/DetailList';
+import { InlineError } from '../../components/InlineError';
 import { PropRow } from '../../components/PropRow';
 import { DetailShell } from '../../components/DetailShell';
 import { DatePicker } from '../../components/DatePicker';
@@ -63,6 +64,8 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
     ? state.milestones.find((m) => m.id === decision.milestoneId)
     : undefined;
 
+  const titleEmpty = decision.title.trim() === '';
+
   return (
     <DetailShell
       title={t('decisions.modal.viewTitle')}
@@ -78,7 +81,7 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
             >
               {t('decisions.modal.delete')}
             </Button>
-            {(saving || lastSavedAt) && (
+            {(saving || lastSavedAt) && !titleEmpty && (
               <span className="save-state" role="status">
                 {saving ? (
                   t('tracker:board.taskModal.autosaveSaving')
@@ -170,6 +173,7 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
           maxLength={LIMITS.DECISION_TITLE}
           onChange={(e) => update({ title: e.target.value })}
           aria-label={t('decisions.modal.titleLabel')}
+          aria-invalid={titleEmpty}
           placeholder={t('decisions.newModal.titlePlaceholder')}
         />
       ) : (
@@ -180,6 +184,7 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
           {decision.title || <DetailEmpty>{t('decisions.modal.noContext')}</DetailEmpty>}
         </h3>
       )}
+      {titleEmpty && <InlineError>{t('tracker:issues.modal.titleRequired')}</InlineError>}
       <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
         <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
           <Clock size={12} aria-hidden="true" /> {t('tracker:issues.modal.createdTimeLabel')}

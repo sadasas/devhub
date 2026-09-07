@@ -20,6 +20,15 @@ import { reconcileQueue } from '../lib/sync-service';
 import { RealtimeSocket, applyStateDiff, realtimeWsUrl } from '../lib/realtime-client';
 import type { ActivityNew, PresenceUpdate, PresenceUser, RealtimeHandlers, StateDiff } from '../lib/realtime-client';
 import { deriveActualHours, nowIso } from '../lib/utils';
+import {
+  isDecisionValid,
+  isIssueValid,
+  isMilestoneValid,
+  isNonEmptyTitle,
+  isTaskValid,
+  isTechValid,
+  isTestCaseValid,
+} from '../lib/entity-validation';
 import type {
   ApiCollection,
   ApiEndpoint,
@@ -365,6 +374,104 @@ function actionToMutation(action: ProjectAction): PendingMutation | null {
   return null;
 }
 
+/**
+ * Autosave guard: jangan antre/kirim mutation yang meninggalkan entity invalid
+ * (judul/nama kosong melanggar backend min(1)). Local state tetap diupdate agar
+ * user bisa mengetik + melihat InlineError; sinkronisasi jalan lagi setelah valid.
+ */
+function isInvalidEntityAction(action: ProjectAction, prev: State | null): boolean {
+  if (!prev) return false;
+  switch (action.type) {
+    case 'task/update': {
+      const cur = prev.tasks.find((t) => t.id === action.id);
+      if (!cur) return false;
+      const next = (action.patch as Partial<Task>).title ?? cur.title;
+      return !isNonEmptyTitle(next);
+    }
+    case 'issue/update': {
+      const cur = prev.issues.find((i) => i.id === action.id);
+      if (!cur) return false;
+      const next = (action.patch as Partial<Issue>).title ?? cur.title;
+      return !isNonEmptyTitle(next);
+    }
+    case 'decision/update': {
+      const cur = prev.decisions.find((d) => d.id === action.id);
+      if (!cur) return false;
+      const next = (action.patch as Partial<Decision>).title ?? cur.title;
+      return !isNonEmptyTitle(next);
+    }
+    case 'testCase/update': {
+      const cur = prev.testCases.find((t) => t.id === action.id);
+      if (!cur) return false;
+      const next = (action.patch as Partial<TestCase>).name ?? cur.name;
+      return !isNonEmptyTitle(next);
+    }
+    case 'tech/update': {
+      const cur = prev.techEntries.find((t) => t.id === action.id);
+      if (!cur) return false;
+      const next = (action.patch as Partial<TechEntry>).name ?? cur.name;
+      return !isNonEmptyTitle(next);
+    }
+    case 'milestone/update': {
+      const cur = prev.milestones.find((m) => m.id === action.id);
+      if (!cur) return false;
+      const next = (action.patch as Partial<Milestone>).name ?? cur.name;
+      return !isNonEmptyTitle(next);
+    }
+    case 'task/add':
+      return !isTaskValid(action.task);
+    case 'issue/add':
+      return !isIssueValid(action.issue);
+    case 'decision/add':
+      return !isDecisionValid(action.decision);
+    case 'testCase/add':
+      return !isTestCaseValid(action.testCase);
+    case 'tech/add':
+      return !isTechValid(action.entry);
+    case 'milestone/add':
+      return !isMilestoneValid(action.milestone);
+    default:
+      return false;
+  }
+}
+
+/** Defense-in-depth di flush: jangan kirim update untuk entity yang tersimpan invalid. */
+function isStoredEntityInvalid(
+  entity: GranularEntity,
+  id: string,
+  state: State | null,
+): boolean {
+  if (!state) return false;
+  switch (entity) {
+    case 'tasks': {
+      const cur = state.tasks.find((t) => t.id === id);
+      return cur ? !isTaskValid(cur) : false;
+    }
+    case 'issues': {
+      const cur = state.issues.find((i) => i.id === id);
+      return cur ? !isIssueValid(cur) : false;
+    }
+    case 'decisions': {
+      const cur = state.decisions.find((d) => d.id === id);
+      return cur ? !isDecisionValid(cur) : false;
+    }
+    case 'testCases': {
+      const cur = state.testCases.find((t) => t.id === id);
+      return cur ? !isTestCaseValid(cur) : false;
+    }
+    case 'techEntries': {
+      const cur = state.techEntries.find((t) => t.id === id);
+      return cur ? !isTechValid(cur) : false;
+    }
+    case 'milestones': {
+      const cur = state.milestones.find((m) => m.id === id);
+      return cur ? !isMilestoneValid(cur) : false;
+    }
+    default:
+      return false;
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Provider — load, optimistic edits, granular mutation flush, polling */
 /* ------------------------------------------------------------------ */
@@ -486,6 +593,19 @@ export function ProjectProvider({
             const entry = [...queue.entries()][0]!;
             queue.delete(entry[0]);
             current = entry[1];
+            // Jangan kirim create/update yang invalid (judul/nama kosong) —
+            // buang dari queue agar tidak jadi saveError backend, tunggu edit valid berikutnya.
+            if (
+              (current.op === 'create' || current.op === 'update') &&
+              isStoredEntityInvalid(current.entity, current.id, stateRef.current)
+            ) {
+              if (isQueuedStorageProvider(provider)) {
+                void provider.removePendingMutation(projectId, current.key).catch(() => {});
+              }
+              current = undefined;
+              emitPendingCount();
+              continue;
+            }
                         let opError: unknown = null;
             try {
               if (current.op === 'create') {
@@ -631,12 +751,39 @@ export function ProjectProvider({
   const dispatch = useCallback(
     (action: ProjectAction) => {
       if (!canEditRef.current) return;
+      // Cancel-edit (MilestoneModal): kembalikan snapshot + buang antrean agar
+      // ketikan yang dibatalkan tidak ikut tersimpan.
+      if (action.type === 'replace') {
+        if (timerRef.current) {
+          clearTimeout(timerRef.current);
+          timerRef.current = null;
+        }
+        mutationsRef.current.clear();
+        emitPendingCount();
+        if (isQueuedStorageProvider(provider)) {
+          void provider.clearPendingMutations(projectId).catch(() => {});
+        }
+        setState((prev) => {
+          if (!prev) return prev;
+          const next = projectReducer(prev, action);
+          stateRef.current = next;
+          return next;
+        });
+        return;
+      }
+      const invalid = isInvalidEntityAction(action, stateRef.current);
       setState((prev) => {
         if (!prev) return prev;
         const next = projectReducer(prev, action);
         stateRef.current = next;
         return next;
       });
+      // Local tetap diupdate (UI + InlineError), tapi mutation tidak diantre
+      // dan tidak schedule save selama entity invalid.
+      if (invalid) {
+        emitPendingCount();
+        return;
+      }
       const mutation = actionToMutation(action);
       if (mutation) {
         const pending = mutationsRef.current.get(mutation.key);

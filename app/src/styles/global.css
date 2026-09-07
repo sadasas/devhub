@@ -6259,6 +6259,8 @@ html[data-theme='light'] .splash-bg {
 
 .kanban-col {
   flex: 0 0 272px;
+  width: 272px;
+  max-width: 272px;
   display: flex;
   flex-direction: column;
   background: var(--bg-elevated);
@@ -6301,7 +6303,9 @@ html[data-theme='light'] .splash-bg {
   gap: 8px;
   padding: 8px;
   min-height: 90px;
+  min-width: 0;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .kanban-drop-active {
@@ -6334,6 +6338,8 @@ html[data-theme='light'] .splash-bg {
 
 .task-card-wrap {
   position: relative;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .card-pinned .task-card-top {
@@ -6371,6 +6377,8 @@ html[data-theme='light'] .splash-bg {
   cursor: grab;
   user-select: none;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   text-align: left;
   font: inherit;
   color: inherit;
@@ -6433,6 +6441,8 @@ html[data-theme='light'] .splash-bg {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .task-label {
@@ -6442,6 +6452,12 @@ html[data-theme='light'] .splash-bg {
   border-radius: var(--radius-pill);
   background: var(--surface-hover);
   color: var(--text-secondary);
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.5;
 }
 
 .task-card-meta {

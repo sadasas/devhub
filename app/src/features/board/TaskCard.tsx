@@ -62,9 +62,13 @@ export const TaskCard = memo(function TaskCard({
       {showStatus && (
         <Badge tone={TASK_STATUS[task.status].tone}>{TASK_STATUS[task.status].label}</Badge>
       )}
-      {showMilestone && milestone && <span className="task-label">{milestone.name}</span>}
-      {task.labels.map((label) => (
-        <span key={label} className="task-label">
+      {showMilestone && milestone && (
+        <span className="task-label" title={milestone.name}>
+          {milestone.name}
+        </span>
+      )}
+      {task.labels.map((label, i) => (
+        <span key={`${label}-${i}`} className="task-label" title={label}>
           {label}
         </span>
       ))}

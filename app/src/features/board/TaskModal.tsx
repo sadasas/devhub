@@ -206,12 +206,13 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
     ? t('board.taskModal.dateWarn')
     : null;
   const testCases = linkedTestCases(task.id, state!.testCases);
-  const blockedTasks = task.blockedBy
+  const blockedTasks = [...new Set(task.blockedBy)]
     .map((id) => state!.tasks.find((t) => t.id === id))
     .filter((t): t is Task => t !== undefined);
   const milestone = task.milestoneId
     ? state!.milestones.find((m) => m.id === task.milestoneId)
     : undefined;
+  const titleEmpty = task.title.trim() === '';
   const toggleBlocker = (id: string) => {
     const next = task.blockedBy.includes(id)
       ? task.blockedBy.filter((x) => x !== id)
@@ -245,7 +246,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
             >
               {t('board.taskModal.delete')}
             </Button>
-            {(saving || lastSavedAt) && (
+            {(saving || lastSavedAt) && !titleEmpty && (
               <span className="save-state" role="status">
                 {saving ? (
                   t('board.taskModal.autosaveSaving')
@@ -352,7 +353,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                   >
                     {task.labels.length > 0 ? (
                       <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {task.labels.map((l) => <span key={l} style={{ padding: '2px 8px', borderRadius: 999, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, color: 'var(--text-secondary)' }}>{l}</span>)}
+                        {task.labels.map((l, i) => <span key={`${l}-${i}`} style={{ padding: '2px 8px', borderRadius: 999, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, color: 'var(--text-secondary)' }}>{l}</span>)}
                       </span>
                     ) : (
                       <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>
@@ -360,7 +361,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                   </button>
                 ) : task.labels.length > 0 ? (
                   <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {task.labels.map((l) => <span key={l} style={{ padding: '2px 8px', borderRadius: 999, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, color: 'var(--text-secondary)' }}>{l}</span>)}
+                    {task.labels.map((l, i) => <span key={`${l}-${i}`} style={{ padding: '2px 8px', borderRadius: 999, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, color: 'var(--text-secondary)' }}>{l}</span>)}
                   </span>
                 ) : (
                   <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>
@@ -560,6 +561,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 maxLength={LIMITS.TASK_TITLE}
                 onChange={(e) => update({ title: e.target.value })}
                 aria-label={t('board.taskModal.titleLabel')}
+                aria-invalid={titleEmpty}
                 placeholder={t('board.taskModal.untitled')}
               />
             ) : (
@@ -570,6 +572,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 {task.title || <DetailEmpty>Untitled task</DetailEmpty>}
               </h3>
             )}
+            {titleEmpty && <InlineError>{t('issues.modal.titleRequired')}</InlineError>}
             <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
               <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
                 <Clock size={12} aria-hidden="true" /> {t('issues.modal.createdTimeLabel')}

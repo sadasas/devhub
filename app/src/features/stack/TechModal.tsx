@@ -12,6 +12,7 @@ import { ActivityList } from '../../components/ActivityList';
 import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { DetailEmpty } from '../../components/DetailList';
+import { InlineError } from '../../components/InlineError';
 import { DetailShell } from '../../components/DetailShell';
 import { MarkdownField } from '../../components/MarkdownField';
 import { PropRow } from '../../components/PropRow';
@@ -125,6 +126,8 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
 
   if (!state || !entry) return null;
 
+  const nameEmpty = entry.name.trim() === '';
+
   const remove = () => {
     dispatch({ type: 'tech/remove', id: entry.id });
     onClose();
@@ -194,7 +197,7 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
             >
               {t('stack.techModal.delete')}
             </Button>
-            {(saving || lastSavedAt) && (
+            {(saving || lastSavedAt) && !nameEmpty && (
               <span className="save-state" role="status">
                 {saving ? (
                   t('tracker:board.taskModal.autosaveSaving')
@@ -343,6 +346,7 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
           maxLength={FE_LIMITS.TECH_NAME}
           onChange={(e) => update({ name: e.target.value })}
           aria-label={t('stack.techModal.nameLabel')}
+          aria-invalid={nameEmpty}
           placeholder={t('stack.newTechModal.namePlaceholder')}
         />
       ) : (
@@ -353,6 +357,7 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
           {entry.name || <DetailEmpty>{t('stack.techModal.noNotes')}</DetailEmpty>}
         </h3>
       )}
+      {nameEmpty && <InlineError>{t('tracker:issues.modal.titleRequired')}</InlineError>}
       <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
         <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
           <Clock size={12} aria-hidden="true" /> {t('tracker:issues.modal.createdTimeLabel')}

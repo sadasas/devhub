@@ -87,7 +87,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
             >
               {t('issues.modal.delete')}
             </Button>
-            {(saving || lastSavedAt) && (
+            {(saving || lastSavedAt) && !titleEmpty && (
               <span className="save-state" role="status">
                 {saving ? (
                   t('board.taskModal.autosaveSaving')
@@ -362,6 +362,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
           maxLength={LIMITS.ISSUE_TITLE}
           onChange={(e) => update({ title: e.target.value })}
           aria-label={t('issues.modal.titleLabel')}
+          aria-invalid={titleEmpty}
           placeholder={t('issues.newModal.titlePlaceholder')}
         />
       ) : (

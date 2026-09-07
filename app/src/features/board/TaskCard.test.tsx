@@ -146,4 +146,48 @@ describe('TaskCard', () => {
     render(<TaskCard task={task({ priority: 'urgent' })} onOpen={() => {}} />);
     expect(screen.getByText('Urg')).toBeTruthy();
   });
+
+  it('renders duplicate labels without duplicate React keys', () => {
+    const err = console.error;
+    const calls: unknown[][] = [];
+    console.error = (...args: unknown[]) => {
+      calls.push(args);
+    };
+    try {
+      useProjectMock.mockReturnValue({
+        state: { milestones: [], tasks: [], testCases: [] },
+        canEdit: true,
+        dispatch: dispatchMock,
+      });
+      render(
+        <TaskCard
+          task={task({ labels: ['d', 'd'], milestoneId: null })}
+          onOpen={() => {}}
+          showMilestone
+        />,
+      );
+      expect(document.querySelectorAll('.task-label').length).toBe(2);
+      expect(calls.some((a) => String(a[0]).includes('same key'))).toBe(false);
+    } finally {
+      console.error = err;
+    }
+  });
+
+  it('renders a long unbroken milestone name with a tooltip title', () => {
+    const name = `M${'N'.repeat(120)}`;
+    useProjectMock.mockReturnValue({
+      state: { milestones: [{ id: 'm1', name }], tasks: [], testCases: [] },
+      canEdit: true,
+      dispatch: dispatchMock,
+    });
+    render(
+      <TaskCard
+        task={task({ milestoneId: 'm1' })}
+        onOpen={() => {}}
+        showMilestone
+      />,
+    );
+    const pill = document.querySelector('.task-card-labels .task-label');
+    expect(pill?.getAttribute('title')).toBe(name);
+  });
 });
