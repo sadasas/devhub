@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useDeferredValue, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useDeferredValue, useTransition } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { api } from '../../lib/api';
 import type { ProjectStats } from '../../lib/stats';
@@ -8,6 +8,7 @@ import { useAuth } from '../../state/auth-context';
 import { Archive, EnvelopeSimple } from '@phosphor-icons/react';
 import { Link } from 'react-router';
 import { Button } from '../../components/Button';
+import { Tooltip } from '../../components/Tooltip';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/Skeleton';
 import { InlineError } from '../../components/InlineError';
@@ -35,6 +36,7 @@ export function DashboardPage() {
   const [nextUp, setNextUp] = useState<Array<{ projectId: string; projectName: string; taskId: string; title: string; dueDate: string; priority: string; status: string }> | null>(null);
   const [nextUpLoading, setNextUpLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const listAnchorRef = useRef<HTMLDivElement>(null);
 
   // URL state: ?q & ?sort & ?team & ?status & ?filter (+ ?new legacy)
   const queryParam = searchParams.get('q') ?? '';
@@ -317,6 +319,14 @@ export function DashboardPage() {
     });
   };
 
+  const handleHeroFilter = (kind: 'all' | 'issues' | 'attention' | 'outdated') => {
+    commitFilter(kind);
+    requestAnimationFrame(() => {
+      const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+      listAnchorRef.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+    });
+  };
+
   const handleOpen = (id: string) => navigate(`/project/${id}`);
   const handleOpenTask = (projectId: string, taskId: string) => navigate(`/project/${projectId}?tab=board&task=${taskId}`);
 
@@ -370,7 +380,7 @@ export function DashboardPage() {
           overdue={heroStats.overdue}
           outdated={heroStats.outdated}
           activeFilter={activeFilter ?? undefined}
-          onFilter={(kind) => commitFilter(kind)}
+          onFilter={handleHeroFilter}
         />
       )}
 
@@ -385,36 +395,77 @@ export function DashboardPage() {
             {(daily ?? []).map((d) => {
               const dateObj = new Date(d.date + 'T00:00:00.000Z');
               const day = dateObj.toLocaleDateString('en-US', { weekday: 'narrow', timeZone: 'UTC' });
-              const max = Math.max(1, ...((daily ?? []).map((x) => Math.max(x.created, x.done, 1))));
-              const hDone = (d.done / max) * 56 + 8;
-              const hCreated = (d.created / max) * 48 + 8;
+              const fullDate = dateObj.toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                timeZone: 'UTC',
+              });
+              const max = Math.max(1, ...((daily ?? []).map((x) => Math.max(x.created, x.done))));
+              const barH = (v: number) => (v <= 0 ? 6 : Math.round(20 + (v / max) * 52));
               const isEmpty = d.created === 0 && d.done === 0;
               return (
-                <div
+                <Tooltip
                   key={d.date}
-                  className="task-activity-bar"
-                  role="listitem"
-                  aria-label={`${d.date}: ${d.created} created, ${d.done} done`}
-                  title={`${d.date}: ${d.created} created · ${d.done} done`}
+                  side="top"
+                  tone="dark"
+                  title={fullDate}
+                  description={
+                    <span className="task-activity-tip-rows">
+                      <span className="task-activity-tip-row">
+                        <span className="task-activity-tip-dot task-activity-tip-dot-created" aria-hidden="true" />
+                        {d.created} created
+                      </span>
+                      <span className="task-activity-tip-row">
+                        <span className="task-activity-tip-dot task-activity-tip-dot-done" aria-hidden="true" />
+                        {d.done} done
+                      </span>
+                    </span>
+                  }
                 >
-                  <div className="task-activity-values" aria-hidden="true">
-                    <span className="task-activity-value task-activity-value-created">{d.created > 0 ? d.created : ''}</span>
-                    <span className="task-activity-value task-activity-value-done">{d.done > 0 ? d.done : ''}</span>
+                  <div
+                    className="task-activity-bar"
+                    role="listitem"
+                    tabIndex={0}
+                    aria-label={`${fullDate}: ${d.created} created, ${d.done} done`}
+                  >
+                    <div className="task-activity-values" aria-hidden="true">
+                      {isEmpty ? (
+                        <span className="task-activity-value-empty">0</span>
+                      ) : (
+                        <>
+                          <span className="task-activity-value-wrap">
+                            <span className="task-activity-value task-activity-value-created">{d.created}</span>
+                            <span className="task-activity-value-key">C</span>
+                          </span>
+                          <span className="task-activity-value-wrap">
+                            <span className="task-activity-value task-activity-value-done">{d.done}</span>
+                            <span className="task-activity-value-key">D</span>
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <div className="task-activity-track">
+                      {isEmpty ? (
+                        <div className="task-activity-col-empty" aria-hidden="true" />
+                      ) : (
+                        <>
+                          <div
+                            className="task-activity-col task-activity-col-created"
+                            style={{ height: barH(d.created) }}
+                            aria-hidden="true"
+                          />
+                          <div
+                            className="task-activity-col task-activity-col-done"
+                            style={{ height: barH(d.done) }}
+                            aria-hidden="true"
+                          />
+                        </>
+                      )}
+                    </div>
+                    <span className="task-activity-day">{day}</span>
                   </div>
-                  <div className="task-activity-track">
-                    <div
-                      className="task-activity-col task-activity-col-created"
-                      style={{ height: isEmpty ? 4 : hCreated, opacity: isEmpty ? 0.2 : 1 }}
-                      aria-hidden="true"
-                    />
-                    <div
-                      className="task-activity-col task-activity-col-done"
-                      style={{ height: isEmpty ? 4 : hDone, opacity: isEmpty ? 0.2 : 1 }}
-                      aria-hidden="true"
-                    />
-                  </div>
-                  <span className="task-activity-day">{day}</span>
-                </div>
+                </Tooltip>
               );
             })}
             {daily && daily.length === 0 && <span className="task-activity-empty">No activity yet</span>}
@@ -423,6 +474,8 @@ export function DashboardPage() {
         </div>
       )}
 
+      {/* anchor daftar proyek — target auto-scroll saat kartu stat diklik */}
+      <div ref={listAnchorRef} className="welcome-list-anchor">
       {/* command bar — sticky, always visible unless error/loading skeleton takes over? Keep visible even in empty states for discoverability */}
       <WelcomeCommandBar
         query={queryDraft}
@@ -606,6 +659,7 @@ export function DashboardPage() {
           </footer>
         </div>
       )}
+      </div>
 
       <NewProjectModal
         open={newOpen}

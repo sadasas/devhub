@@ -11,6 +11,7 @@ import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { useSortParam } from '../../hooks/useSortParam';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
+import { Tooltip } from '../../components/Tooltip';
 import { EmptyState } from '../../components/EmptyState';
 import { Modal } from '../../components/Modal';
 import { Skeleton } from '../../components/Skeleton';
@@ -954,40 +955,43 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
           toolbar={
             <>
               {canEditEffective && (
+                <Tooltip content={t('schema.page.newTable')} side="bottom">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleCanvasNewTable}
                   aria-label={t('schema.page.newTable')}
-                  data-tooltip={t('schema.page.newTable')}
                 >
                   <Plus size={15} weight="bold" aria-hidden="true" />
                   <span className="sr-only">{t('schema.page.newTable')}</span>
                 </Button>
+                </Tooltip>
               )}
               {canEditEffective && (
+                <Tooltip content={t('schema.page.newRelation')} side="bottom">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setNewRelationOpen(true)}
                   aria-label={t('schema.page.newRelation')}
-                  data-tooltip={t('schema.page.newRelation')}
                 >
                   <LinkSimple size={15} aria-hidden="true" />
                   <span className="sr-only">{t('schema.page.newRelation')}</span>
                 </Button>
+                </Tooltip>
               )}
               {canEditEffective && (
+                <Tooltip content={t('schema.erd.tidyHint')} side="bottom">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleTidy}
                   aria-label={t('schema.erd.tidy')}
-                  data-tooltip={t('schema.erd.tidyHint')}
                 >
                   <Broom size={15} aria-hidden="true" />
                   <span className="sr-only">{t('schema.erd.tidy')}</span>
                 </Button>
+                </Tooltip>
               )}
               <SchemaExportMenu
                 tables={displayTables}
@@ -997,28 +1001,30 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
                 iconOnly
               />
               {canEditEffective && (
+                <Tooltip content={t('schema.page.import')} side="bottom">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setImportOpen(true)}
                   aria-label={t('schema.page.import')}
-                  data-tooltip={t('schema.page.import')}
                 >
                   <UploadSimple size={15} aria-hidden="true" />
                   <span className="sr-only">{t('schema.page.import')}</span>
                 </Button>
+                </Tooltip>
               )}
+              <Tooltip content={t('schema.canvas.present')} side="bottom">
               <button
                 ref={presentBtnRef}
                 type="button"
                 className="btn btn-ghost btn-sm"
                 onClick={handleEnterPresenting}
                 aria-label={t('schema.canvas.present')}
-                data-tooltip={t('schema.canvas.present')}
               >
                 <Presentation size={15} aria-hidden="true" />
                 <span className="sr-only">{t('schema.canvas.present')}</span>
               </button>
+              </Tooltip>
             </>
           }
         >

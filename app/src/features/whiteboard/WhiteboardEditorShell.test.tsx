@@ -2592,7 +2592,7 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
         fireEvent.click(screen.getByRole('button', { name: 'Shape — 6' }));
         const menu = screen.getByRole('menu', { name: 'Shape type' });
         const diamond = within(menu).getByRole('menuitemradio', { name: 'diamond' });
-        fireEvent.mouseOver(diamond);
+        fireEvent.mouseEnter(diamond);
         act(() => {
           vi.advanceTimersByTime(200);
         });
@@ -2603,21 +2603,21 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       }
     });
 
-    it('WB-24: shows a fixed pill tooltip on hover and hides on leave', () => {
+    it('WB-24: shows a pill tooltip on hover and hides on leave', () => {
       vi.useFakeTimers();
       try {
         useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch: vi.fn() });
         renderShell(BOARD);
         const pen = screen.getByRole('button', { name: 'Pen — 2' });
-        fireEvent.mouseOver(pen);
-        expect(document.querySelector('.wb-tip-fixed')).toBeNull();
+        fireEvent.mouseEnter(pen);
+        expect(screen.queryByRole('tooltip')).toBeNull();
         act(() => {
           vi.advanceTimersByTime(200);
         });
         const tip = screen.getByRole('tooltip');
         expect(tip.textContent).toBe('Pen — 2');
-        expect(tip.classList.contains('wb-tip-fixed')).toBe(true);
-        fireEvent.mouseOut(pen);
+        expect(tip.querySelector('.tooltip-card-dark')).not.toBeNull();
+        fireEvent.mouseLeave(pen);
         expect(screen.queryByRole('tooltip')).toBeNull();
       } finally {
         vi.useRealTimers();

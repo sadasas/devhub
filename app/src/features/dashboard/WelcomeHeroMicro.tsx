@@ -67,15 +67,15 @@ export function WelcomeHeroMicro({
   return (
     <div className="welcome-hero-bento" aria-label="Workspace summary">
       {cards.map((c) => {
-        const isActive = activeFilter === c.key;
-        const isPrimary = c.tone === 'primary';
+        // Single-select: tanpa filter = 'all' yang hijau. Hanya 1 kartu tersorot.
+        const isSelected = (activeFilter ?? 'all') === c.key;
         return (
           <button
             key={c.key}
             type="button"
-            className={`bento-stat-card${isPrimary ? ' bento-stat-primary' : ''}${isActive ? ' bento-stat-active' : ''}`}
+            className={`bento-stat-card${isSelected ? ` bento-stat-selected bento-stat-tone-${c.tone}` : ''}`}
             onClick={c.onClick}
-            aria-pressed={isActive}
+            aria-pressed={isSelected}
             aria-label={`${c.label}: ${c.value}`}
           >
             <span className="bento-stat-head">
@@ -89,7 +89,7 @@ export function WelcomeHeroMicro({
             <span className="bento-stat-value tabular">{c.value}</span>
             <span className="bento-stat-label">{c.label}</span>
             <span className="bento-stat-sub">{c.sub}</span>
-            {isPrimary && totalTasks > 0 && (
+            {c.key === 'all' && isSelected && totalTasks > 0 && (
               <span className="bento-stat-track" aria-hidden="true">
                 <span className="bento-stat-fill" style={{ width: `${pct}%` }} />
               </span>

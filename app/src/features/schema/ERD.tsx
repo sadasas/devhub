@@ -7,6 +7,7 @@ import type { State } from '../../lib/types';
 import { relationLabel, shortId } from '../../lib/utils';
 import { isUniqueIndex } from './column-helpers';
 import { Button } from '../../components/Button';
+import { TooltipCard } from '../../components/Tooltip';
 
 const TABLE_W = 208;
 const HEADER_H = 30;
@@ -1572,19 +1573,11 @@ export function ERD({
           }}
         >
           {colTip && tipTable && tipCol ? (
-            <>
-              <div className="erd-col-tip-head">
-                <span
-                  className="erd-col-tip-name font-mono"
-                >
-                  {tipCol.name}
-                </span>
-                <span
-                  className="erd-col-tip-type font-mono"
-                >
-                  {tipCol.type.trim() !== '' ? tipCol.type : '—'}
-                </span>
-              </div>
+            <TooltipCard
+              tone="light"
+              title={tipCol.name}
+              description={tipCol.type.trim() !== '' ? tipCol.type : '—'}
+            >
               {(tipCol.primaryKey || tipUnique || !tipCol.nullable) && (
                 <span className="erd-col-tip-badges">
                   {tipCol.primaryKey && <span className="erd-col-tip-badge erd-col-tip-badge-pk">PK</span>}
@@ -1605,18 +1598,11 @@ export function ERD({
                   <span className="erd-col-tip-value">{tipCol.comment}</span>
                 </div>
               )}
-            </>
+            </TooltipCard>
           ) : (
             tipRel &&
             tipRelLabel && (
-              <>
-                <div className="erd-col-tip-head">
-                  <span
-                    className="erd-col-tip-name font-mono"
-                  >
-                    {tipRelLabel}
-                  </span>
-                </div>
+              <TooltipCard tone="light" title={tipRelLabel}>
                 <div className="erd-col-tip-divider" aria-hidden="true" />
                 <div className="erd-col-tip-row">
                   <span className="erd-col-tip-label">Cardinality:</span>{' '}
@@ -1626,7 +1612,7 @@ export function ERD({
                   <span className="erd-col-tip-label">On delete:</span>{' '}
                   <span className="erd-col-tip-value font-mono">{tipRel.onDelete}</span>
                 </div>
-              </>
+              </TooltipCard>
             )
           )}
         </div>

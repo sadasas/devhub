@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowClockwise, ArrowCounterClockwise, ArrowLeft, ArrowsOutSimple, BoundingBox, Cards, Cursor, Eraser, Export, FlowArrow, FrameCorners, HandPointing, MagnetStraight, Note, PenNib, Presentation, Selection, TextT, X } from '@phosphor-icons/react';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
+import { Tooltip } from '../../components/Tooltip';
 import type { State, Whiteboard, WhiteboardAlign, WhiteboardShape, WhiteboardShapeType, WhiteboardArrowStyle, WhiteboardEdge } from '../../lib/types';
 import { WhiteboardCanvas } from './WhiteboardCanvas';
 import { WhiteboardInspector } from './WhiteboardInspector';
@@ -104,7 +105,9 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
       localStorage.setItem('wb:exportTransparent', exportTransparent ? '1' : '0');
     } catch {}
   }, [exportTransparent]);
-  const exportOpts = { background: (exportTransparent ? 'transparent' : 'theme') as const };
+  const exportOpts: { background: 'transparent' | 'theme' } = {
+    background: exportTransparent ? 'transparent' : 'theme',
+  };
   const refDataMap = useMemo(() => buildRefDataMap(board.elements, state), [board.elements, state]);
   const elementCount = board.elements.length;
   const nearCap = elementCount >= WARN_ELEMENTS;
@@ -386,55 +389,8 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
     };
   }, [exportOpen, shapeMenuOpen]);
 
-  // WB-24: fixed-position pill tooltip (immune to scroll-container clipping).
-  // Driven by delegation over [data-tooltip]; native title attrs removed from pill buttons.
-  const [pillTip, setPillTip] = useState<{ text: string; top: number; left: number } | null>(null);
-  const pillTipTimer = useRef<number | null>(null);
-  const cancelPillTipTimer = () => {
-    if (pillTipTimer.current !== null) {
-      window.clearTimeout(pillTipTimer.current);
-      pillTipTimer.current = null;
-    }
-  };
-  const hidePillTip = () => {
-    cancelPillTipTimer();
-    setPillTip(null);
-  };
-  const showPillTip = (anchor: HTMLElement, immediate = false) => {
-    const text = anchor.getAttribute('data-tooltip');
-    if (!text) return;
-    cancelPillTipTimer();
-    const place = () => {
-      const r = anchor.getBoundingClientRect();
-      setPillTip({
-        text,
-        top: r.bottom + 8,
-        left: Math.min(Math.max(r.left + r.width / 2, 90), Math.max(90, window.innerWidth - 90)),
-      });
-    };
-    if (immediate) place();
-    else pillTipTimer.current = window.setTimeout(place, 150);
-  };
-  const onPillMouseOver = (e: React.MouseEvent) => {
-    const anchor = (e.target as HTMLElement).closest?.('[data-tooltip]') as HTMLElement | null;
-    if (anchor) showPillTip(anchor);
-    else hidePillTip();
-  };
-  const onPillFocusIn = (e: React.FocusEvent) => {
-    const anchor = (e.target as HTMLElement).closest?.('[data-tooltip]') as HTMLElement | null;
-    if (anchor) showPillTip(anchor, true);
-  };
-  useEffect(() => () => cancelPillTipTimer(), []);
-  useEffect(() => {
-    if (!pillTip) return;
-    const hide = () => setPillTip(null);
-    window.addEventListener('scroll', hide, true);
-    window.addEventListener('resize', hide);
-    return () => {
-      window.removeEventListener('scroll', hide, true);
-      window.removeEventListener('resize', hide);
-    };
-  }, [pillTip]);
+  // Tooltip pill kini via komponen Tooltip reusable (floating-ui) per tombol.
+  // (Delegasi [data-tooltip] + wb-tip-fixed lama dihapus.)
 
   const openShapeMenu = () => {
     setExportOpen(false);
@@ -474,11 +430,6 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
     shapeHoverTimer.current = window.setTimeout(() => setShapeMenuOpen(false), 300);
   };
   useEffect(() => () => cancelShapeHoverTimer(), []);
-
-  // WB-24: hide the pill tip whenever the tool changes.
-  useEffect(() => {
-    setPillTip(null);
-  }, [tool]);
 
   const pickShapeType = (st: WhiteboardShapeType) => {
     setShapeType(st);
@@ -700,10 +651,6 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
       <div
         className="board-toolbar"
         ref={toolbarRef}
-        onMouseOver={onPillMouseOver}
-        onMouseOut={hidePillTip}
-        onFocusCapture={onPillFocusIn}
-        onBlurCapture={hidePillTip}
       >
         <div className="sub-tabs wb-tool-scroll" role="toolbar" aria-label={t('whiteboard.toolbar.tools')}>
           {TOOL_GROUPS.map((group, gi) => (
@@ -716,12 +663,11 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
                 const disabled = !ACTIVE_TOOLS.has(item.id) || blocked || readOnlyBlocked;
                 const tip = readOnlyBlocked ? t('whiteboard.viewer.readOnlyTip') : blocked ? t('whiteboard.tool.limitReached', { name }) : `${name} — ${item.shortcut}`;
                 const mainButton = (
+              <Tooltip key={item.id} content={tip} side="bottom">
               <button
-                key={item.id}
                 type="button"
                 className={`sub-tab${active ? ' sub-tab-active' : ''}`}
                 disabled={disabled}
-                data-tooltip={tip}
                 aria-label={`${name} — ${item.shortcut}`}
                 aria-pressed={active}
                 onClick={() => {
@@ -731,17 +677,21 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
               >
                     <item.icon size={15} aria-hidden="true" />
                   </button>
+              </Tooltip>
                 );
                 if (item.id !== 'shape') return mainButton;
                 // WB-23: single shape button opens the visual type popup (no caret).
                 return (
-                  <button
+                  <Tooltip
                     key={item.id}
+                    content={tip}
+                    side="bottom"
+                  >
+                  <button
                     ref={shapeBtnRef}
                     type="button"
                     className={`sub-tab${active ? ' sub-tab-active' : ''}`}
                     disabled={disabled}
-                    data-tooltip={tip}
                     aria-label={`${name} — ${item.shortcut}`}
                     aria-pressed={active}
                     aria-haspopup="menu"
@@ -755,6 +705,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
                   >
                     <item.icon size={15} aria-hidden="true" />
                   </button>
+                  </Tooltip>
                 );
               })}
             </span>
@@ -762,10 +713,10 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
         </div>
         <div className="wb-tool-actions">
           <span className="wb-sep" aria-hidden="true" />
+          <Tooltip content={readOnly ? t('whiteboard.viewer.readOnlyTip') : snapOn ? t('whiteboard.canvas.snapOn') : t('whiteboard.canvas.snapOff')} side="bottom">
           <button
             type="button"
             className={`sub-tab${snapOn ? ' sub-tab-active' : ''}`}
-            data-tooltip={readOnly ? t('whiteboard.viewer.readOnlyTip') : snapOn ? t('whiteboard.canvas.snapOn') : t('whiteboard.canvas.snapOff')}
             aria-label={snapOn ? t('whiteboard.canvas.snapOn') : t('whiteboard.canvas.snapOff')}
             aria-pressed={snapOn}
             disabled={readOnly}
@@ -773,44 +724,48 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
           >
             <MagnetStraight size={15} aria-hidden="true" />
           </button>
+          </Tooltip>
           <span className="wb-sep" aria-hidden="true" />
+          <Tooltip content={readOnly ? t('whiteboard.viewer.readOnlyTip') : t('whiteboard.toolbar.undoTitle')} side="bottom">
           <button
             type="button"
             className="sub-tab"
             disabled={!history.canUndo || readOnly}
-            data-tooltip={readOnly ? t('whiteboard.viewer.readOnlyTip') : t('whiteboard.toolbar.undoTitle')}
             aria-label={t('whiteboard.toolbar.undoAria')}
             onClick={history.undo}
           >
             <ArrowCounterClockwise size={15} aria-hidden="true" />
           </button>
+          </Tooltip>
+          <Tooltip content={readOnly ? t('whiteboard.viewer.readOnlyTip') : t('whiteboard.toolbar.redoTitle')} side="bottom">
           <button
             type="button"
             className="sub-tab"
             disabled={!history.canRedo || readOnly}
-            data-tooltip={readOnly ? t('whiteboard.viewer.readOnlyTip') : t('whiteboard.toolbar.redoTitle')}
             aria-label={t('whiteboard.toolbar.redoAria')}
             onClick={history.redo}
           >
             <ArrowClockwise size={15} aria-hidden="true" />
           </button>
+          </Tooltip>
           <span className="wb-sep" aria-hidden="true" />
+          <Tooltip content={t('whiteboard.toolbar.presentTitle')} side="bottom">
           <button
             type="button"
             ref={presentBtnRef}
             className="sub-tab"
-            data-tooltip={t('whiteboard.toolbar.presentTitle')}
             aria-label={t('whiteboard.toolbar.presentAria')}
             onClick={handleEnterPresenting}
           >
             <Presentation size={15} aria-hidden="true" />
           </button>
+          </Tooltip>
           <span className="wb-export-wrap">
+            <Tooltip content={elementCount === 0 ? t('whiteboard.export.emptyTitle') : t('whiteboard.export.title')} side="bottom">
             <button
               type="button"
               className="sub-tab"
               disabled={elementCount === 0}
-              data-tooltip={elementCount === 0 ? t('whiteboard.export.emptyTitle') : t('whiteboard.export.title')}
               aria-label={t('whiteboard.export.menuLabel')}
               aria-haspopup="menu"
               aria-expanded={exportOpen}
@@ -818,6 +773,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
             >
               <Export size={15} aria-hidden="true" />
             </button>
+            </Tooltip>
             {exportOpen && (
               <div ref={exportMenuRef} className="wb-export-menu" role="menu" aria-label={t('whiteboard.export.menuLabel')}>
                 <button
@@ -924,13 +880,12 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
                 x: 4, y: 8, w: 32, h: 24, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '',
               };
               return (
+                <Tooltip key={st} content={st} side="right">
                 <button
-                  key={st}
                   type="button"
                   role="menuitemradio"
                   aria-checked={shapeType === st}
                   aria-label={st}
-                  data-tooltip={st}
                   className="wb-export-item wb-shape-opt"
                   onClick={() => pickShapeType(st)}
                 >
@@ -938,16 +893,12 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
                     <path d={shapePath(thumb)} fill="none" stroke="currentColor" strokeWidth={2} />
                   </svg>
                 </button>
+                </Tooltip>
               );
             })}
           </div>
         )}
       </div>
-      )}
-      {pillTip && !presenting && (
-        <div className="wb-tip-fixed" role="tooltip" style={{ top: pillTip.top, left: pillTip.left }}>
-          {pillTip.text}
-        </div>
       )}
       {!presenting && (
             <div className="wb-dock-right">

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { CaretDown, DownloadSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
+import { Tooltip } from '../../components/Tooltip';
 import type { Relation, Table } from '../../lib/types';
 import { safeFileName, triggerDownload } from '../whiteboard/export';
 import { toPostgresDDL } from './ddl-export';
@@ -104,6 +105,7 @@ export function SchemaExportMenu({ tables, relations, projectName, versionLabel 
   if (iconOnly) {
     return (
       <div className="sort-control" ref={wrapRef}>
+        <Tooltip content={menuAria} side="bottom">
         <button
           ref={triggerRef}
           type="button"
@@ -112,12 +114,12 @@ export function SchemaExportMenu({ tables, relations, projectName, versionLabel 
           aria-expanded={open}
           aria-controls="schema-export-menu"
           aria-label={menuAria}
-          data-tooltip={menuAria}
           onClick={() => setOpen((v) => !v)}
         >
           <DownloadSimple size={15} aria-hidden="true" />
           <span className="sr-only">{triggerLabel}</span>
         </button>
+        </Tooltip>
         {open && (
           <div id="schema-export-menu" className="sort-menu" role="menu" aria-label={menuAria}>
             <button type="button" role="menuitem" className="sort-menu-row" onClick={handleExportDdl}>

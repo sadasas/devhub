@@ -4366,7 +4366,7 @@ html[data-theme='light'] .splash-bg {
     transform var(--duration-fast) var(--ease-out);
 }
 
-.bento-stat-card:hover {
+.bento-stat-card:not(.bento-stat-selected):hover {
   background: rgba(255, 255, 255, 0.02);
 }
 
@@ -4375,20 +4375,47 @@ html[data-theme='light'] .splash-bg {
   box-shadow: 0 0 0 2px var(--accent-ring);
 }
 
-.bento-stat-primary {
-  background: var(--accent);
+/* Single-select highlight — 1 kartu solid penuh sesuai tone. */
+.bento-stat-selected {
   color: var(--text-on-accent);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.28),
+    0 1px 0 var(--surface-hover-strong) inset;
+}
+
+.bento-stat-tone-primary {
+  background: var(--accent);
   box-shadow:
     0 4px 16px rgba(93, 182, 155, 0.18),
     0 1px 0 var(--surface-hover-strong) inset;
 }
 
-.bento-stat-primary:hover {
-  background: var(--accent-hover);
+.bento-stat-tone-warn {
+  background: var(--status-warn);
 }
 
-.bento-stat-active {
-  box-shadow: 0 0 0 2px var(--accent-ring);
+.bento-stat-tone-danger {
+  background: var(--status-danger);
+}
+
+.bento-stat-tone-info {
+  background: var(--status-info);
+}
+
+.bento-stat-selected.bento-stat-tone-primary:hover {
+  background: var(--accent-hover);
+  filter: none;
+}
+
+.bento-stat-selected.bento-stat-tone-warn:hover,
+.bento-stat-selected.bento-stat-tone-danger:hover,
+.bento-stat-selected.bento-stat-tone-info:hover {
+  filter: brightness(1.06);
+}
+
+.bento-stat-selected .bento-stat-icon {
+  background: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .bento-stat-head {
@@ -4432,7 +4459,7 @@ html[data-theme='light'] .splash-bg {
   opacity: 0.6;
 }
 
-.bento-stat-primary .bento-stat-arrow {
+.bento-stat-selected .bento-stat-arrow {
   color: rgba(255, 255, 255, 0.9);
 }
 
@@ -4445,7 +4472,7 @@ html[data-theme='light'] .splash-bg {
   font-variant-numeric: tabular-nums;
 }
 
-.bento-stat-primary .bento-stat-value {
+.bento-stat-selected .bento-stat-value {
   color: var(--text-on-accent);
 }
 
@@ -4458,7 +4485,7 @@ html[data-theme='light'] .splash-bg {
   color: var(--text-muted);
 }
 
-.bento-stat-primary .bento-stat-label {
+.bento-stat-selected .bento-stat-label {
   color: rgba(255, 255, 255, 0.78);
 }
 
@@ -4468,7 +4495,7 @@ html[data-theme='light'] .splash-bg {
   line-height: 1.3;
 }
 
-.bento-stat-primary .bento-stat-sub {
+.bento-stat-selected .bento-stat-sub {
   color: rgba(255, 255, 255, 0.78);
 }
 
@@ -4563,6 +4590,35 @@ html[data-theme='light'] .splash-bg {
   flex-direction: column;
   align-items: center;
   gap: 4px;
+  border-radius: 8px;
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+}
+
+.task-activity-bar:hover,
+.task-activity-bar:focus-visible,
+.task-activity-bar[data-tooltip-open='true'] {
+  transform: translateY(-2px);
+}
+
+.task-activity-bar:hover .task-activity-col,
+.task-activity-bar:focus-visible .task-activity-col,
+.task-activity-bar[data-tooltip-open='true'] .task-activity-col {
+  filter: brightness(1.12);
+}
+
+.task-activity-bar:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .task-activity-bar:hover,
+  .task-activity-bar:focus-visible,
+  .task-activity-bar[data-tooltip-open='true'] {
+    transform: none;
+  }
 }
 
 .task-activity-values {
@@ -4581,6 +4637,34 @@ html[data-theme='light'] .splash-bg {
   flex: 1;
   max-width: 18px;
   text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.task-activity-value-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  flex: 1;
+  max-width: 18px;
+}
+
+.task-activity-value-wrap .task-activity-value {
+  max-width: none;
+}
+
+.task-activity-value-key {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  line-height: 1;
+  color: var(--text-muted);
+}
+
+.task-activity-value-empty {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1;
+  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -4615,9 +4699,52 @@ html[data-theme='light'] .splash-bg {
 }
 
 .task-activity-col-created {
-  background: var(--pattern-stripe);
-  background-image: repeating-linear-gradient(135deg, transparent 0 2px, var(--pattern-stripe) 2px 4px);
-  border: 1px solid var(--border-hairline);
+  background: var(--bg-elevated);
+  background-image: repeating-linear-gradient(135deg, transparent 0 2px, rgba(255, 255, 255, 0.1) 2px 4px);
+  border: 1px solid var(--border-strong);
+}
+
+.task-activity-col-empty {
+  width: 100%;
+  max-width: 44px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--border-strong);
+}
+
+/* Isi tooltip rich tiap bar: baris Created/Done ber-dot warna. */
+.task-activity-tip-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-activity-tip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.task-activity-tip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.task-activity-tip-dot-created {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+}
+
+.task-activity-tip-dot-done {
+  background: var(--accent);
+}
+
+/* Anchor daftar proyek — target auto-scroll kartu stat. */
+.welcome-list-anchor {
+  scroll-margin-top: 12px;
 }
 
 .task-activity-day {
@@ -4662,7 +4789,7 @@ html[data-theme='light'] .splash-bg {
   border-radius: 4px;
 }
 
-/* queue — Next up boxless, 3 items */
+/* queue — Next up highlight cards, 3 items */
 .welcome-queue {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -4698,21 +4825,33 @@ html[data-theme='light'] .splash-bg {
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  background: transparent;
-  border: none;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-hairline);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-raised);
   cursor: pointer;
   text-align: left;
-  transition: background var(--duration-fast) var(--ease-out);
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
 }
 
 .welcome-queue-card:hover {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--bg-overlay);
+  border-color: var(--accent-ring);
+  transform: translateY(-1px);
 }
 
 .welcome-queue-card:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--accent-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome-queue-card:hover {
+    transform: none;
+  }
 }
 
 .welcome-queue-num {
@@ -4722,11 +4861,12 @@ html[data-theme='light'] .splash-bg {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: var(--bg-inset);
+  background: var(--accent-dim);
   border: none;
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--text-secondary);
+  font-weight: 700;
+  color: var(--accent);
 }
 
 .welcome-queue-main {
@@ -7018,39 +7158,7 @@ html[data-theme='light'] .splash-bg {
   font-weight: 600;
 }
 
-.board-toolbar .sub-tab[data-tooltip] {
-  position: relative;
-}
-
-.board-toolbar .sub-tab[data-tooltip]:hover::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--bg-overlay);
-  color: var(--text-primary);
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-strong);
-  font-size: 11px;
-  font-weight: 500;
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: 10;
-  box-shadow: var(--shadow-raised);
-  opacity: 0;
-  animation: wb-tip-in 0.12s forwards;
-}
-
-@keyframes wb-tip-in {
-  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .board-toolbar .sub-tab[data-tooltip]:hover::after { animation: none; opacity: 1; }
-}
+/* (Tooltip CSS-only [data-tooltip] lama dihapus — diganti komponen Tooltip reusable.) */
 
 /* ============================================================
    Board — timeline (Gantt) — isolasi scroll + responsive lane
@@ -7460,50 +7568,7 @@ body[data-erd-canvas="open"] .chat-drawer { display: none !important; }
   padding: 0;
 }
 
-/* Pill tooltips — mirror of .board-toolbar .sub-tab[data-tooltip]. */
-.erd-canvas-mode-pill [data-tooltip] {
-  position: relative;
-}
-
-.erd-canvas-mode-pill [data-tooltip]:hover::after,
-.erd-canvas-mode-pill [data-tooltip]:focus-visible::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
-  background: #111827;
-  color: #f9fafb;
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
-  border: 1px solid #111827;
-  font-size: 11px;
-  font-weight: 500;
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: 10;
-  box-shadow: var(--shadow-raised);
-  opacity: 0;
-  animation: wb-tip-in 0.12s forwards;
-}
-
-.erd-canvas-mode-pill [data-tooltip]:hover::before,
-.erd-canvas-mode-pill [data-tooltip]:focus-visible::before {
-  content: "";
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 5px solid transparent;
-  border-bottom-color: #111827;
-  pointer-events: none;
-  z-index: 10;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .erd-canvas-mode-pill [data-tooltip]:hover::after,
-  .erd-canvas-mode-pill [data-tooltip]:focus-visible::after { animation: none; opacity: 1; }
-}
+/* (Tooltip CSS-only pill lama dihapus — diganti komponen Tooltip reusable.) */
 
 .erd-canvas-mode-body {
   display: flex;
@@ -7530,22 +7595,12 @@ body[data-erd-canvas="open"] .chat-drawer { display: none !important; }
   .erd-canvas-mode-body .erd-canvas { background-image: none; }
 }
 
-/* Canvas tooltip (kolom + relasi) — chrome sama seperti tooltip pill toolbar. */
+/* Canvas tooltip (kolom + relasi) — posisi + panah; chrome dari TooltipCard light. */
 .erd-col-tip {
   position: absolute;
   z-index: var(--z-overlay);
-  max-width: min(280px, calc(100% - 16px));
+  max-width: min(300px, calc(100% - 16px));
   min-width: 180px;
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  background: var(--bg-overlay);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-raised);
-  font-size: 11px;
-  color: var(--text-primary);
   pointer-events: none;
 }
 
@@ -12946,28 +13001,126 @@ input[type='checkbox'] {
   box-shadow: var(--shadow-raised);
   border-color: var(--border-strong);
 }
-/* WB-24: pill tooltips are a fixed-position React tooltip (immune to scroll
-   clipping). The legacy ::after/::before chips are disabled inside the pill. */
-.wb-shell .board-toolbar .sub-tab[data-tooltip]:hover::after,
-.wb-shell .board-toolbar .sub-tab[data-tooltip]:hover::before,
-.wb-shell .board-toolbar .sub-tab[data-tooltip]:focus-visible::after,
-.wb-shell .board-toolbar .sub-tab[data-tooltip]:focus-visible::before {
-  display: none;
+/* (wb-tip-fixed + override ::after lama dihapus — pill memakai Tooltip reusable.) */
+
+/* ============================================================
+   Tooltip reusable global (floating-ui) — dark/light/info,
+   title + description + icon + media, panah otomatis.
+   ============================================================ */
+.tooltip-ref {
+  display: inline-flex;
 }
-.wb-tip-fixed {
-  position: fixed;
-  z-index: 80;
-  transform: translateX(-50%);
+
+.tooltip-float {
+  pointer-events: none;
+}
+
+.tooltip-float:focus {
+  outline: none;
+}
+
+.tooltip-card {
+  max-width: min(300px, calc(100vw - 16px));
+  border-radius: 10px;
+  box-shadow: var(--shadow-raised);
+  animation: tooltip-in 0.12s var(--ease-out);
+}
+
+.tooltip-card-dark {
   background: #111827;
   color: #f9fafb;
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
   border: 1px solid #111827;
+}
+
+.tooltip-card-light {
+  background: var(--bg-overlay);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+}
+
+.tooltip-card-info {
+  background: #2f6df6;
+  color: #ffffff;
+  border: 1px solid #2f6df6;
+}
+
+.tooltip-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
   font-size: 11px;
   font-weight: 500;
-  white-space: nowrap;
-  pointer-events: none;
-  box-shadow: var(--shadow-raised);
+  line-height: 1.45;
+}
+
+.tooltip-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.tooltip-card-dark .tooltip-icon {
+  color: #c7d2fe;
+}
+
+.tooltip-card-light .tooltip-icon {
+  color: var(--accent);
+}
+
+.tooltip-card-info .tooltip-icon {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.tooltip-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tooltip-title {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: break-word;
+}
+
+.tooltip-desc {
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.tooltip-media {
+  overflow: hidden;
+  border-radius: 10px 10px 0 0;
+}
+
+.tooltip-media img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.tooltip-arrow {
+  fill: #111827;
+}
+
+.tooltip-arrow-light {
+  fill: var(--bg-overlay);
+}
+
+.tooltip-arrow-info {
+  fill: #2f6df6;
+}
+
+@keyframes tooltip-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tooltip-card { animation: none; }
 }
 /* Right dock: Properties (always visible) + Layers (header-collapsible). */
 .wb-dock-right {
