@@ -29,14 +29,16 @@ export async function emailOf(cookie: string): Promise<string> {
 }
 
 export async function getFirstTeamId(cookie: string): Promise<string> {
+  // Ensure-semantics: new users start with zero teams (no auto-create),
+  // so test setup creates 'Test team' on demand instead of assuming one.
   const res = await request(app)
     .get('/api/v1/teams')
     .set('Cookie', cookie)
     .set('X-Forwarded-For', uniqueIp());
   expect(res.status).toBe(200);
-  const teamId = (res.body.teams as Array<{ id: string }>)[0]?.id;
-  expect(teamId).toBeDefined();
-  return teamId!;
+  const existing = (res.body.teams as Array<{ id: string }>)[0]?.id;
+  if (existing) return existing;
+  return createTeam(cookie);
 }
 
 export async function createTeam(cookie: string, name = 'Test team'): Promise<string> {

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router';
 import { CommandPalette } from './CommandPalette';
+import { setTourActiveFlag } from '../features/onboarding/tour-events';
 import type { ProjectSearchResult } from '../lib/api';
 
 const mocks = vi.hoisted(() => ({
@@ -277,5 +278,16 @@ describe('CommandPalette', () => {
     openPalette();
     fireEvent.keyDown(window, { key: 'Enter' });
     expect(getLocation()).toBe('/');
+  });
+
+  it('ignores Ctrl+K while the tour runs (palette is irrelevant mid-tour)', () => {
+    setTourActiveFlag(true);
+    try {
+      renderPalette();
+      fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+      expect(screen.queryByRole('combobox', { name: 'Search commands' })).toBeNull();
+    } finally {
+      setTourActiveFlag(false);
+    }
   });
 });

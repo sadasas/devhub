@@ -145,6 +145,7 @@ export function TeamRail({ teams, activeTeamId, activeMain = 'team', compact = f
         aria-label={t('sidebar.newTeam')}
         title={t('sidebar.newTeam')}
         onClick={onCreateTeam}
+        data-tour-id="create-team"
       >
         <Plus size={14} weight="bold" aria-hidden="true" />
         <span>New team</span>

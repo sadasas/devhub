@@ -821,5 +821,50 @@
     "briefTitle": "Product brief",
     "briefCount": "{{set}}/{{total}} set",
     "notSetYet": "Not set yet."
+  },
+  "tour": {
+    "common": {
+      "next": "Next",
+      "back": "Back",
+      "skip": "Skip",
+      "skipAll": "Skip tour",
+      "start": "Start tour",
+      "done": "Finish",
+      "replay": "Replay tour",
+      "stepOf": "Step {{current}} of {{total}}",
+      "progressAria": "Tour progress: step {{current}} of {{total}}",
+      "goToDashboard": "Go to dashboard",
+      "needTeam": "Create a team first to continue — or skip the tour.",
+      "needProject": "Create a project first to continue — or skip the tour.",
+      "close": "Close"
+    },
+    "welcome": {
+      "title": "Welcome to DevHub",
+      "body": "Your technical memory for tasks, issues, and decisions. This 7-step tour shows the fastest path from team to shipped release."
+    },
+    "team": {
+      "title": "Create your team",
+      "body": "Teams own projects and members. Create a team first — everything else lives under it."
+    },
+    "project": {
+      "title": "Create your first project",
+      "body": "Projects hold the board, issues, stack, schema, and releases. Create one to unlock the full workspace."
+    },
+    "plan": {
+      "title": "Plan: Board + Issues",
+      "body": "Break work into tasks on the Board (Alt+1) and track bugs in Issues (Alt+2). The N shortcut is paused during this tour."
+    },
+    "build": {
+      "title": "Build: Tests + Stack + Schema",
+      "body": "Lock quality with Test Cases (Alt+3), record versions in Stack (Alt+4), and model data in Schema (Alt+5)."
+    },
+    "decide": {
+      "title": "Decide: Decisions + Releases + API",
+      "body": "Log ADRs in Decisions (Alt+6), group work in Releases (Alt+7), and document endpoints in API (Alt+8)."
+    },
+    "collab": {
+      "title": "Collaborate: Whiteboard + Overview",
+      "body": "Sketch flows in Whiteboard (Alt+9) and review health in Overview (Alt+0). Finish here, or replay anytime from Help."
+    }
   }
 }

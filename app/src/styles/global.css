@@ -18037,3 +18037,227 @@ h4[id] {
     background: var(--surface-hover);
   }
 }
+
+/* ============================================================
+   Onboarding wizard tour — 7-step popup + emerald spotlight ring
+   - Wizard reuses .modal (focus trap + ESC from Modal).
+   - Spotlight ring: 2px emerald, targets raised above dim.
+   - prefers-reduced-motion = fade instant (no slide/scale).
+   - All interactive targets >= 24px.
+   ============================================================ */
+
+.tour-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 24px;
+  padding: 2px 10px;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-pill);
+  background: var(--bg-inset);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.tour-wizard-top {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 10px;
+}
+
+.tour-wizard-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tour-footer-spacer {
+  flex: 1;
+}
+
+.tour-wizard-modal .modal-footer {
+  align-items: center;
+}
+
+.tour-skip-btn {
+  min-height: 28px;
+}
+
+/* Tour overlay: body-level dim with per-target cutout holes. Holes have no
+   overlay pixels, so clicks pass straight to the real glowing button —
+   immune to stacking contexts and overflow clipping. Clicks on the dim
+   are ignored (never skip); the popover (z37) stays interactive. */
+.tour-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  pointer-events: none;
+  animation: tour-fade-in 180ms var(--ease-out);
+}
+
+.tour-overlay-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.tour-overlay-dim {
+  fill: rgba(5, 5, 8, 0.55);
+}
+
+html[data-theme='light'] .tour-overlay-dim {
+  fill: rgba(28, 28, 31, 0.32);
+}
+
+.tour-overlay-glow {
+  fill: none;
+  stroke: var(--accent-ring);
+  stroke-width: 5;
+  opacity: 0.55;
+}
+
+.tour-overlay-ring {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+@keyframes tour-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.tour-wizard-modal {
+  animation: tour-fade-in 160ms var(--ease-out);
+}
+
+/* Anchored coachmark: non-modal card pinned to the union box of the
+   step targets (above the overlay cutouts, below app modals so create
+   dialogs still open on top). */
+.tour-popover {
+  position: fixed;
+  z-index: 37;
+  width: max-content;
+  max-width: 320px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-raised);
+  padding: 14px 14px 12px;
+  animation: tour-fade-in 160ms var(--ease-out);
+}
+
+.tour-popover-centered {
+  top: 12vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+}
+
+.tour-popover-title {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+
+.tour-popover-body .modal-copy {
+  margin: 0;
+}
+
+.tour-popover-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.tour-block-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.tour-popover-arrow {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-hairline);
+}
+
+.tour-popover-arrow[data-placement='bottom'] {
+  top: -7px;
+  border-right: none;
+  border-bottom: none;
+  transform: rotate(45deg);
+}
+
+.tour-popover-arrow[data-placement='top'] {
+  bottom: -7px;
+  border-left: none;
+  border-top: none;
+  transform: rotate(45deg);
+}
+
+.tour-popover-arrow[data-placement='right'] {
+  left: -7px;
+  border-right: none;
+  border-top: none;
+  transform: rotate(45deg);
+}
+
+.tour-popover-arrow[data-placement='left'] {
+  right: -7px;
+  border-left: none;
+  border-bottom: none;
+  transform: rotate(45deg);
+}
+
+@media (max-width: 640px) {
+  .tour-popover {
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0;
+    width: auto;
+    max-width: none;
+    border-radius: 16px 16px 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 12px);
+  }
+
+  .tour-popover-arrow {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-overlay,
+  .tour-wizard-modal,
+  .tour-popover {
+    animation: none !important;
+  }
+
+  .tour-pill {
+    transition: none !important;
+  }
+}
+
+/* Replay entry in sidebar Help group */
+.sidebar-replay-tour {
+  width: 100%;
+}

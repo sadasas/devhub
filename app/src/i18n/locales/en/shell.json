@@ -22,7 +22,9 @@
     "createTeam": "Create team",
     "profile": "Profile",
     "signedIn": "Signed in",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "replayTour": "Replay tour",
+    "help": "Help"
   },
   "theme": {
     "paletteSystem": "Theme: System",
@@ -56,6 +58,7 @@
     "newApiEndpoint": "New API endpoint",
     "newWhiteboard": "New whiteboard",
     "toggleTeamChat": "Toggle team chat",
+    "replayTour": "Replay tour",
     "searching": "Searching…",
     "noMatches": "No matches for “{{query}}”",
     "hintNavigate": "navigate",

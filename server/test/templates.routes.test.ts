@@ -48,7 +48,7 @@ describe('templates', () => {
       .set('X-Forwarded-For', uniqueIp());
     expect(list.status).toBe(200);
     expect(list.body.templates).toHaveLength(1);
-    expect(list.body.templates[0]).toMatchObject({ id: templateId, name: 'Sprint starter', teamName: 'Personal' });
+    expect(list.body.templates[0]).toMatchObject({ id: templateId, name: 'Sprint starter', teamName: 'Test team' });
 
     const single = await request(app)
       .get(`/api/v1/templates/${templateId}`)

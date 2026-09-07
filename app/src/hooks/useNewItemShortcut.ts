@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { isModalOrPaletteOpen, isTypingTarget } from '../lib/keys';
+import { isTourActive } from '../features/onboarding/tour-events';
 
 export const NEW_ITEM_PARAMS: Record<string, string> = {
   board: '1',
@@ -27,6 +28,8 @@ export function useNewItemShortcut(
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'n' || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+      // Tour rule: N is paused while the wizard runs (Alt+digits stay alive).
+      if (isTourActive()) return;
       if (!canEditRef.current) return;
       if (isTypingTarget(e.target) || isModalOrPaletteOpen()) return;
       if (document.querySelector('.wb-shell')) return;

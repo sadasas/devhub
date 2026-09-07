@@ -25,7 +25,7 @@ export function WelcomeHeader({ displayName, projectCount, openIssuesTotal, outd
         </h1>
         <p className="page-subtitle">{subtitle}</p>
       </div>
-      <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={onNewProject}>
+      <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={onNewProject} data-tour-id="create-project">
         {t('dashboard.newProject')}
       </Button>
     </header>

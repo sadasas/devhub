@@ -59,6 +59,19 @@ export default async function globalSetup(): Promise<void> {
   if (cookies.length === 0) {
     throw new Error('globalSetup: no session cookie received');
   }
+  // No auto-create team on register: owner needs an explicit team.
+  const sessionCookie = res
+    .headersArray()
+    .filter((h) => h.name.toLowerCase() === 'set-cookie')
+    .map((h) => h.value.split(';')[0])
+    .join('; ');
+  const teamRes = await ctx.post('/api/v1/teams', {
+    headers: { 'X-Forwarded-For': uniqueIp(), Cookie: sessionCookie },
+    data: { name: 'E2E Team' },
+  });
+  if (!teamRes.ok()) {
+    throw new Error(`globalSetup: create team failed (${teamRes.status()}): ${await teamRes.text()}`);
+  }
   await ctx.dispose();
 
   const authDir = path.join(HERE, '.auth');

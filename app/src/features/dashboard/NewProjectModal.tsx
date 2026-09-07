@@ -8,6 +8,7 @@ import type { PlanLimitResource } from '../../components/PlanLimitModal';
 import { PlanLimitModal } from '../../components/PlanLimitModal';
 import { useProjects } from '../../state/projects-context';
 import { useTeams } from '../../state/teams-context';
+import { isTourActive } from '../onboarding/tour-events';
 import { Plus } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
@@ -59,7 +60,12 @@ export function NewProjectModal({ open, onClose, initialTeamId }: NewProjectModa
       setName('');
       setDescription('');
       onClose();
-      navigate(`/project/${project.id}`);
+      // Tour rule: continue inside the project workspace (?tour=1 resumes at Plan).
+      if (isTourActive()) {
+        navigate(`/project/${project.id}?tab=board&tour=1`);
+      } else {
+        navigate(`/project/${project.id}`);
+      }
     } catch (err) {
       if (isPlanLimitError(err)) {
         setLimitResource(err.details && (err.details as { resource?: string }).resource === 'members' ? 'members' : 'projects');

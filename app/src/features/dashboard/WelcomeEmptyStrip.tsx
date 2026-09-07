@@ -10,7 +10,7 @@ export function WelcomeEmptyNoTeam({ onCreateTeam }: { onCreateTeam: () => void 
       <h3 className="welcome-empty-title">Create a team first</h3>
       <p className="welcome-empty-desc">DevHub organizes projects inside teams — create a team from the sidebar, then come back to add your first project.</p>
       <div className="welcome-empty-actions">
-        <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={onCreateTeam}>
+        <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={onCreateTeam} data-tour-id="create-team">
           Create team
         </Button>
       </div>
@@ -35,7 +35,7 @@ export function WelcomeEmptyNoProject({
       <h3 className="welcome-empty-title">{teamName ? `No projects in ${teamName}` : 'No projects yet'}</h3>
       <p className="welcome-empty-desc">Mulai technical memory pertama. Create a project to track tasks, issues, stack and more.</p>
       <div className="welcome-empty-actions">
-        <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={onCreate}>
+        <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={onCreate} data-tour-id="create-project">
           Create project
         </Button>
         {onImport && (

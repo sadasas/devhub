@@ -279,11 +279,8 @@ async function handleOAuthLogin(res: import('express').Response, profile: Provid
     );
     const id = ins.rows[0]?.id;
     if (!id) throw new ApiError(500, 'INTERNAL', 'Failed to create user');
-    await client.query(
-      `WITH t AS (INSERT INTO teams (name, created_by) VALUES ('Personal', $1) RETURNING id)
-       INSERT INTO team_members (team_id, user_id, role) SELECT id, $1, 'owner' FROM t`,
-      [id],
-    );
+    // No auto-create team: new OAuth users start with zero teams,
+    // same as email/password registration.
     await client.query('INSERT INTO oauth_accounts (user_id, provider, provider_account_id, email, avatar_url) VALUES ($1,$2,$3,$4,$5)', [
       id,
       profile.provider,

@@ -51,16 +51,14 @@ describe('auth routes', () => {
     expect(shortPw.status).toBe(400);
   });
 
-  it('creates a Personal team for new registrations', async () => {
-    const cookie = await register('personal@test.dev');
+  it('starts with zero teams for new registrations (no auto-create)', async () => {
+    const cookie = await register('noteam@test.dev');
     const res = await request(app)
       .get('/api/v1/teams')
       .set('Cookie', cookie)
       .set('X-Forwarded-For', uniqueIp());
     expect(res.status).toBe(200);
-    expect(res.body.teams).toHaveLength(1);
-    expect(res.body.teams[0].name).toBe('Personal');
-    expect(res.body.teams[0].role).toBe('owner');
+    expect(res.body.teams).toHaveLength(0);
   });
 
   it('logs in with correct credentials', async () => {

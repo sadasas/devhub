@@ -14,6 +14,10 @@ import { Skeleton } from '../../components/Skeleton';
 import { InlineError } from '../../components/InlineError';
 import { NewProjectModal } from './NewProjectModal';
 import { CreateTeamModal } from '../teams/CreateTeamModal';
+import { OnboardingWizard } from '../onboarding/OnboardingWizard';
+import { useOnboardingTour } from '../onboarding/useOnboardingTour';
+import { consumeReplayPending, hasTourStep, readTourStep } from '../onboarding/tour-events';
+import { fastForwardStep } from '../onboarding/tour-dom';
 import { WelcomeHeader } from './WelcomeHeader';
 import { WelcomeHeroMicro } from './WelcomeHeroMicro';
 import { WelcomeCommandBar, type SortOption } from './WelcomeCommandBar';
@@ -29,6 +33,7 @@ export function DashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [newOpen, setNewOpen] = useState(false);
   const [teamCreateOpen, setTeamCreateOpen] = useState(false);
+  const tour = useOnboardingTour();
   const [stats, setStats] = useState<Record<string, ProjectStats>>({});
   const [statsLoading, setStatsLoading] = useState(false);
   const [daily, setDaily] = useState<Array<{ date: string; created: number; done: number }> | null>(null);
@@ -335,6 +340,80 @@ export function DashboardPage() {
   const teamsEmpty = teams !== null && teams.length === 0;
   const projectsEmpty = !loading && projects !== null && projects.length === 0;
   const filteredEmpty = !loading && projects !== null && projects.length > 0 && filteredSorted.length === 0;
+
+  // Shared by manual Next, auto-advance, and resume: jump into the newest
+  // project workspace and resume the tour at the Plan step.
+  const advanceFromProjectStep = () => {
+    if (projects === null || projects.length === 0) return false;
+    const first = [...projects].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))[0];
+    if (!first) return false;
+    tour.goTo(3);
+    navigate(`/project/${first.id}?tab=board&tour=1`);
+    return true;
+  };
+
+  // Tour trigger (behavioral, no time-delay): first-run empty team/project,
+  // only when the user never skipped/finished the tour. Also resumes a
+  // persisted tour at step 0-2 (e.g. Back from a project tab step, or
+  // page reload) — steps 3+ belong to the project workspace. Resume
+  // fast-forwards through gates already satisfied (stale step 1 + team). Resume
+  // fast-forwards through gates already satisfied (stale step 1 + team).
+  const tourCanAutoStart =
+    !loading && teams !== null && projects !== null && (teamsEmpty || projectsEmpty);
+  useEffect(() => {
+    if (tour.active || tour.skipped || tour.finished) return;
+    if (teams === null || projects === null) return;
+    if (hasTourStep()) {
+      const at = fastForwardStep(readTourStep(), teams.length > 0);
+      if (at > 2) return;
+      if (at === 2 && advanceFromProjectStep()) return;
+      tour.start(at);
+      return;
+    }
+    if (!tourCanAutoStart) return;
+    tour.start(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourCanAutoStart, loading]);
+
+  // Cross-route replay (Sidebar Help / palette): consume pending flag on mount.
+  useEffect(() => {
+    if (consumeReplayPending()) tour.replay();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleTourNext = () => {
+    // From the Create-project spotlight, continue inside the workspace
+    // when a project already exists (auto ?tab=board&tour=1).
+    if (tour.step === 2 && advanceFromProjectStep()) return;
+    tour.next();
+  };
+
+  // Auto-detect creation while the tour waits on it: team 0→≥1 at step 1
+  // advances, project 0→≥1 at step 2 jumps into the workspace. Skip stays
+  // free, and replay users who already have data never false-trigger
+  // (refs init to null and ignore the loading pass).
+  const prevTeamCount = useRef<number | null>(null);
+  const prevProjectCount = useRef<number | null>(null);
+  useEffect(() => {
+    if (teams === null) return;
+    const n = teams.length;
+    const prev = prevTeamCount.current;
+    prevTeamCount.current = n;
+    if (prev !== null && prev === 0 && n > 0 && tour.active && tour.step === 1) {
+      tour.next();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teams, tour.active, tour.step]);
+  useEffect(() => {
+    if (projects === null) return;
+    const n = projects.length;
+    const prev = prevProjectCount.current;
+    prevProjectCount.current = n;
+    if (prev !== null && prev === 0 && n > 0 && tour.active && tour.step === 2) {
+      advanceFromProjectStep();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projects, tour.active, tour.step]);
 
   // stats for group header open issues
   const groupOpenIssues = (teamProjects: typeof filteredSorted) => {
@@ -667,6 +746,17 @@ export function DashboardPage() {
         initialTeamId={teamFilter !== 'all' ? teamFilter : null}
       />
       <CreateTeamModal open={teamCreateOpen} onClose={() => setTeamCreateOpen(false)} />
+      {tour.active && (
+        <OnboardingWizard
+          step={tour.step}
+          total={tour.total}
+          onNext={handleTourNext}
+          onBack={tour.back}
+          onSkip={tour.skip}
+          onFinish={tour.finish}
+          blockReason={tour.step === 1 && teamsEmpty ? 'team' : tour.step === 2 && projectsEmpty ? 'project' : null}
+        />
+      )}
     </div>
   );
 }

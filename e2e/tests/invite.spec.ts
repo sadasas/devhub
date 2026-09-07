@@ -33,10 +33,10 @@ test.describe('team invite', () => {
     await expect(viewerPage.getByRole('heading', { name: 'Projects' })).toBeVisible();
 
     await viewerPage.goto('/invites');
-    const inviteRow = viewerPage.locator('.data-row', { hasText: 'Personal' });
+    const inviteRow = viewerPage.locator('.data-row', { hasText: 'E2E Team' });
     await expect(inviteRow).toBeVisible();
     await inviteRow.getByRole('button', { name: 'Accept' }).click();
-    await expect(viewerPage.locator('.data-row', { hasText: 'Personal' })).toHaveCount(0);
+    await expect(viewerPage.locator('.data-row', { hasText: 'E2E Team' })).toHaveCount(0);
 
     await viewerPage.goto(`/project/${projectId}`);
     await expect(viewerPage.getByRole('tab', { name: 'board' })).toBeVisible();

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { isModalOrPaletteOpen, isTypingTarget } from '../lib/keys';
+import { isTourActive } from '../features/onboarding/tour-events';
 
 const TAB_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
 
@@ -17,7 +18,11 @@ export function useTabShortcuts<T extends string>(
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (isTypingTarget(e.target) || isModalOrPaletteOpen()) return;
+      if (isTypingTarget(e.target)) return;
+      // Tour: Alt+digits keep working so users can explore tabs mid-tour.
+      // The wizard modal itself handles ESC (skip) + arrows (Back/Next).
+      const tour = isTourActive();
+      if (isModalOrPaletteOpen() && !tour) return;
       const mods = e.ctrlKey || e.metaKey || e.shiftKey;
       if (e.altKey && !mods) {
         const digit = TAB_KEYS.indexOf(e.key);
@@ -27,6 +32,7 @@ export function useTabShortcuts<T extends string>(
           return;
         }
       }
+      if (tour) return;
       // Plain 1-4 → primary tabs (progressive disclosure). No modifier.
       // F3: keyboard 1 2 3 4 for primary, More via Tab + Enter
       if (!mods && !e.altKey) {

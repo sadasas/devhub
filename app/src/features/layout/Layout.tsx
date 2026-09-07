@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { List, MagnifyingGlass } from '@phosphor-icons/react';
 import { Sidebar } from './Sidebar';
 import { TeamRail } from './TeamRail';
+import { isTourActive, readTourStep, subscribeTour } from '../onboarding/tour-events';
+import { newestTeamId } from '../onboarding/tour-dom';
 import { Logo } from '../../components/Logo';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 import { ThemeSwitcher } from '../../components/ThemeSwitcher';
@@ -46,6 +48,14 @@ export function Layout() {
     try { return typeof window !== 'undefined' ? window.matchMedia('(max-width: 860px)').matches : false; } catch { return false; }
   });
   const [liveMsg, setLiveMsg] = useState('');
+
+  // Tour-driven chrome (desktop): from step 1 on, force the sidebar open so
+  // the coachmark anchors at real sidebar buttons. The persisted `collapsed`
+  // state is untouched — it resumes automatically when the tour ends.
+  // Step 0 (welcome) leaves the user's sidebar exactly as it was.
+  const tourActive = useSyncExternalStore(subscribeTour, isTourActive, () => false);
+  const tourStep = useSyncExternalStore(subscribeTour, readTourStep, () => 0);
+  const collapsedEff = tourActive && tourStep >= 1 ? false : collapsed;
   // staged hover: railHover = main rail expanded, hoveredId = which item second shows
   const [isRailHovered, setIsRailHovered] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -64,12 +74,12 @@ export function Layout() {
   const { totalsByTeam: teamUnread } = useActivityUnread();
 
   const isSecondVisible = useMemo(() => {
-    if (!collapsed) return true; // pinned docked — always visible
+    if (!collapsedEff) return true; // pinned docked — always visible
     return isRailHovered && hoveredId !== null;
-  }, [collapsed, isRailHovered, hoveredId]);
+  }, [collapsedEff, isRailHovered, hoveredId]);
 
   // rail compact when collapsed and not hovered
-  const railCompact = collapsed && !isRailHovered;
+  const railCompact = collapsedEff && !isRailHovered;
 
   const [railTeamId, setRailTeamId] = useState<string | null>(() => {
     try {
@@ -366,7 +376,12 @@ export function Layout() {
       const mod = e.ctrlKey || e.metaKey;
       const isB = e.key.toLowerCase() === 'b';
       const isBracket = e.key === '[';
-      if ((mod && isB) || (!mod && isBracket)) { e.preventDefault(); setCollapsed(v => !v); }
+      if ((mod && isB) || (!mod && isBracket)) {
+        // Locked while the tour anchors to the sidebar: collapsing would
+        // hide the glowing buttons mid-tour.
+        if (isTourActive()) return;
+        e.preventDefault(); setCollapsed(v => !v);
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -413,22 +428,31 @@ export function Layout() {
   };
 
   // derived sidebar context for staged hover
+  // Tour step 2 (create project) forces the newest team's context so the
+  // sidebar New project button always exists as an anchor — without
+  // navigating or touching persisted selection.
+  const tourTeamId = useMemo(() => {
+    if (!(tourActive && tourStep === 2)) return null;
+    return newestTeamId(teams);
+  }, [tourActive, tourStep, teams]);
   const sidebarTeamId = useMemo(() => {
-    if (!collapsed) return activeTeamId;
+    if (tourTeamId) return tourTeamId;
+    if (!collapsedEff) return activeTeamId;
     if (hoveredId === 'home') return null;
     if (hoveredId) return hoveredId;
     return activeTeamId;
-  }, [collapsed, hoveredId, activeTeamId]);
+  }, [tourTeamId, collapsedEff, hoveredId, activeTeamId]);
   const sidebarMain: 'home' | 'team' = useMemo(() => {
-    if (!collapsed) return activeMain;
+    if (tourTeamId) return 'team';
+    if (!collapsedEff) return activeMain;
     if (hoveredId === 'home') return 'home';
     if (hoveredId) return 'team';
     return activeMain;
-  }, [collapsed, hoveredId, activeMain]);
+  }, [tourTeamId, collapsedEff, hoveredId, activeMain]);
 
   const isChatInlineOpen = chatOpen && !isMobileChat;
   return (
-    <div className="layout" data-collapsed={collapsed ? 'true' : undefined} data-rail-hover={isRailHovered ? 'true' : undefined} data-second-visible={isSecondVisible ? 'true' : undefined} data-hover-expand={isRailHovered ? 'true' : undefined} data-chat-open={isChatInlineOpen ? 'true' : undefined} style={{ ['--sidebar-w' as any]: `${sidebarWidth}px`, ['--chat-w' as any]: `${isChatInlineOpen ? chatWidth : 0}px` } as React.CSSProperties}>
+    <div className="layout" data-collapsed={collapsedEff ? 'true' : undefined} data-rail-hover={isRailHovered ? 'true' : undefined} data-second-visible={isSecondVisible ? 'true' : undefined} data-hover-expand={isRailHovered ? 'true' : undefined} data-chat-open={isChatInlineOpen ? 'true' : undefined} style={{ ['--sidebar-w' as any]: `${sidebarWidth}px`, ['--chat-w' as any]: `${isChatInlineOpen ? chatWidth : 0}px` } as React.CSSProperties}>
       <a
         className="skip-link"
         href="#main-content"
@@ -488,7 +512,7 @@ export function Layout() {
             activeTeamId={activeTeamId}
             activeMain={activeMain}
             compact={railCompact}
-            collapsed={collapsed}
+            collapsed={collapsedEff}
             unreadByTeam={teamUnread}
             onToggleCollapsed={handleToggleCollapsed}
             onSelectTeam={handleSelectTeam}
@@ -498,11 +522,11 @@ export function Layout() {
             hoveredId={hoveredId}
           />
         </div>
-        <div className="sidebar-shell" data-visible={isSecondVisible ? 'true' : 'false'} aria-hidden={collapsed && !isSecondVisible} onPointerEnter={handleHoverGroupEnter} onPointerLeave={handleHoverGroupLeave}>
-          <div id="sidebar-region" className="sidebar-region" inert={collapsed && !isSecondVisible ? true : undefined} aria-hidden={collapsed && !isSecondVisible ? true : undefined}>
+        <div className="sidebar-shell" data-visible={isSecondVisible ? 'true' : 'false'} aria-hidden={collapsedEff && !isSecondVisible} onPointerEnter={handleHoverGroupEnter} onPointerLeave={handleHoverGroupLeave}>
+          <div id="sidebar-region" className="sidebar-region" inert={collapsedEff && !isSecondVisible ? true : undefined} aria-hidden={collapsedEff && !isSecondVisible ? true : undefined}>
             <Sidebar activeTeamId={sidebarTeamId} activeMain={sidebarMain} onCreateTeam={() => setCreateTeamOpen(true)} />
           </div>
-          {!collapsed && <div className="sidebar-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" onPointerDown={onHandlePointerDown} onDoubleClick={handleToggleCollapsed} />}
+          {!collapsedEff && <div className="sidebar-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" onPointerDown={onHandlePointerDown} onDoubleClick={handleToggleCollapsed} />}
         </div>
       </div>
       <div

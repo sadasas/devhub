@@ -56,6 +56,9 @@ import { DeletedItemsBanner } from './DeletedItemsBanner';
 import { ArchivedBanner } from './ArchivedBanner';
 import { ArchiveUndoToast } from './ArchiveUndoToast';
 import { useTabUnread } from '../../hooks/useTabUnread';
+import { OnboardingWizard } from '../onboarding/OnboardingWizard';
+import { useOnboardingTour } from '../onboarding/useOnboardingTour';
+import { getTourStep } from '../onboarding/tourSteps';
 
 const BoardPageLazy = lazy(() => import('../board/BoardPage').then((m) => ({ default: m.BoardPage })));
 const IssuesPageLazy = lazy(() => import('../issues/IssuesPage').then((m) => ({ default: m.IssuesPage })));
@@ -364,8 +367,9 @@ export function ProjectPage() {
     );
   };
   const project = projects?.find((p) => p.id === projectId);
+  const tour = useOnboardingTour();
   useTabShortcuts(TABS.map((t) => t.id), tab, setTab);
-  useNewItemShortcut(tab, project?.role !== undefined && project.role !== 'viewer' && project?.status !== 'archived', (activeTab, value) => {
+  useNewItemShortcut(tab, (project?.role !== undefined && project.role !== 'viewer' && project?.status !== 'archived') && !tour.active, (activeTab, value) => {
     setSearchParams(
       (prev) => {
         const p = new URLSearchParams(prev);
@@ -416,6 +420,40 @@ export function ProjectPage() {
   useEffect(() => {
     setActionsOpen(false);
   }, [projectId, tab]);
+
+  // Tour entry (behavioral): first arrival with ?tour=1 resumes at Plan (step 3).
+  // Strips ?tour so refresh/back doesn't restart the tour.
+  useEffect(() => {
+    if (searchParams.get('tour') !== '1') return;
+    if (!project) return;
+    if (tour.finished || tour.skipped) {
+      const p = new URLSearchParams(searchParams);
+      p.delete('tour');
+      setSearchParams(p, { replace: true });
+      return;
+    }
+    if (!tour.active) tour.start(3);
+    else if (tour.step < 3) tour.goTo(3);
+    const p = new URLSearchParams(searchParams);
+    p.delete('tour');
+    if (!p.get('tab')) p.set('tab', 'board');
+    setSearchParams(p, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, project !== undefined]);
+
+  // Tour phase -> tab: Plan=board, Build=tests, Decide=decisions, Collab=whiteboard.
+  // Runs only on step change so Alt+digits stay user-controlled.
+  const tourStep = tour.step;
+  const tourActive = tour.active;
+  useEffect(() => {
+    if (!tourActive) return;
+    if (tourStep < 3) return;
+    const def = getTourStep(tourStep);
+    if (def.tab && def.tab !== tab && TABS.some((t) => t.id === def.tab)) {
+      setTab(def.tab as ProjectTab);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourStep, tourActive, projectId]);
   const { copied: pidCopied, copy: copyPid } = useCopyFeedback();
 
   if (!project) {
@@ -856,6 +894,33 @@ export function ProjectPage() {
           projectName={project.name}
           onClose={() => setSaveTemplateOpen(false)}
         />
+        {tour.active && (
+          <OnboardingWizard
+            step={tour.step}
+            total={tour.total}
+            onNext={() => {
+              if (tour.step === 2) {
+                tour.goTo(3);
+                setTab('board');
+                return;
+              }
+              tour.next();
+            }}
+            onBack={() => {
+              // Back from the first tab step returns to the dashboard
+              // project step (sidebar anchor) instead of lingering here.
+              if (tour.step === 3) {
+                tour.goTo(2);
+                navigate('/');
+                return;
+              }
+              tour.back();
+            }}
+            onSkip={tour.skip}
+            onFinish={tour.finish}
+            blockReason={null}
+          />
+        )}
       </div>
     </ProjectProvider>
   );

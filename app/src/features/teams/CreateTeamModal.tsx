@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import {} from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import { useTeams } from '../../state/teams-context';
+import { isTourActive } from '../onboarding/tour-events';
 import { Plus } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
@@ -36,7 +37,13 @@ export function CreateTeamModal({ open, onClose }: CreateTeamModalProps) {
       setName('');
       setIcon('');
       onClose();
-      navigate(`/team/${team.id}`);
+      // Tour rule: stay on the dashboard so the wizard can continue
+      // (default flow navigates to the team page).
+      if (isTourActive()) {
+        navigate('/', { replace: false });
+      } else {
+        navigate(`/team/${team.id}`);
+      }
     } catch (err) {
       setError(getErrorMessage(err, t('teams.createModal.createError')));
       setSubmitting(false);

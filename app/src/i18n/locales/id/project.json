@@ -821,5 +821,50 @@
     "briefTitle": "Brief produk",
     "briefCount": "{{set}}/{{total}} terisi",
     "notSetYet": "Belum diisi."
+  },
+  "tour": {
+    "common": {
+      "next": "Lanjut",
+      "back": "Kembali",
+      "skip": "Lewati",
+      "skipAll": "Lewati tur",
+      "start": "Mulai tur",
+      "done": "Selesai",
+      "replay": "Ulangi tur",
+      "stepOf": "Langkah {{current}} dari {{total}}",
+      "progressAria": "Progres tur: langkah {{current}} dari {{total}}",
+      "goToDashboard": "Ke dasbor",
+      "needTeam": "Buat team dulu untuk lanjut — atau lewati tur.",
+      "needProject": "Buat project dulu untuk lanjut — atau lewati tur.",
+      "close": "Tutup"
+    },
+    "welcome": {
+      "title": "Selamat datang di DevHub",
+      "body": "Memori teknis untuk task, issue, dan keputusan. Tur 7 langkah ini menunjukkan jalan tercepat dari tim hingga rilis."
+    },
+    "team": {
+      "title": "Buat tim Anda",
+      "body": "Tim memiliki project dan anggota. Buat tim dulu — semua hal lain berada di bawahnya."
+    },
+    "project": {
+      "title": "Buat project pertama",
+      "body": "Project menampung board, issue, stack, schema, dan rilis. Buat satu untuk membuka seluruh workspace."
+    },
+    "plan": {
+      "title": "Rencana: Board + Issue",
+      "body": "Pecah pekerjaan jadi task di Board (Alt+1) dan lacak bug di Issue (Alt+2). Shortcut N dijeda selama tur ini."
+    },
+    "build": {
+      "title": "Bangun: Test + Stack + Schema",
+      "body": "Kunci kualitas dengan Test Case (Alt+3), catat versi di Stack (Alt+4), dan modelkan data di Schema (Alt+5)."
+    },
+    "decide": {
+      "title": "Putuskan: Keputusan + Rilis + API",
+      "body": "Catat ADR di Keputusan (Alt+6), kelompokkan pekerjaan di Rilis (Alt+7), dan dokumentasikan endpoint di API (Alt+8)."
+    },
+    "collab": {
+      "title": "Kolaborasi: Whiteboard + Ringkasan",
+      "body": "Sketsa alur di Whiteboard (Alt+9) dan pantau kesehatan di Ringkasan (Alt+0). Selesaikan di sini, atau ulangi kapan saja dari Bantuan."
+    }
   }
 }

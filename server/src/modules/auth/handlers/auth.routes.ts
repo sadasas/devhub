@@ -67,23 +67,15 @@ authRouter.post('/register', registerLimiter, async (req, res) => {
   const passwordHash = await hashPassword(password);
   let userId: string;
   try {
-    userId = await withTransaction(pool, async (client) => {
-      const result = await client.query<{ id: string }>(
-        'INSERT INTO users (email, password_hash, display_name) VALUES ($1, $2, $1) RETURNING id',
-        [email, passwordHash],
-      );
-      const id = result.rows[0]?.id;
-      if (!id) throw new ApiError(500, 'INTERNAL', 'Failed to create user');
-      await client.query(
-        `WITH t AS (
-           INSERT INTO teams (name, created_by) VALUES ('Personal', $1) RETURNING id
-         )
-         INSERT INTO team_members (team_id, user_id, role)
-         SELECT id, $1, 'owner' FROM t`,
-        [id],
-      );
-      return id;
-    });
+    // No auto-create team: new users start with zero teams and create
+    // one manually via POST /teams (WelcomeEmptyNoTeam flow).
+    const result = await pool.query<{ id: string }>(
+      'INSERT INTO users (email, password_hash, display_name) VALUES ($1, $2, $1) RETURNING id',
+      [email, passwordHash],
+    );
+    const id = result.rows[0]?.id;
+    if (!id) throw new ApiError(500, 'INTERNAL', 'Failed to create user');
+    userId = id;
   } catch (err) {
     if ((err as { code?: string })?.code === '23505') {
       throw new ApiError(409, 'CONFLICT', 'Email already registered');

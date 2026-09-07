@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { SquaresFour, FolderSimple, Key, BookOpen, UserCircle, Plus, ArrowUp, ArrowDown, ArrowRight, MagnifyingGlass, Columns, Bug, CheckSquare, Scales, Rocket, Stack, Plugs, ChalkboardSimple, Globe, Archive, ArrowCounterClockwise, Monitor, Sun, Moon, ChatsCircle } from '@phosphor-icons/react';
+import { SquaresFour, FolderSimple, Key, BookOpen, UserCircle, Plus, ArrowUp, ArrowDown, ArrowRight, MagnifyingGlass, Columns, Bug, CheckSquare, Scales, Rocket, Stack, Plugs, ChalkboardSimple, Globe, Archive, ArrowCounterClockwise, Monitor, Sun, Moon, ChatsCircle, Question } from '@phosphor-icons/react';
 import { matchPath, useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useProjects } from '../state/projects-context';
@@ -9,6 +9,7 @@ import { useSearchResults } from '../hooks/useSearchResults';
 import { entityDeepLink } from '../lib/deep-link';
 import { onOpenPalette } from '../lib/palette-events';
 import { toggleChat } from '../lib/chat-events';
+import { isTourActive, requestTourReplay } from '../features/onboarding/tour-events';
 import { LANGUAGES, useAppLocale } from '../i18n/useAppLocale';
 import { useTheme } from '../state/theme-context';
 
@@ -103,6 +104,17 @@ export function CommandPalette() {
         run: () => {
           setOpen(false);
           navigate('/profile');
+        },
+      },
+      {
+        id: 'replay-tour',
+        group: t('palette.groupNavigate'),
+        label: t('palette.replayTour', { defaultValue: 'Replay tour' }),
+        icon: <Question size={16} />,
+        run: () => {
+          setOpen(false);
+          if (location.pathname !== '/') navigate('/');
+          window.setTimeout(() => requestTourReplay(), 60);
         },
       },
       {
@@ -310,6 +322,12 @@ export function CommandPalette() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        // Blocked while the tour runs: the palette is irrelevant to the
+        // current step and sits under the tour dim layer.
+        if (isTourActive()) {
+          e.preventDefault();
+          return;
+        }
         e.preventDefault();
         if (!openRef.current) {
           setQuery('');

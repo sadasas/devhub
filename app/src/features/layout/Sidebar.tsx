@@ -7,10 +7,11 @@ import {
   Notebook,
   Plugs,
   Plus,
+  Question,
   Receipt,
 } from '@phosphor-icons/react';
 import { memo, useEffect, useMemo, useState } from 'react';
-import { NavLink, type NavLinkProps } from 'react-router';
+import { NavLink, useNavigate, type NavLinkProps } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useProjects } from '../../state/projects-context';
 import { useTeams } from '../../state/teams-context';
@@ -18,6 +19,7 @@ import { Button } from '../../components/Button';
 import { Logo } from '../../components/Logo';
 import { Skeleton } from '../../components/Skeleton';
 import { NewProjectModal } from '../dashboard/NewProjectModal';
+import { requestTourReplay } from '../onboarding/tour-events';
 import { useActivityUnread } from '../../state/ActivityUnreadContext';
 
 interface SidebarProps {
@@ -53,6 +55,7 @@ const ProjectRow = memo(function ProjectRow({
 export function Sidebar({ activeTeamId, activeMain = 'team', onCreateTeam }: SidebarProps) {
   const { projects } = useProjects();
   const { teams, invitations } = useTeams();
+  const navigate = useNavigate();
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [prefillTeamId, setPrefillTeamId] = useState<string | null>(null);
   const [filterQuery, setFilterQuery] = useState('');
@@ -102,6 +105,13 @@ export function Sidebar({ activeTeamId, activeMain = 'team', onCreateTeam }: Sid
   const openCreateProject = (teamId?: string) => {
     setPrefillTeamId(teamId ?? activeTeamId ?? null);
     setCreateProjectOpen(true);
+  };
+
+  const handleReplayTour = () => {
+    // Replay always restarts on the dashboard (steps 1-3 live there).
+    if (window.location.pathname !== '/') navigate('/');
+    // Let the route settle before the Dashboard tour hook picks it up.
+    window.setTimeout(() => requestTourReplay(), 60);
   };
 
   const isHome = activeMain === 'home';
@@ -164,6 +174,21 @@ export function Sidebar({ activeTeamId, activeMain = 'team', onCreateTeam }: Sid
               <span>{t('sidebar.docs')}</span>
             </NavLink>
           </nav>
+
+          <div className="sidebar-section">
+            <span>{t('sidebar.help')}</span>
+          </div>
+          <nav className="sidebar-nav" aria-label={t('sidebar.help')}>
+            <button
+              type="button"
+              className="sidebar-item sidebar-replay-tour"
+              onClick={handleReplayTour}
+              data-tour-id="replay-tour"
+            >
+              <Question size={15} weight="duotone" aria-hidden="true" />
+              <span>{t('sidebar.replayTour')}</span>
+            </button>
+          </nav>
         </>
       ) : (
         <>
@@ -186,7 +211,7 @@ export function Sidebar({ activeTeamId, activeMain = 'team', onCreateTeam }: Sid
           ) : !activeTeam ? (
             <div className="sidebar-empty">
               <p>{t('sidebar.noTeamsYet')}</p>
-              <Button variant="ghost" size="sm" onClick={() => onCreateTeam?.()}>
+              <Button variant="ghost" size="sm" onClick={() => onCreateTeam?.()} data-tour-id="create-team">
                 {t('sidebar.createTeam')}
               </Button>
             </div>
@@ -209,6 +234,7 @@ export function Sidebar({ activeTeamId, activeMain = 'team', onCreateTeam }: Sid
                 className="sidebar-create-project"
                 aria-label={`New project in ${activeTeam.name}`}
                 onClick={() => openCreateProject(activeTeam.id)}
+                data-tour-id="create-project"
               >
                 <Plus size={14} weight="bold" aria-hidden="true" />
                 <span>New project</span>
@@ -277,6 +303,14 @@ export function Sidebar({ activeTeamId, activeMain = 'team', onCreateTeam }: Sid
                   <NavLink to={`/team/${activeTeam.id}`} className="sidebar-team-link">
                     View team →
                   </NavLink>
+                  <button
+                    type="button"
+                    className="sidebar-team-link sidebar-replay-tour"
+                    onClick={handleReplayTour}
+                    data-tour-id="replay-tour"
+                  >
+                    {t('sidebar.replayTour')} →
+                  </button>
                 </div>
               </nav>
             </>
