@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowClockwise, BookmarkSimple, Copy, Trash } from '@phosphor-icons/react';
+import { BookmarkSimple, Copy, Trash } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';

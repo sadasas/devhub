@@ -16,7 +16,7 @@ import { PricingCard } from './PricingCard';
 import { PricingCompare } from './PricingCompare';
 import { PlanLimitModal, type PlanLimitResource } from '../../components/PlanLimitModal';
 
-const FAQ_ITEM_KEYS = ['upgrade', 'trial', 'payment', 'timing', 'expired'] as const;
+const FAQ_ITEM_KEYS = ['upgrade', 'trial', 'payment', 'timing', 'downgrade', 'expired'] as const;
 
 function isDowngrade(curMembers: number | null, curProjects: number | null, pkg: BillingPackage): boolean {
   const curM = curMembers === null ? Infinity : curMembers;

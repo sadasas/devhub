@@ -540,9 +540,13 @@
         "q": "Bisa upgrade kapan saja?",
         "a": "Ya, bisa upgrade kapan saja. Sisa hari dari plan sebelumnya akan ditambahkan ke plan baru."
       },
+      "downgrade": {
+        "q": "Bagaimana cara downgrade?",
+        "a": "Pilih paket yang lebih kecil lalu bayar. Berlaku saat periode berjalan habis, jadi akses berbayar tetap jalan sampai saat itu. Jika pemakaian melebihi limit paket tujuan, kurangi member atau proyek dulu, lalu coba lagi."
+      },
       "expired": {
         "q": "Apa yang terjadi jika plan expired?",
-        "a": "Workspace akan kembali ke plan Free. Data tetap aman, tapi limit akan berlaku kembali."
+        "a": "Workspace akan kembali ke plan Free. Data tetap aman, tapi limit akan berlaku kembali. Ada masa tenggang read-only 7 hari untuk perpanjang tanpa kehilangan apa pun."
       }
     },
     "trust": "Pembayaran aman via QRIS / Virtual Account",

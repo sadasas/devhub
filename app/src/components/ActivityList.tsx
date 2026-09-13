@@ -5,7 +5,6 @@ import { formatDate, formatRelative } from '../lib/utils';
 import { useOptionalAuth } from '../state/auth-context';
 import { DetailEmpty } from './DetailList';
 import { DataErrorState } from './DataErrorState';
-import { Skeleton } from './Skeleton';
 
 interface ActivityListProps {
   projectId: string;

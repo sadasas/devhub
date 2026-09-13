@@ -78,6 +78,7 @@ function PaymentFacts({
 }: {
   payment: (BillingPayment | PaymentHistoryItem) | null;
 }) {
+  const { t } = useTranslation('account');
   if (!payment) return null;
   const duration = (payment as { durationDays?: number | null }).durationDays ?? null;
   const amount = payment.amount;

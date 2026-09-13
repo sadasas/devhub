@@ -540,9 +540,13 @@
         "q": "Can I upgrade anytime?",
         "a": "Yes, you can upgrade anytime. Remaining days from your previous plan are added to the new plan."
       },
+      "downgrade": {
+        "q": "How do I downgrade?",
+        "a": "Pick a smaller package and pay. It takes effect when your current period ends, so you keep paid access until then. If your usage exceeds the smaller package limits, reduce members or projects first, then try again."
+      },
       "expired": {
         "q": "What happens when the plan expires?",
-        "a": "The workspace returns to the Free plan. Data stays safe, but limits apply again."
+        "a": "The workspace returns to the Free plan. Data stays safe, but limits apply again. You get a 7-day read-only grace period to renew without losing anything."
       }
     },
     "trust": "Secure payment via QRIS / Virtual Account",

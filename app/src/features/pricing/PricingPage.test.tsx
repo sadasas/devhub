@@ -38,7 +38,7 @@ describe('PricingPage (single-page flow)', () => {
     expect(radios.length).toBeGreaterThanOrEqual(2);
   });
   it('shows a register CTA for anonymous visitors', async () => { renderPage(); expect(await screen.findByText(/Create free account|Buat akun gratis/)).toBeDefined(); });
-  it('renders FAQ section', async () => { renderPage(); expect(await screen.findByText(/FAQ|Pertanyaan Umum/)).toBeDefined(); expect(screen.getByText(/How do I upgrade|Bagaimana cara upgrade/)).toBeDefined(); });
+  it('renders FAQ section', async () => { renderPage(); expect(await screen.findByText(/FAQ|Pertanyaan Umum/)).toBeDefined(); expect(screen.getByText(/How do I upgrade|Bagaimana cara upgrade/)).toBeDefined(); expect(screen.getByText(/How do I downgrade|Bagaimana cara downgrade/)).toBeDefined(); expect(screen.getByText(/7-day read-only grace|read-only 7 hari/)).toBeDefined(); });
   it('renders trust section', async () => { renderPage(); expect(await screen.findByText(/Secure payment|Pembayaran aman/)).toBeDefined(); expect(screen.getByText(/Powered by Pakasir/)).toBeDefined(); });
   it('shows checkout error on the correct card when multiple paid packages', async () => {
     mockUser = { id: 'u1' }; mockTeams = [{ id: 't1', name: 'Test Team' }];
