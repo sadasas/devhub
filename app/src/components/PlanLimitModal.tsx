@@ -42,7 +42,8 @@ export function PlanLimitModal({
 
   function onManageProjects() {
     onClose();
-    navigate(`/team/${teamId}?tab=projects`);
+    // Projects now live in the dashboard default tab (no ?tab= param).
+    navigate(`/?team=${encodeURIComponent(teamId)}`);
   }
 
   if (isDowngradeBlocked && details) {

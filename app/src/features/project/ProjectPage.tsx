@@ -3,14 +3,11 @@ import {
   Archive,
   DotsThreeVertical,
   ArrowCounterClockwise,
-  ArrowLeft,
   BookmarkSimple,
   Bug,
-  Check,
   CheckSquare,
   ChalkboardSimple,
   Columns,
-  Copy,
   Database,
   DownloadSimple,
   Gauge,
@@ -24,18 +21,18 @@ import {
 } from '@phosphor-icons/react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams, useSearchParams } from 'react-router';
+import { useNavigate, Link, useParams, useSearchParams } from 'react-router';
 import { api } from '../../lib/api';
 import { getErrorMessage, isPlanLimitError } from '../../lib/errors';
 import { offlineProvider } from '../../lib/idb-provider';
-import { PROJECT_STATUS, TEAM_ROLE } from '../../lib/labels';
+import { TEAM_ROLE } from '../../lib/labels';
 import { formatDate } from '../../lib/utils';
-import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { usePresenceStatus, viewingStatus } from '../../hooks/usePresenceStatus';
 import { useTabShortcuts } from '../../hooks/useTabShortcuts';
 import { useNewItemShortcut } from '../../hooks/useNewItemShortcut';
 import { ProjectProvider } from '../../state/project-context';
 import { useProjects } from '../../state/projects-context';
+import { useTeams } from '../../state/teams-context';
 import { useAuth } from '../../state/auth-context';
 import type { ExportDocument, Project } from '../../lib/types';
 import { Badge } from '../../components/Badge';
@@ -309,36 +306,40 @@ function ProjectUnreadArea({
         tabIndex={0}
         aria-busy={undefined}
       >
-        <Suspense fallback={<TabSkeleton tab={tab} />}>
-          {tab === 'board' ? (
+        {tab === 'board' ? (
+          <Suspense fallback={<TabSkeleton tab={tab} />}>
             <BoardPageLazy unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new} />
-          ) : tab === 'issues' ? (
-            <IssuesPageLazy unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new} />
-          ) : tab === 'tests' ? (
-            <TestsPageLazy unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new} />
-          ) : tab === 'stack' ? (
-            <StackPageLazy unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new} />
-          ) : tab === 'schema' ? (
-            <SchemaPageLazy
-              projectName={project.name}
-              unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new}
-            />
-          ) : tab === 'decisions' ? (
-            <DecisionsPageLazy unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new} />
-          ) : tab === 'releases' ? (
-            <ReleasesPageLazy unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new} />
-          ) : tab === 'api' ? (
-            <ApiPageLazy
-              projectName={project.name}
-              projectDescription={project.description ?? ''}
-              unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new}
-            />
-          ) : tab === 'overview' ? (
-            <OverviewPageLazy project={project} />
-          ) : tab === 'whiteboard' ? (
-            <WhiteboardPageLazy unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new} />
-          ) : null}
-        </Suspense>
+          </Suspense>
+        ) : (
+          <Suspense fallback={<TabSkeleton tab={tab} />}>
+            {tab === 'issues' ? (
+              <IssuesPageLazy unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new} />
+            ) : tab === 'tests' ? (
+              <TestsPageLazy unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new} />
+            ) : tab === 'stack' ? (
+              <StackPageLazy unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new} />
+            ) : tab === 'schema' ? (
+              <SchemaPageLazy
+                projectName={project.name}
+                unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new}
+              />
+            ) : tab === 'decisions' ? (
+              <DecisionsPageLazy unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new} />
+            ) : tab === 'releases' ? (
+              <ReleasesPageLazy unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new} />
+            ) : tab === 'api' ? (
+              <ApiPageLazy
+                projectName={project.name}
+                projectDescription={project.description ?? ''}
+                unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new}
+              />
+            ) : tab === 'overview' ? (
+              <OverviewPageLazy project={project} />
+            ) : tab === 'whiteboard' ? (
+              <WhiteboardPageLazy unreadIds={(unreadIds as Record<string, { new: ReadonlySet<string> }>)[tab]?.new} />
+            ) : null}
+          </Suspense>
+        )}
       </section>
     </>
   );
@@ -348,6 +349,7 @@ export function ProjectPage() {
   const { t } = useTranslation('project');
   const { projectId = '' } = useParams<{ projectId: string }>();
   const { projects, refresh, remove, update } = useProjects();
+  const { teams } = useTeams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -367,6 +369,8 @@ export function ProjectPage() {
     );
   };
   const project = projects?.find((p) => p.id === projectId);
+  const team = teams?.find((tm) => tm.id === project?.teamId) ?? null;
+  const teamDashboardTo = team ? `/${encodeURIComponent(team.slug || team.id)}/projects` : '/';
   const tour = useOnboardingTour();
   useTabShortcuts(TABS.map((t) => t.id), tab, setTab);
   useNewItemShortcut(tab, (project?.role !== undefined && project.role !== 'viewer' && project?.status !== 'archived') && !tour.active, (activeTab, value) => {
@@ -454,7 +458,6 @@ export function ProjectPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tourStep, tourActive, projectId]);
-  const { copied: pidCopied, copy: copyPid } = useCopyFeedback();
 
   if (!project) {
     return (
@@ -495,10 +498,6 @@ export function ProjectPage() {
     } finally {
       setArchiving(false);
     }
-  }
-
-  async function onCopyProjectId() {
-    await copyPid(projectId);
   }
 
   async function onExport() {
@@ -585,86 +584,42 @@ export function ProjectPage() {
     >
       <ProjectPresenceStatus tab={tab} />
       <div className="page">
+      <article className="pcard pcard--compact">
+      <div className="pcard-body">
         <header className="project-header">
           <div className="project-heading">
-            <button type="button" className="back-btn" onClick={() => navigate('/')}>
-              <ArrowLeft size={14} aria-hidden="true" />
-              {t('page.backToProjects')}
-            </button>
+            <div className="project-heading-top">
+            <nav className="breadcrumb" aria-label="Breadcrumb">
+              <ol className="breadcrumb-list">
+                <li>
+                  <Link className="breadcrumb-link" to={teamDashboardTo}>
+                    {team?.name ?? '…'}
+                  </Link>
+                </li>
+                <li aria-hidden="true" className="breadcrumb-sep">
+                  ›
+                </li>
+                <li>
+                  <span aria-current="page" className="breadcrumb-current" title={project.name}>
+                    {project.name}
+                  </span>
+                </li>
+              </ol>
+            </nav>
             <div className="project-actions" ref={actionsRef}>
-              <div className="project-actions__inline">
+              <PresenceChip badgeOnly />
+              <Badge tone={TEAM_ROLE[role].tone}>{TEAM_ROLE[role].label}</Badge>
+              <SyncStatusChip />
+              {isAdmin && (
                 <Button
-                  variant="ghost"
+                  variant="secondary"
                   size="sm"
-                  leftIcon={<DownloadSimple size={13} aria-hidden="true" />}
-                  onClick={() => void onExport()}
+                  leftIcon={<ShareNetwork size={13} aria-hidden="true" />}
+                  onClick={() => setShareOpen(true)}
                 >
-                  {t('actions.export')}
+                  {project.visibility === 'public' ? t('actions.sharePublic') : t('actions.sharePrivate')}
                 </Button>
-                {role !== 'viewer' && !isArchived && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    leftIcon={<UploadSimple size={13} aria-hidden="true" />}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    {t('actions.import')}
-                  </Button>
-                )}
-                {isAdmin && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    leftIcon={<ShareNetwork size={13} aria-hidden="true" />}
-                    onClick={() => setShareOpen(true)}
-                  >
-                    {project.visibility === 'public' ? t('actions.sharePublic') : t('actions.sharePrivate')}
-                  </Button>
-                )}
-                {role !== 'viewer' && !isArchived && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    leftIcon={<BookmarkSimple size={13} aria-hidden="true" />}
-                    onClick={() => setSaveTemplateOpen(true)}
-                  >
-                    {t('actions.saveAsTemplate')}
-                  </Button>
-                )}
-                {canArchive && !isArchived && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    leftIcon={<Archive size={13} aria-hidden="true" />}
-                    onClick={() => setArchiveConfirm('archive')}
-                    aria-label={`Archive ${project.name}`}
-                  >
-                    Archive
-                  </Button>
-                )}
-                {canArchive && isArchived && (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    leftIcon={<ArrowCounterClockwise size={13} aria-hidden="true" />}
-                    onClick={() => setArchiveConfirm('restore')}
-                    aria-label={`Restore ${project.name}`}
-                  >
-                    Restore
-                  </Button>
-                )}
-                {isAdmin && (
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    leftIcon={<Trash size={13} aria-hidden="true" />}
-                    onClick={() => setConfirmOpen(true)}
-                  >
-                    {t('actions.delete')}
-                  </Button>
-                )}
-              </div>
-
+              )}
               <div className="project-actions__mobile">
                 <Button
                   variant="secondary"
@@ -674,7 +629,7 @@ export function ProjectPage() {
                   aria-expanded={actionsOpen}
                   aria-haspopup="menu"
                   aria-controls="project-actions-menu"
-                  onClick={() => setActionsOpen((o) => !o)}
+                  onClick={() => { setActionsOpen((o) => !o); }}
                 >
                   <DotsThreeVertical size={18} weight="bold" aria-hidden="true" />
                 </Button>
@@ -688,12 +643,6 @@ export function ProjectPage() {
                       <button type="button" role="menuitem" className="more-item" onClick={() => { setActionsOpen(false); fileInputRef.current?.click(); }}>
                         <span className="more-item-icon"><UploadSimple size={14} aria-hidden="true" /></span>
                         <span className="more-item-label">{t('actions.import')}</span>
-                      </button>
-                    )}
-                    {isAdmin && (
-                      <button type="button" role="menuitem" className="more-item" onClick={() => { setActionsOpen(false); setShareOpen(true); }}>
-                        <span className="more-item-icon"><ShareNetwork size={14} aria-hidden="true" /></span>
-                        <span className="more-item-label">{project.visibility === 'public' ? t('actions.sharePublic') : t('actions.sharePrivate')}</span>
                       </button>
                     )}
                     {role !== 'viewer' && !isArchived && (
@@ -724,39 +673,10 @@ export function ProjectPage() {
                 )}
               </div>
             </div>
+            </div>
 
             <div className="project-title-row">
-              <h1 className="page-title">{project.name}</h1>
-              <Badge tone={TEAM_ROLE[role].tone}>{TEAM_ROLE[role].label}</Badge>
-              <Badge tone={PROJECT_STATUS[project.status].tone}>
-                {PROJECT_STATUS[project.status].label}
-              </Badge>
-              <SyncStatusChip />
-              <PresenceChip />
-            </div>
-            <p className="page-subtitle">
-              {t('page.createdInfo', {
-                description: project.description || t('page.noDescription'),
-                date: formatDate(project.createdAt),
-              })}
-            </p>
-            <div className="project-id-row">
-              <code className="project-id-code">{projectId}</code>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="project-id-copy"
-                leftIcon={
-                  pidCopied ? (
-                    <Check size={12} weight="bold" aria-hidden="true" />
-                  ) : (
-                    <Copy size={12} aria-hidden="true" />
-                  )
-                }
-                onClick={() => void onCopyProjectId()}
-              >
-                {pidCopied ? t('actions.copied') : t('actions.copy')}
-              </Button>
+              <h1 className="page-title sr-only">{project.name}</h1>
             </div>
           </div>
           <input
@@ -783,6 +703,9 @@ export function ProjectPage() {
           onSelect={setTab}
           project={project}
         />
+
+      </div>
+      </article>
 
         <ToastStack>
           <SaveBanner />

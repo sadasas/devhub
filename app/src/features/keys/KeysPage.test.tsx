@@ -101,7 +101,8 @@ describe('KeysPage (Connected MCP)', () => {
 
     renderPage();
 
-    expect(await screen.findByText('Failed to load')).not.toBeNull();
+    expect(await screen.findByText('Failed to load data')).not.toBeNull();
+    expect(screen.queryByText('boom')).toBeNull();
   });
 
   it('revokes an app through the confirmation and removes it from the list', async () => {

@@ -29,6 +29,7 @@ import { Button } from '../../components/Button';
 import { ActivityList } from '../../components/ActivityList';
 import { EmptyState } from '../../components/EmptyState';
 import { InlineError } from '../../components/InlineError';
+import { DataErrorState } from '../../components/DataErrorState';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { SearchableSelect } from '../../components/SearchableSelect';
@@ -110,7 +111,7 @@ interface ApiPageProps {
 
 export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageProps) {
   const { t } = useTranslation('extras');
-  const { state, canEdit, dispatch, projectId } = useProject();
+  const { state, error, loadError, canEdit, dispatch, projectId, retryLoad } = useProject();
   const [sidebarWidth, setSidebarWidth] = useState(parseDefaultWidth);
   const [search, setSearch] = useState('');
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -156,6 +157,10 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
     API_COLLECTION_SORT_SPECS.find((s) => s.key === effectiveCollectionSort.key) ?? null;
   const endpointSortSpec =
     API_ENDPOINT_SORT_SPECS.find((s) => s.key === effectiveEndpointSort.key) ?? null;
+
+  if (error) {
+    return <DataErrorState error={loadError ?? error} onRetry={retryLoad} />;
+  }
 
   if (!state) return null;
 
@@ -917,7 +922,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                             onChange={(e) => updateHeader(i, { description: e.target.value })}
                           />
                           <Button
-                            variant="ghost"
+                            variant="danger"
                             size="sm"
                             className="btn-icon api-row-remove"
                             aria-label={t('api.header.remove')}
@@ -983,7 +988,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                             onChange={(e) => updateParam(i, { description: e.target.value })}
                           />
                           <Button
-                            variant="ghost"
+                            variant="danger"
                             size="sm"
                             className="btn-icon api-row-remove"
                             aria-label={t('api.param.remove')}
@@ -1059,7 +1064,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                               />
                             </div>
                             <Button
-                              variant="ghost"
+                              variant="danger"
                               size="sm"
                               className="btn-icon api-row-remove"
                               aria-label={t('api.response.remove')}
@@ -1159,7 +1164,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                 <div className="api-workbench-actions">
                   {canEdit && (
                     <Button
-                      variant="ghost"
+                      variant="danger"
                       size="sm"
                       className="api-delete-btn"
                       aria-label={t('api.tree.deleteCollection')}

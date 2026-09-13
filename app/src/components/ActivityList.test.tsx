@@ -92,7 +92,8 @@ describe('ActivityList', () => {
   it('shows the error state', async () => {
     vi.spyOn(api, 'fetchActivity').mockRejectedValue(new Error('boom'));
     render(<ActivityList projectId={PROJECT_ID} entity="tasks" entityId={ENTITY_ID} />);
-    expect(await screen.findByText('boom')).toBeTruthy();
+    expect(await screen.findByText('Failed to load data')).toBeTruthy();
+    expect(screen.queryByText('boom')).toBeNull();
   });
 
   it('renders object change values as JSON instead of [object Object]', async () => {

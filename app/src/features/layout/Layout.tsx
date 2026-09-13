@@ -1,42 +1,109 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { Outlet, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { List, MagnifyingGlass } from '@phosphor-icons/react';
+import { ChatsCircle, List, MagnifyingGlass } from '@phosphor-icons/react';
 import { Sidebar } from './Sidebar';
-import { TeamRail } from './TeamRail';
+import { LAST_ACTIVE_TEAM_KEY, writeLastActiveTeamId } from './WorkspaceSwitcher';
 import { isTourActive, readTourStep, subscribeTour } from '../onboarding/tour-events';
 import { newestTeamId } from '../onboarding/tour-dom';
-import { Logo } from '../../components/Logo';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 import { ThemeSwitcher } from '../../components/ThemeSwitcher';
 import { openPalette } from '../../lib/palette-events';
-import { onToggleChat } from '../../lib/chat-events';
+import { onToggleChat, toggleChat } from '../../lib/chat-events';
+import { api } from '../../lib/api';
+import { realtimeWsUrl, TeamChatSocket } from '../../lib/realtime-client';
 import { useTeams } from '../../state/teams-context';
 import { useProjects } from '../../state/projects-context';
 import { useAuth } from '../../state/auth-context';
 import { CreateTeamModal } from '../teams/CreateTeamModal';
 import { ProjectChatWidget } from '../project/ProjectChatWidget';
-import { useActivityUnread } from '../../state/ActivityUnreadContext';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 
-const RAIL_ACTIVE_KEY = 'devhub:rail:activeTeam';
-const SIDEBAR_COLLAPSED_KEY = 'devhub:layout:sidebarCollapsed';
 const SIDEBAR_WIDTH_KEY = 'devhub:layout:sidebarWidth';
-const RAIL_MAIN_KEY = 'devhub:rail:activeMain';
+const SIDEBAR_COLLAPSED_KEY = 'devhub:layout:sidebarCollapsed';
 const CHAT_WIDTH_KEY = 'devhub:layout:chatWidth';
 const CHAT_OPEN_PREFIX = 'devhub:layout:chatOpen:';
+const TOPBAR_CHAT_UNREAD_POLL_MS = 30_000;
+
+// Content-header chat toggle — bar action (36px) inside main's sticky
+// content-header (replaces the removed floating FAB + global topbar).
+// Calls the existing toggleChat() event (no prop drilling) and reflects
+// open state via aria-expanded. Unread badge: polling + socket refresh.
+function TopbarChatButton({ teamId, open, isMobile }: { teamId: string; open: boolean; isMobile: boolean }) {
+  const { t } = useTranslation('project');
+  const { user } = useAuth();
+  const [unread, setUnread] = useState(0);
+
+  const refreshUnread = useCallback(async () => {
+    if (!teamId) return;
+    try {
+      const count = await api.getUnreadCount(teamId);
+      setUnread(count);
+    } catch {
+      /* badge best-effort */
+    }
+  }, [teamId]);
+
+  useEffect(() => {
+    if (!user || !teamId || open) return;
+    let cancelled = false;
+    const doPoll = async () => {
+      if (cancelled) return;
+      await refreshUnread();
+    };
+    void doPoll();
+    const timer = setInterval(() => void doPoll(), TOPBAR_CHAT_UNREAD_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [user, teamId, open, refreshUnread]);
+
+  useEffect(() => {
+    if (!user || !teamId || open) return;
+    const socket = new TeamChatSocket({
+      wsUrl: realtimeWsUrl(),
+      teamId,
+      onMessageNew: () => void refreshUnread(),
+    });
+    return () => socket.close();
+  }, [user, teamId, open, refreshUnread]);
+
+  // Clear the local badge when chat opens. Server-side read marking stays
+  // in ProjectChatWidget (single writer) to avoid duplicate requests.
+  useEffect(() => {
+    if (open) setUnread(0);
+  }, [open]);
+
+  const showBadge = !open && unread > 0;
+
+  return (
+    <button
+      id="topbar-chat-btn"
+      type="button"
+      className="topbar-btn topbar-btn-chat"
+      onClick={() => toggleChat()}
+      aria-label={open ? t('chat.closeAria') : t('chat.launcherAria')}
+      aria-expanded={open}
+      aria-controls={isMobile ? 'project-chat-drawer' : 'chat-inline-shell'}
+      aria-haspopup={isMobile ? 'dialog' : undefined}
+    >
+      <ChatsCircle size={18} weight="bold" aria-hidden="true" />
+      {showBadge && (
+        <>
+          <span className="topbar-chat-badge" aria-hidden="true">
+            {unread > 99 ? '99+' : unread}
+          </span>
+          <span className="sr-only">{t('chat.unread', { count: unread })}</span>
+        </>
+      )}
+    </button>
+  );
+}
 
 export function Layout() {
   const [navOpen, setNavOpen] = useState(false);
   const [createTeamOpen, setCreateTeamOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState<boolean>(() => {
-    try {
-      const v = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
-      // default is collapsed true; if key missing => true (new behavior)
-      if (v === null) return true;
-      return v === 'true';
-    } catch { return true; }
-  });
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     try { const v = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY)); return v >= 200 && v <= 400 ? v : 240; } catch { return 240; }
   });
@@ -44,61 +111,29 @@ export function Layout() {
     try { const v = Number(localStorage.getItem(CHAT_WIDTH_KEY)); return v >= 320 && v <= 440 ? v : 360; } catch { return 360; }
   });
   const [chatOpen, setChatOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true'; } catch { return false; }
+  });
   const [isMobileChat, setIsMobileChat] = useState<boolean>(() => {
     try { return typeof window !== 'undefined' ? window.matchMedia('(max-width: 860px)').matches : false; } catch { return false; }
   });
-  const [liveMsg, setLiveMsg] = useState('');
 
-  // Tour-driven chrome (desktop): from step 1 on, force the sidebar open so
-  // the coachmark anchors at real sidebar buttons. The persisted `collapsed`
-  // state is untouched — it resumes automatically when the tour ends.
-  // Step 0 (welcome) leaves the user's sidebar exactly as it was.
+  // Tour state is observed for team-context forcing only. The sidebar is
+  // always visible on desktop, so the tour runs without any force-open lock.
   const tourActive = useSyncExternalStore(subscribeTour, isTourActive, () => false);
   const tourStep = useSyncExternalStore(subscribeTour, readTourStep, () => 0);
-  const collapsedEff = tourActive && tourStep >= 1 ? false : collapsed;
-  // staged hover: railHover = main rail expanded, hoveredId = which item second shows
-  const [isRailHovered, setIsRailHovered] = useState(false);
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const railEnterTimeoutRef = useRef<number | null>(null);
-  const railLeaveTimeoutRef = useRef<number | null>(null);
-  const itemHoverTimeoutRef = useRef<number | null>(null);
-  const hoverGroupLeaveRef = useRef<number | null>(null);
   const hamburgerRef = useRef<HTMLButtonElement | null>(null);
   const drawerRef = useFocusTrap<HTMLDivElement>(navOpen);
   const location = useLocation();
-  const navigate = useNavigate();
   const { t } = useTranslation('shell');
   const { teams } = useTeams();
   const { projects } = useProjects();
   const { user } = useAuth();
-  const { totalsByTeam: teamUnread } = useActivityUnread();
 
-  const isSecondVisible = useMemo(() => {
-    if (!collapsedEff) return true; // pinned docked — always visible
-    return isRailHovered && hoveredId !== null;
-  }, [collapsedEff, isRailHovered, hoveredId]);
-
-  // rail compact when collapsed and not hovered
-  const railCompact = collapsedEff && !isRailHovered;
-
-  const [railTeamId, setRailTeamId] = useState<string | null>(() => {
-    try {
-      return localStorage.getItem(RAIL_ACTIVE_KEY);
-    } catch {
-      return null;
-    }
-  });
-
-  const [activeMain, setActiveMain] = useState<'home' | 'team'>(() => {
-    try {
-      const v = localStorage.getItem(RAIL_MAIN_KEY);
-      return v === 'team' || v === 'home' ? v : 'home';
-    } catch {
-      return 'home';
-    }
-  });
-
-  const derivedFromRoute = useMemo(() => {
+  // Team context derived from the route (the rail selection state is gone).
+  // Slug workspace routes (/:slug/projects|members|settings) resolve via the
+  // teams list by slug; unknown slugs stay null so the page can 404/redirect.
+  const derivedTeamId = useMemo(() => {
     if (location.pathname.startsWith('/team/')) {
       return location.pathname.split('/')[2] ?? null;
     }
@@ -107,53 +142,68 @@ export function Layout() {
       const proj = (projects ?? []).find((p) => p.id === pid);
       return proj?.teamId ?? null;
     }
+    const segs = location.pathname.split('/').filter(Boolean);
+    if (segs.length >= 1 && segs.length <= 2) {
+      const first = segs[0] ?? '';
+      const second = segs[1] ?? '';
+      const isWorkspaceSuffix = second === '' || second === 'projects' || second === 'members' || second === 'settings';
+      const staticFirst = new Set([
+        'invites',
+        'connected',
+        'keys',
+        'templates',
+        'profile',
+        'docs',
+        'pricing',
+        'payments',
+        'reset-password',
+        'p',
+        'billing',
+        'project',
+        'team',
+      ]);
+      if (!staticFirst.has(first) && (segs.length === 2 ? isWorkspaceSuffix : true)) {
+        const found = (teams ?? []).find(
+          (tm) => (tm.slug || tm.id).toLowerCase() === first.toLowerCase(),
+        );
+        if (found) return found.id;
+        // Unknown slug: let the workspace page handle history/404.
+        if (segs.length === 2 && isWorkspaceSuffix) return null;
+      }
+    }
     return null;
-  }, [location.pathname, projects]);
+  }, [location.pathname, projects, teams]);
 
-  const derivedMainFromRoute = useMemo<'home' | 'team' | null>(() => {
-    if (location.pathname.startsWith('/team/') || location.pathname.startsWith('/project/')) return 'team';
-    if (location.pathname === '/' || location.pathname.startsWith('/invites') || location.pathname.startsWith('/pricing') || location.pathname.startsWith('/payments') || location.pathname.startsWith('/connected') || location.pathname.startsWith('/keys') || location.pathname.startsWith('/templates') || location.pathname.startsWith('/docs')) return 'home';
-    return null;
-  }, [location.pathname]);
-
-  useEffect(() => {
-    if (derivedFromRoute) {
-      setRailTeamId(derivedFromRoute);
-      setActiveMain('team');
-    }
-  }, [derivedFromRoute]);
-
-  useEffect(() => {
-    if (derivedMainFromRoute) {
-      setActiveMain(derivedMainFromRoute);
-    }
-  }, [derivedMainFromRoute]);
-
-  useEffect(() => {
-    if (railTeamId) {
-      try {
-        localStorage.setItem(RAIL_ACTIVE_KEY, railTeamId);
-      } catch {}
-    }
-  }, [railTeamId]);
-
-  useEffect(() => {
+  // Single-mode team-first sidebar (Opsi A): there is no Home/All-Team
+  // mode. The route resolves at most one context team (derivedTeamId);
+  // every other route falls back to the last workspace so the L1 project
+  // panel stays populated. Only zero teams resolve to null (onboarding).
+  const activeTeamId = useMemo(() => {
+    if (derivedTeamId) return derivedTeamId;
+    if (!teams || teams.length === 0) return null;
+    // No team in the route: restore the last workspace. A fresh session
+    // (no key) or a stale id (deleted team, logout, shared browser) falls
+    // back to the first team; zero teams stays null for onboarding.
     try {
-      localStorage.setItem(RAIL_MAIN_KEY, activeMain);
-    } catch {}
-  }, [activeMain]);
-
-  useEffect(() => { try { localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed)); } catch {} setLiveMsg(collapsed ? 'Sidebar collapsed' : 'Sidebar expanded'); }, [collapsed]);
+      const last = localStorage.getItem(LAST_ACTIVE_TEAM_KEY);
+      if (last && teams.some((tm) => tm.id === last)) return last;
+    } catch {
+      // Storage unavailable — fall through to the first team.
+    }
+    return teams[0]?.id ?? null;
+  }, [derivedTeamId, teams]);
 
   useEffect(() => { try { localStorage.setItem(SIDEBAR_WIDTH_KEY, String(sidebarWidth)); } catch {} }, [sidebarWidth]);
+  useEffect(() => { try { localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(sidebarCollapsed)); } catch {} }, [sidebarCollapsed]);
   useEffect(() => { try { localStorage.setItem(CHAT_WIDTH_KEY, String(chatWidth)); } catch {} }, [chatWidth]);
 
-  const activeTeamId = useMemo(() => {
-    if (derivedFromRoute) return derivedFromRoute;
-    if (activeMain === 'home') return null;
-    if (railTeamId && teams?.some((tm) => tm.id === railTeamId)) return railTeamId;
-    return teams?.[0]?.id ?? null;
-  }, [derivedFromRoute, railTeamId, teams, activeMain]);
+  // Remember the resolved team so the next session restores it. Only real
+  // membership ids are stored (tour-forced ids bypass this via effectiveTeamId).
+  useEffect(() => {
+    if (!activeTeamId) return;
+    if (!teams?.some((tm) => tm.id === activeTeamId)) return;
+    writeLastActiveTeamId(activeTeamId);
+  }, [activeTeamId, teams]);
 
   // chat open per-team persistence
   useEffect(() => {
@@ -187,16 +237,6 @@ export function Layout() {
     return off;
   }, []);
 
-  // auto-collapse sidebar on narrow desktop when chat opens to keep main >=560
-  useEffect(() => {
-    if (!chatOpen) return;
-    if (isMobileChat) return;
-    if (collapsed) return;
-    try {
-      if (window.innerWidth < 1280) setCollapsed(true);
-    } catch {}
-  }, [chatOpen, isMobileChat, collapsed]);
-
   useEffect(() => {
     setNavOpen(false);
   }, [location.pathname]);
@@ -215,138 +255,17 @@ export function Layout() {
     };
   }, [navOpen]);
 
-  const handleToggleCollapsed = () => {
-    if (window.matchMedia('(max-width: 860px)').matches) return;
-    // clear all hover timers when toggling pinned
-    if (railEnterTimeoutRef.current) window.clearTimeout(railEnterTimeoutRef.current);
-    if (railLeaveTimeoutRef.current) window.clearTimeout(railLeaveTimeoutRef.current);
-    if (itemHoverTimeoutRef.current) window.clearTimeout(itemHoverTimeoutRef.current);
-    if (hoverGroupLeaveRef.current) window.clearTimeout(hoverGroupLeaveRef.current);
-    setIsRailHovered(false);
-    setHoveredId(null);
-    setCollapsed(v => !v);
-  };
-
-  const clearHoverTimers = () => {
-    if (hoverGroupLeaveRef.current) { window.clearTimeout(hoverGroupLeaveRef.current); hoverGroupLeaveRef.current = null; }
-    if (railLeaveTimeoutRef.current) { window.clearTimeout(railLeaveTimeoutRef.current); railLeaveTimeoutRef.current = null; }
-    if (itemHoverTimeoutRef.current) { window.clearTimeout(itemHoverTimeoutRef.current); itemHoverTimeoutRef.current = null; }
-  };
-
-  const isReducedMotion = () => {
-    try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; }
-  };
-
-  const handleRailEnter = () => {
-    if (window.matchMedia('(max-width: 860px)').matches) return;
-    if (!collapsed) return;
-    if (window.matchMedia('(hover: none)').matches) return;
-    clearHoverTimers();
-    if (railEnterTimeoutRef.current) window.clearTimeout(railEnterTimeoutRef.current);
-    if (railLeaveTimeoutRef.current) window.clearTimeout(railLeaveTimeoutRef.current);
-    if (isReducedMotion()) {
-      setIsRailHovered(true);
-      return;
-    }
-    // enter delay to filter mouse pass-through
-    railEnterTimeoutRef.current = window.setTimeout(() => {
-      setIsRailHovered(true);
-    }, 150) as unknown as number;
-  };
-
-  const handleRailLeave = () => {
-    if (railEnterTimeoutRef.current) { window.clearTimeout(railEnterTimeoutRef.current); railEnterTimeoutRef.current = null; }
-    if (railLeaveTimeoutRef.current) window.clearTimeout(railLeaveTimeoutRef.current);
-    if (isReducedMotion()) {
-      setIsRailHovered(false);
-      return;
-    }
-    railLeaveTimeoutRef.current = window.setTimeout(() => {
-      setIsRailHovered(false);
-    }, 300) as unknown as number;
-  };
-
-  const handleHoverItem = (id: string | null) => {
-    if (window.matchMedia('(max-width: 860px)').matches) return;
-    if (!collapsed) return;
-    if (window.matchMedia('(hover: none)').matches) return;
-    clearHoverTimers();
-    if (itemHoverTimeoutRef.current) window.clearTimeout(itemHoverTimeoutRef.current);
-    if (isReducedMotion()) {
-      setIsRailHovered(!!id || isRailHovered);
-      setHoveredId(id);
-      return;
-    }
-    if (id === null) {
-      // leave item but stay on rail -> keep rail expanded, hide second after delay
-      // 250ms gives time to cross bridge to second (fixed overlay)
-      itemHoverTimeoutRef.current = window.setTimeout(() => setHoveredId(null), 250) as unknown as number;
-    } else {
-      // enter item -> show second after small debounce to avoid flicker on fast move
-      const delay = hoveredId ? 40 : 120;
-      itemHoverTimeoutRef.current = window.setTimeout(() => {
-        setIsRailHovered(true);
-        setHoveredId(id);
-      }, delay) as unknown as number;
-    }
-  };
-
-  const handleHoverGroupEnter = () => {
-    clearHoverTimers();
-    // keep rail expanded while over second
-    if (collapsed) setIsRailHovered(true);
-  };
-
-  const handleHoverGroupLeave = () => {
-    if (hoverGroupLeaveRef.current) window.clearTimeout(hoverGroupLeaveRef.current);
-    if (isReducedMotion()) {
-      setIsRailHovered(false);
-      setHoveredId(null);
-      return;
-    }
-    hoverGroupLeaveRef.current = window.setTimeout(() => {
-      setIsRailHovered(false);
-      setHoveredId(null);
-    }, 400) as unknown as number;
-  };
-
-  useEffect(() => {
-    return () => {
-      if (railEnterTimeoutRef.current) window.clearTimeout(railEnterTimeoutRef.current);
-      if (railLeaveTimeoutRef.current) window.clearTimeout(railLeaveTimeoutRef.current);
-      if (itemHoverTimeoutRef.current) window.clearTimeout(itemHoverTimeoutRef.current);
-      if (hoverGroupLeaveRef.current) window.clearTimeout(hoverGroupLeaveRef.current);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!collapsed) {
-      setIsRailHovered(false);
-      setHoveredId(null);
-    }
-  }, [collapsed]);
-
-  // keyboard Ctrl+B or [ to toggle, Ctrl+C / ] to toggle chat, Esc to dismiss flyout
+  // keyboard: Esc closes drawer/chat/modal, Ctrl+C / ] toggles chat,
+  // Ctrl/Cmd+B toggles the desktop sidebar rail.
+  // Team chat shortcuts follow the selected team.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       const isTyping = Boolean(target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable));
       const isModal = Boolean(document.querySelector('.modal-backdrop, .palette'));
-      // Esc dismisses staged flyout when collapsed OR closes chat inline
       if (e.key === 'Escape') {
-        const isModalEsc = isModal;
-        if (!isModalEsc && collapsed && (isRailHovered || hoveredId !== null)) {
-          e.preventDefault();
-          if (railEnterTimeoutRef.current) window.clearTimeout(railEnterTimeoutRef.current);
-          if (railLeaveTimeoutRef.current) window.clearTimeout(railLeaveTimeoutRef.current);
-          if (itemHoverTimeoutRef.current) window.clearTimeout(itemHoverTimeoutRef.current);
-          if (hoverGroupLeaveRef.current) window.clearTimeout(hoverGroupLeaveRef.current);
-          setIsRailHovered(false);
-          setHoveredId(null);
-          return;
-        }
         // Esc closes inline chat when open on desktop (not when modal/palette open)
-        if (!isModalEsc && chatOpen && !isMobileChat) {
+        if (!isModal && chatOpen && !isMobileChat) {
           const isChatFocused = Boolean(document.querySelector('#chat-inline-shell:focus-within'));
           if (isChatFocused || !isTyping) {
             e.preventDefault();
@@ -364,37 +283,34 @@ export function Layout() {
         setChatOpen((v) => !v);
         return;
       }
-      // ] toggles chat inline on desktop (mirror [ for sidebar)
+      // ] toggles chat inline on desktop
       if (!isTyping && !isModal && !window.matchMedia('(max-width: 860px)').matches && e.key === ']' && !e.ctrlKey && !e.metaKey && !e.altKey) {
         if (!user || !activeTeamId) return;
         e.preventDefault();
         setChatOpen((v) => !v);
         return;
       }
-      if (isTyping) return;
-      if (window.matchMedia('(max-width: 860px)').matches) return;
-      const mod = e.ctrlKey || e.metaKey;
-      const isB = e.key.toLowerCase() === 'b';
-      const isBracket = e.key === '[';
-      if ((mod && isB) || (!mod && isBracket)) {
-        // Locked while the tour anchors to the sidebar: collapsing would
-        // hide the glowing buttons mid-tour.
-        if (isTourActive()) return;
-        e.preventDefault(); setCollapsed(v => !v);
+      // Ctrl/Cmd+B toggles the desktop sidebar rail — desktop only, never
+      // while typing or when a modal/palette owns the keyboard.
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        if (isTyping || isModal) return;
+        if (window.matchMedia('(max-width: 860px)').matches) return;
+        e.preventDefault();
+        setSidebarCollapsed((v) => !v);
+        return;
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [user, activeTeamId, collapsed, isRailHovered, hoveredId, chatOpen, isMobileChat]);
+  }, [user, activeTeamId, chatOpen, isMobileChat]);
 
   const onHandlePointerDown = (e: React.PointerEvent) => {
-    if (collapsed) return;
     const startX = e.clientX;
     const startW = sidebarWidth;
     const onMove = (ev: PointerEvent) => {
       const dx = ev.clientX - startX;
       const next = Math.min(360, Math.max(220, startW + dx));
-      if (next < 140) setCollapsed(true); else setSidebarWidth(next);
+      setSidebarWidth(next);
     };
     const onUp = () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); };
     window.addEventListener('pointermove', onMove);
@@ -414,20 +330,6 @@ export function Layout() {
     window.addEventListener('pointerup', onUp);
   };
 
-  const handleSelectTeam = (teamId: string) => {
-    setRailTeamId(teamId);
-    setActiveMain('team');
-    setNavOpen(false);
-    navigate(`/team/${teamId}`);
-  };
-
-  const handleSelectHome = () => {
-    setActiveMain('home');
-    setNavOpen(false);
-    navigate('/');
-  };
-
-  // derived sidebar context for staged hover
   // Tour step 2 (create project) forces the newest team's context so the
   // sidebar New project button always exists as an anchor — without
   // navigating or touching persisted selection.
@@ -435,24 +337,13 @@ export function Layout() {
     if (!(tourActive && tourStep === 2)) return null;
     return newestTeamId(teams);
   }, [tourActive, tourStep, teams]);
-  const sidebarTeamId = useMemo(() => {
-    if (tourTeamId) return tourTeamId;
-    if (!collapsedEff) return activeTeamId;
-    if (hoveredId === 'home') return null;
-    if (hoveredId) return hoveredId;
-    return activeTeamId;
-  }, [tourTeamId, collapsedEff, hoveredId, activeTeamId]);
-  const sidebarMain: 'home' | 'team' = useMemo(() => {
-    if (tourTeamId) return 'team';
-    if (!collapsedEff) return activeMain;
-    if (hoveredId === 'home') return 'home';
-    if (hoveredId) return 'team';
-    return activeMain;
-  }, [tourTeamId, collapsedEff, hoveredId, activeMain]);
+  const effectiveTeamId = tourTeamId ?? activeTeamId;
+
+  // Team chat (button, panel, shortcuts) follows the selected team.
 
   const isChatInlineOpen = chatOpen && !isMobileChat;
   return (
-    <div className="layout" data-collapsed={collapsedEff ? 'true' : undefined} data-rail-hover={isRailHovered ? 'true' : undefined} data-second-visible={isSecondVisible ? 'true' : undefined} data-hover-expand={isRailHovered ? 'true' : undefined} data-chat-open={isChatInlineOpen ? 'true' : undefined} style={{ ['--sidebar-w' as any]: `${sidebarWidth}px`, ['--chat-w' as any]: `${isChatInlineOpen ? chatWidth : 0}px` } as React.CSSProperties}>
+    <div className="layout" data-chat-open={isChatInlineOpen ? 'true' : undefined} data-sidebar-collapsed={sidebarCollapsed ? 'true' : undefined} style={{ ['--sidebar-w' as any]: `${sidebarCollapsed ? 0 : sidebarWidth}px`, ['--chat-w' as any]: `${isChatInlineOpen ? chatWidth : 0}px` } as React.CSSProperties}>
       <a
         className="skip-link"
         href="#main-content"
@@ -467,37 +358,6 @@ export function Layout() {
       >
         {t('layout.skipToContent')}
       </a>
-      <div className="app-prefs" aria-label="Preferences">
-        <ThemeSwitcher triggerClassName="app-lang-btn" />
-        <LanguageSwitcher triggerClassName="app-lang-btn" />
-      </div>
-      <header className="topbar">
-        <button
-          ref={hamburgerRef}
-          type="button"
-          className="topbar-btn"
-          onClick={() => setNavOpen((o) => !o)}
-          aria-label={navOpen ? t('layout.closeNav') : t('layout.openNav')}
-          aria-expanded={navOpen}
-          aria-controls="mobile-nav-drawer"
-        >
-          <List size={18} weight="bold" aria-hidden="true" />
-        </button>
-        <span className="topbar-brand">
-          <Logo size={16} />
-          <span>DevHub</span>
-        </span>
-        <ThemeSwitcher triggerClassName="topbar-btn" />
-        <LanguageSwitcher triggerClassName="topbar-btn" />
-        <button
-          type="button"
-          className="topbar-btn"
-          onClick={openPalette}
-          aria-label={t('palette.open')}
-        >
-          <MagnifyingGlass size={18} aria-hidden="true" />
-        </button>
-      </header>
       <button
         type="button"
         className={`nav-backdrop${navOpen ? ' nav-backdrop-open' : ''}`}
@@ -505,28 +365,12 @@ export function Layout() {
         aria-label={t('layout.closeNav')}
         tabIndex={navOpen ? 0 : -1}
       />
-      <div className="desktop-sidebar-group" onPointerEnter={handleHoverGroupEnter} onPointerLeave={handleHoverGroupLeave}>
-        <div className="team-rail-desktop" aria-hidden="false" onPointerEnter={handleRailEnter} onPointerLeave={handleRailLeave} onFocusCapture={handleRailEnter} onBlurCapture={handleHoverGroupLeave}>
-          <TeamRail
-            teams={teams}
-            activeTeamId={activeTeamId}
-            activeMain={activeMain}
-            compact={railCompact}
-            collapsed={collapsedEff}
-            unreadByTeam={teamUnread}
-            onToggleCollapsed={handleToggleCollapsed}
-            onSelectTeam={handleSelectTeam}
-            onSelectHome={handleSelectHome}
-            onCreateTeam={() => setCreateTeamOpen(true)}
-            onHoverItem={handleHoverItem}
-            hoveredId={hoveredId}
-          />
-        </div>
-        <div className="sidebar-shell" data-visible={isSecondVisible ? 'true' : 'false'} aria-hidden={collapsedEff && !isSecondVisible} onPointerEnter={handleHoverGroupEnter} onPointerLeave={handleHoverGroupLeave}>
-          <div id="sidebar-region" className="sidebar-region" inert={collapsedEff && !isSecondVisible ? true : undefined} aria-hidden={collapsedEff && !isSecondVisible ? true : undefined}>
-            <Sidebar activeTeamId={sidebarTeamId} activeMain={sidebarMain} onCreateTeam={() => setCreateTeamOpen(true)} />
+      <div className="desktop-sidebar-group">
+        <div className="sidebar-shell">
+          <div id="sidebar-region" className="sidebar-region">
+            <Sidebar activeTeamId={effectiveTeamId} contextTeamId={tourTeamId ?? derivedTeamId} onCreateTeam={() => setCreateTeamOpen(true)} />
           </div>
-          {!collapsedEff && <div className="sidebar-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" onPointerDown={onHandlePointerDown} onDoubleClick={handleToggleCollapsed} />}
+          <div className="sidebar-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" onPointerDown={onHandlePointerDown} />
         </div>
       </div>
       <div
@@ -540,21 +384,42 @@ export function Layout() {
         inert={!navOpen ? true : undefined}
       >
         <div className="sidebar-drawer-inner">
-          <div className="team-rail-mobile">
-            <TeamRail
-              teams={teams}
-              activeTeamId={activeTeamId}
-              activeMain={activeMain}
-              unreadByTeam={teamUnread}
-              onSelectTeam={handleSelectTeam}
-              onSelectHome={handleSelectHome}
-              onCreateTeam={() => setCreateTeamOpen(true)}
-            />
-          </div>
-          <Sidebar activeTeamId={activeTeamId} activeMain={activeMain} onCreateTeam={() => setCreateTeamOpen(true)} />
+          <Sidebar activeTeamId={activeTeamId} contextTeamId={derivedTeamId} onCreateTeam={() => setCreateTeamOpen(true)} />
         </div>
       </div>
       <main className="main" id="main-content" tabIndex={-1} inert={navOpen ? true : undefined}>
+        <div className="content-header">
+          <button
+            ref={hamburgerRef}
+            type="button"
+            className="topbar-btn topbar-sidebar-btn"
+            onClick={() => {
+              if (window.matchMedia('(max-width: 860px)').matches) setNavOpen((o) => !o);
+              else setSidebarCollapsed((v) => !v);
+            }}
+            aria-label={sidebarCollapsed ? t('layout.expandSidebar') : t('layout.collapseSidebar')}
+            aria-expanded={!sidebarCollapsed}
+            aria-controls="sidebar-region"
+            title={sidebarCollapsed ? t('layout.expandSidebar') : t('layout.collapseSidebar')}
+          >
+            <List size={18} weight="bold" aria-hidden="true" />
+          </button>
+          <div className="content-header-actions">
+            <button
+              type="button"
+              className="topbar-btn"
+              onClick={openPalette}
+              aria-label={t('palette.open')}
+            >
+              <MagnifyingGlass size={18} aria-hidden="true" />
+            </button>
+            <ThemeSwitcher triggerClassName="topbar-btn" />
+            <LanguageSwitcher triggerClassName="topbar-btn" />
+            {user && activeTeamId ? (
+              <TopbarChatButton teamId={activeTeamId} open={chatOpen} isMobile={isMobileChat} />
+            ) : null}
+          </div>
+        </div>
         <Outlet />
       </main>
       {user && activeTeamId && (() => {
@@ -573,9 +438,7 @@ export function Layout() {
           />
         );
       })()}
-      <div aria-live="polite" className="sr-only">{liveMsg}</div>
       <CreateTeamModal open={createTeamOpen} onClose={() => setCreateTeamOpen(false)} />
     </div>
   );
 }
-

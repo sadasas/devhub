@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { ArrowSquareOut, Trash } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
@@ -8,6 +9,7 @@ import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { Skeleton } from '../../components/Skeleton';
 import { InlineError } from '../../components/InlineError';
+import { DataErrorState } from '../../components/DataErrorState';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { UsageMeter } from '../../components/UsageMeter';
 
@@ -22,6 +24,7 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
   const [data, setData] = useState<BillingStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadErrorRaw, setLoadErrorRaw] = useState<unknown>(null);
   const [bannerBusy, setBannerBusy] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [bannerError, setBannerError] = useState<string | null>(null);
@@ -31,11 +34,13 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
 
   const load = useCallback(async () => {
     setError(null);
+    setLoadErrorRaw(null);
     try {
       const status = await api.billingStatus(teamId);
       setData(status);
     } catch (err) {
       setError(getErrorMessage(err, t('teams.billing.loadError')));
+      setLoadErrorRaw(err);
     } finally {
       setLoading(false);
     }
@@ -48,8 +53,22 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
   if (loading) {
     return (
       <section className="tab-panel billing-panel" aria-busy="true">
-        <Skeleton style={{ width: '100%', height: 96 }} />
-        <Skeleton style={{ width: '100%', height: 64 }} />
+        <div className="billing-card" aria-hidden="true">
+          <div className="billing-plan-row" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <Skeleton style={{ width: 120, height: 18 }} />
+            <Skeleton style={{ width: 56, height: 18, borderRadius: 999 }} />
+          </div>
+          <div className="usage-meter-list" style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+            {[0, 1].map((i) => (
+              <div key={i} className="usage-meter" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Skeleton style={{ width: 64, height: 12 }} />
+                <Skeleton style={{ flex: 1, height: 8, borderRadius: 999 }} />
+                <Skeleton style={{ width: 56, height: 12 }} />
+              </div>
+            ))}
+          </div>
+          <Skeleton style={{ width: 110, height: 28, borderRadius: 8, marginTop: 16 }} />
+        </div>
       </section>
     );
   }
@@ -57,12 +76,7 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
   if (error) {
     return (
       <section className="tab-panel billing-panel">
-        <InlineError>
-          {error}{' '}
-          <Button variant="ghost" size="sm" onClick={() => void load()}>
-            {t('common:action.retry')}
-          </Button>
-        </InlineError>
+        <DataErrorState error={loadErrorRaw ?? error} onRetry={() => void load()} />
       </section>
     );
   }
@@ -158,15 +172,17 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
           {bannerError && <InlineError>{bannerError}</InlineError>}
           <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
             <Button
-              variant="secondary"
+              variant="ghost"
               size="sm"
+              leftIcon={<ArrowSquareOut size={13} weight="bold" aria-hidden="true" />}
               onClick={() => navigate(`/billing/${teamId}?orderId=${pendingPayment.orderId}`)}
             >
               Detail
             </Button>
             <Button
-              variant="ghost"
+              variant="danger"
               size="sm"
+              leftIcon={<Trash size={13} aria-hidden="true" />}
               disabled={bannerBusy}
               onClick={() => setConfirmCancel(true)}
             >
@@ -214,16 +230,18 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
             {bannerErrorScheduled && <InlineError>{bannerErrorScheduled}</InlineError>}
             <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
               <Button
-                variant="ghost"
+                variant="danger"
                 size="sm"
+                leftIcon={<Trash size={13} aria-hidden="true" />}
                 disabled={bannerBusyScheduled}
                 onClick={() => setConfirmCancelScheduled(true)}
               >
                 {t('teams.billing.cancelScheduled', { defaultValue: 'Batalkan jadwal' })}
               </Button>
               <Button
-                variant="secondary"
+                variant="ghost"
                 size="sm"
+                leftIcon={<ArrowSquareOut size={13} weight="bold" aria-hidden="true" />}
                 onClick={() => navigate(`/pricing?teamId=${teamId}`)}
               >
                 {t('teams.billing.viewDetail', { defaultValue: 'Lihat detail' })}

@@ -7,6 +7,7 @@ import { useAuth } from '../../state/auth-context';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Logo } from '../../components/Logo';
+import { Skeleton } from '../../components/Skeleton';
 import { InlineError } from '../../components/InlineError';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 import { ThemeSwitcher } from '../../components/ThemeSwitcher';
@@ -50,6 +51,7 @@ export function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [oauthProviders, setOauthProviders] = useState<{ google: boolean; github: boolean }>({ google: false, github: false });
+  const [providersKnown, setProvidersKnown] = useState(false);
   const [oauthError] = useState<string | null>(() => getOAuthError());
 
   useEffect(() => {
@@ -62,6 +64,7 @@ export function AuthPage() {
       } catch {
         // ignore, public endpoint may be unreachable
       }
+      if (!cancelled) setProvidersKnown(true);
     })();
     return () => {
       cancelled = true;
@@ -160,6 +163,17 @@ export function AuthPage() {
             </p>
           </div>
 
+          {!providersKnown && !isForgot && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }} aria-hidden="true">
+              <Skeleton style={{ width: "100%", height: 44, borderRadius: 8 }} />
+              <Skeleton style={{ width: "100%", height: 44, borderRadius: 8 }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "2px 0" }}>
+                <div style={{ flex: 1, height: 1, background: "var(--border-hairline)" }} />
+                <Skeleton style={{ width: 24, height: 12 }} />
+                <div style={{ flex: 1, height: 1, background: "var(--border-hairline)" }} />
+              </div>
+            </div>
+          )}
           {(oauthProviders.google || oauthProviders.github) && !isForgot && (
             <>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

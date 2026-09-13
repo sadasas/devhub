@@ -28,7 +28,7 @@ import { realtimeWsUrl, TeamChatSocket, type TeamChatSocketOptions } from '../..
 import { Avatar } from '../../components/Avatar';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
-import { InlineError } from '../../components/InlineError';
+import { DataErrorState } from '../../components/DataErrorState';
 import { FE_LIMITS } from '../../lib/limits';
 
 const PAGE_SIZE = 30;
@@ -112,9 +112,9 @@ export function ChatPanel({ teamId, userId, userDisplayName }: ChatPanelProps) {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [nextCursorId, setNextCursorId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadErrorRaw, setLoadErrorRaw] = useState<unknown>(null);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
-  const [sendError, setSendError] = useState<string | null>(null);
   const [failedIds, setFailedIds] = useState<string[]>([]);
   const [deleteFailedIds, setDeleteFailedIds] = useState<string[]>([]);
   const [queuedCount, setQueuedCount] = useState(0);
@@ -207,6 +207,7 @@ const socketRef = useRef<TeamChatSocket | null>(null);
       setNextCursorId(res.nextCursorId ?? null);
       setLoadError(null);
       const openedAt = new Date().toISOString();
+      setLoadErrorRaw(null);
       const saved = await getMeta<string>(chatLastReadKey(teamId)).catch(() => null);
       if (typeof saved === 'string') setLastReadAt(saved);
       setOpenedAt(openedAt);
@@ -216,6 +217,7 @@ const socketRef = useRef<TeamChatSocket | null>(null);
       });
     } catch (err) {
       setLoadError(getErrorMessage(err, t('teams.chat.loadError')));
+      setLoadErrorRaw(err);
       setMessages([]);
     }
   }, [teamId, t]);
@@ -438,7 +440,6 @@ async function onSend() {
     const content = draft.trim();
     if (!content || sending) return;
     setSending(true);
-    setSendError(null);
     const refs = refsRef.current;
     const temp: ChatMessage = {
       id: `local-${Date.now()}`,
@@ -485,7 +486,6 @@ async function onSend() {
         saveChatQueue();
       } else {
         setFailedIds((ids) => [...ids, temp.id]);
-        setSendError(getErrorMessage(err, t('teams.chat.sendFailed')));
       }
     } finally {
       setSending(false);
@@ -635,14 +635,14 @@ return (
               </span>
             </div>
             <div className="chat-skeleton-row">
-              <span className="chat-skeleton-avatar skeleton" />
+              <span className="chat-skeleton-time skeleton" />
               <span className="chat-skeleton-lines">
                 <span className="skeleton" />
                 <span className="skeleton" />
               </span>
             </div>
             <div className="chat-skeleton-row">
-              <span className="chat-skeleton-avatar skeleton" />
+              <span className="chat-skeleton-time skeleton" />
               <span className="chat-skeleton-lines">
                 <span className="skeleton" />
                 <span className="skeleton" />
@@ -790,8 +790,7 @@ return (
         )}
       </div>
       <div className="chat-inline-feedback">
-        {loadError && <InlineError>{loadError}</InlineError>}
-        {sendError && <InlineError>{sendError}</InlineError>}
+        {loadError && <DataErrorState error={loadErrorRaw ?? loadError} onRetry={() => void loadFirstPage()} />}
       </div>
       <div className="chat-composer">
         {queuedCount > 0 && (

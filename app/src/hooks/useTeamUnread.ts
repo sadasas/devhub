@@ -3,7 +3,7 @@ import { useActivityUnread } from '../state/ActivityUnreadContext';
 
 /**
  * Thin wrapper over shared ActivityUnreadContext for backward compat.
- * TeamRail now reuses single batch — no extra network.
+ * Reuses a single batch — no extra network.
  */
 export function useTeamUnread(
   teams: { id: string }[] | null | undefined,

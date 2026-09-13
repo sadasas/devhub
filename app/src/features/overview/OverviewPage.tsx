@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
-import { Archive, ArrowCounterClockwise, ChartBar, PencilSimple } from '@phosphor-icons/react';
+import { Archive, ArrowCounterClockwise, ChartBar, Check, Copy, PencilSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import type { Project } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { useProjects } from '../../state/projects-context';
+import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { api } from '../../lib/api';
 import { formatDate } from '../../lib/utils';
 import { formatHours } from '../../lib/format';
@@ -19,7 +20,7 @@ import type { TaskStatus, TaskPriority, IssueSeverity } from '../../lib/types';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
-import { InlineError } from '../../components/InlineError';
+import { DataErrorState } from '../../components/DataErrorState';
 import { Skeleton } from '../../components/Skeleton';
 import { EditPrdModal } from '../project/EditPrdModal';
 
@@ -194,13 +195,14 @@ function MemberRow({ stat }: { stat: MemberStat }) {
 
 export function OverviewPage({ project }: { project: Project }) {
   const { t } = useTranslation('project');
-  const { state, loading, error, canEdit, teamId } = useProject();
+  const { state, loading, error, loadError, canEdit, teamId, retryLoad } = useProject();
   const { update } = useProjects();
   const [editOpen, setEditOpen] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [membersLoaded, setMembersLoaded] = useState(false);
   const [memberNames, setMemberNames] = useState<Record<string, string>>({});
   const [memberAvatars, setMemberAvatars] = useState<Record<string, string | null>>({});
+  const { copied: idCopied, copy: copyId } = useCopyFeedback();
 
   useEffect(() => {
     if (!teamId) {
@@ -236,30 +238,79 @@ export function OverviewPage({ project }: { project: Project }) {
       <div role="status" aria-busy="true" aria-live="polite" aria-label="Loading overview">
         <span className="sr-only">Loading overview…</span>
         <div aria-hidden="true">
-          <Skeleton style={{ width: 220, height: 20, marginBottom: 8 }} />
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-            {[0, 1, 2, 3].map((i) => (
-              <Skeleton key={i} style={{ width: 96, height: 18, borderRadius: 999 }} />
-            ))}
+          <div className="data-list-header">
+            <Skeleton style={{ width: 130, height: 15 }} />
+            <Skeleton style={{ width: 96, height: 28, borderRadius: 8 }} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 10, marginBottom: 22 }}>
+          <div className="about-hero">
+            <Skeleton style={{ width: "90%", height: 14 }} />
+            <p className="about-meta" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {[96, 130, 130, 72, 72].map((w, i) => (
+                <Skeleton key={i} style={{ width: w, height: 20, borderRadius: 999 }} />
+              ))}
+            </p>
+            <div className="about-idrow" style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
+              <Skeleton style={{ width: 220, height: 14 }} />
+              <Skeleton style={{ width: 64, height: 28, borderRadius: 8 }} />
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: 10, marginBottom: 22, marginTop: 16 }}>
             {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
               <Skeleton key={i} style={{ height: 68, borderRadius: 12 }} />
             ))}
           </div>
           <div className="stats-grid">
             {[0, 1, 2, 3].map((i) => (
-              <Skeleton key={i} style={{ height: 160, borderRadius: 12 }} />
+              <div key={i} style={{ display: "flex", gap: 12, alignItems: "center", padding: 12, border: "1px solid var(--border-hairline)", borderRadius: 12 }}>
+                <Skeleton style={{ width: 72, height: 72, borderRadius: "50%", flexShrink: 0 }} />
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+                  {[0, 1, 2, 3].map((j) => (
+                    <div key={j} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <Skeleton style={{ width: 10, height: 10, borderRadius: 999, flexShrink: 0 }} />
+                      <Skeleton style={{ width: "55%", height: 11 }} />
+                      <Skeleton style={{ width: 24, height: 11, marginLeft: "auto" }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
-          <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ marginTop: 22, display: "flex", flexDirection: "column", gap: 8 }}>
+            <div className="member-row member-row-head" aria-hidden="true" style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              <span style={{ width: 28 }} />
+              <Skeleton style={{ width: 90, height: 11 }} />
+              <span style={{ flex: 1 }} />
+              <Skeleton style={{ width: 130, height: 11 }} />
+              <Skeleton style={{ width: 36, height: 11 }} />
+            </div>
             {[0, 1, 2].map((i) => (
-              <div key={i} className="member-row" style={{ height: 40, gap: 12, alignItems: 'center' }}>
-                <Skeleton style={{ width: 28, height: 28, borderRadius: '50%' }} />
+              <div key={i} className="member-row" style={{ gap: 12, alignItems: "center" }}>
+                <Skeleton style={{ width: 28, height: 28, borderRadius: "50%" }} />
                 <Skeleton style={{ width: 120, height: 14 }} />
-                <Skeleton style={{ width: '40%', height: 6, borderRadius: 999 }} />
-                <Skeleton style={{ width: 44, height: 11 }} />
+                <div className="member-bar-track" style={{ flex: 1, display: "flex", height: 8, borderRadius: 999, overflow: "hidden" }}>
+                  <Skeleton style={{ width: "45%", height: 8, borderRadius: 0 }} />
+                  <Skeleton style={{ width: "30%", height: 8, borderRadius: 0 }} />
+                </div>
+                <span className="member-nums tabular" style={{ display: "flex", gap: 8 }}>
+                  <Skeleton style={{ width: 20, height: 11 }} />
+                  <Skeleton style={{ width: 20, height: 11 }} />
+                  <Skeleton style={{ width: 20, height: 11 }} />
+                  <Skeleton style={{ width: 20, height: 11 }} />
+                </span>
+                <Skeleton style={{ width: 36, height: 11 }} />
               </div>
+            ))}
+          </div>
+          <div className="about-cards" style={{ display: "grid", gap: 12, marginTop: 22 }}>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <section key={i} className="about-card" style={{ padding: 12 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+                  <Skeleton style={{ width: 14, height: 14, borderRadius: 4 }} />
+                  <Skeleton style={{ width: 120, height: 13 }} />
+                </div>
+                <Skeleton style={{ width: "100%", height: 12 }} />
+                <Skeleton style={{ width: "75%", height: 12, marginTop: 6 }} />
+              </section>
             ))}
           </div>
         </div>
@@ -268,7 +319,7 @@ export function OverviewPage({ project }: { project: Project }) {
   }
 
   if (error) {
-    return <InlineError>{error}</InlineError>;
+    return <DataErrorState error={loadError ?? error} onRetry={retryLoad} />;
   }
 
   if (!state) return null;
@@ -374,6 +425,24 @@ export function OverviewPage({ project }: { project: Project }) {
             <Badge tone={TEAM_ROLE[project.role].tone}>{t(`overview.teamRole.${project.role}`)}</Badge>
           </span>
         </p>
+        <div className="about-idrow">
+          <code className="project-id-code">{project.id}</code>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="project-id-copy"
+            leftIcon={
+              idCopied ? (
+                <Check size={12} weight="bold" aria-hidden="true" />
+              ) : (
+                <Copy size={12} aria-hidden="true" />
+              )
+            }
+            onClick={() => void copyId(project.id)}
+          >
+            {idCopied ? t('actions.copied') : t('actions.copy')}
+          </Button>
+        </div>
         {project.status === 'archived' && canEdit && (
           <div style={{ marginTop: 10 }}>
             <Button

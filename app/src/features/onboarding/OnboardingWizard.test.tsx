@@ -399,7 +399,7 @@ describe('resolveTarget sidebar priority', () => {
     document.body.appendChild(dash);
     mockRect(dash, { top: 400, left: 400, width: 140, height: 36 });
     const rail = document.createElement('div');
-    rail.className = 'team-rail';
+    rail.className = 'sidebar';
     const railBtn = document.createElement('button');
     railBtn.setAttribute('data-tour-id', 'create-team');
     rail.appendChild(railBtn);
@@ -412,7 +412,7 @@ describe('resolveTarget sidebar priority', () => {
 
   it('skips hidden scoped anchors and falls back to a visible dashboard one', () => {
     const rail = document.createElement('div');
-    rail.className = 'team-rail';
+    rail.className = 'sidebar';
     const railBtn = document.createElement('button');
     railBtn.setAttribute('data-tour-id', 'create-team');
     rail.appendChild(railBtn);

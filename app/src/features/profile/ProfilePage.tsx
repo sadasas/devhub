@@ -23,6 +23,7 @@ import { copyText, formatDate, shortId } from '../../lib/utils';
 import { Avatar } from '../../components/Avatar';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
+import { DataErrorState } from '../../components/DataErrorState';
 import { Skeleton } from '../../components/Skeleton';
 import { ThemeSwitcher } from '../../components/ThemeSwitcher';
 import { ChangePasswordModal } from './ChangePasswordModal';
@@ -75,6 +76,7 @@ export function ProfilePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [linked, setLinked] = useState<{ provider: string; email: string | null }[] | null>(null);
   const [linkedError, setLinkedError] = useState<string | null>(null);
+  const [linkedErrorRaw, setLinkedErrorRaw] = useState<unknown>(null);
   const [unlinkTarget, setUnlinkTarget] = useState<'google' | 'github' | null>(null);
   const [unlinkBusy, setUnlinkBusy] = useState(false);
   const [unlinkError, setUnlinkError] = useState<string | null>(null);
@@ -106,12 +108,14 @@ export function ProfilePage() {
   }, []);
 
   const fetchLinked = async () => {
+    setLinkedErrorRaw(null);
     try {
       const res = await api.getLinked();
       setLinked(res.linked);
       setLinkedError(null);
     } catch (err) {
       setLinkedError(getErrorMessage(err, 'Failed to load linked accounts'));
+      setLinkedErrorRaw(err);
     }
   };
 
@@ -133,6 +137,7 @@ export function ProfilePage() {
       const msg = getErrorMessage(err, t('profile.security.unlinkFailed', { defaultValue: 'Failed to unlink' }));
       setUnlinkError(msg);
       setLinkedError(msg);
+      setLinkedErrorRaw(null);
     } finally {
       setUnlinkBusy(false);
     }
@@ -156,6 +161,9 @@ export function ProfilePage() {
 
   return (
     <div className="page">
+      {/* Flat content card wraps page content; modals stay as sibling portal targets. */}
+      <article className="pcard">
+        <div className="pcard-body">
       <header className="page-header">
         <div>
           <h1 className="page-title">{t('profile.title')}</h1>
@@ -290,9 +298,10 @@ export function ProfilePage() {
                   <span className="sr-only">Loading teams…</span>
                   <div aria-hidden="true" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {[0, 1, 2].map((i) => (
-                      <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <Skeleton style={{ width: 20, height: 20, borderRadius: 6, flexShrink: 0 }} />
-                        <Skeleton style={{ width: 96 + i * 12, height: 14 }} />
+                      <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '9px 2px' }}>
+                        <Skeleton style={{ width: '40%', height: 13 }} />
+                        <Skeleton style={{ width: 64, height: 11, marginLeft: 'auto' }} />
+                        <Skeleton style={{ width: 12, height: 12, borderRadius: 4, flexShrink: 0 }} />
                       </div>
                     ))}
                   </div>
@@ -303,7 +312,10 @@ export function ProfilePage() {
                 <ul className="profile-collection-list">
                   {teams.slice(0, 5).map((team) => (
                     <li key={team.id}>
-                      <Link to={`/team/${team.id}`} className="profile-collection-link">
+                      <Link
+                        to={`/${encodeURIComponent(team.slug || team.id)}/members`}
+                        className="profile-collection-link"
+                      >
                         <span className="profile-collection-name">{team.name}</span>
                         <span className="profile-collection-meta">
                           {team.role} · {t('profile.members', { count: team.memberCount })}
@@ -325,9 +337,10 @@ export function ProfilePage() {
                   <span className="sr-only">Loading projects…</span>
                   <div aria-hidden="true" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {[0, 1, 2].map((i) => (
-                      <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <Skeleton style={{ width: 20, height: 20, borderRadius: 6, flexShrink: 0 }} />
-                        <Skeleton style={{ width: 96 + i * 10, height: 14 }} />
+                      <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '9px 2px' }}>
+                        <Skeleton style={{ width: '40%', height: 13 }} />
+                        <Skeleton style={{ width: 64, height: 11, marginLeft: 'auto' }} />
+                        <Skeleton style={{ width: 12, height: 12, borderRadius: 4, flexShrink: 0 }} />
                       </div>
                     ))}
                   </div>
@@ -393,7 +406,7 @@ export function ProfilePage() {
             <p className="field-helper" style={{ marginBottom: 12 }}>
               Link Google or GitHub to sign in with one click. Keep your email/password — OAuth is additive.
             </p>
-            {linkedError && <div className="inline-error" style={{ marginBottom: 10 }}>{linkedError}</div>}
+            {linkedError ? (linkedErrorRaw ? <DataErrorState error={linkedErrorRaw} onRetry={() => void fetchLinked()} /> : <div className="inline-error" style={{ marginBottom: 10 }}>{linkedError}</div>) : null}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div className="settings-action" style={{ border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-input)', padding: '12px 14px' }}>
                 <div className="settings-action-main" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -564,6 +577,8 @@ export function ProfilePage() {
       )}
       </main>
       </div>
+        </div>
+      </article>
 
       <ProfileEditModal open={editOpen} onClose={() => setEditOpen(false)} />
       <ChangePasswordModal open={changeOpen} onClose={() => setChangeOpen(false)} />

@@ -28,7 +28,7 @@ import { NewTableModal } from './NewTableModal';
 import { SaveVersionModal } from './SaveVersionModal';
 import { DiffVersionModal } from './DiffVersionModal';
 import { TableModal } from './TableModal';
-import { InlineError } from '../../components/InlineError';
+import { DataErrorState } from '../../components/DataErrorState';
 
 type SchemaView = 'tables' | 'erd';
 
@@ -43,7 +43,7 @@ const VERSION_SORT_SPECS: SortSpec<SchemaVersion>[] = [
 
 export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: ReadonlySet<string>; projectName?: string }) {
   const { t } = useTranslation('project');
-  const { state, loading, error, dispatch, canEdit, projectId } = useProject();
+  const { state, loading, error, loadError, dispatch, canEdit, projectId, retryLoad } = useProject();
   const [searchParams, setSearchParams] = useSearchParams();
   const viewParam = searchParams.get('schemaView');
   const view: SchemaView = viewParam === 'erd' ? 'erd' : 'tables';
@@ -410,33 +410,57 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
 
   if (loading) {
     return (
+      <>
+      <div className="data-list-header" aria-hidden="true">
+        <Skeleton style={{ width: 130, height: 13 }} />
+        <span className="data-list-actions" style={{ display: "flex", gap: 8 }}>
+          <Skeleton style={{ width: 110, height: 28, borderRadius: 8 }} />
+          <Skeleton style={{ width: 96, height: 28, borderRadius: 8 }} />
+          <Skeleton style={{ width: 96, height: 28, borderRadius: 8 }} />
+        </span>
+      </div>
+      <div className="schema-subtabs-row" aria-hidden="true">
+        <div className="sub-tabs">
+          <Skeleton style={{ width: 96, height: 28, borderRadius: 8 }} />
+          <Skeleton style={{ width: 72, height: 28, borderRadius: 8 }} />
+        </div>
+      </div>
+      {viewParam === "erd" ? (
+        <div className="erd-wrap" role="status" aria-live="polite" aria-busy="true" aria-label="Loading diagram">
+          <span className="sr-only">Loading diagram…</span>
+          <div aria-hidden="true">
+            <Skeleton style={{ width: "100%", height: 320, borderRadius: 12 }} />
+            <Skeleton style={{ width: "100%", height: 40, marginTop: 8, borderRadius: 8 }} />
+            <Skeleton style={{ width: "100%", height: 96, marginTop: 8, borderRadius: 8 }} />
+          </div>
+        </div>
+      ) : (
       <div className="data-list" role="status" aria-live="polite" aria-busy="true" aria-label="Loading schema">
         <span className="sr-only">Loading schema…</span>
         <div aria-hidden="true" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           {[0, 1, 2].map((i) => (
-            <div key={i} className="data-row" style={{ height: 56, gap: 12 }}>
+            <div key={i} className="data-row" style={{ minHeight: 56, gap: 12 }}>
               <div className="data-row-main" style={{ gap: 6 }}>
                 <Skeleton style={{ width: `${50 + i * 5}%`, height: 14 }} />
                 <Skeleton style={{ width: '70%', height: 11, opacity: 0.8 }} />
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <Skeleton style={{ width: 64, height: 11, borderRadius: 999 }} />
+                  <Skeleton style={{ width: 64, height: 11 }} />
                   <Skeleton style={{ width: 48, height: 11 }} />
                   <Skeleton style={{ width: 44, height: 11 }} />
+                  <Skeleton style={{ width: 24, height: 16, borderRadius: 999 }} />
                 </div>
               </div>
             </div>
           ))}
         </div>
       </div>
+      )}
+      </>
     );
   }
 
   if (error) {
-    return (
-      <InlineError>
-        {error}
-      </InlineError>
-    );
+    return <DataErrorState error={loadError ?? error} onRetry={retryLoad} />;
   }
 
   if (!state || !displayStateForERD) return null;
@@ -819,7 +843,7 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
                         <div className="data-row-side">
                           {canEditEffective && (
                             <Button
-                              variant="ghost"
+                              variant="danger"
                               size="sm"
                               className="btn-icon"
                               aria-label={t('schema.page.deleteRelationAria', { label: isViewing ? relationLabelDisplay(r) : relationLabelCurrent(r) })}

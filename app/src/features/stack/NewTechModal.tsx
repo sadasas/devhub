@@ -28,6 +28,7 @@ export function NewTechModal({ open, onClose }: NewTechModalProps) {
   const [version, setVersion] = useState("");
   const [category, setCategory] = useState<TechEntryCategory>("frontend");
   const [status, setStatus] = useState<TechStatus | "">("");
+  const [expanded, setExpanded] = useState(false);
   const [notes, setNotes] = useState("");
   const titleRef = useRef<HTMLTextAreaElement | null>(null);
   const [popup, setPopup] = useState<{ key: "version"; anchor: { top: number; bottom: number; left: number } } | null>(null);
@@ -35,6 +36,18 @@ export function NewTechModal({ open, onClose }: NewTechModalProps) {
   const popRef = useRef<HTMLDivElement | null>(null);
   const [versionDraft, setVersionDraft] = useState("");
   const cancelRef = useRef(false);
+
+  // Fullscreen toggle via tombol header maupun Ctrl/Cmd+Shift+F.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "F" || e.key === "f")) {
+        e.preventDefault();
+        setExpanded((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -205,7 +218,12 @@ export function NewTechModal({ open, onClose }: NewTechModalProps) {
       title={t("stack.newTechModal.title")}
       onClose={onClose}
       width="lg"
-      className="modal-composer"
+      className={expanded ? "modal-composer modal-composer--fullscreen" : "modal-composer"}
+      expandable
+      expanded={expanded}
+      onToggleExpand={() => setExpanded((v) => !v)}
+      expandLabel={t("tracker:board.newTaskModal.expandView")}
+      collapseLabel={t("tracker:board.newTaskModal.contractView")}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>

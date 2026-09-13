@@ -431,7 +431,7 @@
   "templates": {
     "page": {
       "title": "Template proyek",
-      "subtitle": "Cetak biru proyek yang dapat digunakan ulang — simpan proyek sebagai template, lalu buat salinan barunya kapan pun Anda butuhkan."
+      "subtitle": "Privat untuk Anda — simpan proyek sebagai template, lalu buat salinannya ke workspace mana pun milik Anda."
     },
     "retry": "Coba lagi",
     "empty": {
@@ -456,7 +456,10 @@
     "createProject": "Buat proyek",
     "projectName": "Nama proyek",
     "projectNamePlaceholder": "mis. Papan sprint baru",
-    "instantiateHelper": "Proyek baru akan dibuat di {{team}} dengan task, issue, skema, dan lainnya dari template.",
+    "targetTeam": "Workspace tujuan",
+    "selectTeam": "Pilih workspace",
+    "teamEmptyHint": "Buat workspace dulu — template butuh workspace tujuan.",
+    "instantiateHelper": "Proyek baru akan dibuat di workspace yang dipilih dengan task, issue, skema, dan lainnya dari template.",
     "nameLabel": "Nama template",
     "namePlaceholder": "mis. Papan sprint kosong",
     "descPlaceholder": "Untuk apa template ini?",
@@ -465,11 +468,11 @@
       "load": "Gagal memuat template.",
       "delete": "Gagal menghapus template.",
       "save": "Gagal menyimpan template.",
-      "instantiate": "Gagal membuat proyek dari template."
+      "instantiate": "Gagal membuat proyek dari template.",
+      "noTeam": "Pilih workspace tujuan."
     }
   },
   "pricing": {
-    "back": "Kembali",
     "title": "Mulai gratis, upgrade saat timmu butuh.",
     "subtitle": "Semua fitur core tersedia — limit yang berbeda.",
     "recommended": "Direkomendasikan",
@@ -564,9 +567,9 @@
     }
   },
   "billing": {
-    "back": "Kembali",
     "title": "Riwayat Pembayaran",
     "subtitle": "Semua pembayaran yang telah Anda lakukan di seluruh workspace.",
+    "loading": "Memuat riwayat pembayaran…",
     "empty": {
       "title": "Belum ada pembayaran",
       "desc": "Pembayaran yang selesai untuk workspace Anda akan muncul di sini."
@@ -707,7 +710,6 @@
       "tip2": "di mana saja untuk mencari perintah dan proyek. Di dalam proyek, palet juga menawarkan aksi pembuatan untuk setiap entitas — task, issue, test case, keputusan, milestone, entri stack, koleksi API, atau endpoint baru.",
       "palette": "Membuka atau menutup palet perintah",
       "toggleChat": "Toggle team chat",
-      "toggleSidebar": "Toggle sidebar",
       "navigateResults": "Bergerak melalui hasil palet",
       "runCommand": "Menjalankan perintah palet yang dipilih",
       "escape": "Menutup palet atau modal yang aktif",

@@ -10,11 +10,13 @@ vi.mock('../../state/teams-context', () => ({
 }));
 
 const TEAM_ID = '22222222-2222-4222-8222-222222222222';
+const TEAM_B_ID = '55555555-5555-4555-8555-555555555555';
 
 const TEAMS: Team[] = [
   {
     id: TEAM_ID,
     name: 'Team A',
+    slug: 'team-a',
     role: 'admin',
     plan: 'free',
     planPackageName: 'Free',
@@ -22,13 +24,24 @@ const TEAMS: Team[] = [
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
   },
+  {
+    id: TEAM_B_ID,
+    name: 'Team B',
+    slug: 'team-b',
+    role: 'editor',
+    plan: 'free',
+    planPackageName: 'Free',
+    memberCount: 1,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  },
 ];
 
+// Owner-only shape: no teamId/teamName, only ownerId.
 function makeTemplate(over: Partial<ProjectTemplate> = {}): ProjectTemplate {
   return {
     id: '33333333-3333-4333-8333-333333333333',
-    teamId: TEAM_ID,
-    teamName: 'Team A',
+    ownerId: '11111111-1111-4111-8111-111111111111',
     name: 'Sprint template',
     description: 'Board with standard columns',
     createdAt: '2026-01-02T00:00:00.000Z',
@@ -49,7 +62,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('TemplatesPage', () => {
+describe('TemplatesPage (owner-only)', () => {
   it('shows an empty state when there are no templates', async () => {
     vi.spyOn(api, 'listTemplates').mockResolvedValue([]);
 
@@ -57,32 +70,23 @@ describe('TemplatesPage', () => {
     expect(await screen.findByText('No templates yet')).toBeDefined();
   });
 
-  it('lists templates with team name, description and created date', async () => {
+  it('lists own templates with description and created date (no team column)', async () => {
     vi.spyOn(api, 'listTemplates').mockResolvedValue([makeTemplate()]);
 
     renderPage();
     expect(await screen.findByText('Sprint template')).toBeDefined();
     expect(screen.getByText('Board with standard columns')).toBeDefined();
-    expect(screen.getByText('Team A')).toBeDefined();
+    // Owner-only rows never leak a team name.
+    expect(screen.queryByText('Team A')).toBeNull();
   });
 
-  it('offers Use template and admin-only Delete per row', async () => {
+  it('offers Use template and Delete on every row (no admin gate)', async () => {
     vi.spyOn(api, 'listTemplates').mockResolvedValue([makeTemplate()]);
 
     renderPage();
     await screen.findByText('Sprint template');
     expect(screen.getAllByRole('button', { name: 'Use template' })).toHaveLength(1);
-    expect(screen.getByRole('button', { name: 'Delete' })).toBeDefined();
-  });
-
-  it('hides Delete for teams where the user is not an admin', async () => {
-    vi.spyOn(api, 'listTemplates').mockResolvedValue([
-      makeTemplate({ teamId: '99999999-9999-4999-8999-999999999999' }),
-    ]);
-
-    renderPage();
-    await screen.findByText('Sprint template');
-    expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
+    expect(screen.getByRole('button', { name: /Delete/ })).toBeDefined();
   });
 
   it('deletes a template after confirmation', async () => {
@@ -92,15 +96,17 @@ describe('TemplatesPage', () => {
 
     renderPage();
     await screen.findByText('Sprint template');
+    fireEvent.click(screen.getByRole('button', { name: /Delete: Sprint template/ }));
+    // Row delete uses an aria-label with the template name, so the modal
+    // confirm is the only exact "Delete" button at this point.
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
-    fireEvent.click(screen.getAllByRole('button', { name: 'Delete' })[1]!);
     fireEvent.click(screen.getByRole('button', { name: 'Confirm delete' }));
 
     await waitFor(() => expect(del).toHaveBeenCalledWith(template.id));
     expect(await screen.findByText('No templates yet')).toBeDefined();
   });
 
-  it('opens the instantiate modal from Use template and creates a project', async () => {
+  it('opens the instantiate modal with a target workspace dropdown defaulting to the active team', async () => {
     const template = makeTemplate();
     vi.spyOn(api, 'listTemplates').mockResolvedValue([template]);
     const inst = vi
@@ -115,7 +121,13 @@ describe('TemplatesPage', () => {
     expect(nameInput).toBeDefined();
     expect((nameInput as HTMLInputElement).value).toBe('Sprint template');
 
+    // Target workspace dropdown is visible and defaults to the first team.
+    const teamTrigger = await screen.findByRole('button', { name: /Target workspace|Team A/ });
+    expect(teamTrigger.textContent).toContain('Team A');
+
     fireEvent.click(screen.getByRole('button', { name: 'Create project' }));
-    await waitFor(() => expect(inst).toHaveBeenCalledWith(template.id, 'Sprint template'));
+    await waitFor(() =>
+      expect(inst).toHaveBeenCalledWith(template.id, TEAM_ID, 'Sprint template'),
+    );
   });
 });

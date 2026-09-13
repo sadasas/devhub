@@ -39,6 +39,7 @@ function makeTeam(over: Partial<Team>): Team {
   return {
     id: TEAM_A,
     name: 'Platform',
+    slug: 'platform',
     role: 'owner',
     plan: 'free',
     planPackageName: 'Free',

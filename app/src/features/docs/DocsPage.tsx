@@ -15,7 +15,6 @@ const DOC_NAV_ITEMS: DocsTocItem[] = [
 const SHORTCUTS = [
   { keys: ['Ctrl', 'K'], descKey: 'docs.shortcuts.palette' },
   { keys: ['Ctrl', 'C'], descKey: 'docs.shortcuts.toggleChat' },
-  { keys: ['Ctrl', 'B'], descKey: 'docs.shortcuts.toggleSidebar' },
   { keys: ['↑', '↓'], descKey: 'docs.shortcuts.navigateResults' },
   { keys: ['Enter'], descKey: 'docs.shortcuts.runCommand' },
   { keys: ['Esc'], descKey: 'docs.shortcuts.escape' },
@@ -58,6 +57,9 @@ export function DocsPage() {
 
   return (
     <div className="page">
+      {/* Flat content card wraps page content; reading measure stays at 760px via docs-body. */}
+      <article className="pcard">
+        <div className="pcard-body">
       <header className="page-header">
         <div>
           <h1 className="page-title">{t('docs.page.title')}</h1>
@@ -215,6 +217,8 @@ export function DocsPage() {
         </div>
         <DocsToc items={DOC_NAV_ITEMS.map((item) => ({ ...item, label: t(item.label) }))} />
       </div>
+        </div>
+      </article>
     </div>
   );
 }

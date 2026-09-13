@@ -511,6 +511,7 @@ interface ProjectContextValue {
   state: State | null;
   loading: boolean;
   error: string | null;
+  loadError: unknown;
   saveError: string | null;
   saving: boolean;
   lastSavedAt: number | null;
@@ -525,6 +526,7 @@ interface ProjectContextValue {
   dispatch: (action: ProjectAction) => void;
   retrySave: () => void;
   clearSaveError: () => void;
+  retryLoad: () => void;
   resolveConflict: () => void;
 }
 
@@ -550,6 +552,8 @@ export function ProjectProvider({
   const [state, setState] = useState<State | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<unknown>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
@@ -815,6 +819,7 @@ export function ProjectProvider({
     setConflict(null);
     setLoading(true);
     setError(null);
+    setLoadError(null);
     setSaveError(null);
 
     void (async () => {
@@ -831,6 +836,7 @@ export function ProjectProvider({
       } catch (err) {
         if (!cancelled) {
           setError(getErrorMessage(err, 'Failed to load project state'));
+          setLoadError(err);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -977,7 +983,14 @@ export function ProjectProvider({
       if (timerRef.current) clearTimeout(timerRef.current);
       void flushMutations();
     };
-  }, [projectId, flushMutations, provider, emitPendingCount, createRealtime]);
+  }, [projectId, flushMutations, provider, emitPendingCount, createRealtime, loadAttempt]);
+
+  const retryLoad = useCallback(() => {
+    setError(null);
+    setLoadError(null);
+    setLoading(true);
+    setLoadAttempt((a) => a + 1);
+  }, []);
 
   const subscribeActivity = useCallback(
     (cb: (msg: ActivityNew) => void) => {
@@ -1000,6 +1013,7 @@ export function ProjectProvider({
       state,
       loading,
       error,
+      loadError,
       saveError,
       saving,
       lastSavedAt,
@@ -1014,9 +1028,10 @@ export function ProjectProvider({
       dispatch,
       retrySave,
       clearSaveError,
+      retryLoad,
       resolveConflict,
     }),
-    [projectId, teamId, state, loading, error, saveError, saving, lastSavedAt, role, isArchived, conflict, isOffline, pendingCount, presence, subscribeActivity, setStatus, dispatch, retrySave, clearSaveError, resolveConflict],
+    [projectId, teamId, state, loading, error, loadError, saveError, saving, lastSavedAt, role, isArchived, conflict, isOffline, pendingCount, presence, subscribeActivity, setStatus, dispatch, retrySave, clearSaveError, retryLoad, resolveConflict],
   );
 
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;

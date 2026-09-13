@@ -9,6 +9,9 @@ vi.mock('../lib/api', () => ({
     listInvitations: vi.fn(),
     createTeam: vi.fn(),
     renameTeam: vi.fn(),
+    renameTeamSlug: vi.fn(),
+    getTeamBySlug: vi.fn(),
+    checkTeamSlug: vi.fn(),
     deleteTeam: vi.fn(),
     inviteMember: vi.fn(),
     acceptInvitation: vi.fn(),
@@ -35,6 +38,7 @@ import { api } from '../lib/api';
 const TEAM: Team = {
   id: 't1',
   name: 'Team One',
+  slug: 'team-one',
   role: 'owner',
   plan: 'free',
   planPackageName: 'Free',

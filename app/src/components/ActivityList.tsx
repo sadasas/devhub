@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { formatDate, formatRelative } from '../lib/utils';
 import { useOptionalAuth } from '../state/auth-context';
 import { DetailEmpty } from './DetailList';
-import { InlineError } from './InlineError';
+import { DataErrorState } from './DataErrorState';
 import { Skeleton } from './Skeleton';
 
 interface ActivityListProps {
@@ -145,12 +145,15 @@ export function ActivityList({ projectId, entity, entityId }: ActivityListProps)
   const { user } = useOptionalAuth();
   const [items, setItems] = useState<ActivityEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loadErrorRaw, setLoadErrorRaw] = useState<unknown>(null);
+  const [attempt, setAttempt] = useState(0);
   const { t } = useTranslation();
 
   useEffect(() => {
     let cancelled = false;
     setItems(null);
     setError(null);
+    setLoadErrorRaw(null);
     api
       .fetchActivity(projectId, { entity, entityId, limit: 50 })
       .then((rows) => {
@@ -159,24 +162,38 @@ export function ActivityList({ projectId, entity, entityId }: ActivityListProps)
       .catch((err: unknown) => {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : t('activity.loadFailed'));
+          setLoadErrorRaw(err);
         }
       });
     return () => {
       cancelled = true;
     };
-  }, [projectId, entity, entityId]);
+  }, [projectId, entity, entityId, attempt]);
 
-  if (error) return <InlineError>{error}</InlineError>;
+  if (error) return <DataErrorState error={loadErrorRaw ?? error} onRetry={() => { setError(null); setLoadErrorRaw(null); setAttempt((a) => a + 1); }} />;
   if (items === null) {
     return (
-      <div className="activity-list" role="status" aria-live="polite" aria-busy="true" aria-label="Loading activity">
-        <span className="sr-only">Loading activity…</span>
+      <ul className="activity-list" role="status" aria-live="polite" aria-busy="true" aria-label={t("activity.loading")}>
+        <span className="sr-only">{t("activity.loading")}</span>
         <div aria-hidden="true">
-          <Skeleton style={{ width: '100%', height: '14px' }} />
-          <Skeleton style={{ width: '80%', height: '14px' }} />
-          <Skeleton style={{ width: '60%', height: '14px' }} />
+          {[0, 1, 2].map((i) => (
+            <li key={i} className="activity-item">
+              <p className="activity-line" style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <span className="skeleton" style={{ width: 72, height: 13, borderRadius: 4 }} />
+                <span className="skeleton" style={{ width: 48, height: 18, borderRadius: 999 }} />
+                <span className="skeleton" style={{ width: "40%", height: 13, borderRadius: 4 }} />
+                <span className="skeleton" style={{ width: 52, height: 11, marginLeft: "auto", borderRadius: 4 }} />
+              </p>
+              <ul className="activity-changes">
+                <li className="activity-change" style={{ display: "flex", gap: 6 }}>
+                  <span className="skeleton" style={{ width: 64, height: 11, borderRadius: 4, fontFamily: "monospace" }} />
+                  <span className="skeleton" style={{ width: 120, height: 11, borderRadius: 4, fontFamily: "monospace" }} />
+                </li>
+              </ul>
+            </li>
+          ))}
         </div>
-      </div>
+      </ul>
     );
   }
   if (items.length === 0) {

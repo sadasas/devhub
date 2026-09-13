@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, CaretDown, Lock, Lightning, ShieldCheck } from '@phosphor-icons/react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { CaretDown, Lock, Lightning, ShieldCheck } from '@phosphor-icons/react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage, isPlanLimitError } from '../../lib/errors';
 import type { BillingPackage, BillingStatus } from '../../lib/types';
 import { Button } from '../../components/Button';
-import { InlineError } from '../../components/InlineError';
+import { DataErrorState } from '../../components/DataErrorState';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { Skeleton } from '../../components/Skeleton';
 import { useAuth } from '../../state/auth-context';
@@ -36,6 +36,7 @@ export function PricingPage() {
   const [selectedTeamId, setSelectedTeamId] = useState<string>(queryTeamId ?? '');
   const [packages, setPackages] = useState<BillingPackage[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [packagesErrorRaw, setPackagesErrorRaw] = useState<unknown>(null);
   const [actionError, setActionError] = useState<{ pkgId: string; message: string } | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [selectedDurationDays, setSelectedDurationDays] = useState<number | null>(null);
@@ -155,18 +156,21 @@ export function PricingPage() {
     }
   }
 
-  useEffect(() => {
+  const loadPackages = useCallback(() => {
+    setError(null);
+    setPackagesErrorRaw(null);
     api
       .listPackages()
       .then((res) => setPackages(res.packages))
-      .catch((err) => setError(getErrorMessage(err, t('pricing.errors.load'))));
+      .catch((err) => {
+        setError(getErrorMessage(err, t('pricing.errors.load')));
+        setPackagesErrorRaw(err);
+      });
   }, [t]);
 
-  const onBack = () => {
-    if (queryTeamId) navigate(`/team/${queryTeamId}?tab=usage`);
-    else if (window.history.length > 1) navigate(-1);
-    else navigate('/');
-  };
+  useEffect(() => {
+    loadPackages();
+  }, [loadPackages]);
 
   const workspaceHasError = !!actionError?.message;
 
@@ -180,32 +184,43 @@ export function PricingPage() {
 
   return (
     <div className="page pricing-page">
+      {/* Flat content card wraps page content; modal stays a sibling portal target. */}
+      <article className="pcard">
+        <div className="pcard-body">
+          <div className="narrow-center">
       <header className="page-header pricing-header">
         <div>
-          <button type="button" className="back-btn" onClick={onBack}>
-            <ArrowLeft size={14} aria-hidden="true" /> {t('pricing.back')}
-          </button>
           <h1 className="page-title pricing-title">{t('pricing.title')}</h1>
           <p className="page-subtitle">{t('pricing.subtitle')}</p>
         </div>
       </header>
-      {error && <InlineError>{error}</InlineError>}
+      {error && <DataErrorState error={packagesErrorRaw ?? error} onRetry={loadPackages} />}
       {packages === null && !error ? (
         <div role="status" aria-busy="true" aria-live="polite" aria-label={t('pricing.loadingAria', { defaultValue: 'Memuat paket' })}>
           <span className="sr-only">{t('pricing.loadingAria', { defaultValue: 'Memuat paket' })}…</span>
           <div aria-hidden="true">
-            <Skeleton style={{ width: '100%', height: 44, borderRadius: 8, marginBottom: 12 }} />
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', border: '1px solid var(--border-hairline)', borderRadius: 12, padding: 12, marginBottom: 12 }}>
+              <Skeleton style={{ width: 140, height: 13 }} />
+              <Skeleton style={{ flex: 1, height: 36, borderRadius: 8 }} />
+            </div>
             <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 16 }}>
-              <Skeleton style={{ width: 180, height: 32, borderRadius: 999 }} />
+              <Skeleton style={{ width: 110, height: 32, borderRadius: 999 }} />
+              <Skeleton style={{ width: 150, height: 32, borderRadius: 999 }} />
             </div>
             <div className="pricing-grid pricing-grid-featured">
               {[0, 1, 2].map((i) => (
                 <div key={i} className="pricing-card">
                   <Skeleton style={{ width: 90, height: 16 }} />
+                  <Skeleton style={{ width: '70%', height: 12, marginTop: 8 }} />
                   <Skeleton style={{ width: 160, height: 30, marginTop: 12 }} />
-                  <Skeleton className="skeleton-row" style={{ marginTop: 14 }} />
-                  <Skeleton className="skeleton-row" style={{ marginTop: 8 }} />
-                  <Skeleton style={{ width: '100%', height: 36, marginTop: 16, borderRadius: 8 }} />
+                  <Skeleton style={{ width: 110, height: 16, marginTop: 6, borderRadius: 999 }} />
+                  {[0, 1, 2, 3, 4].map((j) => (
+                    <div key={j} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: j === 0 ? 14 : 8 }}>
+                      <Skeleton style={{ width: 14, height: 14, borderRadius: 999, flexShrink: 0 }} />
+                      <Skeleton style={{ width: `${70 - j * 6}%`, height: 12 }} />
+                    </div>
+                  ))}
+                  <Skeleton style={{ width: '100%', height: 34, marginTop: 16, borderRadius: 8 }} />
                 </div>
               ))}
             </div>
@@ -230,6 +245,8 @@ export function PricingPage() {
                   <SearchableSelect
                     id="pricing-workspace-select"
                     placeholder={t('pricing.workspacePlaceholder')}
+                    allowEmpty={false}
+                    triggerEmptyLabel={t('pricing.workspacePlaceholder')}
                     value={effectiveTeamId || null}
                     options={(teams ?? []).map((tm) => ({ value: tm.id, label: tm.name }))}
                     onChange={(v) => {
@@ -360,6 +377,9 @@ export function PricingPage() {
           </Button>
         )}
       </div>
+          </div>
+        </div>
+      </article>
       <PlanLimitModal
         open={limitModal.open}
         resource={limitModal.resource}

@@ -121,6 +121,7 @@ export function DatePicker({ id, mode, start, end, onApply, onClose, anchorEl }:
   const anchorRef = useRef<HTMLSpanElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const [paintTick, setPaintTick] = useState(0);
   const panelWidth = mode === 'range' ? RANGE_WIDTH : SINGLE_WIDTH;
 
   const base = start ?? end ?? todayIso();
@@ -149,7 +150,9 @@ export function DatePicker({ id, mode, start, end, onApply, onClose, anchorEl }:
       const left = Math.min(Math.max(rect.left, 8), Math.max(vw - width - 8, 8));
       const panelHeight = panelRef.current?.offsetHeight ?? 380;
       const spaceBelow = vh - rect.bottom;
-      const top = spaceBelow >= panelHeight + 8 ? rect.bottom + 4 : Math.max(8, rect.top - panelHeight - 4);
+      const rawTop = spaceBelow >= panelHeight + 8 ? rect.bottom + 4 : Math.max(8, rect.top - panelHeight - 4);
+      const fitHeight = Math.min(panelHeight, Math.max(vh - 16, 0));
+      const top = Math.min(rawTop, Math.max(8, vh - fitHeight - 8));
       setPos((p) => (p && p.top === top && p.left === left ? p : { top, left }));
     };
     compute();
@@ -160,7 +163,12 @@ export function DatePicker({ id, mode, start, end, onApply, onClose, anchorEl }:
       window.removeEventListener('resize', compute);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [anchorEl, panelWidth]);
+  }, [anchorEl, panelWidth, paintTick]);
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setPaintTick(1));
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   useEffect(() => {
     const onPointerDown = (e: PointerEvent) => {

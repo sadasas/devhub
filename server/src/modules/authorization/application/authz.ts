@@ -49,6 +49,7 @@ export interface TeamWithRole {
   id: string;
   name: string;
   icon: string | null;
+  slug: string;
   created_by: string;
   created_at: Date;
   updated_at: Date;
@@ -87,7 +88,7 @@ export async function getTeamWithRole(
 ): Promise<TeamWithRole | undefined> {
   if (!isUuid(teamId)) return undefined;
   const result = await pool.query(
-    `SELECT t.id, t.name, t.icon, t.created_by, t.created_at, t.updated_at, tm.role, t.plan, t.plan_expires_at
+    `SELECT t.id, t.name, t.icon, t.slug, t.created_by, t.created_at, t.updated_at, tm.role, t.plan, t.plan_expires_at
      FROM teams t
      JOIN team_members tm ON tm.team_id = t.id
      WHERE t.id = $1 AND tm.user_id = $2`,

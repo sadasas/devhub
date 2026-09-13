@@ -808,6 +808,9 @@ export function McpDocsPage() {
 
   return (
     <div className="page">
+      {/* Flat content card wraps page content; reading measure stays at 760px via docs-body. */}
+      <article className="pcard">
+        <div className="pcard-body">
       <header className="page-header">
         <div>
           <h1 className="page-title">{t('docs.mcp.title')}</h1>
@@ -1437,6 +1440,8 @@ export function McpDocsPage() {
         </div>
         <DocsToc items={tocItems} />
       </div>
+        </div>
+      </article>
     </div>
   );
 }

@@ -25,7 +25,7 @@ function computePos(anchor: DOMRect): PopoverPos {
   return { left, top, maxHeight: Math.max(160, vh - top - 8) };
 }
 
-export function PresenceChip() {
+export function PresenceChip({ badgeOnly = false }: { badgeOnly?: boolean }) {
   const { presence } = useProject();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
@@ -87,11 +87,12 @@ export function PresenceChip() {
     <span className="presence-chip-wrap" ref={wrapRef}>
       <button
         type="button"
-        className="badge badge-info presence-chip"
+        className={badgeOnly ? 'badge badge-info presence-chip presence-chip--badge' : 'badge badge-info presence-chip'}
         data-testid="presence-chip"
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={POPOVER_ID}
+        aria-label={badgeOnly ? t('presence.header', { count: users.length }) : undefined}
         onClick={() => (open ? setOpen(false) : openAt())}
       >
         <span className="presence-avatars" aria-hidden="true">
@@ -107,8 +108,12 @@ export function PresenceChip() {
             />
           ))}
         </span>
-        {t('presence.chip', { count: users.length })}
-        <CaretDown size={10} aria-hidden="true" />
+        {badgeOnly ? null : (
+          <>
+            {t('presence.chip', { count: users.length })}
+            <CaretDown size={10} aria-hidden="true" />
+          </>
+        )}
       </button>
       {open &&
         createPortal(

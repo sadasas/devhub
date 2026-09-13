@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { SquaresFour, FolderSimple, Key, BookOpen, UserCircle, Plus, ArrowUp, ArrowDown, ArrowRight, MagnifyingGlass, Columns, Bug, CheckSquare, Scales, Rocket, Stack, Plugs, ChalkboardSimple, Globe, Archive, ArrowCounterClockwise, Monitor, Sun, Moon, ChatsCircle } from '@phosphor-icons/react';
+import { SquaresFour, FolderSimple, Key, BookOpen, UserCircle, Plus, ArrowUp, ArrowDown, ArrowRight, MagnifyingGlass, Columns, Bug, CheckSquare, Scales, Rocket, Stack, Plugs, ChalkboardSimple, Globe, Archive, ArrowCounterClockwise, Monitor, Sun, Moon, ChatsCircle, EnvelopeSimple, BookmarkSimple, CurrencyCircleDollar, Receipt } from '@phosphor-icons/react';
 import { matchPath, useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useProjects } from '../state/projects-context';
 import { useTeams } from '../state/teams-context';
+import { readLastActiveTeamId } from '../features/layout/WorkspaceSwitcher';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { useSearchResults } from '../hooks/useSearchResults';
 import { entityDeepLink } from '../lib/deep-link';
@@ -107,6 +108,46 @@ export function CommandPalette() {
         },
       },
       {
+        id: 'invites',
+        group: t('palette.groupNavigate'),
+        label: t('palette.goInvites'),
+        icon: <EnvelopeSimple size={16} />,
+        run: () => {
+          setOpen(false);
+          navigate('/invites');
+        },
+      },
+      {
+        id: 'templates',
+        group: t('palette.groupNavigate'),
+        label: t('palette.goTemplates'),
+        icon: <BookmarkSimple size={16} />,
+        run: () => {
+          setOpen(false);
+          navigate('/templates');
+        },
+      },
+      {
+        id: 'pricing',
+        group: t('palette.groupNavigate'),
+        label: t('palette.goPricing'),
+        icon: <CurrencyCircleDollar size={16} />,
+        run: () => {
+          setOpen(false);
+          navigate('/pricing');
+        },
+      },
+      {
+        id: 'payments',
+        group: t('palette.groupNavigate'),
+        label: t('palette.goPayments'),
+        icon: <Receipt size={16} />,
+        run: () => {
+          setOpen(false);
+          navigate('/payments');
+        },
+      },
+      {
         id: 'new-project',
         group: t('palette.groupCreate'),
         label: t('palette.newProject'),
@@ -164,8 +205,25 @@ export function CommandPalette() {
     const projectId = activeMatch?.params.projectId;
     const project = projectId ? projects?.find((p) => p.id === projectId) : undefined;
     const teamId = (() => {
-      const tm = matchPath('/team/:teamId', location.pathname)?.params.teamId;
-      if (tm) return tm;
+      // Legacy compat: /team/:teamId still redirects to the dashboard.
+      const legacy = matchPath('/team/:teamId', location.pathname)?.params.teamId;
+      if (legacy) return legacy;
+      // Dashboard route: resolve the active team the same way DashboardPage
+      // does (?team= valid -> last-active valid -> first team).
+      if (location.pathname === '/') {
+        try {
+          const param = new URLSearchParams(location.search).get('team');
+          if (param && teams?.some((tm) => tm.id === param)) return param;
+        } catch {
+          // Malformed query — fall through to the stored default.
+        }
+        try {
+          const last = readLastActiveTeamId();
+          if (last && teams?.some((tm) => tm.id === last)) return last;
+        } catch {
+          // Storage unavailable — fall through to the first team.
+        }
+      }
       if (project?.teamId) return project.teamId;
       return teams?.[0]?.id ?? null;
     })();

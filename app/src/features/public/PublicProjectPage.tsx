@@ -19,7 +19,7 @@ import { useAuth } from '../../state/auth-context';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
-import { InlineError } from '../../components/InlineError';
+import { DataErrorState } from '../../components/DataErrorState';
 import { Skeleton } from '../../components/Skeleton';
 import { PublicWhiteboards } from './PublicWhiteboards';
 import { ReleasesTimelineView } from '../releases/ReleasesTimelineView';
@@ -67,11 +67,14 @@ export function PublicProjectPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadErrorRaw, setLoadErrorRaw] = useState<unknown>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setLoadErrorRaw(null);
     setNotFound(false);
     setProject(null);
     setState(null);
@@ -88,6 +91,7 @@ export function PublicProjectPage() {
           setNotFound(true);
         } else {
           setError(getErrorMessage(err, t('public.errors.load')));
+          setLoadErrorRaw(err);
         }
       })
       .finally(() => {
@@ -96,7 +100,7 @@ export function PublicProjectPage() {
     return () => {
       cancelled = true;
     };
-  }, [projectId, t]);
+  }, [projectId, t, attempt]);
 
   const allowedTabs =
     project && project.tabs.length > 0 ? project.tabs : ALL_PUBLIC_TABS;
@@ -131,20 +135,26 @@ export function PublicProjectPage() {
             <div aria-hidden="true">
               <Skeleton style={{ width: 280, height: 28, marginTop: 8, borderRadius: 6 }} />
               <Skeleton style={{ width: 200, height: 16, marginTop: 12, borderRadius: 6 }} />
-              <div style={{ display: 'flex', gap: 8, marginTop: 24 }}>
-                {[0, 1, 2, 3].map((i) => (
+              <div className="project-actions" style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                <Skeleton style={{ width: 90, height: 22, borderRadius: 999 }} />
+                <Skeleton style={{ width: 70, height: 22, borderRadius: 999 }} />
+              </div>
+              <div style={{ display: "flex", gap: 8, marginTop: 24 }}>
+                {[0, 1, 2, 3, 4, 5].map((i) => (
                   <Skeleton key={i} className="skeleton-tab" />
                 ))}
               </div>
-              <Skeleton style={{ width: '100%', height: 220, marginTop: 16, borderRadius: 12 }} />
-              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {[0, 1].map((i) => (
-                  <div key={i} className="data-row" style={{ height: 56 }}>
-                    <div className="data-row-main" style={{ gap: 6 }}>
-                      <Skeleton style={{ width: '50%', height: 14 }} />
-                      <Skeleton style={{ width: '70%', height: 11, opacity: 0.8 }} />
+              <div className="kanban" style={{ marginTop: 16 }}>
+                {[0, 1, 2, 3].map((i) => (
+                  <div key={i} className="kanban-col">
+                    <div className="kanban-col-header">
+                      <Skeleton style={{ width: 72, height: 13 }} />
+                      <Skeleton style={{ width: 20, height: 11, marginLeft: 6 }} />
                     </div>
-                    <Skeleton style={{ width: 56, height: 18, borderRadius: 999 }} />
+                    <div className="kanban-col-body">
+                      <Skeleton style={{ width: "100%", height: 88, borderRadius: 8 }} />
+                      <Skeleton style={{ width: "100%", height: 88, borderRadius: 8, marginTop: 8 }} />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -163,7 +173,7 @@ export function PublicProjectPage() {
           </div>
         )}
 
-        {!loading && error && !project && <InlineError>{error}</InlineError>}
+        {!loading && error && !project && <DataErrorState error={loadErrorRaw ?? error} onRetry={() => { setError(null); setLoadErrorRaw(null); setAttempt((a) => a + 1); }} />}
 
         {!loading && project && state && (
           <>

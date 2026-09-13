@@ -35,7 +35,7 @@ export function WhiteboardCard({ board, canEdit, unread = false, onOpen, onDelet
       </button>
       {canEdit && (
         <Button
-          variant="ghost"
+          variant="danger"
           size="sm"
           className="btn-icon"
           aria-label={t('whiteboard.card.deleteBoard')}

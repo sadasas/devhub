@@ -9,7 +9,7 @@ import type { Whiteboard } from '../../lib/types';
 import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { EmptyState } from '../../components/EmptyState';
-import { InlineError } from '../../components/InlineError';
+import { DataErrorState } from '../../components/DataErrorState';
 import { Skeleton } from '../../components/Skeleton';
 import { SortControl } from '../../components/SortControl';
 import { WhiteboardCard } from './WhiteboardCard';
@@ -31,37 +31,49 @@ interface WhiteboardListProps {
 
 export function WhiteboardList({ onOpen, loading = false, unreadIds }: WhiteboardListProps) {
   const { t } = useTranslation('extras');
-  const { state, error, canEdit, dispatch } = useProject();
+  const { state, error, loadError, canEdit, dispatch, retryLoad } = useProject();
   const [openNew, setOpenNew] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   useNewParam(() => setOpenNew(true), '1', canEdit);
   const { value: sortValue, setSort } = useSortParam();
   const effectiveSort = sortValue ?? { key: 'createdAt', dir: 'desc' as const };
 
+  if (error) {
+    return <DataErrorState error={loadError ?? error} onRetry={retryLoad} />;
+  }
+
   if (loading || !state) {
     return (
+      <>
+      <div className="data-list-header" aria-hidden="true">
+        <Skeleton style={{ width: 90, height: 13 }} />
+        <span className="data-list-actions" style={{ display: "flex", gap: 8 }}>
+          <Skeleton style={{ width: 110, height: 28, borderRadius: 8 }} />
+          <Skeleton style={{ width: 96, height: 28, borderRadius: 8 }} />
+        </span>
+      </div>
       <div className="project-grid" role="status" aria-live="polite" aria-busy="true" aria-label="Loading whiteboards">
         <span className="sr-only">Loading whiteboards…</span>
         <div aria-hidden="true" style={{ display: 'contents' }}>
           {[0, 1, 2].map((i) => (
-            <div key={i} className="project-card" style={{ padding: 14, gap: 8, display: 'flex', flexDirection: 'column' }}>
-              <Skeleton style={{ width: '70%', height: 14 }} />
-              <Skeleton style={{ width: '100%', height: 11, opacity: 0.85 }} />
-              <Skeleton style={{ width: '65%', height: 11, opacity: 0.85 }} />
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
-                <Skeleton style={{ width: 56, height: 16, borderRadius: 999 }} />
-                <Skeleton style={{ width: 64, height: 11 }} />
-                <Skeleton style={{ width: 44, height: 11 }} />
+            <div key={i} className="project-card wb-card">
+              <div className="wb-card-main">
+                <Skeleton style={{ width: '70%', height: 14 }} />
+                <Skeleton style={{ width: '100%', height: 11, opacity: 0.85 }} />
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
+                  <Skeleton style={{ width: 56, height: 16, borderRadius: 6 }} />
+                  <Skeleton style={{ width: 64, height: 11 }} />
+                  <Skeleton style={{ width: 44, height: 11 }} />
+                  <Skeleton style={{ width: 32, height: 16, borderRadius: 999 }} />
+                </div>
               </div>
+              <Skeleton style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0 }} />
             </div>
           ))}
         </div>
       </div>
+      </>
     );
-  }
-
-  if (error) {
-    return <InlineError>{error}</InlineError>;
   }
 
   const boardSortSpec = BOARD_SORT_SPECS.find((s) => s.key === effectiveSort.key) ?? null;

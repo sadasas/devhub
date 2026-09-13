@@ -24,7 +24,11 @@
     "notFoundDesc": "It may have been deleted, or you may not have access to it.",
     "backToProjects": "Projects",
     "noDescription": "No description.",
-    "createdInfo": "{{description}} · created {{date}}"
+    "createdInfo": "{{description}} · created {{date}}",
+    "starPin": "Pin {{name}} — shows in sidebar",
+    "starUnpin": "Unpin {{name}}",
+    "infoTitle": "Project info — {{name}}",
+    "createdOn": "Created {{date}}"
   },
   "actions": {
     "copy": "Copy",

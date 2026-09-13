@@ -24,7 +24,11 @@
     "notFoundDesc": "Project mungkin telah dihapus, atau Anda tidak memiliki akses ke project tersebut.",
     "backToProjects": "Proyek",
     "noDescription": "Tidak ada deskripsi.",
-    "createdInfo": "{{description}} · dibuat {{date}}"
+    "createdInfo": "{{description}} · dibuat {{date}}",
+    "starPin": "Pin {{name}} — tampil di sidebar",
+    "starUnpin": "Lepas pin {{name}}",
+    "infoTitle": "Info proyek — {{name}}",
+    "createdOn": "Dibuat {{date}}"
   },
   "actions": {
     "copy": "Salin",

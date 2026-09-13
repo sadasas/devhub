@@ -9,6 +9,7 @@ interface ProjectsContextValue {
   projects: Project[] | null;
   loading: boolean;
   error: string | null;
+  loadError: unknown;
   refresh: () => Promise<void>;
   create: (name: string, description: string, teamId: string) => Promise<Project>;
   update: (
@@ -24,12 +25,14 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<unknown>(null);
 
   const refresh = useCallback(async () => {
     try {
       const list = await api.listProjects();
       setProjects(list);
       setError(null);
+      setLoadError(null);
       void putMeta('projects', list).catch(() => { /* best-effort cache */ });
     } catch (err) {
       if (isNetworkError(err)) {
@@ -37,11 +40,14 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
         if (cached) {
           setProjects(cached);
           setError(null);
+      setLoadError(null);
         } else {
           setError(err instanceof Error ? err.message : 'Failed to load projects');
+        setLoadError(err);
         }
       } else {
         setError(err instanceof Error ? err.message : 'Failed to load projects');
+        setLoadError(err);
       }
     } finally {
       setLoading(false);
@@ -81,8 +87,8 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ projects, loading, error, refresh, create, update, remove }),
-    [projects, loading, error, refresh, create, update, remove],
+    () => ({ projects, loading, error, loadError, refresh, create, update, remove }),
+    [projects, loading, error, loadError, refresh, create, update, remove],
   );
 
   return <ProjectsContext.Provider value={value}>{children}</ProjectsContext.Provider>;

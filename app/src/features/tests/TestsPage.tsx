@@ -17,7 +17,7 @@ import { Skeleton } from '../../components/Skeleton';
 import { SortControl } from '../../components/SortControl';
 import { NewTestModal } from './NewTestModal';
 import { TestModal } from './TestModal';
-import { InlineError } from '../../components/InlineError';
+import { DataErrorState } from '../../components/DataErrorState';
 
 const TEST_SORT_SPECS: SortSpec<TestCase>[] = [
   {
@@ -31,7 +31,7 @@ const TEST_SORT_SPECS: SortSpec<TestCase>[] = [
 ];
 
 export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
-  const { state, loading, error, canEdit, dispatch } = useProject();
+  const { state, loading, error, loadError, canEdit, dispatch, retryLoad } = useProject();
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const { t } = useTranslation('tracker');
@@ -42,38 +42,43 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
 
   if (loading) {
     return (
+      <>
+      <div className="data-list-header" aria-hidden="true">
+        <Skeleton style={{ width: 90, height: 13 }} />
+        <span className="data-list-actions" style={{ display: 'flex', gap: 8 }}>
+          <Skeleton style={{ width: 110, height: 28, borderRadius: 8 }} />
+          <Skeleton style={{ width: 96, height: 28, borderRadius: 8 }} />
+        </span>
+      </div>
       <div className="data-list" role="status" aria-live="polite" aria-busy="true" aria-label="Loading tests">
         <span className="sr-only">Loading tests…</span>
         <div aria-hidden="true">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="data-row" style={{ height: 56 }}>
+            <div key={i} className="data-row" style={{ minHeight: 56 }}>
               <div className="data-row-main" style={{ gap: 6 }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <Skeleton style={{ width: '55%', height: 14 }} />
-                  <Skeleton style={{ width: 48, height: 11, borderRadius: 999, opacity: 0.6 }} />
                 </div>
                 <Skeleton style={{ width: '70%', height: 11, opacity: 0.8 }} />
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <Skeleton style={{ width: 64, height: 11, borderRadius: 999 }} />
+                  <Skeleton style={{ width: 64, height: 11 }} />
                   <Skeleton style={{ width: 44, height: 11 }} />
                 </div>
               </div>
               <div className="data-row-side" style={{ justifyContent: 'flex-start', gap: 4 }}>
-                <Skeleton style={{ width: 56, height: 18, borderRadius: 999 }} />
+                <Skeleton style={{ width: 56, height: 18, borderRadius: 6 }} />
+                <Skeleton style={{ width: 28, height: 28, borderRadius: 8 }} />
               </div>
             </div>
           ))}
         </div>
       </div>
+      </>
     );
   }
 
   if (error) {
-    return (
-      <InlineError>
-        {error}
-      </InlineError>
-    );
+    return <DataErrorState error={loadError ?? error} onRetry={retryLoad} />;
   }
 
   if (!state) return null;

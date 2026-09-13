@@ -16,7 +16,7 @@ import { NewMilestoneModal } from "./NewMilestoneModal";
 import { ReleasesListView } from "./ReleasesListView";
 import { ReleasesTimelineView } from "./ReleasesTimelineView";
 import { MilestoneDetailView } from "./MilestoneDetailView";
-import { InlineError } from "../../components/InlineError";
+import { DataErrorState } from "../../components/DataErrorState";
 import { TaskModal } from "../board/TaskModal";
 import { Plus } from "@phosphor-icons/react";
 
@@ -29,7 +29,7 @@ const MILESTONE_SORT_SPECS: SortSpec<Milestone>[] = [
 
 export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { t } = useTranslation("project");
-  const { state, loading, error, canEdit } = useProject();
+  const { state, loading, error, loadError, canEdit, retryLoad } = useProject();
   const [openNew, setOpenNew] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [taskEditId, setTaskEditId] = useState<string | null>(null);
@@ -42,32 +42,78 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
 
   if (loading) {
     return (
-      <div className="data-list" role="status" aria-live="polite" aria-busy="true" aria-label="Loading releases">
-        <span className="sr-only">Loading releases…</span>
-        <div aria-hidden="true">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="data-row" style={{ height: 56 }}>
-              <div className="data-row-main" style={{ gap: 6 }}>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <Skeleton style={{ width: `${55 - i * 5}%`, height: 14 }} />
-                  <Skeleton style={{ width: 48, height: 18, borderRadius: 6 }} />
-                </div>
-                <Skeleton style={{ width: '60%', height: 11, opacity: 0.8 }} />
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <Skeleton style={{ width: 64, height: 11, borderRadius: 999 }} />
-                  <Skeleton style={{ width: 44, height: 11 }} />
-                </div>
+      <>
+      <div className="data-list-header releases-toolbar" aria-hidden="true">
+        <span className="releases-header-left" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <Skeleton style={{ width: 90, height: 13 }} />
+          <span style={{ display: "flex", gap: 4 }}>
+            <Skeleton style={{ width: 72, height: 28, borderRadius: 8 }} />
+            <Skeleton style={{ width: 84, height: 28, borderRadius: 8 }} />
+          </span>
+        </span>
+        <span className="data-list-actions" style={{ display: "flex", gap: 8 }}>
+          <Skeleton style={{ width: 110, height: 28, borderRadius: 8 }} />
+          <Skeleton style={{ width: 96, height: 28, borderRadius: 8 }} />
+        </span>
+      </div>
+      {rview === "timeline" ? (
+        <div className="timeline" role="status" aria-live="polite" aria-busy="true" aria-label="Loading timeline">
+          <span className="sr-only">Loading timeline…</span>
+          <div className="timeline-spine" aria-hidden="true">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="timeline-row" style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 16 }}>
+                <Skeleton style={{ width: 44, height: 32, flexShrink: 0 }} />
+                <Skeleton style={{ width: 12, height: 12, borderRadius: 999, flexShrink: 0, marginTop: 10 }} />
+                <Skeleton style={{ flex: 1, height: 74, borderRadius: 12 }} />
               </div>
-              <div className="data-row-side">
-                <Skeleton style={{ width: 56, height: 18, borderRadius: 999 }} />
+            ))}
+          </div>
+        </div>
+      ) : (
+      <div className="releases-list-view">
+        {[0, 1].map((g) => (
+          <div key={g} className="milestone-group">
+            <div className="milestone-group-header" aria-hidden="true" style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+              <Skeleton style={{ width: 110, height: 14 }} />
+              <Skeleton style={{ width: 28, height: 14 }} />
+            </div>
+            <div className="data-list" role="status" aria-live="polite" aria-busy="true" aria-label="Loading releases">
+              <span className="sr-only">Loading releases…</span>
+              <div aria-hidden="true">
+                {[0, 1].map((i) => (
+                  <div key={i} className="data-row" style={{ minHeight: 56 }}>
+                    <div className="data-row-main" style={{ gap: 6 }}>
+                      <div className="data-row-title" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <Skeleton style={{ width: 56, height: 18, borderRadius: 6 }} />
+                        <Skeleton style={{ width: "40%", height: 14 }} />
+                        <Skeleton style={{ width: 48, height: 12 }} />
+                      </div>
+                      <Skeleton style={{ width: "65%", height: 11, opacity: 0.8 }} />
+                      <div className="data-row-meta" style={{ display: "flex", gap: 8 }}>
+                        <Skeleton style={{ width: 88, height: 11 }} />
+                        <Skeleton style={{ width: 64, height: 11 }} />
+                      </div>
+                      <div className="milestone-progress" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <Skeleton style={{ flex: 1, height: 6, borderRadius: 999 }} />
+                        <Skeleton style={{ width: 56, height: 11 }} />
+                      </div>
+                    </div>
+                    <div className="data-row-side">
+                      <Skeleton style={{ width: 32, height: 32, borderRadius: 8 }} />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
+      )}
+      </>
     );
   }
-  if (error) return <InlineError>{error}</InlineError>;
+
+  if (error) return <DataErrorState error={loadError ?? error} onRetry={retryLoad} />;
   if (!state) return null;
 
   const sortSpec = MILESTONE_SORT_SPECS.find((s) => s.key === effectiveSort.key) ?? null;

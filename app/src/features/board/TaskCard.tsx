@@ -57,16 +57,19 @@ export const TaskCard = memo(function TaskCard({
   const testCases = linkedTestCases(task.id, state?.testCases ?? []);
   const dueChip = taskDueChip(task);
 
-  const chipRows = (showStatus || showMilestone) && (
+  const statusChip = showStatus && (
+    <Badge tone={TASK_STATUS[task.status].tone}>{TASK_STATUS[task.status].label}</Badge>
+  );
+  const milestoneChip = showMilestone && milestone && (
+    <span className="task-label" title={milestone.name}>
+      {milestone.name}
+    </span>
+  );
+  const hasChips = Boolean(statusChip) || Boolean(milestoneChip) || task.labels.length > 0;
+  const chipRows = hasChips && (
     <div className="task-card-labels">
-      {showStatus && (
-        <Badge tone={TASK_STATUS[task.status].tone}>{TASK_STATUS[task.status].label}</Badge>
-      )}
-      {showMilestone && milestone && (
-        <span className="task-label" title={milestone.name}>
-          {milestone.name}
-        </span>
-      )}
+      {statusChip}
+      {milestoneChip}
       {task.labels.map((label, i) => (
         <span key={`${label}-${i}`} className="task-label" title={label}>
           {label}
@@ -117,9 +120,7 @@ export const TaskCard = memo(function TaskCard({
           {task.title}
         </div>
 
-        {(chipRows && task.labels.length > 0) || showStatus || (showMilestone && milestone) ? (
-          chipRows
-        ) : null}
+        {chipRows || null}
 
         <div className="task-card-meta">
           <span className="task-meta-left">

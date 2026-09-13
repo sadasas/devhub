@@ -7,6 +7,7 @@ import { getErrorMessage } from '../../lib/errors';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { InlineError } from '../../components/InlineError';
+import { DataErrorState } from '../../components/DataErrorState';
 import { Skeleton } from '../../components/Skeleton';
 import { formatExpiry } from '../../lib/utils';
 
@@ -35,17 +36,21 @@ export function KeysPage() {
   const now = useNowTick();
   const [apps, setApps] = useState<AuthorizedApp[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loadErrorRaw, setLoadErrorRaw] = useState<unknown>(null);
+  const [attempt, setAttempt] = useState(0);
   const [revoking, setRevoking] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    setLoadErrorRaw(null);
     api.authorizedApps().then((res) => {
       if (!cancelled) setApps(res.apps);
     }).catch((err) => {
       if (!cancelled) setError(getErrorMessage(err, 'Failed to load'));
+      if (!cancelled) setLoadErrorRaw(err);
     });
     return () => { cancelled = true; };
-  }, []);
+  }, [attempt]);
 
   async function onRevoke(clientId: string) {
     if (!confirm(t("account:keys.revokeConfirm"))) return;
@@ -62,15 +67,22 @@ export function KeysPage() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div>
-          <h1 className="page-title">{t("account:keys.title")}</h1>
-          <p className="page-subtitle">
-            {t("account:keys.subtitle")}
-          </p>
-        </div>
-      </header>
-      {error && <InlineError>{error}</InlineError>}
+      {/* Flat content card wraps page content; content stays inside the card body. */}
+      <article className="pcard">
+        <div className="pcard-body">
+          <div className="narrow-center">
+          <header className="page-header">
+            <div>
+              <h1 className="page-title">{t("account:keys.title")}</h1>
+              <p className="page-subtitle">
+                {t("account:keys.subtitle")}
+              </p>
+            </div>
+            {apps !== null && !error && apps.length > 0 && (
+              <span className="data-list-count">{t("account:keys.connectedCount", { count: apps.length })}</span>
+            )}
+          </header>
+          {error ? (apps === null ? <DataErrorState error={loadErrorRaw ?? error} onRetry={() => { setError(null); setLoadErrorRaw(null); setAttempt((a) => a + 1); }} /> : <InlineError>{error}</InlineError>) : null}
       {apps === null && !error ? (
         <div className="data-list" role="status" aria-live="polite" aria-busy="true" aria-label={t("account:keys.loading")}>
           <span className="sr-only">{t("account:keys.loading")}</span>
@@ -80,7 +92,7 @@ export function KeysPage() {
                 <div className="data-row-main" style={{ gap: 4 }}>
                   <div className="data-row-title">
                     <Skeleton className="skeleton-row" style={{ width: '45%' }} />
-                    <Skeleton style={{ width: 8, height: 8, borderRadius: 999 }} />
+                    <Skeleton style={{ width: 7, height: 7, borderRadius: 999, marginLeft: 8, flexShrink: 0 }} />
                   </div>
                   <div className="data-row-meta">
                     <Skeleton className="skeleton-row-xs" style={{ width: 88 }} />
@@ -91,7 +103,7 @@ export function KeysPage() {
                   </div>
                 </div>
                 <div className="data-row-side">
-                  <Skeleton className="skeleton-row-sm" style={{ width: 56, height: 28, borderRadius: 8 }} />
+                  <Skeleton style={{ width: 96, height: 32, borderRadius: 8 }} />
                 </div>
               </div>
             ))}
@@ -111,9 +123,6 @@ export function KeysPage() {
         </div>
       ) : apps !== null && apps.length > 0 ? (
         <div className="data-list">
-          <div className="data-list-header">
-            <span className="data-list-count">{t("account:keys.connectedCount", { count: apps.length })}</span>
-          </div>
           {apps.map((app) => (
             <div key={app.clientId} className="data-row">
               <div className="data-row-main">
@@ -146,7 +155,7 @@ export function KeysPage() {
                 </div>
               </div>
               <div className="data-row-side">
-                <Button size="sm" variant="ghost" loading={revoking === app.clientId} onClick={() => void onRevoke(app.clientId)} leftIcon={<Trash size={13} aria-hidden="true" />}>{t("account:keys.revoke")}</Button>
+                <Button size="sm" variant="danger" loading={revoking === app.clientId} onClick={() => void onRevoke(app.clientId)} leftIcon={<Trash size={13} aria-hidden="true" />}>{t("account:keys.revoke")}</Button>
               </div>
             </div>
           ))}
@@ -158,6 +167,9 @@ export function KeysPage() {
           MCP: <code>Authorization: Bearer &lt;access_token&gt;</code> (scopes <code>mcp</code> / <code>mcp:read</code> / <code>mcp:write</code>) — {t('common:time.tokensAutoRefresh')}
         </p>
       </div>
+          </div>
+        </div>
+      </article>
     </div>
   );
 }

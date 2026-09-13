@@ -35,31 +35,32 @@ function HeaderBlock({ back, action }: { back?: boolean; action?: boolean }) {
 
 function TaskCardSkeleton() {
   return (
-    <div
-      className="task-card"
-      aria-hidden="true"
-      style={{
-        padding: 10,
-        gap: 6,
-        display: 'flex',
-        flexDirection: 'column',
-        minHeight: SKELETON_SIZES.taskCard.minHeight,
-        maxHeight: SKELETON_SIZES.taskCard.maxHeight,
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Skeleton style={{ width: SKELETON_SIZES.avatar.sm, height: SKELETON_SIZES.avatar.sm, borderRadius: '50%' }} />
-        <Skeleton style={{ width: SKELETON_SIZES.badge.smallW, height: SKELETON_SIZES.badge.smallH, borderRadius: 999 }} />
-      </div>
-      <Skeleton style={{ width: '85%', height: 14 }} />
-      <Skeleton style={{ width: '60%', height: 14, opacity: 0.9 }} />
-      <div style={{ display: 'flex', gap: 6 }}>
-        <Skeleton style={{ width: 48, height: 16, borderRadius: 6 }} />
-        <Skeleton style={{ width: 52, height: 16, borderRadius: 6 }} />
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, alignItems: 'center' }}>
-        <Skeleton style={{ width: 64, height: 11 }} />
-        <Skeleton style={{ width: 44, height: 11, borderRadius: 999 }} />
+    <div className="task-card-wrap" aria-hidden="true">
+      <div
+        className="task-card"
+        style={{
+          minHeight: SKELETON_SIZES.taskCard.minHeight,
+          maxHeight: SKELETON_SIZES.taskCard.maxHeight,
+        }}
+      >
+        <div className="task-card-top">
+          <Skeleton style={{ width: SKELETON_SIZES.avatar.sm, height: SKELETON_SIZES.avatar.sm, borderRadius: '50%' }} />
+          <Skeleton style={{ width: '34%', height: 11 }} />
+          <Skeleton style={{ width: 30, height: 18, borderRadius: 6, marginLeft: 'auto' }} />
+        </div>
+        <Skeleton style={{ width: '85%', height: 14 }} />
+        <div className="task-card-labels">
+          <Skeleton style={{ width: 48, height: 16, borderRadius: 999 }} />
+          <Skeleton style={{ width: 52, height: 16, borderRadius: 999 }} />
+        </div>
+        <div className="task-card-meta">
+          <span className="task-meta-left">
+            <Skeleton style={{ width: 64, height: 11 }} />
+          </span>
+          <span className="task-meta-right">
+            <Skeleton style={{ width: 44, height: 11 }} />
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -68,16 +69,19 @@ function TaskCardSkeleton() {
 function KanbanSkeleton() {
   return (
     <div className="kanban" aria-hidden="true">
-      {['Todo', 'In Progress', 'Review', 'Done'].map((label) => (
-        <div key={label} className="kanban-col">
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} className="kanban-col">
           <div className="kanban-col-header">
-            <span>{label}</span>
-            <Skeleton style={{ width: 24, height: 11, borderRadius: 999, marginLeft: 6 }} />
+            <Skeleton style={{ width: 72, height: 13 }} />
+            <Skeleton style={{ width: 20, height: 11, marginLeft: 6 }} />
           </div>
           <div className="kanban-col-body">
             <TaskCardSkeleton />
             <div style={{ height: 8 }} />
             <TaskCardSkeleton />
+          </div>
+          <div className="kanban-col-add">
+            <Skeleton style={{ width: '100%', height: 28, borderRadius: 8 }} />
           </div>
         </div>
       ))}
@@ -123,15 +127,14 @@ function DocsSkeletonBase({ label }: { label: string }) {
       <HeaderBlock />
       <div className="docs-grid">
         <div className="docs-main">
-          <div className="docs-nav" aria-hidden="true">
-            {[0, 1, 2, 3].map((i) => (
-              <Skeleton key={i} className="skeleton-row" style={{ marginBottom: 10 }} />
-            ))}
+          <div className="docs-nav" aria-hidden="true" style={{ display: "flex", gap: 2 }}>
+            <Skeleton style={{ width: 110, height: 30, borderRadius: 8 }} />
+            <Skeleton style={{ width: 130, height: 30, borderRadius: 8 }} />
           </div>
           <DocsBodySkeleton />
         </div>
         <aside className="docs-toc" aria-hidden="true">
-          {[0, 1, 2, 3, 4].map((i) => (
+          {[0, 1, 2, 3].map((i) => (
             <Skeleton key={i} className="skeleton-row-sm" style={{ marginBottom: 8 }} />
           ))}
         </aside>
@@ -151,10 +154,19 @@ export function DashboardSkeleton() {
             <Skeleton key={i} style={{ height: SKELETON_SIZES.taskCard.height, borderRadius: 16 }} />
           ))}
         </div>
-        <div style={{ marginBottom: 16 }}>
-          <Skeleton style={{ height: 72, width: '100%', borderRadius: 12 }} />
+        <div className="task-activity" style={{ marginBottom: 16 }}>
+          <Skeleton style={{ width: 140, height: 14, marginBottom: 8 }} />
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 72 }}>
+            {[18, 34, 26, 52, 44, 64, 30].map((h, i) => (
+              <Skeleton key={i} style={{ width: '100%', height: h, borderRadius: 4 }} />
+            ))}
+          </div>
         </div>
-        <Skeleton style={{ height: 44, marginBottom: 8, borderRadius: 8 }} />
+        <div className="welcome-command-bar" style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+          <Skeleton style={{ flex: 1, height: 36, borderRadius: 8 }} />
+          <Skeleton style={{ width: 120, height: 36, borderRadius: 8 }} />
+          <Skeleton style={{ width: 48, height: 18, borderRadius: 999, alignSelf: 'center' }} />
+        </div>
         <div className="welcome-list">
           {Array.from({ length: SKELETON_SIZES.welcomeRow.count }).map((_, i) => (
             <div key={i} className="welcome-row-wrap">
@@ -258,13 +270,58 @@ export function TeamSkeleton() {
   );
 }
 
+export function BillingRedirectSkeleton() {
+  return (
+    <div className="page" role="status" aria-label="Loading billing status" aria-busy="true">
+      <div className="billing-redirect-card" aria-hidden="true">
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+          <Skeleton style={{ width: 36, height: 36, borderRadius: 8, flexShrink: 0 }} />
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <Skeleton style={{ width: 110, height: 18, borderRadius: 6 }} />
+              <Skeleton style={{ width: 64, height: 18, borderRadius: 999 }} />
+              <Skeleton style={{ width: 32, height: 18, borderRadius: 999 }} />
+            </div>
+            <Skeleton style={{ width: "88%", height: 13, borderRadius: 6 }} />
+          </div>
+        </div>
+        <dl className="billing-facts">
+          {["Paket", "Durasi", "Jumlah", "Order ID", "Dibuat"].map((label) => (
+            <div key={label} style={{ display: "contents" }}>
+              <dt><Skeleton style={{ width: 60, height: 11, borderRadius: 4 }} /></dt>
+              <dd><Skeleton style={{ width: 120, height: 13, borderRadius: 4 }} /></dd>
+            </div>
+          ))}
+        </dl>
+        <div className="billing-redirect-actions">
+          <Skeleton style={{ width: 100, height: 28, borderRadius: 8 }} />
+          <Skeleton style={{ width: 170, height: 28, borderRadius: 8 }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function InvitesSkeleton() {
   return (
     <PageShell label="Invitations">
-      <HeaderBlock back />
-      <div aria-hidden="true">
-        <Skeleton style={{ width: '100%', height: 48, borderRadius: 12 }} />
-        <Skeleton style={{ width: '100%', height: 48, marginTop: 8, borderRadius: 12 }} />
+      <HeaderBlock />
+      <div aria-hidden="true" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {[0, 1].map((i) => (
+          <div key={i} className="data-row">
+            <div className="data-row-main" style={{ gap: 6 }}>
+              <div className="data-row-title" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <Skeleton style={{ width: '45%', height: 14 }} />
+                <Skeleton style={{ width: 56, height: 18, borderRadius: 6 }} />
+              </div>
+              <Skeleton style={{ width: '60%', height: 11 }} />
+            </div>
+            <div className="data-row-side" style={{ flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
+              <Skeleton style={{ width: 72, height: 28, borderRadius: 8 }} />
+              <Skeleton style={{ width: 88, height: 28, borderRadius: 8 }} />
+            </div>
+          </div>
+        ))}
       </div>
     </PageShell>
   );
@@ -278,8 +335,9 @@ export function KeysSkeleton() {
         {[0, 1, 2].map((i) => (
           <div key={i} className="data-row" style={{ height: SKELETON_SIZES.dataRow.height }}>
             <div className="data-row-main" style={{ gap: 4 }}>
-              <div className="data-row-title">
+              <div className="data-row-title" style={{ alignItems: 'center' }}>
                 <Skeleton className="skeleton-row" style={{ width: '45%' }} />
+                <Skeleton style={{ width: 7, height: 7, borderRadius: 999, marginLeft: 8, flexShrink: 0 }} />
               </div>
               <div className="data-row-meta">
                 <Skeleton className="skeleton-row-xs" />
@@ -289,7 +347,7 @@ export function KeysSkeleton() {
               </div>
             </div>
             <div className="data-row-side">
-              <Skeleton className="skeleton-row-sm" style={{ width: 56, height: 28, borderRadius: 8 }} />
+              <Skeleton style={{ width: SKELETON_SIZES.btn.w, height: SKELETON_SIZES.btn.h, borderRadius: 8 }} />
             </div>
           </div>
         ))}
@@ -306,19 +364,13 @@ export function TemplatesSkeleton() {
         {[0, 1, 2].map((i) => (
           <div key={i} className="data-row" style={{ height: SKELETON_SIZES.dataRow.height }}>
             <div className="data-row-main" style={{ gap: 6 }}>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <Skeleton style={{ width: '55%', height: 14 }} />
-                <Skeleton style={{ width: SKELETON_SIZES.badge.w, height: SKELETON_SIZES.badge.h, borderRadius: 999, opacity: 0.7 }} />
-              </div>
+              <Skeleton style={{ width: '55%', height: 14 }} />
               <Skeleton style={{ width: '38%', height: 11 }} />
-              <div style={{ display: 'flex', gap: 8 }}>
-                <Skeleton style={{ width: 64, height: 11, borderRadius: 999 }} />
-                <Skeleton style={{ width: 44, height: 11 }} />
-              </div>
+              <Skeleton style={{ width: '30%', height: 11, opacity: 0.85 }} />
             </div>
             <div className="data-row-side" style={{ gap: 8 }}>
               <Skeleton style={{ width: 64, height: 28, borderRadius: 8 }} />
-              <Skeleton style={{ width: 48, height: 28, borderRadius: 8, opacity: 0.6 }} />
+              <Skeleton style={{ width: 110, height: 28, borderRadius: 8 }} />
             </div>
           </div>
         ))}
@@ -330,38 +382,72 @@ export function TemplatesSkeleton() {
 export function ProfileSkeleton() {
   return (
     <PageShell label="Profile">
-      <HeaderBlock />
-      <div className="profile-layout">
-        <aside className="profile-side" aria-hidden="true">
-          <section className="profile-card">
-            <Skeleton className="skeleton-avatar-lg" />
-            <Skeleton className="skeleton-row" style={{ width: 140, height: 18, marginTop: 12 }} />
-            <Skeleton className="skeleton-row-sm" style={{ marginTop: 6 }} />
-            <Skeleton className="skeleton-row-sm" style={{ width: '70%', marginTop: 14 }} />
-            <div className="profile-chips" style={{ marginTop: 12 }}>
-              <Skeleton className="skeleton-row-xs" style={{ width: 88, height: 18, borderRadius: 999 }} />
-              <Skeleton className="skeleton-row-xs" style={{ width: 64, height: 18, borderRadius: 999 }} />
-            </div>
-            <Skeleton className="skeleton-btn" style={{ marginTop: 16 }} />
-          </section>
-        </aside>
-        <main className="profile-main" aria-hidden="true">
-          <div className="sub-tabs">
-            {[0, 1, 2].map((i) => (
-              <span key={i} className="skeleton-tab" />
-            ))}
+      <article className="pcard">
+        <div className="pcard-body">
+          <HeaderBlock />
+          <div className="profile-layout">
+            <aside className="profile-side" aria-hidden="true">
+              <section className="profile-card">
+                <Skeleton style={{ width: 72, height: 72, borderRadius: 16 }} />
+                <Skeleton className="skeleton-row" style={{ width: 140, height: 18, marginTop: 12 }} />
+                <Skeleton className="skeleton-row-sm" style={{ marginTop: 6 }} />
+                <Skeleton className="skeleton-row-sm" style={{ width: '70%', marginTop: 14 }} />
+                <div className="profile-chips" style={{ marginTop: 12 }}>
+                  <Skeleton className="skeleton-row-xs" style={{ width: 88, height: 18, borderRadius: 999 }} />
+                  <Skeleton className="skeleton-row-xs" style={{ width: 64, height: 18, borderRadius: 999 }} />
+                </div>
+                <Skeleton style={{ width: '100%', height: 36, borderRadius: 8, marginTop: 16 }} />
+              </section>
+            </aside>
+            <main className="profile-main" aria-hidden="true">
+              <div className="sub-tabs">
+                {[110, 100, 110].map((w, i) => (
+                  <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px' }}>
+                    <Skeleton style={{ width: 13, height: 13, borderRadius: 4 }} />
+                    <Skeleton style={{ width: w, height: 12 }} />
+                  </span>
+                ))}
+              </div>
+              <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <Skeleton style={{ width: 140, height: 14 }} />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(26, 10px)', gap: 3 }}>
+                  {Array.from({ length: 182 }).map((_, i) => (
+                    <Skeleton key={i} style={{ width: 10, height: 10, borderRadius: 2 }} />
+                  ))}
+                </div>
+                <Skeleton style={{ width: 180, height: 11 }} />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}>
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <Skeleton key={i} style={{ height: 64, borderRadius: 12 }} />
+                  ))}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 12, border: '1px solid var(--border-hairline)', borderRadius: 12 }}>
+                      <Skeleton style={{ width: 44, height: 24 }} />
+                      <Skeleton style={{ width: '70%', height: 12 }} />
+                    </div>
+                  ))}
+                </div>
+                <div className="profile-collections">
+                  {[0, 1].map((i) => (
+                    <section key={i} className="profile-panel">
+                      <Skeleton style={{ width: 120, height: 12, marginBottom: 10 }} />
+                      {[0, 1, 2].map((j) => (
+                        <div key={j} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 2px' }}>
+                          <Skeleton style={{ width: '40%', height: 13 }} />
+                          <Skeleton style={{ width: 64, height: 11, marginLeft: 'auto' }} />
+                          <Skeleton style={{ width: 12, height: 12, borderRadius: 4, flexShrink: 0 }} />
+                        </div>
+                      ))}
+                    </section>
+                  ))}
+                </div>
+              </div>
+            </main>
           </div>
-          <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <Skeleton style={{ width: 220, height: 18 }} />
-            <Skeleton style={{ width: '100%', height: 84, borderRadius: 12 }} />
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
-              {[0, 1, 2].map((i) => (
-                <Skeleton key={i} style={{ height: 64, borderRadius: 12 }} />
-              ))}
-            </div>
-          </div>
-        </main>
-      </div>
+        </div>
+      </article>
     </PageShell>
   );
 }
@@ -379,22 +465,32 @@ export function PricingSkeleton() {
     <div className="page" role="status" aria-label="Loading pricing" aria-busy="true">
       <HeaderBlock />
       <div aria-hidden="true">
-        <Skeleton style={{ width: '100%', height: 44, borderRadius: 8, marginBottom: 12 }} />
-        <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 16 }}>
-          <Skeleton style={{ width: 180, height: 32, borderRadius: 999 }} />
+        <div style={{ display: "flex", gap: 12, alignItems: "center", border: "1px solid var(--border-hairline)", borderRadius: 12, padding: 12, marginBottom: 12 }}>
+          <Skeleton style={{ width: 140, height: 13 }} />
+          <Skeleton style={{ flex: 1, height: 36, borderRadius: 8 }} />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-          {[0, 1].map((i) => (
-            <div key={i} className="pricing-card" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+        <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 16 }}>
+          <Skeleton style={{ width: 110, height: 32, borderRadius: 999 }} />
+          <Skeleton style={{ width: 150, height: 32, borderRadius: 999 }} />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="pricing-card" style={{ display: "flex", flexDirection: "column", gap: 0 }}>
               <Skeleton style={{ width: 90, height: 16 }} />
+              <Skeleton style={{ width: "70%", height: 12, marginTop: 8 }} />
               <Skeleton style={{ width: 160, height: 30, marginTop: 12 }} />
-              <Skeleton className="skeleton-row" style={{ marginTop: 14 }} />
-              <Skeleton className="skeleton-row" style={{ marginTop: 8 }} />
-              <Skeleton className="skeleton-row" style={{ width: '70%', marginTop: 8 }} />
-              <Skeleton style={{ width: '100%', height: SKELETON_SIZES.pricingCard.height, marginTop: 16, borderRadius: 8 }} />
+              <Skeleton style={{ width: 110, height: 16, marginTop: 6, borderRadius: 999 }} />
+              {[0, 1, 2, 3, 4].map((j) => (
+                <div key={j} style={{ display: "flex", gap: 8, alignItems: "center", marginTop: j === 0 ? 14 : 8 }}>
+                  <Skeleton style={{ width: 14, height: 14, borderRadius: 999, flexShrink: 0 }} />
+                  <Skeleton style={{ width: `${70 - j * 6}%`, height: 12 }} />
+                </div>
+              ))}
+              <Skeleton style={{ width: "100%", height: 34, marginTop: 16, borderRadius: 8 }} />
             </div>
           ))}
         </div>
+        <Skeleton style={{ width: "100%", height: 220, marginTop: 24, borderRadius: 12 }} />
       </div>
     </div>
   );
@@ -403,21 +499,21 @@ export function PricingSkeleton() {
 export function PaymentHistorySkeleton() {
   return (
     <div className="page" role="status" aria-label="Loading payments" aria-busy="true">
-      <HeaderBlock back />
-      <div aria-hidden="true" className="billing-list" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+      <HeaderBlock />
+      <div aria-hidden="true" className="billing-ledger" style={{ display: "flex", flexDirection: "column", gap: 0 }}>
         {[0, 1, 2].map((i) => (
-          <div key={i} className="billing-row" style={{ display: 'flex', gap: 12, padding: '14px 0', borderBottom: '1px solid var(--border-hairline)', alignItems: 'center' }}>
-            <div className="billing-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <Skeleton style={{ width: 96, height: 15, borderRadius: 4 }} />
-                <Skeleton style={{ width: 56, height: 18, borderRadius: 999 }} />
+          <div key={i} className="billing-row" style={{ display: "flex", gap: 12, padding: "14px 0", alignItems: "center" }}>
+            <div className="billing-main" style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+              <div className="billing-row-head" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <Skeleton style={{ width: 110, height: 15 }} />
+                <Skeleton style={{ width: 64, height: 18, borderRadius: 999 }} />
               </div>
-              <Skeleton style={{ width: '62%', height: 11, borderRadius: 4 }} />
-              <Skeleton style={{ width: '42%', height: 11, borderRadius: 4 }} />
+              <div className="billing-meta">
+                <Skeleton style={{ width: "62%", height: 11 }} />
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-              <Skeleton style={{ width: 96, height: 32, borderRadius: 8 }} />
-              <Skeleton style={{ width: 96, height: 32, borderRadius: 8 }} />
+            <div className="billing-actions" style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+              <Skeleton style={{ width: 86, height: 28, borderRadius: 8 }} />
             </div>
           </div>
         ))}
@@ -436,13 +532,17 @@ export function PublicProjectSkeleton() {
       <main className="page" role="status" aria-label="Loading public project" aria-busy="true">
         <Skeleton style={{ width: 280, height: 28, marginTop: 8 }} />
         <Skeleton style={{ width: 200, height: 16, marginTop: 12 }} />
+        <div className="project-actions" style={{ display: "flex", gap: 8, marginTop: 12 }} aria-hidden="true">
+          <Skeleton style={{ width: 90, height: 22, borderRadius: 999 }} />
+          <Skeleton style={{ width: 70, height: 22, borderRadius: 999 }} />
+        </div>
         <nav className="tabs" aria-hidden="true" style={{ marginTop: 24 }}>
-          {[0, 1, 2, 3].map((i) => (
+          {[0, 1, 2, 3, 4, 5].map((i) => (
             <span key={i} className="skeleton-tab" />
           ))}
         </nav>
         <section className="tab-panel" aria-hidden="true">
-          <Skeleton style={{ width: '100%', height: 220, borderRadius: 12 }} />
+          <KanbanSkeleton />
         </section>
       </main>
     </div>

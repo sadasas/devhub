@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowSquareOut, Receipt, Trash } from '@phosphor-icons/react';
+import { ArrowSquareOut, Receipt, Trash } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
@@ -9,6 +9,7 @@ import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { InlineError } from '../../components/InlineError';
+import { DataErrorState } from '../../components/DataErrorState';
 import { Skeleton } from '../../components/Skeleton';
 import { formatDateAdmin } from '../../lib/format';
 import { BillingLedger } from './BillingLedger';
@@ -27,6 +28,7 @@ export function PaymentHistoryPage() {
   const navigate = useNavigate();
   const [payments, setPayments] = useState<PaymentHistoryItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loadErrorRaw, setLoadErrorRaw] = useState<unknown>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -41,9 +43,11 @@ export function PaymentHistoryPage() {
       if (latestRequest.current !== id) return;
       setPayments(res.payments);
       setError(null);
+      setLoadErrorRaw(null);
     } catch (err) {
       if (latestRequest.current !== id) return;
       setError(getErrorMessage(err, t('billing.errors.load')));
+      setLoadErrorRaw(err);
     }
   }, [t]);
 
@@ -71,22 +75,18 @@ export function PaymentHistoryPage() {
     }
   }
 
-  const onBack = () => {
-    if (window.history.length > 1) navigate(-1);
-    else navigate('/');
-  };
-
   const confirmPayment = confirmId ? payments?.find((p) => p.orderId === confirmId) ?? null : null;
 
   const busyConfirm = confirmId != null && busyOrderId === confirmId;
 
   return (
     <main id="main-content" className="page billing-page" tabIndex={-1}>
+      {/* Flat content card wraps page content; dialog stays a sibling portal target. */}
+      <article className="pcard">
+        <div className="pcard-body">
+          <div className="narrow-center">
       <header className="page-header billing-header">
         <div>
-          <button type="button" className="back-btn" onClick={onBack}>
-            <ArrowLeft size={14} aria-hidden="true" /> {t('billing.back')}
-          </button>
           <h1 className="page-title mt-8">{t('billing.title')}</h1>
           <p className="page-subtitle">{t('billing.subtitle')}</p>
         </div>
@@ -101,16 +101,11 @@ export function PaymentHistoryPage() {
       </header>
 
       <p role="status" aria-live="polite" className="sr-only">
-        {payments === null && !error ? t('admin.loading') : statusMsg ? statusMsg : ''}
+        {payments === null && !error ? t('billing.loading') : statusMsg ? statusMsg : ''}
       </p>
 
       {error ? (
-        <InlineError className="mb-12">
-          {error}{' '}
-          <Button variant="ghost" size="sm" onClick={() => void load()}>
-            {t('admin.retry')}
-          </Button>
-        </InlineError>
+        <DataErrorState error={loadErrorRaw ?? error} onRetry={() => void load()} retryLabel={t('common:action.retry')} />
       ) : null}
       {actionError && (
         <div role="alert" className="mb-12">
@@ -122,20 +117,20 @@ export function PaymentHistoryPage() {
         <BillingLedger aria-busy="true" aria-label={t('billing.title')}>
           <ul role="list" className="billing-list" aria-hidden="true">
             {[0, 1, 2].map((i) => (
-              <li key={i} className="billing-row" aria-hidden="true" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                <div className="billing-main" style={{ gap: 6, flex: 1 }}>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <Skeleton style={{ width: 96, height: 15, borderRadius: 4 }} />
-                    <Skeleton style={{ width: 56, height: 18, borderRadius: 999 }} />
+              <BillingLedger.Row key={i}>
+                <BillingLedger.Main>
+                  <BillingLedger.Head>
+                    <Skeleton style={{ width: 110, height: 15 }} />
+                    <Skeleton style={{ width: 64, height: 18, borderRadius: 999 }} />
+                  </BillingLedger.Head>
+                  <div className="billing-meta">
+                    <Skeleton style={{ width: '62%', height: 11 }} />
                   </div>
-                  <Skeleton style={{ width: '62%', height: 11, borderRadius: 4 }} />
-                  <Skeleton style={{ width: '42%', height: 11, borderRadius: 4 }} />
-                </div>
-                <div style={{ display: 'flex', gap: 8, flexShrink: 0, opacity: 0.7 }}>
-                  <Skeleton style={{ width: 96, height: 32, borderRadius: 8 }} />
-                  <Skeleton style={{ width: 96, height: 32, borderRadius: 8 }} />
-                </div>
-              </li>
+                </BillingLedger.Main>
+                <BillingLedger.Actions>
+                  <Skeleton style={{ width: 86, height: 28, borderRadius: 8 }} />
+                </BillingLedger.Actions>
+              </BillingLedger.Row>
             ))}
           </ul>
         </BillingLedger>
@@ -195,7 +190,7 @@ export function PaymentHistoryPage() {
                     {isPending && (
                       <Button
                         size="sm"
-                        variant="ghost"
+                        variant="danger"
                         disabled={busy}
                         leftIcon={<Trash size={13} aria-hidden="true" />}
                         aria-label={t("billing.cancelAria", {
@@ -210,7 +205,7 @@ export function PaymentHistoryPage() {
                     )}
                     <Button
                       size="sm"
-                      variant={isPending ? "ghost" : "secondary"}
+                      variant="ghost"
                       disabled={busy}
                       leftIcon={<ArrowSquareOut size={13} weight="bold" aria-hidden="true" />}
                       aria-label={t("billing.detailAria", {
@@ -230,6 +225,9 @@ export function PaymentHistoryPage() {
         </BillingLedger>
       ) : null}
 
+          </div>
+        </div>
+      </article>
       <ConfirmDeleteDialog
         open={!!confirmId}
         title={t('billing.cancelTitle', { defaultValue: 'Batalkan pembayaran?' })}

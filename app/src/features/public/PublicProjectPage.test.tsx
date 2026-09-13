@@ -175,9 +175,8 @@ describe('PublicProjectPage', () => {
 
     renderPage();
 
-    expect(
-      await screen.findByText('Cannot reach the server. Is it running?'),
-    ).toBeDefined();
+    expect(await screen.findByText('Not connected')).toBeDefined();
+    expect(screen.queryByText('Cannot reach the server. Is it running?')).toBeNull();
   });
 
   it('renders only the tabs the owner shared publicly', async () => {

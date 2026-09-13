@@ -61,6 +61,7 @@
   "activity": {
     "empty": "No activity recorded yet.",
     "loadFailed": "Failed to load activity",
+    "loading": "Loading activity…",
     "verbCreated": "created",
     "verbDeleted": "deleted",
     "verbUpdated": "updated",
@@ -100,6 +101,22 @@
   "errorBoundary": {
     "title": "Something went wrong",
     "subtitle": "An unexpected error occurred while rendering this page. Your data is safe — try again, or reload the app if the problem persists."
+  },
+  "dataError": {
+    "rateLimitedTitle": "Too many requests",
+    "rateLimitedDesc": "Wait a moment, then try again.",
+    "serverTitle": "Server trouble",
+    "serverDesc": "Try again in a moment.",
+    "offlineTitle": "Not connected",
+    "offlineDesc": "Check your internet connection, then try again.",
+    "notFoundTitle": "Data not found",
+    "notFoundDesc": "It may have been deleted or moved.",
+    "forbiddenTitle": "No access",
+    "forbiddenDesc": "Ask your team admin for access, then try again.",
+    "genericTitle": "Failed to load data",
+    "genericDesc": "Something went wrong while fetching data. Try again.",
+    "businessTitle": "Needs attention",
+    "businessDesc": "Something needs to be resolved before continuing."
   },
   "usage": {
     "unlimited": "Unlimited",

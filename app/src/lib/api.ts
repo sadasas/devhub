@@ -299,14 +299,19 @@ export const api = {
     );
     return res;
   },
+  updateTemplate: (templateId: string, patch: { name?: string; description?: string }) =>
+    request<{ template: ProjectTemplate }>(`/templates/${encodeURIComponent(templateId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }).then((r) => r.template),
   deleteTemplate: (templateId: string) =>
     request<{ ok: true }>(`/templates/${encodeURIComponent(templateId)}`, {
       method: 'DELETE',
     }),
-  instantiateTemplate: (templateId: string, name?: string, description?: string) =>
+  instantiateTemplate: (templateId: string, teamId: string, name?: string, description?: string) =>
     request<{ projectId: string }>(`/templates/${encodeURIComponent(templateId)}/instantiate`, {
       method: 'POST',
-      body: JSON.stringify({ name, description }),
+      body: JSON.stringify({ teamId, name, description }),
     }),
 
   getState: async (projectId: string) => {
@@ -444,10 +449,26 @@ export const api = {
     const res = await request<{ teams: Team[] }>('/teams');
     return res.teams;
   },
-  createTeam: (name: string, icon?: string | null) =>
+  createTeam: (name: string, icon?: string | null, slug?: string) =>
     request<{ team: Team }>('/teams', {
       method: 'POST',
-      body: JSON.stringify({ name, ...(icon !== undefined ? { icon } : {}) }),
+      body: JSON.stringify({ name, ...(icon !== undefined ? { icon } : {}), ...(slug ? { slug } : {}) }),
+    }).then((r) => r.team),
+  getTeamBySlug: (slug: string) =>
+    request<{ team: Team; redirectTo: string | null }>(
+      `/teams/by-slug/${encodeURIComponent(slug)}`,
+    ),
+  checkTeamSlug: (slug: string, excludeTeamId?: string) => {
+    const qs = new URLSearchParams({ slug });
+    if (excludeTeamId) qs.set('excludeTeamId', excludeTeamId);
+    return request<{ available: boolean; reason: 'invalid' | 'reserved' | 'taken' | null; suggestion: string | null }>(
+      `/teams/slug-check?${qs.toString()}`,
+    );
+  },
+  renameTeamSlug: (teamId: string, slug: string) =>
+    request<{ team: Team }>(`/teams/${encodeURIComponent(teamId)}/slug`, {
+      method: 'PATCH',
+      body: JSON.stringify({ slug }),
     }).then((r) => r.team),
   renameTeam: (teamId: string, name: string, icon?: string | null) =>
     request<{ ok: true }>(`/teams/${encodeURIComponent(teamId)}`, {

@@ -5,10 +5,10 @@ import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { ProjectTemplate } from '../../lib/types';
 import { formatDate } from '../../lib/utils';
-import { useTeams } from '../../state/teams-context';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { InlineError } from '../../components/InlineError';
+import { DataErrorState } from '../../components/DataErrorState';
 import { Modal } from '../../components/Modal';
 import { Skeleton } from '../../components/Skeleton';
 import { InstantiateTemplateModal } from './InstantiateTemplateModal';
@@ -18,11 +18,13 @@ interface DeleteTarget {
   name: string;
 }
 
+// Owner-only template library: the server lists only the caller's own
+// templates, so every row is deletable and there is no team gate here.
 export function TemplatesPage() {
   const { t } = useTranslation('extras');
-  const { teams } = useTeams();
   const [templates, setTemplates] = useState<ProjectTemplate[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loadErrorRaw, setLoadErrorRaw] = useState<unknown>(null);
   const [attempt, setAttempt] = useState(0);
   const [useTarget, setUseTarget] = useState<ProjectTemplate | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
@@ -34,6 +36,7 @@ export function TemplatesPage() {
     let cancelled = false;
     setTemplates(null);
     setError(null);
+    setLoadErrorRaw(null);
     api
       .listTemplates()
       .then((list) => {
@@ -41,16 +44,17 @@ export function TemplatesPage() {
       })
       .catch((err) => {
         if (!cancelled) setError(getErrorMessage(err, t('templates.errors.load')));
+        if (!cancelled) setLoadErrorRaw(err);
       });
     return () => {
       cancelled = true;
     };
   }, [attempt, t]);
 
-  function openDelete(t: ProjectTemplate) {
+  function openDelete(tpl: ProjectTemplate) {
     setConfirming(false);
     setDeleteError(null);
-    setDeleteTarget({ id: t.id, name: t.name });
+    setDeleteTarget({ id: tpl.id, name: tpl.name });
   }
 
   async function onDelete() {
@@ -59,7 +63,7 @@ export function TemplatesPage() {
     setDeleting(true);
     try {
       await api.deleteTemplate(deleteTarget.id);
-      setTemplates((prev) => (prev ?? []).filter((t) => t.id !== deleteTarget.id));
+      setTemplates((prev) => (prev ?? []).filter((tpl) => tpl.id !== deleteTarget.id));
       setDeleteTarget(null);
     } catch (err) {
       setDeleteError(getErrorMessage(err, t('templates.errors.delete')));
@@ -68,106 +72,96 @@ export function TemplatesPage() {
     }
   }
 
-  const isAdmin = (teamId: string): boolean => {
-    const team = teams?.find((t) => t.id === teamId);
-    return team?.role === 'owner' || team?.role === 'admin';
-  };
-
   return (
     <div className="page">
-      <header className="page-header">
-        <div>
-          <h1 className="page-title">{t('templates.page.title')}</h1>
-          <p className="page-subtitle">
-            {t('templates.page.subtitle')}
-          </p>
-        </div>
-      </header>
+      {/* Flat content card wraps page content; modals stay as sibling portal targets. */}
+      <article className="pcard">
+        <div className="pcard-body">
+          <div className="narrow-center">
+          <header className="page-header">
+            <div>
+              <h1 className="page-title">{t('templates.page.title')}</h1>
+              <p className="page-subtitle">{t('templates.page.subtitle')}</p>
+            </div>
+            {templates !== null && !error && templates.length > 0 && (
+              <span className="data-list-count">{t('templates.count', { count: templates.length })}</span>
+            )}
+          </header>
 
-      {error ? (
-        <div className="form-stack">
-          <InlineError>{error}</InlineError>
-          <Button variant="secondary" size="sm" leftIcon={<ArrowClockwise size={13} aria-hidden="true" />} onClick={() => setAttempt((a) => a + 1)}>
-            {t('templates.retry')}
-          </Button>
-        </div>
-      ) : templates === null ? (
-        <div className="data-list" role="status" aria-live="polite" aria-busy="true" aria-label="Loading templates">
-          <span className="sr-only">Loading templates…</span>
-          <div aria-hidden="true">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="data-row" style={{ height: 56 }}>
-                <div className="data-row-main" style={{ gap: 6 }}>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <Skeleton style={{ width: '55%', height: 14 }} />
-                    <Skeleton style={{ width: 48, height: 11, borderRadius: 999, opacity: 0.6 }} />
+          {error ? (
+            <DataErrorState error={loadErrorRaw ?? error} onRetry={() => setAttempt((a) => a + 1)} retryLabel={t('templates.retry')} />
+          ) : templates === null ? (
+            <div
+              className="data-list"
+              role="status"
+              aria-live="polite"
+              aria-busy="true"
+              aria-label="Loading templates"
+            >
+              <span className="sr-only">Loading templates…</span>
+              <div aria-hidden="true">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="data-row" style={{ height: 56 }}>
+                    <div className="data-row-main" style={{ gap: 6 }}>
+                      <Skeleton style={{ width: '55%', height: 14 }} />
+                      <Skeleton style={{ width: '38%', height: 11, opacity: 0.85 }} />
+                      <Skeleton style={{ width: '30%', height: 11, opacity: 0.7 }} />
+                    </div>
+                    <div className="data-row-side" style={{ gap: 8 }}>
+                      <Skeleton style={{ width: 64, height: 28, borderRadius: 8 }} />
+                      <Skeleton style={{ width: 110, height: 28, borderRadius: 8 }} />
+                    </div>
                   </div>
-                  <Skeleton style={{ width: '38%', height: 11, opacity: 0.85 }} />
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <Skeleton style={{ width: 64, height: 11, borderRadius: 999 }} />
-                    <Skeleton style={{ width: 44, height: 11 }} />
-                  </div>
-                </div>
-                <div className="data-row-side" style={{ gap: 8 }}>
-                  <Skeleton style={{ width: 64, height: 28, borderRadius: 8 }} />
-                  <Skeleton style={{ width: 48, height: 28, borderRadius: 8, opacity: 0.6 }} />
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-      ) : templates.length === 0 ? (
-        <div className="page-empty">
-          <EmptyState
-            icon={<BookmarkSimple size={22} />}
-            title={t('templates.empty.title')}
-            description={t('templates.empty.desc')}
-          />
-        </div>
-      ) : (
-        <>
-          <div className="data-list-header">
-            <span className="data-list-count">
-              {t('templates.count', { count: templates.length })}
-            </span>
-          </div>
-          <div className="data-list">
-            {templates.map((tpl) => (
-              <div key={tpl.id} className="data-row">
-                <div className="data-row-main">
-                  <div className="data-row-title">
-                    <span className="row-title-text">{tpl.name}</span>
+            </div>
+          ) : templates.length === 0 ? (
+            <div className="page-empty">
+              <EmptyState
+                icon={<BookmarkSimple size={22} />}
+                title={t('templates.empty.title')}
+                description={t('templates.empty.desc')}
+              />
+            </div>
+          ) : (
+            <div className="data-list">
+              {templates.map((tpl) => (
+                <div key={tpl.id} className="data-row">
+                  <div className="data-row-main">
+                    <div className="data-row-title">
+                      <span className="row-title-text">{tpl.name}</span>
+                    </div>
+                    {tpl.description && <div className="data-row-meta">{tpl.description}</div>}
+                    <div className="data-row-meta">
+                      <span>{t('templates.row.created', { date: formatDate(tpl.createdAt) })}</span>
+                    </div>
                   </div>
-                  {tpl.description && <div className="data-row-meta">{tpl.description}</div>}
-                  <div className="data-row-meta">
-                    <span>{tpl.teamName}</span>
-                    <span>{t('templates.row.created', { date: formatDate(tpl.createdAt) })}</span>
-                  </div>
-                </div>
-                <div className="data-row-side">
-                  <Button
-                    size="sm"
-                    leftIcon={<Copy size={13} aria-hidden="true" />}
-                    onClick={() => setUseTarget(tpl)}
-                  >
-                    {t('templates.use')}
-                  </Button>
-                  {isAdmin(tpl.teamId) && (
+                  <div className="data-row-side" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
                     <Button
+                      variant="danger"
                       size="sm"
-                      variant="ghost"
-                      className="text-danger"
+                      leftIcon={<Trash size={13} aria-hidden="true" />}
                       onClick={() => openDelete(tpl)}
+                      aria-label={`${t('templates.delete')}: ${tpl.name}`}
                     >
                       {t('templates.delete')}
                     </Button>
-                  )}
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      leftIcon={<Copy size={13} aria-hidden="true" />}
+                      onClick={() => setUseTarget(tpl)}
+                    >
+                      {t('templates.use')}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          )}
           </div>
-        </>
-      )}
+        </div>
+      </article>
 
       <InstantiateTemplateModal open={useTarget !== null} template={useTarget} onClose={() => setUseTarget(null)} />
 
@@ -188,11 +182,20 @@ export function TemplatesPage() {
               {t('templates.cancel')}
             </Button>
             {confirming ? (
-              <Button variant="danger" leftIcon={<Trash size={13} aria-hidden="true" />} loading={deleting} onClick={() => void onDelete()}>
+              <Button
+                variant="danger"
+                leftIcon={<Trash size={13} aria-hidden="true" />}
+                loading={deleting}
+                onClick={() => void onDelete()}
+              >
                 {t('templates.confirmDelete')}
               </Button>
             ) : (
-              <Button variant="danger" leftIcon={<Trash size={13} aria-hidden="true" />} onClick={() => setConfirming(true)}>
+              <Button
+                variant="danger"
+                leftIcon={<Trash size={13} aria-hidden="true" />}
+                onClick={() => setConfirming(true)}
+              >
                 {t('templates.delete')}
               </Button>
             )}
@@ -200,9 +203,7 @@ export function TemplatesPage() {
         }
       >
         <div className="form-stack">
-          <p>
-            {t('templates.deleteDesc', { name: deleteTarget?.name ?? '' })}
-          </p>
+          <p>{t('templates.deleteDesc', { name: deleteTarget?.name ?? '' })}</p>
           {deleteError && <InlineError>{deleteError}</InlineError>}
         </div>
       </Modal>

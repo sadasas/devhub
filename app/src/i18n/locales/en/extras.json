@@ -431,7 +431,7 @@
   "templates": {
     "page": {
       "title": "Project templates",
-      "subtitle": "Reusable project blueprints — save a project as a template, then instantiate it whenever you need a fresh copy."
+      "subtitle": "Private to you — save a project as a template, then instantiate it into any of your workspaces."
     },
     "retry": "Try again",
     "empty": {
@@ -456,7 +456,10 @@
     "createProject": "Create project",
     "projectName": "Project name",
     "projectNamePlaceholder": "e.g. New sprint board",
-    "instantiateHelper": "A new project will be created in {{team}} with the template's tasks, issues, schema and more.",
+    "targetTeam": "Target workspace",
+    "selectTeam": "Select workspace",
+    "teamEmptyHint": "Create a workspace first — templates need a target workspace.",
+    "instantiateHelper": "A new project will be created in the selected workspace with the template's tasks, issues, schema and more.",
     "nameLabel": "Template name",
     "namePlaceholder": "e.g. Blank sprint board",
     "descPlaceholder": "What is this template for?",
@@ -465,11 +468,11 @@
       "load": "Failed to load templates.",
       "delete": "Failed to delete template.",
       "save": "Failed to save template.",
-      "instantiate": "Failed to create project from template."
+      "instantiate": "Failed to create project from template.",
+      "noTeam": "Select a target workspace."
     }
   },
   "pricing": {
-    "back": "Back",
     "title": "Start free, upgrade when your team needs it.",
     "subtitle": "All core features included — different limits.",
     "recommended": "Recommended",
@@ -496,7 +499,7 @@
     "billedYearly": "Billed yearly — equals {{monthly}}/mo",
     "youSave": "Save {{amount}} vs regular price",
     "workspace": "Workspace",
-    "workspacePlaceholder": "Pilih workspace",
+    "workspacePlaceholder": "Select workspace",
     "workspaceBarLabel": "Bill to workspace",
     "workspaceBarAria": "Select workspace for billing",
     "billingToggleAria": "Billing period options",
@@ -564,9 +567,9 @@
     }
   },
   "billing": {
-    "back": "Back",
     "title": "Payment History",
     "subtitle": "All payments you have made across workspaces.",
+    "loading": "Loading payment history…",
     "empty": {
       "title": "No payments yet",
       "desc": "Completed payments for your workspaces will appear here."
@@ -707,7 +710,6 @@
       "tip2": "anywhere to search commands and projects. Inside a project, the palette also offers create actions for every entity — new task, issue, test case, decision, milestone, tech entry, API collection or endpoint.",
       "palette": "Open or close the command palette",
       "toggleChat": "Toggle team chat",
-      "toggleSidebar": "Toggle sidebar",
       "navigateResults": "Move through palette results",
       "runCommand": "Run the selected palette command",
       "escape": "Close the palette or the active modal",

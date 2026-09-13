@@ -50,7 +50,7 @@ function escapeId(id: string): string {
 }
 
 /** Scopes in priority order: sidebar chrome first, page content as fallback. */
-const TOUR_ANCHOR_SCOPES = ['.team-rail', '.sidebar', '#mobile-nav-drawer'];
+const TOUR_ANCHOR_SCOPES = ['.sidebar', '#mobile-nav-drawer'];
 
 function elementRect(el: Element): AnchorRect {
   try {
@@ -68,7 +68,7 @@ function isLaidOut(el: Element): boolean {
 
 /**
  * Resolve by element id first, then [data-tour-id] anchor.
- * Priority: visible match inside sidebar scopes (.team-rail, .sidebar,
+ * Priority: visible match inside sidebar scopes (.sidebar,
  * mobile drawer) wins over page-content matches, so the coachmark points
  * at the sidebar — not the big dashboard button. Falls back to any visible
  * match (e.g. dashboard when the drawer is closed), then to the first

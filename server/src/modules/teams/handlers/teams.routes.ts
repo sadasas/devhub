@@ -3,6 +3,7 @@ import { requireAuth, getUserId } from '../../auth/middleware/requireAuth.js';
 import {
   acceptTeamInvitation,
   changeMemberRole,
+  checkTeamSlug,
   createTeam,
   declineTeamInvitation,
   deleteTeamById,
@@ -14,6 +15,8 @@ import {
   listTeamMembers,
   listTeamsForUser,
   renameTeamById,
+  renameTeamSlugById,
+  resolveTeamBySlug,
 } from '../application/teamService.js';
 
 export const teamsRouter = Router();
@@ -34,6 +37,18 @@ teamsRouter.get('/invitations', async (req, res) => {
   res.json({ invitations: await listInvitations(userId) });
 });
 
+// Slug endpoints must precede /:teamId or Express would treat
+// "by-slug" / "slug-check" as a teamId param (404 via isUuid guard).
+teamsRouter.get('/by-slug/:slug', async (req, res) => {
+  const userId = getUserId(req);
+  res.json(await resolveTeamBySlug(userId, req.params.slug));
+});
+
+teamsRouter.get('/slug-check', async (req, res) => {
+  const userId = getUserId(req);
+  res.json(await checkTeamSlug(userId, req.query));
+});
+
 teamsRouter.get('/:teamId', async (req, res) => {
   const userId = getUserId(req);
   res.json(await getTeam(userId, req.params.teamId));
@@ -43,6 +58,11 @@ teamsRouter.patch('/:teamId', async (req, res) => {
   const userId = getUserId(req);
   await renameTeamById(userId, req.params.teamId, req.body);
   res.json({ ok: true });
+});
+
+teamsRouter.patch('/:teamId/slug', async (req, res) => {
+  const userId = getUserId(req);
+  res.json(await renameTeamSlugById(userId, req.params.teamId, req.body));
 });
 
 teamsRouter.delete('/:teamId', async (req, res) => {

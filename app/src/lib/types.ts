@@ -474,6 +474,7 @@ export interface Team {
   id: string;
   name: string;
   icon?: string | null;
+  slug: string;
   role: TeamRole;
   plan: TeamPlan;
   planPackageName: string;
@@ -493,8 +494,7 @@ export interface TeamMember {
 
 export interface ProjectTemplate {
   id: string;
-  teamId: string;
-  teamName: string;
+  ownerId: string;
   name: string;
   description: string;
   createdAt: string;

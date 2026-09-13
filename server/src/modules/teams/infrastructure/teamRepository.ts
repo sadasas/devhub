@@ -5,6 +5,7 @@ export interface TeamListRow {
   id: string;
   name: string;
   icon: string | null;
+  slug: string;
   role: string;
   plan: 'free' | 'pro';
   plan_package_name: string;
@@ -15,7 +16,7 @@ export interface TeamListRow {
 
 export async function listTeams(userId: string): Promise<TeamListRow[]> {
   const result = await pool.query(
-    `SELECT t.id, t.name, t.icon, t.created_at, t.updated_at, tm.role, t.plan,
+    `SELECT t.id, t.name, t.icon, t.slug, t.created_at, t.updated_at, tm.role, t.plan,
             COALESCE(cur.name, fr.name) AS plan_package_name,
             (SELECT count(*)::int FROM team_members m WHERE m.team_id = t.id) AS member_count
      FROM teams t
@@ -37,23 +38,41 @@ export interface CreatedTeam {
   id: string;
   name: string;
   icon: string | null;
+  slug: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export async function insertTeamWithOwner(name: string, ownerId: string, icon?: string | null): Promise<CreatedTeam> {
+export async function insertTeamWithOwner(
+  name: string,
+  ownerId: string,
+  icon?: string | null,
+  slug?: string,
+): Promise<CreatedTeam> {
   return withTransaction(pool, async (client) => {
-    const inserted = await client.query<{ id: string; created_at: Date; updated_at: Date }>(
-      'INSERT INTO teams (name, icon, created_by) VALUES ($1, $2, $3) RETURNING id, created_at, updated_at',
-      [name, icon ?? null, ownerId],
+    const inserted = await client.query<{
+      id: string;
+      slug: string;
+      created_at: Date;
+      updated_at: Date;
+    }>(
+      'INSERT INTO teams (name, icon, slug, created_by) VALUES ($1, $2, $3, $4) RETURNING id, slug, created_at, updated_at',
+      [name, icon ?? null, slug ?? '', ownerId],
     );
-    const id = inserted.rows[0]?.id;
-    if (!id) throw new Error('Failed to create team');
+    const row = inserted.rows[0];
+    if (!row?.id) throw new Error('Failed to create team');
     await client.query(
       'INSERT INTO team_members (team_id, user_id, role) VALUES ($1, $2, $3)',
-      [id, ownerId, 'owner'],
+      [row.id, ownerId, 'owner'],
     );
-    return { id, name, icon: icon ?? null, createdAt: inserted.rows[0]!.created_at, updatedAt: inserted.rows[0]!.updated_at };
+    return {
+      id: row.id,
+      name,
+      icon: icon ?? null,
+      slug: row.slug,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
   });
 }
 
@@ -250,4 +269,87 @@ export async function declineInvitation(invitationId: string): Promise<void> {
   await pool.query(`UPDATE invitations SET status = 'declined' WHERE id = $1 AND status = 'pending'`, [
     invitationId,
   ]);
+}
+
+// --- Team slug (035): global uniqueness across current slugs + history ---
+
+export async function slugTaken(slug: string, excludeTeamId?: string): Promise<boolean> {
+  if (excludeTeamId) {
+    const current = await pool.query(
+      'SELECT 1 AS id FROM teams WHERE slug = $1 AND id <> $2 LIMIT 1',
+      [slug, excludeTeamId],
+    );
+    if (current.rows.length > 0) return true;
+    const hist = await pool.query(
+      'SELECT 1 AS id FROM team_slug_history WHERE slug = $1 AND team_id <> $2 LIMIT 1',
+      [slug, excludeTeamId],
+    );
+    return hist.rows.length > 0;
+  }
+  const current = await pool.query('SELECT 1 AS id FROM teams WHERE slug = $1 LIMIT 1', [slug]);
+  if (current.rows.length > 0) return true;
+  const hist = await pool.query('SELECT 1 AS id FROM team_slug_history WHERE slug = $1 LIMIT 1', [
+    slug,
+  ]);
+  return hist.rows.length > 0;
+}
+
+export interface SlugResolveRow {
+  id: string;
+  name: string;
+  icon: string | null;
+  slug: string;
+  role: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+// Member-scoped resolve: current slug first, then history (redirect).
+// Returns the team row plus whether the requested slug was stale.
+export async function resolveTeamIdBySlugForUser(
+  userId: string,
+  slug: string,
+): Promise<{ row: SlugResolveRow; isRedirect: boolean } | undefined> {
+  const current = await pool.query<SlugResolveRow>(
+    `SELECT t.id, t.name, t.icon, t.slug, tm.role, t.created_at, t.updated_at
+     FROM teams t
+     JOIN team_members tm ON tm.team_id = t.id
+     WHERE t.slug = $1 AND tm.user_id = $2`,
+    [slug, userId],
+  );
+  if (current.rows[0]) return { row: current.rows[0], isRedirect: false };
+  const viaHistory = await pool.query<SlugResolveRow>(
+    `SELECT t.id, t.name, t.icon, t.slug, tm.role, t.created_at, t.updated_at
+     FROM team_slug_history h
+     JOIN teams t ON t.id = h.team_id
+     JOIN team_members tm ON tm.team_id = t.id
+     WHERE h.slug = $1 AND tm.user_id = $2`,
+    [slug, userId],
+  );
+  if (viaHistory.rows[0]) return { row: viaHistory.rows[0], isRedirect: true };
+  return undefined;
+}
+
+export async function updateTeamSlugWithHistory(
+  teamId: string,
+  oldSlug: string,
+  newSlug: string,
+): Promise<void> {
+  await withTransaction(pool, async (client) => {
+    // Reclaiming own old slug: drop that history row, it becomes current again.
+    await client.query('DELETE FROM team_slug_history WHERE team_id = $1 AND slug = $2', [
+      teamId,
+      newSlug,
+    ]);
+    // Preserve the previous slug for redirects (idempotent on retry).
+    await client.query(
+      `INSERT INTO team_slug_history (team_id, slug) VALUES ($1, $2)
+       ON CONFLICT (slug) DO NOTHING`,
+      [teamId, oldSlug],
+    );
+    await client.query('UPDATE teams SET slug = $2, updated_at = now() WHERE id = $1', [
+      teamId,
+      newSlug,
+    ]);
+  });
 }

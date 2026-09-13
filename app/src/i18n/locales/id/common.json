@@ -61,6 +61,7 @@
   "activity": {
     "empty": "Belum ada aktivitas tercatat.",
     "loadFailed": "Gagal memuat aktivitas",
+    "loading": "Memuat aktivitas…",
     "verbCreated": "membuat",
     "verbDeleted": "menghapus",
     "verbUpdated": "memperbarui",
@@ -100,6 +101,22 @@
   "errorBoundary": {
     "title": "Terjadi kesalahan",
     "subtitle": "Terjadi kesalahan tak terduga saat menampilkan halaman ini. Data Anda aman — coba lagi, atau muat ulang aplikasi bila masalah berlanjut."
+  },
+  "dataError": {
+    "rateLimitedTitle": "Terlalu banyak permintaan",
+    "rateLimitedDesc": "Tunggu sebentar, lalu coba lagi.",
+    "serverTitle": "Ada gangguan di server",
+    "serverDesc": "Coba lagi dalam beberapa saat.",
+    "offlineTitle": "Tidak terhubung",
+    "offlineDesc": "Periksa koneksi internet, lalu coba lagi.",
+    "notFoundTitle": "Data tidak ditemukan",
+    "notFoundDesc": "Mungkin sudah dihapus atau dipindah.",
+    "forbiddenTitle": "Tidak punya akses",
+    "forbiddenDesc": "Minta akses ke admin tim, lalu coba lagi.",
+    "genericTitle": "Gagal memuat data",
+    "genericDesc": "Terjadi masalah saat mengambil data. Coba lagi.",
+    "businessTitle": "Perlu perhatian",
+    "businessDesc": "Ada hal yang perlu diselesaikan sebelum lanjut."
   },
   "usage": {
     "unlimited": "Tanpa batas",

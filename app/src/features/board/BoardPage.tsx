@@ -20,6 +20,7 @@ import { TaskCard } from './TaskCard';
 import { TaskModal } from './TaskModal';
 import { NewTaskModal } from './NewTaskModal';
 import { InlineError } from '../../components/InlineError';
+import { DataErrorState } from '../../components/DataErrorState';
 import { isTypingTarget, isModalOrPaletteOpen } from '../../lib/keys';
 
 const DueCalendar = lazy(() => import('./DueCalendar').then((m) => ({ default: m.DueCalendar })));
@@ -48,7 +49,7 @@ interface NewTaskTarget {
 
 export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { t } = useTranslation('tracker');
-  const { state, loading, error, dispatch, canEdit, teamId } = useProject();
+  const { state, loading, error, loadError, dispatch, canEdit, teamId, retryLoad } = useProject();
   const [searchParams, setSearchParams] = useSearchParams();
   const rawView = searchParams.get('view');
   // calendar replaces timeline (user request) — keep legacy redirects
@@ -85,7 +86,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { user } = useOptionalAuth();
   const mineParam = searchParams.get('mine');
   const mineOnly = mineParam === '1';
-  const setMine = (on: boolean) => {
+  const setMine = useCallback((on: boolean) => {
     setSearchParams(
       (prev) => {
         const p = new URLSearchParams(prev);
@@ -95,7 +96,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       },
       { replace: true },
     );
-  };
+  }, [setSearchParams]);
   const sortSpec = TASK_SORT_SPECS.find((s) => s.key === effectiveSort.key) ?? null;
   const columnLabels: Record<TaskStatus, string> = {
     todo: t('board.column.todo'),
@@ -128,11 +129,16 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       if (e.key === 'f' || e.key === 'F') {
         e.preventDefault();
         toggleFs();
+      } else if (e.key === 'm' || e.key === 'M') {
+        // M toggles the "only my tasks" chip (no-op when signed out).
+        if (!user?.id) return;
+        e.preventDefault();
+        setMine(!mineOnly);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [editId, newTaskAt, toggleFs]);
+  }, [editId, newTaskAt, toggleFs, setMine, mineOnly, user]);
   const openTask = useCallback((id: string) => setEditId(id), []);
   const handleTouchDrop = useCallback((taskId: string, dropKey: string | null) => {
     getDropHandler(dropKey)?.(taskId);
@@ -216,54 +222,103 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [canEdit, editId, newTaskAt, view, state, dispatch, t]);
 
-  if (loading) {
+  function BoardCalendarSkeleton() {
     return (
+      <div className="due-cal-skeleton" role="status" aria-busy="true" aria-live="polite" aria-label="Loading calendar">
+        <span className="sr-only">Loading calendar…</span>
+        <div aria-hidden="true">
+          <div className="due-cal-toolbar">
+            <div className="due-cal-nav">
+              <Skeleton style={{ width: 32, height: 32, borderRadius: 8 }} />
+              <Skeleton style={{ width: 130, height: 18 }} />
+              <Skeleton style={{ width: 32, height: 32, borderRadius: 8 }} />
+            </div>
+            <div className="sub-tabs">
+              <Skeleton style={{ width: 76, height: 28, borderRadius: 999 }} />
+              <Skeleton style={{ width: 76, height: 28, borderRadius: 999 }} />
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, margin: "10px 0 6px" }}>
+            {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+              <Skeleton key={i} style={{ width: "60%", height: 11, margin: "0 auto" }} />
+            ))}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6 }}>
+            {Array.from({ length: 21 }).map((_, i) => (
+              <Skeleton key={i} style={{ width: "100%", height: 64, borderRadius: 8 }} />
+            ))}
+          </div>
+          <Skeleton style={{ width: "100%", height: 40, marginTop: 8, borderRadius: 8 }} />
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    if (view === "calendar") {
+      return <BoardCalendarSkeleton />;
+    }
+    return (
+      <>
+      <div className="board-toolbar" aria-hidden="true">
+        <div style={{ display: "flex", gap: 2 }}>
+          <Skeleton style={{ width: 92, height: 30, borderRadius: 8 }} />
+          <Skeleton style={{ width: 104, height: 30, borderRadius: 8 }} />
+          <Skeleton style={{ width: 104, height: 30, borderRadius: 8 }} />
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <Skeleton style={{ width: 120, height: 28, borderRadius: 8 }} />
+          <Skeleton style={{ width: 32, height: 32, borderRadius: 8 }} />
+        </div>
+      </div>
       <div className="kanban" role="status" aria-live="polite" aria-busy="true" aria-label="Loading board">
         <span className="sr-only">Loading board…</span>
         <div aria-hidden="true" style={{ display: 'contents' }}>
           {COLUMNS.map((col) => (
             <div key={col} className="kanban-col">
               <div className="kanban-col-header">
-                <span>{columnLabels[col]}</span>
-                <Skeleton style={{ width: 24, height: 11, borderRadius: 999, marginLeft: 6 }} />
+                <span className="kanban-col-label">{columnLabels[col]}</span>
+                <Skeleton style={{ width: 20, height: 11, marginLeft: 6 }} />
               </div>
               <div className="kanban-col-body">
                 {[0, 1].map((i) => (
-                  <div
-                    key={i}
-                    className="task-card"
-                    style={{ padding: 10, gap: 6, display: 'flex', flexDirection: 'column', minHeight: 88 }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Skeleton style={{ width: 20, height: 20, borderRadius: '50%' }} />
-                      <Skeleton style={{ width: 36, height: 18, borderRadius: 999 }} />
-                    </div>
-                    <Skeleton style={{ width: '85%', height: 14 }} />
-                    <Skeleton style={{ width: '60%', height: 14, opacity: 0.9 }} />
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <Skeleton style={{ width: 48, height: 16, borderRadius: 6 }} />
-                      <Skeleton style={{ width: 52, height: 16, borderRadius: 6 }} />
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, alignItems: 'center' }}>
-                      <Skeleton style={{ width: 64, height: 11 }} />
-                      <Skeleton style={{ width: 44, height: 11, borderRadius: 999 }} />
+                  <div key={i} className="task-card-wrap">
+                    <div className="task-card">
+                      <div className="task-card-top">
+                        <Skeleton style={{ width: 20, height: 20, borderRadius: '50%' }} />
+                        <Skeleton style={{ width: '34%', height: 11 }} />
+                        <Skeleton style={{ width: 30, height: 18, borderRadius: 6, marginLeft: 'auto' }} />
+                      </div>
+                      <Skeleton style={{ width: '85%', height: 14 }} />
+                      <div className="task-card-labels">
+                        <Skeleton style={{ width: 48, height: 16, borderRadius: 999 }} />
+                        <Skeleton style={{ width: 52, height: 16, borderRadius: 999 }} />
+                      </div>
+                      <div className="task-card-meta">
+                        <span className="task-meta-left">
+                          <Skeleton style={{ width: 64, height: 11 }} />
+                        </span>
+                        <span className="task-meta-right">
+                          <Skeleton style={{ width: 44, height: 11 }} />
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}
+              </div>
+              <div className="kanban-col-add">
+                <Skeleton style={{ width: '100%', height: 28, borderRadius: 8 }} />
               </div>
             </div>
           ))}
         </div>
       </div>
+      </>
     );
   }
 
   if (error) {
-    return (
-      <InlineError>
-        {error}
-      </InlineError>
-    );
+    return <DataErrorState error={loadError ?? error} onRetry={retryLoad} />;
   }
 
   if (!state) return null;
@@ -444,51 +499,34 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
         </div>
         <div className="board-toolbar-actions">
           {view !== 'calendar' && (
-            <>
-              <SortControl
-                options={TASK_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: t(s.label) }))}
-                value={sortValue}
-                onChange={setSort}
+            <SortControl
+              options={TASK_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: t(s.label) }))}
+              value={sortValue}
+              onChange={setSort}
+            />
+          )}
+          {userId && (
+            <label
+              className="toolbar-check"
+              title={mineOnly ? t('board.showAllTasks') : t('board.showOnlyMine')}
+            >
+              <input
+                type="checkbox"
+                checked={mineOnly}
+                onChange={(e) => setMine(e.target.checked)}
               />
-              {userId && (
-                <label
-                  className="toolbar-check"
-                  title={mineOnly ? t('board.showAllTasks') : t('board.showOnlyMine')}
-                >
-                  <input
-                    type="checkbox"
-                    checked={mineOnly}
-                    onChange={(e) => setMine(e.target.checked)}
-                  />
-                  {t('board.onlyMyTasks')}
-                </label>
-              )}
-            </>
+              {t('board.onlyMyTasks')}
+            </label>
           )}
           {view === 'calendar' && (
-            <>
-              {userId && (
-                <label
-                  className="toolbar-check"
-                  title={mineOnly ? t('board.showAllTasks') : t('board.showOnlyMine')}
-                >
-                  <input
-                    type="checkbox"
-                    checked={mineOnly}
-                    onChange={(e) => setMine(e.target.checked)}
-                  />
-                  {t('board.onlyMyTasks')}
-                </label>
-              )}
-              <label className="toolbar-check">
-                <input
-                  type="checkbox"
-                  checked={calHideCompleted}
-                  onChange={(e) => setCalHideCompleted(e.target.checked)}
-                />
-                {t('board.cal.hideCompleted')}
-              </label>
-            </>
+            <label className="toolbar-check">
+              <input
+                type="checkbox"
+                checked={calHideCompleted}
+                onChange={(e) => setCalHideCompleted(e.target.checked)}
+              />
+              {t('board.cal.hideCompleted')}
+            </label>
           )}
           <Button
             variant="ghost"
@@ -508,17 +546,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
 
       {view === 'calendar' ? (
         <Suspense
-          fallback={
-            <div className="due-cal-skeleton" role="status" aria-busy="true" aria-live="polite" aria-label="Loading calendar">
-              <span className="sr-only">Loading calendar…</span>
-              <div aria-hidden="true">
-                <Skeleton style={{ height: 36, width: '100%', marginBottom: 10, borderRadius: 8 }} />
-                <Skeleton style={{ height: 112, width: '100%', marginBottom: 8, borderRadius: 12 }} />
-                <Skeleton style={{ height: 112, width: '100%', marginBottom: 8, borderRadius: 12 }} />
-                <Skeleton style={{ height: 112, width: '100%', borderRadius: 12 }} />
-              </div>
-            </div>
-          }
+          fallback={<BoardCalendarSkeleton />}
         >
           <DueCalendar
             onOpenTask={openTask}

@@ -1,14 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ChatsCircle, X } from '@phosphor-icons/react';
+import { X } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { useAuth } from '../../state/auth-context';
 import { ChatPanel } from '../teams/ChatPanel';
-import { realtimeWsUrl, TeamChatSocket } from '../../lib/realtime-client';
 import { onToggleChat } from '../../lib/chat-events';
-
-const UNREAD_POLL_MS = 30_000;
 
 interface ProjectChatWidgetProps {
   teamId: string;
@@ -44,8 +41,6 @@ export function ProjectChatWidget({
     },
     [effectiveOpen, isControlled, onOpenChange],
   );
-  const [unread, setUnread] = useState(0);
-  const launcherRef = useRef<HTMLButtonElement | null>(null);
   const drawerRef = useRef<HTMLDivElement | HTMLDivElement | null>(null) as React.MutableRefObject<HTMLDivElement | null>;
   const inlineRef = useRef<HTMLElement | null>(null);
   const [internalIsMobile, setInternalIsMobile] = useState<boolean>(() => {
@@ -58,15 +53,6 @@ export function ProjectChatWidget({
     }
   });
   const isMobile = typeof isMobileProp === 'boolean' ? isMobileProp : internalIsMobile;
-
-  const refreshUnread = useCallback(async () => {
-    try {
-      const count = await api.getUnreadCount(teamId);
-      setUnread(count);
-    } catch {
-      /* badge best-effort */
-    }
-  }, [teamId]);
 
   useEffect(() => {
     if (typeof isMobileProp === 'boolean') return;
@@ -84,32 +70,6 @@ export function ProjectChatWidget({
   }, [isMobileProp]);
 
   useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    const doPoll = async () => {
-      if (effectiveOpen) return;
-      if (cancelled) return;
-      await refreshUnread();
-    };
-    void doPoll();
-    const timer = setInterval(() => void doPoll(), UNREAD_POLL_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
-  }, [user, effectiveOpen, refreshUnread]);
-
-  useEffect(() => {
-    if (!user || effectiveOpen) return;
-    const socket = new TeamChatSocket({
-      wsUrl: realtimeWsUrl(),
-      teamId,
-      onMessageNew: () => void refreshUnread(),
-    });
-    return () => socket.close();
-  }, [user, effectiveOpen, teamId, refreshUnread]);
-
-  useEffect(() => {
     if (isControlled) return;
     const off = onToggleChat(() => setInternalOpen((v) => !v));
     return off;
@@ -117,9 +77,14 @@ export function ProjectChatWidget({
 
   useEffect(() => {
     if (!effectiveOpen) return;
-    setUnread(0);
     void api.setMessagesRead(teamId, new Date().toISOString()).catch(() => {});
   }, [effectiveOpen, teamId]);
+
+  // Focus returns to the permanent topbar chat button (the removed FAB's
+  // replacement). Query by id to avoid prop drilling through Layout.
+  const focusTopbarChatButton = () => {
+    document.getElementById('topbar-chat-btn')?.focus();
+  };
 
   // drawer mode (mobile): portal + inert + focus trap
   useEffect(() => {
@@ -138,7 +103,7 @@ export function ProjectChatWidget({
         if (mentionOpen) return;
         e.preventDefault();
         setEffectiveOpen(false);
-        launcherRef.current?.focus();
+        focusTopbarChatButton();
         return;
       }
       if (e.key === 'Tab' && focusable && focusable.length > 0) {
@@ -159,7 +124,7 @@ export function ProjectChatWidget({
       window.removeEventListener('keydown', onKeyDown);
       if (prevInert === null) main?.removeAttribute('inert');
       else if (prevInert !== null) main?.setAttribute('inert', prevInert as string);
-      launcherRef.current?.focus();
+      focusTopbarChatButton();
     };
   }, [effectiveOpen, isMobile, setEffectiveOpen]);
 
@@ -185,34 +150,10 @@ export function ProjectChatWidget({
 
   if (!user) return null;
 
-  // keep launcher always visible for discoverability & test-compat; badge hidden when open
-  const showLauncher = true;
-  const unreadBadge = !effectiveOpen && unread > 0;
-
+  // Floating launcher removed — open via the permanent topbar chat button
+  // (toggleChat event). Drawer + inline panel logic unchanged.
   return (
     <>
-      {showLauncher && (
-        <button
-          ref={launcherRef}
-          type="button"
-          className="chat-launcher"
-          aria-label={t('chat.launcherAria')}
-          aria-expanded={effectiveOpen}
-          aria-controls={isMobile ? 'project-chat-drawer' : 'chat-inline-shell'}
-          aria-haspopup={isMobile ? 'dialog' : undefined}
-          onClick={() => setEffectiveOpen((v) => !v)}
-        >
-          <ChatsCircle size={24} weight="bold" aria-hidden="true" />
-          {unreadBadge && (
-            <>
-              <span className="chat-launcher-badge" aria-hidden="true">
-                {unread > 99 ? '99+' : unread}
-              </span>
-              <span className="sr-only">{t('chat.unread', { count: unread })}</span>
-            </>
-          )}
-        </button>
-      )}
       {effectiveOpen && isMobile &&
         createPortal(
           <div

@@ -144,7 +144,7 @@ describe('ChatPanel', () => {
     await waitFor(() => {
       expect(screen.getByText('Gagal').closest('.chat-msg')?.className).toContain('chat-msg-failed');
     });
-    expect(screen.getByText(/failed to send message/i)).toBeTruthy();
+    expect(screen.queryByText(/failed to send message/i)).toBeNull();
     expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Dismiss' })).toBeTruthy();
   });

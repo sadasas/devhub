@@ -10,9 +10,11 @@ interface TeamsContextValue {
   invitations: Invitation[];
   loading: boolean;
   error: string | null;
+  loadError: unknown;
   refresh: () => Promise<void>;
-  createTeam: (name: string, icon?: string | null) => Promise<Team>;
+  createTeam: (name: string, icon?: string | null, slug?: string) => Promise<Team>;
   renameTeam: (teamId: string, name: string, icon?: string | null) => Promise<void>;
+  renameSlug: (teamId: string, slug: string) => Promise<Team>;
   deleteTeam: (teamId: string) => Promise<void>;
   inviteMember: (teamId: string, email: string, role: Exclude<TeamRole, 'owner'>) => Promise<void>;
   acceptInvitation: (teamId: string, invitationId: string) => Promise<void>;
@@ -26,6 +28,7 @@ export function TeamsProvider({ children }: { children: ReactNode }) {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<unknown>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -33,6 +36,7 @@ export function TeamsProvider({ children }: { children: ReactNode }) {
       setTeams(teamList);
       setInvitations(inviteList);
       setError(null);
+      setLoadError(null);
       void putMeta('teams', teamList).catch(() => { /* best-effort cache */ });
     } catch (err) {
       if (isNetworkError(err)) {
@@ -40,11 +44,14 @@ export function TeamsProvider({ children }: { children: ReactNode }) {
         if (cached) {
           setTeams(cached);
           setError(null);
+      setLoadError(null);
         } else {
           setError(err instanceof Error ? err.message : 'Failed to load teams');
+        setLoadError(err);
         }
       } else {
         setError(err instanceof Error ? err.message : 'Failed to load teams');
+        setLoadError(err);
       }
     } finally {
       setLoading(false);
@@ -56,13 +63,19 @@ export function TeamsProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const createTeam = useCallback(
-    async (name: string, icon?: string | null) => {
-      const team = await api.createTeam(name, icon ?? null);
+    async (name: string, icon?: string | null, slug?: string) => {
+      const team = await api.createTeam(name, icon ?? null, slug?.trim() ? slug.trim() : undefined);
       setTeams((prev) => (prev ? [...prev, team] : [team]));
       return team;
     },
     [],
   );
+
+  const renameSlug = useCallback(async (teamId: string, slug: string) => {
+    const team = await api.renameTeamSlug(teamId, slug);
+    setTeams((prev) => (prev ? prev.map((t) => (t.id === teamId ? team : t)) : prev));
+    return team;
+  }, []);
 
   const renameTeam = useCallback(
     async (teamId: string, name: string, icon?: string | null) => {
@@ -105,9 +118,11 @@ export function TeamsProvider({ children }: { children: ReactNode }) {
       invitations,
       loading,
       error,
+      loadError,
       refresh,
       createTeam,
       renameTeam,
+      renameSlug,
       deleteTeam,
       inviteMember,
       acceptInvitation,
@@ -118,9 +133,11 @@ export function TeamsProvider({ children }: { children: ReactNode }) {
       invitations,
       loading,
       error,
+      loadError,
       refresh,
       createTeam,
       renameTeam,
+      renameSlug,
       deleteTeam,
       inviteMember,
       acceptInvitation,

@@ -21,7 +21,7 @@ interface NewMilestoneModalProps {
 const STATUS_OPTIONS: MilestoneStatus[] = ["planned", "inProgress", "released"];
 
 export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
-  const { t } = useTranslation("project");
+  const { t } = useTranslation(["project", "tracker"]);
   const { dispatch } = useProject();
   usePresenceStatus("Creating milestone");
   const [name, setName] = useState("");
@@ -30,12 +30,25 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
   const [status, setStatus] = useState<MilestoneStatus | "">("");
   const [changelog, setChangelog] = useState("");
   const [datesOpen, setDatesOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const datePillRef = useRef<HTMLButtonElement>(null);
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const [versionOpen, setVersionOpen] = useState(false);
   const [versionDraft, setVersionDraft] = useState("");
   const [versionAnchor, setVersionAnchor] = useState<{ top: number; bottom: number; left: number } | null>(null);
   const [versionPos, setVersionPos] = useState<{ top: number; left: number } | null>(null);
+
+  // Fullscreen toggle via tombol header maupun Ctrl/Cmd+Shift+F.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "F" || e.key === "f")) {
+        e.preventDefault();
+        setExpanded((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   const versionPillRef = useRef<HTMLButtonElement>(null);
   const versionPopRef = useRef<HTMLDivElement | null>(null);
   const versionCancelRef = useRef(false);
@@ -161,7 +174,12 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
       title={t("releases.newModal.title")}
       onClose={onClose}
       width="lg"
-      className="modal-composer"
+      className={expanded ? "modal-composer modal-composer--fullscreen" : "modal-composer"}
+      expandable
+      expanded={expanded}
+      onToggleExpand={() => setExpanded((v) => !v)}
+      expandLabel={t("tracker:board.newTaskModal.expandView")}
+      collapseLabel={t("tracker:board.newTaskModal.contractView")}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>

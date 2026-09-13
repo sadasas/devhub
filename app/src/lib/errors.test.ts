@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from './api';
-import { getErrorMessage, isTransientError } from './errors';
+import { classifyError, getErrorMessage, isTransientError } from './errors';
 
 describe('isTransientError', () => {
   it('returns true for network-level errors (status 0)', () => {
@@ -50,5 +50,26 @@ describe('getErrorMessage', () => {
     expect(getErrorMessage(new ApiError(500, 'INTERNAL', 'Stored state is invalid'), 'fb')).toBe(
       'Stored state is invalid. Please try again in a moment.',
     );
+  });
+});
+
+describe('classifyError', () => {
+  it('maps bare and coded 429 to rateLimited', () => {
+    expect(classifyError(new ApiError(429, 'INTERNAL', 'Too Many Requests'))).toBe('rateLimited');
+    expect(classifyError(new ApiError(429, 'RATE_LIMITED', 'Too many login attempts'))).toBe('rateLimited');
+  });
+  it('maps allowlisted business codes', () => {
+    expect(classifyError(new ApiError(402, 'PLAN_LIMIT', 'Downgrade blocked'))).toBe('business');
+  });
+  it('maps server, offline, notFound and forbidden', () => {
+    expect(classifyError(new ApiError(500, 'INTERNAL', 'boom'))).toBe('server');
+    expect(classifyError(new ApiError(0, 'NETWORK', 'fetch failed'))).toBe('offline');
+    expect(classifyError(new ApiError(404, 'NOT_FOUND', 'nope'))).toBe('notFound');
+    expect(classifyError(new ApiError(403, 'FORBIDDEN', 'denied'))).toBe('forbidden');
+  });
+  it('maps validation-style 400s and unknown values to generic', () => {
+    expect(classifyError(new ApiError(400, 'VALIDATION', 'Name is required'))).toBe('generic');
+    expect(classifyError(new Error('plain'))).toBe('generic');
+    expect(classifyError(null)).toBe('generic');
   });
 });

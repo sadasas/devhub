@@ -28,11 +28,24 @@ import {
   listTeams,
   removeMember,
   renameTeam,
+  resolveTeamIdBySlugForUser,
+  slugTaken,
   teamHasProjects,
   transferOwnership,
   updateMemberRole,
+  updateTeamSlugWithHistory,
 } from '../infrastructure/teamRepository.js';
 import { assertMemberQuota } from '../../plans/application/quotaService.js';
+import {
+  TEAM_SLUG_MAX_LENGTH,
+  TEAM_SLUG_MIN_LENGTH,
+  buildFallbackTeamSlug,
+  isReservedTeamSlug,
+  isValidTeamSlugFormat,
+  normalizeTeamSlug,
+  slugifyTeamName,
+  truncateForSuffix,
+} from '../domain/slug.js';
 
 const INVITE_ROLES: ReadonlySet<TeamRole> = new Set(['admin', 'editor', 'viewer']);
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -40,11 +53,21 @@ const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const createTeamSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(300),
   icon: z.string().trim().max(10).optional().nullable(),
+  slug: z.string().trim().max(TEAM_SLUG_MAX_LENGTH).optional().nullable(),
 });
 
 const renameTeamSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(300),
   icon: z.string().trim().max(10).optional().nullable(),
+});
+
+const renameSlugSchema = z.object({
+  slug: z.string().trim().min(1, 'Slug is required').max(TEAM_SLUG_MAX_LENGTH),
+});
+
+const slugCheckQuerySchema = z.object({
+  slug: z.string().trim().min(1).max(TEAM_SLUG_MAX_LENGTH + 10),
+  excludeTeamId: z.string().trim().optional(),
 });
 
 const memberRoleSchema = z.object({
@@ -60,6 +83,7 @@ function teamJson(row: {
   id: string;
   name: string;
   icon?: string | null;
+  slug?: string;
   role: string;
   plan?: string;
   plan_package_name?: string;
@@ -71,6 +95,7 @@ function teamJson(row: {
     id: row.id,
     name: row.name,
     icon: row.icon ?? null,
+    slug: row.slug ?? '',
     role: row.role,
     plan: row.plan ?? 'free',
     planPackageName: row.plan_package_name ?? 'Free',
@@ -80,26 +105,90 @@ function teamJson(row: {
   };
 }
 
+// Auto-deduplicate a base slug: base, base-2, base-3, ... (member-safe via slugTaken).
+async function allocateSlug(base: string, excludeTeamId?: string): Promise<string> {
+  let candidate = base;
+  for (let n = 2; n < 1000; n += 1) {
+    if (!(await slugTaken(candidate, excludeTeamId))) return candidate;
+    const suffix = `-${n}`;
+    candidate = `${truncateForSuffix(base, suffix)}${suffix}`;
+  }
+  throw new ApiError(409, 'CONFLICT', 'No available slug found, try a different name');
+}
+
+async function resolveExplicitSlugOrThrow(
+  raw: string,
+  excludeTeamId?: string,
+): Promise<string> {
+  const slug = normalizeTeamSlug(raw);
+  if (!isValidTeamSlugFormat(slug)) {
+    throw new ApiError(
+      400,
+      'VALIDATION_ERROR',
+      `Slug must be ${TEAM_SLUG_MIN_LENGTH}-${TEAM_SLUG_MAX_LENGTH} lowercase letters, numbers, or hyphens (no leading/trailing hyphen)`,
+    );
+  }
+  if (isReservedTeamSlug(slug)) {
+    throw new ApiError(400, 'VALIDATION_ERROR', 'This URL is reserved, choose another one');
+  }
+  if (await slugTaken(slug, excludeTeamId)) {
+    throw new ApiError(409, 'CONFLICT', 'This URL is already taken');
+  }
+  return slug;
+}
+
+function suggestSlug(base: string, excludeTeamId?: string): Promise<string | null> {
+  return (async () => {
+    for (let n = 2; n <= 20; n += 1) {
+      const suffix = `-${n}`;
+      const candidate = `${truncateForSuffix(base, suffix)}${suffix}`;
+      if (isReservedTeamSlug(candidate)) continue;
+      if (!(await slugTaken(candidate, excludeTeamId))) return candidate;
+    }
+    return null;
+  })();
+}
+
 export async function listTeamsForUser(userId: string) {
   return (await listTeams(userId)).map(teamJson);
 }
 
 export async function createTeam(userId: string, body: unknown) {
-  const { name, icon } = parseOrThrow(createTeamSchema, body, 'Invalid team data');
+  const { name, icon, slug: rawSlug } = parseOrThrow(createTeamSchema, body, 'Invalid team data');
   const normalizedIcon = icon?.trim() ? icon.trim() : null;
-  const result = await insertTeamWithOwner(name, userId, normalizedIcon);
-  return {
-    team: {
-      id: result.id,
-      name: result.name,
-      icon: result.icon,
-      role: 'owner',
-      plan: 'free',
-      memberCount: 1,
-      createdAt: result.createdAt.toISOString(),
-      updatedAt: result.updatedAt.toISOString(),
-    },
-  };
+  let slug: string;
+  if (rawSlug?.trim()) {
+    slug = await resolveExplicitSlugOrThrow(rawSlug);
+  } else {
+    const base = slugifyTeamName(name);
+    if (!base || base.length < TEAM_SLUG_MIN_LENGTH || isReservedTeamSlug(base)) {
+      slug = await allocateSlug(buildFallbackTeamSlug());
+    } else {
+      slug = await allocateSlug(base);
+    }
+  }
+  try {
+    const result = await insertTeamWithOwner(name, userId, normalizedIcon, slug);
+    return {
+      team: {
+        id: result.id,
+        name: result.name,
+        icon: result.icon,
+        slug: result.slug,
+        role: 'owner',
+        plan: 'free',
+        memberCount: 1,
+        createdAt: result.createdAt.toISOString(),
+        updatedAt: result.updatedAt.toISOString(),
+      },
+    };
+  } catch (err: unknown) {
+    // Race on concurrent creates with the same explicit slug (uq_teams_slug).
+    if (typeof err === 'object' && err !== null && (err as { code?: unknown }).code === '23505') {
+      throw new ApiError(409, 'CONFLICT', 'This URL is already taken');
+    }
+    throw err;
+  }
 }
 
 export async function listInvitations(userId: string) {
@@ -124,6 +213,7 @@ export async function getTeam(userId: string, teamId: string) {
       id: row.id,
       name: row.name,
       icon: (row as { icon?: string | null }).icon ?? null,
+      slug: row.slug,
       role: row.role,
       plan: row.plan,
       memberCount,
@@ -131,6 +221,98 @@ export async function getTeam(userId: string, teamId: string) {
       updatedAt: row.updated_at.toISOString(),
     },
   };
+}
+
+export async function renameTeamSlugById(userId: string, teamId: string, body: unknown) {
+  const row = await getTeamWithRole(userId, teamId);
+  if (!row) throw new ApiError(404, 'NOT_FOUND', 'Team not found');
+  assertAdmin(row.role);
+  const { slug: rawSlug } = parseOrThrow(renameSlugSchema, body, 'Invalid team data');
+  const next = normalizeTeamSlug(rawSlug);
+  if (next === row.slug) {
+    // No-op rename keeps history untouched.
+    const memberCount = await countMembers(row.id);
+    return {
+      team: {
+        id: row.id,
+        name: row.name,
+        icon: row.icon ?? null,
+        slug: row.slug,
+        role: row.role,
+        plan: row.plan,
+        memberCount,
+        createdAt: row.created_at.toISOString(),
+        updatedAt: row.updated_at.toISOString(),
+      },
+    };
+  }
+  const slug = await resolveExplicitSlugOrThrow(rawSlug, row.id);
+  try {
+    await updateTeamSlugWithHistory(row.id, row.slug, slug);
+  } catch (err: unknown) {
+    if (typeof err === 'object' && err !== null && (err as { code?: unknown }).code === '23505') {
+      throw new ApiError(409, 'CONFLICT', 'This URL is already taken');
+    }
+    throw err;
+  }
+  const memberCount = await countMembers(row.id);
+  const updated = await getTeamWithRole(userId, teamId);
+  return {
+    team: {
+      id: row.id,
+      name: row.name,
+      icon: row.icon ?? null,
+      slug,
+      role: row.role,
+      plan: row.plan,
+      memberCount,
+      createdAt: updated?.created_at.toISOString() ?? row.created_at.toISOString(),
+      updatedAt: updated?.updated_at.toISOString() ?? new Date().toISOString(),
+    },
+  };
+}
+
+export async function resolveTeamBySlug(userId: string, rawSlug: unknown) {
+  const slug = normalizeTeamSlug(String(rawSlug ?? ''));
+  if (!isValidTeamSlugFormat(slug)) throw new ApiError(404, 'NOT_FOUND', 'Team not found');
+  const found = await resolveTeamIdBySlugForUser(userId, slug);
+  if (!found) throw new ApiError(404, 'NOT_FOUND', 'Team not found');
+  // Reuse the canonical team payload (plan included) for consistency.
+  const full = await getTeam(userId, found.row.id);
+  return {
+    team: full.team,
+    // History hit: client should replace the URL with the current slug.
+    redirectTo: found.isRedirect ? found.row.slug : null,
+  };
+}
+
+export async function checkTeamSlug(userId: string, query: unknown) {
+  void userId;
+  const { slug: rawSlug, excludeTeamId } = parseOrThrow(
+    slugCheckQuerySchema,
+    query,
+    'Invalid slug query',
+  );
+  const slug = normalizeTeamSlug(rawSlug);
+  const exclude =
+    excludeTeamId && isUuid(excludeTeamId) ? excludeTeamId : undefined;
+  if (!isValidTeamSlugFormat(slug)) {
+    return { available: false as const, reason: 'invalid' as const, suggestion: null as string | null };
+  }
+  if (isReservedTeamSlug(slug)) {
+    const base = `${truncateForSuffix(slug, '-team')}-team`;
+    const suggestion =
+      !isValidTeamSlugFormat(base) || (await slugTaken(base, exclude)) ? null : base;
+    return { available: false as const, reason: 'reserved' as const, suggestion };
+  }
+  if (await slugTaken(slug, exclude)) {
+    return {
+      available: false as const,
+      reason: 'taken' as const,
+      suggestion: await suggestSlug(slug, exclude),
+    };
+  }
+  return { available: true as const, reason: null as null, suggestion: null as string | null };
 }
 
 export async function renameTeamById(userId: string, teamId: string, body: unknown): Promise<void> {

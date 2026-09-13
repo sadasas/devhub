@@ -17,7 +17,7 @@ import { SortControl } from '../../components/SortControl';
 import { NewTechModal } from './NewTechModal';
 import { TechModal } from './TechModal';
 import { StackGraph } from './StackGraph';
-import { InlineError } from '../../components/InlineError';
+import { DataErrorState } from '../../components/DataErrorState';
 
 const CATEGORY_ORDER: TechEntryCategory[] = ['frontend', 'backend', 'database', 'tooling'];
 
@@ -48,7 +48,7 @@ function loadView(): StackView {
 
 export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { t } = useTranslation('project');
-  const { state, loading, error, canEdit } = useProject();
+  const { state, loading, error, loadError, canEdit, retryLoad } = useProject();
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [view, setView] = useState<StackView>(loadView);
@@ -68,11 +68,42 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
 
   if (loading) {
     return (
+      <>
+      <div className="data-list-header" aria-hidden="true">
+        <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <Skeleton style={{ width: 90, height: 13 }} />
+          <span style={{ display: "flex", gap: 4 }}>
+            <Skeleton style={{ width: 72, height: 28, borderRadius: 8 }} />
+            <Skeleton style={{ width: 72, height: 28, borderRadius: 8 }} />
+          </span>
+        </span>
+        <span className="data-list-actions" style={{ display: "flex", gap: 8 }}>
+          <Skeleton style={{ width: 110, height: 28, borderRadius: 8 }} />
+          <Skeleton style={{ width: 96, height: 28, borderRadius: 8 }} />
+        </span>
+      </div>
+      {view === "graph" ? (
+        <div className="stack-graph-wrap" role="status" aria-live="polite" aria-busy="true" aria-label="Loading stack graph">
+          <span className="sr-only">Loading stack graph…</span>
+          <div aria-hidden="true">
+            <Skeleton style={{ width: "100%", height: 320, borderRadius: 12 }} />
+            <div style={{ display: "flex", gap: 24, marginTop: 12 }}>
+              {[0, 1].map((i) => (
+                <div key={i} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <Skeleton style={{ width: 96, height: 12 }} />
+                  <Skeleton style={{ width: 140, height: 11 }} />
+                  <Skeleton style={{ width: 120, height: 11 }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
       <div className="data-list" role="status" aria-live="polite" aria-busy="true" aria-label="Loading stack">
         <span className="sr-only">Loading stack…</span>
         <div aria-hidden="true">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="data-row" style={{ height: 56 }}>
+            <div key={i} className="data-row" style={{ minHeight: 56 }}>
               <div className="data-row-main" style={{ gap: 6 }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <Skeleton style={{ width: `${50 + i * 5}%`, height: 14 }} />
@@ -80,26 +111,24 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
                 </div>
                 <Skeleton style={{ width: '60%', height: 11, opacity: 0.8 }} />
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <Skeleton style={{ width: 44, height: 11, borderRadius: 999 }} />
+                  <Skeleton style={{ width: 44, height: 11 }} />
                   <Skeleton style={{ width: 44, height: 11 }} />
                 </div>
               </div>
               <div className="data-row-side">
-                <Skeleton style={{ width: 64, height: 18, borderRadius: 999 }} />
+                <Skeleton style={{ width: 64, height: 18, borderRadius: 6 }} />
               </div>
             </div>
           ))}
         </div>
       </div>
+      )}
+      </>
     );
   }
 
   if (error) {
-    return (
-      <InlineError>
-        {error}
-      </InlineError>
-    );
+    return <DataErrorState error={loadError ?? error} onRetry={retryLoad} />;
   }
 
   if (!state) return null;

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import request from 'supertest';
+import { pool } from '../src/db/pool.js';
 import { app, register, getFirstTeamId, createTeam, createProject, inviteUser, uniqueIp } from './helpers.js';
 
 async function seedState(cookie: string, projectId: string): Promise<void> {
@@ -32,11 +36,13 @@ async function saveTemplate(cookie: string, projectId: string, name = 'Sprint st
     .set('X-Forwarded-For', uniqueIp())
     .send({ projectId, name });
   expect(res.status).toBe(201);
+  expect(res.body.template.ownerId).toBeTruthy();
+  expect(res.body.template.teamId).toBeUndefined();
   return (res.body.template as { id: string }).id;
 }
 
-describe('templates', () => {
-  it('saves a template from a project and lists it for the team', async () => {
+describe('templates (owner-only)', () => {
+  it('saves a template from a project and lists it for the owner only', async () => {
     const owner = await register('tpl-owner@test.dev');
     const projectId = await createProject(owner, 'Source project');
     await seedState(owner, projectId);
@@ -48,7 +54,10 @@ describe('templates', () => {
       .set('X-Forwarded-For', uniqueIp());
     expect(list.status).toBe(200);
     expect(list.body.templates).toHaveLength(1);
-    expect(list.body.templates[0]).toMatchObject({ id: templateId, name: 'Sprint starter', teamName: 'Test team' });
+    expect(list.body.templates[0]).toMatchObject({ id: templateId, name: 'Sprint starter' });
+    expect(list.body.templates[0].ownerId).toBeTruthy();
+    expect(list.body.templates[0].teamId).toBeUndefined();
+    expect(list.body.templates[0].teamName).toBeUndefined();
 
     const single = await request(app)
       .get(`/api/v1/templates/${templateId}`)
@@ -57,17 +66,75 @@ describe('templates', () => {
     expect(single.body.template.state.tasks).toHaveLength(1);
   });
 
-  it('instantiate creates a new project with the template state', async () => {
-    const owner = await register('tpl-inst@test.dev');
-    const projectId = await createProject(owner, 'Source');
+  it('hides templates from teammates: list/get/update/delete are owner-only', async () => {
+    const owner = await register('tpl-priv-owner@test.dev');
+    const mate = await register('tpl-priv-mate@test.dev');
+    const teamId = await getFirstTeamId(owner);
+    await inviteUser(owner, mate, teamId, 'admin');
+    const projectId = await createProject(owner, 'Source', teamId);
     await seedState(owner, projectId);
     const templateId = await saveTemplate(owner, projectId);
+
+    const mateList = await request(app)
+      .get('/api/v1/templates')
+      .set('Cookie', mate)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(mateList.status).toBe(200);
+    expect(mateList.body.templates).toHaveLength(0);
+
+    const mateGet = await request(app)
+      .get(`/api/v1/templates/${templateId}`)
+      .set('Cookie', mate);
+    expect(mateGet.status).toBe(404);
+
+    const matePatch = await request(app)
+      .patch(`/api/v1/templates/${templateId}`)
+      .set('Cookie', mate)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ name: 'Hijacked' });
+    expect(matePatch.status).toBe(404);
+
+    const mateDelete = await request(app)
+      .delete(`/api/v1/templates/${templateId}`)
+      .set('Cookie', mate)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(mateDelete.status).toBe(404);
+  });
+
+  it('owner can rename a template; empty patch is rejected', async () => {
+    const owner = await register('tpl-rename@test.dev');
+    const projectId = await createProject(owner, 'Source');
+    const templateId = await saveTemplate(owner, projectId, 'Old name');
+
+    const patched = await request(app)
+      .patch(`/api/v1/templates/${templateId}`)
+      .set('Cookie', owner)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ name: 'New name', description: 'Fresh desc' });
+    expect(patched.status).toBe(200);
+    expect(patched.body.template).toMatchObject({ id: templateId, name: 'New name', description: 'Fresh desc' });
+
+    const empty = await request(app)
+      .patch(`/api/v1/templates/${templateId}`)
+      .set('Cookie', owner)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({});
+    expect(empty.status).toBe(400);
+  });
+
+  it('instantiates into a selectable target team (cross-team)', async () => {
+    const owner = await register('tpl-cross@test.dev');
+    const teamA = await getFirstTeamId(owner);
+    const teamB = await createTeam(owner, 'Second team');
+    const projectA = await createProject(owner, 'A', teamA);
+    await seedState(owner, projectA);
+    const templateId = await saveTemplate(owner, projectA, 'Cross tpl');
 
     const res = await request(app)
       .post(`/api/v1/templates/${templateId}/instantiate`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp())
-      .send({ name: 'Sprint 42' });
+      .send({ teamId: teamB, name: 'Sprint 42' });
     expect(res.status).toBe(201);
     const newProjectId = res.body.projectId as string;
 
@@ -76,7 +143,44 @@ describe('templates', () => {
       .set('Cookie', owner);
     expect(state.status).toBe(200);
     expect(state.body.state.tasks[0]?.title).toBe('Template task');
-    expect(state.body.version).toBe(1);
+
+    const meta = await request(app)
+      .get(`/api/v1/projects/${newProjectId}`)
+      .set('Cookie', owner);
+    expect(meta.status).toBe(200);
+    expect(meta.body.teamId).toBe(teamB);
+  });
+
+  it('instantiate requires a team the owner belongs to', async () => {
+    const owner = await register('tpl-noteam@test.dev');
+    const outsider = await register('tpl-noteam-out@test.dev');
+    const outsiderTeam = await getFirstTeamId(outsider);
+    const projectId = await createProject(owner, 'Source');
+    await seedState(owner, projectId);
+    const templateId = await saveTemplate(owner, projectId);
+
+    const missing = await request(app)
+      .post(`/api/v1/templates/${templateId}/instantiate`)
+      .set('Cookie', owner)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ teamId: outsiderTeam });
+    expect(missing.status).toBe(404);
+  });
+
+  it('non-owner cannot instantiate someone else template (404)', async () => {
+    const owner = await register('tpl-inst-own@test.dev');
+    const other = await register('tpl-inst-other@test.dev');
+    const otherTeam = await getFirstTeamId(other);
+    const projectId = await createProject(owner, 'Source');
+    await seedState(owner, projectId);
+    const templateId = await saveTemplate(owner, projectId);
+
+    const res = await request(app)
+      .post(`/api/v1/templates/${templateId}/instantiate`)
+      .set('Cookie', other)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ teamId: otherTeam });
+    expect(res.status).toBe(404);
   });
 
   it('non-member cannot save a template from a project', async () => {
@@ -105,22 +209,36 @@ describe('templates', () => {
     expect(res.status).toBe(403);
   });
 
-  it('viewer cannot instantiate a template', async () => {
+  it('viewer cannot instantiate into their read-only team (403), owner can', async () => {
     const owner = await register('tpl-own4@test.dev');
     const viewer = await register('tpl-view2@test.dev');
     const teamId = await getFirstTeamId(owner);
     await inviteUser(owner, viewer, teamId, 'viewer');
-    const projectId = await createProject(owner, 'Source', teamId);
-    const templateId = await saveTemplate(owner, projectId);
+    // Viewer owns a personal template from their own workspace.
+    const viewerTeam = await createTeam(viewer, 'Viewer workspace');
+    const viewerProject = await createProject(viewer, 'Viewer source', viewerTeam);
+    await seedState(viewer, viewerProject);
+    const viewerTemplate = await saveTemplate(viewer, viewerProject);
 
-    const res = await request(app)
-      .post(`/api/v1/templates/${templateId}/instantiate`)
+    const denied = await request(app)
+      .post(`/api/v1/templates/${viewerTemplate}/instantiate`)
       .set('Cookie', viewer)
-      .set('X-Forwarded-For', uniqueIp());
-    expect(res.status).toBe(403);
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ teamId });
+    expect(denied.status).toBe(403);
+
+    const ownerProject = await createProject(owner, 'Source', teamId);
+    await seedState(owner, ownerProject);
+    const ownerTemplate = await saveTemplate(owner, ownerProject);
+    const allowed = await request(app)
+      .post(`/api/v1/templates/${ownerTemplate}/instantiate`)
+      .set('Cookie', owner)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ teamId });
+    expect(allowed.status).toBe(201);
   });
 
-  it('non-admin cannot delete a template; admin can', async () => {
+  it('owner deletes their template; teammate delete is 404', async () => {
     const owner = await register('tpl-own5@test.dev');
     const editor = await register('tpl-editor@test.dev');
     const teamId = await getFirstTeamId(owner);
@@ -132,7 +250,7 @@ describe('templates', () => {
       .delete(`/api/v1/templates/${templateId}`)
       .set('Cookie', editor)
       .set('X-Forwarded-For', uniqueIp());
-    expect(denied.status).toBe(403);
+    expect(denied.status).toBe(404);
 
     const allowed = await request(app)
       .delete(`/api/v1/templates/${templateId}`)
@@ -147,21 +265,30 @@ describe('templates', () => {
     expect(list.body.templates).toHaveLength(0);
   });
 
-  it('templates are scoped per team', async () => {
-    const owner = await register('tpl-own6@test.dev');
-    const teamA = await getFirstTeamId(owner);
-    const teamB = await createTeam(owner, 'Second team');
-    const projectA = await createProject(owner, 'A', teamA);
-    const projectB = await createProject(owner, 'B', teamB);
-    await saveTemplate(owner, projectA, 'Team A tpl');
-    await saveTemplate(owner, projectB, 'Team B tpl');
+  it('migration 036 maps team templates to owners and drops team_id', async () => {
+    // Schema assertion: owner_id exists and is NOT NULL, team_id is gone.
+    const columns = await pool.query<{ column_name: string; is_nullable: string }>(
+      `SELECT column_name, is_nullable FROM information_schema.columns
+       WHERE table_name = 'project_templates'`,
+    );
+    const names = new Set(columns.rows.map((r) => r.column_name));
+    expect(names.has('owner_id')).toBe(true);
+    expect(names.has('team_id')).toBe(false);
+    expect(columns.rows.find((r) => r.column_name === 'owner_id')?.is_nullable).toBe('NO');
 
-    const list = await request(app)
-      .get('/api/v1/templates')
-      .set('Cookie', owner)
-      .set('X-Forwarded-For', uniqueIp());
-    expect(list.body.templates).toHaveLength(2);
-    const names = list.body.templates.map((t: { name: string }) => t.name).sort();
-    expect(names).toEqual(['Team A tpl', 'Team B tpl']);
+    const index = await pool.query<{ indexname: string }>(
+      `SELECT indexname FROM pg_indexes WHERE tablename = 'project_templates'`,
+    );
+    const indexNames = index.rows.map((r) => r.indexname);
+    expect(indexNames).toContain('idx_project_templates_owner_id');
+    expect(indexNames).not.toContain('idx_project_templates_team_id');
+
+    // Mapping rules are documented in the migration file itself.
+    const dir = path.dirname(fileURLToPath(import.meta.url));
+    const sql = await readFile(path.join(dir, '..', 'src', 'db', 'migrations', '036_templates_owner.sql'), 'utf8');
+    expect(sql).toMatch(/owner_id = created_by/);
+    expect(sql).toMatch(/oldest member/i);
+    expect(sql).toMatch(/teams\.created_by/);
+    expect(sql).toMatch(/DROP COLUMN IF EXISTS team_id/);
   });
 });
