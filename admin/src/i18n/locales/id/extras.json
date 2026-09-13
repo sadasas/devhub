@@ -594,6 +594,7 @@
       "originalPriceIdr": "Harga asli (IDR)",
       "noDiscount": "Tanpa diskon",
       "savingsHelper": "Hemat {{amount}} ({{percent}}%)",
+      "priceReactivateHint": "Harga nonaktif — baris yang dipertahankan akan aktif lagi saat disimpan; hapus baris untuk mempertahankannya nonaktif.",
       "removePrice": "Hapus harga",
       "removePriceTitle": "Hapus harga",
       "removePriceDesc": "Hapus harga {{index}} ({{days}} hari · {{price}})? Tindakan ini tidak dapat dibatalkan.",

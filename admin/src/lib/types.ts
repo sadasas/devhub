@@ -600,6 +600,8 @@ export interface AdminPackagePrice {
   durationDays: number;
   priceIdr: number;
   originalPriceIdr: number | null;
+  /** Harga nonaktif = baris yang dihapus dari form (soft, untuk histori). Dikirim server. */
+  isActive: boolean;
 }
 
 export interface AdminPackage {

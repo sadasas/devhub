@@ -6,6 +6,7 @@ import { getErrorMessage } from '../../lib/errors';
 import type { AdminPackage } from '../../lib/types';
 import { FloppyDisk, Plus, Trash, X } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
+import { Badge } from '../../components/Badge';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { Drawer } from '../../components/Drawer';
 import { InlineError } from '../../components/InlineError';
@@ -25,6 +26,8 @@ interface PriceRow {
   durationDays: string;
   priceIdr: string;
   originalPriceIdr: string;
+  /** Baris berasal dari harga nonaktif (soft-deleted) — save akan mengaktifkannya lagi. */
+  wasInactive: boolean;
 }
 
 interface PriceFieldErrors {
@@ -34,7 +37,7 @@ interface PriceFieldErrors {
 }
 
 function newPriceRow(): PriceRow {
-  return { id: crypto.randomUUID(), durationDays: '30', priceIdr: '0', originalPriceIdr: '' };
+  return { id: crypto.randomUUID(), durationDays: '30', priceIdr: '0', originalPriceIdr: '', wasInactive: false };
 }
 
 export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps) {
@@ -75,6 +78,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
               durationDays: String(p.durationDays),
               priceIdr: String(p.priceIdr),
               originalPriceIdr: p.originalPriceIdr != null ? String(p.originalPriceIdr) : '',
+              wasInactive: p.isActive === false,
             }))
           : [newPriceRow()],
       );
@@ -363,6 +367,12 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
           {prices.map((p, i) => (
             <fieldset key={p.id} className="admin-price-row admin-price-row-fieldset">
               <legend className="sr-only">{t('admin.packageModal.priceLegend', { index: i + 1, defaultValue: `Price ${i + 1}` })}</legend>
+              {p.wasInactive && (
+                <span className="admin-price-row-note">
+                  <Badge tone="neutral">{t('admin.packages.inactive')}</Badge>
+                  <span className="data-row-meta">{t('admin.packageModal.priceReactivateHint')}</span>
+                </span>
+              )}
               <Input
                 label={t('admin.packageModal.durationDays')}
                 aria-label={t('admin.packageModal.durationDaysWithIndex', { index: i + 1, defaultValue: `Price ${i + 1} - Duration (days)` })}

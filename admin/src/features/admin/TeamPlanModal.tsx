@@ -69,7 +69,8 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
     const snapDays = team.planDurationDays;
     if (snapPackageId && snapDays) {
       const pkg = packages.find((p) => p.id === snapPackageId && !p.isFree && p.isActive);
-      const priceExists = pkg?.prices.some((pr) => pr.durationDays === snapDays);
+      // Hanya harga aktif yang bisa dipilih ulang — snapshot nonaktif jatuh ke fallback di bawah
+      const priceExists = pkg?.prices.some((pr) => pr.durationDays === snapDays && pr.isActive);
       if (pkg && priceExists) {
         setSelectedPackageId(snapPackageId);
         setSelectedDays(snapDays);
@@ -95,8 +96,9 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
   const proPackages = packages.filter((p) => !p.isFree && p.isActive);
 
   const selectedPkg = proPackages.find((p) => p.id === selectedPackageId) ?? null;
+  // Harga nonaktif tidak bisa di-grant — cari hanya di harga aktif
   const selectedPrice =
-    selectedPkg?.prices.find((pr) => pr.durationDays === selectedDays) ?? null;
+    selectedPkg?.prices.find((pr) => pr.durationDays === selectedDays && pr.isActive) ?? null;
 
   function handleSelectPackage(pkg: AdminPackage, days: number): void {
     setPlan('pro');
@@ -282,7 +284,7 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
                         className="admin-plan-card-head"
                         aria-pressed={cardSelected}
                         onClick={() => {
-                          const first = pkg.prices[0];
+                          const first = pkg.prices.find((pr) => pr.isActive);
                           if (first) handleSelectPackage(pkg, first.durationDays);
                         }}
                       >
@@ -304,9 +306,10 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
                             })}
                         </span>
                       </button>
-                      {pkg.prices.length > 0 && (
+                      {/* Hanya harga aktif yang ditawarkan sebagai chip durasi */}
+                      {pkg.prices.filter((pr) => pr.isActive).length > 0 ? (
                         <div className="admin-plan-chips">
-                          {pkg.prices.map((price) => {
+                          {pkg.prices.filter((pr) => pr.isActive).map((price) => {
                             const chipSelected = cardSelected && selectedDays === price.durationDays;
                             return (
                               <button
@@ -324,6 +327,10 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
                             );
                           })}
                         </div>
+                      ) : (
+                        <p className="admin-plan-desc" style={{ fontStyle: 'italic' }}>
+                          {t('admin.packages.noPrices')}
+                        </p>
                       )}
                     </div>
                   );

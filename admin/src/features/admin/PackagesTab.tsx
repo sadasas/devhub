@@ -349,9 +349,13 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
                 pkg.prices.length > 0 ? (
                   <span className="cell-stack" style={{ alignItems: 'flex-end' }}>
                     {pkg.prices.map((price) => (
-                      <span key={price.id} className="data-row-meta tabular" style={{ justifyContent: 'flex-end' }}>
+                      <span key={price.id} className="data-row-meta tabular" style={{ justifyContent: 'flex-end', opacity: price.isActive ? undefined : 0.65 }}>
                         <span>{t('admin.packages.durationDays', { count: price.durationDays })}</span>
                         <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{formatIdr(price.priceIdr)}</span>
+                        {/* Indikator harga nonaktif (Opsi B: badge netral) — aktif tanpa badge */}
+                        {!price.isActive && (
+                          <Badge tone="neutral">{t('admin.packages.inactive')}</Badge>
+                        )}
                       </span>
                     ))}
                   </span>

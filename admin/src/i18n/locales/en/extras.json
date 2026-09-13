@@ -594,6 +594,7 @@
       "originalPriceIdr": "Original price (IDR)",
       "noDiscount": "No discount",
       "savingsHelper": "Save {{amount}} ({{percent}}%)",
+      "priceReactivateHint": "Inactive price — keeping this row will reactivate it on save; remove the row to keep it inactive.",
       "removePrice": "Remove price",
       "removePriceTitle": "Remove price",
       "removePriceDesc": "Remove price {{index}} ({{days}} days · {{price}})? This cannot be undone.",

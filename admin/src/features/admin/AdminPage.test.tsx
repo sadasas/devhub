@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { ApiError, api } from '../../lib/api';
 import type { AdminPackage, AdminPayment, AdminStats, AdminUser, User } from '../../lib/types';
@@ -418,6 +418,121 @@ describe('AdminPage', () => {
     expect(dialog.getAttribute('aria-modal')).toBe('true');
     // footer: Batal ghost kiri + primer kanan tetap ada
     expect(screen.getByRole('button', { name: /Cancel|Batal/ })).toBeDefined();
+  });
+
+  it('shows inactive badge only on inactive prices (price isActive indicator)', async () => {
+    vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
+    vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
+    vi.spyOn(api, 'adminStatsActivity').mockResolvedValue([]);
+    vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: [], total: 0 });
+    vi.spyOn(api, 'adminListPackages').mockResolvedValue([
+      {
+        id: 'pkg-1',
+        name: 'Pro',
+        description: '',
+        isFree: false,
+        maxMembers: null,
+        maxProjects: null,
+        sortOrder: 1,
+        isActive: true,
+        isFeatured: false,
+        prices: [
+          { id: 'price-1', durationDays: 30, priceIdr: 250000, originalPriceIdr: null, isActive: true },
+          { id: 'price-2', durationDays: 365, priceIdr: 2500000, originalPriceIdr: null, isActive: false },
+        ],
+      },
+    ] as AdminPackage[]);
+
+    renderPage();
+    fireEvent.click(screen.getByRole('tab', { name: /Plans|Packages/ }));
+    expect(await screen.findByText('Pro')).toBeDefined();
+    // Paket aktif → badge level paket "Active"; "Inactive" di tabel hanya di baris harga nonaktif
+    // (scope tabel: abaikan tombol segmen filter "Inactive" di FilterBar)
+    const table = within(document.querySelector('table.admin-table') as HTMLElement);
+    expect(table.getAllByText('Inactive')).toHaveLength(1);
+    expect(screen.getByText('Rp 2.500.000')).toBeDefined();
+  });
+
+  it('package drawer marks inactive price rows with badge + reactivate hint', async () => {
+    vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
+    vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
+    vi.spyOn(api, 'adminStatsActivity').mockResolvedValue([]);
+    vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: [], total: 0 });
+    vi.spyOn(api, 'adminListPackages').mockResolvedValue([
+      {
+        id: 'pkg-1',
+        name: 'Pro',
+        description: '',
+        isFree: false,
+        maxMembers: null,
+        maxProjects: null,
+        sortOrder: 1,
+        isActive: true,
+        isFeatured: false,
+        prices: [
+          { id: 'price-1', durationDays: 30, priceIdr: 250000, originalPriceIdr: null, isActive: true },
+          { id: 'price-2', durationDays: 365, priceIdr: 2500000, originalPriceIdr: null, isActive: false },
+        ],
+      },
+    ] as AdminPackage[]);
+
+    renderPage();
+    fireEvent.click(screen.getByRole('tab', { name: /Plans|Packages/ }));
+    expect(await screen.findByText('Pro')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: /Row actions|Aksi baris/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Edit/ }));
+    const dialog = await screen.findByRole('dialog', { name: /Edit package/ });
+    const scope = within(dialog as HTMLElement);
+    expect(scope.getAllByText('Inactive')).toHaveLength(1);
+    expect(scope.getByText(/reactivate it on save|tetap.*nonaktif/)).toBeDefined();
+  });
+
+  it('team plan modal offers only active prices (inactive hidden)', async () => {
+    vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
+    vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
+    vi.spyOn(api, 'adminStatsActivity').mockResolvedValue([]);
+    vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: [], total: 0 });
+    vi.spyOn(api, 'listAdminTeams').mockResolvedValue([
+      {
+        id: '33333333-3333-4333-8333-333333333333',
+        name: 'Team A',
+        plan: 'free' as const,
+        planPackageId: null,
+        planDurationDays: null,
+        planExpiresAt: null,
+        ownerEmail: 'admin@test.dev',
+        memberCount: 2,
+        projectCount: 1,
+        createdAt: '2026-01-01T00:00:00.000Z',
+      },
+    ]);
+    vi.spyOn(api, 'adminListPackages').mockResolvedValue([
+      {
+        id: 'pkg-1',
+        name: 'Pro',
+        description: '',
+        isFree: false,
+        maxMembers: null,
+        maxProjects: null,
+        sortOrder: 1,
+        isActive: true,
+        isFeatured: false,
+        prices: [
+          { id: 'price-1', durationDays: 30, priceIdr: 250000, originalPriceIdr: null, isActive: true },
+          { id: 'price-2', durationDays: 365, priceIdr: 2500000, originalPriceIdr: null, isActive: false },
+        ],
+      },
+    ] as AdminPackage[]);
+
+    renderPage();
+    fireEvent.click(screen.getByRole('tab', { name: /Teams/ }));
+    expect(await screen.findByText('Team A')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: /Row actions|Aksi baris/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Change plan|Ubah plan/ }));
+    const dialog = await screen.findByRole('dialog', { name: /Change team plan/ });
+    const scope = within(dialog as HTMLElement);
+    expect(scope.getByRole('button', { name: /30d/ })).toBeDefined();
+    expect(scope.queryByRole('button', { name: /365d/ })).toBeNull();
   });
 });
 
