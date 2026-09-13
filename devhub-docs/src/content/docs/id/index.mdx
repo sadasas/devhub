@@ -1,0 +1,34 @@
+---
+title: Dokumentasi DevHub
+description: Panduan DevHub — integrasi agen MCP, billing, roadmap, status, dan legal.
+template: splash
+hero:
+  tagline: Workspace memori teknis — task, skema, ADR, dan agen AI dalam satu tempat.
+  actions:
+    - text: Integrasi MCP
+      link: /id/mcp/
+      icon: right-arrow
+    - text: Billing & Harga
+      link: /id/billing/
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Mulai dari sini
+
+<CardGrid stagger>
+	<Card title="Hubungkan agen AI" icon="pencil">
+		Otorisasi via OAuth 2.1 PKCE dan biarkan opencode, Claude Code, atau Cursor membaca dan memperbarui state proyek melalui [MCP tools](/id/mcp/).
+	</Card>
+	<Card title="Paket & billing" icon="document">
+		Gratis 2 member / 3 proyek, paket workspace berbayar via Pakasir. Lihat [Billing & Harga](/id/billing/).
+	</Card>
+	<Card title="Roadmap & status" icon="open-book">
+		Arah DevHub ([Peta jalan](/id/roadmap/)) dan apakah layanan sehat ([Status](/id/status/)).
+	</Card>
+	<Card title="Legal" icon="setting">
+		[Kebijakan Privasi](/id/privacy/) dan [Syarat Layanan](/id/terms/) kanonis — berversi, berlaku 2026-08-13.
+	</Card>
+</CardGrid>

@@ -1,18 +1,17 @@
-# Privacy Policy — DevHub
-
-**Effective date:** 2026-08-13
-**Last updated:** 2026-09-13
-**Version:** 2026-09-13-v3
-
 ---
+title: Privacy Policy
+description: What data DevHub collects, why, and your rights. Canonical version 2026-09-13-v3, effective 2026-08-13.
+---
+
+> **Canonical legal document — version `2026-09-13-v3`, last updated 2026-09-13, effective 2026-08-13.**
+> This page is the single source of truth. The in-app route `/privacy` redirects here.
+> Indonesian translation: [Kebijakan Privasi](/id/privacy/).
 
 ## 1. Overview
 
 DevHub ("the Service", "we", "our") provides project management tools for programming projects. This Privacy Policy explains what data we collect, why we collect it, how it is used, and the rights you have over it.
 
 The Service is operated by the DevHub project owner ("the Operator"), domiciled in Indonesia. Our philosophy is **minimal data collection and maximal data ownership by the user**.
-
----
 
 ## 2. Data We Collect
 
@@ -55,16 +54,12 @@ Prices may change over time; the amount charged is the amount shown and recorded
 - No sale or rental of your data to anyone.
 - Google Analytics cookies (`_ga` / `_ga_XXXX`) are **non-necessary** and are only set after your consent via footer **Pengaturan Cookie** (see §4).
 
----
-
 ## 3. How Data Is Used
 
 - To operate, secure, and improve the Service.
 - To process workspace subscriptions (create a pending order, confirm it with Pakasir, activate your plan, keep the verification log).
 - To respond to abuse or legal process (limited, see §7).
 - We do **not** use your project data to train AI models, and we do not share it with AI providers. The optional MCP integration connects only when you configure it, using your own authorization.
-
----
 
 ## 4. Cookies & Sessions
 
@@ -76,15 +71,11 @@ Prices may change over time; the amount charged is the amount shown and recorded
 
 We use one necessary login cookie plus a short-lived social-login helper. Analytics cookies are opt-in only. You may block cookies, but you will not be able to log in. To withdraw consent for non-necessary cookies, open the footer **Pengaturan Cookie** (Cookie Settings) and toggle analytics off — already-set `_ga` cookies stop being used and age out; you can also delete them in your browser.
 
----
-
 ## 5. Data Storage & International Transfer
 
 - The Service runs on managed cloud infrastructure (database, app hosting, and CDN). Depending on provider regions, your data may be stored or processed **outside Indonesia** for hosting, backup, and content delivery.
 - Passwords are stored hashed (never plaintext); connections are encrypted with HTTPS.
 - While we take reasonable technical and organizational measures, **no transmission or storage is 100% secure**; the Service is operated by a small team, not a large enterprise.
-
----
 
 ## 6. Data Retention & Deletion
 
@@ -103,19 +94,13 @@ We use one necessary login cookie plus a short-lived social-login helper. Analyt
 
 After a subscription expires, the workspace reverts to Free limits. For **7 days after expiry (grace period)** over-quota content stays accessible **read-only** (no new projects/members beyond the Free quota); renewing stacks from the later of now or the old expiry, so you never lose paid days. Moving to a smaller package takes effect at expiry; upgrades and same-package renewals apply instantly.
 
----
-
 ## 7. Legal Disclosures
 
 We will only disclose data to third parties if required by law or a binding legal request under Indonesian law, and we will notify you where legally permitted. Payment confirmation with Pakasir (`app.pakasir.com`) covers only the order ID and amount — never your project content.
 
----
-
 ## 8. Children
 
 The Service is not directed at children under 16. If you believe a child has provided data, contact us and we will delete it.
-
----
 
 ## 9. Contact & Complaints
 
@@ -124,12 +109,8 @@ The Service is not directed at children under 16. If you believe a child has pro
 - Response target: verification and action confirmation within **3×24 hours** on business days.
 - Governing law is the law of **Indonesia**. If you reside in the EU/EEA you may additionally lodge a complaint with your local supervisory authority; we will cooperate with any such process.
 
----
-
 ## 10. Changes to This Policy
 
 We may update this policy; the "Last updated" date and "Version" above always reflect the current version. Material changes will be announced on the service. Continued use after changes constitutes acceptance.
-
----
 
 *End of Privacy Policy.*

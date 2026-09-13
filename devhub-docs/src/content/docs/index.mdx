@@ -1,0 +1,34 @@
+---
+title: DevHub Docs
+description: Guides for DevHub — MCP agent integration, billing, roadmap, status, and legal.
+template: splash
+hero:
+  tagline: Technical memory workspace — tasks, schema, ADRs, and AI agents in one place.
+  actions:
+    - text: MCP Integration
+      link: /mcp/
+      icon: right-arrow
+    - text: Billing & Pricing
+      link: /billing/
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Start here
+
+<CardGrid stagger>
+	<Card title="Connect an AI agent" icon="pencil">
+		Authorize via OAuth 2.1 PKCE and let opencode, Claude Code, or Cursor read and update project state through [MCP tools](/mcp/).
+	</Card>
+	<Card title="Plans & billing" icon="document">
+		Free 2 members / 3 projects, paid workspace packages via Pakasir. See [Billing & Pricing](/billing/).
+	</Card>
+	<Card title="Roadmap & status" icon="open-book">
+		Where DevHub is heading ([Roadmap](/roadmap/)) and whether it is healthy ([Status](/status/)).
+	</Card>
+	<Card title="Legal" icon="setting">
+		Canonical [Privacy Policy](/privacy/) and [Terms of Service](/terms/) — versioned, effective 2026-08-13.
+	</Card>
+</CardGrid>
