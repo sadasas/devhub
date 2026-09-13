@@ -2507,6 +2507,28 @@ html[data-theme='light'] .splash-bg {
   color: var(--text-muted);
 }
 
+.sidebar-projects-toggle {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 16px 10px 6px;
+  background: transparent;
+  border: none;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-align: left;
+}
+
+.sidebar-projects-toggle:hover {
+  color: var(--text-primary);
+}
+
 .sidebar-team-header:hover .sidebar-add-btn-team,
 .sidebar-add-btn-team:focus-visible {
   opacity: 1;
@@ -2722,6 +2744,7 @@ html[data-theme='light'] .splash-bg {
 }
 
 .sidebar-filter {
+  flex-shrink: 0;
   position: sticky;
   top: 0;
   z-index: 1;
@@ -2763,6 +2786,7 @@ html[data-theme='light'] .splash-bg {
 }
 
 .sidebar-team-footer {
+  flex-shrink: 0;
   padding: 10px 10px 4px;
   margin-top: 8px;
   border-top: 1px solid var(--border-hairline);
@@ -2782,6 +2806,7 @@ html[data-theme='light'] .splash-bg {
 }
 
 .sidebar-create-project {
+  flex-shrink: 0;
   width: calc(100% - 16px);
   margin: 8px 8px 12px;
   height: 36px;
@@ -3065,7 +3090,8 @@ html[data-theme='light'] .splash-bg {
     min-height: 40px;
   }
 
-  .sidebar-archived-toggle {
+  .sidebar-archived-toggle,
+  .sidebar-projects-toggle {
     min-height: 40px;
   }
 }
@@ -3930,7 +3956,7 @@ html[data-theme='light'] .splash-bg {
 }
 
 .project-card:hover {
-  border: none;
+  border-color: var(--accent);
   transform: translateY(-1px);
 }
 
@@ -6721,9 +6747,6 @@ html[data-theme='light'] .splash-bg {
 .tl-bar-main:focus-visible {
   outline: 2px solid var(--accent-ring);
   outline-offset: 2px;
-}
-.tl-unscheduled-chip:hover {
-  border: none;
 }
 
 .erd-wrap {
@@ -12064,7 +12087,7 @@ input[type='checkbox'] {
 }
 
 .share-tab-row:hover:not(.share-tab-row-disabled) {
-  border: none;
+  border-color: var(--accent);
 }
 
 .share-tab-icon {
@@ -12738,7 +12761,7 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
   line-height: 1.5;
 }
 .chat-input::placeholder { color: var(--text-muted); }
-.chat-input:hover { border: none; }
+.chat-input:hover { border-color: var(--accent); }
 .chat-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); }
 @supports (field-sizing: content) {
   .chat-input { field-sizing: content; }
@@ -13648,8 +13671,8 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
   }
 }
 
-.pricing-card:hover {
-  border: none;
+.pricing-card:hover:not(.pricing-card--current):not(.pricing-card--scheduled) {
+  border-color: var(--accent);
   transform: translateY(-1px);
 }
 
@@ -15218,7 +15241,7 @@ details[open] > .milestone-group-summary::before {
 }
 
 .dag-card:hover {
-  border: none;
+  border-color: var(--accent);
   background: rgba(255, 255, 255, 0.03);
 }
 
@@ -15488,7 +15511,7 @@ details[open] > .milestone-group-summary::before {
   cursor: pointer;
   transition: border-color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out);
 }
-.timeline-card:hover { border: none; background: rgba(255,255,255,0.03); }
+.timeline-card:hover { border-color: var(--accent); background: rgba(255,255,255,0.03); }
 .timeline-card-head { display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:11px; color:var(--text-muted); }
 .timeline-card-title { font-size:14px; font-weight:600; color:var(--text-primary); margin-top:6px; line-height:1.35; }
 .timeline-card-sub { font-size:13px; color:var(--text-secondary); margin-top:4px; overflow-wrap: anywhere; word-break: break-word; }
@@ -15520,7 +15543,7 @@ details[open] > .milestone-group-summary::before {
   color: inherit;
   font: inherit;
 }
-.context-decision-btn:hover { border: none; background: rgba(255,255,255,0.03); }
+.context-decision-btn:hover { border-color: var(--accent); background: rgba(255,255,255,0.03); }
 .context-decision-btn:active { transform: scale(0.98); }
 .context-decision-btn:focus-visible { outline: 2px solid var(--accent-ring); outline-offset: 2px; }
 .context-decision-title { font-size: 13px; font-weight: 500; color: var(--text-primary); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -17774,18 +17797,12 @@ aside.sidebar {
    then flows right below the archived section) and collapses to 0 when L1
    overflows — so the bottom group stays pinned while only L1 scrolls. */
 .sidebar-divider {
-.sidebar-divider {
   flex-shrink: 0;
   height: 1px;
   margin: auto 8px 4px;
   background: var(--border-hairline);
 }
 
-/* Dimmed L1 on global routes: the last team stays visible as context,
-   but must not read as an active filter. Content stays interactive. */
-.sidebar-l1--dimmed {
-  opacity: 0.45;
-}
 
 /* Keyboard shortcut hint — decorative only (aria-hidden in markup). */
 .sidebar-hint {
@@ -18053,8 +18070,7 @@ aside.sidebar {
   .pin-toggle,
   .user-footer-trigger,
   .user-footer-item,
-  .user-footer-chevron,
-  .sidebar-l1--dimmed {
+  .user-footer-chevron {
     transition: none;
   }
 }

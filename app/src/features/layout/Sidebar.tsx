@@ -31,10 +31,6 @@ import { WorkspaceSwitcher, writeLastActiveTeamId } from './WorkspaceSwitcher';
 
 interface SidebarProps {
   activeTeamId?: string | null;
-  /** Team resolved from the route itself (null on global routes). When null
-      while activeTeamId is set, the L1 panel renders dimmed as a "last
-      context" hint instead of looking like an active filter. */
-  contextTeamId?: string | null;
   onCreateTeam?: () => void;
 }
 
@@ -260,13 +256,14 @@ function UserFooter() {
   );
 }
 
-export function Sidebar({ activeTeamId, contextTeamId, onCreateTeam }: SidebarProps) {
+export function Sidebar({ activeTeamId, onCreateTeam }: SidebarProps) {
   const { projects } = useProjects();
   const { teams, invitations } = useTeams();
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [prefillTeamId, setPrefillTeamId] = useState<string | null>(null);
   const [filterQuery, setFilterQuery] = useState('');
   const [showArchived, setShowArchived] = useState(false);
+  const [showProjects, setShowProjects] = useState(true);
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const { t } = useTranslation('shell');
   const navigate = useNavigate();
@@ -276,6 +273,7 @@ export function Sidebar({ activeTeamId, contextTeamId, onCreateTeam }: SidebarPr
   useEffect(() => {
     setFilterQuery('');
     setShowArchived(false);
+    setShowProjects(true);
     setPinnedIds(activeTeamId ? readIdList(PINNED_KEY_PREFIX + activeTeamId) : []);
   }, [activeTeamId]);
 
@@ -377,9 +375,7 @@ export function Sidebar({ activeTeamId, contextTeamId, onCreateTeam }: SidebarPr
     navigate(`/${encodeURIComponent(slug)}/projects`);
   };
 
-  // Global routes (invites/docs/...) keep showing the last team as context,
-  // dimmed — so account pages are never mistaken for team-filtered views.
-  const dimmed = !teamsLoading && activeTeam !== null && contextTeamId == null;
+  // Global routes (invites/docs/...) keep showing the last team as context.
   const dashboardTo = activeTeam
     ? `/${encodeURIComponent(activeTeam.slug || activeTeam.id)}/projects`
     : '/';
@@ -465,7 +461,7 @@ export function Sidebar({ activeTeamId, contextTeamId, onCreateTeam }: SidebarPr
               New project / filter / pinned / A-Z list / archived
               all live here; everything below the divider is fixed. */}
           <section
-            className={`sidebar-l1${dimmed ? ' sidebar-l1--dimmed' : ''}`}
+            className="sidebar-l1"
             aria-label={activeTeam.name}
           >
             <button
@@ -479,7 +475,7 @@ export function Sidebar({ activeTeamId, contextTeamId, onCreateTeam }: SidebarPr
               <span>{t('sidebar.newProject')}</span>
             </button>
 
-            {showFilter && (
+            {showProjects && showFilter && (
               <div className="sidebar-filter" role="search">
                 <MagnifyingGlass size={14} aria-hidden="true" className="sidebar-filter-icon" />
                 <input
@@ -495,10 +491,19 @@ export function Sidebar({ activeTeamId, contextTeamId, onCreateTeam }: SidebarPr
             )}
 
             <nav className="sidebar-nav sidebar-nav--l1" aria-label={t('sidebar.teamsNav')}>
-              <div className="sidebar-section sidebar-section--projects">
+              <button
+                type="button"
+                className="sidebar-projects-toggle"
+                aria-expanded={showProjects}
+                onClick={() => setShowProjects((v) => !v)}
+              >
+                <span aria-hidden="true">{showProjects ? '▾' : '▸'}</span>
                 <FolderSimple size={14} aria-hidden="true" className="sidebar-section-icon" />
                 <span>{t('sidebar.projects')}</span>
-              </div>
+                <span className="sidebar-count-muted">{orderedActive.length}</span>
+              </button>
+              {showProjects && (
+              <>
               {orderedActive.length === 0 ? (
                 lowerQuery ? (
                   <div className="sidebar-empty">
@@ -552,24 +557,26 @@ export function Sidebar({ activeTeamId, contextTeamId, onCreateTeam }: SidebarPr
                   )}
                 </div>
               )}
-              <div className="sidebar-team-footer">
-                <NavLink to={membersTo} className={itemClass('sidebar-team-link')}>
-                  <UsersThree size={14} weight="duotone" aria-hidden="true" />
-                  <span>
-                    {t('sidebar.members', { count: activeTeam.memberCount })}
-                  </span>
-                </NavLink>
-                {activeTeam.role !== 'viewer' && (
-                  <NavLink to={settingsTo} className={itemClass('sidebar-team-link')}>
-                    <GearSix size={15} weight="duotone" aria-hidden="true" />
-                    <span>
-                      {t('sidebar.settings')}
-                    </span>
-                  </NavLink>
-                )}
-              </div>
+              </>
+              )}
             </nav>
           </section>
+          <div className="sidebar-team-footer">
+            <NavLink to={membersTo} className={itemClass('sidebar-team-link')}>
+              <UsersThree size={14} weight="duotone" aria-hidden="true" />
+              <span>
+                {t('sidebar.members', { count: activeTeam.memberCount })}
+              </span>
+            </NavLink>
+            {activeTeam.role !== 'viewer' && (
+              <NavLink to={settingsTo} className={itemClass('sidebar-team-link')}>
+                <GearSix size={15} weight="duotone" aria-hidden="true" />
+                <span>
+                  {t('sidebar.settings')}
+                </span>
+              </NavLink>
+            )}
+          </div>
           {/* Thin divider between the team panel and the fixed bottom.
               Non-interactive. */}
           <div className="sidebar-divider" role="separator" aria-orientation="horizontal" />

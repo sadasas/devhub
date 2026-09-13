@@ -393,7 +393,7 @@ export function Layout() {
         <div className="desktop-sidebar-group">
           <div className="sidebar-shell">
             <div id="sidebar-region" className="sidebar-region">
-              <Sidebar activeTeamId={effectiveTeamId} contextTeamId={tourTeamId ?? derivedTeamId} onCreateTeam={() => setCreateTeamOpen(true)} />
+              <Sidebar activeTeamId={effectiveTeamId} onCreateTeam={() => setCreateTeamOpen(true)} />
             </div>
             <div className="sidebar-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" onPointerDown={onHandlePointerDown} />
           </div>
@@ -411,7 +411,7 @@ export function Layout() {
           inert={!navOpen ? true : undefined}
         >
           <div className="sidebar-drawer-inner">
-            <Sidebar activeTeamId={activeTeamId} contextTeamId={derivedTeamId} onCreateTeam={() => setCreateTeamOpen(true)} />
+            <Sidebar activeTeamId={activeTeamId} onCreateTeam={() => setCreateTeamOpen(true)} />
           </div>
         </div>
       )}

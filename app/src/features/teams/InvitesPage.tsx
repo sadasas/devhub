@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
 import { Envelope, Trash } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { TEAM_ROLE } from '../../lib/labels';
@@ -61,9 +60,6 @@ export function InvitesPage() {
               <h1 className="page-title">{t('teams.invites.title')}</h1>
               <p className="page-subtitle">{t('teams.invites.subtitle')}</p>
             </div>
-            <Link className="sidebar-team-link" to="/">
-              Buat team baru →
-            </Link>
           </header>
 
           {error ? <DataErrorState error={loadError ?? error} onRetry={() => void refresh()} /> : null}
