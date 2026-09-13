@@ -22,7 +22,7 @@ import type { Team } from '../../lib/types';
 export function ZeroTeamOnboarding() {
   const { t } = useTranslation('account');
   const { t: tShell } = useTranslation('shell');
-  const { teams } = useTeams();
+  const { teams, invitations } = useTeams();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [createOpen, setCreateOpen] = useState(false);
@@ -81,32 +81,39 @@ export function ZeroTeamOnboarding() {
         >
           {t('dashboard.welcome.empty.createTeam')}
         </Button>
-        <Link className="sidebar-team-link zero-team-docs" to="/docs">
-          {t('dashboard.team.viewDocs')} →
-        </Link>
+        {invitations.length > 0 && (
+          <Button
+            variant="secondary"
+            size="md"
+            onClick={() => navigate('/invites')}
+            data-tour-id="view-invites"
+          >
+            {t('dashboard.team.viewInvitesCount', { count: invitations.length })}
+          </Button>
+        )}
       </div>
 
-      <ol className="zero-team-steps" aria-label="Apa selanjutnya?">
+      <ol className="zero-team-steps" aria-label={t('dashboard.team.stepsTitle')}>
         <li className="zero-team-steps-title" aria-hidden="true">
-          Apa selanjutnya?
+          {t('dashboard.team.stepsTitle')}
         </li>
         <li className="zero-team-step">
           <span className="zero-team-step-num" aria-hidden="true">
             1
           </span>
-          <span>Buat team</span>
+          <span>{t('dashboard.team.stepOne')}</span>
         </li>
         <li className="zero-team-step">
           <span className="zero-team-step-num" aria-hidden="true">
             2
           </span>
-          <span>Buat project</span>
+          <span>{t('dashboard.team.stepTwo')}</span>
         </li>
         <li className="zero-team-step">
           <span className="zero-team-step-num" aria-hidden="true">
             3
           </span>
-          <span>Undang anggota</span>
+          <span>{t('dashboard.team.stepThree')}</span>
         </li>
       </ol>
 
@@ -127,12 +134,6 @@ export function ZeroTeamOnboarding() {
           </span>
           <Link className="sidebar-team-link zero-team-foot-link" to="/docs">
             {tShell('sidebar.docs')}
-          </Link>
-          <span className="zero-team-sep" aria-hidden="true">
-            ·
-          </span>
-          <Link className="sidebar-team-link zero-team-foot-link" to="/docs#shortcuts">
-            Shortcuts
           </Link>
           <span className="zero-team-sep" aria-hidden="true">
             ·

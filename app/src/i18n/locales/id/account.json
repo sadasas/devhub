@@ -291,6 +291,12 @@
       "onboardingTitle": "Buat tim pertama Anda",
       "onboardingDesc": "DevHub mengorganisasi proyek di dalam tim. Buat tim, terima undangan, atau baca docs untuk mulai.",
       "viewInvites": "Lihat undangan",
+      "viewInvitesCount_one": "Lihat {{count}} undangan",
+      "viewInvitesCount_other": "Lihat {{count}} undangan",
+      "stepsTitle": "Apa selanjutnya?",
+      "stepOne": "Buat tim",
+      "stepTwo": "Buat project",
+      "stepThree": "Undang anggota",
       "viewDocs": "Baca docs"
     }
   },

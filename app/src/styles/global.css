@@ -2280,6 +2280,13 @@ html[data-theme='light'] .splash-bg {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  /* Pin the trailing legal footer to the viewport bottom on tall screens.
+     min-height (not height): short viewports keep normal flow + scroll. */
+  min-height: calc(100dvh - 80px);
+}
+
+.auth-form > .legal-footer {
+  margin-top: auto;
 }
 
 .auth-form-title {
@@ -16846,7 +16853,7 @@ html[data-theme='light'] .tour-overlay-dim {
 }
 
 .zero-team-name {
-  max-width: 160px;
+  max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -16864,6 +16871,14 @@ html[data-theme='light'] .tour-overlay-dim {
   min-height: 32px;
   display: inline-flex;
   align-items: center;
+}
+
+/* Higher specificity than .sidebar-team-link so footer links can never
+   become full-width sidebar rows regardless of cascade order. */
+.zero-team-footer .zero-team-foot-link {
+  display: inline-flex;
+  width: auto;
+  flex: none;
 }
 
 .zero-team-logout {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { Outlet, useLocation } from 'react-router';
+import { Navigate, Outlet, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { ChatsCircle, List, MagnifyingGlass } from '@phosphor-icons/react';
 import { Sidebar } from './Sidebar';
@@ -13,6 +13,7 @@ import { onToggleChat, toggleChat } from '../../lib/chat-events';
 import { api } from '../../lib/api';
 import { realtimeWsUrl, TeamChatSocket } from '../../lib/realtime-client';
 import { useTeams } from '../../state/teams-context';
+import { resolveTeamlessRedirect } from './team-guard';
 import { useProjects } from '../../state/projects-context';
 import { useAuth } from '../../state/auth-context';
 import { CreateTeamModal } from '../teams/CreateTeamModal';
@@ -126,7 +127,7 @@ export function Layout() {
   const drawerRef = useFocusTrap<HTMLDivElement>(navOpen);
   const location = useLocation();
   const { t } = useTranslation('shell');
-  const { teams } = useTeams();
+  const { teams, invitations } = useTeams();
   const { projects } = useProjects();
   const { user } = useAuth();
 
@@ -350,6 +351,18 @@ export function Layout() {
   // Team chat (button, panel, shortcuts) follows the selected team.
 
   const isChatInlineOpen = chatOpen && !isMobileChat;
+
+  // Zero-team guard: team-scoped pages bounce to onboarding (or invites).
+  // Pure decision in ./team-guard (unit-tested); loading renders normally.
+  const teamGuard = resolveTeamlessRedirect({
+    userPresent: !!user,
+    teams,
+    invitationCount: invitations.length,
+    pathname: location.pathname,
+  });
+  if (teamGuard === 'toInvites') return <Navigate to="/invites" replace />;
+  if (teamGuard === 'toHome') return <Navigate to="/" replace />;
+
   return (
     <div className="layout" data-chat-open={isChatInlineOpen ? 'true' : undefined} data-sidebar-collapsed={sidebarCollapsed ? 'true' : undefined} style={{ ['--sidebar-w' as any]: `${sidebarCollapsed ? 0 : sidebarWidth}px`, ['--chat-w' as any]: `${isChatInlineOpen ? chatWidth : 0}px` } as React.CSSProperties}>
       <a

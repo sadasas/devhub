@@ -291,6 +291,12 @@
       "onboardingTitle": "Create your first team",
       "onboardingDesc": "DevHub organizes projects inside teams. Create a team, accept an invitation, or read the docs to get started.",
       "viewInvites": "View invitations",
+      "viewInvitesCount_one": "View {{count}} invitation",
+      "viewInvitesCount_other": "View {{count}} invitations",
+      "stepsTitle": "What's next?",
+      "stepOne": "Create a team",
+      "stepTwo": "Create a project",
+      "stepThree": "Invite members",
       "viewDocs": "Read docs"
     }
   },
