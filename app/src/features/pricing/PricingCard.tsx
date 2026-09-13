@@ -6,8 +6,9 @@ import { Badge } from '../../components/Badge';
 import { formatIdr } from '../../lib/format';
 
 type TFunc = (k: string, o?: Record<string, unknown>) => string;
-function formatDuration(t: TFunc, d: number) {
-  return t('pricing.durationMonths', { count: Math.round(d / 30) });
+function formatDuration(_t: TFunc, d: number) {
+  // Anti-salah: tampilkan hari persis dari DB (30/90/365), bukan konversi bulan.
+  return `${d} hari`;
 }
 function savingsPercent(o: number, d: number) {
   return Math.round(((o - d) / o) * 100);

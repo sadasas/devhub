@@ -165,5 +165,45 @@
     "doneOnTime": "Done on time",
     "doneLate_one": "Done late {{count}}d",
     "doneLate_other": "Done late {{count}}d"
+  },
+  "legal": {
+    "footerAria": "Legal & help",
+    "navAria": "Legal links",
+    "terms": "Terms",
+    "privacy": "Privacy",
+    "status": "Status",
+    "backup": "Backup",
+    "cookieSettings": "Cookie settings",
+    "backHome": "Home",
+    "toc": "Contents",
+    "continueTo": "Continue to documentation"
+  },
+  "consent": {
+    "title": "We value your privacy",
+    "desc": "DevHub uses necessary cookies to keep you signed in. Optional analytics is off by default — enabled only if you agree.",
+    "acceptAll": "Accept All",
+    "rejectAll": "Reject All",
+    "manage": "Manage",
+    "saveChoice": "Save choice",
+    "necessary": "Necessary",
+    "necessaryDesc": "Login & security (devhub_session, 24h). Always on.",
+    "analytics": "Analytics",
+    "analyticsDesc": "Anonymous GA4 for product improvement. Off by default.",
+    "choiceAria": "Consent choices",
+    "manageTitle": "Manage consent",
+    "note": "No dark patterns: three equal buttons, no pre-ticked boxes. Read ",
+    "manageNote": "Revoking analytics removes _ga* cookies from this device.",
+    "privacyLink": "Privacy Policy"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "desc": "The address you opened does not exist or was moved. Double-check your link.",
+    "back": "Go back",
+    "dashboard": "Dashboard",
+    "help": "Need help? Contact "
+  },
+  "session": {
+    "expired": "Session expired — token auto-refreshes.",
+    "remaining": "Session ends in {{time}}"
   }
 }

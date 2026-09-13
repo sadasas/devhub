@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { ArrowRight, Eye, EyeSlash, TerminalWindow, GithubLogo, GoogleLogo } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
+import { ApiError } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import { useAuth } from '../../state/auth-context';
 import { Button } from '../../components/Button';
@@ -11,7 +12,9 @@ import { Skeleton } from '../../components/Skeleton';
 import { InlineError } from '../../components/InlineError';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 import { ThemeSwitcher } from '../../components/ThemeSwitcher';
+import { LegalFooter } from '../../components/LegalFooter';
 import { FE_LIMITS } from '../../lib/limits';
+import { DOCS_PRIVACY_URL, DOCS_TERMS_URL } from '../../lib/docs-urls';
 
 function getReturnTo(): string | null {
   try {
@@ -39,13 +42,15 @@ function getOAuthError(): string | null {
 }
 
 export function AuthPage() {
-  const { t } = useTranslation('account');
+  const { t, i18n } = useTranslation('account');
   const { login, register } = useAuth();
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [noPassword, setNoPassword] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -78,6 +83,7 @@ export function AuthPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setNoPassword(false);
     setSuccess(null);
     if (isForgot) {
       if (!email) {
@@ -87,12 +93,10 @@ export function AuthPage() {
       setSubmitting(true);
       try {
         const { api } = await import('../../lib/api');
-        const res = await api.forgotPassword(email.trim());
-        // In dev, token is returned for testing
-        const hint = (res as { token?: string }).token
-          ? ` (dev token: ${(res as { token: string }).token.slice(0, 20)}...)`
-          : '';
-        setSuccess(t('auth.forgot.success', 'If that email exists, a reset link has been sent.') + hint);
+        await api.forgotPassword(email.trim());
+        // Token dev TIDAK ditampilkan ke user (anti-bocor): hanya pesan generik.
+        // Di lingkungan DEV pun tidak dirender; lihat Network/DB bila perlu debug.
+        setSuccess(t('auth.forgot.success', 'If that email exists, a reset link has been sent.'));
         setSubmitting(false);
       } catch (err) {
         setError(getErrorMessage(err, t('auth.error.generic')));
@@ -102,6 +106,14 @@ export function AuthPage() {
     }
     if (isRegister && password !== confirm) {
       setError(t('auth.error.passwordMismatch'));
+      return;
+    }
+    if (isRegister && !termsAccepted) {
+      setError(
+        i18n.resolvedLanguage === 'id'
+          ? 'Centang persetujuan Syarat & Privasi untuk lanjut.'
+          : 'Please accept the Terms & Privacy to continue.',
+      );
       return;
     }
     setSubmitting(true);
@@ -117,6 +129,17 @@ export function AuthPage() {
         return;
       }
     } catch (err) {
+      // Pesan NO_PASSWORD BI actionable: akun OAuth tanpa kata sandi.
+      if (err instanceof ApiError && err.code === 'NO_PASSWORD') {
+        setNoPassword(true);
+        setError(
+          i18n.resolvedLanguage === 'id'
+            ? 'Akun ini memakai login Google/GitHub (belum ada kata sandi). Lanjutkan dengan Google/GitHub di atas, atau atur kata sandi via Profil → Keamanan setelah masuk dengan OAuth.'
+            : 'This account uses Google/GitHub login (no password yet). Continue with Google/GitHub above, or set a password via Profile → Security after signing in with OAuth.',
+        );
+        setSubmitting(false);
+        return;
+      }
       setError(getErrorMessage(err, t('auth.error.generic')));
       setSubmitting(false);
     }
@@ -312,6 +335,13 @@ export function AuthPage() {
           )}
 
           {error && <InlineError>{error}</InlineError>}
+          {noPassword && oauthProviders.google && (
+            <p style={{ fontSize: 13, margin: 0 }}>
+              {i18n.resolvedLanguage === 'id'
+                ? 'Tip: pakai tombol Google/GitHub di atas untuk masuk, lalu buka Profil → Keamanan → Atur kata sandi.'
+                : 'Tip: use the Google/GitHub buttons above to sign in, then open Profile → Security → Set password.'}
+            </p>
+          )}
           {success && (
             <div
               role="status"
@@ -333,7 +363,7 @@ export function AuthPage() {
           <Button
             type="submit"
             loading={submitting}
-            disabled={submitting || !email || (!isForgot && !password)}
+            disabled={submitting || !email || (!isForgot && !password) || (isRegister && !termsAccepted)}
           >
             {isForgot
               ? t('auth.forgot.submit', 'Send reset link')
@@ -342,6 +372,46 @@ export function AuthPage() {
                 : t('auth.action.signIn')}
             {!submitting && <ArrowRight size={14} weight="bold" aria-hidden="true" />}
           </Button>
+
+          {isRegister && !isForgot && (
+            <div className="auth-terms">
+              <label className="auth-terms-check">
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={(e) => setTermsAccepted(e.target.checked)}
+                  required
+                  aria-required="true"
+                />
+                <span>
+                  {i18n.resolvedLanguage === 'id' ? (
+                    <>
+                      Saya setuju pada <a href={DOCS_TERMS_URL} target="_blank" rel="noopener">Syarat Layanan</a> dan{' '}
+                      <a href={DOCS_PRIVACY_URL} target="_blank" rel="noopener">Kebijakan Privasi</a> DevHub.
+                    </>
+                  ) : (
+                    <>
+                      I agree to the DevHub <a href={DOCS_TERMS_URL} target="_blank" rel="noopener">Terms</a> and{' '}
+                      <a href={DOCS_PRIVACY_URL} target="_blank" rel="noopener">Privacy Policy</a>.
+                    </>
+                  )}
+                </span>
+              </label>
+              <p className="auth-terms-disclosure">
+                {i18n.resolvedLanguage === 'id' ? (
+                  <>
+                    Dengan mendaftar, data akun (email) dan konten proyek Anda disimpan untuk menjalankan layanan. Detail di{' '}
+                    <a href={DOCS_PRIVACY_URL} target="_blank" rel="noopener">Kebijakan Privasi</a>.
+                  </>
+                ) : (
+                  <>
+                    By signing up, your account data (email) and project content are stored to run the service. See the{' '}
+                    <a href={DOCS_PRIVACY_URL} target="_blank" rel="noopener">Privacy Policy</a> for details.
+                  </>
+                )}
+              </p>
+            </div>
+          )}
 
           <p className="auth-switch">
             {isForgot ? (
@@ -353,6 +423,7 @@ export function AuthPage() {
                   onClick={() => {
                     setMode('login');
                     setError(null);
+                    setNoPassword(false);
                     setSuccess(null);
                   }}
                 >
@@ -368,6 +439,7 @@ export function AuthPage() {
                   onClick={() => {
                     setMode('login');
                     setError(null);
+                    setNoPassword(false);
                   }}
                 >
                   {t('auth.action.signIn')}
@@ -382,6 +454,7 @@ export function AuthPage() {
                   onClick={() => {
                     setMode('register');
                     setError(null);
+                    setNoPassword(false);
                   }}
                 >
                   {t('auth.action.createOne')}
@@ -389,6 +462,7 @@ export function AuthPage() {
               </>
             )}
           </p>
+          <LegalFooter compact />
         </form>
       </main>
     </div>

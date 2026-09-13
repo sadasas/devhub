@@ -609,12 +609,12 @@
     },
     "sectionsAria": "Bagian proyek publik",
     "tab": {
-      "board": "Board",
-      "issues": "Issue",
-      "stack": "Stack",
-      "milestones": "Milestone",
-      "whiteboard": "Whiteboard",
-      "overview": "Ringkasan"
+      "board": "Papan (Board)",
+      "issues": "Masalah (Issues)",
+      "stack": "Teknologi (Stack)",
+      "milestones": "Tonggak (Milestones)",
+      "whiteboard": "Papan Tulis (Whiteboard)",
+      "overview": "Ringkasan (About)"
     },
     "empty": {
       "board": "Belum ada task.",

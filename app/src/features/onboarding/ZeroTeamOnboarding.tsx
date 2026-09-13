@@ -7,6 +7,7 @@ import { useAuth } from '../../state/auth-context';
 import { Button } from '../../components/Button';
 import { Avatar } from '../../components/Avatar';
 import { DoodleIllustration } from '../../components/DoodleIllustration';
+import { LegalFooter } from '../../components/LegalFooter';
 import { CreateTeamModal } from '../teams/CreateTeamModal';
 import { OnboardingWizard } from './OnboardingWizard';
 import { useOnboardingTour } from './useOnboardingTour';
@@ -147,6 +148,7 @@ export function ZeroTeamOnboarding() {
           </button>
         </footer>
       )}
+      <LegalFooter compact />
 
       <CreateTeamModal
         open={createOpen}

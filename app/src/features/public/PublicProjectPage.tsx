@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Archive, Bug, CalendarBlank, ChalkboardSimple, Columns, Flag, Gauge, ListChecks, Rocket, SquaresFour, Stack } from '@phosphor-icons/react';
+import { Archive, Bug, CalendarBlank, ChalkboardSimple, Columns, Flag, Gauge, ListChecks, Rocket, SquaresFour, Stack, Eye, LockSimple } from '@phosphor-icons/react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { ApiError, api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { PublicProject, PublicTab, State, Task } from '../../lib/types';
 import {
-  ISSUE_STATUS,  PROJECT_STATUS,
+  ISSUE_STATUS,
+  PROJECT_STATUS,
   TASK_STATUS,
   TECH_CATEGORY,
   TECH_STATUS,
@@ -21,6 +22,7 @@ import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { DataErrorState } from '../../components/DataErrorState';
 import { Skeleton } from '../../components/Skeleton';
+import { LegalFooter } from '../../components/LegalFooter';
 import { PublicWhiteboards } from './PublicWhiteboards';
 import { ReleasesTimelineView } from '../releases/ReleasesTimelineView';
 
@@ -46,10 +48,11 @@ const EMPTY_MESSAGE_KEYS: Record<Exclude<PublicTab, 'about'>, string> = {
 };
 
 export function PublicProjectPage() {
-  const { t } = useTranslation('extras');
+  const { t, i18n } = useTranslation('extras');
   const { projectId = '' } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isId = i18n.resolvedLanguage === 'id';
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const setTab = (next: PublicTab) => {
@@ -108,6 +111,28 @@ export function PublicProjectPage() {
     TABS.some((t) => t.id === tabParam) && allowedTabs.includes(tabParam as PublicTab)
       ? (tabParam as PublicTab)
       : allowedTabs[0] ?? 'board';
+
+  // SEO: meta robots noindex,nofollow KONDISIONAL hanya untuk /p/*.
+  // Jangan ubah / (index) menjadi noindex.
+  useEffect(() => {
+    let tag = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
+    const created = !tag;
+    if (!tag) {
+      tag = document.createElement('meta');
+      tag.setAttribute('name', 'robots');
+      document.head.appendChild(tag);
+    }
+    const prev = tag.getAttribute('content');
+    tag.setAttribute('content', 'noindex,nofollow');
+    return () => {
+      if (created) tag?.remove();
+      else if (prev != null) tag?.setAttribute('content', prev);
+      else tag?.removeAttribute('content');
+    };
+  }, []);
+
+  const taskDone = state ? state.tasks.filter((tk) => tk.status === 'done').length : 0;
+  const taskTotal = state ? state.tasks.length : 0;
 
   return (
     <div className="public-root">
@@ -181,15 +206,33 @@ export function PublicProjectPage() {
               <div>
                 <h1 className="page-title">{project.name}</h1>
                 <p className="page-subtitle">
-                  {project.teamName} · {t('public.header.updated', { date: formatDate(project.updatedAt) })}
+                  {isId
+                    ? `Dibagikan oleh ${project.teamName} — update ${formatDate(project.updatedAt)} • ${taskDone} dari ${taskTotal} selesai`
+                    : `${t('public.header.updated', { date: formatDate(project.updatedAt) })} • ${taskDone}/${taskTotal} done • Shared by ${project.teamName}`}
                 </p>
               </div>
-              <div className="project-actions">
+              <div className="project-actions" aria-label={isId ? 'Tautan publik, hanya baca, tanpa login' : 'Public link, read-only, no login'}>
                 <Badge tone={PROJECT_STATUS[project.status].tone}>
                   {PROJECT_STATUS[project.status].label}
                 </Badge>
-                <Badge tone="success">{t('public.badge.public')}</Badge>
+                <Badge tone="success">
+                  <Eye size={11} aria-hidden="true" />
+                  {isId ? 'Tautan publik' : t('public.badge.public')}
+                </Badge>
+                <Badge tone="info">
+                  <LockSimple size={11} aria-hidden="true" />
+                  {isId ? 'hanya baca • tanpa login' : 'read-only • no login'}
+                </Badge>
               </div>
+            </div>
+
+            <div className="public-share-banner" role="status">
+              <span aria-hidden="true">🔗</span>
+              <span>
+                {isId
+                  ? `Dibagikan oleh ${project.teamName} — update ${formatDate(project.updatedAt)} • Ringkasan ${taskDone} dari ${taskTotal} selesai. Tautan publik • hanya baca • tanpa login.`
+                  : `Shared by ${project.teamName} — updated ${formatDate(project.updatedAt)} • ${taskDone} of ${taskTotal} done. Public link • read-only • no login.`}
+              </span>
             </div>
 
             {project.status === 'archived' && (
@@ -233,6 +276,7 @@ export function PublicProjectPage() {
             </div>
           </>
         )}
+        <LegalFooter compact />
       </main>
     </div>
   );

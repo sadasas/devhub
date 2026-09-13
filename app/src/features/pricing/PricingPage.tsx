@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CaretDown, Lock, Lightning, ShieldCheck } from '@phosphor-icons/react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { CaretDown, Lock, Lightning, ShieldCheck, ArrowSquareOut } from '@phosphor-icons/react';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage, isPlanLimitError } from '../../lib/errors';
 import type { BillingPackage, BillingStatus } from '../../lib/types';
+import { formatIdr } from '../../lib/format';
 import { Button } from '../../components/Button';
 import { DataErrorState } from '../../components/DataErrorState';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { Skeleton } from '../../components/Skeleton';
+import { Avatar } from '../../components/Avatar';
+import { LegalFooter } from '../../components/LegalFooter';
 import { useAuth } from '../../state/auth-context';
 import { useTeams } from '../../state/teams-context';
+import { useProjects } from '../../state/projects-context';
 import { BillingToggle } from './BillingToggle';
 import { PricingCard } from './PricingCard';
 import { PricingCompare } from './PricingCompare';
@@ -27,9 +31,21 @@ function isDowngrade(curMembers: number | null, curProjects: number | null, pkg:
 }
 
 export function PricingPage() {
-  const { t } = useTranslation('extras');
+  const { t, i18n } = useTranslation('extras');
   const { user } = useAuth();
   const { teams } = useTeams();
+  // Opsional: hitung proyek per workspace untuk picker (aman tanpa provider di test).
+  let projectCounts: Record<string, number> = {};
+  try {
+    // Hook selalu dipanggil (aturan hooks) — hanya aksesnya yang defensif.
+    const { projects } = useProjects();
+    projectCounts = (projects ?? []).reduce<Record<string, number>>((acc, p) => {
+      acc[p.teamId] = (acc[p.teamId] ?? 0) + 1;
+      return acc;
+    }, {});
+  } catch {
+    projectCounts = {};
+  }
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryTeamId = searchParams.get('teamId');
@@ -41,6 +57,15 @@ export function PricingPage() {
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [selectedDurationDays, setSelectedDurationDays] = useState<number | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [checkout, setCheckout] = useState<{
+    teamId: string;
+    teamName: string;
+    packageName: string;
+    durationDays: number;
+    amount: number;
+    orderId: string;
+    url: string;
+  } | null>(null);
   const errorRef = useRef<HTMLParagraphElement>(null);
   const workspaceBarRef = useRef<HTMLDivElement>(null);
   const [highlightWorkspace, setHighlightWorkspace] = useState(false);
@@ -138,7 +163,23 @@ export function PricingPage() {
     setBusyKey(`${pkgId}:${priceId}`);
     try {
       const result = await api.startCheckout(effectiveTeamId, pkgId, priceId);
-      window.location.assign(result.url);
+      // Ringkasan anti-salah SEBELUM redirect: Workspace • Paket • Hari • Rp • order_id • QRIS/VA.
+      const team = (teams ?? []).find((tm) => tm.id === effectiveTeamId);
+      const teamName = (team as { name?: string } | undefined)?.name ?? effectiveTeamId.slice(0, 8);
+      const pkg = packages?.find((p) => p.id === pkgId);
+      const price = pkg?.prices.find((pr) => pr.id === priceId) ?? null;
+      const orderId = typeof (result as { orderId?: unknown }).orderId === 'string' ? (result as { orderId: string }).orderId : '';
+      const url = typeof (result as { url?: unknown }).url === 'string' ? (result as { url: string }).url : '';
+      setCheckout({
+        teamId: effectiveTeamId,
+        teamName,
+        packageName: (result as { packageName?: string }).packageName || pkg?.name || 'Pro',
+        durationDays: (result as { durationDays?: number }).durationDays || price?.durationDays || selectedDurationDays || 30,
+        amount: (result as { amount?: number }).amount || price?.priceIdr || 0,
+        orderId,
+        url,
+      });
+      setBusyKey(null);
     } catch (err) {
       if (isPlanLimitError(err)) {
         const details = err.details as { resource?: string; limit?: number; used?: number; pendingPackageName?: string } | undefined;
@@ -248,9 +289,27 @@ export function PricingPage() {
                     allowEmpty={false}
                     triggerEmptyLabel={t('pricing.workspacePlaceholder')}
                     value={effectiveTeamId || null}
-                    options={(teams ?? []).map((tm) => ({ value: tm.id, label: tm.name }))}
+                    options={(teams ?? []).map((tm) => {
+                      const projCount = projectCounts[tm.id] ?? 0;
+                      const memberCount = (tm as { memberCount?: number }).memberCount ?? 0;
+                      const teamName = (tm as { name?: string }).name ?? tm.id.slice(0, 8);
+                      return {
+                        value: tm.id,
+                        label: teamName,
+                        hint: `${memberCount} anggota • ${projCount} proyek`,
+                        icon: (
+                          <Avatar
+                            src={null}
+                            name={teamName}
+                            id={tm.id}
+                            size={22}
+                          />
+                        ),
+                      };
+                    })}
                     onChange={(v) => {
                       setSelectedTeamId(v ?? '');
+                      setCheckout(null);
                       if (v) setActionError(null);
                     }}
                   />
@@ -263,6 +322,48 @@ export function PricingPage() {
                 </p>
               )}
             </div>
+          )}
+          {checkout && (
+            <section
+              className="pricing-checkout-summary"
+              role="status"
+              aria-live="polite"
+              aria-label={
+                i18n.resolvedLanguage === 'id' ? 'Ringkasan pembayaran' : 'Checkout summary'
+              }
+            >
+              <h2 className="pricing-checkout-title">
+                {i18n.resolvedLanguage === 'id' ? 'Ringkasan pembayaran' : 'Checkout summary'}
+              </h2>
+              <p className="pricing-checkout-line">
+                Workspace <strong>{checkout.teamName}</strong> • Paket <strong>{checkout.packageName}</strong> •{' '}
+                {checkout.durationDays} hari • <strong className="tabular">{formatIdr(checkout.amount)}</strong> • Order{' '}
+                <code className="font-mono" title={checkout.orderId || '-'}>{(checkout.orderId || '-').slice(0, 8)}</code> • QRIS/VA via Pakasir
+              </p>
+              <p className="pricing-checkout-fees">
+                {i18n.resolvedLanguage === 'id'
+                  ? 'Harga termasuk biaya QRIS/VA. Sisa hari paket lama ditambahkan (stacking). Setelah kedaluwarsa ada grace 7 hari read-only.'
+                  : 'Price includes QRIS/VA fees. Remaining days stack. 7-day read-only grace after expiry.'}
+              </p>
+              <div className="pricing-checkout-actions">
+                {checkout.url && (
+                  <Button
+                    variant="primary"
+                    size="md"
+                    leftIcon={<ArrowSquareOut size={14} aria-hidden="true" />}
+                    onClick={() => window.location.assign(checkout.url)}
+                  >
+                    {i18n.resolvedLanguage === 'id' ? 'Bayar via Pakasir' : 'Pay via Pakasir'}
+                  </Button>
+                )}
+                <Link
+                  className="btn btn-secondary btn-md"
+                  to={checkout.orderId ? `/billing/${encodeURIComponent(checkout.teamId)}?orderId=${encodeURIComponent(checkout.orderId)}` : `/billing/${encodeURIComponent(checkout.teamId)}`}
+                >
+                  {i18n.resolvedLanguage === 'id' ? `Kembali ke /billing/${checkout.teamId.slice(0, 8)}` : 'Back to billing status'}
+                </Link>
+              </div>
+            </section>
           )}
           {packages && paidPkgs.length > 0 && durations.length > 1 && (
             <BillingToggle packages={packages} value={selectedDurationDays} onChange={setSelectedDurationDays} />
@@ -377,6 +478,7 @@ export function PricingPage() {
           </Button>
         )}
       </div>
+      <LegalFooter compact />
           </div>
         </div>
       </article>

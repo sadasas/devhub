@@ -9,6 +9,7 @@ import { EmptyState } from '../../components/EmptyState';
 import { InlineError } from '../../components/InlineError';
 import { DataErrorState } from '../../components/DataErrorState';
 import { Skeleton } from '../../components/Skeleton';
+import { SessionCountdown } from '../../components/SessionCountdown';
 import { formatExpiry } from '../../lib/utils';
 
 function useNowTick(intervalMs = 30_000) {
@@ -139,14 +140,17 @@ export function KeysPage() {
                     const isExpiringSoon = diffMs > 0 && diffMs < 2 * 60_000;
                     const expiryLabel = formatExpiry(app.expiresAt, now);
                     return (
-                      <span
-                        className="key-last-used"
-                        title={new Date(app.expiresAt).toLocaleString()}
-                        style={isExpired ? { color: 'var(--danger)' } : isExpiringSoon ? { color: 'var(--warning)' } : undefined}
-                      >
-                        <Clock size={12} weight="duotone" aria-hidden="true" />
-                        {isExpired ? expiryLabel : t('common:time.expiresIn', { time: expiryLabel })}
-                      </span>
+                      <>
+                        <span
+                          className="key-last-used"
+                          title={new Date(app.expiresAt).toLocaleString()}
+                          style={isExpired ? { color: 'var(--danger)' } : isExpiringSoon ? { color: 'var(--warning)' } : undefined}
+                        >
+                          <Clock size={12} weight="duotone" aria-hidden="true" />
+                          {isExpired ? expiryLabel : t('common:time.expiresIn', { time: expiryLabel })}
+                        </span>
+                        <SessionCountdown expiresAt={app.expiresAt} compact />
+                      </>
                     );
                   })()}
                 </div>

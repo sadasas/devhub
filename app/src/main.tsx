@@ -6,11 +6,17 @@ import './styles/tokens.css'
 import './styles/global.css'
 import App from './App.tsx'
 import { ThemeProvider } from './state/theme-context'
+import { ConsentBanner } from './components/ConsentBanner'
+import { ensureConsentDefaults } from './lib/consent'
+
+// Consent Mode v2 default denied SEBELUM gtag.js ada — wajib sebelum render.
+ensureConsentDefaults()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
       <App />
+      <ConsentBanner />
     </ThemeProvider>
   </StrictMode>,
 )

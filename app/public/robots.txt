@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /p/
+Disallow: /project/
+Disallow: /api/
+
+Sitemap: https://devhub.nrawangbatin.my.id/sitemap.xml

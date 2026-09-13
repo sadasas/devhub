@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="id">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -7,10 +7,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="DevHub — the memory of your projects: tasks, issues, tech stack, schema, decisions, and releases in one workspace."
+      content="DevHub adalah workspace manajemen proyek untuk developer Indonesia: kelola task, issue, tech stack, skema DB, ADR & rilis dalam satu tempat yang aman."
     />
+    <link rel="canonical" href="https://devhub.nrawangbatin.my.id/" />
+    <meta name="robots" content="index,follow" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="DevHub" />
+    <meta property="og:locale" content="id_ID" />
+    <meta property="og:title" content="DevHub — Kelola Proyek, Task, Issue & Rilis dalam Satu App" />
+    <meta
+      property="og:description"
+      content="DevHub adalah workspace manajemen proyek untuk developer Indonesia: kelola task, issue, tech stack, skema DB, ADR & rilis dalam satu tempat yang aman."
+    />
+    <meta property="og:url" content="https://devhub.nrawangbatin.my.id/" />
+    <meta property="og:image" content="https://devhub.nrawangbatin.my.id/og-cover.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="DevHub — workspace manajemen proyek developer Indonesia" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="DevHub — Kelola Proyek, Task, Issue & Rilis dalam Satu App" />
+    <meta
+      name="twitter:description"
+      content="DevHub adalah workspace manajemen proyek untuk developer Indonesia: kelola task, issue, tech stack, skema DB, ADR & rilis dalam satu tempat yang aman."
+    />
+    <meta name="twitter:image" content="https://devhub.nrawangbatin.my.id/og-cover.png" />
     <meta name="theme-color" content="#0a0a0c" />
     <meta name="color-scheme" content="light dark" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://devhub.nrawangbatin.my.id/#org",
+            "name": "DevHub",
+            "url": "https://devhub.nrawangbatin.my.id/",
+            "email": "support@devhub.nrawangbatin.my.id"
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://devhub.nrawangbatin.my.id/#site",
+            "name": "DevHub",
+            "url": "https://devhub.nrawangbatin.my.id/",
+            "inLanguage": "id-ID",
+            "publisher": { "@id": "https://devhub.nrawangbatin.my.id/#org" }
+          }
+        ]
+      }
+    </script>
     <script>
       (function () {
         try {
@@ -27,7 +71,29 @@
         } catch (e) {}
       })();
     </script>
-    <title>DevHub</title>
+    <script>
+      // Consent Mode v2 defaults SEBELUM gtag.js — inline agar berlaku bahkan sebelum bundle.
+      (function () {
+        try {
+          window.dataLayer = window.dataLayer || [];
+          window.gtag =
+            window.gtag ||
+            function () {
+              window.dataLayer.push(arguments);
+            };
+          window.gtag('consent', 'default', {
+            ad_storage: 'denied',
+            ad_user_data: 'denied',
+            ad_personalization: 'denied',
+            analytics_storage: 'denied',
+            functionality_storage: 'denied',
+            personalization_storage: 'denied',
+            security_storage: 'granted'
+          });
+        } catch (e) {}
+      })();
+    </script>
+    <title>DevHub — Kelola Proyek, Task, Issue & Rilis dalam Satu App</title>
   </head>
   <body>
     <div id="root"></div>

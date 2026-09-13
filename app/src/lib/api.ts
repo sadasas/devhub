@@ -24,17 +24,20 @@ import type {
 import type { ProjectStats } from './stats';
 import type { ExportDocument } from './types';
 
-function resolveApiBase(): string {
-  const env = (import.meta.env.VITE_API_URL as string | undefined)?.trim();
-  if (!env || env === '/api/v1') return '/api/v1';
+/** Pure helper (diuji di api-base.test.ts + guard scripts/guard-vite-api-url.mjs):
+ *  paksa same-origin '/api/v1' bila env absolut cross-site lolos ke build,
+ *  agar cookie devhub_session (first-party Lax via Worker proxy) tetap terkirim. */
+export function forceRelativeApiBase(env: string | undefined, origin: string | undefined): string {
+  const v = env?.trim();
+  if (!v || v === '/api/v1') return '/api/v1';
   // Absolute cross-site (VITE_API_URL=https://<hash>.suga.run/api/v1) but page is on
   // devhub.nrawangbatin.my.id via Worker reverse proxy -> cookie devhub_session is
   // first-party on devhub, not sent to suga.run -> me 401 loop. After 5983bd3
   // redirect_uri is devhub, so API must also be devhub (relative) to send cookie.
-  if (/^https?:\/\//i.test(env)) {
+  if (/^https?:\/\//i.test(v)) {
     try {
-      const envOrigin = new URL(env).origin;
-      if (typeof window !== 'undefined' && window.location.origin !== envOrigin) {
+      const envOrigin = new URL(v).origin;
+      if (origin !== envOrigin) {
         // Cross-origin: force same-origin via Worker to keep session cookie
         return '/api/v1';
       }
@@ -42,7 +45,13 @@ function resolveApiBase(): string {
       return '/api/v1';
     }
   }
-  return env;
+  return v;
+}
+
+function resolveApiBase(): string {
+  const env = (import.meta.env.VITE_API_URL as string | undefined)?.trim();
+  const origin = typeof window !== 'undefined' ? window.location.origin : undefined;
+  return forceRelativeApiBase(env, origin);
 }
 export const API_BASE: string = resolveApiBase();
 const REQUEST_TIMEOUT_MS = 15_000;

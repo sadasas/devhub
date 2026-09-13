@@ -14,15 +14,36 @@ function sortPackages(pkgs: BillingPackage[]): BillingPackage[] {
   });
 }
 
-function priceFor(pkg: BillingPackage, yearly: boolean) {
-  if (pkg.isFree) return null;
-  const found = pkg.prices.find((p) => (yearly ? p.durationDays > 60 : p.durationDays <= 60));
-  return found ?? null;
+function allDurations(pkgs: BillingPackage[]): number[] {
+  const set = new Set<number>();
+  for (const p of pkgs) {
+    if (p.isFree) continue;
+    for (const pr of p.prices) set.add(pr.durationDays);
+  }
+  return [...set].sort((a, b) => a - b);
 }
 
 export function PricingCompare({ packages }: Props) {
   const { t } = useTranslation('extras');
   const sorted = sortPackages(packages);
+  const durations = allDurations(packages);
+
+  const priceRows: Array<{ id: string; label: string; group: string; render: (pkg: BillingPackage) => React.ReactNode }> =
+    durations.map((days) => ({
+      id: `price-${days}`,
+      label: `${days} hari`,
+      group: t('pricing.compareGroup.billing', { defaultValue: 'Harga' }),
+      render: (pkg) => {
+        if (pkg.isFree) return days === durations[0] ? <span className="price-zero">{t('pricing.freePrice')} {t('pricing.freePeriod')}</span> : <span className="pricing-compare-muted">-</span>;
+        const pr = pkg.prices.find((p) => p.durationDays === days);
+        if (!pr) return <span className="pricing-compare-muted">-</span>;
+        return (
+          <span className="tabular">
+            {formatIdr(pr.priceIdr)} {pr.originalPriceIdr && pr.originalPriceIdr > pr.priceIdr ? <span className="pricing-price-original" style={{ display: 'inline', marginLeft: 6, fontSize: 11 }}>{formatIdr(pr.originalPriceIdr)}</span> : null}
+          </span>
+        );
+      },
+    }));
 
   const rows: Array<{ id: string; label: string; group: string; render: (pkg: BillingPackage) => React.ReactNode }> = [
     {
@@ -47,31 +68,7 @@ export function PricingCompare({ packages }: Props) {
           <span className="quota-num tabular">{t('pricing.benefits.projects', { n: pkg.maxProjects })}</span>
         ),
     },
-    {
-      id: 'priceMonthly',
-      label: t('pricing.compareRow.monthly', { defaultValue: 'Harga bulanan' }),
-      group: t('pricing.compareGroup.billing', { defaultValue: 'Harga' }),
-      render: (pkg) => {
-        if (pkg.isFree) return <span className="price-zero">{t('pricing.freePrice')} {t('pricing.freePeriod')}</span>;
-        const pr = priceFor(pkg, false);
-        return pr ? <span className="tabular">{formatIdr(pr.priceIdr)}</span> : <span className="pricing-compare-muted">-</span>;
-      },
-    },
-    {
-      id: 'priceYearly',
-      label: t('pricing.compareRow.yearly', { defaultValue: 'Harga tahunan' }),
-      group: t('pricing.compareGroup.billing', { defaultValue: 'Harga' }),
-      render: (pkg) => {
-        if (pkg.isFree) return <span className="pricing-compare-muted">-</span>;
-        const pr = priceFor(pkg, true);
-        if (!pr) return <span className="pricing-compare-muted">-</span>;
-        return (
-          <span className="tabular">
-            {formatIdr(pr.priceIdr)} {pr.originalPriceIdr && pr.originalPriceIdr > pr.priceIdr ? <span className="pricing-price-original" style={{ display: 'inline', marginLeft: 6, fontSize: 11 }}>{formatIdr(pr.originalPriceIdr)}</span> : null}
-          </span>
-        );
-      },
-    },
+    ...priceRows,
     {
       id: 'tasks',
       label: t('pricing.compare.tasks'),

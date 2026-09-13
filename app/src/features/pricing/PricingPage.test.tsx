@@ -9,6 +9,7 @@ let mockTeams: { id: string; name: string }[] = [];
 vi.mock('../../lib/api', async (importOriginal) => { const actual = await importOriginal<typeof import('../../lib/api')>(); return { ...actual, api: { ...actual.api, listPackages: mockListPackages, startCheckout: mockStartCheckout } }; });
 vi.mock('../../state/auth-context', () => ({ useAuth: () => ({ user: mockUser }) }));
 vi.mock('../../state/teams-context', () => ({ useTeams: () => ({ teams: mockTeams }) }));
+vi.mock('../../state/projects-context', () => ({ useProjects: () => ({ projects: [] }) }));
 function renderPage(initialEntries?: string[]) { return render(<MemoryRouter initialEntries={initialEntries}><PricingPage /></MemoryRouter>); }
 const PACKAGES: BillingPackage[] = [
   { id: 'pkg-free', name: 'Free', description: 'For getting started', isFree: true, maxMembers: 2, maxProjects: 3, sortOrder: 0, isFeatured: false, prices: [] },
@@ -27,8 +28,9 @@ describe('PricingPage (single-page flow)', () => {
     expect(screen.getAllByText('Unlimited projects').length).toBeGreaterThanOrEqual(1);
     const radios = await screen.findAllByRole('radio');
     expect(radios.length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByRole('radio', { name: /Monthly|Bulanan/ })).toBeDefined();
-    expect(screen.getByRole('radio', { name: /Yearly|Tahunan/ })).toBeDefined();
+    // Durasi dari DB (hari), bukan hardcode Monthly/Yearly.
+    expect(screen.getByRole('radio', { name: /30 hari|30 days/ })).toBeDefined();
+    expect(screen.getByRole('radio', { name: /365 hari|365 days/ })).toBeDefined();
   });
   it('shows dynamic CTA with price', async () => { renderPage(); expect(await screen.findByRole('button', { name: /Upgrade to Pro|Upgrade ke Pro/ })).toBeDefined(); });
   it('shows duration cards on the page (no step 2)', async () => {
@@ -56,7 +58,7 @@ describe('PricingPage (single-page flow)', () => {
     renderPage(['/pricing?teamId=t1']); await screen.findByRole('heading', { name: /Pro/ });
     const proBtn = screen.getByRole('button', { name: /Upgrade to Pro|Upgrade ke Pro/ }); fireEvent.click(proBtn); await waitFor(() => { expect(mockStartCheckout).toHaveBeenCalledTimes(1); });
     const bizBtn = screen.getByRole('button', { name: /Upgrade to Business|Upgrade ke Business/ }); fireEvent.click(bizBtn); expect(mockStartCheckout).toHaveBeenCalledTimes(1);
-    await act(async () => { resolveCheckout({ url: 'http://example.com' }); });
+    await act(async () => { resolveCheckout({ url: 'http://example.com', orderId: 'order-12345678', packageName: 'Pro', durationDays: 30, amount: 250000 }); });
   });
   it('badges the package flagged isFeatured instead of the first paid package', async () => {
     const flagged: BillingPackage[] = [

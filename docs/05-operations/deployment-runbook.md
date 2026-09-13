@@ -121,13 +121,13 @@ devhub.example.com {
   1. **Neon (database):** create a free project at [neon.tech](https://neon.tech) → copy the **direct** connection string (`postgresql://user:password@ep-….neon.tech/dbname`). Do **not** use the pooled (PgBouncer) string — DevHub uses advisory locks (migrations) and `FOR UPDATE` row locks, which break under transaction pooling.
   2. **Suga:** sign up at [suga.app](https://suga.app) (no credit card) → create a Project → add a **Container** → choose **Build from GitHub** → install the Suga GitHub App and grant `sadasas/devhub` → pick branch `main` → Dockerfile path `/Dockerfile` with build context at repo root (the repo `Dockerfile` builds only the `server/` workspace; `app/`/`e2e/` never enter the image).
   3. **Networking:** set the container port the app listens on (3000) and enable **Public HTTPS** on it — Suga provisions a TLS URL like `https://<hash>.suga.run` (Cloudflare CDN + WAF + DDoS included).
-  4. **Env vars** (mark secrets Sensitive): `DATABASE_URL` (Neon direct), `JWT_SECRET`, `NODE_ENV=production`, `COOKIE_SECURE=true`, `TRUST_PROXY=true`, `CORS_ORIGIN=https://devhub-app.<account>.workers.dev`, `PORT=3000`, `PG_POOL_MAX=6`.
+  4. **Env vars** (mark secrets Sensitive): `DATABASE_URL` (Neon direct), `JWT_SECRET`, `NODE_ENV=production`, `COOKIE_SECURE=true`, `TRUST_PROXY=true`, `CORS_ORIGIN=` (empty = same-origin only via Worker proxy), `PORT=3000`, `PG_POOL_MAX=6`. Billing prod: `PAKASIR_SANDBOX=false`, `PAKASIR_SLUG`/`PAKASIR_API_KEY` prod (Sensitive), `APP_PUBLIC_URL=https://devhub.nrawangbatin.my.id`.
   5. **Resources:** 0.1 vCPU / 256 MiB (free max). First deploy: migrations run automatically at boot (`index.ts` calls `migrate()`), then smoke-test §7.
   6. API base is reachable at `https://<hash>.suga.run`; auto-build on push to `main` is on by default (deduped by commit SHA).
 - `[Cloudflare]` — **frontend deploy path (2026-08-21, Workers Builds + static assets, per ADR-042):**
   1. `app/wrangler.json` already defines the Worker (`devhub-app`) with static assets from `./dist` and `not_found_handling: "single-page-application"` — every non-file path (e.g. `/project/*`, `/p/*`) serves `index.html`, so client-side routes deep-link correctly. No worker script is needed; the SPA is pure static.
   2. Cloudflare dashboard: **Workers & Pages → Create → connect to GitHub** → install the Cloudflare GitHub App and grant `sadasas/devhub` → select the repo → set **Root directory** `/app`, **Install command** `npm ci`, **Deploy command** `npx wrangler deploy` (Workers Builds runs it after the build).
-  3. **Build variables** (Settings → Variables and Secrets, set for both Production and Preview): `VITE_API_URL=https://<hash>.suga.run/api/v1` (build-time; the SPA uses it for `fetch` and derives the WebSocket URL `wss://<hash>.suga.run/ws` from it). Also set `NODE_VERSION=22`.
+  3. **Build variables** (Settings → Variables and Secrets, set for both Production and Preview): `VITE_API_URL=/api/v1` (relative — same-origin via Worker proxy; runtime `app/src/lib/api.ts:27-46` memaksa relatif bila nilai absolut cross-site lolos). Legacy `https://<hash>.suga.run/api/v1` JANGAN dipakai lagi. Also set `NODE_VERSION=22`.
   4. Auto-deploy is on by default: every push to the production branch rebuilds the SPA; non-production branches and PRs get preview URLs on `<commit>-devhub-app.workers.dev` (previews hit the local backend via `npm run dev` unless you add their origin to `CORS_ORIGIN`).
   5. Manual deploy alternative: `npm run build -w app && npm run deploy -w app` (wrangler login required once).
 - `[Railway]` connect repo → set env vars → deploy; add managed Postgres, bind `DATABASE_URL`.
@@ -162,10 +162,10 @@ One push to `main` can trigger deploys on Cloudflare (frontend) and Suga (backen
 | `NODE_ENV` | No | `production` for prod behaviors |
 | `COOKIE_SECURE` | No | `true` behind TLS (forced in production) |
 | `TRUST_PROXY` | No | `true` when behind a reverse proxy — required so rate limiting, client IPs, and OAuth discovery origin (`/.well-known/*` → `https://devhub.nrawangbatin.my.id`) work correctly |
-| `CORS_ORIGIN` | FE split | Comma-separated origins allowed for cross-origin REST + WS (e.g. `https://devhub-app.<account>.workers.dev`). Empty = same-origin only |
-| `VITE_API_URL` (Cloudflare build variable) | FE split | `https://<hash>.suga.run/api/v1` — SPA fetch base + WebSocket origin (see `realtime-client.ts`) |
+| `CORS_ORIGIN` | FE split | Comma-separated origins allowed for cross-origin REST + WS. **Prod (same-origin via Worker proxy): leave empty** so the API is same-origin only. Only set when the SPA is truly cross-origin (legacy split) |
+| `VITE_API_URL` (Cloudflare build variable) | FE split | **`/api/v1` (relative, same-origin via Worker proxy)** — SPA fetch base + WebSocket origin (see `realtime-client.ts`). Legacy absolute form `https://<hash>.suga.run/api/v1` is force-rewritten to `/api/v1` at runtime (`app/src/lib/api.ts:27-46`), but do NOT deploy new builds with the absolute value |
 
-**Cookie / cross-site:** FE (Cloudflare) and BE (Suga) are different origins, so the session cookie is sent with `SameSite=None; Secure` in production (`auth.routes.ts` sets `sameSite: none` when `NODE_ENV=production`). Development keeps `SameSite=Lax` (HTTP, same-origin).
+**Cookie / same-origin ( kunci: JANGAN ganti kode ke `SameSite=None` ):** the SPA and the API are served from **one origin** `https://devhub.nrawangbatin.my.id` — the Cloudflare Worker (`app/src/worker.ts:37-103`) proxies `/api/*`, `/mcp`, `/oauth/*`, `/ws`, and `/.well-known/*` to Suga while serving static assets for everything else, and strips `Domain` from `Set-Cookie` so the session stays **first-party**. Therefore the session cookie is **`SameSite=Lax; HttpOnly; Secure`** in production (`server/src/shared/cookie.ts`), which blocks CSRF yet is sent on same-origin top-level and sub-requests. `SameSite=None` is intentionally NOT used — switching the code to `None` would turn a first-party session into a third-party cookie (blocked by Safari/Firefox ITP, CSRF surface). If login loops with 401, fix the proxy/origin — never the cookie.
 
 **SPA fallback:** the server exposes the API only (no static hosting). Host the built `app/dist` behind a static server (Cloudflare Workers static assets, Caddy `file_server`, nginx, etc.) and route every non-file path — including `/project/*`, `/team/*`, `/docs/*`, and `/p/*` — to `index.html` so client-side routes (including public project pages) deep-link correctly (Cloudflare: handled by `not_found_handling: "single-page-application"` in `app/wrangler.json`). With the SPA on a different origin than the API, set `CORS_ORIGIN` to the SPA origin (dev proxy in `app/vite.config.ts` handles local development).
 
@@ -180,7 +180,7 @@ One push to `main` can trigger deploys on Cloudflare (frontend) and Suga (backen
 - **1 project / 1 environment:** free tier supports a single project with one environment (production). No preview environments on free.
 - **Builds from GitHub only:** free services can build from your GitHub repo or approved templates — not arbitrary registry images (fine for DevHub; `Dockerfile` at repo root).
 - **Neon caps:** 0.5 GB storage, compute suspends after ~5 min idle (cold DB start ~300–500 ms), no automatic backups — see [Backup & Recovery](backup-recovery.md) for periodic `pg_dump`.
-- **Cross-site cookie:** with FE on Cloudflare and BE on Suga, the session cookie is `SameSite=None; Secure` (see §6). If you ever move to a same-origin deployment (VPS + Caddy serving the SPA and API on one domain), production still works — `SameSite=None; Secure` behaves correctly for same-site requests too.
+- **Same-origin session (bukan cross-site):** FE + API satu origin `https://devhub.nrawangbatin.my.id` via Worker proxy → cookie `SameSite=Lax; Secure` (lihat §6). Produksi tetap berfungsi untuk request same-site; pola lama `SameSite=None; Secure` untuk split FE/BE **sudah pensiun** — jangan dihidupkan lagi. Bila suatu saat kembali ke deploy same-host tunggal (VPS + Caddy serving SPA + API satu domain), tidak ada perubahan kode cookie yang diperlukan.
 
 ---
 
@@ -188,11 +188,27 @@ One push to `main` can trigger deploys on Cloudflare (frontend) and Suga (backen
 
 - [ ] Migrations applied (auto at boot, or `npm run db:migrate` against the deployed DB)
 - [ ] `GET /api/v1/health` → `ok`
-- [ ] SPA (hosted separately) loads and calls `/api` cross-origin (check `CORS_ORIGIN`)
+- [ ] SPA loads same-origin and calls `/api` without CORS (check `CORS_ORIGIN` empty in prod)
 - [ ] Register an account → login → create project → `opencode mcp auth devhub` (browser OAuth PKCE)
-- [ ] Cookie header shows `HttpOnly; SameSite=None; Secure` (production, cross-site) — `SameSite=Lax` in dev
+- [ ] Cookie header shows `HttpOnly; SameSite=Lax; Secure` (production, same-origin via proxy) — `SameSite=Lax` in dev (HTTP, `Secure` off)
 - [ ] `/mcp` rejects without token, works with OAuth bearer (curl with `jq -r .access_token ~/.local/share/opencode/mcp-auth.json`, see [MCP Guide §7](../03-engineering/mcp-integration.md#7-testing-the-mcp-server))
 - [ ] Backup cron in place (next section)
+- [ ] Guard `VITE_API_URL` same-origin lolos: `node app/scripts/guard-vite-api-url.mjs` hijau (gagal bila logika force-relatif di `app/src/lib/api.ts:27-46` / `realtime-client.ts` hilang) + `npm run test -w app` lolos
+
+### 7b. Suga production checklist (billing live)
+
+Hanya via dashboard Suga — JANGAN commit nilai asli ke repo (hanya docs + `server/.env.example` komentar):
+
+- [ ] `PAKASIR_SANDBOX=false`
+- [ ] `PAKASIR_SLUG` + `PAKASIR_API_KEY` prod terisi, keduanya ditandai **Sensitive**
+- [ ] `APP_PUBLIC_URL=https://devhub.nrawangbatin.my.id`
+- [ ] `COOKIE_SECURE=true` (guard `server/src/config.ts:74-78` menolak boot produksi tanpanya)
+- [ ] `TRUST_PROXY=true`
+- [ ] `PG_POOL_MAX=6`
+- [ ] `CORS_ORIGIN` kosong (same-origin; isi hanya bila darurat split-origin sementara)
+- [ ] `VITE_API_URL=/api/v1` (build variable Cloudflare; JANGAN absolut `https://<hash>.suga.run/...`)
+- [ ] Webhook Pakasir menunjuk `https://devhub.nrawangbatin.my.id/api/v1/billing/webhook` (proxied Worker → Suga; test dengan payload kecil, ekspektasi `200 {ok:true}` tanpa aktivasi untuk order tak dikenal)
+- [ ] Pricing seed ADR-045 diterapkan: `psql "$DATABASE_URL" -f server/src/db/seeds/001_pro_pricing_2026-09-13.sql`, lalu verifikasi paket Pro `is_featured` + harga `(30,249000) (90,699000) (365,2490000)` + promo LAUNCH149 `(30,149000)` nonaktif
 
 ---
 

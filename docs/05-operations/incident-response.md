@@ -2,10 +2,10 @@
 
 | Field | Value |
 |---|---|
-| **Document status** | Draft (Phase 0) |
-| **Version** | 1.0 |
+| **Document status** | Active (Phase 2) |
+| **Version** | 2.0 |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-10 |
+| **Last updated** | 2026-09-13 |
 | **Related documents** | [Monitoring](monitoring.md) · [Backup & Recovery](backup-recovery.md) · [Security Design](../02-architecture/security-design.md) |
 
 ---
@@ -65,6 +65,79 @@ Solo operation: the operator is on-call 24/7. This document defines **what count
 | Self | Incident log | This document's log table |
 
 **SEV-1 mandatory:** inform affected users within 24h (privacy obligations per [Privacy Policy](../06-compliance/privacy-policy.md)).
+
+### 4.1 Channel SEV-1 (Phase 2 Aktif 2026-09-13)
+
+| Channel | Alamat / topik | Kapan dipakai |
+|---|---|---|
+| Email operator | `support@devhub.nrawangbatin.my.id` (ganti dengan email owner asli saat go-live; placeholder ini WAJIB diganti sebelum broadcast) | Semua SEV-1/2: notifikasi user + thread postmortem |
+| ntfy push | `ntfy.sh/devhub-alerts` (sama dengan [Monitoring](monitoring.md#41-topik-ntfy-devhub-alerts--tiga-alert-wajib-phase-2)) | Deteksi + update cepat (< 5 mnt): `SEV-1 DETECTED`, `SEV-1 MITIGATED`, `SEV-1 RESOLVED` |
+| Log insiden | Tabel §6 dokumen ini | Setiap update T-0 / T+1h / resolved |
+
+Contoh kirim update cepat via ntfy:
+
+```bash
+curl -sS -H "Title: SEV-1 DETECTED devhub" -H "Tags: rotating_light" \
+  -d "Login 503 sejak $(date -u +%FT%TZ), mulai rollback BE (lihat §4.3)" \
+  https://ntfy.sh/devhub-alerts
+# expected: 200 OK + push di subscriber devhub-alerts
+```
+
+### 4.2 Template notifikasi 24 jam (Bahasa Indonesia, SEV-1)
+
+> Wajib kirim ≤ 24 jam ke semua pengguna terdampak via email `support@devhub.nrawangbatin.my.id`.
+> Jangan hapus baris mana pun — isi `[...]` lalu kirim.
+
+```text
+Subjek: [SEV-1] Pemberitahuan insiden DevHub — [RINGKASAN 1 BARIS] ([TANGGAL UTC])
+
+Halo pengguna DevHub,
+
+Kami mengalami insiden pada layanan DevHub pada [TANGGAL + JAM UTC, mis. 2026-09-13 03:10 UTC].
+
+Apa yang terjadi:
+[2–3 kalimat: mis. database tidak dapat diakses sehingga login gagal 03:10–03:40 UTC.]
+
+Dampak untuk Anda:
+[mis. tidak bisa login/menyimpan 30 menit; TIDAK ada indikasi kebocoran password (bcrypt) / ATAU data berikut terdampak: ...]
+
+Data Anda:
+[mis. tidak ada data hilang (RPO 24h terpenuhi, restore dari dump 02:00 UTC) / ATAU maksimal ... jam perubahan hilang.]
+
+Yang sudah kami lakukan:
+1. [mis. rollback BE ke tag vX.Y.Z + verifikasi /health ok]
+2. [mis. rotasi JWT_SECRET + revoke OAuth clients bila keamanan]
+3. [mis. drill restore ke scratch + monitoring 15 menit hijau]
+
+Yang perlu Anda lakukan:
+[Tidak ada / Silakan login ulang / Ganti password di Profile → Security]
+
+Kontak:
+Balas email ini (support@devhub.nrawangbatin.my.id) bila ada data yang janggal.
+Postmortem menyusul maksimal 5 hari kerja.
+
+— Operator DevHub ([NAMA], [TANGGAL])
+```
+
+### 4.3 Uji rollback (wajib sebelum go-live + tiap rilis besar)
+
+Rujukan prosedur: [Deployment Runbook §9](deployment-runbook.md#9-rollback).
+Cookie sesi tetap `SameSite=Lax` first-party via Worker proxy
+(`app/src/worker.ts` + `server/src/shared/cookie.ts`) — rollback TIDAK mengubah
+cookie ke `None`; jangan verifikasi `SameSite=None`.
+
+| Lapisan | Uji rollback | Perintah / klik | Expected |
+|---|---|---|---|
+| BE (Suga) | Redeploy tag sebelumnya | Suga dashboard → Container → Deployments → pilih tag `vX.Y.(Z-1)` → Redeploy; ATAU `docker build -t devhub:<tag-lama> .` + redeploy. Lalu `curl -sS https://devhub.nrawangbatin.my.id/api/v1/health` | `{"status":"ok","db":"connected",...}` ≤ 3 mnt; login OK; `Set-Cookie: devhub_session=...; Path=/; HttpOnly; SameSite=Lax` (cek `curl -sSI`) |
+| FE (Workers) | Rollback instan | Cloudflare dashboard → Workers & Pages → `devhub-app` → Deployments → history → **Rollback** ke versi sebelumnya (tanpa rebuild) | SPA versi lama tayang ≤ 60 dtk; hard-refresh Incognito tampil; `/api/v1/health` tetap ok |
+| DB (bila migrasi rusak) | Restore pre-release backup | `pg_restore --no-owner -d "$DATABASE_URL_SCRATCH_DULU"` drill dulu, baru produksi (lihat [Backup & Recovery §4](backup-recovery.md#4-restore-procedures)) | Count users/projects cocok; export round-trip `restored:true` |
+
+Checklist uji:
+
+- [ ] BE redeploy tag lama → health ok + login ok
+- [ ] FE Workers rollback → versi lama tayang instan
+- [ ] ntfy `devhub-alerts` terima `ROLLBACK OK` dari operator
+- [ ] Hasil dicatat di tabel §6 (kolom Actions)
 
 ---
 

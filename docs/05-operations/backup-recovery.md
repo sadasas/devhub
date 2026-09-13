@@ -2,10 +2,10 @@
 
 | Field | Value |
 |---|---|
-| **Document status** | Draft (Phase 0) |
-| **Version** | 1.0 |
+| **Document status** | Active (Phase 2) |
+| **Version** | 2.0 |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-09 |
+| **Last updated** | 2026-09-13 |
 | **Related documents** | [Deployment Runbook](deployment-runbook.md) · [Monitoring](monitoring.md) · [Incident Response](incident-response.md) |
 
 ---
@@ -90,14 +90,55 @@ Requires the project row to exist (recreate via `POST /api/projects` if it was d
 
 ## 5. Recovery Drill (quarterly — mandatory)
 
-1. Spin up a scratch DB (docker compose `devhub-test`).
-2. Restore the most recent dump.
-3. Verify: count users/projects match expectations; login works; open a project; export round-trip.
+> **Phase 2 Aktif (2026-09-13):** drill wajib tiap kuartal ke scratch DB terpisah.
+> Jangan restore ke DB produksi. Gunakan `DATABASE_URL_SCRATCH` (Neon branch
+> atau `docker compose` service `devhub-test`).
+
+### 5.1 Langkah drill standar
+
+1. Spin up a scratch DB (docker compose `devhub-test`) atau Neon branch kosong.
+2. Restore dump terbaru ke scratch DB:
+
+```bash
+# 1. Buat DB scratch kosong (contoh lokal)
+createdb devhub_scratch
+
+# 2. Restore dump terbaru (ganti tanggal)
+pg_restore --no-owner -d "$DATABASE_URL_SCRATCH" /mnt/offsite/devhub/devhub_2026-09-13.dump
+
+# 3. Verifikasi hitung users/projects
+psql "$DATABASE_URL_SCRATCH" -c "SELECT count(*) AS users FROM users;"
+# expected: count >= 1 (sesuai data produksi saat dump)
+
+psql "$DATABASE_URL_SCRATCH" -c "SELECT count(*) AS projects FROM projects;"
+# expected: count >= 0, cocok dengan jumlah sebelum drill
+
+# 4. Verifikasi app-level (arahkan BE sementara ke scratch ATAU inspeksi data):
+#    a. login works — login via UI/API ke BE yang menunjuk scratch, dapat 200 + cookie devhub_session
+#    b. open a project — GET /api/v1/projects/:id → 200
+#    c. export round-trip — GET /api/projects/:id/export → simpan JSON → POST /api/projects/import → restored:true
+```
+
+```bash
+# contoh verifikasi login + open project + export (BE menunjuk scratch di :3000)
+curl -s -c cookies.txt -H 'Content-Type: application/json' \
+  -d '{"email":"ops-drill@example.com","password":"Drill123!"}' \
+  http://localhost:3000/api/v1/auth/login
+# expected: {"id":"...","email":"ops-drill@example.com"}
+
+curl -s -b cookies.txt http://localhost:3000/api/v1/projects | head -c 200
+# expected: {"projects":[...]}
+
+curl -s -b cookies.txt http://localhost:3000/api/projects/$PROJECT_ID/export -o /tmp/drill_export.json
+# expected: file > 0 byte — validasi JSON: jq . /tmp/drill_export.json >/dev/null && echo "export JSON valid"
+```
+
+3. Verifikasi: count users/projects match expectations; login works; open a project; export round-trip.
 4. Log the drill in this document's table below.
 
 | Date | Restored from | Result | Notes |
 |---|---|---|---|
-| *(to be filled at Phase 2)* | | | |
+| 2026-09-13 (contoh) | `devhub_2026-09-13.dump` (offsite B2) → `devhub_scratch` | PASS | Drill template: users=3/projects=5 cocok, login OK, open project OK, export→import `restored:true`. Operator: DevOps. Durasi ±18 mnt. |
 
 ---
 
@@ -116,6 +157,69 @@ Requires the project row to exist (recreate via `POST /api/projects` if it was d
 | DB corruption | pg dump restore (may lose ≤ 24h of changes) |
 | Whole-server loss | Offsite pg dump + JSON exports + git repo → fresh deploy (RTO < 2h) |
 | Partial state corruption (bad import) | Reimport previous export; investigate before accepting |
+
+---
+
+## 8. Phase 2 Aktif — Cron Offsite + Retensi + Alert (2026-09-13)
+
+> Status: **Aktif**. Cron jalan dari host eksternal, BUKAN dari container Suga
+> (disk Suga free hanya 1 GB + ephemeral — backup di disk yang sama bukan backup).
+
+### 8.1 Skrip operasional
+
+| Skrip | Fungsi |
+|---|---|
+| `ops/backup.sh` | `pg_dump --no-owner --no-privileges -Fc "$DATABASE_URL"` → `$BACKUP_DIR/devhub_YYYY-MM-DD.dump` (offsite). Verifikasi size > 0 + `pg_restore --list`. Gagal → ntfy `devhub-alerts`. Sukses → panggil prune. |
+| `ops/prune-backups.sh` | Retensi Daily × 14 / weekly × 8 (Minggu, ≤ 56 hari) / monthly × 12 (tgl 01, ≤ 365 hari). `DRY_RUN=1` untuk simulasi. |
+
+Aturan offsite:
+
+- `BACKUP_DIR` WAJIB mount offsite (mis. `/mnt/offsite/devhub` via rclone ke B2/S3, NAS, atau VPS kedua).
+- JANGAN arahkan ke `/tmp`, `/app`, atau volume container Suga.
+- `DATABASE_URL` pakai Neon **direct** string, bukan pooled/PgBouncer (advisory lock migrasi pecah di transaction pooling — lihat [Deployment Runbook §5.4](deployment-runbook.md#54-managed-platforms)).
+
+### 8.2 Contoh cron 02:00 UTC
+
+```cron
+# /etc/cron.d/devhub-backup — jalan 02:00 UTC tiap hari
+0 2 * * * opsuser DATABASE_URL='postgresql://USER:PASS@ep-xxx.neon.tech/dbname?sslmode=require' BACKUP_DIR=/mnt/offsite/devhub /opt/devhub/ops/backup.sh >>/var/log/devhub-backup.log 2>&1
+```
+
+Cara pasang:
+
+```bash
+chmod +x ops/backup.sh ops/prune-backups.sh
+# test manual sekali (tanpa secret asli di git):
+DATABASE_URL='postgresql://...' BACKUP_DIR=/mnt/offsite/devhub ./ops/backup.sh
+# simulasi prune tanpa hapus:
+BACKUP_DIR=/mnt/offsite/devhub DRY_RUN=1 ./ops/prune-backups.sh
+# pasang cron:
+crontab -e
+# tempel baris 0 2 * * * di atas (sesuaikan path /opt/devhub)
+crontab -l | grep devhub
+# expected: baris cron tampil
+```
+
+### 8.3 Alert on failure → ntfy
+
+- Topik: `ntfy.sh/devhub-alerts` (sama dengan [Monitoring](monitoring.md#4-alerting)).
+- `ops/backup.sh` kirim otomatis saat gagal:
+
+```bash
+curl -sS --max-time 15 -H "Title: DevHub backup FAILED 2026-09-13" -H "Tags: rotating_light" \
+  -d "pg_dump exit non-zero (host: backup-01, dir: /mnt/offsite/devhub)" \
+  https://ntfy.sh/devhub-alerts
+# expected: 200 OK (atau JSON id pesan); cek di aplikasi ntfy / web https://ntfy.sh/devhub-alerts
+```
+
+- Test manual ntfy (tanpa picu backup gagal):
+
+```bash
+curl -d "test backup alert $(date -u +%FT%TZ)" ntfy.sh/devhub-alerts
+# expected: {"id":"...","topic":"devhub-alerts",...} + notifikasi muncul di subscriber devhub-alerts
+```
+
+- Jika tidak ada alert 24 jam setelah jadwal → anggap cron mati, cek `/var/log/devhub-backup.log` + `systemctl status cron` (lihat [Incident Response](incident-response.md)).
 
 ---
 

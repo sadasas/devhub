@@ -11,10 +11,8 @@ import {
   DashboardMembersSkeleton,
   DashboardSettingsSkeleton,
   DashboardSkeleton,
-  DocsSkeleton,
   InvitesSkeleton,
   KeysSkeleton,
-  McpDocsSkeleton,
   PaymentHistorySkeleton,
   PricingSkeleton,
   ProfileSkeleton,
@@ -27,13 +25,13 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { RouteBoundary } from './components/RouteBoundary';
 import { Skeleton } from './components/Skeleton';
 import { Splash } from './components/Splash';
+import { ExternalRedirect } from './components/ExternalRedirect';
+import { DOCS_HOME_URL, DOCS_MCP_URL, DOCS_PRIVACY_URL, DOCS_TERMS_URL } from './lib/docs-urls';
 
 const DashboardPageLazy = lazy(() => import('./features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })));
 const HomeRedirectLazy = lazy(() => import('./features/dashboard/HomeRedirect').then((m) => ({ default: m.HomeRedirect })));
 const KeysPageLazy = lazy(() => import('./features/keys/KeysPage').then((m) => ({ default: m.KeysPage })));
 const ProfilePageLazy = lazy(() => import('./features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })));
-const DocsPageLazy = lazy(() => import('./features/docs/DocsPage').then((m) => ({ default: m.DocsPage })));
-const McpDocsPageLazy = lazy(() => import('./features/docs/McpDocsPage').then((m) => ({ default: m.McpDocsPage })));
 const InvitesPageLazy = lazy(() => import('./features/teams/InvitesPage').then((m) => ({ default: m.InvitesPage })));
 const TemplatesPageLazy = lazy(() => import('./features/templates/TemplatesPage').then((m) => ({ default: m.TemplatesPage })));
 const ProjectPageLazy = lazy(() => import('./features/project/ProjectPage').then((m) => ({ default: m.ProjectPage })));
@@ -42,6 +40,7 @@ const PricingPageLazy = lazy(() => import('./features/pricing/PricingPage').then
 const PaymentHistoryPageLazy = lazy(() => import('./features/billing/PaymentHistoryPage').then((m) => ({ default: m.PaymentHistoryPage })));
 const BillingRedirectPageLazy = lazy(() => import('./features/teams/BillingRedirectPage').then((m) => ({ default: m.BillingRedirectPage })));
 const ResetPasswordPageLazy = lazy(() => import('./features/auth/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })));
+const NotFoundLazy = lazy(() => import('./components/NotFound').then((m) => ({ default: m.NotFoundPage })));
 const CommandPaletteLazy = lazy(() => import('./components/CommandPalette').then((m) => ({ default: m.CommandPalette })));
 
 
@@ -150,22 +149,6 @@ function Root() {
               }
             />
             <Route
-              path="/docs"
-              element={
-                <RouteBoundary fallback={<DocsSkeleton />}>
-                  <DocsPageLazy />
-                </RouteBoundary>
-              }
-            />
-            <Route
-              path="/docs/mcp"
-              element={
-                <RouteBoundary fallback={<McpDocsSkeleton />}>
-                  <McpDocsPageLazy />
-                </RouteBoundary>
-              }
-            />
-            <Route
               path="/pricing"
               element={
                 <RouteBoundary fallback={<PricingSkeleton />}>
@@ -208,7 +191,14 @@ function Root() {
               }
             />
             <Route path="/:teamSlug" element={<TeamSlugRedirect />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route
+              path="*"
+              element={
+                <RouteBoundary fallback={<DashboardSkeleton />}>
+                  <NotFoundLazy />
+                </RouteBoundary>
+              }
+            />
           </Route>
           </Routes>
           <ErrorBoundary>
@@ -249,6 +239,19 @@ export default function App() {
               element={
                 <RouteBoundary fallback={<div role="status" aria-label="Loading reset password" aria-busy="true" style={{ padding: 24 }}><span className="sr-only">Loading reset password…</span><div aria-hidden="true" style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 400 }}><Skeleton style={{ width: 140, height: 20 }} /><Skeleton style={{ width: "100%", height: 44, borderRadius: 8 }} /><Skeleton style={{ width: "100%", height: 44, borderRadius: 8 }} /><Skeleton style={{ width: "100%", height: 44, borderRadius: 8 }} /></div></div>}>
                   <ResetPasswordPageLazy />
+                </RouteBoundary>
+              }
+            />
+            {/* Single source of truth = docs site. Tanpa ringkasan legal di app. */}
+            <Route path="/privacy" element={<ExternalRedirect to={DOCS_PRIVACY_URL} />} />
+            <Route path="/terms" element={<ExternalRedirect to={DOCS_TERMS_URL} />} />
+            <Route path="/docs" element={<ExternalRedirect to={DOCS_HOME_URL} />} />
+            <Route path="/docs/mcp" element={<ExternalRedirect to={DOCS_MCP_URL} />} />
+            <Route
+              path="/404"
+              element={
+                <RouteBoundary fallback={<DashboardSkeleton />}>
+                  <NotFoundLazy />
                 </RouteBoundary>
               }
             />

@@ -165,5 +165,45 @@
     "doneOnTime": "Selesai tepat waktu",
     "doneLate_one": "Selesai terlambat {{count}} hr",
     "doneLate_other": "Selesai terlambat {{count}} hr"
+  },
+  "legal": {
+    "footerAria": "Legal & bantuan",
+    "navAria": "Tautan legal",
+    "terms": "Syarat",
+    "privacy": "Privasi",
+    "status": "Status",
+    "backup": "Backup",
+    "cookieSettings": "Pengaturan Cookie",
+    "backHome": "Beranda",
+    "toc": "Daftar isi",
+    "continueTo": "Lanjut ke dokumentasi"
+  },
+  "consent": {
+    "title": "Kami menghargai privasi Anda",
+    "desc": "DevHub memakai cookie yang diperlukan agar bisa masuk. Analitik opsional dan mati secara default — aktif hanya jika Anda setuju.",
+    "acceptAll": "Terima Semua",
+    "rejectAll": "Tolak Semua",
+    "manage": "Kelola",
+    "saveChoice": "Simpan pilihan",
+    "necessary": "Diperlukan",
+    "necessaryDesc": "Login & keamanan (devhub_session, 24 jam). Selalu aktif.",
+    "analytics": "Analitik",
+    "analyticsDesc": "GA4 anonim untuk perbaikan produk. Mati secara default.",
+    "choiceAria": "Pilihan persetujuan",
+    "manageTitle": "Kelola persetujuan",
+    "note": "Tanpa pola menipu: ketiga tombol setara, tanpa centang awal. Baca ",
+    "manageNote": "Mencabut analitik menghapus cookie _ga* dari perangkat ini.",
+    "privacyLink": "Kebijakan Privasi"
+  },
+  "notFound": {
+    "title": "Halaman tidak ditemukan",
+    "desc": "Alamat yang Anda buka tidak ada atau sudah dipindah. Periksa kembali tautan Anda.",
+    "back": "Kembali",
+    "dashboard": "Dashboard",
+    "help": "Butuh bantuan? Hubungi "
+  },
+  "session": {
+    "expired": "Sesi kedaluwarsa — token diperbarui otomatis.",
+    "remaining": "Sesi berakhir dalam {{time}}"
   }
 }
