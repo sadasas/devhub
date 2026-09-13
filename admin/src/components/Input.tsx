@@ -23,11 +23,15 @@ export function Input({
 }: InputProps) {
   const autoId = useId();
   const inputId = id ?? autoId;
+  const errorId = `${inputId}-error`;
+  const helperId = `${inputId}-helper`;
+  const describedBy = error ? errorId : helper ? helperId : undefined;
   const input = (
     <input
       id={inputId}
       className={`input ${error ? 'input-error' : ''} ${className}`}
       aria-invalid={error ? true : undefined}
+      aria-describedby={describedBy}
       aria-required={required ? true : undefined}
       required={required}
       {...rest}
@@ -65,17 +69,17 @@ export function Input({
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             {error ? (
-              <InlineError>{error}</InlineError>
+              <InlineError id={errorId}>{error}</InlineError>
             ) : helper ? (
-              <p className="field-helper" style={{ margin: 0 }}>{helper}</p>
+              <p id={helperId} className="field-helper" style={{ margin: 0 }}>{helper}</p>
             ) : null}
           </div>
           <span style={{ fontSize: 11, color: countColor, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', flexShrink: 0 }}>{count.toLocaleString()} / {(max as number).toLocaleString()}</span>
         </div>
       ) : error ? (
-        <InlineError>{error}</InlineError>
+        <InlineError id={errorId}>{error}</InlineError>
       ) : helper ? (
-        <p className="field-helper">{helper}</p>
+        <p id={helperId} className="field-helper">{helper}</p>
       ) : null}
     </div>
   );

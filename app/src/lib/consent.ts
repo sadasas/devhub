@@ -2,7 +2,9 @@
  * - Default `denied` SEBELUM gtag.js ada (panggil ensureConsentDefaults() di main.tsx paling awal).
  * - gtag.js JANGAN di-inject jika tolak; lazy inject hanya setelah setuju + update granted.
  * - Simpan localStorage `devhub_consent_v1` {status,analytics,timestamp,policyVersion,bannerVersion}.
- * - JANGAN auto-fire GA4 page_view; config memakai send_page_view:false.
+ * - page_view HANYA pasca-consent via sendPageView(): config memakai
+ *   send_page_view:false + event manual sekali per load + tiap navigasi SPA.
+ *   Tanpa PII: path dinamis dinormalisasi, query di-strip.
  * - JANGAN pasang Measurement ID asli — pakai placeholder + env VITE_GA_MEASUREMENT_ID.
  */
 
@@ -31,16 +33,21 @@ export function openConsentSettings(): void {
   }
 }
 
+/** Pure resolver (diuji langsung) — pisahkan dari import.meta agar testable. */
+export function resolveGaMeasurementId(raw: string | undefined): string {
+  const trimmed = (raw ?? '').trim();
+  if (trimmed && /^G-[A-Z0-9]{4,}$/.test(trimmed)) return trimmed;
+  return GA_PLACEHOLDER_ID;
+}
+
 export function getGaMeasurementId(): string {
   try {
     const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env
       ?.VITE_GA_MEASUREMENT_ID;
-    const trimmed = (env ?? '').trim();
-    if (trimmed && /^G-[A-Z0-9]{4,}$/.test(trimmed)) return trimmed;
+    return resolveGaMeasurementId(env);
   } catch {
-    /* ignore */
+    return GA_PLACEHOLDER_ID;
   }
-  return GA_PLACEHOLDER_ID;
 }
 
 export function readConsent(): ConsentState | null {
@@ -108,7 +115,8 @@ export function ensureConsentDefaults(): void {
       personalization_storage: 'denied',
       security_storage: 'granted',
     });
-    // Jika user sebelumnya sudah setuju, upgrade ke granted + lazy inject (tanpa auto page_view).
+    // Jika user sebelumnya sudah setuju, upgrade ke granted + lazy inject
+    // (page_view pertama menyusul pasca-config di dalam inject).
     const saved = readConsent();
     if (saved?.analytics) {
       updateConsentGranted();
@@ -139,6 +147,57 @@ export function updateConsentDenied(): void {
     });
   } catch {
     /* ignore */
+  }
+}
+
+/** Normalisasi path agar ID dinamis tidak jadi kardinalitas liar / bocor ke GA. */
+export function normalizePagePath(pathname: string): string {
+  const normalized = pathname
+    .replace(/^\/project\/[^/]+/, '/project/[id]')
+    .replace(/^\/team\/[^/]+/, '/team/[slug]')
+    .replace(/^\/p\/[^/]+/, '/p/[id]');
+  return normalized || '/';
+}
+
+/**
+ * True bila event analytics boleh dikirim sekarang (semua gate lolos).
+ * Param `id` opsional = seam test (default baca env saat dipanggil).
+ */
+export function canSendAnalytics(id: string = getGaMeasurementId()): boolean {
+  try {
+    if (typeof window === 'undefined') return false;
+    if (!readConsent()?.analytics) return false;
+    if (id === GA_PLACEHOLDER_ID) return false;
+    if (!window.__devhubGtagInjected) return false;
+    return typeof window.gtag === 'function';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Kirim satu GA4 page_view — HANYA pasca-consent (no-op bila gate mana pun
+ * gagal). Dipanggil sekali pasca-config + tiap navigasi SPA via RouteTracker.
+ * Query di-strip (bisa membawa token), path dinamis dinormalisasi.
+ * Dedup modul: pengiriman beruntun untuk path sama (race inject-onload vs
+ * mount RouteTracker, StrictMode dev) hanya dikirim sekali; navigasi
+ * pergi-kembali tetap tercatat karena path di antaranya berbeda.
+ */
+let lastSentPath: string | null = null;
+
+export function sendPageView(id: string = getGaMeasurementId()): void {
+  try {
+    if (!canSendAnalytics(id)) return;
+    const path = normalizePagePath(window.location.pathname);
+    if (lastSentPath === path) return;
+    lastSentPath = path;
+    window.gtag?.('event', 'page_view', {
+      page_location: `${window.location.origin}${path}`,
+      page_path: path,
+      page_title: document.title,
+    });
+  } catch {
+    /* analytics must never break the app */
   }
 }
 
@@ -177,8 +236,10 @@ export function injectGtagIfGranted(): Promise<boolean> {
         try {
           window.__devhubGtagInjected = true;
           updateConsentGranted();
-          // JANGAN auto-fire page_view — config eksplisit mati.
+          // send_page_view mati agar TIDAK ada hit pra-consent; page_view
+          // eksplisit dikirim di bawah, hanya bila consent masih granted.
           window.gtag?.('config', id, { send_page_view: false });
+          sendPageView();
         } catch {
           /* ignore */
         }

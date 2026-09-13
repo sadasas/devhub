@@ -7,7 +7,7 @@ import type { AdminPackage, AdminTeam } from '../../lib/types';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { InlineError } from '../../components/InlineError';
-import { Modal } from '../../components/Modal';
+import { Drawer } from '../../components/Drawer';
 import { formatIdr } from '../../lib/format';
 
 interface TeamPlanModalProps {
@@ -109,12 +109,13 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
     if (!team || busy) return;
     if (stage === 'edit') {
       if (plan === 'pro') {
-        // Ringkas dulu (summary-confirm); free langsung dieksekusi (reversibel).
+        // Ringkas dulu (summary-confirm); free juga confirm (destruktif: sisa durasi hilang).
         if (!selectedPkg || !selectedPrice) return;
         setStage('confirm');
         return;
       }
-      void doSave();
+      if (plan === currentPlan) return;
+      setStage('confirm');
       return;
     }
     void doSave();
@@ -146,17 +147,23 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
     }
   }
 
-  const canProceed = plan === 'free' ? plan !== currentPlan : Boolean(selectedPkg && selectedPrice);
+  const canProceed = stage === 'confirm'
+    ? true
+    : plan === 'free'
+      ? plan !== currentPlan
+      : Boolean(selectedPkg && selectedPrice);
+
+  const isDowngradeConfirm = stage === 'confirm' && plan === 'free';
+  const isGrantConfirm = stage === 'confirm' && plan === 'pro' && selectedPkg && selectedPrice;
 
   return (
-    <Modal
+    <Drawer
       open={open}
       title={t('admin.teamPlan.title')}
       onClose={onClose}
-      width="md"
       footer={
         <>
-          <Button variant="secondary" size="sm" leftIcon={stage === 'confirm' ? <ArrowLeft size={13} aria-hidden="true" /> : <X size={13} aria-hidden="true" />} disabled={busy} onClick={() => {
+          <Button variant="ghost" size="sm" leftIcon={stage === 'confirm' ? <ArrowLeft size={13} aria-hidden="true" /> : <X size={13} aria-hidden="true" />} disabled={busy} onClick={() => {
             if (stage === 'confirm') setStage('edit');
             else onClose();
           }}>
@@ -172,23 +179,38 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
             {busy
               ? t('admin.teamPlan.saving')
               : stage === 'confirm'
-                ? t('admin.teamPlan.confirm')
+                ? isDowngradeConfirm
+                  ? t('admin.teamPlan.confirmDowngradeAction')
+                  : t('admin.teamPlan.confirm')
                 : t('admin.teamPlan.save')}
           </Button>
         </>
       }
     >
       {error && <InlineError>{error}</InlineError>}
-      {stage === 'confirm' && selectedPkg && selectedPrice ? (
+      {isGrantConfirm ? (
         <div className="form-stack">
           <span className="page-subtitle">{t('admin.teamPlan.confirmTitle')}</span>
           <p style={{ margin: 0, fontSize: 14, color: 'var(--text-primary)' }}>
             {t('admin.teamPlan.confirmGrant', {
-              name: selectedPkg.name,
-              days: selectedPrice.durationDays,
-              price: formatIdr(selectedPrice.priceIdr),
+              name: selectedPkg!.name,
+              days: selectedPrice!.durationDays,
+              price: formatIdr(selectedPrice!.priceIdr),
               team: team?.name ?? '—',
             })}
+          </p>
+        </div>
+      ) : isDowngradeConfirm ? (
+        <div className="form-stack">
+          <span className="page-subtitle">{t('admin.teamPlan.confirmTitle')}</span>
+          <p style={{ margin: 0, fontSize: 14, color: 'var(--text-primary)' }}>
+            {team?.planDurationDays && team?.planExpiresAt
+              ? t('admin.teamPlan.confirmDowngrade', {
+                  team: team?.name ?? '—',
+                  days: team.planDurationDays,
+                  date: new Date(team.planExpiresAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
+                })
+              : t('admin.teamPlan.confirmDowngradeNoExpiry', { team: team?.name ?? '—' })}
           </p>
         </div>
       ) : (
@@ -315,7 +337,7 @@ export function TeamPlanModal({ open, team, onClose, onSaved }: TeamPlanModalPro
           </div>
         </div>
       )}
-    </Modal>
+    </Drawer>
   );
 }
 

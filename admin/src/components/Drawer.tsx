@@ -6,25 +6,25 @@ import { useTranslation } from "react-i18next";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { lockBodyScroll, unlockBodyScroll } from "../lib/scroll-lock";
 
-type ModalWidth = "sm" | "md" | "lg";
-
-interface ModalProps {
+interface DrawerProps {
   open: boolean;
   title: string;
   onClose?: () => void;
   children: ReactNode;
   footer?: ReactNode;
-  width?: ModalWidth;
   className?: string;
   initialFocusRef?: React.RefObject<HTMLElement | null>;
 }
 
-export function Modal({ open, title, onClose, children, footer, width = "md", className, initialFocusRef }: ModalProps) {
+/** Drawer kanan slide-over (Fase 2): pengganti Modal tengah untuk form edit.
+ *  Modal hanya untuk confirm/delete. Kontrak sama dengan Modal:
+ *  focus-trap + Esc + restore fokus + aria-modal + scroll-lock bersama.
+ */
+export function Drawer({ open, title, onClose, children, footer, className, initialFocusRef }: DrawerProps) {
   const titleId = useId();
   const { t } = useTranslation();
   const dialogRef = useFocusTrap<HTMLDivElement>(open, initialFocusRef);
   const onCloseRef = useRef(onClose);
-  const isFullscreen = className?.includes("modal-fullscreen") ?? false;
   onCloseRef.current = onClose;
 
   useEffect(() => {
@@ -45,20 +45,20 @@ export function Modal({ open, title, onClose, children, footer, width = "md", cl
 
   return createPortal(
     <div
-      className={`modal-backdrop${isFullscreen ? " modal-backdrop--fullscreen" : ""}`}
+      className="drawer-backdrop"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose?.();
       }}
     >
       <div
         ref={dialogRef}
-        className={`modal modal-${width} ${className ?? ""}`}
+        className={`drawer ${className ?? ""}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
       >
-        <header className="modal-header">
-          <h2 id={titleId} className="modal-title">
+        <header className="drawer-header">
+          <h2 id={titleId} className="drawer-title">
             {title}
           </h2>
           <button
@@ -71,8 +71,8 @@ export function Modal({ open, title, onClose, children, footer, width = "md", cl
             <X size={14} weight="bold" aria-hidden="true" />
           </button>
         </header>
-        <div className="modal-body">{children}</div>
-        {footer && <footer className="modal-footer">{footer}</footer>}
+        <div className="drawer-body">{children}</div>
+        {footer && <footer className="drawer-footer">{footer}</footer>}
       </div>
     </div>,
     document.body,

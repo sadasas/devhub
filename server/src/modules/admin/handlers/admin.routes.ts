@@ -28,6 +28,12 @@ const listQuerySchema = z.object({
   plan: z.enum(['free', 'pro', 'paid']).optional(),
 });
 
+const teamsQuerySchema = z.object({
+  q: z.string().trim().max(100).default(''),
+  plan: z.enum(['free', 'pro']).optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+});
+
 const roleSchema = z.object({ role: z.enum(['user', 'admin']) });
 const planSchema = z.object({
   plan: z.enum(['free', 'pro']),
@@ -77,8 +83,8 @@ adminRouter.patch('/users/:userId/role', async (req, res) => {
 });
 
 adminRouter.get('/teams', async (req, res) => {
-  const { limit } = parseOrThrow(listQuerySchema.pick({ limit: true }), req.query, 'Invalid query parameters');
-  res.json(await listPlatformTeams(limit));
+  const { q, plan, limit } = parseOrThrow(teamsQuerySchema, req.query, 'Invalid query parameters');
+  res.json(await listPlatformTeams(limit, q, plan));
 });
 
 adminRouter.patch('/teams/:teamId/plan', async (req, res) => {

@@ -411,13 +411,23 @@
     "title": "Admin",
     "subtitle": "Platform-wide overview — users, teams, payments and packages.",
     "refresh": "Refresh",
+    "lastRefresh": "Last refresh {{time}}",
+    "lastRefreshNever": "Not refreshed yet",
+    "export": "Export CSV",
+    "resetFilters": "Reset filters",
     "tabsAria": "Admin sections",
     "retry": "Retry",
     "loading": "Loading…",
+    "table": {
+      "rowActions": "Row actions",
+      "sortBy": "Sort by {{label}}"
+    },
     "pager": {
       "previous": "Previous",
       "next": "Next",
-      "status": "Page {{page}} of {{total}}"
+      "status": "Page {{page}} of {{total}}",
+      "showing": "Showing {{from}}–{{to}} of {{total}}",
+      "goToPage": "Go to page {{page}}"
     },
     "tabs": {
       "overview": "Overview",
@@ -507,6 +517,12 @@
       "status": "Status",
       "emptyTitle": "No payments yet",
       "emptyDesc": "Completed and pending payments will appear here.",
+      "emptyFiltered": "No payments match this filter.",
+      "sortLabel": "Sort payments",
+      "sortNewest": "Newest first",
+      "sortOldest": "Oldest first",
+      "sortHighest": "Highest amount",
+      "sortLowest": "Lowest amount",
       "errors": {
         "load": "Failed to load payments"
       }
@@ -523,6 +539,11 @@
       "filterStatusAria": "Filter package status",
       "active": "Active",
       "inactive": "Inactive",
+      "colPackage": "Package",
+      "colLimits": "Limits",
+      "colPrices": "Prices",
+      "colStatus": "Status",
+      "noPrices": "No prices",
       "activated": "\"{{name}}\" activated",
       "deactivated": "\"{{name}}\" deactivated",
       "deleted": "\"{{name}}\" deleted",
@@ -534,6 +555,16 @@
       "deactivate": "Deactivate",
       "deleteTitle": "Delete package",
       "deleteDesc": "Delete \"{{name}}\"? This cannot be undone.",
+      "deactivateTitle": "Deactivate package",
+      "deactivateDesc": "Deactivate \"{{name}}\"? Linked Pro teams keep access until expiry, but no new grants will be allowed.",
+      "deactivateConfirm": "Deactivate",
+      "activateTitle": "Activate package",
+      "activateDesc": "Activate \"{{name}}\"? It will be available for new Pro grants.",
+      "activateConfirm": "Activate",
+      "featuredReplaceTitle": "Change recommended package",
+      "featuredReplaceDesc": "Make \"{{name}}\" recommended? \"{{current}}\" will no longer be recommended.",
+      "featuredSetNewTitle": "Set as recommended",
+      "featuredSetNewDesc": "Make \"{{name}}\" the recommended package?",
       "featured": "Recommended",
       "setFeatured": "Set as recommended",
       "featuredSet": "\"{{name}}\" is now recommended",
@@ -546,6 +577,7 @@
     "packageModal": {
       "editTitle": "Edit package",
       "newTitle": "New package",
+      "saving": "Saving…",
       "saveChanges": "Save changes",
       "create": "Create package",
       "namePlaceholder": "e.g. Pro, Enterprise…",
@@ -553,6 +585,7 @@
       "maxMembers": "Max members",
       "maxProjects": "Max projects",
       "sortOrder": "Sort order",
+      "sortOrderHelper": "Lower appears first in pricing.",
       "featured": "Mark as recommended",
       "prices": "Prices",
       "addPrice": "Add price",
@@ -560,23 +593,40 @@
       "priceIdr": "Price (IDR)",
       "originalPriceIdr": "Original price (IDR)",
       "noDiscount": "No discount",
+      "savingsHelper": "Save {{amount}} ({{percent}}%)",
       "removePrice": "Remove price",
+      "removePriceTitle": "Remove price",
+      "removePriceDesc": "Remove price {{index}} ({{days}} days · {{price}})? This cannot be undone.",
       "errors": {
         "nameRequired": "Name is required",
+        "maxMembersInvalid": "Max members must be 0 or more",
+        "maxProjectsInvalid": "Max projects must be 0 or more",
+        "sortOrderInvalid": "Sort order must be a number",
+        "durationInvalid": "Duration must be > 0",
+        "priceInvalid": "Price must be 0 or more",
+        "originalPriceInvalid": "Original price must be 0 or more",
         "update": "Failed to update package",
         "create": "Failed to create package"
       }
     },
     "teams": {
       "aria": "Platform teams",
+      "searchLabel": "Search teams",
+      "searchPlaceholder": "Search by team or owner email…",
+      "filterPlanAria": "Filter by plan",
       "emptyTitle": "No teams yet",
+      "emptyQueryDesc": "Nothing matches \"{{query}}\".",
       "emptyDesc": "Teams appear here as soon as users create them.",
       "count_one": "{{count}} team",
       "count_other": "{{count}} teams",
       "memberCount": "{{count}} members",
       "projectCount": "{{count}} projects",
       "meta": "owner {{owner}} · created {{created}}",
+      "proUntil": "Pro until {{date}}",
+      "proLeft": "{{when}} left",
+      "proExpired": "Expired {{when}}",
       "changePlan": "Change plan",
+      "planUpdated": "\"{{name}}\" plan updated",
       "errors": {
         "load": "Failed to load teams"
       }
@@ -594,6 +644,9 @@
       "noProPackages": "No active Pro packages. Create a package first.",
       "confirmTitle": "Confirm plan change",
       "confirmGrant": "Grant {{name}} · {{days}} days · {{price}} to {{team}}?",
+      "confirmDowngrade": "Downgrade {{team}} to Free? Remaining Pro time ({{days}} days · until {{date}}) will be lost.",
+      "confirmDowngradeNoExpiry": "Downgrade {{team}} to Free? Pro access will be removed immediately.",
+      "confirmDowngradeAction": "Confirm downgrade",
       "back": "Back",
       "confirm": "Confirm grant",
       "errors": {

@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react';
-import { Skeleton } from '../../components/Skeleton';
 import { formatIdr } from '../../lib/format';
 
 export { formatIdr };
@@ -186,30 +184,6 @@ export function VerticalBarChart({
           ))}
         </tbody>
       </table>
-    </div>
-  );
-}
-
-export function StatCard({
-  icon,
-  label,
-  value,
-  accent,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: number | null;
-  accent?: boolean;
-}) {
-  return (
-    <div className={accent ? 'stat-card-revenue' : 'stat-card'}>
-      <h3 className="stat-card-title">
-        {icon}
-        {label}
-      </h3>
-      <span className="stat-card-value">
-        {value === null ? <Skeleton style={{ width: 48, height: 22 }} /> : value}
-      </span>
     </div>
   );
 }

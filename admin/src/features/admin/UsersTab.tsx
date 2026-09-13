@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowClockwise, CaretLeft, CaretRight, MagnifyingGlass, UsersThree, X } from '@phosphor-icons/react';
+import { ArrowClockwise, DownloadSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { api } from '../../lib/api';
@@ -7,13 +7,15 @@ import { getErrorMessage } from '../../lib/errors';
 import type { AdminUser } from '../../lib/types';
 import { formatRelative } from '../../lib/utils';
 import { formatDateAdmin, formatIdr } from '../../lib/format';
+import { downloadCsv, toCsv } from '../../lib/csv';
 import { useAuth } from '../../state/auth-context';
+import { AdminTable } from '../../components/AdminTable';
 import { Avatar } from '../../components/Avatar';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
-import { EmptyState } from '../../components/EmptyState';
+import { FilterBar } from '../../components/FilterBar';
 import { InlineError } from '../../components/InlineError';
-import { Input } from '../../components/Input';
+import { Pager } from '../../components/Pager';
 import { Skeleton } from '../../components/Skeleton';
 
 const PAGE_SIZE = 25;
@@ -65,12 +67,33 @@ export function UsersTab({ refreshKey, onSettled }: UsersTabProps) {
     );
   }
 
+  function resetFilters(): void {
+    setSearchInput('');
+    setSearchParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        n.delete('q');
+        n.delete('plan');
+        n.delete('page');
+        return n;
+      },
+      { replace: true },
+    );
+  }
+
+  // Sync input bila URL berubah dari luar (reset filter / back button)
+  useEffect(() => {
+    setSearchInput((cur) => (cur === qParam ? cur : qParam));
+  }, [qParam]);
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const trimmed = searchInput.trim();
       setSearchParams(
         (prev) => {
           const next = new URLSearchParams(prev);
+          const cur = (prev.get('q') ?? '').trim();
+          if (trimmed === cur) return prev;
           if (trimmed) next.set('q', trimmed);
           else next.delete('q');
           next.delete('page');
@@ -118,51 +141,85 @@ export function UsersTab({ refreshKey, onSettled }: UsersTabProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usersTotal, page, totalPages]);
 
+  function handleExport(): void {
+    if (!users || users.length === 0) return;
+    const csv = toCsv(
+      users.map((u) => ({
+        email: u.email,
+        displayName: u.displayName,
+        role: u.role,
+        plan: u.plan ?? '',
+        teamCount: u.teamCount,
+        createdAt: u.createdAt,
+        lastActiveAt: u.lastActiveAt ?? '',
+        lastPaymentAmount: u.lastPaymentAmount ?? '',
+        lastPaymentAt: u.lastPaymentAt ?? '',
+      })),
+      [
+        { key: 'email', label: 'email' },
+        { key: 'displayName', label: 'displayName' },
+        { key: 'role', label: 'role' },
+        { key: 'plan', label: 'plan' },
+        { key: 'teamCount', label: 'teamCount' },
+        { key: 'createdAt', label: 'createdAt' },
+        { key: 'lastActiveAt', label: 'lastActiveAt' },
+        { key: 'lastPaymentAmount', label: 'lastPaymentAmount' },
+        { key: 'lastPaymentAt', label: 'lastPaymentAt' },
+      ],
+    );
+    downloadCsv(`admin-users-p${page}`, csv);
+  }
+
+  const isFiltered = qParam !== '' || planParam !== '';
+
   return (
     <section className="tab-panel" aria-label={t('admin.users.aria')}>
       <p role="status" aria-live="polite" className="sr-only">
         {users === null ? t('admin.loading') : t('admin.users.count', { count: usersTotal })}
       </p>
-      <div className="admin-filter-bar">
-        <Input
-          label={t('admin.users.searchLabel')}
-          placeholder={t('admin.users.searchPlaceholder')}
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          rightSlot={
-            searchInput ? (
-              <button
-                type="button"
-                className="key-copy-btn"
-                aria-label={t('common:action.clear')}
-                onClick={() => setSearchInput('')}
-              >
-                <X size={12} aria-hidden="true" />
-              </button>
-            ) : (
-              <MagnifyingGlass size={14} aria-hidden="true" />
-            )
-          }
-          className="admin-filter-input"
-        />
-        <span className="admin-activity-ranges" role="radiogroup" aria-label={t('admin.users.filterPlanAria', { defaultValue: 'Filter plan' })}>
-          <button type="button" role="radio" aria-checked={planParam === ''} className={`sub-tab ${planParam === '' ? 'sub-tab-active' : ''}`} tabIndex={planParam === '' ? 0 : -1} onClick={() => setPlanFilterAtomic(null)}>{t('admin.users.allPlans')}</button>
-          <button type="button" role="radio" aria-checked={planParam === 'free'} className={`sub-tab ${planParam === 'free' ? 'sub-tab-active' : ''}`} tabIndex={planParam === 'free' ? 0 : -1} onClick={() => setPlanFilterAtomic('free')}>{t('admin.plan.free')}</button>
-          <button type="button" role="radio" aria-checked={planParam === 'pro'} className={`sub-tab ${planParam === 'pro' ? 'sub-tab-active' : ''}`} tabIndex={planParam === 'pro' ? 0 : -1} onClick={() => setPlanFilterAtomic('pro')}>{t('admin.plan.pro')}</button>
+
+      <div className="tab-toolbar">
+        <span className="tab-toolbar-title">{t('admin.tabs.users')}</span>
+        <span className="tab-toolbar-actions">
+          <Button
+            variant="ghost"
+            size="sm"
+            leftIcon={<DownloadSimple size={13} aria-hidden="true" />}
+            disabled={!users || users.length === 0}
+            onClick={handleExport}
+            aria-label={t('admin.export')}
+            title={t('admin.export')}
+          >
+            {t('admin.export')}
+          </Button>
         </span>
-        <span className="page-subtitle admin-filter-count">
-          {users !== null ? t('admin.users.count', { count: usersTotal }) : ''}
-        </span>
-        {users !== null && users.length > 0 && users.length < usersTotal && (
-          <span className="admin-filter-hint">
-            {t('admin.users.showing', { shown: users.length, total: usersTotal })}
-          </span>
-        )}
       </div>
+
+      <FilterBar
+        searchValue={searchInput}
+        onSearchChange={setSearchInput}
+        searchLabel={t('admin.users.searchLabel')}
+        searchPlaceholder={t('admin.users.searchPlaceholder')}
+        segments={[
+          { value: '', label: t('admin.users.allPlans') },
+          { value: 'free', label: t('admin.plan.free') },
+          { value: 'pro', label: t('admin.plan.pro') },
+        ]}
+        selectedSegment={planParam}
+        onSegmentChange={setPlanFilterAtomic}
+        segmentsAriaLabel={t('admin.users.filterPlanAria', { defaultValue: 'Filter plan' })}
+        countText={users !== null ? t('admin.users.count', { count: usersTotal }) : undefined}
+        hintText={
+          users !== null && users.length > 0 && users.length < usersTotal
+            ? t('admin.users.showing', { shown: users.length, total: usersTotal })
+            : undefined
+        }
+      />
+
       {error ? (
         <InlineError className="mb-12">
           {error}{' '}
-          <Button variant="secondary" size="sm" leftIcon={<ArrowClockwise size={13} aria-hidden="true" />} onClick={() => void loadUsers()}>
+          <Button variant="ghost" size="sm" leftIcon={<ArrowClockwise size={13} aria-hidden="true" />} onClick={() => void loadUsers()}>
             {t('admin.retry')}
           </Button>
         </InlineError>
@@ -185,79 +242,98 @@ export function UsersTab({ refreshKey, onSettled }: UsersTabProps) {
             ))}
           </div>
         </div>
-      ) : users.length === 0 ? (
-        <EmptyState
-          icon={<UsersThree size={22} aria-hidden="true" />}
-          title={t('admin.users.emptyTitle')}
-          description={qParam ? t('admin.users.emptyQueryDesc', { query: qParam }) : t('admin.users.emptyDesc')}
-        />
       ) : (
         <>
-          {users.map((u) => {
-            const isSelf = u.id === user?.id;
-            const uname = u.displayName?.trim() ? u.displayName : u.email;
-            return (
-              <div key={u.id} className="data-row">
-                <Avatar
-                  src={(u as { avatarUrl?: string | null }).avatarUrl ?? null}
-                  name={uname}
-                  email={u.email}
-                  id={u.id}
-                  size={36}
-                  style={{ marginRight: 12, flexShrink: 0 }}
-                />
-                <div className="data-row-main">
-                  <span className="data-row-title">
-                    <span className="row-title-text">{uname}</span>
-                    <Badge tone={u.role === 'admin' ? 'info' : 'neutral'}>
-                      {u.role === 'admin' ? t('admin.role.admin') : t('admin.role.user')}
-                    </Badge>
-                    <Badge tone={u.plan === 'pro' ? 'success' : 'neutral'}>
-                      {u.plan === 'pro' ? t('admin.plan.pro') : t('admin.plan.free')}
-                    </Badge>
-                    {isSelf && <Badge tone="neutral">{t('admin.you')}</Badge>}
-                  </span>
-                  <span className="data-row-meta">
-                    {u.displayName?.trim() && u.displayName !== u.email ? `${u.email} · ` : ''}
-                    {t('admin.users.joined', {
-                      count: u.teamCount,
-                      joined: formatDateAdmin(u.createdAt),
-                    })}
-                    {u.lastActiveAt ? ` · ${t('admin.users.active', { when: formatRelative(u.lastActiveAt) })}` : ''}
-                    {u.lastPaymentAmount != null && u.lastPaymentAt
-                      ? ` · ${t('admin.users.lastPayment', {
-                          amount: formatIdr(u.lastPaymentAmount),
-                          date: formatDateAdmin(u.lastPaymentAt),
-                        })}`
-                      : ''}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-          {totalPages > 1 && (
-            <nav className="pager" aria-label={t('admin.users.paginationAria')}>
-              <Button
-                size="sm"
-                variant="secondary" leftIcon={<CaretLeft size={12} aria-hidden="true" />} disabled={page <= 1}
-                onClick={() => updateParam('page', String(page - 1))}
-              >
-                {t('admin.pager.previous')}
-              </Button>
-              <span className="pager-status">{t('admin.pager.status', { page, total: totalPages })}</span>
-              <Button
-                size="sm"
-                variant="secondary" leftIcon={<CaretRight size={12} aria-hidden="true" />} disabled={page >= totalPages}
-                onClick={() => updateParam('page', String(page + 1))}
-              >
-                {t('admin.pager.next')}
-              </Button>
-            </nav>
-          )}
+          <AdminTable<AdminUser>
+            caption={t('admin.users.aria')}
+            columns={[
+              {
+                key: 'user',
+                label: t('admin.users.aria'),
+                render: (u) => {
+                  const isSelf = u.id === user?.id;
+                  const uname = u.displayName?.trim() ? u.displayName : u.email;
+                  return (
+                    <span className="cell-stack">
+                      {/* Baris 1: identitas */}
+                      <span className="data-row-title">
+                        <Avatar
+                          src={(u as { avatarUrl?: string | null }).avatarUrl ?? null}
+                          name={uname}
+                          email={u.email}
+                          id={u.id}
+                          size={28}
+                        />
+                        <span className="row-title-text">{uname}</span>
+                        <Badge tone={u.role === 'admin' ? 'info' : 'neutral'}>
+                          {u.role === 'admin' ? t('admin.role.admin') : t('admin.role.user')}
+                        </Badge>
+                        <Badge tone={u.plan === 'pro' ? 'success' : 'neutral'}>
+                          {u.plan === 'pro' ? t('admin.plan.pro') : t('admin.plan.free')}
+                        </Badge>
+                        {isSelf && <Badge tone="neutral">{t('admin.you')}</Badge>}
+                      </span>
+                      {/* Baris 2: identitas meta */}
+                      <span className="data-row-meta">
+                        {u.displayName?.trim() && u.displayName !== u.email ? `${u.email} · ` : u.displayName?.trim() ? '' : `${u.email} · `}
+                        {t('admin.users.joined', {
+                          count: u.teamCount,
+                          joined: formatDateAdmin(u.createdAt),
+                        })}
+                        {u.lastActiveAt ? ` · ${t('admin.users.active', { when: formatRelative(u.lastActiveAt) })}` : ''}
+                      </span>
+                    </span>
+                  );
+                },
+              },
+              {
+                key: 'payment',
+                label: t('admin.payments.amount'),
+                align: 'right',
+                numeric: true,
+                render: (u) =>
+                  u.lastPaymentAmount != null && u.lastPaymentAt ? (
+                    <span
+                      className="cell-stack"
+                      style={{ alignItems: 'flex-end' }}
+                      aria-label={t('admin.users.lastPayment', {
+                        amount: formatIdr(u.lastPaymentAmount),
+                        date: formatDateAdmin(u.lastPaymentAt),
+                      })}
+                    >
+                      <span className="tabular" aria-hidden="true" style={{ fontWeight: 600 }}>
+                        {formatIdr(u.lastPaymentAmount)}
+                      </span>
+                      <span className="data-row-meta" aria-hidden="true" style={{ justifyContent: 'flex-end' }}>
+                        {formatDateAdmin(u.lastPaymentAt)}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="data-row-meta" aria-hidden="true">
+                      —
+                    </span>
+                  ),
+              },
+            ]}
+            rows={users}
+            getRowId={(u) => u.id}
+            isFiltered={isFiltered}
+            emptyFilteredTitle={t('admin.users.emptyTitle')}
+            emptyFilteredDesc={qParam ? t('admin.users.emptyQueryDesc', { query: qParam }) : t('admin.users.emptyDesc')}
+            emptyTotalTitle={t('admin.users.emptyTitle')}
+            emptyTotalDesc={t('admin.users.emptyDesc')}
+            onResetFilters={resetFilters}
+          />
+          <Pager
+            page={page}
+            totalPages={totalPages}
+            totalItems={usersTotal}
+            pageSize={PAGE_SIZE}
+            onPageChange={(p) => updateParam('page', String(p))}
+            ariaLabel={t('admin.users.paginationAria')}
+          />
         </>
       )}
     </section>
   );
 }
-
-

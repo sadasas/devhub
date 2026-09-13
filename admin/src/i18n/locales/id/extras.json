@@ -411,13 +411,23 @@
     "title": "Admin",
     "subtitle": "Ringkasan seluruh platform — pengguna, tim, pembayaran, dan paket.",
     "refresh": "Muat ulang",
+    "lastRefresh": "Refresh terakhir {{time}}",
+    "lastRefreshNever": "Belum dimuat ulang",
+    "export": "Ekspor CSV",
+    "resetFilters": "Atur ulang filter",
     "tabsAria": "Bagian admin",
     "retry": "Coba lagi",
     "loading": "Memuat…",
+    "table": {
+      "rowActions": "Aksi baris",
+      "sortBy": "Urutkan {{label}}"
+    },
     "pager": {
       "previous": "Sebelumnya",
       "next": "Berikutnya",
-      "status": "Halaman {{page}} dari {{total}}"
+      "status": "Halaman {{page}} dari {{total}}",
+      "showing": "Menampilkan {{from}}–{{to}} dari {{total}}",
+      "goToPage": "Ke halaman {{page}}"
     },
     "tabs": {
       "overview": "Ringkasan",
@@ -507,6 +517,12 @@
       "status": "Status",
       "emptyTitle": "Belum ada pembayaran",
       "emptyDesc": "Pembayaran yang selesai maupun tertunda akan muncul di sini.",
+      "emptyFiltered": "Tidak ada pembayaran dengan filter ini.",
+      "sortLabel": "Urutkan pembayaran",
+      "sortNewest": "Terbaru dulu",
+      "sortOldest": "Terlama dulu",
+      "sortHighest": "Nominal terbesar",
+      "sortLowest": "Nominal terkecil",
       "errors": {
         "load": "Gagal memuat pembayaran"
       }
@@ -523,6 +539,11 @@
       "filterStatusAria": "Filter status paket",
       "active": "Aktif",
       "inactive": "Nonaktif",
+      "colPackage": "Paket",
+      "colLimits": "Limit",
+      "colPrices": "Harga",
+      "colStatus": "Status",
+      "noPrices": "Tanpa harga",
       "activated": "\"{{name}}\" diaktifkan",
       "deactivated": "\"{{name}}\" dinonaktifkan",
       "deleted": "\"{{name}}\" dihapus",
@@ -534,6 +555,16 @@
       "deactivate": "Nonaktifkan",
       "deleteTitle": "Hapus paket",
       "deleteDesc": "Hapus \"{{name}}\"? Tindakan ini tidak dapat dibatalkan.",
+      "deactivateTitle": "Nonaktifkan paket",
+      "deactivateDesc": "Nonaktifkan \"{{name}}\"? Tim Pro terkait tetap punya akses sampai kedaluwarsa, tapi pemberian baru akan diblokir.",
+      "deactivateConfirm": "Nonaktifkan",
+      "activateTitle": "Aktifkan paket",
+      "activateDesc": "Aktifkan \"{{name}}\"? Paket akan tersedia untuk pemberian Pro baru.",
+      "activateConfirm": "Aktifkan",
+      "featuredReplaceTitle": "Ganti paket rekomendasi",
+      "featuredReplaceDesc": "Jadikan \"{{name}}\" rekomendasi? \"{{current}}\" tidak lagi jadi rekomendasi.",
+      "featuredSetNewTitle": "Jadikan rekomendasi",
+      "featuredSetNewDesc": "Jadikan \"{{name}}\" sebagai paket rekomendasi?",
       "featured": "Rekomendasi",
       "setFeatured": "Jadikan rekomendasi",
       "featuredSet": "\"{{name}}\" kini jadi rekomendasi",
@@ -546,6 +577,7 @@
     "packageModal": {
       "editTitle": "Edit paket",
       "newTitle": "Paket baru",
+      "saving": "Menyimpan…",
       "saveChanges": "Simpan perubahan",
       "create": "Buat paket",
       "namePlaceholder": "mis. Pro, Enterprise…",
@@ -553,6 +585,7 @@
       "maxMembers": "Maks anggota",
       "maxProjects": "Maks proyek",
       "sortOrder": "Urutan",
+      "sortOrderHelper": "Lebih kecil tampil lebih dulu di pricing.",
       "featured": "Tandai sebagai rekomendasi",
       "prices": "Harga",
       "addPrice": "Tambah harga",
@@ -560,23 +593,40 @@
       "priceIdr": "Harga (IDR)",
       "originalPriceIdr": "Harga asli (IDR)",
       "noDiscount": "Tanpa diskon",
+      "savingsHelper": "Hemat {{amount}} ({{percent}}%)",
       "removePrice": "Hapus harga",
+      "removePriceTitle": "Hapus harga",
+      "removePriceDesc": "Hapus harga {{index}} ({{days}} hari · {{price}})? Tindakan ini tidak dapat dibatalkan.",
       "errors": {
         "nameRequired": "Nama wajib diisi",
+        "maxMembersInvalid": "Maks anggota minimal 0",
+        "maxProjectsInvalid": "Maks proyek minimal 0",
+        "sortOrderInvalid": "Urutan harus berupa angka",
+        "durationInvalid": "Durasi harus > 0",
+        "priceInvalid": "Harga minimal 0",
+        "originalPriceInvalid": "Harga asli minimal 0",
         "update": "Gagal memperbarui paket",
         "create": "Gagal membuat paket"
       }
     },
     "teams": {
       "aria": "Tim platform",
+      "searchLabel": "Cari tim",
+      "searchPlaceholder": "Cari nama tim atau email pemilik…",
+      "filterPlanAria": "Filter berdasarkan plan",
       "emptyTitle": "Belum ada tim",
+      "emptyQueryDesc": "Tidak ada yang cocok dengan \"{{query}}\".",
       "emptyDesc": "Tim akan muncul di sini begitu pengguna membuatnya.",
       "count_one": "{{count}} tim",
       "count_other": "{{count}} tim",
       "memberCount": "{{count}} anggota",
       "projectCount": "{{count}} proyek",
       "meta": "pemilik {{owner}} · dibuat {{created}}",
+      "proUntil": "Pro sampai {{date}}",
+      "proLeft": "sisa {{when}}",
+      "proExpired": "Kedaluwarsa {{when}}",
       "changePlan": "Ubah plan",
+      "planUpdated": "Plan \"{{name}}\" diperbarui",
       "errors": {
         "load": "Gagal memuat tim"
       }
@@ -594,6 +644,9 @@
       "noProPackages": "Belum ada paket Pro aktif. Buat paket terlebih dahulu.",
       "confirmTitle": "Konfirmasi perubahan plan",
       "confirmGrant": "Terapkan {{name}} · {{days}} hari · {{price}} ke {{team}}?",
+      "confirmDowngrade": "Turunkan {{team}} ke Free? Sisa durasi Pro ({{days}} hari · sampai {{date}}) akan hilang.",
+      "confirmDowngradeNoExpiry": "Turunkan {{team}} ke Free? Akses Pro akan dicabut segera.",
+      "confirmDowngradeAction": "Konfirmasi turunkan",
       "back": "Kembali",
       "confirm": "Konfirmasi terapkan",
       "errors": {

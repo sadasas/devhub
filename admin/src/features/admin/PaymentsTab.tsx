@@ -1,24 +1,35 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowClockwise, CaretLeft, CaretRight, Receipt } from '@phosphor-icons/react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowClockwise, DownloadSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { AdminPayment } from '../../lib/types';
+import { downloadCsv, toCsv } from '../../lib/csv';
+import { AdminTable } from '../../components/AdminTable';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
-import { EmptyState } from '../../components/EmptyState';
+import { FilterBar } from '../../components/FilterBar';
 import { InlineError } from '../../components/InlineError';
+import { Pager } from '../../components/Pager';
 import { Skeleton } from '../../components/Skeleton';
 import { formatDateAdmin, formatIdr } from '../../lib/format';
 
 const PAGE_SIZE = 25;
+
+type SortMode = 'newest' | 'oldest' | 'highest' | 'lowest';
 
 interface PaymentsTabProps {
   refreshKey: number;
   onSettled?: () => void;
 }
 
+/**
+ * TECH-DEBT (Fase 1): /admin/payments belum dukung ?sort server-side
+ * (hanya limit/offset/status/teamId). Sorting tanggal/nominal dilakukan
+ * client-side di bawah. Bila dataset besar, tambah ?sort=date|amount&dir=
+ * di server (mirror ORDER BY) + kirim dari client.
+ */
 export function PaymentsTab({ refreshKey, onSettled }: PaymentsTabProps) {
   const { t } = useTranslation('extras');
 
@@ -30,6 +41,8 @@ export function PaymentsTab({ refreshKey, onSettled }: PaymentsTabProps) {
   const [payments, setPayments] = useState<AdminPayment[] | null>(null);
   const [paymentsTotal, setPaymentsTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  // Sort client-side (state lokal, tidak masuk URL — konsisten dengan activity range)
+  const [sortMode, setSortMode] = useState<SortMode>('newest');
 
   const latestRequest = useRef(0);
 
@@ -56,6 +69,19 @@ export function PaymentsTab({ refreshKey, onSettled }: PaymentsTabProps) {
       },
       { replace: true },
     );
+  }
+
+  function resetFilters(): void {
+    setSearchParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        n.delete('status');
+        n.delete('page');
+        return n;
+      },
+      { replace: true },
+    );
+    setSortMode('newest');
   }
 
   const loadPayments = useCallback(async () => {
@@ -91,26 +117,106 @@ export function PaymentsTab({ refreshKey, onSettled }: PaymentsTabProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentsTotal, page, totalPages]);
 
+  const sortedPayments = useMemo(() => {
+    if (!payments) return null;
+    const arr = [...payments];
+    switch (sortMode) {
+      case 'oldest':
+        arr.sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
+        break;
+      case 'highest':
+        arr.sort((a, b) => b.amount - a.amount);
+        break;
+      case 'lowest':
+        arr.sort((a, b) => a.amount - b.amount);
+        break;
+      case 'newest':
+      default:
+        arr.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+        break;
+    }
+    return arr;
+  }, [payments, sortMode]);
+
+  function handleExport(): void {
+    if (!sortedPayments || sortedPayments.length === 0) return;
+    const csv = toCsv(
+      sortedPayments.map((p) => ({
+        orderId: p.orderId,
+        buyerEmail: p.buyerEmail,
+        teamName: p.teamName,
+        packageName: p.packageName,
+        durationDays: p.durationDays ?? '',
+        amount: p.amount,
+        status: p.status,
+        createdAt: p.createdAt,
+        completedAt: p.completedAt ?? '',
+      })),
+      [
+        { key: 'orderId', label: 'orderId' },
+        { key: 'buyerEmail', label: 'buyerEmail' },
+        { key: 'teamName', label: 'teamName' },
+        { key: 'packageName', label: 'packageName' },
+        { key: 'durationDays', label: 'durationDays' },
+        { key: 'amount', label: 'amount' },
+        { key: 'status', label: 'status' },
+        { key: 'createdAt', label: 'createdAt' },
+        { key: 'completedAt', label: 'completedAt' },
+      ],
+    );
+    downloadCsv(`admin-payments-p${page}`, csv);
+  }
+
+  const isFiltered = statusParam !== '';
+
   return (
     <section className="tab-panel" aria-label={t('admin.payments.aria')}>
       <p role="status" aria-live="polite" className="sr-only">
         {payments === null ? t('admin.loading') : t('admin.payments.count', { count: paymentsTotal })}
       </p>
-      <div className="admin-filter-bar">
-        <span className="admin-activity-ranges" role="radiogroup" aria-label={t('admin.payments.filterStatusAria', { defaultValue: 'Filter status' })}>
-          <button type="button" role="radio" aria-checked={statusParam === ''} className={`sub-tab ${statusParam === '' ? 'sub-tab-active' : ''}`} tabIndex={statusParam === '' ? 0 : -1} onClick={() => setStatusFilterAtomic(null)}>{t('admin.payments.allStatuses')}</button>
-          <button type="button" role="radio" aria-checked={statusParam === 'completed'} className={`sub-tab ${statusParam === 'completed' ? 'sub-tab-active' : ''}`} tabIndex={statusParam === 'completed' ? 0 : -1} onClick={() => setStatusFilterAtomic('completed')}>{t('admin.payments.completed')}</button>
-          <button type="button" role="radio" aria-checked={statusParam === 'pending'} className={`sub-tab ${statusParam === 'pending' ? 'sub-tab-active' : ''}`} tabIndex={statusParam === 'pending' ? 0 : -1} onClick={() => setStatusFilterAtomic('pending')}>{t('admin.payments.pending')}</button>
-        </span>
-        <span className="page-subtitle admin-filter-count">
-          {payments !== null ? t('admin.payments.count', { count: paymentsTotal }) : ''}
+
+      <div className="tab-toolbar">
+        <span className="tab-toolbar-title">{t('admin.tabs.payments')}</span>
+        <span className="tab-toolbar-actions">
+          <Button
+            variant="ghost"
+            size="sm"
+            leftIcon={<DownloadSimple size={13} aria-hidden="true" />}
+            disabled={!sortedPayments || sortedPayments.length === 0}
+            onClick={handleExport}
+            aria-label={t('admin.export')}
+            title={t('admin.export')}
+          >
+            {t('admin.export')}
+          </Button>
         </span>
       </div>
+
+      <FilterBar
+        segments={[
+          { value: '', label: t('admin.payments.allStatuses') },
+          { value: 'completed', label: t('admin.payments.completed') },
+          { value: 'pending', label: t('admin.payments.pending') },
+        ]}
+        selectedSegment={statusParam}
+        onSegmentChange={setStatusFilterAtomic}
+        segmentsAriaLabel={t('admin.payments.filterStatusAria', { defaultValue: 'Filter status' })}
+        selectValue={sortMode}
+        onSelectChange={(v) => setSortMode((v as SortMode) ?? 'newest')}
+        selectOptions={[
+          { value: 'newest', label: t('admin.payments.sortNewest') },
+          { value: 'oldest', label: t('admin.payments.sortOldest') },
+          { value: 'highest', label: t('admin.payments.sortHighest') },
+          { value: 'lowest', label: t('admin.payments.sortLowest') },
+        ]}
+        selectAriaLabel={t('admin.payments.sortLabel')}
+        countText={payments !== null ? t('admin.payments.count', { count: paymentsTotal }) : undefined}
+      />
 
       {error ? (
         <InlineError className="mb-12">
           {error}{' '}
-          <Button variant="secondary" size="sm" leftIcon={<ArrowClockwise size={13} aria-hidden="true" />} onClick={() => void loadPayments()}>
+          <Button variant="ghost" size="sm" leftIcon={<ArrowClockwise size={13} aria-hidden="true" />} onClick={() => void loadPayments()}>
             {t('admin.retry')}
           </Button>
         </InlineError>
@@ -132,55 +238,67 @@ export function PaymentsTab({ refreshKey, onSettled }: PaymentsTabProps) {
             ))}
           </div>
         </div>
-      ) : payments.length === 0 ? (
-        <EmptyState
-          icon={<Receipt size={22} aria-hidden="true" />}
-          title={t('admin.payments.emptyTitle')}
-          description={t('admin.payments.emptyDesc')}
-        />
       ) : (
         <>
-          <div className="data-list">
-            {payments.map((p) => (
-              <div key={p.id} className="data-row">
-                <div className="data-row-main">
-                  <span className="data-row-title">
-                    <span className="row-title-text" title={p.buyerEmail}>{p.buyerEmail}</span>
-                    <Badge tone={p.status === 'completed' ? 'success' : 'warn'} dot>
-                      {p.status === 'completed' ? t('admin.payments.paid') : t('admin.payments.pending')}
-                    </Badge>
+          <AdminTable<AdminPayment>
+            caption={t('admin.payments.aria')}
+            columns={[
+              {
+                key: 'buyer',
+                label: t('admin.payments.buyer'),
+                render: (p) => (
+                  <span className="cell-stack">
+                    <span className="data-row-title">
+                      <span className="row-title-text" title={p.buyerEmail}>
+                        {p.buyerEmail}
+                      </span>
+                      <Badge tone={p.status === 'completed' ? 'success' : 'warn'} dot>
+                        {p.status === 'completed' ? t('admin.payments.paid') : t('admin.payments.pending')}
+                      </Badge>
+                    </span>
+                    <span className="data-row-meta">
+                      {p.teamName} · {p.packageName}
+                    </span>
                   </span>
-                  <span className="data-row-meta">
-                    {p.teamName} · {p.packageName} · {formatIdr(p.amount)} ·{' '}
-                    {formatDateAdmin(p.createdAt)}
+                ),
+              },
+              {
+                key: 'amount',
+                label: t('admin.payments.amount'),
+                align: 'right',
+                numeric: true,
+                render: (p) => (
+                  <span className="cell-stack" style={{ alignItems: 'flex-end' }}>
+                    {/* Nominal kolom kanan + tanggal di bawah */}
+                    <span className="tabular" style={{ fontWeight: 600 }}>
+                      {formatIdr(p.amount)}
+                    </span>
+                    <span className="data-row-meta" style={{ justifyContent: 'flex-end' }}>
+                      {formatDateAdmin(p.createdAt)}
+                    </span>
                   </span>
-                </div>
-              </div>
-            ))}
-          </div>
-          {totalPages > 1 && (
-            <nav className="pager" aria-label={t('admin.payments.paginationAria')}>
-              <Button
-                size="sm"
-                variant="secondary" leftIcon={<CaretLeft size={12} aria-hidden="true" />} disabled={page <= 1}
-                onClick={() => updateParam('page', String(page - 1))}
-              >
-                {t('admin.pager.previous')}
-              </Button>
-              <span className="pager-status">{t('admin.pager.status', { page, total: totalPages })}</span>
-              <Button
-                size="sm"
-                variant="secondary" leftIcon={<CaretRight size={12} aria-hidden="true" />} disabled={page >= totalPages}
-                onClick={() => updateParam('page', String(page + 1))}
-              >
-                {t('admin.pager.next')}
-              </Button>
-            </nav>
-          )}
+                ),
+              },
+            ]}
+            rows={sortedPayments ?? []}
+            getRowId={(p) => p.id}
+            isFiltered={isFiltered}
+            emptyFilteredTitle={t('admin.payments.emptyTitle')}
+            emptyFilteredDesc={t('admin.payments.emptyFiltered')}
+            emptyTotalTitle={t('admin.payments.emptyTitle')}
+            emptyTotalDesc={t('admin.payments.emptyDesc')}
+            onResetFilters={resetFilters}
+          />
+          <Pager
+            page={page}
+            totalPages={totalPages}
+            totalItems={paymentsTotal}
+            pageSize={PAGE_SIZE}
+            onPageChange={(p) => updateParam('page', String(p))}
+            ariaLabel={t('admin.payments.paginationAria')}
+          />
         </>
       )}
     </section>
   );
 }
-
-

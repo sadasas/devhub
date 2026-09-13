@@ -32,10 +32,11 @@ function isTabId(value: string | null): value is TabId {
 }
 
 export function AdminPage() {
-  const { t } = useTranslation('extras');
+  const { t, i18n } = useTranslation('extras');
   const [searchParams, setSearchParams] = useSearchParams();
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [lastRefreshAt, setLastRefreshAt] = useState<string | null>(null);
 
   const tabParam = searchParams.get('tab');
   const tab: TabId = isTabId(tabParam) ? tabParam : 'overview';
@@ -43,7 +44,7 @@ export function AdminPage() {
   const ALLOWED_PARAMS: Record<TabId, Set<string>> = {
     overview: new Set(['tab']),
     users: new Set(['tab', 'q', 'plan', 'page']),
-    teams: new Set(['tab', 'plan', 'page']),
+    teams: new Set(['tab', 'q', 'plan', 'page']),
     payments: new Set(['tab', 'status', 'page']),
     packages: new Set(['tab', 'status']),
   };
@@ -86,26 +87,44 @@ export function AdminPage() {
 
   // Dipanggil tiap loader tab selesai (idempoten) untuk mematikan spinner Refresh.
   // Stabil via useCallback agar identitas prop tidak memicu refetch berulang di tab.
+  // Fase 1: sekalian catat timestamp refresh terakhir untuk label di page-header.
   const handleSettled = useCallback((): void => {
     setRefreshing(false);
+    setLastRefreshAt(new Date().toISOString());
   }, []);
 
+  const lastRefreshLabel =
+    lastRefreshAt === null
+      ? t('admin.lastRefreshNever')
+      : t('admin.lastRefresh', {
+          time: new Date(lastRefreshAt).toLocaleTimeString(i18n.resolvedLanguage === 'id' ? 'id-ID' : 'en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          }),
+        });
+
   return (
-    <div className="page">
+    <div className="page density-compact">
       <header className="page-header">
         <div>
           <h1 className="page-title">{t('admin.title')}</h1>
           <p className="page-subtitle">{t('admin.subtitle')}</p>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          loading={refreshing}
-          leftIcon={<ArrowClockwise size={13} aria-hidden="true" />}
-          onClick={handleRefresh}
-        >
-          {t('admin.refresh')}
-        </Button>
+        <div className="page-header-actions">
+          <span className="last-refresh" role="status" aria-live="polite">
+            {lastRefreshLabel}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            loading={refreshing}
+            leftIcon={<ArrowClockwise size={13} aria-hidden="true" />}
+            onClick={handleRefresh}
+          >
+            {t('admin.refresh')}
+          </Button>
+        </div>
       </header>
 
       <div className="sub-tabs" role="tablist" aria-label={t('admin.tabsAria')}>

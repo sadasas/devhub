@@ -44,6 +44,12 @@ curl -sS https://devhub.nrawangbatin.my.id/ | grep -oiE 'googletagmanager|google
 1. Incognito baru → **Accept/Setuju** → reload.
 2. Network filter `google` → muncul request (`googletagmanager`/`google-analytics`/`collect`).
 
+> Catatan: matikan adblocker/uBlock/Brave Shields/Firefox ETP saat uji ini —
+> pemblokir menghentikan `googletagmanager.com` sehingga hasil NOL walau
+> implementasi benar. Setelah Accept, app mengirim 1 `page_view` consent-gated
+> (`app/src/lib/consent.ts` + `route-tracker.tsx`, path dinormalisasi tanpa
+> query) + 1 per navigasi SPA; GA4 Realtime menunjukkan 1 pengguna.
+
 ```bash
 # verifikasi tidak ada secret bocor di HTML (sanity, bukan ganti Network check):
 curl -sS https://devhub.nrawangbatin.my.id/ | grep -oiE 'G-[A-Z0-9]{4,}|DATABASE_URL|JWT_SECRET' || echo "NO-SECRET-IN-HTML"

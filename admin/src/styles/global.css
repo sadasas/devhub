@@ -108,7 +108,7 @@ a:hover {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  border: none;
+  border: 1px solid transparent;
   border-radius: var(--radius-input);
   font-weight: 500;
   cursor: pointer;
@@ -163,12 +163,12 @@ a:hover {
 
 .btn-secondary {
   background: var(--bg-overlay);
-  border: none;
+  border-color: transparent;
   color: var(--text-primary);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  border: none;
+  border-color: transparent;
   background: var(--bg-overlay-hover);
 }
 
@@ -193,7 +193,7 @@ a:hover {
 
 .btn-outline {
   background: transparent;
-  border: none;
+  border-color: transparent;
   color: var(--text-primary);
 }
 
@@ -450,12 +450,12 @@ a:hover {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 1;
   padding: 3px 7px;
   border-radius: var(--radius-sm);
-  border: none;
+  border: 1px solid transparent;
   color: var(--text-secondary);
   background: rgba(255, 255, 255, 0.03);
   white-space: nowrap;
@@ -471,31 +471,31 @@ a:hover {
 
 .badge-accent {
   color: var(--accent);
-  border: none;
+  border-color: transparent;
   background: var(--accent-dim);
 }
 
 .badge-success {
   color: var(--status-success);
-  border: none;
+  border-color: transparent;
   background: var(--status-success-dim);
 }
 
 .badge-warn {
   color: var(--status-warn);
-  border: none;
+  border-color: transparent;
   background: var(--status-warn-dim);
 }
 
 .badge-danger {
   color: var(--status-danger);
-  border: none;
+  border-color: transparent;
   background: var(--status-danger-dim);
 }
 
 .badge-info {
   color: var(--status-info);
-  border: none;
+  border-color: transparent;
   background: var(--status-info-dim);
 }
 
@@ -510,7 +510,7 @@ a:hover {
 }
 
 .presence-chip:hover {
-  border: none;
+  border-color: var(--border-strong);
 }
 
 .presence-chip:focus-visible {
@@ -534,7 +534,7 @@ a:hover {
   border: 2px solid var(--status-info-dim);
   font-size: 9px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 .presence-avatar + .presence-avatar {
@@ -717,7 +717,7 @@ a:hover {
   border-radius: 50%;
   font-size: 10px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 .presence-popover-dot {
@@ -1199,7 +1199,7 @@ a:hover {
   font-size: 11px;
   font-weight: 600;
   flex-shrink: 0;
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 .team-rail-icon-bubble {
@@ -3116,7 +3116,7 @@ a:hover {
 
 .bento-stat-primary {
   background: var(--accent);
-  color: #fff;
+  color: var(--text-on-accent);
   box-shadow:
     0 4px 16px rgba(93, 182, 155, 0.18),
     0 1px 0 rgba(255, 255, 255, 0.08) inset;
@@ -3185,7 +3185,7 @@ a:hover {
 }
 
 .bento-stat-primary .bento-stat-value {
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 .bento-stat-label {
@@ -5690,16 +5690,22 @@ a:hover {
   font-weight: 500;
   color: var(--text-secondary);
   background: none;
-  border: none;
+  border: 1px solid transparent;
   border-radius: 4px;
   cursor: pointer;
   font-family: var(--font-sans);
   transition: color var(--duration-fast) var(--ease-out),
-    background var(--duration-fast) var(--ease-out);
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
 }
 
 .sub-tab:hover {
   color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.sub-tab:focus-visible {
+  border-color: var(--border-strong);
 }
 
 .sub-tab-active {
@@ -12458,87 +12464,8 @@ button.admin-plan-card {
   font-weight: 600;
 }
 
-.admin-package-card {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-card);
-  padding: 16px;
-  transition: border-color var(--duration-fast) var(--ease-out);
-}
-
-.admin-package-card:hover {
-  border: none;
-}
-
-.admin-package-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.admin-package-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.admin-package-desc {
-  font-size: 12.5px;
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
-
-.admin-package-limits {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.admin-package-limit {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  color: var(--text-muted);
-}
-
-.admin-package-prices {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border-hairline);
-}
-
-.admin-package-price-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 12.5px;
-}
-
-.admin-package-price-duration {
-  color: var(--text-secondary);
-}
-
-.admin-package-price-amount {
-  font-family: var(--font-mono);
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.admin-package-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border-hairline);
-}
+/* FASE 2: kartu paket Fase 0 (.admin-package-card* + limits/prices/actions) dihapus —
+   nol pemakaian di tsx (PackagesTab kini AdminTable + PackageModal drawer). */
 
 .stat-card-revenue {
   display: flex;
@@ -12567,72 +12494,27 @@ button.admin-plan-card {
   color: var(--accent);
 }
 
-.badge-plan {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: var(--radius-pill);
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
+/* FASE 2: .badge-plan* / .admin-filter-bar* lama / .admin-packages-grid /
+   sisa kartu Fase 0 (.admin-payment-*, .admin-user-payment) dihapus —
+   nol pemakaian di tsx (filter kini .filter-bar, list kini AdminTable).
+   .stat-card-revenue CSS dipertahankan (dipakai StatCard accent).
+   .data-row base + skeleton dipertahankan (dipakai skeleton + title/meta). */
 
-.badge-plan-pro {
-  background: var(--accent-dim);
-  color: var(--accent);
-}
-
-.badge-plan-free {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text-muted);
-}
-
-.admin-filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-  position: relative;
-  z-index: 1;
-}
-
-.admin-filter-bar .select {
-  width: auto;
-  min-width: 0;
-}
-
-.admin-filter-input {
-  width: 280px;
-  max-width: 100%;
-}
-
-.admin-filter-count {
-  margin-left: auto;
-}
-
-.admin-filter-spacer {
-  flex: 1;
-}
-
-@media (max-width: 700px) {
-  .admin-filter-input {
-    width: 100%;
-    flex: 1 1 100%;
+@media (max-width: 480px) {
+  .page-header {
+    flex-wrap: wrap;
+    min-width: 0;
   }
 
-  .admin-filter-bar {
+  .data-row {
+    grid-template-columns: 1fr;
     gap: 8px;
   }
-}
 
-.admin-packages-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
-  gap: 16px;
+  .data-row-title {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
 }
 
 .admin-charts-grid {
@@ -12844,14 +12726,8 @@ button.admin-plan-card {
   flex-shrink: 0;
 }
 
-.admin-activity-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
+/* FASE 2: .admin-activity-header mati dihapus — header aktivitas kini
+   ChartFrame head (.chart-frame-head); yang hidup hanya .admin-activity-ranges. */
 
 .admin-activity-ranges {
   display: inline-flex;
@@ -12867,10 +12743,6 @@ button.admin-plan-card {
 @media (max-width: 860px) {
   .admin-kpi-hero {
     grid-template-columns: 1fr;
-  }
-
-  .admin-activity-header {
-    align-items: flex-start;
   }
 }
 
@@ -14517,5 +14389,667 @@ details[open] > .milestone-group-summary::before {
 @media (max-width: 860px) {
   .stack-graph-viewport {
     height: 360px;
+  }
+}
+
+/* ============================================================
+   FASE 1 — density-compact + AdminTable/FilterBar/Pager/StatCard/ChartFrame/RowMenu
+   Reuse token tokens.css apa adanya (warna/radius/font tidak di-fork).
+   Satu layer density `.density-compact` untuk row padding + font + tabular.
+   ============================================================ */
+
+/* --- Density layer (Fase 1): compact rows, 13px, tabular nums --- */
+.density-compact .admin-table th,
+.density-compact .admin-table td {
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.density-compact .admin-table td.num,
+.density-compact .admin-table th.num,
+.density-compact .tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.density-compact .data-row {
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+/* --- Admin semantic table --- */
+.admin-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-card);
+  background: var(--bg-elevated);
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 560px;
+  font-size: 13px;
+  background: transparent;
+}
+
+.admin-table caption {
+  text-align: left;
+}
+
+.admin-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-strong);
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.admin-table thead th.align-right,
+.admin-table td.align-right {
+  text-align: right;
+}
+
+.admin-table thead th.align-center,
+.admin-table td.align-center {
+  text-align: center;
+}
+
+.admin-table thead th.align-right .th-sort-btn {
+  justify-content: flex-end;
+}
+
+.admin-table tbody td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-hairline);
+  vertical-align: top;
+  min-width: 0;
+}
+
+.admin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+html[data-theme='light'] .admin-table tbody tr:hover td {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.admin-table tbody tr.is-dim td {
+  opacity: 0.62;
+}
+
+.admin-table td.num,
+.admin-table th.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.admin-table .cell-main {
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.admin-table .cell-sub {
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.admin-table .cell-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.th-sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-transform: inherit;
+  letter-spacing: inherit;
+}
+
+.th-sort-btn:hover {
+  color: var(--text-primary);
+}
+
+.th-sort-btn:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.th-sort-ind {
+  font-size: 10px;
+  color: var(--accent);
+}
+
+/* --- Tab toolbar: title kiri, Export sekunder + primer kanan --- */
+.tab-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.tab-toolbar-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tab-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+/* --- Last refresh timestamp di page-header --- */
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.last-refresh {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* --- FilterBar baru (kompak): search sr-only + segmented/dropdown + count + hint --- */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.filter-bar-search {
+  width: 240px;
+  max-width: 100%;
+}
+
+.filter-bar-search .input {
+  height: 30px;
+  font-size: 13px;
+}
+
+.filter-bar-seg {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-input);
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.filter-bar-select {
+  width: auto;
+  min-width: 140px;
+  height: 30px;
+  font-size: 13px;
+}
+
+.filter-bar-count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.filter-bar-hint {
+  flex-basis: 100%;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 700px) {
+  .filter-bar-search {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+  .filter-bar-count {
+    margin-left: 0;
+  }
+  .admin-table {
+    min-width: 520px;
+  }
+}
+
+/* --- Pager bernomor --- */
+.pager-numbered {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.pager-showing {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-right: auto;
+}
+
+.pager-pages {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pager-num {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-input);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.pager-num:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.pager-num[aria-current='page'] {
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.pager-num:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.pager-ellipsis {
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 0 2px;
+}
+
+/* --- StatCard konsolidasi (default / hero / revenue via accent) --- */
+.stat-card--hero {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-hairline);
+  border-top: 2px solid var(--accent);
+  border-radius: var(--radius-card);
+  padding: 18px 16px;
+  box-shadow: var(--shadow-raised);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.stat-card--hero .stat-card-title {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stat-card--hero .stat-card-value {
+  font-family: var(--font-mono);
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.stat-card-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-dim);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.stat-card-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* --- ChartFrame --- */
+.chart-frame {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-card);
+  padding: 16px;
+  min-width: 0;
+}
+
+.chart-frame-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.chart-frame-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* --- RowMenu ⋯ --- */
+.row-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.row-menu-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: var(--z-overlay);
+  min-width: 180px;
+  max-width: calc(100vw - 16px);
+  padding: 6px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-raised), 0 24px 50px rgba(2, 6, 23, 0.35);
+  animation: presence-pop-in 160ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row-menu-panel {
+    animation: none;
+  }
+}
+
+.row-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: var(--radius-input);
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.row-menu-item:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+html[data-theme='light'] .row-menu-item:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.row-menu-item:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.row-menu-item-danger {
+  color: var(--status-danger);
+}
+
+.row-menu-item-danger:hover:not(:disabled) {
+  background: var(--status-danger-dim);
+  color: var(--status-danger);
+}
+
+/* Modal footer: Batal ghost kiri + primer kanan (Fase 1 modal tetap) */
+.modal-footer {
+  justify-content: space-between;
+}
+
+.modal-footer > :first-child {
+  margin-right: auto;
+}
+
+/* Confirm non-destruktif: primer non-danger */
+.btn-confirm-default {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+
+.btn-confirm-default:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+/* ============================================================
+   FASE 2 — drawer edit + ToastStack + a11y + breakpoint 1024px
+   Kontrak tabel Fase 1 tidak diubah (AdminTable/FilterBar/Pager/StatCard).
+   ============================================================ */
+
+/* --- Drawer kanan slide-over (form edit; modal hanya confirm/delete) --- */
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  background: rgba(5, 5, 8, 0.6);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+}
+
+.drawer {
+  position: relative;
+  z-index: var(--z-modal);
+  background: var(--bg-elevated);
+  border-left: 1px solid var(--border-hairline);
+  box-shadow: var(--shadow-raised);
+  width: min(480px, 100vw);
+  max-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  animation: drawer-slide-in 220ms var(--ease-out);
+}
+
+@keyframes drawer-slide-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer {
+    animation: none;
+  }
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-hairline);
+  flex-shrink: 0;
+}
+
+.drawer-title {
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drawer-body {
+  padding: 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Footer drawer: Batal ghost kiri + primer kanan (sama kontraknya dengan modal) */
+.drawer-footer {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-hairline);
+  justify-content: space-between;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.drawer-footer > :first-child {
+  margin-right: auto;
+}
+
+html[data-theme='light'] .drawer-backdrop {
+  background: rgba(15, 15, 18, 0.32);
+  backdrop-filter: blur(8px);
+}
+
+/* Drawer full-width di ≤640px (kontrak Fase 2) */
+@media (max-width: 640px) {
+  .drawer {
+    width: 100vw;
+    border-left: none;
+  }
+}
+
+/* Form di drawer: baris input menumpuk di layar sempit anti-overflow 390px */
+@media (max-width: 480px) {
+  .drawer .form-row {
+    flex-direction: column;
+  }
+}
+
+/* Fieldset harga paket: reset legend + baris wrap agar 3 input muat di drawer */
+.admin-price-row-fieldset {
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-input);
+  padding: 12px;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.admin-price-row-fieldset > * {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
+/* --- ToastStack: stacking + tombol tutup (reuse .toast-stack container) --- */
+.admin-toast--stacked {
+  margin-bottom: 0;
+  max-width: min(400px, calc(100vw - 32px));
+  box-shadow: var(--shadow-raised);
+}
+
+.admin-toast-dismiss {
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+/* --- Badge neutral eksplisit: kunci kontras AA (text-secondary ≥4.5:1 di dua tema) --- */
+.badge-neutral {
+  color: var(--text-secondary);
+}
+
+/* --- RowMenu: fokus item terlihat 2px (kontrak a11y, ikut :focus-visible global) --- */
+.row-menu-item:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: -2px;
+}
+
+/* --- Breakpoint 1024px tablet: pastikan tidak overflow ---
+   390px: tabel scroll via .admin-table-wrap, filter/search 100%, drawer full-width.
+   768px: kpi-hero 1 kolom (≤860px), charts auto-fit, header/toolbar wrap.
+   1024px: page-header + toolbar + filter tetap wrap, tabel scroll horizontal. */
+@media (max-width: 1024px) {
+  .page {
+    min-width: 0;
+    overflow-x: clip;
+  }
+
+  .page-header,
+  .tab-toolbar,
+  .tab-toolbar-actions,
+  .page-header-actions,
+  .filter-bar,
+  .chart-frame-head {
+    min-width: 0;
+  }
+
+  .tab-panel {
+    min-width: 0;
+  }
+
+  .admin-table-wrap {
+    max-width: 100%;
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
@@ -6,10 +6,12 @@ import { getErrorMessage } from '../../lib/errors';
 import type { AdminPackage } from '../../lib/types';
 import { FloppyDisk, Plus, Trash, X } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
+import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
+import { Drawer } from '../../components/Drawer';
 import { InlineError } from '../../components/InlineError';
 import { Input } from '../../components/Input';
-import { Modal } from '../../components/Modal';
 import { FE_LIMITS } from '../../lib/limits';
+import { formatIdr } from '../../lib/format';
 
 interface PackageModalProps {
   open: boolean;
@@ -20,13 +22,19 @@ interface PackageModalProps {
 
 interface PriceRow {
   id: string;
-  durationDays: number;
-  priceIdr: number;
+  durationDays: string;
+  priceIdr: string;
   originalPriceIdr: string;
 }
 
+interface PriceFieldErrors {
+  durationDays?: string;
+  priceIdr?: string;
+  originalPriceIdr?: string;
+}
+
 function newPriceRow(): PriceRow {
-  return { id: crypto.randomUUID(), durationDays: 30, priceIdr: 0, originalPriceIdr: '' };
+  return { id: crypto.randomUUID(), durationDays: '30', priceIdr: '0', originalPriceIdr: '' };
 }
 
 export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps) {
@@ -41,7 +49,14 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
   const [isFeatured, setIsFeatured] = useState(false);
   const [prices, setPrices] = useState<PriceRow[]>([newPriceRow()]);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | undefined>(undefined);
+  const [maxMembersError, setMaxMembersError] = useState<string | undefined>(undefined);
+  const [maxProjectsError, setMaxProjectsError] = useState<string | undefined>(undefined);
+  const [sortOrderError, setSortOrderError] = useState<string | undefined>(undefined);
+  const [priceErrors, setPriceErrors] = useState<PriceFieldErrors[]>([]);
+  const [pendingRemoveIndex, setPendingRemoveIndex] = useState<number | null>(null);
+  const removeTriggerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -57,8 +72,8 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
         pkg.prices.length > 0
           ? pkg.prices.map((p) => ({
               id: crypto.randomUUID(),
-              durationDays: p.durationDays,
-              priceIdr: p.priceIdr,
+              durationDays: String(p.durationDays),
+              priceIdr: String(p.priceIdr),
               originalPriceIdr: p.originalPriceIdr != null ? String(p.originalPriceIdr) : '',
             }))
           : [newPriceRow()],
@@ -73,58 +88,157 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
       setIsFeatured(false);
       setPrices([newPriceRow()]);
     }
-    setError(null);
+    setSubmitError(null);
+    setNameError(undefined);
+    setMaxMembersError(undefined);
+    setMaxProjectsError(undefined);
+    setSortOrderError(undefined);
+    setPriceErrors([]);
+    setPendingRemoveIndex(null);
   }, [open, pkg]);
 
-  function updatePrice(index: number, field: keyof PriceRow, value: number | string) {
+  function updatePrice(index: number, field: keyof PriceRow, value: string) {
     setPrices((prev) => prev.map((p, i) => (i === index ? { ...p, [field]: value } : p)));
+    setPriceErrors((prev) => {
+      if (index >= prev.length) return prev;
+      const next = [...prev];
+      next[index] = { ...next[index] };
+      delete (next[index] as Record<string, unknown>)[field];
+      return next;
+    });
   }
 
   function addPrice() {
     setPrices((prev) => [...prev, newPriceRow()]);
+    setPriceErrors((prev) => [...prev, {}]);
   }
 
-  function removePrice(index: number) {
-    setPrices((prev) => prev.filter((_, i) => i !== index));
+  function openRemoveConfirm(index: number) {
+    if (busy) return;
+    removeTriggerRef.current = document.activeElement as HTMLElement | null;
+    setPendingRemoveIndex(index);
+  }
+
+  function closeRemoveConfirm() {
+    setPendingRemoveIndex(null);
+    const trigger = removeTriggerRef.current;
+    if (trigger && document.contains(trigger) && typeof trigger.focus === 'function') {
+      window.requestAnimationFrame(() => trigger.focus());
+    }
+  }
+
+  function confirmRemovePrice() {
+    if (pendingRemoveIndex === null || busy) return;
+    const idx = pendingRemoveIndex;
+    setPrices((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== idx) : prev));
+    setPriceErrors((prev) => prev.filter((_, i) => i !== idx));
+    closeRemoveConfirm();
+  }
+
+  function savingsHelper(p: PriceRow): string | undefined {
+    const price = p.priceIdr.trim() === '' ? NaN : Number(p.priceIdr);
+    const original = p.originalPriceIdr.trim() === '' ? NaN : Number(p.originalPriceIdr);
+    if (!Number.isFinite(price) || !Number.isFinite(original)) return undefined;
+    if (original <= price || original <= 0) return undefined;
+    const save = original - price;
+    const percent = Math.round((save / original) * 100);
+    return t('admin.packageModal.savingsHelper', { amount: formatIdr(save), percent });
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (busy) return;
+    let valid = true;
+
     if (!name.trim()) {
-      setError(t('admin.packageModal.errors.nameRequired'));
-      return;
+      setNameError(t('admin.packageModal.errors.nameRequired'));
+      valid = false;
+    } else {
+      setNameError(undefined);
     }
-    const parsedMembers = maxMembers.trim() === '' ? null : Number(maxMembers);
-    if (parsedMembers !== null && (!Number.isFinite(parsedMembers) || parsedMembers < 0)) {
-      setError(t('admin.packageModal.errors.maxMembersInvalid', { defaultValue: 'Max members must be 0 or more' }));
-      return;
-    }
-    const parsedProjects = maxProjects.trim() === '' ? null : Number(maxProjects);
-    if (parsedProjects !== null && (!Number.isFinite(parsedProjects) || parsedProjects < 0)) {
-      setError(t('admin.packageModal.errors.maxProjectsInvalid', { defaultValue: 'Max projects must be 0 or more' }));
-      return;
-    }
-    const parsedSort = Number(sortOrder);
-    if (!Number.isFinite(parsedSort)) {
-      setError(t('admin.packageModal.errors.sortOrderInvalid', { defaultValue: 'Sort order must be a number' }));
-      return;
-    }
-    for (const pr of prices) {
-      if (!Number.isFinite(pr.durationDays) || pr.durationDays <= 0) {
-        setError(t('admin.packageModal.errors.durationInvalid', { defaultValue: 'Duration must be > 0' }));
-        return;
-      }
-      if (!Number.isFinite(pr.priceIdr) || pr.priceIdr < 0) {
-        setError(t('admin.packageModal.errors.priceInvalid', { defaultValue: 'Price must be 0 or more' }));
-        return;
-      }
-      if (pr.originalPriceIdr.trim() !== '' && (!Number.isFinite(Number(pr.originalPriceIdr)) || Number(pr.originalPriceIdr) < 0)) {
-        setError(t('admin.packageModal.errors.originalPriceInvalid', { defaultValue: 'Original price must be 0 or more' }));
-        return;
+
+    let parsedMembers: number | null = null;
+    if (maxMembers.trim() === '') {
+      parsedMembers = null;
+      setMaxMembersError(undefined);
+    } else {
+      const n = Number(maxMembers);
+      if (!Number.isFinite(n) || n < 0) {
+        setMaxMembersError(t('admin.packageModal.errors.maxMembersInvalid'));
+        valid = false;
+      } else {
+        parsedMembers = n;
+        setMaxMembersError(undefined);
       }
     }
+
+    let parsedProjects: number | null = null;
+    if (maxProjects.trim() === '') {
+      parsedProjects = null;
+      setMaxProjectsError(undefined);
+    } else {
+      const n = Number(maxProjects);
+      if (!Number.isFinite(n) || n < 0) {
+        setMaxProjectsError(t('admin.packageModal.errors.maxProjectsInvalid'));
+        valid = false;
+      } else {
+        parsedProjects = n;
+        setMaxProjectsError(undefined);
+      }
+    }
+
+    let parsedSort = 0;
+    if (sortOrder.trim() === '') {
+      setSortOrderError(t('admin.packageModal.errors.sortOrderInvalid'));
+      valid = false;
+    } else {
+      const n = Number(sortOrder);
+      if (!Number.isFinite(n)) {
+        setSortOrderError(t('admin.packageModal.errors.sortOrderInvalid'));
+        valid = false;
+      } else {
+        parsedSort = n;
+        setSortOrderError(undefined);
+      }
+    }
+
+    const nextPriceErrors: PriceFieldErrors[] = prices.map(() => ({}));
+    const parsedPrices: Array<{ durationDays: number; priceIdr: number; originalPriceIdr: number | null }> = [];
+    prices.forEach((pr, i) => {
+      const rowErr: PriceFieldErrors = {};
+      const durRaw = pr.durationDays.trim();
+      const priceRaw = pr.priceIdr.trim();
+      const origRaw = pr.originalPriceIdr.trim();
+      const dur = durRaw === '' ? NaN : Number(durRaw);
+      const price = priceRaw === '' ? NaN : Number(priceRaw);
+      if (!Number.isFinite(dur) || dur <= 0) {
+        rowErr.durationDays = t('admin.packageModal.errors.durationInvalid');
+        valid = false;
+      }
+      if (!Number.isFinite(price) || price < 0) {
+        rowErr.priceIdr = t('admin.packageModal.errors.priceInvalid');
+        valid = false;
+      }
+      let orig: number | null = null;
+      if (origRaw !== '') {
+        const o = Number(origRaw);
+        if (!Number.isFinite(o) || o < 0) {
+          rowErr.originalPriceIdr = t('admin.packageModal.errors.originalPriceInvalid');
+          valid = false;
+        } else {
+          orig = o;
+        }
+      }
+      nextPriceErrors[i] = rowErr;
+      if (!rowErr.durationDays && !rowErr.priceIdr && !rowErr.originalPriceIdr) {
+        parsedPrices.push({ durationDays: dur, priceIdr: price, originalPriceIdr: orig });
+      }
+    });
+    setPriceErrors(nextPriceErrors);
+    if (!valid) return;
+
     setBusy(true);
-    setError(null);
+    setSubmitError(null);
     try {
       const data = {
         name: name.trim(),
@@ -134,13 +248,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
         sortOrder: parsedSort,
         isActive,
         isFeatured,
-        prices: prices
-          .filter((p) => p.durationDays > 0)
-          .map((p) => ({
-            durationDays: p.durationDays,
-            priceIdr: p.priceIdr,
-            originalPriceIdr: p.originalPriceIdr ? Number(p.originalPriceIdr) : null,
-          })),
+        prices: parsedPrices.filter((p) => p.durationDays > 0),
       };
       let saved: AdminPackage;
       if (isEdit) {
@@ -151,40 +259,42 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
       onSaved(saved);
       onClose();
     } catch (err) {
-      setError(getErrorMessage(err, isEdit ? t('admin.packageModal.errors.update') : t('admin.packageModal.errors.create')));
+      setSubmitError(getErrorMessage(err, isEdit ? t('admin.packageModal.errors.update') : t('admin.packageModal.errors.create')));
     } finally {
       setBusy(false);
     }
   }
 
+  const pendingRemoveRow = pendingRemoveIndex !== null ? prices[pendingRemoveIndex] : undefined;
+
   return (
-    <Modal
+    <Drawer
       open={open}
       title={isEdit ? t('admin.packageModal.editTitle') : t('admin.packageModal.newTitle')}
-      onClose={onClose}
-      width="md"
+      onClose={busy || pendingRemoveIndex !== null ? undefined : onClose}
       footer={
         <>
-          <Button variant="secondary" leftIcon={<X size={13} aria-hidden="true" />} onClick={onClose} disabled={busy}>
+          <Button variant="ghost" leftIcon={<X size={13} aria-hidden="true" />} onClick={onClose} disabled={busy}>
             {t('templates.cancel')}
           </Button>
           <Button type="submit" form="pkg-form" leftIcon={isEdit ? <FloppyDisk size={13} aria-hidden="true" /> : <Plus size={13} weight="bold" aria-hidden="true" />} loading={busy} disabled={busy}>
-            {busy ? t('admin.teamPlan.saving') : isEdit ? t('admin.packageModal.saveChanges') : t('admin.packageModal.create')}
+            {busy ? t('admin.packageModal.saving') : isEdit ? t('admin.packageModal.saveChanges') : t('admin.packageModal.create')}
           </Button>
         </>
       }
     >
       <form id="pkg-form" className="form-stack" onSubmit={(e) => void handleSubmit(e)}>
-        {error && <InlineError>{error}</InlineError>}
+        {submitError && <InlineError>{submitError}</InlineError>}
         <Input
           label={t('api.workbench.name')}
           value={name}
           maxLength={FE_LIMITS.PACKAGE_NAME}
           showCount
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => { setName(e.target.value); if (nameError) setNameError(undefined); }}
           required
           autoFocus
           placeholder={t('admin.packageModal.namePlaceholder')}
+          error={nameError}
         />
         <Input
           label={t('api.workbench.description')}
@@ -201,8 +311,9 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
             min={0}
             max={999999}
             value={maxMembers}
-            onChange={(e) => setMaxMembers(e.target.value)}
+            onChange={(e) => { setMaxMembers(e.target.value); if (maxMembersError) setMaxMembersError(undefined); }}
             placeholder={t('common:usage.unlimited')}
+            error={maxMembersError}
           />
           <Input
             label={t('admin.packageModal.maxProjects')}
@@ -210,8 +321,9 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
             min={0}
             max={999999}
             value={maxProjects}
-            onChange={(e) => setMaxProjects(e.target.value)}
+            onChange={(e) => { setMaxProjects(e.target.value); if (maxProjectsError) setMaxProjectsError(undefined); }}
             placeholder={t('common:usage.unlimited')}
+            error={maxProjectsError}
           />
         </div>
         <Input
@@ -220,7 +332,9 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
           min={0}
           max={999}
           value={sortOrder}
-          onChange={(e) => setSortOrder(e.target.value)}
+          onChange={(e) => { setSortOrder(e.target.value); if (sortOrderError) setSortOrderError(undefined); }}
+          helper={sortOrderError ? undefined : t('admin.packageModal.sortOrderHelper')}
+          error={sortOrderError}
         />
         <label className="checkbox-label">
           <input
@@ -242,7 +356,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
         <div className="form-section">
           <div className="form-section-head">
             <span className="form-section-title">{t('admin.packageModal.prices')}</span>
-            <Button type="button" variant="ghost" size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={addPrice}>
+            <Button type="button" variant="ghost" size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={addPrice} disabled={busy}>
               {t('admin.packageModal.addPrice')}
             </Button>
           </div>
@@ -255,16 +369,18 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
                 type="number"
                 min={1}
                 max={3650}
-                value={String(p.durationDays)}
-                onChange={(e) => updatePrice(i, 'durationDays', Number(e.target.value))}
+                value={p.durationDays}
+                onChange={(e) => updatePrice(i, 'durationDays', e.target.value)}
+                error={priceErrors[i]?.durationDays}
               />
               <Input
                 label={t('admin.packageModal.priceIdr')}
                 aria-label={t('admin.packageModal.priceIdrWithIndex', { index: i + 1, defaultValue: `Price ${i + 1} - Price IDR` })}
                 type="number"
                 min={0}
-                value={String(p.priceIdr)}
-                onChange={(e) => updatePrice(i, 'priceIdr', Number(e.target.value))}
+                value={p.priceIdr}
+                onChange={(e) => updatePrice(i, 'priceIdr', e.target.value)}
+                error={priceErrors[i]?.priceIdr}
               />
               <Input
                 label={t('admin.packageModal.originalPriceIdr')}
@@ -274,6 +390,8 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
                 value={p.originalPriceIdr}
                 placeholder={t('admin.packageModal.noDiscount')}
                 onChange={(e) => updatePrice(i, 'originalPriceIdr', e.target.value)}
+                error={priceErrors[i]?.originalPriceIdr}
+                helper={priceErrors[i]?.originalPriceIdr ? undefined : savingsHelper(p)}
               />
               {prices.length > 1 && (
                 <Button
@@ -281,7 +399,8 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
                   variant="ghost"
                   size="sm"
                   leftIcon={<Trash size={13} aria-hidden="true" />}
-                  onClick={() => removePrice(i)}
+                  onClick={() => openRemoveConfirm(i)}
+                  disabled={busy}
                   aria-label={t('admin.packageModal.removePriceWithIndex', { index: i + 1, defaultValue: `Remove price ${i + 1}` })}
                 >
                   {t('admin.packageModal.removePriceLabel', { defaultValue: 'Remove' })}
@@ -291,8 +410,21 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
           ))}
         </div>
       </form>
-    </Modal>
+
+      <ConfirmDeleteDialog
+        open={pendingRemoveIndex !== null}
+        title={t('admin.packageModal.removePriceTitle')}
+        description={t('admin.packageModal.removePriceDesc', {
+          index: (pendingRemoveIndex ?? 0) + 1,
+          days: pendingRemoveRow?.durationDays.trim() || '—',
+          price: pendingRemoveRow && pendingRemoveRow.priceIdr.trim() !== '' && Number.isFinite(Number(pendingRemoveRow.priceIdr))
+            ? formatIdr(Number(pendingRemoveRow.priceIdr))
+            : '—',
+        })}
+        busy={busy}
+        onConfirm={confirmRemovePrice}
+        onClose={closeRemoveConfirm}
+      />
+    </Drawer>
   );
 }
-
-

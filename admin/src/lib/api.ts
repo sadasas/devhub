@@ -534,8 +534,12 @@ export const api = {
     const qs = params.toString();
     return request<{ users: AdminUser[]; total: number }>(`/admin/users${qs ? `?${qs}` : ''}`);
   },
-  listAdminTeams: async () => {
-    const res = await request<{ teams: AdminTeam[] }>('/admin/teams');
+  listAdminTeams: async (opts: { q?: string; plan?: string } = {}) => {
+    const params = new URLSearchParams();
+    if (opts.q) params.set('q', opts.q);
+    if (opts.plan) params.set('plan', opts.plan);
+    const qs = params.toString();
+    const res = await request<{ teams: AdminTeam[] }>(`/admin/teams${qs ? `?${qs}` : ''}`);
     return res.teams;
   },
   listAdminPayments: async (opts: { limit?: number; offset?: number; status?: string; teamId?: string } = {}) => {
@@ -560,7 +564,7 @@ export const api = {
     sortOrder?: number;
     isActive?: boolean;
     isFeatured?: boolean;
-    prices?: Array<{ durationDays: number; priceIdr: number }>;
+    prices?: Array<{ durationDays: number; priceIdr: number; originalPriceIdr?: number | null }>;
   }) =>
     request<AdminPackage>('/admin/packages', {
       method: 'POST',
@@ -577,7 +581,7 @@ export const api = {
       sortOrder?: number;
       isActive?: boolean;
       isFeatured?: boolean;
-      prices?: Array<{ durationDays: number; priceIdr: number }>;
+      prices?: Array<{ durationDays: number; priceIdr: number; originalPriceIdr?: number | null }>;
     },
   ) =>
     request<AdminPackage>(`/admin/packages/${encodeURIComponent(packageId)}`, {

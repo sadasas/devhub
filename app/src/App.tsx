@@ -27,6 +27,7 @@ import { Skeleton } from './components/Skeleton';
 import { Splash } from './components/Splash';
 import { ExternalRedirect } from './components/ExternalRedirect';
 import { DOCS_HOME_URL, DOCS_MCP_URL, DOCS_PRIVACY_URL, DOCS_TERMS_URL } from './lib/docs-urls';
+import { RouteTracker } from './lib/route-tracker';
 
 const DashboardPageLazy = lazy(() => import('./features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })));
 const HomeRedirectLazy = lazy(() => import('./features/dashboard/HomeRedirect').then((m) => ({ default: m.HomeRedirect })));
@@ -217,6 +218,7 @@ export default function App() {
     <AuthProvider>
       <ErrorBoundary>
         <BrowserRouter>
+          <RouteTracker />
           <Routes>
             <Route
               path="/p/:projectId"

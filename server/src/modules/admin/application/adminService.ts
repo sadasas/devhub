@@ -204,7 +204,13 @@ export async function setUserRole(
   return row;
 }
 
-export async function listPlatformTeams(limit: number): Promise<{ teams: AdminTeam[] }> {
+export async function listPlatformTeams(
+  limit: number,
+  q = '',
+  planFilter?: string,
+): Promise<{ teams: AdminTeam[] }> {
+  const query = q.trim();
+  const plan = planFilter === 'free' || planFilter === 'pro' ? planFilter : '';
   const result = await pool.query<AdminTeam>(
     `SELECT
             CASE WHEN cur.id IS NOT NULL THEN 'pro' ELSE 'free' END AS "plan",
@@ -219,9 +225,14 @@ export async function listPlatformTeams(limit: number): Promise<{ teams: AdminTe
              WHERE tm.team_id = t.id AND tm.role = 'owner' LIMIT 1) AS "ownerEmail"
      FROM teams t
      LEFT JOIN billing_packages cur ON cur.id = t.plan_package_id AND (t.plan_expires_at IS NULL OR t.plan_expires_at > now())
+     WHERE ($1 = '' OR t.name ILIKE '%' || $1 || '%' OR EXISTS (
+       SELECT 1 FROM team_members tmq JOIN users uq ON uq.id = tmq.user_id
+       WHERE tmq.team_id = t.id AND tmq.role = 'owner' AND uq.email ILIKE '%' || $1 || '%'
+     ))
+     AND ($2 = '' OR CASE WHEN cur.id IS NOT NULL THEN 'pro' ELSE 'free' END = $2)
      ORDER BY t.created_at DESC
-     LIMIT $1`,
-    [limit],
+     LIMIT $3`,
+    [query, plan, limit],
   );
   return { teams: result.rows };
 }

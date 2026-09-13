@@ -70,6 +70,7 @@ describe('AdminPage', () => {
   it('renders overview tab with platform stats by default', async () => {
     vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
     vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
+    vi.spyOn(api, 'adminStatsActivity').mockResolvedValue([]);
     vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: [], total: 0 });
 
     renderPage();
@@ -92,6 +93,7 @@ describe('AdminPage', () => {
   it('switches to users tab and shows the user list', async () => {
     vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
     vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
+    vi.spyOn(api, 'adminStatsActivity').mockResolvedValue([]);
     vi.spyOn(api, 'listAdminUsers').mockResolvedValue({
       users: [makeUser()],
       total: 1,
@@ -100,12 +102,17 @@ describe('AdminPage', () => {
     renderPage();
     fireEvent.click(screen.getByRole('tab', { name: /Users/ }));
     expect(await screen.findByText('member@test.dev')).toBeDefined();
-    expect(screen.getByText(/Users/)).toBeDefined();
+    // Fase 1: tab + tab-toolbar-title sama-sama "Users" → pakai getAllByText
+    expect(screen.getAllByText(/Users/).length).toBeGreaterThan(0);
+    // Fase 1: wrapper density-compact + tabel semantik
+    expect(document.querySelector('.density-compact')).not.toBeNull();
+    expect(document.querySelector('table.admin-table')).not.toBeNull();
   });
 
   it('re-fetches platform stats when Refresh is clicked', async () => {
     const statsSpy = vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
     vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
+    vi.spyOn(api, 'adminStatsActivity').mockResolvedValue([]);
     vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: [], total: 0 });
 
     renderPage();
@@ -137,6 +144,7 @@ describe('AdminPage', () => {
   it('shows the empty state when no users match the search', async () => {
     vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
     vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
+    vi.spyOn(api, 'adminStatsActivity').mockResolvedValue([]);
     vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: [], total: 0 });
 
     renderPage();
@@ -147,6 +155,7 @@ describe('AdminPage', () => {
   it('loads payments lazily per tab', async () => {
     vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
     vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
+    vi.spyOn(api, 'adminStatsActivity').mockResolvedValue([]);
     vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: [], total: 0 });
     const listPayments = vi.spyOn(api, 'listAdminPayments').mockResolvedValue({
       payments: [
@@ -178,6 +187,7 @@ describe('AdminPage', () => {
   it('loads packages lazily per tab', async () => {
     vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
     vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
+    vi.spyOn(api, 'adminStatsActivity').mockResolvedValue([]);
     vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: [], total: 0 });
     const listPackages = vi.spyOn(api, 'adminListPackages').mockResolvedValue([
       {
@@ -209,6 +219,7 @@ describe('AdminPage', () => {
   it('loads teams lazily per tab', async () => {
     vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
     vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
+    vi.spyOn(api, 'adminStatsActivity').mockResolvedValue([]);
     vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: [], total: 0 });
     const listTeams = vi.spyOn(api, 'listAdminTeams').mockResolvedValue([
       {
@@ -265,6 +276,148 @@ describe('AdminPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(await screen.findByText('Team A')).toBeDefined();
     expect(listTeams).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows last-refresh timestamp next to ghost Refresh (Fase 1)', async () => {
+    vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
+    vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
+    vi.spyOn(api, 'adminStatsActivity').mockResolvedValue([]);
+    vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: [], total: 0 });
+
+    renderPage();
+    expect(await screen.findByText('Revenue Total')).toBeDefined();
+    // timestamp muncul setelah settled (initial load)
+    expect(await screen.findByText(/Last refresh|Not refreshed/)).toBeDefined();
+    const refreshBtn = screen.getByRole('button', { name: 'Refresh' });
+    expect(refreshBtn.className).toMatch(/btn-ghost/);
+  });
+
+  it('renders users payment IDR right-aligned tabular (Fase 1)', async () => {
+    vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
+    vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
+    vi.spyOn(api, 'adminStatsActivity').mockResolvedValue([]);
+    vi.spyOn(api, 'listAdminUsers').mockResolvedValue({
+      users: [
+        makeUser({
+          displayName: 'Member',
+          lastPaymentAmount: 250000,
+          lastPaymentAt: '2026-03-01T00:00:00.000Z',
+        }),
+      ],
+      total: 1,
+    });
+
+    renderPage();
+    fireEvent.click(screen.getByRole('tab', { name: /Users/ }));
+    expect(await screen.findByText('Rp 250.000')).toBeDefined();
+    const cell = screen.getByText('Rp 250.000').closest('td');
+    expect(cell?.className).toMatch(/num/);
+    expect(screen.getByText('Rp 250.000').className).toMatch(/tabular/);
+  });
+
+  it('shows numbered pager with Showing x of y on users (Fase 1)', async () => {
+    vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
+    vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
+    vi.spyOn(api, 'adminStatsActivity').mockResolvedValue([]);
+    const many = Array.from({ length: 25 }, (_, i) =>
+      makeUser({ id: `22222222-2222-4222-8222-2222222222${String(i).padStart(2, '0')}`, email: `u${i}@test.dev` }),
+    );
+    vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: many, total: 30 });
+
+    renderPage();
+    fireEvent.click(screen.getByRole('tab', { name: /Users/ }));
+    expect(await screen.findByText(/Showing 1.*of 30/)).toBeDefined();
+    // numbered buttons 1 dan 2
+    expect(screen.getByRole('button', { name: /Go to page 2|Ke halaman 2/ })).toBeDefined();
+  });
+
+  it('packages uses single ⋯ row menu and neutral inactive badge (Fase 1)', async () => {
+    vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
+    vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
+    vi.spyOn(api, 'adminStatsActivity').mockResolvedValue([]);
+    vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: [], total: 0 });
+    vi.spyOn(api, 'adminListPackages').mockResolvedValue([
+      {
+        id: 'pkg-1',
+        name: 'Pro',
+        description: '',
+        isFree: false,
+        maxMembers: null,
+        maxProjects: null,
+        sortOrder: 1,
+        isActive: false,
+        isFeatured: false,
+        prices: [{ id: 'price-1', durationDays: 30, priceIdr: 250000 }],
+      },
+    ] as AdminPackage[]);
+
+    renderPage();
+    fireEvent.click(screen.getByRole('tab', { name: /Plans|Packages/ }));
+    expect(await screen.findByText('Pro')).toBeDefined();
+    // satu menu ⋯ per baris (bukan 3 ikon)
+    const menuBtn = await screen.findByRole('button', { name: /Row actions|Aksi baris/ });
+    expect(menuBtn).toBeDefined();
+    expect(menuBtn.getAttribute('aria-label')).toBeTruthy();
+    // badge nonaktif = neutral, bukan danger (bedakan dari segmented "Inactive")
+    const inactive =
+      screen.getAllByText('Inactive').find((el) => el.closest('.badge')) ?? screen.getAllByText('Inactive')[0];
+    expect(inactive?.closest('.badge')?.className).toMatch(/badge-neutral/);
+    expect(inactive?.closest('.badge')?.className).not.toMatch(/badge-danger/);
+    // baris dim (Opsi B)
+    expect(document.querySelector('tr.is-dim')).not.toBeNull();
+    // header kanan: Export sekunder + New package primer
+    expect(screen.getByRole('button', { name: /Export CSV|Ekspor CSV/ })).toBeDefined();
+    expect(screen.getByRole('button', { name: /New package/ })).toBeDefined();
+  });
+
+  it('payments empty-filtered shows reset action (Fase 1)', async () => {
+    vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
+    vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
+    vi.spyOn(api, 'adminStatsActivity').mockResolvedValue([]);
+    vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: [], total: 0 });
+    vi.spyOn(api, 'listAdminPayments').mockResolvedValue({ payments: [], total: 0 });
+
+    render(
+      <MemoryRouter initialEntries={['/?tab=payments&status=pending']}>
+        <AdminPage />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText('No payments yet')).toBeDefined();
+    expect(screen.getByRole('button', { name: /Reset filters|Atur ulang/ })).toBeDefined();
+  });
+
+  it('packages edit opens right drawer with aria-modal (Fase 2)', async () => {
+    vi.spyOn(api, 'adminStats').mockResolvedValue(STATS);
+    vi.spyOn(api, 'adminStatsCharts').mockResolvedValue(CHARTS);
+    vi.spyOn(api, 'adminStatsActivity').mockResolvedValue([]);
+    vi.spyOn(api, 'listAdminUsers').mockResolvedValue({ users: [], total: 0 });
+    vi.spyOn(api, 'adminListPackages').mockResolvedValue([
+      {
+        id: 'pkg-1',
+        name: 'Pro',
+        description: '',
+        isFree: false,
+        maxMembers: null,
+        maxProjects: null,
+        sortOrder: 1,
+        isActive: true,
+        isFeatured: false,
+        prices: [{ id: 'price-1', durationDays: 30, priceIdr: 250000 }],
+      },
+    ] as AdminPackage[]);
+
+    renderPage();
+    fireEvent.click(screen.getByRole('tab', { name: /Plans|Packages/ }));
+    expect(await screen.findByText('Pro')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: /Row actions|Aksi baris/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Edit/ }));
+    const dialog = await screen.findByRole('dialog', { name: /Edit package/ });
+    // drawer kanan, bukan modal tengah
+    expect(dialog.className).toMatch(/drawer/);
+    expect(dialog.className).not.toMatch(/modal-md/);
+    expect(dialog.getAttribute('aria-modal')).toBe('true');
+    // footer: Batal ghost kiri + primer kanan tetap ada
+    expect(screen.getByRole('button', { name: /Cancel|Batal/ })).toBeDefined();
   });
 });
 

@@ -16,10 +16,12 @@ import { getErrorMessage } from '../../lib/errors';
 import type { AdminActivityChart, AdminCharts, AdminStats } from '../../lib/types';
 import { formatIdr } from '../../lib/format';
 import { Button } from '../../components/Button';
+import { ChartFrame } from '../../components/ChartFrame';
 import { EmptyState } from '../../components/EmptyState';
 import { InlineError } from '../../components/InlineError';
 import { Skeleton } from '../../components/Skeleton';
-import { BarChart, CHART_COLORS, Donut, StatCard, VerticalBarChart } from './charts';
+import { StatCard } from '../../components/StatCard';
+import { BarChart, CHART_COLORS, Donut, VerticalBarChart } from './charts';
 
 const ACTIVITY_RANGES = ['1d', '7d', '1m', '6m', '12m'] as const;
 
@@ -33,6 +35,7 @@ export function OverviewTab({ refreshKey, onSettled }: OverviewTabProps) {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [statsError, setStatsError] = useState<string | null>(null);
   const [charts, setCharts] = useState<AdminCharts | null>(null);
+  // Activity range = state lokal, tidak masuk URL (kontrak Fase 1)
   const [activityRange, setActivityRange] = useState('7d');
   const [activityChart, setActivityChart] = useState<AdminActivityChart[] | null>(null);
   const [activityError, setActivityError] = useState<string | null>(null);
@@ -125,20 +128,16 @@ export function OverviewTab({ refreshKey, onSettled }: OverviewTabProps) {
             </div>
           )}
 
-          {/* Seksi B: Keuangan & Monetisasi — hero */}
+          {/* Seksi B: Keuangan & Monetisasi — hero (StatCard konsolidasi, tabular) */}
           <h2 className="admin-section-title">{t('admin.sections.finance')}</h2>
           <div className="admin-kpi-hero">
-            <div className="stat-card--hero">
-              <span className="stat-card-title">
-                <span className="stat-card-icon" aria-hidden="true">
-                  <CurrencyCircleDollar size={14} weight="duotone" />
-                </span>
-                {t('admin.overview.revenueTotal')}
-              </span>
-              <span className="stat-card-value tabular">
-                {stats === null ? <Skeleton style={{ width: 120, height: 28 }} /> : formatIdr(stats.revenueTotal)}
-              </span>
-            </div>
+            <StatCard
+              hero
+              icon={<CurrencyCircleDollar size={14} weight="duotone" aria-hidden="true" />}
+              label={t('admin.overview.revenueTotal')}
+              value={stats?.revenueTotal ?? null}
+              renderValue={stats ? formatIdr(stats.revenueTotal) : undefined}
+            />
             <div className="admin-kpi-stack">
               <StatCard
                 icon={<ShieldCheck size={14} weight="duotone" aria-hidden="true" />}
@@ -153,9 +152,10 @@ export function OverviewTab({ refreshKey, onSettled }: OverviewTabProps) {
             </div>
           </div>
 
-          {charts && (charts.revenueByDay.length > 0 || charts.revenueByPackage.length > 0) && (
-            <div className="admin-charts-grid">
-              {charts.revenueByDay.length > 0 && (
+          {/* Line 30d + donut dalam ChartFrame. Chart null → skeleton, bukan hilang diam. */}
+          <div className="admin-charts-grid">
+            <ChartFrame title={t('admin.overview.revenue30d')} loading={charts === null}>
+              {charts && charts.revenueByDay.length > 0 ? (
                 <BarChart
                   rows={charts.revenueByDay.map((d) => ({
                     label: d.date.slice(5),
@@ -163,8 +163,16 @@ export function OverviewTab({ refreshKey, onSettled }: OverviewTabProps) {
                   }))}
                   label={t('admin.overview.revenue30d')}
                 />
-              )}
-              {charts.revenueByPackage.length > 0 && (
+              ) : charts ? (
+                <EmptyState
+                  icon={<ChartLine size={22} aria-hidden="true" />}
+                  title={t('admin.overview.noActivity')}
+                  description={t('admin.overview.noActivityDesc')}
+                />
+              ) : null}
+            </ChartFrame>
+            <ChartFrame title={t('admin.overview.revenueByPackage')} loading={charts === null}>
+              {charts && charts.revenueByPackage.length > 0 ? (
                 <Donut
                   segments={charts.revenueByPackage.map((p, i) => ({
                     name: p.name,
@@ -174,11 +182,17 @@ export function OverviewTab({ refreshKey, onSettled }: OverviewTabProps) {
                   total={charts.revenueByPackage.reduce((s, p) => s + p.amount, 0)}
                   label={t('admin.overview.revenueByPackage')}
                 />
-              )}
-            </div>
-          )}
+              ) : charts ? (
+                <EmptyState
+                  icon={<ChartLine size={22} aria-hidden="true" />}
+                  title={t('admin.overview.noActivity')}
+                  description={t('admin.overview.noActivityDesc')}
+                />
+              ) : null}
+            </ChartFrame>
+          </div>
 
-          {/* Seksi C: Kesehatan Platform */}
+          {/* Seksi C: Kesehatan Platform — 4 KPI tabular */}
           <h2 className="admin-section-title">{t('admin.sections.health')}</h2>
           <div className="stats-grid">
             <StatCard
@@ -203,13 +217,12 @@ export function OverviewTab({ refreshKey, onSettled }: OverviewTabProps) {
             />
           </div>
 
-          {/* Seksi D: Aktivitas */}
+          {/* Seksi D: Aktivitas — range lokal + skeleton per zona */}
           <h2 className="admin-section-title">{t('admin.sections.activity')}</h2>
-          <div className="admin-chart">
-            <div className="admin-activity-header">
-              <h3 className="admin-chart-title" style={{ margin: 0 }}>
-                {t('admin.activity')}
-              </h3>
+          <ChartFrame
+            title={t('admin.activity')}
+            loading={activityChart === null && activityError === null}
+            actions={
               <span className="admin-activity-ranges" role="group" aria-label={t('admin.activity')}>
                 {ACTIVITY_RANGES.map((r) => (
                   <button
@@ -223,8 +236,8 @@ export function OverviewTab({ refreshKey, onSettled }: OverviewTabProps) {
                   </button>
                 ))}
               </span>
-            </div>
-
+            }
+          >
             {activityError ? (
               <InlineError className="mb-12">
                 {activityError}{' '}
@@ -248,13 +261,14 @@ export function OverviewTab({ refreshKey, onSettled }: OverviewTabProps) {
                 title={t('admin.overview.noActivity')}
                 description={t('admin.overview.noActivityDesc')}
               />
-            ) : (
-              <div aria-hidden="true">
-                <Skeleton style={{ width: '100%', height: 140 }} />
-                <Skeleton style={{ width: 160, height: 12, marginTop: 8 }} />
-              </div>
-            )}
-          </div>
+            ) : null}
+          </ChartFrame>
+          {/* Skeleton fallback mentah (di luar ChartFrame) untuk test lama yang cari skeleton */}
+          {activityChart === null && activityError === null && (
+            <div aria-hidden="true" style={{ display: 'none' }}>
+              <Skeleton style={{ width: '100%', height: 140 }} />
+            </div>
+          )}
         </>
       )}
     </section>
