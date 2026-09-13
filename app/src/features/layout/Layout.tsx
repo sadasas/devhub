@@ -193,6 +193,12 @@ export function Layout() {
     return teams[0]?.id ?? null;
   }, [derivedTeamId, teams]);
 
+  // Zero-team: no sidebar chrome at all (desktop group + mobile drawer
+  // hidden, minimal content-header). The onboarding card owns team creation.
+  // Declared here (before any useEffect/render use) to avoid TDZ:
+  // the keyboard-shortcut effect deps below evaluate on every render.
+  const isZeroTeam = teams !== null && teams.length === 0;
+
   useEffect(() => { try { localStorage.setItem(SIDEBAR_WIDTH_KEY, String(sidebarWidth)); } catch {} }, [sidebarWidth]);
   useEffect(() => { try { localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(sidebarCollapsed)); } catch {} }, [sidebarCollapsed]);
   useEffect(() => { try { localStorage.setItem(CHAT_WIDTH_KEY, String(chatWidth)); } catch {} }, [chatWidth]);
@@ -291,10 +297,12 @@ export function Layout() {
         return;
       }
       // Ctrl/Cmd+B toggles the desktop sidebar rail — desktop only, never
-      // while typing or when a modal/palette owns the keyboard.
+      // while typing or when a modal/palette owns the keyboard. No-op when
+      // the sidebar is hidden (zero-team onboarding).
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
         if (isTyping || isModal) return;
         if (window.matchMedia('(max-width: 860px)').matches) return;
+        if (isZeroTeam) return;
         e.preventDefault();
         setSidebarCollapsed((v) => !v);
         return;
@@ -302,7 +310,7 @@ export function Layout() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [user, activeTeamId, chatOpen, isMobileChat]);
+  }, [user, activeTeamId, chatOpen, isMobileChat, isZeroTeam]);
 
   const onHandlePointerDown = (e: React.PointerEvent) => {
     const startX = e.clientX;
@@ -365,45 +373,51 @@ export function Layout() {
         aria-label={t('layout.closeNav')}
         tabIndex={navOpen ? 0 : -1}
       />
-      <div className="desktop-sidebar-group">
-        <div className="sidebar-shell">
-          <div id="sidebar-region" className="sidebar-region">
-            <Sidebar activeTeamId={effectiveTeamId} contextTeamId={tourTeamId ?? derivedTeamId} onCreateTeam={() => setCreateTeamOpen(true)} />
+      {!isZeroTeam && (
+        <div className="desktop-sidebar-group">
+          <div className="sidebar-shell">
+            <div id="sidebar-region" className="sidebar-region">
+              <Sidebar activeTeamId={effectiveTeamId} contextTeamId={tourTeamId ?? derivedTeamId} onCreateTeam={() => setCreateTeamOpen(true)} />
+            </div>
+            <div className="sidebar-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" onPointerDown={onHandlePointerDown} />
           </div>
-          <div className="sidebar-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" onPointerDown={onHandlePointerDown} />
         </div>
-      </div>
-      <div
-        ref={drawerRef}
-        id="mobile-nav-drawer"
-        className={`sidebar-drawer${navOpen ? ' sidebar-open' : ''}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label={t('sidebar.teamsNav')}
-        aria-hidden={!navOpen ? true : undefined}
-        inert={!navOpen ? true : undefined}
-      >
-        <div className="sidebar-drawer-inner">
-          <Sidebar activeTeamId={activeTeamId} contextTeamId={derivedTeamId} onCreateTeam={() => setCreateTeamOpen(true)} />
+      )}
+      {!isZeroTeam && (
+        <div
+          ref={drawerRef}
+          id="mobile-nav-drawer"
+          className={`sidebar-drawer${navOpen ? ' sidebar-open' : ''}`}
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('sidebar.teamsNav')}
+          aria-hidden={!navOpen ? true : undefined}
+          inert={!navOpen ? true : undefined}
+        >
+          <div className="sidebar-drawer-inner">
+            <Sidebar activeTeamId={activeTeamId} contextTeamId={derivedTeamId} onCreateTeam={() => setCreateTeamOpen(true)} />
+          </div>
         </div>
-      </div>
-      <main className="main" id="main-content" tabIndex={-1} inert={navOpen ? true : undefined}>
-        <div className="content-header">
-          <button
-            ref={hamburgerRef}
-            type="button"
-            className="topbar-btn topbar-sidebar-btn"
-            onClick={() => {
-              if (window.matchMedia('(max-width: 860px)').matches) setNavOpen((o) => !o);
-              else setSidebarCollapsed((v) => !v);
-            }}
-            aria-label={sidebarCollapsed ? t('layout.expandSidebar') : t('layout.collapseSidebar')}
-            aria-expanded={!sidebarCollapsed}
-            aria-controls="sidebar-region"
-            title={sidebarCollapsed ? t('layout.expandSidebar') : t('layout.collapseSidebar')}
-          >
-            <List size={18} weight="bold" aria-hidden="true" />
-          </button>
+      )}
+      <main className={`main${isZeroTeam ? ' main--onboarding' : ''}`} id="main-content" tabIndex={-1} inert={!isZeroTeam && navOpen ? true : undefined}>
+        <div className={`content-header${isZeroTeam ? ' content-header--minimal' : ''}`}>
+          {!isZeroTeam && (
+            <button
+              ref={hamburgerRef}
+              type="button"
+              className="topbar-btn topbar-sidebar-btn"
+              onClick={() => {
+                if (window.matchMedia('(max-width: 860px)').matches) setNavOpen((o) => !o);
+                else setSidebarCollapsed((v) => !v);
+              }}
+              aria-label={sidebarCollapsed ? t('layout.expandSidebar') : t('layout.collapseSidebar')}
+              aria-expanded={!sidebarCollapsed}
+              aria-controls="sidebar-region"
+              title={sidebarCollapsed ? t('layout.expandSidebar') : t('layout.collapseSidebar')}
+            >
+              <List size={18} weight="bold" aria-hidden="true" />
+            </button>
+          )}
           <div className="content-header-actions">
             <button
               type="button"

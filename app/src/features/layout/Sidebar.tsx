@@ -391,6 +391,10 @@ export function Sidebar({ activeTeamId, contextTeamId, onCreateTeam }: SidebarPr
     ? `/${encodeURIComponent(activeTeam.slug || activeTeam.id)}/settings`
     : '/';
 
+  // Zero-team has no sidebar chrome: Layout hides the sidebar + drawer, so
+  // render nothing (loading skeleton above still shows while teams load).
+  if (!teamsLoading && !activeTeam) return null;
+
   return (
     <aside className="sidebar" aria-label={t('sidebar.primaryNav')}>
       {teamsLoading ? (
@@ -581,37 +585,7 @@ export function Sidebar({ activeTeamId, contextTeamId, onCreateTeam }: SidebarPr
           </p>
           <UserFooter />
         </>
-      ) : (
-        <>
-          {/* Zero-team: no L1 to scroll. Account routes stay reachable via
-              the footer menu; invites are the only pinned entry point. */}
-          <nav className="sidebar-nav" aria-label={t('sidebar.invitations')}>
-            <NavLink to="/invites" className={itemClass()} aria-label={t('sidebar.invitations')}>
-              <EnvelopeSimple size={15} weight="duotone" aria-hidden="true" />
-              <span>{t('sidebar.invitations')}</span>
-              {invitations.length > 0 && (
-                <span
-                  className="sidebar-count sidebar-count--alert"
-                  aria-label={t('sidebar.pendingInvitations', { count: invitations.length }) as string}
-                >
-                  {invitations.length > 99 ? '99+' : invitations.length}
-                </span>
-              )}
-            </NavLink>
-          </nav>
-          <div className="sidebar-empty">
-            <p>{t('sidebar.noTeamsYet')}</p>
-            <Button variant="ghost" size="sm" onClick={() => onCreateTeam?.()}>
-              {t('sidebar.createTeam')}
-            </Button>
-            <Link className="sidebar-team-link" to="/invites" style={{ marginTop: 4 }}>
-              {t('sidebar.viewInvites')}
-            </Link>
-          </div>
-          <div className="sidebar-divider" role="separator" aria-orientation="horizontal" />
-          <UserFooter />
-        </>
-      )}
+      ) : null}
 
       <NewProjectModal
         open={createProjectOpen}

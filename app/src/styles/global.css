@@ -16743,6 +16743,136 @@ html[data-theme='light'] .tour-overlay-dim {
   text-decoration: none;
 }
 
+/* Zero-team canonical card: single centered column (no eyebrow). */
+.dashboard__onboarding--center {
+  align-items: center;
+  text-align: center;
+}
+
+.dashboard__onboarding-actions--center {
+  justify-content: center;
+  align-items: center;
+}
+
+/* Onboarding shell without sidebar chrome. */
+.main--onboarding {
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.content-header--minimal {
+  justify-content: flex-end;
+}
+
+.zero-team-doodle {
+  display: flex;
+  justify-content: center;
+}
+
+.zero-team-docs {
+  width: auto;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+}
+
+/* Static "what's next" strip — no tour anchors. */
+.zero-team-steps {
+  list-style: none;
+  width: 100%;
+  margin: 14px 0 0;
+  padding: 14px 0 0;
+  border-top: 1px solid var(--border-hairline);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+
+.zero-team-steps-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.zero-team-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.zero-team-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-inset);
+  border: 1px solid var(--border-hairline);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* Mini footer: avatar + name · Docs · Shortcuts · Sign out. */
+.zero-team-footer {
+  width: 100%;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-hairline);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.zero-team-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  font-weight: 600;
+  min-width: 0;
+}
+
+.zero-team-name {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.zero-team-sep {
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.zero-team-foot-link {
+  width: auto;
+  padding: 4px 6px;
+  font-size: 12.5px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.zero-team-logout {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+}
+
 .dashboard__loading {
   display: flex;
   flex-direction: column;
@@ -17270,6 +17400,33 @@ html[data-theme='light'] .tour-overlay-dim {
   .dashboard__onboarding {
     margin: 24px auto;
     padding: 20px;
+  }
+
+  /* Zero-team mobile (360px): stacked 44px primary + 120px doodle. */
+  .dashboard__onboarding-actions--center {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .dashboard__onboarding-actions--center .btn-primary {
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .zero-team-docs {
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .zero-team-doodle > div {
+    width: 120px !important;
+    height: 120px !important;
+  }
+
+  .zero-team-doodle svg {
+    width: 120px !important;
+    height: 120px !important;
   }
 }
 

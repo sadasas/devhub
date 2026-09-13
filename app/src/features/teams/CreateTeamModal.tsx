@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import { useTeams } from '../../state/teams-context';
+import type { Team } from '../../lib/types';
 import { isTourActive } from '../onboarding/tour-events';
 import {
   TEAM_SLUG_MAX_LENGTH,
@@ -23,6 +24,10 @@ import { FE_LIMITS } from '../../lib/limits';
 interface CreateTeamModalProps {
   open: boolean;
   onClose: () => void;
+  /** When provided, the caller owns post-create navigation (e.g. zero-team
+      onboarding writes last-active + advances the tour). Otherwise the modal
+      keeps its legacy implicit navigate. */
+  onSuccess?: (team: Team) => void;
 }
 
 type SlugStatus =
@@ -38,7 +43,7 @@ type SlugStatus =
 // it manually (slugTouched), then stays manual. Availability is checked with a
 // 400ms debounce plus a final server check on submit; empty names fall back to
 // the server-generated team-xxxx pattern (placeholder preview, no pre-check).
-export function CreateTeamModal({ open, onClose }: CreateTeamModalProps) {
+export function CreateTeamModal({ open, onClose, onSuccess }: CreateTeamModalProps) {
   const { t } = useTranslation('account');
   const { createTeam } = useTeams();
   const navigate = useNavigate();
@@ -166,6 +171,10 @@ export function CreateTeamModal({ open, onClose }: CreateTeamModalProps) {
       setSlugInput('');
       setSlugTouched(false);
       onClose();
+      if (onSuccess) {
+        onSuccess(team);
+        return;
+      }
       // Tour rule: stay on the dashboard so the wizard can continue
       // (default flow navigates to the new team workspace route).
       if (isTourActive()) {

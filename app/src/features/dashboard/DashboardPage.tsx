@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useDeferredValue, useTransition } from 'react';
-import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
+import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import type { ProjectStats } from '../../lib/stats';
@@ -13,8 +13,6 @@ import {
   Archive,
   EnvelopeSimple,
   MagnifyingGlass,
-  Notebook,
-  Plus,
   X,
 } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
@@ -140,33 +138,6 @@ function DashboardCommandBar({
         <span className="welcome-count tabular" aria-live="polite" aria-atomic="true">
           {t('dashboard.welcome.search.count', { count })}
         </span>
-      </div>
-    </div>
-  );
-}
-
-// Full-page zero-team onboarding (not an empty dashboard).
-function DashboardZeroTeams({ onCreateTeam }: { onCreateTeam: () => void }) {
-  const { t } = useTranslation('account');
-  return (
-    <div className="dashboard__onboarding" role="status" aria-live="polite">
-      <p className="dashboard__eyebrow" aria-hidden="true">
-        WORKSPACE / start
-      </p>
-      <h1 className="page-title dashboard__onboarding-title">{t('dashboard.team.onboardingTitle')}</h1>
-      <p className="page-subtitle dashboard__onboarding-desc">{t('dashboard.team.onboardingDesc')}</p>
-      <div className="dashboard__onboarding-actions">
-        <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={onCreateTeam} data-tour-id="create-team">
-          {t('dashboard.welcome.empty.createTeam')}
-        </Button>
-        <Link className="btn btn-secondary btn-md dashboard__onboarding-link" to="/invites">
-          <EnvelopeSimple size={14} aria-hidden="true" />
-          {t('dashboard.team.viewInvites')}
-        </Link>
-        <Link className="btn btn-ghost btn-md dashboard__onboarding-link" to="/docs">
-          <Notebook size={14} aria-hidden="true" />
-          {t('dashboard.team.viewDocs')}
-        </Link>
       </div>
     </div>
   );
@@ -639,22 +610,7 @@ export function DashboardPage() {
           </div>
         </div>
       ) : teamsEmpty ? (
-        <>
-          <DashboardZeroTeams onCreateTeam={() => setTeamCreateOpen(true)} />
-          {invitations.length > 0 && (
-            <div className="welcome-invites-banner" role="status" aria-live="polite">
-              <span className="welcome-invites-banner-icon" aria-hidden="true">
-                <EnvelopeSimple size={16} weight="duotone" />
-              </span>
-              <span className="welcome-invites-banner-text">
-                {t('dashboard.welcome.invites', { count: invitations.length })}
-              </span>
-              <Link to="/invites" className="welcome-invites-banner-cta">
-                {t('dashboard.welcome.invites.cta')}
-              </Link>
-            </div>
-          )}
-        </>
+        <Navigate to="/" replace />
       ) : activeTeam ? (
         <>
           {invitations.length > 0 && (
@@ -706,15 +662,6 @@ export function DashboardPage() {
                     </span>
                   </div>
                   <p className="page-subtitle dashboard__desc">{t('teams.subtitle')}</p>
-                </div>
-                <div className="dashboard__header-actions">
-                  <Button
-                    leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />}
-                    onClick={() => setNewOpen(true)}
-                    data-tour-id="create-project"
-                  >
-                    {t('dashboard.newProject')}
-                  </Button>
                 </div>
               </header>
 
