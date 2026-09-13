@@ -11,7 +11,6 @@ import { useAuth } from '../../state/auth-context';
 import { writeLastActiveTeamId } from '../layout/WorkspaceSwitcher';
 import {
   Archive,
-  CaretDown,
   EnvelopeSimple,
   MagnifyingGlass,
   Notebook,
@@ -20,6 +19,7 @@ import {
 } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 import { Badge } from '../../components/Badge';
+import { SearchableSelect } from '../../components/SearchableSelect';
 import { TEAM_ROLE } from '../../lib/labels';
 import { Tooltip } from '../../components/Tooltip';
 import { EmptyState } from '../../components/EmptyState';
@@ -120,23 +120,23 @@ function DashboardCommandBar({
         </span>
       </div>
       <div className="welcome-command-actions">
-        <label className="welcome-command-label">
-          <span className="welcome-command-label-text">{t('dashboard.welcome.search.sortLabel')}</span>
-          <span className="welcome-select-wrap">
-            <select
-              className="welcome-select"
-              value={sort}
-              onChange={(e) => onSort(e.target.value as SortOption)}
-              aria-label={t('dashboard.welcome.search.sortAria')}
-            >
-              <option value="updated">{t('dashboard.welcome.search.sortUpdated')}</option>
-              <option value="name">{t('dashboard.welcome.search.sortName')}</option>
-              <option value="issues">{t('dashboard.welcome.search.sortIssues')}</option>
-              <option value="progress">{t('dashboard.welcome.search.sortProgress')}</option>
-            </select>
-            <CaretDown size={10} aria-hidden="true" className="welcome-select-caret" />
-          </span>
-        </label>
+        <div className="welcome-command-label">
+          <span className="welcome-command-label-text" id="dashboard-sort-label">{t('dashboard.welcome.search.sortLabel')}</span>
+          <SearchableSelect
+            id="dashboard-sort"
+            ariaLabel={t('dashboard.welcome.search.sortAria')}
+            value={sort}
+            allowEmpty={false}
+            searchable={false}
+            options={[
+              { value: 'updated', label: t('dashboard.welcome.search.sortUpdated') },
+              { value: 'name', label: t('dashboard.welcome.search.sortName') },
+              { value: 'issues', label: t('dashboard.welcome.search.sortIssues') },
+              { value: 'progress', label: t('dashboard.welcome.search.sortProgress') },
+            ]}
+            onChange={(v) => { if (v) onSort(v as SortOption); }}
+          />
+        </div>
         <span className="welcome-count tabular" aria-live="polite" aria-atomic="true">
           {t('dashboard.welcome.search.count', { count })}
         </span>

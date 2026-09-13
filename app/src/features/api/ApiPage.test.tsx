@@ -411,7 +411,8 @@ describe('ApiPage', () => {
     );
     expect(renamed).toHaveLength(0);
 
-    fireEvent.change(screen.getByLabelText('HTTP method'), { target: { value: 'POST' } });
+    fireEvent.click(screen.getByLabelText('HTTP method'));
+    fireEvent.click(screen.getByRole('option', { name: 'POST' }));
     expect(screen.queryByText('An endpoint with this method and path already exists.')).not.toBeTruthy();
   });
 

@@ -7,6 +7,7 @@ import type { TeamRole } from '../../lib/types';
 import { useTeams } from '../../state/teams-context';
 import { Envelope } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
+import { Badge } from '../../components/Badge';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { InlineError } from '../../components/InlineError';
@@ -84,22 +85,24 @@ export function InviteModal({ teamId, open, onClose, onInvited }: InviteModalPro
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
-        <div className="field">
-          <label className="field-label" htmlFor="invite-role">
-            {t('teams.inviteModal.role')}
-          </label>
-          <select
-            id="invite-role"
-            className="select"
-            value={role}
-            onChange={(e) => setRole(e.target.value as Exclude<TeamRole, 'owner'>)}
-          >
-            {INVITE_ROLES.map((r) => (
-              <option key={r} value={r}>
-                {TEAM_ROLE[r].label}
-              </option>
-            ))}
-          </select>
+        <div role="radiogroup" aria-label={t('teams.inviteModal.role')} className="role-options">
+          {INVITE_ROLES.map((r) => (
+            <label key={r} className={`role-option ${role === r ? 'role-option-active' : ''}`}>
+              <input
+                type="radio"
+                name="invite-role"
+                value={r}
+                checked={role === r}
+                onChange={() => setRole(r)}
+                className="sr-only"
+              />
+              <span className="role-option-head">
+                <span className="role-option-label">{TEAM_ROLE[r].label}</span>
+                <Badge tone={TEAM_ROLE[r].tone}>{TEAM_ROLE[r].label}</Badge>
+              </span>
+              <span className="role-option-desc">{t(`teams.changeRoleModal.desc.${r}`)}</span>
+            </label>
+          ))}
         </div>
         {error && <InlineError>{error}</InlineError>}
       </form>

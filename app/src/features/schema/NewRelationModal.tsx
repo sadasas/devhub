@@ -156,34 +156,30 @@ export function NewRelationModal({ open, onClose, initialFrom = null, initialTo 
         )}
         <div className="field-row">
           <div className="field">
-            <label className="field-label" htmlFor="rel-cardinality">
-              {t('schema.relationModal.cardinalityLabel')}
-            </label>
-            <select
+            <SearchableSelect
               id="rel-cardinality"
-              className="select"
+              label={t('schema.relationModal.cardinalityLabel')}
               value={cardinality}
-              onChange={(e) => setCardinality(e.target.value as RelationCardinality)}
-            >
-              <option value="1:1">1:1</option>
-              <option value="1:N">1:N</option>
-              <option value="N:M">N:M</option>
-            </select>
+              allowEmpty={false}
+              searchable={false}
+              options={(['1:1', '1:N', 'N:M'] as RelationCardinality[]).map((c) => ({ value: c, label: c }))}
+              onChange={(v) => { if (v) setCardinality(v as RelationCardinality); }}
+            />
           </div>
           <div className="field">
-            <label className="field-label" htmlFor="rel-on-delete">
-              {t('schema.relationModal.onDeleteLabel')}
-            </label>
-            <select
+            <SearchableSelect
               id="rel-on-delete"
-              className="select"
+              label={t('schema.relationModal.onDeleteLabel')}
               value={onDelete}
-              onChange={(e) => setOnDelete(e.target.value as OnDelete)}
-            >
-              <option value="cascade">{t('schema.relationModal.optCascade')}</option>
-              <option value="setNull">{t('schema.relationModal.optSetNull')}</option>
-              <option value="restrict">{t('schema.relationModal.optRestrict')}</option>
-            </select>
+              allowEmpty={false}
+              searchable={false}
+              options={[
+                { value: 'cascade', label: t('schema.relationModal.optCascade') },
+                { value: 'setNull', label: t('schema.relationModal.optSetNull') },
+                { value: 'restrict', label: t('schema.relationModal.optRestrict') },
+              ]}
+              onChange={(v) => { if (v) setOnDelete(v as OnDelete); }}
+            />
           </div>
         </div>
       </form>

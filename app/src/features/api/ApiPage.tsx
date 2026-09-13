@@ -787,19 +787,15 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
               <>
                 <div className="api-workbench-header">
                   <div className="api-workbench-method">
-                    <select
-                      className="select api-method-select"
+                    <SearchableSelect
+                      id="api-workbench-method"
+                      ariaLabel={t('api.workbench.methodAria')}
                       value={selectedEp.method}
-                      aria-label={t('api.workbench.methodAria')}
-                      onChange={(e) => updateMethodPath({ method: e.target.value as ApiMethod })}
-                    >
-                      <option value="GET">GET</option>
-                      <option value="POST">POST</option>
-                      <option value="PUT">PUT</option>
-                      <option value="PATCH">PATCH</option>
-                      <option value="DELETE">DELETE</option>
-                      <option value="OPTIONS">OPTIONS</option>
-                    </select>
+                      allowEmpty={false}
+                      searchable={false}
+                      options={(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'] as ApiMethod[]).map((m) => ({ value: m, label: m }))}
+                      onChange={(v) => { if (v) updateMethodPath({ method: v as ApiMethod }); }}
+                    />
                     <input
                       className="input api-path-input"
                       value={selectedEp.path}
@@ -962,15 +958,15 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                             maxLength={FE_LIMITS.API_PARAM_NAME}
                             onChange={(e) => updateParam(i, { name: e.target.value })}
                           />
-                          <select
-                            className="select"
-                            aria-label={t('api.param.locationAria', { n: i + 1 })}
+                          <SearchableSelect
+                            id={`api-param-in-${i}`}
+                            ariaLabel={t('api.param.locationAria', { n: i + 1 })}
                             value={p.in}
-                            onChange={(e) => updateParam(i, { in: e.target.value as ApiParam['in'] })}
-                          >
-                            <option value="path">path</option>
-                            <option value="query">query</option>
-                          </select>
+                            allowEmpty={false}
+                            searchable={false}
+                            options={(['path', 'query'] as ApiParam['in'][]).map((loc) => ({ value: loc, label: loc }))}
+                            onChange={(v) => { if (v) updateParam(i, { in: v as ApiParam['in'] }); }}
+                          />
                           <label className="api-check">
                             <input
                               type="checkbox"

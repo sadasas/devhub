@@ -217,20 +217,16 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
   }
 
   const priorityControl = (
-    <select
+    <SearchableSelect
       id="new-task-priority"
-      className="select"
-      aria-label={t('board.newTaskModal.priorityLabel')}
-      value={priority}
-      onChange={(e) => setPriority(e.target.value as TaskPriority)}
-    >
-      <option value="">{t('board.newTaskModal.priorityLabel')}</option>
-      {TASK_PRIORITY_ORDER.map((p) => (
-        <option key={p} value={p}>
-          {TASK_PRIORITY[p].label}
-        </option>
-      ))}
-    </select>
+      ariaLabel={t('board.newTaskModal.priorityLabel')}
+      value={priority || null}
+      options={TASK_PRIORITY_ORDER.map((p) => ({ value: p, label: TASK_PRIORITY[p].label }))}
+      emptyLabel={t('board.newTaskModal.priorityLabel')}
+      triggerEmptyLabel={t('board.newTaskModal.priorityLabel')}
+      searchable={false}
+      onChange={(v) => setPriority((v as TaskPriority) ?? '')}
+    />
   );
 
   const datesPillText =

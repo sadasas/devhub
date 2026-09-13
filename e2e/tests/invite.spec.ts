@@ -16,7 +16,7 @@ test.describe('team invite', () => {
     await page.getByRole('button', { name: 'Invite' }).click();
     await expect(page.getByRole('heading', { name: 'Invite member' })).toBeVisible();
     await page.locator('form#invite-form').getByLabel('Email').fill(viewerEmail);
-    await page.locator('form#invite-form').getByLabel('Role').selectOption('viewer');
+    await page.locator('form#invite-form').getByRole('radio', { name: /Viewer/i }).check();
     await page.getByRole('button', { name: 'Send invite' }).click();
     await expect(page.locator('.data-row', { hasText: viewerEmail })).toBeVisible();
 

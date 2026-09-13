@@ -43,8 +43,7 @@ svg {
 
 button,
 input,
-textarea,
-select {
+textarea {
   font: inherit;
   color: inherit;
 }
@@ -263,8 +262,7 @@ a:hover {
 }
 
 .input,
-.textarea,
-.select {
+.textarea {
   width: 100%;
   background: var(--bg-inset);
   border: 1px solid var(--border-hairline);
@@ -284,28 +282,24 @@ a:hover {
 }
 
 .input:hover,
-.textarea:hover,
-.select:hover {
+.textarea:hover {
   border-color: var(--border-strong);
 }
 
 .input:focus,
-.textarea:focus,
-.select:focus {
+.textarea:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 .input:disabled,
-.textarea:disabled,
-.select:disabled {
+.textarea:disabled {
   opacity: 0.5;
 }
 
 .input-error,
-.textarea-error,
-.select-error {
+.textarea-error {
   border-color: var(--status-danger);
 }
 
@@ -313,14 +307,6 @@ a:hover {
   min-height: 90px;
   resize: vertical;
   line-height: 1.55;
-}
-
-.select {
-  appearance: none;
-  padding-right: 28px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%2371717a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
 }
 
 .ss-wrap {
@@ -1136,7 +1122,6 @@ a:hover {
 }
 
 .detail-side .prop > .prop-view,
-.detail-side .prop > .select,
 .detail-side .prop > .input,
 .detail-side .prop > .ss-wrap,
 .detail-side .prop > span:not(.prop-ic):not(.prop-label):not(.prop-chev) {
@@ -1149,7 +1134,6 @@ a:hover {
   margin-left: auto;
 }
 
-.detail-side .prop .select,
 .detail-side .prop .input {
   height: 28px;
   min-height: 0;
@@ -1724,7 +1708,6 @@ button.prop {
   flex-shrink: 0;
 }
 
-.prop .select,
 .prop .input {
   border: 0;
   background-color: transparent;
@@ -1783,12 +1766,6 @@ button.prop {
   max-width: 92px;
 }
 
-.prop .select {
-  padding-right: 20px;
-  color: var(--text-secondary);
-}
-
-.prop .select:focus,
 .prop .input:focus {
   border: 0;
   box-shadow: none;
@@ -1820,7 +1797,6 @@ button.prop {
   white-space: nowrap;
 }
 
-.select--pill,
 .input--pill {
   border-radius: 999px;
   width: auto;
@@ -1828,10 +1804,6 @@ button.prop {
   padding: 5px 10px;
   font-size: 12.5px;
   min-height: 32px;
-}
-
-.select--pill {
-  padding-right: 26px;
 }
 
 .composer-error {
@@ -3437,7 +3409,6 @@ html[data-theme='light'] .splash-bg {
 @media (hover: none) {
   .input,
   .textarea,
-  .select,
   .ss-trigger,
   .ss-input,
   .palette-input,
@@ -4808,42 +4779,6 @@ html[data-theme='light'] .splash-bg {
   letter-spacing: 0.02em;
 }
 
-.welcome-select-wrap {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-
-.welcome-select {
-  appearance: none;
-  height: 32px;
-  padding: 0 22px 0 10px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-input);
-  font-size: 12.5px;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.welcome-select:hover {
-  border: none;
-  color: var(--text-primary);
-}
-
-.welcome-select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-ring);
-}
-
-.welcome-select-caret {
-  position: absolute;
-  right: 8px;
-  pointer-events: none;
-  color: var(--text-muted);
-}
-
 .welcome-count {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -5534,10 +5469,6 @@ html[data-theme='light'] .splash-bg {
 
   .welcome-command-actions {
     width: 100%;
-  }
-
-  .welcome-select {
-    flex: 1;
   }
 
   .welcome-row-expanded {
@@ -8860,7 +8791,6 @@ input[type='checkbox'] {
   letter-spacing: 0.06em;
   margin: 0 0 8px;
 }
-.select-role { width: 110px; }
 .role-options { display: flex; flex-direction: column; gap: 8px; }
 .role-option { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--border-hairline); border-radius: var(--radius-input); cursor: pointer; transition: border-color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out); }
 .role-option:hover { border-color: var(--accent); background: var(--accent-dim); }
@@ -11452,11 +11382,6 @@ input[type='checkbox'] {
 .api-delete-btn:hover {
   color: var(--status-danger);
   background: var(--status-danger-dim);
-}
-
-.api-method-select {
-  width: 104px;
-  flex: 0 0 auto;
 }
 
 .api-path-input {

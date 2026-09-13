@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
+import { SearchableSelect } from '../../components/SearchableSelect';
 import { InlineError } from '../../components/InlineError';
 import { MILESTONE_STATUS, TASK_PRIORITY, TASK_STATUS } from '../../lib/labels';
 import type { Decision, Milestone, SchemaVersion, Task } from '../../lib/types';
@@ -282,22 +283,17 @@ export function ReleasesFlowView({
   return (
     <div className="release-flow">
       <div className="release-flow-selector-bar">
-        <label className="field-label" htmlFor="flow-milestone-select" style={{ margin: 0 }}>
-          {t('releases.flow.selectMilestone', { defaultValue: 'Milestone' })}
-        </label>
-        <select
+        <SearchableSelect
           id="flow-milestone-select"
-          className="select"
+          label={t('releases.flow.selectMilestone', { defaultValue: 'Milestone' })}
           value={selected.id}
-          onChange={(e) => onSelect(e.target.value)}
-          style={{ maxWidth: 360 }}
-        >
-          {milestones.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name} {m.version ? `· v${m.version.replace(/^v/i, '')}` : ''} · {t(`releases.statusBadge.${m.status}`)}
-            </option>
-          ))}
-        </select>
+          allowEmpty={false}
+          options={milestones.map((m) => ({
+            value: m.id,
+            label: `${m.name}${m.version ? ` · v${m.version.replace(/^v/i, '')}` : ''} · ${t(`releases.statusBadge.${m.status}`)}`,
+          }))}
+          onChange={(v) => { if (v) onSelect(v); }}
+        />
       </div>
 
       <Hero milestone={selected} tasks={flowTasks} issues={issues} testCases={testCases} canEdit={canEdit} onEdit={() => onEditMilestone(selected.id)} />

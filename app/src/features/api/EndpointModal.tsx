@@ -93,25 +93,18 @@ export function EndpointModal({ onClose, onCreated, collections }: EndpointModal
         />
         <div className="field-row">
           <div className="field">
-            <label className="field-label" htmlFor="endpoint-method">
-              {t('api.endpointModal.method')}
-            </label>
-            <select
+            <SearchableSelect
               id="endpoint-method"
-              className="select"
+              label={t('api.endpointModal.method')}
               value={method}
-              onChange={(e) => {
-                setMethod(e.target.value as ApiMethod);
+              allowEmpty={false}
+              searchable={false}
+              options={(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'] as ApiMethod[]).map((m) => ({ value: m, label: m }))}
+              onChange={(v) => {
+                if (v) setMethod(v as ApiMethod);
                 if (error) setError(null);
               }}
-            >
-              <option value="GET">GET</option>
-              <option value="POST">POST</option>
-              <option value="PUT">PUT</option>
-              <option value="PATCH">PATCH</option>
-              <option value="DELETE">DELETE</option>
-              <option value="OPTIONS">OPTIONS</option>
-            </select>
+            />
           </div>
           <div className="field field--grow">
             <label className="field-label" htmlFor="endpoint-path">

@@ -189,8 +189,8 @@ describe('U4 ERD canvas props panel', () => {
     // U5: the issues section may repeat the same relation label in its rows —
     // assert the dedicated rel-label element, not any matching text.
     expect(p.querySelector('.erd-panel-rel-label')?.textContent).toMatch(/users\.id.*projects\.user_id/i);
-    expect((within(p).getByLabelText(/Cardinality|Kardinalitas/i) as HTMLSelectElement).value).toBe('1:N');
-    expect((within(p).getByLabelText(/On delete|Saat hapus/i) as HTMLSelectElement).value).toBe('cascade');
+    expect(within(p).getByLabelText(/Cardinality|Kardinalitas/i).textContent).toContain('1:N');
+    expect(within(p).getByLabelText(/On delete|Saat hapus/i).textContent).toMatch(/cascade/i);
     expect(within(p).getByRole('button', { name: /Delete relation|Hapus relasi/i })).toBeTruthy();
   });
 

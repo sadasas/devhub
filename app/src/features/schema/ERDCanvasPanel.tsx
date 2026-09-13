@@ -8,6 +8,7 @@ import { FE_LIMITS } from '../../lib/limits';
 import { isUniqueIndex, toggleUnique } from './column-helpers';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
+import { SearchableSelect } from '../../components/SearchableSelect';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { SchemaIssuesStrip } from './SchemaIssuesStrip';
 import type { SchemaIssue } from './schema-lint';
@@ -532,53 +533,51 @@ export function ERDCanvasPanel({
       </p>
       <div className="erd-panel-section">
         <div className="field">
-          <label className="field-label" htmlFor="erd-panel-cardinality">
-            {t('schema.panel.cardinalityLabel')}
-          </label>
           {readOnly ? (
-            <span className="erd-panel-read font-mono">{rel.cardinality}</span>
+            <>
+              <label className="field-label" htmlFor="erd-panel-cardinality">
+                {t('schema.panel.cardinalityLabel')}
+              </label>
+              <span className="erd-panel-read font-mono">{rel.cardinality}</span>
+            </>
           ) : (
-            <select
+            <SearchableSelect
               id="erd-panel-cardinality"
-              className="select"
+              label={t('schema.panel.cardinalityLabel')}
               value={rel.cardinality}
-              onChange={(e) =>
-                dispatch({
-                  type: 'relation/update',
-                  id: rel.id,
-                  patch: { cardinality: e.target.value as RelationCardinality },
-                })
-              }
-            >
-              <option value="1:1">1:1</option>
-              <option value="1:N">1:N</option>
-              <option value="N:M">N:M</option>
-            </select>
+              allowEmpty={false}
+              searchable={false}
+              options={(['1:1', '1:N', 'N:M'] as RelationCardinality[]).map((c) => ({ value: c, label: c }))}
+              onChange={(v) => {
+                if (v) dispatch({ type: 'relation/update', id: rel.id, patch: { cardinality: v as RelationCardinality } });
+              }}
+            />
           )}
         </div>
         <div className="field">
-          <label className="field-label" htmlFor="erd-panel-on-delete">
-            {t('schema.panel.onDeleteLabel')}
-          </label>
           {readOnly ? (
-            <span className="erd-panel-read font-mono">{rel.onDelete}</span>
+            <>
+              <label className="field-label" htmlFor="erd-panel-on-delete">
+                {t('schema.panel.onDeleteLabel')}
+              </label>
+              <span className="erd-panel-read font-mono">{rel.onDelete}</span>
+            </>
           ) : (
-            <select
+            <SearchableSelect
               id="erd-panel-on-delete"
-              className="select"
+              label={t('schema.panel.onDeleteLabel')}
               value={rel.onDelete}
-              onChange={(e) =>
-                dispatch({
-                  type: 'relation/update',
-                  id: rel.id,
-                  patch: { onDelete: e.target.value as OnDelete },
-                })
-              }
-            >
-              <option value="cascade">{t('schema.relationModal.optCascade')}</option>
-              <option value="setNull">{t('schema.relationModal.optSetNull')}</option>
-              <option value="restrict">{t('schema.relationModal.optRestrict')}</option>
-            </select>
+              allowEmpty={false}
+              searchable={false}
+              options={[
+                { value: 'cascade', label: t('schema.relationModal.optCascade') },
+                { value: 'setNull', label: t('schema.relationModal.optSetNull') },
+                { value: 'restrict', label: t('schema.relationModal.optRestrict') },
+              ]}
+              onChange={(v) => {
+                if (v) dispatch({ type: 'relation/update', id: rel.id, patch: { onDelete: v as OnDelete } });
+              }}
+            />
           )}
         </div>
       </div>
