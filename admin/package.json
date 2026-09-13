@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "node scripts/guard-vite-api-url.mjs && tsc -b && vite build",
+    "guard:api-base": "node scripts/guard-vite-api-url.mjs",
     "postbuild": "node scripts/sw-precache.mjs",
     "lint": "oxlint",
     "test": "vitest run",

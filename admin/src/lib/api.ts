@@ -29,7 +29,37 @@ import type {
 import type { ProjectStats } from './stats';
 import type { ExportDocument } from './types';
 
-const API_BASE: string = import.meta.env.VITE_API_URL ?? '/api/v1';
+/** Pure helper (mirror app/src/lib/api.ts, diuji di api-base.test.ts +
+ *  guard scripts/guard-vite-api-url.mjs): paksa same-origin '/api/v1' bila
+ *  env absolut cross-site lolos ke build, agar cookie sesi (first-party Lax
+ *  via Worker proxy, shared parent-domain ADR-051) tetap terkirim. */
+export function forceRelativeApiBase(env: string | undefined, origin: string | undefined): string {
+  const v = env?.trim();
+  if (!v || v === '/api/v1') return '/api/v1';
+  // Absolute cross-site (VITE_API_URL=https://<hash>.suga.run/api/v1) but page is on
+  // the admin host via Worker reverse proxy -> session cookie is first-party on
+  // the admin host, not sent to suga.run -> me 401 loop. API must be relative
+  // (same-origin via Worker) to send the cookie.
+  if (/^https?:\/\//i.test(v)) {
+    try {
+      const envOrigin = new URL(v).origin;
+      if (origin !== envOrigin) {
+        // Cross-origin: force same-origin via Worker to keep session cookie
+        return '/api/v1';
+      }
+    } catch {
+      return '/api/v1';
+    }
+  }
+  return v;
+}
+
+function resolveApiBase(): string {
+  const env = (import.meta.env.VITE_API_URL as string | undefined)?.trim();
+  const origin = typeof window !== 'undefined' ? window.location.origin : undefined;
+  return forceRelativeApiBase(env, origin);
+}
+const API_BASE: string = resolveApiBase();
 const REQUEST_TIMEOUT_MS = 15_000;
 
 let unauthorizedHandler: (() => void) | null = null;

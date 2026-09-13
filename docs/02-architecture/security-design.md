@@ -50,10 +50,12 @@
 - Claims: `{ sub: userId, iat, exp }`; expiry **24h**.
 - Storage: httpOnly cookie `devhub_session`:
   - `HttpOnly` — JS cannot read
-  - `SameSite=Lax` — CSRF defense for same-site UI
+  - `SameSite=Lax` — CSRF defense for same-site UI (first-party on every subdomain; `SameSite=None` intentionally NOT used — ADR-051)
   - `Secure` — in production (or behind TLS proxy via `COOKIE_SECURE`)
+  - `Domain` — parent domain in production via `COOKIE_DOMAIN` (single login across app + admin subdomains, ADR-051); empty = host-only (dev). `clearCookie` uses the same domain or logout silently fails
   - `Path=/`
 - Logout: clear cookie server-side (`Set-Cookie` with `Max-Age=0`).
+- **Subdomain constraint (ADR-051):** the session cookie is sent to ALL subdomains of the parent — never host untrusted content on a sibling subdomain.
 
 ### 3.3 Brute-force protection
 

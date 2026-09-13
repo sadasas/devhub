@@ -68,6 +68,7 @@
 | [ADR-047](#adr-047) | Light/Dark theme: global pref html[data-theme], inline FOUC, warm-zinc light tokens, shell cluster + palette + Profile | Accepted | 2026-08-26 |
 | [ADR-048](#adr-048) | OAuth social login Google & GitHub — keep email+password, inbound PKCE, auto-link verified, public providers | Accepted | 2026-08-31 |
 | [ADR-050](#adr-050) | Target market expansion: solo → large engineering orgs (2 → 2,000) — complementary to Jira/Linear | Accepted | 2026-09-03 |
+| [ADR-051](#adr-051) | Admin frontend same-origin Worker proxy + shared parent-domain session (single login app + admin) | Accepted | 2026-09-13 |
 
 ---
 
@@ -672,4 +673,20 @@
   - **Docs updated:** Charter §11 Target user, §1 Executive Summary & §2 Vision + problem statement, PRD 1.2/1.3 & user stories (`Solo Dev` → `Builder / Large Eng member`), Technical Design C4 actors (`Solo Dev` → `Engineering Team solo→large`), README Overview & target user. User stories tetap `As a Builder / Large Eng member` agar tidak narrow ke solo.
 - **Consequences:** Positive — TAM melebar tanpa bunuh SMB (flat tetap); complementary positioning hindari head-to-head vs Jira; crawl validasi murah sebelum 6–12 bulan compliance. Negative — docs & landing harus konsisten (sudah diupdate); workload `Org + SSO + Scale + portfolio` ≈ 5–6 minggu bila crawl GO; flat vs per-seat coexistence butuh UI pricing yang jelas; eng besar akan tanya SOC2 sebelum PO — jawaban harus `Type I in progress, Type II roadmap` bukan `sudah certified`.
 - **Alternatives:** `Semua kalangan B2C` (ditolak: bunuh moat, red ocean vs Notion/ClickUp/monday tanpa funding); `Enterprise general` non-tech (ditolak: DevHub dev-centric tidak relevan untuk HR/marketing murni); `Tetap small team only` (ditolak owner: limit growth, padahal technical memory dibutuhkan juga di 50–2,000); `Loncat langsung SOC2 + SCIM full` (ditolak: 6–12 bulan + $30-50k audit, velocity mati sebelum validasi).
+
+---
+
+### ADR-051
+**Admin frontend same-origin Worker proxy + shared parent-domain session (single login app + admin)**
+
+- **Status:** Accepted (2026-09-13)
+- **Context:** `app/` punya Worker proxy same-origin (`main: ./src/worker.ts`, `run_worker_first`, `SUGA_ORIGIN`, `forceRelativeApiBase` + guard + test), sedangkan `admin/` memanggil BE langsung via `VITE_API_URL` absolut (`https://<hash>.suga.run/api/v1`). Akibatnya: sesi ganda (cookie `devhub_session` host-only per origin — login app ≠ login admin), origin BE terekspos di bundle admin, admin bergantung `CORS_ORIGIN`, dan tanpa guard same-origin. Admin dipasang di subdomain terpisah dan owner mewajibkan **satu login berlaku app + admin** — proxy saja tidak cukup (cookie tetap per-host), dibutuhkan parent-domain cookie.
+- **Decision:**
+  - **Setiap frontend wajib Worker proxy `/api`** (`main: ./src/worker.ts` + `run_worker_first: true` + `vars.SUGA_ORIGIN`): `admin/src/worker.ts` meniru `app/src/worker.ts` (forward `/api/*`, `/mcp`, `/oauth/*`, `/health`, `/.well-known/*`, `/ws` + `x-forwarded-host/proto` + strip `Domain` backend). Lihat runbook §5.
+  - **Klien API disamakan:** `forceRelativeApiBase` + `api-base.test.ts` + `scripts/guard-vite-api-url.mjs` di-port ke `admin/`; `VITE_API_URL=/api/v1` untuk semua build frontend (admin tidak punya WS client — tidak ada yang perlu di-port dari `realtime-client.ts`).
+  - **Single session:** env baru `COOKIE_DOMAIN` (`server/src/config.ts`); `server/src/shared/cookie.ts` memasang `Domain` pada cookie sesi (+ OAuth state; `clearCookie` memakai Domain yang sama agar logout benar-benar menghapus). Prod: `COOKIE_DOMAIN=.nrawangbatin.my.id`; dev: kosong (host-only, perilaku lama).
+  - **Worker preserve parent-domain:** rewrite `Set-Cookie` di kedua worker hanya men-strip `Domain` bila menunjuk host backend (Suga); `Domain` parent dipertahankan — strip-buta memutus login lintas-frontend.
+  - **`SameSite` tetap `Lax`** (first-party di semua subdomain) — `SameSite=None` sengaja TIDAK dipakai (third-party cookie, diblokir Safari/Firefox ITP, permukaan CSRF).
+- **Consequences:** Positive — origin BE tersembunyi dari kedua bundle; tanpa preflight CORS (`CORS_ORIGIN` tetap kosong); satu login untuk app + admin; guard mencegah regresi absolut. Negative — cookie kini dikirim ke SEMUA subdomain parent (constraint: jangan host konten untrusted di subdomain yang sama); logika preserve-`Domain` di worker menjadi load-bearing (regresi = login lintas-frontend rusak — ditutup test server + checklist runbook §7); dev lokal tidak berubah.
+- **Alternatives:** Pertahankan absolut + allowlist `CORS_ORIGIN` (ditolak: sesi ganda permanen, eksposur origin, preflight); `SameSite=None; Secure` (ditolak: third-party, ITP-blocked, CSRF; pola lama sudah dipensiunkan runbook §6b); auth token terpisah untuk admin (ditolak: sistem auth kedua, permukaan audit baru).
 

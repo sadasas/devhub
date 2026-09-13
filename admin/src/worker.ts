@@ -1,4 +1,11 @@
 // @ts-nocheck
+// Admin Worker proxy — mirrors app/src/worker.ts (Opsi A, ADR-051).
+// Same-origin /api via SUGA_ORIGIN so the session cookie stays first-party.
+// Differences vs app worker: none in proxy logic (kept in parity on purpose —
+// including /ws passthrough for future realtime use); only the Worker name/
+// routes differ (see admin/wrangler.json). OAuth note: social-login
+// redirect_uri derives from x-forwarded-host (= admin host), so the admin
+// origin must be allowlisted wherever redirect_uris are validated.
 export interface Env {
   SUGA_ORIGIN: string;
   ASSETS: any;

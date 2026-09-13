@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { app, register, uniqueIp } from './helpers.js';
+import { config } from '../src/config.js';
 import { resetDb } from './setup.js';
 
 describe('auth routes', () => {
@@ -17,6 +18,33 @@ describe('auth routes', () => {
     expect(res.body.id).toBeDefined();
     expect(res.body.email).toBe('new@test.dev');
     expect(res.headers['set-cookie']).toBeDefined();
+  });
+
+  it('sets a host-only session cookie by default (no Domain attribute)', async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/register')
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ email: 'nodomain@test.dev', password: 'password123' });
+    expect(res.status).toBe(201);
+    const setCookie = (res.headers['set-cookie'] as unknown as string[] | undefined)?.[0] ?? '';
+    expect(setCookie).toContain('SameSite=Lax');
+    expect(setCookie).not.toMatch(/Domain=/i);
+  });
+
+  it('sets Domain on the session cookie when COOKIE_DOMAIN is configured (ADR-051)', async () => {
+    const prev = config.COOKIE_DOMAIN;
+    config.COOKIE_DOMAIN = '.nrawangbatin.my.id';
+    try {
+      const res = await request(app)
+        .post('/api/v1/auth/register')
+        .set('X-Forwarded-For', uniqueIp())
+        .send({ email: 'parentdomain@test.dev', password: 'password123' });
+      expect(res.status).toBe(201);
+      const setCookie = (res.headers['set-cookie'] as unknown as string[] | undefined)?.[0] ?? '';
+      expect(setCookie).toContain('Domain=.nrawangbatin.my.id');
+    } finally {
+      config.COOKIE_DOMAIN = prev;
+    }
   });
 
   it('normalizes email to lowercase', async () => {

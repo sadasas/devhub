@@ -25,17 +25,26 @@ UPDATE users SET role='admin' WHERE email='you@example.com';
 ## Build & Deploy (Cloudflare Dashboard)
 
 - Root directory: `admin`
-- Build command: `npm run build`
+- Build command: `npm run build` (guard same-origin + `tsc -b` + `vite build`)
 - Output: `dist`
-- Framework: Vite
-- Env `VITE_API_URL` set di dashboard (baked at build)
+- Env `VITE_API_URL=/api/v1` set di dashboard, Production dan Preview (baked at build;
+  runtime `src/lib/api.ts` memaksa relatif bila nilai absolut cross-site lolos)
 
-Cloudflare Pages akan handle SPA fallback via `wrangler.json` `assets.not_found_handling: single-page-application`.
+Worker `devhub-admin` (`wrangler.json`: `main: ./src/worker.ts`,
+`run_worker_first: true`, `vars.SUGA_ORIGIN`) mem-proxy `/api/*`, `/mcp`,
+`/oauth/*`, `/ws`, `/.well-known/*` ke Suga dan serve `dist` untuk sisanya
+(SPA fallback via `assets.not_found_handling: single-page-application`).
+**Setiap frontend HARUS punya Worker proxy — jangan deploy admin yang
+memanggil Suga absolut (ADR-051).**
 
 ## Env Server
 
-Tambah origin admin ke `CORS_ORIGIN` di server:
+Tidak perlu `CORS_ORIGIN` untuk admin (same-origin via Worker proxy — biarkan
+kosong). Single login app + admin memakai parent-domain cookie (ADR-051):
+
 ```
-CORS_ORIGIN=https://devhub.pages.dev,https://devhub-admin.pages.dev
+COOKIE_DOMAIN=.nrawangbatin.my.id
 ```
-dan pastikan `COOKIE_SECURE=true`, `TRUST_PROXY=true` serta cookie `SameSite=None; Secure` untuk cross-site jika domain berbeda.
+
+`COOKIE_SECURE=true`, `TRUST_PROXY=true`. Pola lama split-origin
+(`CORS_ORIGIN` + `SameSite=None`) sudah pensiun — jangan dihidupkan lagi.

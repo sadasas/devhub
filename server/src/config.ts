@@ -33,6 +33,10 @@ const envSchema = z.object({
         .map((s) => s.trim())
         .filter(Boolean),
     ),
+  // Parent domain for the session cookie (single session across frontend
+  // subdomains, ADR-051). Empty = host-only (local dev, single frontend).
+  // Prod: the parent of app + admin hosts (e.g. `.nrawangbatin.my.id`).
+  COOKIE_DOMAIN: z.string().max(500).default(''),
   PAKASIR_ENABLED: z
     .string()
     .default('false')
