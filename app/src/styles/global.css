@@ -2630,11 +2630,13 @@ html[data-theme='light'] .splash-bg {
 
 /* Sidebar redesign — divider, disclosure, filter, team header */
 /* Sidebar vertical stack — WorkspaceSwitcher (fixed) → L1 project panel
-   (the only scrollable region) → labeled global divider (fixed) →
-   L2 global menu (fixed). Two separate areas prevent overload: only L1
-   scrolls internally; divider + L2 never join the scroll. */
+   (content-sized, shrinks + scrolls internally only when space runs out) →
+   team footer flowing right below L1 → auto-margin spacer absorbs free space
+   so the labeled global divider + L2 global menu stay pinned at the bottom.
+   Two separate areas prevent overload: only L1 scrolls internally; divider
+   + L2 never join the scroll. */
 .sidebar-l1 {
-  flex: 1;
+  flex: 0 1 auto;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
@@ -17767,11 +17769,15 @@ aside.sidebar {
   white-space: nowrap;
 }
 
-/* Thin non-interactive divider between the L1 panel and the fixed bottom. */
+/* Thin non-interactive divider between the L1 panel and the fixed bottom.
+   margin-top:auto absorbs free space when L1 content is short (team footer
+   then flows right below the archived section) and collapses to 0 when L1
+   overflows — so the bottom group stays pinned while only L1 scrolls. */
+.sidebar-divider {
 .sidebar-divider {
   flex-shrink: 0;
   height: 1px;
-  margin: 4px 8px;
+  margin: auto 8px 4px;
   background: var(--border-hairline);
 }
 
