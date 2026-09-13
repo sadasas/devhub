@@ -8,6 +8,8 @@ import { AuthPage } from './features/auth/AuthPage';
 import { Layout } from './features/layout/Layout';
 import {
   BillingRedirectSkeleton,
+  DashboardMembersSkeleton,
+  DashboardSettingsSkeleton,
   DashboardSkeleton,
   DocsSkeleton,
   InvitesSkeleton,
@@ -192,7 +194,7 @@ function Root() {
             <Route
               path="/:teamSlug/members"
               element={
-                <RouteBoundary fallback={<DashboardSkeleton />}>
+                <RouteBoundary fallback={<DashboardMembersSkeleton />}>
                   <DashboardPageLazy />
                 </RouteBoundary>
               }
@@ -200,7 +202,7 @@ function Root() {
             <Route
               path="/:teamSlug/settings"
               element={
-                <RouteBoundary fallback={<DashboardSkeleton />}>
+                <RouteBoundary fallback={<DashboardSettingsSkeleton />}>
                   <DashboardPageLazy />
                 </RouteBoundary>
               }

@@ -199,7 +199,6 @@ function UserFooter() {
     { to: '/profile', icon: <User size={15} weight="duotone" aria-hidden="true" />, label: t('sidebar.profile') as string },
     { to: '/connected', icon: <Plugs size={15} weight="duotone" aria-hidden="true" />, label: t('sidebar.myConnections') as string },
     { to: '/templates', icon: <BookmarkSimple size={15} weight="duotone" aria-hidden="true" />, label: t('sidebar.templates') as string },
-    { to: '/pricing', icon: <CurrencyCircleDollar size={15} weight="duotone" aria-hidden="true" />, label: t('sidebar.pricing') as string },
     { to: '/payments', icon: <Receipt size={15} weight="duotone" aria-hidden="true" />, label: t('sidebar.myPayments') as string, hint: t('sidebar.myPaymentsHint') as string },
   ];
 
@@ -578,6 +577,10 @@ export function Sidebar({ activeTeamId, contextTeamId, onCreateTeam }: SidebarPr
             <NavLink to="/docs" className={itemClass()} aria-label={t('sidebar.docs')}>
               <Notebook size={15} weight="duotone" aria-hidden="true" />
               <span>{t('sidebar.docs')}</span>
+            </NavLink>
+            <NavLink to="/pricing" className={itemClass()} aria-label={t('sidebar.pricing')}>
+              <CurrencyCircleDollar size={15} weight="duotone" aria-hidden="true" />
+              <span>{t('sidebar.pricing')}</span>
             </NavLink>
           </nav>
           <p className="sidebar-hint" aria-hidden="true">

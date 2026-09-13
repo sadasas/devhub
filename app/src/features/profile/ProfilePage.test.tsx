@@ -254,15 +254,11 @@ describe('ProfilePage', () => {
     expect(newInput).toHaveProperty('type', 'password');
   });
 
-  it('shows account details in the Account tab and links in the Profile tab', () => {
+  it('shows account details in the Account tab', () => {
     renderPage();
 
     openTab(/account/i);
     expect(screen.getByText('u1')).not.toBeNull();
     expect(screen.getAllByText('you@devhub.dev').length).toBeGreaterThan(0);
-
-    openTab(/profile/i);
-    expect(screen.getByRole('link', { name: /API keys/i })).not.toBeNull();
-    expect(screen.getByRole('link', { name: /MCP guide/i })).not.toBeNull();
   });
 });

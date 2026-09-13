@@ -15,6 +15,16 @@ function PageShell({ label, children }: PageShellProps) {
   );
 }
 
+function CardShell({ children, compact = false, narrow = false }: { children: ReactNode; compact?: boolean; narrow?: boolean }) {
+  const body = narrow ? <div className="narrow-center">{children}</div> : children;
+  return (
+    <article className={compact ? 'pcard pcard--compact' : 'pcard'}>
+      <div className="pcard-body">{body}</div>
+    </article>
+  );
+}
+
+
 function HeaderBlock({ back, action }: { back?: boolean; action?: boolean }) {
   return (
     <header className="page-header" aria-hidden="true">
@@ -124,6 +134,7 @@ function DocsBodySkeleton() {
 function DocsSkeletonBase({ label }: { label: string }) {
   return (
     <PageShell label={label}>
+      <CardShell>
       <HeaderBlock />
       <div className="docs-grid">
         <div className="docs-main">
@@ -139,6 +150,7 @@ function DocsSkeletonBase({ label }: { label: string }) {
           ))}
         </aside>
       </div>
+      </CardShell>
     </PageShell>
   );
 }
@@ -146,6 +158,7 @@ function DocsSkeletonBase({ label }: { label: string }) {
 export function DashboardSkeleton() {
   return (
     <PageShell label="Projects">
+      <CardShell>
       <HeaderBlock action />
       <div aria-hidden="true">
         <Skeleton style={{ width: 160, height: 20, marginBottom: 12 }} />
@@ -195,6 +208,7 @@ export function DashboardSkeleton() {
           ))}
         </div>
       </div>
+      </CardShell>
     </PageShell>
   );
 }
@@ -203,6 +217,7 @@ export function ProjectSkeleton() {
   const actions: CSSProperties = { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' };
   return (
     <PageShell label="Project">
+      <CardShell compact>
       <header className="project-header" aria-hidden="true">
         <div className="project-heading">
           <div className="back-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -233,6 +248,7 @@ export function ProjectSkeleton() {
       <section className="tab-panel">
         <KanbanSkeleton />
       </section>
+      </CardShell>
     </PageShell>
   );
 }
@@ -240,6 +256,7 @@ export function ProjectSkeleton() {
 export function TeamSkeleton() {
   return (
     <PageShell label="Team">
+      <CardShell narrow>
       <HeaderBlock back action />
       <section className="tab-panel" aria-hidden="true">
         {[0, 1].map((i) => (
@@ -266,6 +283,7 @@ export function TeamSkeleton() {
           </div>
         ))}
       </section>
+      </CardShell>
     </PageShell>
   );
 }
@@ -305,6 +323,7 @@ export function BillingRedirectSkeleton() {
 export function InvitesSkeleton() {
   return (
     <PageShell label="Invitations">
+      <CardShell narrow>
       <HeaderBlock />
       <div aria-hidden="true" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {[0, 1].map((i) => (
@@ -323,6 +342,7 @@ export function InvitesSkeleton() {
           </div>
         ))}
       </div>
+      </CardShell>
     </PageShell>
   );
 }
@@ -330,6 +350,7 @@ export function InvitesSkeleton() {
 export function KeysSkeleton() {
   return (
     <PageShell label="API keys">
+      <CardShell narrow>
       <HeaderBlock action />
       <div className="data-list" aria-hidden="true">
         {[0, 1, 2].map((i) => (
@@ -352,6 +373,7 @@ export function KeysSkeleton() {
           </div>
         ))}
       </div>
+      </CardShell>
     </PageShell>
   );
 }
@@ -359,6 +381,7 @@ export function KeysSkeleton() {
 export function TemplatesSkeleton() {
   return (
     <PageShell label="Templates">
+      <CardShell narrow>
       <HeaderBlock />
       <div className="data-list" aria-hidden="true">
         {[0, 1, 2].map((i) => (
@@ -375,6 +398,7 @@ export function TemplatesSkeleton() {
           </div>
         ))}
       </div>
+      </CardShell>
     </PageShell>
   );
 }
@@ -463,6 +487,7 @@ export function McpDocsSkeleton() {
 export function PricingSkeleton() {
   return (
     <div className="page" role="status" aria-label="Loading pricing" aria-busy="true">
+      <CardShell narrow>
       <HeaderBlock />
       <div aria-hidden="true">
         <div style={{ display: "flex", gap: 12, alignItems: "center", border: "1px solid var(--border-hairline)", borderRadius: 12, padding: 12, marginBottom: 12 }}>
@@ -492,6 +517,7 @@ export function PricingSkeleton() {
         </div>
         <Skeleton style={{ width: "100%", height: 220, marginTop: 24, borderRadius: 12 }} />
       </div>
+      </CardShell>
     </div>
   );
 }
@@ -499,6 +525,7 @@ export function PricingSkeleton() {
 export function PaymentHistorySkeleton() {
   return (
     <div className="page" role="status" aria-label="Loading payments" aria-busy="true">
+      <CardShell narrow>
       <HeaderBlock />
       <div aria-hidden="true" className="billing-ledger" style={{ display: "flex", flexDirection: "column", gap: 0 }}>
         {[0, 1, 2].map((i) => (
@@ -518,6 +545,7 @@ export function PaymentHistorySkeleton() {
           </div>
         ))}
       </div>
+      </CardShell>
     </div>
   );
 }
@@ -545,6 +573,143 @@ export function PublicProjectSkeleton() {
           <KanbanSkeleton />
         </section>
       </main>
+    </div>
+  );
+}
+
+export function MembersTabSkeleton() {
+  return (
+    <section
+      className="tab-panel dashboard__members"
+      id="dashboard-tabpanel-members"
+      tabIndex={0}
+    >
+      <article className="pcard">
+        <div className="pcard-body">
+          <div className="narrow-center">
+            <header className="page-header" aria-hidden="true">
+              <div>
+                <Skeleton style={{ width: 160, height: 22 }} />
+                <Skeleton style={{ width: 96, height: 11, marginTop: 8 }} />
+              </div>
+              <Skeleton style={{ width: 96, height: 32, borderRadius: 8 }} />
+            </header>
+            <div aria-hidden="true" className="dashboard__members-list">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="data-row dashboard__members-row">
+                  <Skeleton style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0 }} />
+                  <div className="data-row-main" style={{ gap: 6 }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <Skeleton style={{ width: 120, height: 14 }} />
+                      <Skeleton style={{ width: 48, height: 16, borderRadius: 6 }} />
+                    </div>
+                    <Skeleton style={{ width: '60%', height: 11 }} />
+                  </div>
+                  <div className="data-row-side">
+                    <Skeleton style={{ width: 72, height: 28, borderRadius: 8 }} />
+                    <Skeleton style={{ width: 88, height: 28, borderRadius: 8 }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+  );
+}
+
+export function SettingsTabSkeleton() {
+  return (
+    <section
+      className="tab-panel dashboard__settings"
+      id="dashboard-tabpanel-settings"
+      tabIndex={0}
+    >
+      <article className="pcard">
+        <div className="pcard-body">
+          <div className="narrow-center">
+            <header className="page-header" aria-hidden="true">
+              <div>
+                <Skeleton style={{ width: 160, height: 22 }} />
+                <Skeleton style={{ width: 240, height: 12, marginTop: 8 }} />
+              </div>
+            </header>
+            <section className="dashboard__settings-section" aria-hidden="true">
+              <Skeleton style={{ width: 120, height: 14 }} />
+              <Skeleton style={{ width: '70%', height: 12, marginTop: 6 }} />
+              <div className="dashboard__settings-row" style={{ marginTop: 12 }}>
+                <Skeleton style={{ width: 72, height: 36, borderRadius: 8 }} />
+                <Skeleton style={{ flex: 1, height: 36, borderRadius: 8 }} />
+              </div>
+              <Skeleton style={{ width: '100%', height: 36, borderRadius: 8, marginTop: 12 }} />
+              <div className="dashboard__settings-id-row" style={{ marginTop: 12 }}>
+                <Skeleton style={{ flex: 1, height: 36, borderRadius: 8 }} />
+                <Skeleton style={{ width: 110, height: 36, borderRadius: 8 }} />
+              </div>
+              <Skeleton style={{ width: 120, height: 36, borderRadius: 8, marginTop: 12 }} />
+            </section>
+            <section className="dashboard__settings-section" aria-hidden="true">
+              <Skeleton style={{ width: 100, height: 14 }} />
+              <Skeleton style={{ width: '60%', height: 12, marginTop: 6 }} />
+              <div className="dashboard__settings-plan-row" style={{ marginTop: 12 }}>
+                <Skeleton style={{ width: 140, height: 16 }} />
+                <Skeleton style={{ width: 110, height: 36, borderRadius: 8 }} />
+              </div>
+              <Skeleton style={{ width: 220, height: 12, marginTop: 8 }} />
+            </section>
+            <section className="dashboard__settings-section" aria-hidden="true">
+              <Skeleton style={{ width: 110, height: 14 }} />
+              <Skeleton style={{ width: '65%', height: 12, marginTop: 6 }} />
+              <div className="dashboard__settings-stats" style={{ marginTop: 12 }}>
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="dashboard__settings-stat" style={{ gap: 6 }}>
+                    <Skeleton style={{ width: '60%', height: 15 }} />
+                    <Skeleton style={{ width: '45%', height: 12 }} />
+                  </div>
+                ))}
+              </div>
+              <div className="dashboard__settings-meters" style={{ marginTop: 8 }}>
+                {[0, 1].map((i) => (
+                  <div key={i} className="usage-meter" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Skeleton style={{ width: 64, height: 12 }} />
+                    <Skeleton style={{ flex: 1, height: 8, borderRadius: 999 }} />
+                    <Skeleton style={{ width: 56, height: 12 }} />
+                  </div>
+                ))}
+              </div>
+            </section>
+            <section className="dashboard__settings-section dashboard__settings-section--danger" aria-hidden="true">
+              <Skeleton style={{ width: 130, height: 14 }} />
+              <Skeleton style={{ width: '75%', height: 12, marginTop: 6 }} />
+              <div className="dashboard__settings-danger-row" style={{ marginTop: 12 }}>
+                <Skeleton style={{ width: '50%', height: 12 }} />
+                <Skeleton style={{ width: 110, height: 36, borderRadius: 8 }} />
+              </div>
+            </section>
+          </div>
+        </div>
+      </article>
+    </section>
+  );
+}
+
+export function DashboardMembersSkeleton() {
+  return (
+    <div className="page welcome-page dashboard" role="status" aria-label="Loading members" aria-busy="true">
+      <div aria-hidden="true">
+        <MembersTabSkeleton />
+      </div>
+    </div>
+  );
+}
+
+export function DashboardSettingsSkeleton() {
+  return (
+    <div className="page welcome-page dashboard" role="status" aria-label="Loading settings" aria-busy="true">
+      <div aria-hidden="true">
+        <SettingsTabSkeleton />
+      </div>
     </div>
   );
 }

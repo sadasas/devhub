@@ -362,17 +362,6 @@ export function ProfilePage() {
               )}
             </section>
           </div>
-
-          <nav className="settings-links" aria-label={t('profile.relatedAria')}>
-            <Link to="/connected">
-              {t('profile.links.apiKeys')}
-              <ArrowRight size={12} aria-hidden="true" />
-            </Link>
-            <Link to="/docs/mcp">
-              {t('profile.links.mcpGuide')}
-              <ArrowRight size={12} aria-hidden="true" />
-            </Link>
-          </nav>
         </section>
       )}
 
@@ -549,29 +538,6 @@ export function ProfilePage() {
               })}
             </p>
             <ThemeSwitcher variant="segmented" />
-          </div>
-
-          <div className="profile-panel">
-            <h3 className="profile-panel-title">{t('profile.account.dataHelpTitle', { defaultValue: 'Data & Help' })}</h3>
-            <p className="field-helper" style={{ marginBottom: 12 }}>
-              {t('profile.account.dataHelpDesc', {
-                defaultValue: 'Your data stays yours — export or import anytime.',
-              })}
-            </p>
-            <nav className="settings-links" aria-label={t('profile.relatedAria')}>
-              <Link to="/connected">
-                {t('profile.links.apiKeys')}
-                <ArrowRight size={12} aria-hidden="true" />
-              </Link>
-              <Link to="/docs/mcp">
-                {t('profile.links.mcpGuide')}
-                <ArrowRight size={12} aria-hidden="true" />
-              </Link>
-              <Link to="/docs">
-                Docs
-                <ArrowRight size={12} aria-hidden="true" />
-              </Link>
-            </nav>
           </div>
         </section>
       )}

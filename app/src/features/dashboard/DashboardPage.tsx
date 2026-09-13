@@ -33,6 +33,7 @@ import { WelcomeHeroMicro } from './WelcomeHeroMicro';
 import { WelcomeProjectRow } from './WelcomeProjectRow';
 import { WelcomeProjectList } from './WelcomeProjectList';
 import { WelcomeListSkeleton } from './WelcomeListSkeleton';
+import { MembersTabSkeleton, SettingsTabSkeleton } from '../../components/PageSkeletons';
 import { WelcomeEmptyNoProject, WelcomeEmptyNoResult } from './WelcomeEmptyStrip';
 import { DashboardMembersTab } from './DashboardMembersTab';
 import { DashboardSettingsTab } from './DashboardSettingsTab';
@@ -563,6 +564,31 @@ export function DashboardPage() {
   return (
     <div className="page welcome-page dashboard">
       {showLoading ? (
+        activeTab === 'members' ? (
+          <div
+            role="status"
+            aria-busy="true"
+            aria-live="polite"
+            aria-label={t('dashboard.team.membersLoading')}
+          >
+            <span className="sr-only">{t('dashboard.team.membersLoadingText')}</span>
+            <div aria-hidden="true">
+              <MembersTabSkeleton />
+            </div>
+          </div>
+        ) : activeTab === 'settings' ? (
+          <div
+            role="status"
+            aria-busy="true"
+            aria-live="polite"
+            aria-label={t('dashboard.team.settingsHeading')}
+          >
+            <span className="sr-only">{t('dashboard.team.settingsHeading')}</span>
+            <div aria-hidden="true">
+              <SettingsTabSkeleton />
+            </div>
+          </div>
+        ) : (
         <div
           className="dashboard__loading"
           role="status"
@@ -579,6 +605,9 @@ export function DashboardPage() {
               ? t('dashboard.team.slugLoading')
               : t('dashboard.welcome.status.loadingText')}
           </span>
+          <section className="tab-panel dashboard__projects">
+          <article className="pcard">
+          <div className="pcard-body">
           <div className="dashboard__header dashboard__header--loading" aria-hidden="true" style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
             <div style={{ minWidth: 0 }}>
               <Skeleton style={{ width: 140, height: 12 }} />
@@ -592,7 +621,11 @@ export function DashboardPage() {
             <Skeleton style={{ width: 130, height: 36, borderRadius: 8, flexShrink: 0 }} />
           </div>
           <WelcomeListSkeleton />
+          </div>
+          </article>
+          </section>
         </div>
+        )
       ) : showTeamsError ? (
         <div className="welcome-error-wrap">
           <DataErrorState error={teamsLoadError ?? teamsError} onRetry={() => void refreshTeams()} retryLabel={t('dashboard.welcome.status.retry')} />
