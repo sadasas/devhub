@@ -165,10 +165,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
           placeholder={t('tests.newModal.namePlaceholder')}
         />
       ) : (
-        <h3
-          className="detail-title"
-          style={{ padding: '4px 6px', margin: '-4px -6px' }}
-        >
+        <h3 className="detail-title">
           {test.name || <DetailEmpty>{t('tests.modal.noSteps')}</DetailEmpty>}
         </h3>
       )}

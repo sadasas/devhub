@@ -177,10 +177,7 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
           placeholder={t('decisions.newModal.titlePlaceholder')}
         />
       ) : (
-        <h3
-          className="detail-title"
-          style={{ padding: '4px 6px', margin: '-4px -6px' }}
-        >
+        <h3 className="detail-title">
           {decision.title || <DetailEmpty>{t('decisions.modal.noContext')}</DetailEmpty>}
         </h3>
       )}

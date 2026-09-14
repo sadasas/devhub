@@ -609,12 +609,12 @@
     },
     "sectionsAria": "Bagian proyek publik",
     "tab": {
-      "board": "Papan (Board)",
-      "issues": "Masalah (Issues)",
-      "stack": "Teknologi (Stack)",
-      "milestones": "Tonggak (Milestones)",
-      "whiteboard": "Papan Tulis (Whiteboard)",
-      "overview": "Ringkasan (About)"
+      "board": "Papan",
+      "issues": "Issue",
+      "stack": "Stack",
+      "milestones": "Milestone",
+      "whiteboard": "Whiteboard",
+      "overview": "Ringkasan"
     },
     "empty": {
       "board": "Belum ada task.",
@@ -630,6 +630,7 @@
       "viewAria": "Tampilan board",
       "byStatus": "Berdasarkan Status",
       "byMilestone": "Berdasarkan Milestone",
+      "byCalendar": "Kalender",
       "byDueDate": "Berdasarkan Tenggat",
       "noTasks": "Tidak ada task",
       "unassigned": "Tanpa penugasan",
@@ -648,6 +649,12 @@
       "severity": "Tingkat: {{value}}",
       "linkedTo": "Tertaut ke task {{id}}"
     },
+    "cta": {
+      "contact": "Hubungi",
+      "demo": "Lihat Demo",
+      "groupAria": "Tautan owner"
+    },
+    "powered": "Didukung oleh",
     "milestone": {
       "target": "Target {{date}}",
       "noTarget": "Tanpa tanggal target"

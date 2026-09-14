@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { app, createProject, createTeam, inviteUser, register, uniqueIp } from './helpers.js';
 import { resetDb } from './setup.js';
+import { pool } from '../src/db/pool.js';
 import { emptyState } from '../src/modules/projects/domain/state.js';
 
 async function makePublic(cookie: string, projectId: string): Promise<void> {
@@ -318,5 +319,54 @@ describe('public project routes', () => {
       .get(`/api/v1/public/projects/${projectId}`)
       .set('X-Forwarded-For', uniqueIp());
     expect(gone.status).toBe(404);
+  });
+
+  it('exposes owner contact links in the public meta when set', async () => {
+    const cookie = await register('cta-pub@test.dev');
+    const projectId = await createProject(cookie, 'CTA public');
+    const saved = await request(app)
+      .patch(`/api/v1/projects/${projectId}`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({
+        visibility: 'public',
+        contactUrl: 'https://owner.example/contact',
+        liveDemoUrl: 'https://demo.example/app',
+      });
+    expect(saved.status).toBe(200);
+
+    const res = await request(app)
+      .get(`/api/v1/public/projects/${projectId}`)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(res.status).toBe(200);
+    expect(res.body.project.contactUrl).toBe('https://owner.example/contact');
+    expect(res.body.project.liveDemoUrl).toBe('https://demo.example/app');
+    // Tidak ada email/member yang bocor lewat meta publik.
+    expect(JSON.stringify(res.body)).not.toContain('@');
+  });
+
+  it('returns null contact links when unset or invalid in storage (fail-closed)', async () => {
+    const cookie = await register('cta-null@test.dev');
+    const projectId = await createProject(cookie, 'CTA null');
+    await makePublic(cookie, projectId);
+
+    const empty = await request(app)
+      .get(`/api/v1/public/projects/${projectId}`)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(empty.status).toBe(200);
+    expect(empty.body.project.contactUrl).toBeNull();
+    expect(empty.body.project.liveDemoUrl).toBeNull();
+
+    // Simulasi baris lama/invalid langsung di storage — tetap null di publik.
+    await pool.query(
+      `UPDATE projects SET contact_url = 'javascript:alert(1)', live_demo_url = 'notaurl' WHERE id = $1`,
+      [projectId],
+    );
+    const res = await request(app)
+      .get(`/api/v1/public/projects/${projectId}`)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(res.status).toBe(200);
+    expect(res.body.project.contactUrl).toBeNull();
+    expect(res.body.project.liveDemoUrl).toBeNull();
   });
 });

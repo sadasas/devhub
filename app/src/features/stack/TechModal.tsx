@@ -350,10 +350,7 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
           placeholder={t('stack.newTechModal.namePlaceholder')}
         />
       ) : (
-        <h3
-          className="detail-title"
-          style={{ padding: '4px 6px', margin: '-4px -6px' }}
-        >
+        <h3 className="detail-title">
           {entry.name || <DetailEmpty>{t('stack.techModal.noNotes')}</DetailEmpty>}
         </h3>
       )}

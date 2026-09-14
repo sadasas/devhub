@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Archive, Bug, CalendarBlank, ChalkboardSimple, Columns, Flag, Gauge, ListChecks, Rocket, SquaresFour, Stack, Eye, LockSimple } from '@phosphor-icons/react';
+import { Archive, ArrowSquareOut, Bug, CalendarBlank, ChalkboardSimple, Columns, Flag, Gauge, ListChecks, Rocket, SquaresFour, Stack, Eye, LockSimple, MagnifyingGlass, Prohibit, Target, type Icon } from '@phosphor-icons/react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { ApiError, api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
@@ -10,12 +10,11 @@ import {
   ISSUE_STATUS,
   PROJECT_STATUS,
   TASK_STATUS,
-  TECH_CATEGORY,
-  TECH_STATUS,
 } from '../../lib/labels';
 import { formatDate, linkedTestCases } from '../../lib/utils';
 import { dueBucket, taskDueChip } from '../../lib/due-dates';
 import { computeProjectStats } from '../../lib/stats';
+import { MarkdownBlocks, renderInline } from '../../lib/markdown';
 import { useAuth } from '../../state/auth-context';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
@@ -25,6 +24,9 @@ import { Skeleton } from '../../components/Skeleton';
 import { LegalFooter } from '../../components/LegalFooter';
 import { PublicWhiteboards } from './PublicWhiteboards';
 import { ReleasesTimelineView } from '../releases/ReleasesTimelineView';
+import { DueCalendar } from '../board/DueCalendar';
+import { StackGraph } from '../stack/StackGraph';
+import { PublicIssueDetailModal, PublicTaskDetailModal } from './PublicDetailModal';
 
 const ALL_PUBLIC_TABS: PublicTab[] = ['board', 'issues', 'stack', 'milestones', 'about', 'whiteboard'];
 
@@ -38,6 +40,15 @@ const TABS: { id: PublicTab; labelKey: string; icon: ReactNode }[] = [
 ];
 
 const BOARD_STATUSES = ['todo', 'inProgress', 'review', 'done'] as const;
+
+/** Fail-closed: hanya http(s)://… ≤2048 char yang dirender sebagai CTA. */
+function safePublicUrl(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const v = value.trim();
+  if (v === '' || v.length > 2048) return null;
+  if (!/^https?:\/\/\S+$/i.test(v)) return null;
+  return v;
+}
 
 const EMPTY_MESSAGE_KEYS: Record<Exclude<PublicTab, 'about'>, string> = {
   board: 'public.empty.board',
@@ -55,11 +66,50 @@ export function PublicProjectPage() {
   const isId = i18n.resolvedLanguage === 'id';
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
+  const taskParam = searchParams.get('task');
+  const issueParam = searchParams.get('issue');
+  // A11y: ingat kartu pembuka modal agar fokus bisa dikembalikan saat tutup.
+  const lastOpenedRef = useRef<{ kind: 'task' | 'issue'; id: string } | null>(null);
   const setTab = (next: PublicTab) => {
     setSearchParams(
       (prev) => {
         const p = new URLSearchParams(prev);
         p.set('tab', next);
+        return p;
+      },
+      { replace: true },
+    );
+  };
+  const openTask = (id: string) => {
+    lastOpenedRef.current = { kind: 'task', id };
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        p.set('task', id);
+        p.delete('issue');
+        return p;
+      },
+      { replace: true },
+    );
+  };
+  const openIssue = (id: string) => {
+    lastOpenedRef.current = { kind: 'issue', id };
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        p.set('issue', id);
+        p.delete('task');
+        return p;
+      },
+      { replace: true },
+    );
+  };
+  const closeDetail = () => {
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        p.delete('task');
+        p.delete('issue');
         return p;
       },
       { replace: true },
@@ -108,12 +158,20 @@ export function PublicProjectPage() {
   const allowedTabs =
     project && project.tabs.length > 0 ? project.tabs : ALL_PUBLIC_TABS;
   const tab: PublicTab =
-    TABS.some((t) => t.id === tabParam) && allowedTabs.includes(tabParam as PublicTab)
+    TABS.some((tb) => tb.id === tabParam) && allowedTabs.includes(tabParam as PublicTab)
       ? (tabParam as PublicTab)
-      : allowedTabs[0] ?? 'board';
+      : allowedTabs.includes('about')
+        ? 'about'
+        : (allowedTabs[0] ?? 'about');
 
   // SEO: meta robots noindex,nofollow KONDISIONAL hanya untuk /p/*.
   // Jangan ubah / (index) menjadi noindex.
+  // SEO OPT-IN (flag-ready, default OFF — JANGAN aktifkan sekarang):
+  //   ADR GA4 gated + noindex /p/ tetap berlaku. Bila nanti owner meminta
+  //   "Allow search engines", tambahkan field opt-in (mis. project.allowIndexing)
+  //   lalu ganti content di bawah menjadi:
+  //     tag.setAttribute('content', project?.allowIndexing ? 'index,follow' : 'noindex,nofollow');
+  //   Default harus tetap 'noindex,nofollow' (fail-closed).
   useEffect(() => {
     let tag = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
     const created = !tag;
@@ -133,6 +191,16 @@ export function PublicProjectPage() {
 
   const taskDone = state ? state.tasks.filter((tk) => tk.status === 'done').length : 0;
   const taskTotal = state ? state.tasks.length : 0;
+
+  // Deep-link ?task=:id / ?issue=:id — ID tidak valid diabaikan diam-diam.
+  const selectedTask = state && taskParam ? (state.tasks.find((tk) => tk.id === taskParam) ?? null) : null;
+  const selectedIssue =
+    state && issueParam && !selectedTask ? (state.issues.find((is) => is.id === issueParam) ?? null) : null;
+
+  // Owner CTA opt-in (fail-closed): hanya http(s) valid yang dirender.
+  const contactUrl = project ? safePublicUrl(project.contactUrl) : null;
+  const liveDemoUrl = project ? safePublicUrl(project.liveDemoUrl) : null;
+  const hasCta = contactUrl != null || liveDemoUrl != null;
 
   return (
     <div className="public-root">
@@ -207,8 +275,8 @@ export function PublicProjectPage() {
                 <h1 className="page-title">{project.name}</h1>
                 <p className="page-subtitle">
                   {isId
-                    ? `Dibagikan oleh ${project.teamName} — update ${formatDate(project.updatedAt)} • ${taskDone} dari ${taskTotal} selesai`
-                    : `${t('public.header.updated', { date: formatDate(project.updatedAt) })} • ${taskDone}/${taskTotal} done • Shared by ${project.teamName}`}
+                    ? `Dibagikan oleh ${project.teamName} • Diperbarui ${formatDate(project.updatedAt)} • ${taskDone} dari ${taskTotal} selesai`
+                    : `Shared by ${project.teamName} • Updated ${formatDate(project.updatedAt)} • ${taskDone}/${taskTotal} done`}
                 </p>
               </div>
               <div className="project-actions" aria-label={isId ? 'Tautan publik, hanya baca, tanpa login' : 'Public link, read-only, no login'}>
@@ -223,16 +291,33 @@ export function PublicProjectPage() {
                   <LockSimple size={11} aria-hidden="true" />
                   {isId ? 'hanya baca • tanpa login' : 'read-only • no login'}
                 </Badge>
+                {hasCta && (
+                  <span role="group" aria-label={t('public.cta.groupAria')} style={{ display: 'inline-flex', gap: 8, flexWrap: 'wrap' }}>
+                    {contactUrl && (
+                      <a
+                        className="btn btn-secondary btn-sm"
+                        href={contactUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {t('public.cta.contact')}
+                        <ArrowSquareOut size={11} aria-hidden="true" />
+                      </a>
+                    )}
+                    {liveDemoUrl && (
+                      <a
+                        className="btn btn-secondary btn-sm"
+                        href={liveDemoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {t('public.cta.demo')}
+                        <ArrowSquareOut size={11} aria-hidden="true" />
+                      </a>
+                    )}
+                  </span>
+                )}
               </div>
-            </div>
-
-            <div className="public-share-banner" role="status">
-              <span aria-hidden="true">🔗</span>
-              <span>
-                {isId
-                  ? `Dibagikan oleh ${project.teamName} — update ${formatDate(project.updatedAt)} • Ringkasan ${taskDone} dari ${taskTotal} selesai. Tautan publik • hanya baca • tanpa login.`
-                  : `Shared by ${project.teamName} — updated ${formatDate(project.updatedAt)} • ${taskDone} of ${taskTotal} done. Public link • read-only • no login.`}
-              </span>
             </div>
 
             {project.status === 'archived' && (
@@ -243,21 +328,23 @@ export function PublicProjectPage() {
             )}
 
             <nav className="tabs" role="tablist" aria-label={t('public.sectionsAria')}>
-              {TABS.filter((tb) => allowedTabs.includes(tb.id)).map((tb) => (
-                <button
-                  key={tb.id}
-                  type="button"
-                  role="tab"
-                  id={`public-tab-${tb.id}`}
-                  aria-selected={tab === tb.id}
-                  aria-controls="public-tabpanel"
-                  className={`tab${tab === tb.id ? ' tab-active' : ''}`}
-                  onClick={() => setTab(tb.id)}
-                >
-                  {tb.icon}
-                  {t(tb.labelKey)}
-                </button>
-              ))}
+              {TABS.filter((tb) => allowedTabs.includes(tb.id)).map((tb) => {
+                return (
+                  <button
+                    key={tb.id}
+                    type="button"
+                    role="tab"
+                    id={`public-tab-${tb.id}`}
+                    aria-selected={tab === tb.id}
+                    aria-controls="public-tabpanel"
+                    className={`tab${tab === tb.id ? ' tab-active' : ''}`}
+                    onClick={() => setTab(tb.id)}
+                  >
+                    {tb.icon}
+                    {t(tb.labelKey)}
+                  </button>
+                );
+              })}
             </nav>
 
             <div
@@ -267,44 +354,61 @@ export function PublicProjectPage() {
               aria-labelledby={`public-tab-${tab}`}
               tabIndex={0}
             >
-              {tab === 'board' && <PublicBoard state={state} />}
-              {tab === 'issues' && <PublicIssues state={state} />}
+              {tab === 'board' && <PublicBoard state={state} onOpenTask={openTask} />}
+              {tab === 'issues' && <PublicIssues state={state} onOpenIssue={openIssue} onOpenTask={openTask} />}
               {tab === 'stack' && <PublicStack state={state} />}
               {tab === 'milestones' && <PublicMilestones state={state} />}
               {tab === 'whiteboard' && <PublicWhiteboards state={state} projectId={projectId} />}
-              {tab === 'about' && <PublicAbout project={project} state={state} tabs={allowedTabs} />}
+              {tab === 'about' && <PublicAbout project={project} state={state} />}
             </div>
+
+            {selectedTask && (
+              <PublicTaskDetailModal task={selectedTask} state={state} onClose={closeDetail} onOpenTask={openTask} />
+            )}
+            {!selectedTask && selectedIssue && (
+              <PublicIssueDetailModal issue={selectedIssue} state={state} onClose={closeDetail} onOpenTask={openTask} />
+            )}
           </>
         )}
-        <LegalFooter compact />
       </main>
+      <div className="public-footer">
+        <LegalFooter compact />
+      </div>
     </div>
   );
 }
 
-type BoardView = 'status' | 'milestone' | 'due';
+type BoardView = 'status' | 'milestone' | 'calendar';
 
 function PublicTaskCard({
   task,
   state,
   showStatus,
   showMilestone,
+  onOpen,
 }: {
   task: Task;
   state: State;
   showStatus?: boolean;
   showMilestone?: boolean;
+  onOpen: (taskId: string) => void;
 }) {
   const milestone = task.milestoneId
     ? state.milestones.find((m) => m.id === task.milestoneId)
     : undefined;
   const testCases = linkedTestCases(task.id, state.testCases);
   return (
-    <div className="task-card">
-      <div className="task-card-top">
+    <button
+      type="button"
+      className="task-card"
+      onClick={() => onOpen(task.id)}
+      aria-label={task.title}
+      style={{ cursor: 'pointer' }}
+    >
+      <span className="task-card-top">
         <span className="task-card-title">{task.title}</span>
-      </div>
-      <div className="task-card-labels">
+      </span>
+      <span className="task-card-labels">
         {showStatus && <span className="task-label">{TASK_STATUS[task.status].label}</span>}
         {showMilestone && milestone && <span className="task-label">{milestone.name}</span>}
         <span key="priority" className="task-label">
@@ -315,8 +419,8 @@ function PublicTaskCard({
             {label}
           </span>
         ))}
-      </div>
-      <div className="task-card-meta">
+      </span>
+      <span className="task-card-meta">
         <span className="task-meta-left">
           {task.dueDate && taskDueChip(task).label && (
             <span
@@ -336,17 +440,47 @@ function PublicTaskCard({
             </span>
           )}
         </span>
-        <span className="task-card-id font-mono" title={task.id}>
-          {task.id.slice(0, 8)}
-        </span>
-      </div>
-    </div>
+      </span>
+    </button>
   );
 }
 
-function PublicBoard({ state }: { state: State }) {
-  const { t } = useTranslation('extras');
-  const [view, setView] = useState<BoardView>('status');
+function PublicBoard({ state, onOpenTask }: { state: State; onOpenTask: (taskId: string) => void }) {
+  const { t, i18n } = useTranslation('extras');
+  const isId = i18n.resolvedLanguage === 'id';
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawView = searchParams.get('view');
+  // calendar menggantikan due/timeline — normalisasi legacy ?view=due|timeline → calendar.
+  const view: BoardView =
+    rawView === 'milestone'
+      ? 'milestone'
+      : rawView === 'calendar' || rawView === 'due' || rawView === 'timeline'
+        ? 'calendar'
+        : 'status';
+
+  useEffect(() => {
+    if (rawView === 'due' || rawView === 'timeline') {
+      setSearchParams(
+        (prev) => {
+          const p = new URLSearchParams(prev);
+          p.set('view', 'calendar');
+          return p;
+        },
+        { replace: true },
+      );
+    }
+  }, [rawView, setSearchParams]);
+
+  const setView = (next: BoardView) => {
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        p.set('view', next);
+        return p;
+      },
+      { replace: true },
+    );
+  };
 
   const milestoneOrder = (m: { status: string; targetDate?: string | null }): number =>
     m.status === 'planned' ? 0 : m.status === 'inProgress' ? 1 : 2;
@@ -361,7 +495,7 @@ function PublicBoard({ state }: { state: State }) {
   ];
 
   const statusCols = BOARD_STATUSES.map((status) => {
-    const tasks = state.tasks.filter((t) => t.status === status);
+    const tasks = state.tasks.filter((tk) => tk.status === status);
     return (
       <div key={status} className="kanban-col">
         <div className="kanban-col-header">
@@ -373,7 +507,7 @@ function PublicBoard({ state }: { state: State }) {
             <p className="kanban-col-empty">{t('public.board.noTasks')}</p>
           ) : (
             tasks.map((task) => (
-              <PublicTaskCard key={task.id} task={task} state={state} showMilestone />
+              <PublicTaskCard key={task.id} task={task} state={state} showMilestone onOpen={onOpenTask} />
             ))
           )}
         </div>
@@ -402,40 +536,7 @@ function PublicBoard({ state }: { state: State }) {
             <p className="kanban-col-empty">{t('public.board.noTasks')}</p>
           ) : (
             tasks.map((task) => (
-              <PublicTaskCard key={task.id} task={task} state={state} showStatus />
-            ))
-          )}
-        </div>
-      </div>
-    );
-  });
-
-  const DUE_BUCKETS_PUBLIC: { bucket: ReturnType<typeof dueBucket>; labelKey: string }[] = [
-    { bucket: 'overdue', labelKey: 'public.due.overdue' },
-    { bucket: 'today', labelKey: 'public.due.today' },
-    { bucket: 'tomorrow', labelKey: 'public.due.tomorrow' },
-    { bucket: 'thisWeek', labelKey: 'public.due.thisWeek' },
-    { bucket: 'nextWeek', labelKey: 'public.due.nextWeek' },
-    { bucket: 'later', labelKey: 'public.due.later' },
-    { bucket: 'none', labelKey: 'public.due.noDate' },
-  ];
-
-  const dueCols = DUE_BUCKETS_PUBLIC.map(({ bucket, labelKey }) => {
-    const tasks = state.tasks
-      .filter((tk) => dueBucket(tk.dueDate) === bucket)
-      .sort((a, b) => (a.dueDate ?? '9999-99-99').localeCompare(b.dueDate ?? '9999-99-99'));
-    return (
-      <div key={bucket} className="kanban-col">
-        <div className="kanban-col-header">
-          <span className="kanban-col-label">{t(labelKey)}</span>
-          <span className="kanban-col-count tabular">{tasks.length}</span>
-        </div>
-        <div className="kanban-col-body">
-          {tasks.length === 0 ? (
-            <p className="kanban-col-empty">{t('public.board.noTasks')}</p>
-          ) : (
-            tasks.map((task) => (
-              <PublicTaskCard key={task.id} task={task} state={state} showMilestone />
+              <PublicTaskCard key={task.id} task={task} state={state} showStatus onOpen={onOpenTask} />
             ))
           )}
         </div>
@@ -469,48 +570,93 @@ function PublicBoard({ state }: { state: State }) {
         <button
           type="button"
           role="tab"
-          className={`sub-tab ${view === 'due' ? 'sub-tab-active' : ''}`}
-          onClick={() => setView('due')}
-          aria-selected={view === 'due'}
+          className={`sub-tab ${view === 'calendar' ? 'sub-tab-active' : ''}`}
+          onClick={() => setView('calendar')}
+          aria-selected={view === 'calendar'}
         >
           <CalendarBlank size={13} aria-hidden="true" />
-          {t('public.board.byDueDate')}
+          {t('public.board.byCalendar', { defaultValue: isId ? 'Kalender' : 'Calendar' })}
         </button>
       </div>
-      <div className="kanban">
-        {view === 'status' ? statusCols : view === 'milestone' ? milestoneCols : dueCols}
-      </div>
+      {view === 'calendar' ? (
+        <DueCalendar tasks={state.tasks} readOnly onOpenTask={onOpenTask} />
+      ) : (
+        <div className="kanban">
+          {view === 'status' ? statusCols : milestoneCols}
+        </div>
+      )}
     </div>
   );
 }
 
-function PublicIssues({ state }: { state: State }) {
+function PublicIssues({
+  state,
+  onOpenIssue,
+  onOpenTask,
+}: {
+  state: State;
+  onOpenIssue: (issueId: string) => void;
+  onOpenTask: (taskId: string) => void;
+}) {
   const { t } = useTranslation('extras');
   if (state.issues.length === 0) {
     return <p className="about-section-body about-section-body-empty">{t(EMPTY_MESSAGE_KEYS.issues)}</p>;
   }
   return (
     <div className="data-list">
-      {state.issues.map((issue) => (
-        <div key={issue.id} className="data-row">
-          <div className="data-row-main">
-            <span className="data-row-title">{issue.title}</span>
-            <span className="data-row-sub">
-              {t('public.issue.severity', { value: issue.severity })}
-              {issue.linkedTaskId ? ` · ${t('public.issue.linkedTo', { id: issue.linkedTaskId.slice(0, 8) })}` : ''}
-            </span>
-            {issue.description && (
-              <span className="data-row-sub public-issue-text">{issue.description}</span>
-            )}
-            {issue.reproduction && (
-              <span className="data-row-sub public-issue-text">{issue.reproduction}</span>
-            )}
+      {state.issues.map((issue) => {
+        const linkedTask = issue.linkedTaskId
+          ? state.tasks.find((tk) => tk.id === issue.linkedTaskId)
+          : undefined;
+        return (
+          <div key={issue.id} className="data-row">
+            <div className="data-row-main">
+              <button
+                type="button"
+                onClick={() => onOpenIssue(issue.id)}
+                aria-label={issue.title}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4,
+                  font: 'inherit',
+                  color: 'inherit',
+                }}
+              >
+                <span className="data-row-title">{issue.title}</span>
+                <span className="data-row-sub">
+                  {t('public.issue.severity', { value: issue.severity })}
+                </span>
+                {issue.description && (
+                  <span className="data-row-sub public-issue-text">{issue.description}</span>
+                )}
+                {issue.reproduction && (
+                  <span className="data-row-sub public-issue-text">{issue.reproduction}</span>
+                )}
+              </button>
+              {linkedTask && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  style={{ alignSelf: 'flex-start', padding: 0, height: 'auto' }}
+                  onClick={() => onOpenTask(linkedTask.id)}
+                  aria-label={linkedTask.title}
+                >
+                  → {linkedTask.title}
+                </button>
+              )}
+            </div>
+            <div className="data-row-side">
+              <Badge tone={ISSUE_STATUS[issue.status].tone}>{ISSUE_STATUS[issue.status].label}</Badge>
+            </div>
           </div>
-          <div className="data-row-side">
-            <Badge tone={ISSUE_STATUS[issue.status].tone}>{ISSUE_STATUS[issue.status].label}</Badge>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -520,22 +666,7 @@ function PublicStack({ state }: { state: State }) {
   if (state.techEntries.length === 0) {
     return <p className="about-section-body about-section-body-empty">{t(EMPTY_MESSAGE_KEYS.stack)}</p>;
   }
-  return (
-    <div className="data-list">
-      {state.techEntries.map((entry) => (
-        <div key={entry.id} className="data-row">
-          <div className="data-row-main">
-            <span className="data-row-title">{entry.name}</span>
-            <span className="data-row-sub">{TECH_CATEGORY[entry.category].label}</span>
-          </div>
-          <div className="data-row-side">
-            {entry.version && <span className="data-row-meta font-mono">{entry.version}</span>}
-            <Badge tone={TECH_STATUS[entry.status].tone}>{TECH_STATUS[entry.status].label}</Badge>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+  return <StackGraph entries={state.techEntries} />;
 }
 
 function PublicMilestones({ state }: { state: State }) {
@@ -548,59 +679,112 @@ function PublicMilestones({ state }: { state: State }) {
   );
 }
 
-const PRD_SECTIONS: { key: keyof NonNullable<PublicProject['prd']>; labelKey: string }[] = [
-  { key: 'purpose', labelKey: 'public.prd.purpose' },
-  { key: 'goals', labelKey: 'public.prd.goals' },
-  { key: 'features', labelKey: 'public.prd.features' },
-  { key: 'scope', labelKey: 'public.prd.scope' },
-  { key: 'outOfScope', labelKey: 'public.prd.outOfScope' },
+const PRD_SECTIONS: { key: keyof NonNullable<PublicProject['prd']>; labelKey: string; icon: Icon }[] = [
+  { key: 'purpose', labelKey: 'public.prd.purpose', icon: Target },
+  { key: 'goals', labelKey: 'public.prd.goals', icon: Flag },
+  { key: 'features', labelKey: 'public.prd.features', icon: Rocket },
+  { key: 'scope', labelKey: 'public.prd.scope', icon: MagnifyingGlass },
+  { key: 'outOfScope', labelKey: 'public.prd.outOfScope', icon: Prohibit },
 ];
 
-function PublicAbout({ project, state, tabs }: { project: PublicProject; state: State; tabs: PublicTab[] }) {
-  const { t } = useTranslation('extras');
+function PublicAbout({ project, state }: { project: PublicProject; state: State }) {
+  const { t, i18n } = useTranslation('extras');
+  const isId = i18n.resolvedLanguage === 'id';
   const stats = computeProjectStats(state);
-  const tabCounts: Record<PublicTab, { label: string; value: number }> = {
-    board: { label: t('public.stats.tasks'), value: state.tasks.length },
-    issues: { label: t('public.stats.openIssues'), value: stats.openIssues },
-    milestones: { label: t('public.stats.milestones'), value: state.milestones.length },
-    stack: { label: t('public.stats.stackEntries'), value: state.techEntries.length },
-    whiteboard: { label: t('public.stats.whiteboards'), value: state.whiteboards.length },
-    about: { label: t('public.stats.testCases'), value: state.testCases.length },
-  };
-  const counts = ALL_PUBLIC_TABS.filter((tab) => tabs.includes(tab)).map((tb) => tabCounts[tb]);
+  const taskDone = stats.doneTasks;
+  const taskTotal = stats.totalTasks;
+  const progress = taskTotal > 0 ? Math.round((taskDone / taskTotal) * 100) : 0;
+  const overdueViaBucket = state.tasks.filter(
+    (tk) => tk.status !== 'done' && dueBucket(tk.dueDate) === 'overdue',
+  ).length;
+  const overdue = stats.overdueTasks > 0 ? stats.overdueTasks : overdueViaBucket;
+  const next = stats.nextMilestone;
+
+  const prdSections = PRD_SECTIONS.map((s) => ({
+    ...s,
+    value: project.prd?.[s.key] ?? '',
+  })).filter((s) => s.value.trim() !== '');
 
   return (
     <div className="about-body">
-      <p className="about-description">{project.description || t('public.noDescription')}</p>
-      <p className="about-meta">
-        <span>{t('public.about.team', { name: project.teamName })}</span>
-        <span>{t('public.header.created', { date: formatDate(project.createdAt) })}</span>
-        <span>{t('public.header.updated', { date: formatDate(project.updatedAt) })}</span>
-      </p>
-
-      <div className="stats-grid mb-24">
-        {counts.map((c) => (
-          <div key={c.label} className="stat-card">
-            <div className="stat-card-head">
-              <span className="stat-card-title">{c.label}</span>
-              <span className="stat-card-value">{c.value}</span>
-            </div>
+      <div className="about-hero">
+        <p className={`about-description${project.description.trim() ? '' : ' about-description-empty'}`}>
+          {project.description.trim() ? renderInline(project.description) : t('public.noDescription')}
+        </p>
+        <p className="about-meta">
+          <span className="about-meta-chip">{isId ? `Tim: ${project.teamName}` : `Team: ${project.teamName}`}</span>
+          <span className="about-meta-chip">{t('public.header.created', { date: formatDate(project.createdAt) })}</span>
+          <span className="about-meta-chip">{t('public.header.updated', { date: formatDate(project.updatedAt) })}</span>
+        </p>
+        <div className="milestone-progress" style={{ marginTop: 12 }}>
+          <div className="milestone-progress-track">
+            <div className="milestone-progress-fill" style={{ width: `${progress}%` }} />
           </div>
-        ))}
+          <span className="tabular">
+            {taskDone}/{taskTotal} · {progress}%
+          </span>
+        </div>
+        {overdue > 0 && (
+          <p style={{ marginTop: 8, marginBottom: 0, fontSize: 12, color: 'var(--status-danger)' }}>
+            {isId ? `${overdue} task terlambat` : `${overdue} overdue`}
+          </p>
+        )}
+        {next && (
+          <p style={{ marginTop: 8, marginBottom: 0, fontSize: 12, color: 'var(--text-muted)' }}>
+            {isId ? 'Berikutnya: ' : 'Next: '}
+            <strong>{next.name}</strong>
+            {next.targetDate ? ` • ${formatDate(next.targetDate)}` : ''}
+          </p>
+        )}
       </div>
 
-      {project.prd &&
-        PRD_SECTIONS.map((s) => {
-          const value = project.prd?.[s.key];
-          return (
-            <section key={s.key} className="about-section">
-              <h3 className="about-section-title">{t(s.labelKey)}</h3>
-              <p className={`about-section-body${value ? '' : ' about-section-body-empty'}`}>
-                {value || t('public.prd.notSet')}
-              </p>
+      <div className="about-stats">
+        <div className="about-stat">
+          <span className="about-stat-title">{t('public.stats.tasks')}</span>
+          <span className="about-stat-value">{taskTotal > 0 ? `${taskDone}/${taskTotal}` : '0'}</span>
+        </div>
+        <div className="about-stat">
+          <span className="about-stat-title">{t('public.stats.milestones')}</span>
+          <span className="about-stat-value">
+            {stats.totalMilestones > 0 ? `${stats.releasedMilestones}/${stats.totalMilestones}` : '0'}
+          </span>
+        </div>
+        <div className="about-stat">
+          <span className="about-stat-title">{t('public.stats.openIssues')}</span>
+          <span className="about-stat-value">{stats.openIssues}</span>
+        </div>
+      </div>
+
+      <div className="about-stats">
+        <div className="about-stat">
+          <span className="about-stat-title">{t('public.stats.stackEntries')}</span>
+          <span className="about-stat-value">{state.techEntries.length}</span>
+        </div>
+        <div className="about-stat">
+          <span className="about-stat-title">{t('public.stats.whiteboards')}</span>
+          <span className="about-stat-value">{state.whiteboards.length}</span>
+        </div>
+        <div className="about-stat">
+          <span className="about-stat-title">{t('public.stats.testCases')}</span>
+          <span className="about-stat-value">{state.testCases.length}</span>
+        </div>
+      </div>
+
+      {prdSections.length > 0 && (
+        <div className="about-cards">
+          {prdSections.map((s) => (
+            <section key={s.key} className="about-card">
+              <h3 className="about-card-head">
+                <s.icon size={14} weight="bold" aria-hidden="true" />
+                <span className="about-card-title">{t(s.labelKey)}</span>
+              </h3>
+              <div className="about-card-body">
+                <MarkdownBlocks text={s.value} />
+              </div>
             </section>
-          );
-        })}
+          ))}
+        </div>
+      )}
     </div>
   );
 }

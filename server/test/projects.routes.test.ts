@@ -321,4 +321,79 @@ describe('projects routes', () => {
       .set('X-Forwarded-For', uniqueIp());
     expect(list.body.projects[0].name).toMatch(/^Imported \d{4}-\d{2}-\d{2}$/);
   });
+
+  it('saves owner contact links and returns them in the list', async () => {
+    const cookie = await register('cta@test.dev');
+    const projectId = await createProject(cookie);
+
+    const patched = await request(app)
+      .patch(`/api/v1/projects/${projectId}`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ contactUrl: 'https://owner.example/contact', liveDemoUrl: 'https://demo.example/app' });
+    expect(patched.status).toBe(200);
+    expect(patched.body.contactUrl).toBe('https://owner.example/contact');
+    expect(patched.body.liveDemoUrl).toBe('https://demo.example/app');
+
+    const list = await request(app)
+      .get('/api/v1/projects')
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(list.status).toBe(200);
+    expect(list.body.projects[0].contactUrl).toBe('https://owner.example/contact');
+    expect(list.body.projects[0].liveDemoUrl).toBe('https://demo.example/app');
+
+    // '' = clear (fail-closed).
+    const cleared = await request(app)
+      .patch(`/api/v1/projects/${projectId}`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ contactUrl: '', liveDemoUrl: '' });
+    expect(cleared.status).toBe(200);
+    expect(cleared.body.contactUrl).toBeNull();
+    expect(cleared.body.liveDemoUrl).toBeNull();
+  });
+
+  it('rejects non-http(s) or oversized contact links with 400', async () => {
+    const cookie = await register('cta2@test.dev');
+    const projectId = await createProject(cookie);
+
+    for (const bad of ['javascript:alert(1)', 'ftp://files.example/x', `https://${'a'.repeat(2048)}.example`]) {
+      const res = await request(app)
+        .patch(`/api/v1/projects/${projectId}`)
+        .set('Cookie', cookie)
+        .set('X-Forwarded-For', uniqueIp())
+        .send({ contactUrl: bad });
+      expect(res.status).toBe(400);
+    }
+  });
+
+  it('rejects contact link edits from non-admins and on archived projects', async () => {
+    const ownerCookie = await register('cta3@test.dev');
+    const editorCookie = await register('cta3e@test.dev');
+    const teamId = await createTeam(ownerCookie);
+    await inviteUser(ownerCookie, editorCookie, teamId, 'editor');
+    const projectId = await createProject(ownerCookie, 'CTA roles', teamId);
+
+    const denied = await request(app)
+      .patch(`/api/v1/projects/${projectId}`)
+      .set('Cookie', editorCookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ contactUrl: 'https://owner.example/contact' });
+    expect(denied.status).toBe(403);
+
+    const archived = await request(app)
+      .patch(`/api/v1/projects/${projectId}`)
+      .set('Cookie', ownerCookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ status: 'archived' });
+    expect(archived.status).toBe(200);
+
+    const locked = await request(app)
+      .patch(`/api/v1/projects/${projectId}`)
+      .set('Cookie', ownerCookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ contactUrl: 'https://owner.example/contact' });
+    expect(locked.status).toBe(403);
+  });
 });

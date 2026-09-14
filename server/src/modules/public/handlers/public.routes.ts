@@ -8,6 +8,14 @@ import { normalizeTabs, publicStateKeys } from '../../projects/domain/sharing.js
 
 export const publicRouter = Router();
 
+function normalizePublicUrl(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const v = value.trim();
+  if (v === '' || v.length > 2048) return null;
+  if (!/^https?:\/\/\S+$/i.test(v)) return null;
+  return v;
+}
+
 function publicProjectJson(row: PublicProjectRow) {
   const tabs = normalizeTabs(row.public_tabs);
   return {
@@ -23,6 +31,10 @@ function publicProjectJson(row: PublicProjectRow) {
     teamName: row.team_name,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
+    // Owner CTA opt-in (fail-closed): null/kosong/invalid = tidak dirender.
+    // Tidak ada email/member yang diekspos tanpa consent.
+    contactUrl: normalizePublicUrl((row as { contact_url?: unknown }).contact_url),
+    liveDemoUrl: normalizePublicUrl((row as { live_demo_url?: unknown }).live_demo_url),
   };
 }
 

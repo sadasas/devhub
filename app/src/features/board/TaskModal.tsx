@@ -565,10 +565,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 placeholder={t('board.taskModal.untitled')}
               />
             ) : (
-              <h3
-                className="detail-title"
-                style={{ padding: '4px 6px', margin: '-4px -6px' }}
-              >
+              <h3 className="detail-title">
                 {task.title || <DetailEmpty>Untitled task</DetailEmpty>}
               </h3>
             )}

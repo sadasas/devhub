@@ -360,10 +360,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
           placeholder={t('issues.newModal.titlePlaceholder')}
         />
       ) : (
-        <h3
-          className="detail-title"
-          style={{ padding: '4px 6px', margin: '-4px -6px' }}
-        >
+        <h3 className="detail-title">
           {issue.title || <DetailEmpty>{t('issues.modal.untitledIssue')}</DetailEmpty>}
         </h3>
       )}

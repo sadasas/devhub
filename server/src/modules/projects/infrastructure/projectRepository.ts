@@ -14,6 +14,9 @@ export interface ProjectMetaPatch {
   visibility?: string;
   publicTabs?: unknown;
   prd?: string | null;
+  /** '' = clear (fail-closed); undefined = keep. */
+  contactUrl?: string | null;
+  liveDemoUrl?: string | null;
 }
 
 export interface ProjectVersionRow {
@@ -24,6 +27,7 @@ export interface ProjectVersionRow {
 export async function listProjects(userId: string): Promise<ProjectRow[]> {
   const result = await pool.query(
     `SELECT p.id, p.name, p.description, p.status, p.version, p.prd, p.visibility, p.public_tabs,
+            p.contact_url, p.live_demo_url,
             p.created_at, p.updated_at, p.team_id, t.name AS team_name, tm.role
      FROM projects p
      JOIN team_members tm ON tm.team_id = p.team_id
@@ -82,6 +86,8 @@ export async function updateProjectMeta(
          visibility = COALESCE($5, visibility),
          public_tabs = COALESCE($6::jsonb, public_tabs),
          prd = COALESCE($7::jsonb, prd),
+         contact_url = COALESCE($9, contact_url),
+         live_demo_url = COALESCE($10, live_demo_url),
          version = version + 1,
          updated_at = now()
        WHERE id = $1 AND version = $8
@@ -95,6 +101,8 @@ export async function updateProjectMeta(
         patch.publicTabs !== undefined ? JSON.stringify(patch.publicTabs) : null,
         patch.prd ?? null,
         expectedVersion,
+        patch.contactUrl ?? null,
+        patch.liveDemoUrl ?? null,
       ],
     );
     return updated.rows[0];
@@ -107,6 +115,8 @@ export async function updateProjectMeta(
        visibility = COALESCE($5, visibility),
        public_tabs = COALESCE($6::jsonb, public_tabs),
        prd = COALESCE($7::jsonb, prd),
+       contact_url = COALESCE($8, contact_url),
+       live_demo_url = COALESCE($9, live_demo_url),
        version = version + 1,
        updated_at = now()
      WHERE id = $1
@@ -119,6 +129,8 @@ export async function updateProjectMeta(
       patch.visibility ?? null,
       patch.publicTabs !== undefined ? JSON.stringify(patch.publicTabs) : null,
       patch.prd ?? null,
+      patch.contactUrl ?? null,
+      patch.liveDemoUrl ?? null,
     ],
   );
   return updated.rows[0];

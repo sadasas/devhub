@@ -40,19 +40,40 @@ export function ShareModal({ projectId, open, onClose }: ShareModalProps) {
   const [startVis, setStartVis] = useState<'private' | 'public'>('private');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Owner CTA opt-in (fail-closed, default off): '' = tidak tampil di publik.
+  const [contactUrl, setContactUrl] = useState('');
+  const [liveDemoUrl, setLiveDemoUrl] = useState('');
+  const [linksSaving, setLinksSaving] = useState(false);
+  const [linksSaved, setLinksSaved] = useState(false);
 
   useEffect(() => {
     if (!open || !project) return;
     setVis(project.visibility);
     setStartVis(project.visibility);
     setTabs(project.tabs.length > 0 ? project.tabs : ALL_TABS);
+    setContactUrl(project.contactUrl ?? '');
+    setLiveDemoUrl(project.liveDemoUrl ?? '');
+    setLinksSaved(false);
     setError(null);
   }, [open, project]);
 
   const showWarn = vis === 'private' && startVis === 'public';
   const publicUrl = `${window.location.origin}/p/${projectId}`;
 
-  async function save(patch: { visibility?: 'private' | 'public'; publicTabs?: PublicTab[] }) {
+  function isValidOptionalUrl(v: string): boolean {
+    const s = v.trim();
+    if (s === '') return true;
+    if (s.length > 2048) return false;
+    return /^https?:\/\/\S+$/i.test(s);
+  }
+  const contactValid = isValidOptionalUrl(contactUrl);
+  const demoValid = isValidOptionalUrl(liveDemoUrl);
+  const linksValid = contactValid && demoValid;
+  const linksDirty =
+    (contactUrl.trim() !== (project?.contactUrl ?? '').trim()) ||
+    (liveDemoUrl.trim() !== (project?.liveDemoUrl ?? '').trim());
+
+  async function save(patch: { visibility?: 'private' | 'public'; publicTabs?: PublicTab[]; contactUrl?: string; liveDemoUrl?: string }) {
     if (!project || saving) return;
     setSaving(true);
     setError(null);
@@ -78,6 +99,24 @@ export function ShareModal({ projectId, open, onClose }: ShareModalProps) {
     if (next.length === 0) return;
     setTabs(next);
     void save({ publicTabs: next });
+  }
+
+  async function saveLinks() {
+    if (!linksValid || !linksDirty || linksSaving) return;
+    setLinksSaving(true);
+    setLinksSaved(false);
+    setError(null);
+    try {
+      await update(projectId, {
+        contactUrl: contactUrl.trim(),
+        liveDemoUrl: liveDemoUrl.trim(),
+      });
+      setLinksSaved(true);
+    } catch (err) {
+      setError(getErrorMessage(err, t('errors.saveShareFailed')));
+    } finally {
+      setLinksSaving(false);
+    }
   }
 
   return (
@@ -180,6 +219,78 @@ export function ShareModal({ projectId, open, onClose }: ShareModalProps) {
                 </Button>
               </div>
             </div>
+
+            <fieldset className="share-cta" style={{ border: 0, padding: 0, margin: '12px 0 0' }}>
+              <legend className="field-label">
+                {t('share.ctaLegend', { defaultValue: 'Tautan owner (opsional)' })}
+              </legend>
+              <p className="field-helper" style={{ margin: '0 0 8px' }}>
+                {t('share.ctaHelper', {
+                  defaultValue: 'Opsional — kosong = tidak tampil di halaman publik. Hanya link http(s) yang disimpan.',
+                })}
+              </p>
+              <div className="field" style={{ marginBottom: 8 }}>
+                <label className="field-label" htmlFor="share-contact-url">
+                  {t('share.contactUrlLabel', { defaultValue: 'Link kontak (Hubungi)' })}
+                </label>
+                <input
+                  id="share-contact-url"
+                  className="input font-mono"
+                  type="url"
+                  inputMode="url"
+                  autoComplete="url"
+                  placeholder="https://…"
+                  value={contactUrl}
+                  disabled={linksSaving}
+                  aria-invalid={!contactValid}
+                  onChange={(e) => { setContactUrl(e.target.value); setLinksSaved(false); }}
+                />
+                {!contactValid && (
+                  <span className="field-error" role="alert">
+                    {t('share.urlInvalid', { defaultValue: 'Gunakan http(s)://… atau kosongkan.' })}
+                  </span>
+                )}
+              </div>
+              <div className="field" style={{ marginBottom: 8 }}>
+                <label className="field-label" htmlFor="share-demo-url">
+                  {t('share.demoUrlLabel', { defaultValue: 'Link demo (Lihat Demo)' })}
+                </label>
+                <input
+                  id="share-demo-url"
+                  className="input font-mono"
+                  type="url"
+                  inputMode="url"
+                  autoComplete="url"
+                  placeholder="https://…"
+                  value={liveDemoUrl}
+                  disabled={linksSaving}
+                  aria-invalid={!demoValid}
+                  onChange={(e) => { setLiveDemoUrl(e.target.value); setLinksSaved(false); }}
+                />
+                {!demoValid && (
+                  <span className="field-error" role="alert">
+                    {t('share.urlInvalid', { defaultValue: 'Gunakan http(s)://… atau kosongkan.' })}
+                  </span>
+                )}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={!linksValid || !linksDirty || linksSaving}
+                  onClick={() => void saveLinks()}
+                >
+                  {linksSaving
+                    ? t('share.saving', { defaultValue: 'Menyimpan…' })
+                    : t('share.saveCta', { defaultValue: 'Simpan tautan' })}
+                </Button>
+                {linksSaved && (
+                  <span className="field-helper" role="status" style={{ margin: 0 }}>
+                    {t('share.ctaSaved', { defaultValue: 'Tersimpan.' })}
+                  </span>
+                )}
+              </div>
+            </fieldset>
           </>
         )}
 

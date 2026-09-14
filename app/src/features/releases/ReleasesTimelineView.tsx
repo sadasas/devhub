@@ -9,9 +9,15 @@ import { useTranslation } from "react-i18next";
 interface Props {
   milestones: Milestone[];
   tasks: Task[];
-  onSelect: (id: string) => void;
+  onSelect?: (id: string) => void;
   unreadIds?: ReadonlySet<string>;
   showCta?: boolean;
+  /**
+   * Varian publik read-only (P2): true → kartu dirender sebagai <div> statis,
+   * bukan <button> mati. Dipakai PublicMilestones (showCta=false).
+   * Internal (ReleasesPage) default false → perilaku button tidak berubah.
+   */
+  readOnly?: boolean;
 }
 
 function dotForStatus(status: Milestone["status"]) {
@@ -34,7 +40,7 @@ function parseDateParts(iso?: string | null) {
   }
 }
 
-export function ReleasesTimelineView({ milestones, tasks, onSelect, unreadIds, showCta = true }: Props) {
+export function ReleasesTimelineView({ milestones, tasks, onSelect, unreadIds, showCta = true, readOnly = false }: Props) {
   const { t } = useTranslation("project");
   if (milestones.length === 0) return null;
   const sorted = [...milestones].sort((a, b) => {
@@ -73,6 +79,28 @@ export function ReleasesTimelineView({ milestones, tasks, onSelect, unreadIds, s
             <div className={"timeline-dot " + dotForStatus(m.status)} aria-hidden="true">
               {m.status === "released" ? <Check size={14} weight="bold" /> : m.status === "inProgress" ? <Rocket size={14} weight="fill" /> : null}
             </div>
+            {readOnly || !onSelect ? (
+              // Publik: div statis — tidak ada button tanpa aksi (P2 fail-closed).
+              // Progress done/tot % tetap tampil sebagai showcase read-only.
+              <div className="timeline-card timeline-card--static" role="article" aria-label={m.name}>
+                <div className="timeline-card-head">
+                  <Badge tone={MILESTONE_STATUS[m.status].tone}>{t("releases.statusBadge." + m.status)}</Badge>
+                  {m.version && <span className="font-mono tabular" style={{ fontSize: 11, color: "var(--text-muted)" }}>v{m.version.replace(/^v/i, "")}</span>}
+                  <span className="font-mono tabular" style={{ fontSize: 11, color: "var(--text-muted)" }}>#{shortId(m.id)}</span>
+                  {unreadIds?.has(m.id) && <span className="unread-pill">New</span>}
+                </div>
+                <div className="timeline-card-title">{m.name}</div>
+                {m.changelog && <div className="timeline-card-sub md-blocks"><MarkdownBlocks text={m.changelog} /></div>}
+                {tot > 0 && (
+                  <div className="milestone-progress" style={{ marginTop: 8 }}>
+                    <div className="milestone-progress-track">
+                      <div className="milestone-progress-fill" style={{ width: progress + "%" }} />
+                    </div>
+                    <span className="tabular">{done}/{tot} · {progress}%</span>
+                  </div>
+                )}
+              </div>
+            ) : (
             <button type="button" className="timeline-card" onClick={() => onSelect(m.id)} aria-label={m.name}>
               <div className="timeline-card-head">
                 <Badge tone={MILESTONE_STATUS[m.status].tone}>{t("releases.statusBadge." + m.status)}</Badge>
@@ -92,6 +120,7 @@ export function ReleasesTimelineView({ milestones, tasks, onSelect, unreadIds, s
               )}
               {showCta && <span className="timeline-cta">{t("releases.flow.viewDetail", { defaultValue: "Lihat detail alur →" })}</span>}
             </button>
+            )}
           </div>
         );
       })}

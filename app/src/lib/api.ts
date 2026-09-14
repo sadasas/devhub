@@ -261,7 +261,7 @@ export const api = {
   },
   patchProject: (
     projectId: string,
-    patch: Partial<Pick<Project, 'name' | 'description' | 'status' | 'visibility' | 'prd'> & { publicTabs: PublicTab[] }>,
+    patch: Partial<Pick<Project, 'name' | 'description' | 'status' | 'visibility' | 'prd' | 'contactUrl' | 'liveDemoUrl'> & { publicTabs: PublicTab[] }>,
     version?: number,
   ) =>
     request<Project>(`/projects/${encodeURIComponent(projectId)}`, {

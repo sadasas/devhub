@@ -31,7 +31,9 @@ function shortName(name: string): string {
 
 interface StackGraphProps {
   entries: TechEntry[];
-  onOpen: (id: string) => void;
+  /** Dibutuhkan di internal (buka TechModal). Dihilangkan di publik read-only:
+      node jadi statis tanpa role button/fokus/klik. */
+  onOpen?: (id: string) => void;
 }
 
 export function StackGraph({ entries, onOpen }: StackGraphProps) {
@@ -178,17 +180,24 @@ export function StackGraph({ entries, onOpen }: StackGraphProps) {
             {nodes.map((node) => (
               <g
                 key={node.entry.id}
-                role="button"
-                tabIndex={0}
-                aria-label={t("stack.graph.nodeAria", { name: node.entry.name })}
-                className="stack-graph-node"
-                onClick={() => onOpen(node.entry.id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onOpen(node.entry.id);
-                  }
-                }}
+                {...(onOpen
+                  ? {
+                      role: 'button' as const,
+                      tabIndex: 0,
+                      'aria-label': t('stack.graph.nodeAria', { name: node.entry.name }),
+                      className: 'stack-graph-node',
+                      onClick: () => onOpen(node.entry.id),
+                      onKeyDown: (e: React.KeyboardEvent) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onOpen(node.entry.id);
+                        }
+                      },
+                    }
+                  : {
+                      className: 'stack-graph-node stack-graph-node--static',
+                      'aria-label': t('stack.graph.nodeAria', { name: node.entry.name }),
+                    })}
               >
                 <title>
                   {t("stack.graph.nodeTitle", {

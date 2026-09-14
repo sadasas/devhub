@@ -43,6 +43,9 @@ export interface ProjectWithRole {
   created_at: Date;
   updated_at: Date;
   role: TeamRole;
+  /** Opt-in owner CTA (fail-closed: null/'' = tidak tampil). */
+  contact_url?: string | null;
+  live_demo_url?: string | null;
 }
 
 export interface TeamWithRole {
@@ -72,6 +75,7 @@ export async function getProjectWithRole(
   if (!isUuid(projectId)) return undefined;
   const result = await pool.query(
     `SELECT p.id, p.name, p.description, p.status, p.version, p.prd, p.data, p.visibility, p.public_tabs,
+            p.contact_url, p.live_demo_url,
             p.created_at, p.updated_at, p.team_id, t.name AS team_name, tm.role
      FROM projects p
      JOIN team_members tm ON tm.team_id = p.team_id
@@ -110,6 +114,9 @@ export interface PublicProjectRow {
   team_name: string;
   created_at: Date;
   updated_at: Date;
+  /** Opt-in owner CTA (fail-closed: hanya http(s) valid yang diekspos). */
+  contact_url?: string | null;
+  live_demo_url?: string | null;
 }
 
 export async function getPublicProject(
@@ -118,6 +125,7 @@ export async function getPublicProject(
   if (!isUuid(projectId)) return undefined;
   const result = await pool.query(
     `SELECT p.id, p.name, p.description, p.status, p.visibility, p.version, p.prd, p.data, p.public_tabs,
+            p.contact_url, p.live_demo_url,
             p.created_at, p.updated_at, t.name AS team_name
      FROM projects p
      JOIN teams t ON t.id = p.team_id

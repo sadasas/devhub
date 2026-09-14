@@ -630,6 +630,7 @@
       "viewAria": "Board view",
       "byStatus": "By Status",
       "byMilestone": "By Milestone",
+      "byCalendar": "Calendar",
       "byDueDate": "By Due Date",
       "noTasks": "No tasks",
       "unassigned": "Unassigned",
@@ -648,6 +649,12 @@
       "severity": "Severity: {{value}}",
       "linkedTo": "Linked to task {{id}}"
     },
+    "cta": {
+      "contact": "Contact",
+      "demo": "View Demo",
+      "groupAria": "Owner links"
+    },
+    "powered": "Powered by",
     "milestone": {
       "target": "Target {{date}}",
       "noTarget": "No target date"

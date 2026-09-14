@@ -76,14 +76,16 @@ describe('PublicProjectPage', () => {
     vi.spyOn(api, 'getPublicProject').mockResolvedValue(makeMeta());
     vi.spyOn(api, 'getPublicState').mockResolvedValue({ state: makeState({ tasks }), version: 1 });
 
-    const { container } = renderPage();
+    const { container } = renderPage([`/p/${PROJECT_ID}?tab=board`]);
     const heading = await screen.findByRole('heading', { name: 'Demo Project' });
     expect(heading).toBeDefined();
 
     await waitFor(() => {
       expect(container.querySelectorAll('.task-card').length).toBe(25);
     });
+    // Jumlah kolom kanban + tidak ada badge hitung di tab nav.
     expect(screen.getByText('25')).toBeDefined();
+    expect(container.querySelectorAll('.tab-count').length).toBe(0);
     expect(screen.getByRole('button', { name: 'Sign in' })).toBeDefined();
   });
 
@@ -103,7 +105,7 @@ describe('PublicProjectPage', () => {
       }), version: 1 },
     );
 
-    renderPage();
+    renderPage([`/p/${PROJECT_ID}?tab=board`]);
     await screen.findByRole('heading', { name: 'Demo Project' });
 
     fireEvent.click(screen.getByRole('tab', { name: 'By Milestone' }));
@@ -209,7 +211,7 @@ describe('PublicProjectPage', () => {
     );
   });
 
-  it('shows only the stat cards that belong to public tabs on About', async () => {
+  it('shows all stat cards on About regardless of shared tabs', async () => {
     vi.spyOn(api, 'getPublicProject').mockResolvedValue(
       makeMeta({ tabs: ['about', 'stack'] }),
     );
@@ -228,7 +230,10 @@ describe('PublicProjectPage', () => {
 
     expect(await screen.findByText('Stack entries')).toBeDefined();
     expect(screen.getByText('Test cases')).toBeDefined();
-    expect(screen.queryByText('Tasks')).toBeNull();
+    // About selalu menampilkan ringkasan penuh (hero + semua stat).
+    expect(screen.getByText('Tasks')).toBeDefined();
+    expect(screen.getByText('Milestones')).toBeDefined();
+    expect(screen.getByText('Open issues')).toBeDefined();
   });
 
   it('shows the Whiteboard tab and its empty state when shared', async () => {
@@ -333,5 +338,52 @@ describe('PublicProjectPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Back to boards' }));
     expect(screen.getByRole('button', { name: /Roadmap/ })).toBeDefined();
     expect(document.querySelector('svg.wb-svg')).toBeNull();
+  });
+
+  it('renders the stack tab directly as a read-only graph', async () => {
+    const tech = (id: string, name: string, category: 'frontend' | 'database', status: 'current' | 'updateAvailable') => ({
+      id,
+      name,
+      version: '1.0',
+      category,
+      status,
+      notes: '',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    });
+    vi.spyOn(api, 'getPublicProject').mockResolvedValue(makeMeta());
+    vi.spyOn(api, 'getPublicState').mockResolvedValue(
+      {
+        state: makeState({
+          techEntries: [
+            tech('e1', 'React', 'frontend', 'current'),
+            tech('e2', 'Postgres', 'database', 'updateAvailable'),
+          ],
+        }),
+        version: 1,
+      },
+    );
+
+    const { container } = renderPage([`/p/${PROJECT_ID}?tab=stack`]);
+    await screen.findByRole('heading', { name: 'Demo Project' });
+
+    await waitFor(() => {
+      expect(container.querySelector('.stack-graph-wrap svg[role="group"]')).not.toBeNull();
+    });
+    // Node statis: tanpa role button maupun handler buka modal.
+    expect(container.querySelectorAll('.stack-graph-node[role="button"]').length).toBe(0);
+    expect(container.querySelectorAll('.stack-graph-node--static').length).toBe(2);
+    // Legend tetap tampil sebagai informasi status/kategori.
+    expect(container.querySelectorAll('.stack-graph-legend .legend-row').length).toBeGreaterThan(0);
+  });
+
+  it('keeps the stack empty state when there are no entries', async () => {
+    vi.spyOn(api, 'getPublicProject').mockResolvedValue(makeMeta());
+    vi.spyOn(api, 'getPublicState').mockResolvedValue({ state: makeState(), version: 1 });
+
+    renderPage([`/p/${PROJECT_ID}?tab=stack`]);
+    await screen.findByRole('heading', { name: 'Demo Project' });
+
+    expect(await screen.findByText('No stack entries yet.')).toBeDefined();
   });
 });

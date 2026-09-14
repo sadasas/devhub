@@ -16,12 +16,29 @@ import { Input } from '../../components/Input';
 import { MonthPicker } from '../../components/MonthPicker';
 
 interface DueCalendarProps {
-  onOpenTask: (taskId: string) => void;
-  onQuickCreate: (dueDate: string) => void;
+  onOpenTask?: (taskId: string) => void;
+  onQuickCreate?: (dueDate: string) => void;
   taskFilter?: (t: Task) => boolean;
   onTouchDrop?: (taskId: string, dropKey: string | null) => void;
   /** Controlled from the board toolbar; defaults to false when omitted. */
   hideCompleted?: boolean;
+  /** Optional external task source (e.g. public view). When provided, it replaces state?.tasks. */
+  tasks?: Task[];
+  /** Read-only mode: hides quick-create + drag/drop + move dialog. Chips still call onOpenTask when provided. */
+  readOnly?: boolean;
+}
+
+/**
+ * Safe wrapper around useProject(): returns null outside ProjectProvider
+ * (e.g. public view with `tasks` prop) instead of throwing.
+ * BoardPage path (inside provider) keeps existing behaviour.
+ */
+function useProjectSafe(): { state: { tasks: Task[] } | null; canEdit: boolean; dispatch?: (a: any) => void } | null {
+  try {
+    return useProject() as unknown as { state: { tasks: Task[] } | null; canEdit: boolean; dispatch: (a: any) => void };
+  } catch {
+    return null;
+  }
 }
 
 const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -31,12 +48,13 @@ interface CalTaskChipProps {
   date?: string;
   segmentStart?: string;
   span?: number;
-  onOpenTask: (taskId: string) => void;
+  onOpenTask?: (taskId: string) => void;
   onTouchDrop?: (taskId: string, dropKey: string | null) => void;
   onDragOffset?: (offset: number, start: string | null) => void;
   onMove?: (taskId: string) => void;
   style?: React.CSSProperties;
   classNameExtra?: string;
+  readOnly?: boolean;
 }
 
 const STATUS_ICON: Record<string, React.ReactNode> = {
@@ -81,9 +99,10 @@ function formatDayAriaLabel(isoDate: string): string {
   }
 }
 
-function CalTaskChip({ task, date, segmentStart, span, onOpenTask, onTouchDrop, onDragOffset, onMove, style, classNameExtra }: CalTaskChipProps) {
-  const { canEdit, dispatch } = useProject() as unknown as { canEdit: boolean; dispatch: (a: unknown) => void };
-  void dispatch;
+function CalTaskChip({ task, date, segmentStart, span, onOpenTask, onTouchDrop, onDragOffset, onMove, style, classNameExtra, readOnly = false }: CalTaskChipProps) {
+  const project = useProjectSafe();
+  const canEdit = !readOnly && (project?.canEdit ?? false);
+  const canMove = canEdit && !!onMove;
   const ref = useRef<HTMLButtonElement>(null);
   const handleTouchDrop = useCallback(
     (dropKey: string | null) => onTouchDrop?.(task.id, dropKey),
@@ -91,7 +110,7 @@ function CalTaskChip({ task, date, segmentStart, span, onOpenTask, onTouchDrop, 
   );
   useTouchDrag(ref, { enabled: canEdit && !!onTouchDrop, onDrop: handleTouchDrop });
   const title = date ? `${task.title} \u00b7 ${dueLabel(date, todayIso())}` : task.title;
-  const ariaLabel = canEdit && onMove ? `${task.title}. Press M to move date, Enter to open.` : title;
+  const ariaLabel = canMove ? `${task.title}. Press M to move date, Enter to open.` : title;
   const rawTone = task.status === 'done' ? taskDueChip(task).tone : date ? dueTone(dueBucket(date, todayIso())) : 'neutral';
   const tone = rawTone as 'danger' | 'warn' | 'success' | 'neutral';
   const isDone = task.status === 'done';
@@ -103,20 +122,24 @@ function CalTaskChip({ task, date, segmentStart, span, onOpenTask, onTouchDrop, 
       draggable={canEdit}
       title={title}
       aria-label={ariaLabel}
-      aria-keyshortcuts={canEdit && onMove ? 'm Enter' : 'Enter'}
+      aria-keyshortcuts={canMove ? 'm Enter' : 'Enter'}
       style={style}
       onClick={(e) => {
         e.stopPropagation();
-        onOpenTask(task.id);
+        onOpenTask?.(task.id);
       }}
       onKeyDown={(e) => {
-        if (canEdit && onMove && (e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (canMove && (e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey) {
           e.preventDefault();
           e.stopPropagation();
-          onMove(task.id);
+          onMove!(task.id);
         }
       }}
       onDragStart={(e) => {
+        if (!canEdit) {
+          e.preventDefault();
+          return;
+        }
         e.stopPropagation();
         e.dataTransfer.setData('text/plain', task.id);
         e.dataTransfer.effectAllowed = 'move';
@@ -147,8 +170,15 @@ function CalTaskChip({ task, date, segmentStart, span, onOpenTask, onTouchDrop, 
 const MAX_VISIBLE = 3;
 const MAX_VISIBLE_MOBILE = 2;
 
-export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop, hideCompleted = false }: DueCalendarProps) {
-  const { state, canEdit, dispatch } = useProject();
+export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop, hideCompleted = false, tasks: tasksProp, readOnly = false }: DueCalendarProps) {
+  const project = useProjectSafe();
+  const state = project?.state ?? null;
+  const dispatch = project?.dispatch;
+  const canEdit = !readOnly && (project?.canEdit ?? false);
+  // External `tasks` (public view) wins; fallback to provider state for BoardPage.
+  const allTasks: Task[] = tasksProp ?? state?.tasks ?? [];
+  const canQuickCreate = !readOnly && !!onQuickCreate;
+  const effectiveTouchDrop = readOnly ? undefined : onTouchDrop;
   const [anchor, setAnchor] = useState(todayIso());
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const monthLabelRef = useRef<HTMLButtonElement>(null);
@@ -184,10 +214,10 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
 
   const unscheduled = useMemo(
     () =>
-      (state?.tasks ?? [])
+      allTasks
         .filter((t) => !t.dueDate && !(hideCompleted && t.status === 'done') && (!taskFilter || taskFilter(t)))
         .sort((a, b) => a.title.localeCompare(b.title)),
-    [state, hideCompleted, taskFilter],
+    [allTasks, hideCompleted, taskFilter],
   );
 
   const dateToPos = useMemo(() => {
@@ -207,7 +237,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
     const segments: Array<{ task: Task; row: number; colStart: number; span: number; startDate: string; endDate: string }> = [];
     const visibleStart = weekMode ? weekDays(anchor)[0]! : weeks[0]![0]!;
     const visibleEnd = weekMode ? weekDays(anchor)[6]! : weeks[weeks.length - 1]![6]!;
-    for (const task of state?.tasks ?? []) {
+    for (const task of allTasks) {
       if (!task.dueDate) continue;
       if (hideCompleted && task.status === 'done') continue;
       if (taskFilter && !taskFilter(task)) continue;
@@ -235,7 +265,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
     }
     segments.sort((a, b) => a.row - b.row || a.colStart - b.colStart || a.task.title.localeCompare(b.task.title));
     return segments;
-  }, [state, hideCompleted, taskFilter, weeks, weekMode, anchor, dateToPos]);
+  }, [allTasks, hideCompleted, taskFilter, weeks, weekMode, anchor, dateToPos]);
 
   // Group by row and compute lanes and overflow
   const rowGroups = useMemo(() => {
@@ -342,8 +372,8 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
 
   const moveToDate = useCallback(
     (taskId: string, date: string | null) => {
-      if (!canEdit) return;
-      const task = state?.tasks.find((t) => t.id === taskId);
+      if (readOnly || !canEdit || !dispatch) return;
+      const task = allTasks.find((t) => t.id === taskId);
       if (!task) return;
       if (date === null) {
         if (task.dueDate !== null) dispatch({ type: 'task/update', id: taskId, patch: { dueDate: null } });
@@ -370,14 +400,15 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
         if (task.dueDate !== date) dispatch({ type: 'task/update', id: taskId, patch: { dueDate: date } });
       }
     },
-    [canEdit, state, dispatch],
+    [readOnly, canEdit, allTasks, dispatch],
   );
 
   const openMove = useCallback((taskId: string) => {
-    const t = state?.tasks.find((x) => x.id === taskId);
+    if (readOnly || !canEdit) return;
+    const t = allTasks.find((x) => x.id === taskId);
     setMoveTaskId(taskId);
     setMoveDateDraft(t?.dueDate ?? '');
-  }, [state]);
+  }, [readOnly, canEdit, allTasks]);
 
   const confirmMove = () => {
     if (!moveTaskId) return;
@@ -388,6 +419,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
   };
 
   useEffect(() => {
+    if (readOnly || !canEdit) return;
     const unregisters = cells.map((date) =>
       registerDrop(`date:${date}`, (id) => moveToDate(id, date)),
     );
@@ -395,7 +427,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
     return () => {
       for (const unregister of unregisters) unregister();
     };
-  }, [cells, moveToDate]);
+  }, [cells, moveToDate, readOnly, canEdit]);
 
   const onDrop = (date: string) => (e: React.DragEvent) => {
     e.preventDefault();
@@ -415,7 +447,9 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
     const dayLabel = formatDayAriaLabel(date);
     // Coarse pointers: whole-cell tap conflicts with scroll (accidental
     // quick-create on tap-scroll). Only the explicit + button creates.
-    const showQuickAdd = isCoarse;
+    // readOnly: no quick-create at all (cell click only moves focus).
+    const showQuickAdd = canQuickCreate && isCoarse;
+    const canDrop = !readOnly && canEdit;
     return (
       <div
         key={date}
@@ -425,7 +459,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
         aria-keyshortcuts="ArrowRight ArrowLeft ArrowDown ArrowUp PageDown PageUp Enter"
         className={`due-cal-cell${dimmed ? ' due-cal-dim' : ''}${isToday ? ' due-cal-today' : ''}`}
         data-date={date}
-        data-drop-key={`date:${date}`}
+        {...(canDrop ? { 'data-drop-key': `date:${date}` } : {})}
         tabIndex={focused === date ? 0 : -1}
         onFocus={() => setFocused(date)}
         onKeyDown={(e) => {
@@ -435,14 +469,14 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
           else if (e.key === 'ArrowUp') moveFocus(-7);
           else if (e.key === 'PageDown') nav(1);
           else if (e.key === 'PageUp') nav(-1);
-          else if (e.key === 'Enter') onQuickCreate(date);
+          else if (e.key === 'Enter' && canQuickCreate) onQuickCreate?.(date);
         }}
-        onClick={showQuickAdd ? () => setFocused(date) : () => onQuickCreate(date)}
-        onDragOver={(e) => {
+        onClick={canQuickCreate ? (showQuickAdd ? () => setFocused(date) : () => onQuickCreate?.(date)) : () => setFocused(date)}
+        onDragOver={canDrop ? (e) => {
           e.preventDefault();
           e.dataTransfer.dropEffect = 'move';
-        }}
-        onDrop={onDrop(date)}
+        } : undefined}
+        onDrop={canDrop ? onDrop(date) : undefined}
       >
         <span className="due-cal-daynum">{date.slice(8)}</span>
         {showQuickAdd && (
@@ -453,7 +487,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
             style={{ minWidth: 44, minHeight: 44, display: 'grid', placeItems: 'center', fontSize: 18, lineHeight: 1 }}
             onClick={(e) => {
               e.stopPropagation();
-              onQuickCreate(date);
+              onQuickCreate?.(date);
             }}
           >
             <span aria-hidden="true">+</span>
@@ -573,9 +607,10 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
               segmentStart={segmentStart ?? undefined}
               span={span}
               onOpenTask={onOpenTask}
-              onTouchDrop={onTouchDrop}
-              onDragOffset={(_, grabDate) => { dragGrabDateRef.current = grabDate; }}
-              onMove={openMove}
+              onTouchDrop={effectiveTouchDrop}
+              onDragOffset={readOnly ? undefined : (_, grabDate) => { dragGrabDateRef.current = grabDate; }}
+              onMove={readOnly ? undefined : openMove}
+              readOnly={readOnly}
               classNameExtra="due-cal-span"
               style={{
                 position: 'absolute',
@@ -688,12 +723,12 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
       <aside
         id="due-cal-strip"
         className={`due-cal-strip ${stripCollapsed ? 'is-collapsed' : ''}`}
-        data-drop-key="clear"
-        onDragOver={(e) => {
+        {...(!readOnly && canEdit ? { 'data-drop-key': 'clear' } : {})}
+        onDragOver={!readOnly && canEdit ? (e) => {
           e.preventDefault();
           e.dataTransfer.dropEffect = 'move';
-        }}
-        onDrop={onClearDrop}
+        } : undefined}
+        onDrop={!readOnly && canEdit ? onClearDrop : undefined}
       >
         <div className="due-cal-strip-head">
           {stripCollapsed ? (
@@ -721,10 +756,11 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
         </div>
         {!stripCollapsed && unscheduled.length === 0 && <span className="due-cal-strip-empty">{t('board.cal.stripEmpty')}</span>}
         {!stripCollapsed && unscheduled.map((t) => (
-          <CalTaskChip key={t.id} task={t} onOpenTask={onOpenTask} onTouchDrop={onTouchDrop} onDragOffset={(_, grabDate) => { dragGrabDateRef.current = grabDate; }} onMove={openMove} />
+          <CalTaskChip key={t.id} task={t} onOpenTask={onOpenTask} onTouchDrop={effectiveTouchDrop} onDragOffset={readOnly ? undefined : (_, grabDate) => { dragGrabDateRef.current = grabDate; }} onMove={readOnly ? undefined : openMove} readOnly={readOnly} />
         ))}
       </aside>
       </div>
+      {!readOnly && (
       <Modal
         open={moveTaskId !== null}
         title={t('board.cal.moveTitle', { defaultValue: 'Move task' })}
@@ -745,6 +781,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
           helper={t('board.cal.moveHint', { defaultValue: 'Leave empty to move to No date. Press M on a chip to open this dialog.' })}
         />
       </Modal>
+      )}
     </div>
   );
 }

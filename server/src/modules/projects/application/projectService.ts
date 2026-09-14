@@ -169,6 +169,9 @@ export function projectJson(row: ProjectRow) {
     role: row.role,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
+    // Opt-in owner CTA (fail-closed): null bila kosong; validasi http(s) saat tulis.
+    contactUrl: normalizeContactUrl((row as { contact_url?: unknown }).contact_url),
+    liveDemoUrl: normalizeContactUrl((row as { live_demo_url?: unknown }).live_demo_url),
   };
 }
 
@@ -241,7 +244,31 @@ export interface UpdateProjectInput {
   visibility?: string;
   publicTabs?: unknown;
   prd?: PrdPatch;
+  contactUrl?: string;
+  liveDemoUrl?: string;
 }
+
+/**
+ * Fail-closed URL opt-in: ''/undefined = tidak tampil; selain itu wajib
+ * http(s)://... maks 2048 char. Invalid → 400, tidak disimpan.
+ */
+function normalizeContactUrl(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const v = value.trim();
+  if (v === '') return null;
+  if (v.length > 2048) return null;
+  if (!/^https?:\/\/\S+$/i.test(v)) return null;
+  return v;
+}
+
+const optionalHttpUrl = z
+  .string()
+  .trim()
+  .max(2048)
+  .optional()
+  .refine((v) => v === undefined || v === '' || /^https?:\/\/\S+$/i.test(v), {
+    message: 'URL must be empty or start with http(s)://',
+  });
 
 const updateProjectSchema = z.object({
   name: z.string().trim().min(1).max(300).optional(),
@@ -250,6 +277,8 @@ const updateProjectSchema = z.object({
   visibility: z.enum(['private', 'public']).optional(),
   publicTabs: publicTabsSchema.optional(),
   prd: prdPatchSchema.optional(),
+  contactUrl: optionalHttpUrl,
+  liveDemoUrl: optionalHttpUrl,
 });
 
 export async function updateProject(
@@ -269,7 +298,7 @@ export async function updateProject(
     expectedVersion = parsed;
   }
   if (row.status === 'archived') {
-    const hasOther = input.name !== undefined || input.description !== undefined || input.visibility !== undefined || input.publicTabs !== undefined || input.prd !== undefined;
+    const hasOther = input.name !== undefined || input.description !== undefined || input.visibility !== undefined || input.publicTabs !== undefined || input.prd !== undefined || input.contactUrl !== undefined || input.liveDemoUrl !== undefined;
     const isRestore = input.status === 'active';
     const isNoopArchive = input.status === 'archived' && !hasOther;
     if (!isRestore && !isNoopArchive) {
@@ -278,6 +307,8 @@ export async function updateProject(
   }
   if (input.visibility !== undefined) assertAdmin(row.role);
   if (input.publicTabs !== undefined) assertAdmin(row.role);
+  if (input.contactUrl !== undefined) assertAdmin(row.role);
+  if (input.liveDemoUrl !== undefined) assertAdmin(row.role);
   const patch: ProjectMetaPatch = {
     name: input.name,
     description: input.description,
@@ -285,6 +316,8 @@ export async function updateProject(
     visibility: input.visibility,
     publicTabs: input.publicTabs,
     prd: input.prd !== undefined ? JSON.stringify(mergePrd(input.prd, normalizePrd(row.prd))) : null,
+    contactUrl: input.contactUrl !== undefined ? input.contactUrl.trim() : undefined,
+    liveDemoUrl: input.liveDemoUrl !== undefined ? input.liveDemoUrl.trim() : undefined,
   };
   const updated = await updateProjectMeta(projectId, patch, expectedVersion);
   if (!updated) {

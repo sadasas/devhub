@@ -96,6 +96,14 @@
     "legend": "Tab yang dibagikan",
     "lastCheckedTitle": "Setidaknya satu tab harus tetap publik",
     "linkLabel": "Link publik",
+    "ctaLegend": "Tautan owner (opsional)",
+    "ctaHelper": "Opsional — kosong = tidak tampil di halaman publik. Hanya link http(s) yang disimpan.",
+    "contactUrlLabel": "Link kontak (Hubungi)",
+    "demoUrlLabel": "Link demo (Lihat Demo)",
+    "urlInvalid": "Gunakan http(s)://… atau kosongkan.",
+    "saveCta": "Simpan tautan",
+    "saving": "Menyimpan…",
+    "ctaSaved": "Tersimpan.",
     "tab": {
       "board": {
         "label": "Board",

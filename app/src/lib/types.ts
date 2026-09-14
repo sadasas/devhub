@@ -378,6 +378,9 @@ export interface Project {
   role: TeamRole;
   createdAt: string;
   updatedAt: string;
+  /** Opt-in owner CTA (fail-closed: undefined/null/'' = tidak tampil). */
+  contactUrl?: string | null;
+  liveDemoUrl?: string | null;
 }
 
 export interface PublicProject {
@@ -391,6 +394,9 @@ export interface PublicProject {
   teamName: string;
   createdAt: string;
   updatedAt: string;
+  /** Opt-in owner CTA (fail-closed: hanya http(s) valid yang dirender). */
+  contactUrl?: string | null;
+  liveDemoUrl?: string | null;
 }
 
 export type TeamRole = 'owner' | 'admin' | 'editor' | 'viewer';

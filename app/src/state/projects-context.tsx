@@ -14,7 +14,7 @@ interface ProjectsContextValue {
   create: (name: string, description: string, teamId: string) => Promise<Project>;
   update: (
     projectId: string,
-    patch: Partial<Pick<Project, 'name' | 'description' | 'status' | 'visibility' | 'prd'> & { publicTabs: PublicTab[] }>,
+    patch: Partial<Pick<Project, 'name' | 'description' | 'status' | 'visibility' | 'prd' | 'contactUrl' | 'liveDemoUrl'> & { publicTabs: PublicTab[] }>,
   ) => Promise<Project>;
   remove: (projectId: string) => Promise<void>;
 }
@@ -75,7 +75,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const update = useCallback(
     async (
       projectId: string,
-      patch: Partial<Pick<Project, 'name' | 'description' | 'status' | 'visibility' | 'prd'> & { publicTabs: PublicTab[] }>,
+      patch: Partial<Pick<Project, 'name' | 'description' | 'status' | 'visibility' | 'prd' | 'contactUrl' | 'liveDemoUrl'> & { publicTabs: PublicTab[] }>,
     ) => {
       const project = await api.patchProject(projectId, patch);
       setProjects((prev) =>
