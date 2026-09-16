@@ -24,6 +24,7 @@
     "toolbar": {
       "tools": "Whiteboard tools",
       "back": "Back to boards",
+      "moreTools": "More tools",
       "undoTitle": "Undo (Ctrl+Z)",
       "undoAria": "Undo — Ctrl+Z",
       "redoTitle": "Redo (Ctrl+Y)",

@@ -24,6 +24,7 @@
     "toolbar": {
       "tools": "Perangkat whiteboard",
       "back": "Kembali ke daftar board",
+      "moreTools": "Alat lainnya",
       "undoTitle": "Undo (Ctrl+Z)",
       "undoAria": "Undo — Ctrl+Z",
       "redoTitle": "Redo (Ctrl+Y)",

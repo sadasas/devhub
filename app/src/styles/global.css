@@ -880,6 +880,17 @@ a:hover {
   min-height: 100dvh;
 }
 
+/* Cegah scroll merembet ke layer belakang saat konten modal/sheet di-scroll
+   (terutama touch mobile): rantai scroll berhenti di backdrop + dialog. */
+.modal-backdrop,
+.sheet-backdrop,
+.modal,
+.sheet,
+.modal-body,
+.sheet-body {
+  overscroll-behavior: contain;
+}
+
 .modal {
   position: relative;
   z-index: var(--z-modal);
@@ -7981,6 +7992,21 @@ body[data-erd-canvas="open"] .chat-drawer { display: none !important; }
   }
 }
 
+@media (max-width: 640px) {
+  /* Panel canvas mobile: maks ~3 baris tabel/relasi tampil, sisanya
+     scroll internal agar Issues di bawah tetap terlihat. */
+  .erd-panel-tables-list {
+    max-height: 144px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  /* Ada yang terseleksi/expanded: lepas batas agar detail tabel muat;
+     scroll diambil alih tabpanel/panel yang sudah ada. */
+  .erd-panel-tables-list:has(.erd-panel-tables-item[aria-expanded="true"]) {
+    max-height: none;
+  }
+}
+
 .col-edit-grid {
   display: flex;
   flex-direction: column;
@@ -12737,9 +12763,9 @@ input[type='checkbox'] {
 .wb-shell .board-toolbar .wb-tool-actions { gap: 2px; }
 .wb-shell .board-toolbar .wb-sep { margin: 0 2px; flex-shrink: 0; align-self: center; }
 /* Tooltips inside the scroll strip may clip while scrolled; native title remains. */
-.wb-export-menu.wb-shape-menu { z-index: 70; display: grid; grid-template-columns: repeat(2, auto); gap: 2px; padding: 4px; width: max-content; min-width: 0; }
-.wb-export-item.wb-shape-opt { padding: 4px; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; }
-.wb-export-item.wb-shape-opt svg { display: block; }
+.wb-export-menu.wb-shape-menu { z-index: 70; display: grid; grid-template-columns: repeat(7, auto); gap: 2px; padding: 4px; width: max-content; min-width: 0; max-width: calc(100vw - 16px); }
+.wb-export-item.wb-shape-opt { padding: 2px; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; }
+.wb-export-item.wb-shape-opt svg { display: block; width: 28px; height: 28px; }
 .wb-export-item.wb-shape-opt:hover { color: var(--accent); }
 .wb-export-item.wb-shape-opt[aria-checked="true"] { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--bg-elevated); }
 .wb-shell .board-toolbar .wb-tool-actions {
@@ -13014,6 +13040,228 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 /* Landscape pendek: sembunyikan minimap agar kanvas tetap lega */
 @media (max-height: 500px) and (orientation: landscape) {
   .wb-minimap {
+    display: none;
+  }
+}
+/* Whiteboard mobile (≤640px): pill kompak + overlay undo/layers/props, tanpa minimap. */
+@media (max-width: 640px) {
+  .wb-minimap {
+    display: none;
+  }
+
+  /* Topbar rapat: shell gap 16→8, margin topbar habis. */
+  .wb-shell {
+    gap: 8px;
+  }
+  .wb-topbar {
+    margin-bottom: 0;
+  }
+
+  /* Judul pindah baris 2 full-width dan wrap (tanpa truncate);
+     tombol canvas terkunci di baris 1 via order. */
+  .wb-topbar .wb-board-name {
+    order: 3;
+    flex: 1 1 100%;
+    max-width: none;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  /* Tombol canvas icon-only (aria-label/title utuh).
+     font-size 0 tanpa px → lolos guard tangga token. */
+  .wb-topbar .wb-canvas-mode-btn {
+    font-size: 0;
+    gap: 0;
+    min-width: 44px;
+    justify-content: center;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  /* Mode canvas fullscreen: judul board mati, layers turun di bawah tombol close. */
+  .wb-fullscreen .wb-board-title {
+    display: none;
+  }
+  .wb-fullscreen .wb-mobile-layers-anchor {
+    top: 48px;
+  }
+
+  /* Bar zoom + hint bawah disembunyikan (pinch-to-zoom tetap jalan). */
+  .wb-shell .erd-zoom,
+  .wb-shell .wb-hint {
+    display: none;
+  }
+
+  /* Toolbar floating bottom-center. Spesifisitas 0,3,0 mengalahkan rule
+     P3-3c (overflow-x:auto men-clip menu dropdown) — pill kompak muat
+     sehingga scroll horizontal tak diperlukan. */
+  .wb-shell .wb-main-canvas .board-toolbar {
+    overflow: visible;
+    top: auto;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Toolbar sembunyi saat sheet properti terbuka (keduanya di bawah). */
+  .wb-main-canvas:has(.wb-mobile-props) .board-toolbar {
+    visibility: hidden;
+  }
+
+  /* Tombol ikon overlay disamakan 32px. */
+  .wb-mobile-undo .sub-tab,
+  .wb-more-grid .sub-tab,
+  .wb-more-actions .sub-tab {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* Menu •••: toolbar di bawah, panel buka ke atas.
+     Shape submenu ikut buka ke atas: netralkan `top` bawaan
+     .wb-export-menu agar jangkar `bottom` inline berlaku. */
+  .wb-shell .board-toolbar .wb-shape-menu {
+    top: auto;
+  }
+  .wb-more-menu {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 26;
+    width: max-content;
+    max-width: calc(100vw - 32px);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+    background: var(--bg-overlay);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-raised);
+  }
+  .wb-more-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    max-width: 224px;
+  }
+  .wb-more-sep {
+    height: 1px;
+    background: var(--border-hairline);
+    margin: 2px 4px;
+  }
+  .wb-more-actions {
+    display: flex;
+    gap: 2px;
+    justify-content: center;
+  }
+  /* Export di dalam panel ••• tampil sebagai daftar statis. */
+  .wb-more-export > .wb-export-menu {
+    position: static;
+    box-shadow: none;
+    border: none;
+    background: none;
+    padding: 0;
+    min-width: 0;
+  }
+
+  /* Undo/redo kiri atas, layers kanan atas. */
+  .wb-mobile-undo {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 26;
+    display: flex;
+    gap: 2px;
+    padding: 4px;
+    background: var(--bg-overlay);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-input);
+    box-shadow: var(--shadow-raised);
+  }
+  .wb-mobile-layers-anchor {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 26;
+  }
+  .wb-mobile-layers {
+    gap: 6px;
+    padding: 0 10px;
+    height: 32px;
+    background: var(--bg-overlay);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-input);
+    box-shadow: var(--shadow-raised);
+  }
+  .wb-mobile-layers-count {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  .wb-mobile-layers-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: min(280px, calc(100vw - 20px));
+    max-height: 50vh;
+    max-height: 50dvh;
+    overflow-y: auto;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-hairline);
+    border-radius: var(--radius-card);
+    padding: 10px;
+    box-shadow: var(--shadow-raised);
+  }
+
+  /* Sheet properti bawah (auto-hide bila tak ada seleksi/konten). */
+  .wb-mobile-props {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    z-index: 26;
+    display: flex;
+    flex-direction: column;
+    max-height: 46vh;
+    max-height: 46dvh;
+    padding: 6px 12px 12px;
+    background: var(--bg-overlay);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-raised);
+  }
+  .wb-mobile-props-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 4px 0 8px;
+  }
+  .wb-mobile-props-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 36px;
+    padding: 0 8px;
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--status-danger);
+    cursor: pointer;
+  }
+  .wb-mobile-props-delete:hover {
+    background: var(--surface-hover);
+  }
+  .wb-mobile-props-body {
+    overflow-y: auto;
+    min-height: 0;
+  }
+  /* Judul ganda inspector disembunyikan — sheet sudah punya header. */
+  .wb-mobile-props-body .wb-inspector-head {
     display: none;
   }
 }
@@ -20513,8 +20761,57 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
     gap: 0;
   }
 
-  /* Schema mobile: tombol Canvas hilang total (buka via ERD penuh). */
+  /* Schema mobile: rapatkan actions (versions/canvas/tidy) — btn-sm touch
+     yang lebar (padding 0 16px) membuat ritme renggang. min-width 44px
+     tetap dijaga untuk touch target. */
+  .schema-page .schema-subtabs-actions {
+    gap: 4px;
+  }
+  .schema-page .schema-subtabs-actions .btn {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  /* Schema mobile: tombol Canvas icon-only (aria-label/title utuh),
+     sama seperti Tidy — bukan lagi hilang total.
+     font-size 0 tanpa px → lolos guard tangga token. */
   .schema-page .schema-canvas-btn {
+    font-size: 0;
+    gap: 0;
+  }
+
+  /* ERD canvas overlay mobile mengikuti pola board fullscreen
+     (.board-shell--fullscreen): shell padding 16, header in-flow
+     (pill fit-content + close sebaris), body mengisi sisa. */
+  .erd-canvas-mode {
+    padding: 16px;
+  }
+  .erd-canvas-mode-top {
+    position: relative;
+    padding: 0 0 12px;
+    row-gap: 8px;
+  }
+  .erd-canvas-mode-title {
+    display: none;
+  }
+  .erd-canvas-mode-pill {
+    position: static;
+    transform: none;
+    order: 0;
+    flex: 0 1 auto;
+    margin-inline: auto;
+  }
+  .erd-canvas-mode-close {
+    min-width: 44px;
+    min-height: 44px;
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: 0;
+  }
+  /* Zoom hint bawah mati di overlay mobile (pinch tetap jalan). */
+  .erd-canvas-mode .erd-zoom {
     display: none;
   }
 
