@@ -37,3 +37,7 @@ Thumbs.db
 
 # opencode session artifacts
 .opencode/plans/
+
+# Nested standalone project (own .git) — must never be tracked here.
+# A stale gitlink for it once broke Cloudflare builds (submodule update).
+videos/
