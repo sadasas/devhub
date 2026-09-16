@@ -2,8 +2,9 @@
  * - Default `denied` SEBELUM gtag.js ada (panggil ensureConsentDefaults() di main.tsx paling awal).
  * - gtag.js JANGAN di-inject jika tolak; lazy inject hanya setelah setuju + update granted.
  * - Simpan localStorage `devhub_consent_v1` {status,analytics,timestamp,policyVersion,bannerVersion}.
- * - page_view HANYA pasca-consent via sendPageView(): config memakai
- *   send_page_view:false + event manual sekali per load + tiap navigasi SPA.
+ * - page_view HANYA pasca-consent via sendPageView(): urutan init standar
+ *   gtag.js (`js` -> `config` dengan send_page_view:false) + event manual
+ *   sekali per load + tiap navigasi SPA.
  *   Tanpa PII: path dinamis dinormalisasi, query di-strip.
  * - JANGAN pasang Measurement ID asli — pakai placeholder + env VITE_GA_MEASUREMENT_ID.
  */
@@ -36,7 +37,9 @@ export function openConsentSettings(): void {
 /** Pure resolver (diuji langsung) — pisahkan dari import.meta agar testable. */
 export function resolveGaMeasurementId(raw: string | undefined): string {
   const trimmed = (raw ?? '').trim();
+
   if (trimmed && /^G-[A-Z0-9]{4,}$/.test(trimmed)) return trimmed;
+
   return GA_PLACEHOLDER_ID;
 }
 
@@ -89,12 +92,27 @@ declare global {
     dataLayer?: unknown[];
     gtag?: (...args: unknown[]) => void;
     __devhubGtagInjected?: boolean;
+    __devhubConsentDefaultsSet?: boolean;
   }
 }
 
 function gtagStub(...args: unknown[]): void {
+  if (args.length === 0) return;
   window.dataLayer = window.dataLayer ?? [];
   window.dataLayer.push(args);
+}
+
+/** True bila dataLayer sudah berisi consent default (mis. dari inline index.html). */
+function hasConsentDefault(): boolean {
+  try {
+    const dl = window.dataLayer ?? [];
+    return dl.some((e) => {
+      const a = e as unknown[] | undefined;
+      return !!a && a[0] === 'consent' && a[1] === 'default';
+    });
+  } catch {
+    return false;
+  }
 }
 
 /** WAJIB dipanggil sebelum render — set default denied SEBELUM gtag.js ada. */
@@ -106,15 +124,20 @@ export function ensureConsentDefaults(): void {
       window.gtag = gtagStub;
     }
     // Consent Mode v2 defaults — selalu denied saat boot.
-    window.gtag('consent', 'default', {
-      ad_storage: 'denied',
-      ad_user_data: 'denied',
-      ad_personalization: 'denied',
-      analytics_storage: 'denied',
-      functionality_storage: 'denied',
-      personalization_storage: 'denied',
-      security_storage: 'granted',
-    });
+    // Idempoten: inline index.html sudah push default sebelum bundle;
+    // jangan push dua kali (membingungkan Tag Assistant).
+    if (!window.__devhubConsentDefaultsSet && !hasConsentDefault()) {
+      window.gtag('consent', 'default', {
+        ad_storage: 'denied',
+        ad_user_data: 'denied',
+        ad_personalization: 'denied',
+        analytics_storage: 'denied',
+        functionality_storage: 'denied',
+        personalization_storage: 'denied',
+        security_storage: 'granted',
+      });
+    }
+    window.__devhubConsentDefaultsSet = true;
     // Jika user sebelumnya sudah setuju, upgrade ke granted + lazy inject
     // (page_view pertama menyusul pasca-config di dalam inject).
     const saved = readConsent();
@@ -168,10 +191,6 @@ export function canSendAnalytics(id: string = getGaMeasurementId()): boolean {
 
     if (typeof window === 'undefined') return false;
     if (!readConsent()?.analytics) return false;
-    console.log("r", readConsent());
-    console.log(id, GA_PLACEHOLDER_ID);
-    console.log("dg", window.__devhubGtagInjected);
-    console.log("gtag", typeof window.gtag === 'function');
 
 
     if (id === GA_PLACEHOLDER_ID) return false;
@@ -194,12 +213,13 @@ let lastSentPath: string | null = null;
 
 export function sendPageView(id: string = getGaMeasurementId()): void {
   try {
-    console.log(canSendAnalytics(id));
 
     if (!canSendAnalytics(id)) return;
     const path = normalizePagePath(window.location.pathname);
+
     if (lastSentPath === path) return;
     lastSentPath = path;
+
     window.gtag?.('event', 'page_view', {
       page_location: `${window.location.origin}${path}`,
       page_path: path,
@@ -245,6 +265,9 @@ export function injectGtagIfGranted(): Promise<boolean> {
         try {
           window.__devhubGtagInjected = true;
           updateConsentGranted();
+          // Inisialisasi standar gtag.js — WAJIB sebelum config.
+          // Tanpa ini Tag Assistant menahan hit ("Hit ditahan").
+          window.gtag?.('js', new Date());
           // send_page_view mati agar TIDAK ada hit pra-consent; page_view
           // eksplisit dikirim di bawah, hanya bila consent masih granted.
           window.gtag?.('config', id, { send_page_view: false });
