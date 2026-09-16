@@ -165,8 +165,15 @@ export function normalizePagePath(pathname: string): string {
  */
 export function canSendAnalytics(id: string = getGaMeasurementId()): boolean {
   try {
+
     if (typeof window === 'undefined') return false;
     if (!readConsent()?.analytics) return false;
+    console.log("r", readConsent());
+    console.log(id, GA_PLACEHOLDER_ID);
+    console.log("dg", window.__devhubGtagInjected);
+    console.log("gtag", typeof window.gtag === 'function');
+
+
     if (id === GA_PLACEHOLDER_ID) return false;
     if (!window.__devhubGtagInjected) return false;
     return typeof window.gtag === 'function';
@@ -187,6 +194,8 @@ let lastSentPath: string | null = null;
 
 export function sendPageView(id: string = getGaMeasurementId()): void {
   try {
+    console.log(canSendAnalytics(id));
+
     if (!canSendAnalytics(id)) return;
     const path = normalizePagePath(window.location.pathname);
     if (lastSentPath === path) return;
