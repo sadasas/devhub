@@ -116,7 +116,7 @@ export function ResetPasswordPage() {
 
           {error && <InlineError>{error}</InlineError>}
           {success && (
-            <div role="status" style={{ padding: 10, borderRadius: 8, background: '#dcfce7', color: '#14532d', fontSize: 13 }}>
+            <div role="status" style={{ padding: 10, borderRadius: 8, background: 'var(--status-success-soft)', color: 'var(--status-success)', fontSize: 13 }}>
               {t('auth.forgot.resetSuccess', 'Password updated — redirecting to login...')}
             </div>
           )}

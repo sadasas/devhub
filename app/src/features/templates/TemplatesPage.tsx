@@ -7,9 +7,8 @@ import type { ProjectTemplate } from '../../lib/types';
 import { formatDate } from '../../lib/utils';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
-import { InlineError } from '../../components/InlineError';
 import { DataErrorState } from '../../components/DataErrorState';
-import { Modal } from '../../components/Modal';
+import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { Skeleton } from '../../components/Skeleton';
 import { InstantiateTemplateModal } from './InstantiateTemplateModal';
 
@@ -28,7 +27,6 @@ export function TemplatesPage() {
   const [attempt, setAttempt] = useState(0);
   const [useTarget, setUseTarget] = useState<ProjectTemplate | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
-  const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -52,7 +50,6 @@ export function TemplatesPage() {
   }, [attempt, t]);
 
   function openDelete(tpl: ProjectTemplate) {
-    setConfirming(false);
     setDeleteError(null);
     setDeleteTarget({ id: tpl.id, name: tpl.name });
   }
@@ -96,20 +93,20 @@ export function TemplatesPage() {
               role="status"
               aria-live="polite"
               aria-busy="true"
-              aria-label="Loading templates"
+              aria-label={t('templates.loading')}
             >
-              <span className="sr-only">Loading templates…</span>
+              <span className="sr-only">{t('templates.loadingText')}</span>
               <div aria-hidden="true">
                 {[0, 1, 2].map((i) => (
-                  <div key={i} className="data-row" style={{ height: 56 }}>
-                    <div className="data-row-main" style={{ gap: 6 }}>
-                      <Skeleton style={{ width: '55%', height: 14 }} />
-                      <Skeleton style={{ width: '38%', height: 11, opacity: 0.85 }} />
-                      <Skeleton style={{ width: '30%', height: 11, opacity: 0.7 }} />
+                  <div key={i} className="data-row">
+                    <div className="data-row-main">
+                      <Skeleton className="template-skeleton-title" />
+                      <Skeleton className="template-skeleton-meta" />
+                      <Skeleton className="template-skeleton-meta-sm" />
                     </div>
-                    <div className="data-row-side" style={{ gap: 8 }}>
-                      <Skeleton style={{ width: 64, height: 28, borderRadius: 8 }} />
-                      <Skeleton style={{ width: 110, height: 28, borderRadius: 8 }} />
+                    <div className="data-row-side">
+                      <Skeleton className="template-skeleton-action" />
+                      <Skeleton className="template-skeleton-action-wide" />
                     </div>
                   </div>
                 ))}
@@ -136,11 +133,11 @@ export function TemplatesPage() {
                       <span>{t('templates.row.created', { date: formatDate(tpl.createdAt) })}</span>
                     </div>
                   </div>
-                  <div className="data-row-side" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+                  <div className="data-row-side">
                     <Button
                       variant="danger"
                       size="sm"
-                      leftIcon={<Trash size={13} aria-hidden="true" />}
+                      leftIcon={<Trash size={14} aria-hidden="true" />}
                       onClick={() => openDelete(tpl)}
                       aria-label={`${t('templates.delete')}: ${tpl.name}`}
                     >
@@ -149,7 +146,7 @@ export function TemplatesPage() {
                     <Button
                       variant="primary"
                       size="sm"
-                      leftIcon={<Copy size={13} aria-hidden="true" />}
+                      leftIcon={<Copy size={14} aria-hidden="true" />}
                       onClick={() => setUseTarget(tpl)}
                     >
                       {t('templates.use')}
@@ -165,48 +162,21 @@ export function TemplatesPage() {
 
       <InstantiateTemplateModal open={useTarget !== null} template={useTarget} onClose={() => setUseTarget(null)} />
 
-      <Modal
+      <ConfirmDeleteDialog
         open={deleteTarget !== null}
         title={t('templates.deleteTitle')}
-        onClose={() => setDeleteTarget(null)}
-        width="sm"
-        footer={
-          <>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setConfirming(false);
-                setDeleteTarget(null);
-              }}
-            >
-              {t('templates.cancel')}
-            </Button>
-            {confirming ? (
-              <Button
-                variant="danger"
-                leftIcon={<Trash size={13} aria-hidden="true" />}
-                loading={deleting}
-                onClick={() => void onDelete()}
-              >
-                {t('templates.confirmDelete')}
-              </Button>
-            ) : (
-              <Button
-                variant="danger"
-                leftIcon={<Trash size={13} aria-hidden="true" />}
-                onClick={() => setConfirming(true)}
-              >
-                {t('templates.delete')}
-              </Button>
-            )}
-          </>
-        }
-      >
-        <div className="form-stack">
-          <p>{t('templates.deleteDesc', { name: deleteTarget?.name ?? '' })}</p>
-          {deleteError && <InlineError>{deleteError}</InlineError>}
-        </div>
-      </Modal>
+        description={t('templates.deleteDesc', { name: deleteTarget?.name ?? '' })}
+        confirmLabel={t('templates.confirmDelete')}
+        busy={deleting}
+        error={deleteError}
+        onConfirm={() => void onDelete()}
+        onClose={() => {
+          if (!deleting) {
+            setDeleteTarget(null);
+            setDeleteError(null);
+          }
+        }}
+      />
     </div>
   );
 }

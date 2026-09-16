@@ -145,10 +145,10 @@ export function ApiDocsView({
           action={
             canEdit && (
               <div className="api-empty-actions">
-                <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={onNewEndpoint}>
+                <Button size="sm" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={onNewEndpoint}>
                   {t('api.toolbar.newEndpoint')}
                 </Button>
-                <Button size="sm" variant="outline" leftIcon={<UploadSimple size={13} aria-hidden="true" />} onClick={onImport}>
+                <Button size="sm" variant="outline" leftIcon={<UploadSimple size={14} aria-hidden="true" />} onClick={onImport}>
                   {t('api.toolbar.import')}
                 </Button>
               </div>

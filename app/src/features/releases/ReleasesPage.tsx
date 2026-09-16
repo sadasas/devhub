@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useProject } from "../../state/project-context";
 import { useEntityDeepLink } from "../../hooks/useEntityDeepLink";
@@ -18,7 +18,7 @@ import { ReleasesTimelineView } from "./ReleasesTimelineView";
 import { MilestoneDetailView } from "./MilestoneDetailView";
 import { DataErrorState } from "../../components/DataErrorState";
 import { TaskModal } from "../board/TaskModal";
-import { Plus } from "@phosphor-icons/react";
+import { Clock, ListBullets, Plus } from "@phosphor-icons/react";
 
 const MILESTONE_SORT_SPECS: SortSpec<Milestone>[] = [
   { key: "targetDate", label: "releases.sort.targetDate", get: (m) => m.targetDate ?? null },
@@ -26,6 +26,28 @@ const MILESTONE_SORT_SPECS: SortSpec<Milestone>[] = [
   { key: "createdAt", label: "releases.sort.createdAt", get: (m) => m.createdAt },
   { key: "version", label: "releases.sort.version", get: (m) => m.version ?? null, compare: compareVersions },
 ];
+
+/** Header ringkas ≤640px sama seperti Issues (count hilang, sort icon-only, + Milestone). */
+function useIsReleasesNarrow(): boolean {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(max-width: 640px)').matches
+      : false,
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(max-width: 640px)');
+    const update = (): void => setMatches(mq.matches);
+    update();
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', update);
+      return () => mq.removeEventListener('change', update);
+    }
+    mq.addListener(update);
+    return () => mq.removeListener(update);
+  }, []);
+  return matches;
+}
 
 export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { t } = useTranslation("project");
@@ -39,6 +61,7 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
   const effectiveSort = sortValue ?? { key: "createdAt", dir: "desc" as const };
   const milestonesForHook = state?.milestones ?? [];
   const { rview, mid, setRview, setMid } = useRviewParam(milestonesForHook);
+  const isNarrow = useIsReleasesNarrow();
 
   if (loading) {
     return (
@@ -143,16 +166,18 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
   }
 
   return (
-    <div>
+    <div className="releases-page">
       <div className="data-list-header releases-toolbar">
         <span className="releases-header-left">
           <span className="data-list-count">{t("releases.count", { count: state.milestones.length })}</span>
-          <div className="sub-tabs" role="tablist" aria-label={t("releases.viewToggle.aria", { defaultValue: "Releases view" })}>
-            <button type="button" role="tab" className={"sub-tab " + (rview === "list" ? "sub-tab-active" : "")} aria-selected={rview === "list"} aria-controls="releases-panel" onClick={() => setRview("list")}>
-              {t("releases.viewToggle.list", { defaultValue: "Daftar" })}
+          <div className="sub-tabs releases-view-toggle" role="tablist" aria-label={t("releases.viewToggle.aria", { defaultValue: "Releases view" })}>
+            <button type="button" role="tab" className={"sub-tab " + (rview === "list" ? "sub-tab-active" : "")} aria-selected={rview === "list"} aria-controls="releases-panel" aria-label={t("releases.viewToggle.list", { defaultValue: "Daftar" })} title={t("releases.viewToggle.list", { defaultValue: "Daftar" })} onClick={() => setRview("list")}>
+              <ListBullets size={13} aria-hidden="true" />
+              <span className="sub-tab-label">{t("releases.viewToggle.list", { defaultValue: "Daftar" })}</span>
             </button>
-            <button type="button" role="tab" className={"sub-tab " + (rview === "timeline" ? "sub-tab-active" : "")} aria-selected={rview === "timeline"} aria-controls="releases-panel" onClick={() => setRview("timeline")}>
-              {t("releases.viewToggle.timeline", { defaultValue: "Timeline" })}
+            <button type="button" role="tab" className={"sub-tab " + (rview === "timeline" ? "sub-tab-active" : "")} aria-selected={rview === "timeline"} aria-controls="releases-panel" aria-label={t("releases.viewToggle.timeline", { defaultValue: "Timeline" })} title={t("releases.viewToggle.timeline", { defaultValue: "Timeline" })} onClick={() => setRview("timeline")}>
+              <Clock size={13} aria-hidden="true" />
+              <span className="sub-tab-label">{t("releases.viewToggle.timeline", { defaultValue: "Timeline" })}</span>
             </button>
           </div>
         </span>
@@ -165,8 +190,8 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
             />
           )}
           {canEdit && (
-            <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => setOpenNew(true)}>
-              {t("releases.newMilestone")}
+            <Button size="sm" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setOpenNew(true)}>
+              {isNarrow ? t("releases.newMilestoneShort", { defaultValue: "Milestone" }) : t("releases.newMilestone")}
             </Button>
           )}
         </span>

@@ -29,6 +29,9 @@ interface RefOption {
 
 const MAX_OPTIONS = 50;
 
+// autoFocus hanya desktop (hover) — di touch, keyboard virtual melonjak (pola Modal).
+const AUTO_FOCUS_INPUT = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
+
 function labelOf<K extends string>(map: Record<K, { label: string }>, key: K | undefined | null): string {
   return (key ? map[key]?.label : undefined) ?? String(key ?? '');
 }
@@ -132,7 +135,7 @@ export function RefPicker({ open, state, onPick, onClose }: RefPickerProps) {
           className="input"
           placeholder={t('whiteboard.refPicker.searchPlaceholder')}
           aria-label={t('whiteboard.refPicker.searchAria')}
-          autoFocus
+          autoFocus={AUTO_FOCUS_INPUT}
           value={query}
           maxLength={100}
           onChange={(e) => {
@@ -146,9 +149,11 @@ export function RefPicker({ open, state, onPick, onClose }: RefPickerProps) {
         ) : (
           <ul className="ref-picker-list" role="listbox" aria-label={t('whiteboard.refPicker.listAria')}>
             {options.map((opt, i) => (
-              <li key={`${opt.entity}-${opt.id}`} role="option" aria-selected={i === active}>
+              <li key={`${opt.entity}-${opt.id}`}>
                 <button
                   type="button"
+                  role="option"
+                  aria-selected={i === active}
                   className={`ref-picker-row${i === active ? ' ref-picker-row-active' : ''}`}
                   onClick={() => onPick(opt.entity, opt.id)}
                   onMouseEnter={() => setActive(i)}

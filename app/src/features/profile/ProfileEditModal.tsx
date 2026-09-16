@@ -24,6 +24,8 @@ export function ProfileEditModal({ open, onClose }: ProfileEditModalProps) {
   const [bio, setBio] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+  const autoFocusName = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
 
   useEffect(() => {
     if (!open) return;
@@ -50,6 +52,7 @@ export function ProfileEditModal({ open, onClose }: ProfileEditModalProps) {
     } catch (err) {
       setSaveError(getErrorMessage(err, t('profile.editModal.saveFailed')));
       setSaving(false);
+      requestAnimationFrame(() => errorRef.current?.focus());
     }
   }
 
@@ -61,10 +64,10 @@ export function ProfileEditModal({ open, onClose }: ProfileEditModalProps) {
       width="sm"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose} disabled={saving}>
+          <Button variant="ghost" size="md" onClick={onClose} disabled={saving}>
             {t('common:action.cancel')}
           </Button>
-          <Button type="submit" form="profile-edit-form" leftIcon={<FloppyDisk size={13} aria-hidden="true" />} loading={saving} disabled={!dirty}>
+          <Button type="submit" size="md" form="profile-edit-form" leftIcon={<FloppyDisk size={14} aria-hidden="true" />} loading={saving} disabled={!dirty}>
             {t('profile.editModal.save')}
           </Button>
         </>
@@ -74,6 +77,7 @@ export function ProfileEditModal({ open, onClose }: ProfileEditModalProps) {
         <Input
           label={t('profile.editModal.displayName')}
           value={displayName}
+          autoFocus={autoFocusName}
           onChange={(e) => setDisplayName(e.target.value)}
           placeholder={t('profile.editModal.displayNamePlaceholder')}
           maxLength={60}
@@ -94,7 +98,7 @@ export function ProfileEditModal({ open, onClose }: ProfileEditModalProps) {
               : t('profile.editModal.bioLength', { length: bio.length })
           }
         />
-        {saveError && <InlineError>{saveError}</InlineError>}
+        {saveError && <div ref={errorRef} tabIndex={-1} className="form-error-focus"><InlineError>{saveError}</InlineError></div>}
       </form>
     </Modal>
   );

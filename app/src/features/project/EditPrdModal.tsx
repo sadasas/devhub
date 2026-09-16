@@ -60,10 +60,10 @@ export function EditPrdModal({ open, onClose, project }: EditPrdModalProps) {
       width="md"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose} disabled={saving}>
+          <Button variant="ghost" size="md" onClick={onClose} disabled={saving}>
             {t('prd.cancel')}
           </Button>
-          <Button type="submit" form="edit-prd-form" leftIcon={<FloppyDisk size={13} aria-hidden="true" />} loading={saving} disabled={!dirty}>
+          <Button type="submit" size="md" form="edit-prd-form" leftIcon={<FloppyDisk size={14} aria-hidden="true" />} loading={saving} disabled={!dirty}>
             {t('prd.save')}
           </Button>
         </>

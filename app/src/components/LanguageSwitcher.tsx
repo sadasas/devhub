@@ -6,9 +6,10 @@ import { LANGUAGES, useAppLocale } from '../i18n/useAppLocale';
 interface LanguageSwitcherProps {
   triggerClassName?: string;
   up?: boolean;
+  variant?: 'dropdown' | 'segmented';
 }
 
-export function LanguageSwitcher({ triggerClassName = 'btn btn-ghost btn-sm', up = false }: LanguageSwitcherProps) {
+export function LanguageSwitcher({ triggerClassName = 'btn btn-ghost btn-sm', up = false, variant = 'dropdown' }: LanguageSwitcherProps) {
   const { t } = useTranslation();
   const { lang, setLang } = useAppLocale();
   const [open, setOpen] = useState(false);
@@ -34,6 +35,28 @@ export function LanguageSwitcher({ triggerClassName = 'btn btn-ghost btn-sm', up
     };
   }, [open]);
 
+  if (variant === 'segmented') {
+    return (
+      <div className="theme-segmented" role="radiogroup" aria-label={t('language.menu')}>
+        {LANGUAGES.map((l) => {
+          const isActive = lang === l.code;
+          return (
+            <button
+              key={l.code}
+              type="button"
+              className={`theme-segmented-btn${isActive ? ' theme-segmented-active' : ''}`}
+              role="radio"
+              aria-checked={isActive}
+              onClick={() => setLang(l.code)}
+            >
+              <span>{l.nativeName}</span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
     <div className="sort-control" ref={wrapRef}>
       <button
@@ -48,7 +71,7 @@ export function LanguageSwitcher({ triggerClassName = 'btn btn-ghost btn-sm', up
       >
         <Globe size={15} aria-hidden="true" />
       </button>
-      {open && (
+      {open && variant === 'dropdown' && (
         <div
           className={`sort-menu lang-menu${up ? ' lang-menu-up' : ''}`}
           role="menu"

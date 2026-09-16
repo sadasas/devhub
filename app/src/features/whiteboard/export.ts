@@ -140,7 +140,7 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null, ctx: Exp
       const innerW = Math.max(24, el.w - pad * 2);
       const labelLines = el.label ? wrapToWidth(el.label, fontSize, innerW, 4) : [];
       const fill = el.fill ? ` fill="${esc(el.color)}" fill-opacity="0.15"` : ' fill="none"';
-      const isLightFill = el.fill && ["#e4e4e7","#6ea8fe","#f2b8c6","#34c38e","#a78bfa","#e8b955"].includes(el.color);
+      const isLightFill = el.fill && ["#e4e4e7","#6ea8fe","#f2b8c6","#34c38e","#5db69b","#a78bfa","#e8b955"].includes(el.color);
   const labelFill = el.labelColor ?? (isLightFill ? "#0f172a" : el.color);
       const label =
         labelLines.length > 0

@@ -10,7 +10,6 @@ import {
   GithubLogo,
   GoogleLogo,
   IdentificationBadge,
-  Key,
   LockKey,
   PencilSimple,
   ShieldCheck,
@@ -24,6 +23,7 @@ import { Avatar } from '../../components/Avatar';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { DataErrorState } from '../../components/DataErrorState';
+import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 import { Skeleton } from '../../components/Skeleton';
 import { ThemeSwitcher } from '../../components/ThemeSwitcher';
 import { ChangePasswordModal } from './ChangePasswordModal';
@@ -69,8 +69,6 @@ export function ProfilePage() {
   const { user, refresh } = useAuth();
   const { teams } = useTeams();
   const { projects } = useProjects();
-  const [activeKeys, setActiveKeys] = useState<number | null>(null);
-  const [keysError, setKeysError] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [changeOpen, setChangeOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -90,22 +88,6 @@ export function ProfilePage() {
   function setTab(next: ProfileTab) {
     setSearchParams(next === 'profile' ? {} : { tab: next }, { replace: true });
   }
-
-  useEffect(() => {
-    let cancelled = false;
-    api
-      .listKeys()
-      .then((res) => {
-        // List hanya key aktif — total = jumlah Active API keys
-        if (!cancelled) setActiveKeys(res.total);
-      })
-      .catch(() => {
-        if (!cancelled) setKeysError(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const fetchLinked = async () => {
     setLinkedErrorRaw(null);
@@ -180,7 +162,6 @@ export function ProfilePage() {
               email={user.email}
               id={user.id}
               size={72}
-              rounded={16}
               className="profile-avatar"
               alt={name}
             />
@@ -234,7 +215,7 @@ export function ProfilePage() {
           onClick={() => setTab('profile')}
           aria-selected={tab === 'profile'}
         >
-          <UserCircle size={13} aria-hidden="true" />
+          <UserCircle size={15} aria-hidden="true" />
           {t('profile.tab.profile')}
         </button>
         <button
@@ -244,7 +225,7 @@ export function ProfilePage() {
           onClick={() => setTab('security')}
           aria-selected={tab === 'security'}
         >
-          <LockKey size={13} aria-hidden="true" />
+          <LockKey size={15} aria-hidden="true" />
           {t('profile.tab.security')}
         </button>
         <button
@@ -254,7 +235,7 @@ export function ProfilePage() {
           onClick={() => setTab('account')}
           aria-selected={tab === 'account'}
         >
-          <IdentificationBadge size={13} aria-hidden="true" />
+          <IdentificationBadge size={15} aria-hidden="true" />
           {t('profile.tab.account')}
         </button>
       </div>
@@ -278,27 +259,20 @@ export function ProfilePage() {
               loading={projects === null}
               error={false}
             />
-            <StatItem
-              icon={<Key size={16} weight="duotone" aria-hidden="true" />}
-              label={t('profile.stat.activeKeys')}
-              value={activeKeys ?? 0}
-              loading={activeKeys === null && !keysError}
-              error={keysError}
-            />
           </div>
 
           <div className="profile-collections">
             <section className="profile-panel" aria-label={t('profile.yourTeams')}>
-              <h3 className="profile-panel-title">
-                <UsersThree size={13} weight="duotone" aria-hidden="true" />
+              <h3 className="section-title">
+                <UsersThree size={14} weight="duotone" aria-hidden="true" />
                 {t('profile.yourTeams')}
               </h3>
               {teams === null ? (
                 <div role="status" aria-busy="true" aria-label="Loading teams">
                   <span className="sr-only">Loading teams…</span>
-                  <div aria-hidden="true" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div aria-hidden="true" className="profile-collection-skeleton">
                     {[0, 1, 2].map((i) => (
-                      <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '9px 2px' }}>
+                      <div key={i} className="profile-collection-skeleton-row">
                         <Skeleton style={{ width: '40%', height: 13 }} />
                         <Skeleton style={{ width: 64, height: 11, marginLeft: 'auto' }} />
                         <Skeleton style={{ width: 12, height: 12, borderRadius: 4, flexShrink: 0 }} />
@@ -328,16 +302,16 @@ export function ProfilePage() {
               )}
             </section>
             <section className="profile-panel" aria-label={t('profile.yourProjects')}>
-              <h3 className="profile-panel-title">
-                <FolderSimple size={13} weight="duotone" aria-hidden="true" />
+              <h3 className="section-title">
+                <FolderSimple size={14} weight="duotone" aria-hidden="true" />
                 {t('profile.yourProjects')}
               </h3>
               {projects === null ? (
                 <div role="status" aria-busy="true" aria-label="Loading projects">
                   <span className="sr-only">Loading projects…</span>
-                  <div aria-hidden="true" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div aria-hidden="true" className="profile-collection-skeleton">
                     {[0, 1, 2].map((i) => (
-                      <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '9px 2px' }}>
+                      <div key={i} className="profile-collection-skeleton-row">
                         <Skeleton style={{ width: '40%', height: 13 }} />
                         <Skeleton style={{ width: 64, height: 11, marginLeft: 'auto' }} />
                         <Skeleton style={{ width: 12, height: 12, borderRadius: 4, flexShrink: 0 }} />
@@ -375,40 +349,40 @@ export function ProfilePage() {
                   {user.hasPassword === false ? t('profile.security.passwordSetDesc', { defaultValue: 'No password yet \u2014 set one to enable email login. You can keep using Google/GitHub.' }) : t('profile.security.passwordDesc')}
                 </span>
               </div>
-              <Button variant="secondary" onClick={() => setChangeOpen(true)}>
+              <Button variant="secondary" size="sm" onClick={() => setChangeOpen(true)}>
                 {user.hasPassword === false
                   ? t('profile.security.setPassword', { defaultValue: 'Set password' })
                   : t('profile.security.changePassword')}
               </Button>
             </div>
             {user.hasPassword === false && (
-              <p className="field-helper" style={{ marginTop: 8, color: 'var(--status-warn)' }}>
-                This account uses Google/GitHub login. Set a password to enable email login and allow unlinking OAuth.
+              <p className="field-helper field-helper--warn" style={{ marginTop: 8 }}>
+                {t('profile.security.noPasswordHint')}
               </p>
             )}
           </div>
 
           <div className="profile-panel">
-            <h3 className="profile-panel-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <ShieldCheck size={14} weight="duotone" /> Connected accounts
+            <h3 className="section-title">
+              <ShieldCheck size={14} weight="duotone" aria-hidden="true" /> {t('profile.security.connectedTitle', { defaultValue: 'Connected accounts' })}
             </h3>
             <p className="field-helper" style={{ marginBottom: 12 }}>
-              Link Google or GitHub to sign in with one click. Keep your email/password — OAuth is additive.
+              {t('profile.security.connectedHelper', { defaultValue: 'Link Google or GitHub to sign in with one click. Keep your email/password — OAuth is additive.' })}
             </p>
             {linkedError ? (linkedErrorRaw ? <DataErrorState error={linkedErrorRaw} onRetry={() => void fetchLinked()} /> : <div className="inline-error" style={{ marginBottom: 10 }}>{linkedError}</div>) : null}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div className="settings-action" style={{ border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-input)', padding: '12px 14px' }}>
-                <div className="settings-action-main" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div className="settings-action">
+                <div className="settings-action-main" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <GoogleLogo size={18} weight="bold" />
                   <div>
                     <div className="settings-action-title">Google</div>
                     <div className="settings-action-desc">
-                      {isGoogleLinked ? linked?.find((l) => l.provider === 'google')?.email ?? 'Linked' : 'Not linked — scope openid email profile'}
+                      {isGoogleLinked ? linked?.find((l) => l.provider === 'google')?.email ?? t('profile.security.linked', { defaultValue: 'Linked' }) : t('profile.security.notLinkedGoogle', { defaultValue: 'Not linked — scope openid email profile' })}
                     </div>
                   </div>
                 </div>
                 {isGoogleLinked ? (
-                  <Button variant="ghost" onClick={() => { setUnlinkError(null); setUnlinkTarget('google'); }}>
+                  <Button variant="ghost" size="sm" onClick={() => { setUnlinkError(null); setUnlinkTarget('google'); }}>
                     {t('profile.security.unlink', { defaultValue: 'Unlink' })}
                   </Button>
                 ) : (
@@ -416,25 +390,24 @@ export function ProfilePage() {
                      href={`/api/v1/auth/google?intent=link&returnTo=${encodeURIComponent(returnToProfile)}`}
                      rel="external"
                      data-external="true"
-                     className="btn btn-secondary"
-                     style={{ textDecoration: 'none', padding: '8px 14px', borderRadius: 8, fontWeight: 600 }}
+                     className="btn btn-secondary btn-sm"
                   >
-                     Connect
+                     {t('profile.security.connect', { defaultValue: 'Connect' })}
                   </a>
                  )}
               </div>
-              <div className="settings-action" style={{ border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-input)', padding: '12px 14px' }}>
-                <div className="settings-action-main" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div className="settings-action">
+                <div className="settings-action-main" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <GithubLogo size={18} weight="fill" />
                   <div>
                     <div className="settings-action-title">GitHub</div>
                     <div className="settings-action-desc">
-                      {isGithubLinked ? linked?.find((l) => l.provider === 'github')?.email ?? 'Linked' : 'Not linked — scope user:email read:user'}
+                      {isGithubLinked ? linked?.find((l) => l.provider === 'github')?.email ?? t('profile.security.linked', { defaultValue: 'Linked' }) : t('profile.security.notLinkedGithub', { defaultValue: 'Not linked — scope user:email read:user' })}
                     </div>
                   </div>
                 </div>
                 {isGithubLinked ? (
-                  <Button variant="ghost" onClick={() => { setUnlinkError(null); setUnlinkTarget('github'); }}>
+                  <Button variant="ghost" size="sm" onClick={() => { setUnlinkError(null); setUnlinkTarget('github'); }}>
                     {t('profile.security.unlink', { defaultValue: 'Unlink' })}
                   </Button>
                 ) : (
@@ -442,23 +415,22 @@ export function ProfilePage() {
                      href={`/api/v1/auth/github?intent=link&returnTo=${encodeURIComponent(returnToProfile)}`}
                      rel="external"
                      data-external="true"
-                     className="btn btn-secondary"
-                     style={{ textDecoration: 'none', padding: '8px 14px', borderRadius: 8, fontWeight: 600 }}
+                     className="btn btn-secondary btn-sm"
                   >
-                     Connect
+                     {t('profile.security.connect', { defaultValue: 'Connect' })}
                   </a>
                  )}
               </div>
             </div>
-            {linked === null && !linkedError && <p className="field-helper" style={{ marginTop: 8 }}>Loading linked accounts…</p>}
+            {linked === null && !linkedError && <p className="field-helper" style={{ marginTop: 8 }}>{t('profile.security.loadingLinked', { defaultValue: 'Loading linked accounts…' })}</p>}
           </div>
         </section>
       )}
 
       {tab === 'account' && (
         <section className="profile-tab-panel" aria-label={t('profile.accountPanelAria')}>
-          <div className="profile-panel profile-panel--primary">
-            <h3 className="profile-panel-title profile-panel-title--primary">
+          <div className="profile-panel">
+            <h3 className="section-title">
               {t('profile.account.detailTitle', { defaultValue: 'Account details' })}
             </h3>
             <p className="field-helper" style={{ marginBottom: 14 }}>
@@ -467,77 +439,88 @@ export function ProfilePage() {
               })}
             </p>
             <dl className="settings-rows">
-              <div className="settings-row">
-                <dt>{t('profile.account.email')}</dt>
-                <dd style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                  <span>{user.email}</span>
-                  {(() => {
-                    const isVerified = user.emailVerified ?? (user.providers?.length ?? 0) > 0;
-                    return (
-                      <Badge tone={isVerified ? 'success' : 'warn'} dot>
-                        {isVerified
-                          ? t('profile.account.verified', { defaultValue: 'Verified' })
-                          : t('profile.account.unverified', { defaultValue: 'Unverified' })}
-                      </Badge>
-                    );
-                  })()}
-                </dd>
+              <div className="settings-row-group">
+                <div className="settings-row">
+                  <dt>{t('profile.account.email')}</dt>
+                  <dd style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                    <span>{user.email}</span>
+                    {(() => {
+                      const isVerified = user.emailVerified ?? (user.providers?.length ?? 0) > 0;
+                      return (
+                        <Badge tone={isVerified ? 'success' : 'warn'} dot>
+                          {isVerified
+                            ? t('profile.account.verified', { defaultValue: 'Verified' })
+                            : t('profile.account.unverified', { defaultValue: 'Unverified' })}
+                        </Badge>
+                      );
+                    })()}
+                  </dd>
+                </div>
+                <p className="field-helper field-helper--row">
+                  {t('profile.account.emailHelper', { defaultValue: 'Email for login & team invites.' })}
+                </p>
               </div>
-              <p className="field-helper field-helper--row">
-                {t('profile.account.emailHelper', { defaultValue: 'Email for login & team invites.' })}
-              </p>
-              <div className="settings-row">
-                <dt>{t('profile.account.memberSince')}</dt>
-                <dd>{formatDate(user.createdAt)}</dd>
+              <div className="settings-row-group">
+                <div className="settings-row">
+                  <dt>{t('profile.account.memberSince')}</dt>
+                  <dd>{formatDate(user.createdAt)}</dd>
+                </div>
               </div>
-              <div className="settings-row settings-row--accountId">
-                <dt>{t('profile.account.accountId')}</dt>
-                <dd className="settings-row-value">
-                  <span className="settings-mono" title={user.id} style={{ maxWidth: showFullId ? '100%' : 96, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: showFullId ? 'normal' : 'nowrap', wordBreak: showFullId ? 'break-all' : undefined }}>
-                    {showFullId ? user.id : shortId(user.id)}
-                  </span>
-                  <span className="settings-row-actions">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      leftIcon={copiedId ? <Check size={13} weight="bold" aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
-                      onClick={() => void handleCopyId()}
-                      aria-label={t('profile.account.copyIdAria', { defaultValue: 'Copy account ID' })}
-                      title={user.id}
-                    >
-                      {copiedId
-                        ? t('profile.account.copied', { defaultValue: 'Copied' })
-                        : t('profile.account.copyId', { defaultValue: 'Copy' })}
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setShowFullId((v) => !v)}>
-                      {showFullId
-                        ? t('profile.account.hideFull', { defaultValue: 'Hide' })
-                        : t('profile.account.viewFull', { defaultValue: 'Show full' })}
-                    </Button>
-                  </span>
-                  {copiedId && (
-                    <span className="field-helper" role="status" aria-live="polite" style={{ fontSize: 11 }}>
-                      {t('profile.account.copied', { defaultValue: 'Copied' })}
+              <div className="settings-row-group">
+                <div className="settings-row settings-row--accountId">
+                  <dt>{t('profile.account.accountId')}</dt>
+                  <dd className="settings-row-value">
+                    <span className="settings-mono" title={user.id} style={{ maxWidth: showFullId ? '100%' : 96, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: showFullId ? 'normal' : 'nowrap', wordBreak: showFullId ? 'break-all' : undefined }}>
+                      {showFullId ? user.id : shortId(user.id)}
                     </span>
-                  )}
-                </dd>
+                    <span className="settings-row-actions">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        leftIcon={copiedId ? <Check size={13} weight="bold" aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
+                        onClick={() => void handleCopyId()}
+                        aria-label={t('profile.account.copyIdAria', { defaultValue: 'Copy account ID' })}
+                        title={user.id}
+                      >
+                        {copiedId
+                          ? t('profile.account.copied', { defaultValue: 'Copied' })
+                          : t('profile.account.copyId', { defaultValue: 'Copy' })}
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setShowFullId((v) => !v)}>
+                        {showFullId
+                          ? t('profile.account.hideFull', { defaultValue: 'Hide' })
+                          : t('profile.account.viewFull', { defaultValue: 'Show full' })}
+                      </Button>
+                    </span>
+                    {copiedId && (
+                      <span className="field-helper field-helper--micro" role="status" aria-live="polite">
+                        {t('profile.account.copied', { defaultValue: 'Copied' })}
+                      </span>
+                    )}
+                  </dd>
+                </div>
+                <p className="field-helper field-helper--row">
+                  {t('profile.account.idHelper', {
+                    defaultValue: 'Used when contacting support. Copy copies the full ID.',
+                  })}
+                </p>
               </div>
-              <p className="field-helper field-helper--row">
-                {t('profile.account.idHelper', {
-                  defaultValue: 'Used when contacting support. Copy copies the full ID.',
-                })}
-              </p>
             </dl>
           </div>
 
-          <div className="profile-panel profile-panel--secondary">
-            <h3 className="profile-panel-title">{t('profile.account.preferencesTitle', { defaultValue: 'Preferences' })}</h3>
+          <div className="profile-panel">
+            <h3 className="section-title">{t('profile.account.preferencesTitle', { defaultValue: 'Preferences' })}</h3>
             <p className="field-helper" style={{ marginBottom: 12 }}>
               {t('profile.account.preferencesHelper', {
                 defaultValue: 'Light/Dark — System follows your OS.',
               })}
             </p>
             <ThemeSwitcher variant="segmented" />
+            <h3 className="section-title">{t('profile.account.languageTitle', { defaultValue: 'Language' })}</h3>
+            <p className="field-helper" style={{ marginBottom: 12 }}>
+              {t('profile.account.languageHelper', { defaultValue: 'DevHub interface language.' })}
+            </p>
+            <LanguageSwitcher variant="segmented" />
           </div>
         </section>
       )}

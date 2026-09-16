@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
@@ -51,6 +51,8 @@ export function InstantiateTemplateModal({
   const [submitting, setSubmitting] = useState(false);
   const [limitOpen, setLimitOpen] = useState(false);
   const [limitResource, setLimitResource] = useState<PlanLimitResource>('projects');
+  const errorRef = useRef<HTMLDivElement>(null);
+  const autoFocusName = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
 
   useEffect(() => {
     if (open) {
@@ -65,6 +67,7 @@ export function InstantiateTemplateModal({
     if (!template) return;
     if (!teamId) {
       setError(t('templates.errors.noTeam'));
+      requestAnimationFrame(() => errorRef.current?.focus());
       return;
     }
     setError(null);
@@ -83,6 +86,7 @@ export function InstantiateTemplateModal({
         setLimitOpen(true);
       } else {
         setError(getErrorMessage(err, t('templates.errors.instantiate')));
+        requestAnimationFrame(() => errorRef.current?.focus());
       }
       setSubmitting(false);
     }
@@ -100,13 +104,14 @@ export function InstantiateTemplateModal({
         width="sm"
         footer={
           <>
-            <Button variant="ghost" onClick={onClose}>
+            <Button variant="ghost" size="md" onClick={onClose}>
               {t('templates.cancel')}
             </Button>
             <Button
               type="submit"
+              size="md"
               form="instantiate-form"
-              leftIcon={<Copy size={13} aria-hidden="true" />}
+              leftIcon={<Copy size={14} aria-hidden="true" />}
               loading={submitting}
               disabled={!name.trim() || !teamId}
             >
@@ -119,7 +124,7 @@ export function InstantiateTemplateModal({
           <Input
             label={t('templates.projectName')}
             required
-            autoFocus
+            autoFocus={autoFocusName}
             placeholder={t('templates.projectNamePlaceholder')}
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -145,7 +150,7 @@ export function InstantiateTemplateModal({
           <p className="field-helper" id="instantiate-helper">
             {t('templates.instantiateHelper')}
           </p>
-          {error && <InlineError>{error}</InlineError>}
+          {error && <div ref={errorRef} tabIndex={-1} className="form-error-focus"><InlineError>{error}</InlineError></div>}
         </form>
       </Modal>
       <PlanLimitModal

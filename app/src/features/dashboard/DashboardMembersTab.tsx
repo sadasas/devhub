@@ -195,7 +195,10 @@ export function DashboardMembersTab({ team }: DashboardMembersTabProps) {
         <div className="dashboard__members-search" role="search" aria-label={t('dashboard.team.membersSearchAria')}>
           <MagnifyingGlass size={14} aria-hidden="true" className="dashboard__members-search-icon" />
           <input
-            type="text"
+            type="search"
+            name="member-q"
+            autoComplete="off"
+            spellCheck={false}
             className="dashboard__members-search-input"
             placeholder={t('dashboard.team.membersSearchPlaceholder')}
             aria-label={t('dashboard.team.membersSearchAria')}
@@ -230,17 +233,17 @@ export function DashboardMembersTab({ team }: DashboardMembersTabProps) {
           <div aria-hidden="true" className="dashboard__members-list">
             {[0, 1].map((i) => (
               <div key={i} className="data-row dashboard__members-row">
-                <Skeleton style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0 }} />
+                <Skeleton style={{ width: 40, height: 40, borderRadius: 'var(--radius-pill)', flexShrink: 0 }} />
                 <div className="data-row-main" style={{ gap: 6 }}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <Skeleton style={{ width: 120, height: 14 }} />
-                    <Skeleton style={{ width: 48, height: 16, borderRadius: 6 }} />
+                    <Skeleton style={{ width: 48, height: 16, borderRadius: 'var(--radius-sm)' }} />
                   </div>
                   <Skeleton style={{ width: '60%', height: 11 }} />
                 </div>
                 <div className="data-row-side">
-                  <Skeleton style={{ width: 72, height: 28, borderRadius: 8 }} />
-                  <Skeleton style={{ width: 88, height: 28, borderRadius: 8 }} />
+                  <Skeleton style={{ width: 72, height: 28, borderRadius: 'var(--radius-input)' }} />
+                  <Skeleton style={{ width: 88, height: 28, borderRadius: 'var(--radius-input)' }} />
                 </div>
               </div>
             ))}
@@ -363,7 +366,7 @@ export function DashboardMembersTab({ team }: DashboardMembersTabProps) {
                     {t('teams.expiresOn', { date: new Date(inv.expiresAt).toLocaleDateString() })}
                   </span>
                 </div>
-                <div className="data-row-side" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+                <div className="data-row-side dashboard__members-pending-actions">
                   <Button
                     variant="danger"
                     size="sm"

@@ -598,7 +598,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
           </Button>
           <span className="wb-board-name" title={board.name}>{board.name}</span>
           <span className="wb-topbar-spacer" aria-hidden="true" />
-          <Button variant="ghost" size="sm" leftIcon={<ArrowsOutSimple size={13} aria-hidden="true" />} onClick={toggleFullscreen} aria-label={t('whiteboard.toolbar.fsEnterAria')} title={t('whiteboard.toolbar.fsEnterTitle')}>
+          <Button variant="ghost" size="sm" leftIcon={<ArrowsOutSimple size={14} aria-hidden="true" />} onClick={toggleFullscreen} aria-label={t('whiteboard.toolbar.fsEnterAria')} title={t('whiteboard.toolbar.fsEnterTitle')}>
             {t('whiteboard.toolbar.canvasMode')}
           </Button>
         </div>

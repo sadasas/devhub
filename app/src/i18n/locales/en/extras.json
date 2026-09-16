@@ -8,6 +8,7 @@
       "count_other": "{{count}} whiteboards",
       "capHint": " — {{max}} boards per project, delete one to add another",
       "newBoard": "New board",
+      "newBoardShort": "Board",
       "emptyTitle": "No whiteboards yet",
       "emptyDesc": "Sketch ideas and flowcharts on a shared canvas.",
       "deleteTitle": "Delete board",
@@ -275,7 +276,10 @@
       "exportMenu": "Export",
       "exportMenuAria": "Export API documentation as",
       "newCollection": "New collection",
-      "newEndpoint": "New endpoint"
+      "newEndpoint": "New endpoint",
+      "newCollectionShort": "Collection",
+      "newEndpointShort": "Endpoint",
+      "moreActions": "More API actions"
     },
     "empty": {
       "title": "No endpoint selected",
@@ -291,6 +295,9 @@
       "results_other": "{{count}} results",
       "noResults": "No matches for \"{{query}}\".",
       "empty": "No collections yet. Create one or import an OpenAPI document."
+    },
+    "drawer": {
+      "title": "Collections & Endpoints"
     },
     "tree": {
       "collapse": "Collapse {{name}}",
@@ -434,6 +441,8 @@
       "subtitle": "Private to you — save a project as a template, then instantiate it into any of your workspaces."
     },
     "retry": "Try again",
+    "loading": "Loading templates",
+    "loadingText": "Loading templates…",
     "empty": {
       "title": "No templates yet",
       "desc": "Open any project and use “Save as template” to turn it into a reusable blueprint."
@@ -477,12 +486,12 @@
     "subtitle": "All core features included — different limits.",
     "recommended": "Recommended",
     "planAria": "{{name}} plan",
-    "choosePeriod": "Pilih periode:",
-    "chooseDurationAria": "Pilih durasi",
+    "choosePeriod": "Choose period:",
+    "chooseDurationAria": "Choose duration",
     "durationMonths_one": "{{count}} month",
     "durationMonths_other": "{{count}} months",
     "totalLabel": "Total:",
-    "totalFor": "untuk {{duration}}",
+    "totalFor": "for {{duration}}",
     "freePrice": "Rp 0",
     "freePeriod": "/ forever",
     "benefits": {
@@ -490,11 +499,11 @@
       "members": "{{n}} members",
       "unlimitedProjects": "Unlimited projects",
       "projects": "{{n}} projects",
-      "coreFeatures": "Semua fitur core",
+      "coreFeatures": "All core features",
       "exportJson": "Export JSON",
       "prioritySupport": "Priority support"
     },
-    "savings": "Hemat {{percent}}%",
+    "savings": "Save {{percent}}%",
     "originalPriceAria": "Regular price {{price}}",
     "billedYearly": "Billed yearly — equals {{monthly}}/mo",
     "youSave": "Save {{amount}} vs regular price",
@@ -584,12 +593,24 @@
       "cancelled": "Cancelled"
     },
     "days": "{{count}} days",
-    "resume": "Lanjutkan pembayaran",
-    "cancelPayment": "Batalkan",
+    "count": "{{count}} payments",
+    "count_one": "{{count}} payment",
+    "count_other": "{{count}} payments",
+    "detail": "Details",
+    "cancelSuccess": "Payment cancelled",
+    "cancelTitle": "Cancel payment?",
+    "cancelDesc": "\"{{packageName}}\" for \"{{teamName}}\" · Rp {{amount}} will be cancelled. The Pakasir link will expire.",
+    "cancelDescFallback": "This payment will be cancelled. The Pakasir link will expire.",
+    "confirmCancel": "Yes, cancel",
+    "cancelAria": "Cancel payment {{packageName}} order {{orderId}}",
+    "detailAria": "View payment detail {{packageName}} order {{orderId}}",
+    "rowLabel": "{{teamName}} {{packageName}} {{status}} {{date}}",
+    "resume": "Resume payment",
+    "cancelPayment": "Cancel",
     "errors": {
       "load": "Failed to load payment history.",
-      "resume": "Gagal melanjutkan pembayaran.",
-      "cancel": "Gagal membatalkan pembayaran."
+      "resume": "Failed to resume payment.",
+      "cancel": "Failed to cancel payment."
     }
   },
   "public": {

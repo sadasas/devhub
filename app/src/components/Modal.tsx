@@ -48,7 +48,11 @@ export function Modal({ open, title, onClose, children, footer, width = "md", cl
   const { t } = useTranslation();
   const dialogRef = useFocusTrap<HTMLDivElement>(open, initialFocusRef);
   const onCloseRef = useRef(onClose);
-  const isFullscreen = className?.includes("modal-fullscreen") ?? false;
+  const modalClass = className ?? "";
+  const isFullscreen =
+    modalClass.includes("modal-fullscreen") ||
+    modalClass.includes("modal-composer--fullscreen") ||
+    (width === "lg" && modalClass.includes("modal-composer"));
   onCloseRef.current = onClose;
 
   useEffect(() => {
@@ -76,7 +80,7 @@ export function Modal({ open, title, onClose, children, footer, width = "md", cl
     >
       <div
         ref={dialogRef}
-        className={`modal modal-${width} ${className ?? ""}`}
+        className={`modal modal-${width} ${modalClass}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -86,7 +90,7 @@ export function Modal({ open, title, onClose, children, footer, width = "md", cl
           <h2 id={titleId} className="modal-title">
             {title}
           </h2>
-          <div style={{ display: 'flex', gap: 4 }}>
+          <div className="modal-header-actions">
           {expandable && expandLabel && collapseLabel && (
             <button
               type="button"

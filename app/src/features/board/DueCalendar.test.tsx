@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { State, Task } from '../../lib/types';
 import { DueCalendar } from './DueCalendar';
 
@@ -298,5 +298,113 @@ describe('DueCalendar', () => {
     expect(el).toBeTruthy();
     expect(el.style.position).toBe('absolute');
     expect(el.style.width).toContain('calc');
+  });
+
+  it('uses the rich Tooltip instead of a native title on chips', () => {
+    renderCalendar();
+    const el = screen.getByText('Ship calendar').closest('.due-cal-task') as HTMLElement;
+    // Native title would double-render alongside the Tooltip card.
+    expect(el.getAttribute('title')).toBeNull();
+    expect(el.getAttribute('aria-label')).toMatch(/Ship calendar/);
+  });
+
+  it('shows the assignee avatar on the chip when the task is assigned', () => {
+    mockState.tasks[0]!.assigneeId = 'u1';
+    render(
+      <DueCalendar
+        onOpenTask={vi.fn()}
+        onQuickCreate={vi.fn()}
+        members={{ u1: { email: 'u@example.com', displayName: 'U', avatarUrl: null } }}
+      />,
+    );
+    const el = screen.getByText('Ship calendar').closest('.due-cal-task') as HTMLElement;
+    expect(within(el).getByText('U')).toBeTruthy();
+    expect(el.getAttribute('aria-label')).toContain('U');
+  });
+});
+
+describe('DueCalendar mobile mini layout', () => {
+  const realMatchMedia = window.matchMedia;
+  beforeEach(() => {
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('640px'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+  });
+  afterEach(() => {
+    window.matchMedia = realMatchMedia;
+  });
+
+  it('shows month nav only (no Today button, no month/week toggle)', () => {
+    renderCalendar();
+    expect(document.querySelector('.due-cal--mobile')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Today' })).toBeNull();
+    expect(screen.queryByRole('tab', { name: 'Month' })).toBeNull();
+    expect(screen.queryByRole('tab', { name: 'Week' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Previous month' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Next month' })).toBeTruthy();
+  });
+
+  it('shows a bottom primary add button instead of the header add', () => {
+    const { onQuickCreate } = renderCalendar();
+    const add = screen.getByRole('button', { name: 'Task' });
+    expect(add.className).toContain('due-cal-mini-add');
+    expect(add.className).toContain('btn-primary');
+    fireEvent.click(add);
+    expect(onQuickCreate).toHaveBeenCalledWith('2026-08-15');
+  });
+
+  it('selects a date on tap and lists its tasks below', () => {
+    renderCalendar();
+    expect(screen.queryByText('Ship calendar')).toBeNull();
+    fireEvent.click(document.querySelector('[data-date="2026-08-20"]')!);
+    expect(screen.getByText('Ship calendar')).toBeTruthy();
+  });
+
+  it('hides per-cell + on coarse mobile (only bottom add remains)', () => {
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('640px') || query.includes('coarse'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+    renderCalendar();
+    expect(document.querySelector('.due-cal--mobile')).toBeTruthy();
+    expect(document.querySelector('.due-cal-quickadd')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Task' }).className).toContain('due-cal-mini-add');
+  });
+
+  it('renders full TaskCards (not mini-cards) for the selected date', () => {
+    renderCalendar();
+    fireEvent.click(document.querySelector('[data-date="2026-08-20"]')!);
+    expect(document.querySelector('.due-cal-mini-card')).toBeNull();
+    const card = document.querySelector('.due-cal-mini-cards [data-testid="task-card"]');
+    expect(card).toBeTruthy();
+    expect(card?.classList.contains('task-card--compact')).toBe(false);
+    expect(card?.getAttribute('draggable')).toBe('false');
+  });
+
+  it('shows short empty text without repeating the date on mobile', () => {
+    renderCalendar();
+    expect(screen.queryByText('Tasks dropped on this day appear here.')).toBeNull();
+    expect(screen.queryByText('Task yang diletakkan pada hari ini akan muncul di sini.')).toBeNull();
+    expect(screen.queryByText('No tasks in Saturday, August 15, 2026')).toBeNull();
+  });
+
+  it('renders NO DATE strip with full TaskCards and no drop keys on mobile', () => {
+    renderCalendar();
+    const strip = document.querySelector('#due-cal-strip');
+    expect(strip).toBeTruthy();
+    expect(strip?.hasAttribute('data-drop-key')).toBe(false);
+    expect(document.querySelector('#due-cal-strip .due-cal-task')).toBeNull();
+    expect(screen.queryByText('Drop tasks here to clear their due date')).toBeNull();
   });
 });

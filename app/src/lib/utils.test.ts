@@ -1,15 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { sanitizeDecimalInput, sanitizeIntegerInput, isDigitKey, parseLabels } from './utils';
+import { sanitizeDecimalInput, sanitizeIntegerInput, sanitizeVersionInput, isDigitKey, isDecimalKey, parseLabels } from './utils';
 
 describe('sanitizeDecimalInput', () => {
-  it('keeps digits and decimal points', () => {
+  it('keeps digits and a single decimal point', () => {
     expect(sanitizeDecimalInput('12.5')).toBe('12.5');
+    expect(sanitizeDecimalInput('8..5')).toBe('8.5');
+    expect(sanitizeDecimalInput('1.2.3')).toBe('1.23');
   });
 
   it('strips letters and symbols', () => {
     expect(sanitizeDecimalInput('1a2b')).toBe('12');
     expect(sanitizeDecimalInput('5x')).toBe('5');
     expect(sanitizeDecimalInput('h8')).toBe('8');
+    expect(sanitizeDecimalInput('8h.5x')).toBe('8.5');
   });
 
   it('keeps empty string empty', () => {
@@ -50,6 +53,34 @@ describe('isDigitKey', () => {
     expect(isDigitKey('-')).toBe(false);
     expect(isDigitKey('+')).toBe(false);
     expect(isDigitKey('a')).toBe(false);
+  });
+});
+
+describe('isDecimalKey', () => {
+  it('allows digits, dot and control keys', () => {
+    expect(isDecimalKey('5')).toBe(true);
+    expect(isDecimalKey('.')).toBe(true);
+    expect(isDecimalKey('Backspace')).toBe(true);
+  });
+
+  it('blocks signs, letters and symbols', () => {
+    expect(isDecimalKey('e')).toBe(false);
+    expect(isDecimalKey('-')).toBe(false);
+    expect(isDecimalKey('+')).toBe(false);
+    expect(isDecimalKey('a')).toBe(false);
+  });
+});
+
+describe('sanitizeVersionInput', () => {
+  it('keeps semver digits and dots', () => {
+    expect(sanitizeVersionInput('1.1.0')).toBe('1.1.0');
+    expect(sanitizeVersionInput('1.22')).toBe('1.22');
+  });
+
+  it('strips letters, collapsing dots and leading dots', () => {
+    expect(sanitizeVersionInput('ddddsaddasd')).toBe('');
+    expect(sanitizeVersionInput('v1a.2b')).toBe('1.2');
+    expect(sanitizeVersionInput('1..2')).toBe('1.2');
   });
 });
 

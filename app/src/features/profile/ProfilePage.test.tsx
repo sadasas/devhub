@@ -15,7 +15,6 @@ const apiMock = vi.hoisted(() => {
     }
   }
   return {
-    listKeys: vi.fn(),
     changePassword: vi.fn(),
     updateProfile: vi.fn(),
     meStats: vi.fn(),
@@ -78,7 +77,6 @@ beforeEach(() => {
   authMock.useAuth.mockReturnValue({ user, setUser: vi.fn() });
   teamsMock.useTeams.mockReturnValue({ teams: [] });
   projectsMock.useProjects.mockReturnValue({ projects: [] });
-  apiMock.listKeys.mockResolvedValue({ keys: [], total: 0, page: 1, perPage: 5 });
   apiMock.changePassword.mockResolvedValue(undefined);
   apiMock.meStats.mockResolvedValue(statsMock);
 });
@@ -94,32 +92,15 @@ describe('ProfilePage', () => {
     expect(await screen.findByText('Teams')).not.toBeNull();
   });
 
-  it('shows account statistics: teams, projects and active API keys', async () => {
+  it('shows account statistics: teams and projects', async () => {
     teamsMock.useTeams.mockReturnValue({ teams: [{ id: 't1' }, { id: 't2' }] });
     projectsMock.useProjects.mockReturnValue({ projects: [{ id: 'p1' }, { id: 'p2' }, { id: 'p3' }] });
-    apiMock.listKeys.mockResolvedValue({
-      keys: [
-        { id: 'k1', name: 'a', prefix: 'devhub_A', createdAt: '', lastUsedAt: null, revealable: true },
-      ],
-      total: 1,
-      page: 1,
-      perPage: 5,
-    });
 
     renderPage();
 
     expect(await screen.findByText('3')).not.toBeNull();
     expect(screen.getByText('2')).not.toBeNull();
-    expect(screen.getByText('1')).not.toBeNull();
-    expect(screen.getByText('Active API keys')).not.toBeNull();
-  });
-
-  it('shows a placeholder for the API key count when loading fails', async () => {
-    apiMock.listKeys.mockRejectedValue(new Error('offline'));
-
-    renderPage();
-
-    expect(await screen.findByText('—')).not.toBeNull();
+    expect(screen.queryByText('Active API keys')).toBeNull();
   });
 
   it('shows GitHub-style activity stats: contributions, tasks completed and streaks', async () => {
@@ -185,7 +166,6 @@ describe('ProfilePage', () => {
     renderPage();
 
     expect(screen.getByRole('tab', { name: /profile/i }).getAttribute('aria-selected')).toBe('true');
-    expect(screen.getByText('Active API keys')).not.toBeNull();
 
     openTab(/security/i);
     expect(screen.getByRole('tab', { name: /security/i }).getAttribute('aria-selected')).toBe('true');
@@ -260,5 +240,15 @@ describe('ProfilePage', () => {
     openTab(/account/i);
     expect(screen.getByText('u1')).not.toBeNull();
     expect(screen.getAllByText('you@devhub.dev').length).toBeGreaterThan(0);
+  });
+
+  it('shows theme and language preferences in the Account tab', () => {
+    renderPage();
+
+    openTab(/account/i);
+    expect(screen.getByText('Preferences')).not.toBeNull();
+    expect(screen.getByText('Language')).not.toBeNull();
+    expect(screen.getByRole('radio', { name: 'English' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('radio', { name: 'Bahasa Indonesia' }).getAttribute('aria-checked')).toBe('false');
   });
 });

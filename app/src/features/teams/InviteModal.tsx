@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getErrorMessage, isPlanLimitError } from '../../lib/errors';
@@ -31,6 +31,8 @@ export function InviteModal({ teamId, open, onClose, onInvited }: InviteModalPro
   const [submitting, setSubmitting] = useState(false);
   const [limitOpen, setLimitOpen] = useState(false);
   const [limitResource, setLimitResource] = useState<PlanLimitResource>('members');
+  const errorRef = useRef<HTMLDivElement>(null);
+  const autoFocusEmail = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -50,6 +52,7 @@ export function InviteModal({ teamId, open, onClose, onInvited }: InviteModalPro
       } else {
         setError(getErrorMessage(err, t('teams.inviteModal.sendError')));
         setSubmitting(false);
+        requestAnimationFrame(() => errorRef.current?.focus());
       }
     }
   }
@@ -63,10 +66,10 @@ export function InviteModal({ teamId, open, onClose, onInvited }: InviteModalPro
         width="sm"
         footer={
           <>
-            <Button variant="ghost" onClick={onClose}>
+            <Button variant="ghost" size="md" onClick={onClose}>
               {t('common:action.cancel')}
             </Button>
-            <Button type="submit" form="invite-form" leftIcon={<Envelope size={13} aria-hidden="true" />} loading={submitting} disabled={!email.trim()}>
+            <Button type="submit" size="md" form="invite-form" leftIcon={<Envelope size={14} aria-hidden="true" />} loading={submitting} disabled={!email.trim()}>
               {t('teams.inviteModal.send')}
             </Button>
           </>
@@ -80,7 +83,7 @@ export function InviteModal({ teamId, open, onClose, onInvited }: InviteModalPro
           label={t('teams.inviteModal.email')}
           type="email"
           required
-          autoFocus
+          autoFocus={autoFocusEmail}
           placeholder={t('teams.inviteModal.emailPlaceholder')}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -98,13 +101,13 @@ export function InviteModal({ teamId, open, onClose, onInvited }: InviteModalPro
               />
               <span className="role-option-head">
                 <span className="role-option-label">{TEAM_ROLE[r].label}</span>
-                <Badge tone={TEAM_ROLE[r].tone}>{TEAM_ROLE[r].label}</Badge>
+                <span aria-hidden="true"><Badge tone={TEAM_ROLE[r].tone}>{TEAM_ROLE[r].label}</Badge></span>
               </span>
               <span className="role-option-desc">{t(`teams.changeRoleModal.desc.${r}`)}</span>
             </label>
           ))}
         </div>
-        {error && <InlineError>{error}</InlineError>}
+        {error && <div ref={errorRef} tabIndex={-1} className="form-error-focus"><InlineError>{error}</InlineError></div>}
       </form>
       </Modal>
       <PlanLimitModal

@@ -372,7 +372,7 @@ const ElementView = memo(function ElementView({
         const innerW = Math.max(24, el.w - pad * 2);
         const labelLines = el.label ? wrapToWidth(el.label, fontSize, innerW, 4) : [];
         const rot = el.rotation ? `rotate(${el.rotation}, ${el.x + el.w / 2}, ${el.y + el.h / 2})` : undefined;
-        const isLightFill = el.fill && ["#e4e4e7","#6ea8fe","#f2b8c6","#34c38e","#a78bfa","#e8b955"].includes(el.color);
+        const isLightFill = el.fill && ["#e4e4e7","#6ea8fe","#f2b8c6","#34c38e","#5db69b","#a78bfa","#e8b955"].includes(el.color);
         const labelFill = el.labelColor ?? (isLightFill ? "#0f172a" : el.color);
         const anchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
         const textX = align === 'left' ? el.x + pad : align === 'right' ? el.x + el.w - pad : el.x + el.w / 2;

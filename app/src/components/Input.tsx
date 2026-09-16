@@ -19,6 +19,7 @@ export function Input({
   required,
   rightSlot,
   showCount: _showCount,
+  ['aria-describedby']: ariaDescribedByProp,
   ...rest
 }: InputProps) {
   const autoId = useId();
@@ -30,7 +31,7 @@ export function Input({
   // Use stable generated ids for aria-describedby but tie to inputId for uniqueness
   void errAutoId;
   void helperAutoId;
-  const describedBy = [errId, helpId].filter(Boolean).join(' ') || undefined;
+  const describedBy = [errId, helpId, ariaDescribedByProp].filter(Boolean).join(' ') || undefined;
   const input = (
     <input
       id={inputId}

@@ -295,17 +295,18 @@ export function ImportSchemaModal({ open, onClose }: ImportSchemaModalProps) {
         ariaDescribedBy={previewId}
         footer={
           <>
-            <Button variant="ghost" onClick={onClose}>
+            <Button variant="ghost" size="md" onClick={onClose}>
               {t('schema.import.cancel')}
             </Button>
             {mode === 'replace' ? (
-              <Button variant="danger" onClick={onConfirmMain} disabled={confirmDisabled}>
+              <Button variant="danger" size="md" onClick={onConfirmMain} disabled={confirmDisabled}>
                 {t('schema.import.continue')}
               </Button>
             ) : (
               <Button
                 variant="primary"
-                leftIcon={<UploadSimple size={13} aria-hidden="true" />}
+                size="md"
+                leftIcon={<UploadSimple size={14} aria-hidden="true" />}
                 onClick={onConfirmMain}
                 disabled={confirmDisabled}
               >
@@ -360,7 +361,7 @@ export function ImportSchemaModal({ open, onClose }: ImportSchemaModalProps) {
               <Button
                 variant="secondary"
                 size="sm"
-                leftIcon={<UploadSimple size={13} aria-hidden="true" />}
+                leftIcon={<UploadSimple size={14} aria-hidden="true" />}
                 onClick={() => fileInputRef.current?.click()}
               >
                 {fileName ? t('schema.import.uploadChange') : t('schema.import.uploadButton')}

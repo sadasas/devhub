@@ -20,6 +20,9 @@ interface NewDecisionModalProps {
 
 const STATUS_OPTIONS: DecisionStatus[] = ['proposed', 'accepted', 'rejected', 'superseded'];
 
+// autoFocus hanya desktop (hover) — di touch, keyboard virtual melonjak (pola Modal).
+const AUTO_FOCUS_INPUT = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
+
 export function NewDecisionModal({ onClose }: NewDecisionModalProps) {
   const { t } = useTranslation(['project', 'tracker']);
   const { dispatch, state } = useProject();
@@ -105,10 +108,10 @@ export function NewDecisionModal({ onClose }: NewDecisionModalProps) {
       collapseLabel={t('tracker:board.newTaskModal.contractView')}
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" size="md" onClick={onClose}>
             {t('decisions.newModal.cancel')}
           </Button>
-          <Button type="submit" form="new-decision-form" variant="primary" leftIcon={<Scales size={13} aria-hidden="true" />} disabled={!title.trim()}>
+          <Button type="submit" size="md" form="new-decision-form" variant="primary" leftIcon={<Scales size={14} aria-hidden="true" />} disabled={!title.trim()}>
             {t('decisions.newModal.submit')}
           </Button>
         </>
@@ -127,7 +130,7 @@ export function NewDecisionModal({ onClose }: NewDecisionModalProps) {
             className="composer-title"
             rows={1}
             required
-            autoFocus
+            autoFocus={AUTO_FOCUS_INPUT}
             placeholder={t('decisions.newModal.titlePlaceholder')}
             value={title}
             onChange={(e) => setTitle(e.target.value)}

@@ -41,7 +41,10 @@
     "none": "Tidak ada",
     "direction": "Arah",
     "ascending": "Naik",
-    "descending": "Turun"
+    "descending": "Turun",
+    "sortBy": "Urutkan berdasarkan",
+    "filter": "Filter",
+    "apply": "Terapkan"
   },
   "select": {
     "empty": "Tidak ada",

@@ -95,10 +95,10 @@ export function NewRelationModal({ open, onClose, initialFrom = null, initialTo 
       width="sm"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" size="md" onClick={onClose}>
             {t('schema.relationModal.cancel')}
           </Button>
-          <Button type="submit" form="new-relation-form" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} disabled={invalid}>
+          <Button type="submit" size="md" form="new-relation-form" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} disabled={invalid}>
             {t('schema.relationModal.submit')}
           </Button>
         </>

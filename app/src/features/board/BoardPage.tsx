@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react';
-import { Plus, SquaresFour, Flag, CalendarBlank, ArrowsOutSimple, ArrowsInSimple } from '@phosphor-icons/react';
+import { Plus, SquaresFour, Flag, CalendarBlank, ArrowsOutSimple, ArrowsInSimple, CaretDown } from '@phosphor-icons/react';
 import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import type { Task, TaskStatus } from '../../lib/types';
+import type { Milestone, Task, TaskStatus } from '../../lib/types';
 import { isTaskCompletable } from '../../lib/utils';
 import { TASK_PRIORITY_ORDER } from '../../lib/labels';
 import { applySort, type SortSpec } from '../../lib/sort';
@@ -28,6 +28,33 @@ const DueCalendar = lazy(() => import('./DueCalendar').then((m) => ({ default: m
 const COLUMNS: TaskStatus[] = ['todo', 'inProgress', 'review', 'done'];
 
 type BoardView = 'status' | 'milestone' | 'calendar';
+
+/** P2: <768px kanban swipe + milestone accordion breakpoint. */
+function useIsBoardNarrow(): boolean {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(max-width: 767px)').matches
+      : false,
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(max-width: 767px)');
+    const update = (): void => setMatches(mq.matches);
+    update();
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', update);
+      return () => mq.removeEventListener('change', update);
+    }
+    mq.addListener(update);
+    return () => mq.removeListener(update);
+  }, []);
+  return matches;
+}
+
+function milestoneVersionBadge(version: string): string {
+  const trimmed = version.trim().replace(/^v/i, '');
+  return trimmed.length > 0 ? `v${trimmed}` : version.trim();
+}
 
 const milestoneOrder = (m: { status: string; targetDate?: string | null }): number =>
   m.status === 'planned' ? 0 : m.status === 'inProgress' ? 1 : 2;
@@ -109,23 +136,48 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const [newTaskAt, setNewTaskAt] = useState<NewTaskTarget | null>(null);
   const [calHideCompleted, setCalHideCompleted] = useState(false);
   const [doneBlockedMsg, setDoneBlockedMsg] = useState<string | null>(null);
+  // P2: kanban swipe (status tabs) + milestone accordion (mobile).
+  const [activeStatusTab, setActiveStatusTab] = useState<TaskStatus>('todo');
+  const [expandedMilestones, setExpandedMilestones] = useState<ReadonlySet<string>>(new Set());
+  const isNarrow = useIsBoardNarrow();
+  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
+  // Waktu swipe terakhir (ms) — menekan tab tepat setelah swipe diabaikan agar
+  // klik yang terbawa gesture tidak mengaktifkan tab yang salah.
+  const lastSwipeAt = useRef(0);
+  // P2: mobile breakpoints — status swipe tabs, milestone accordion.
+  const isStatusSwipe = isNarrow && view === 'status';
+  const isMilestoneAccordion = isNarrow && view === 'milestone';
   const [members, setMembers] = useState<Record<string, { email: string; displayName?: string }>>({});
   const doneBlockedTimer = useRef<number | undefined>(undefined);
-  const shellRef = useRef<HTMLDivElement>(null);
+  // Fullscreen = overlay CSS (.board-shell--fullscreen), BUKAN Fullscreen API:
+  // portal ke document.body (Modal, Tooltip, BottomSheet) tetap tampil di atasnya.
   const [isFs, setIsFs] = useState(false);
+  const fsBtnRef = useRef<HTMLButtonElement>(null);
   const toggleFs = useCallback(() => {
-    if (document.fullscreenElement) void document.exitFullscreen();
-    else void shellRef.current?.requestFullscreen();
+    setIsFs((v) => !v);
   }, []);
+  // Overlay fullscreen mengunci scroll body (pola whiteboard WB-17).
   useEffect(() => {
-    const onFsChange = () => setIsFs(document.fullscreenElement === shellRef.current);
-    document.addEventListener('fullscreenchange', onFsChange);
-    return () => document.removeEventListener('fullscreenchange', onFsChange);
-  }, []);
+    if (!isFs) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isFs]);
+  // Fokuskan tombol keluar saat masuk fullscreen (pola whiteboard WB-17).
+  useEffect(() => {
+    if (isFs) fsBtnRef.current?.focus();
+  }, [isFs]);
   useEffect(() => {
     if (editId || newTaskAt) return;
     const onKey = (e: KeyboardEvent) => {
       if (isTypingTarget(e.target) || isModalOrPaletteOpen() || e.altKey) return;
+      if (e.key === 'Escape' && isFs) {
+        e.preventDefault();
+        setIsFs(false);
+        return;
+      }
       if (e.key === 'f' || e.key === 'F') {
         e.preventDefault();
         toggleFs();
@@ -138,7 +190,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [editId, newTaskAt, toggleFs, setMine, mineOnly, user]);
+  }, [editId, newTaskAt, isFs, toggleFs, setMine, mineOnly, user]);
   const openTask = useCallback((id: string) => setEditId(id), []);
   const handleTouchDrop = useCallback((taskId: string, dropKey: string | null) => {
     getDropHandler(dropKey)?.(taskId);
@@ -364,8 +416,15 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     dropKey: string | null,
     onDrop: (taskId: string) => void,
     onAdd: () => void,
+    /** Teks kosong khusus (mis. label per status di swipe). Jika diisi, kotak
+        dashed "drop" diganti teks polos — dipakai saat drag tak tersedia. */
+    emptyText?: string,
   ) {
     registerDrop(dropKey ?? '', onDrop);
+    // Drag hanya saat kolom berdampingan (desktop). Di mode swipe HP satu
+    // kolom per layar + gesture swipe berebut dengan long-press → drag mati,
+    // pindah status lewat tap kartu (TaskModal) atau panah keyboard.
+    const colDragEnabled = !isStatusSwipe;
     return (
       <div
         key={key}
@@ -389,21 +448,26 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           className={`kanban-col-body ${overKey === dropKey ? 'kanban-drop-active' : ''}`}
           data-drop-key={dropKey ?? ''}
         >
-          {tasks.length === 0 && <p className="kanban-col-empty">{t('board.dropHere')}</p>}
+          {tasks.length === 0 &&
+            (emptyText ? (
+              <p className="kanban-col-empty kanban-col-empty--plain">{emptyText}</p>
+            ) : (
+              <p className="kanban-col-empty">{t('board.dropHere')}</p>
+            ))}
           {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} onOpen={openTask} members={members} showStatus={view === 'milestone'} showMilestone={view === 'status'} unread={unreadIds?.has(task.id)} onTouchDrop={handleTouchDrop} />
+            <TaskCard key={task.id} task={task} onOpen={openTask} members={members} showStatus={view === 'milestone'} showMilestone={view === 'status'} unread={unreadIds?.has(task.id)} onTouchDrop={handleTouchDrop} dragEnabled={colDragEnabled} density="full" />
           ))}
         </div>
         <div className="kanban-col-add">
           {canEdit && (
             <Button
-              variant="ghost"
-              size="sm"
+              variant={isStatusSwipe ? 'primary' : 'ghost'}
+              size={isStatusSwipe ? 'md' : 'sm'}
               className="kanban-add-btn"
-              leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />}
+              leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />}
               onClick={onAdd}
             >
-              {t('board.addTask')}
+              {isStatusSwipe ? t('board.addTaskShort', { defaultValue: 'Task' }) : t('board.addTask')}
             </Button>
           )}
         </div>
@@ -429,10 +493,23 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       col,
       (id) => moveTaskStatus(id, col),
       () => setNewTaskAt({ status: col }),
+      mineOnly && (state?.tasks.length ?? 0) > 0
+        ? t('board.emptyMineSwipe', { label: columnLabels[col] })
+        : t('board.emptySwipe', { label: columnLabels[col] }),
     ),
   );
 
-  const milestoneCols = milestoneColumns.map((m) => {
+  interface MilestoneGroup {
+    key: string;
+    milestone: Milestone | null;
+    milestoneId: string | null;
+    tasks: Task[];
+    done: number;
+    total: number;
+    progress: number;
+  }
+
+  const milestoneGroups: MilestoneGroup[] = milestoneColumns.map((m) => {
     const mId = m?.id ?? null;
     const tasks = applySort(
       filteredTasks.filter((t) => t.milestoneId === mId),
@@ -442,98 +519,175 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     );
     const done = tasks.filter((t) => t.status === 'done').length;
     const progress = tasks.length > 0 ? Math.round((done / tasks.length) * 100) : 0;
-    const key = mId ?? 'unassigned';
-    return renderColumn(
-      key,
+    return { key: mId ?? 'unassigned', milestone: m, milestoneId: mId, tasks, done, total: tasks.length, progress };
+  });
+
+  const milestoneCols = milestoneGroups.map((g) =>
+    renderColumn(
+      g.key,
       <>
         <div className="kanban-milestone-header">
-          <span className="kanban-col-label">{m?.name ?? t('board.unassigned')}</span>
-          {m?.version && <span className="task-label">{m.version}</span>}
+          <span className="kanban-col-label">{g.milestone?.name ?? t('board.unassigned')}</span>
+          {g.milestone?.version && <span className="task-label">{milestoneVersionBadge(g.milestone.version)}</span>}
         </div>
-        <span className="kanban-col-count tabular" title={t('board.doneProgress', { done, total: tasks.length })}>
-          {tasks.length} · {progress}%
+        <span className="kanban-col-count tabular" title={t('board.doneProgress', { done: g.done, total: g.total })}>
+          {g.total} · {g.progress}%
         </span>
       </>,
-      tasks,
-      key,
-      (id) => moveTaskMilestone(id, mId),
-      () => setNewTaskAt({ milestoneId: mId }),
-    );
-  });
+      g.tasks,
+      g.key,
+      (id) => moveTaskMilestone(id, g.milestoneId),
+      () => setNewTaskAt({ milestoneId: g.milestoneId }),
+    ),
+  );
+
+  // P2: penghitung + navigasi swipe.
+  const statusCounts: Record<TaskStatus, number> = {
+    todo: filteredTasks.filter((t) => t.status === 'todo').length,
+    inProgress: filteredTasks.filter((t) => t.status === 'inProgress').length,
+    review: filteredTasks.filter((t) => t.status === 'review').length,
+    done: filteredTasks.filter((t) => t.status === 'done').length,
+  };
+  const activeStatusIndex = Math.max(0, COLUMNS.indexOf(activeStatusTab));
+  const goStatusTab = (dir: 1 | -1): void => {
+    const next = COLUMNS[(activeStatusIndex + dir + COLUMNS.length) % COLUMNS.length];
+    if (next) setActiveStatusTab(next);
+  };
+
+  const handleSwipeTouchStart = (e: React.TouchEvent): void => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    swipeStartRef.current = { x: touch.clientX, y: touch.clientY };
+  };
+
+  const handleSwipeTouchEnd = (e: React.TouchEvent): void => {
+    const start = swipeStartRef.current;
+    swipeStartRef.current = null;
+    if (!start) return;
+    // Jangan rebut gesture drag task: useTouchDrag memakai long-press 180ms +
+    // class .dragging, dan target .task-card. Swipe hanya dari area kosong kolom.
+    if (typeof document !== 'undefined' && document.querySelector('.task-card.dragging')) return;
+    const target = e.target as HTMLElement | null;
+    // Swipe boleh mulai dari baris tab (tap kecil tetap jadi klik biasa,
+    // klik yang terbawa swipe ditekan via lastSwipeAt). Area kartu/tombol
+    // lain tetap dikecualikan agar tidak berebut dengan drag & scroll.
+    const fromSwipeTab = !!target?.closest?.('.kanban-swipe-tab');
+    if (!fromSwipeTab && target?.closest?.('.task-card, .task-card-pin, button, a, input, textarea, select')) return;
+    const touch = e.changedTouches[0];
+    if (!touch) return;
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    if (Math.abs(dx) > 32 && Math.abs(dx) > Math.abs(dy) * 1.3) {
+      lastSwipeAt.current = Date.now();
+      goStatusTab(dx < 0 ? 1 : -1);
+    }
+  };
+
+  const handleStatusTabKeyDown = (e: React.KeyboardEvent): void => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'Home' && e.key !== 'End') return;
+    e.preventDefault();
+    let nextIdx = activeStatusIndex;
+    if (e.key === 'ArrowRight') nextIdx = (activeStatusIndex + 1) % COLUMNS.length;
+    else if (e.key === 'ArrowLeft') nextIdx = (activeStatusIndex - 1 + COLUMNS.length) % COLUMNS.length;
+    else if (e.key === 'Home') nextIdx = 0;
+    else if (e.key === 'End') nextIdx = COLUMNS.length - 1;
+    const next = COLUMNS[nextIdx];
+    if (!next) return;
+    setActiveStatusTab(next);
+    if (typeof document !== 'undefined') {
+      document.getElementById(`kanban-swipe-tab-${next}`)?.focus();
+    }
+  };
+
+  // Accordion: default expand item pertama saat mobile agar list tidak kosong.
+  const effectiveExpandedMilestones: ReadonlySet<string> =
+    expandedMilestones.size > 0 || milestoneGroups.length === 0
+      ? expandedMilestones
+      : new Set([milestoneGroups[0]?.key ?? 'unassigned']);
+
+  const toggleMilestone = (key: string): void => {
+    setExpandedMilestones((prev) => {
+      const firstKey = milestoneGroups[0]?.key;
+      const base: ReadonlySet<string> =
+        prev.size > 0 ? prev : firstKey ? new Set([firstKey]) : new Set<string>();
+      const next = new Set(base);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   return (
     <>
-    <div ref={shellRef} className="board-shell">
+    <div className={isFs ? 'board-shell board-shell--fullscreen' : 'board-shell'}>
       <div className="board-toolbar">
-        <div className="sub-tabs" role="tablist" aria-label={t('board.viewTabs')}>
+        <div className="sub-tabs" role="group" aria-label={t('board.viewTabs')}>
           <button
             type="button"
-            role="tab"
             className={`sub-tab ${view === 'status' ? 'sub-tab-active' : ''}`}
             onClick={() => setView('status')}
-            aria-selected={view === 'status'}
+            aria-pressed={view === 'status'}
+            aria-label={t('board.byStatus')}
+            title={t('board.byStatus')}
           >
-            <SquaresFour size={13} aria-hidden="true" />
-            {t('board.byStatus')}
+            <SquaresFour size={16} aria-hidden="true" />
+            <span className="sub-tab-label">{t('board.byStatus')}</span>
           </button>
           <button
             type="button"
-            role="tab"
             className={`sub-tab ${view === 'milestone' ? 'sub-tab-active' : ''}`}
             onClick={() => setView('milestone')}
-            aria-selected={view === 'milestone'}
+            aria-pressed={view === 'milestone'}
+            aria-label={t('board.byMilestone')}
+            title={t('board.byMilestone')}
           >
-            <Flag size={13} aria-hidden="true" />
-            {t('board.byMilestone')}
+            <Flag size={16} aria-hidden="true" />
+            <span className="sub-tab-label">{t('board.byMilestone')}</span>
           </button>
           <button
             type="button"
-            role="tab"
             className={`sub-tab ${view === 'calendar' ? 'sub-tab-active' : ''}`}
             onClick={() => setView('calendar')}
-            aria-selected={view === 'calendar'}
+            aria-pressed={view === 'calendar'}
+            aria-label={t('board.byCalendar', { defaultValue: 'Calendar' })}
+            title={t('board.byCalendar', { defaultValue: 'Calendar' })}
           >
-            <CalendarBlank size={13} aria-hidden="true" />
-            {t('board.byCalendar', { defaultValue: 'Calendar' })}
+            <CalendarBlank size={16} aria-hidden="true" />
+            <span className="sub-tab-label">{t('board.byCalendar', { defaultValue: 'Calendar' })}</span>
           </button>
         </div>
         <div className="board-toolbar-actions">
-          {view !== 'calendar' && (
-            <SortControl
-              options={TASK_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: t(s.label) }))}
-              value={sortValue}
-              onChange={setSort}
-            />
-          )}
-          {userId && (
-            <label
-              className="toolbar-check"
-              title={mineOnly ? t('board.showAllTasks') : t('board.showOnlyMine')}
-            >
-              <input
-                type="checkbox"
-                checked={mineOnly}
-                onChange={(e) => setMine(e.target.checked)}
-              />
-              {t('board.onlyMyTasks')}
-            </label>
-          )}
-          {view === 'calendar' && (
-            <label className="toolbar-check">
-              <input
-                type="checkbox"
-                checked={calHideCompleted}
-                onChange={(e) => setCalHideCompleted(e.target.checked)}
-              />
-              {t('board.cal.hideCompleted')}
-            </label>
-          )}
+          <SortControl
+            options={view === 'calendar' ? [] : TASK_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: t(s.label) }))}
+            value={view === 'calendar' ? null : sortValue}
+            onChange={setSort}
+            filters={[
+              ...(userId
+                ? [{
+                    id: 'mine',
+                    label: t('board.onlyMyTasks'),
+                    checked: mineOnly,
+                    onChange: setMine,
+                  }]
+                : []),
+              ...(view === 'calendar'
+                ? [{
+                    id: 'hide-completed',
+                    label: t('board.cal.hideCompleted'),
+                    checked: calHideCompleted,
+                    onChange: setCalHideCompleted,
+                  }]
+                : []),
+            ]}
+          />
           <Button
+            ref={fsBtnRef}
             variant="ghost"
             size="sm"
+            className="board-canvas-btn"
             aria-pressed={isFs}
             aria-label={isFs ? t('board.fullscreen.exit', { defaultValue: 'Exit fullscreen — F' }) : t('board.fullscreen.enter', { defaultValue: 'Fullscreen — F' })}
-            title={isFs ? t('board.fullscreen.exit', { defaultValue: 'Exit fullscreen (F)' }) : t('board.fullscreen.enter', { defaultValue: 'Fullscreen (F)' })}
+            title={isFs ? t('board.fullscreen.exit', { defaultValue: 'Fullscreen (F)' }) : t('board.fullscreen.enter', { defaultValue: 'Fullscreen (F)' })}
             onClick={toggleFs}
             leftIcon={isFs ? <ArrowsInSimple size={15} aria-hidden="true" /> : <ArrowsOutSimple size={15} aria-hidden="true" />}
           >
@@ -554,8 +708,160 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
             taskFilter={mineOnly && userId ? (t) => t.assigneeId === userId : undefined}
             onTouchDrop={handleTouchDrop}
             hideCompleted={calHideCompleted}
+            members={members}
+            unreadIds={unreadIds}
           />
         </Suspense>
+      ) : isStatusSwipe ? (
+        <div className="kanban kanban--swipe" data-testid="kanban-swipe">
+          <p className="sr-only" role="status">
+            {t('board.swipeStatus', {
+              label: columnLabels[activeStatusTab],
+              index: activeStatusIndex + 1,
+              total: COLUMNS.length,
+              count: statusCounts[activeStatusTab],
+            })}
+          </p>
+          <div
+            className="kanban-swipe-tabs"
+            role="tablist"
+            aria-label={t('board.byStatus')}
+            onKeyDown={handleStatusTabKeyDown}
+            onTouchStart={handleSwipeTouchStart}
+            onTouchEnd={handleSwipeTouchEnd}
+          >
+            {COLUMNS.map((col) => {
+              const isActive = activeStatusTab === col;
+              return (
+                <button
+                  key={col}
+                  id={`kanban-swipe-tab-${col}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-controls="kanban-swipe-panel"
+                  tabIndex={isActive ? 0 : -1}
+                  className={`kanban-swipe-tab${isActive ? ' is-active' : ''}`}
+                  onClick={() => {
+                    // Abaikan klik yang terbawa gesture swipe.
+                    if (Date.now() - lastSwipeAt.current < 500) return;
+                    setActiveStatusTab(col);
+                  }}
+                >
+                  <span className="kanban-swipe-tab-label">{columnLabels[col]}</span>
+                  <span className="kanban-col-count tabular">{statusCounts[col]}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div
+            className="kanban-swipe-viewport"
+            id="kanban-swipe-panel"
+            role="tabpanel"
+            aria-labelledby={`kanban-swipe-tab-${activeStatusTab}`}
+            aria-label={`${columnLabels[activeStatusTab]} — ${activeStatusIndex + 1} / ${COLUMNS.length}`}
+            onTouchStart={handleSwipeTouchStart}
+            onTouchEnd={handleSwipeTouchEnd}
+          >
+            {statusColumns[activeStatusIndex]}
+          </div>
+        </div>
+      ) : isMilestoneAccordion ? (
+        <div className="milestone-accordion" data-testid="milestone-accordion">
+          {milestoneGroups.map((g) => {
+            registerDrop(g.key, (id) => moveTaskMilestone(id, g.milestoneId));
+            const isExpanded = effectiveExpandedMilestones.has(g.key);
+            const triggerId = `ms-acc-trigger-${g.key}`;
+            const panelId = `ms-acc-panel-${g.key}`;
+            return (
+              <div
+                key={g.key}
+                className={`ms-acc-item${isExpanded ? ' is-open' : ''}${overKey === g.key ? ' kanban-drop-active' : ''}`}
+                data-testid={`ms-acc-${g.key}`}
+                data-drop-key={g.key}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                  setOverKey(g.key);
+                }}
+                onDragLeave={() => setOverKey((cur) => (cur === g.key ? null : cur))}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setOverKey(null);
+                  const id = e.dataTransfer.getData('text/plain');
+                  if (id) moveTaskMilestone(id, g.milestoneId);
+                }}
+              >
+                <button
+                  type="button"
+                  id={triggerId}
+                  aria-expanded={isExpanded}
+                  aria-controls={panelId}
+                  className="ms-acc-trigger"
+                  onClick={() => toggleMilestone(g.key)}
+                >
+                  <span className="ms-acc-name">{g.milestone?.name ?? t('board.unassigned')}</span>
+                  {g.milestone?.version && (
+                    <span className="task-label" title={g.milestone.version}>
+                      {milestoneVersionBadge(g.milestone.version)}
+                    </span>
+                  )}
+                  <span
+                    className="milestone-progress ms-acc-progress"
+                    title={t('board.doneProgress', { done: g.done, total: g.total })}
+                  >
+                    <span className="milestone-progress-track" aria-hidden="true">
+                      <span className="milestone-progress-fill" style={{ width: `${g.progress}%` }} />
+                    </span>
+                    <span className="tabular ms-acc-pct">{g.progress}%</span>
+                  </span>
+                  <span className="kanban-col-count tabular">{g.total}</span>
+                  <CaretDown size={14} aria-hidden="true" className={`ms-acc-chev${isExpanded ? ' is-open' : ''}`} />
+                </button>
+                {isExpanded && (
+                  <div id={panelId} role="region" aria-labelledby={triggerId} className="ms-acc-panel">
+                    <div className="ms-acc-tasks">
+                      {g.tasks.length === 0 ? (
+                        <p className="kanban-col-empty kanban-col-empty--plain">
+                          {mineOnly && (state?.tasks.length ?? 0) > 0
+                            ? t('board.emptyMineSwipe', { label: g.milestone?.name ?? t('board.unassigned') })
+                            : t('board.emptySwipe', { label: g.milestone?.name ?? t('board.unassigned') })}
+                        </p>
+                      ) : (
+                        g.tasks.map((task) => (
+                          <TaskCard
+                            key={task.id}
+                            task={task}
+                            onOpen={openTask}
+                            members={members}
+                            showStatus
+                            showMilestone={false}
+                            unread={unreadIds?.has(task.id)}
+                            onTouchDrop={undefined}
+                            dragEnabled={false}
+                          />
+                        ))
+                      )}
+                    </div>
+                    <div className="kanban-col-add">
+                      {canEdit && (
+                        <Button
+                          variant="primary"
+                          size="md"
+                          className="kanban-add-btn"
+                          leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />}
+                          onClick={() => setNewTaskAt({ milestoneId: g.milestoneId })}
+                        >
+                          {t('board.addTaskShort', { defaultValue: 'Task' })}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       ) : (
         <div className="kanban">
           {view === 'status' ? statusColumns : milestoneCols}

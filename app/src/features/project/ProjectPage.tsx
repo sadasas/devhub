@@ -30,12 +30,14 @@ import { formatDate } from '../../lib/utils';
 import { usePresenceStatus, viewingStatus } from '../../hooks/usePresenceStatus';
 import { useTabShortcuts } from '../../hooks/useTabShortcuts';
 import { useNewItemShortcut } from '../../hooks/useNewItemShortcut';
-import { ProjectProvider } from '../../state/project-context';
+import { ProjectProvider, useProject } from '../../state/project-context';
 import { useProjects } from '../../state/projects-context';
 import { useTeams } from '../../state/teams-context';
 import { useAuth } from '../../state/auth-context';
 import type { ExportDocument, Project } from '../../lib/types';
+import { Avatar } from '../../components/Avatar';
 import { Badge } from '../../components/Badge';
+import { BottomSheet } from '../../components/BottomSheet';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { Modal } from '../../components/Modal';
@@ -265,6 +267,74 @@ function ProjectPresenceStatus({ tab }: { tab: ProjectTab }) {
   return null;
 }
 
+function useIsMobileActions(): boolean {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(max-width: 640px)').matches
+      : false,
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(max-width: 640px)');
+    const update = () => setMatches(mq.matches);
+    update();
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', update);
+      return () => mq.removeEventListener('change', update);
+    }
+    mq.addListener(update);
+    return () => mq.removeListener(update);
+  }, []);
+  return matches;
+}
+
+function SheetPresenceList() {
+  const { presence } = useProject();
+  const { user } = useAuth();
+  const { t } = useTranslation();
+  const seen = new Set<string>();
+  const unique = presence.filter((u) => {
+    if (seen.has(u.userId)) return false;
+    seen.add(u.userId);
+    return true;
+  });
+  const ordered = user
+    ? [...unique.filter((u) => u.userId === user.id), ...unique.filter((u) => u.userId !== user.id)]
+    : unique;
+  if (ordered.length === 0) return null;
+  return (
+    <div className="sheet-section sheet-presence">
+      <p className="sheet-presence-header">
+        <span className="dot-online" aria-hidden="true" />
+        {t('presence.header', { count: ordered.length })}
+      </p>
+      <div className="sheet-presence-list">
+        {ordered.map((u) => {
+          const displayName = u.name || t('presence.fallbackName');
+          const suffix = user && u.userId === user.id ? ` ${t('presence.you')}` : '';
+          return (
+            <div key={u.userId} className="sheet-presence-row">
+              <span className="avatar-presence">
+                <Avatar src={u.avatarUrl ?? null} name={displayName} id={u.userId} size={36} />
+                <span className="avatar-presence-dot" aria-hidden="true" />
+              </span>
+              <span className="sheet-presence-meta">
+                <span className="sheet-presence-name" title={`${displayName}${suffix}`}>
+                  {displayName}
+                  {suffix}
+                </span>
+                {u.activity ? (
+                  <span className="sheet-presence-status">{u.activity}</span>
+                ) : null}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ProjectUnreadArea({
   projectId,
   userId,
@@ -400,6 +470,7 @@ export function ProjectPage() {
   const [actionsOpen, setActionsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
+  const isMobileActions = useIsMobileActions();
 
   // close actions sheet on Escape / outside tap
   useEffect(() => {
@@ -592,7 +663,7 @@ export function ProjectPage() {
             <nav className="breadcrumb" aria-label="Breadcrumb">
               <ol className="breadcrumb-list">
                 <li>
-                  <Link className="breadcrumb-link" to={teamDashboardTo}>
+                  <Link className="breadcrumb-link" to={teamDashboardTo} title={team?.name ?? undefined}>
                     {team?.name ?? '…'}
                   </Link>
                 </li>
@@ -607,33 +678,47 @@ export function ProjectPage() {
               </ol>
             </nav>
             <div className="project-actions" ref={actionsRef}>
-              <PresenceChip badgeOnly />
+              {!isMobileActions && <PresenceChip badgeOnly />}
               <Badge tone={TEAM_ROLE[role].tone}>{TEAM_ROLE[role].label}</Badge>
               <SyncStatusChip />
-              {isAdmin && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  leftIcon={<ShareNetwork size={13} aria-hidden="true" />}
-                  onClick={() => setShareOpen(true)}
-                >
-                  {project.visibility === 'public' ? t('actions.sharePublic') : t('actions.sharePrivate')}
-                </Button>
-              )}
+              {isAdmin &&
+                (isMobileActions ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="btn-icon"
+                    aria-label={
+                      project.visibility === 'public' ? t('actions.sharePublic') : t('actions.sharePrivate')
+                    }
+                    title={project.visibility === 'public' ? t('actions.sharePublic') : t('actions.sharePrivate')}
+                    onClick={() => setShareOpen(true)}
+                  >
+                    <ShareNetwork size={16} aria-hidden="true" />
+                  </Button>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    leftIcon={<ShareNetwork size={14} aria-hidden="true" />}
+                    onClick={() => setShareOpen(true)}
+                  >
+                    {project.visibility === 'public' ? t('actions.sharePublic') : t('actions.sharePrivate')}
+                  </Button>
+                ))}
               <div className="project-actions__mobile">
                 <Button
                   variant="secondary"
                   size="sm"
                   className="btn-icon"
-                  aria-label="Actions"
+                  aria-label={t('actions.menu')}
                   aria-expanded={actionsOpen}
-                  aria-haspopup="menu"
+                  aria-haspopup={isMobileActions ? 'dialog' : 'menu'}
                   aria-controls="project-actions-menu"
                   onClick={() => { setActionsOpen((o) => !o); }}
                 >
                   <DotsThreeVertical size={18} weight="bold" aria-hidden="true" />
                 </Button>
-                {actionsOpen && (
+                {actionsOpen && !isMobileActions && (
                   <div id="project-actions-menu" role="menu" className="more-dropdown project-actions__sheet">
                     <button type="button" role="menuitem" className="more-item" onClick={() => { setActionsOpen(false); void onExport(); }}>
                       <span className="more-item-icon"><DownloadSimple size={14} aria-hidden="true" /></span>
@@ -670,6 +755,63 @@ export function ProjectPage() {
                       </button>
                     )}
                   </div>
+                )}
+                {isMobileActions && (
+                  <BottomSheet
+                    open={actionsOpen}
+                    title={t('actions.menu')}
+                    onClose={() => setActionsOpen(false)}
+                    hideHeader
+                  >
+                    <SheetPresenceList />
+                    <hr className="sheet-divider" aria-hidden="true" />
+                    <div className="sheet-section sheet-project-actions">
+                      <p className="sheet-section-title">{t('actions.menu')}</p>
+                      <div className="sheet-actions-list" id="project-actions-menu" role="menu">
+                        <button type="button" role="menuitem" className="more-item" onClick={() => { setActionsOpen(false); void onExport(); }}>
+                          <span className="more-item-icon"><DownloadSimple size={18} aria-hidden="true" /></span>
+                          <span className="more-item-label">{t('actions.export')}</span>
+                        </button>
+                        {role !== 'viewer' && !isArchived && (
+                          <button type="button" role="menuitem" className="more-item" onClick={() => { setActionsOpen(false); fileInputRef.current?.click(); }}>
+                            <span className="more-item-icon"><UploadSimple size={18} aria-hidden="true" /></span>
+                            <span className="more-item-label">{t('actions.import')}</span>
+                          </button>
+                        )}
+                        {role !== 'viewer' && !isArchived && (
+                          <button type="button" role="menuitem" className="more-item" onClick={() => { setActionsOpen(false); setSaveTemplateOpen(true); }}>
+                            <span className="more-item-icon"><BookmarkSimple size={18} aria-hidden="true" /></span>
+                            <span className="more-item-label">{t('actions.saveAsTemplate')}</span>
+                          </button>
+                        )}
+                        {canArchive && !isArchived && (
+                          <button type="button" role="menuitem" className="more-item" onClick={() => { setActionsOpen(false); setArchiveConfirm('archive'); }}>
+                            <span className="more-item-icon"><Archive size={18} aria-hidden="true" /></span>
+                            <span className="more-item-label">Archive</span>
+                          </button>
+                        )}
+                        {canArchive && isArchived && (
+                          <button type="button" role="menuitem" className="more-item" onClick={() => { setActionsOpen(false); setArchiveConfirm('restore'); }}>
+                            <span className="more-item-icon"><ArrowCounterClockwise size={18} aria-hidden="true" /></span>
+                            <span className="more-item-label">Restore</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {isAdmin && (
+                      <>
+                        <hr className="sheet-divider" aria-hidden="true" />
+                        <div className="sheet-section sheet-danger">
+                          <div className="sheet-actions-list" role="menu" aria-label={t('deleteModal.title')}>
+                            <button type="button" role="menuitem" className="more-item text-danger" onClick={() => { setActionsOpen(false); setConfirmOpen(true); }}>
+                              <span className="more-item-icon"><Trash size={18} aria-hidden="true" /></span>
+                              <span className="more-item-label">{t('deleteModal.title')}</span>
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </BottomSheet>
                 )}
               </div>
             </div>
@@ -729,10 +871,10 @@ export function ProjectPage() {
           width="sm"
           footer={
             <>
-              <Button variant="ghost" onClick={() => setConfirmOpen(false)}>
+              <Button variant="ghost" size="md" onClick={() => setConfirmOpen(false)}>
                 {t('deleteModal.cancel')}
               </Button>
-              <Button variant="danger" leftIcon={<Trash size={13} aria-hidden="true" />} loading={deleting} onClick={() => void onDelete()}>
+              <Button variant="danger" size="md" leftIcon={<Trash size={14} aria-hidden="true" />} loading={deleting} onClick={() => void onDelete()}>
                 {t('deleteModal.confirm')}
               </Button>
             </>
@@ -746,29 +888,30 @@ export function ProjectPage() {
 
         <Modal
           open={archiveConfirm !== null}
-          title={archiveConfirm === 'archive' ? `Archive “${project.name}”?` : `Restore “${project.name}”?`}
+          title={archiveConfirm === 'archive' ? t('archiveModal.titleArchive', { name: project.name }) : t('archiveModal.titleRestore', { name: project.name })}
           onClose={() => setArchiveConfirm(null)}
           width="sm"
           footer={
             <>
-              <Button variant="ghost" onClick={() => setArchiveConfirm(null)}>
-                Cancel
+              <Button variant="ghost" size="md" onClick={() => setArchiveConfirm(null)}>
+                {t('archiveModal.cancel')}
               </Button>
               <Button
                 variant={archiveConfirm === 'archive' ? 'primary' : 'ghost'}
-                leftIcon={archiveConfirm === 'archive' ? <Archive size={13} aria-hidden="true" /> : <ArrowCounterClockwise size={13} aria-hidden="true" />}
+                size="md"
+                leftIcon={archiveConfirm === 'archive' ? <Archive size={14} aria-hidden="true" /> : <ArrowCounterClockwise size={14} aria-hidden="true" />}
                 loading={archiving}
                 onClick={() => void handleArchiveToggle(archiveConfirm === 'archive' ? 'archived' : 'active')}
               >
-                {archiveConfirm === 'archive' ? 'Archive' : 'Restore'}
+                {archiveConfirm === 'archive' ? t('archiveModal.confirmArchive') : t('archiveModal.confirmRestore')}
               </Button>
             </>
           }
         >
           <p className="modal-copy">
             {archiveConfirm === 'archive'
-              ? 'Project will become read-only and hidden from Active view. You can restore anytime.'
-              : 'Project will become editable again.'}
+              ? t('archiveModal.bodyArchive')
+              : t('archiveModal.bodyRestore')}
           </p>
           {archiveError && <InlineError className="mt-10">{archiveError}</InlineError>}
         </Modal>
@@ -780,10 +923,10 @@ export function ProjectPage() {
           width="sm"
           footer={
             <>
-              <Button variant="ghost" onClick={() => setImportDoc(null)}>
+              <Button variant="ghost" size="md" onClick={() => setImportDoc(null)}>
                 {t('importModal.cancel')}
               </Button>
-              <Button variant="primary" leftIcon={<UploadSimple size={13} aria-hidden="true" />} loading={importing} onClick={() => void onConfirmImport()}>
+              <Button variant="primary" size="md" leftIcon={<UploadSimple size={14} aria-hidden="true" />} loading={importing} onClick={() => void onConfirmImport()}>
                 {t('importModal.confirm')}
               </Button>
             </>

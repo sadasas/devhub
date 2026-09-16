@@ -20,6 +20,9 @@ interface NewMilestoneModalProps {
 
 const STATUS_OPTIONS: MilestoneStatus[] = ["planned", "inProgress", "released"];
 
+// autoFocus hanya desktop (hover) — di touch, keyboard virtual melonjak (pola Modal).
+const AUTO_FOCUS_INPUT = typeof window !== "undefined" && window.matchMedia?.("(hover: hover)").matches;
+
 export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
   const { t } = useTranslation(["project", "tracker"]);
   const { dispatch } = useProject();
@@ -182,10 +185,10 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
       collapseLabel={t("tracker:board.newTaskModal.contractView")}
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" size="md" onClick={onClose}>
             {t("releases.newModal.cancel")}
           </Button>
-          <Button variant="primary" type="submit" form="new-milestone-form" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} disabled={!name.trim()}>
+          <Button variant="primary" size="md" type="submit" form="new-milestone-form" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} disabled={!name.trim()}>
             {t("releases.newModal.submit")}
           </Button>
         </>
@@ -198,7 +201,7 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
             className="composer-title"
             rows={1}
             required
-            autoFocus
+            autoFocus={AUTO_FOCUS_INPUT}
             placeholder={t("releases.newModal.namePlaceholder")}
             value={name}
             onChange={(e) => setName(e.target.value)}

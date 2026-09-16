@@ -3,7 +3,7 @@ import type { FormEvent, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { CalendarBlank as CalendarIcon, Clock, DotsThree, FileText, Flag, Plus, Tag, User } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
-import { formatDate, isDigitKey, newId, nowIso, parseLabels, sanitizeIntegerInput } from '../../lib/utils';
+import { formatDate, isDecimalKey, newId, nowIso, parseLabels, sanitizeDecimalInput } from '../../lib/utils';
 import { TASK_PRIORITY, TASK_PRIORITY_ORDER } from '../../lib/labels';
 import { startAfterDue } from '../../lib/start-dates';
 import type { TaskPriority, TaskStatus, TeamMember } from '../../lib/types';
@@ -194,7 +194,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
         title: title.trim(),
         status: taskStatus,
         priority: priority === '' ? 'medium' : priority,
-        estimate: estimate !== '' && !Number.isNaN(parsedEstimate) ? Math.max(0, parsedEstimate) : undefined,
+        estimate: estimate !== '' && estimate !== '.' && !Number.isNaN(parsedEstimate) ? Math.min(FE_LIMITS.ESTIMATE_MAX, Math.max(0, parsedEstimate)) : undefined,
         labels: parseLabels(labels),
         blockedBy: [],
         milestoneId: milestone,
@@ -267,14 +267,15 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
       type="number"
       min={0}
       max={FE_LIMITS.ESTIMATE_MAX}
+      step="any"
       placeholder={t('board.newTaskModal.estimateLabel')}
       value={estimate}
-      onChange={(e) => setEstimate(sanitizeIntegerInput(e.target.value))}
-      inputMode="numeric"
+      onChange={(e) => setEstimate(sanitizeDecimalInput(e.target.value))}
+      inputMode="decimal"
       aria-label={t('board.newTaskModal.estimateLabel')}
       onKeyDown={(e) => {
         if (e.key === 'Enter') setPopup(null);
-        else if (!isDigitKey(e.key)) e.preventDefault();
+        else if (!isDecimalKey(e.key)) e.preventDefault();
       }}
     />
   );
@@ -315,7 +316,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
       expandLabel={t('board.newTaskModal.expandView')}
       collapseLabel={t('board.newTaskModal.contractView')}
       footer={
-        <Button type="submit" form="new-task-form" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} disabled={!title.trim() || !!startAfterDue(startDateInput, dueDateInput)}>
+        <Button type="submit" size="md" form="new-task-form" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} disabled={!title.trim() || !!startAfterDue(startDateInput, dueDateInput)}>
           {t('board.newTaskModal.submit')}
         </Button>
       }

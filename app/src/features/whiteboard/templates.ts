@@ -10,7 +10,7 @@ export interface WhiteboardTemplate {
 
 const C = {
   primary: "#e4e4e7",
-  accent: "#34c38e",
+  accent: "#5db69b",
   info: "#6ea8fe",
   warn: "#e8b955",
   violet: "#a78bfa",

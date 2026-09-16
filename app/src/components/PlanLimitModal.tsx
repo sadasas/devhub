@@ -58,10 +58,10 @@ export function PlanLimitModal({
         width="sm"
         footer={
           <>
-            <Button variant="ghost" leftIcon={<FolderOpen size={13} aria-hidden="true" />} onClick={onManageProjects}>
+            <Button variant="ghost" size="md" leftIcon={<FolderOpen size={14} aria-hidden="true" />} onClick={onManageProjects}>
               {t('extras:pricing.manageProjects', { defaultValue: 'Kelola proyek' })}
             </Button>
-            <Button variant="primary" leftIcon={<ArrowRight size={13} aria-hidden="true" />} onClick={onGoPricing}>
+            <Button variant="primary" size="md" leftIcon={<ArrowRight size={14} aria-hidden="true" />} onClick={onGoPricing}>
               {t('extras:pricing.viewOtherPackages', { defaultValue: 'Lihat paket lain' })}
             </Button>
           </>
@@ -95,10 +95,10 @@ export function PlanLimitModal({
       width="sm"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" size="md" onClick={onClose}>
             Not now
           </Button>
-          <Button variant="primary" leftIcon={<ArrowRight size={13} aria-hidden="true" />} onClick={onGoPricing}>
+          <Button variant="primary" size="md" leftIcon={<ArrowRight size={14} aria-hidden="true" />} onClick={onGoPricing}>
             Lihat Pricing
           </Button>
         </>

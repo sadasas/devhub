@@ -18,6 +18,9 @@ interface EndpointModalProps {
   collections: ApiCollection[];
 }
 
+// autoFocus hanya desktop (hover) — di touch, keyboard virtual melonjak (pola Modal).
+const AUTO_FOCUS_INPUT = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
+
 export function EndpointModal({ onClose, onCreated, collections }: EndpointModalProps) {
   const { t } = useTranslation('extras');
   const { dispatch, canEdit, state } = useProject();
@@ -68,10 +71,10 @@ export function EndpointModal({ onClose, onCreated, collections }: EndpointModal
       width="md"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" size="md" onClick={onClose}>
             {t('api.endpointModal.cancel')}
           </Button>
-          <Button variant="primary" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={submit} disabled={!canEdit || !name.trim() || !path.trim()}>
+          <Button variant="primary" size="md" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={submit} disabled={!canEdit || !name.trim() || !path.trim()}>
             {t('api.endpointModal.create')}
           </Button>
         </>
@@ -80,7 +83,7 @@ export function EndpointModal({ onClose, onCreated, collections }: EndpointModal
       <div className="form-stack">
         <Input
           label={t('api.workbench.name')}
-          autoFocus
+          autoFocus={AUTO_FOCUS_INPUT}
           placeholder={t('api.endpointModal.namePlaceholder')}
           value={name}
           maxLength={FE_LIMITS.API_ENDPOINT_NAME}

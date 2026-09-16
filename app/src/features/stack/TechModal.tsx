@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CheckCircle, Clock, FileText, Trash } from '@phosphor-icons/react';
+import { CheckCircle, CaretRight, Clock, FileText, Trash } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { TECH_CATEGORY } from '../../lib/labels';
 import { formatDate, formatRelative } from '../../lib/utils';
@@ -27,6 +27,9 @@ interface TechModalProps {
 
 const CATEGORY_OPTIONS: TechEntryCategory[] = ['frontend', 'backend', 'database', 'tooling'];
 const STATUS_OPTIONS: TechStatus[] = ['current', 'updateAvailable', 'majorUpgrade'];
+
+// autoFocus hanya desktop (hover) — di touch, keyboard virtual melonjak (pola Modal).
+const AUTO_FOCUS_INPUT = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
 
 export function TechModal({ entryId, onClose }: TechModalProps) {
   const { t } = useTranslation(['project', 'tracker']);
@@ -192,7 +195,7 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
             <Button
               variant="danger"
               size="sm"
-              leftIcon={<Trash size={13} aria-hidden="true" />}
+              leftIcon={<Trash size={14} aria-hidden="true" />}
               onClick={() => setConfirmOpen(true)}
             >
               {t('stack.techModal.delete')}
@@ -291,7 +294,7 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
             )}
             {canEdit ? (
               <span className="prop-chev" aria-hidden="true">
-                ›
+                <CaretRight size={12} weight="bold" />
               </span>
             ) : null}
           </div>
@@ -306,7 +309,7 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
             >
               <div className="prop-pop-label">{versionLabel}</div>
               <input
-                autoFocus
+                autoFocus={AUTO_FOCUS_INPUT}
                 className="input"
                 value={versionDraft ?? ''}
                 onChange={(e) => setVersionDraft(e.target.value.replace(/[^0-9.]/g, ''))}
@@ -342,7 +345,7 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
           className="composer-title"
           rows={1}
           value={entry.name}
-          autoFocus
+          autoFocus={AUTO_FOCUS_INPUT}
           maxLength={FE_LIMITS.TECH_NAME}
           onChange={(e) => update({ name: e.target.value })}
           aria-label={t('stack.techModal.nameLabel')}

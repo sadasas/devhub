@@ -2,6 +2,7 @@ import { memo, useState } from 'react';
 import { CaretRight, CaretDown, FolderOpen, WarningCircle, Bug, Clock } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatRelative } from '../../lib/utils';
+import { Badge } from '../../components/Badge';
 import type { Project } from '../../lib/types';
 import type { ProjectStats } from '../../lib/stats';
 
@@ -39,6 +40,7 @@ export const WelcomeProjectRow = memo(function WelcomeProjectRow({
   const showOutdated = !!(stats && stats.outdatedDeps > 0);
   const showOverdue = !!((stats as ProjectStats & { overdueTasks?: number })?.overdueTasks);
   const isExpandable = !!(project.description?.trim() || stats?.nextMilestone);
+  const panelId = `welcome-row-panel-${project.id}`;
 
   return (
     <div className={`welcome-row-wrap${expanded ? ' welcome-row-wrap-expanded' : ''}`}>
@@ -53,7 +55,7 @@ export const WelcomeProjectRow = memo(function WelcomeProjectRow({
           <span className="welcome-row-title" title={project.name}>
             {project.name}
           </span>
-          {isArchived && <span className="badge welcome-row-badge-archived">{t('dashboard.welcome.row.archivedBadge')}</span>}
+          {isArchived && <Badge tone="neutral"><span className="welcome-row-badge-archived">{t('dashboard.welcome.row.archivedBadge')}</span></Badge>}
           <span className="welcome-row-team" title={project.teamName}>
             {project.teamName}
           </span>
@@ -139,6 +141,7 @@ export const WelcomeProjectRow = memo(function WelcomeProjectRow({
           type="button"
           className="welcome-row-expand-btn"
           aria-expanded={expanded}
+          aria-controls={panelId}
           aria-label={expanded ? t('dashboard.welcome.row.collapse') : t('dashboard.welcome.row.expand')}
           onClick={(e) => {
             e.stopPropagation();
@@ -149,14 +152,14 @@ export const WelcomeProjectRow = memo(function WelcomeProjectRow({
             size={10}
             weight="bold"
             aria-hidden="true"
-            style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 120ms var(--ease-out)' }}
+            className={expanded ? 'welcome-row-expand-icon welcome-row-expand-icon-open' : 'welcome-row-expand-icon'}
           />
           {expanded ? t('dashboard.welcome.row.less') : t('dashboard.welcome.row.more')}
         </button>
       )}
 
       {expanded && (
-        <div className="welcome-row-expanded">
+        <div className="welcome-row-expanded" id={panelId}>
           {project.description?.trim() ? (
             <p className="welcome-row-desc">{project.description}</p>
           ) : (

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
@@ -36,6 +36,8 @@ export function NewProjectModal({ open, onClose, initialTeamId }: NewProjectModa
   const [submitting, setSubmitting] = useState(false);
   const [limitOpen, setLimitOpen] = useState(false);
   const [limitResource, setLimitResource] = useState<PlanLimitResource>('projects');
+  const errorRef = useRef<HTMLDivElement>(null);
+  const autoFocusName = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
 
   useEffect(() => {
     if (open && teams && teams.length > 0) {
@@ -51,6 +53,7 @@ export function NewProjectModal({ open, onClose, initialTeamId }: NewProjectModa
     e.preventDefault();
     if (!teamId) {
       setError(t('dashboard.modal.selectTeamError'));
+      requestAnimationFrame(() => errorRef.current?.focus());
       return;
     }
     setError(null);
@@ -72,6 +75,7 @@ export function NewProjectModal({ open, onClose, initialTeamId }: NewProjectModa
         setLimitOpen(true);
       } else {
         setError(getErrorMessage(err, t('dashboard.modal.createFailed')));
+        requestAnimationFrame(() => errorRef.current?.focus());
       }
       setSubmitting(false);
     }
@@ -85,10 +89,10 @@ export function NewProjectModal({ open, onClose, initialTeamId }: NewProjectModa
       width="sm"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" size="md" onClick={onClose}>
             {t('common:action.cancel')}
           </Button>
-          <Button type="submit" form="new-project-form" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} loading={submitting} disabled={!name.trim() || (teams?.length ?? 0) === 0}>
+          <Button type="submit" size="md" form="new-project-form" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} loading={submitting} disabled={!name.trim() || (teams?.length ?? 0) === 0}>
             {t('dashboard.modal.create')}
           </Button>
         </>
@@ -98,7 +102,7 @@ export function NewProjectModal({ open, onClose, initialTeamId }: NewProjectModa
         <Input
           label={t('dashboard.modal.name')}
           required
-          autoFocus
+          autoFocus={autoFocusName}
           placeholder={t('dashboard.modal.namePlaceholder')}
           value={name}
           maxLength={FE_LIMITS.PROJECT_NAME}
@@ -133,7 +137,7 @@ export function NewProjectModal({ open, onClose, initialTeamId }: NewProjectModa
             />
           )}
         </div>
-        {error && <InlineError>{error}</InlineError>}
+        {error && <div ref={errorRef} tabIndex={-1} className="form-error-focus"><InlineError>{error}</InlineError></div>}
       </form>
       <PlanLimitModal
         open={limitOpen}

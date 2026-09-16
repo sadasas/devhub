@@ -33,7 +33,9 @@ export function Avatar({ src, name, email, id, size = 28, rounded, className, st
   const showImage = Boolean(src && !failed);
   const initials = initialsFromName(name, email);
   const bg = avatarColor(id);
-  const radius = rounded ?? size / 2;
+  // Tier-2 domain color (avatarColor hsl) + radius pill — keputusan owner
+  // 2026-09-15, modul Profile. size/2 numerik dilarang implisit (§7: pill).
+  const radius = rounded ?? 'var(--radius-pill)';
   const dim: React.CSSProperties = { width: size, height: size, borderRadius: radius };
 
   if (showImage) {

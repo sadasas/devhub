@@ -263,7 +263,6 @@ export function StackGraph({ entries, onOpen }: StackGraphProps) {
             <CornersOut size={13} aria-hidden="true" />
           </button>
         </div>
-        <div className="erd-hint">{t("schema.erd.hint")}</div>
       </div>
 
       <div className="stack-graph-legend">

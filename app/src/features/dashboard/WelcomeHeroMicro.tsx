@@ -67,7 +67,7 @@ export function WelcomeHeroMicro({
   ];
 
   return (
-    <div className="welcome-hero-bento" aria-label={t('dashboard.welcome.hero.summaryAria')}>
+    <div className="welcome-hero-bento" role="group" aria-label={t('dashboard.welcome.hero.summaryAria')}>
       {cards.map((c) => {
         // Single-select: tanpa filter = 'all' yang tersorot. Hanya 1 kartu tersorot.
         const isSelected = (activeFilter ?? 'all') === c.key;
@@ -78,11 +78,10 @@ export function WelcomeHeroMicro({
             className={`bento-stat-card${isSelected ? ` bento-stat-selected bento-stat-tone-${c.tone}` : ''}`}
             onClick={c.onClick}
             aria-pressed={isSelected}
-            aria-label={`${c.label}: ${c.value}`}
           >
             <span className="bento-stat-head">
               <span className={`bento-stat-icon bento-stat-icon-${c.tone}`} aria-hidden="true">
-                <c.icon size={22} weight="duotone" />
+                <c.icon size={16} weight="duotone" />
               </span>
               <span className="bento-stat-arrow" aria-hidden="true">
                 <ArrowUpRight size={14} weight="bold" />

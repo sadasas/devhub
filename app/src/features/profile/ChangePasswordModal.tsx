@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, CheckCircle, Eye, EyeSlash, Key } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
@@ -50,6 +50,8 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
   const [changing, setChanging] = useState(false);
   const [changeError, setChangeError] = useState<string | null>(null);
   const [changeSuccess, setChangeSuccess] = useState(false);
+  const errorRef = useRef<HTMLDivElement>(null);
+  const autoFocusFirst = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
 
   useEffect(() => {
     if (!open) return;
@@ -84,6 +86,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
     setChangeError(null);
     if (newPassword !== confirmPassword) {
       setChangeError(t('profile.changeModal.mismatch'));
+      requestAnimationFrame(() => errorRef.current?.focus());
       return;
     }
     setChanging(true);
@@ -93,6 +96,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
       setChangeSuccess(true);
     } catch (err) {
       setChangeError(getErrorMessage(err, t('profile.changeModal.failed')));
+      requestAnimationFrame(() => errorRef.current?.focus());
     } finally {
       setChanging(false);
     }
@@ -106,16 +110,17 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
       width="sm"
       footer={
         changeSuccess ? (
-          <Button leftIcon={<Check size={13} weight="bold" aria-hidden="true" />} onClick={onClose}>{t('profile.changeModal.done')}</Button>
+          <Button size="md" leftIcon={<Check size={14} weight="bold" aria-hidden="true" />} onClick={onClose}>{t('profile.changeModal.done')}</Button>
         ) : (
           <>
-            <Button variant="ghost" onClick={onClose} disabled={changing}>
+            <Button variant="ghost" size="md" onClick={onClose} disabled={changing}>
               {t('common:action.cancel')}
             </Button>
             <Button
               type="submit"
+              size="md"
               form="change-password-form"
-              leftIcon={<Key size={13} aria-hidden="true" />}
+              leftIcon={<Key size={14} aria-hidden="true" />}
               loading={changing}
               disabled={!canSubmit}
             >
@@ -141,6 +146,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
               label={t('profile.changeModal.current')}
               type="password"
               autoComplete="current-password"
+              autoFocus={autoFocusFirst}
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               required
@@ -148,7 +154,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
             />
           )}
           {isSetMode && (
-            <p className="field-helper" style={{ marginBottom: 4 }}>
+            <p className="field-helper mb-4">
               {t('profile.changeModal.setHelper', {
                 defaultValue: 'Choose a password to enable email login. You can still use Google/GitHub.'
               })}
@@ -177,7 +183,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
             rightSlot={<PasswordToggle show={showConfirm} onToggle={() => setShowConfirm((v) => !v)} />}
             maxLength={FE_LIMITS.PASSWORD}
           />
-          {changeError && <InlineError>{changeError}</InlineError>}
+          {changeError && <div ref={errorRef} tabIndex={-1} className="form-error-focus"><InlineError>{changeError}</InlineError></div>}
         </form>
       )}
     </Modal>

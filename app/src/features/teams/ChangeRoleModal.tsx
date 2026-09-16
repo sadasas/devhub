@@ -41,22 +41,23 @@ export function ChangeRoleModal({ open, member, teamRole, busy, error, onClose, 
       title={t('teams.changeRoleModal.title', { name: member.displayName?.trim() || member.email })}
       onClose={busy ? undefined : onClose}
       width="sm"
-      footer={
-        <>
-          <Button variant="ghost" onClick={onClose} disabled={!!busy}>
-            {t('common:action.cancel')}
-          </Button>
-          <Button
-            variant="primary"
-            leftIcon={<FloppyDisk size={13} aria-hidden="true" />}
-            loading={!!busy}
-            disabled={!isDirty || !!busy}
-            onClick={() => onConfirm(selected)}
-          >
-            {t('teams.changeRoleModal.save')}
-          </Button>
-        </>
-      }
+        footer={
+          <>
+            <Button variant="ghost" size="md" onClick={onClose} disabled={!!busy}>
+              {t('common:action.cancel')}
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
+              leftIcon={<FloppyDisk size={14} aria-hidden="true" />}
+              loading={!!busy}
+              disabled={!isDirty || !!busy}
+              onClick={() => onConfirm(selected)}
+            >
+              {t('teams.changeRoleModal.save')}
+            </Button>
+          </>
+        }
     >
       <div className="form-stack">
         <p className="modal-copy">{t('teams.changeRoleModal.intro')}</p>
@@ -74,7 +75,7 @@ export function ChangeRoleModal({ open, member, teamRole, busy, error, onClose, 
               />
               <span className="role-option-head">
                 <span className="role-option-label">{TEAM_ROLE[r].label}</span>
-                <Badge tone={TEAM_ROLE[r].tone}>{TEAM_ROLE[r].label}</Badge>
+                <span aria-hidden="true"><Badge tone={TEAM_ROLE[r].tone}>{TEAM_ROLE[r].label}</Badge></span>
               </span>
               <span className="role-option-desc">{t(`teams.changeRoleModal.desc.${r}`)}</span>
             </label>

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { SortControl } from './SortControl';
 
@@ -104,5 +104,74 @@ describe('SortControl', () => {
     expect(document.activeElement?.textContent).toBe('Created');
     fireEvent.keyDown(menu, { key: 'ArrowUp' });
     expect(document.activeElement?.textContent).toBe('Name');
+  });
+
+  describe('mobile sheet', () => {
+    const realMatchMedia = window.matchMedia;
+    beforeEach(() => {
+      window.matchMedia = ((query: string) => ({
+        matches: query.includes('640px'),
+        media: query,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        addListener: () => {},
+        removeListener: () => {},
+        dispatchEvent: () => false,
+      })) as unknown as typeof window.matchMedia;
+    });
+    afterEach(() => {
+      window.matchMedia = realMatchMedia;
+    });
+
+    it('titles the sheet Filter when there are no sort options', () => {
+      render(
+        <SortControl
+          options={[]}
+          value={null}
+          onChange={() => {}}
+          filters={[{ id: 'mine', label: 'Only mine', checked: false, onChange: () => {} }]}
+        />,
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Sort' }));
+      expect(screen.getByRole('heading', { name: 'Filter' })).toBeTruthy();
+      expect(screen.queryByRole('heading', { name: 'Sort' })).toBeNull();
+    });
+
+    it('titles the sheet Sort when options exist', () => {
+      render(<SortControl options={OPTIONS} value={null} onChange={() => {}} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Sort' }));
+      expect(screen.getByRole('heading', { name: 'Sort' })).toBeTruthy();
+    });
+  });
+
+  it('renders filter toggles inside the desktop menu', () => {
+    const onFilter = vi.fn();
+    render(
+      <SortControl
+        options={OPTIONS}
+        value={null}
+        onChange={() => {}}
+        filters={[{ id: 'mine', label: 'Only mine', checked: false, onChange: onFilter }]}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Sort/ }));
+    const box = screen.getByRole('checkbox', { name: 'Only mine' });
+    fireEvent.click(box);
+    expect(onFilter).toHaveBeenCalledWith(true);
+  });
+
+  it('hides sort sections when options are empty but keeps filters', () => {
+    render(
+      <SortControl
+        options={[]}
+        value={null}
+        onChange={() => {}}
+        filters={[{ id: 'mine', label: 'Only mine', checked: false, onChange: () => {} }]}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Sort/ }));
+    expect(screen.getByRole('menu')).toBeTruthy();
+    expect(screen.queryByRole('menuitemradio')).toBeNull();
+    expect(screen.getByRole('checkbox', { name: 'Only mine' })).toBeTruthy();
   });
 });

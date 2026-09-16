@@ -1,5 +1,5 @@
 import { CircleNotch } from '@phosphor-icons/react';
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, ReactNode, Ref } from 'react';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';
 type Size = 'sm' | 'md';
@@ -8,6 +8,8 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   size?: Size;
   loading?: boolean;
+  /** Ref ke <button> (React 19: ref sebagai prop biasa). */
+  ref?: Ref<HTMLButtonElement>;
   /** Icon di kiri text — WAJIB dekoratif. Otomatis dibungkus aria-hidden, tapi caller tetap disarankan pass aria-hidden="true" pada icon. */
   leftIcon?: ReactNode;
 }
@@ -20,10 +22,12 @@ export function Button({
   disabled,
   className = '',
   children,
+  ref,
   ...rest
 }: ButtonProps) {
   return (
     <button
+      ref={ref}
       type="button"
       className={`btn btn-${variant} btn-${size} ${className}`}
       disabled={disabled || loading}

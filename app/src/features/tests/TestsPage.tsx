@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CheckSquare, Plus } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../state/project-context';
@@ -18,6 +18,28 @@ import { SortControl } from '../../components/SortControl';
 import { NewTestModal } from './NewTestModal';
 import { TestModal } from './TestModal';
 import { DataErrorState } from '../../components/DataErrorState';
+
+/** Header ringkas ≤640px (count hilang, sort icon-only, + Test case). */
+function useIsTestsNarrow(): boolean {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(max-width: 640px)').matches
+      : false,
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(max-width: 640px)');
+    const update = (): void => setMatches(mq.matches);
+    update();
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', update);
+      return () => mq.removeEventListener('change', update);
+    }
+    mq.addListener(update);
+    return () => mq.removeListener(update);
+  }, []);
+  return matches;
+}
 
 const TEST_SORT_SPECS: SortSpec<TestCase>[] = [
   {
@@ -39,6 +61,7 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   useNewParam(() => setCreating(true), '1', canEdit);
   const { value: sortValue, setSort } = useSortParam();
   const effectiveSort = sortValue ?? { key: 'createdAt', dir: 'desc' as const };
+  const isNarrow = useIsTestsNarrow();
 
   if (loading) {
     return (
@@ -87,7 +110,7 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const tests = applySort(state.testCases, sortSpec, effectiveSort.dir, (t) => !!t.pinned);
 
   return (
-    <div>
+    <div className="tests-page">
       <div className="data-list-header">
         <span className="data-list-count">{t('tests.count', { count: tests.length })}</span>
         <span className="data-list-actions">
@@ -97,8 +120,8 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
             onChange={setSort}
           />
           {canEdit && (
-            <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => setCreating(true)}>
-              {t('tests.newTestCase')}
+            <Button size="sm" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setCreating(true)}>
+              {isNarrow ? t('tests.newTestCaseShort', { defaultValue: 'Test case' }) : t('tests.newTestCase')}
             </Button>
           )}
         </span>
@@ -111,8 +134,8 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           description={t('tests.emptyDesc')}
           action={
             canEdit && (
-              <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setCreating(true)}>
-                {t('tests.newTestCase')}
+              <Button size="md" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setCreating(true)}>
+                {isNarrow ? t('tests.newTestCaseShort', { defaultValue: 'Test case' }) : t('tests.newTestCase')}
               </Button>
             )
           }

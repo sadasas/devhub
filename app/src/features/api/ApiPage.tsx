@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { ChangeEvent, MouseEvent as ReactMouseEvent, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -6,9 +7,11 @@ import {
   CaretRight,
   Check,
   Copy,
-
+  DotsThree,
+  DownloadSimple,
   Folder,
   FolderPlus,
+  ListBullets,
   PencilSimple,
   Plugs,
   Plus,
@@ -25,6 +28,7 @@ import { formatDate, matchesApiEndpoint, newId, normalizeApiKey } from '../../li
 import { BODY_METHODS, fromOpenApi, toOpenApi } from '../../lib/openapi';
 import type { ApiCollection, ApiEndpoint, ApiMethod, ApiParam, State } from '../../lib/types';
 import { useProject } from '../../state/project-context';
+import { BottomSheet } from '../../components/BottomSheet';
 import { Button } from '../../components/Button';
 import { ActivityList } from '../../components/ActivityList';
 import { EmptyState } from '../../components/EmptyState';
@@ -103,6 +107,85 @@ function highlightMatch(text: string, query: string): ReactNode {
   );
 }
 
+/** Header ringkas ≤640px (count hilang, sort+togle icon-only, aksi via drawer/overflow). */
+function useIsApiNarrow(): boolean {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(max-width: 640px)').matches
+      : false,
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(max-width: 640px)');
+    const update = (): void => setMatches(mq.matches);
+    update();
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', update);
+      return () => mq.removeEventListener('change', update);
+    }
+    mq.addListener(update);
+    return () => mq.removeListener(update);
+  }, []);
+  return matches;
+}
+
+function ApiOverflowMenu({ canEdit, onImport, onExportOpenApi, onExportPdf, onNewCollection }: {
+  canEdit: boolean;
+  onImport: () => void;
+  onExportOpenApi: () => void;
+  onExportPdf: () => void;
+  onNewCollection: () => void;
+}) {
+  const { t } = useTranslation('extras');
+  const [open, setOpen] = useState(false);
+  const choose = (fn: () => void) => () => {
+    setOpen(false);
+    fn();
+  };
+  return (
+    <div className="sort-control">
+      <button
+        type="button"
+        className="btn btn-ghost btn-sm btn-icon"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-label={t('api.toolbar.moreActions')}
+        title={t('api.toolbar.moreActions')}
+        onClick={() => setOpen(true)}
+      >
+        <DotsThree size={16} weight="bold" aria-hidden="true" />
+      </button>
+      <BottomSheet open={open} title={t('api.toolbar.moreActions')} onClose={() => setOpen(false)} hideHeader>
+        {canEdit && (
+          <button type="button" className="sort-menu-row" onClick={choose(onImport)}>
+            <UploadSimple size={13} aria-hidden="true" />
+            {t('api.toolbar.import')}
+          </button>
+        )}
+        <button type="button" className="sort-menu-row" onClick={choose(onExportOpenApi)}>
+          <DownloadSimple size={13} aria-hidden="true" />
+          {t('api.toolbar.export')}
+        </button>
+        <button
+          type="button"
+          className="sort-menu-row"
+          title={t('api.toolbar.exportPdfHint')}
+          onClick={choose(onExportPdf)}
+        >
+          <DownloadSimple size={13} aria-hidden="true" />
+          {t('api.toolbar.exportPdf')}
+        </button>
+        {canEdit && (
+          <button type="button" className="sort-menu-row" onClick={choose(onNewCollection)}>
+            <FolderPlus size={13} aria-hidden="true" />
+            {t('api.toolbar.newCollection')}
+          </button>
+        )}
+      </BottomSheet>
+    </div>
+  );
+}
+
 interface ApiPageProps {
   projectName: string;
   projectDescription: string;
@@ -125,6 +208,8 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
   const [importNotice, setImportNotice] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const isNarrow = useIsApiNarrow();
   const [collError, setCollError] = useState<string | null>(null);
   const [epError, setEpError] = useState<string | null>(null);
   const editSnapshot = useRef<State | null>(null);
@@ -144,6 +229,19 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
     setCollError(null);
     setEpError(null);
   }, [selection]);
+
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [selection]);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDrawerOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [drawerOpen]);
 
   useEntityDeepLink('apiEndpoints', (id) => setSelection({ type: 'endpoint', id }));
   useEntityDeepLink('apiCollections', (id) => setSelection({ type: 'collection', id }));
@@ -395,13 +493,30 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
     setMode(canEdit ? 'workspace' : 'docs');
   }
 
+  const sortPair = mode === 'workspace' ? (
+    <div className="api-sort-pair">
+      <SortControl
+        label={t('api.sort.collections')}
+        options={API_COLLECTION_SORT_SPECS.map((s) => ({ value: s.key, label: t(s.label) }))}
+        value={collectionSort}
+        onChange={setCollectionSort}
+      />
+      <SortControl
+        label={t('api.sort.endpoints')}
+        options={API_ENDPOINT_SORT_SPECS.map((s) => ({ value: s.key, label: t(s.label) }))}
+        value={endpointSort}
+        onChange={setEndpointSort}
+      />
+    </div>
+  ) : null;
+
   const toolbarButtons = (
     <div className="api-toolbar-actions">
       {canEdit && (
         <Button
           variant="ghost"
           size="sm"
-          leftIcon={<UploadSimple size={13} aria-hidden="true" />}
+          leftIcon={<UploadSimple size={14} aria-hidden="true" />}
           onClick={() => fileInputRef.current?.click()}
         >
           {t('api.toolbar.import')}
@@ -413,7 +528,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
           <Button
             variant="ghost"
             size="sm"
-            leftIcon={<FolderPlus size={13} aria-hidden="true" />}
+            leftIcon={<FolderPlus size={14} aria-hidden="true" />}
             onClick={() => setShowCollection(true)}
           >
             {t('api.toolbar.newCollection')}
@@ -421,7 +536,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
           <Button
             variant="primary"
             size="sm"
-            leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />}
+            leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />}
             onClick={() => setShowEndpoint(true)}
           >
             {t('api.toolbar.newEndpoint')}
@@ -439,13 +554,13 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
         description={t('api.empty.editorDesc')}
         action={
           <div className="api-empty-actions">
-            <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => setShowEndpoint(true)}>
+            <Button size="sm" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setShowEndpoint(true)}>
               {t('api.toolbar.newEndpoint')}
             </Button>
-            <Button size="sm" variant="ghost" leftIcon={<FolderPlus size={13} aria-hidden="true" />} onClick={() => setShowCollection(true)}>
+            <Button size="sm" variant="ghost" leftIcon={<FolderPlus size={14} aria-hidden="true" />} onClick={() => setShowCollection(true)}>
               {t('api.toolbar.newCollection')}
             </Button>
-            <Button size="sm" variant="ghost" leftIcon={<UploadSimple size={13} aria-hidden="true" />} onClick={() => fileInputRef.current?.click()}>
+            <Button size="sm" variant="ghost" leftIcon={<UploadSimple size={14} aria-hidden="true" />} onClick={() => fileInputRef.current?.click()}>
               {t('api.toolbar.import')}
             </Button>
           </div>
@@ -463,53 +578,78 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
   );
 
   return (
-    <div className="api-page">
+    <div className={`api-page${isNarrow && drawerOpen ? ' sidebar-open' : ''}`}>
       <div className="api-toolbar">
         <div className="api-toolbar-left">
-          <span className="api-toolbar-count">
-            {t('api.count.collections', { count: collections.length })} · {t('api.count.endpoints', { count: endpoints.length })}
-          </span>
+          {!isNarrow && (
+            <span className="api-toolbar-count">
+              {t('api.count.collections', { count: collections.length })} · {t('api.count.endpoints', { count: endpoints.length })}
+            </span>
+          )}
           <div className="sub-tabs api-mode-toggle" role="tablist" aria-label={t('api.mode.aria')}>
             <button
               type="button"
               role="tab"
               aria-selected={mode === 'workspace'}
               className={`sub-tab ${mode === 'workspace' ? 'sub-tab-active' : ''}`}
+              aria-label={t('api.mode.workspace')}
+              title={t('api.mode.workspace')}
               onClick={() => setMode('workspace')}
             >
               <PencilSimple size={13} aria-hidden="true" />
-              {t('api.mode.workspace')}
+              <span className="sub-tab-label">{t('api.mode.workspace')}</span>
             </button>
             <button
               type="button"
               role="tab"
               aria-selected={mode === 'docs'}
               className={`sub-tab ${mode === 'docs' ? 'sub-tab-active' : ''}`}
+              aria-label={t('api.mode.docs')}
+              title={t('api.mode.docs')}
               onClick={() => setMode('docs')}
             >
               <BookOpen size={13} aria-hidden="true" />
-              {t('api.mode.docs')}
+              <span className="sub-tab-label">{t('api.mode.docs')}</span>
             </button>
           </div>
         </div>
         <div className="api-toolbar-second">
-          {mode === 'workspace' && (
-            <div className="api-sort-pair">
-              <SortControl
-                label={t('api.sort.collections')}
-                options={API_COLLECTION_SORT_SPECS.map((s) => ({ value: s.key, label: t(s.label) }))}
-                value={collectionSort}
-                onChange={setCollectionSort}
+          {!isNarrow && sortPair}
+          {isNarrow ? (
+            <div className="api-toolbar-actions">
+              {mode === 'workspace' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="btn-icon"
+                  aria-label={t('api.drawer.title')}
+                  title={t('api.drawer.title')}
+                  onClick={() => setDrawerOpen(true)}
+                >
+                  <ListBullets size={16} aria-hidden="true" />
+                </Button>
+              )}
+              <ApiOverflowMenu
+                canEdit={canEdit}
+                onImport={() => fileInputRef.current?.click()}
+                onExportOpenApi={onExport}
+                onExportPdf={onExportPdf}
+                onNewCollection={() => setShowCollection(true)}
               />
-              <SortControl
-                label={t('api.sort.endpoints')}
-                options={API_ENDPOINT_SORT_SPECS.map((s) => ({ value: s.key, label: t(s.label) }))}
-                value={endpointSort}
-                onChange={setEndpointSort}
-              />
+              {mode === 'workspace' && canEdit && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />}
+                  onClick={() => setShowEndpoint(true)}
+                >
+                  {t('api.toolbar.newEndpointShort', { defaultValue: 'Endpoint' })}
+                </Button>
+              )}
             </div>
+          ) : (
+            toolbarButtons
           )}
-          {toolbarButtons}
         </div>
       </div>
 
@@ -547,8 +687,10 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
         <div className="api-panes">
         <aside
           className={`api-sidebar${dragging ? ' api-drop-active' : ''}`}
-          style={{ width: sidebarWidth }}
-          aria-label={t('api.sidebar.aria')}
+          style={isNarrow ? undefined : { width: sidebarWidth }}
+          role={isNarrow ? 'dialog' : undefined}
+          aria-modal={isNarrow || undefined}
+          aria-label={isNarrow ? t('api.drawer.title') : t('api.sidebar.aria')}
           onDragOver={(e) => {
             if (!canEdit) return;
             e.preventDefault();
@@ -563,6 +705,19 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
             if (file) void importOpenApiFile(file);
           }}
         >
+          {isNarrow && (
+            <div className="api-drawer-head">
+              <h2 className="sheet-title">{t('api.drawer.title')}</h2>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm btn-icon"
+                aria-label={t('action.close', { defaultValue: 'Close' })}
+                onClick={() => setDrawerOpen(false)}
+              >
+                <X size={14} weight="bold" aria-hidden="true" />
+              </button>
+            </div>
+          )}
           <div className="api-search-wrap">
             <input
               className="api-sidebar-search"
@@ -589,6 +744,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
               {t('api.sidebar.results', { count: matchCount })}
             </p>
           )}
+          {isNarrow && <div className="api-drawer-sort">{sortPair}</div>}
           <div className="api-sidebar-scroll">
             {collections.length === 0 && ungrouped.length === 0 ? (
               <p className="api-sidebar-empty">
@@ -786,6 +942,19 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
             {canEdit && editing ? (
               <>
                 <div className="api-workbench-header">
+                  <div className="api-workbench-actions">
+                    <Button variant="ghost" size="sm" onClick={cancelEditing}>
+                      {t('api.workbench.cancel')}
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      leftIcon={<Check size={14} weight="bold" aria-hidden="true" />}
+                      onClick={finishEditing}
+                    >
+                      {t('api.workbench.done')}
+                    </Button>
+                  </div>
                   <div className="api-workbench-method">
                     <SearchableSelect
                       id="api-workbench-method"
@@ -803,14 +972,12 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                       aria-label={t('api.workbench.pathAria')}
                       onChange={(e) => updateMethodPath({ path: e.target.value })}
                     />
-                  </div>
-                  <div className="api-workbench-actions">
                     <Button
                       variant="ghost"
                       size="sm"
                       className="btn-icon"
-                      aria-label={t('api.workbench.copyPath')}
-                      title={t('api.workbench.copyPath')}
+                      aria-label={copied ? t('api.workbench.copied') : t('api.workbench.copyPath')}
+                      title={copied ? t('api.workbench.copied') : t('api.workbench.copyPath')}
                       leftIcon={
                         copied ? (
                           <Check size={13} weight="bold" aria-hidden="true" />
@@ -819,15 +986,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                         )
                       }
                       onClick={() => void copy(selectedEp.path)}
-                    >
-                      {copied ? t('api.workbench.copied') : t('api.workbench.copy')}
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={cancelEditing}>
-                      {t('api.workbench.cancel')}
-                    </Button>
-                    <Button variant="primary" size="sm" onClick={finishEditing}>
-                      {t('api.workbench.done')}
-                    </Button>
+                    />
                   </div>
                 </div>
 
@@ -888,41 +1047,50 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                         <span>{t('api.col.description')}</span>
                         <span />
                       </div>
-                      <div className="api-legend" aria-hidden="true">
-                        {t('api.col.key')}{' · '}{t('api.col.value')}{' · '}{t('api.col.description')}
-                      </div>
                       {selectedEp.headers.map((h, i) => (
                         <div key={i} className="api-kv-grid">
-                          <input
-                            className="input"
-                            aria-label={t('api.header.keyAria', { n: i + 1 })}
-                            placeholder={t('api.header.keyPlaceholder')}
-                            value={h.key}
-                            maxLength={FE_LIMITS.API_HEADER_KEY}
-                            onChange={(e) => updateHeader(i, { key: e.target.value })}
-                          />
-                          <input
-                            className="input api-mono-input"
-                            aria-label={t('api.header.valueAria', { n: i + 1 })}
-                            placeholder={t('api.header.valuePlaceholder')}
-                            value={h.value}
-                            maxLength={FE_LIMITS.API_HEADER_VALUE}
-                            onChange={(e) => updateHeader(i, { value: e.target.value })}
-                          />
-                          <input
-                            className="input"
-                            aria-label={t('api.header.descAria', { n: i + 1 })}
-                            placeholder={t('api.header.descPlaceholder')}
-                            value={h.description}
-                            maxLength={FE_LIMITS.API_HEADER_DESC}
-                            onChange={(e) => updateHeader(i, { description: e.target.value })}
-                          />
+                          <div className="field api-row-field">
+                            <label className="field-label" htmlFor={`api-hdr-key-${i}`}>{t('api.col.key')}</label>
+                            <input
+                              id={`api-hdr-key-${i}`}
+                              className="input"
+                              aria-label={t('api.header.keyAria', { n: i + 1 })}
+                              placeholder={t('api.header.keyPlaceholder')}
+                              value={h.key}
+                              maxLength={FE_LIMITS.API_HEADER_KEY}
+                              onChange={(e) => updateHeader(i, { key: e.target.value })}
+                            />
+                          </div>
+                          <div className="field api-row-field">
+                            <label className="field-label" htmlFor={`api-hdr-value-${i}`}>{t('api.col.value')}</label>
+                            <input
+                              id={`api-hdr-value-${i}`}
+                              className="input api-mono-input"
+                              aria-label={t('api.header.valueAria', { n: i + 1 })}
+                              placeholder={t('api.header.valuePlaceholder')}
+                              value={h.value}
+                              maxLength={FE_LIMITS.API_HEADER_VALUE}
+                              onChange={(e) => updateHeader(i, { value: e.target.value })}
+                            />
+                          </div>
+                          <div className="field api-row-field">
+                            <label className="field-label" htmlFor={`api-hdr-desc-${i}`}>{t('api.col.description')}</label>
+                            <input
+                              id={`api-hdr-desc-${i}`}
+                              className="input"
+                              aria-label={t('api.header.descAria', { n: i + 1 })}
+                              placeholder={t('api.header.descPlaceholder')}
+                              value={h.description}
+                              maxLength={FE_LIMITS.API_HEADER_DESC}
+                              onChange={(e) => updateHeader(i, { description: e.target.value })}
+                            />
+                          </div>
                           <Button
                             variant="danger"
                             size="sm"
                             className="btn-icon api-row-remove"
                             aria-label={t('api.header.remove')}
-                            leftIcon={<Trash size={13} aria-hidden="true" />}
+                            leftIcon={<Trash size={14} aria-hidden="true" />}
                             onClick={() => updateEp({ headers: selectedEp.headers.filter((_, idx) => idx !== i) })}
                           />
                         </div>
@@ -930,7 +1098,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                       {selectedEp.headers.length === 0 && (
                         <p className="api-rows-empty">{t('api.header.empty')}</p>
                       )}
-                      <Button variant="ghost" size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => updateEp({ headers: [...selectedEp.headers, { key: '', value: '', description: '' }] })}>
+                      <Button variant="ghost" size="sm" leftIcon={<Plus size={14} aria-hidden="true" />} onClick={() => updateEp({ headers: [...selectedEp.headers, { key: '', value: '', description: '' }] })}>
                         {t('api.header.add')}
                       </Button>
                     </div>
@@ -945,56 +1113,68 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                         <span>{t('api.col.description')}</span>
                         <span />
                       </div>
-                      <div className="api-legend" aria-hidden="true">
-                        {t('api.col.name')}{' · '}{t('api.col.in')}{' · '}{t('api.col.required')}{' · '}{t('api.col.description')}
-                      </div>
                       {selectedEp.params.map((p, i) => (
                         <div key={i} className="api-param-grid">
-                          <input
-                            className="input"
-                            aria-label={t('api.param.nameAria', { n: i + 1 })}
-                            placeholder={t('api.param.namePlaceholder')}
-                            value={p.name}
-                            maxLength={FE_LIMITS.API_PARAM_NAME}
-                            onChange={(e) => updateParam(i, { name: e.target.value })}
-                          />
-                          <SearchableSelect
-                            id={`api-param-in-${i}`}
-                            ariaLabel={t('api.param.locationAria', { n: i + 1 })}
-                            value={p.in}
-                            allowEmpty={false}
-                            searchable={false}
-                            options={(['path', 'query'] as ApiParam['in'][]).map((loc) => ({ value: loc, label: loc }))}
-                            onChange={(v) => { if (v) updateParam(i, { in: v as ApiParam['in'] }); }}
-                          />
-                          <label className="api-check">
+                          <div className="field api-row-field">
+                            <label className="field-label" htmlFor={`api-param-name-${i}`}>{t('api.col.name')}</label>
                             <input
-                              type="checkbox"
-                              checked={p.required}
-                              aria-label={t('api.param.requiredAria', { n: i + 1 })}
-                              onChange={(e) => updateParam(i, { required: e.target.checked })}
+                              id={`api-param-name-${i}`}
+                              className="input"
+                              aria-label={t('api.param.nameAria', { n: i + 1 })}
+                              placeholder={t('api.param.namePlaceholder')}
+                              value={p.name}
+                              maxLength={FE_LIMITS.API_PARAM_NAME}
+                              onChange={(e) => updateParam(i, { name: e.target.value })}
                             />
-                          </label>
-                          <input
-                            className="input"
-                            aria-label={t('api.param.descAria', { n: i + 1 })}
-                            placeholder={t('api.param.descPlaceholder')}
-                            value={p.description}
-                            maxLength={FE_LIMITS.API_PARAM_DESC}
-                            onChange={(e) => updateParam(i, { description: e.target.value })}
-                          />
+                          </div>
+                          <div className="field api-row-field">
+                            <span className="field-label" aria-hidden="true">{t('api.col.in')}</span>
+                            <SearchableSelect
+                              id={`api-param-in-${i}`}
+                              ariaLabel={t('api.param.locationAria', { n: i + 1 })}
+                              value={p.in}
+                              allowEmpty={false}
+                              searchable={false}
+                              options={(['path', 'query'] as ApiParam['in'][]).map((loc) => ({ value: loc, label: loc }))}
+                              onChange={(v) => { if (v) updateParam(i, { in: v as ApiParam['in'] }); }}
+                            />
+                          </div>
+                          <div className="field api-row-field">
+                            <label className="field-label" htmlFor={`api-param-req-${i}`}>{t('api.col.required')}</label>
+                            <label className="api-check">
+                              <input
+                                id={`api-param-req-${i}`}
+                                type="checkbox"
+                                checked={p.required}
+                                aria-label={t('api.param.requiredAria', { n: i + 1 })}
+                                onChange={(e) => updateParam(i, { required: e.target.checked })}
+                              />
+                            </label>
+                          </div>
+                          <div className="field api-row-field">
+                            <label className="field-label" htmlFor={`api-param-desc-${i}`}>{t('api.col.description')}</label>
+                            <input
+                              id={`api-param-desc-${i}`}
+                              className="input"
+                              aria-label={t('api.param.descAria', { n: i + 1 })}
+                              placeholder={t('api.param.descPlaceholder')}
+                              value={p.description}
+                              maxLength={FE_LIMITS.API_PARAM_DESC}
+                              onChange={(e) => updateParam(i, { description: e.target.value })}
+                            />
+                          </div>
                           <Button
                             variant="danger"
                             size="sm"
                             className="btn-icon api-row-remove"
                             aria-label={t('api.param.remove')}
-                            leftIcon={<Trash size={13} aria-hidden="true" />}
+                            leftIcon={<Trash size={14} aria-hidden="true" />}
                             onClick={() => updateEp({ params: selectedEp.params.filter((_, idx) => idx !== i) })}
                           />
                         </div>
                       ))}
                       {selectedEp.params.length === 0 && <p className="api-rows-empty">{t('api.param.empty')}</p>}
-                      <Button variant="ghost" size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={() => updateEp({ params: [...selectedEp.params, { name: '', in: 'query', required: false, description: '' }] })}>
+                      <Button variant="ghost" size="sm" leftIcon={<Plus size={14} aria-hidden="true" />} onClick={() => updateEp({ params: [...selectedEp.params, { name: '', in: 'query', required: false, description: '' }] })}>
                         {t('api.param.add')}
                       </Button>
                     </div>
@@ -1064,7 +1244,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                               size="sm"
                               className="btn-icon api-row-remove"
                               aria-label={t('api.response.remove')}
-                              leftIcon={<Trash size={13} aria-hidden="true" />}
+                              leftIcon={<Trash size={14} aria-hidden="true" />}
                               onClick={() => updateEp({ responses: selectedEp.responses.filter((_, idx) => idx !== i) })}
                             />
                           </div>
@@ -1092,7 +1272,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                       <Button
                         variant="ghost"
                         size="sm"
-                        leftIcon={<Plus size={13} aria-hidden="true" />}
+                        leftIcon={<Plus size={14} aria-hidden="true" />}
                         onClick={() =>
                           updateEp({
                             responses: [...selectedEp.responses, { status: 200, contentType: '', description: '', body: '' }],
@@ -1110,9 +1290,18 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                 {canEdit && (
                   <div className="api-read-actions">
                     <Button
+                      variant="danger"
+                      size="sm"
+                      className="btn-icon"
+                      aria-label={t('api.tree.deleteEndpointNamed', { name: selectedEp.name })}
+                      title={t('api.tree.deleteEndpoint')}
+                      leftIcon={<Trash size={14} aria-hidden="true" />}
+                      onClick={() => setDeleteTarget({ kind: 'endpoint', id: selectedEp.id, name: selectedEp.name })}
+                    />
+                    <Button
                       variant="primary"
                       size="sm"
-                      leftIcon={<PencilSimple size={13} aria-hidden="true" />}
+                      leftIcon={<PencilSimple size={14} aria-hidden="true" />}
                       onClick={startEditing}
                     >
                       {t('api.workbench.edit')}
@@ -1165,7 +1354,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                       className="api-delete-btn"
                       aria-label={t('api.tree.deleteCollection')}
                       title={t('api.tree.deleteCollection')}
-                      leftIcon={<Trash size={13} aria-hidden="true" />}
+                      leftIcon={<Trash size={14} aria-hidden="true" />}
                       onClick={() => setDeleteTarget({ kind: 'collection', id: selectedColl.id, name: selectedColl.name })}
                     />
                   )}
@@ -1227,6 +1416,16 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
         </div>
       )}
 
+      {isNarrow && drawerOpen && createPortal(
+        <div
+          className="api-drawer-backdrop"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setDrawerOpen(false);
+          }}
+        />,
+        document.body,
+      )}
+
       {showCollection && <CollectionModal onClose={() => setShowCollection(false)} onCreated={onCreatedCollection} />}
       {showEndpoint && (
         <EndpointModal onClose={() => setShowEndpoint(false)} onCreated={onCreatedEndpoint} collections={collections} />
@@ -1239,10 +1438,10 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
         width="sm"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
+            <Button variant="ghost" size="md" onClick={() => setDeleteTarget(null)}>
               {t('api.delete.cancel')}
             </Button>
-            <Button variant="danger" leftIcon={<Trash size={13} aria-hidden="true" />} onClick={onDeleteTarget}>
+            <Button variant="danger" size="md" leftIcon={<Trash size={14} aria-hidden="true" />} onClick={onDeleteTarget}>
               {t('api.delete.confirm')}
             </Button>
           </>

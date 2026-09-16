@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useId } from 'react';
 import { CaretDown, CaretRight } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 
@@ -13,9 +14,10 @@ interface WelcomeGroupProps {
 
 export function WelcomeGroup({ teamName, count, openIssues, expanded, onToggle, children }: WelcomeGroupProps) {
   const { t } = useTranslation('account');
+  const bodyId = useId();
   return (
     <section className="welcome-group" aria-label={teamName}>
-      <button type="button" className="welcome-group-head" onClick={onToggle} aria-expanded={expanded}>
+      <button type="button" className="welcome-group-head" onClick={onToggle} aria-expanded={expanded} aria-controls={bodyId}>
         <span className="welcome-group-head-left">
           {expanded ? <CaretDown size={10} weight="bold" aria-hidden="true" /> : <CaretRight size={10} weight="bold" aria-hidden="true" />}
           <span className="welcome-group-name">{teamName}</span>
@@ -25,7 +27,7 @@ export function WelcomeGroup({ teamName, count, openIssues, expanded, onToggle, 
         </span>
         {openIssues > 0 && <span className="welcome-group-issues tabular">{t('dashboard.welcome.group.open', { count: openIssues })}</span>}
       </button>
-      {expanded && <div className="welcome-group-body" role="list">{children}</div>}
+      {expanded && <div className="welcome-group-body" role="list" id={bodyId}>{children}</div>}
     </section>
   );
 }

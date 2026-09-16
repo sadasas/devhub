@@ -1,7 +1,10 @@
 {
   "tabs": {
     "navAria": "Project sections",
+    "more": "More",
+    "moreAria": "More sections",
     "unreadBadge": "{{count}} unread",
+    "badgeNewDeleted": "{{new}} new, {{deleted}} deleted in {{label}}",
     "board": "Board",
     "issues": "Issues",
     "tests": "Test Cases",
@@ -31,6 +34,7 @@
     "createdOn": "Created {{date}}"
   },
   "actions": {
+    "menu": "Project actions",
     "copy": "Copy",
     "copied": "Copied",
     "export": "Export",
@@ -54,6 +58,15 @@
     "bodyOtherProject": "This backup belongs to a different project. Importing will create a new project from this data.",
     "meta": "Backed up {{date}} · {{tasks}} tasks, {{issues}} issues"
   },
+  "archiveModal": {
+    "titleArchive": "Archive “{{name}}”?",
+    "titleRestore": "Restore “{{name}}”?",
+    "cancel": "Cancel",
+    "confirmArchive": "Archive",
+    "confirmRestore": "Restore",
+    "bodyArchive": "Project will become read-only and hidden from Active view. You can restore anytime.",
+    "bodyRestore": "Project will become editable again."
+  },
   "errors": {
     "invalidExport": "Not a valid DevHub export document.",
     "parseJson": "Could not parse the selected file as JSON.",
@@ -69,6 +82,8 @@
     "count_other": "{{count}} deleted",
     "copy": "These items were deleted. Deletion records are kept briefly and cannot be restored.",
     "dismiss": "Dismiss",
+    "archivedCopy": "This project is archived — read-only. Editing, creating and drag-drop are disabled.",
+    "archivedRestore": "Restore",
     "entity": {
       "tasks": "Task",
       "issues": "Issue",
@@ -188,6 +203,7 @@
     "listTab": "List",
     "graphTab": "Graph",
     "newEntry": "New entry",
+    "newEntryShort": "Entry",
     "emptyTitle": "No stack entries yet",
     "emptyDesc": "Track what this project runs on — versions, categories and when an upgrade is due.",
     "unread": "Unread",
@@ -257,8 +273,11 @@
     "page": {
       "count": "{{tables}} tables · {{relations}} relations · {{versions}} versions",
       "newRelation": "New relation",
+      "newRelationShort": "Relation",
       "newTable": "New table",
+      "newTableShort": "Table",
       "import": "Import",
+      "moreActions": "More actions",
       "viewAria": "Schema view",
       "tablesTab": "Tables",
       "erdTab": "ERD",
@@ -316,7 +335,6 @@
       "zoomIn": "Zoom in",
       "zoomOut": "Zoom out",
       "resetView": "Reset view",
-      "hint": "Drag tables to move · Click a line for details, delete via button · Arrow keys to pan · +/- to zoom · drag to pan",
       "hintPanning": "Panning — release Space, then drag tables to move",
       "relDelete": "Delete",
       "relClose": "Close",
@@ -592,6 +610,7 @@
     "count_one": "{{count}} decision",
     "count_other": "{{count}} decisions",
     "newDecision": "New decision",
+    "newDecisionShort": "Decision",
     "emptyTitle": "No decisions yet",
     "emptyDesc": "Record architecture choices and trade-offs as ADRs so future you remembers why.",
     "unread": "Unread",
@@ -655,6 +674,7 @@
     "count_one": "{{count}} milestone",
     "count_other": "{{count}} milestones",
     "newMilestone": "New milestone",
+    "newMilestoneShort": "Milestone",
     "emptyTitle": "No milestones yet",
     "emptyDesc": "Group work into releases and keep a changelog of what shipped with each.",
     "unread": "Unread",
@@ -697,6 +717,8 @@
       "noTasksAssigned": "No tasks assigned to this milestone.",
       "deleteConfirmTitle": "Delete milestone?",
       "deleteConfirmBody": "This permanently deletes the milestone. Tasks linked to it will be unassigned. This cannot be undone.",
+      "autosaveSaving": "Saving…",
+      "autosaveSaved": "All changes saved",
       "changelogHelp": "Markdown: **bold**, _italic_, `code`, [link](https://...)",
       "changelogHelp2": "## heading, - bullet, 1. numbered, > quote, ```code block```",
       "changelogPlaceholder": "List what changed in this release, e.g. - SSO login works"

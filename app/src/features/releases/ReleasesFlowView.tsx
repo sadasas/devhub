@@ -75,7 +75,7 @@ function Hero({
         </div>
         <div className="release-flow-hero-side">
           {canEdit && (
-            <Button size="sm" variant="ghost" leftIcon={<PencilSimple size={13} aria-hidden="true" />} onClick={onEdit}>
+            <Button size="sm" variant="ghost" leftIcon={<PencilSimple size={14} aria-hidden="true" />} onClick={onEdit}>
               {t('releases.editAria')}
             </Button>
           )}
@@ -254,7 +254,7 @@ export function ReleasesFlowView({
         description={t('releases.flow.emptyDescFlow', { defaultValue: 'No releases yet. Create a milestone with status In Progress to see the step-by-step flow.' })}
         action={
           canEdit && (
-            <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={onNewMilestone}>
+            <Button size="sm" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={onNewMilestone}>
               {t('releases.newMilestone')}
             </Button>
           )
@@ -317,7 +317,7 @@ export function ReleasesFlowView({
         <div className="release-flow-empty">
           <p className="field-helper">{t('releases.modal.noTasksAssigned')}</p>
           {canEdit && (
-            <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => onOpenTask('NEW')}>
+            <Button size="sm" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => onOpenTask('NEW')}>
               {t('releases.flow.addTask', { defaultValue: 'Add task to this release' })}
             </Button>
           )}

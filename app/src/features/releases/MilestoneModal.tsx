@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { Check, FileText } from "@phosphor-icons/react";
+import { CheckCircle, FileText, Trash } from "@phosphor-icons/react";
 import { formatDate, formatRelative } from "../../lib/utils";
-import type { Milestone, MilestoneStatus, State } from "../../lib/types";
+import type { Milestone, MilestoneStatus } from "../../lib/types";
 import type { UpdatePatch } from "../../state/project-context";
 import { useProject } from "../../state/project-context";
 import { usePresenceStatus } from "../../hooks/usePresenceStatus";
 import { Button } from "../../components/Button";
+import { ConfirmDeleteDialog } from "../../components/ConfirmDeleteDialog";
 import { InlineError } from "../../components/InlineError";
 import { DatePicker } from "../../components/DatePicker";
 import { DetailShell } from "../../components/DetailShell";
@@ -23,10 +24,13 @@ interface MilestoneModalProps {
 
 const STATUS_OPTIONS: MilestoneStatus[] = ["planned", "inProgress", "released"];
 
+// autoFocus hanya desktop (hover) — di touch, keyboard virtual melonjak (pola Modal).
+
 export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
+  const AUTO_FOCUS_INPUT = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
   const { t } = useTranslation("project");
-  const { state, dispatch, canEdit } = useProject();
-  const editSnapshot = useRef<State | null>(null);
+  const { state, dispatch, canEdit, saving, lastSavedAt } = useProject();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [hotProp, setHotProp] = useState<string | null>(null);
   const titleRef = useRef<HTMLTextAreaElement | null>(null);
   const [versionOpen, setVersionOpen] = useState(false);
@@ -37,14 +41,9 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
   const versionCancelRef = useRef(false);
 
   useEffect(() => {
-    if (milestoneId && state) {
-      editSnapshot.current = structuredClone(state);
-    }
-  }, [milestoneId]);
-
-  useEffect(() => {
     setHotProp(null);
     setVersionOpen(false);
+    setConfirmOpen(false);
   }, [milestoneId]);
 
   // Judul autogrow tanpa batas — yang scroll .composer-scroll, bukan textarea.
@@ -119,16 +118,10 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
     dispatch({ type: "milestone/update", id: milestone.id, patch });
   };
 
-  const cancelEditing = () => {
-    if (editSnapshot.current) {
-      dispatch({ type: "replace", state: editSnapshot.current });
-      editSnapshot.current = null;
-    }
-    onClose();
-  };
-
-  const finishEditing = () => {
-    editSnapshot.current = null;
+  const remove = () => {
+    if (!milestone) return;
+    dispatch({ type: "milestone/remove", id: milestone.id });
+    setConfirmOpen(false);
     onClose();
   };
 
@@ -181,15 +174,30 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
       title={t("releases.modal.editTitle")}
       onClose={onClose}
       footer={
-        <>
-          <span className="flex-1" />
-          <Button variant="ghost" onClick={cancelEditing}>
-            {t("releases.modal.cancel")}
-          </Button>
-          <Button variant="primary" leftIcon={<Check size={13} weight="bold" aria-hidden="true" />} onClick={finishEditing} disabled={nameEmpty}>
-            {t("releases.modal.done")}
-          </Button>
-        </>
+        canEdit ? (
+          <>
+            <Button
+              variant="danger"
+              size="sm"
+              leftIcon={<Trash size={14} aria-hidden="true" />}
+              onClick={() => setConfirmOpen(true)}
+            >
+              {t("releases.modal.delete")}
+            </Button>
+            {(saving || lastSavedAt) && !nameEmpty && (
+              <span className="save-state" role="status">
+                {saving ? (
+                  t("releases.modal.autosaveSaving")
+                ) : (
+                  <>
+                    <CheckCircle size={13} weight="bold" aria-hidden="true" />
+                    {t("releases.modal.autosaveSaved")}
+                  </>
+                )}
+              </span>
+            )}
+          </>
+        ) : undefined
       }
       sidebar={<>
         <PropRow
@@ -250,7 +258,7 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
           className="composer-title"
           rows={1}
           value={milestone.name}
-          autoFocus
+          autoFocus={AUTO_FOCUS_INPUT}
           maxLength={LIMITS.MILESTONE_NAME}
           onChange={(e) => update({ name: e.target.value })}
           aria-label={t("releases.modal.nameLabel")}
@@ -319,6 +327,13 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
         </div>,
         document.body,
       )}
+      <ConfirmDeleteDialog
+        open={confirmOpen}
+        title={t("releases.modal.deleteConfirmTitle")}
+        description={t("releases.modal.deleteConfirmBody")}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={remove}
+      />
     </>
   );
 }

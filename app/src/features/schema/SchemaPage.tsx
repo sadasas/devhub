@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { ArrowLeft, ArrowsOutSimple, Broom, CaretLeft, CaretRight, Eye, FloppyDisk, GitDiff, Graph, LinkSimple, List, Plus, Presentation, Trash, UploadSimple, Warning } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowsOutSimple, Broom, CaretLeft, CaretRight, DotsThree, Eye, FloppyDisk, GitDiff, Graph, LinkSimple, List, Plus, Presentation, Stack, Trash, UploadSimple, Warning } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { formatDate, relationLabel as formatRelation, shortId } from '../../lib/utils';
 import type { Relation, SchemaVersion, Table } from '../../lib/types';
@@ -10,6 +10,7 @@ import { api } from '../../lib/api';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { useSortParam } from '../../hooks/useSortParam';
 import { Badge } from '../../components/Badge';
+import { BottomSheet } from '../../components/BottomSheet';
 import { Button } from '../../components/Button';
 import { Tooltip } from '../../components/Tooltip';
 import { EmptyState } from '../../components/EmptyState';
@@ -22,6 +23,10 @@ import { ERDCanvasPanel } from './ERDCanvasPanel';
 import { lintSchema } from './schema-lint';
 import { SchemaIssuesStrip } from './SchemaIssuesStrip';
 import { SchemaExportMenu } from './SchemaExportMenu';
+import { toPostgresDDL } from './ddl-export';
+import { toDBML } from './dbml-export';
+import { downloadERDPNG, downloadERDSVG } from './erd-export';
+import { safeFileName, triggerDownload } from '../whiteboard/export';
 import { ImportSchemaModal } from './ImportSchemaModal';
 import { NewRelationModal } from './NewRelationModal';
 import { NewTableModal } from './NewTableModal';
@@ -31,6 +36,137 @@ import { TableModal } from './TableModal';
 import { DataErrorState } from '../../components/DataErrorState';
 
 type SchemaView = 'tables' | 'erd';
+
+/** Header ringkas ≤640px (count hilang, mode/sort/canvas/tidy icon-only,
+    export+import gabung ke menu "...", + Table/+ Relation). */
+function useIsSchemaNarrow(): boolean {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(max-width: 640px)').matches
+      : false,
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(max-width: 640px)');
+    const update = (): void => setMatches(mq.matches);
+    update();
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', update);
+      return () => mq.removeEventListener('change', update);
+    }
+    mq.addListener(update);
+    return () => mq.removeListener(update);
+  }, []);
+  return matches;
+}
+
+/** Menu "..." mobile: gabungan Export (DDL/DBML/SVG/PNG) + Import sebagai
+    bottom sheet (dropdown terpotong di tepi viewport). */
+function SchemaMoreMenu({ tables, relations, projectName, versionLabel, showImport, onImport }: {
+  tables: Table[];
+  relations: Relation[];
+  projectName: string;
+  versionLabel: string | null;
+  showImport: boolean;
+  onImport: () => void;
+}) {
+  const { t } = useTranslation('project');
+  const [open, setOpen] = useState(false);
+
+  const trimmedName = projectName.trim();
+  const baseName = trimmedName !== '' ? `${trimmedName}-schema` : 'schema';
+  const fullBase = versionLabel ? `${baseName}-${versionLabel}` : baseName;
+  const hasTables = tables.length > 0;
+  const downloadText = (body: string, filename: string) => {
+    const blob = new Blob([body], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    triggerDownload(url, filename);
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    setOpen(false);
+  };
+  const menuTitle = versionLabel
+    ? t('schema.export.menuVersionAria', { version: versionLabel })
+    : t('schema.export.menuAria');
+
+  return (
+    <div className="sort-control">
+      <button
+        type="button"
+        className="btn btn-ghost btn-sm sort-control-trigger"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-label={t('schema.page.moreActions')}
+        title={t('schema.page.moreActions')}
+        onClick={() => setOpen(true)}
+      >
+        <DotsThree size={16} weight="bold" aria-hidden="true" />
+      </button>
+      <BottomSheet open={open} title={menuTitle} onClose={() => setOpen(false)} hideHeader>
+        <p className="sheet-section-label">{t('schema.export.trigger')}</p>
+        <button
+          type="button"
+          className="sort-menu-row"
+          onClick={() => {
+            const ddl = toPostgresDDL(tables, relations);
+            const body = ddl.trim() !== '' ? ddl : `-- ${fullBase} — no tables to export\n`;
+            downloadText(body, `${safeFileName(fullBase)}.sql`);
+          }}
+        >
+          {t('schema.export.ddl')}
+        </button>
+        <button
+          type="button"
+          className="sort-menu-row"
+          onClick={() => {
+            const dbml = toDBML(tables, relations);
+            const body = dbml.trim() !== '' ? dbml : `// ${fullBase} — no tables to export\n`;
+            downloadText(body, `${safeFileName(fullBase)}.dbml`);
+          }}
+        >
+          {t('schema.export.dbml')}
+        </button>
+        <button
+          type="button"
+          className="sort-menu-row"
+          disabled={!hasTables}
+          onClick={() => {
+            downloadERDSVG(tables, relations, `${fullBase}-erd`);
+            setOpen(false);
+          }}
+        >
+          {t('schema.export.svg')}
+        </button>
+        <button
+          type="button"
+          className="sort-menu-row"
+          disabled={!hasTables}
+          onClick={() => {
+            downloadERDPNG(tables, relations, `${fullBase}-erd`);
+            setOpen(false);
+          }}
+        >
+          {t('schema.export.png')}
+        </button>
+        {showImport && (
+          <>
+            <p className="sheet-section-label">{t('schema.page.import')}</p>
+            <button
+              type="button"
+              className="sort-menu-row"
+              onClick={() => {
+                setOpen(false);
+                onImport();
+              }}
+            >
+              <UploadSimple size={13} aria-hidden="true" />
+              {t('schema.import.title')}
+            </button>
+          </>
+        )}
+      </BottomSheet>
+    </div>
+  );
+}
 
 const TABLE_SORT_SPECS: SortSpec<Table>[] = [
   { key: 'name', label: 'schema.sort.name', get: (t) => t.name },
@@ -85,6 +221,7 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
   }, [setSearchParams]);
   const { value: sortValue, setSort } = useSortParam();
   const effectiveSort = sortValue ?? { key: 'createdAt', dir: 'desc' as const };
+  const isNarrow = useIsSchemaNarrow();
   const { value: versionSortValue, setSort: setVersionSort } = useSortParam('sortv');
   const tableSortSpec = TABLE_SORT_SPECS.find((s) => s.key === effectiveSort.key) ?? null;
   const versionSortSpec = VERSION_SORT_SPECS.find((s) => s.key === versionSortValue?.key) ?? null;
@@ -121,6 +258,8 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
   const [confirmRel, setConfirmRel] = useState<Relation | null>(null);
   const [saveVersionOpen, setSaveVersionOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  // Mobile: daftar versi dibuka sebagai bottom sheet dari bar ringkas.
+  const [versionsSheetOpen, setVersionsSheetOpen] = useState(false);
   const [diffOpen, setDiffOpen] = useState(false);
   const [versionsCollapsed, setVersionsCollapsed] = useState(false);
   // U4: selection-driven props panel (canvas mode only). ERD lifts node
@@ -479,10 +618,50 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
   const relationLabelCurrent = (rel: Relation) => relationLabel(rel, state.tables);
   const relationLabelDisplay = (rel: Relation) => relationLabel(rel, displayTables);
 
+  const sortedVersions = applySort(state.schemaVersions, versionSortSpec, versionSortValue?.dir ?? 'asc');
+  const renderVersionRow = (v: SchemaVersion, onSelect?: () => void) => {
+    const isActive = v.id === selectedVersionId;
+    const hasSnap = !!v.snapshot;
+    return (
+      <button
+        key={v.id}
+        type="button"
+        className={`version-row ${isActive ? 'version-row-active' : ''} ${!hasSnap ? 'version-row-no-snapshot' : ''}`}
+        onClick={() => {
+          toggleVersion(v);
+          onSelect?.();
+        }}
+        aria-pressed={isActive}
+        aria-current={isActive ? 'true' : undefined}
+        aria-label={t('schema.viewRow.aria', { version: v.version })}
+        title={hasSnap ? t('schema.viewRow.aria', { version: v.version }) : t('schema.viewRow.noSnapshotTooltip')}
+      >
+        <Badge tone="accent">{v.version}</Badge>
+        {unreadIds?.has(v.id) && (
+          <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">
+            New
+          </span>
+        )}
+        <div className="version-main">
+          <div className="version-notes">{v.notes || t('schema.noNotes')}</div>
+          <div className="version-date">{t('schema.appliedAt', { date: formatDate(v.appliedAt) })}</div>
+        </div>
+        <span className="version-row-eye" aria-hidden="true">
+          {isActive ? <Eye size={14} weight="fill" /> : <Eye size={14} />}
+        </span>
+        {!hasSnap && (
+          <span className="version-row-warn" aria-hidden="true">
+            <Warning size={12} />
+          </span>
+        )}
+      </button>
+    );
+  };
+
   const columnsCount = displayTables.reduce((acc, t) => acc + t.columns.length, 0);
 
   return (
-    <div className="">
+    <div className="schema-page">
       <div className="data-list-header">
         <span className="data-list-count">
           {isViewing && selectedVersion ? (
@@ -515,35 +694,48 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
             value={sortValue}
             onChange={setSort}
           />
-          <SchemaExportMenu
-            tables={displayTables}
-            relations={displayRelations}
-            projectName={projectName}
-            versionLabel={isViewing && selectedVersion ? selectedVersion.version : null}
-          />
-          {canEditEffective && (
-            <Button
-              variant="ghost"
-              size="sm"
-              leftIcon={<UploadSimple size={13} aria-hidden="true" />}
-              onClick={() => setImportOpen(true)}
-            >
-              {t('schema.page.import')}
-            </Button>
+          {isNarrow ? (
+            <SchemaMoreMenu
+              tables={displayTables}
+              relations={displayRelations}
+              projectName={projectName}
+              versionLabel={isViewing && selectedVersion ? selectedVersion.version : null}
+              showImport={canEditEffective}
+              onImport={() => setImportOpen(true)}
+            />
+          ) : (
+            <>
+              <SchemaExportMenu
+                tables={displayTables}
+                relations={displayRelations}
+                projectName={projectName}
+                versionLabel={isViewing && selectedVersion ? selectedVersion.version : null}
+              />
+              {canEditEffective && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  leftIcon={<UploadSimple size={14} aria-hidden="true" />}
+                  onClick={() => setImportOpen(true)}
+                >
+                  {t('schema.page.import')}
+                </Button>
+              )}
+            </>
           )}
           {canEditEffective && (
             <Button
               variant="ghost"
               size="sm"
-              leftIcon={<LinkSimple size={13} aria-hidden="true" />}
+              leftIcon={<LinkSimple size={14} aria-hidden="true" />}
               onClick={() => setNewRelationOpen(true)}
             >
-              {t('schema.page.newRelation')}
+              {isNarrow ? t('schema.page.newRelationShort', { defaultValue: 'Relation' }) : t('schema.page.newRelation')}
             </Button>
           )}
           {canEditEffective && (
-            <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={openNewTableDefault}>
-              {t('schema.page.newTable')}
+            <Button size="sm" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={openNewTableDefault}>
+              {isNarrow ? t('schema.page.newTableShort', { defaultValue: 'Table' }) : t('schema.page.newTable')}
             </Button>
           )}
         </div>
@@ -560,11 +752,13 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
             role="tab"
             id="tab-tables"
             aria-selected={view === 'tables'}
+            aria-label={t('schema.page.tablesTab')}
+            title={t('schema.page.tablesTab')}
             aria-controls="panel-tables"
             tabIndex={view === 'tables' ? 0 : -1}
           >
             <List size={13} aria-hidden="true" />
-            {t('schema.page.tablesTab')}
+            <span className="sub-tab-label">{t('schema.page.tablesTab')}</span>
           </button>
           <button
             ref={tabErdRef}
@@ -575,19 +769,36 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
             role="tab"
             id="tab-erd"
             aria-selected={view === 'erd'}
+            aria-label={t('schema.page.erdTab')}
+            title={t('schema.page.erdTab')}
             aria-controls="panel-erd"
             tabIndex={view === 'erd' ? 0 : -1}
           >
             <Graph size={13} aria-hidden="true" />
-            {t('schema.page.erdTab')}
+            <span className="sub-tab-label">{t('schema.page.erdTab')}</span>
           </button>
         </div>
         <div className="schema-subtabs-actions">
+          {isNarrow && (
+            <Button
+              variant="ghost"
+              size="sm"
+              leftIcon={<Stack size={14} aria-hidden="true" />}
+              onClick={() => setVersionsSheetOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={versionsSheetOpen}
+              aria-label={t('schema.versionsHeading')}
+              title={t('schema.versionsHeading')}
+            >
+              {state.schemaVersions.length}
+            </Button>
+          )}
           {view === 'erd' && (
             <Button
               variant="ghost"
               size="sm"
-              leftIcon={<ArrowsOutSimple size={13} aria-hidden="true" />}
+              className="schema-canvas-btn"
+              leftIcon={<ArrowsOutSimple size={14} aria-hidden="true" />}
               onClick={openCanvas}
               aria-label={t('schema.canvas.open')}
               title={t('schema.canvas.open')}
@@ -599,7 +810,8 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
             <Button
               variant="ghost"
               size="sm"
-              leftIcon={<Broom size={13} aria-hidden="true" />}
+              className="schema-tidy-btn"
+              leftIcon={<Broom size={14} aria-hidden="true" />}
               onClick={handleTidy}
               aria-label={t('schema.erd.tidy')}
               title={t('schema.erd.tidyHint')}
@@ -659,7 +871,7 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
             <Button
               variant="secondary"
               size="sm"
-              leftIcon={<ArrowLeft size={13} aria-hidden="true" />}
+              leftIcon={<ArrowLeft size={14} aria-hidden="true" />}
               onClick={exitViewing}
               aria-label={t('schema.viewBanner.backToCurrent')}
               autoFocus={isViewing}
@@ -670,7 +882,7 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
               <Button
                 variant="ghost"
                 size="sm"
-                leftIcon={<GitDiff size={13} aria-hidden="true" />}
+                leftIcon={<GitDiff size={14} aria-hidden="true" />}
                 onClick={() => setDiffOpen(true)}
               >
                 {t('schema.viewBanner.diffWithCurrent')}
@@ -690,7 +902,7 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
                   icon={<FloppyDisk size={22} />}
                   title={t('schema.viewBanner.noSnapshotTitle')}
                   description={t('schema.viewBanner.noSnapshotDesc')}
-                  action={<Button size="sm" variant="secondary" leftIcon={<ArrowLeft size={13} aria-hidden="true" />} onClick={exitViewing}>{t('schema.viewBanner.backToCurrent')}</Button>}
+                  action={<Button size="sm" variant="secondary" leftIcon={<ArrowLeft size={14} aria-hidden="true" />} onClick={exitViewing}>{t('schema.viewBanner.backToCurrent')}</Button>}
                 />
               ) : displayTables.length === 0 ? (
                 <EmptyState
@@ -699,8 +911,8 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
                   description={isViewing ? t('schema.viewBanner.noTablesDesc') : t('schema.empty.tablesDesc')}
                   action={
                     !isViewing && canEditEffective ? (
-                      <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={openNewTableDefault}>
-                        {t('schema.page.newTable', { defaultValue: 'Create table' })}
+                      <Button size="sm" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={openNewTableDefault}>
+                        {isNarrow ? t('schema.page.newTableShort', { defaultValue: 'Table' }) : t('schema.page.newTable', { defaultValue: 'Create table' })}
                       </Button>
                     ) : undefined
                   }
@@ -867,6 +1079,32 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
           )}
         </div>
 
+        {isNarrow && (
+          <BottomSheet
+            open={versionsSheetOpen}
+            title={t('schema.versionsHeading')}
+            onClose={() => setVersionsSheetOpen(false)}
+          >
+            {canEdit && (
+              <Button
+                variant="ghost"
+                size="md"
+                className="schema-versions-sheet-save"
+                leftIcon={<FloppyDisk size={14} aria-hidden="true" />}
+                onClick={() => {
+                  setVersionsSheetOpen(false);
+                  setSaveVersionOpen(true);
+                }}
+              >
+                {t('schema.saveVersion')}
+              </Button>
+            )}
+            <div className="versions-list">
+              {sortedVersions.map((v) => renderVersionRow(v, () => setVersionsSheetOpen(false)))}
+            </div>
+          </BottomSheet>
+        )}
+        {!isNarrow && (
         <aside className={`schema-side ${versionsCollapsed ? 'schema-side-collapsed' : ''} `} aria-label={t('schema.versionsHeading')}>
           {versionsCollapsed ? (
             <button type="button" className="schema-side-collapsed-btn" onClick={() => setVersionsCollapsed(false)} aria-label="Expand versions" title="Expand versions">
@@ -899,7 +1137,7 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
                   <Button
                     variant="ghost"
                     size="sm"
-                    leftIcon={<GitDiff size={13} aria-hidden="true" />}
+                    leftIcon={<GitDiff size={14} aria-hidden="true" />}
                     onClick={() => setDiffOpen(true)}
                   >
                     {t('schema.diffVersions')}
@@ -909,7 +1147,7 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
                   <Button
                     variant="ghost"
                     size="sm"
-                    leftIcon={<FloppyDisk size={13} aria-hidden="true" />}
+                    leftIcon={<FloppyDisk size={14} aria-hidden="true" />}
                     onClick={() => setSaveVersionOpen(true)}
                   >
                     {t('schema.saveVersion')}
@@ -921,51 +1159,17 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
                   icon={<FloppyDisk size={22} />}
                   title={t('schema.empty.versionsTitle')}
                   description={t('schema.empty.versionsDesc')}
-                  action={canEdit ? <Button size="sm" variant="ghost" leftIcon={<FloppyDisk size={13} aria-hidden="true" />} onClick={() => setSaveVersionOpen(true)}>{t('schema.saveVersion')}</Button> : undefined}
+                  action={canEdit ? <Button size="sm" variant="ghost" leftIcon={<FloppyDisk size={14} aria-hidden="true" />} onClick={() => setSaveVersionOpen(true)}>{t('schema.saveVersion')}</Button> : undefined}
                 />
               ) : (
                 <div id="versions-list" className="versions-list">
-                  {applySort(state.schemaVersions, versionSortSpec, versionSortValue?.dir ?? 'asc').map(
-                    (v) => {
-                      const isActive = v.id === selectedVersionId;
-                      const hasSnap = !!v.snapshot;
-                      return (
-                        <button
-                          key={v.id}
-                          type="button"
-                          className={`version-row ${isActive ? 'version-row-active' : ''} ${!hasSnap ? 'version-row-no-snapshot' : ''}`}
-                          onClick={() => toggleVersion(v)}
-                          aria-pressed={isActive}
-                          aria-current={isActive ? 'true' : undefined}
-                          aria-label={t('schema.viewRow.aria', { version: v.version })}
-                          title={hasSnap ? t('schema.viewRow.aria', { version: v.version }) : t('schema.viewRow.noSnapshotTooltip')}
-                        >
-                          <Badge tone="accent">{v.version}</Badge>
-                          {unreadIds?.has(v.id) && (
-                            <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">
-                              New
-                            </span>
-                          )}
-                          <div className="version-main">
-                            <div className="version-notes">{v.notes || t('schema.noNotes')}</div>
-                            <div className="version-date">{t('schema.appliedAt', { date: formatDate(v.appliedAt) })}</div>
-                          </div>
-                          <span className="version-row-eye" aria-hidden="true">
-                            {isActive ? <Eye size={14} weight="fill" /> : <Eye size={14} />}
-                          </span>
-                          {!hasSnap && (
-                            <span className="version-row-warn" aria-hidden="true">
-                              <Warning size={12} />
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
+                  {sortedVersions.map((v) => renderVersionRow(v))}
                 </div>
               )}
             </div>
           )}
         </aside>
+        )}
       </div>
 
       {canvasOpen && (
@@ -1122,12 +1326,13 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
         width="sm"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setConfirmRel(null)}>
+            <Button variant="ghost" size="md" onClick={() => setConfirmRel(null)}>
               {t('schema.deleteRelationModal.cancel')}
             </Button>
             <Button
               variant="danger"
-              leftIcon={<Trash size={13} aria-hidden="true" />}
+              size="md"
+              leftIcon={<Trash size={14} aria-hidden="true" />}
               onClick={() => {
                 if (confirmRel) dispatch({ type: 'relation/remove', id: confirmRel.id });
                 setConfirmRel(null);

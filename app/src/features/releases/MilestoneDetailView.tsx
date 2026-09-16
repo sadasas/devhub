@@ -94,14 +94,14 @@ export function MilestoneDetailView({ milestone, tasks, issues, testCases, decis
   return (
     <div className="release-detail">
       <div className="release-detail-header">
-        <Button variant="ghost" size="sm" onClick={onBack} leftIcon={<ArrowLeft size={13} aria-hidden="true" />}>{t("releases.detail.back", { defaultValue: "Kembali ke Timeline" })}</Button>
+        <Button variant="ghost" size="sm" className="release-detail-back" onClick={onBack} leftIcon={<ArrowLeft size={14} aria-hidden="true" />}>{t("releases.detail.back", { defaultValue: "Kembali ke Timeline" })}</Button>
         <span className="flex-1" />
         {canEdit && (
-          <Button variant="danger" size="sm" leftIcon={<Trash size={13} aria-hidden="true" />} onClick={() => setConfirmOpen(true)}>
+          <Button variant="danger" size="sm" className="release-detail-delete" leftIcon={<Trash size={14} aria-hidden="true" />} onClick={() => setConfirmOpen(true)}>
             {t("releases.modal.delete", { defaultValue: "Delete" })}
           </Button>
         )}
-        {canEdit && <Button size="sm" variant="primary" leftIcon={<PencilSimple size={13} aria-hidden="true" />} onClick={onEdit}>{t("releases.editAria")}</Button>}
+        {canEdit && <Button size="sm" variant="primary" className="release-detail-edit" leftIcon={<PencilSimple size={14} aria-hidden="true" />} onClick={onEdit}>{t("releases.editAria")}</Button>}
       </div>
 
       <div className="release-flow-hero">

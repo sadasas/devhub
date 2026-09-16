@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { StackPage } from './StackPage';
 import type { TechEntry } from '../../lib/types';
 
@@ -58,5 +58,45 @@ describe('StackPage', () => {
   it('renders no unread dots without unreadIds', () => {
     renderPage();
     expect(document.querySelectorAll('.unread-pill').length).toBe(0);
+  });
+});
+
+describe('StackPage mobile header', () => {
+  const realMatchMedia = window.matchMedia;
+  beforeEach(() => {
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('640px'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+    useProjectMock.mockReset();
+    useProjectMock.mockReturnValue({
+      state: {
+        techEntries: [entry(), entry({ id: 't2', name: 'Postgres' })],
+      },
+      loading: false,
+      error: null,
+      canEdit: true,
+    });
+  });
+  afterEach(() => {
+    window.matchMedia = realMatchMedia;
+  });
+
+  it('uses the short Entry label on the header add button', () => {
+    renderPage();
+    expect(document.querySelector('.stack-page')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Entry' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'New entry' })).toBeNull();
+  });
+
+  it('keeps view toggle text for screen readers via aria-label', () => {
+    renderPage();
+    expect(screen.getByRole('tab', { name: 'List' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Graph' })).toBeTruthy();
   });
 });

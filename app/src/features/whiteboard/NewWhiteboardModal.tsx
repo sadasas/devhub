@@ -12,6 +12,9 @@ import { WHITEBOARD_TEMPLATES } from './templates';
 
 const MAX_BOARDS = 50;
 
+// autoFocus hanya desktop (hover) — di touch, keyboard virtual melonjak (pola Modal).
+const AUTO_FOCUS_INPUT = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
+
 interface NewWhiteboardModalProps {
   onClose: () => void;
 }
@@ -52,10 +55,10 @@ export function NewWhiteboardModal({ onClose }: NewWhiteboardModalProps) {
       width="md"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" size="md" onClick={onClose}>
             {t('whiteboard.newModal.cancel')}
           </Button>
-          <Button variant="primary" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={submit} disabled={!canEdit || !name.trim() || atCap}>
+          <Button variant="primary" size="md" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={submit} disabled={!canEdit || !name.trim() || atCap}>
             {t('whiteboard.newModal.create')}
           </Button>
         </>
@@ -66,7 +69,7 @@ export function NewWhiteboardModal({ onClose }: NewWhiteboardModalProps) {
         <Input
           label={t('whiteboard.newModal.name')}
           required
-          autoFocus
+          autoFocus={AUTO_FOCUS_INPUT}
           maxLength={300}
           showCount
           placeholder={t('whiteboard.newModal.namePlaceholder')}

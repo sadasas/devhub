@@ -36,6 +36,8 @@ export function NewKeyModal({ open, onClose, onCreated, activeCount = 0 }: NewKe
   const { copied: curlCopied, copy: copyCurl } = useCopyFeedback();
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const autoFocusName = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
+  const errorRef = useRef<HTMLDivElement>(null);
   const curlSnippet = `TOKEN=$(jq -r .access_token ~/.local/share/opencode/mcp-auth.json)
 curl -s -X POST ${origin}/mcp \\
   -H "Authorization: Bearer $TOKEN" \\
@@ -73,6 +75,7 @@ curl -s -X POST ${origin}/mcp \\
       setStep('reveal');
     } catch (err) {
       setError(getErrorMessage(err, t('keys.error.createFailed')));
+      requestAnimationFrame(() => errorRef.current?.focus());
     } finally {
       setSubmitting(false);
     }
@@ -107,15 +110,15 @@ curl -s -X POST ${origin}/mcp \\
       footer={
         step === 'form' ? (
           <>
-            <Button variant="ghost" onClick={handleClose}>
+            <Button variant="ghost" size="md" onClick={handleClose}>
               {t('common:action.cancel')}
             </Button>
-            <Button type="submit" form="new-key-form" leftIcon={<Key size={13} aria-hidden="true" />} loading={submitting} disabled={!name.trim()}>
+            <Button type="submit" size="md" form="new-key-form" leftIcon={<Key size={14} aria-hidden="true" />} loading={submitting} disabled={!name.trim()}>
               {t('keys.newKeyModal.create')}
             </Button>
           </>
         ) : (
-          <Button leftIcon={<Check size={13} weight="bold" aria-hidden="true" />} onClick={onDone}>{t('keys.newKeyModal.done')}</Button>
+          <Button size="md" leftIcon={<Check size={14} weight="bold" aria-hidden="true" />} onClick={onDone}>{t('keys.newKeyModal.done')}</Button>
         )
       }
     >
@@ -124,7 +127,7 @@ curl -s -X POST ${origin}/mcp \\
           <Input
             label={t('keys.newKeyModal.name')}
             required
-            autoFocus
+            autoFocus={autoFocusName}
             placeholder={t('keys.newKeyModal.namePlaceholder')}
             helper={t('keys.newKeyModal.nameHelper')}
             value={name}
@@ -140,7 +143,7 @@ curl -s -X POST ${origin}/mcp \\
               {t('keys.newKeyModal.capWarning', { active: activeCount, max: MAX_KEYS })}
             </p>
           )}
-          {error && <InlineError>{error}</InlineError>}
+          {error && <div ref={errorRef} tabIndex={-1} className="form-error-focus"><InlineError>{error}</InlineError></div>}
         </form>
       ) : created ? (
         <div className="form-stack">
@@ -174,7 +177,7 @@ curl -s -X POST ${origin}/mcp \\
               title={copied ? t('keys.copied') : t('keys.newKeyModal.envVarTitle')}
               onClick={() => void onCopyEnv()}
             >
-              {copied ? <Check size={13} weight="bold" aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
+              {copied ? <Check size={16} weight="bold" aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
             </button>
           </div>
 
@@ -193,9 +196,9 @@ curl -s -X POST ${origin}/mcp \\
               onClick={() => void onCopyCurl()}
             >
               {curlCopied ? (
-                <Check size={13} weight="bold" aria-hidden="true" />
+                <Check size={16} weight="bold" aria-hidden="true" />
               ) : (
-                <Copy size={13} aria-hidden="true" />
+                <Copy size={16} aria-hidden="true" />
               )}
             </button>
           </div>

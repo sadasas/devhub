@@ -66,19 +66,19 @@ export function InvitesPage() {
           {actionError && <InlineError>{actionError}</InlineError>}
 
           {loading ? (
-            <div aria-hidden="true" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div aria-hidden="true" className="data-list-skeleton">
               {[0, 1].map((i) => (
                 <div key={i} className="data-row">
-                  <div className="data-row-main" style={{ gap: 6 }}>
-                    <div className="data-row-title" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <div className="data-row-main data-row-skeleton-main">
+                    <div className="data-row-title data-row-skeleton-head">
                       <Skeleton style={{ width: '45%', height: 14 }} />
-                      <Skeleton style={{ width: 56, height: 18, borderRadius: 6 }} />
+                      <Skeleton style={{ width: 56, height: 18, borderRadius: 'var(--radius-sm)' }} />
                     </div>
                     <Skeleton style={{ width: '60%', height: 11 }} />
                   </div>
-                  <div className="data-row-side" style={{ flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
-                    <Skeleton style={{ width: 72, height: 28, borderRadius: 8 }} />
-                    <Skeleton style={{ width: 88, height: 28, borderRadius: 8 }} />
+                  <div className="data-row-side data-row-skeleton-side">
+                    <Skeleton style={{ width: 72, height: 28, borderRadius: 'var(--radius-input)' }} />
+                    <Skeleton style={{ width: 88, height: 28, borderRadius: 'var(--radius-input)' }} />
                   </div>
                 </div>
               ))}
@@ -86,7 +86,7 @@ export function InvitesPage() {
           ) : invitations.length === 0 ? (
             <div className="page-empty">
               <EmptyState
-                icon={<Envelope size={24} weight="duotone" />}
+                icon={<Envelope size={22} weight="duotone" />}
                 title={t('teams.invites.emptyTitle')}
                 description={t('teams.invites.emptyDescription')}
               />
@@ -106,7 +106,7 @@ export function InvitesPage() {
                     })}
                   </span>
                 </div>
-                <div className="data-row-side" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+                <div className="data-row-side data-row-skeleton-side">
                   <Button
                     size="sm"
                     loading={busyId === inv.id}
@@ -117,7 +117,7 @@ export function InvitesPage() {
                   <Button
                     size="sm"
                     variant="danger"
-                    leftIcon={<Trash size={13} aria-hidden="true" />}
+                    leftIcon={<Trash size={14} aria-hidden="true" />}
                     loading={busyId === inv.id}
                     onClick={() => void onDecline(inv.id, inv.teamId)}
                   >

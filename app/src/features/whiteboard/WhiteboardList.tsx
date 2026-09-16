@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChalkboardSimple, Plus } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../state/project-context';
@@ -16,6 +16,28 @@ import { WhiteboardCard } from './WhiteboardCard';
 import { NewWhiteboardModal } from './NewWhiteboardModal';
 
 const MAX_BOARDS = 50;
+
+/** Header ringkas ≤640px (sort icon-only, + Board) — pola IssuesPage. */
+function useIsWhiteboardNarrow(): boolean {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(max-width: 640px)').matches
+      : false,
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(max-width: 640px)');
+    const update = (): void => setMatches(mq.matches);
+    update();
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', update);
+      return () => mq.removeEventListener('change', update);
+    }
+    mq.addListener(update);
+    return () => mq.removeListener(update);
+  }, []);
+  return matches;
+}
 
 const BOARD_SORT_SPECS: SortSpec<Whiteboard>[] = [
   { key: 'updatedAt', label: 'whiteboard.list.sortUpdated', get: (b) => b.updatedAt },
@@ -37,6 +59,7 @@ export function WhiteboardList({ onOpen, loading = false, unreadIds }: Whiteboar
   useNewParam(() => setOpenNew(true), '1', canEdit);
   const { value: sortValue, setSort } = useSortParam();
   const effectiveSort = sortValue ?? { key: 'createdAt', dir: 'desc' as const };
+  const isNarrow = useIsWhiteboardNarrow();
 
   if (error) {
     return <DataErrorState error={loadError ?? error} onRetry={retryLoad} />;
@@ -46,7 +69,6 @@ export function WhiteboardList({ onOpen, loading = false, unreadIds }: Whiteboar
     return (
       <>
       <div className="data-list-header" aria-hidden="true">
-        <Skeleton style={{ width: 90, height: 13 }} />
         <span className="data-list-actions" style={{ display: "flex", gap: 8 }}>
           <Skeleton style={{ width: 110, height: 28, borderRadius: 8 }} />
           <Skeleton style={{ width: 96, height: 28, borderRadius: 8 }} />
@@ -86,12 +108,9 @@ export function WhiteboardList({ onOpen, loading = false, unreadIds }: Whiteboar
   const deleting = deleteId ? state.whiteboards.find((b) => b.id === deleteId) : undefined;
 
   return (
-    <div>
+    <div className="whiteboard-page">
       <div className="data-list-header">
-        <span className="data-list-count">
-          {t('whiteboard.list.count', { count: boards.length })}
-          {atCap && <span className="field-helper">{t('whiteboard.list.capHint', { max: MAX_BOARDS })}</span>}
-        </span>
+        {atCap && <span className="field-helper">{t('whiteboard.list.capHint', { max: MAX_BOARDS })}</span>}
         <span className="data-list-actions">
           <SortControl
             options={BOARD_SORT_SPECS.map((s) => ({ value: s.key, label: t(s.label) }))}
@@ -99,8 +118,8 @@ export function WhiteboardList({ onOpen, loading = false, unreadIds }: Whiteboar
             onChange={setSort}
           />
           {canEdit && !atCap && (
-            <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => setOpenNew(true)}>
-              {t('whiteboard.list.newBoard')}
+            <Button size="sm" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setOpenNew(true)}>
+              {isNarrow ? t('whiteboard.list.newBoardShort', { defaultValue: 'Board' }) : t('whiteboard.list.newBoard')}
             </Button>
           )}
         </span>
@@ -113,8 +132,8 @@ export function WhiteboardList({ onOpen, loading = false, unreadIds }: Whiteboar
           description={t('whiteboard.list.emptyDesc')}
           action={
             canEdit && (
-              <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => setOpenNew(true)}>
-                {t('whiteboard.list.newBoard')}
+              <Button size="md" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setOpenNew(true)}>
+                {isNarrow ? t('whiteboard.list.newBoardShort', { defaultValue: 'Board' }) : t('whiteboard.list.newBoard')}
               </Button>
             )
           }

@@ -15,6 +15,8 @@ interface DetailShellProps {
 /**
  * Kerangka modal edit terpadu: Modal composer + kolom utama +
  * sidebar properti sticky + footer. Dipakai semua modal edit entitas.
+ * P0 mobile: width lg (modal-composer--fullscreen, 840px) otomatis menjadi
+ * fullscreen sheet di <=640px via global.css (tanpa horizontal scroll).
  */
 export function DetailShell({
   title,

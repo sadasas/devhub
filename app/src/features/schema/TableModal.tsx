@@ -81,7 +81,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
             <Button
               variant="danger"
               size="sm"
-              leftIcon={<Trash size={13} aria-hidden="true" />}
+              leftIcon={<Trash size={14} aria-hidden="true" />}
               onClick={() => setConfirmOpen(true)}
             >
               {t('schema.table.delete')}
@@ -214,7 +214,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                     <Table size={12} aria-hidden="true" /> {t('schema.table.columnsLabel')} <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: 11 }}>· {table.columns.length}</span>
                   </span>
                   {canEdit && (
-                    <Button variant="ghost" size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={addColumn}>
+                    <Button variant="ghost" size="sm" leftIcon={<Plus size={14} aria-hidden="true" />} onClick={addColumn}>
                       {t('schema.table.addColumn')}
                     </Button>
                   )}

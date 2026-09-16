@@ -7,6 +7,28 @@ import { formatDate, shortId } from "../../lib/utils";
 import { todayIso } from "../../lib/due-dates";
 import { CalendarBlank, PencilSimple, Plus, Rocket } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
+import { useEffect, useState } from "react";
+
+function useIsReleasesNarrow(): boolean {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(max-width: 640px)').matches
+      : false,
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(max-width: 640px)');
+    const update = (): void => setMatches(mq.matches);
+    update();
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', update);
+      return () => mq.removeEventListener('change', update);
+    }
+    mq.addListener(update);
+    return () => mq.removeListener(update);
+  }, []);
+  return matches;
+}
 
 interface ReleasesListViewProps {
   milestones: Milestone[];
@@ -72,9 +94,10 @@ function MilestoneGroup({ title, milestones, tasks, unreadIds, canEdit, onSelect
 
 export function ReleasesListView({ milestones, tasks, unreadIds, canEdit, onSelect, onEdit, onNew }: ReleasesListViewProps) {
   const { t } = useTranslation("project");
+  const isNarrow = useIsReleasesNarrow();
   if (milestones.length === 0) {
     return (
-      <EmptyState icon={<Rocket size={22} />} title={t("releases.emptyTitle")} description={t("releases.emptyDesc")} action={canEdit && <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={onNew}>{t("releases.newMilestone")}</Button>} />
+      <EmptyState icon={<Rocket size={22} />} title={t("releases.emptyTitle")} description={t("releases.emptyDesc")} action={canEdit && <Button size="sm" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={onNew}>{isNarrow ? t("releases.newMilestoneShort", { defaultValue: "Milestone" }) : t("releases.newMilestone")}</Button>} />
     );
   }
   const active = milestones.filter((mm) => mm.status === "inProgress");

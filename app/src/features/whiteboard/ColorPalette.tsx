@@ -9,7 +9,7 @@ interface ColorPaletteProps {
 export const PALETTE_COLORS = [
   '#e4e4e7',
   '#6ea8fe',
-  '#34c38e',
+  '#5db69b',
   '#e8b955',
   '#f4706d',
   '#a78bfa',

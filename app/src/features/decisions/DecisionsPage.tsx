@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { shortId } from '../../lib/utils';
 import { DECISION_STATUS } from '../../lib/labels';
@@ -19,8 +19,29 @@ import { DecisionModal } from './DecisionModal';
 import { NewDecisionModal } from './NewDecisionModal';
 import { DataErrorState } from '../../components/DataErrorState';
 
-const DECISION_SORT_SPECS: SortSpec<Decision>[] = [
-  { key: 'date', label: 'decisions.sort.date', get: (d) => d.date },
+/** Header ringkas ≤640px (count hilang, sort icon-only, + Decision). */
+function useIsDecisionsNarrow(): boolean {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(max-width: 640px)').matches
+      : false,
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(max-width: 640px)');
+    const update = (): void => setMatches(mq.matches);
+    update();
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', update);
+      return () => mq.removeEventListener('change', update);
+    }
+    mq.addListener(update);
+    return () => mq.removeListener(update);
+  }, []);
+  return matches;
+}
+
+const DECISION_SORT_SPECS: SortSpec<Decision>[] = [  { key: 'date', label: 'decisions.sort.date', get: (d) => d.date },
   {
     key: 'status',
     label: 'decisions.sort.status',
@@ -40,6 +61,7 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
   useNewParam(() => setOpenNew(true), '1', canEdit);
   const { value: sortValue, setSort } = useSortParam();
   const effectiveSort = sortValue ?? { key: 'createdAt', dir: 'desc' as const };
+  const isNarrow = useIsDecisionsNarrow();
 
   if (loading) {
     return (
@@ -89,7 +111,7 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
   const decisions = applySort(state.decisions, sortSpec, effectiveSort.dir, (d) => !!d.pinned);
 
   return (
-    <div>
+    <div className="decisions-page">
       <div className="data-list-header">
         <span className="data-list-count">
           {t('decisions.count', { count: decisions.length })}
@@ -101,8 +123,8 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
             onChange={setSort}
           />
           {canEdit && (
-            <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => setOpenNew(true)}>
-              {t('decisions.newDecision')}
+            <Button size="sm" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setOpenNew(true)}>
+              {isNarrow ? t('decisions.newDecisionShort', { defaultValue: 'Decision' }) : t('decisions.newDecision')}
             </Button>
           )}
         </span>
@@ -115,8 +137,8 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
           description={t('decisions.emptyDesc')}
           action={
             canEdit && (
-              <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => setOpenNew(true)}>
-                {t('decisions.newDecision')}
+              <Button size="sm" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setOpenNew(true)}>
+                {isNarrow ? t('decisions.newDecisionShort', { defaultValue: 'Decision' }) : t('decisions.newDecision')}
               </Button>
             )
           }

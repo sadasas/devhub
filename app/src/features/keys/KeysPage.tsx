@@ -8,6 +8,7 @@ import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { InlineError } from '../../components/InlineError';
 import { DataErrorState } from '../../components/DataErrorState';
+import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { Skeleton } from '../../components/Skeleton';
 import { SessionCountdown } from '../../components/SessionCountdown';
 import { formatExpiry } from '../../lib/utils';
@@ -33,13 +34,16 @@ interface AuthorizedApp {
 }
 
 export function KeysPage() {
-  const { t } = useTranslation(["account", "common"]);
+  const { t, i18n } = useTranslation(["account", "common"]);
+  const locale = i18n.language?.startsWith("id") ? "id-ID" : "en-US";
   const now = useNowTick();
   const [apps, setApps] = useState<AuthorizedApp[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadErrorRaw, setLoadErrorRaw] = useState<unknown>(null);
   const [attempt, setAttempt] = useState(0);
   const [revoking, setRevoking] = useState<string | null>(null);
+  const [revokeTarget, setRevokeTarget] = useState<AuthorizedApp | null>(null);
+  const [revokeError, setRevokeError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -53,14 +57,17 @@ export function KeysPage() {
     return () => { cancelled = true; };
   }, [attempt]);
 
-  async function onRevoke(clientId: string) {
-    if (!confirm(t("account:keys.revokeConfirm"))) return;
+  async function onConfirmRevoke() {
+    if (!revokeTarget) return;
+    const clientId = revokeTarget.clientId;
     setRevoking(clientId);
+    setRevokeError(null);
     try {
       await api.revokeAuthorizedApp(clientId);
       setApps((prev) => (prev ?? []).filter((a) => a.clientId !== clientId));
+      setRevokeTarget(null);
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to revoke'));
+      setRevokeError(getErrorMessage(err, 'Failed to revoke'));
     } finally {
       setRevoking(null);
     }
@@ -90,22 +97,22 @@ export function KeysPage() {
           <div aria-hidden="true">
             {[0, 1, 2].map((i) => (
               <div key={i} className="data-row" style={{ height: 64 }}>
-                <div className="data-row-main" style={{ gap: 4 }}>
-                  <div className="data-row-title">
-                    <Skeleton className="skeleton-row" style={{ width: '45%' }} />
-                    <Skeleton style={{ width: 7, height: 7, borderRadius: 999, marginLeft: 8, flexShrink: 0 }} />
+                  <div className="data-row-main" style={{ gap: 4 }}>
+                    <div className="data-row-title">
+                      <Skeleton className="skeleton-row" style={{ width: '45%' }} />
+                      <Skeleton style={{ width: 7, height: 7, borderRadius: 'var(--radius-pill)', marginLeft: 8, flexShrink: 0 }} />
+                    </div>
+                    <div className="data-row-meta">
+                      <Skeleton className="skeleton-row-xs" style={{ width: 88 }} />
+                      <Skeleton className="skeleton-row-sm" style={{ width: 120 }} />
+                    </div>
+                    <div className="data-row-meta">
+                      <Skeleton className="skeleton-row-sm" style={{ width: '60%', height: 11 }} />
+                    </div>
                   </div>
-                  <div className="data-row-meta">
-                    <Skeleton className="skeleton-row-xs" style={{ width: 88 }} />
-                    <Skeleton className="skeleton-row-sm" style={{ width: 120 }} />
+                  <div className="data-row-side">
+                    <Skeleton style={{ width: 96, height: 32, borderRadius: 'var(--radius-input)' }} />
                   </div>
-                  <div className="data-row-meta">
-                    <Skeleton className="skeleton-row-sm" style={{ width: '60%', height: 11 }} />
-                  </div>
-                </div>
-                <div className="data-row-side">
-                  <Skeleton style={{ width: 96, height: 32, borderRadius: 8 }} />
-                </div>
               </div>
             ))}
           </div>
@@ -118,7 +125,7 @@ export function KeysPage() {
             description={t("account:keys.empty.description")}
             action={
               <Link className="btn btn-primary btn-md" to="/docs/mcp">
-                <Key size={14} weight="bold" aria-hidden="true" style={{ marginRight: 6 }} /> {t("account:keys.empty.readGuide")} </Link>
+                <span aria-hidden="true" className="btn-icon-wrap"><Key size={14} weight="bold" aria-hidden="true" /></span> {t("account:keys.empty.readGuide")} </Link>
             }
           />
         </div>
@@ -143,8 +150,8 @@ export function KeysPage() {
                       <>
                         <span
                           className="key-last-used"
-                          title={new Date(app.expiresAt).toLocaleString()}
-                          style={isExpired ? { color: 'var(--danger)' } : isExpiringSoon ? { color: 'var(--warning)' } : undefined}
+                          title={new Date(app.expiresAt).toLocaleString(locale)}
+                          style={isExpired ? { color: 'var(--status-danger)' } : isExpiringSoon ? { color: 'var(--status-warn)' } : undefined}
                         >
                           <Clock size={12} weight="duotone" aria-hidden="true" />
                           {isExpired ? expiryLabel : t('common:time.expiresIn', { time: expiryLabel })}
@@ -154,23 +161,33 @@ export function KeysPage() {
                     );
                   })()}
                 </div>
-                <div className="data-row-meta" style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                  {app.redirectUris[0]} · {new Date(app.createdAt).toLocaleDateString()}
+                <div className="data-row-meta">
+                  {app.redirectUris[0]} · {new Date(app.createdAt).toLocaleDateString(locale)}
                 </div>
               </div>
-              <div className="data-row-side">
-                <Button size="sm" variant="danger" loading={revoking === app.clientId} onClick={() => void onRevoke(app.clientId)} leftIcon={<Trash size={13} aria-hidden="true" />}>{t("account:keys.revoke")}</Button>
-              </div>
+                <div className="data-row-side">
+                  <Button size="sm" variant="danger" loading={revoking === app.clientId} onClick={() => { setRevokeTarget(app); setRevokeError(null); }} leftIcon={<Trash size={14} aria-hidden="true" />}>{t("account:keys.revoke")}</Button>
+                </div>
             </div>
           ))}
         </div>
       ) : null}
-      <div className="auth-banner" style={{ marginTop: 24 }}>
+      <div className="auth-banner mt-24">
         <ShieldCheck size={14} weight="duotone" aria-hidden="true" />
         <p>
           MCP: <code>Authorization: Bearer &lt;access_token&gt;</code> (scopes <code>mcp</code> / <code>mcp:read</code> / <code>mcp:write</code>) — {t('common:time.tokensAutoRefresh')}
         </p>
       </div>
+      <ConfirmDeleteDialog
+        open={revokeTarget !== null}
+        title={t("account:keys.revokeModal.title")}
+        description={t("account:keys.revokeModal.body", { name: revokeTarget?.clientName ?? '', prefix: revokeTarget?.tokenPrefix ?? '' })}
+        confirmLabel={t("account:keys.revokeModal.confirm")}
+        busy={revoking !== null}
+        error={revokeError}
+        onClose={() => { setRevokeTarget(null); setRevokeError(null); }}
+        onConfirm={() => void onConfirmRevoke()}
+      />
           </div>
         </div>
       </article>

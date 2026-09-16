@@ -5,6 +5,9 @@ import { useTranslation } from 'react-i18next';
 import { MarkdownBlocks } from '../lib/markdown';
 import { Modal } from './Modal';
 
+// autoFocus hanya desktop (hover) — di touch, keyboard virtual melonjak (pola Modal).
+const AUTO_FOCUS_INPUT = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
+
 interface MarkdownFieldProps {
   label: string;
   value: string;
@@ -53,7 +56,7 @@ export function MarkdownField({
       {variant === 'bare' ? (
         <div className="md-bare">
           <div className="md-bare-head">
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span className="md-inline-icon">
               <Icon size={12} aria-hidden="true" /> {label}
             </span>
             <span className="spacer" />
@@ -97,23 +100,15 @@ export function MarkdownField({
               )}
             </div>
           )}
-          <div style={{ marginTop: 6, minHeight: 18 }}>
+          <div className="md-meta">
             {helper && (
-              <p className="field-helper" style={{ margin: 0 }}>
+              <p className="field-helper md-helper-reset">
                 {helper}
               </p>
             )}
             <span
               title={t('project:prd.mdTooltip')}
-              style={{
-                fontSize: 11,
-                color: 'var(--text-muted)',
-                fontFamily: 'var(--font-mono)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                visibility: focused ? 'visible' : 'hidden',
-              }}
+              className={focused ? 'md-hint' : 'md-hint md-hint-hidden'}
               aria-hidden={!focused}
             >
               {t('project:prd.mdHintShort')}
@@ -121,27 +116,9 @@ export function MarkdownField({
           </div>
         </div>
       ) : (
-      <div
-        style={{
-          background: 'var(--bg-inset)',
-          border: '1px solid var(--border-hairline)',
-          borderRadius: 8,
-          padding: 16,
-        }}
-      >
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            color: 'var(--text-secondary)',
-            marginBottom: 8,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 8,
-          }}
-        >
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      <div className="md-box">
+        <div className="md-box-head">
+          <span className="md-inline-icon">
             <Icon size={12} aria-hidden="true" /> {label}
           </span>
           <button
@@ -164,31 +141,16 @@ export function MarkdownField({
           maxLength={maxLength}
           aria-label={label}
         />
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'flex-start',
-            alignItems: 'flex-start',
-            gap: 12,
-            marginTop: 6,
-          }}
-        >
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+        <div className="md-foot">
+          <div className="md-foot-main">
             {helper && (
-              <p className="field-helper" style={{ margin: 0 }}>
+              <p className="field-helper md-helper-reset">
                 {helper}
               </p>
             )}
             <span
               title={t('project:prd.mdTooltip')}
-              style={{
-                fontSize: 11,
-                color: 'var(--text-muted)',
-                fontFamily: 'var(--font-mono)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-              }}
+              className="md-hint"
             >
               {t('project:prd.mdHintShort')}
             </span>
@@ -199,7 +161,7 @@ export function MarkdownField({
       {fullscreen && (
         <Modal
           open
-          title={`${label} — Fullscreen`}
+          title={t('tracker:issues.modal.fullscreenTitle', { label })}
           onClose={() => setFullscreen(false)}
           width="lg"
           className="modal-fullscreen"
@@ -207,46 +169,26 @@ export function MarkdownField({
           <div className="field">
             <div
               className="issue-fullscreen-split"
-              style={{ display: 'flex', gap: 16, flex: 1, minHeight: 0, alignItems: 'stretch' }}
             >
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: 'var(--text-muted)',
-                    marginBottom: 6,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                  }}
-                >
+              <div className="md-split-pane">
+                <div className="md-split-head">
                   {t('tracker:issues.modal.editTab')}
                 </div>
                 <textarea
-                  className="textarea"
-                  style={{ flex: 1, minHeight: 0, height: '100%', resize: 'none' }}
+                  className="textarea md-split-area"
                   value={value}
-                  autoFocus
+                  autoFocus={AUTO_FOCUS_INPUT}
                   placeholder={placeholder}
                   onChange={(e) => onChange(e.target.value)}
                   maxLength={maxLength}
                   aria-label={label}
                 />
               </div>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: 'var(--text-muted)',
-                    marginBottom: 6,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                  }}
-                >
+              <div className="md-split-pane">
+                <div className="md-split-head">
                   {t('tracker:issues.modal.previewTab')}
                 </div>
-                <div className="md-preview" style={{ flex: 1, minHeight: 0, height: '100%', overflow: 'auto' }}>
+                <div className="md-preview md-split-preview">
                   {value.trim() ? (
                     <MarkdownBlocks text={value} />
                   ) : (
@@ -255,29 +197,14 @@ export function MarkdownField({
                 </div>
               </div>
             </div>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                marginTop: 8,
-                gap: 12,
-              }}
-            >
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                <p className="field-helper" style={{ margin: 0 }}>
+            <div className="md-split-foot">
+              <div className="md-foot-main">
+                <p className="field-helper md-helper-reset">
                   {helper ?? t('tracker:issues.modal.fullscreenHelper')}
                 </p>
                 <span
                   title={t('project:prd.mdTooltip')}
-                  style={{
-                    fontSize: 11,
-                    color: 'var(--text-muted)',
-                    fontFamily: 'var(--font-mono)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                  }}
+                  className="md-hint"
                 >
                   {t('project:prd.mdHintShort')}
                 </span>

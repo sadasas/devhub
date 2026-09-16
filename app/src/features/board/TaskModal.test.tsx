@@ -368,14 +368,14 @@ describe('TaskModal milestone select', () => {
     expect(row?.querySelector('.prop-chev')).toBeNull();
   });
 
-  it('dispatches integer inline estimate, dropping decimals', () => {
+  it('dispatches decimal inline estimate, keeping the dot', () => {
     render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
     fireEvent.click(document.querySelector('[data-prop="estimate"] .prop-view') as Element);
     fireEvent.change(screen.getByRole('spinbutton', { name: 'Estimate (hours)' }), { target: { value: '8.5' } });
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'task/update',
       id: TASK_ID,
-      patch: { estimate: 85 },
+      patch: { estimate: 8.5 },
     });
   });
 
@@ -401,7 +401,7 @@ describe('TaskModal milestone select', () => {
     fireEvent.click(document.querySelector('[data-prop="estimate"] .prop-view') as Element);
     const input = screen.getByRole('spinbutton', { name: 'Estimate (hours)' });
     expect(input).toBeTruthy();
-    expect(input.getAttribute('inputmode')).toBe('numeric');
+    expect(input.getAttribute('inputmode')).toBe('decimal');
   });
 
   it('reserves blocker remove buttons hidden when idle', () => {

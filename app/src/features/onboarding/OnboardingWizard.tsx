@@ -84,6 +84,9 @@ export function OnboardingWizard({
   // Hard gate: Next stays disabled until the required object exists.
   // Skip/Back/ESC are never blocked.
   const blocked = blockReason === 'team' || blockReason === 'project';
+  // autoFocus hanya desktop (hover) — di touch, keyboard virtual melonjak (pola Modal).
+  // Satu target saja: blocked → Skip, tak blocked → Next/Finish.
+  const autoFocusDesktop = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
 
   // ArrowLeft/Right = Back/Next (full keyboard nav). ESC = skip (Modal owns it
   // for the welcome step; TourPopover owns it for anchored steps).
@@ -117,7 +120,7 @@ export function OnboardingWizard({
         variant="ghost"
         size="sm"
         onClick={onSkip}
-        autoFocus={blocked}
+        autoFocus={autoFocusDesktop && blocked}
         aria-label={t('tour.common.skipAll')}
         className="tour-skip-btn"
         data-tour-id="wizard-skip"
@@ -126,7 +129,7 @@ export function OnboardingWizard({
       </Button>
       <span className="tour-footer-spacer" aria-hidden="true" />
       {!isFirst && (
-        <Button variant="ghost" size="sm" onClick={onBack} leftIcon={<ArrowLeft size={13} aria-hidden="true" />}>
+        <Button variant="ghost" size="sm" onClick={onBack} leftIcon={<ArrowLeft size={14} aria-hidden="true" />}>
           {t('tour.common.back')}
         </Button>
       )}
@@ -135,8 +138,8 @@ export function OnboardingWizard({
           variant="primary"
           size="sm"
           onClick={onFinish}
-          autoFocus
-          leftIcon={<Flag size={13} aria-hidden="true" />}
+          autoFocus={autoFocusDesktop && !blocked}
+          leftIcon={<Flag size={14} aria-hidden="true" />}
           data-tour-id="wizard-finish"
         >
           {t('tour.common.done')}
@@ -146,14 +149,14 @@ export function OnboardingWizard({
           variant="primary"
           size="sm"
           onClick={onNext}
-          autoFocus={!blocked}
+          autoFocus={autoFocusDesktop && !blocked}
           disabled={blocked}
           aria-disabled={blocked}
           title={blocked ? t(blockReason === 'team' ? 'tour.common.needTeam' : 'tour.common.needProject') : undefined}
           data-tour-id="wizard-next"
         >
           <span>{def.id === 'welcome' ? t('tour.common.start') : t('tour.common.next')}</span>
-          <ArrowRight size={13} aria-hidden="true" />
+          <ArrowRight size={14} aria-hidden="true" />
         </Button>
       )}
     </>

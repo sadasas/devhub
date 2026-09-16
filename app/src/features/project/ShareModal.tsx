@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Bug, ChalkboardSimple, Check, Columns, Gauge, LinkSimple, Rocket, Stack, Warning } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
@@ -45,6 +45,10 @@ export function ShareModal({ projectId, open, onClose }: ShareModalProps) {
   const [liveDemoUrl, setLiveDemoUrl] = useState('');
   const [linksSaving, setLinksSaving] = useState(false);
   const [linksSaved, setLinksSaved] = useState(false);
+  const errorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (error) requestAnimationFrame(() => errorRef.current?.focus());
+  }, [error]);
 
   useEffect(() => {
     if (!open || !project) return;
@@ -125,11 +129,6 @@ export function ShareModal({ projectId, open, onClose }: ShareModalProps) {
       title={t('share.title')}
       onClose={onClose}
       width="sm"
-      footer={
-        <Button variant="ghost" onClick={onClose}>
-          {t('share.close')}
-        </Button>
-      }
     >
       <div className="share-body">
         <div className="segmented" role="group" aria-label={t('share.groupAria')}>
@@ -159,7 +158,7 @@ export function ShareModal({ projectId, open, onClose }: ShareModalProps) {
         </p>
         {showWarn && (
           <p className="share-warn" role="status">
-            <Warning size={13} aria-hidden="true" />
+            <Warning size={14} aria-hidden="true" />
             {t('share.warn')}
           </p>
         )}
@@ -208,9 +207,9 @@ export function ShareModal({ projectId, open, onClose }: ShareModalProps) {
                   className="share-link-copy"
                   leftIcon={
                     copied ? (
-                      <Check size={12} weight="bold" aria-hidden="true" />
+                      <Check size={14} weight="bold" aria-hidden="true" />
                     ) : (
-                      <LinkSimple size={12} aria-hidden="true" />
+                      <LinkSimple size={14} aria-hidden="true" />
                     )
                   }
                   onClick={() => void copy(publicUrl)}
@@ -220,16 +219,16 @@ export function ShareModal({ projectId, open, onClose }: ShareModalProps) {
               </div>
             </div>
 
-            <fieldset className="share-cta" style={{ border: 0, padding: 0, margin: '12px 0 0' }}>
+            <fieldset className="share-cta">
               <legend className="field-label">
                 {t('share.ctaLegend', { defaultValue: 'Tautan owner (opsional)' })}
               </legend>
-              <p className="field-helper" style={{ margin: '0 0 8px' }}>
+              <p className="field-helper share-cta-helper">
                 {t('share.ctaHelper', {
                   defaultValue: 'Opsional — kosong = tidak tampil di halaman publik. Hanya link http(s) yang disimpan.',
                 })}
               </p>
-              <div className="field" style={{ marginBottom: 8 }}>
+              <div className="field share-cta-field">
                 <label className="field-label" htmlFor="share-contact-url">
                   {t('share.contactUrlLabel', { defaultValue: 'Link kontak (Hubungi)' })}
                 </label>
@@ -251,7 +250,7 @@ export function ShareModal({ projectId, open, onClose }: ShareModalProps) {
                   </span>
                 )}
               </div>
-              <div className="field" style={{ marginBottom: 8 }}>
+              <div className="field share-cta-field">
                 <label className="field-label" htmlFor="share-demo-url">
                   {t('share.demoUrlLabel', { defaultValue: 'Link demo (Lihat Demo)' })}
                 </label>
@@ -273,7 +272,7 @@ export function ShareModal({ projectId, open, onClose }: ShareModalProps) {
                   </span>
                 )}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div className="share-cta-row">
                 <Button
                   variant="secondary"
                   size="sm"
@@ -285,7 +284,7 @@ export function ShareModal({ projectId, open, onClose }: ShareModalProps) {
                     : t('share.saveCta', { defaultValue: 'Simpan tautan' })}
                 </Button>
                 {linksSaved && (
-                  <span className="field-helper" role="status" style={{ margin: 0 }}>
+                  <span className="field-helper share-helper-reset" role="status">
                     {t('share.ctaSaved', { defaultValue: 'Tersimpan.' })}
                   </span>
                 )}
@@ -294,7 +293,7 @@ export function ShareModal({ projectId, open, onClose }: ShareModalProps) {
           </>
         )}
 
-        {error && <InlineError>{error}</InlineError>}
+        {error && <div ref={errorRef} tabIndex={-1} className="form-error-focus"><InlineError>{error}</InlineError></div>}
       </div>
     </Modal>
   );

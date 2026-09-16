@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { SchemaPage } from './SchemaPage';
 import type { Relation, SchemaVersion, Table } from '../../lib/types';
 
@@ -156,8 +156,7 @@ describe('SchemaPage', () => {
     expect(document.activeElement).toBe(tidy);
   });
 
-  it('F2-5 Tidy: hidden for viewers and in snapshot mode (read-only)', () => {
-    useProjectMock.mockReturnValue({
+  it('F2-5 Tidy: hidden for viewers and in snapshot mode (read-only)', () => {    useProjectMock.mockReturnValue({
       state: {
         tables: [table(), table({ id: 'tb2', name: 'projects' })],
         relations: [relation()],
@@ -175,5 +174,87 @@ describe('SchemaPage', () => {
       </MemoryRouter>,
     );
     expect(screen.queryByRole('button', { name: /^Tidy$|^Rapikan$/ })).toBeNull();
+  });
+});
+
+describe('SchemaPage mobile header', () => {
+  const realMatchMedia = window.matchMedia;
+  beforeEach(() => {
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('640px'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+    useProjectMock.mockReset();
+    useProjectMock.mockReturnValue({
+      state: {
+        tables: [table(), table({ id: 'tb2', name: 'projects' })],
+        relations: [relation()],
+        schemaVersions: [version(), version({ id: 'sv2', version: 'v0.2.0' })],
+      },
+      loading: false,
+      error: null,
+      canEdit: true,
+      dispatch: vi.fn(),
+    });
+  });
+  afterEach(() => {
+    window.matchMedia = realMatchMedia;
+  });
+
+  it('uses short Table/Relation labels and merges export+import into ...', () => {
+    renderPage();
+    expect(document.querySelector('.schema-page')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Table' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Relation' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /New table/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /New relation/ })).toBeNull();
+    expect(screen.getByRole('button', { name: 'More actions' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Export schema as/i })).toBeNull();
+    expect(screen.getByRole('tab', { name: 'Tables' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'ERD' })).toBeTruthy();
+  });
+
+  it('opens the overflow sheet with export items and import', () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Postgres DDL/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Import schema/ })).toBeTruthy();
+  });
+  it('opens versions from the compact button beside tidy (no inline bar)', () => {
+    render(
+      <MemoryRouter initialEntries={['/p/p1?tab=schema&schemaView=erd']}>
+        <SchemaPage projectName="Demo Project" />
+      </MemoryRouter>,
+    );
+    expect(document.querySelector('.schema-canvas-btn')).toBeTruthy();
+    expect(document.querySelector('.schema-side')).toBeNull();
+    expect(document.querySelector('.schema-versions-bar')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /Schema versions/ }));
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /v0\.1\.0/ }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('uses the short Table label in the empty tables placeholder', () => {
+    useProjectMock.mockReturnValue({
+      state: {
+        tables: [],
+        relations: [],
+        schemaVersions: [],
+      },
+      loading: false,
+      error: null,
+      canEdit: true,
+      dispatch: vi.fn(),
+    });
+    renderPage();
+    expect(screen.getAllByRole('button', { name: 'Table' }).length).toBe(2);
+    expect(screen.queryByRole('button', { name: /New table/ })).toBeNull();
   });
 });

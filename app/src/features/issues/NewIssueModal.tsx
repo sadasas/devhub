@@ -14,6 +14,9 @@ import { LIMITS } from '../../lib/limits';
 
 const SEVERITY_OPTIONS: IssueSeverity[] = ['critical', 'high', 'medium', 'low'];
 
+// autoFocus hanya desktop (hover) — di touch, keyboard virtual melonjak (pola Modal).
+const AUTO_FOCUS_INPUT = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
+
 interface NewIssueModalProps {
   open: boolean;
   onClose: () => void;
@@ -83,10 +86,10 @@ export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
       className="modal-composer"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" size="md" onClick={onClose}>
             {t('issues.newModal.cancel')}
           </Button>
-          <Button type="submit" form="new-issue-form" leftIcon={<Bug size={13} aria-hidden="true" />} disabled={!title.trim()}>
+          <Button type="submit" size="md" form="new-issue-form" leftIcon={<Bug size={14} aria-hidden="true" />} disabled={!title.trim()}>
             {t('issues.newModal.submit')}
           </Button>
         </>
@@ -105,7 +108,7 @@ export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
             className="composer-title"
             rows={1}
             required
-            autoFocus
+            autoFocus={AUTO_FOCUS_INPUT}
             placeholder={t('issues.newModal.titlePlaceholder')}
             value={title}
             onChange={(e) => setTitle(e.target.value)}

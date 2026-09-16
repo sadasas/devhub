@@ -97,9 +97,7 @@ describe('TemplatesPage (owner-only)', () => {
     renderPage();
     await screen.findByText('Sprint template');
     fireEvent.click(screen.getByRole('button', { name: /Delete: Sprint template/ }));
-    // Row delete uses an aria-label with the template name, so the modal
-    // confirm is the only exact "Delete" button at this point.
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    // ConfirmDeleteDialog standar: satu klik konfirmasi (bukan 2-langkah).
     fireEvent.click(screen.getByRole('button', { name: 'Confirm delete' }));
 
     await waitFor(() => expect(del).toHaveBeenCalledWith(template.id));

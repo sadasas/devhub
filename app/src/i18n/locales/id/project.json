@@ -1,7 +1,10 @@
 {
   "tabs": {
     "navAria": "Bagian project",
+    "more": "Lainnya",
+    "moreAria": "Bagian lainnya",
     "unreadBadge": "{{count}} belum dibaca",
+    "badgeNewDeleted": "{{new}} baru, {{deleted}} dihapus di {{label}}",
     "board": "Board",
     "issues": "Issue",
     "tests": "Test Case",
@@ -31,6 +34,7 @@
     "createdOn": "Dibuat {{date}}"
   },
   "actions": {
+    "menu": "Aksi project",
     "copy": "Salin",
     "copied": "Tersalin",
     "export": "Ekspor",
@@ -54,6 +58,15 @@
     "bodyOtherProject": "Backup ini milik project lain. Mengimpor akan membuat project baru dari data ini.",
     "meta": "Di-backup {{date}} · {{tasks}} task, {{issues}} issue"
   },
+  "archiveModal": {
+    "titleArchive": "Arsipkan “{{name}}”?",
+    "titleRestore": "Pulihkan “{{name}}”?",
+    "cancel": "Batal",
+    "confirmArchive": "Arsipkan",
+    "confirmRestore": "Pulihkan",
+    "bodyArchive": "Project menjadi hanya-baca dan disembunyikan dari tampilan Aktif. Anda dapat memulihkannya kapan saja.",
+    "bodyRestore": "Project dapat diedit kembali."
+  },
   "errors": {
     "invalidExport": "Bukan dokumen ekspor DevHub yang valid.",
     "parseJson": "Tidak dapat membaca file terpilih sebagai JSON.",
@@ -69,6 +82,8 @@
     "count_other": "{{count}} dihapus",
     "copy": "Item-item ini telah dihapus. Catatan penghapusan disimpan sementara dan tidak dapat dipulihkan.",
     "dismiss": "Tutup",
+    "archivedCopy": "Project ini diarsipkan — hanya-baca. Mengedit, membuat, dan drag-drop dinonaktifkan.",
+    "archivedRestore": "Pulihkan",
     "entity": {
       "tasks": "Task",
       "issues": "Issue",
@@ -188,6 +203,7 @@
     "listTab": "Daftar",
     "graphTab": "Grafik",
     "newEntry": "Entri baru",
+    "newEntryShort": "Entry",
     "emptyTitle": "Belum ada entri stack",
     "emptyDesc": "Catat apa yang digunakan proyek ini — versi, kategori, dan kapan upgrade diperlukan.",
     "unread": "Belum dibaca",
@@ -257,8 +273,11 @@
     "page": {
       "count": "{{tables}} tabel · {{relations}} relasi · {{versions}} versi",
       "newRelation": "Relasi baru",
+      "newRelationShort": "Relation",
       "newTable": "Tabel baru",
+      "newTableShort": "Table",
       "import": "Impor",
+      "moreActions": "Opsi lain",
       "viewAria": "Tampilan Schema",
       "tablesTab": "Tabel",
       "erdTab": "ERD",
@@ -316,7 +335,6 @@
       "zoomIn": "Perbesar",
       "zoomOut": "Perkecil",
       "resetView": "Reset tampilan",
-      "hint": "Seret tabel untuk memindahkan · Klik garis untuk detail, hapus via tombol · tombol panah untuk geser · +/- untuk zoom · seret untuk menggeser",
       "hintPanning": "Menggeser — lepas Spasi, lalu seret tabel untuk memindahkan",
       "relDelete": "Hapus",
       "relClose": "Tutup",
@@ -592,6 +610,7 @@
     "count_one": "{{count}} keputusan",
     "count_other": "{{count}} keputusan",
     "newDecision": "Keputusan baru",
+    "newDecisionShort": "Decision",
     "emptyTitle": "Belum ada keputusan",
     "emptyDesc": "Catat pilihan arsitektur dan trade-off sebagai ADR agar diri Anda di masa depan ingat alasannya.",
     "unread": "Belum dibaca",
@@ -655,6 +674,7 @@
     "count_one": "{{count}} milestone",
     "count_other": "{{count}} milestone",
     "newMilestone": "Milestone baru",
+    "newMilestoneShort": "Milestone",
     "emptyTitle": "Belum ada milestone",
     "emptyDesc": "Kelompokkan pekerjaan ke dalam rilis dan simpan changelog atas apa yang dirilis di masing-masing.",
     "unread": "Belum dibaca",
@@ -697,6 +717,8 @@
       "noTasksAssigned": "Tidak ada task yang ditugaskan ke milestone ini.",
       "deleteConfirmTitle": "Hapus milestone?",
       "deleteConfirmBody": "Ini menghapus milestone secara permanen. Task yang tertaut akan lepas penugasannya. Tindakan ini tidak dapat dibatalkan.",
+      "autosaveSaving": "Menyimpan…",
+      "autosaveSaved": "Semua perubahan tersimpan",
       "changelogHelp": "Markdown: **tebal**, _miring_, `kode`, [tautan](https://...)",
       "changelogHelp2": "## judul, - poin, 1. bernomor, > kutipan, ```blok kode```",
       "changelogPlaceholder": "Tulis yang berubah di rilis ini, mis. - Login SSO bisa dipakai"

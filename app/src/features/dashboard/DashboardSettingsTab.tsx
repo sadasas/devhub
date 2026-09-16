@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { Check, Copy, FloppyDisk, GearSix, SignOut, Trash } from '@phosphor-icons/react';
+import { ArrowSquareOut, Check, ClockCounterClockwise, Copy, FloppyDisk, GearSix, SignOut, Tag, Trash } from '@phosphor-icons/react';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { BillingStatus, Team } from '../../lib/types';
@@ -24,6 +24,7 @@ import { Modal } from '../../components/Modal';
 import { Skeleton } from '../../components/Skeleton';
 import { UsageMeter } from '../../components/UsageMeter';
 import { FE_LIMITS } from '../../lib/limits';
+import { normalizeSettingsSection } from './settingsSections';
 
 interface DashboardSettingsTabProps {
   team: Team;
@@ -38,6 +39,9 @@ type SlugStatus =
   | { kind: 'reserved' }
   | { kind: 'invalid' };
 
+// Settings shell sections (?section=) live in the shared lib so the main
+// sidebar nav (SettingsNav) and this panel resolve the same keys.
+
 function formatQuota(used: number, limit: number | null): string {
   if (limit === null) return `${used} / ∞`;
   return `${used} / ${limit}`;
@@ -46,6 +50,9 @@ function formatQuota(used: number, limit: number | null): string {
 // Settings tab scoped to the already-resolved active team.
 // Mirrors TeamPage patterns (rename + billing + leave/delete) as inline
 // sections in a 720px left-aligned container without touching routes or API.
+// Shell (Linear-style): sidebar nav (?section=general|plan|usage|danger|github)
+// renders one section at a time; drafts and dialog state live here so
+// switching sections never loses them.
 // DECISION: TeamBillingPanel is NOT embedded here. It is a full billing
 // cockpit (pending payments, scheduled downgrade, cancel flows). The
 // dashboard needs a concise summary only, so this tab fetches billingStatus
@@ -61,17 +68,34 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
   const { user } = useAuth();
   const navigate = useNavigate();
   const { copied, copy: copyText } = useCopyFeedback();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // Deep-link target from the legacy /team/:id?tab=usage redirect
-  // (?tab=settings&section=billing). Scroll the usage section into view
-  // once the tab renders; no smooth motion to honor reduced-motion prefs.
+  // Canonicalize the legacy deep-link (?tab=settings&section=billing) to
+  // the Usage section once; unknown values fall back to General (no scroll
+  // needed — the shell renders one section at a time).
   useEffect(() => {
-    if (searchParams.get('section') !== 'billing') return;
-    requestAnimationFrame(() => {
-      document.getElementById('dashboard-settings-usage')?.scrollIntoView({ block: 'start' });
-    });
-  }, [searchParams, team.id]);
+    if (searchParams.get('section') === 'billing') {
+      setSearchParams({ section: 'usage' }, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  const activeSection = normalizeSettingsSection(searchParams.get('section'));
+
+  // Sidebar nav links change ?section= via navigation; move keyboard focus
+  // to the new section heading (skipped on initial load).
+  const firstSectionRender = useRef(true);
+  useEffect(() => {
+    if (firstSectionRender.current) {
+      firstSectionRender.current = false;
+      return;
+    }
+    const el = document.getElementById(`dashboard-settings-${activeSection}-title`);
+    if (el) {
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      el.focus({ preventScroll: false });
+      el.scrollIntoView({ block: 'start', behavior: reduced ? 'auto' : 'smooth' });
+    }
+  }, [activeSection]);
 
   const isOwner = team.role === 'owner';
   const isAdmin = team.role === 'owner' || team.role === 'admin';
@@ -293,7 +317,6 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
         role="tabpanel"
         id="dashboard-tabpanel-settings"
         aria-labelledby="dashboard-tab-settings"
-        tabIndex={0}
       >
         <article className="pcard">
         <div className="pcard-body">
@@ -321,23 +344,16 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
       role="tabpanel"
       id="dashboard-tabpanel-settings"
       aria-labelledby="dashboard-tab-settings"
-      tabIndex={0}
-      aria-label={t('dashboard.team.settingsHeading')}
     >
-      <article className="pcard">
+      <article className="pcard settings-content-card">
       <div className="pcard-body">
       <div className="narrow-center">
-      <header className="page-header">
-        <div>
-          <h2 className="page-title">{t('dashboard.team.settingsHeading')}</h2>
-          <p className="page-subtitle">{t('dashboard.team.settingsIntro')}</p>
-        </div>
-      </header>
       {/* General: inline name + icon + URL slug + read-only ID, dirty-gated save. */}
+      {activeSection === 'general' && (
       <section className="dashboard__settings-section" aria-labelledby="dashboard-settings-general-title">
-        <h3 id="dashboard-settings-general-title" className="dashboard__settings-section-title">
+        <h2 id="dashboard-settings-general-title" tabIndex={-1} className="dashboard__settings-section-title">
           {t('dashboard.team.settingsGeneralTitle')}
-        </h3>
+        </h2>
         <p className="dashboard__settings-section-desc">{t('dashboard.team.settingsGeneralDesc')}</p>
         <form className="dashboard__settings-form" onSubmit={(e) => void handleSave(e)} noValidate>
           <div className="dashboard__settings-row">
@@ -397,10 +413,10 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
                       : t('dashboard.team.settingsSlugInvalid')
                   : undefined
               }
-              aria-describedby="dashboard-settings-slug-preview"
+              aria-describedby="dashboard-settings-slug-preview dashboard-settings-slug-status"
             />
-            <p id="dashboard-settings-slug-preview" className="team-slug__preview" aria-live="polite">
-              <span className="team-slug__preview-path" aria-hidden="true">
+            <p id="dashboard-settings-slug-preview" className="team-slug__preview">
+              <span className="team-slug__preview-path" aria-hidden="true" title={`/${slugTrimmed || savedSlug || 'team-xxxx'}/projects`}>
                 /{slugTrimmed || savedSlug || 'team-xxxx'}/projects
               </span>
               <span className="sr-only">
@@ -421,6 +437,19 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
                 aria-hidden="true"
               />
             </p>
+            <span id="dashboard-settings-slug-status" role="status" className="sr-only">
+              {slugStatus.kind === 'checking'
+                ? t('dashboard.team.settingsSlugChecking')
+                : slugStatus.kind === 'available'
+                  ? t('dashboard.team.settingsSlugAvailable')
+                  : slugStatus.kind === 'taken'
+                    ? t('dashboard.team.settingsSlugTaken')
+                    : slugStatus.kind === 'reserved'
+                      ? t('dashboard.team.settingsSlugReserved')
+                      : slugStatus.kind === 'invalid'
+                        ? t('dashboard.team.settingsSlugInvalid')
+                        : ''}
+            </span>
             {slugStatus.kind === 'taken' && slugStatus.suggestion && canEditGeneral && (
               <button
                 type="button"
@@ -442,18 +471,16 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
             <Button
               type="button"
               variant="secondary"
-              size="md"
+              size="sm"
               className="dashboard__settings-copy"
               leftIcon={copied ? <Check size={14} weight="bold" aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
               onClick={() => void handleCopyId()}
-              aria-label={t('dashboard.team.settingsCopyId')}
+              aria-live="polite"
+              aria-label={copied ? (t('dashboard.team.settingsCopied') as string) : (t('dashboard.team.settingsCopyId') as string)}
             >
               {copied ? t('dashboard.team.settingsCopied') : t('dashboard.team.settingsCopyId')}
             </Button>
           </div>
-          <p className="dashboard__settings-slug">
-            {t('dashboard.team.settingsSlugHelper', { slug: savedSlug || 'team-xxxx' })}
-          </p>
           {copyError && <InlineError>{copyError}</InlineError>}
           {saveError && <InlineError>{saveError}</InlineError>}
           <div className="dashboard__settings-save-row">
@@ -469,7 +496,7 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
               {t('dashboard.team.settingsSave')}
             </Button>
             {isDirty && canEditGeneral && nameTrimmed.length > 0 && (
-              <span className="dashboard__settings-unsaved" role="status" aria-live="polite">
+              <span className="dashboard__settings-unsaved" role="status">
                 {t('dashboard.team.settingsUnsaved')}
               </span>
             )}
@@ -479,12 +506,14 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
           )}
         </form>
       </section>
+      )}
 
       {/* Plan: package row + seat/project quotas + Manage (new tab). */}
+      {activeSection === 'plan' && (
       <section className="dashboard__settings-section" aria-labelledby="dashboard-settings-plan-title">
-        <h3 id="dashboard-settings-plan-title" className="dashboard__settings-section-title">
+        <h2 id="dashboard-settings-plan-title" tabIndex={-1} className="dashboard__settings-section-title">
           {t('dashboard.team.settingsPlanTitle')}
-        </h3>
+        </h2>
         <p className="dashboard__settings-section-desc">{t('dashboard.team.settingsPlanDesc')}</p>
         <div className="dashboard__settings-plan-row">
           <div className="dashboard__settings-plan-main">
@@ -493,66 +522,69 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
               {plan === 'pro' ? t('teams.billing.activeBadge') : t('teams.billing.free')}
             </Badge>
             {billingLoading ? (
-              <Skeleton style={{ width: 140, height: 12 }} />
+              <Skeleton className="settings-skeleton-line settings-skeleton-line--plan" />
             ) : (
               expiryMeta && <span className="dashboard__settings-plan-meta">{expiryMeta}</span>
             )}
           </div>
+        </div>
+        <div className="dashboard__settings-plan-quota">
+          {billingLoading ? (
+            <Skeleton className="settings-skeleton-line settings-skeleton-line--quota" />
+          ) : billing && !billingError ? (
+            <span className="dashboard__settings-plan-quota-text">
+              {t('teams.billing.members')}: {formatQuota(billing.usage.members.used, billing.usage.members.limit)}
+              <span aria-hidden="true"> · </span>
+              {t('teams.billing.projects')}: {formatQuota(billing.usage.projects.used, billing.usage.projects.limit)}
+            </span>
+          ) : (
+            <span className="dashboard__settings-plan-quota-text">{t('teams.billing.loadError')}</span>
+          )}
+        </div>
+        <div className="dashboard__settings-plan-manage-row">
           <a
-            className="btn btn-secondary btn-md dashboard__settings-manage"
+            className="btn btn-secondary btn-sm dashboard__settings-manage"
             href={`/pricing?teamId=${encodeURIComponent(team.id)}`}
             target="_blank"
             rel="noreferrer"
             aria-label={t('dashboard.team.settingsPlanManageAria', { name: team.name })}
           >
+            <ArrowSquareOut size={13} weight="bold" aria-hidden="true" />
             {t('dashboard.team.settingsPlanManage')}
           </a>
         </div>
-        <div className="dashboard__settings-plan-quota">
-          {billingLoading ? (
-            <Skeleton style={{ width: 200, height: 12 }} />
-          ) : billing && !billingError ? (
-            <span className="dashboard__settings-plan-quota-text">
-              {t('teams.billing.members')}: {formatQuota(billing.usage.members.used, billing.usage.members.limit)}
-              {' · '}
-              {t('teams.billing.projects')}: {formatQuota(billing.usage.projects.used, billing.usage.projects.limit)}
-            </span>
-          ) : (
-            <span className="dashboard__settings-plan-quota-text" aria-hidden="true">—</span>
-          )}
-        </div>
       </section>
+      )}
 
       {/* Usage: concise 3 stats + bars, links stay on /pricing and /payments. */}
+      {activeSection === 'usage' && (
       <section id="dashboard-settings-usage" className="dashboard__settings-section" aria-labelledby="dashboard-settings-usage-title">
-        <h3 id="dashboard-settings-usage-title" className="dashboard__settings-section-title">
+        <h2 id="dashboard-settings-usage-title" tabIndex={-1} className="dashboard__settings-section-title">
           {t('dashboard.team.settingsUsageTitle')}
-        </h3>
+        </h2>
         <p className="dashboard__settings-section-desc">{t('dashboard.team.settingsUsageDesc')}</p>
         {billingLoading ? (
           <div
             className="dashboard__settings-usage-loading"
             role="status"
             aria-busy="true"
-            aria-live="polite"
-            aria-label={t('dashboard.team.settingsUsageLoading')}
           >
             <span className="sr-only">{t('dashboard.team.settingsUsageLoading')}</span>
             <div aria-hidden="true" className="dashboard__settings-usage-skeleton">
               <div className="dashboard__settings-stats">
                 {[0, 1, 2].map((i) => (
-                  <div key={i} className="dashboard__settings-stat" style={{ gap: 6 }}>
-                    <Skeleton style={{ width: '60%', height: 15 }} />
-                    <Skeleton style={{ width: '45%', height: 12 }} />
+                  <div key={i} className="dashboard__settings-stat">
+                    <Skeleton className="settings-skeleton-stat-value" />
+                    <Skeleton className="settings-skeleton-stat-sub" />
                   </div>
                 ))}
               </div>
-              <div className="dashboard__settings-meters" style={{ marginTop: 8 }}>
+              <div className="dashboard__settings-meters">
                 {[0, 1].map((i) => (
-                  <div key={i} className="usage-meter" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Skeleton style={{ width: 64, height: 12 }} />
-                    <Skeleton style={{ flex: 1, height: 8, borderRadius: 999 }} />
-                    <Skeleton style={{ width: 56, height: 12 }} />
+                  <div key={i} className="settings-skeleton-meter">
+                    <Skeleton className="settings-skeleton-meter-name" />
+                    <Skeleton className="settings-skeleton-meter-bar" />
+                    <Skeleton className="settings-skeleton-meter-value" />
                   </div>
                 ))}
               </div>
@@ -597,40 +629,45 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
                 className="btn btn-ghost btn-sm dashboard__settings-link"
                 to={`/pricing?teamId=${encodeURIComponent(team.id)}`}
               >
+                <Tag size={14} aria-hidden="true" />
                 {t('teams.billing.viewPricing')}
               </Link>
               <Link className="btn btn-ghost btn-sm dashboard__settings-link" to="/payments">
+                <ClockCounterClockwise size={14} aria-hidden="true" />
                 {t('dashboard.team.settingsUsageViewHistory')}
               </Link>
             </div>
           </>
         )}
       </section>
+      )}
 
       {/* Danger zone: Leave (non-owner) + Delete (owner with typed confirm). */}
+      {activeSection === 'danger' && (
       <section
         className="dashboard__settings-section dashboard__settings-section--danger"
         aria-labelledby="dashboard-settings-danger-title"
       >
-        <h3 id="dashboard-settings-danger-title" className="dashboard__settings-section-title dashboard__settings-section-title--danger">
+        <h2 id="dashboard-settings-danger-title" tabIndex={-1} className="dashboard__settings-section-title dashboard__settings-section-title--danger">
           {t('dashboard.team.settingsDangerTitle')}
-        </h3>
+        </h2>
         <p className="dashboard__settings-section-desc">{t('dashboard.team.settingsDangerDesc')}</p>
         <div className="dashboard__settings-danger-row">
           <div className="dashboard__settings-danger-main">
-            <h4 className="dashboard__settings-danger-name">{t('teams.leaveTeam')}</h4>
+            <h3 className="dashboard__settings-danger-name">{t('teams.leaveTeam')}</h3>
             <p className="dashboard__settings-danger-copy">{t('dashboard.team.settingsLeaveDesc')}</p>
             {isOwner && (
-              <p className="dashboard__settings-helper">{t('dashboard.team.settingsLeaveOwnerHelper')}</p>
+              <p id="leave-owner-hint" className="dashboard__settings-helper">{t('dashboard.team.settingsLeaveOwnerHelper')}</p>
             )}
           </div>
           <Button
             type="button"
-            variant="ghost"
-            size="md"
-            className="text-danger dashboard__settings-danger-btn"
+            variant="secondary"
+            size="sm"
+            className="dashboard__settings-danger-btn"
             leftIcon={<SignOut size={14} aria-hidden="true" />}
             disabled={isOwner}
+            aria-describedby={isOwner ? 'leave-owner-hint' : undefined}
             title={isOwner ? t('dashboard.team.settingsLeaveOwnerHelper') : undefined}
             onClick={() => {
               setLeaveError(null);
@@ -643,13 +680,13 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
         {canDelete && (
           <div className="dashboard__settings-danger-row dashboard__settings-danger-row--delete">
             <div className="dashboard__settings-danger-main">
-              <h4 className="dashboard__settings-danger-name">{t('teams.deleteTeam')}</h4>
+              <h3 className="dashboard__settings-danger-name">{t('teams.deleteTeam')}</h3>
               <p className="dashboard__settings-danger-copy">{t('dashboard.team.settingsDeleteDesc')}</p>
             </div>
             <Button
               type="button"
               variant="danger"
-              size="md"
+              size="sm"
               className="dashboard__settings-danger-btn"
               leftIcon={<Trash size={14} aria-hidden="true" />}
               onClick={() => {
@@ -663,8 +700,26 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
           </div>
         )}
       </section>
+      )}
+
+      {/* GitHub: coming-soon placeholder (DEF-013). Real repo linking lands here. */}
+      {activeSection === 'github' && (
+      <section className="dashboard__settings-section" aria-labelledby="dashboard-settings-github-title">
+        <h2 id="dashboard-settings-github-title" tabIndex={-1} className="dashboard__settings-section-title">
+          {t('dashboard.team.settingsGithubTitle')}
+        </h2>
+        <p className="dashboard__settings-section-desc">{t('dashboard.team.settingsGithubSoonDesc')}</p>
+        <ul className="settings-soon-list">
+          <li>{t('dashboard.team.settingsGithubSoonItem1')}</li>
+          <li>{t('dashboard.team.settingsGithubSoonItem2')}</li>
+          <li>{t('dashboard.team.settingsGithubSoonItem3')}</li>
+        </ul>
+      </section>
+      )}
 
       </div>
+      </div>
+      </article>
       {/* Leave dialog reuses Modal (same copy as TeamPage/DashboardPage). */}
       <Modal
         open={leaveOpen}
@@ -676,14 +731,16 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
           }
         }}
         width="sm"
+        ariaDescribedBy="leave-desc"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setLeaveOpen(false)} disabled={leaving}>
+            <Button variant="ghost" size="md" onClick={() => setLeaveOpen(false)} disabled={leaving}>
               {t('common:action.cancel')}
             </Button>
             <Button
               variant="danger"
-              leftIcon={<SignOut size={13} aria-hidden="true" />}
+              size="md"
+              leftIcon={<SignOut size={14} aria-hidden="true" />}
               loading={leaving}
               onClick={() => void handleConfirmLeave()}
             >
@@ -692,7 +749,7 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
           </>
         }
       >
-        <p className="modal-copy">{t('teams.leaveModal.body', { name: team.name })}</p>
+        <p id="leave-desc" className="modal-copy">{t('teams.leaveModal.body', { name: team.name })}</p>
         {leaveError && <InlineError>{leaveError}</InlineError>}
       </Modal>
 
@@ -707,16 +764,19 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
           }
         }}
         width="sm"
+        ariaDescribedBy="delete-desc"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setDeleteOpen(false)} disabled={deleting}>
+            <Button variant="ghost" size="md" onClick={() => setDeleteOpen(false)} disabled={deleting}>
               {t('common:action.cancel')}
             </Button>
             <Button
               variant="danger"
-              leftIcon={<Trash size={13} aria-hidden="true" />}
+              size="md"
+              leftIcon={<Trash size={14} aria-hidden="true" />}
               loading={deleting}
               disabled={!deleteMatches}
+              aria-describedby={deleteMismatch ? 'delete-confirm-input-error' : undefined}
               onClick={() => void handleConfirmDelete()}
             >
               {t('common:action.delete')}
@@ -724,23 +784,22 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
           </>
         }
       >
-        <p className="modal-copy">{t('dashboard.team.settingsDeleteModalBody', { name: team.name })}</p>
+        <p id="delete-desc" className="modal-copy">{t('dashboard.team.settingsDeleteModalBody', { name: team.name })}</p>
         <div className="dashboard__settings-delete-field">
           <Input
+            id="delete-confirm-input"
             label={t('dashboard.team.settingsNameLabel')}
             value={deleteConfirm}
             maxLength={FE_LIMITS.TEAM_NAME}
             placeholder={t('dashboard.team.settingsDeleteModalPlaceholder')}
-            helper={deleteMismatch ? t('dashboard.team.settingsDeleteModalMismatch') : undefined}
+            error={deleteMismatch ? (t('dashboard.team.settingsDeleteModalMismatch') as string) : undefined}
+            aria-describedby="delete-desc"
             onChange={(e) => setDeleteConfirm(e.target.value)}
             autoComplete="off"
-            autoFocus
           />
         </div>
         {deleteError && <InlineError>{deleteError}</InlineError>}
       </Modal>
-      </div>
-      </article>
     </section>
   );
 }

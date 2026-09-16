@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { TestsPage } from './TestsPage';
 import type { TestCase } from '../../lib/types';
 
@@ -85,5 +85,43 @@ describe('TestsPage', () => {
     renderPage();
     const first = screen.getAllByText('Regression')[0]!;
     expect((first.closest('.data-row') as HTMLElement).textContent).toContain('Regression');
+  });
+});
+
+describe('TestsPage mobile header', () => {
+  const realMatchMedia = window.matchMedia;
+  beforeEach(() => {
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('640px'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+    useProjectMock.mockReset();
+    dispatchMock.mockReset();
+    useProjectMock.mockReturnValue({
+      state: {
+        testCases: [testCase(), testCase({ id: 'tc2', name: 'Regression' })],
+        tasks: [],
+        issues: [],
+      },
+      loading: false,
+      error: null,
+      canEdit: true,
+      dispatch: dispatchMock,
+    });
+  });
+  afterEach(() => {
+    window.matchMedia = realMatchMedia;
+  });
+
+  it('uses the short Test case label on the header add button', () => {
+    renderPage();
+    expect(document.querySelector('.tests-page')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Test case' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'New test case' })).toBeNull();
   });
 });

@@ -41,7 +41,10 @@
     "none": "None",
     "direction": "Direction",
     "ascending": "Ascending",
-    "descending": "Descending"
+    "descending": "Descending",
+    "sortBy": "Sort by",
+    "filter": "Filter",
+    "apply": "Apply"
   },
   "select": {
     "empty": "None",

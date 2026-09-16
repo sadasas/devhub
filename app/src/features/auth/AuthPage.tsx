@@ -169,6 +169,7 @@ export function AuthPage() {
           <LanguageSwitcher />
         </div>
         <form className="auth-form" onSubmit={onSubmit} noValidate>
+          <div className="auth-form-main">
           <div>
             <h2 className="auth-form-title">
               {isForgot
@@ -349,8 +350,8 @@ export function AuthPage() {
               style={{
                 padding: '10px 12px',
                 borderRadius: 8,
-                background: 'var(--success-bg, #dcfce7)',
-                color: 'var(--success-fg, #14532d)',
+                background: 'var(--status-success-soft)',
+                color: 'var(--status-success)',
                 fontSize: 13,
                 lineHeight: 1.5,
                 wordBreak: 'break-all',
@@ -462,6 +463,7 @@ export function AuthPage() {
               </>
             )}
           </p>
+          </div>
           <LegalFooter compact />
         </form>
       </main>

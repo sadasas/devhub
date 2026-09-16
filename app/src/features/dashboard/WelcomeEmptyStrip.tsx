@@ -7,12 +7,12 @@ export function WelcomeEmptyNoTeam({ onCreateTeam }: { onCreateTeam: () => void 
   return (
     <div className="welcome-empty-strip" role="status" aria-live="polite">
       <span className="welcome-empty-icon" aria-hidden="true">
-        <Users size={20} weight="duotone" />
+        <Users size={22} weight="duotone" />
       </span>
       <h3 className="welcome-empty-title">{t('dashboard.welcome.empty.noTeamTitle')}</h3>
       <p className="welcome-empty-desc">{t('dashboard.welcome.empty.noTeamDesc')}</p>
       <div className="welcome-empty-actions">
-        <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={onCreateTeam} data-tour-id="create-team">
+        <Button size="md" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={onCreateTeam} data-tour-id="create-team">
           {t('dashboard.welcome.empty.createTeam')}
         </Button>
       </div>
@@ -33,16 +33,16 @@ export function WelcomeEmptyNoProject({
   return (
     <div className="welcome-empty-strip" role="status">
       <span className="welcome-empty-icon" aria-hidden="true">
-        <Plus size={20} weight="duotone" />
+        <Plus size={22} weight="duotone" />
       </span>
       <h3 className="welcome-empty-title">{teamName ? t('dashboard.welcome.empty.noProjectIn', { name: teamName }) : t('dashboard.welcome.empty.noProjectTitle')}</h3>
       <p className="welcome-empty-desc">{t('dashboard.welcome.empty.noProjectDesc')}</p>
       <div className="welcome-empty-actions">
-        <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={onCreate} data-tour-id="create-project">
+        <Button size="md" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={onCreate} data-tour-id="create-project">
           {t('dashboard.welcome.empty.createProject')}
         </Button>
         {onImport && (
-          <Button variant="ghost" leftIcon={<UploadSimple size={14} aria-hidden="true" />} onClick={onImport}>
+          <Button size="md" variant="ghost" leftIcon={<UploadSimple size={14} aria-hidden="true" />} onClick={onImport}>
             {t('dashboard.welcome.empty.import')}
           </Button>
         )}
@@ -56,12 +56,12 @@ export function WelcomeEmptyNoResult({ query, onClear }: { query: string; onClea
   return (
     <div className="welcome-empty-strip welcome-empty-strip-muted" role="status">
       <span className="welcome-empty-icon" aria-hidden="true">
-        <MagnifyingGlass size={20} aria-hidden="true" />
+        <MagnifyingGlass size={22} aria-hidden="true" />
       </span>
       <h3 className="welcome-empty-title">{t('dashboard.welcome.empty.noResultTitle', { query })}</h3>
       <p className="welcome-empty-desc">{t('dashboard.welcome.empty.noResultDesc')}</p>
       <div className="welcome-empty-actions">
-        <Button variant="ghost" onClick={onClear}>
+        <Button size="sm" variant="ghost" onClick={onClear}>
           {t('dashboard.welcome.empty.clearFilter')}
         </Button>
       </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ListBullets, Plus, ShareNetwork, Stack } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import type { TechEntry, TechEntryCategory } from '../../lib/types';
@@ -36,6 +36,28 @@ const TECH_SORT_SPECS: SortSpec<TechEntry>[] = [
 
 type StackView = 'list' | 'graph';
 
+/** Header ringkas ≤640px (count hilang, mode/sort icon-only, + Entry). */
+function useIsStackNarrow(): boolean {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(max-width: 640px)').matches
+      : false,
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(max-width: 640px)');
+    const update = (): void => setMatches(mq.matches);
+    update();
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', update);
+      return () => mq.removeEventListener('change', update);
+    }
+    mq.addListener(update);
+    return () => mq.removeListener(update);
+  }, []);
+  return matches;
+}
+
 const VIEW_KEY = 'devhub.stackView';
 
 function loadView(): StackView {
@@ -56,6 +78,7 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   useNewParam(() => setCreating(true), '1', canEdit);
   const { value: sortValue, setSort } = useSortParam();
   const effectiveSort = sortValue ?? { key: 'createdAt', dir: 'desc' as const };
+  const isNarrow = useIsStackNarrow();
 
   const switchView = (next: StackView) => {
     setView(next);
@@ -144,7 +167,7 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       );
 
   return (
-    <div>
+    <div className="stack-page">
 <div className="data-list-header">
         <div className="stack-header-left">
           <span className="data-list-count">
@@ -156,20 +179,24 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
               className={`sub-tab ${view === 'list' ? 'sub-tab-active' : ''}`}
               role="tab"
               aria-selected={view === 'list'}
+              aria-label={t('stack.listTab')}
+              title={t('stack.listTab')}
               onClick={() => switchView('list')}
             >
               <ListBullets size={13} aria-hidden="true" />
-              {t('stack.listTab')}
+              <span className="sub-tab-label">{t('stack.listTab')}</span>
             </button>
             <button
               type="button"
               className={`sub-tab ${view === 'graph' ? 'sub-tab-active' : ''}`}
               role="tab"
               aria-selected={view === 'graph'}
+              aria-label={t('stack.graphTab')}
+              title={t('stack.graphTab')}
               onClick={() => switchView('graph')}
             >
               <ShareNetwork size={13} aria-hidden="true" />
-              {t('stack.graphTab')}
+              <span className="sub-tab-label">{t('stack.graphTab')}</span>
             </button>
           </div>
         </div>
@@ -182,8 +209,8 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
             />
           )}
           {canEdit && (
-            <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => setCreating(true)}>
-              {t('stack.newEntry')}
+            <Button size="sm" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setCreating(true)}>
+              {isNarrow ? t('stack.newEntryShort', { defaultValue: 'Entry' }) : t('stack.newEntry')}
             </Button>
           )}
         </span>
@@ -196,8 +223,8 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           description={t('stack.emptyDesc')}
           action={
             canEdit && (
-              <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setCreating(true)}>
-                {t('stack.newEntry')}
+              <Button size="md" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setCreating(true)}>
+                {isNarrow ? t('stack.newEntryShort', { defaultValue: 'Entry' }) : t('stack.newEntry')}
               </Button>
             )
           }

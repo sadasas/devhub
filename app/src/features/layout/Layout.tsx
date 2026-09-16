@@ -6,8 +6,6 @@ import { Sidebar } from './Sidebar';
 import { LAST_ACTIVE_TEAM_KEY, writeLastActiveTeamId } from './WorkspaceSwitcher';
 import { isTourActive, readTourStep, subscribeTour } from '../onboarding/tour-events';
 import { newestTeamId } from '../onboarding/tour-dom';
-import { LanguageSwitcher } from '../../components/LanguageSwitcher';
-import { ThemeSwitcher } from '../../components/ThemeSwitcher';
 import { openPalette } from '../../lib/palette-events';
 import { onToggleChat, toggleChat } from '../../lib/chat-events';
 import { api } from '../../lib/api';
@@ -247,7 +245,16 @@ export function Layout() {
     return off;
   }, []);
 
+  // Mobile drawer auto-close on navigation — except when ENTERING the
+  // settings route: the drawer must stay open on the settings submenu list
+  // and only close after the user picks a section (SettingsNav onSelect).
+  const prevPathRef = useRef(location.pathname);
   useEffect(() => {
+    const prev = prevPathRef.current;
+    prevPathRef.current = location.pathname;
+    const enteringSettings =
+      location.pathname.endsWith('/settings') && !prev.endsWith('/settings');
+    if (enteringSettings) return;
     setNavOpen(false);
   }, [location.pathname]);
 
@@ -411,7 +418,7 @@ export function Layout() {
           inert={!navOpen ? true : undefined}
         >
           <div className="sidebar-drawer-inner">
-            <Sidebar activeTeamId={activeTeamId} onCreateTeam={() => setCreateTeamOpen(true)} />
+            <Sidebar activeTeamId={activeTeamId} onCreateTeam={() => setCreateTeamOpen(true)} onNavigate={() => setNavOpen(false)} />
           </div>
         </div>
       )}
@@ -443,8 +450,6 @@ export function Layout() {
             >
               <MagnifyingGlass size={18} aria-hidden="true" />
             </button>
-            <ThemeSwitcher triggerClassName="topbar-btn" />
-            <LanguageSwitcher triggerClassName="topbar-btn" />
             {user && activeTeamId ? (
               <TopbarChatButton teamId={activeTeamId} open={chatOpen} isMobile={isMobileChat} />
             ) : null}

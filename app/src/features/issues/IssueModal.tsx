@@ -25,6 +25,9 @@ type FullscreenField = 'description' | 'reproduction' | null;
 const SEVERITY_OPTIONS: IssueSeverity[] = ['critical', 'high', 'medium', 'low'];
 const STATUS_OPTIONS: IssueStatus[] = ['open', 'reproduced', 'fixing', 'resolved', 'wontfix'];
 
+// autoFocus hanya desktop (hover) — di touch, keyboard virtual melonjak (pola Modal).
+const AUTO_FOCUS_INPUT = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
+
 interface IssueModalProps {
   issueId: string | null;
   onClose: () => void;
@@ -82,7 +85,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
             <Button
               variant="danger"
               size="sm"
-              leftIcon={<Trash size={13} aria-hidden="true" />}
+              leftIcon={<Trash size={14} aria-hidden="true" />}
               onClick={() => setConfirmOpen(true)}
             >
               {t('issues.modal.delete')}
@@ -269,7 +272,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
                       className="textarea"
                       style={{ flex: 1, minHeight: 0, height: '100%', resize: 'none' }}
                       value={issue.description}
-                      autoFocus={canEdit}
+                      autoFocus={canEdit && AUTO_FOCUS_INPUT}
                       readOnly={!canEdit}
                       placeholder={t('issues.newModal.descriptionPlaceholder')}
                       onChange={(e) => canEdit && update({ description: e.target.value })}
@@ -311,7 +314,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
                       className="textarea"
                       style={{ flex: 1, minHeight: 0, height: '100%', resize: 'none' }}
                       value={issue.reproduction}
-                      autoFocus={canEdit}
+                      autoFocus={canEdit && AUTO_FOCUS_INPUT}
                       readOnly={!canEdit}
                       placeholder={t('issues.newModal.reproductionPlaceholder')}
                       onChange={(e) => canEdit && update({ reproduction: e.target.value })}
@@ -352,7 +355,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
           className="composer-title"
           rows={1}
           value={issue.title}
-          autoFocus
+          autoFocus={AUTO_FOCUS_INPUT}
           maxLength={LIMITS.ISSUE_TITLE}
           onChange={(e) => update({ title: e.target.value })}
           aria-label={t('issues.modal.titleLabel')}

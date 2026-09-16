@@ -400,7 +400,7 @@ export function OverviewPage({ project }: { project: Project }) {
         {canEdit && (
           <Button
             size="sm"
-            leftIcon={<PencilSimple size={13} aria-hidden="true" />}
+            leftIcon={<PencilSimple size={14} aria-hidden="true" />}
             onClick={() => setEditOpen(true)}
           >
             {t('overview.editPrd')}
@@ -448,7 +448,7 @@ export function OverviewPage({ project }: { project: Project }) {
             <Button
               size="sm"
               variant="primary"
-              leftIcon={<ArrowCounterClockwise size={13} aria-hidden="true" />}
+              leftIcon={<ArrowCounterClockwise size={14} aria-hidden="true" />}
               loading={restoring}
               onClick={async () => {
                 setRestoring(true);
@@ -579,9 +579,9 @@ export function OverviewPage({ project }: { project: Project }) {
             const value = project.prd[s.key];
             return (
               <section key={s.key} className="about-card">
-                <h3 className="about-card-head">
+                <h3 className="section-title">
                   <s.icon size={14} weight="bold" aria-hidden="true" />
-                  <span className="about-card-title">{t(`prd.section.${s.key}.label`)}</span>
+                  {t(`prd.section.${s.key}.label`)}
                 </h3>
                 {value.trim() ? (
                   <div className="about-card-body">

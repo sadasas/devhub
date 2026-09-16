@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { Minus, PencilSimple, Plus } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import type { Relation, SchemaSnapshot, SchemaVersion } from '../../lib/types';
-import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { columnLabel, diffSnapshots } from './schema-diff';
@@ -43,7 +42,7 @@ export function DiffVersionModal({ open, versions, onClose }: DiffVersionModalPr
     });
 
   return (
-    <Modal open={open} title={t('schema.diffModal.title')} onClose={onClose} width="lg" footer={<Button variant="ghost" onClick={onClose}>{t('schema.diffModal.close')}</Button>}>
+    <Modal open={open} title={t('schema.diffModal.title')} onClose={onClose} width="lg">
       <div className="diff-selects">
         <div className="field">
           <SearchableSelect

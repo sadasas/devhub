@@ -17,6 +17,8 @@ interface SearchableSelectProps {
   label?: string;
   /** Accessible name for the trigger when no visible label is desired (e.g. grid cells). */
   ariaLabel?: string;
+  /** ID of an external visible label (aria-labelledby wins over aria-label). */
+  labelledBy?: string;
   value: string | null | undefined;
   options: SearchableOption[];
   placeholder?: string;
@@ -44,6 +46,7 @@ export function SearchableSelect({
   id,
   label,
   ariaLabel,
+  labelledBy,
   value,
   options,
   placeholder,
@@ -165,7 +168,8 @@ export function SearchableSelect({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={`${id}-listbox`}
-        aria-label={ariaLabel}
+        aria-label={labelledBy ? undefined : ariaLabel}
+        aria-labelledby={labelledBy}
         onClick={() => setOpen((o) => !o)}
       >
         <span className={!selected && !allowEmpty ? 'ss-trigger-text ss-trigger-placeholder' : 'ss-trigger-text'}>

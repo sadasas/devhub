@@ -312,7 +312,7 @@ export function ERDCanvasPanel({
               {t('schema.panel.columnsLabel')} <span className="erd-panel-count">· {tbl.columns.length}</span>
             </h3>
             {canEdit && (
-              <Button variant="ghost" size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={addColumn}>
+              <Button variant="ghost" size="sm" leftIcon={<Plus size={14} aria-hidden="true" />} onClick={addColumn}>
                 {t('schema.panel.addColumn')}
               </Button>
             )}
@@ -494,7 +494,7 @@ export function ERDCanvasPanel({
             <Button
               variant="secondary"
               size="sm"
-              leftIcon={<ArrowsOutSimple size={13} aria-hidden="true" />}
+              leftIcon={<ArrowsOutSimple size={14} aria-hidden="true" />}
               onClick={() => onOpenTable(tbl.id)}
             >
               {t('schema.panel.openFullEditor')}
@@ -504,7 +504,7 @@ export function ERDCanvasPanel({
             <Button
               variant="danger"
               size="sm"
-              leftIcon={<Trash size={13} aria-hidden="true" />}
+              leftIcon={<Trash size={14} aria-hidden="true" />}
               onClick={() => setConfirmDeleteTableId(tbl.id)}
             >
               {t('schema.panel.deleteTable')}
@@ -586,7 +586,7 @@ export function ERDCanvasPanel({
           <Button
             variant="danger"
             size="sm"
-            leftIcon={<Trash size={13} aria-hidden="true" />}
+            leftIcon={<Trash size={14} aria-hidden="true" />}
             onClick={() => onDeleteRelation(rel)}
           >
             {t('schema.panel.deleteRelation')}

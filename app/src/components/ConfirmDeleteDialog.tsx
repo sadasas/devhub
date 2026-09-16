@@ -1,5 +1,5 @@
-import { useId } from 'react';
-import { Trash, X } from '@phosphor-icons/react';
+import { useEffect, useId, useRef } from 'react';
+import { Trash } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { Button } from './Button';
 import { InlineError } from './InlineError';
@@ -28,6 +28,10 @@ export function ConfirmDeleteDialog({
 }: ConfirmDeleteDialogProps) {
   const { t } = useTranslation();
   const descId = useId();
+  const errorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (error) requestAnimationFrame(() => errorRef.current?.focus());
+  }, [error]);
   return (
     <Modal
       open={open}
@@ -37,14 +41,15 @@ export function ConfirmDeleteDialog({
       ariaDescribedBy={descId}
       footer={
         <>
-          <Button variant="secondary" leftIcon={<X size={13} aria-hidden="true" />} onClick={onClose} disabled={busy}>
+          <Button variant="ghost" size="md" onClick={onClose} disabled={busy}>
             {t('action.cancel')}
           </Button>
           <Button
             variant="danger"
+            size="md"
             loading={busy}
             disabled={busy}
-            leftIcon={<Trash size={13} aria-hidden="true" />}
+            leftIcon={<Trash size={14} aria-hidden="true" />}
             onClick={onConfirm}
           >
             {confirmLabel ?? t('action.delete')}
@@ -53,7 +58,7 @@ export function ConfirmDeleteDialog({
       }
     >
       <p id={descId} className="modal-copy">{description}</p>
-      {error && <InlineError>{error}</InlineError>}
+      {error && <div ref={errorRef} tabIndex={-1} className="form-error-focus"><InlineError>{error}</InlineError></div>}
     </Modal>
   );
 }

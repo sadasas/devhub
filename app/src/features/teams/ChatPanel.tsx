@@ -563,7 +563,7 @@ async function onDelete(message: ChatMessage) {
       const resolved = resolvedRefs.get(key);
       const label = resolved?.title ?? `#${entityId.slice(0, 6)}`;
       const EntityIcon = ENTITY_ICONS[entity] ?? CheckSquare;
-      const tint = ENTITY_TINT[entity] ?? '#a1a1aa';
+      const tint = ENTITY_TINT[entity] ?? 'var(--text-muted)';
       return (
         <button
           type="button"
@@ -824,8 +824,8 @@ return (
                     <span
                       className="mention-entity-badge"
                       style={{
-                        background: `color-mix(in srgb, ${ENTITY_TINT[hit.entity] ?? '#a1a1aa'} 18%, transparent)`,
-                        color: ENTITY_TINT[hit.entity] ?? '#a1a1aa',
+                        background: `color-mix(in srgb, ${ENTITY_TINT[hit.entity] ?? 'var(--text-muted)'} 18%, transparent)`,
+                        color: ENTITY_TINT[hit.entity] ?? 'var(--text-muted)',
                       }}
                     >
                       {entityKey ? t(entityKey) : hit.entity}

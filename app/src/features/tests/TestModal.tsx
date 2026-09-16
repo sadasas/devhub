@@ -20,6 +20,9 @@ import { LIMITS } from '../../lib/limits';
 
 const STATUS_OPTIONS: TestCaseStatus[] = ['pending', 'pass', 'fail'];
 
+// autoFocus hanya desktop (hover) — di touch, keyboard virtual melonjak (pola Modal).
+const AUTO_FOCUS_INPUT = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
+
 interface TestModalProps {
   testId: string | null;
   onClose: () => void;
@@ -73,7 +76,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
             <Button
               variant="danger"
               size="sm"
-              leftIcon={<Trash size={13} aria-hidden="true" />}
+              leftIcon={<Trash size={14} aria-hidden="true" />}
               onClick={() => setConfirmOpen(true)}
             >
               {t('tests.modal.delete')}
@@ -117,9 +120,9 @@ export function TestModal({ testId, onClose }: TestModalProps) {
           setHot={setHotProp}
           canEdit={canEdit}
           view={linkedTask ? (
-            <span style={{ fontSize: 13, color: 'var(--text-secondary)', overflowWrap: 'anywhere' }}>{linkedTask.title}</span>
+            <span className="prop-view-text">{linkedTask.title}</span>
           ) : (
-            <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>
+            <span className="prop-view-empty">—</span>
           )}
           control={(
             <SearchableSelect defaultOpen id="test-task" label="" ariaLabel={t('tests.modal.linkedTaskLabel')} value={test.taskId} options={state.tasks.map((x) => ({ value: x.id, label: x.title }))} onChange={(v) => { update({ taskId: v }); setHotProp(null); }} triggerEmptyLabel={t('tests.modal.linkedTaskLabel')} />
@@ -132,9 +135,9 @@ export function TestModal({ testId, onClose }: TestModalProps) {
           setHot={setHotProp}
           canEdit={canEdit}
           view={linkedIssue ? (
-            <span style={{ fontSize: 13, color: 'var(--text-secondary)', overflowWrap: 'anywhere' }}>{linkedIssue.title}</span>
+            <span className="prop-view-text">{linkedIssue.title}</span>
           ) : (
-            <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>
+            <span className="prop-view-empty">—</span>
           )}
           control={(
             <SearchableSelect defaultOpen id="test-issue" label="" ariaLabel={t('tests.modal.linkedIssueLabel')} value={test.issueId} options={state.issues.map((x) => ({ value: x.id, label: x.title }))} onChange={(v) => { update({ issueId: v }); setHotProp(null); }} triggerEmptyLabel={t('tests.modal.linkedIssueLabel')} />
@@ -157,7 +160,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
           className="composer-title"
           rows={1}
           value={test.name}
-          autoFocus
+          autoFocus={AUTO_FOCUS_INPUT}
           maxLength={LIMITS.TESTCASE_NAME}
           onChange={(e) => update({ name: e.target.value })}
           aria-label={t('tests.modal.nameLabel')}

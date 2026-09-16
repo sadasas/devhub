@@ -58,11 +58,7 @@ export function ZeroTeamOnboarding() {
     : '';
 
   return (
-    <div
-      className="dashboard__onboarding dashboard__onboarding--center"
-      role="status"
-      aria-live="polite"
-    >
+    <div className="dashboard__onboarding dashboard__onboarding--center">
       <div className="zero-team-doodle" aria-hidden="true">
         <DoodleIllustration variant="thinking" tone="neutral" size={140} />
       </div>
@@ -94,10 +90,10 @@ export function ZeroTeamOnboarding() {
         )}
       </div>
 
+      <p className="zero-team-steps-title" aria-hidden="true">
+        {t('dashboard.team.stepsTitle')}
+      </p>
       <ol className="zero-team-steps" aria-label={t('dashboard.team.stepsTitle')}>
-        <li className="zero-team-steps-title" aria-hidden="true">
-          {t('dashboard.team.stepsTitle')}
-        </li>
         <li className="zero-team-step">
           <span className="zero-team-step-num" aria-hidden="true">
             1

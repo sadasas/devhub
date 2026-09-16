@@ -1,19 +1,30 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CaretLeft, CaretRight, Check, Circle, Clock, Eye, CheckCircle } from
+import { CaretLeft, CaretRight, CalendarBlank, Check, Circle, Clock, Eye, CheckCircle, Flag, Plus } from
 '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { addDaysIso, inMonth, isoOf, monthName, parseIso, visibleMonthMatrix, weekDays } from '../../lib/calendar';
 import { dueBucket, dueLabel, dueTone, taskDueChip, todayIso } from '../../lib/due-dates';
+import { TASK_PRIORITY, TASK_PRIORITY_ORDER, TASK_STATUS } from '../../lib/labels';
+import { formatDate } from '../../lib/utils';
 import { getAppLocale } from '../../i18n';
 
 import type { Task } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { registerDrop } from '../../lib/drop-registry';
 import { useTouchDrag } from '../../hooks/useTouchDrag';
+import { Avatar } from '../../components/Avatar';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { MonthPicker } from '../../components/MonthPicker';
+import { Tooltip } from '../../components/Tooltip';
+import { TaskCard } from './TaskCard';
+
+interface MemberInfo {
+  email: string;
+  displayName?: string;
+  avatarUrl?: string | null;
+}
 
 interface DueCalendarProps {
   onOpenTask?: (taskId: string) => void;
@@ -26,6 +37,8 @@ interface DueCalendarProps {
   tasks?: Task[];
   /** Read-only mode: hides quick-create + drag/drop + move dialog. Chips still call onOpenTask when provided. */
   readOnly?: boolean;
+  members?: Record<string, MemberInfo>;
+  unreadIds?: ReadonlySet<string>;
 }
 
 /**
@@ -48,6 +61,7 @@ interface CalTaskChipProps {
   date?: string;
   segmentStart?: string;
   span?: number;
+  members?: Record<string, MemberInfo>;
   onOpenTask?: (taskId: string) => void;
   onTouchDrop?: (taskId: string, dropKey: string | null) => void;
   onDragOffset?: (offset: number, start: string | null) => void;
@@ -99,7 +113,7 @@ function formatDayAriaLabel(isoDate: string): string {
   }
 }
 
-function CalTaskChip({ task, date, segmentStart, span, onOpenTask, onTouchDrop, onDragOffset, onMove, style, classNameExtra, readOnly = false }: CalTaskChipProps) {
+function CalTaskChip({ task, date, segmentStart, span, members, onOpenTask, onTouchDrop, onDragOffset, onMove, style, classNameExtra, readOnly = false }: CalTaskChipProps) {
   const project = useProjectSafe();
   const canEdit = !readOnly && (project?.canEdit ?? false);
   const canMove = canEdit && !!onMove;
@@ -109,18 +123,54 @@ function CalTaskChip({ task, date, segmentStart, span, onOpenTask, onTouchDrop, 
     [task.id, onTouchDrop],
   );
   useTouchDrag(ref, { enabled: canEdit && !!onTouchDrop, onDrop: handleTouchDrop });
-  const title = date ? `${task.title} \u00b7 ${dueLabel(date, todayIso())}` : task.title;
-  const ariaLabel = canMove ? `${task.title}. Press M to move date, Enter to open.` : title;
+  const assignee = task.assigneeId ? members?.[task.assigneeId] : undefined;
+  const assigneeName = assignee ? (assignee.displayName || assignee.email) : undefined;
+  const baseLabel = date ? `${task.title} · ${dueLabel(date, todayIso())}` : task.title;
+  const fullLabel = assigneeName ? `${baseLabel} · ${assigneeName}` : baseLabel;
+  const ariaLabel = canMove ? `${fullLabel}. Press M to move date, Enter to open.` : fullLabel;
   const rawTone = task.status === 'done' ? taskDueChip(task).tone : date ? dueTone(dueBucket(date, todayIso())) : 'neutral';
   const tone = rawTone as 'danger' | 'warn' | 'success' | 'neutral';
   const isDone = task.status === 'done';
+  const isMultiDay = !!task.startDate && !!task.dueDate && task.startDate !== task.dueDate;
+  const dueDateIso = date ?? task.dueDate ?? undefined;
+  const dueText = isMultiDay
+    ? `${formatDate(task.startDate)} → ${formatDate(task.dueDate)}`
+    : (dueDateIso ? dueLabel(dueDateIso, todayIso()) : '');
   return (
+    <Tooltip
+      side="top"
+      title={task.title}
+      icon={STATUS_ICON[task.status]}
+      description={
+        <span className="task-activity-tip-rows">
+          {dueText !== '' && (
+            <span className="task-activity-tip-row">
+              <CalendarBlank size={12} aria-hidden="true" />
+              {dueText}
+            </span>
+          )}
+          <span className="task-activity-tip-row">
+            {STATUS_ICON[task.status]}
+            {TASK_STATUS[task.status].label}
+          </span>
+          <span className="task-activity-tip-row">
+            <Flag size={12} aria-hidden="true" />
+            {TASK_PRIORITY[task.priority].label}
+          </span>
+          {assigneeName && task.assigneeId && (
+            <span className="task-activity-tip-row">
+              <Avatar src={assignee?.avatarUrl ?? null} name={assigneeName} email={assignee?.email} id={task.assigneeId} size={14} alt="" />
+              {assigneeName}
+            </span>
+          )}
+        </span>
+      }
+    >
     <button
       ref={ref}
       type="button"
       className={`due-cal-task due-cal-task-${tone}${isDone ? ' due-cal-task-done' : ''} ${classNameExtra ?? ''}`}
       draggable={canEdit}
-      title={title}
       aria-label={ariaLabel}
       aria-keyshortcuts={canMove ? 'm Enter' : 'Enter'}
       style={style}
@@ -163,14 +213,20 @@ function CalTaskChip({ task, date, segmentStart, span, onOpenTask, onTouchDrop, 
         {STATUS_ICON[task.status]}
       </span>
       <span className="due-cal-task-title">{task.title}</span>
+      {assigneeName && task.assigneeId && (
+        <span aria-hidden="true" style={{ display: 'inline-flex', flexShrink: 0 }}>
+          <Avatar src={assignee?.avatarUrl ?? null} name={assigneeName} email={assignee?.email} id={task.assigneeId} size={16} alt="" />
+        </span>
+      )}
     </button>
+    </Tooltip>
   );
 }
 
 const MAX_VISIBLE = 3;
 const MAX_VISIBLE_MOBILE = 2;
 
-export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop, hideCompleted = false, tasks: tasksProp, readOnly = false }: DueCalendarProps) {
+export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop, hideCompleted = false, tasks: tasksProp, readOnly = false, members, unreadIds }: DueCalendarProps) {
   const project = useProjectSafe();
   const state = project?.state ?? null;
   const dispatch = project?.dispatch;
@@ -178,7 +234,9 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
   // External `tasks` (public view) wins; fallback to provider state for BoardPage.
   const allTasks: Task[] = tasksProp ?? state?.tasks ?? [];
   const canQuickCreate = !readOnly && !!onQuickCreate;
-  const effectiveTouchDrop = readOnly ? undefined : onTouchDrop;
+  const isMobileCal = useMediaQuery('(max-width: 640px)');
+  // Mobile samakan mode lain: tanpa drag & drop (tap kartu buka TaskModal).
+  const effectiveTouchDrop = readOnly || isMobileCal ? undefined : onTouchDrop;
   const [anchor, setAnchor] = useState(todayIso());
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const monthLabelRef = useRef<HTMLButtonElement>(null);
@@ -187,8 +245,9 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
   const [focused, setFocused] = useState<string | null>(null);
   // C6/H3-mobile: 2 chips per cell on ≤640px, 3 on desktop. Coarse pointers
   // get an explicit + button instead of whole-cell tap-to-create.
-  const isMobileCal = useMediaQuery('(max-width: 640px)');
-  const isCoarse = useMediaQuery('(pointer: coarse)');
+  // (isMobileCal/isCoarse dideklarasi di atas dekat effectiveTouchDrop.)
+  // P2 mini grid: tap selects a date, task list renders below the grid.
+  const [mobileSelected, setMobileSelected] = useState<string | null>(null);
   const maxVisible = isMobileCal ? MAX_VISIBLE_MOBILE : MAX_VISIBLE;
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [expandedCells, setExpandedCells] = useState<Set<string>>(new Set());
@@ -356,6 +415,42 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
     return heights;
   }, [rowGroups, expandedRows, expandedCells, weekMode, weeks.length, dateToPos, isMobileCal]);
 
+  // P2 mini grid: tasks per visible date (incl. multi-day spans) for dots + list.
+  // Sorted urgent-first via TASK_PRIORITY_ORDER agar warna prioritas konsisten.
+  const mobileDateTasks = useMemo(() => {
+    const map = new Map<string, Task[]>();
+    for (const date of cells) map.set(date, []);
+    for (const task of allTasks) {
+      if (!task.dueDate) continue;
+      if (hideCompleted && task.status === 'done') continue;
+      if (taskFilter && !taskFilter(task)) continue;
+      const rawStart = task.startDate && task.startDate <= task.dueDate ? task.startDate : task.dueDate;
+      const rawEnd = task.dueDate;
+      let cur = rawStart;
+      let guard = 0;
+      while (cur <= rawEnd && guard < 62) {
+        const bucket = map.get(cur);
+        if (bucket) bucket.push(task);
+        // Berhenti saat keluar rentang visible (hindari loop panjang).
+        if (cur >= rawEnd) break;
+        cur = addDaysIso(cur, 1);
+        guard += 1;
+      }
+    }
+    for (const [, list] of map) {
+      list.sort((a, b) => {
+        const ra = TASK_PRIORITY_ORDER.indexOf(a.priority);
+        const rb = TASK_PRIORITY_ORDER.indexOf(b.priority);
+        if (rb !== ra) return rb - ra;
+        return a.title.localeCompare(b.title);
+      });
+    }
+    return map;
+  }, [allTasks, hideCompleted, taskFilter, cells]);
+
+  const mobileSelectedDate = mobileSelected ?? focused ?? today;
+  const mobileSelectedTasks: Task[] = mobileDateTasks.get(mobileSelectedDate) ?? [];
+
   const nav = (dir: number) => {
     if (weekMode) {
       setAnchor(addDaysIso(anchor, dir * 7));
@@ -445,23 +540,37 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
     const dimmed = !weekMode && !inMonth(date, year, month);
     const isToday = date === today;
     const dayLabel = formatDayAriaLabel(date);
-    // Coarse pointers: whole-cell tap conflicts with scroll (accidental
-    // quick-create on tap-scroll). Only the explicit + button creates.
     // readOnly: no quick-create at all (cell click only moves focus).
-    const showQuickAdd = canQuickCreate && isCoarse;
-    const canDrop = !readOnly && canEdit;
+    // Tanpa tombol + per-cell di semua versi: desktop pakai klik cell,
+    // mobile pakai tombol Task di bawah daftar.
+    // Mobile tanpa drag & drop samakan mode lain (tap buka TaskModal).
+    const canDrop = !readOnly && canEdit && !isMobileCal;
+    // P2 mini grid: dots + selected state. Tap selects (list below), tidak quick-create.
+    const miniTasks: Task[] = isMobileCal ? (mobileDateTasks.get(date) ?? []) : [];
+    const isMiniSelected = isMobileCal && mobileSelectedDate === date;
+    const isCellSelected = isMobileCal ? isMiniSelected : focused === date;
+    const cellAriaLabel = isMobileCal
+      ? `${dayLabel}, ${t('board.cal.daySummary', { count: miniTasks.length })}`
+      : dayLabel;
+    const handleMiniSelect = (): void => {
+      setFocused(date);
+      setMobileSelected(date);
+    };
     return (
       <div
         key={date}
         role="gridcell"
-        aria-label={dayLabel}
-        aria-selected={focused === date}
+        aria-label={cellAriaLabel}
+        aria-selected={isCellSelected}
         aria-keyshortcuts="ArrowRight ArrowLeft ArrowDown ArrowUp PageDown PageUp Enter"
-        className={`due-cal-cell${dimmed ? ' due-cal-dim' : ''}${isToday ? ' due-cal-today' : ''}`}
+        className={`due-cal-cell${dimmed ? ' due-cal-dim' : ''}${isToday ? ' due-cal-today' : ''}${isMiniSelected ? ' due-cal-mini-selected' : ''}`}
         data-date={date}
         {...(canDrop ? { 'data-drop-key': `date:${date}` } : {})}
-        tabIndex={focused === date ? 0 : -1}
-        onFocus={() => setFocused(date)}
+        tabIndex={isCellSelected ? 0 : -1}
+        onFocus={() => {
+          setFocused(date);
+          if (isMobileCal) setMobileSelected(date);
+        }}
         onKeyDown={(e) => {
           if (e.key === 'ArrowRight') moveFocus(1);
           else if (e.key === 'ArrowLeft') moveFocus(-1);
@@ -469,9 +578,12 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
           else if (e.key === 'ArrowUp') moveFocus(-7);
           else if (e.key === 'PageDown') nav(1);
           else if (e.key === 'PageUp') nav(-1);
-          else if (e.key === 'Enter' && canQuickCreate) onQuickCreate?.(date);
+          else if (e.key === 'Enter') {
+            if (isMobileCal) handleMiniSelect();
+            else if (canQuickCreate) onQuickCreate?.(date);
+          }
         }}
-        onClick={canQuickCreate ? (showQuickAdd ? () => setFocused(date) : () => onQuickCreate?.(date)) : () => setFocused(date)}
+        onClick={isMobileCal ? handleMiniSelect : canQuickCreate ? () => onQuickCreate?.(date) : () => setFocused(date)}
         onDragOver={canDrop ? (e) => {
           e.preventDefault();
           e.dataTransfer.dropEffect = 'move';
@@ -479,19 +591,15 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
         onDrop={canDrop ? onDrop(date) : undefined}
       >
         <span className="due-cal-daynum">{date.slice(8)}</span>
-        {showQuickAdd && (
-          <button
-            type="button"
-            className="due-cal-quickadd"
-            aria-label={`${t('board.cal.addTask', { defaultValue: 'Add task' })} — ${dayLabel}`}
-            style={{ minWidth: 44, minHeight: 44, display: 'grid', placeItems: 'center', fontSize: 18, lineHeight: 1 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onQuickCreate?.(date);
-            }}
-          >
-            <span aria-hidden="true">+</span>
-          </button>
+        {isMobileCal && miniTasks.length > 0 && (
+          <span className="due-cal-mini-dots" aria-hidden="true">
+            {miniTasks.slice(0, 3).map((task) => (
+              <span key={task.id} className={`due-cal-mini-dot due-cal-mini-dot-${task.priority}`} />
+            ))}
+            {miniTasks.length > 3 && (
+              <span className="due-cal-mini-more">+{miniTasks.length - 3}</span>
+            )}
+          </span>
         )}
       </div>
     );
@@ -502,7 +610,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
     : `28px ${rowHeights.map((h) => `${h}px`).join(' ')}`;
 
   return (
-    <div className="due-cal">
+    <div className={`due-cal${isMobileCal ? ' due-cal--mobile' : ''}`}>
       <div className="due-cal-toolbar">
         <div className="due-cal-nav">
           <button type="button" className="btn btn-ghost btn-sm btn-icon" aria-label={t('board.cal.prevMonth')} onClick={() => nav(-1)}>
@@ -540,10 +648,13 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
           <button type="button" className="btn btn-ghost btn-sm btn-icon" aria-label={t('board.cal.nextMonth')} onClick={() => nav(1)}>
             <CaretRight size={14} aria-hidden="true" />
           </button>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setAnchor(today)}>
-            {t('board.cal.today')}
-          </button>
+          {!isMobileCal && (
+            <button type="button" className="btn btn-ghost btn-sm due-cal-today-btn" onClick={() => setAnchor(today)}>
+              {t('board.cal.today')}
+            </button>
+          )}
         </div>
+        {!isMobileCal && (
         <div className="sub-tabs" role="tablist" aria-label={t('board.cal.viewLabel')}>
           <button
             type="button"
@@ -564,6 +675,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
             {t('board.cal.week')}
           </button>
         </div>
+        )}
       </div>
 
       <div className="due-cal-body">
@@ -592,6 +704,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
               </div>
             ))
           )}
+        {!isMobileCal && (
         <div className="due-cal-spans-container" style={{ position: 'absolute', top: '28px', left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
           <div style={{ position: 'relative', width: '100%', height: '100%' }}>
         {segmentsWithLane.map(({ task, row, colStart, span, lane, startDate }) => {
@@ -606,6 +719,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
               date={task.dueDate ?? undefined}
               segmentStart={segmentStart ?? undefined}
               span={span}
+              members={members}
               onOpenTask={onOpenTask}
               onTouchDrop={effectiveTouchDrop}
               onDragOffset={readOnly ? undefined : (_, grabDate) => { dragGrabDateRef.current = grabDate; }}
@@ -718,17 +832,82 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
         })}
           </div>
         </div>
+        )}
         </div>
+
+        {isMobileCal && (
+          <section
+            className="due-cal-mini-list"
+            aria-label={`${formatDayAriaLabel(mobileSelectedDate)} — ${t('board.cal.daySummary', { count: mobileSelectedTasks.length })}`}
+          >
+            <div className="due-cal-mini-list-head">
+              <span className="due-cal-mini-list-title">{formatDayAriaLabel(mobileSelectedDate)}</span>
+              <span className="due-cal-mini-list-count tabular">
+                {t('board.cal.daySummary', { count: mobileSelectedTasks.length })}
+              </span>
+            </div>
+            {mobileSelectedTasks.length === 0 ? (
+              <p className="due-cal-mini-empty">{t('board.cal.emptyTitle')}</p>
+            ) : project ? (
+              <ul className="due-cal-mini-cards">
+                {mobileSelectedTasks.map((task) => (
+                  <li key={task.id}>
+                    <TaskCard
+                      task={task}
+                      onOpen={(id) => onOpenTask?.(id)}
+                      members={members}
+                      showStatus
+                      showMilestone
+                      unread={unreadIds?.has(task.id)}
+                      onTouchDrop={undefined}
+                      dragEnabled={false}
+                      density="full"
+                    />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <ul className="due-cal-mini-cards">
+                {mobileSelectedTasks.map((task) => (
+                  <li key={task.id}>
+                    <button
+                      type="button"
+                      className={`due-cal-mini-card due-cal-mini-card-${task.priority}`}
+                      onClick={() => onOpenTask?.(task.id)}
+                      aria-label={`${task.title} — ${dueLabel(task.dueDate, today)}`}
+                    >
+                      <span className="due-cal-mini-card-title">{task.title}</span>
+                      {task.dueDate && (
+                        <span className="due-cal-mini-card-meta tabular">{dueLabel(task.dueDate, today)}</span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {canQuickCreate && (
+              <Button
+                variant="primary"
+                size="md"
+                className="kanban-add-btn due-cal-mini-add"
+                leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />}
+                onClick={() => onQuickCreate?.(mobileSelectedDate)}
+              >
+                {t('board.cal.addTaskShort', { defaultValue: 'Task' })}
+              </Button>
+            )}
+          </section>
+        )}
 
       <aside
         id="due-cal-strip"
         className={`due-cal-strip ${stripCollapsed ? 'is-collapsed' : ''}`}
-        {...(!readOnly && canEdit ? { 'data-drop-key': 'clear' } : {})}
-        onDragOver={!readOnly && canEdit ? (e) => {
+        {...(!readOnly && canEdit && !isMobileCal ? { 'data-drop-key': 'clear' } : {})}
+        onDragOver={!readOnly && canEdit && !isMobileCal ? (e) => {
           e.preventDefault();
           e.dataTransfer.dropEffect = 'move';
         } : undefined}
-        onDrop={!readOnly && canEdit ? onClearDrop : undefined}
+        onDrop={!readOnly && canEdit && !isMobileCal ? onClearDrop : undefined}
       >
         <div className="due-cal-strip-head">
           {stripCollapsed ? (
@@ -754,9 +933,27 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
             {stripCollapsed ? <CaretRight size={14} /> : <CaretLeft size={14} />}
           </button>
         </div>
-        {!stripCollapsed && unscheduled.length === 0 && <span className="due-cal-strip-empty">{t('board.cal.stripEmpty')}</span>}
-        {!stripCollapsed && unscheduled.map((t) => (
-          <CalTaskChip key={t.id} task={t} onOpenTask={onOpenTask} onTouchDrop={effectiveTouchDrop} onDragOffset={readOnly ? undefined : (_, grabDate) => { dragGrabDateRef.current = grabDate; }} onMove={readOnly ? undefined : openMove} readOnly={readOnly} />
+        {!stripCollapsed && unscheduled.length === 0 && (
+          <span className="due-cal-strip-empty">
+            {isMobileCal ? t('board.cal.emptyTitle') : t('board.cal.stripEmpty')}
+          </span>
+        )}
+        {!stripCollapsed && isMobileCal && project && unscheduled.map((task) => (
+          <TaskCard
+            key={task.id}
+            task={task}
+            onOpen={(id) => onOpenTask?.(id)}
+            members={members}
+            showStatus
+            showMilestone
+            unread={unreadIds?.has(task.id)}
+            onTouchDrop={undefined}
+            dragEnabled={false}
+            density="full"
+          />
+        ))}
+        {!stripCollapsed && (!isMobileCal || !project) && unscheduled.map((t) => (
+          <CalTaskChip key={t.id} task={t} members={members} onOpenTask={onOpenTask} onTouchDrop={effectiveTouchDrop} onDragOffset={readOnly || isMobileCal ? undefined : (_, grabDate) => { dragGrabDateRef.current = grabDate; }} onMove={readOnly || isMobileCal ? undefined : openMove} readOnly={readOnly || isMobileCal} />
         ))}
       </aside>
       </div>
@@ -767,8 +964,8 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
         onClose={() => setMoveTaskId(null)}
         footer={
           <>
-            <Button variant="ghost" onClick={() => setMoveTaskId(null)}>{t('action.cancel', { defaultValue: 'Cancel' })}</Button>
-            <Button variant="primary" leftIcon={<Check size={13} weight="bold" aria-hidden="true" />} onClick={confirmMove}>{t('action.save', { defaultValue: 'Save' })}</Button>
+            <Button variant="ghost" size="md" onClick={() => setMoveTaskId(null)}>{t('action.cancel', { defaultValue: 'Cancel' })}</Button>
+            <Button variant="primary" size="md" leftIcon={<Check size={14} weight="bold" aria-hidden="true" />} onClick={confirmMove}>{t('action.save', { defaultValue: 'Save' })}</Button>
           </>
         }
       >

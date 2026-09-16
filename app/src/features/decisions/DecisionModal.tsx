@@ -21,12 +21,15 @@ import { LIMITS } from '../../lib/limits';
 
 const STATUS_OPTIONS: DecisionStatus[] = ['proposed', 'accepted', 'rejected', 'superseded'];
 
+// autoFocus hanya desktop (hover) — di touch, keyboard virtual melonjak (pola Modal).
+
 interface DecisionModalProps {
   decisionId: string | null;
   onClose: () => void;
 }
 
 export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
+  const AUTO_FOCUS_INPUT = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
   const { t } = useTranslation(['project', 'tracker']);
   const { state, dispatch, canEdit, projectId, saving, lastSavedAt } = useProject();
   const [hotProp, setHotProp] = useState<string | null>(null);
@@ -76,7 +79,7 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
             <Button
               variant="danger"
               size="sm"
-              leftIcon={<Trash size={13} aria-hidden="true" />}
+              leftIcon={<Trash size={14} aria-hidden="true" />}
               onClick={() => setConfirmOpen(true)}
             >
               {t('decisions.modal.delete')}
@@ -169,7 +172,7 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
           className="composer-title"
           rows={1}
           value={decision.title}
-          autoFocus
+          autoFocus={AUTO_FOCUS_INPUT}
           maxLength={LIMITS.DECISION_TITLE}
           onChange={(e) => update({ title: e.target.value })}
           aria-label={t('decisions.modal.titleLabel')}

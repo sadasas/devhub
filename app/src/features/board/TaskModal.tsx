@@ -8,7 +8,7 @@ import {
   TASK_PRIORITY_ORDER,
   TASK_STATUS,
 } from '../../lib/labels';
-import { formatDate, formatRelative, isDigitKey, isTaskCompletable, linkedTestCases, parseLabels, sanitizeIntegerInput } from '../../lib/utils';
+import { formatDate, formatRelative, isDecimalKey, isTaskCompletable, linkedTestCases, parseLabels, sanitizeDecimalInput } from '../../lib/utils';
 import { api } from '../../lib/api';
 import { taskDueChip } from '../../lib/due-dates';
 import { startAfterDue } from '../../lib/start-dates';
@@ -30,6 +30,9 @@ import { SearchableSelect } from '../../components/SearchableSelect';
 import { FE_LIMITS, LIMITS } from '../../lib/limits';
 
 const STATUS_OPTIONS: TaskStatus[] = ['todo', 'inProgress', 'review', 'done'];
+
+// autoFocus hanya desktop (hover) — di touch, keyboard virtual melonjak (pola Modal).
+const AUTO_FOCUS_INPUT = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
 
 interface TaskModalProps {
   taskId: string | null;
@@ -241,7 +244,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
             <Button
               variant="danger"
               size="sm"
-              leftIcon={<Trash size={13} aria-hidden="true" />}
+              leftIcon={<Trash size={14} aria-hidden="true" />}
               onClick={() => setConfirmOpen(true)}
             >
               {t('board.taskModal.delete')}
@@ -378,7 +381,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 >
                   <div className="prop-pop-label">{t('board.taskModal.labelsLabel')}</div>
                   <input
-                    autoFocus
+                    autoFocus={AUTO_FOCUS_INPUT}
                     className="input"
                     placeholder={t('board.taskModal.labelsPlaceholder')}
                     value={labelsDraft}
@@ -472,19 +475,20 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 >
                   <div className="prop-pop-label">{t('board.taskModal.estimateLabel')}</div>
                   <input
-                    autoFocus
+                    autoFocus={AUTO_FOCUS_INPUT}
                     className="input"
                     type="number"
                     min={0}
                     max={FE_LIMITS.ESTIMATE_MAX}
+                    step="any"
                     value={task.estimate ?? ''}
                     aria-label={t('board.taskModal.estimateLabel')}
                     placeholder={t('board.taskModal.estimateLabel')}
-                    inputMode="numeric"
-                    onChange={(e) => { const v = sanitizeIntegerInput(e.target.value); const n = Number(v); update({ estimate: v === '' ? undefined : Math.min(FE_LIMITS.ESTIMATE_MAX, Math.max(0, n)) }); }}
+                    inputMode="decimal"
+                    onChange={(e) => { const v = sanitizeDecimalInput(e.target.value); if (v === '' || v === '.') { update({ estimate: undefined }); return; } const n = Number(v); if (Number.isNaN(n)) return; update({ estimate: Math.min(FE_LIMITS.ESTIMATE_MAX, Math.max(0, n)) }); }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') setEstimateOpen(false);
-                      else if (!isDigitKey(e.key)) e.preventDefault();
+                      else if (!isDecimalKey(e.key)) e.preventDefault();
                     }}
                   />
                 </div>,
@@ -557,7 +561,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 className="composer-title"
                 rows={1}
                 value={task.title}
-                autoFocus
+                autoFocus={AUTO_FOCUS_INPUT}
                 maxLength={LIMITS.TASK_TITLE}
                 onChange={(e) => update({ title: e.target.value })}
                 aria-label={t('board.taskModal.titleLabel')}

@@ -774,9 +774,9 @@ function PublicAbout({ project, state }: { project: PublicProject; state: State 
         <div className="about-cards">
           {prdSections.map((s) => (
             <section key={s.key} className="about-card">
-              <h3 className="about-card-head">
+              <h3 className="section-title">
                 <s.icon size={14} weight="bold" aria-hidden="true" />
-                <span className="about-card-title">{t(s.labelKey)}</span>
+                {t(s.labelKey)}
               </h3>
               <div className="about-card-body">
                 <MarkdownBlocks text={s.value} />

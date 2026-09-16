@@ -20,6 +20,9 @@ interface NewTechModalProps {
 const CATEGORY_OPTIONS: TechEntryCategory[] = ["frontend", "backend", "database", "tooling"];
 const STATUS_OPTIONS: TechStatus[] = ["current", "updateAvailable", "majorUpgrade"];
 
+// autoFocus hanya desktop (hover) — di touch, keyboard virtual melonjak (pola Modal).
+const AUTO_FOCUS_INPUT = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
+
 export function NewTechModal({ open, onClose }: NewTechModalProps) {
   const { t } = useTranslation(["project","tracker"]);
   const { dispatch } = useProject();
@@ -203,7 +206,7 @@ export function NewTechModal({ open, onClose }: NewTechModalProps) {
       inputMode="decimal"
       pattern="[0-9.]*"
       maxLength={FE_LIMITS.TECH_VERSION}
-      autoFocus
+      autoFocus={AUTO_FOCUS_INPUT}
       onBlur={() => { if (!cancelRef.current) commitVersion(); }}
       onKeyDown={(e) => {
         if (e.key === 'Enter') { e.preventDefault(); commitVersion(); }
@@ -226,10 +229,10 @@ export function NewTechModal({ open, onClose }: NewTechModalProps) {
       collapseLabel={t("tracker:board.newTaskModal.contractView")}
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" size="md" onClick={onClose}>
             {t("stack.newTechModal.cancel")}
           </Button>
-          <Button variant="primary" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={submit} disabled={!name.trim()}>
+          <Button variant="primary" size="md" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={submit} disabled={!name.trim()}>
             {t("stack.newTechModal.submit")}
           </Button>
         </>
@@ -241,7 +244,7 @@ export function NewTechModal({ open, onClose }: NewTechModalProps) {
           className="composer-title"
           rows={1}
           required
-          autoFocus
+          autoFocus={AUTO_FOCUS_INPUT}
           placeholder={t("stack.newTechModal.namePlaceholder")}
           value={name}
           onChange={(e) => setName(e.target.value)}

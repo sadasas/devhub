@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
@@ -24,6 +24,8 @@ export function SaveTemplateModal({ open, projectId, projectName, onClose }: Sav
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const errorRef = useRef<HTMLDivElement>(null);
+  const autoFocusName = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
 
   useEffect(() => {
     if (open) {
@@ -45,6 +47,7 @@ export function SaveTemplateModal({ open, projectId, projectName, onClose }: Sav
     } catch (err) {
       setError(getErrorMessage(err, t('templates.errors.save')));
       setSubmitting(false);
+      requestAnimationFrame(() => errorRef.current?.focus());
     }
   }
 
@@ -55,16 +58,16 @@ export function SaveTemplateModal({ open, projectId, projectName, onClose }: Sav
       onClose={onClose}
       width="sm"
       footer={
-        <>
-          <Button variant="ghost" onClick={onClose}>
-            {saved ? t('templates.close') : t('templates.cancel')}
-          </Button>
-          {!saved && (
-            <Button type="submit" form="save-template-form" leftIcon={<BookmarkSimple size={13} aria-hidden="true" />} loading={submitting} disabled={!name.trim()}>
+        saved ? undefined : (
+          <>
+            <Button variant="ghost" size="md" onClick={onClose}>
+              {t('templates.cancel')}
+            </Button>
+            <Button type="submit" size="md" form="save-template-form" leftIcon={<BookmarkSimple size={14} aria-hidden="true" />} loading={submitting} disabled={!name.trim()}>
               {t('templates.save')}
             </Button>
-          )}
-        </>
+          </>
+        )
       }
     >
       {saved ? (
@@ -76,7 +79,7 @@ export function SaveTemplateModal({ open, projectId, projectName, onClose }: Sav
           <Input
             label={t('templates.nameLabel')}
             required
-            autoFocus
+            autoFocus={autoFocusName}
             placeholder={t('templates.namePlaceholder')}
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -88,7 +91,7 @@ export function SaveTemplateModal({ open, projectId, projectName, onClose }: Sav
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
-          {error && <InlineError>{error}</InlineError>}
+          {error && <div ref={errorRef} tabIndex={-1} className="form-error-focus"><InlineError>{error}</InlineError></div>}
         </form>
       )}
     </Modal>

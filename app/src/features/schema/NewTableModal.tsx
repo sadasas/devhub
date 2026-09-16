@@ -31,6 +31,7 @@ export function NewTableModal({ open, onClose, initialPosition = null, onCreated
   const { t } = useTranslation('project');
   const { state, dispatch, projectId } = useProject();
   usePresenceStatus(t('schema.newTableModal.presenceCreating'), open);
+  const autoFocusName = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
   const [name, setName] = useState('');
   const [comment, setComment] = useState('');
   const [indexesInput, setIndexesInput] = useState('');
@@ -125,10 +126,10 @@ export function NewTableModal({ open, onClose, initialPosition = null, onCreated
       width="lg"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" size="md" onClick={onClose}>
             {t('schema.newTableModal.cancel')}
           </Button>
-          <Button type="submit" form="new-table-form" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} disabled={!name.trim()}>
+          <Button type="submit" size="md" form="new-table-form" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} disabled={!name.trim()}>
             {t('schema.newTableModal.submit')}
           </Button>
         </>
@@ -138,14 +139,14 @@ export function NewTableModal({ open, onClose, initialPosition = null, onCreated
         <Input
           label={t('schema.newTableModal.nameLabel')}
           required
-          autoFocus
+          autoFocus={autoFocusName}
           placeholder={t('schema.newTableModal.namePlaceholder')}
           value={name}
           onChange={(e) => setName(e.target.value)}
           maxLength={FE_LIMITS.TABLE_NAME}
           showCount
         />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '4px 0' }}>
+        <div className="new-table-extra-fields">
           <MarkdownField
             label={t('schema.newTableModal.commentLabel')}
             icon={FileText}
@@ -265,7 +266,7 @@ export function NewTableModal({ open, onClose, initialPosition = null, onCreated
                 </div>
               ))}
             </div>
-            <Button variant="ghost" size="sm" leftIcon={<Plus size={13} aria-hidden="true" />} onClick={addColumn}>
+            <Button variant="ghost" size="sm" leftIcon={<Plus size={14} aria-hidden="true" />} onClick={addColumn}>
               {t('schema.table.addColumn')}
             </Button>
             <p className="field-helper" style={{ marginTop: 8 }}>

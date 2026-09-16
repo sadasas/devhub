@@ -51,6 +51,7 @@
     "title": "Projects",
     "subtitle": "Everything you are building, in one place.",
     "newProject": "New project",
+    "workspaceEyebrow": "Workspace / {{slug}}",
     "empty": {
       "titleNoTeam": "Create a team first",
       "titleNoProjects": "No projects yet",
@@ -274,6 +275,18 @@
       "settingsUsageViewHistory": "View history",
       "settingsDangerTitle": "Danger zone",
       "settingsDangerDesc": "Irreversible actions. Proceed carefully.",
+      "settingsNavBack": "Back to app",
+      "settingsNavSearchPlaceholder": "Search settings…",
+      "settingsNavSearchAria": "Search settings",
+      "settingsNavNoResults": "No matching settings",
+      "settingsNavMatches": "Matches:",
+      "settingsNavPlanBilling": "Plan & billing",
+      "settingsNavSoon": "Soon",
+      "settingsGithubTitle": "GitHub",
+      "settingsGithubSoonDesc": "Connect repositories to see pull request status on tasks — conflict badges, auto-blocked work, and deep-links to resolve on GitHub.",
+      "settingsGithubSoonItem1": "Link public & private repos to a project",
+      "settingsGithubSoonItem2": "PR status badges on board cards and task detail",
+      "settingsGithubSoonItem3": "Auto-blocked tasks on conflict, resolve on GitHub",
       "settingsLeaveDesc": "Leave this workspace. You will lose access to all its projects.",
       "settingsLeaveOwnerHelper": "Owners cannot leave. Transfer ownership first.",
       "settingsDeleteDesc": "Permanently delete this team and every project inside it.",
@@ -322,8 +335,7 @@
     "statsAria": "Profile statistics",
     "stat": {
       "teams": "Teams",
-      "projects": "Projects",
-      "activeKeys": "Active API keys"
+      "projects": "Projects"
     },
     "yourTeams": "Your teams",
     "yourProjects": "Your projects",
@@ -331,11 +343,6 @@
     "noProjects": "No projects yet.",
     "members_one": "{{count}} member",
     "members_other": "{{count}} members",
-    "relatedAria": "Related pages",
-    "links": {
-      "apiKeys": "API keys",
-      "mcpGuide": "MCP guide"
-    },
     "securityPanelAria": "Security",
     "security": {
       "password": "Password",
@@ -356,7 +363,14 @@
       },
       "setPassword": "Set password",
       "passwordSetDesc": "No password yet — set one to enable email login. You can keep using Google/GitHub.",
-      "noPasswordHint": "This account uses Google/GitHub login. Set a password to enable email login and allow unlinking OAuth."
+      "noPasswordHint": "This account uses Google/GitHub login. Set a password to enable email login and allow unlinking OAuth.",
+      "connectedTitle": "Connected accounts",
+      "connectedHelper": "Link Google or GitHub to sign in with one click. Keep your email/password — OAuth is additive.",
+      "connect": "Connect",
+      "linked": "Linked",
+      "notLinkedGoogle": "Not linked — scope openid email profile",
+      "notLinkedGithub": "Not linked — scope user:email read:user",
+      "loadingLinked": "Loading linked accounts…"
     },
     "accountPanelAria": "Account details",
     "account": {
@@ -376,6 +390,8 @@
       "idHelper": "Used when contacting support. Copy copies the full ID.",
       "preferencesTitle": "Preferences",
       "preferencesHelper": "Light/Dark — System follows your OS.",
+      "languageTitle": "Language",
+      "languageHelper": "DevHub interface language.",
       "dataHelpTitle": "Data & Help",
       "dataHelpDesc": "Your data stays yours — export or import anytime."
     },

@@ -26,6 +26,10 @@ interface TaskCardProps {
   showMilestone?: boolean;
   unread?: boolean;
   onTouchDrop?: (taskId: string, dropKey: string | null) => void;
+  /** Matikan drag (HTML5 + long-press) saat kolom tak berdampingan (swipe HP). */
+  dragEnabled?: boolean;
+  /** Tampilan ringkas satu baris untuk viewport swipe. */
+  density?: 'full' | 'compact';
 }
 
 export const TaskCard = memo(function TaskCard({
@@ -36,6 +40,8 @@ export const TaskCard = memo(function TaskCard({
   showMilestone = false,
   unread = false,
   onTouchDrop,
+  dragEnabled = true,
+  density = 'full',
 }: TaskCardProps) {
   const { t } = useTranslation('tracker');
   const { state, canEdit, dispatch } = useProject();
@@ -44,7 +50,8 @@ export const TaskCard = memo(function TaskCard({
     (dropKey: string | null) => onTouchDrop?.(task.id, dropKey),
     [task.id, onTouchDrop],
   );
-  useTouchDrag(cardRef, { enabled: canEdit && !!onTouchDrop, onDrop: handleTouchDrop });
+  const canDrag = canEdit && dragEnabled;
+  useTouchDrag(cardRef, { enabled: canDrag && !!onTouchDrop, onDrop: handleTouchDrop });
   const assignee = task.assigneeId ? members?.[task.assigneeId] : undefined;
   const assigneeName = assignee ? (assignee.displayName || assignee.email) : undefined;
   const blockers =
@@ -65,16 +72,24 @@ export const TaskCard = memo(function TaskCard({
       {milestone.name}
     </span>
   );
+  const MAX_VISIBLE_LABELS = 2;
+  const visibleLabels = task.labels.slice(0, MAX_VISIBLE_LABELS);
+  const hiddenLabels = task.labels.slice(MAX_VISIBLE_LABELS);
   const hasChips = Boolean(statusChip) || Boolean(milestoneChip) || task.labels.length > 0;
   const chipRows = hasChips && (
     <div className="task-card-labels">
       {statusChip}
       {milestoneChip}
-      {task.labels.map((label, i) => (
+      {visibleLabels.map((label, i) => (
         <span key={`${label}-${i}`} className="task-label" title={label}>
           {label}
         </span>
       ))}
+      {hiddenLabels.length > 0 && (
+        <span className="task-label-more" title={hiddenLabels.join(', ')}>
+          +{hiddenLabels.length}
+        </span>
+      )}
     </div>
   );
 
@@ -83,8 +98,8 @@ export const TaskCard = memo(function TaskCard({
       <button
         ref={cardRef}
         type="button"
-        className={`task-card task-card-priority-${task.priority}`}
-        draggable={canEdit}
+        className={`task-card task-card-priority-${task.priority}${density === 'compact' ? ' task-card--compact' : ''}`}
+        draggable={canDrag}
         data-testid="task-card"
         data-task-id={task.id}
         onClick={() => onOpen(task.id)}
@@ -93,6 +108,60 @@ export const TaskCard = memo(function TaskCard({
           e.dataTransfer.effectAllowed = 'move';
         }}
       >
+        {density === 'compact' ? (
+          <>
+            <div className="task-card-compact-name" title={task.title}>
+              {task.title}
+            </div>
+            <div className="task-card-compact-row">
+              {assigneeName && task.assigneeId && assignee && (
+                <span className="task-avatar" title={assigneeName}>
+                  <Avatar
+                    src={assignee.avatarUrl ?? null}
+                    name={assigneeName}
+                    email={assignee.email}
+                    id={task.assigneeId}
+                    size={18}
+                    className="task-assignee-avatar"
+                  />
+                  <span className="sr-only">{assigneeName}</span>
+                </span>
+              )}
+              {visibleLabels.map((label, i) => (
+                <span key={`${label}-${i}`} className="task-label" title={label}>
+                  {label}
+                </span>
+              ))}
+              {hiddenLabels.length > 0 && (
+                <span className="task-label-more" title={hiddenLabels.join(', ')}>
+                  +{hiddenLabels.length}
+                </span>
+              )}
+              <Badge
+                tone={TASK_PRIORITY[task.priority].tone}
+                title={t('board.taskCard.priorityTitle', { priority: TASK_PRIORITY[task.priority].label })}
+              >
+                {TASK_PRIORITY_SHORT[task.priority]}
+              </Badge>
+              {(task.estimate != null || task.actualHours != null) && (
+                <span className="tabular" title={t('board.taskCard.actualEstimate')}>
+                  {task.actualHours ?? 0}/{task.estimate ?? '—'}h
+                </span>
+              )}
+              {unread && (
+                <span
+                  className="unread-pill"
+                  role="status"
+                  aria-label={t('board.taskCard.unreadAria', { defaultValue: 'New — not yet viewed' })}
+                  title={t('board.taskCard.unreadTitle', { defaultValue: 'New · not yet viewed' })}
+                >
+                  New
+                </span>
+              )}
+            </div>
+          </>
+        ) : (
+        <>
         <div className="task-card-top">
           {assigneeName && task.assigneeId && assignee && (
             <span className="task-avatar" title={assigneeName}>
@@ -186,6 +255,7 @@ export const TaskCard = memo(function TaskCard({
             priority: TASK_PRIORITY[task.priority].label,
           })}
         </span>
+        </>)}
       </button>
       {canEdit && (
         <PinButton

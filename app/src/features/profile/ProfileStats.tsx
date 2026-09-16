@@ -75,11 +75,6 @@ function ContributionHeatmap({ days }: { days: ActivityDay[] }) {
 
   const dayLabels = [t('profile.days.mon'), t('profile.days.wed'), t('profile.days.fri')];
 
-  function dayLabel(date: string): string {
-    const d = new Date(`${date}T00:00:00`);
-    return `${t(`profile.months.${MONTH_KEYS[d.getMonth()]}`)} ${d.getDate()}, ${d.getFullYear()}`;
-  }
-
   return (
     <div className="profile-heat-layout">
       <div className="profile-heat-days" aria-hidden="true">
@@ -99,33 +94,18 @@ function ContributionHeatmap({ days }: { days: ActivityDay[] }) {
         </div>
         <div
           className="profile-heat-grid"
-          role="grid"
+          role="img"
           aria-label={t('profile.heat.gridAria')}
         >
           {weeks.map((week, w) =>
-            week.map((cell, r) => {
-              if (!cell) {
-                return <span key={`${w}-${r}`} className="profile-heat-cell" data-level="0" />;
-              }
-              const level = levelOf(cell.count);
-              const contributions = t('profile.heat.contributions', { count: cell.count });
-              const cellLabel = t('profile.heat.cellAria', {
-                contributions,
-                date: dayLabel(cell.date),
-              });
-              return (
-                <button
-                  key={`${w}-${r}`}
-                  type="button"
-                  className="profile-heat-cell"
-                  data-level={level}
-                  role="gridcell"
-                  tabIndex={0}
-                  aria-label={cellLabel}
-                  title={cellLabel}
-                />
-              );
-            }),
+            week.map((cell, r) => (
+              <span
+                key={`${w}-${r}`}
+                className="profile-heat-cell"
+                data-level={cell ? levelOf(cell.count) : 0}
+                aria-hidden="true"
+              />
+            )),
           )}
         </div>
       </div>
@@ -207,14 +187,14 @@ export function ProfileStats() {
       {error ? null : loading ? (
         <div className="profile-heat-skeleton" role="status" aria-live="polite" aria-busy="true" aria-label="Loading heatmap">
           <span className="sr-only">Loading heatmap…</span>
-          <div aria-hidden="true" style={{ display: 'grid', gridTemplateColumns: 'repeat(26, 10px)', gap: 3, overflow: 'hidden', height: 84 }}>
+          <div aria-hidden="true" style={{ display: 'grid', gridTemplateColumns: 'repeat(26, 10px)', gap: 4, overflow: 'hidden', height: 84 }}>
             {Array.from({ length: 26 * 7 }).map((_, i) => (
-              <Skeleton key={i} style={{ width: 10, height: 10, borderRadius: 2, opacity: 0.5 + (i % 7) * 0.07 }} />
+              <Skeleton key={i} style={{ width: 10, height: 10, borderRadius: 4, opacity: 0.5 + (i % 7) * 0.07 }} />
             ))}
           </div>
-          <div style={{ display: 'flex', gap: 3, marginTop: 8, opacity: 0.6 }}>
+          <div style={{ display: 'flex', gap: 4, marginTop: 8, opacity: 0.6 }}>
             {Array.from({ length: 12 }).map((_, i) => (
-              <Skeleton key={i} style={{ width: 28, height: 6, borderRadius: 2 }} />
+              <Skeleton key={i} style={{ width: 28, height: 6, borderRadius: 4 }} />
             ))}
           </div>
         </div>
@@ -234,28 +214,28 @@ export function ProfileStats() {
 
       <div className="profile-github-stats">
         <StatTile
-          icon={<CheckCircle size={15} weight="duotone" aria-hidden="true" />}
+          icon={<CheckCircle size={16} weight="duotone" aria-hidden="true" />}
           label={t('profile.activity.tasksCompleted')}
           value={stats?.taskCompletions ?? 0}
           loading={loading}
           error={error}
         />
         <StatTile
-          icon={<Bug size={15} weight="duotone" aria-hidden="true" />}
+          icon={<Bug size={16} weight="duotone" aria-hidden="true" />}
           label={t('profile.activity.issuesResolved')}
           value={stats?.issuesResolved ?? 0}
           loading={loading}
           error={error}
         />
         <StatTile
-          icon={<CalendarBlank size={15} weight="duotone" aria-hidden="true" />}
+          icon={<CalendarBlank size={16} weight="duotone" aria-hidden="true" />}
           label={t('profile.activity.activeDays')}
           value={stats?.activeDays ?? 0}
           loading={loading}
           error={error}
         />
         <StatTile
-          icon={<Flame size={15} weight="duotone" aria-hidden="true" />}
+          icon={<Flame size={16} weight="duotone" aria-hidden="true" />}
           label={t('profile.activity.currentStreak')}
           value={stats?.currentStreak ?? 0}
           suffix={t('profile.activity.streakSuffix')}
@@ -263,7 +243,7 @@ export function ProfileStats() {
           error={error}
         />
         <StatTile
-          icon={<Trophy size={15} weight="duotone" aria-hidden="true" />}
+          icon={<Trophy size={16} weight="duotone" aria-hidden="true" />}
           label={t('profile.activity.longestStreak')}
           value={stats?.longestStreak ?? 0}
           suffix={t('profile.activity.streakSuffix')}

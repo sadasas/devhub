@@ -99,6 +99,10 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+function openSortMenu() {
+  fireEvent.click(screen.getByRole('button', { name: 'Sort' }));
+}
+
 describe('BoardPage only my tasks filter', () => {
   it('shows all tasks and no mine param by default', () => {
     renderBoard();
@@ -108,6 +112,7 @@ describe('BoardPage only my tasks filter', () => {
 
   it('filters columns to the current user when toggled and persists ?mine=1', () => {
     renderBoard();
+    openSortMenu();
     fireEvent.click(screen.getByRole('checkbox', { name: 'Only my tasks' }));
     expect(document.querySelectorAll('[data-testid="task-card"]').length).toBe(2);
     expect(screen.getByTestId('url-probe').textContent).toContain('mine=1');
@@ -119,6 +124,7 @@ describe('BoardPage only my tasks filter', () => {
   it('restores all tasks when toggled off', () => {
     renderBoard('/?mine=1');
     expect(document.querySelectorAll('[data-testid="task-card"]').length).toBe(2);
+    openSortMenu();
     fireEvent.click(screen.getByRole('checkbox', { name: 'Only my tasks' }));
     expect(document.querySelectorAll('[data-testid="task-card"]').length).toBe(3);
     expect(screen.getByTestId('url-probe').textContent).not.toContain('mine');
@@ -129,34 +135,110 @@ describe('BoardPage only my tasks filter', () => {
     const todoCount = () =>
       document.querySelector('[data-testid="kanban-col-todo"] .kanban-col-count')?.textContent;
     expect(todoCount()).toBe('3');
+    openSortMenu();
     fireEvent.click(screen.getByRole('checkbox', { name: 'Only my tasks' }));
     expect(todoCount()).toBe('2');
   });
 
   it('persists the filter across view changes', () => {
     renderBoard('/?mine=1');
-    fireEvent.click(screen.getByRole('tab', { name: 'By Milestone' }));
+    fireEvent.click(screen.getByRole('button', { name: 'By Milestone' }));
     expect(screen.getByTestId('url-probe').textContent).toContain('mine=1');
     expect(document.querySelectorAll('[data-testid="task-card"]').length).toBe(2);
   });
 });
 
+describe('BoardPage status swipe (narrow)', () => {
+  const realMatchMedia = window.matchMedia;
+  beforeEach(() => {
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('767px'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+  });
+  afterEach(() => {
+    window.matchMedia = realMatchMedia;
+  });
+
+  it('renders 4 swipe tabs without chevrons or dots', () => {
+    renderBoard();
+    expect(document.querySelector('[data-testid="kanban-swipe"]')).toBeTruthy();
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual([
+      expect.stringContaining('Todo'),
+      expect.stringContaining('In Progress'),
+      expect.stringContaining('Review'),
+      expect.stringContaining('Done'),
+    ]);
+    expect(screen.queryByRole('button', { name: /Previous|Next/ })).toBeNull();
+    expect(document.querySelector('.kanban-swipe-nav-btn')).toBeNull();
+    expect(document.querySelector('.kanban-dots')).toBeNull();
+    expect(document.querySelector('.kanban-dot')).toBeNull();
+  });
+
+  it('switches columns via tabs', () => {
+    renderBoard();
+    expect(document.querySelector('.kanban-swipe-tab.is-active')?.textContent).toContain('Todo');
+    fireEvent.click(screen.getByRole('tab', { name: /Review/ }));
+    expect(document.querySelector('.kanban-swipe-tab.is-active')?.textContent).toContain('Review');
+    fireEvent.click(screen.getByRole('tab', { name: /Done/ }));
+    expect(document.querySelector('.kanban-swipe-tab.is-active')?.textContent).toContain('Done');
+  });
+
+  it('renders full non-draggable cards with a live region', () => {
+    renderBoard();
+    const cards = document.querySelectorAll('[data-testid="task-card"]');
+    expect(cards.length).toBe(3);
+    cards.forEach((c) => {
+      expect(c.classList.contains('task-card--compact')).toBe(false);
+      expect(c.getAttribute('draggable')).toBe('false');
+    });
+    expect(document.querySelector('.kanban--swipe [role="status"]')?.textContent).toContain('Todo');
+  });
+
+  it('uses the short Task label on the swipe add button', () => {
+    renderBoard();
+    const add = document.querySelector('.kanban--swipe .kanban-add-btn');
+    expect(add?.textContent).toContain('Task');
+    expect(add?.textContent).not.toContain('Add task');
+  });
+
+  it('renders the view switcher as a group of toggle buttons', () => {
+    renderBoard();
+    expect(screen.getByRole('group', { name: 'Board view' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'By Status' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('toggles the CSS fullscreen overlay without the Fullscreen API', () => {
+    renderBoard();
+    const fsBtn = screen.getByRole('button', { name: /Fullscreen/ });
+    expect(document.querySelector('.board-shell--fullscreen')).toBeNull();
+    fireEvent.click(fsBtn);
+    expect(document.querySelector('.board-shell--fullscreen')).toBeTruthy();
+    // Esc exits the overlay.
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(document.querySelector('.board-shell--fullscreen')).toBeNull();
+  });
+});
+
 describe('BoardPage calendar toolbar filters', () => {
-  it('shows Only my tasks + Hide completed next to fullscreen in calendar view', async () => {
+  it('shows sort trigger + Canvas in actions, filters inside the sort menu', async () => {
     renderBoard('/?view=calendar');
-    const hideBox = await screen.findByRole('checkbox', { name: 'Hide completed' });
-    const actions = hideBox.closest('.board-toolbar-actions')!;
+    const trigger = screen.getByRole('button', { name: 'Sort' });
+    const actions = trigger.closest('.board-toolbar-actions')!;
     expect(actions).toBeTruthy();
-    const mineBox = screen.getByRole('checkbox', { name: 'Only my tasks' });
-    expect(mineBox.closest('.board-toolbar-actions')).toBe(actions);
     const fsBtn = screen.getByRole('button', { name: /Fullscreen/ });
     expect(fsBtn.closest('.board-toolbar-actions')).toBe(actions);
-    expect(fsBtn.textContent).toContain('Canvas');
-    // Order: mine, hide, fullscreen.
-    expect(mineBox.compareDocumentPosition(hideBox) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(hideBox.compareDocumentPosition(fsBtn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    // Calendar's own toolbar no longer renders the filters.
-    expect(document.querySelector('.due-cal-toolbar .due-cal-hide')).toBeNull();
+    fireEvent.click(trigger);
+    expect(screen.getByRole('menu')).toBeTruthy();
+    // Calendar mode: no sort options, only filters.
+    expect(screen.queryByRole('menuitemradio')).toBeNull();
+    expect(screen.getByRole('checkbox', { name: 'Only my tasks' })).toBeTruthy();
+    expect(screen.getByRole('checkbox', { name: 'Hide completed' })).toBeTruthy();
   });
 
   it('hides completed chips when Hide completed is toggled', async () => {
@@ -169,6 +251,7 @@ describe('BoardPage calendar toolbar filters', () => {
     renderBoard('/?view=calendar');
     await screen.findByText('Open chip');
     expect(screen.getByText('Done chip')).toBeTruthy();
+    openSortMenu();
     fireEvent.click(screen.getByRole('checkbox', { name: 'Hide completed' }));
     expect(screen.queryByText('Done chip')).toBeNull();
     expect(screen.getByText('Open chip')).toBeTruthy();

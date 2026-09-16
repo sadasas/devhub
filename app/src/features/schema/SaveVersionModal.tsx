@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { newId, nowIso } from '../../lib/utils';
+import { isDecimalKey, newId, nowIso, sanitizeVersionInput } from '../../lib/utils';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { FloppyDisk } from '@phosphor-icons/react';
@@ -23,6 +23,7 @@ export function SaveVersionModal({ open, onClose }: SaveVersionModalProps) {
   const [version, setVersion] = useState('');
   const [notes, setNotes] = useState('');
   const [milestoneId, setMilestoneId] = useState<string | null>(null);
+  const autoFocusVersion = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
 
   if (!state) return null;
   const snapshot = { tables: state.tables, relations: state.relations };
@@ -58,10 +59,10 @@ export function SaveVersionModal({ open, onClose }: SaveVersionModalProps) {
       width="sm"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" size="md" onClick={onClose}>
             {t('schema.saveVersionModal.cancel')}
           </Button>
-          <Button type="submit" form="save-version-form" leftIcon={<FloppyDisk size={13} aria-hidden="true" />} disabled={!version.trim()}>
+          <Button type="submit" size="md" form="save-version-form" leftIcon={<FloppyDisk size={14} aria-hidden="true" />} disabled={!version.trim()}>
             {t('schema.saveVersionModal.submit')}
           </Button>
         </>
@@ -71,10 +72,15 @@ export function SaveVersionModal({ open, onClose }: SaveVersionModalProps) {
         <Input
           label={t('schema.saveVersionModal.versionLabel')}
           required
-          autoFocus
+          autoFocus={autoFocusVersion}
           placeholder={t('schema.saveVersionModal.versionPlaceholder')}
           value={version}
-          onChange={(e) => setVersion(e.target.value)}
+          inputMode="decimal"
+          autoComplete="off"
+          onChange={(e) => setVersion(sanitizeVersionInput(e.target.value))}
+          onKeyDown={(e) => {
+            if (!isDecimalKey(e.key)) e.preventDefault();
+          }}
         />
         <Textarea
           label={t('schema.saveVersionModal.notesLabel')}

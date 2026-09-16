@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import type { Milestone, State } from '../../lib/types';
 import { MilestoneModal } from './MilestoneModal';
@@ -9,7 +9,7 @@ const { setStatusMock } = vi.hoisted(() => ({
 }));
 
 vi.mock('../../state/project-context', () => ({
-  useProject: () => ({ state: mockState, dispatch: mockDispatch, canEdit: true, projectId: 'p1', teamId: 'team1', setStatus: setStatusMock }),
+  useProject: () => ({ state: mockState, dispatch: mockDispatch, canEdit: true, projectId: 'p1', teamId: 'team1', setStatus: setStatusMock, saving: false, lastSavedAt: '2026-09-16T00:00:00.000Z' }),
 }));
 
 const MILESTONE_ID = '44444444-4444-4444-8444-444444444444';
@@ -70,8 +70,25 @@ describe('MilestoneModal', () => {
     expect(screen.getByRole('button', { name: '0.1.0' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Changelog' }));
     expect((screen.getByLabelText('Changelog') as HTMLTextAreaElement).value).toBe('- initial');
-    expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Done' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Done' })).toBeNull();
+  });
+
+  it('shows the autosave status without Cancel/Done', () => {
+    renderModal();
+    expect(screen.getByRole('status')).toBeTruthy();
+    expect(screen.getByText('All changes saved')).toBeTruthy();
+  });
+
+  it('deletes via confirm dialog and closes', () => {
+    const onClose = vi.fn();
+    renderModal(onClose);
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    const dialog = screen.getByRole('dialog', { name: 'Delete milestone?' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    expect(mockDispatch).toHaveBeenCalledWith({ type: 'milestone/remove', id: MILESTONE_ID });
+    expect(onClose).toHaveBeenCalled();
   });
 
   it('dispatches milestone/update when the name is edited', () => {
@@ -157,31 +174,14 @@ describe('MilestoneModal', () => {
     expect(document.querySelector('#milestone-status')).toBeNull();
   });
 
-  it('reverts edits on Cancel and shows the original value when reopened', () => {
-    const onClose = vi.fn();
-    const { unmount } = renderModal(onClose);
+  it('autosaves name edits without a replace revert', () => {
+    renderModal();
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Renamed draft' } });
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'milestone/update',
       id: MILESTONE_ID,
       patch: { name: 'Renamed draft' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    // Cancel me-revert snapshot via replace — state kembali seperti saat modal dibuka.
-    expect(mockDispatch).toHaveBeenCalledWith({ type: 'replace', state: mockState });
-    expect(onClose).toHaveBeenCalled();
-    unmount();
-    // Buka lagi: nilai kembali ke semula (mock state tak pernah termutasi karena dispatch di-mock).
-    renderModal();
-    expect((screen.getByLabelText('Name') as HTMLTextAreaElement).value).toBe('Public beta');
-  });
-
-  it('closes on Done without reverting', () => {
-    const onClose = vi.fn();
-    renderModal(onClose);
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Renamed draft' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
-    expect(onClose).toHaveBeenCalled();
     expect(mockDispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'replace' }));
   });
 });

@@ -56,7 +56,6 @@ function renderPage() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.spyOn(window, 'confirm').mockReturnValue(true);
 });
 
 afterEach(() => {
@@ -114,19 +113,24 @@ describe('KeysPage (Connected MCP)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Revoke' }));
 
-    expect(window.confirm).toHaveBeenCalledWith('Revoke this app? Token will stop working.');
+    // ConfirmDeleteDialog opens with the app-specific description.
+    expect(await screen.findByText('Revoke key')).not.toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm revoke' }));
+
     await waitFor(() => expect(apiMock.revokeAuthorizedApp).toHaveBeenCalledWith('c1'));
     await waitFor(() => expect(screen.queryByText('opencode-desktop')).toBeNull());
   });
 
   it('keeps the app when the confirmation is cancelled', async () => {
-    vi.mocked(window.confirm).mockReturnValue(false);
     apiMock.authorizedApps.mockResolvedValue({ apps: [app()], total: 1 });
 
     renderPage();
     await screen.findByText('opencode-desktop');
 
     fireEvent.click(screen.getByRole('button', { name: 'Revoke' }));
+
+    expect(await screen.findByText('Revoke key')).not.toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
     expect(apiMock.revokeAuthorizedApp).not.toHaveBeenCalled();
     expect(screen.getByText('opencode-desktop')).not.toBeNull();

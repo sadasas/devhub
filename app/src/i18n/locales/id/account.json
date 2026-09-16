@@ -51,6 +51,7 @@
     "title": "Proyek",
     "subtitle": "Semua yang sedang Anda bangun, dalam satu tempat.",
     "newProject": "Proyek baru",
+    "workspaceEyebrow": "Workspace / {{slug}}",
     "empty": {
       "titleNoTeam": "Buat tim terlebih dahulu",
       "titleNoProjects": "Belum ada proyek",
@@ -274,6 +275,18 @@
       "settingsUsageViewHistory": "Lihat riwayat",
       "settingsDangerTitle": "Zona berbahaya",
       "settingsDangerDesc": "Tindakan yang tidak dapat dibatalkan. Lanjutkan dengan hati-hati.",
+      "settingsNavBack": "Kembali ke aplikasi",
+      "settingsNavSearchPlaceholder": "Cari pengaturan…",
+      "settingsNavSearchAria": "Cari pengaturan",
+      "settingsNavNoResults": "Tidak ada pengaturan yang cocok",
+      "settingsNavMatches": "Cocok:",
+      "settingsNavPlanBilling": "Paket & penagihan",
+      "settingsNavSoon": "Segera",
+      "settingsGithubTitle": "GitHub",
+      "settingsGithubSoonDesc": "Hubungkan repositori untuk melihat status pull request di task — badge conflict, task auto-blocked, dan deep-link untuk resolve di GitHub.",
+      "settingsGithubSoonItem1": "Link repo publik & privat ke project",
+      "settingsGithubSoonItem2": "Badge status PR di kartu board dan detail task",
+      "settingsGithubSoonItem3": "Task auto-blocked saat conflict, resolve di GitHub",
       "settingsLeaveDesc": "Keluar dari workspace ini. Anda akan kehilangan akses ke semua proyeknya.",
       "settingsLeaveOwnerHelper": "Owner tidak dapat keluar. Transfer kepemilikan terlebih dahulu.",
       "settingsDeleteDesc": "Hapus permanen tim ini beserta semua proyek di dalamnya.",
@@ -322,8 +335,7 @@
     "statsAria": "Statistik profil",
     "stat": {
       "teams": "Teams",
-      "projects": "Proyek",
-      "activeKeys": "API key aktif"
+      "projects": "Proyek"
     },
     "yourTeams": "Tim Anda",
     "yourProjects": "Proyek Anda",
@@ -331,11 +343,6 @@
     "noProjects": "Belum ada proyek.",
     "members_one": "{{count}} member",
     "members_other": "{{count}} member",
-    "relatedAria": "Halaman terkait",
-    "links": {
-      "apiKeys": "API key",
-      "mcpGuide": "Panduan MCP"
-    },
     "securityPanelAria": "Keamanan",
     "security": {
       "password": "Kata sandi",
@@ -356,7 +363,14 @@
       },
       "setPassword": "Atur kata sandi",
       "passwordSetDesc": "Belum ada kata sandi — atur untuk mengaktifkan login email. Tetap bisa pakai Google/GitHub.",
-      "noPasswordHint": "Akun ini memakai login Google/GitHub. Atur kata sandi untuk mengaktifkan login email dan memungkinkan melepas OAuth."
+      "noPasswordHint": "Akun ini memakai login Google/GitHub. Atur kata sandi untuk mengaktifkan login email dan memungkinkan melepas OAuth.",
+      "connectedTitle": "Akun terhubung",
+      "connectedHelper": "Tautkan Google atau GitHub untuk masuk sekali klik. Email/kata sandi tetap berlaku — OAuth bersifat tambahan.",
+      "connect": "Hubungkan",
+      "linked": "Tertaut",
+      "notLinkedGoogle": "Belum ditautkan — cakupan openid email profile",
+      "notLinkedGithub": "Belum ditautkan — cakupan user:email read:user",
+      "loadingLinked": "Memuat akun tertaut…"
     },
     "accountPanelAria": "Detail akun",
     "account": {
@@ -376,6 +390,8 @@
       "idHelper": "Dipakai saat hubungi support. Salin menyalin full ID.",
       "preferencesTitle": "Preferensi",
       "preferencesHelper": "Terang/Gelap — System ikut OS Anda.",
+      "languageTitle": "Bahasa",
+      "languageHelper": "Bahasa antarmuka DevHub.",
       "dataHelpTitle": "Data & Bantuan",
       "dataHelpDesc": "Data Anda tetap milik Anda — ekspor atau impor kapan saja."
     },

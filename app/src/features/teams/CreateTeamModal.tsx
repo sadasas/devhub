@@ -55,6 +55,8 @@ export function CreateTeamModal({ open, onClose, onSuccess }: CreateTeamModalPro
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const checkSeq = useRef(0);
+  const errorRef = useRef<HTMLDivElement>(null);
+  const autoFocusName = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
 
   // Reset drafts whenever the modal opens.
   useEffect(() => {
@@ -67,6 +69,11 @@ export function CreateTeamModal({ open, onClose, onSuccess }: CreateTeamModalPro
     setError(null);
     setSubmitting(false);
   }, [open ]);
+
+  // Pindahkan fokus ke error setiap submit gagal (pola modal yang sama).
+  useEffect(() => {
+    if (error) requestAnimationFrame(() => errorRef.current?.focus());
+  }, [error]);
 
   const autoBase = slugifyTeamName(name);
   const autoValid =
@@ -211,13 +218,14 @@ export function CreateTeamModal({ open, onClose, onSuccess }: CreateTeamModalPro
       width="sm"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" size="md" onClick={onClose}>
             {t('common:action.cancel')}
           </Button>
           <Button
             type="submit"
+            size="md"
             form="create-team-form"
-            leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />}
+            leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />}
             loading={submitting}
             disabled={!name.trim() || slugBlocked || submitting}
           >
@@ -229,7 +237,7 @@ export function CreateTeamModal({ open, onClose, onSuccess }: CreateTeamModalPro
       <form id="create-team-form" className="form-stack" onSubmit={onSubmit} noValidate>
         <p className="modal-copy">{t('teams.createModal.intro')}</p>
         <div className="form-row">
-          <div style={{ flex: '0 0 96px' }}>
+          <div className="create-team-icon-field">
             <Input
               label={t('teams.createModal.icon')}
               value={icon}
@@ -238,11 +246,11 @@ export function CreateTeamModal({ open, onClose, onSuccess }: CreateTeamModalPro
               onChange={(e) => setIcon(e.target.value)}
             />
           </div>
-          <div style={{ flex: 1 }}>
+          <div className="create-team-name-field">
             <Input
               label={t('teams.createModal.name')}
               required
-              autoFocus
+              autoFocus={autoFocusName}
               placeholder={t('teams.createModal.namePlaceholder')}
               value={name}
               maxLength={FE_LIMITS.TEAM_NAME}
@@ -304,7 +312,7 @@ export function CreateTeamModal({ open, onClose, onSuccess }: CreateTeamModalPro
             </button>
           )}
         </div>
-        {error && <InlineError>{error}</InlineError>}
+        {error && <div ref={errorRef} tabIndex={-1} className="form-error-focus"><InlineError>{error}</InlineError></div>}
       </form>
     </Modal>
   );

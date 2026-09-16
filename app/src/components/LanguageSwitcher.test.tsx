@@ -47,4 +47,21 @@ describe('LanguageSwitcher', () => {
     await Promise.resolve();
     expect(screen.getByRole('button', { name: 'Ganti bahasa' })).toBeTruthy();
   });
+
+  it('segmented variant renders a radiogroup without a dropdown trigger', () => {
+    render(<LanguageSwitcher variant="segmented" />);
+    expect(screen.queryByRole('button', { name: 'Change language' })).toBeNull();
+    expect(screen.getByRole('radiogroup', { name: 'Language' })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'English' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('radio', { name: 'Bahasa Indonesia' }).getAttribute('aria-checked')).toBe('false');
+  });
+
+  it('segmented variant switches language without opening a menu', async () => {
+    render(<LanguageSwitcher variant="segmented" />);
+    fireEvent.click(screen.getByRole('radio', { name: 'Bahasa Indonesia' }));
+    await Promise.resolve();
+    expect(localStorage.getItem(LANG_STORAGE_KEY)).toBe('id');
+    expect(document.documentElement.lang).toBe('id');
+    expect(screen.getByRole('radio', { name: 'Bahasa Indonesia' }).getAttribute('aria-checked')).toBe('true');
+  });
 });

@@ -15,6 +15,9 @@ import { CONCEPT_ICON } from '../../components/propertyIcons';
 
 const STATUS_OPTIONS: TestCaseStatus[] = ['pending', 'pass', 'fail'];
 
+// autoFocus hanya desktop (hover) — di touch, keyboard virtual melonjak (pola Modal).
+const AUTO_FOCUS_INPUT = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
+
 interface NewTestModalProps {
   open: boolean;
   onClose: () => void;
@@ -91,7 +94,7 @@ export function NewTestModal({ open, onClose }: NewTestModalProps) {
       width="lg"
       className="modal-composer"
       footer={
-        <Button type="submit" form="new-test-form" leftIcon={<ListChecks size={13} aria-hidden="true" />} disabled={!name.trim()}>
+          <Button type="submit" size="md" form="new-test-form" leftIcon={<ListChecks size={14} aria-hidden="true" />} disabled={!name.trim()}>
           {t('tests.newModal.submit')}
         </Button>
       }
@@ -109,7 +112,7 @@ export function NewTestModal({ open, onClose }: NewTestModalProps) {
             className="composer-title"
             rows={1}
             required
-            autoFocus
+            autoFocus={AUTO_FOCUS_INPUT}
             placeholder={t('tests.newModal.namePlaceholder')}
             value={name}
             onChange={(e) => setName(e.target.value)}

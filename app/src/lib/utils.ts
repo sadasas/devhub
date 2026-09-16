@@ -140,9 +140,13 @@ export function parseLabels(input: string): string[] {
   return [...new Set(parsed)];
 }
 
-/** Buang semua karakter non-angka/desimal dari input estimate (input teks). */
+/** Hanya angka + satu titik — buang huruf/simbol, titik ganda disatukan. */
 export function sanitizeDecimalInput(input: string): string {
-  return input.replace(/[^0-9.]/g, '');
+  const cleaned = input.replace(/[^0-9.]/g, '');
+  if (!cleaned) return '';
+  const dot = cleaned.indexOf('.');
+  if (dot === -1) return cleaned;
+  return `${cleaned.slice(0, dot + 1)}${cleaned.slice(dot + 1).replace(/\./g, '')}`;
 }
 
 /** Buang semua karakter non-digit — estimate hanya bilangan bulat. */
@@ -156,6 +160,18 @@ export function sanitizeIntegerInput(input: string): string {
  */
 export function isDigitKey(key: string): boolean {
   return key.length !== 1 || /[0-9]/.test(key);
+}
+
+/** Guard keystroke estimate desimal: digit + satu titik + tombol kontrol. */
+export function isDecimalKey(key: string): boolean {
+  return key.length !== 1 || /[0-9.]/.test(key);
+}
+
+/** Versi skema (semver): hanya digit + titik, huruf/simbol dibuang, titik ganda diringkas. */
+export function sanitizeVersionInput(input: string): string {
+  const cleaned = input.replace(/[^0-9.]/g, '');
+  if (!cleaned) return '';
+  return cleaned.replace(/\.{2,}/g, '.').replace(/^\.+/, '');
 }
 
 export function relationLabel(

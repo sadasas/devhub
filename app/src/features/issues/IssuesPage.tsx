@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Bug, Plus } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../state/project-context';
@@ -19,8 +19,29 @@ import { IssueModal } from './IssueModal';
 import { NewIssueModal } from './NewIssueModal';
 import { DataErrorState } from '../../components/DataErrorState';
 
-const ISSUE_SORT_SPECS: SortSpec<Issue>[] = [
-  {
+/** Header ringkas ≤640px (count hilang, sort icon-only, + Issue). */
+function useIsIssuesNarrow(): boolean {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(max-width: 640px)').matches
+      : false,
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(max-width: 640px)');
+    const update = (): void => setMatches(mq.matches);
+    update();
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', update);
+      return () => mq.removeEventListener('change', update);
+    }
+    mq.addListener(update);
+    return () => mq.removeListener(update);
+  }, []);
+  return matches;
+}
+
+const ISSUE_SORT_SPECS: SortSpec<Issue>[] = [  {
     key: 'severity',
     label: 'issues.sort.severity',
     get: (i) => i.severity,
@@ -45,6 +66,7 @@ export function IssuesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   useNewParam(() => setCreating(true), '1', canEdit);
   const { value: sortValue, setSort } = useSortParam();
   const effectiveSort = sortValue ?? { key: 'createdAt', dir: 'desc' as const };
+  const isNarrow = useIsIssuesNarrow();
 
   if (loading) {
     return (
@@ -95,7 +117,7 @@ export function IssuesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const issues = applySort(state.issues, sortSpec, effectiveSort.dir, (i) => !!i.pinned);
 
   return (
-    <div>
+    <div className="issues-page">
       <div className="data-list-header">
         <span className="data-list-count">{t('issues.count', { count: issues.length })}</span>
         <span className="data-list-actions">
@@ -105,8 +127,8 @@ export function IssuesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
             onChange={setSort}
           />
           {canEdit && (
-            <Button size="sm" leftIcon={<Plus size={13} weight="bold" aria-hidden="true" />} onClick={() => setCreating(true)}>
-              {t('issues.newIssue')}
+            <Button size="sm" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setCreating(true)}>
+              {isNarrow ? t('issues.newIssueShort', { defaultValue: 'Issue' }) : t('issues.newIssue')}
             </Button>
           )}
         </span>
@@ -119,8 +141,8 @@ export function IssuesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           description={t('issues.emptyDesc')}
           action={
             canEdit && (
-              <Button leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setCreating(true)}>
-                {t('issues.newIssue')}
+              <Button size="md" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setCreating(true)}>
+                {isNarrow ? t('issues.newIssueShort', { defaultValue: 'Issue' }) : t('issues.newIssue')}
               </Button>
             )
           }

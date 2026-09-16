@@ -36,10 +36,11 @@ function Head({ children, className = '' }: { children: ReactNode; className?: s
   return <div className={`billing-row-head ${className}`.trim()}>{children}</div>;
 }
 
-function Amount({ amount, className = '' }: { amount: number; className?: string }) {
-  const formatted = `Rp ${amount.toLocaleString('id-ID')}`;
+import { formatIdr } from '../../lib/format';
+
+function Amount({ amount, locale = 'id-ID', className = '' }: { amount: number; locale?: string; className?: string }) {
   return (
-    <span className={`billing-amount tabular ${className}`.trim()}>{formatted}</span>
+    <span className={`billing-amount ${className}`.trim()}>{formatIdr(amount, locale)}</span>
   );
 }
 

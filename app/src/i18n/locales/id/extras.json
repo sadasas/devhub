@@ -8,6 +8,7 @@
       "count_other": "{{count}} whiteboard",
       "capHint": " — maksimal {{max}} board per proyek, hapus satu untuk menambah lainnya",
       "newBoard": "Board baru",
+      "newBoardShort": "Board",
       "emptyTitle": "Belum ada whiteboard",
       "emptyDesc": "Sketsa ide dan flowchart di kanvas bersama.",
       "deleteTitle": "Hapus board",
@@ -275,7 +276,10 @@
       "exportMenu": "Ekspor",
       "exportMenuAria": "Ekspor dokumentasi API sebagai",
       "newCollection": "Koleksi baru",
-      "newEndpoint": "Endpoint baru"
+      "newEndpoint": "Endpoint baru",
+      "newCollectionShort": "Koleksi",
+      "newEndpointShort": "Endpoint",
+      "moreActions": "Aksi API lainnya"
     },
     "empty": {
       "title": "Belum ada endpoint yang dipilih",
@@ -291,6 +295,9 @@
       "results_other": "{{count}} hasil",
       "noResults": "Tidak ada yang cocok dengan \"{{query}}\".",
       "empty": "Belum ada koleksi. Buat satu atau impor dokumen OpenAPI."
+    },
+    "drawer": {
+      "title": "Koleksi & Endpoint"
     },
     "tree": {
       "collapse": "Ciutkan {{name}}",
@@ -434,6 +441,8 @@
       "subtitle": "Privat untuk Anda — simpan proyek sebagai template, lalu buat salinannya ke workspace mana pun milik Anda."
     },
     "retry": "Coba lagi",
+    "loading": "Memuat template",
+    "loadingText": "Memuat template…",
     "empty": {
       "title": "Belum ada template",
       "desc": "Buka proyek mana pun dan gunakan “Simpan sebagai template” untuk menjadikannya cetak biru yang dapat digunakan ulang."
@@ -584,6 +593,18 @@
       "cancelled": "Dibatalkan"
     },
     "days": "{{count}} hari",
+    "count": "{{count}} pembayaran",
+    "count_one": "{{count}} pembayaran",
+    "count_other": "{{count}} pembayaran",
+    "detail": "Detail",
+    "cancelSuccess": "Pembayaran dibatalkan",
+    "cancelTitle": "Batalkan pembayaran?",
+    "cancelDesc": "\"{{packageName}}\" untuk \"{{teamName}}\" · Rp {{amount}} akan dibatalkan. Link Pakasir akan kadaluarsa.",
+    "cancelDescFallback": "Pembayaran ini akan dibatalkan. Link Pakasir akan kadaluarsa.",
+    "confirmCancel": "Ya, batalkan",
+    "cancelAria": "Batalkan pembayaran {{packageName}} order {{orderId}}",
+    "detailAria": "Lihat detail pembayaran {{packageName}} order {{orderId}}",
+    "rowLabel": "{{teamName}} {{packageName}} {{status}} {{date}}",
     "resume": "Lanjutkan pembayaran",
     "cancelPayment": "Batalkan",
     "errors": {

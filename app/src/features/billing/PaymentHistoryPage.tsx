@@ -24,7 +24,8 @@ const STATUS_BADGE_KEYS: Record<
 };
 
 export function PaymentHistoryPage() {
-  const { t } = useTranslation('extras');
+  const { t, i18n } = useTranslation('extras');
+  const locale = i18n.language === 'id' ? 'id-ID' : 'en-US';
   const navigate = useNavigate();
   const [payments, setPayments] = useState<PaymentHistoryItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +66,7 @@ export function PaymentHistoryPage() {
       setPayments((prev) =>
         prev ? prev.map((p) => (p.orderId === orderId ? { ...p, status: 'cancelled' } : p)) : prev,
       );
-      setStatusMsg(t('billing.cancelSuccess', { defaultValue: 'Pembayaran dibatalkan' }));
+      setStatusMsg(t('billing.cancelSuccess'));
       setConfirmId(null);
       requestAnimationFrame(() => rowRefs.current.get(orderId)?.focus());
     } catch (err) {
@@ -80,7 +81,7 @@ export function PaymentHistoryPage() {
   const busyConfirm = confirmId != null && busyOrderId === confirmId;
 
   return (
-    <main id="main-content" className="page billing-page" tabIndex={-1}>
+    <div className="page billing-page">
       {/* Flat content card wraps page content; dialog stays a sibling portal target. */}
       <article className="pcard">
         <div className="pcard-body">
@@ -94,7 +95,6 @@ export function PaymentHistoryPage() {
           <span className="page-subtitle billing-count" aria-live="polite">
             {t('billing.count', {
               count: payments.length,
-              defaultValue: `${payments.length} pembayaran`,
             })}
           </span>
         )}
@@ -121,14 +121,14 @@ export function PaymentHistoryPage() {
                 <BillingLedger.Main>
                   <BillingLedger.Head>
                     <Skeleton style={{ width: 110, height: 15 }} />
-                    <Skeleton style={{ width: 64, height: 18, borderRadius: 999 }} />
+                    <Skeleton style={{ width: 64, height: 18, borderRadius: 'var(--radius-pill)' }} />
                   </BillingLedger.Head>
                   <div className="billing-meta">
                     <Skeleton style={{ width: '62%', height: 11 }} />
                   </div>
                 </BillingLedger.Main>
                 <BillingLedger.Actions>
-                  <Skeleton style={{ width: 86, height: 28, borderRadius: 8 }} />
+                  <Skeleton style={{ width: 86, height: 28, borderRadius: 'var(--radius-input)' }} />
                 </BillingLedger.Actions>
               </BillingLedger.Row>
             ))}
@@ -167,11 +167,16 @@ export function PaymentHistoryPage() {
                     if (el) rowRefs.current.set(p.orderId, el);
                     else rowRefs.current.delete(p.orderId);
                   }}
-                  aria-label={`${p.teamName} ${p.packageName} ${badgeLabel} ${formatDateAdmin(p.createdAt)}`}
+                  aria-label={t('billing.rowLabel', {
+                    teamName: p.teamName,
+                    packageName: p.packageName,
+                    status: badgeLabel,
+                    date: formatDateAdmin(p.createdAt, locale),
+                  })}
                 >
                   <BillingLedger.Main>
                     <BillingLedger.Head>
-                      <BillingLedger.Amount amount={p.amount} />
+                      <BillingLedger.Amount amount={p.amount} locale={locale} />
                       <Badge tone={badge.tone} dot={badge.dot}>
                         {badgeLabel}
                       </Badge>
@@ -183,7 +188,7 @@ export function PaymentHistoryPage() {
                       createdAt={p.createdAt}
                       completedAt={p.status === 'completed' ? p.completedAt : null}
                       daysLabel={(c) => t('billing.days', { count: c })}
-                      formatDate={formatDateAdmin}
+                      formatDate={(iso) => formatDateAdmin(iso, locale)}
                     />
                   </BillingLedger.Main>
                   <BillingLedger.Actions>
@@ -192,11 +197,10 @@ export function PaymentHistoryPage() {
                         size="sm"
                         variant="danger"
                         disabled={busy}
-                        leftIcon={<Trash size={13} aria-hidden="true" />}
-                        aria-label={t("billing.cancelAria", {
-                          defaultValue: "Batalkan pembayaran " + p.packageName + " order " + p.orderId.slice(0, 8),
+                        leftIcon={<Trash size={14} aria-hidden="true" />}
+                        aria-label={t('billing.cancelAria', {
                           packageName: p.packageName,
-                          orderId: p.orderId,
+                          orderId: p.orderId.slice(0, 8),
                         })}
                         onClick={() => setConfirmId(p.orderId)}
                       >
@@ -207,15 +211,14 @@ export function PaymentHistoryPage() {
                       size="sm"
                       variant="ghost"
                       disabled={busy}
-                      leftIcon={<ArrowSquareOut size={13} weight="bold" aria-hidden="true" />}
-                      aria-label={t("billing.detailAria", {
-                        defaultValue: "Lihat detail pembayaran " + p.packageName + " order " + p.orderId.slice(0, 8),
+                      leftIcon={<ArrowSquareOut size={14} weight="bold" aria-hidden="true" />}
+                      aria-label={t('billing.detailAria', {
                         packageName: p.packageName,
-                        orderId: p.orderId,
+                        orderId: p.orderId.slice(0, 8),
                       })}
-                      onClick={() => navigate("/billing/" + p.teamId + "?orderId=" + p.orderId)}
+                      onClick={() => navigate(`/billing/${p.teamId}?orderId=${p.orderId}`)}
                     >
-                      {t("billing.detail", { defaultValue: "Detail" })}
+                      {t('billing.detail')}
                     </Button>
                   </BillingLedger.Actions>
                 </BillingLedger.Row>
@@ -230,24 +233,23 @@ export function PaymentHistoryPage() {
       </article>
       <ConfirmDeleteDialog
         open={!!confirmId}
-        title={t('billing.cancelTitle', { defaultValue: 'Batalkan pembayaran?' })}
+        title={t('billing.cancelTitle')}
         description={
           confirmPayment
             ? t('billing.cancelDesc', {
-                defaultValue: `"${confirmPayment.packageName}" untuk "${confirmPayment.teamName}" · Rp ${confirmPayment.amount.toLocaleString('id-ID')} akan dibatalkan. Link Pakasir akan kadaluarsa.`,
                 packageName: confirmPayment.packageName,
                 teamName: confirmPayment.teamName,
-                amount: confirmPayment.amount.toLocaleString('id-ID'),
+                amount: confirmPayment.amount.toLocaleString(locale),
               })
-            : t('billing.cancelDescFallback', { defaultValue: 'Pembayaran ini akan dibatalkan. Link Pakasir akan kadaluarsa.' })
+            : t('billing.cancelDescFallback')
         }
-        confirmLabel={t('billing.confirmCancel', { defaultValue: 'Ya, batalkan' })}
+        confirmLabel={t('billing.confirmCancel')}
         busy={busyConfirm}
         onConfirm={() => void onConfirmCancel()}
         onClose={() => {
           if (!busyConfirm) setConfirmId(null);
         }}
       />
-    </main>
+    </div>
   );
 }

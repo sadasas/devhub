@@ -17,7 +17,7 @@ import {
   UsersThree,
 } from '@phosphor-icons/react';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, NavLink, useNavigate, type NavLinkProps } from 'react-router';
+import { Link, NavLink, useLocation, useNavigate, type NavLinkProps } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useProjects } from '../../state/projects-context';
 import { useTeams } from '../../state/teams-context';
@@ -28,10 +28,13 @@ import { Avatar } from '../../components/Avatar';
 import { NewProjectModal } from '../dashboard/NewProjectModal';
 import { useActivityUnread } from '../../state/ActivityUnreadContext';
 import { WorkspaceSwitcher, writeLastActiveTeamId } from './WorkspaceSwitcher';
+import { SettingsNav } from './SettingsNav';
 
 interface SidebarProps {
   activeTeamId?: string | null;
   onCreateTeam?: () => void;
+  /** Dipakai drawer mobile: tutup drawer setelah user memilih nav section. */
+  onNavigate?: () => void;
 }
 
 // Opsi A — single-mode team-first sidebar. No Home/All-Team branch: the
@@ -116,7 +119,7 @@ const ProjectRow = memo(function ProjectRow({
         <FolderSimple size={14} weight="duotone" aria-hidden="true" />
         <span className="sidebar-item-label">{p.name}</span>
         {hasBadge && (
-          <span className="sidebar-project-badges" aria-label={t('sidebar.projectBadgeAria', { new: badge.new, deleted: badge.deleted, name: p.name }) as string} title={t('sidebar.projectBadgeTitle', { new: badge.new, deleted: badge.deleted }) as string}>
+          <span className="sidebar-project-badges" role="img" aria-label={t('sidebar.projectBadgeAria', { new: badge.new, deleted: badge.deleted, name: p.name }) as string} title={t('sidebar.projectBadgeTitle', { new: badge.new, deleted: badge.deleted }) as string}>
             {badge.new > 0 && <span className="tab-badge tab-badge-new" aria-hidden="true">{badge.new > 99 ? '99+' : badge.new}</span>}
             {badge.deleted > 0 && <span className="tab-badge tab-badge-deleted" aria-hidden="true">{badge.deleted > 99 ? '99+' : badge.deleted}</span>}
           </span>
@@ -256,7 +259,7 @@ function UserFooter() {
   );
 }
 
-export function Sidebar({ activeTeamId, onCreateTeam }: SidebarProps) {
+export function Sidebar({ activeTeamId, onCreateTeam, onNavigate }: SidebarProps) {
   const { projects } = useProjects();
   const { teams, invitations } = useTeams();
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
@@ -267,6 +270,10 @@ export function Sidebar({ activeTeamId, onCreateTeam }: SidebarProps) {
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const { t } = useTranslation('shell');
   const navigate = useNavigate();
+  const location = useLocation();
+  // Single-sidebar rule: on the settings route the main sidebar swaps its
+  // team nav for the settings nav (no second sidebar in content).
+  const settingsMode = location.pathname.endsWith('/settings');
 
   // Reset local UI when switching team context, and load that team's
   // pinned list from storage.
@@ -420,6 +427,18 @@ export function Sidebar({ activeTeamId, onCreateTeam }: SidebarProps) {
           </div>
         </div>
       ) : activeTeam ? (
+        settingsMode ? (
+          <>
+            <WorkspaceSwitcher
+              teams={teams ?? []}
+              activeTeamId={activeTeam.id}
+              onSelectTeam={handleSelectTeam}
+              onCreateTeam={() => onCreateTeam?.()}
+            />
+            <SettingsNav teamSlug={activeTeam.slug || activeTeam.id} dashboardTo={dashboardTo} onSelect={onNavigate} />
+            <UserFooter />
+          </>
+        ) : (
         <>
           <WorkspaceSwitcher
             teams={teams ?? []}
@@ -435,6 +454,7 @@ export function Sidebar({ activeTeamId, onCreateTeam }: SidebarProps) {
               {invitations.length > 0 && (
                 <span
                   className="sidebar-count sidebar-count--alert"
+                  role="img"
                   aria-label={t('sidebar.pendingInvitations', { count: invitations.length }) as string}
                 >
                   {invitations.length > 99 ? '99+' : invitations.length}
@@ -490,17 +510,17 @@ export function Sidebar({ activeTeamId, onCreateTeam }: SidebarProps) {
               </div>
             )}
 
-            <nav className="sidebar-nav sidebar-nav--l1" aria-label={t('sidebar.teamsNav')}>
+            <nav className="sidebar-nav sidebar-nav--l1" aria-label={t('sidebar.projects')}>
               <button
                 type="button"
-                className="sidebar-projects-toggle"
+                className="sidebar-item sidebar-projects-toggle"
                 aria-expanded={showProjects}
                 onClick={() => setShowProjects((v) => !v)}
               >
-                <span aria-hidden="true">{showProjects ? '▾' : '▸'}</span>
-                <FolderSimple size={14} aria-hidden="true" className="sidebar-section-icon" />
-                <span>{t('sidebar.projects')}</span>
+                <FolderSimple size={15} weight="duotone" aria-hidden="true" />
+                <span className="sidebar-item-label">{t('sidebar.projects')}</span>
                 <span className="sidebar-count-muted">{orderedActive.length}</span>
+                <CaretDown size={12} weight="bold" aria-hidden="true" className="sidebar-projects-chevron" />
               </button>
               {showProjects && (
               <>
@@ -533,12 +553,14 @@ export function Sidebar({ activeTeamId, onCreateTeam }: SidebarProps) {
                 <div className="sidebar-archived">
                   <button
                     type="button"
-                    className="sidebar-archived-toggle"
+                    className="sidebar-item sidebar-archived-toggle"
                     aria-expanded={showArchived}
                     onClick={() => setShowArchived((v) => !v)}
                   >
-                    <span>{showArchived ? '▾' : '▸'}</span> {t('sidebar.archived')}
+                    <FolderSimple size={15} weight="duotone" aria-hidden="true" />
+                    <span className="sidebar-item-label">{t('sidebar.archived')}</span>
                     <span className="sidebar-count-muted">{filteredArchived.length}</span>
+                    <CaretDown size={12} weight="bold" aria-hidden="true" className="sidebar-archived-chevron" />
                   </button>
                   {showArchived && (
                     <div className="sidebar-archived-children">
@@ -562,14 +584,14 @@ export function Sidebar({ activeTeamId, onCreateTeam }: SidebarProps) {
             </nav>
           </section>
           <div className="sidebar-team-footer">
-            <NavLink to={membersTo} className={itemClass('sidebar-team-link')}>
-              <UsersThree size={14} weight="duotone" aria-hidden="true" />
+            <NavLink to={membersTo} className={itemClass()}>
+              <UsersThree size={15} weight="duotone" aria-hidden="true" />
               <span>
                 {t('sidebar.members', { count: activeTeam.memberCount })}
               </span>
             </NavLink>
             {activeTeam.role !== 'viewer' && (
-              <NavLink to={settingsTo} className={itemClass('sidebar-team-link')}>
+              <NavLink to={settingsTo} className={itemClass()}>
                 <GearSix size={15} weight="duotone" aria-hidden="true" />
                 <span>
                   {t('sidebar.settings')}
@@ -595,6 +617,7 @@ export function Sidebar({ activeTeamId, onCreateTeam }: SidebarProps) {
           </p>
           <UserFooter />
         </>
+        )
       ) : null}
 
       <NewProjectModal

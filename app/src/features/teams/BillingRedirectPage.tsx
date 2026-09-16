@@ -433,9 +433,9 @@ export function BillingRedirectPage() {
           </section>
           <ConfirmDeleteDialog
             open={confirmCancel}
-            title={t('billing.cancelTitle', { defaultValue: 'Batalkan pembayaran?' })}
-            description={targetPayment ? t('billing.cancelDesc', { defaultValue: '"' + targetPayment.packageName + '" untuk "' + (workspaceName ?? '') + '" \u00b7 Rp ' + targetPayment.amount.toLocaleString('id-ID') + ' akan dibatalkan. Link Pakasir akan kadaluarsa.', packageName: targetPayment.packageName, teamName: workspaceName ?? '', amount: targetPayment.amount.toLocaleString('id-ID') }) : t('billing.cancelDescFallback', { defaultValue: 'Pembayaran ini akan dibatalkan. Link Pakasir akan kadaluarsa.' })}
-            confirmLabel={t('billing.confirmCancel', { defaultValue: 'Ya, batalkan' })}
+            title={t('billing.cancelTitle')}
+            description={targetPayment ? t('billing.cancelDesc', { packageName: targetPayment.packageName, teamName: workspaceName ?? '', amount: targetPayment.amount.toLocaleString('id-ID') }) : t('billing.cancelDescFallback')}
+            confirmLabel={t('billing.confirmCancel')}
             busy={busy === 'cancel'}
             onConfirm={() => { setConfirmCancel(false); void handleCancel(); }}
             onClose={() => { if (busy !== 'cancel') setConfirmCancel(false); }}

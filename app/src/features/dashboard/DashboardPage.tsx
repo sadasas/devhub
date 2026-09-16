@@ -95,7 +95,10 @@ function DashboardCommandBar({
       <div className="welcome-search">
         <MagnifyingGlass size={14} aria-hidden="true" className="welcome-search-icon" />
         <input
-          type="text"
+          type="search"
+          name="q"
+          autoComplete="off"
+          spellCheck={false}
           className="welcome-search-input"
           placeholder={t('dashboard.welcome.search.placeholder')}
           aria-label={t('dashboard.welcome.search.aria')}
@@ -114,8 +117,8 @@ function DashboardCommandBar({
           </button>
         )}
         <span className="welcome-search-hint" aria-hidden="true">
-          <kbd className="welcome-kbd">⌘</kbd>
-          <kbd className="welcome-kbd">K</kbd>
+          <kbd className="welcome-kbd" translate="no">⌘</kbd>
+          <kbd className="welcome-kbd" translate="no">K</kbd>
         </span>
       </div>
       <div className="welcome-command-actions">
@@ -123,7 +126,7 @@ function DashboardCommandBar({
           <span className="welcome-command-label-text" id="dashboard-sort-label">{t('dashboard.welcome.search.sortLabel')}</span>
           <SearchableSelect
             id="dashboard-sort"
-            ariaLabel={t('dashboard.welcome.search.sortAria')}
+            labelledBy="dashboard-sort-label"
             value={sort}
             allowEmpty={false}
             searchable={false}
@@ -145,7 +148,8 @@ function DashboardCommandBar({
 }
 
 export function DashboardPage() {
-  const { t } = useTranslation('account');
+  const { t, i18n } = useTranslation('account');
+  const locale = i18n.language?.startsWith('id') ? 'id-ID' : 'en-US';
   const { projects, loading, error, loadError, refresh } = useProjects();
   const { teams, invitations, loading: teamsLoading, error: teamsError, loadError: teamsLoadError, refresh: refreshTeams } = useTeams();
   const { user } = useAuth();
@@ -608,17 +612,17 @@ export function DashboardPage() {
           <section className="tab-panel dashboard__projects">
           <article className="pcard">
           <div className="pcard-body">
-          <div className="dashboard__header dashboard__header--loading" aria-hidden="true" style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-            <div style={{ minWidth: 0 }}>
+          <div className="dashboard__header dashboard__header--loading" aria-hidden="true">
+            <div className="dashboard__loading-copy">
               <Skeleton style={{ width: 140, height: 12 }} />
-              <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
-                <Skeleton style={{ width: 220, height: 24, borderRadius: 6 }} />
-                <Skeleton style={{ width: 64, height: 18, borderRadius: 999 }} />
-                <Skeleton style={{ width: 64, height: 18, borderRadius: 999 }} />
+              <div className="dashboard__loading-head-row">
+                <Skeleton style={{ width: 220, height: 24, borderRadius: 'var(--radius-sm)' }} />
+                <Skeleton style={{ width: 64, height: 18, borderRadius: 'var(--radius-pill)' }} />
+                <Skeleton style={{ width: 64, height: 18, borderRadius: 'var(--radius-pill)' }} />
               </div>
               <Skeleton style={{ width: 320, height: 12, marginTop: 8 }} />
             </div>
-            <Skeleton style={{ width: 130, height: 36, borderRadius: 8, flexShrink: 0 }} />
+            <Skeleton style={{ width: 130, height: 36, borderRadius: 'var(--radius-input)', flexShrink: 0 }} />
           </div>
           <WelcomeListSkeleton />
           </div>
@@ -677,9 +681,9 @@ export function DashboardPage() {
               {/* Workspace hero di dalam card atas (tanpa card ganda). */}
               <header className="dashboard__header">
                 <div className="dashboard__header-copy">
-                  <p className="dashboard__eyebrow" aria-hidden="true">
-                    WORKSPACE / {activeTeam.slug || activeTeam.id}
-                  </p>
+                    <p className="dashboard__eyebrow" aria-hidden="true">
+                      {t('dashboard.workspaceEyebrow', { slug: activeTeam.slug || activeTeam.id })}
+                    </p>
                   <div className="dashboard__title-row">
                     <h1 className="page-title">
                       {activeTeam.icon?.trim() ? `${activeTeam.icon.trim()} ${activeTeam.name}` : activeTeam.name}
@@ -728,8 +732,8 @@ export function DashboardPage() {
                   <div className="task-activity-bars" role="list" aria-label={t('dashboard.welcome.activity.barsAria')}>
                     {(daily ?? []).map((d) => {
                       const dateObj = new Date(`${d.date}T00:00:00.000Z`);
-                      const day = dateObj.toLocaleDateString('en-US', { weekday: 'narrow', timeZone: 'UTC' });
-                      const fullDate = dateObj.toLocaleDateString('en-US', {
+                      const day = dateObj.toLocaleDateString(locale, { weekday: 'narrow', timeZone: 'UTC' });
+                      const fullDate = dateObj.toLocaleDateString(locale, {
                         weekday: 'short',
                         month: 'short',
                         day: 'numeric',
@@ -760,7 +764,6 @@ export function DashboardPage() {
                           <div
                             className="task-activity-bar"
                             role="listitem"
-                            tabIndex={0}
                             aria-label={t('dashboard.welcome.activity.itemAria', {
                               date: fullDate,
                               created: d.created,
@@ -875,7 +878,7 @@ export function DashboardPage() {
                   <div className="welcome-content">
                     <div className="welcome-queue" role="list" aria-label={t('dashboard.welcome.queue.aria')}>
                       <div className="welcome-queue-head">
-                        <h2 style={{ font: 'inherit', margin: 0 }}>{t('dashboard.welcome.queue.title')}</h2>
+                        <h2 className="welcome-queue-heading">{t('dashboard.welcome.queue.title')}</h2>
                         <span className="welcome-queue-sub">
                           {scopedNextUp && scopedNextUp.length > 0
                             ? t('dashboard.welcome.queue.subOverdue', { count: scopedNextUp.length })
@@ -890,15 +893,15 @@ export function DashboardPage() {
                           aria-label={t('dashboard.welcome.queue.loadingAria')}
                         >
                           <span className="sr-only">{t('dashboard.welcome.queue.loadingText')}</span>
-                          <div aria-hidden="true" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          <div aria-hidden="true" className="welcome-queue-skeleton-list">
                             {[0, 1, 2].map((i) => (
-                              <div key={i} className="welcome-queue-card" style={{ display: "flex", gap: 12, alignItems: "center", padding: 12, border: "1px solid var(--border-hairline)", borderRadius: 12 }}>
-                                <Skeleton style={{ width: 20, height: 20, borderRadius: 999, flexShrink: 0 }} />
-                                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+                              <div key={i} className="welcome-queue-card welcome-queue-skeleton-card">
+                                <Skeleton style={{ width: 20, height: 20, borderRadius: 'var(--radius-pill)', flexShrink: 0 }} />
+                                <div className="welcome-queue-skeleton-main">
                                   <Skeleton style={{ width: "60%", height: 14 }} />
                                   <Skeleton style={{ width: "40%", height: 11 }} />
                                 </div>
-                                <Skeleton style={{ width: 64, height: 18, borderRadius: 999, flexShrink: 0 }} />
+                                <Skeleton style={{ width: 64, height: 18, borderRadius: 'var(--radius-pill)', flexShrink: 0 }} />
                               </div>
                             ))}
                           </div>
@@ -909,7 +912,6 @@ export function DashboardPage() {
                             key={item.taskId}
                             type="button"
                             className="welcome-queue-card"
-                            role="listitem"
                             onClick={() => handleOpenTask(item.projectId, item.taskId)}
                             aria-label={t('dashboard.welcome.queue.openTaskAria', {
                               title: item.title,
@@ -936,7 +938,6 @@ export function DashboardPage() {
                             key={p.id}
                             type="button"
                             className="welcome-queue-card"
-                            role="listitem"
                             onClick={() => handleOpen(p.id)}
                             aria-label={t('dashboard.welcome.queue.openProjectAria', { name: p.name })}
                           >
@@ -977,8 +978,8 @@ export function DashboardPage() {
                           {t('dashboard.welcome.footer.browseTemplates')}
                         </Button>
                         <span className="welcome-footer-hint" aria-hidden="true">
-                          {t('dashboard.welcome.footer.press')} <kbd className="welcome-kbd welcome-kbd-sm">⌘</kbd>
-                          <kbd className="welcome-kbd welcome-kbd-sm">K</kbd> {t('dashboard.welcome.footer.toJump')}
+                          {t('dashboard.welcome.footer.press')} <kbd className="welcome-kbd welcome-kbd-sm" translate="no">⌘</kbd>
+                          <kbd className="welcome-kbd welcome-kbd-sm" translate="no">K</kbd> {t('dashboard.welcome.footer.toJump')}
                         </span>
                       </span>
                     </footer>

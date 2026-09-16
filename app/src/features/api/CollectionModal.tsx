@@ -15,6 +15,9 @@ interface CollectionModalProps {
   onCreated: (id: string) => void;
 }
 
+// autoFocus hanya desktop (hover) — di touch, keyboard virtual melonjak (pola Modal).
+const AUTO_FOCUS_INPUT = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
+
 export function CollectionModal({ onClose, onCreated }: CollectionModalProps) {
   const { t } = useTranslation('extras');
   const { dispatch, state, canEdit } = useProject();
@@ -54,10 +57,10 @@ export function CollectionModal({ onClose, onCreated }: CollectionModalProps) {
       width="sm"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" size="md" onClick={onClose}>
             {t('api.collectionModal.cancel')}
           </Button>
-          <Button variant="primary" leftIcon={<FolderPlus size={13} aria-hidden="true" />} onClick={submit} disabled={!canEdit || !name.trim()}>
+          <Button variant="primary" size="md" leftIcon={<FolderPlus size={14} aria-hidden="true" />} onClick={submit} disabled={!canEdit || !name.trim()}>
             {t('api.collectionModal.create')}
           </Button>
         </>
@@ -66,7 +69,7 @@ export function CollectionModal({ onClose, onCreated }: CollectionModalProps) {
       <div className="form-stack">
         <Input
           label={t('api.workbench.name')}
-          autoFocus
+          autoFocus={AUTO_FOCUS_INPUT}
           placeholder={t('api.collectionModal.namePlaceholder')}
           value={name}
           error={error ?? undefined}

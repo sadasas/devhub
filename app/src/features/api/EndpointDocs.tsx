@@ -29,8 +29,8 @@ export function EndpointDocs({ endpoint }: { endpoint: ApiEndpoint }) {
           variant="ghost"
           size="sm"
           className="btn-icon"
-          aria-label={t('api.workbench.copyPath')}
-          title={t('api.workbench.copyPath')}
+          aria-label={copied ? t('api.workbench.copied') : t('api.workbench.copyPath')}
+          title={copied ? t('api.workbench.copied') : t('api.workbench.copyPath')}
           leftIcon={
             copied ? (
               <Check size={13} weight="bold" aria-hidden="true" />
@@ -39,9 +39,7 @@ export function EndpointDocs({ endpoint }: { endpoint: ApiEndpoint }) {
             )
           }
           onClick={() => void copy(endpoint.path)}
-        >
-          {copied ? t('api.workbench.copied') : t('api.workbench.copy')}
-        </Button>
+        />
       </div>
       {endpoint.description && (
         <div className="preview-block">

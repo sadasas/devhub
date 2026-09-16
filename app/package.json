@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/guard-vite-api-url.mjs && tsc -b && vite build",
+    "build": "node scripts/guard-vite-api-url.mjs && node scripts/guard-css-classes.mjs && tsc -b && vite build",
     "guard:api-base": "node scripts/guard-vite-api-url.mjs",
+    "guard:css": "node scripts/guard-css-classes.mjs",
+    "guard:css-strict": "node scripts/guard-css-classes.mjs --strict",
     "postbuild": "node scripts/sw-precache.mjs",
     "lint": "oxlint",
     "test": "vitest run",

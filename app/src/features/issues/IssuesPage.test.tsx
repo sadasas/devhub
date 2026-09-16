@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { IssuesPage } from './IssuesPage';
 import type { Issue } from '../../lib/types';
 
@@ -70,8 +70,7 @@ describe('IssuesPage', () => {
     });
   });
 
-  it('renders pinned issues first', () => {
-    useProjectMock.mockReturnValue({
+  it('renders pinned issues first', () => {    useProjectMock.mockReturnValue({
       state: {
         issues: [issue(), issue({ id: 'i2', title: 'Second issue', pinned: true })],
         tasks: [],
@@ -85,5 +84,42 @@ describe('IssuesPage', () => {
     const first = screen.getAllByText('Second issue')[0]!;
     expect((first.closest('.data-row') as HTMLElement).textContent).toContain('Second issue');
     expect(screen.getAllByRole('button', { name: 'Unpin issue' }).length).toBe(1);
+  });
+});
+
+describe('IssuesPage mobile header', () => {
+  const realMatchMedia = window.matchMedia;
+  beforeEach(() => {
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('640px'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+    useProjectMock.mockReset();
+    dispatchMock.mockReset();
+    useProjectMock.mockReturnValue({
+      state: {
+        issues: [issue(), issue({ id: 'i2', title: 'Second issue' })],
+        tasks: [],
+      },
+      loading: false,
+      error: null,
+      canEdit: true,
+      dispatch: dispatchMock,
+    });
+  });
+  afterEach(() => {
+    window.matchMedia = realMatchMedia;
+  });
+
+  it('uses the short Issue label on the header add button', () => {
+    renderPage();
+    expect(document.querySelector('.issues-page')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Issue' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'New issue' })).toBeNull();
   });
 });

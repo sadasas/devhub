@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import type { ApiCollection, ApiEndpoint, State } from '../../lib/types';
 import { ApiPage } from './ApiPage';
@@ -647,7 +647,7 @@ describe('ApiPage', () => {
     expect(screen.queryByText(/Document your API/)).not.toBeTruthy();
   });
 
-  it('headers and params tabs expose a mobile field legend', () => {
+  it('headers and params rows carry per-field labels instead of a legend line', () => {
     mocks.state = makeState({
       apiCollections: [collection],
       apiEndpoints: [{ ...endpoint, collectionId: 'c1' }],
@@ -657,10 +657,12 @@ describe('ApiPage', () => {
     fireEvent.click(screen.getByText('Get user'));
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
 
-    expect(screen.getByText('Key · Value · Description')).toBeTruthy();
+    expect(screen.queryByText('Key · Value · Description')).toBeNull();
+    expect(screen.getByLabelText('Header 1 key')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('tab', { name: /Params/ }));
-    expect(screen.getByText('Name · In · Required · Description')).toBeTruthy();
+    expect(screen.queryByText('Name · In · Required · Description')).toBeNull();
+    expect(screen.getByLabelText('Param 1 name')).toBeTruthy();
   });
 
   it('export PDF opens print and cleans up afterwards', async () => {
@@ -795,5 +797,68 @@ describe('ApiPage', () => {
 
     expect(screen.queryByText(/Version /)).not.toBeTruthy();
     expect(screen.queryByText('Changelog')).not.toBeTruthy();
+  });
+});
+
+describe('ApiPage mobile (≤640px)', () => {
+  const realMatchMedia = window.matchMedia;
+
+  beforeEach(() => {
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('640px'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+    mocks.state = makeState({ apiCollections: [collection], apiEndpoints: [endpoint] });
+    mocks.canEdit = true;
+    mocks.dispatch.mockClear();
+  });
+
+  afterEach(() => {
+    window.matchMedia = realMatchMedia;
+  });
+
+  it('hides the count and shows the short Endpoint CTA with icon-only mode tabs', () => {
+    renderPage();
+    expect(document.querySelector('.api-page')).toBeTruthy();
+    expect(screen.queryByText('1 collection · 1 endpoint')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Endpoint' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Workspace' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Docs' })).toBeTruthy();
+  });
+
+  it('opens the collections drawer from the trigger and closes on Escape', () => {
+    renderPage();
+    expect(document.querySelector('.api-page.sidebar-open')).toBeNull();
+    expect(document.querySelector('.api-drawer-backdrop')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Collections & Endpoints' }));
+    expect(document.querySelector('.api-page.sidebar-open')).toBeTruthy();
+    expect(document.querySelector('.api-drawer-backdrop')).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: 'Collections & Endpoints' })).toBeTruthy();
+    expect(screen.getByPlaceholderText('Search collections and endpoints…')).toBeTruthy();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(document.querySelector('.api-page.sidebar-open')).toBeNull();
+    expect(document.querySelector('.api-drawer-backdrop')).toBeNull();
+  });
+
+  it('opens the overflow sheet with import/export actions', () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'More API actions' }));
+    const sheet = screen.getByRole('dialog', { name: 'More API actions' });
+    expect(within(sheet).getByRole('button', { name: 'Import OpenAPI' })).toBeTruthy();
+    expect(within(sheet).getByRole('button', { name: 'Export OpenAPI' })).toBeTruthy();
+    expect(within(sheet).getByRole('button', { name: 'Export PDF' })).toBeTruthy();
+    expect(within(sheet).getByRole('button', { name: 'New collection' })).toBeTruthy();
+  });
+
+  it('hides the Endpoint CTA in docs mode', () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('tab', { name: 'Docs' }));
+    expect(screen.queryByRole('button', { name: 'Endpoint' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'More API actions' })).toBeTruthy();
   });
 });

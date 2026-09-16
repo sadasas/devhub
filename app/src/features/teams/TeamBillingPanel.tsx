@@ -192,9 +192,9 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
         </div>
         <ConfirmDeleteDialog
             open={confirmCancel}
-            title={t('billing.cancelTitle', { defaultValue: 'Batalkan pembayaran?' })}
-            description={pendingPayment ? t('billing.cancelDesc', { defaultValue: '"' + pendingPayment.packageName + '" untuk "' + (data?.team.name ?? '') + '" \u00b7 Rp ' + pendingPayment.amount.toLocaleString('id-ID') + ' akan dibatalkan. Link Pakasir akan kadaluarsa.', packageName: pendingPayment.packageName, teamName: data?.team.name ?? '', amount: pendingPayment.amount.toLocaleString('id-ID') }) : t('billing.cancelDescFallback', { defaultValue: 'Pembayaran ini akan dibatalkan. Link Pakasir akan kadaluarsa.' })}
-            confirmLabel={t('billing.confirmCancel', { defaultValue: 'Ya, batalkan' })}
+            title={t('billing.cancelTitle')}
+            description={pendingPayment ? t('billing.cancelDesc', { packageName: pendingPayment.packageName, teamName: data?.team.name ?? '', amount: pendingPayment.amount.toLocaleString('id-ID') }) : t('billing.cancelDescFallback')}
+            confirmLabel={t('billing.confirmCancel')}
             busy={bannerBusy}
             onConfirm={() => { setConfirmCancel(false); void onCancelPending(); }}
             onClose={() => { if (!bannerBusy) setConfirmCancel(false); }}
