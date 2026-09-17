@@ -6,12 +6,13 @@ interface BadgeProps {
   tone?: BadgeTone;
   dot?: boolean;
   title?: string;
+  className?: string;
   children: ReactNode;
 }
 
-export function Badge({ tone = 'neutral', dot = false, title, children }: BadgeProps) {
+export function Badge({ tone = 'neutral', dot = false, title, className, children }: BadgeProps) {
   return (
-    <span className={`badge badge-${tone}`} title={title}>
+    <span className={`badge badge-${tone}${className ? ` ${className}` : ''}`} title={title}>
       {dot && <span className="badge-dot" aria-hidden="true" />}
       {children}
     </span>

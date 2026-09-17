@@ -13,6 +13,7 @@ import { DataErrorState } from '../../components/DataErrorState';
 import { Skeleton } from '../../components/Skeleton';
 import { SortControl } from '../../components/SortControl';
 import { WhiteboardCard } from './WhiteboardCard';
+import { EditWhiteboardModal } from './EditWhiteboardModal';
 import { NewWhiteboardModal } from './NewWhiteboardModal';
 
 const MAX_BOARDS = 50;
@@ -56,6 +57,7 @@ export function WhiteboardList({ onOpen, loading = false, unreadIds }: Whiteboar
   const { state, error, loadError, canEdit, dispatch, retryLoad } = useProject();
   const [openNew, setOpenNew] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
   useNewParam(() => setOpenNew(true), '1', canEdit);
   const { value: sortValue, setSort } = useSortParam();
   const effectiveSort = sortValue ?? { key: 'createdAt', dir: 'desc' as const };
@@ -106,6 +108,7 @@ export function WhiteboardList({ onOpen, loading = false, unreadIds }: Whiteboar
   );
   const atCap = boards.length >= MAX_BOARDS;
   const deleting = deleteId ? state.whiteboards.find((b) => b.id === deleteId) : undefined;
+  const editing = editId ? state.whiteboards.find((b) => b.id === editId) : undefined;
 
   return (
     <div className="whiteboard-page">
@@ -145,8 +148,10 @@ export function WhiteboardList({ onOpen, loading = false, unreadIds }: Whiteboar
               key={board.id}
               board={board}
               canEdit={canEdit}
+              narrow={isNarrow}
               unread={unreadIds?.has(board.id)}
               onOpen={onOpen ? () => onOpen(board.id) : undefined}
+              onEdit={canEdit ? () => setEditId(board.id) : undefined}
               onDelete={canEdit ? () => setDeleteId(board.id) : undefined}
             />
           ))}
@@ -154,6 +159,8 @@ export function WhiteboardList({ onOpen, loading = false, unreadIds }: Whiteboar
       )}
 
       {openNew && <NewWhiteboardModal onClose={() => setOpenNew(false)} />}
+
+      {editing && <EditWhiteboardModal board={editing} onClose={() => setEditId(null)} />}
 
       {deleting && (
         <ConfirmDeleteDialog

@@ -15,7 +15,6 @@ import {
   Rocket,
   Scales,
   Stack,
-  Trash,
 } from '@phosphor-icons/react';
 import { ApiError, api, type SearchHit } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
@@ -116,7 +115,6 @@ export function ChatPanel({ teamId, userId, userDisplayName }: ChatPanelProps) {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [failedIds, setFailedIds] = useState<string[]>([]);
-  const [deleteFailedIds, setDeleteFailedIds] = useState<string[]>([]);
   const [queuedCount, setQueuedCount] = useState(0);
   const [lastReadAt, setLastReadAt] = useState<string | null>(null);
   const [openedAt, setOpenedAt] = useState<string | null>(null);
@@ -536,21 +534,6 @@ async function onSend() {
     }
   }
 
-async function onDelete(message: ChatMessage) {
-    try {
-      await api.deleteMessage(teamId, message.id);
-      messagesRef.current = messagesRef.current.filter((m) => m.id !== message.id);
-      setMessages(messagesRef.current);
-      setDeleteFailedIds((ids) => ids.filter((id) => id !== message.id));
-    } catch {
-      setDeleteFailedIds((ids) => (ids.includes(message.id) ? ids : [...ids, message.id]));
-    }
-  }
-
-  function onDismissDeleteFailure(message: ChatMessage) {
-    setDeleteFailedIds((ids) => ids.filter((id) => id !== message.id));
-  }
-
   function renderContent(content: string) {
     const parts = content.split(/(@\[[^\]]+\]\([^:]+:[^)]+\))/);
     return parts.map((part, i) => {
@@ -574,12 +557,10 @@ async function onDelete(message: ChatMessage) {
               ? t('teams.chat.chipOpen', { title })
               : t('teams.chat.chipNotShared', { title })
           }
-          disabled={!resolved?.projectId}
+          aria-disabled={!resolved?.projectId}
           style={
             {
-              color: tint,
-              background: `color-mix(in srgb, ${tint} 12%, transparent)`,
-              borderColor: `color-mix(in srgb, ${tint} 30%, transparent)`,
+              '--chat-tint': tint,
             } as React.CSSProperties
           }
           onClick={() => {
@@ -587,7 +568,7 @@ async function onDelete(message: ChatMessage) {
             navigate(entityDeepLink(resolved.projectId, entity as Parameters<typeof entityDeepLink>[1], entityId));
           }}
         >
-          <EntityIcon size={12} weight="bold" aria-hidden="true" style={{ color: tint }} />
+          <EntityIcon size={12} weight="bold" aria-hidden="true" />
           <span className="chat-chip-label">{label}</span>
         </button>
       );
@@ -622,11 +603,13 @@ async function onDelete(message: ChatMessage) {
 
 return (
     <div className="chat-panel">
+      <div className="chat-list-wrap">
       <div className="chat-list" ref={listRef} role="log" aria-live="polite" aria-relevant="additions text" aria-label={t('teams.chat.listAria', { defaultValue: 'Team messages' })} aria-busy={messages === null}>
         <div className="chat-sentinel" ref={sentinelRef} />
         {messages === null ? (
           <>
             <span className="sr-only" role="status">{t('teams.chat.loading', { defaultValue: 'Loading messages' })}</span>
+            <div aria-hidden="true">
             <div className="chat-skeleton-row">
               <span className="chat-skeleton-avatar skeleton" />
               <span className="chat-skeleton-lines">
@@ -647,6 +630,7 @@ return (
                 <span className="skeleton" />
                 <span className="skeleton" />
               </span>
+            </div>
             </div>
           </>
         ) : messages.length === 0 ? (
@@ -683,7 +667,6 @@ return (
             const own = m.authorId === userId;
             const pending = m.id.startsWith('local-');
             const failed = failedIds.includes(m.id);
-            const deleteFailed = deleteFailedIds.includes(m.id);
             return (
               <div
                 key={m.id}
@@ -715,12 +698,12 @@ return (
                         {m.authorName || t('teams.chat.formerMember')}
                       </span>
                       <span className="chat-msg-time">{formatChatTime(m.createdAt)}</span>
-                      {pending && <ClockCounterClockwise size={10} aria-hidden="true" />}
+                      {pending && <ClockCounterClockwise size={12} aria-hidden="true" />}
                     </div>
                   )}
                   {!isGroupStart && pending && (
                     <div className="chat-msg-header">
-                      <ClockCounterClockwise size={10} aria-hidden="true" />
+                      <ClockCounterClockwise size={12} aria-hidden="true" />
                       <span className="chat-msg-time">{formatChatTime(m.createdAt)}</span>
                     </div>
                   )}
@@ -735,17 +718,6 @@ return (
                       </Button>
                     </div>
                   )}
-                  {deleteFailed && (
-                    <div className="chat-msg-actions-inline" role="alert">
-                      {t('teams.chat.notDeleted')}{' '}
-                      <Button variant="ghost" size="sm" onClick={() => void onDelete(m)}>
-                        {t('common:action.retry')}
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => onDismissDeleteFailure(m)}>
-                        {t('teams.chat.dismiss')}
-                      </Button>
-                    </div>
-                  )}
                 </div>
                 <div className="chat-msg-actions">
                   <button
@@ -755,24 +727,14 @@ return (
                     title={t('teams.chat.copyMessage')}
                     onClick={() => void onCopy(m)}
                   >
-                    <Copy size={12} aria-hidden="true" />
+                    <Copy size={16} aria-hidden="true" />
                   </button>
-                  {own && !pending && (
-                    <button
-                      type="button"
-                      className="chat-msg-action"
-                      aria-label={t('teams.chat.deleteMessage')}
-                      title={t('teams.chat.deleteMessage')}
-                      onClick={() => void onDelete(m)}
-                    >
-                      <Trash size={12} aria-hidden="true" />
-                    </button>
-                  )}
                 </div>
               </div>
             );
           })
         )}
+      </div>
         {showFab && messages && messages.length > 0 && (
           <button
             type="button"
@@ -790,7 +752,11 @@ return (
         )}
       </div>
       <div className="chat-inline-feedback">
-        {loadError && <DataErrorState error={loadErrorRaw ?? loadError} onRetry={() => void loadFirstPage()} />}
+        {loadError && (
+          <div role="alert">
+            <DataErrorState error={loadErrorRaw ?? loadError} onRetry={() => void loadFirstPage()} />
+          </div>
+        )}
       </div>
       <div className="chat-composer">
         {queuedCount > 0 && (
@@ -811,27 +777,28 @@ return (
               mentionResults.map((hit, i) => {
                 const entityKey = ENTITY_LABEL_KEYS[hit.entity];
                 return (
-                  <button
-                    type="button"
+                  <div
                     id={`mention-opt-${i}`}
                     key={`${hit.entity}:${hit.entityId}`}
                     className={`mention-option${i === mentionIndex ? ' mention-option-active' : ''}`}
                     role="option"
+                    tabIndex={-1}
                     aria-selected={i === mentionIndex}
                     onMouseEnter={() => setMentionIndex(i)}
                     onClick={() => insertMention(hit)}
                   >
                     <span
                       className="mention-entity-badge"
-                      style={{
-                        background: `color-mix(in srgb, ${ENTITY_TINT[hit.entity] ?? 'var(--text-muted)'} 18%, transparent)`,
-                        color: ENTITY_TINT[hit.entity] ?? 'var(--text-muted)',
-                      }}
+                      style={
+                        {
+                          '--chat-tint': ENTITY_TINT[hit.entity] ?? 'var(--text-muted)',
+                        } as React.CSSProperties
+                      }
                     >
                       {entityKey ? t(entityKey) : hit.entity}
                     </span>
                     <span className="mention-option-title">{hit.title}</span>
-                  </button>
+                  </div>
                 );
               })
             )}
@@ -844,9 +811,11 @@ return (
         <textarea
           id="chat-input"
           className="chat-input"
+          role="combobox"
           aria-label={t('teams.chat.messageAria')}
           aria-describedby={!draft ? 'chat-composer-hint' : undefined}
           aria-expanded={!!mention}
+          aria-haspopup="listbox"
           aria-controls={mention ? 'mention-listbox' : undefined}
           aria-autocomplete="list"
           aria-activedescendant={mention && mentionResults[mentionIndex] ? `mention-opt-${mentionIndex}` : undefined}
@@ -873,26 +842,36 @@ return (
           onKeyDown={(e) => {
             if (mention) {
               if (e.key === 'ArrowDown') {
+                if (mentionResults.length === 0) return;
                 e.preventDefault();
                 setMentionIndex((i) => Math.min(i + 1, mentionResults.length - 1));
                 return;
               }
               if (e.key === 'ArrowUp') {
+                if (mentionResults.length === 0) return;
                 e.preventDefault();
                 setMentionIndex((i) => Math.max(i - 1, 0));
                 return;
               }
               if (e.key === 'Home') {
+                if (mentionResults.length === 0) return;
                 e.preventDefault();
                 setMentionIndex(0);
                 return;
               }
               if (e.key === 'End') {
+                if (mentionResults.length === 0) return;
                 e.preventDefault();
                 setMentionIndex(mentionResults.length - 1);
                 return;
               }
               if (e.key === 'Tab') {
+                const hit = mentionResults[mentionIndex];
+                if (hit) {
+                  e.preventDefault();
+                  insertMention(hit);
+                  return;
+                }
                 setMention(null);
                 return;
               }
@@ -927,9 +906,6 @@ return (
         >
           <PaperPlaneTilt size={14} aria-hidden="true" />
         </Button>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
-          <span style={{ fontSize: 11, color: draft.length > Math.floor(FE_LIMITS.CHAT_MESSAGE * 0.9) ? 'var(--status-danger)' : draft.length > Math.floor(FE_LIMITS.CHAT_MESSAGE * 0.8) ? 'var(--status-warn)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{draft.length.toLocaleString()} / {FE_LIMITS.CHAT_MESSAGE.toLocaleString()}</span>
         </div>
       </div>
     </div>

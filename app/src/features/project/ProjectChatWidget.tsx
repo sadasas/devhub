@@ -90,11 +90,13 @@ export function ProjectChatWidget({
   useEffect(() => {
     if (!effectiveOpen || !isMobile) return;
     const drawer = drawerRef.current;
-    const focusable = drawer?.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])',
-    );
-    const first = focusable?.[0];
-    const last = focusable?.[focusable.length - 1];
+    const queryFocusable = () =>
+      Array.from(
+        drawer?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]):not([aria-disabled="true"]), textarea, input, select, [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      );
+    const first = queryFocusable()[0];
     requestAnimationFrame(() => (drawer?.querySelector<HTMLTextAreaElement>('.chat-input') ?? first)?.focus());
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -106,13 +108,17 @@ export function ProjectChatWidget({
         focusTopbarChatButton();
         return;
       }
-      if (e.key === 'Tab' && focusable && focusable.length > 0) {
-        if (e.shiftKey && document.activeElement === first) {
+      if (e.key === 'Tab') {
+        const focusable = queryFocusable();
+        if (focusable.length === 0) return;
+        const firstEl = focusable[0];
+        const lastEl = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === firstEl) {
           e.preventDefault();
-          (last as HTMLElement)?.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
+          lastEl?.focus();
+        } else if (!e.shiftKey && document.activeElement === lastEl) {
           e.preventDefault();
-          (first as HTMLElement)?.focus();
+          firstEl?.focus();
         }
       }
     };
@@ -165,7 +171,7 @@ export function ProjectChatWidget({
             aria-modal="true"
           >
             <div className="chat-drawer-head">
-              <span id="chat-drawer-title" className="chat-drawer-title">{t('chat.drawerTitle', { team: teamName })}</span>
+              <h2 id="chat-drawer-title" className="chat-drawer-title">{t('chat.drawerTitle', { team: teamName })}</h2>
               <button
                 type="button"
                 className="btn btn-ghost btn-sm btn-icon"
@@ -188,7 +194,7 @@ export function ProjectChatWidget({
           className="chat-inline-shell"
           role="complementary"
           aria-label={t('chat.drawerTitle', { team: teamName })}
-          style={typeof width === 'number' ? ({ width: `${width}px` } as React.CSSProperties) : undefined}
+          style={typeof width === 'number' ? ({ '--chat-w': `${width}px` } as React.CSSProperties) : undefined}
         >
           <div
             className="chat-resizer"
@@ -196,6 +202,8 @@ export function ProjectChatWidget({
             aria-orientation="vertical"
             aria-label={t('chat.resizeAria', { defaultValue: 'Resize chat panel' })}
             aria-valuenow={width}
+            aria-valuetext={typeof width === 'number' ? `${width}px` : undefined}
+            aria-controls="chat-inline-shell"
             aria-valuemin={320}
             aria-valuemax={440}
             tabIndex={0}
@@ -216,7 +224,7 @@ export function ProjectChatWidget({
             }}
           />
           <div className="chat-inline-head">
-            <span className="chat-inline-title">{t('chat.drawerTitle', { team: teamName })}</span>
+            <h2 className="chat-inline-title">{t('chat.drawerTitle', { team: teamName })}</h2>
             <button
               type="button"
               className="btn btn-ghost btn-sm btn-icon"

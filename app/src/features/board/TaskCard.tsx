@@ -139,6 +139,7 @@ export const TaskCard = memo(function TaskCard({
               )}
               <Badge
                 tone={TASK_PRIORITY[task.priority].tone}
+                className="task-card-priority"
                 title={t('board.taskCard.priorityTitle', { priority: TASK_PRIORITY[task.priority].label })}
               >
                 {TASK_PRIORITY_SHORT[task.priority]}
@@ -179,6 +180,7 @@ export const TaskCard = memo(function TaskCard({
           )}
           <Badge
             tone={TASK_PRIORITY[task.priority].tone}
+            className="task-card-priority"
             title={t('board.taskCard.priorityTitle', { priority: TASK_PRIORITY[task.priority].label })}
           >
             {TASK_PRIORITY_SHORT[task.priority]}

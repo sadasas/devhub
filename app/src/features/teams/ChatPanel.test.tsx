@@ -8,7 +8,6 @@ import { ChatPanel } from './ChatPanel';
 const api = vi.hoisted(() => ({
   listMessages: vi.fn(),
   sendMessage: vi.fn(),
-  deleteMessage: vi.fn(),
   search: vi.fn(),
   resolveChatRefs: vi.fn(),
 }));
@@ -99,7 +98,6 @@ beforeEach(() => {
   vi.clearAllMocks();
   api.listMessages.mockReset().mockResolvedValue({ messages: [], nextCursor: null });
   api.sendMessage.mockReset();
-  api.deleteMessage.mockReset();
   api.search.mockReset().mockResolvedValue([]);
   api.resolveChatRefs.mockReset().mockResolvedValue([]);
   idb.getMeta.mockReset().mockResolvedValue(null);
@@ -174,7 +172,7 @@ describe('ChatPanel', () => {
     expect(api.listMessages).toHaveBeenLastCalledWith('t1', { limit: 30, before: 'c1' });
   });
 
-  it('deletes own messages and hides the delete button for others', async () => {
+  it('does not offer message deletion — chat history is permanent', async () => {
     api.listMessages.mockResolvedValue({
       messages: [
         message({ id: 'own', authorId: 'u1', content: 'punyaku' }),
@@ -184,38 +182,10 @@ describe('ChatPanel', () => {
     });
     renderPanel();
     expect(await screen.findByText('punyaku')).toBeTruthy();
-
-    const buttons = screen.getAllByRole('button', { name: 'Delete message' });
-    expect(buttons).toHaveLength(1);
-    fireEvent.click(buttons[0]!);
-    await waitFor(() => {
-      expect(screen.queryByText('punyaku')).toBeNull();
-    });
     expect(screen.getByText('punyanya')).toBeTruthy();
-    expect(api.deleteMessage).toHaveBeenCalledWith('t1', 'own');
-  });
 
-  it('shows a retryable inline error when deleting fails', async () => {
-    api.listMessages.mockResolvedValue({
-      messages: [message({ id: 'own', authorId: 'u1', content: 'punyaku' })],
-      nextCursor: null,
-    });
-    api.deleteMessage.mockRejectedValue(new ApiError(500, 'INTERNAL', 'boom'));
-
-    renderPanel();
-    expect(await screen.findByText('punyaku')).toBeTruthy();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Delete message' }));
-
-    expect(await screen.findByText(/Not deleted/)).toBeTruthy();
-    expect(screen.getByText('punyaku')).toBeTruthy();
-
-    api.deleteMessage.mockResolvedValue({ ok: true });
-    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
-    await waitFor(() => {
-      expect(screen.queryByText('punyaku')).toBeNull();
-    });
-    expect(api.deleteMessage).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole('button', { name: 'Delete message' })).toBeNull();
+    expect(screen.getAllByRole('button', { name: 'Copy message' })).toHaveLength(2);
   });
 
   it('keeps the optimistic bubble queued when sending fails with a network error', async () => {
@@ -501,7 +471,7 @@ describe('ChatPanel', () => {
     renderPanel();
 
     const chip = await screen.findByRole('button', { name: '#111111' });
-    expect(chip.hasAttribute('disabled')).toBe(true);
+    expect(chip.getAttribute('aria-disabled')).toBe('true');
   });
 
   it('resolves refs from multiple messages in one batch', async () => {

@@ -85,6 +85,35 @@ describe('DecisionsPage', () => {
     const first = screen.getAllByText('Use Redis')[0]!;
     expect((first.closest('.data-row') as HTMLElement).textContent).toContain('Use Redis');
   });
+
+  it('hover layer holds Pin+Trash in .swap-group, delete asks for confirm', () => {
+    renderPage();
+    const row = screen.getByText('Use Postgres').closest('.data-row')!;
+    // Keduanya hover-only (tidak persisten saat idle, kecuali pinned peek)
+    const group = row.querySelector('.swap-group');
+    expect(group?.contains(screen.getAllByRole('button', { name: 'Pin decision' })[0]!)).toBe(true);
+    expect(group?.contains(screen.getByRole('button', { name: 'Delete decision Use Postgres' }))).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Delete decision Use Postgres' }));
+    expect(dispatchMock).not.toHaveBeenCalled();
+    expect(screen.getByText('Delete decision record?')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(dispatchMock).toHaveBeenCalledTimes(1);
+    expect(dispatchMock).toHaveBeenCalledWith({ type: 'decision/remove', id: 'd1' });
+    expect(screen.queryByText('Delete decision record?')).toBeNull();
+  });
+
+  it('hides pin/delete for viewers', () => {
+    useProjectMock.mockReturnValue({
+      state: { decisions: [decision()] },
+      loading: false,
+      error: null,
+      canEdit: false,
+      dispatch: dispatchMock,
+    });
+    renderPage();
+    expect(screen.queryByRole('button', { name: 'Pin decision' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Delete decision/ })).toBeNull();
+  });
 });
 
 describe('DecisionsPage mobile header', () => {
@@ -120,5 +149,32 @@ describe('DecisionsPage mobile header', () => {
     expect(document.querySelector('.decisions-page')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Decision' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'New decision' })).toBeNull();
+  });
+
+  it('narrow: inline actions replaced by kebab popup menu', () => {
+    renderPage();
+    expect(screen.getAllByRole('button', { name: /More actions for/ }).length).toBe(2);
+    expect(screen.queryByRole('button', { name: 'Pin decision' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Delete decision/ })).toBeNull();
+  });
+
+  it('narrow: kebab Pin toggles and closes menu', () => {
+    renderPage();
+    fireEvent.click(screen.getAllByRole('button', { name: /More actions for/ })[0]!);
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Pin decision' }));
+    expect(dispatchMock).toHaveBeenCalledWith({
+      type: 'decision/update',
+      id: 'd1',
+      patch: { pinned: true },
+    });
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('narrow: kebab Delete opens confirm dialog', () => {
+    renderPage();
+    fireEvent.click(screen.getAllByRole('button', { name: /More actions for/ })[0]!);
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    expect(screen.queryByText('Delete decision record?')).toBeTruthy();
+    expect(dispatchMock).not.toHaveBeenCalled();
   });
 });

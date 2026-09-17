@@ -19,7 +19,8 @@
       "elements_one": "{{count}} element",
       "elements_other": "{{count}} elements",
       "unread": "Unread",
-      "deleteBoard": "Delete board"
+      "deleteBoard": "Delete board",
+      "editBoard": "Edit board"
     },
     "toolbar": {
       "tools": "Whiteboard tools",
@@ -199,6 +200,16 @@
       "name": "Name",
       "namePlaceholder": "e.g. Q3 architecture sketch",
       "templateLegend": "Template",
+      "description": "Description",
+      "descHelper": "Up to 2000 characters"
+    },
+    "editModal": {
+      "presence": "Editing whiteboard",
+      "title": "Edit board",
+      "cancel": "Cancel",
+      "save": "Save changes",
+      "name": "Name",
+      "namePlaceholder": "e.g. Q3 architecture sketch",
       "description": "Description",
       "descHelper": "Up to 2000 characters"
     },

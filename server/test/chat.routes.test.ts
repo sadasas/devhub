@@ -96,7 +96,7 @@ describe('chat routes', () => {
     expect(list.status).toBe(404);
   });
 
-  it('deletes own messages as a member and others as admin', async () => {
+  it('rejects message deletion — chat history is permanent', async () => {
     const owner = await register('owner@test.dev');
     const editor = await register('editor@test.dev');
     const teamId = await createTeam(owner);
@@ -105,25 +105,20 @@ describe('chat routes', () => {
     const sent = await sendMessage(editor, teamId, 'mine');
     const messageId = sent.body.message.id as string;
 
-    const own = await request(app)
-      .delete(`/api/v1/teams/${teamId}/messages/${messageId}`)
-      .set('Cookie', editor)
-      .set('X-Forwarded-For', uniqueIp());
-    expect(own.status).toBe(200);
+    for (const cookie of [editor, owner]) {
+      const res = await request(app)
+        .delete(`/api/v1/teams/${teamId}/messages/${messageId}`)
+        .set('Cookie', cookie)
+        .set('X-Forwarded-For', uniqueIp());
+      expect(res.status).toBe(404);
+    }
 
-    const second = await sendMessage(owner, teamId, 'admin owns');
-    const denied = await request(app)
-      .delete(`/api/v1/teams/${teamId}/messages/${second.body.message.id}`)
-      .set('Cookie', editor)
-      .set('X-Forwarded-For', uniqueIp());
-    expect(denied.status).toBe(403);
-
-    const third = await sendMessage(editor, teamId, 'admin deletes');
-    const admin = await request(app)
-      .delete(`/api/v1/teams/${teamId}/messages/${third.body.message.id}`)
+    const list = await request(app)
+      .get(`/api/v1/teams/${teamId}/messages`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp());
-    expect(admin.status).toBe(200);
+    expect(list.status).toBe(200);
+    expect(list.body.messages.map((m: { content: string }) => m.content)).toEqual(['mine']);
   });
 
   it('reports unread counts and records read state', async () => {

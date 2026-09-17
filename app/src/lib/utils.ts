@@ -203,3 +203,27 @@ export async function copyText(text: string): Promise<boolean> {
     }
   }
 }
+
+/**
+ * Telan sekali klik kompatibel berikutnya (capture). Dipakai backdrop
+ * modal/sheet: tutup pada mousedown melepas modal, sehingga klik yang datang
+ * sesudahnya mendarat di layer belakang — telan agar tak membuka kartu di
+ * bawah jari. Timeout melepas listener bila tak ada klik susulan.
+ */
+export function swallowNextClick(timeoutMs = 500): void {
+  if (typeof window === 'undefined') return;
+  let done = false;
+  const cleanup = () => {
+    if (done) return;
+    done = true;
+    window.removeEventListener('click', onClick, true);
+  };
+  const onClick = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    window.clearTimeout(timer);
+    cleanup();
+  };
+  const timer = window.setTimeout(cleanup, timeoutMs);
+  window.addEventListener('click', onClick, true);
+}

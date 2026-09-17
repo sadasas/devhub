@@ -499,11 +499,6 @@ export const api = {
     );
     return res.refs;
   },
-  deleteMessage: (teamId: string, messageId: string) =>
-    request<{ ok: true }>(
-      `/teams/${encodeURIComponent(teamId)}/messages/${encodeURIComponent(messageId)}`,
-      { method: 'DELETE' },
-    ),
   setMessagesRead: (teamId: string, lastReadAt: string) =>
     request<{ ok: true }>(`/teams/${encodeURIComponent(teamId)}/messages/read`, {
       method: 'PUT',

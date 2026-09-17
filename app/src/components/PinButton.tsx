@@ -17,7 +17,13 @@ export function PinButton({ pinned, label, onToggle, className }: PinButtonProps
       title={pinned ? 'Unpin' : 'Pin'}
       onClick={(e) => {
         e.stopPropagation();
+        const btn = e.currentTarget;
         onToggle();
+        // Klik pointer meninggalkan fokus di tombol → baris induk tetap
+        // :focus-within sehingga actions terlihat nyangkut walau mouse sudah
+        // pergi. Blur hanya untuk pointer (detail > 0); aktivasi keyboard
+        // (Enter/Space, detail === 0) tetap pegang fokus demi a11y.
+        if (e.detail !== 0) btn.blur();
       }}
     >
       <PushPin size={13} weight={pinned ? 'fill' : 'regular'} aria-hidden="true" />

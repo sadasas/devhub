@@ -1622,6 +1622,21 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
     screen.getByRole('button', { name: 'Fullscreen — F' });
   });
 
+  it('top bar wraps the full board name and shows the full description', () => {
+    const longName = `s${'s'.repeat(120)}`;
+    const desc = 'Line one.\nLine two with details.';
+    renderShell({ ...BOARD, name: longName, description: desc });
+    const nameEl = document.querySelector('.wb-topbar .wb-board-name') as HTMLElement;
+    expect(nameEl.textContent).toBe(longName);
+    const descEl = document.querySelector('.wb-topbar .wb-board-desc') as HTMLElement;
+    expect(descEl.textContent).toBe(desc);
+  });
+
+  it('top bar omits the description slot when the board has none', () => {
+    renderShell(BOARD);
+    expect(document.querySelector('.wb-topbar .wb-board-desc')).toBeNull();
+  });
+
   it('WB-17/20: Escape and X exit presentation straight to normal', () => {
     renderShell(BOARD);
     const shell = document.querySelector('.wb-shell') as HTMLElement;

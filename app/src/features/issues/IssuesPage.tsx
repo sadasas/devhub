@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Bug, Plus } from '@phosphor-icons/react';
+import { Bug, Plus, PushPin, Trash } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../state/project-context';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
@@ -11,6 +11,7 @@ import { shortId } from '../../lib/utils';
 import type { Issue } from '../../lib/types';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
+import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { EmptyState } from '../../components/EmptyState';
 import { PinButton } from '../../components/PinButton';
 import { Skeleton } from '../../components/Skeleton';
@@ -18,6 +19,7 @@ import { SortControl } from '../../components/SortControl';
 import { IssueModal } from './IssueModal';
 import { NewIssueModal } from './NewIssueModal';
 import { DataErrorState } from '../../components/DataErrorState';
+import { RowMenu } from '../../components/RowMenu';
 
 /** Header ringkas ≤640px (count hilang, sort icon-only, + Issue). */
 function useIsIssuesNarrow(): boolean {
@@ -61,6 +63,7 @@ export function IssuesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { state, loading, error, loadError, canEdit, dispatch, retryLoad } = useProject();
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const { t } = useTranslation('tracker');
   useEntityDeepLink('issues', setEditingId);
   useNewParam(() => setCreating(true), '1', canEdit);
@@ -97,7 +100,6 @@ export function IssuesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
               </div>
               <div className="data-row-side" style={{ justifyContent: 'flex-start', gap: 4 }}>
                 <Skeleton style={{ width: 56, height: 18, borderRadius: 6 }} />
-                <Skeleton style={{ width: 28, height: 28, borderRadius: 8 }} />
               </div>
             </div>
           ))}
@@ -154,7 +156,7 @@ export function IssuesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
               ? state.tasks.find((t) => t.id === issue.linkedTaskId)
               : undefined;
 return (
-              <div key={issue.id} className="data-row">
+              <div key={issue.id} className={`data-row${issue.pinned ? ' is-pinned' : ''}`}>
                 <button
                   type="button"
                   className="data-row-main"
@@ -177,19 +179,78 @@ return (
                   </div>
                 </button>
                 <div className="data-row-side" style={{ justifyContent: 'flex-start', gap: '4px' }}>
-                  <Badge tone={ISSUE_STATUS[issue.status].tone}>{t(`issues.status.${issue.status}`)}</Badge>
-                  {canEdit && (
-                    <PinButton
-                      pinned={!!issue.pinned}
-                      label="issue"
-                      onToggle={() =>
-                        dispatch({
-                          type: 'issue/update',
-                          id: issue.id,
-                          patch: { pinned: !issue.pinned },
-                        })
-                      }
-                    />
+                  {canEdit ? (
+                    <span className={`row-swap${issue.pinned ? ' is-pinned' : ''}`}>
+                      <span className="swap-status">
+                        <Badge tone={ISSUE_STATUS[issue.status].tone}>{t(`issues.status.${issue.status}`)}</Badge>
+                      </span>
+                      {!isNarrow && (
+                        <span className="swap-group">
+                          <PinButton
+                            pinned={!!issue.pinned}
+                            label="issue"
+                            onToggle={() =>
+                              dispatch({
+                                type: 'issue/update',
+                                id: issue.id,
+                                patch: { pinned: !issue.pinned },
+                              })
+                            }
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm btn-icon btn-danger swap-trash"
+                            aria-label={`Delete issue ${issue.title}`}
+                            title={`Delete issue ${issue.title}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const btn = e.currentTarget;
+                              setConfirmDeleteId(issue.id);
+                              // Sama seperti PinButton: blur pointer-only agar
+                              // :focus-within tidak nyangkut. Bonus: focus trap
+                              // mengembalikan fokus ke body (bukan Trash) saat
+                              // dialog ditutup via pointer, jadi actions tetap
+                              // hilang. Keyboard (detail 0) tetap restore ke Trash.
+                              if (e.detail !== 0) btn.blur();
+                            }}
+                          >
+                            <Trash size={13} aria-hidden="true" />
+                          </button>
+                        </span>
+                      )}
+                      {isNarrow && (
+                        <RowMenu
+                          triggerLabel={`More actions for ${issue.title}`}
+                          menuLabel={`More actions for ${issue.title}`}
+                          menuId={`issue-rowmenu-${issue.id}`}
+                          actions={[
+                            {
+                              key: 'pin',
+                              // English hardcoded mengikuti preseden PinButton
+                              // ("Pin/Unpin issue") dan menu Archive/Restore
+                              // di ProjectPage.
+                              label: issue.pinned ? 'Unpin issue' : 'Pin issue',
+                              icon: <PushPin size={14} weight={issue.pinned ? 'fill' : 'regular'} />,
+                              onSelect: () =>
+                                dispatch({
+                                  type: 'issue/update',
+                                  id: issue.id,
+                                  patch: { pinned: !issue.pinned },
+                                }),
+                            },
+                            {
+                              key: 'delete',
+                              label: t('issues.modal.delete'),
+                              icon: <Trash size={14} />,
+                              danger: true,
+                              onSelect: () => setConfirmDeleteId(issue.id),
+                            },
+                          ]}
+                        />
+                      )}
+                    </span>
+                  ) : (
+                    <Badge tone={ISSUE_STATUS[issue.status].tone}>{t(`issues.status.${issue.status}`)}</Badge>
                   )}
                 </div>
               </div>
@@ -200,6 +261,19 @@ return (
 
       <NewIssueModal open={creating} onClose={() => setCreating(false)} />
       <IssueModal issueId={editingId} onClose={() => setEditingId(null)} />
+      <ConfirmDeleteDialog
+        open={confirmDeleteId !== null}
+        title={t('issues.modal.deleteConfirmTitle')}
+        description={t('issues.modal.deleteConfirmBody')}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={() => {
+          if (confirmDeleteId === null) return;
+          const targetId = confirmDeleteId;
+          setConfirmDeleteId(null);
+          if (editingId === targetId) setEditingId(null);
+          dispatch({ type: 'issue/remove', id: targetId });
+        }}
+      />
     </div>
   );
 }

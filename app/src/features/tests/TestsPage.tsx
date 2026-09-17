@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckSquare, Plus } from '@phosphor-icons/react';
+import { CheckSquare, Plus, PushPin, Trash } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../state/project-context';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
@@ -11,8 +11,10 @@ import { shortId } from '../../lib/utils';
 import type { TestCase } from '../../lib/types';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
+import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { EmptyState } from '../../components/EmptyState';
 import { PinButton } from '../../components/PinButton';
+import { RowMenu } from '../../components/RowMenu';
 import { Skeleton } from '../../components/Skeleton';
 import { SortControl } from '../../components/SortControl';
 import { NewTestModal } from './NewTestModal';
@@ -56,6 +58,7 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { state, loading, error, loadError, canEdit, dispatch, retryLoad } = useProject();
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const { t } = useTranslation('tracker');
   useEntityDeepLink('testCases', setEditingId);
   useNewParam(() => setCreating(true), '1', canEdit);
@@ -90,7 +93,6 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
               </div>
               <div className="data-row-side" style={{ justifyContent: 'flex-start', gap: 4 }}>
                 <Skeleton style={{ width: 56, height: 18, borderRadius: 6 }} />
-                <Skeleton style={{ width: 28, height: 28, borderRadius: 8 }} />
               </div>
             </div>
           ))}
@@ -171,21 +173,77 @@ return (
                   </div>
                 </button>
                 <div className="data-row-side" style={{ justifyContent: 'flex-start', gap: '4px' }}>
-                  <Badge tone={TEST_CASE_STATUS[test.status].tone}>
-                    {t(`tests.status.${test.status}`)}
-                  </Badge>
-                  {canEdit && (
-                    <PinButton
-                      pinned={!!test.pinned}
-                      label="test case"
-                      onToggle={() =>
-                        dispatch({
-                          type: 'testCase/update',
-                          id: test.id,
-                          patch: { pinned: !test.pinned },
-                        })
-                      }
-                    />
+                  {canEdit ? (
+                    <span className={`row-swap${test.pinned ? ' is-pinned' : ''}`}>
+                      <span className="swap-status">
+                        <Badge tone={TEST_CASE_STATUS[test.status].tone}>
+                          {t(`tests.status.${test.status}`)}
+                        </Badge>
+                      </span>
+                      {!isNarrow && (
+                        <span className="swap-group">
+                          <PinButton
+                            pinned={!!test.pinned}
+                            label="test case"
+                            onToggle={() =>
+                              dispatch({
+                                type: 'testCase/update',
+                                id: test.id,
+                                patch: { pinned: !test.pinned },
+                              })
+                            }
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm btn-icon btn-danger swap-trash"
+                            aria-label={`Delete test case ${test.name}`}
+                            title={`Delete test case ${test.name}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const btn = e.currentTarget;
+                              setConfirmDeleteId(test.id);
+                              // Blur pointer-only agar :focus-within tidak
+                              // nyangkut (pola IssuesPage).
+                              if (e.detail !== 0) btn.blur();
+                            }}
+                          >
+                            <Trash size={13} aria-hidden="true" />
+                          </button>
+                        </span>
+                      )}
+                      {isNarrow && (
+                        <RowMenu
+                          triggerLabel={`More actions for ${test.name}`}
+                          menuLabel={`More actions for ${test.name}`}
+                          menuId={`test-rowmenu-${test.id}`}
+                          actions={[
+                            {
+                              key: 'pin',
+                              // English hardcoded mengikuti preseden PinButton.
+                              label: test.pinned ? 'Unpin test case' : 'Pin test case',
+                              icon: <PushPin size={14} weight={test.pinned ? 'fill' : 'regular'} />,
+                              onSelect: () =>
+                                dispatch({
+                                  type: 'testCase/update',
+                                  id: test.id,
+                                  patch: { pinned: !test.pinned },
+                                }),
+                            },
+                            {
+                              key: 'delete',
+                              label: t('tests.modal.delete'),
+                              icon: <Trash size={14} />,
+                              danger: true,
+                              onSelect: () => setConfirmDeleteId(test.id),
+                            },
+                          ]}
+                        />
+                      )}
+                    </span>
+                  ) : (
+                    <Badge tone={TEST_CASE_STATUS[test.status].tone}>
+                      {t(`tests.status.${test.status}`)}
+                    </Badge>
                   )}
                 </div>
               </div>
@@ -196,6 +254,19 @@ return (
 
       <NewTestModal open={creating} onClose={() => setCreating(false)} />
       <TestModal testId={editingId} onClose={() => setEditingId(null)} />
+      <ConfirmDeleteDialog
+        open={confirmDeleteId !== null}
+        title={t('tests.modal.deleteConfirmTitle')}
+        description={t('tests.modal.deleteConfirmBody')}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={() => {
+          if (confirmDeleteId === null) return;
+          const targetId = confirmDeleteId;
+          setConfirmDeleteId(null);
+          if (editingId === targetId) setEditingId(null);
+          dispatch({ type: 'testCase/remove', id: targetId });
+        }}
+      />
     </div>
   );
 }

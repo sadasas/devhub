@@ -9,6 +9,7 @@ import { applySort, type SortSpec } from "../../lib/sort";
 import { compareVersions } from "../../lib/compare-version";
 import type { Milestone } from "../../lib/types";
 import { Button } from "../../components/Button";
+import { ConfirmDeleteDialog } from "../../components/ConfirmDeleteDialog";
 import { Skeleton } from "../../components/Skeleton";
 import { SortControl } from "../../components/SortControl";
 import { MilestoneModal } from "./MilestoneModal";
@@ -51,9 +52,10 @@ function useIsReleasesNarrow(): boolean {
 
 export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { t } = useTranslation("project");
-  const { state, loading, error, loadError, canEdit, retryLoad } = useProject();
+  const { state, loading, error, loadError, canEdit, dispatch, retryLoad } = useProject();
   const [openNew, setOpenNew] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [taskEditId, setTaskEditId] = useState<string | null>(null);
   useEntityDeepLink("milestones", setEditId);
   useNewParam(() => setOpenNew(true), "1", canEdit);
@@ -205,6 +207,7 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
             unreadIds={unreadIds}
             canEdit={canEdit}
             onSelect={setMid} onEdit={setEditId}
+            onDelete={setDeleteId}
             onNew={() => setOpenNew(true)}
           />
         ) : (
@@ -214,6 +217,19 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
 
       {openNew && <NewMilestoneModal onClose={() => setOpenNew(false)} />}
       <MilestoneModal milestoneId={editId} onClose={() => setEditId(null)} />
+      <ConfirmDeleteDialog
+        open={deleteId !== null}
+        title={t("releases.modal.deleteConfirmTitle")}
+        description={t("releases.modal.deleteConfirmBody")}
+        onClose={() => setDeleteId(null)}
+        onConfirm={() => {
+          if (deleteId === null) return;
+          const targetId = deleteId;
+          setDeleteId(null);
+          if (editId === targetId) setEditId(null);
+          dispatch({ type: "milestone/remove", id: targetId });
+        }}
+      />
       {taskEditId && <TaskModal taskId={taskEditId} onClose={() => setTaskEditId(null)} />}
     </div>
   );

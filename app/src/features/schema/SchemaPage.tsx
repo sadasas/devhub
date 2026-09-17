@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { ArrowLeft, ArrowsOutSimple, Broom, CaretLeft, CaretRight, DotsThree, Eye, FloppyDisk, GitDiff, Graph, LinkSimple, List, Plus, Presentation, Stack, Trash, UploadSimple, Warning } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowsOutSimple, Broom, CaretLeft, CaretRight, Database, DotsThree, Eye, FileImage, FileSql, FloppyDisk, GitDiff, Graph, Image, LinkSimple, List, Plus, Presentation, Stack, Trash, UploadSimple, Warning } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { formatDate, relationLabel as formatRelation, shortId } from '../../lib/utils';
 import type { Relation, SchemaVersion, Table } from '../../lib/types';
@@ -112,6 +112,7 @@ function SchemaMoreMenu({ tables, relations, projectName, versionLabel, showImpo
             downloadText(body, `${safeFileName(fullBase)}.sql`);
           }}
         >
+          <FileSql size={15} aria-hidden="true" />
           {t('schema.export.ddl')}
         </button>
         <button
@@ -123,6 +124,7 @@ function SchemaMoreMenu({ tables, relations, projectName, versionLabel, showImpo
             downloadText(body, `${safeFileName(fullBase)}.dbml`);
           }}
         >
+          <Database size={15} aria-hidden="true" />
           {t('schema.export.dbml')}
         </button>
         <button
@@ -134,6 +136,7 @@ function SchemaMoreMenu({ tables, relations, projectName, versionLabel, showImpo
             setOpen(false);
           }}
         >
+          <FileImage size={15} aria-hidden="true" />
           {t('schema.export.svg')}
         </button>
         <button
@@ -145,6 +148,7 @@ function SchemaMoreMenu({ tables, relations, projectName, versionLabel, showImpo
             setOpen(false);
           }}
         >
+          <Image size={15} aria-hidden="true" />
           {t('schema.export.png')}
         </button>
         {showImport && (
@@ -158,7 +162,7 @@ function SchemaMoreMenu({ tables, relations, projectName, versionLabel, showImpo
                 onImport();
               }}
             >
-              <UploadSimple size={13} aria-hidden="true" />
+              <UploadSimple size={15} aria-hidden="true" />
               {t('schema.import.title')}
             </button>
           </>

@@ -114,6 +114,17 @@ describe('TaskCard', () => {
     expect(screen.queryByRole('button', { name: /Pin task/ })).toBeNull();
   });
 
+  it('marks the priority badge as the hover-swap peer of the pin button', () => {
+    render(<TaskCard task={task({ priority: 'medium' })} onOpen={() => {}} />);
+    // Badge prioritas membawa kelas swap agar CSS menyembunyikannya saat
+    // hover/focus (Pin absolute muncul di tempatnya, tanpa layout-shift).
+    const badge = document.querySelector('.task-card-priority');
+    expect(badge?.textContent).toMatch(/Med/);
+    expect(screen.getByRole('button', { name: 'Pin task' })).toBeTruthy();
+    // Info prioritas tetap tersedia untuk screen reader walau badge hidden.
+    expect(document.querySelector('.task-card .sr-only')?.textContent).toMatch(/Medium/);
+  });
+
   it('renders an assignee avatar and username when the member map knows the assignee', () => {
     render(
       <TaskCard

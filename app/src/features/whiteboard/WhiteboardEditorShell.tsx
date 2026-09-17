@@ -961,7 +961,12 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
           <Button variant="ghost" size="sm" className="back-btn" onClick={onBack} aria-label={t('whiteboard.toolbar.back')}>
             <ArrowLeft size={14} aria-hidden="true" />
           </Button>
-          <span className="wb-board-name" title={board.name}>{board.name}</span>
+          <span className="wb-board-head">
+            <span className="wb-board-name">{board.name}</span>
+            {board.description.trim() !== '' && (
+              <span className="wb-board-desc">{board.description}</span>
+            )}
+          </span>
           <span className="wb-topbar-spacer" aria-hidden="true" />
           <Button variant="ghost" size="sm" className="wb-canvas-mode-btn" leftIcon={<ArrowsOutSimple size={14} aria-hidden="true" />} onClick={toggleFullscreen} aria-label={t('whiteboard.toolbar.fsEnterAria')} title={t('whiteboard.toolbar.fsEnterTitle')}>
             {t('whiteboard.toolbar.canvasMode')}

@@ -4,7 +4,7 @@ import { pool } from '../../../db/pool.js';
 import { requireAuth, getUserId } from '../../auth/middleware/requireAuth.js';
 import { ApiError } from '../../../shared/errors.js';
 import { parseOrThrow } from '../../../shared/db.js';
-import { getTeamWithRole, assertAdmin, isUuid } from '../../authorization/application/authz.js';
+import { getTeamWithRole, isUuid } from '../../authorization/application/authz.js';
 import { messageCreateSchema, readStateSchema, resolveRefsSchema } from '../domain/chat.js';
 import {
   messageJson,
@@ -90,24 +90,6 @@ chatRouter.post('/:teamId/messages/resolve-refs', async (req, res) => {
 
   const resolved = await resolveRefs(pool, req.params.teamId as string, refs);
   res.json({ refs: resolved });
-});
-
-chatRouter.delete('/:teamId/messages/:messageId', async (req, res) => {
-  const userId = getUserId(req);
-  const team = await requireTeam(userId, req.params.teamId as string);
-  const messageId = req.params.messageId as string;
-  if (!isUuid(messageId)) throw new ApiError(404, 'NOT_FOUND', 'Message not found');
-
-  const found = await pool.query<{ author_id: string | null }>(
-    'SELECT author_id FROM team_messages WHERE id = $1 AND team_id = $2',
-    [messageId, req.params.teamId],
-  );
-  const message = found.rows[0];
-  if (!message) throw new ApiError(404, 'NOT_FOUND', 'Message not found');
-  if (message.author_id !== userId) assertAdmin(team.role);
-
-  await pool.query('DELETE FROM team_messages WHERE id = $1', [messageId]);
-  res.status(200).json({ ok: true });
 });
 
 chatRouter.put('/:teamId/messages/read', async (req, res) => {

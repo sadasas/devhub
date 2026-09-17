@@ -19,7 +19,8 @@
       "elements_one": "{{count}} elemen",
       "elements_other": "{{count}} elemen",
       "unread": "Belum dibaca",
-      "deleteBoard": "Hapus board"
+      "deleteBoard": "Hapus board",
+      "editBoard": "Ubah board"
     },
     "toolbar": {
       "tools": "Perangkat whiteboard",
@@ -199,6 +200,16 @@
       "name": "Nama",
       "namePlaceholder": "mis. Sketsa arsitektur Q3",
       "templateLegend": "Template",
+      "description": "Deskripsi",
+      "descHelper": "Hingga 2000 karakter"
+    },
+    "editModal": {
+      "presence": "Mengubah whiteboard",
+      "title": "Ubah board",
+      "cancel": "Batal",
+      "save": "Simpan perubahan",
+      "name": "Nama",
+      "namePlaceholder": "mis. Sketsa arsitektur Q3",
       "description": "Deskripsi",
       "descHelper": "Hingga 2000 karakter"
     },

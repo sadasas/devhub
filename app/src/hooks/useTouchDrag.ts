@@ -96,6 +96,7 @@ export function useTouchDrag<T extends HTMLElement>(
     let timer: number | undefined;
     let dragging = false;
     let suppressClick = false;
+    let movedFar = false;
     let startX = 0;
     let startY = 0;
     let activeTarget: HTMLElement | null = null;
@@ -123,6 +124,7 @@ export function useTouchDrag<T extends HTMLElement>(
 
     const cancel = () => {
       clearTimer();
+      suppressClick = false;
       if (dragging) {
         dragging = false;
         el.classList.remove('dragging');
@@ -135,6 +137,10 @@ export function useTouchDrag<T extends HTMLElement>(
       if ((e.target as HTMLElement | null)?.closest?.('.task-card-pin')) return;
       startX = e.clientX;
       startY = e.clientY;
+      movedFar = false;
+      // Gesture baru mulai bersih: flag dari gesture sebelumnya (mis.
+      // pointercancel tanpa klik susulan) tidak boleh menelan tap ini.
+      suppressClick = false;
       clearTimer();
       timer = window.setTimeout(() => {
         dragging = true;
@@ -145,6 +151,12 @@ export function useTouchDrag<T extends HTMLElement>(
     };
 
     const onPointerMove = (e: PointerEvent) => {
+      if (
+        Math.abs(e.clientX - startX) > MOVE_THRESHOLD_PX ||
+        Math.abs(e.clientY - startY) > MOVE_THRESHOLD_PX
+      ) {
+        movedFar = true;
+      }
       if (dragging) {
         e.preventDefault();
         if (scrollEl) {
@@ -158,17 +170,29 @@ export function useTouchDrag<T extends HTMLElement>(
         dropKeyAt(e.clientX, e.clientY);
         return;
       }
-      if (
-        timer &&
-        (Math.abs(e.clientX - startX) > MOVE_THRESHOLD_PX ||
-          Math.abs(e.clientY - startY) > MOVE_THRESHOLD_PX)
-      ) {
-        clearTimer();
+      if (timer) {
+        if (
+          Math.abs(e.clientX - startX) > MOVE_THRESHOLD_PX ||
+          Math.abs(e.clientY - startY) > MOVE_THRESHOLD_PX
+        ) {
+          clearTimer();
+        }
       }
     };
 
     const finish = (e: PointerEvent) => {
       if (!dragging) {
+        clearTimer();
+        return;
+      }
+      // Long-press tanpa gerak = tap lambat, bukan drag: batalkan diam-diam
+      // agar klik menembus dan modal langsung terbuka (tanpa tap kedua),
+      // dan jangan catat drop/announce palsu.
+      if (!movedFar) {
+        dragging = false;
+        suppressClick = false;
+        el.classList.remove('dragging');
+        setActive(null);
         clearTimer();
         return;
       }

@@ -10,9 +10,11 @@ import { applySort, type SortSpec } from '../../lib/sort';
 import type { Decision } from '../../lib/types';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
+import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { EmptyState } from '../../components/EmptyState';
-import { Plus, Scales } from '@phosphor-icons/react';
+import { Plus, PushPin, Scales, Trash } from '@phosphor-icons/react';
 import { PinButton } from '../../components/PinButton';
+import { RowMenu } from '../../components/RowMenu';
 import { Skeleton } from '../../components/Skeleton';
 import { SortControl } from '../../components/SortControl';
 import { DecisionModal } from './DecisionModal';
@@ -57,6 +59,7 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
   const { state, loading, error, loadError, canEdit, dispatch, retryLoad } = useProject();
   const [openNew, setOpenNew] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   useEntityDeepLink('decisions', setEditId);
   useNewParam(() => setOpenNew(true), '1', canEdit);
   const { value: sortValue, setSort } = useSortParam();
@@ -168,13 +171,57 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
                     )}
                 </div>
               </button>              <div className="data-row-side" style={{ justifyContent: 'flex-start', gap: '4px' }}>
-                {canEdit && (
-                  <PinButton
-                    pinned={!!d.pinned}
-                    label="decision"
-                    onToggle={() =>
-                      dispatch({ type: 'decision/update', id: d.id, patch: { pinned: !d.pinned } })
-                    }
+                {canEdit && !isNarrow && (
+                  <span className={`row-swap${d.pinned ? ' is-pinned' : ''}`}>
+                    <span className="swap-group">
+                      <PinButton
+                        pinned={!!d.pinned}
+                        label="decision"
+                        onToggle={() =>
+                          dispatch({ type: 'decision/update', id: d.id, patch: { pinned: !d.pinned } })
+                        }
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm btn-icon btn-danger swap-trash"
+                        aria-label={`Delete decision ${d.title}`}
+                        title={`Delete decision ${d.title}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const btn = e.currentTarget;
+                          setConfirmDeleteId(d.id);
+                          // Blur pointer-only agar :focus-within tidak
+                          // nyangkut (pola IssuesPage).
+                          if (e.detail !== 0) btn.blur();
+                        }}
+                      >
+                        <Trash size={13} aria-hidden="true" />
+                      </button>
+                    </span>
+                  </span>
+                )}
+                {canEdit && isNarrow && (
+                  <RowMenu
+                    triggerLabel={`More actions for ${d.title}`}
+                    menuLabel={`More actions for ${d.title}`}
+                    menuId={`decision-rowmenu-${d.id}`}
+                    actions={[
+                      {
+                        key: 'pin',
+                        // English hardcoded mengikuti preseden PinButton.
+                        label: d.pinned ? 'Unpin decision' : 'Pin decision',
+                        icon: <PushPin size={14} weight={d.pinned ? 'fill' : 'regular'} />,
+                        onSelect: () =>
+                          dispatch({ type: 'decision/update', id: d.id, patch: { pinned: !d.pinned } }),
+                      },
+                      {
+                        key: 'delete',
+                        label: t('decisions.modal.delete'),
+                        icon: <Trash size={14} />,
+                        danger: true,
+                        onSelect: () => setConfirmDeleteId(d.id),
+                      },
+                    ]}
                   />
                 )}
               </div>
@@ -185,6 +232,19 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
 
       {openNew && <NewDecisionModal onClose={() => setOpenNew(false)} />}
       <DecisionModal decisionId={editId} onClose={() => setEditId(null)} />
+      <ConfirmDeleteDialog
+        open={confirmDeleteId !== null}
+        title={t('decisions.modal.deleteConfirmTitle')}
+        description={t('decisions.modal.deleteConfirmBody')}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={() => {
+          if (confirmDeleteId === null) return;
+          const targetId = confirmDeleteId;
+          setConfirmDeleteId(null);
+          if (editId === targetId) setEditId(null);
+          dispatch({ type: 'decision/remove', id: targetId });
+        }}
+      />
     </div>
   );
 }

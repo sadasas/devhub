@@ -139,6 +139,11 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   // P2: kanban swipe (status tabs) + milestone accordion (mobile).
   const [activeStatusTab, setActiveStatusTab] = useState<TaskStatus>('todo');
   const [expandedMilestones, setExpandedMilestones] = useState<ReadonlySet<string>>(new Set());
+  // Accordion: default expand item pertama saat mobile agar list tidak kosong.
+  // Setelah pengguna menyentuh (buka/tutup) sekali, pilihannya dihormati —
+  // semua grup boleh tertutup. (Deklarasi di sini, bukan di bawah: semua hook
+  // wajib di atas early return loading/error/state — Rules of Hooks.)
+  const [milestonesTouched, setMilestonesTouched] = useState(false);
   const isNarrow = useIsBoardNarrow();
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
   // Waktu swipe terakhir (ms) — menekan tab tepat setelah swipe diabaikan agar
@@ -599,13 +604,15 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     }
   };
 
-  // Accordion: default expand item pertama saat mobile agar list tidak kosong.
+  // Accordion: pakai milestonesTouched (state di atas) agar default expand
+  // item pertama saat mobile — lihat deklarasi di blok state.
   const effectiveExpandedMilestones: ReadonlySet<string> =
-    expandedMilestones.size > 0 || milestoneGroups.length === 0
+    milestonesTouched || expandedMilestones.size > 0 || milestoneGroups.length === 0
       ? expandedMilestones
       : new Set([milestoneGroups[0]?.key ?? 'unassigned']);
 
   const toggleMilestone = (key: string): void => {
+    setMilestonesTouched(true);
     setExpandedMilestones((prev) => {
       const firstKey = milestoneGroups[0]?.key;
       const base: ReadonlySet<string> =

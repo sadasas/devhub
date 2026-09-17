@@ -66,6 +66,31 @@ describe("BottomSheet", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it("swallows the compat click after backdrop dismiss so background stays untouched", () => {
+    const behind = vi.fn();
+    render(
+      <>
+        <button type="button" onClick={behind}>
+          Behind
+        </button>
+        <BottomSheet open title="Sort" onClose={() => {}}>
+          body
+        </BottomSheet>
+      </>,
+    );
+    const backdrop = document.querySelector(".sheet-backdrop");
+    expect(backdrop).toBeTruthy();
+    fireEvent.mouseDown(backdrop!);
+
+    const btn = screen.getByRole("button", { name: "Behind" });
+    fireEvent.click(btn);
+    expect(behind).not.toHaveBeenCalled();
+
+    // One-shot: the next click passes through normally.
+    fireEvent.click(btn);
+    expect(behind).toHaveBeenCalledTimes(1);
+  });
+
   it("hides the handle when withHandle is false", () => {
     render(
       <BottomSheet open title="Sort" onClose={() => {}} withHandle={false}>

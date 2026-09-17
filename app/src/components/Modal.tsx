@@ -4,6 +4,7 @@ import { ArrowsInSimple, ArrowsOutSimple, X } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useFocusTrap } from "../hooks/useFocusTrap";
+import { swallowNextClick } from "../lib/utils";
 
 type ModalWidth = "sm" | "md" | "lg";
 
@@ -75,7 +76,10 @@ export function Modal({ open, title, onClose, children, footer, width = "md", cl
     <div
       className={`modal-backdrop${isFullscreen ? " modal-backdrop--fullscreen" : ""}`}
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose?.();
+        if (e.target === e.currentTarget) {
+          swallowNextClick();
+          onClose?.();
+        }
       }}
     >
       <div

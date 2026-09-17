@@ -4,6 +4,7 @@ import { X } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useFocusTrap } from "../hooks/useFocusTrap";
+import { swallowNextClick } from "../lib/utils";
 
 let sheetLockDepth = 0;
 let sheetScrollRestore: string | null = null;
@@ -106,7 +107,10 @@ export function BottomSheet({
     <div
       className="sheet-backdrop"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) {
+          swallowNextClick();
+          onClose();
+        }
       }}
     >
       {sheet}

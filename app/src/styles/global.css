@@ -6425,6 +6425,28 @@ html[data-theme='light'] .splash-bg {
   color: var(--accent);
 }
 
+/* TaskCard contextual swap: priority badge bertukar dengan Pin saat
+   hover/focus (pola Issues swap). Badge disembunyikan in-place (ruang
+   dipertahankan, tanpa shift) tepat di bawah Pin absolute di pojok.
+   Info priority tetap ada untuk SR via .task-card sr-summary. */
+.task-card-priority {
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    visibility var(--duration-fast) var(--ease-out);
+}
+
+.task-card-wrap:hover .task-card-priority,
+.task-card-wrap:focus-within .task-card-priority {
+  opacity: 0;
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .task-card-priority {
+    transition: none;
+  }
+}
+
 .task-card {
   display: flex;
   flex-direction: column;
@@ -6851,6 +6873,190 @@ html[data-theme='light'] .splash-bg {
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
+}
+
+/* Data-list rows — contextual swap ala Gmail (Issues, Tests).
+   Kanan = status Badge (idle) bertukar dengan Pin+Trash (hover) di alur
+   yang sama. ID hanya di meta kiri — tanpa duplikat kanan.
+   Single Pin (tidak duplikat): flex siblings, bukan grid-stack, jadi tidak
+   ada overlap.
+   Pinned idle = status + Pin (status terlalu penting untuk disembunyikan
+   permanen; Pin tetap selalu tampil); hover = Pin+Trash.
+   Pola reveal-only (Decisions/Releases) memakai ulang .swap-group tanpa
+   .swap-status: aksi primer persisten, Trash mengembang saat hover.
+   Collapse via max-width+opacity (bukan display:none) agar Tab tetap sampai
+   lewat :focus-within. Hanya geser horizontal halus dalam 1 row, tinggi row
+   dikunci — tanpa CLS vertikal. Tokens only. */
+.data-list .row-swap {
+  display: inline-flex;
+  align-items: center;
+}
+
+.data-list .swap-status {
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+  max-width: 140px;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    max-width var(--duration-fast) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-out),
+    visibility var(--duration-fast) var(--ease-out);
+}
+
+.data-list .swap-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  max-width: 0;
+  opacity: 0;
+  visibility: hidden;
+  margin-left: 0;
+  transition:
+    max-width var(--duration-fast) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-out),
+    visibility var(--duration-fast) var(--ease-out),
+    margin-left var(--duration-fast) var(--ease-out);
+}
+
+/* Pinned idle: Pin mengintip (Trash terlipat + hidden, bukan overlap). */
+.data-list .row-swap.is-pinned .swap-group {
+  max-width: 32px;
+  opacity: 1;
+  visibility: visible;
+  margin-left: 4px;
+}
+
+.data-list .row-swap.is-pinned .swap-trash {
+  visibility: hidden;
+}
+
+/* Hover / keyboard: status terlipat, actions mengembang. Di bawah aturan
+   pinned agar menang saat hover (spesifisitas juga lebih tinggi). */
+.data-list .data-row:hover .swap-status,
+.data-list .data-row:focus-within .swap-status {
+  max-width: 0;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.data-list .data-row:hover .swap-group,
+.data-list .data-row:focus-within .swap-group {
+  max-width: 80px;
+  opacity: 1;
+  visibility: visible;
+  margin-left: 4px;
+}
+
+.data-list .data-row:hover .row-swap.is-pinned .swap-trash,
+.data-list .data-row:focus-within .row-swap.is-pinned .swap-trash {
+  visibility: visible;
+}
+
+.data-list .data-row .swap-group .btn:focus-visible,
+.data-list .data-row .swap-status .btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--accent-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .data-list .swap-status,
+  .data-list .swap-group {
+    transition: none;
+  }
+}
+
+/* Touch: tanpa hover, swap dimatikan — status + Pin + Trash tampil semua. */
+@media (hover: none) {
+  .data-list .swap-status {
+    max-width: none;
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .data-list .swap-group {
+    max-width: none;
+    opacity: 1;
+    visibility: visible;
+    margin-left: 4px;
+  }
+
+  .data-list .row-swap.is-pinned .swap-trash {
+    visibility: visible;
+  }
+}
+
+/* Narrow (mobile): swap inline diganti tombol kebab ⋮ + popup panel
+   (RowMenu, portal more-dropdown). Kebab cukup 1 tombol icon — jangan ikut
+   aturan .data-row-side .btn yang flex:1 di ≤480px. */
+@media (max-width: 480px) {
+  .data-row-side .row-kebab {
+    flex: 0 0 auto;
+  }
+}
+
+/* Whiteboard cards — Gmail-faithful hover swap (grid cards, bukan data-row).
+   Kolom aksi collapse penuh (bukan opacity-only): idle NOL space — judul
+   pakai lebar penuh; hover/focus mengembangkan max-width dan judul terpotong
+   sedikit lebih awal. Hanya titik truncate yang bergerak (pola Gmail).
+   Tinggi dikunci: judul 1 baris + deskripsi area 2 baris (clamp +
+   min-height existing) + meta nowrap — tetangga tidak bergeser.
+   Touch: selalu tampil. Narrow diganti kebab RowMenu (JS-gated).
+   Scope .wb-card / .whiteboard-page agar dashboard tidak ikut berubah. */
+.wb-card {
+  column-gap: 0;
+}
+
+.wb-card-actions {
+  display: inline-flex;
+  gap: 4px;
+  align-items: start;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* Meta baris sendiri full-width di bawah (di luar tombol main + kolom aksi)
+   sehingga tidak ikut menyusut saat hover — hanya judul + deskripsi yang
+   menyerap selisih. Wrap alami (boleh 2 baris di kartu sempit). */
+.wb-card > .project-card-meta {
+  grid-column: 1 / -1;
+}
+
+.whiteboard-page .project-grid {
+  align-items: start;
+}
+
+@media (hover: hover) {
+  .wb-card .wb-card-actions {
+    max-width: 0;
+    opacity: 0;
+    visibility: hidden;
+    margin-left: 0;
+    transition:
+      max-width var(--duration-fast) var(--ease-out),
+      opacity var(--duration-fast) var(--ease-out),
+      visibility var(--duration-fast) var(--ease-out),
+      margin-left var(--duration-fast) var(--ease-out);
+  }
+
+  .wb-card:hover .wb-card-actions,
+  .wb-card:focus-within .wb-card-actions {
+    max-width: 76px;
+    opacity: 1;
+    visibility: visible;
+    margin-left: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wb-card .wb-card-actions {
+    transition: none;
+  }
 }
 
 /* ============================================================
@@ -12783,14 +12989,26 @@ input[type='checkbox'] {
   margin-bottom: 10px;
 }
 .wb-topbar-spacer { flex: 1 1 auto; }
+/* Nama board wrap penuh (tanpa truncate) + deskripsi full di bawahnya. */
+.wb-board-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
 .wb-board-name {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-secondary);
-  max-width: 40%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+}
+.wb-board-desc {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 /* WB-16/WB-19: board title overlay, top-left inside canvas. */
 .wb-board-title {
@@ -13058,10 +13276,16 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
   }
 
   /* Judul pindah baris 2 full-width dan wrap (tanpa truncate);
-     tombol canvas terkunci di baris 1 via order. */
-  .wb-topbar .wb-board-name {
+     tombol canvas terkunci di baris 1 via order. Order/flex milik
+     wrapper (.wb-board-head) — jangan di .wb-board-name karena di dalam
+     kolom itu akan membalik urutan judul vs deskripsi. */
+  .wb-topbar .wb-board-head {
     order: 3;
     flex: 1 1 100%;
+  }
+  .wb-topbar .wb-board-name {
+    order: initial;
+    flex: initial;
     max-width: none;
     white-space: normal;
     overflow-wrap: anywhere;
@@ -13078,12 +13302,14 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
     padding-right: 10px;
   }
 
-  /* Mode canvas fullscreen: judul board mati, layers turun di bawah tombol close. */
+  /* Mode canvas fullscreen: judul board mati, layers di samping tombol close
+     (close 30px di right:10 → layers right:48, sejajar top:10). */
   .wb-fullscreen .wb-board-title {
     display: none;
   }
   .wb-fullscreen .wb-mobile-layers-anchor {
-    top: 48px;
+    top: 10px;
+    right: 48px;
   }
 
   /* Bar zoom + hint bawah disembunyikan (pinch-to-zoom tetap jalan). */
@@ -13168,7 +13394,8 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
     min-width: 0;
   }
 
-  /* Undo/redo kiri atas, layers kanan atas. */
+  /* Undo/redo kiri atas, layers kanan atas. Undo segmented 32px —
+     sama tinggi dengan pill layers (tombol 32px tetap, hemat kanvas). */
   .wb-mobile-undo {
     position: absolute;
     top: 10px;
@@ -13176,7 +13403,7 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
     z-index: 26;
     display: flex;
     gap: 2px;
-    padding: 4px;
+    padding: 0;
     background: var(--bg-overlay);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-input);
@@ -13477,22 +13704,23 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 .board-shell:fullscreen .tl-lane, .board-shell:fullscreen .tl-grid { max-height: none !important; }
 .chat-panel { display: flex; flex-direction: column; height: 60dvh; min-height: 320px; border: 1px solid var(--border-hairline); border-radius: var(--radius-card); background: var(--bg-inset); overflow: hidden; }
 .chat-list { flex: 1 1 auto; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 12px; position: relative; }
-.chat-msg { position: relative; display: flex; align-items: flex-start; gap: 8px; padding-right: 72px; }
+.chat-msg { position: relative; display: flex; align-items: flex-start; gap: 8px; padding-right: 72px; /* Tier-2: reserve hover actions; 72 off-scale disengaja (fold 48 terlalu sempit), static di hover:none */ }
 .chat-rail { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; width: 36px; padding-top: 2px; }
-.chat-avatar { flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
-.chat-rail-time { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-muted); white-space: nowrap; opacity: 0.7; transition: opacity var(--duration-fast) var(--ease-out); letter-spacing: 0.02em; }
+.chat-avatar { flex-shrink: 0; width: 32px; height: 32px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
+.chat-rail-time { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-muted); white-space: nowrap; opacity: 1; transition: opacity var(--duration-fast) var(--ease-out); }
 .chat-msg:hover .chat-rail-time, .chat-msg:focus-within .chat-rail-time { opacity: 1; }
 @media (hover: none) { .chat-rail-time { opacity: 1; } }
-.chat-msg-body { display: flex; flex-direction: column; gap: 3px; flex: 1 1 auto; min-width: 0; }
-.chat-msg-pending { opacity: 0.6; }
-.chat-msg-failed { border-left: 2px solid var(--status-danger); padding-left: 8px; }
+.chat-msg-body { display: flex; flex-direction: column; gap: 4px; flex: 1 1 auto; min-width: 0; }
+.chat-msg-pending { opacity: 1; }
+.chat-msg-pending .chat-avatar { opacity: 0.6; }
+.chat-msg-failed { border-left: 1px solid var(--status-danger); padding-left: 8px; }
 .chat-msg-header { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--text-primary); }
 .chat-msg-header > svg { flex-shrink: 0; color: var(--text-muted); }
 .chat-author { color: var(--text-primary); }
 .chat-author-own { color: var(--accent); }
 .chat-msg-time { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-muted); }
-.chat-msg-actions { position: absolute; top: 2px; right: 4px; display: flex; gap: 2px; opacity: 0; transition: opacity 150ms var(--ease-out); }
-.chat-msg:hover .chat-msg-actions, .chat-msg:focus-within .chat-msg-actions { opacity: 1; }
+.chat-msg-actions { position: absolute; top: 2px; right: 4px; display: flex; gap: 2px; opacity: 0; visibility: hidden; transition: opacity var(--duration-fast) var(--ease-out), visibility var(--duration-fast) var(--ease-out); }
+.chat-msg:hover .chat-msg-actions, .chat-msg:focus-within .chat-msg-actions { opacity: 1; visibility: visible; }
 @media (hover: none) {
   .chat-msg-actions { opacity: 1; position: static; }
   .chat-msg { padding-right: 0; }
@@ -13513,7 +13741,7 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
   cursor: pointer;
 }
 .chat-msg-action:hover { color: var(--text-primary); background: var(--bg-overlay); }
-.chat-msg-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; box-shadow: 0 0 0 4px rgba(93, 182, 155, 0.22); }
+.chat-msg-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; box-shadow: 0 0 0 4px var(--accent-ring); }
 .chat-msg-actions-inline { display: flex; gap: 6px; margin-top: 4px; }
 @media (prefers-reduced-motion: reduce) { .chat-msg, .chat-msg-actions, .chat-rail-time { transition: none; } }
 .chat-msg-text { font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text-primary); }
@@ -13526,11 +13754,11 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 .chat-inline-feedback { display: flex; flex-direction: column; gap: 6px; padding: 6px 12px; background: var(--bg-inset); border-top: 1px solid var(--border-hairline); }
 .chat-inline-feedback:empty { display: none; }
 .chat-scroll-fab:hover { background: var(--accent); color: var(--text-on-accent); border-color: var(--accent); }
-.chat-scroll-fab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; box-shadow: 0 0 0 4px rgba(93, 182, 155, 0.22); }
+.chat-scroll-fab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; box-shadow: 0 0 0 4px var(--accent-ring); }
 .chat-skeleton-row { display: flex; align-items: flex-start; gap: 8px; padding: 4px 0; }
-.chat-skeleton-time { flex-shrink: 0; width: 28px; height: 10px; border-radius: 4px; margin-top: 2px; }
-.chat-skeleton-avatar { flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; }
-.chat-skeleton-lines { flex: 1 1 auto; display: flex; flex-direction: column; gap: 3px; }
+.chat-skeleton-time { flex-shrink: 0; width: 28px; height: 10px; border-radius: var(--radius-xs); margin-top: 2px; }
+.chat-skeleton-avatar { flex-shrink: 0; width: 32px; height: 32px; border-radius: var(--radius-pill); }
+.chat-skeleton-lines { flex: 1 1 auto; display: flex; flex-direction: column; gap: 4px; }
 .chat-skeleton-lines span { height: 10px; border-radius: var(--radius-sm); }
 .chat-skeleton-lines span:first-child { width: 60%; }
 .chat-skeleton-lines span:last-child { width: 40%; }
@@ -13554,7 +13782,8 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 }
 .chat-input::placeholder { color: var(--text-muted); }
 .chat-input:hover { border-color: var(--accent); }
-.chat-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); }
+.chat-input:focus { border-color: var(--accent); }
+.chat-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-ring); }
 @supports (field-sizing: content) {
   .chat-input { field-sizing: content; }
 }
@@ -13564,18 +13793,18 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 .chat-sentinel { height: 1px; flex-shrink: 0; }
 
 .mention-popup { position: absolute; bottom: calc(100% + 8px); left: 0; right: 0; max-height: min(200px, 40vh); overflow-y: auto; scrollbar-width: thin; background: var(--bg-overlay); border: 1px solid var(--border-strong); border-radius: var(--radius-card); box-shadow: var(--shadow-raised); z-index: 5; padding: 6px; }
-.mention-option { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; border-radius: var(--radius-sm); cursor: pointer; text-align: left; font-size: 12.5px; color: var(--text-primary); background: none; border: none; }
+.mention-option { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; border-radius: var(--radius-sm); cursor: pointer; text-align: left; font-size: 13px; color: var(--text-primary); background: none; border: none; }
 .mention-option + .mention-option { margin-top: 2px; }
-.mention-option-active { background: var(--accent-dim); box-shadow: inset 2px 0 0 var(--accent); }
-.mention-option:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; box-shadow: 0 0 0 4px rgba(93, 182, 155, 0.22); }
+.mention-option-active { background: var(--accent-dim); box-shadow: inset 2px 0 0 var(--accent); /* Tier-2: penanda seleksi listbox, bukan border */ }
+.mention-option:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; box-shadow: 0 0 0 4px var(--accent-ring); }
 .mention-option-title { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mention-entity-badge { flex-shrink: 0; font-family: var(--font-mono); font-size: 10px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 1px 5px; }
+.mention-entity-badge { flex-shrink: 0; font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 2px 6px; color: var(--chat-tint, var(--text-muted)); background: color-mix(in srgb, var(--chat-tint, var(--text-muted)) 12%, transparent); border-color: color-mix(in srgb, var(--chat-tint, var(--text-muted)) 30%, transparent); }
 .mention-hint { padding: 8px; font-size: 12px; color: var(--text-muted); }
-.chat-chip { display: inline-flex; align-items: flex-start; gap: 4px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; font-family: var(--font-mono); font-size: 10.5px; border-radius: var(--radius-sm); padding: 1px 6px; margin: 0 2px; cursor: pointer; vertical-align: baseline; text-align: left; line-height: 1.4; }
-.chat-chip > svg { flex-shrink: 0; margin-top: 2px; }
+.chat-chip { display: inline-flex; align-items: flex-start; gap: 4px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; font-family: var(--font-mono); font-size: 10.5px; border-radius: var(--radius-sm); padding: 2px 6px; margin: 0 2px; cursor: pointer; vertical-align: baseline; text-align: left; line-height: 1.4; border: 1px solid transparent; color: var(--chat-tint, var(--text-muted)); background: color-mix(in srgb, var(--chat-tint, var(--text-muted)) 12%, transparent); border-color: color-mix(in srgb, var(--chat-tint, var(--text-muted)) 30%, transparent); }
+.chat-chip > svg { flex-shrink: 0; margin-top: 2px; color: currentColor; }
 .chat-chip:hover { filter: brightness(1.1); }
 .chat-chip-label { flex: 1 1 auto; min-width: 0; text-align: left; }
-.chat-chip:disabled { color: var(--text-muted); background: var(--bg-inset); border: none; cursor: default; }
+.chat-chip:disabled, .chat-chip[aria-disabled="true"] { color: var(--text-muted); background: var(--bg-inset); border: 1px solid var(--border-hairline); cursor: default; }
 @media (prefers-reduced-motion: reduce) {
   .chat-drawer,
   .chat-msg,
@@ -13599,7 +13828,7 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-raised);
   z-index: 30;
-  animation: chat-drawer-in 200ms var(--ease-out);
+  animation: chat-drawer-in var(--duration-normal) var(--ease-out);
   padding-bottom: env(safe-area-inset-bottom);
 }
 @media (max-width: 640px) {
@@ -13618,7 +13847,7 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 }
 @keyframes chat-drawer-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 .chat-drawer-head { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border-hairline); }
-.chat-drawer-title { font-size: 13px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-drawer-title { margin: 0; font-size: 14px; font-weight: 650; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chat-drawer .chat-panel { height: 100%; min-height: 0; border: 0; border-radius: 0; background: transparent; }
 @media (prefers-reduced-motion: reduce) { .chat-drawer { animation: none; } }
 
@@ -13653,7 +13882,7 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
   border-bottom: 1px solid var(--border-hairline);
   background: var(--bg-elevated);
 }
-.chat-inline-title { font-size: 12px; font-weight: 600; letter-spacing: 0.02em; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.chat-inline-title { margin: 0; font-size: 13px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
 .chat-resizer {
   position: absolute;
   left: 0;
@@ -13674,7 +13903,7 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
   bottom: 0;
   width: 1px;
   background: var(--border-hairline);
-  transition: background var(--duration-fast) var(--ease-out), width var(--duration-fast) var(--ease-out), left var(--duration-fast) var(--ease-out);
+  transition: background var(--duration-fast) var(--ease-out);
 }
 .chat-resizer:hover::after,
 .chat-resizer[data-dragging="true"]::after,
@@ -13683,7 +13912,17 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
   width: 2px;
   left: 1.5px;
 }
-.chat-resizer:focus-visible { outline: 2px solid var(--accent-ring); outline-offset: 2px; }
+.chat-resizer:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chat-resizer::before { content: ""; position: absolute; left: -9px; right: -9px; top: 0; bottom: 0; }
+.chat-panel { position: relative; }
+.chat-list-wrap { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.chat-list-wrap .chat-list { flex: 1 1 auto; }
+@media (hover: none) {
+  .chat-msg-action, .chat-scroll-fab { width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
+  .chat-msg-action svg, .chat-scroll-fab svg, .chat-send-btn svg { width: 18px; height: 18px; }
+  .chat-send-btn { min-width: 44px; min-height: 44px; }
+  .mention-option { min-height: 44px; padding: 10px 12px; }
+}
 .layout[data-chat-open="false"] .chat-inline-shell { border-left-color: transparent; }
 @media (prefers-reduced-motion: reduce) {
   .chat-inline-shell { transition: none; }
@@ -15889,6 +16128,30 @@ details[open] > .milestone-group-summary::before {
 .release-flow-hero-main {
   min-width: 0;
   flex: 1;
+}
+
+/* Detail milestone — judul + changelog wrap penuh, tanpa truncate.
+   (Hero memakai ulang class list .data-row-title/.row-title-text/
+   .data-row-sub yang nowrap + ellipsis + line-clamp:2 — di-override di
+   konteks hero saja, list tidak berubah.) */
+.release-flow-hero-main .data-row-title {
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.release-flow-hero-main .row-title-text {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+
+.release-flow-hero-main .data-row-sub {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  overflow-wrap: anywhere;
 }
 
 .release-flow-progress {

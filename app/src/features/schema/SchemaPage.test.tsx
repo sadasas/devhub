@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { SchemaPage } from './SchemaPage';
@@ -225,6 +225,17 @@ describe('SchemaPage mobile header', () => {
     expect(screen.getByRole('dialog')).toBeTruthy();
     expect(screen.getByRole('button', { name: /Postgres DDL/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Import schema/ })).toBeTruthy();
+  });
+
+  it('shows a decorative icon on every overflow sheet row', () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    const dialog = screen.getByRole('dialog');
+    for (const name of [/Postgres DDL/, /DBML/, /^SVG$/, /PNG 2x/, /Import schema/]) {
+      const row = within(dialog).getByRole('button', { name });
+      const icon = row.querySelector('svg[aria-hidden="true"]');
+      expect(icon).toBeTruthy();
+    }
   });
   it('opens versions from the compact button beside tidy (no inline bar)', () => {
     render(
