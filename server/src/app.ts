@@ -26,6 +26,9 @@ import { activityRouter } from './modules/activity/handlers/v1/activity.routes.j
 import { adminRouter } from './modules/admin/handlers/admin.routes.js';
 import { billingPublicRouter, billingRouter } from './modules/billing/handlers/billing.routes.js';
 import { socialRouter } from './modules/auth/handlers/social.routes.js';
+import { gcalPlaygroundRouter } from './modules/integrations/gcal/playground.routes.js';
+import { gcalRouter } from './modules/integrations/gcal/handlers/gcal.routes.js';
+import { gcalOutboxRouter } from './modules/integrations/gcal/handlers/gcal-outbox.routes.js';
 
 declare global {
   namespace Express {
@@ -214,8 +217,11 @@ export function createApp(): express.Express {
   app.use('/api/v1/templates', templatesRouter);
   app.use('/api/v1/search', searchRouter);
   app.use('/api/v1/admin', adminRouter);
+  app.use('/api/v1/integrations/gcal', gcalPlaygroundRouter);
+  app.use('/api/v1/integrations/gcal', gcalOutboxRouter);
   app.use('/api/v1/billing', billingPublicRouter);
   app.use('/api/v1/billing', billingRouter);
+  app.use('/api/v1/integrations/gcal', gcalRouter);
 
   app.use('/mcp', mcpLimiter);
   app.use('/mcp', requireMcpKey);

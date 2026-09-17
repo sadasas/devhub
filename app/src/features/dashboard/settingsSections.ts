@@ -1,8 +1,9 @@
 // Shared section keys for the team-settings shell (?section=).
 // 'billing' is the legacy deep-link (?tab=settings&section=billing) and
-// maps to Usage; unknown values fall back to General. 'github' is a
-// coming-soon placeholder panel (DEF-013) — real repo linking lands there.
-export const SETTINGS_SECTIONS = ['general', 'plan', 'usage', 'danger', 'github'] as const;
+// maps to Usage; unknown values fall back to General. GitHub lives in
+// project settings (?tab=settings&section=integrations) since repo links
+// are per-project — legacy ?section=github also falls back to General.
+export const SETTINGS_SECTIONS = ['general', 'plan', 'usage', 'danger'] as const;
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
 
 export function normalizeSettingsSection(raw: string | null): SettingsSection {
@@ -31,11 +32,6 @@ export const SETTINGS_SUB_KEYS: Record<SettingsSection, string[]> = {
   usage: [
     'dashboard.team.settingsUsageViewHistory',
     'teams.billing.viewPricing',
-  ],
-  github: [
-    'dashboard.team.settingsGithubSoonItem1',
-    'dashboard.team.settingsGithubSoonItem2',
-    'dashboard.team.settingsGithubSoonItem3',
   ],
   danger: [
     'teams.leaveTeam',

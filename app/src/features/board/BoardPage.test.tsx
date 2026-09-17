@@ -16,6 +16,7 @@ vi.mock('../../state/project-context', () => ({
     dispatch: vi.fn(),
     canEdit: true,
     teamId: 'team1',
+    projectId: 'p1',
     loading: false,
     error: null,
     setStatus: setStatusMock,
@@ -27,9 +28,35 @@ vi.mock('../../state/auth-context', () => ({
   useOptionalAuth: () => ({ user: { id: 'u1', email: 'me@test.dev' } }),
 }));
 
-vi.mock('../../lib/api', () => ({
-  api: { listMembers: listMembersMock, fetchActivity: fetchActivityMock },
-}));
+vi.mock('../../lib/api', () => {
+  class ApiError extends Error {
+    readonly status: number;
+    readonly code: string;
+    constructor(status: number, code: string, message: string) {
+      super(message);
+      this.status = status;
+      this.code = code;
+    }
+  }
+  return {
+    ApiError,
+    api: {
+      listMembers: listMembersMock,
+      fetchActivity: fetchActivityMock,
+      // GCalSettings (mounted in calendar view): default disconnected.
+      gcalStatus: vi.fn().mockResolvedValue({
+        connected: false,
+        expired: false,
+        email: null,
+        syncEnabled: false,
+        lastSyncAt: null,
+      }),
+      gcalSetSync: vi.fn(),
+      gcalDisconnect: vi.fn(),
+      gcalConnectUrl: vi.fn((id: string) => `/api/v1/integrations/gcal/connect?projectId=${id}`),
+    },
+  };
+});
 
 function makeTask(id: string, title: string, assigneeId: string | null, status = 'todo'): Task {
   return {

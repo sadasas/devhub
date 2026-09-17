@@ -11,6 +11,7 @@ import {
   Database,
   DownloadSimple,
   Gauge,
+  GearSix,
   Plugs,
   Rocket,
   Scales,
@@ -40,6 +41,7 @@ import { Badge } from '../../components/Badge';
 import { BottomSheet } from '../../components/BottomSheet';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
+import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { SaveBanner } from '../../components/SaveBanner';
 import { ToastStack } from '../../components/ToastStack';
@@ -51,6 +53,7 @@ import { PlanLimitModal } from '../../components/PlanLimitModal';
 import { InlineError } from '../../components/InlineError';
 import { SaveTemplateModal } from '../templates/SaveTemplateModal';
 import { ProjectTabNav } from './ProjectTabNav';
+import { normalizeProjectTabId } from './projectSettingsSections';
 import { DeletedItemsBanner } from './DeletedItemsBanner';
 import { ArchivedBanner } from './ArchivedBanner';
 import { ArchiveUndoToast } from './ArchiveUndoToast';
@@ -69,6 +72,7 @@ const ReleasesPageLazy = lazy(() => import('../releases/ReleasesPage').then((m) 
 const ApiPageLazy = lazy(() => import('../api/ApiPage').then((m) => ({ default: m.ApiPage })));
 const OverviewPageLazy = lazy(() => import('../overview/OverviewPage').then((m) => ({ default: m.OverviewPage })));
 const WhiteboardPageLazy = lazy(() => import('../whiteboard/WhiteboardPage').then((m) => ({ default: m.WhiteboardPage })));
+const ProjectSettingsLazy = lazy(() => import('./ProjectSettings').then((m) => ({ default: m.ProjectSettings })));
 
 export type ProjectTab =
   | 'board'
@@ -438,6 +442,37 @@ export function ProjectPage() {
       { replace: true },
     );
   };
+  // Settings pseudo-view (?tab=settings&section=): bukan tab ke-11 (audit A1) —
+  // shell settings menggantikan konten tab; tab terakhir dibawa via ?from=
+  // (deep-linkable, dipakai tombol back sidebar + gear).
+  const isSettings = tabParam === 'settings';
+  const fromTab = normalizeProjectTabId(searchParams.get('from'));
+  const openSettings = () => {
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        p.set('tab', 'settings');
+        if (!p.get('from')) {
+          p.set('from', TABS.some((t) => t.id === legacyTab) ? (legacyTab as ProjectTab) : 'board');
+        }
+        return p;
+      },
+      { replace: true },
+    );
+  };
+  const closeSettings = () => {
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        p.set('tab', fromTab);
+        p.delete('from');
+        p.delete('sort');
+        p.delete('dir');
+        return p;
+      },
+      { replace: true },
+    );
+  };
   const project = projects?.find((p) => p.id === projectId);
   const team = teams?.find((tm) => tm.id === project?.teamId) ?? null;
   const teamDashboardTo = team ? `/${encodeURIComponent(team.slug || team.id)}/projects` : '/';
@@ -457,6 +492,7 @@ export function ProjectPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
   const [archiveConfirm, setArchiveConfirm] = useState<null | 'archive' | 'restore'>(null);
   const [archiving, setArchiving] = useState(false);
   const [archiveError, setArchiveError] = useState<string | null>(null);
@@ -529,6 +565,26 @@ export function ProjectPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tourStep, tourActive, projectId]);
+
+  // Fail-closed: viewer yang membuka ?tab=settings langsung dikembalikan
+  // ke board agar sidebar tak macet di nav settings. project bisa undefined
+  // saat loading/404 — efek aman karena branch di dalam, bukan early return.
+  const projectRole = project?.role;
+  useEffect(() => {
+    if (isSettings && projectRole === 'viewer') {
+      setSearchParams(
+        (prev) => {
+          const p = new URLSearchParams(prev);
+          p.set('tab', 'board');
+          p.delete('from');
+          p.delete('sort');
+          p.delete('dir');
+          return p;
+        },
+        { replace: true },
+      );
+    }
+  }, [isSettings, projectRole, setSearchParams]);
 
   if (!project) {
     return (
@@ -679,8 +735,21 @@ export function ProjectPage() {
             </nav>
             <div className="project-actions" ref={actionsRef}>
               {!isMobileActions && <PresenceChip badgeOnly />}
-              <Badge tone={TEAM_ROLE[role].tone}>{TEAM_ROLE[role].label}</Badge>
+              {!isMobileActions && <Badge tone={TEAM_ROLE[role].tone}>{TEAM_ROLE[role].label}</Badge>}
               <SyncStatusChip />
+              {role !== 'viewer' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="btn-icon"
+                  aria-label={t('settings.title', { defaultValue: 'Project settings' })}
+                  title={t('settings.title', { defaultValue: 'Project settings' })}
+                  aria-pressed={isSettings}
+                  onClick={() => { if (isSettings) closeSettings(); else openSettings(); }}
+                >
+                  <GearSix size={16} aria-hidden="true" />
+                </Button>
+              )}
               {isAdmin &&
                 (isMobileActions ? (
                   <Button
@@ -749,7 +818,7 @@ export function ProjectPage() {
                       </button>
                     )}
                     {isAdmin && (
-                      <button type="button" role="menuitem" className="more-item text-danger" onClick={() => { setActionsOpen(false); setConfirmOpen(true); }}>
+                      <button type="button" role="menuitem" className="more-item text-danger" onClick={() => { setActionsOpen(false); setDeleteConfirm(''); setConfirmOpen(true); }}>
                         <span className="more-item-icon"><Trash size={14} aria-hidden="true" /></span>
                         <span className="more-item-label">{t('actions.delete')}</span>
                       </button>
@@ -764,6 +833,13 @@ export function ProjectPage() {
                     hideHeader
                   >
                     <SheetPresenceList />
+                    <hr className="sheet-divider" aria-hidden="true" />
+                    <dl className="settings-rows sheet-role-list">
+                      <div className="settings-row sheet-role-row">
+                        <dt>{t('actions.yourRole', { defaultValue: 'Your role' })}</dt>
+                        <dd><Badge tone={TEAM_ROLE[role].tone}>{TEAM_ROLE[role].label}</Badge></dd>
+                      </div>
+                    </dl>
                     <hr className="sheet-divider" aria-hidden="true" />
                     <div className="sheet-section sheet-project-actions">
                       <p className="sheet-section-title">{t('actions.menu')}</p>
@@ -803,7 +879,7 @@ export function ProjectPage() {
                         <hr className="sheet-divider" aria-hidden="true" />
                         <div className="sheet-section sheet-danger">
                           <div className="sheet-actions-list" role="menu" aria-label={t('deleteModal.title')}>
-                            <button type="button" role="menuitem" className="more-item text-danger" onClick={() => { setActionsOpen(false); setConfirmOpen(true); }}>
+                            <button type="button" role="menuitem" className="more-item text-danger" onClick={() => { setActionsOpen(false); setDeleteConfirm(''); setConfirmOpen(true); }}>
                               <span className="more-item-icon"><Trash size={18} aria-hidden="true" /></span>
                               <span className="more-item-label">{t('deleteModal.title')}</span>
                             </button>
@@ -838,13 +914,28 @@ export function ProjectPage() {
           />
         )}
 
-        <ProjectUnreadArea
-          projectId={projectId}
-          userId={user?.id ?? ''}
-          tab={tab}
-          onSelect={setTab}
-          project={project}
-        />
+        {isSettings && role !== 'viewer' ? (
+          <Suspense fallback={<TabSkeleton tab="board" />}>
+            <ProjectSettingsLazy
+              project={project}
+              canEditMeta={isAdmin}
+              canConnect={!isArchived}
+              canArchive={canArchive}
+              isAdmin={isAdmin}
+              onBack={closeSettings}
+              onRequestArchive={(next) => setArchiveConfirm(next)}
+              onRequestDelete={() => { setDeleteConfirm(''); setConfirmOpen(true); }}
+            />
+          </Suspense>
+        ) : (
+          <ProjectUnreadArea
+            projectId={projectId}
+            userId={user?.id ?? ''}
+            tab={tab}
+            onSelect={setTab}
+            project={project}
+          />
+        )}
 
       </div>
       </article>
@@ -867,22 +958,36 @@ export function ProjectPage() {
         <Modal
           open={confirmOpen}
           title={t('deleteModal.title')}
-          onClose={() => setConfirmOpen(false)}
+          onClose={() => { if (!deleting) setConfirmOpen(false); }}
           width="sm"
+          ariaDescribedBy="delete-desc"
           footer={
             <>
-              <Button variant="ghost" size="md" onClick={() => setConfirmOpen(false)}>
+              <Button variant="ghost" size="md" onClick={() => setConfirmOpen(false)} disabled={deleting}>
                 {t('deleteModal.cancel')}
               </Button>
-              <Button variant="danger" size="md" leftIcon={<Trash size={14} aria-hidden="true" />} loading={deleting} onClick={() => void onDelete()}>
+              <Button variant="danger" size="md" leftIcon={<Trash size={14} aria-hidden="true" />} loading={deleting} disabled={deleteConfirm.trim() !== project.name} aria-describedby={deleteConfirm.length > 0 && deleteConfirm.trim() !== project.name ? 'delete-confirm-input-error' : undefined} onClick={() => void onDelete()}>
                 {t('deleteModal.confirm')}
               </Button>
             </>
           }
         >
-          <p className="modal-copy">
+          <p id="delete-desc" className="modal-copy">
             {t('deleteModal.body', { name: project?.name })}
           </p>
+          <div className="dashboard__settings-delete-field">
+            <Input
+              id="delete-confirm-input"
+              label={t('settings.dangerTypeLabel', { defaultValue: 'Project name' })}
+              value={deleteConfirm}
+              maxLength={300}
+              placeholder={project.name}
+              error={deleteConfirm.length > 0 && deleteConfirm.trim() !== project.name ? (t('settings.dangerTypeMismatch', { defaultValue: 'Name does not match.' }) as string) : undefined}
+              aria-describedby="delete-desc"
+              onChange={(e) => setDeleteConfirm(e.target.value)}
+              autoComplete="off"
+            />
+          </div>
           {deleteError && <InlineError className="mt-10">{deleteError}</InlineError>}
         </Modal>
 

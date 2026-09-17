@@ -143,6 +143,16 @@ export type GranularEntity =
   | 'apiEndpoints'
   | 'whiteboards';
 
+/** Google Calendar integration status (T4) — kontrak gabungan GET /integrations/gcal/status?projectId=. */
+export interface GCalStatus {
+  connected: boolean;
+  expired: boolean;
+  email: string | null;
+  syncEnabled: boolean;
+  lastSyncAt: string | null;
+  calendarId?: string | null;
+}
+
 export type GranularEntityRecord = Record<string, unknown> & { id: string };
 
 export interface SearchHit {
@@ -429,6 +439,24 @@ export const api = {
     return { state: res.state, version: res.version };
   },
 
+  gcalDryRun: (projectId: string) =>
+    request<{
+      projectId: string;
+      projectName: string;
+      generatedAt: string;
+      count: number;
+      events: Array<{
+        summary: string;
+        description: string;
+        start: { date: string };
+        end: { date: string };
+        extendedProperties: { private: { devhubTaskId: string; projectId: string } };
+      }>;
+    }>("/integrations/gcal/playground/dry-run", {
+      method: "POST",
+      body: JSON.stringify({ projectId }),
+    }),
+
   listKeys: async (opts: { page?: number; perPage?: number } = {}) => {
     const qs = new URLSearchParams();
     if (opts.page !== undefined) qs.set('page', String(opts.page));
@@ -591,4 +619,20 @@ export const api = {
   paymentHistory: () => request<{ payments: PaymentHistoryItem[] }>('/billing/payments'),
   getPayment: (orderId: string) =>
     request<{ payment: PaymentHistoryItem }>(`/billing/payments/${encodeURIComponent(orderId)}`),
+
+  /** Google Calendar (T4): semua URL terpusat di sini — jangan hardcode di komponen. */
+  gcalStatus: (projectId: string) =>
+    request<GCalStatus>(`/integrations/gcal/status?projectId=${encodeURIComponent(projectId)}`),
+  gcalDisconnect: (projectId: string) =>
+    request<{ ok: true }>('/integrations/gcal/disconnect', {
+      method: 'POST',
+      body: JSON.stringify({ projectId }),
+    }),
+  gcalSetSync: (projectId: string, syncEnabled: boolean) =>
+    request<{ syncEnabled: boolean; calendarId: string | null }>('/integrations/gcal/settings', {
+      method: 'POST',
+      body: JSON.stringify({ projectId, syncEnabled }),
+    }),
+  gcalConnectUrl: (projectId: string, returnTo?: string) =>
+    `${API_BASE}/integrations/gcal/connect?projectId=${encodeURIComponent(projectId)}${returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : ''}`,
 };

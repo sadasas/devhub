@@ -11480,8 +11480,20 @@ input[type='checkbox'] {
   }
 
   .settings-action {
-    align-items: flex-start;
+    align-items: stretch;
     flex-direction: column;
+  }
+
+  /* Tombol + switch selalu rata kanan di mobile; baris --inline
+     (mis. toggle sync) tetap horizontal penuh. */
+  .settings-action > .btn,
+  .settings-action > .consent-switch {
+    align-self: flex-end;
+  }
+
+  .settings-action--inline {
+    flex-direction: row;
+    align-items: center;
   }
 
   .profile-collections {
@@ -19655,7 +19667,9 @@ html[data-theme='light'] .back-btn:hover {
 
 .breadcrumb-current {
   display: inline-block;
-  max-width: min(320px, 40vw);
+  /* Tanpa cap px: flex (flex:1 + shrink + ellipsis) yang menentukan —
+     truncate hanya saat actions benar-benar butuh ruang. Cap mobile
+     (55vw/38vw) di bawah tetap berlaku. */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -21493,5 +21507,86 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
 @media (prefers-reduced-motion: reduce) {
   .api-page .api-sidebar {
     transition: none;
+  }
+}
+
+/* GCal integration (T4) — Tier-2 composition only.
+   Tier-1 primitives reused: profile-panel, section-title, settings-action,
+   consent-switch, save-toast. Spacing hanya tangga space-* (2/8/10/16),
+   warna via var(--*), tanpa font-size/hex/radius mentah baru. */
+.gcal-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.gcal-identity {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.gcal-identity-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.gcal-switch {
+  min-height: 44px;
+  min-width: 44px;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (hover: none) {
+  .gcal-switch {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+@media (max-width: 640px) {
+  .gcal-identity {
+    gap: 8px;
+  }
+}
+
+/* Project settings (2-pane shell, cermin team settings + profile-layout).
+   Tier-2 komposisi saja: nav reuse .settings-nav/.sidebar-item, panel reuse
+   .profile-panel/.section-title/.settings-row. Spacing tangga space-*,
+   warna/radius via var — tanpa nilai mentah baru. */
+.project-settings {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.project-settings-nav {
+  position: sticky;
+  top: 16px;
+  min-width: 0;
+}
+
+.project-settings-panel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (max-width: 860px) {
+  .project-settings {
+    grid-template-columns: 1fr;
+  }
+
+  /* Mobile: nav sudah ada di sidebar utama (takeover drawer) —
+     nav dalam konten disembunyikan agar tak ganda. */
+  .project-settings-nav {
+    display: none;
   }
 }

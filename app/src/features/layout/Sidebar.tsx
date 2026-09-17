@@ -29,6 +29,8 @@ import { NewProjectModal } from '../dashboard/NewProjectModal';
 import { useActivityUnread } from '../../state/ActivityUnreadContext';
 import { WorkspaceSwitcher, writeLastActiveTeamId } from './WorkspaceSwitcher';
 import { SettingsNav } from './SettingsNav';
+import { ProjectSettingsNav } from '../project/ProjectSettingsNav';
+import { normalizeProjectTabId } from '../project/projectSettingsSections';
 
 interface SidebarProps {
   activeTeamId?: string | null;
@@ -274,6 +276,23 @@ export function Sidebar({ activeTeamId, onCreateTeam, onNavigate }: SidebarProps
   // Single-sidebar rule: on the settings route the main sidebar swaps its
   // team nav for the settings nav (no second sidebar in content).
   const settingsMode = location.pathname.endsWith('/settings');
+  // Project settings (?tab=settings di /project/:id) ikut aturan yang sama:
+  // sidebar ditukar nav General/Integrations/Danger. Fail-closed: project
+  // tak dikenal atau role viewer tetap nav normal (konten pun fallback board).
+  const projectSearch = new URLSearchParams(location.search);
+  const projectSettingsMatch = location.pathname.match(/^\/project\/([^/]+)$/);
+  const settingsProject = projectSettingsMatch
+    ? ((projects ?? []).find((p) => p.id === projectSettingsMatch[1]) ?? null)
+    : null;
+  const projectSettingsMode =
+    projectSearch.get('tab') === 'settings' &&
+    settingsProject !== null &&
+    settingsProject.role !== 'viewer';
+  const projectSettingsFrom = normalizeProjectTabId(projectSearch.get('from'));
+  const projectSettingsTo =
+    settingsProject !== null
+      ? `/project/${encodeURIComponent(settingsProject.id)}?tab=${projectSettingsFrom}`
+      : '/';
 
   // Reset local UI when switching team context, and load that team's
   // pinned list from storage.
@@ -436,6 +455,17 @@ export function Sidebar({ activeTeamId, onCreateTeam, onNavigate }: SidebarProps
               onCreateTeam={() => onCreateTeam?.()}
             />
             <SettingsNav teamSlug={activeTeam.slug || activeTeam.id} dashboardTo={dashboardTo} onSelect={onNavigate} />
+            <UserFooter />
+          </>
+        ) : projectSettingsMode && settingsProject !== null ? (
+          <>
+            <WorkspaceSwitcher
+              teams={teams ?? []}
+              activeTeamId={activeTeam.id}
+              onSelectTeam={handleSelectTeam}
+              onCreateTeam={() => onCreateTeam?.()}
+            />
+            <ProjectSettingsNav projectId={settingsProject.id} projectTo={projectSettingsTo} onSelect={onNavigate} />
             <UserFooter />
           </>
         ) : (

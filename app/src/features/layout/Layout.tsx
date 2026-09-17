@@ -245,18 +245,31 @@ export function Layout() {
     return off;
   }, []);
 
-  // Mobile drawer auto-close on navigation — except when ENTERING the
-  // settings route: the drawer must stay open on the settings submenu list
+  // Mobile drawer auto-close on navigation — except when ENTERING a
+  // settings view: the drawer must stay open on the settings submenu list
   // and only close after the user picks a section (SettingsNav onSelect).
-  const prevPathRef = useRef(location.pathname);
+  // Berlaku untuk team (/x/settings) maupun project (/project/:id?tab=settings).
+  // Perubahan query biasa (sort/filter) tidak menyentuh drawer.
+  const prevLocRef = useRef(location.pathname + location.search);
   useEffect(() => {
-    const prev = prevPathRef.current;
-    prevPathRef.current = location.pathname;
-    const enteringSettings =
-      location.pathname.endsWith('/settings') && !prev.endsWith('/settings');
-    if (enteringSettings) return;
-    setNavOpen(false);
-  }, [location.pathname]);
+    const prev = prevLocRef.current;
+    const cur = location.pathname + location.search;
+    prevLocRef.current = cur;
+    const prevPath = prev.split('?')[0] ?? '';
+    if (location.pathname !== prevPath) {
+      const enteringSettings =
+        location.pathname.endsWith('/settings') && !prev.endsWith('/settings');
+      if (enteringSettings) return;
+      setNavOpen(false);
+      return;
+    }
+    const wasProjectSettings = prev.includes('tab=settings');
+    const isProjectSettings =
+      location.pathname.startsWith('/project/') &&
+      new URLSearchParams(location.search).get('tab') === 'settings';
+    if (isProjectSettings && !wasProjectSettings) return;
+    if (!isProjectSettings && wasProjectSettings) setNavOpen(false);
+  }, [location.pathname, location.search]);
 
   useEffect(() => {
     if (!navOpen) return;

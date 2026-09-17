@@ -97,11 +97,10 @@ describe('DashboardSettingsTab panel', () => {
     expect(await screen.findByRole('heading', { name: 'General' })).toBeTruthy();
   });
 
-  it('shows the GitHub soon panel for ?section=github', async () => {
+  it('falls back to General for the removed ?section=github (moved to project settings)', async () => {
     renderSettings('/alpha/settings?section=github');
-    expect(await screen.findByRole('heading', { name: 'GitHub' })).toBeTruthy();
-    expect(screen.getByText(/Connect repositories to see pull request status/)).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: 'General' })).toBeNull();
+    expect(await screen.findByRole('heading', { name: 'General' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'GitHub' })).toBeNull();
   });
 
   it('renders no-access without content for viewers', async () => {

@@ -10,6 +10,13 @@ import { entitySummary, type ActivityDraft } from '../../../activity/application
 import { broadcastDiff } from '../../../realtime/infrastructure/broadcast.js';
 import { mutateProject } from '../../application/entityService.js';
 import {
+  fireGcalSync,
+  syncTaskCreated,
+  syncTaskDeleted,
+  syncTaskUpdated,
+} from '../../../integrations/gcal/application/sync-service.js';
+import type { GcalTaskInput } from '../../../integrations/gcal/application/mapping.js';
+import {
   ENTITIES,
   deriveTaskPatch,
   itemsOf,
@@ -22,6 +29,22 @@ function parseIfMatch(req: { get(name: string): string | undefined }): string | 
   const header = req.get('If-Match');
   if (!header) return undefined;
   return header.trim().replace(/^"(.*)"$/, '$1');
+}
+
+function toGcalTask(row: EntityRow): GcalTaskInput {
+  const labels = Array.isArray(row.labels)
+    ? (row.labels as unknown[]).filter((l): l is string => typeof l === 'string')
+    : undefined;
+  return {
+    id: String(row.id),
+    title: typeof row.title === 'string' ? row.title : '',
+    status: typeof row.status === 'string' ? row.status : 'todo',
+    priority: typeof row.priority === 'string' ? row.priority : undefined,
+    labels,
+    startDate: (row.startDate as string | null | undefined) ?? null,
+    dueDate: (row.dueDate as string | null | undefined) ?? null,
+    description: typeof row.description === 'string' ? row.description : '',
+  };
 }
 
 function respondEntity(res: Response, version: number, entity: unknown): void {
@@ -92,6 +115,16 @@ function buildEntityRouter(entities: EntityConfig[]): Router {
         version,
         ops: [{ entity: cfg.key, id, op: 'created', after: entity }],
       });
+      // T3 GCal push: create → insert (fire-and-forget, tak memblokir respons).
+      if (cfg.key === 'tasks') {
+        const projectId = req.params.projectId;
+        const taskId = id;
+        fireGcalSync(syncTaskCreated(projectId, toGcalTask(entity), userId), {
+          op: 'insert',
+          projectId,
+          taskId,
+        });
+      }
       res.status(201);
       respondEntity(res, version, entity);
     });
@@ -114,11 +147,13 @@ function buildEntityRouter(entities: EntityConfig[]): Router {
       const filteredPatch = Object.fromEntries(
         Object.entries(patch).filter(([key]) => presentKeys.has(key)),
       );
+      let beforeTask: EntityRow | undefined;
       const { version, state } = await mutateProject(userId, req.params.projectId, parseIfMatch(req), (state) => {
         const items = itemsOf(state, cfg.key);
         const idx = items.findIndex((i) => i.id === req.params.entityId);
         if (idx === -1) throw new ApiError(404, 'NOT_FOUND', `${cfg.label} not found: ${req.params.entityId}`);
         const before = items[idx]!;
+        if (cfg.key === 'tasks') beforeTask = { ...before };
         const after = {
           ...before,
           ...(cfg.key === 'tasks' ? deriveTaskPatch(before, filteredPatch) : filteredPatch),
@@ -141,6 +176,19 @@ function buildEntityRouter(entities: EntityConfig[]): Router {
         version,
         ops: [{ entity: cfg.key, id: req.params.entityId, op: 'updated', after: item }],
       });
+      // T3 GCal push: ubah title/status/startDate/dueDate → patch (atau
+      // insert bila baru bertanggal, delete bila tanggal dihapus).
+      if (cfg.key === 'tasks') {
+        const projectId = req.params.projectId;
+        const taskId = req.params.entityId;
+        const afterTask = toGcalTask(item);
+        const beforeGcal = beforeTask ? toGcalTask(beforeTask) : null;
+        fireGcalSync(syncTaskUpdated(projectId, afterTask, userId, beforeGcal), {
+          op: 'patch',
+          projectId,
+          taskId,
+        });
+      }
       respondEntity(res, version, item);
     });
 
@@ -167,6 +215,16 @@ function buildEntityRouter(entities: EntityConfig[]): Router {
         version,
         ops: [{ entity: cfg.key, id: req.params.entityId, op: 'deleted' }],
       });
+      // T3 GCal push: delete task → delete event (idempoten via event_map).
+      if (cfg.key === 'tasks') {
+        const projectId = req.params.projectId;
+        const taskId = req.params.entityId;
+        fireGcalSync(syncTaskDeleted(projectId, { id: taskId }, userId), {
+          op: 'delete',
+          projectId,
+          taskId,
+        });
+      }
       res.set('ETag', `"${version}"`);
       res.json({ ok: true, version });
     });
