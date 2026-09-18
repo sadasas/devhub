@@ -1,11 +1,10 @@
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
-import { Archive, ArrowCounterClockwise, ChartBar, Check, Copy, PencilSimple } from '@phosphor-icons/react';
+import { Archive, ArrowCounterClockwise, ChartBar, PencilSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import type { Project } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { useProjects } from '../../state/projects-context';
-import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { api } from '../../lib/api';
 import { formatDate } from '../../lib/utils';
 import { formatHours } from '../../lib/format';
@@ -202,7 +201,6 @@ export function OverviewPage({ project }: { project: Project }) {
   const [membersLoaded, setMembersLoaded] = useState(false);
   const [memberNames, setMemberNames] = useState<Record<string, string>>({});
   const [memberAvatars, setMemberAvatars] = useState<Record<string, string | null>>({});
-  const { copied: idCopied, copy: copyId } = useCopyFeedback();
 
   useEffect(() => {
     if (!teamId) {
@@ -425,24 +423,6 @@ export function OverviewPage({ project }: { project: Project }) {
             <Badge tone={TEAM_ROLE[project.role].tone}>{t(`overview.teamRole.${project.role}`)}</Badge>
           </span>
         </p>
-        <div className="about-idrow">
-          <code className="project-id-code">{project.id}</code>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="project-id-copy"
-            leftIcon={
-              idCopied ? (
-                <Check size={12} weight="bold" aria-hidden="true" />
-              ) : (
-                <Copy size={12} aria-hidden="true" />
-              )
-            }
-            onClick={() => void copyId(project.id)}
-          >
-            {idCopied ? t('actions.copied') : t('actions.copy')}
-          </Button>
-        </div>
         {project.status === 'archived' && canEdit && (
           <div style={{ marginTop: 10 }}>
             <Button

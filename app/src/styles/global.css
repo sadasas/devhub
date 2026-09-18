@@ -3754,7 +3754,6 @@ html[data-theme='light'] .splash-bg {
 
   .key-copy-btn,
   .code-copy-btn,
-  .project-id-copy,
   .fp-color {
     min-width: 32px;
     min-height: 32px;
@@ -5921,27 +5920,6 @@ html[data-theme='light'] .splash-bg {
   margin-top: 8px;
 }
 
-.project-id-code {
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  color: var(--text-muted);
-  background: var(--bg-inset);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-sm);
-  padding: 2px 7px;
-  word-break: break-all;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.project-id-copy {
-  height: 22px;
-  padding: 0 8px;
-  font-size: 11.5px;
-}
-
 .tabs {
   display: flex;
   gap: 2px;
@@ -6376,6 +6354,26 @@ html[data-theme='light'] .splash-bg {
   border-radius: var(--radius-input);
 }
 
+/* Teknik drag ala kanban (cermin .task-card.dragging + .kanban-drop-active):
+   chip sumber pudar, cell target highlight. Nilai token identik. */
+.due-cal-task.dragging {
+  opacity: 0.4;
+}
+
+.due-cal-grid .due-cal-cell--drop-active,
+.due-cal-grid .due-cal-cell--drop-active:hover {
+  background: var(--status-success-soft);
+  border-radius: var(--radius-input);
+  outline: 1px dashed var(--status-success);
+  outline-offset: -1px;
+}
+
+/* Saat drag aktif, chip overlay tak boleh menelan dragover — semua event
+   jatuh ke cell di bawahnya sehingga highlight target selalu update. */
+.due-cal-grid.is-dragging .due-cal-task {
+  pointer-events: none;
+}
+
 .kanban-col-add {
   padding: 0 8px 8px;
   border-top: 1px solid var(--border-hairline);
@@ -6691,7 +6689,7 @@ html[data-theme='light'] .splash-bg {
 
 .save-toast {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   max-width: min(400px, calc(100vw - 32px));
   padding: 8px 12px;
@@ -6699,24 +6697,62 @@ html[data-theme='light'] .splash-bg {
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-input);
   box-shadow: none;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text-primary);
 }
 
+/* Ikon/leading langsung: nempel atas, tak ikut stretch. */
+.save-toast > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Kolom isi: teks di atas, aksi di bawah. */
+.save-toast-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.save-toast-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Tombol tutup: pojok kanan atas. */
+.save-toast-close {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .save-banner {
-  border: 1px solid var(--status-danger);
+  border-color: var(--status-danger);
   background: color-mix(in srgb, var(--status-danger) 12%, var(--bg-overlay));
+}
+
+.save-banner > svg {
   color: var(--status-danger);
 }
 
 .save-status {
-  font-size: 12px;
-  color: var(--text-muted);
+  border-color: var(--status-success);
+  background: color-mix(in srgb, var(--status-success) 12%, var(--bg-overlay));
+}
+
+.save-status > svg {
+  color: var(--status-success);
 }
 
 .conflict-banner {
-  border: 1px solid var(--status-warn);
-  background: color-mix(in srgb, var(--status-warn) 14%, var(--bg-overlay));
+  border-color: var(--status-warn);
+  background: color-mix(in srgb, var(--status-warn) 12%, var(--bg-overlay));
+}
+
+.conflict-banner > svg {
   color: var(--status-warn);
 }
 
@@ -10544,21 +10580,6 @@ input[type='checkbox'] {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-muted);
-}
-
-.about-idrow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 10px 0 0;
-}
-
-.about-idrow .project-id-code {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .about-stats {
@@ -18420,7 +18441,7 @@ html[data-theme='light'] .tour-overlay-dim {
 }
 
 .dashboard__settings-section-desc {
-  margin: 0;
+  margin: 0 0 16px;
   font-size: 13px;
   color: var(--text-muted);
 }
@@ -18601,7 +18622,6 @@ html[data-theme='light'] .tour-overlay-dim {
   gap: 12px;
   flex-wrap: wrap;
   padding-top: 12px;
-  border-top: 1px solid var(--border-strong);
 }
 
 .dashboard__settings-danger-main {

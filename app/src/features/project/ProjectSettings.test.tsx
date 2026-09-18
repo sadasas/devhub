@@ -135,7 +135,7 @@ describe('ProjectSettings shell', () => {
 
   it('renders danger nav and archive+delete rows for admins', () => {
     renderSettings('/project/p1?tab=settings&section=danger');
-    expect(screen.getByRole('link', { name: 'Danger' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('link', { name: 'Danger zone' }).getAttribute('aria-current')).toBe('page');
     expect(screen.getByRole('heading', { name: 'Danger zone' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Archive' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Delete' })).toBeTruthy();

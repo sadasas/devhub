@@ -55,6 +55,23 @@ describe('Tooltip', () => {
     expect(tip.textContent).toContain('Deskripsi');
   });
 
+  it('disabled menutup tooltip yang sedang terbuka', () => {
+    const { rerender } = render(
+      <Tooltip content="Halo tip">
+        <button type="button">Trigger</button>
+      </Tooltip>,
+    );
+    const btn = screen.getByRole('button', { name: 'Trigger' });
+    fireEvent.focus(btn);
+    expect(screen.getByRole('tooltip').textContent).toBe('Halo tip');
+    rerender(
+      <Tooltip content="Halo tip" disabled>
+        <button type="button">Trigger</button>
+      </Tooltip>,
+    );
+    expect(screen.queryByRole('tooltip')).toBeNull();
+  });
+
   it('disabled tidak menampilkan tooltip', () => {
     vi.useFakeTimers();
     try {

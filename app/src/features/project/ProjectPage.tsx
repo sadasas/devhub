@@ -46,6 +46,7 @@ import { Modal } from '../../components/Modal';
 import { SaveBanner } from '../../components/SaveBanner';
 import { ToastStack } from '../../components/ToastStack';
 import { Skeleton } from '../../components/Skeleton';
+import { ProjectSettingsSkeleton } from '../../components/PageSkeletons';
 import { SyncStatusChip } from '../../components/SyncStatusChip';
 import { PresenceChip } from '../../components/PresenceChip';
 import { ShareModal } from './ShareModal';
@@ -745,7 +746,7 @@ export function ProjectPage() {
                   aria-label={t('settings.title', { defaultValue: 'Project settings' })}
                   title={t('settings.title', { defaultValue: 'Project settings' })}
                   aria-pressed={isSettings}
-                  onClick={() => { if (isSettings) closeSettings(); else openSettings(); }}
+                  onClick={openSettings}
                 >
                   <GearSix size={16} aria-hidden="true" />
                 </Button>
@@ -805,24 +806,6 @@ export function ProjectPage() {
                         <span className="more-item-label">{t('actions.saveAsTemplate')}</span>
                       </button>
                     )}
-                    {canArchive && !isArchived && (
-                      <button type="button" role="menuitem" className="more-item" onClick={() => { setActionsOpen(false); setArchiveConfirm('archive'); }}>
-                        <span className="more-item-icon"><Archive size={14} aria-hidden="true" /></span>
-                        <span className="more-item-label">Archive</span>
-                      </button>
-                    )}
-                    {canArchive && isArchived && (
-                      <button type="button" role="menuitem" className="more-item" onClick={() => { setActionsOpen(false); setArchiveConfirm('restore'); }}>
-                        <span className="more-item-icon"><ArrowCounterClockwise size={14} aria-hidden="true" /></span>
-                        <span className="more-item-label">Restore</span>
-                      </button>
-                    )}
-                    {isAdmin && (
-                      <button type="button" role="menuitem" className="more-item text-danger" onClick={() => { setActionsOpen(false); setDeleteConfirm(''); setConfirmOpen(true); }}>
-                        <span className="more-item-icon"><Trash size={14} aria-hidden="true" /></span>
-                        <span className="more-item-label">{t('actions.delete')}</span>
-                      </button>
-                    )}
                   </div>
                 )}
                 {isMobileActions && (
@@ -860,33 +843,8 @@ export function ProjectPage() {
                             <span className="more-item-label">{t('actions.saveAsTemplate')}</span>
                           </button>
                         )}
-                        {canArchive && !isArchived && (
-                          <button type="button" role="menuitem" className="more-item" onClick={() => { setActionsOpen(false); setArchiveConfirm('archive'); }}>
-                            <span className="more-item-icon"><Archive size={18} aria-hidden="true" /></span>
-                            <span className="more-item-label">Archive</span>
-                          </button>
-                        )}
-                        {canArchive && isArchived && (
-                          <button type="button" role="menuitem" className="more-item" onClick={() => { setActionsOpen(false); setArchiveConfirm('restore'); }}>
-                            <span className="more-item-icon"><ArrowCounterClockwise size={18} aria-hidden="true" /></span>
-                            <span className="more-item-label">Restore</span>
-                          </button>
-                        )}
                       </div>
                     </div>
-                    {isAdmin && (
-                      <>
-                        <hr className="sheet-divider" aria-hidden="true" />
-                        <div className="sheet-section sheet-danger">
-                          <div className="sheet-actions-list" role="menu" aria-label={t('deleteModal.title')}>
-                            <button type="button" role="menuitem" className="more-item text-danger" onClick={() => { setActionsOpen(false); setDeleteConfirm(''); setConfirmOpen(true); }}>
-                              <span className="more-item-icon"><Trash size={18} aria-hidden="true" /></span>
-                              <span className="more-item-label">{t('deleteModal.title')}</span>
-                            </button>
-                          </div>
-                        </div>
-                      </>
-                    )}
                   </BottomSheet>
                 )}
               </div>
@@ -915,7 +873,7 @@ export function ProjectPage() {
         )}
 
         {isSettings && role !== 'viewer' ? (
-          <Suspense fallback={<TabSkeleton tab="board" />}>
+          <Suspense fallback={<ProjectSettingsSkeleton />}>
             <ProjectSettingsLazy
               project={project}
               canEditMeta={isAdmin}
@@ -981,7 +939,7 @@ export function ProjectPage() {
               label={t('settings.dangerTypeLabel', { defaultValue: 'Project name' })}
               value={deleteConfirm}
               maxLength={300}
-              placeholder={project.name}
+              placeholder={t('settings.dangerTypePlaceholder', { defaultValue: 'Type the project name to confirm' })}
               error={deleteConfirm.length > 0 && deleteConfirm.trim() !== project.name ? (t('settings.dangerTypeMismatch', { defaultValue: 'Name does not match.' }) as string) : undefined}
               aria-describedby="delete-desc"
               onChange={(e) => setDeleteConfirm(e.target.value)}
