@@ -231,22 +231,23 @@ describe('SchemaPage U1 ERD canvas mode', () => {
     expect(document.body.style.overflow).toBe('');
   });
 
-  it('pill memuat Present (semua peran) + Import (editor saja)', () => {
+  it('top card memuat Present (semua peran); pill memuat Import (editor saja)', () => {
     mockLive();
     renderSchema('/p/p1?tab=schema&schemaView=erd&canvas=1');
     const dialog = canvasDialog();
     const pill = within(dialog).getByRole('toolbar', { name: /canvas tools|peralatan kanvas/i });
-    expect(within(pill).getByRole('button', { name: /^Presentasi$|^Present$/ })).toBeTruthy();
+    expect(within(pill).queryByRole('button', { name: /^Presentasi$|^Present$/ })).toBeNull();
+    expect(within(dialog).getByRole('button', { name: /^Presentasi$|^Present$/ })).toBeTruthy();
     expect(within(pill).getByRole('button', { name: /^Import$/i })).toBeTruthy();
   });
 
-  it('viewer: pill tanpa Import tapi tetap ada Present', () => {
+  it('viewer: pill tanpa Import tapi top tetap ada Present', () => {
     mockLive({ canEdit: false });
     renderSchema('/p/p1?tab=schema&schemaView=erd&canvas=1');
     const dialog = canvasDialog();
     const pill = within(dialog).getByRole('toolbar', { name: /canvas tools|peralatan kanvas/i });
     expect(within(pill).queryByRole('button', { name: /^Import$/i })).toBeNull();
-    expect(within(pill).getByRole('button', { name: /^Presentasi$|^Present$/ })).toBeTruthy();
+    expect(within(dialog).getByRole('button', { name: /^Presentasi$|^Present$/ })).toBeTruthy();
   });
 
   it('Presentasi: chrome hilang (top/panel/zoom), X floating muncul + fokus; Esc kembali utuh', () => {
@@ -291,6 +292,41 @@ describe('SchemaPage U1 ERD canvas mode', () => {
     expect(within(panelAfter).getByRole('button', { name: /Delete relation|Hapus relasi/i })).toBeTruthy();
   });
 
+  it('Presentasi: klik tabel menyalakan highlight + animasi alur (panel tetap tutup)', () => {
+    mockLive();
+    renderSchema('/p/p1?tab=schema&schemaView=erd&canvas=1');
+    const dialog = canvasDialog();
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Presentasi$|^Present$/ }));
+    // Chrome hilang tapi node bisa diklik untuk seleksi visual.
+    const node = within(dialog).getByRole('button', { name: /^Table users with/ });
+    expect(node.getAttribute('aria-disabled')).toBeNull();
+    fireEvent.click(node);
+    expect(node.getAttribute('class')).toContain('erd-node-selected');
+    // Relasi insiden menganimasikan alur; panel properti tetap tidak muncul.
+    expect(dialog.querySelectorAll('.erd-rel-flow').length).toBeGreaterThan(0);
+    expect(within(dialog).queryByRole('complementary', { name: /properties|properti/i })).toBeNull();
+    // Highlight pindah saat tabel lain diklik.
+    const other = within(dialog).getByRole('button', { name: /^Table projects with/ });
+    fireEvent.click(other);
+    expect(other.getAttribute('class')).toContain('erd-node-selected');
+    expect(node.getAttribute('class')).not.toContain('erd-node-selected');
+  });
+
+  it('Presentasi: hover baris kolom memunculkan tooltip (hilang saat leave)', () => {
+    mockLive();
+    renderSchema('/p/p1?tab=schema&schemaView=erd&canvas=1');
+    const dialog = canvasDialog();
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Presentasi$|^Present$/ }));
+    const colRow = dialog.querySelector('[data-connect-col="tb1:c1"]');
+    expect(colRow).not.toBeNull();
+    fireEvent.mouseEnter(colRow!);
+    const tip = document.getElementById('erd-col-tip');
+    expect(tip).not.toBeNull();
+    expect(tip?.textContent).toMatch(/id/);
+    fireEvent.mouseLeave(colRow!);
+    expect(document.getElementById('erd-col-tip')).toBeNull();
+  });
+
   it('Import di pill membuka ImportSchemaModal di atas overlay', () => {
     mockLive();
     renderSchema('/p/p1?tab=schema&schemaView=erd&canvas=1');
@@ -298,5 +334,160 @@ describe('SchemaPage U1 ERD canvas mode', () => {
     const pill = within(dialog).getByRole('toolbar', { name: /canvas tools|peralatan kanvas/i });
     fireEvent.click(within(pill).getByRole('button', { name: /^Import$/i }));
     expect(screen.getByRole('dialog', { name: /Import|Impor/i })).toBeTruthy();
+  });
+
+  it('wide: pill penuh — New Area/Tidy/Export/Import langsung terlihat, tanpa …', () => {
+    mockLive();
+    renderSchema('/p/p1?tab=schema&schemaView=erd&canvas=1');
+    const dialog = canvasDialog();
+    const pill = within(dialog).getByRole('toolbar', { name: /canvas tools|peralatan kanvas/i });
+    expect(within(pill).getByRole('button', { name: /^New table|^Tabel baru/i })).toBeTruthy();
+    expect(within(pill).getByRole('button', { name: /^New relation|^Relasi baru/i })).toBeTruthy();
+    expect(within(pill).getByRole('button', { name: /^New area|^Area baru/i })).toBeTruthy();
+    expect(within(pill).getByRole('button', { name: /^Tidy$|^Rapikan$/i })).toBeTruthy();
+    expect(within(pill).getByRole('button', { name: /Export/i })).toBeTruthy();
+    expect(within(pill).getByRole('button', { name: /^Import$/i })).toBeTruthy();
+    expect(within(pill).queryByRole('button', { name: /More actions|Opsi lain/i })).toBeNull();
+  });
+
+  it('narrow: pill ringkas — Table + Relation + …; sheet berisi sisanya', () => {
+    const realMatchMedia = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('640px'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+    try {
+      mockLive();
+      renderSchema('/p/p1?tab=schema&schemaView=erd&canvas=1');
+      const dialog = canvasDialog();
+      const pill = within(dialog).getByRole('toolbar', { name: /canvas tools|peralatan kanvas/i });
+      expect(within(pill).getByRole('button', { name: /^New table|^Tabel baru/i })).toBeTruthy();
+      expect(within(pill).getByRole('button', { name: /^New relation|^Relasi baru/i })).toBeTruthy();
+      expect(within(pill).queryByRole('button', { name: /^New area|^Area baru/i })).toBeNull();
+      expect(within(pill).queryByRole('button', { name: /^Tidy$|^Rapikan$/i })).toBeNull();
+      expect(within(pill).queryByRole('button', { name: /^Import$/i })).toBeNull();
+      // Buka sheet … : New Area, Tidy, Export, Import.
+      fireEvent.click(within(pill).getByRole('button', { name: /More actions|Opsi lain/i }));
+      expect(screen.getByRole('button', { name: /^New area|^Area baru/i })).toBeTruthy();
+      expect(screen.getByRole('button', { name: /^Tidy$|^Rapikan$/i })).toBeTruthy();
+      expect(screen.getByRole('button', { name: /Postgres DDL|DDL/i })).toBeTruthy();
+      expect(screen.getByRole('button', { name: /^Import schema|^Impor skema/i })).toBeTruthy();
+      // New Area dari sheet: dispatch + sheet tertutup.
+      fireEvent.click(screen.getByRole('button', { name: /^New area|^Area baru/i }));
+      const dispatch = useProjectMock.mock.results[0]?.value.dispatch as ReturnType<typeof vi.fn>;
+      expect(dispatch).toHaveBeenCalledWith({
+        type: 'area/add',
+        area: expect.objectContaining({ name: 'Area 1', color: null, tableIds: [] }),
+      });
+      // Sheet tertutup (baris Export-nya hilang); tombol + panel Areas boleh ada.
+      expect(screen.queryByRole('button', { name: /Postgres DDL/i })).toBeNull();
+    } finally {
+      window.matchMedia = realMatchMedia;
+    }
+  });
+
+  it('mobile sheet: tap tab mengembang + ganti tab; tap tab aktif/handle menciut; Esc menciutkan', () => {
+    mockLive();
+    renderSchema('/p/p1?tab=schema&schemaView=erd&canvas=1');
+    const dialog = canvasDialog();
+    const sidebar = dialog.querySelector('.erd-sidebar') as HTMLElement | null;
+    expect(sidebar).not.toBeNull();
+    // Awal: peek — handle disembunyikan, toggle lewat tap tab.
+    expect(sidebar!.className).not.toContain('erd-sheet-expanded');
+    expect(
+      within(dialog).queryByRole('button', { name: /Expand panel|Buka panel|Collapse panel|Tutup panel/i }),
+    ).toBeNull();
+    // Tap tab Areas: mengembang + tab berpindah + handle muncul.
+    fireEvent.click(within(dialog).getByRole('tab', { name: /^Areas$|^Area$/i }));
+    expect(sidebar!.className).toContain('erd-sheet-expanded');
+    expect(within(dialog).getByRole('tab', { name: /^Areas$|^Area$/i }).getAttribute('aria-selected')).toBe('true');
+    const handle = within(dialog).getByRole('button', { name: /Collapse panel|Tutup panel/i });
+    expect(handle.getAttribute('aria-expanded')).toBe('true');
+    // Tap tab aktif: menciut, handle hilang lagi.
+    fireEvent.click(within(dialog).getByRole('tab', { name: /^Areas$|^Area$/i }));
+    expect(sidebar!.className).not.toContain('erd-sheet-expanded');
+    expect(
+      within(dialog).queryByRole('button', { name: /Expand panel|Buka panel|Collapse panel|Tutup panel/i }),
+    ).toBeNull();
+    // Expand via handle tak mungkin saat ciut — via tab, lalu tap handle + Esc.
+    // Tap handle menciutkan + fokus kembali ke tab aktif.
+    fireEvent.click(within(dialog).getByRole('tab', { name: /^Areas$|^Area$/i }));
+    expect(sidebar!.className).toContain('erd-sheet-expanded');
+    fireEvent.click(within(dialog).getByRole('button', { name: /Collapse panel|Tutup panel/i }));
+    expect(sidebar!.className).not.toContain('erd-sheet-expanded');
+    expect(document.activeElement).toBe(
+      within(dialog).getByRole('tab', { name: /^Areas$|^Area$/i }),
+    );
+    fireEvent.click(within(dialog).getByRole('tab', { name: /^Areas$|^Area$/i }));
+    fireEvent.keyDown(dialog, { key: 'Escape' });
+    expect(sidebar!.className).not.toContain('erd-sheet-expanded');
+    expect(screen.queryByRole('dialog', { name: /ERD canvas/i })).toBeTruthy();
+  });
+
+  it('presentasi: tanpa chrome sheet (handle/tab bar ikut di-unmount)', () => {
+    mockLive();
+    renderSchema('/p/p1?tab=schema&schemaView=erd&canvas=1');
+    const dialog = canvasDialog();
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Presentasi$|^Present$/ }));
+    expect(within(dialog).queryByRole('button', { name: /Expand panel|Buka panel|Collapse panel|Tutup panel/i })).toBeNull();
+    expect(dialog.querySelector('.erd-sidebar')).toBeNull();
+  });
+
+  it('panel: tombol + di header Tables/Relations/Areas membuka alur tambah', () => {
+    mockLive();
+    renderSchema('/p/p1?tab=schema&schemaView=erd&canvas=1');
+    const dialog = canvasDialog();
+    // Tables + → modal tabel baru.
+    const tablesPanel = document.querySelector('#erd-panel-tabpanel-tables') as HTMLElement;
+    fireEvent.click(within(tablesPanel).getByRole('button', { name: /^New table|^Tabel baru/i }));
+    expect(screen.getByPlaceholderText('users')).toBeTruthy();
+    fireEvent.keyDown(screen.getByPlaceholderText('users'), { key: 'Escape' });
+    // Relations + → modal relasi baru.
+    fireEvent.click(within(dialog).getByRole('tab', { name: /^Refs$|^Relasi$/i }));
+    const relsPanel = document.querySelector('#erd-panel-tabpanel-relations') as HTMLElement;
+    fireEvent.click(within(relsPanel).getByRole('button', { name: /^New relation|^Relasi baru/i }));
+    expect(screen.getByRole('dialog', { name: /^New relation/i })).toBeTruthy();
+  });
+
+  it('panel: tombol + Areas dispatch area/add; viewer tanpa tombol +', () => {
+    mockLive();
+    renderSchema('/p/p1?tab=schema&schemaView=erd&canvas=1');
+    const dialog = canvasDialog();
+    fireEvent.click(within(dialog).getByRole('tab', { name: /^Areas$|^Area$/i }));
+    const areasPanel = document.querySelector('#erd-panel-tabpanel-areas') as HTMLElement;
+    fireEvent.click(within(areasPanel).getByRole('button', { name: /^New area|^Area baru/i }));
+    const dispatch = useProjectMock.mock.results[0]?.value.dispatch as ReturnType<typeof vi.fn>;
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'area/add',
+      area: expect.objectContaining({ name: 'Area 1', color: null, tableIds: [] }),
+    });
+  });
+
+  it('panel viewer: tanpa tombol + di semua tab', () => {
+    mockLive({ canEdit: false });
+    renderSchema('/p/p1?tab=schema&schemaView=erd&canvas=1');
+    const dialog = canvasDialog();
+    expect(
+      within(document.querySelector('#erd-panel-tabpanel-tables') as HTMLElement).queryByRole('button', {
+        name: /^New table|^Tabel baru/i,
+      }),
+    ).toBeNull();
+    fireEvent.click(within(dialog).getByRole('tab', { name: /^Refs$|^Relasi$/i }));
+    expect(
+      within(document.querySelector('#erd-panel-tabpanel-relations') as HTMLElement).queryByRole('button', {
+        name: /^New relation|^Relasi baru/i,
+      }),
+    ).toBeNull();
+    fireEvent.click(within(dialog).getByRole('tab', { name: /^Areas$|^Area$/i }));
+    expect(
+      within(document.querySelector('#erd-panel-tabpanel-areas') as HTMLElement).queryByRole('button', {
+        name: /^New area|^Area baru/i,
+      }),
+    ).toBeNull();
   });
 });

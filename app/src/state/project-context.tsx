@@ -21,18 +21,26 @@ import { RealtimeSocket, applyStateDiff, realtimeWsUrl } from '../lib/realtime-c
 import type { ActivityNew, PresenceUpdate, PresenceUser, RealtimeHandlers, StateDiff } from '../lib/realtime-client';
 import { deriveActualHours, nowIso } from '../lib/utils';
 import {
+  isApiCollectionValid,
+  isApiEndpointValid,
   isDecisionValid,
+  isErdGroupValid,
   isIssueValid,
   isMilestoneValid,
   isNonEmptyTitle,
+  isRelationValid,
+  isSchemaVersionValid,
+  isTableValid,
   isTaskValid,
   isTechValid,
   isTestCaseValid,
+  isWhiteboardValid,
 } from '../lib/entity-validation';
 import type {
   ApiCollection,
   ApiEndpoint,
   Decision,
+  ErdGroup,
   ErdLayout,
   Issue,
   Milestone,
@@ -89,7 +97,11 @@ export type ProjectAction =
   | { type: 'whiteboard/add'; whiteboard: Whiteboard }
   | { type: 'whiteboard/update'; id: string; patch: UpdatePatch<Whiteboard> }
   | { type: 'whiteboard/remove'; id: string }
+  | { type: 'area/add'; area: ErdGroup }
+  | { type: 'area/update'; id: string; patch: UpdatePatch<ErdGroup> }
+  | { type: 'area/remove'; id: string }
   | { type: 'erdLayout/set'; tableId: string; pos: ErdLayout[string] }
+  | { type: 'erdLayout/setMany'; moves: Record<string, ErdLayout[string]> }
   | { type: 'erdLayout/clear' }
   | { type: 'timeline/reorder'; laneKey: string; ids: string[] };
 
@@ -102,6 +114,67 @@ function updateIn<T extends { id: string }>(list: T[], id: string, patch: Partia
   return list.map((item) =>
     item.id === id ? { ...item, ...patch, updatedAt: touched } : item,
   );
+}
+
+/** Koleksi state yang berisi entity ber-id (untuk merge preservasi resync). */
+const ID_COLLECTIONS = [
+  'tasks',
+  'issues',
+  'testCases',
+  'techEntries',
+  'tables',
+  'relations',
+  'schemaVersions',
+  'decisions',
+  'milestones',
+  'apiCollections',
+  'apiEndpoints',
+  'whiteboards',
+  'erdGroups',
+] as const;
+
+/**
+ * Gabungkan entity lokal yang belum tersimpan ke atas snapshot server.
+ * `keys` berisi `entity:id` (mutasi pending + invalid tertahan).
+ * Aturan per key: lokal masih ada → versi lokal menang (replace / append bila
+ * tak ada di server); lokal sudah hilang (dihapus) → server menang.
+ * Murni, never-throw — resync/poll tak lagi menghapus kerja lokal.
+ */
+export function mergePreservedEntities(
+  fresh: State,
+  local: State | null,
+  keys: ReadonlySet<string>,
+): State {
+  try {
+    if (!local || keys.size === 0) return fresh;
+    type Bag = Record<string, { id: string }[] | unknown>;
+    const freshBag = fresh as unknown as Bag;
+    const localBag = local as unknown as Bag;
+    const next: Bag = { ...freshBag };
+    // Single-doc entities: keep the whole local document when its key is pending.
+    if (keys.has('erdLayout:layout')) {
+      const localLayout = (local as State).erdLayout;
+      if (localLayout !== undefined) next.erdLayout = localLayout;
+    }
+    for (const key of keys) {
+      const sep = key.indexOf(':');
+      if (sep < 0) continue;
+      const entity = key.slice(0, sep);
+      const id = key.slice(sep + 1);
+      if (!(ID_COLLECTIONS as readonly string[]).includes(entity)) continue;
+      const freshList = Array.isArray(freshBag[entity]) ? (freshBag[entity] as { id: string }[]) : null;
+      const localList = Array.isArray(localBag[entity]) ? (localBag[entity] as { id: string }[]) : null;
+      if (!freshList || !localList) continue;
+      const item = localList.find((e) => e && e.id === id);
+      if (!item) continue;
+      next[entity] = freshList.some((e) => e && e.id === id)
+        ? freshList.map((e) => (e && e.id === id ? item : e))
+        : [...freshList, item];
+    }
+    return next as unknown as State;
+  } catch {
+    return fresh;
+  }
 }
 
 export function projectReducer(state: State, action: ProjectAction): State {
@@ -213,6 +286,10 @@ export function projectReducer(state: State, action: ProjectAction): State {
         ...state,
         tables: state.tables.filter((t) => t.id !== action.id),
         relations: state.relations.filter((r) => r.fromTableId !== action.id && r.toTableId !== action.id),
+        erdGroups: (state.erdGroups ?? []).map((g) => ({
+          ...g,
+          tableIds: g.tableIds.filter((t) => t !== action.id),
+        })),
       };
 
     case 'relation/add':
@@ -295,11 +372,33 @@ export function projectReducer(state: State, action: ProjectAction): State {
         whiteboards: state.whiteboards.filter((w) => w.id !== action.id),
       };
 
+    case 'area/add':
+      return { ...state, erdGroups: [action.area, ...(state.erdGroups ?? [])] };
+    case 'area/update':
+      return {
+        ...state,
+        erdGroups: updateIn<ErdGroup>(state.erdGroups ?? [], action.id, action.patch),
+      };
+    case 'area/remove':
+      return {
+        ...state,
+        erdGroups: (state.erdGroups ?? []).filter((g) => g.id !== action.id),
+      };
+
     case 'erdLayout/set':
       return {
         ...state,
         erdLayout: { ...(state.erdLayout ?? {}), [action.tableId]: { ...action.pos } },
       };
+
+    case 'erdLayout/setMany': {
+      // Bulk commit geser area: gabung semua posisi sekaligus (satu dispatch).
+      const merged = { ...(state.erdLayout ?? {}) };
+      for (const [id, pos] of Object.entries(action.moves ?? {})) {
+        if (typeof id === 'string' && pos) merged[id] = { ...pos };
+      }
+      return { ...state, erdLayout: merged };
+    }
 
     case 'erdLayout/clear':
       return {
@@ -335,6 +434,7 @@ const ENTITY_FOR_ACTION: Record<string, GranularEntity> = {
   apiCollection: 'apiCollections',
   apiEndpoint: 'apiEndpoints',
   whiteboard: 'whiteboards',
+  area: 'erdGroups',
 };
 
 const PAYLOAD_KEY: Record<string, string> = {
@@ -350,9 +450,21 @@ const PAYLOAD_KEY: Record<string, string> = {
   apiCollection: 'collection',
   apiEndpoint: 'endpoint',
   whiteboard: 'whiteboard',
+  area: 'area',
 };
 
 function actionToMutation(action: ProjectAction): PendingMutation | null {
+  // erdLayout is a single document (whiteboard pattern: one queued update
+  // carrying the whole snapshot — last snapshot wins, reload-safe via the
+  // IDB journal). The full payload is attached by the dispatch wrapper
+  // (always fresh, immune to closure staleness).
+  if (
+    action.type === 'erdLayout/set' ||
+    action.type === 'erdLayout/setMany' ||
+    action.type === 'erdLayout/clear'
+  ) {
+    return { key: 'erdLayout:layout', entity: 'erdLayout', op: 'update', id: 'layout', payload: {} };
+  }
   const [head, verb] = action.type.split('/') as [string, string];
   const entity = ENTITY_FOR_ACTION[head];
   if (!entity || !verb || verb === 'replace') return null;
@@ -372,6 +484,44 @@ function actionToMutation(action: ProjectAction): PendingMutation | null {
     return { key: `${entity}:${a.id}`, entity, op: 'delete', id: a.id };
   }
   return null;
+}
+
+/**
+ * Full erdLayout snapshot after applying a layout action to the previous
+ * layout — queued as the whole-document payload (whiteboard pattern).
+ * Computed synchronously from pre-action state + action, so rapid successive
+ * moves each carry a complete, self-consistent snapshot. Pure, never-throw.
+ */
+function erdLayoutAfter(
+  prev: State['erdLayout'] | undefined,
+  action:
+    | Extract<ProjectAction, { type: 'erdLayout/set' }>
+    | Extract<ProjectAction, { type: 'erdLayout/setMany' }>
+    | Extract<ProjectAction, { type: 'erdLayout/clear' }>,
+): Record<string, { x: number; y: number }> {
+  try {
+    if (action.type === 'erdLayout/clear') return {};
+    const base: Record<string, { x: number; y: number }> = {};
+    for (const [id, pos] of Object.entries(prev ?? {})) {
+      const p = pos as { x?: unknown; y?: unknown } | null | undefined;
+      if (typeof id === 'string' && p && Number.isFinite(p.x) && Number.isFinite(p.y)) {
+        base[id] = { x: p.x as number, y: p.y as number };
+      }
+    }
+    if (action.type === 'erdLayout/set') {
+      base[action.tableId] = { ...action.pos };
+    } else {
+      for (const [id, pos] of Object.entries(action.moves ?? {})) {
+        const p = pos as { x?: unknown; y?: unknown } | null | undefined;
+        if (typeof id === 'string' && p && Number.isFinite(p.x) && Number.isFinite(p.y)) {
+          base[id] = { x: p.x as number, y: p.y as number };
+        }
+      }
+    }
+    return base;
+  } catch {
+    return {};
+  }
 }
 
 /**
@@ -418,6 +568,47 @@ function isInvalidEntityAction(action: ProjectAction, prev: State | null): boole
       const next = (action.patch as Partial<Milestone>).name ?? cur.name;
       return !isNonEmptyTitle(next);
     }
+    case 'table/update': {
+      const cur = prev.tables.find((t) => t.id === action.id);
+      if (!cur) return false;
+      const patch = action.patch as Partial<Table>;
+      return !isTableValid({ ...cur, name: patch.name ?? cur.name, columns: patch.columns ?? cur.columns });
+    }
+    case 'relation/update': {
+      const cur = prev.relations.find((r) => r.id === action.id);
+      if (!cur) return false;
+      const patch = action.patch as Partial<Relation>;
+      return !isRelationValid({
+        fromTableId: patch.fromTableId ?? cur.fromTableId,
+        fromColumnId: patch.fromColumnId ?? cur.fromColumnId,
+        toTableId: patch.toTableId ?? cur.toTableId,
+        toColumnId: patch.toColumnId ?? cur.toColumnId,
+      });
+    }
+    case 'apiCollection/update': {
+      const cur = prev.apiCollections.find((c) => c.id === action.id);
+      if (!cur) return false;
+      const next = (action.patch as Partial<ApiCollection>).name ?? cur.name;
+      return !isNonEmptyTitle(next);
+    }
+    case 'apiEndpoint/update': {
+      const cur = prev.apiEndpoints.find((e) => e.id === action.id);
+      if (!cur) return false;
+      const patch = action.patch as Partial<ApiEndpoint>;
+      return !isApiEndpointValid({ name: patch.name ?? cur.name, path: patch.path ?? cur.path });
+    }
+    case 'whiteboard/update': {
+      const cur = prev.whiteboards.find((w) => w.id === action.id);
+      if (!cur) return false;
+      const next = (action.patch as Partial<Whiteboard>).name ?? cur.name;
+      return !isNonEmptyTitle(next);
+    }
+    case 'area/update': {
+      const cur = (prev.erdGroups ?? []).find((g) => g.id === action.id);
+      if (!cur) return false;
+      const next = (action.patch as Partial<ErdGroup>).name ?? cur.name;
+      return !isNonEmptyTitle(next);
+    }
     case 'task/add':
       return !isTaskValid(action.task);
     case 'issue/add':
@@ -430,6 +621,20 @@ function isInvalidEntityAction(action: ProjectAction, prev: State | null): boole
       return !isTechValid(action.entry);
     case 'milestone/add':
       return !isMilestoneValid(action.milestone);
+    case 'table/add':
+      return !isTableValid(action.table);
+    case 'relation/add':
+      return !isRelationValid(action.relation);
+    case 'apiCollection/add':
+      return !isApiCollectionValid(action.collection);
+    case 'apiEndpoint/add':
+      return !isApiEndpointValid(action.endpoint);
+    case 'whiteboard/add':
+      return !isWhiteboardValid(action.whiteboard);
+    case 'area/add':
+      return !isErdGroupValid(action.area);
+    case 'schemaVersion/add':
+      return !isSchemaVersionValid(action.version);
     default:
       return false;
   }
@@ -466,6 +671,34 @@ function isStoredEntityInvalid(
     case 'milestones': {
       const cur = state.milestones.find((m) => m.id === id);
       return cur ? !isMilestoneValid(cur) : false;
+    }
+    case 'tables': {
+      const cur = state.tables.find((t) => t.id === id);
+      return cur ? !isTableValid(cur) : false;
+    }
+    case 'relations': {
+      const cur = state.relations.find((r) => r.id === id);
+      return cur ? !isRelationValid(cur) : false;
+    }
+    case 'apiCollections': {
+      const cur = state.apiCollections.find((c) => c.id === id);
+      return cur ? !isApiCollectionValid(cur) : false;
+    }
+    case 'apiEndpoints': {
+      const cur = state.apiEndpoints.find((e) => e.id === id);
+      return cur ? !isApiEndpointValid(cur) : false;
+    }
+    case 'whiteboards': {
+      const cur = state.whiteboards.find((w) => w.id === id);
+      return cur ? !isWhiteboardValid(cur) : false;
+    }
+    case 'erdGroups': {
+      const cur = (state.erdGroups ?? []).find((g) => g.id === id);
+      return cur ? !isErdGroupValid(cur) : false;
+    }
+    case 'schemaVersions': {
+      const cur = state.schemaVersions.find((v) => v.id === id);
+      return cur ? !isSchemaVersionValid(cur) : false;
     }
     default:
       return false;
@@ -570,6 +803,16 @@ export function ProjectProvider({
   const versionRef = useRef(0);
   const dirtyRef = useRef(false);
   const mutationsRef = useRef<Map<string, PendingMutation>>(new Map());
+  // Entity yang ditahan guard (invalid) — tak ada di antrean, jadi resync
+  // wajib mempertahankannya agar kerja lokal tak terhapus server snapshot.
+  const invalidPendingRef = useRef<Set<string>>(new Set());
+
+  /** Union kunci preservasi resync: mutasi pending + invalid tertahan. */
+  const preservedKeys = useCallback((): Set<string> => {
+    const s = new Set<string>(invalidPendingRef.current);
+    for (const k of mutationsRef.current.keys()) s.add(k);
+    return s;
+  }, []);
   const savingRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingFlushRef = useRef<Promise<void> | null>(null);
@@ -599,10 +842,12 @@ export function ProjectProvider({
             current = entry[1];
             // Jangan kirim create/update yang invalid (judul/nama kosong) —
             // buang dari queue agar tidak jadi saveError backend, tunggu edit valid berikutnya.
+            // Key tetap dicatat agar resync tak menghapus kerja lokal ini.
             if (
               (current.op === 'create' || current.op === 'update') &&
               isStoredEntityInvalid(current.entity, current.id, stateRef.current)
             ) {
+              invalidPendingRef.current.add(current.key);
               if (isQueuedStorageProvider(provider)) {
                 void provider.removePendingMutation(projectId, current.key).catch(() => {});
               }
@@ -638,6 +883,7 @@ export function ProjectProvider({
               if (isQueuedStorageProvider(provider)) {
                 void provider.removePendingMutation(projectId, current.key).catch(() => {});
               }
+              invalidPendingRef.current.delete(current.key);
               current = undefined;
               setIsOffline(false);
             } catch (err) {
@@ -734,6 +980,8 @@ export function ProjectProvider({
   const resolveConflict = useCallback(async () => {
     setConflict(null);
     mutationsRef.current.clear();
+    // Pilihan eksplisit pengguna: ikut server — preservasi lokal ikut dibuang.
+    invalidPendingRef.current.clear();
     emitPendingCount();
     if (isQueuedStorageProvider(provider)) {
       void provider.clearPendingMutations(projectId).catch(() => {});
@@ -776,6 +1024,9 @@ export function ProjectProvider({
         return;
       }
       const invalid = isInvalidEntityAction(action, stateRef.current);
+      // Key preservasi resync dihitung dari mutation yang sama (tanpa duplikasi logika).
+      const mutationForKey = actionToMutation(action);
+      const preserveKey = mutationForKey?.key ?? null;
       setState((prev) => {
         if (!prev) return prev;
         const next = projectReducer(prev, action);
@@ -783,12 +1034,31 @@ export function ProjectProvider({
         return next;
       });
       // Local tetap diupdate (UI + InlineError), tapi mutation tidak diantre
-      // dan tidak schedule save selama entity invalid.
+      // dan tidak schedule save selama entity invalid. Key dicatat agar resync
+      // tak menghapus kerja lokal yang belum tersimpan.
       if (invalid) {
+        if (preserveKey) invalidPendingRef.current.add(preserveKey);
         emitPendingCount();
         return;
       }
-      const mutation = actionToMutation(action);
+      // Entity kembali valid (atau remove) → lepas dari preservasi.
+      if (preserveKey) invalidPendingRef.current.delete(preserveKey);
+      const mutation = mutationForKey
+        ? mutationForKey.entity === 'erdLayout'
+          ? {
+              ...mutationForKey,
+              payload: {
+                erdLayout: erdLayoutAfter(
+                  stateRef.current?.erdLayout,
+                  action as
+                    | Extract<ProjectAction, { type: 'erdLayout/set' }>
+                    | Extract<ProjectAction, { type: 'erdLayout/setMany' }>
+                    | Extract<ProjectAction, { type: 'erdLayout/clear' }>,
+                ),
+              },
+            }
+          : mutationForKey
+        : null;
       if (mutation) {
         const pending = mutationsRef.current.get(mutation.key);
         const merged =
@@ -853,10 +1123,11 @@ export function ProjectProvider({
       try {
         const synced = await provider.loadState(projectId);
         if (cancelled) return;
-        stateRef.current = synced.state;
-        lastSavedRef.current = synced.state;
+        const merged = mergePreservedEntities(synced.state, stateRef.current, preservedKeys());
+        stateRef.current = merged;
+        lastSavedRef.current = merged;
         versionRef.current = synced.version;
-        setState(synced.state);
+        setState(merged);
       } catch {
         /* the replay failed loudly or the conflict banner took over; polling will retry */
       }
@@ -873,10 +1144,11 @@ export function ProjectProvider({
           if (dirtyRef.current || savingRef.current || mutationsRef.current.size > 0) return;
           const cur = stateRef.current;
           if (cur && JSON.stringify(fresh.state) !== JSON.stringify(cur)) {
-            stateRef.current = fresh.state;
-            lastSavedRef.current = fresh.state;
+            const merged = mergePreservedEntities(fresh.state, cur, preservedKeys());
+            stateRef.current = merged;
+            lastSavedRef.current = merged;
             versionRef.current = fresh.version;
-            setState(fresh.state);
+            setState(merged);
           }
         })
         .catch(() => {
@@ -904,10 +1176,13 @@ export function ProjectProvider({
       try {
         const fresh = await provider.loadState(projectId);
         if (cancelled) return;
-        stateRef.current = fresh.state;
-        lastSavedRef.current = fresh.state;
+        // Merge: entity lokal yang belum tersimpan (pending/invalid) dipertahankan
+        // di atas snapshot server agar kerja pengguna tak terhapus resync.
+        const merged = mergePreservedEntities(fresh.state, stateRef.current, preservedKeys());
+        stateRef.current = merged;
+        lastSavedRef.current = merged;
         versionRef.current = fresh.version;
-        setState(fresh.state);
+        setState(merged);
       } catch {
         /* keep the local state; polling will retry */
       }

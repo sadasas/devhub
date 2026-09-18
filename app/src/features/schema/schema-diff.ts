@@ -45,6 +45,12 @@ const normComment = (v: string | null | undefined): string => (v ?? '').trim();
 
 const displayVal = (v: string): string => (v === '' ? '(empty)' : v);
 
+/** Normalize header color: null/undefined/blank === Default; hex case-insensitive. */
+function normColor(v: string | null | undefined): string {
+  const s = (v ?? '').trim().toLowerCase();
+  return s;
+}
+
 /** Normalize indexes to a sorted deduped set of trimmed non-empty strings. */
 function normIndexSet(indexes: string[] | null | undefined): string[] {
   const src = Array.isArray(indexes) ? indexes : [];
@@ -89,6 +95,10 @@ function diffTableFields(from: Table, to: Table): string[] {
   const toComment = normComment(to.comment);
   if (fromComment !== toComment)
     changes.push(`comment: ${displayVal(fromComment)} → ${displayVal(toComment)}`);
+  // U10: header color (Default === empty; hex case-insensitive via normColor).
+  const fromColor = normColor((from as Table).color ?? null);
+  const toColor = normColor((to as Table).color ?? null);
+  if (fromColor !== toColor) changes.push(`color: ${displayVal(fromColor)} → ${displayVal(toColor)}`);
   const fromIdx = normIndexSet(from.indexes);
   const toIdx = normIndexSet(to.indexes);
   if (fromIdx.join('\0') !== toIdx.join('\0'))

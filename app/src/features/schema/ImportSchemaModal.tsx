@@ -4,8 +4,8 @@
    Flow:
    - Paste text | Upload file (.sql/.dbml/.json, read locally via hidden input)
      + format selector Auto / Postgres DDL / DrawDB JSON / DBML.
-     Auto tries JSON→DrawDB when the text parses as a diagram, else DDL.
-     DBML (selected or auto-detected) is honestly "coming soon" — never a crash.
+     Auto tries JSON→DrawDB when the text parses as a diagram, DBML when it
+     looks like DBML, else DDL. Parsers never throw — never a crash.
    - Live preview WITHOUT dispatch: effective "+N tables, +M columns,
      +K relations, S skipped" summary, New (green) vs Skipped-duplicate
      (yellow, case-insensitive table.name match) buckets, per-line warnings
@@ -38,6 +38,7 @@ import { newId, nowIso } from '../../lib/utils';
 import type { Relation, Table } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { fromDDL } from './ddl-import';
+import { fromDBML } from './dbml-import';
 import { fromDrawDB } from './drawdb-compat';
 
 export type ImportFormat = 'auto' | 'ddl' | 'drawdb' | 'dbml';
@@ -50,7 +51,7 @@ export interface ImportWarning {
 }
 
 export type ParsedImport =
-  | { kind: 'empty' | 'dbml' }
+  | { kind: 'empty' }
   | { kind: 'ok'; tables: Table[]; relations: Relation[]; warnings: ImportWarning[] };
 
 const TEXTAREA_ID = 'import-schema-textarea';
@@ -81,10 +82,13 @@ function toWarnings(lines: Array<{ line: number; message: string }>): ImportWarn
   return lines.map((w) => ({ line: w.line, message: w.message }));
 }
 
-/** Pure routing between the F3-3/F3-4 parsers. Never throws (parsers don't). */
+/** Pure routing between the F3-3/F3-4/F3-6 parsers. Never throws (parsers don't). */
 export function parseImportInput(raw: string, format: ImportFormat): ParsedImport {
   if (raw.trim() === '') return { kind: 'empty' };
-  if (format === 'dbml') return { kind: 'dbml' };
+  if (format === 'dbml') {
+    const out = fromDBML(raw);
+    return { kind: 'ok', tables: out.tables, relations: out.relations, warnings: toWarnings(out.warnings) };
+  }
   if (format === 'drawdb') {
     const out = fromDrawDB(raw);
     return {
@@ -99,7 +103,7 @@ export function parseImportInput(raw: string, format: ImportFormat): ParsedImpor
     return { kind: 'ok', tables: out.tables, relations: out.relations, warnings: toWarnings(out.warnings) };
   }
   // Auto: JSON that parses AND looks like a DrawDB diagram wins; DBML-looking
-  // text gets the honest coming-soon notice; everything else is tried as DDL.
+  // text goes to the DBML parser; everything else is tried as DDL.
   const trimmed = raw.trim();
   if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
     try {
@@ -117,7 +121,10 @@ export function parseImportInput(raw: string, format: ImportFormat): ParsedImpor
       /* not JSON — fall through to DDL */
     }
   }
-  if (looksLikeDBML(raw)) return { kind: 'dbml' };
+  if (looksLikeDBML(raw)) {
+    const out = fromDBML(raw);
+    return { kind: 'ok', tables: out.tables, relations: out.relations, warnings: toWarnings(out.warnings) };
+  }
   const out = fromDDL(raw);
   return { kind: 'ok', tables: out.tables, relations: out.relations, warnings: toWarnings(out.warnings) };
 }
@@ -406,7 +413,6 @@ export function ImportSchemaModal({ open, onClose }: ImportSchemaModalProps) {
           </p>
 
           {parsed.kind === 'empty' && <p className="field-helper" style={{ margin: 0 }}>{t('schema.import.emptyHint')}</p>}
-          {parsed.kind === 'dbml' && <InlineError>{t('schema.import.dbmlUnsupported')}</InlineError>}
 
           {parsed.kind === 'ok' && preview.imported.length > 0 && (
             <div style={{ display: 'grid', gap: 12 }}>

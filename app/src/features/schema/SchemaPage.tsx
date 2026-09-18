@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { ArrowLeft, ArrowsOutSimple, Broom, CaretLeft, CaretRight, Database, DotsThree, Eye, FileImage, FileSql, FloppyDisk, GitDiff, Graph, Image, LinkSimple, List, Plus, Presentation, Stack, Trash, UploadSimple, Warning } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowsOutSimple, Broom, CaretLeft, CaretRight, Database, DotsThree, Eye, FileImage, FileSql, FloppyDisk, GitDiff, Graph, Image, LinkSimple, List, Plus, Presentation, SelectionPlus, Stack, Table as TableIcon, Trash, UploadSimple, Warning } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
-import { formatDate, relationLabel as formatRelation, shortId } from '../../lib/utils';
-import type { Relation, SchemaVersion, Table } from '../../lib/types';
+import { formatDate, newId, nowIso, relationLabel as formatRelation, shortId } from '../../lib/utils';
+import type { ErdGroup, Relation, SchemaVersion, Table } from '../../lib/types';
 import { applySort, type SortSpec } from '../../lib/sort';
 import { useProject } from '../../state/project-context';
-import { api } from '../../lib/api';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { useSortParam } from '../../hooks/useSortParam';
 import { Badge } from '../../components/Badge';
@@ -18,6 +17,7 @@ import { Modal } from '../../components/Modal';
 import { Skeleton } from '../../components/Skeleton';
 import { SortControl } from '../../components/SortControl';
 import { ERD, type ERDLocateRequest, type ERDViewportHandle, type ErdPosition } from './ERD';
+import { ERD_GROUP_DEFAULT_H, ERD_GROUP_DEFAULT_W } from './erd-groups';
 import { ERDCanvasMode } from './ERDCanvasMode';
 import { ERDCanvasPanel } from './ERDCanvasPanel';
 import { lintSchema } from './schema-lint';
@@ -62,9 +62,10 @@ function useIsSchemaNarrow(): boolean {
 
 /** Menu "..." mobile: gabungan Export (DDL/DBML/SVG/PNG) + Import sebagai
     bottom sheet (dropdown terpotong di tepi viewport). */
-function SchemaMoreMenu({ tables, relations, projectName, versionLabel, showImport, onImport }: {
+function SchemaMoreMenu({ tables, relations, groups = [], projectName, versionLabel, showImport, onImport }: {
   tables: Table[];
   relations: Relation[];
+  groups?: readonly ErdGroup[];
   projectName: string;
   versionLabel: string | null;
   showImport: boolean;
@@ -132,7 +133,7 @@ function SchemaMoreMenu({ tables, relations, projectName, versionLabel, showImpo
           className="sort-menu-row"
           disabled={!hasTables}
           onClick={() => {
-            downloadERDSVG(tables, relations, `${fullBase}-erd`);
+            downloadERDSVG(tables, relations, `${fullBase}-erd`, groups);
             setOpen(false);
           }}
         >
@@ -144,7 +145,7 @@ function SchemaMoreMenu({ tables, relations, projectName, versionLabel, showImpo
           className="sort-menu-row"
           disabled={!hasTables}
           onClick={() => {
-            downloadERDPNG(tables, relations, `${fullBase}-erd`);
+            downloadERDPNG(tables, relations, `${fullBase}-erd`, groups);
             setOpen(false);
           }}
         >
@@ -172,6 +173,132 @@ function SchemaMoreMenu({ tables, relations, projectName, versionLabel, showImpo
   );
 }
 
+/** Menu "..." pill kanvas mobile (isNarrow): pill hanya memuat New Table +
+    New Relation — New Area, Tidy, Export, Import pindah ke bottom sheet ini
+    (meniru SchemaMoreMenu header). */
+function CanvasPillMoreMenu({ tables, relations, groups = [], projectName, versionLabel, canEdit, onNewArea, onTidy, onImport }: {
+  tables: Table[];
+  relations: Relation[];
+  groups?: readonly ErdGroup[];
+  projectName: string;
+  versionLabel: string | null;
+  canEdit: boolean;
+  onNewArea: () => void;
+  onTidy: () => void;
+  onImport: () => void;
+}) {
+  const { t } = useTranslation('project');
+  const [open, setOpen] = useState(false);
+
+  const trimmedName = projectName.trim();
+  const baseName = trimmedName !== '' ? `${trimmedName}-schema` : 'schema';
+  const fullBase = versionLabel ? `${baseName}-${versionLabel}` : baseName;
+  const hasTables = tables.length > 0;
+  const downloadText = (body: string, filename: string) => {
+    const blob = new Blob([body], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    triggerDownload(url, filename);
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  };
+  const menuTitle = versionLabel
+    ? t('schema.export.menuVersionAria', { version: versionLabel })
+    : t('schema.export.menuAria');
+  const closeThen = (fn: () => void) => () => {
+    setOpen(false);
+    fn();
+  };
+
+  return (
+    <>
+      <Tooltip content={t('schema.page.moreActions')} side="bottom">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setOpen(true)}
+        aria-label={t('schema.page.moreActions')}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+      >
+        <DotsThree size={32} weight="bold" aria-hidden="true" />
+        <span className="sr-only">{t('schema.page.moreActions')}</span>
+      </Button>
+      </Tooltip>
+      <BottomSheet open={open} title={menuTitle} onClose={() => setOpen(false)} hideHeader>
+        {canEdit && (
+          <>
+            <button type="button" className="sort-menu-row" onClick={closeThen(onNewArea)}>
+              <SelectionPlus size={15} aria-hidden="true" />
+              {t('schema.areas.new')}
+            </button>
+            <button type="button" className="sort-menu-row" onClick={closeThen(onTidy)}>
+              <Broom size={15} aria-hidden="true" />
+              {t('schema.erd.tidy')}
+            </button>
+          </>
+        )}
+        <p className="sheet-section-label">{t('schema.export.trigger')}</p>
+        <button
+          type="button"
+          className="sort-menu-row"
+          onClick={() => {
+            const ddl = toPostgresDDL(tables, relations);
+            const body = ddl.trim() !== '' ? ddl : `-- ${fullBase} — no tables to export\n`;
+            downloadText(body, `${safeFileName(fullBase)}.sql`);
+          }}
+        >
+          <FileSql size={15} aria-hidden="true" />
+          {t('schema.export.ddl')}
+        </button>
+        <button
+          type="button"
+          className="sort-menu-row"
+          onClick={() => {
+            const dbml = toDBML(tables, relations);
+            const body = dbml.trim() !== '' ? dbml : `// ${fullBase} — no tables to export\n`;
+            downloadText(body, `${safeFileName(fullBase)}.dbml`);
+          }}
+        >
+          <Database size={15} aria-hidden="true" />
+          {t('schema.export.dbml')}
+        </button>
+        <button
+          type="button"
+          className="sort-menu-row"
+          disabled={!hasTables}
+          onClick={() => {
+            downloadERDSVG(tables, relations, `${fullBase}-erd`, groups);
+            setOpen(false);
+          }}
+        >
+          <FileImage size={15} aria-hidden="true" />
+          {t('schema.export.svg')}
+        </button>
+        <button
+          type="button"
+          className="sort-menu-row"
+          disabled={!hasTables}
+          onClick={() => {
+            downloadERDPNG(tables, relations, `${fullBase}-erd`, groups);
+            setOpen(false);
+          }}
+        >
+          <Image size={15} aria-hidden="true" />
+          {t('schema.export.png')}
+        </button>
+        {canEdit && (
+          <>
+            <p className="sheet-section-label">{t('schema.page.import')}</p>
+            <button type="button" className="sort-menu-row" onClick={closeThen(onImport)}>
+              <UploadSimple size={15} aria-hidden="true" />
+              {t('schema.import.title')}
+            </button>
+          </>
+        )}
+      </BottomSheet>
+    </>
+  );
+}
+
 const TABLE_SORT_SPECS: SortSpec<Table>[] = [
   { key: 'name', label: 'schema.sort.name', get: (t) => t.name },
   { key: 'createdAt', label: 'schema.sort.createdAt', get: (t) => t.createdAt },
@@ -183,7 +310,7 @@ const VERSION_SORT_SPECS: SortSpec<SchemaVersion>[] = [
 
 export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: ReadonlySet<string>; projectName?: string }) {
   const { t } = useTranslation('project');
-  const { state, loading, error, loadError, dispatch, canEdit, projectId, retryLoad } = useProject();
+  const { state, loading, error, loadError, dispatch, canEdit, retryLoad } = useProject();
   const [searchParams, setSearchParams] = useSearchParams();
   const viewParam = searchParams.get('schemaView');
   const view: SchemaView = viewParam === 'erd' ? 'erd' : 'tables';
@@ -283,6 +410,10 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
     setSelectedTableId(null);
     setSelectedRelationId(null);
   }, []);
+  // U3-U4: controlled rail/panel tab (Tables|Refs/Versions|DBML). Default Tables.
+  const [canvasPanelTab, setCanvasPanelTab] = useState<'tables' | 'relations' | 'versions' | 'dbml' | 'areas'>('tables');
+  // Focus-request ke editor area baru (pola locateRequest: nonce naik per request).
+  const [groupFocus, setGroupFocus] = useState<{ groupId: string; nonce: number } | null>(null);
 
   const tabTablesRef = useRef<HTMLButtonElement>(null);
   const tabErdRef = useRef<HTMLButtonElement>(null);
@@ -310,8 +441,14 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
   const displayStateForERD = useMemo(() => {
     if (!state) return null;
     if (!isViewing) return state;
-    return { ...state, tables: displayTables, relations: displayRelations };
+    // Snapshots only capture tables+relations — live areas stay hidden in ?v=.
+    return { ...state, tables: displayTables, relations: displayRelations, erdGroups: [] };
   }, [state, isViewing, displayTables, displayRelations]);
+  // Areas untuk panel + export: live saja, kosong saat snapshot (konsisten kanvas).
+  const displayGroups: readonly ErdGroup[] = useMemo(
+    () => (!state || isViewing ? [] : (state.erdGroups ?? [])),
+    [state, isViewing],
+  );
   const canEditEffective = canEdit && !isViewing;
 
   // U4: derived panel selection from the display snapshot (live or ?v=).
@@ -438,25 +575,60 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
     [isViewing],
   );
 
-  // F2-5: commit a node move — optimistic dispatch + bulk persist (BoardTimeline pattern).
+  // F2-5: commit a node move — optimistic dispatch, persist via the queued
+  // mutation pipeline (single source of truth, version-chained like whiteboard).
   const handleMoveTable = useCallback(
     (tableId: string, pos: { x: number; y: number }) => {
       if (!canEditEffective || !state) return;
       dispatch({ type: 'erdLayout/set', tableId, pos });
-      const next = { ...(state.erdLayout ?? {}), [tableId]: { ...pos } };
-      api.patchErdLayout(projectId, next).catch(() => {});
     },
-    [canEditEffective, state, dispatch, projectId],
+    [canEditEffective, state, dispatch],
+  );
+
+  // Bulk commit geser area: satu dispatch; persist via antrean (sama seperti
+  // whiteboard — satu mutasi version-chained, tanpa PATCH samping).
+  const handleMoveTables = useCallback(
+    (moves: { tableId: string; x: number; y: number }[]) => {
+      if (!canEditEffective || !state) return;
+      const clean: Record<string, { x: number; y: number }> = {};
+      for (const m of moves) {
+        if (!m || typeof m.tableId !== 'string') continue;
+        clean[m.tableId] = { x: m.x, y: m.y };
+      }
+      if (Object.keys(clean).length === 0) return;
+      dispatch({ type: 'erdLayout/setMany', moves: clean });
+    },
+    [canEditEffective, state, dispatch],
+  );
+
+  // Drop spasial ke area: join grup target, atau keluar dari semua grup bila di luar.
+  const handleAssignTableGroup = useCallback(
+    (tableId: string, groupId: string | null) => {
+      if (!canEditEffective || !state) return;
+      const groups = state.erdGroups ?? [];
+      if (groupId) {
+        const g = groups.find((x) => x.id === groupId);
+        if (!g || g.tableIds.includes(tableId)) return;
+        dispatch({ type: 'area/update', id: groupId, patch: { tableIds: [...g.tableIds, tableId] } });
+      } else {
+        for (const g of groups) {
+          if (g.tableIds.includes(tableId)) {
+            dispatch({ type: 'area/update', id: g.id, patch: { tableIds: g.tableIds.filter((t) => t !== tableId) } });
+          }
+        }
+      }
+    },
+    [canEditEffective, state, dispatch],
   );
 
   // F2-5: Tidy — clear stored overrides so the grid recomputes as default.
   // Focus stays on the button naturally; the status live-region announces completion.
+  // Persist via antrean (dispatch saja).
   const handleTidy = useCallback(() => {
     if (!canEditEffective) return;
     dispatch({ type: 'erdLayout/clear' });
-    api.patchErdLayout(projectId, {}).catch(() => {});
     setTidyStatus(t('schema.erd.tidyDone'));
-  }, [canEditEffective, dispatch, projectId, t]);
+  }, [canEditEffective, dispatch, t]);
 
   // U2: open NewTable without placement (grid fallback) — plain tab + header.
   const openNewTableDefault = useCallback(() => {
@@ -471,6 +643,43 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
     setNewTablePos(center);
     setNewTableOpen(true);
   }, []);
+
+  // Toolbar New Area: buat + pindah ke tab Areas + auto-expand editor (cermin New Table).
+  // Rect ditaruh di tengah viewport terlihat (default 480x320).
+  const handleCanvasNewArea = useCallback(() => {
+    if (!canEditEffective || !state) return;
+    const id = newId();
+    const ts = nowIso();
+    const n = (state.erdGroups ?? []).length + 1;
+    const center = erdCanvasViewportRef.current?.getViewportCenterWorld() ?? null;
+    const w = ERD_GROUP_DEFAULT_W;
+    const h = ERD_GROUP_DEFAULT_H;
+    const x = Math.round(((center?.x ?? 16) - w / 2) * 10) / 10;
+    const y = Math.round(((center?.y ?? 16) - h / 2) * 10) / 10;
+    dispatch({
+      type: 'area/add',
+      area: { id, createdAt: ts, updatedAt: ts, name: t('schema.areas.defaultName', { n }), color: null, tableIds: [], x, y, w, h },
+    });
+    setCanvasPanelTab('areas');
+    setGroupFocus((prev) => ({ groupId: id, nonce: (prev?.nonce ?? 0) + 1 }));
+  }, [canEditEffective, state, dispatch, t]);
+
+  // Commit geometri grup (geser/resize dari kanvas).
+  const handleMoveGroup = useCallback(
+    (groupId: string, box: { x: number; y: number; w: number; h: number }) => {
+      if (!canEditEffective || !state) return;
+      const g = (state.erdGroups ?? []).find((x) => x.id === groupId);
+      if (!g) return;
+      const patch: { x: number; y: number; w: number; h: number } = {
+        x: Math.round(box.x * 10) / 10,
+        y: Math.round(box.y * 10) / 10,
+        w: Math.max(Math.round(box.w * 10) / 10, 1),
+        h: Math.max(Math.round(box.h * 10) / 10, 1),
+      };
+      dispatch({ type: 'area/update', id: groupId, patch });
+    },
+    [canEditEffective, state, dispatch],
+  );
 
   // U2: canvas empty-background dblclick — place at the click point (precise).
   const handleCanvasEmptyDoubleClick = useCallback(
@@ -702,6 +911,7 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
             <SchemaMoreMenu
               tables={displayTables}
               relations={displayRelations}
+              groups={displayGroups}
               projectName={projectName}
               versionLabel={isViewing && selectedVersion ? selectedVersion.version : null}
               showImport={canEditEffective}
@@ -712,6 +922,7 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
               <SchemaExportMenu
                 tables={displayTables}
                 relations={displayRelations}
+                groups={displayGroups}
                 projectName={projectName}
                 versionLabel={isViewing && selectedVersion ? selectedVersion.version : null}
               />
@@ -808,19 +1019,6 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
               title={t('schema.canvas.open')}
             >
               {t('schema.canvas.open')}
-            </Button>
-          )}
-          {view === 'erd' && canEditEffective && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="schema-tidy-btn"
-              leftIcon={<Broom size={14} aria-hidden="true" />}
-              onClick={handleTidy}
-              aria-label={t('schema.erd.tidy')}
-              title={t('schema.erd.tidyHint')}
-            >
-              {t('schema.erd.tidy')}
             </Button>
           )}
           {view === 'erd' && schemaIssues.length > 0 && (
@@ -1018,6 +1216,9 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
                   onDeleteRelation={canEditEffective ? setConfirmRel : () => { }}
                   onNewTable={canEditEffective ? openNewTableDefault : () => { }}
                   onMoveTable={canEditEffective ? handleMoveTable : undefined}
+                  onMoveTables={canEditEffective ? handleMoveTables : undefined}
+                  onAssignTableGroup={canEditEffective ? handleAssignTableGroup : undefined}
+                  onMoveGroup={canEditEffective ? handleMoveGroup : undefined}
                   onOpenTable={handleOpenTable}
                   onConnectColumns={canEditEffective ? handleConnectColumns : undefined}
                 />
@@ -1118,45 +1319,49 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
             </button>
           ) : (
             <div className="versions-section">
-              <div className="data-list-header">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="btn-icon"
-                  aria-label={versionsCollapsed ? 'Expand versions' : 'Minimize versions'}
-                  aria-expanded={!versionsCollapsed}
-                  aria-controls="versions-list"
-                  onClick={() => setVersionsCollapsed((v) => !v)}
-                  title={versionsCollapsed ? 'Expand' : 'Minimize'}
-                >
-                  <CaretRight size={13} aria-hidden="true" />
-                </Button>
-                <span className="data-list-count">{t('schema.versionsHeading')}</span>
-                <SortControl
-                  options={VERSION_SORT_SPECS.map((s) => ({ value: s.key, label: t(s.label) }))}
-                  value={versionSortValue}
-                  onChange={setVersionSort}
-                />
-                {state.schemaVersions.filter((v) => v.snapshot).length >= 2 && (
+              <div className="data-list-header versions-header">
+                <div className="versions-title-row">
                   <Button
                     variant="ghost"
                     size="sm"
-                    leftIcon={<GitDiff size={14} aria-hidden="true" />}
-                    onClick={() => setDiffOpen(true)}
+                    className="btn-icon"
+                    aria-label={versionsCollapsed ? 'Expand versions' : 'Minimize versions'}
+                    aria-expanded={!versionsCollapsed}
+                    aria-controls="versions-list"
+                    onClick={() => setVersionsCollapsed((v) => !v)}
+                    title={versionsCollapsed ? 'Expand' : 'Minimize'}
                   >
-                    {t('schema.diffVersions')}
+                    <CaretRight size={13} aria-hidden="true" />
                   </Button>
-                )}
-                {canEdit && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    leftIcon={<FloppyDisk size={14} aria-hidden="true" />}
-                    onClick={() => setSaveVersionOpen(true)}
-                  >
-                    {t('schema.saveVersion')}
-                  </Button>
-                )}
+                  <span className="data-list-count">{t('schema.versionsHeading')}</span>
+                </div>
+                <div className="versions-actions-row">
+                  <SortControl
+                    options={VERSION_SORT_SPECS.map((s) => ({ value: s.key, label: t(s.label) }))}
+                    value={versionSortValue}
+                    onChange={setVersionSort}
+                  />
+                  {state.schemaVersions.filter((v) => v.snapshot).length >= 2 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      leftIcon={<GitDiff size={14} aria-hidden="true" />}
+                      onClick={() => setDiffOpen(true)}
+                    >
+                      {t('schema.diffVersions')}
+                    </Button>
+                  )}
+                  {canEdit && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      leftIcon={<FloppyDisk size={14} aria-hidden="true" />}
+                      onClick={() => setSaveVersionOpen(true)}
+                    >
+                      {t('schema.saveVersion')}
+                    </Button>
+                  )}
+                </div>
               </div>
               {state.schemaVersions.length === 0 ? (
                 <EmptyState
@@ -1184,106 +1389,24 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
           onClosePanelSelection={handleClosePanelSelection}
           presenting={presenting}
           onExitPresenting={handleExitPresenting}
-          toolbar={
-            <>
-              {canEditEffective && (
-                <Tooltip content={t('schema.page.newTable')} side="bottom">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleCanvasNewTable}
-                  aria-label={t('schema.page.newTable')}
-                >
-                  <Plus size={15} weight="bold" aria-hidden="true" />
-                  <span className="sr-only">{t('schema.page.newTable')}</span>
-                </Button>
-                </Tooltip>
-              )}
-              {canEditEffective && (
-                <Tooltip content={t('schema.page.newRelation')} side="bottom">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setNewRelationOpen(true)}
-                  aria-label={t('schema.page.newRelation')}
-                >
-                  <LinkSimple size={15} aria-hidden="true" />
-                  <span className="sr-only">{t('schema.page.newRelation')}</span>
-                </Button>
-                </Tooltip>
-              )}
-              {canEditEffective && (
-                <Tooltip content={t('schema.erd.tidyHint')} side="bottom">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleTidy}
-                  aria-label={t('schema.erd.tidy')}
-                >
-                  <Broom size={15} aria-hidden="true" />
-                  <span className="sr-only">{t('schema.erd.tidy')}</span>
-                </Button>
-                </Tooltip>
-              )}
-              <SchemaExportMenu
-                tables={displayTables}
-                relations={displayRelations}
-                projectName={projectName}
-                versionLabel={isViewing && selectedVersion ? selectedVersion.version : null}
-                iconOnly
-              />
-              {canEditEffective && (
-                <Tooltip content={t('schema.page.import')} side="bottom">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setImportOpen(true)}
-                  aria-label={t('schema.page.import')}
-                >
-                  <UploadSimple size={15} aria-hidden="true" />
-                  <span className="sr-only">{t('schema.page.import')}</span>
-                </Button>
-                </Tooltip>
-              )}
-              <Tooltip content={t('schema.canvas.present')} side="bottom">
-              <button
-                ref={presentBtnRef}
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={handleEnterPresenting}
-                aria-label={t('schema.canvas.present')}
-              >
-                <Presentation size={15} aria-hidden="true" />
-                <span className="sr-only">{t('schema.canvas.present')}</span>
-              </button>
-              </Tooltip>
-            </>
+          railTab={canvasPanelTab}
+          onRailTabChange={setCanvasPanelTab}
+          topActions={
+            <Tooltip content={t('schema.canvas.present')} side="bottom">
+            <button
+              ref={presentBtnRef}
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={handleEnterPresenting}
+              aria-label={t('schema.canvas.present')}
+            >
+              <Presentation size={15} aria-hidden="true" />
+              <span className="sr-only">{t('schema.canvas.present')}</span>
+            </button>
+            </Tooltip>
           }
-        >
-          <div role="status" aria-live="polite" className="sr-only">
-            {presentStatus}
-          </div>
-          <div className="erd-canvas-main">
-            <ERD
-              state={displayStateForERD}
-              readOnly={presenting || !canEditEffective}
-              locateRequest={locateRequest}
-              onDeleteRelation={canEditEffective && !presenting ? setConfirmRel : () => { }}
-              onNewTable={canEditEffective && !presenting ? handleCanvasNewTable : () => { }}
-              onMoveTable={canEditEffective && !presenting ? handleMoveTable : undefined}
-              onOpenTable={presenting ? undefined : handleOpenTable}
-              onDoubleClickEmpty={canEditEffective && !presenting ? handleCanvasEmptyDoubleClick : undefined}
-              onConnectColumns={canEditEffective && !presenting ? handleConnectColumns : undefined}
-              viewportRef={erdCanvasViewportRef}
-              onSelectTable={presenting ? undefined : handleSelectTable}
-              onSelectRelation={presenting ? undefined : handleSelectRelation}
-              panelSelectionOpen={presenting ? false : panelSelectionOpen}
-              onClosePanelSelection={handleClosePanelSelection}
-              selectedTableId={selectedTableId}
-              selectedRelationId={selectedRelationId}
-              presenting={presenting}
-            />
-            {!presenting && (
+          panel={
+            !presenting ? (
               <ERDCanvasPanel
                 table={selectedTable}
                 relation={selectedRelation}
@@ -1301,8 +1424,152 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
                 onToggleIssues={() => setIssuesOpen((v) => !v)}
                 onSelectTable={handleSelectTable}
                 onSelectRelation={handleSelectRelation}
+                activeTab={canvasPanelTab}
+                onTabChange={setCanvasPanelTab}
+                onAddTable={canEditEffective && !presenting ? handleCanvasNewTable : undefined}
+                onAddRelation={canEditEffective && !presenting ? () => setNewRelationOpen(true) : undefined}
+                onAddArea={canEditEffective && !presenting ? handleCanvasNewArea : undefined}
+                groupFocusRequest={groupFocus}
+                versions={state.schemaVersions}
+                selectedVersionId={selectedVersionId}
+                onToggleVersion={toggleVersion}
+                onSaveVersion={() => setSaveVersionOpen(true)}
+                onDiffVersions={() => setDiffOpen(true)}
+                canEditVersions={canEdit}
+                unreadVersionIds={unreadIds}
+                versionsError={null}
+                dbmlFileBase={
+                  (() => {
+                    const trimmed = projectName.trim();
+                    const base = trimmed !== '' ? `${trimmed}-schema` : 'schema';
+                    return isViewing && selectedVersion ? `${base}-${selectedVersion.version}` : base;
+                  })()
+                }
               />
-            )}
+            ) : undefined
+          }
+          toolbar={
+            <>
+              {canEditEffective && (
+                <Tooltip content={t('schema.page.newTable')} side="bottom">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCanvasNewTable}
+                  aria-label={t('schema.page.newTable')}
+                >
+                  <TableIcon size={32} weight="bold" aria-hidden="true" />
+                  <span className="sr-only">{t('schema.page.newTable')}</span>
+                </Button>
+                </Tooltip>
+              )}
+              {canEditEffective && (
+                <Tooltip content={t('schema.page.newRelation')} side="bottom">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setNewRelationOpen(true)}
+                  aria-label={t('schema.page.newRelation')}
+                >
+                  <LinkSimple size={32} aria-hidden="true" />
+                  <span className="sr-only">{t('schema.page.newRelation')}</span>
+                </Button>
+                </Tooltip>
+              )}
+              {isNarrow ? (
+                <CanvasPillMoreMenu
+                  tables={displayTables}
+                  relations={displayRelations}
+                  groups={displayGroups}
+                  projectName={projectName}
+                  versionLabel={isViewing && selectedVersion ? selectedVersion.version : null}
+                  canEdit={canEditEffective}
+                  onNewArea={handleCanvasNewArea}
+                  onTidy={handleTidy}
+                  onImport={() => setImportOpen(true)}
+                />
+              ) : (
+                <>
+              {canEditEffective && (
+                <Tooltip content={t('schema.areas.new')} side="bottom">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCanvasNewArea}
+                  aria-label={t('schema.areas.new')}
+                >
+                  <SelectionPlus size={32} aria-hidden="true" />
+                  <span className="sr-only">{t('schema.areas.new')}</span>
+                </Button>
+                </Tooltip>
+              )}
+              {canEditEffective && (
+                <Tooltip content={t('schema.erd.tidyHint')} side="bottom">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleTidy}
+                  aria-label={t('schema.erd.tidy')}
+                >
+                  <Broom size={32} aria-hidden="true" />
+                  <span className="sr-only">{t('schema.erd.tidy')}</span>
+                </Button>
+                </Tooltip>
+              )}
+              <SchemaExportMenu
+                tables={displayTables}
+                relations={displayRelations}
+                groups={displayGroups}
+                projectName={projectName}
+                versionLabel={isViewing && selectedVersion ? selectedVersion.version : null}
+                iconOnly
+              />
+              {canEditEffective && (
+                <Tooltip content={t('schema.page.import')} side="bottom">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setImportOpen(true)}
+                  aria-label={t('schema.page.import')}
+                >
+                  <UploadSimple size={32} aria-hidden="true" />
+                  <span className="sr-only">{t('schema.page.import')}</span>
+                </Button>
+                </Tooltip>
+              )}
+                </>
+              )}
+            </>
+          }
+        >
+          <div role="status" aria-live="polite" className="sr-only">
+            {presentStatus}
+          </div>
+          <div className="erd-canvas-main">
+            <ERD
+              state={displayStateForERD}
+              readOnly={presenting || !canEditEffective}
+              locateRequest={locateRequest}
+              onDeleteRelation={canEditEffective && !presenting ? setConfirmRel : () => { }}
+              onNewTable={canEditEffective && !presenting ? handleCanvasNewTable : () => { }}
+              onMoveTable={canEditEffective && !presenting ? handleMoveTable : undefined}
+              onMoveTables={canEditEffective && !presenting ? handleMoveTables : undefined}
+              onAssignTableGroup={canEditEffective && !presenting ? handleAssignTableGroup : undefined}
+              onMoveGroup={canEditEffective && !presenting ? handleMoveGroup : undefined}
+              onOpenTable={presenting ? undefined : handleOpenTable}
+              onDoubleClickEmpty={canEditEffective && !presenting ? handleCanvasEmptyDoubleClick : undefined}
+              onConnectColumns={canEditEffective && !presenting ? handleConnectColumns : undefined}
+              viewportRef={erdCanvasViewportRef}
+              // Seleksi tetap aktif saat presentasi (highlight + animasi alur);
+              // panel di-unmount di mode ini sehingga murni visual.
+              onSelectTable={handleSelectTable}
+              onSelectRelation={handleSelectRelation}
+              panelSelectionOpen={presenting ? false : panelSelectionOpen}
+              onClosePanelSelection={handleClosePanelSelection}
+              selectedTableId={selectedTableId}
+              selectedRelationId={selectedRelationId}
+              presenting={presenting}
+            />
           </div>
         </ERDCanvasMode>
       )}

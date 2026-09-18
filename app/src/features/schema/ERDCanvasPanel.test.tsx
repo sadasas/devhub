@@ -117,14 +117,16 @@ describe('U4 ERD canvas props panel', () => {
     document.body.style.overflow = '';
   });
 
-  it('ronde 5: default tab Tables, list expandable + tab Relations', () => {
+  it('ronde 5: default tab Tables, list expandable + rail sebagai switcher', () => {
     mockLive();
     renderCanvas();
+    const dialog = canvasDialog();
     const p = panel();
-    // PanelTab tables|relations, default tables — tanpa tab Properties.
+    // Rail adalah satu-satunya switcher tab — tanpa tab Properties, tanpa sub-tab dalam panel.
     expect(within(p).queryByRole('tab', { name: /^Properties$|^Properti$/i })).toBeNull();
-    expect(within(p).getByRole('tab', { name: /^Tables$|^Tabel$/i }).getAttribute('aria-selected')).toBe('true');
-    expect(within(p).getByRole('tab', { name: /^Relations$|^Relasi$/i })).toBeTruthy();
+    expect(within(p).queryByRole('tab')).toBeNull();
+    expect(within(dialog).getByRole('tab', { name: /^Tables$|^Tabel$/i }).getAttribute('aria-selected')).toBe('true');
+    expect(within(dialog).getByRole('tab', { name: /^Refs$|^Ref$/i })).toBeTruthy();
     expect(p.getAttribute('data-panel')).toBe('tables');
     // Tiap item tabel = header button (nama + columnsCount + chevron, collapsed).
     const usersBtn = within(p).getByRole('button', { name: /users.*2 columns|users.*2 kolom/i });
@@ -144,39 +146,43 @@ describe('U4 ERD canvas props panel', () => {
     expect(within(p).getByText(/TABLE.*users/i)).toBeTruthy();
     expect((within(p).getByLabelText(/^Name$|^Nama$/i) as HTMLInputElement).value).toBe('users');
     expect((within(p).getByLabelText(/Comment|Komentar/i) as HTMLTextAreaElement).value).toBe('app users');
-    // Columns list: mono name+type, PK/NULL badges, unique checkbox, delete.
+    // Columns list: mono name+type, PK/NULL badges, delete.
     expect(within(p).getByText('uuid')).toBeTruthy();
     expect(within(p).getByText('PK')).toBeTruthy();
     expect(within(p).getByText('NULL')).toBeTruthy();
-    expect(within(p).getByRole('checkbox', { name: /Unique.*\bid\b/i })).toBeTruthy();
-    expect(within(p).getByRole('checkbox', { name: /Unique.*\bemail\b/i })).toBeTruthy();
     expect(within(p).getByRole('button', { name: /Delete column id/i })).toBeTruthy();
+    // Expand id column: flags toggle group N/kunci/U.
+    fireEvent.click(within(p).getByRole('button', { name: /Edit column id|Edit kolom id/i }));
+    expect(within(p).getByRole('button', { name: /Nullable — id/i })).toBeTruthy();
+    expect(within(p).getByRole('button', { name: /Primary key — id|Kunci utama — id/i })).toBeTruthy();
+    expect(within(p).getByRole('button', { name: /Unique — id/i })).toBeTruthy();
     expect(within(p).getByRole('button', { name: /^Add column|^Tambah kolom/i })).toBeTruthy();
-    // Indexes read + Edit, full editor + delete table.
+    // Indexes read-only (dikelola via toggle U/I per kolom — tanpa tombol Edit), full editor + delete table.
     expect(within(p).getByText(/No indexes|Belum ada indeks/i)).toBeTruthy();
-    expect(within(p).getByRole('button', { name: /^Edit$/i })).toBeTruthy();
+    expect(within(p).queryByRole('button', { name: /^Edit$/i })).toBeNull();
     expect(within(p).getByRole('button', { name: /Open full editor|Buka editor penuh/i })).toBeTruthy();
     expect(within(p).getByRole('button', { name: /^Delete table|^Hapus tabel/i })).toBeTruthy();
     // Focus stays on the canvas node — panel never steals it on mouse select.
     expect(document.activeElement?.textContent).not.toContain('Add column');
   });
 
-  it('column variant: row click expands an inline editor, type is text-only (U6 later)', () => {
+  it('column variant: row click expands an inline editor, type editable via combobox', () => {
     mockLive();
     renderCanvas();
     const dialog = canvasDialog();
     fireEvent.click(within(dialog).getByRole('button', { name: /Table users with/i }));
     const p = panel();
     fireEvent.click(within(p).getByRole('button', { name: /Edit column email/i }));
-    // Expanded editor: name input, type as text + U6 hint, nullable/PK/default/comment.
+    // Expanded editor: name input, type combobox (editable), nullable/PK/default/comment.
     expect(within(p).getByDisplayValue('email')).toBeTruthy();
-    expect(within(p).getByText(/Type editing lands|Edit tipe menyusul/i)).toBeTruthy();
+    expect(within(p).getByRole('button', { name: /Type of email|Tipe dari email/i })).toBeTruthy();
+    expect(within(p).queryByText(/Type editing lands|Edit tipe menyusul/i)).toBeNull();
     expect(within(p).getByLabelText(/Nullable/i)).toBeTruthy();
     expect(within(p).getByLabelText(/Primary key|Kunci utama/i)).toBeTruthy();
-    expect(within(p).getByLabelText(/Default/i)).toBeTruthy();
+    expect(p.querySelector('input[id^="erd-panel-col-default-"]')).toBeTruthy();
     // Collapse again via the same row.
     fireEvent.click(within(p).getByRole('button', { name: /Collapse column email|Ciutkan kolom email/i }));
-    expect(within(p).queryByText(/Type editing lands|Edit tipe menyusul/i)).toBeNull();
+    expect(within(p).queryByRole('button', { name: /Type of email|Tipe dari email/i })).toBeNull();
   });
 
   it('relation variant: clicking a line shows label + cardinality/onDelete + delete', () => {
@@ -204,11 +210,26 @@ describe('U4 ERD canvas props panel', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'table/update', id: 'tb1', patch: { name: 'members' } });
   });
 
+  it('add column: dispatch kolom baru bervalue kosong (jalur auto-expand)', () => {
+    const dispatch = mockLive();
+    renderCanvas();
+    fireEvent.click(within(canvasDialog()).getByRole('button', { name: /Table users with/i }));
+    fireEvent.click(within(panel()).getByRole('button', { name: /^Add column|^Tambah kolom/i }));
+    const call = dispatch.mock.calls.find(
+      (c) => c[0]?.type === 'table/update' && Array.isArray(c[0]?.patch?.columns),
+    );
+    // users punya 2 kolom → tambah 1 kosong (editor dibuka + fokus di runtime nyata).
+    expect(call?.[0]?.patch?.columns).toHaveLength(3);
+    expect(call?.[0]?.patch?.columns[2]?.name).toBe('');
+    expect(typeof call?.[0]?.patch?.columns[2]?.id).toBe('string');
+  });
+
   it('unique toggle uses B2: dispatches table/update with unique:<col>', () => {
     const dispatch = mockLive();
     renderCanvas();
     fireEvent.click(within(canvasDialog()).getByRole('button', { name: /Table users with/i }));
-    fireEvent.click(within(panel()).getByRole('checkbox', { name: /Unique.*\bid\b/i }));
+    fireEvent.click(within(panel()).getByRole('button', { name: /Edit column id|Edit kolom id/i }));
+    fireEvent.click(within(panel()).getByRole('button', { name: /Unique — id/i }));
     const call = dispatch.mock.calls.find((c) => c[0]?.type === 'table/update' && Array.isArray(c[0]?.patch?.indexes));
     expect(call?.[0]?.patch?.indexes).toContain('unique:id');
   });
@@ -299,13 +320,13 @@ describe('Ronde 5 ITEM 2+3: auto-buka + tab Relations', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: /users\.id to projects\.user_id/i }));
     const p = panel();
     expect(p.getAttribute('data-panel')).toBe('relations');
-    expect(within(p).getByRole('tab', { name: /^Relations$|^Relasi$/i }).getAttribute('aria-selected')).toBe('true');
+    expect(within(dialog).getByRole('tab', { name: /^Refs$|^Ref$/i }).getAttribute('aria-selected')).toBe('true');
     expect(p.querySelector('.erd-panel-rel-label')?.textContent).toMatch(/users\.id.*projects\.user_id/i);
     expect(within(p).getByRole('button', { name: /Delete relation|Hapus relasi/i })).toBeTruthy();
     expect(p.lastElementChild?.getAttribute('id')).toBe('erd-panel-issues-strip');
-    // Arrow-key pindah tab.
-    fireEvent.keyDown(within(p).getByRole('tab', { name: /^Relations$|^Relasi$/i }), { key: 'ArrowLeft' });
-    expect(within(p).getByRole('tab', { name: /^Tables$|^Tabel$/i }).getAttribute('aria-selected')).toBe('true');
+    // Arrow-key pindah tab via rail.
+    fireEvent.keyDown(within(dialog).getByRole('tab', { name: /^Refs$|^Ref$/i }), { key: 'ArrowLeft' });
+    expect(within(dialog).getByRole('tab', { name: /^Tables$|^Tabel$/i }).getAttribute('aria-selected')).toBe('true');
   });
 
   it('placeholder hanya bila 0 tabel / 0 relasi', () => {
@@ -331,9 +352,78 @@ describe('Ronde 5 ITEM 2+3: auto-buka + tab Relations', () => {
       dispatch: vi.fn(),
     });
     renderCanvas();
+    const dialog = canvasDialog();
     const p = panel();
     expect(within(p).getByText(/No tables yet|Belum ada tabel/i)).toBeTruthy();
-    fireEvent.click(within(p).getByRole('tab', { name: /^Relations$|^Relasi$/i }));
+    fireEvent.click(within(dialog).getByRole('tab', { name: /^Refs$|^Ref$/i }));
     expect(within(p).getByText(/No relations yet|Belum ada relasi/i)).toBeTruthy();
+  });
+
+  it('areas: tab rail Areas menampilkan seksi; New area via toolbar dispatch area/add', () => {
+    const dispatch = mockLive();
+    renderCanvas();
+    const dialog = canvasDialog();
+    fireEvent.click(within(dialog).getByRole('tab', { name: /^Areas$|^Area$/i }));
+    const p = panel();
+    expect(p.getAttribute('data-panel')).toBe('areas');
+    expect(within(p).getByText(/^Areas$|^Area$/i)).toBeTruthy();
+    expect(within(p).getByText(/No areas yet|Belum ada area/i)).toBeTruthy();
+    // Buat via toolbar pill (ikon SelectionPlus).
+    fireEvent.click(within(dialog).getByRole('button', { name: /^New area|^Area baru/i }));
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'area/add',
+      area: expect.objectContaining({ name: 'Area 1', color: null, tableIds: [] }),
+    });
+    expect(within(dialog).getByRole('tab', { name: /^Areas$|^Area$/i }).getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('areas: member toggle dispatch area/update', () => {
+    const dispatch = mockLive();
+    useProjectMock.mockReturnValue({
+      state: {
+        tables: liveTables(),
+        relations: [relation()],
+        schemaVersions: [version()],
+        tasks: [],
+        issues: [],
+        testCases: [],
+        techEntries: [],
+        decisions: [],
+        milestones: [],
+        apiCollections: [],
+        apiEndpoints: [],
+        whiteboards: [],
+        erdGroups: [
+          {
+            id: 'g1',
+            name: 'Billing',
+            color: null,
+            tableIds: ['tb1'],
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+      },
+      loading: false,
+      error: null,
+      canEdit: true,
+      projectId: 'p1',
+      dispatch,
+    });
+    renderCanvas();
+    const dialog = canvasDialog();
+    const p = panel();
+    fireEvent.click(within(dialog).getByRole('tab', { name: /^Areas$|^Area$/i }));
+    // Expand area Billing: member users (tb1) tampil sebagai chip…
+    fireEvent.click(within(p).getByRole('button', { name: /Billing/i }));
+    expect(within(p).getByText('users')).toBeTruthy();
+    // …tambah projects (tb2) via dropdown add.
+    fireEvent.click(within(p).getByRole('button', { name: /Add table|Tambah tabel/i }));
+    fireEvent.click(screen.getByRole('option', { name: 'projects' }));
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'area/update',
+      id: 'g1',
+      patch: { tableIds: ['tb1', 'tb2'] },
+    });
   });
 });

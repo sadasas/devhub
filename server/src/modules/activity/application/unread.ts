@@ -31,6 +31,7 @@ const ENTITY_TAB: Record<string, string> = {
   apiCollections: 'api',
   apiEndpoints: 'api',
   whiteboards: 'whiteboard',
+  erdGroups: 'schema',
 };
 
 const BASE_TABS = [

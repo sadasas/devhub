@@ -160,6 +160,11 @@ export const SEARCH_ENTITIES: EntitySpec[] = [
     fields: [{ path: 'version', weight: 3 }],
     deriveTitle: (item) => (typeof item.version === 'string' ? item.version : ''),
   },
+  {
+    key: 'erdGroups',
+    titleField: 'name',
+    fields: [{ path: 'name', weight: 3 }],
+  },
 ];
 
 export const DEFAULT_LIMIT = 50;

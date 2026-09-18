@@ -141,7 +141,9 @@ export type GranularEntity =
   | 'milestones'
   | 'apiCollections'
   | 'apiEndpoints'
-  | 'whiteboards';
+  | 'whiteboards'
+  | 'erdGroups'
+  | 'erdLayout';
 
 export type GranularEntityRecord = Record<string, unknown> & { id: string };
 

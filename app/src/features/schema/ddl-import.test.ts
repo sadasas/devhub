@@ -118,6 +118,26 @@ describe('fromDDL basics', () => {
     expect(typeof users.createdAt).toBe('string');
   });
 
+  it('normalizes SERIAL family to integer base + flag autoincrement', () => {
+    const got = fromDDL(
+      `CREATE TABLE orders (
+        id SERIAL PRIMARY KEY,
+        seq BIGSERIAL,
+        no SMALLSERIAL NOT NULL,
+        note TEXT
+      );`,
+    );
+    expect(got.warnings).toEqual([]);
+    const orders = got.tables[0]!;
+    expect(columnByName(orders, 'id').type).toBe('INTEGER');
+    expect(columnByName(orders, 'id').autoincrement).toBe(true);
+    expect(columnByName(orders, 'seq').type).toBe('BIGINT');
+    expect(columnByName(orders, 'seq').autoincrement).toBe(true);
+    expect(columnByName(orders, 'no').type).toBe('SMALLINT');
+    expect(columnByName(orders, 'no').autoincrement).toBe(true);
+    expect(columnByName(orders, 'note').autoincrement).toBe(false);
+  });
+
   it('is case-insensitive and supports IF NOT EXISTS, composite PK, schema qualification', () => {
     const got = fromDDL(
       `create table if not exists public.memberships (

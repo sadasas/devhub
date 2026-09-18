@@ -50,6 +50,22 @@ export function reconcileQueue(
       keep.push(mutation);
       continue;
     }
+    // Single-doc entities (erdLayout): no id/updatedAt rows — last snapshot
+    // wins. Keep when local differs from server so a 409 elsewhere in the
+    // queue never silently drops the layout.
+    if (mutation.entity === 'erdLayout') {
+      const serverDoc = (serverState as unknown as Record<string, unknown>).erdLayout;
+      const localDoc = (localState as unknown as Record<string, unknown> | null | undefined)?.erdLayout;
+      let same = false;
+      try {
+        same = JSON.stringify(serverDoc ?? {}) === JSON.stringify(localDoc ?? {});
+      } catch {
+        same = false;
+      }
+      if (same) dropped.push(mutation.key);
+      else keep.push(mutation);
+      continue;
+    }
     const serverEntity = serverEntities[mutation.entity]?.find((e) => e.id === mutation.id);
     const localUpdated = localUpdatedAt(mutation);
 

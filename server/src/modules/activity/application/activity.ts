@@ -46,6 +46,7 @@ const ENTITY_LABELS: Record<string, string> = {
   apiCollections: 'API collection',
   apiEndpoints: 'API endpoint',
   whiteboards: 'Whiteboard',
+  erdGroups: 'Area',
 };
 
 /**
@@ -54,6 +55,7 @@ const ENTITY_LABELS: Record<string, string> = {
  */
 const COUNT_DIFF_FIELDS: Record<string, string[]> = {
   whiteboards: ['elements'],
+  erdGroups: ['tableIds'],
 };
 
 export function entityLabel(entity: string): string {
@@ -73,6 +75,7 @@ const STATE_COLLECTIONS: (keyof State)[] = [
   'apiCollections',
   'apiEndpoints',
   'whiteboards',
+  'erdGroups',
 ];
 
 export { STATE_COLLECTIONS };

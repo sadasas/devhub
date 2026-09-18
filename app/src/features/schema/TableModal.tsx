@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowsOutSimple, Clock, FileText, Plus, Table, Trash, X } from '@phosphor-icons/react';
+import { ArrowsOutSimple, CheckCircle, Clock, FileText, Plus, Table, Trash, X } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatRelative, newId } from '../../lib/utils';
 import type { Column } from '../../lib/types';
@@ -7,7 +7,7 @@ import type { UpdatePatch } from '../../state/project-context';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { FE_LIMITS } from '../../lib/limits';
-import { isUniqueIndex, toggleUnique } from './column-helpers';
+import { canAutoincrement, isPlainIndex, isUniqueIndex, togglePlainIndex, toggleUnique } from './column-helpers';
 import { ActivityList } from '../../components/ActivityList';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
@@ -16,8 +16,9 @@ import { DetailEmpty } from '../../components/DetailList';
 import { InlineError } from '../../components/InlineError';
 import { Modal } from '../../components/Modal';
 import { ColumnTypeCombobox } from './ColumnTypeCombobox';
+import { ColumnFlagsToggle } from './ColumnFlagsToggle';
 
-type ActiveField = 'name' | 'comment' | 'indexes' | null;
+type ActiveField = 'name' | 'comment' | null;
 
 interface TableModalProps {
   tableId: string | null;
@@ -26,7 +27,7 @@ interface TableModalProps {
 
 export function TableModal({ tableId, onClose }: TableModalProps) {
   const { t } = useTranslation(['project', 'tracker']);
-  const { state, dispatch, canEdit, projectId } = useProject();
+  const { state, dispatch, canEdit, projectId, saving, lastSavedAt } = useProject();
   const [activeField, setActiveField] = useState<ActiveField>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [fullscreenField, setFullscreenField] = useState<ActiveField>(null);
@@ -50,9 +51,18 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
   };
 
   const addColumn = () => {
+    const id = newId();
     update({
-      columns: [...table.columns, { id: newId(), name: '', type: '', nullable: true, primaryKey: false, comment: '' }],
+      columns: [...table.columns, { id, name: '', type: '', nullable: true, primaryKey: false, comment: '' }],
     });
+    // Fokus input nama kolom baru setelah baris ter-render.
+    window.setTimeout(() => {
+      try {
+        document.getElementById(`tbl-col-name-${id}`)?.focus();
+      } catch {
+        /* jsdom / no-op */
+      }
+    }, 0);
   };
 
   const removeColumn = (columnId: string) => {
@@ -78,14 +88,28 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
         width="lg"
         footer={
           canEdit ? (
-            <Button
-              variant="danger"
-              size="sm"
-              leftIcon={<Trash size={14} aria-hidden="true" />}
-              onClick={() => setConfirmOpen(true)}
-            >
-              {t('schema.table.delete')}
-            </Button>
+            <>
+              <Button
+                variant="danger"
+                size="sm"
+                leftIcon={<Trash size={14} aria-hidden="true" />}
+                onClick={() => setConfirmOpen(true)}
+              >
+                {t('schema.table.delete')}
+              </Button>
+              {(saving || lastSavedAt) && !titleEmpty && (
+                <span className="save-state" role="status">
+                  {saving ? (
+                    t('tracker:board.taskModal.autosaveSaving')
+                  ) : (
+                    <>
+                      <CheckCircle size={13} weight="bold" aria-hidden="true" />
+                      {t('tracker:board.taskModal.autosaveSaved')}
+                    </>
+                  )}
+                </span>
+              )}
+            </>
           ) : undefined
         }
       >
@@ -225,17 +249,16 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                       <div className="col-edit-caption" aria-hidden="true">
                         <span>{t('schema.table.captionName')}</span>
                         <span>{t('schema.table.captionType')}</span>
-                        <span className="col-edit-check">{t('schema.table.captionNull')}</span>
-                        <span className="col-edit-check">{t('schema.table.captionPk')}</span>
+                        <span className="col-edit-caption-flags">{t('schema.table.detailCaptionFlags')}</span>
                         <span>{t('schema.table.captionDefault')}</span>
                         <span>{t('schema.table.captionComment')}</span>
-                        <span className="col-edit-check">{t('schema.table.captionUnique')}</span>
                         <span />
                       </div>
                       {table.columns.map((c) => (
                         <div className="col-edit-row" key={c.id}>
                           <input
                             className="input"
+                            id={`tbl-col-name-${c.id}`}
                             aria-label={t('schema.table.colAria', { name: c.name || t('schema.table.fbName') })}
                             placeholder={t('schema.table.namePlaceholder')}
                             value={c.name}
@@ -250,22 +273,45 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                             ariaLabel={t('schema.table.typeAria', { name: c.name || t('schema.table.fbColumn') })}
                             customAriaLabel={t('schema.table.typeCustomAria', { name: c.name || t('schema.table.fbColumn') })}
                           />
-                          <label className="col-edit-check" title={t('schema.table.nullableTitle')}>
-                            <input
-                              type="checkbox"
-                              checked={c.nullable}
-                              aria-label={t('schema.table.nullableAria', { name: c.name || t('schema.table.fbUnnamed') })}
-                              onChange={(e) => updateColumn(c.id, { nullable: e.target.checked })}
-                            />
-                          </label>
-                          <label className="col-edit-check" title={t('schema.table.primaryKeyTitle')}>
-                            <input
-                              type="checkbox"
-                              checked={c.primaryKey}
-                              aria-label={t('schema.table.pkAria', { name: c.name || t('schema.table.fbUnnamed') })}
-                              onChange={(e) => updateColumn(c.id, { primaryKey: e.target.checked })}
-                            />
-                          </label>
+                          <ColumnFlagsToggle
+                            value={{
+                              nullable: c.nullable,
+                              primaryKey: c.primaryKey,
+                              unique: isUniqueIndex(table.indexes, c.name),
+                              autoincrement: c.autoincrement ?? false,
+                              indexed: isPlainIndex(table.indexes, c.name),
+                            }}
+                            onChange={(next) => {
+                              const wasUnique = isUniqueIndex(table.indexes, c.name);
+                              if (next.unique !== wasUnique) {
+                                update({ indexes: toggleUnique(table.indexes, c.name) });
+                              }
+                              const wasIndexed = isPlainIndex(table.indexes, c.name);
+                              if ((next.indexed ?? false) !== wasIndexed) {
+                                update({ indexes: togglePlainIndex(table.indexes, c.name) });
+                              }
+                              const patch: Partial<Pick<Column, 'nullable' | 'primaryKey' | 'autoincrement'>> = {};
+                              if (next.nullable !== c.nullable || next.primaryKey !== c.primaryKey) {
+                                patch.nullable = next.nullable;
+                                patch.primaryKey = next.primaryKey;
+                              }
+                              if ((next.autoincrement ?? false) !== (c.autoincrement ?? false)) {
+                                patch.autoincrement = next.autoincrement ?? false;
+                              }
+                              if (Object.keys(patch).length > 0) updateColumn(c.id, patch);
+                            }}
+                            uniqueDisabled={c.name.trim() === ''}
+                            uniqueDisabledTitle={t('schema.table.uniqueDisabledTitle')}
+                            autoDisabled={!canAutoincrement(c.type)}
+                            autoDisabledTitle={t('schema.table.autoDisabledTitle')}
+                            indexedDisabled={c.name.trim() === ''}
+                            indexedDisabledTitle={t('schema.table.indexedDisabledTitle')}
+                            nullableLabel={t('schema.table.nullableAria', { name: c.name || t('schema.table.fbUnnamed') })}
+                            primaryLabel={t('schema.table.pkAria', { name: c.name || t('schema.table.fbUnnamed') })}
+                            uniqueLabel={t('schema.table.uniqueAria', { name: c.name || t('schema.table.fbUnnamed') })}
+                            autoLabel={t('schema.table.autoAria', { name: c.name || t('schema.table.fbUnnamed') })}
+                            indexedLabel={t('schema.table.indexedAria', { name: c.name || t('schema.table.fbUnnamed') })}
+                          />
                           <input
                             className="input"
                             aria-label={t('schema.table.defaultAria', { name: c.name || t('schema.table.fbColumn') })}
@@ -282,18 +328,6 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                             maxLength={FE_LIMITS.COLUMN_COMMENT}
                             onChange={(e) => updateColumn(c.id, { comment: e.target.value })}
                           />
-                          <label
-                            className="col-edit-check"
-                            title={c.name.trim() === '' ? t('schema.table.uniqueDisabledTitle') : t('schema.table.uniqueTitle')}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isUniqueIndex(table.indexes, c.name)}
-                              disabled={c.name.trim() === ''}
-                              aria-label={t('schema.table.uniqueAria', { name: c.name || t('schema.table.fbUnnamed') })}
-                              onChange={() => update({ indexes: toggleUnique(table.indexes, c.name) })}
-                            />
-                          </label>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -301,7 +335,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                             aria-label={t('schema.table.deleteColAria', { name: c.name || t('schema.table.fbUnnamed') })}
                             onClick={() => removeColumn(c.id)}
                           >
-                            <X size={13} aria-hidden="true" />
+                            <Trash size={13} aria-hidden="true" />
                           </Button>
                         </div>
                       ))}
@@ -336,54 +370,37 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                 )}
               </div>
 
-              {/* Indexes — row 110px label, inline edit seperti Task labels */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
+              {/* Indexes — chips read-only + hapus per entri (kelola via toggle U/I per kolom) */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, fontSize: 13 }}>
                 <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
                   <Table size={12} aria-hidden="true" /> {t('schema.table.indexesLabel')}
                 </span>
-                {activeField === 'indexes' && canEdit ? (
-                  <div style={{ flex: 1, minWidth: 0, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                    <div style={{ flex: 1 }}>
-                      <input
-                        className="input"
-                        autoFocus
-                        placeholder={t('schema.table.indexesPlaceholder')}
-                        value={table.indexes.join(', ')}
-                        maxLength={2500}
-                        onChange={(e) => update({ indexes: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
-                        onBlur={() => setActiveField(null)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === 'Escape') setActiveField(null);
-                        }}
-                        aria-label={t('schema.table.indexesLabel')}
-                      />
-                      <p className="field-helper">{t('schema.table.indexesHelper')}</p>
-                    </div>
-                    <Button variant="ghost" size="sm" onClick={() => setActiveField(null)}>
-                      {t('schema.table.done')}
-                    </Button>
-                  </div>
-                ) : table.indexes.length > 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => canEdit && setActiveField('indexes')}
-                    style={{ display: 'flex', gap: 6, flexWrap: 'wrap', background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default', padding: 0 }}
-                    aria-label={canEdit ? t('tracker:issues.modal.clickToEdit') : undefined}
-                  >
+                {table.indexes.length > 0 ? (
+                  <ul className="erd-panel-indexes" style={{ flex: 1, minWidth: 0 }}>
                     {table.indexes.map((idx) => (
-                      <span key={idx} style={{ padding: '2px 8px', borderRadius: 999, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
-                        {idx}
-                      </span>
+                      <li
+                        key={idx}
+                        className="erd-panel-index font-mono"
+                        title={idx}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                      >
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{idx}</span>
+                        {canEdit && (
+                          <button
+                            type="button"
+                            onClick={() => update({ indexes: table.indexes.filter((x) => x !== idx) })}
+                            aria-label={t('schema.table.removeIndexAria', { index: idx })}
+                            title={t('schema.table.removeIndexAria', { index: idx })}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-muted)', display: 'inline-flex' }}
+                          >
+                            <X size={11} aria-hidden="true" />
+                          </button>
+                        )}
+                      </li>
                     ))}
-                  </button>
+                  </ul>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => canEdit && setActiveField('indexes')}
-                    style={{ background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default', color: 'var(--text-muted)', fontSize: 13 }}
-                  >
-                    —
-                  </button>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>
                 )}
               </div>
             </div>

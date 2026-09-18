@@ -171,6 +171,23 @@ describe('toPostgresDDL', () => {
     expect(ddl).toContain("AS ENUM ('active', 'archived')");
     expect(ddl.indexOf('CREATE TYPE')).toBeLessThan(ddl.indexOf('CREATE TABLE'));
   });
+
+  it('emits SERIAL family untuk flag autoincrement + gugurkan DEFAULT', () => {
+    const users = makeTable(TABLE_USERS, 'users', {
+      columns: [
+        makeColumn({ id: COL_USER_ID, name: 'id', type: 'INTEGER', nullable: false, primaryKey: true, autoincrement: true, default: '1' }),
+        makeColumn({ id: 'ffffffff-ffff-4fff-8fff-ffffffffffff', name: 'seq', type: 'BIGINT', nullable: true, primaryKey: false, autoincrement: true }),
+        makeColumn({ id: 'eeeeeee2-eeee-4eee-8eee-eeeeeeeeeee2', name: 'note', type: 'TEXT', nullable: true, primaryKey: false, autoincrement: true }),
+      ],
+    });
+    const ddl = toPostgresDDL([users], []);
+    expect(ddl).toContain('id SERIAL NOT NULL');
+    expect(ddl).toContain('seq BIGSERIAL');
+    expect(ddl).not.toContain('DEFAULT 1');
+    // TEXT + flag: flag diabaikan, tipe apa adanya.
+    expect(ddl).toContain('note TEXT');
+    expect(ddl).not.toContain('note SERIAL');
+  });
 });
 
 describe('safeIdent', () => {
