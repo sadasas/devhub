@@ -825,6 +825,7 @@
     "counts": {
       "tasks": "Tasks",
       "openIssues": "Open issues",
+      "overdue": "Overdue",
       "outdatedDeps": "Outdated deps",
       "testCases": "Test cases",
       "stackEntries": "Stack entries",
@@ -832,6 +833,8 @@
       "decisions": "Decisions",
       "milestones": "Milestones"
     },
+    "yourRole": "Your role: {{role}}",
+    "editSection": "Edit",
     "chartsSectionAria": "Charts",
     "membersSectionAria": "Members",
     "briefSectionAria": "Product brief",
@@ -875,6 +878,10 @@
     },
     "nextMilestone": "Next milestone:",
     "nextMilestoneDate": "· {{date}}",
+    "overdueMilestones": "Overdue milestones ({{count}}):",
+    "noDatedMilestones": "No upcoming date — {{count}} active milestone(s) without target.",
+    "lateHint": "Overdue: past due date and not done",
+    "smallTeamNote": "Small team — workload is shared across a few people.",
     "chartsEmptyTitle": "Nothing to chart yet",
     "chartsEmptyDesc": "Create tasks or issues and charts will appear here.",
     "membersTitle": "Members",

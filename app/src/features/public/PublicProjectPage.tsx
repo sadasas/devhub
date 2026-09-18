@@ -707,6 +707,7 @@ function PublicAbout({ project, state }: { project: PublicProject; state: State 
 
   return (
     <div className="about-body">
+      <p className="overview-public-note">{t('public.sharedSummaryNote')}</p>
       <div className="about-hero">
         <p className={`about-description${project.description.trim() ? '' : ' about-description-empty'}`}>
           {project.description.trim() ? renderInline(project.description) : t('public.noDescription')}

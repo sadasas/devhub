@@ -709,6 +709,7 @@
       "testCases": "Test case"
     },
     "noDescription": "Belum ada deskripsi.",
+    "sharedSummaryNote": "Ringkasan share — grafik dan anggota disembunyikan di tampilan publik.",
     "about": {
       "team": "Tim: {{name}}"
     },

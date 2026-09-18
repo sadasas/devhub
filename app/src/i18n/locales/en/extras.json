@@ -709,6 +709,7 @@
       "testCases": "Test cases"
     },
     "noDescription": "No description yet.",
+    "sharedSummaryNote": "Shared summary — charts and members are hidden in the public view.",
     "about": {
       "team": "Team: {{name}}"
     },

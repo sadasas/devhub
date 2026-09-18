@@ -825,6 +825,7 @@
     "counts": {
       "tasks": "Task",
       "openIssues": "Issue terbuka",
+      "overdue": "Terlambat",
       "outdatedDeps": "Dependensi kedaluwarsa",
       "testCases": "Test case",
       "stackEntries": "Entri stack",
@@ -832,6 +833,8 @@
       "decisions": "Keputusan",
       "milestones": "Milestone"
     },
+    "yourRole": "Peran Anda: {{role}}",
+    "editSection": "Ubah",
     "chartsSectionAria": "Grafik",
     "membersSectionAria": "Anggota",
     "briefSectionAria": "Brief produk",
@@ -875,6 +878,10 @@
     },
     "nextMilestone": "Milestone berikutnya:",
     "nextMilestoneDate": "· {{date}}",
+    "overdueMilestones": "Milestone terlambat ({{count}}):",
+    "noDatedMilestones": "Belum ada tanggal — {{count}} milestone aktif tanpa target.",
+    "lateHint": "Terlambat: melewati due date dan belum selesai",
+    "smallTeamNote": "Tim kecil — beban kerja terbagi ke sedikit orang.",
     "chartsEmptyTitle": "Belum ada yang bisa digrafikkan",
     "chartsEmptyDesc": "Buat task atau issue dan grafik akan muncul di sini.",
     "membersTitle": "Anggota",
