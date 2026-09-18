@@ -371,6 +371,12 @@ export function Layout() {
   }, [tourActive, tourStep, teams]);
   const effectiveTeamId = tourTeamId ?? activeTeamId;
 
+  // Tour steps 1-2 need a laid-out sidebar anchor: force the rail expanded
+  // (in-memory only, never persisted) so the spotlight never falls back to
+  // a distant dashboard button while the wizard points at the sidebar.
+  const tourForcesSidebarOpen = tourActive && tourStep <= 2;
+  const sidebarCollapsedEffective = sidebarCollapsed && !tourForcesSidebarOpen;
+
   // Team chat (button, panel, shortcuts) follows the selected team.
 
   const isChatInlineOpen = chatOpen && !isMobileChat;
@@ -387,7 +393,7 @@ export function Layout() {
   if (teamGuard === 'toHome') return <Navigate to="/" replace />;
 
   return (
-    <div className="layout" data-chat-open={isChatInlineOpen ? 'true' : undefined} data-sidebar-collapsed={sidebarCollapsed ? 'true' : undefined} style={{ ['--sidebar-w' as any]: `${sidebarCollapsed ? 0 : sidebarWidth}px`, ['--chat-w' as any]: `${isChatInlineOpen ? chatWidth : 0}px` } as React.CSSProperties}>
+    <div className="layout" data-chat-open={isChatInlineOpen ? 'true' : undefined} data-sidebar-collapsed={sidebarCollapsedEffective ? 'true' : undefined} style={{ ['--sidebar-w' as any]: `${sidebarCollapsedEffective ? 0 : sidebarWidth}px`, ['--chat-w' as any]: `${isChatInlineOpen ? chatWidth : 0}px` } as React.CSSProperties}>
       <a
         className="skip-link"
         href="#main-content"
@@ -431,7 +437,7 @@ export function Layout() {
           inert={!navOpen ? true : undefined}
         >
           <div className="sidebar-drawer-inner">
-            <Sidebar activeTeamId={activeTeamId} onCreateTeam={() => setCreateTeamOpen(true)} onNavigate={() => setNavOpen(false)} />
+            <Sidebar activeTeamId={effectiveTeamId} onCreateTeam={() => setCreateTeamOpen(true)} onNavigate={() => setNavOpen(false)} />
           </div>
         </div>
       )}
@@ -446,10 +452,10 @@ export function Layout() {
                 if (window.matchMedia('(max-width: 860px)').matches) setNavOpen((o) => !o);
                 else setSidebarCollapsed((v) => !v);
               }}
-              aria-label={sidebarCollapsed ? t('layout.expandSidebar') : t('layout.collapseSidebar')}
-              aria-expanded={!sidebarCollapsed}
+              aria-label={sidebarCollapsedEffective ? t('layout.expandSidebar') : t('layout.collapseSidebar')}
+              aria-expanded={!sidebarCollapsedEffective}
               aria-controls="sidebar-region"
-              title={sidebarCollapsed ? t('layout.expandSidebar') : t('layout.collapseSidebar')}
+              title={sidebarCollapsedEffective ? t('layout.expandSidebar') : t('layout.collapseSidebar')}
             >
               <List size={18} weight="bold" aria-hidden="true" />
             </button>
