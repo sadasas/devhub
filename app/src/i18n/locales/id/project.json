@@ -68,7 +68,7 @@
     "saved": "Tersimpan.",
     "saveError": "Gagal menyimpan pengaturan project.",
     "readonly": "Hanya owner dan admin yang dapat mengubah pengaturan project.",
-    "danger": "Bahaya",
+    "danger": "Zona berbahaya",
     "dangerTitle": "Zona berbahaya",
     "dangerDesc": "Aksi ireversibel dan visibilitas untuk project ini.",
     "dangerArchiveName": "Arsipkan project",

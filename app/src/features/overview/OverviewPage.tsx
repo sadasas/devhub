@@ -1,12 +1,11 @@
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { Archive, ArrowCounterClockwise, ChartBar, Check, Copy, PencilSimple } from '@phosphor-icons/react';
+import { Archive, ArrowCounterClockwise, ChartBar, PencilSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import type { Project } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { useProjects } from '../../state/projects-context';
-import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { api } from '../../lib/api';
 import { formatDate } from '../../lib/utils';
 import { formatHours } from '../../lib/format';
@@ -257,7 +256,6 @@ export function OverviewPage({ project }: { project: Project }) {
   const [membersLoaded, setMembersLoaded] = useState(false);
   const [memberNames, setMemberNames] = useState<Record<string, string>>({});
   const [memberAvatars, setMemberAvatars] = useState<Record<string, string | null>>({});
-  const { copied: idCopied, copy: copyId } = useCopyFeedback();
 
   useEffect(() => {
     if (!teamId) {
@@ -295,7 +293,6 @@ export function OverviewPage({ project }: { project: Project }) {
         <div aria-hidden="true">
           <div className="data-list-header">
             <Skeleton style={{ width: 130, height: 15 }} />
-            <Skeleton style={{ width: 96, height: 28, borderRadius: 8 }} />
           </div>
           <div className="about-hero">
             <Skeleton style={{ width: "90%", height: 14 }} />
@@ -304,10 +301,6 @@ export function OverviewPage({ project }: { project: Project }) {
                 <Skeleton key={i} style={{ width: w, height: 20, borderRadius: 999 }} />
               ))}
             </p>
-            <div className="about-idrow" style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
-              <Skeleton style={{ width: 220, height: 14 }} />
-              <Skeleton style={{ width: 64, height: 28, borderRadius: 8 }} />
-            </div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: 10, marginBottom: 22, marginTop: 16 }}>
             {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
@@ -519,24 +512,6 @@ export function OverviewPage({ project }: { project: Project }) {
             </Badge>
           </span>
         </p>
-        <div className="about-idrow">
-          <code className="project-id-code">{project.id}</code>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="project-id-copy"
-            leftIcon={
-              idCopied ? (
-                <Check size={12} weight="bold" aria-hidden="true" />
-              ) : (
-                <Copy size={12} aria-hidden="true" />
-              )
-            }
-            onClick={() => void copyId(project.id)}
-          >
-            {idCopied ? t('actions.copied') : t('actions.copy')}
-          </Button>
-        </div>
         {project.status === 'archived' && canEdit && (
           <div style={{ marginTop: 10 }}>
             <Button

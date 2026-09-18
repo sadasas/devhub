@@ -68,7 +68,7 @@
     "saved": "Saved.",
     "saveError": "Failed to save project settings.",
     "readonly": "Only owners and admins can edit project settings.",
-    "danger": "Danger",
+    "danger": "Danger zone",
     "dangerTitle": "Danger zone",
     "dangerDesc": "Irreversible and visibility actions for this project.",
     "dangerArchiveName": "Archive project",

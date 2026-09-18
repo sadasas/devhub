@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowRight,
+  ArrowSquareOut,
   CalendarBlank,
   Check,
   Copy,
@@ -10,6 +11,8 @@ import {
   GithubLogo,
   GoogleLogo,
   IdentificationBadge,
+  Key,
+  LinkBreak,
   LockKey,
   PencilSimple,
   ShieldCheck,
@@ -18,7 +21,7 @@ import {
 } from '@phosphor-icons/react';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
-import { copyText, formatDate, shortId } from '../../lib/utils';
+import { copyText, formatDate } from '../../lib/utils';
 import { Avatar } from '../../components/Avatar';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
@@ -79,7 +82,6 @@ export function ProfilePage() {
   const [unlinkBusy, setUnlinkBusy] = useState(false);
   const [unlinkError, setUnlinkError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState(false);
-  const [showFullId, setShowFullId] = useState(false);
 
   const tabParam = searchParams.get('tab');
   const tab: ProfileTab =
@@ -349,7 +351,7 @@ export function ProfilePage() {
                   {user.hasPassword === false ? t('profile.security.passwordSetDesc', { defaultValue: 'No password yet \u2014 set one to enable email login. You can keep using Google/GitHub.' }) : t('profile.security.passwordDesc')}
                 </span>
               </div>
-              <Button variant="secondary" size="sm" onClick={() => setChangeOpen(true)}>
+              <Button variant="secondary" size="sm" leftIcon={<Key size={14} aria-hidden="true" />} onClick={() => setChangeOpen(true)}>
                 {user.hasPassword === false
                   ? t('profile.security.setPassword', { defaultValue: 'Set password' })
                   : t('profile.security.changePassword')}
@@ -382,7 +384,7 @@ export function ProfilePage() {
                   </div>
                 </div>
                 {isGoogleLinked ? (
-                  <Button variant="ghost" size="sm" onClick={() => { setUnlinkError(null); setUnlinkTarget('google'); }}>
+                  <Button variant="ghost" size="sm" leftIcon={<LinkBreak size={14} aria-hidden="true" />} onClick={() => { setUnlinkError(null); setUnlinkTarget('google'); }}>
                     {t('profile.security.unlink', { defaultValue: 'Unlink' })}
                   </Button>
                 ) : (
@@ -392,6 +394,7 @@ export function ProfilePage() {
                      data-external="true"
                      className="btn btn-secondary btn-sm"
                   >
+                     <span aria-hidden="true" className="btn-icon-wrap"><ArrowSquareOut size={14} aria-hidden="true" /></span>
                      {t('profile.security.connect', { defaultValue: 'Connect' })}
                   </a>
                  )}
@@ -407,7 +410,7 @@ export function ProfilePage() {
                   </div>
                 </div>
                 {isGithubLinked ? (
-                  <Button variant="ghost" size="sm" onClick={() => { setUnlinkError(null); setUnlinkTarget('github'); }}>
+                  <Button variant="ghost" size="sm" leftIcon={<LinkBreak size={14} aria-hidden="true" />} onClick={() => { setUnlinkError(null); setUnlinkTarget('github'); }}>
                     {t('profile.security.unlink', { defaultValue: 'Unlink' })}
                   </Button>
                 ) : (
@@ -417,6 +420,7 @@ export function ProfilePage() {
                      data-external="true"
                      className="btn btn-secondary btn-sm"
                   >
+                     <span aria-hidden="true" className="btn-icon-wrap"><ArrowSquareOut size={14} aria-hidden="true" /></span>
                      {t('profile.security.connect', { defaultValue: 'Connect' })}
                   </a>
                  )}
@@ -470,8 +474,8 @@ export function ProfilePage() {
                 <div className="settings-row settings-row--accountId">
                   <dt>{t('profile.account.accountId')}</dt>
                   <dd className="settings-row-value">
-                    <span className="settings-mono" title={user.id} style={{ maxWidth: showFullId ? '100%' : 96, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: showFullId ? 'normal' : 'nowrap', wordBreak: showFullId ? 'break-all' : undefined }}>
-                      {showFullId ? user.id : shortId(user.id)}
+                    <span className="settings-mono" title={user.id} style={{ overflowWrap: 'anywhere' }}>
+                      {user.id}
                     </span>
                     <span className="settings-row-actions">
                       <Button
@@ -484,12 +488,7 @@ export function ProfilePage() {
                       >
                         {copiedId
                           ? t('profile.account.copied', { defaultValue: 'Copied' })
-                          : t('profile.account.copyId', { defaultValue: 'Copy' })}
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => setShowFullId((v) => !v)}>
-                        {showFullId
-                          ? t('profile.account.hideFull', { defaultValue: 'Hide' })
-                          : t('profile.account.viewFull', { defaultValue: 'Show full' })}
+                          : t('profile.account.copyId', { defaultValue: 'Copy ID' })}
                       </Button>
                     </span>
                     {copiedId && (

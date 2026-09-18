@@ -19,11 +19,11 @@ describe('ProjectSettingsNav', () => {
     expect(screen.getByRole('link', { name: 'Back to project' }).getAttribute('href')).toBe(
       `/project/${PID}?tab=board`,
     );
-    for (const name of ['General', 'Integrations', 'Danger']) {
+    for (const name of ['General', 'Integrations', 'Danger zone']) {
       expect(screen.getByRole('link', { name })).toBeTruthy();
     }
     expect(screen.getByRole('link', { name: 'General' }).getAttribute('aria-current')).toBe('page');
-    expect(screen.getByRole('link', { name: 'Danger' }).getAttribute('href')).toContain('section=danger');
+    expect(screen.getByRole('link', { name: 'Danger zone' }).getAttribute('href')).toContain('section=danger');
   });
 
   it('marks the section from ?section= as current and preserves ?from=', () => {
@@ -44,7 +44,7 @@ describe('ProjectSettingsNav', () => {
   it('notifies onSelect when a section is picked (mobile drawer close)', () => {
     const onSelect = vi.fn();
     renderNav(`/project/${PID}?tab=settings`, onSelect);
-    fireEvent.click(screen.getByRole('link', { name: 'Danger' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Danger zone' }));
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 });

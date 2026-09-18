@@ -626,13 +626,13 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
             </div>
             <div className="dashboard__settings-usage-links">
               <Link
-                className="btn btn-ghost btn-sm dashboard__settings-link"
+                className="btn btn-secondary btn-sm dashboard__settings-link"
                 to={`/pricing?teamId=${encodeURIComponent(team.id)}`}
               >
                 <Tag size={14} aria-hidden="true" />
                 {t('teams.billing.viewPricing')}
               </Link>
-              <Link className="btn btn-ghost btn-sm dashboard__settings-link" to="/payments">
+              <Link className="btn btn-secondary btn-sm dashboard__settings-link" to="/payments">
                 <ClockCounterClockwise size={14} aria-hidden="true" />
                 {t('dashboard.team.settingsUsageViewHistory')}
               </Link>

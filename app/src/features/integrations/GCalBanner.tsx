@@ -19,11 +19,15 @@ export function GCalBanner({ email, onReconnect, busy = false }: GCalBannerProps
       <Badge tone="warn" dot>
         {t('gcal.expired', { defaultValue: 'Connection expired' })}
       </Badge>
-      <span>{t('gcal.bannerText', { defaultValue: 'Google Calendar needs reconnecting — sync is paused.' })}</span>
-      {email ? <span className="field-helper">{email}</span> : null}
-      <Button variant="secondary" size="sm" onClick={onReconnect} loading={busy} disabled={busy}>
-        {t('gcal.reconnect', { defaultValue: 'Reconnect' })}
-      </Button>
+      <div className="save-toast-body">
+        <span>{t('gcal.bannerText', { defaultValue: 'Google Calendar needs reconnecting — sync is paused.' })}</span>
+        {email ? <span className="field-helper">{email}</span> : null}
+        <div className="save-toast-actions">
+          <Button variant="secondary" size="sm" onClick={onReconnect} loading={busy} disabled={busy}>
+            {t('gcal.reconnect', { defaultValue: 'Reconnect' })}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

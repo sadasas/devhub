@@ -23,10 +23,14 @@ export function SaveBanner() {
     return (
       <div className="save-toast conflict-banner" role="alert" data-testid="save-banner">
         <Warning size={13} weight="bold" aria-hidden="true" />
-        <span>{conflict.message}</span>
-        <Button variant="ghost" size="sm" onClick={resolveConflict}>
-          {t('action.loadLatest')}
-        </Button>
+        <div className="save-toast-body">
+          <span>{conflict.message}</span>
+          <div className="save-toast-actions">
+            <Button variant="ghost" size="sm" onClick={resolveConflict}>
+              {t('action.loadLatest')}
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -35,13 +39,17 @@ export function SaveBanner() {
     return (
       <div className="save-toast save-banner" role="alert" data-testid="save-banner">
         <Warning size={13} weight="bold" aria-hidden="true" />
-        <span>{t('save.failed', { error: saveError })}</span>
-        <Button variant="ghost" size="sm" onClick={retrySave} loading={saving}>
-          {t('action.retry')}
-        </Button>
+        <div className="save-toast-body">
+          <span>{t('save.failed', { error: saveError })}</span>
+          <div className="save-toast-actions">
+            <Button variant="ghost" size="sm" onClick={retrySave} loading={saving}>
+              {t('action.retry')}
+            </Button>
+          </div>
+        </div>
         <button
           type="button"
-          className="btn btn-ghost btn-sm btn-icon"
+          className="btn btn-ghost btn-sm btn-icon save-toast-close"
           aria-label="Dismiss"
           onClick={clearSaveError}
         >
@@ -56,11 +64,15 @@ export function SaveBanner() {
   return (
     <div className="save-toast save-status" role="status" data-testid="save-banner">
       {saving ? (
-        t('save.saving')
+        <div className="save-toast-body">
+          <span>{t('save.saving')}</span>
+        </div>
       ) : (
         <>
           <CheckCircle size={13} weight="bold" aria-hidden="true" />
-          {t('save.allSaved')}
+          <div className="save-toast-body">
+            <span>{t('save.allSaved')}</span>
+          </div>
         </>
       )}
     </div>

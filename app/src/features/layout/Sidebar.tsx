@@ -276,15 +276,37 @@ export function Sidebar({ activeTeamId, onCreateTeam, onNavigate }: SidebarProps
   // Single-sidebar rule: on the settings route the main sidebar swaps its
   // team nav for the settings nav (no second sidebar in content).
   const settingsMode = location.pathname.endsWith('/settings');
-  // Project settings (?tab=settings di /project/:id) ikut aturan yang sama:
-  // sidebar ditukar nav General/Integrations/Danger. Fail-closed: project
-  // tak dikenal atau role viewer tetap nav normal (konten pun fallback board).
+  // Project settings (?tab=settings di /project/:id) ikut aturan yang sama
+  // TAPI hanya di mobile (drawer): di desktop nav settings tetap di dalam
+  // konten agar tak ganda. Fail-closed: project tak dikenal atau role viewer
+  // tetap nav normal (konten pun fallback board).
+  // Takeover sidebar HANYA di mobile (drawer, ≤860px — breakpoint yang sama
+  // dengan drawer switch): di desktop nav settings tetap di dalam konten.
+  const [isMobileSidebar, setIsMobileSidebar] = useState<boolean>(() => {
+    try {
+      return typeof window !== 'undefined' ? window.matchMedia('(max-width: 860px)').matches : false;
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    try {
+      const mql = window.matchMedia('(max-width: 860px)');
+      const onChange = () => setIsMobileSidebar(mql.matches);
+      onChange();
+      mql.addEventListener('change', onChange);
+      return () => mql.removeEventListener('change', onChange);
+    } catch {
+      return;
+    }
+  }, []);
   const projectSearch = new URLSearchParams(location.search);
   const projectSettingsMatch = location.pathname.match(/^\/project\/([^/]+)$/);
   const settingsProject = projectSettingsMatch
     ? ((projects ?? []).find((p) => p.id === projectSettingsMatch[1]) ?? null)
     : null;
   const projectSettingsMode =
+    isMobileSidebar &&
     projectSearch.get('tab') === 'settings' &&
     settingsProject !== null &&
     settingsProject.role !== 'viewer';

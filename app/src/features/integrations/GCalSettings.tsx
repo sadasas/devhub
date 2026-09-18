@@ -261,16 +261,20 @@ export function GCalSettings({ projectId, canEdit, bare = false }: GCalSettingsP
                     ? t('gcal.failed', { defaultValue: 'Connection failed' })
                     : t('gcal.connected', { defaultValue: 'Connected' })}
                 </Badge>
-                <span>{flash.text}</span>
-                <Button variant="ghost" size="sm" onClick={() => setFlash(null)}>
+                <div className="save-toast-body">
+                  <span>{flash.text}</span>
+                </div>
+                <Button variant="ghost" size="sm" className="save-toast-close" onClick={() => setFlash(null)}>
                   {t('gcal.dismiss', { defaultValue: 'Dismiss' })}
                 </Button>
               </div>
             ) : null}
             {actionError ? (
               <div className="save-toast save-banner" role="alert" data-testid="gcal-toast">
-                <span>{actionError}</span>
-                <Button variant="ghost" size="sm" onClick={() => setActionError(null)}>
+                <div className="save-toast-body">
+                  <span>{actionError}</span>
+                </div>
+                <Button variant="ghost" size="sm" className="save-toast-close" onClick={() => setActionError(null)}>
                   {t('gcal.dismiss', { defaultValue: 'Dismiss' })}
                 </Button>
               </div>

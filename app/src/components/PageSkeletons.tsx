@@ -253,6 +253,39 @@ export function ProjectSkeleton() {
   );
 }
 
+export function ProjectSettingsSkeleton() {
+  return (
+    <div className="project-settings" role="status" aria-label="Loading project settings" aria-busy="true">
+      <nav className="settings-nav" aria-hidden="true">
+        <Skeleton style={{ width: 120, height: 14 }} />
+        {[0, 1, 2].map((i) => (
+          <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 2px' }}>
+            <Skeleton style={{ width: 15, height: 15, borderRadius: 4 }} />
+            <Skeleton style={{ width: 90, height: 13 }} />
+          </span>
+        ))}
+      </nav>
+      <div className="project-settings-panel" aria-hidden="true">
+        <div className="profile-panel">
+          <div className="narrow-center">
+            <Skeleton style={{ width: 120, height: 14 }} />
+            <Skeleton style={{ width: '70%', height: 12, marginTop: 8 }} />
+            <Skeleton style={{ width: '100%', height: 34, borderRadius: 8, marginTop: 16 }} />
+            <Skeleton style={{ width: '100%', height: 76, borderRadius: 8, marginTop: 12 }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+              <Skeleton style={{ width: 90, height: 13 }} />
+              <Skeleton style={{ width: 120, height: 13 }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+              <Skeleton style={{ width: 130, height: 34, borderRadius: 8 }} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function TeamSkeleton() {
   return (
     <PageShell label="Team">

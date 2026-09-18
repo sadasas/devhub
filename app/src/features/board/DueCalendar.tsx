@@ -66,6 +66,8 @@ interface CalTaskChipProps {
   onTouchDrop?: (taskId: string, dropKey: string | null) => void;
   onDragOffset?: (offset: number, start: string | null) => void;
   onMove?: (taskId: string) => void;
+  /** Dilaporkan saat drag HTML5 mulai/selesai — grid memakainya untuk ghost slot drop. */
+  onDragState?: (taskId: string | null) => void;
   style?: React.CSSProperties;
   classNameExtra?: string;
   readOnly?: boolean;
@@ -113,11 +115,14 @@ function formatDayAriaLabel(isoDate: string): string {
   }
 }
 
-function CalTaskChip({ task, date, segmentStart, span, members, onOpenTask, onTouchDrop, onDragOffset, onMove, style, classNameExtra, readOnly = false }: CalTaskChipProps) {
+function CalTaskChip({ task, date, segmentStart, span, members, onOpenTask, onTouchDrop, onDragOffset, onMove, onDragState, style, classNameExtra, readOnly = false }: CalTaskChipProps) {
   const project = useProjectSafe();
   const canEdit = !readOnly && (project?.canEdit ?? false);
   const canMove = canEdit && !!onMove;
   const ref = useRef<HTMLButtonElement>(null);
+  // Tooltip ditutup paksa saat drag (browser tak menembakkan mouseleave
+  // selama drag HTML5 + tombol memegang fokus) via disabled + blur.
+  const [dragging, setDragging] = useState(false);
   const handleTouchDrop = useCallback(
     (dropKey: string | null) => onTouchDrop?.(task.id, dropKey),
     [task.id, onTouchDrop],
@@ -141,6 +146,7 @@ function CalTaskChip({ task, date, segmentStart, span, members, onOpenTask, onTo
       side="top"
       title={task.title}
       icon={STATUS_ICON[task.status]}
+      disabled={dragging}
       description={
         <span className="task-activity-tip-rows">
           {dueText !== '' && (
@@ -169,7 +175,7 @@ function CalTaskChip({ task, date, segmentStart, span, members, onOpenTask, onTo
     <button
       ref={ref}
       type="button"
-      className={`due-cal-task due-cal-task-${tone}${isDone ? ' due-cal-task-done' : ''} ${classNameExtra ?? ''}`}
+      className={`due-cal-task due-cal-task-${tone}${isDone ? ' due-cal-task-done' : ''}${dragging ? ' dragging' : ''} ${classNameExtra ?? ''}`}
       draggable={canEdit}
       aria-label={ariaLabel}
       aria-keyshortcuts={canMove ? 'm Enter' : 'Enter'}
@@ -191,14 +197,19 @@ function CalTaskChip({ task, date, segmentStart, span, members, onOpenTask, onTo
           return;
         }
         e.stopPropagation();
+        setDragging(true);
+        e.currentTarget.blur();
+        onDragState?.(task.id);
         e.dataTransfer.setData('text/plain', task.id);
         e.dataTransfer.effectAllowed = 'move';
         if (onDragOffset) {
           if (segmentStart && span && span > 1) {
             const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-            const x = e.clientX - rect.left;
             const colWidth = rect.width / span;
-            const offsetInSegment = Math.max(0, Math.min(span - 1, Math.floor(x / colWidth)));
+            // Guard colWidth 0 (elemen tersembunyi/jsdom tanpa layout) agar
+            // tak menghasilkan NaN yang meruntuhkan addDaysIso.
+            const x = (e.clientX || 0) - rect.left;
+            const offsetInSegment = colWidth > 0 ? Math.max(0, Math.min(span - 1, Math.floor(x / colWidth))) : 0;
             const grabDate = addDaysIso(segmentStart, offsetInSegment);
             onDragOffset(0, grabDate);
           } else if (segmentStart) {
@@ -208,6 +219,7 @@ function CalTaskChip({ task, date, segmentStart, span, members, onOpenTask, onTo
           }
         }
       }}
+      onDragEnd={() => { setDragging(false); onDragState?.(null); }}
     >
       <span aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, opacity: 0.9 }}>
         {STATUS_ICON[task.status]}
@@ -258,6 +270,41 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
     try { localStorage.setItem("due-cal-strip-collapsed", stripCollapsed ? "1" : "0"); } catch {}
   }, [stripCollapsed]);
   const dragGrabDateRef = useRef<string | null>(null);
+  // Highlight drop: id task yang sedang di-drag (ref, dibaca dragover) +
+  // tanggal cell hover (state, memicu render). Dibersihkan saat drop/leave/dragEnd.
+  const dragTaskIdRef = useRef<string | null>(null);
+  const [ghostDate, setGhostDate] = useState<string | null>(null);
+  // Flag render agar grid tahu drag aktif (untuk kelas is-dragging).
+  const [dragActive, setDragActive] = useState(false);
+  const handleChipDragState = useCallback((taskId: string | null) => {
+    dragTaskIdRef.current = taskId;
+    setDragActive(taskId !== null);
+    if (taskId === null) setGhostDate(null);
+  }, []);
+  // Rentang highlight: cermin moveToDate agar preview == hasil drop
+  // (durasi dipertahankan, offset grab diperhitungkan). String ISO YYYY-MM-DD
+  // aman dibanding leksikografis.
+  const ghostTask =
+    dragTaskIdRef.current !== null ? allTasks.find((t) => t.id === dragTaskIdRef.current) : undefined;
+  let ghostStart: string | null = null;
+  let ghostEnd: string | null = null;
+  if (ghostDate !== null) {
+    if (ghostTask?.startDate && ghostTask?.dueDate) {
+      const duration = Math.max(
+        0,
+        Math.round((parseIso(ghostTask.dueDate).getTime() - parseIso(ghostTask.startDate).getTime()) / 86400000),
+      );
+      const grab = dragGrabDateRef.current;
+      const offset =
+        grab !== null
+          ? Math.max(0, Math.round((parseIso(grab).getTime() - parseIso(ghostTask.startDate).getTime()) / 86400000))
+          : 0;
+      ghostStart = addDaysIso(ghostDate, -offset);
+      ghostEnd = addDaysIso(ghostStart, duration);
+    } else {
+      ghostStart = ghostEnd = ghostDate;
+    }
+  }
   const [moveTaskId, setMoveTaskId] = useState<string | null>(null);
   const [moveDateDraft, setMoveDateDraft] = useState<string>('');
   const { t } = useTranslation('tracker');
@@ -526,12 +573,16 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
 
   const onDrop = (date: string) => (e: React.DragEvent) => {
     e.preventDefault();
+    setGhostDate(null);
+    setDragActive(false);
     const id = e.dataTransfer.getData('text/plain');
     if (id) moveToDate(id, date);
   };
 
   const onClearDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    setGhostDate(null);
+    setDragActive(false);
     const id = e.dataTransfer.getData('text/plain');
     if (id) moveToDate(id, null);
   };
@@ -563,7 +614,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
         aria-label={cellAriaLabel}
         aria-selected={isCellSelected}
         aria-keyshortcuts="ArrowRight ArrowLeft ArrowDown ArrowUp PageDown PageUp Enter"
-        className={`due-cal-cell${dimmed ? ' due-cal-dim' : ''}${isToday ? ' due-cal-today' : ''}${isMiniSelected ? ' due-cal-mini-selected' : ''}`}
+        className={`due-cal-cell${dimmed ? ' due-cal-dim' : ''}${isToday ? ' due-cal-today' : ''}${isMiniSelected ? ' due-cal-mini-selected' : ''}${!isMobileCal && ghostStart !== null && ghostEnd !== null && date >= ghostStart && date <= ghostEnd ? ' due-cal-cell--drop-active' : ''}`}
         data-date={date}
         {...(canDrop ? { 'data-drop-key': `date:${date}` } : {})}
         tabIndex={isCellSelected ? 0 : -1}
@@ -587,8 +638,13 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
         onDragOver={canDrop ? (e) => {
           e.preventDefault();
           e.dataTransfer.dropEffect = 'move';
+          if (dragTaskIdRef.current !== null && ghostDate !== date) setGhostDate(date);
         } : undefined}
         onDrop={canDrop ? onDrop(date) : undefined}
+        onDragLeave={canDrop ? (e) => {
+          // Hanya clear saat benar-benar keluar cell (bukan pindah antar child).
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setGhostDate(null);
+        } : undefined}
       >
         <span className="due-cal-daynum">{date.slice(8)}</span>
         {isMobileCal && miniTasks.length > 0 && (
@@ -679,7 +735,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
       </div>
 
       <div className="due-cal-body">
-        <div className={`due-cal-grid due-cal-${weekMode ? 'week' : 'month'}`} role="grid" aria-label={t('board.cal.month')} style={{ position: 'relative', gridTemplateRows: gridRowTemplate }}>
+        <div className={`due-cal-grid due-cal-${weekMode ? 'week' : 'month'}${dragActive ? ' is-dragging' : ''}`} role="grid" aria-label={t('board.cal.month')} style={{ position: 'relative', gridTemplateRows: gridRowTemplate }}>
           <div role="row" style={{ display: 'contents' }}>
             {WEEKDAY_LABELS.map((d, i) => (
               <div
@@ -724,6 +780,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
               onTouchDrop={effectiveTouchDrop}
               onDragOffset={readOnly ? undefined : (_, grabDate) => { dragGrabDateRef.current = grabDate; }}
               onMove={readOnly ? undefined : openMove}
+              onDragState={readOnly ? undefined : handleChipDragState}
               readOnly={readOnly}
               classNameExtra="due-cal-span"
               style={{
@@ -953,7 +1010,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
           />
         ))}
         {!stripCollapsed && (!isMobileCal || !project) && unscheduled.map((t) => (
-          <CalTaskChip key={t.id} task={t} members={members} onOpenTask={onOpenTask} onTouchDrop={effectiveTouchDrop} onDragOffset={readOnly || isMobileCal ? undefined : (_, grabDate) => { dragGrabDateRef.current = grabDate; }} onMove={readOnly || isMobileCal ? undefined : openMove} readOnly={readOnly || isMobileCal} />
+          <CalTaskChip key={t.id} task={t} members={members} onOpenTask={onOpenTask} onTouchDrop={effectiveTouchDrop} onDragOffset={readOnly || isMobileCal ? undefined : (_, grabDate) => { dragGrabDateRef.current = grabDate; }} onMove={readOnly || isMobileCal ? undefined : openMove} onDragState={readOnly || isMobileCal ? undefined : handleChipDragState} readOnly={readOnly || isMobileCal} />
         ))}
       </aside>
       </div>
