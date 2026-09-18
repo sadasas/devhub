@@ -462,6 +462,58 @@ describe('resolveTarget sidebar priority', () => {
     a.remove();
     b.remove();
   });
+
+  it('skips visibility:hidden scoped anchors (closed mobile drawer)', () => {
+    // Closed drawer keeps its layout box (translateX(-100%)), so rect size
+    // alone would accept it — visibility must disqualify it.
+    const drawer = document.createElement('div');
+    drawer.id = 'mobile-nav-drawer';
+    drawer.style.visibility = 'hidden';
+    const drawerBtn = document.createElement('button');
+    drawerBtn.setAttribute('data-tour-id', 'create-project');
+    drawer.appendChild(drawerBtn);
+    document.body.appendChild(drawer);
+    mockRect(drawerBtn, { top: 100, left: -300, width: 200, height: 36 });
+    const dash = document.createElement('button');
+    dash.setAttribute('data-tour-id', 'create-project-alt');
+    document.body.appendChild(dash);
+    mockRect(dash, { top: 400, left: 400, width: 140, height: 36 });
+    expect(resolveTarget('create-project')).toBe(dash);
+    drawer.remove();
+    dash.remove();
+  });
+
+  it('prefers the visible canonical anchor over its -alt alias', () => {
+    const rail = document.createElement('div');
+    rail.className = 'sidebar';
+    const railBtn = document.createElement('button');
+    railBtn.setAttribute('data-tour-id', 'create-project');
+    rail.appendChild(railBtn);
+    document.body.appendChild(rail);
+    mockRect(railBtn, { top: 200, left: 16, width: 200, height: 36 });
+    const alt = document.createElement('button');
+    alt.setAttribute('data-tour-id', 'create-project-alt');
+    document.body.appendChild(alt);
+    mockRect(alt, { top: 400, left: 400, width: 140, height: 36 });
+    expect(resolveTarget('create-project')).toBe(railBtn);
+    rail.remove();
+    alt.remove();
+  });
+
+  it('reports no anchor (centered fallback) when only a hidden canonical exists', () => {
+    const rail = document.createElement('div');
+    rail.className = 'sidebar';
+    rail.style.visibility = 'hidden';
+    const railBtn = document.createElement('button');
+    railBtn.setAttribute('data-tour-id', 'create-project');
+    rail.appendChild(railBtn);
+    document.body.appendChild(rail);
+    // Laid-out box, hidden subtree, no -alt anywhere: must be null so the
+    // popover renders centered instead of aiming off-screen.
+    mockRect(railBtn, { top: 100, left: -300, width: 200, height: 36 });
+    expect(resolveTarget('create-project')).toBeNull();
+    rail.remove();
+  });
 });
 
 describe('newestTeamId (tour-forced sidebar context)', () => {
