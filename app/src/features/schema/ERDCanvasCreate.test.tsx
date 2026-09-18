@@ -101,7 +101,7 @@ describe('U2 ERD canvas create placement', () => {
     expect(ref.current?.getViewportCenterWorld()).toEqual({ x: 384, y: 224 });
   });
 
-  it('NewTableModal with initialPosition: table/add + erdLayout/set + server persist + onCreated', () => {
+  it('NewTableModal with initialPosition: table/add + erdLayout/set, persist via queue (no direct PATCH)', () => {
     const mockDispatch = vi.fn();
     useProjectMock.mockReturnValue({
       state: { ...makeState(), erdLayout: { tb1: { x: 10, y: 10 } } },
@@ -123,16 +123,14 @@ describe('U2 ERD canvas create placement', () => {
     const newId = addCall?.[0]?.table?.id as string;
     expect(typeof newId).toBe('string');
 
-    // Rounded to 1 decimal, keyed by the NEW id, existing overrides preserved.
+    // Rounded to 1 decimal, keyed by the NEW id. Persist goes through the
+    // queued mutation pipeline (whiteboard-style) — no side-channel PATCH.
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'erdLayout/set',
       tableId: newId,
       pos: { x: 384.4, y: 284.4 },
     });
-    expect(patchSpy).toHaveBeenCalledWith('p1', {
-      tb1: { x: 10, y: 10 },
-      [newId]: { x: 384.4, y: 284.4 },
-    });
+    expect(patchSpy).not.toHaveBeenCalled();
     expect(onCreated).toHaveBeenCalledWith(newId, 'orders');
     expect(onClose).toHaveBeenCalledTimes(1);
   });

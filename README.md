@@ -50,7 +50,7 @@ DevHub is a project management application designed specifically for **engineeri
 | Issues | Severity (Critical/High/Med/Low), lifecycle (Open → Reproduced → Fixing → Resolved / Won't fix), reproduction steps, link to task |
 | Test Cases | Checklist per task/issue, status (Pass / Fail / Pending) |
 | Tech Stack | Ledger of dependencies: name, version, category, upgrade status |
-| Schema | Table/Column/Relation CRUD, visual ERD (SVG, pan & zoom), schema versioning |
+| Schema | Table/Column/Relation CRUD, visual ERD (SVG, pan & zoom), per-table header colors, canvas rail (Tables/Refs/Versions/DBML) + bottom toolbar, relation flow highlight, schema versioning |
 | Decisions | ADR log: Proposed / Accepted / Rejected / Superseded |
 | Releases | Milestones with target dates, changelogs |
 | API Docs | Collections + endpoints inventory (headers, params, body, responses), read-only docs preview, MCP tools, OpenAPI 3.0.3 import/export (YAML/JSON) |

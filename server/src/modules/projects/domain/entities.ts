@@ -14,6 +14,7 @@ import {
   apiCollectionSchema,
   apiEndpointSchema,
   whiteboardSchema,
+  erdGroupSchema,
   type State,
 } from './state.js';
 
@@ -61,6 +62,10 @@ export const ENTITIES: EntityConfig[] = [
   mk('techEntries', 'Tech entry', techEntrySchema),
   mk('tables', 'Table', tableSchema, (state, id) => {
     state.relations = state.relations.filter((r) => r.fromTableId !== id && r.toTableId !== id);
+    state.erdGroups = state.erdGroups.map((g) => ({
+      ...g,
+      tableIds: g.tableIds.filter((t) => t !== id),
+    }));
   }),
   mk('relations', 'Relation', relationSchema),
   mk('schemaVersions', 'Schema version', schemaVersionSchema),
@@ -87,6 +92,7 @@ export const ENTITIES: EntityConfig[] = [
   }),
   mk('apiEndpoints', 'API endpoint', apiEndpointSchema),
   mk('whiteboards', 'Whiteboard', whiteboardSchema),
+  mk('erdGroups', 'Area', erdGroupSchema),
 ];
 
 export type EntityRow = { id: string; createdAt: string; updatedAt: string } & Record<string, unknown>;

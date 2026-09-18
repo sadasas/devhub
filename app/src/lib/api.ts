@@ -141,7 +141,9 @@ export type GranularEntity =
   | 'milestones'
   | 'apiCollections'
   | 'apiEndpoints'
-  | 'whiteboards';
+  | 'whiteboards'
+  | 'erdGroups'
+  | 'erdLayout';
 
 /** Google Calendar integration status (T4) — kontrak gabungan GET /integrations/gcal/status?projectId=. */
 export interface GCalStatus {

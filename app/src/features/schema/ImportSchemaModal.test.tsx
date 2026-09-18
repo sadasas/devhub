@@ -199,19 +199,22 @@ describe('ImportSchemaModal', () => {
     expect(screen.getByText('New (2)')).toBeTruthy();
   });
 
-  it('shows the honest DBML notice when selected or auto-detected, without crashing', () => {
+  it('parses DBML in Auto mode and with explicit DBML selected', () => {
     renderModal();
     pasteSource(DBML_TEXT);
-    expect(screen.getByText(/DBML import is coming soon/)).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Import' }).hasAttribute('disabled')).toBe(true);
+    // users: id int [pk] + email varchar → 1 table, 2 columns, 0 relations.
+    expect(screen.getByText(/\+1 tables, \+2 columns, \+0 relations, 0 skipped/)).toBeTruthy();
+    expect(screen.queryByText(/DBML import is coming soon/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Import' }).hasAttribute('disabled')).toBe(false);
 
     fireEvent.click(screen.getByLabelText('Postgres DDL'));
     pasteSource(DBML_TEXT);
-    // Explicit DDL choice runs the DDL parser instead of the DBML notice.
+    // Explicit DDL choice runs the DDL parser (DBML text → unsupported, 0 tables).
     expect(screen.queryByText(/DBML import is coming soon/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Import' }).hasAttribute('disabled')).toBe(true);
 
     fireEvent.click(screen.getByLabelText('DBML'));
-    expect(screen.getByText(/DBML import is coming soon/)).toBeTruthy();
+    expect(screen.getByText(/\+1 tables, \+2 columns, \+0 relations, 0 skipped/)).toBeTruthy();
     expect(mockDispatch).not.toHaveBeenCalled();
   });
 

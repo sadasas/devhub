@@ -225,6 +225,7 @@ export function toDBML(tables: Table[], relations: Relation[]): string {
         } else if (!c.nullable) {
           settings.push('not null');
         }
+        if (c.autoincrement === true) settings.push('increment');
         // DevHub tak punya flag unique per kolom — uniqueness via indexes block.
         if (c.default != null && c.default.trim() !== '') {
           const expr = formatDefaultExpr(c.default);

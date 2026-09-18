@@ -272,4 +272,16 @@ describe('toDBML', () => {
     expect(() => toDBML([], [])).not.toThrow();
     expect(toDBML([], [])).toBe('');
   });
+
+  it('emits [increment] untuk flag autoincrement', () => {
+    const users = makeTable('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'users', {
+      columns: [
+        makeColumn({ id: '11111111-1111-4111-8111-111111111111', name: 'id', type: 'INTEGER', nullable: false, primaryKey: true, autoincrement: true }),
+        makeColumn({ id: '22222222-2222-4222-8222-222222222222', name: 'seq', type: 'BIGINT', nullable: true, primaryKey: false, autoincrement: true }),
+      ],
+    });
+    const out = toDBML([users], []);
+    expect(out).toContain('id INTEGER [pk, increment]');
+    expect(out).toContain('seq BIGINT [increment]');
+  });
 });

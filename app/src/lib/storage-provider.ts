@@ -74,8 +74,20 @@ export function isQueuedStorageProvider(provider: StorageProvider): provider is 
 export const apiProvider: StorageProvider = {
   loadState: (projectId) => api.getState(projectId),
   createEntity: (projectId, entity, payload) => api.createEntity(projectId, entity, payload),
-  updateEntity: (projectId, entity, entityId, payload, version, keepalive) =>
-    api.patchEntity(projectId, entity, entityId, payload, version, keepalive),
+  updateEntity: async (projectId, entity, entityId, payload, version, keepalive) => {
+    // erdLayout is a single document (not a granular collection row) with its
+    // own endpoint — routed through the same queued, version-chained pipeline
+    // (whiteboard pattern) instead of a side-channel PATCH.
+    if (entity === 'erdLayout') {
+      const res = await api.patchErdLayout(
+        projectId,
+        (payload.erdLayout ?? {}) as Record<string, { x: number; y: number }>,
+        version,
+      );
+      return { entity: { id: 'layout' }, version: res.version };
+    }
+    return api.patchEntity(projectId, entity, entityId, payload, version, keepalive);
+  },
   deleteEntity: (projectId, entity, entityId, version, keepalive) =>
     api.deleteEntity(projectId, entity, entityId, version, keepalive),
 };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isUniqueIndex, toggleUnique } from './column-helpers';
+import { canAutoincrement, isIntegerType, isPlainIndex, isSerialType, isUniqueIndex, serialTypeFor, togglePlainIndex, toggleUnique } from './column-helpers';
 
 describe('column-helpers toggle unique', () => {
   it('off -> on: append unique:<col> di akhir', () => {
@@ -58,5 +58,44 @@ describe('column-helpers toggle unique', () => {
     expect(added).toEqual(['name', 'unique:email', 'unique:phone']);
     expect(added).not.toBe(input);
     expect(input).toEqual(snapshot);
+  });
+});
+
+describe('serial helpers (auto increment)', () => {
+  it('mengenali varian serial + integer', () => {
+    expect(isSerialType('SERIAL')).toBe(true);
+    expect(isSerialType('bigserial')).toBe(true);
+    expect(isSerialType('INTEGER')).toBe(false);
+    expect(isIntegerType('INTEGER')).toBe(true);
+    expect(isIntegerType('int')).toBe(true);
+    expect(isIntegerType('BIGSERIAL')).toBe(true);
+    expect(isIntegerType('TEXT')).toBe(false);
+    expect(isIntegerType('')).toBe(false);
+    expect(canAutoincrement('integer')).toBe(true);
+    expect(canAutoincrement('varchar(10)')).toBe(false);
+    expect(canAutoincrement(null)).toBe(false);
+  });
+
+  it('serialTypeFor memetakan basis integer', () => {
+    expect(serialTypeFor('INTEGER')).toBe('SERIAL');
+    expect(serialTypeFor('int')).toBe('SERIAL');
+    expect(serialTypeFor('BIGINT')).toBe('BIGSERIAL');
+    expect(serialTypeFor('smallint')).toBe('SMALLSERIAL');
+    expect(serialTypeFor('SERIAL')).toBe('SERIAL');
+    expect(serialTypeFor('TEXT')).toBeNull();
+    expect(serialTypeFor('')).toBeNull();
+    expect(serialTypeFor(null)).toBeNull();
+  });
+});
+
+describe('plain index helpers', () => {
+  it('detect + toggle entri plain saja', () => {
+    expect(isPlainIndex(['email'], 'email')).toBe(true);
+    expect(isPlainIndex(['unique:email'], 'email')).toBe(false);
+    expect(isPlainIndex(['lower(email)'], 'email')).toBe(false);
+    expect(togglePlainIndex([], 'email')).toEqual(['email']);
+    expect(togglePlainIndex(['email', 'unique:email'], 'email')).toEqual(['unique:email']);
+    expect(togglePlainIndex(['unique:email'], 'email')).toEqual(['unique:email', 'email']);
+    expect(togglePlainIndex(['x'], '')).toEqual(['x']);
   });
 });

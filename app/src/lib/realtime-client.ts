@@ -62,6 +62,7 @@ const ENTITY_KEYS: ReadonlySet<string> = new Set<GranularEntity>([
   'apiCollections',
   'apiEndpoints',
   'whiteboards',
+  'erdGroups',
 ]);
 
 function isGranularEntity(value: string): value is GranularEntity {

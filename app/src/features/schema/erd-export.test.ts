@@ -172,4 +172,35 @@ describe('serializeERD', () => {
     expect(svg).toContain('transform="translate(784,16)"');
     expect(svg).toContain('transform="translate(16,168)"');
   });
+
+  it('renders area boundaries (dashed + label) behind nodes; empty groups skipped', () => {
+    const users = makeTable(USERS, 'users');
+    const orders = makeTable(ORDERS, 'orders');
+    const groups = [
+      {
+        id: 'gggggggg-gggg-4ggg-8ggg-gggggggggggg',
+        createdAt: NOW,
+        updatedAt: NOW,
+        name: 'Billing',
+        color: '#e8b955',
+        tableIds: [USERS, ORDERS],
+      },
+      {
+        id: 'hhhhhhhh-hhhh-4hhh-8hhh-hhhhhhhhhhhh',
+        createdAt: NOW,
+        updatedAt: NOW,
+        name: 'Empty',
+        color: null,
+        tableIds: [],
+      },
+    ];
+    const svg = serializeERD([users, orders], [], groups);
+    expect(svg).toContain('stroke-dasharray="8 6"');
+    expect(svg).toContain('fill="#e8b955"');
+    expect(svg).toContain('>Billing</text>');
+    expect(svg).toContain('paint-order="stroke"');
+    expect(svg).not.toContain('>Empty</text>');
+    // Tanpa groups: tidak ada boundary.
+    expect(serializeERD([users, orders], [])).not.toContain('stroke-dasharray="8 6"');
+  });
 });
