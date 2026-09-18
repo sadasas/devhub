@@ -959,7 +959,7 @@
     },
     "welcome": {
       "title": "Welcome to DevHub",
-      "body": "Your technical memory for tasks, issues, and decisions. This 7-step tour shows the fastest path from team to shipped release."
+      "body": "Your technical memory for tasks, issues, and decisions. This 13-step tour shows the fastest path from team to shipped release."
     },
     "team": {
       "title": "Create your team",
@@ -969,21 +969,45 @@
       "title": "Create your first project",
       "body": "Projects hold the board, issues, stack, schema, and releases. Create one to unlock the full workspace."
     },
-    "plan": {
-      "title": "Plan: Board + Issues",
-      "body": "Break work into tasks on the Board (Alt+1) and track bugs in Issues (Alt+2). The N shortcut is paused during this tour."
+    "board": {
+      "title": "Board: Status, Milestone, Calendar",
+      "body": "Three views in the top switcher: Status (Todo to Done kanban), Milestone (per release), and Calendar (due dates, drag between days). Press N for a new task."
     },
-    "build": {
-      "title": "Build: Tests + Stack + Schema",
-      "body": "Lock quality with Test Cases (Alt+3), record versions in Stack (Alt+4), and model data in Schema (Alt+5)."
+    "issues": {
+      "title": "Issues: severity + reproduction",
+      "body": "Log bugs with Critical to Low severity and reproduction steps (markdown supported). Sort by severity or status, pin what is critical."
     },
-    "decide": {
-      "title": "Decide: Decisions + Releases + API",
-      "body": "Log ADRs in Decisions (Alt+6), group work in Releases (Alt+7), and document endpoints in API (Alt+8)."
+    "tests": {
+      "title": "Tests: lock quality",
+      "body": "Write test cases with steps and expected results, link them to tasks or issues, and mark pass, fail, or pending."
     },
-    "collab": {
-      "title": "Collaborate: Whiteboard + Overview",
-      "body": "Sketch flows in Whiteboard (Alt+9) and review health in Overview (Alt+0). Finish here, or replay anytime from Help."
+    "stack": {
+      "title": "Stack: record versions",
+      "body": "Keep an inventory of technologies and versions by category. Flag outdated entries so they surface in Overview."
+    },
+    "schema": {
+      "title": "Schema: model data + ERD",
+      "body": "Define tables, columns (PK, null, default), indexes, and relations — then inspect the ERD graph."
+    },
+    "decisions": {
+      "title": "Decisions: lightweight ADRs",
+      "body": "Record context, options, decision, and consequences, so no decision gets lost in chat."
+    },
+    "releases": {
+      "title": "Releases: milestones + changelog",
+      "body": "Group tasks per milestone (version plus target date) and write a changelog when you ship."
+    },
+    "api": {
+      "title": "API: collections + endpoints + docs",
+      "body": "Group endpoints per collection (GET, POST, and more), fill in params, body, and responses — then read it as shareable docs."
+    },
+    "whiteboard": {
+      "title": "Whiteboard: sketch + flowchart",
+      "body": "Brainstorm and flowchart on one canvas, and pin task or issue reference cards. Pinch to zoom on mobile."
+    },
+    "overview": {
+      "title": "Overview: project health",
+      "body": "Track done versus total, open issues, outdated deps, and per-member contribution. Finish here, or replay anytime from Help."
     }
   }
 }

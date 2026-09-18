@@ -62,6 +62,7 @@ import { useTabUnread } from '../../hooks/useTabUnread';
 import { OnboardingWizard } from '../onboarding/OnboardingWizard';
 import { useOnboardingTour } from '../onboarding/useOnboardingTour';
 import { getTourStep } from '../onboarding/tourSteps';
+import { hasTourStep, readTourStep } from '../onboarding/tour-events';
 
 const BoardPageLazy = lazy(() => import('../board/BoardPage').then((m) => ({ default: m.BoardPage })));
 const IssuesPageLazy = lazy(() => import('../issues/IssuesPage').then((m) => ({ default: m.IssuesPage })));
@@ -346,12 +347,14 @@ function ProjectUnreadArea({
   tab,
   onSelect,
   project,
+  forceVisibleIds,
 }: {
   projectId: string;
   userId: string;
   tab: ProjectTab;
   onSelect: (next: ProjectTab) => void;
   project: Project;
+  forceVisibleIds?: ReadonlyArray<string>;
 }) {
   const { t } = useTranslation('project');
   const { unread, unreadIds, deleted, dismissedUntil, dismissDeleted } = useTabUnread(
@@ -366,6 +369,7 @@ function ProjectUnreadArea({
         active={tab}
         onSelect={(id) => onSelect(id as ProjectTab)}
         unread={unread}
+        forceVisibleIds={forceVisibleIds}
       />
       <DeletedItemsBanner
         items={deleted}
@@ -533,7 +537,8 @@ export function ProjectPage() {
     setActionsOpen(false);
   }, [projectId, tab]);
 
-  // Tour entry (behavioral): first arrival with ?tour=1 resumes at Plan (step 3).
+  // Tour entry (behavioral): first arrival with ?tour=1 resumes at the
+  // first per-tab step, Board (step 3).
   // Strips ?tour so refresh/back doesn't restart the tour.
   useEffect(() => {
     if (searchParams.get('tour') !== '1') return;
@@ -553,10 +558,27 @@ export function ProjectPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, project !== undefined]);
 
-  // Tour phase -> tab: Plan=board, Build=tests, Decide=decisions, Collab=whiteboard.
-  // Runs only on step change so Alt+digits stay user-controlled.
+  // Tour resume (behavioral): reload or direct-open mid-tour (step 3+)
+  // revives the wizard at the persisted step instead of leaving it dormant
+  // (the active flag is in-memory only; the step persists in localStorage).
+  useEffect(() => {
+    if (tour.active || tour.finished || tour.skipped) return;
+    if (!project) return;
+    if (!hasTourStep()) return;
+    const at = readTourStep();
+    if (at < 3) return;
+    tour.start(at);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, project !== undefined]);
+
+  // Tour phase -> tab: each per-tab step forces its own tab (board, issues,
+  // tests, …). Runs only on step change so Alt+digits stay user-controlled.
+  // The target tab is also force-visible (never collapses into More) so the
+  // spotlight anchor is always laid out, even on narrow viewports.
   const tourStep = tour.step;
   const tourActive = tour.active;
+  const tourTabTargets: ReadonlyArray<string> =
+    tourActive && tourStep >= 3 ? getTourStep(tourStep).targetIds : [];
   useEffect(() => {
     if (!tourActive) return;
     if (tourStep < 3) return;
@@ -566,6 +588,14 @@ export function ProjectPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tourStep, tourActive, projectId]);
+
+  // Tour guard: the settings pseudo-view hides the tab bar, which would
+  // orphan every per-tab spotlight. Bounce back to the step's tab instead.
+  useEffect(() => {
+    if (!tourActive || tourStep < 3 || !isSettings) return;
+    closeSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourActive, tourStep, isSettings]);
 
   // Fail-closed: viewer yang membuka ?tab=settings langsung dikembalikan
   // ke board agar sidebar tak macet di nav settings. project bisa undefined
@@ -892,6 +922,7 @@ export function ProjectPage() {
             tab={tab}
             onSelect={setTab}
             project={project}
+            forceVisibleIds={tourTabTargets}
           />
         )}
 
@@ -1023,7 +1054,9 @@ export function ProjectPage() {
           projectName={project.name}
           onClose={() => setSaveTemplateOpen(false)}
         />
-        {tour.active && (
+        {/* Steps 0-1 belong to the zero-team/dashboard pages; the project
+            page only hosts the sidebar-anchored project step and up. */}
+        {tour.active && tour.step >= 2 && (
           <OnboardingWizard
             step={tour.step}
             total={tour.total}

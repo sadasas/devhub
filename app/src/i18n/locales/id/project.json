@@ -960,7 +960,7 @@
     },
     "welcome": {
       "title": "Selamat datang di DevHub",
-      "body": "Memori teknis untuk task, issue, dan keputusan. Tur 7 langkah ini menunjukkan jalan tercepat dari tim hingga rilis."
+      "body": "Memori teknis untuk task, issue, dan keputusan. Tur 13 langkah ini menunjukkan jalan tercepat dari tim hingga rilis."
     },
     "team": {
       "title": "Buat tim Anda",
@@ -970,21 +970,45 @@
       "title": "Buat project pertama",
       "body": "Project menampung board, issue, stack, schema, dan rilis. Buat satu untuk membuka seluruh workspace."
     },
-    "plan": {
-      "title": "Rencana: Board + Issue",
-      "body": "Pecah pekerjaan jadi task di Board (Alt+1) dan lacak bug di Issue (Alt+2). Shortcut N dijeda selama tur ini."
+    "board": {
+      "title": "Board: Status, Milestone, Kalender",
+      "body": "Tiga view di switcher atas: Status (kanban Todo ke Done), Milestone (per rilis), dan Kalender (jatuh tempo, drag antar hari). Tekan N untuk task baru."
     },
-    "build": {
-      "title": "Bangun: Test + Stack + Schema",
-      "body": "Kunci kualitas dengan Test Case (Alt+3), catat versi di Stack (Alt+4), dan modelkan data di Schema (Alt+5)."
+    "issues": {
+      "title": "Issue: severity + reproduksi",
+      "body": "Catat bug dengan severity Critical ke Low dan langkah reproduksi (mendukung markdown). Urutkan per severity/status, pin yang kritis."
     },
-    "decide": {
-      "title": "Putuskan: Keputusan + Rilis + API",
-      "body": "Catat ADR di Keputusan (Alt+6), kelompokkan pekerjaan di Rilis (Alt+7), dan dokumentasikan endpoint di API (Alt+8)."
+    "tests": {
+      "title": "Test: kunci kualitas",
+      "body": "Tulis test case berisi langkah dan hasil harapan, tautkan ke task/issue, lalu tandai pass, fail, atau pending."
     },
-    "collab": {
-      "title": "Kolaborasi: Whiteboard + Ringkasan",
-      "body": "Sketsa alur di Whiteboard (Alt+9) dan pantau kesehatan di Ringkasan (Alt+0). Selesaikan di sini, atau ulangi kapan saja dari Bantuan."
+    "stack": {
+      "title": "Stack: catat versi",
+      "body": "Inventarisasi teknologi dan versi per kategori. Tandai yang outdated agar muncul di Overview."
+    },
+    "schema": {
+      "title": "Schema: model data + ERD",
+      "body": "Definisikan tabel, kolom (PK, null, default), index, dan relasi — lalu periksa graf ERD."
+    },
+    "decisions": {
+      "title": "Decisions: ADR ringan",
+      "body": "Catat konteks, opsi, keputusan, dan konsekuensi, agar tak ada keputusan hilang di chat."
+    },
+    "releases": {
+      "title": "Releases: milestone + changelog",
+      "body": "Kelompokkan task per milestone (versi plus target tanggal) dan tulis changelog saat rilis."
+    },
+    "api": {
+      "title": "API: koleksi + endpoint + docs",
+      "body": "Kelompokkan endpoint per koleksi (GET, POST, dan lainnya), lengkapi param, body, dan response — lalu baca sebagai docs siap share."
+    },
+    "whiteboard": {
+      "title": "Whiteboard: sketsa + flowchart",
+      "body": "Brainstorming dan flowchart dalam satu kanvas, plus kartu ref task/issue. Cubit untuk zoom di mobile."
+    },
+    "overview": {
+      "title": "Overview: kesehatan project",
+      "body": "Pantau done vs total, open issue, dep outdated, dan kontribusi per member. Selesaikan di sini — ulangi kapan saja dari Bantuan."
     }
   }
 }
