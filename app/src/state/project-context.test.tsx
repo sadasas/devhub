@@ -9,7 +9,7 @@ import {
   type StorageProvider,
 } from '../lib/storage-provider';
 import type { State, Task, Whiteboard } from '../lib/types';
-import { ProjectProvider, projectReducer, useProject } from './project-context';
+import { ProjectProvider, mergePreservedEntities, projectReducer, useProject } from './project-context';
 import type { ProjectAction } from './project-context';
 import { RealtimeSocket } from '../lib/realtime-client';
 
@@ -96,9 +96,77 @@ function Probe() {
       >
         wb-edit
       </button>
+      <button
+        onClick={() =>
+          ctx.dispatch({
+            type: 'table/add',
+            table: {
+              id: 'tb1',
+              createdAt: '',
+              updatedAt: '',
+              name: 'users',
+              comment: '',
+              columns: [{ id: 'c1', name: 'id', type: 'uuid', nullable: false, primaryKey: true, comment: '' }],
+              indexes: [],
+            },
+          })
+        }
+      >
+        tbl-add
+      </button>
+      <button
+        onClick={() =>
+          ctx.dispatch({
+            type: 'table/update',
+            id: 'tb1',
+            patch: {
+              columns: [{ id: 'c1', name: '', type: 'uuid', nullable: false, primaryKey: true, comment: '' }],
+            },
+          })
+        }
+      >
+        tbl-break
+      </button>
+      <button
+        onClick={() =>
+          ctx.dispatch({
+            type: 'table/update',
+            id: 'tb1',
+            patch: {
+              columns: [{ id: 'c1', name: 'id', type: 'uuid', nullable: false, primaryKey: true, comment: '' }],
+            },
+          })
+        }
+      >
+        tbl-fix
+      </button>
       <button onClick={() => ctx.retrySave()}>retry</button>
       <button onClick={() => void ctx.resolveConflict()}>resolve</button>
+      <button
+        onClick={() =>
+          ctx.dispatch({
+            type: 'table/add',
+            table: { id: 'tb9', createdAt: '', updatedAt: '', name: '', comment: '', columns: [], indexes: [] },
+          })
+        }
+      >
+        tbl-add-invalid
+      </button>
+      <button
+        onClick={() =>
+          ctx.dispatch({
+            type: 'erdLayout/setMany',
+            moves: {
+              tb2: { x: 30, y: 40 },
+              tb3: { x: 50, y: 60 },
+            },
+          })
+        }
+      >
+        layout-move
+      </button>
       <span data-testid="title">{ctx.state?.tasks[0]?.title ?? 'none'}</span>
+      <span data-testid="tables">{(ctx.state?.tables ?? []).map((t) => t.name || '(unnamed)').join(',') || 'none'}</span>
       <span data-testid="save-error">{ctx.saveError ?? ''}</span>
       <span data-testid="conflict">{ctx.conflict ? 'conflict' : ''}</span>
       <span data-testid="pending">{ctx.pendingCount}</span>
@@ -159,6 +227,42 @@ describe('project save pipeline', () => {
       undefined,
     );
     expect(getState).toHaveBeenCalledTimes(1);
+  });
+
+  it('menahan autosave tabel berkolem kosong (tanpa 400), lanjut setelah valid', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval'] });
+    vi.spyOn(api, 'getState').mockResolvedValue({ state: makeState(), version: 1 });
+    const createEntity = vi.spyOn(api, 'createEntity').mockResolvedValue({ entity: { id: 'tb1' }, version: 2 });
+    const patchEntity = vi.spyOn(api, 'patchEntity').mockResolvedValue({ entity: { id: 'tb1' }, version: 3 });
+
+    renderProvider();
+    await flush();
+
+    // Tambah tabel valid -> terkirim.
+    fireEvent.click(screen.getByRole('button', { name: 'tbl-add' }));
+    await act(async () => {
+      vi.advanceTimersByTime(800);
+    });
+    await flush();
+    expect(createEntity).toHaveBeenCalledWith(PROJECT_ID, 'tables', expect.objectContaining({ id: 'tb1' }));
+
+    // Kosongkan nama kolom -> update DITAHAN: tanpa PATCH, tanpa save-error.
+    fireEvent.click(screen.getByRole('button', { name: 'tbl-break' }));
+    await act(async () => {
+      vi.advanceTimersByTime(800);
+    });
+    await flush();
+    expect(patchEntity).not.toHaveBeenCalled();
+    expect(screen.getByTestId('save-error').textContent).toBe('');
+
+    // Perbaiki lagi -> flush jalan.
+    fireEvent.click(screen.getByRole('button', { name: 'tbl-fix' }));
+    await act(async () => {
+      vi.advanceTimersByTime(800);
+    });
+    await flush();
+    expect(patchEntity).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('save-error').textContent).toBe('');
   });
 
   it('merges an update into a pending create for the same entity id', async () => {
@@ -362,6 +466,59 @@ describe('storage provider injection', () => {
     expect(calls).toContain('update');
     expect(apiGetState).not.toHaveBeenCalled();
     expect(apiPatch).not.toHaveBeenCalled();
+  });
+
+  it('persists erdLayout moves as one versioned queued mutation (whiteboard-style)', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval'] });
+    const updates: { entity: unknown; payload: unknown; version: unknown }[] = [];
+    const fake: StorageProvider = {
+      loadState: async () => ({
+        state: { ...makeState(), erdLayout: { tb1: { x: 10, y: 10 } } },
+        version: 7,
+      }),
+      createEntity: async () => ({ entity: { id: 'x' }, version: 8 }),
+      updateEntity: async (_projectId, entity, _entityId, payload, version) => {
+        updates.push({ entity, payload, version });
+        return { entity: { id: 'x' }, version: 8 };
+      },
+      deleteEntity: async () => ({ ok: true, version: 8 }),
+    };
+
+    render(
+      <ProjectProvider projectId={PROJECT_ID} role="owner" provider={fake}>
+        <Probe />
+      </ProjectProvider>,
+    );
+    await flush();
+
+    fireEvent.click(screen.getByRole('button', { name: 'layout-move' }));
+    await act(async () => {
+      vi.advanceTimersByTime(800);
+    });
+    await flush();
+
+    // Satu mutasi antrean berisi snapshot PENUH (existing + moved),
+    // dikirim dengan optimistic-lock version.
+    expect(updates).toHaveLength(1);
+    expect(updates[0]).toMatchObject({ entity: 'erdLayout', version: 7 });
+    expect((updates[0]!.payload as { erdLayout: unknown }).erdLayout).toEqual({
+      tb1: { x: 10, y: 10 },
+      tb2: { x: 30, y: 40 },
+      tb3: { x: 50, y: 60 },
+    });
+  });
+
+  it('routes erdLayout updates to the versioned erd-layout endpoint', async () => {
+    const patchLayout = vi.spyOn(api, 'patchErdLayout').mockResolvedValue({ ok: true, version: 9 });
+    const res = await apiProvider.updateEntity(
+      PROJECT_ID,
+      'erdLayout',
+      'layout',
+      { erdLayout: { a: { x: 1, y: 2 } } },
+      7,
+    );
+    expect(patchLayout).toHaveBeenCalledWith(PROJECT_ID, { a: { x: 1, y: 2 } }, 7);
+    expect(res.version).toBe(9);
   });
 
   it('uses apiProvider by default when none is passed', async () => {
@@ -1282,6 +1439,36 @@ describe('realtime state:diff integration', () => {
     expect(getState).toHaveBeenCalledTimes(2);
   });
 
+  it('tabel invalid yang tertahan guard tetap ada setelah resync (joined)', async () => {
+    vi.spyOn(api, 'getState')
+      .mockResolvedValueOnce({ state: makeState(), version: 1 })
+      .mockResolvedValueOnce({ state: makeState(), version: 2 });
+    const createEntity = vi.spyOn(api, 'createEntity').mockResolvedValue({ entity: { id: 'tb9' }, version: 2 });
+
+    renderRealtime();
+    await flush();
+    expect(screen.getByTestId('tables').textContent).toBe('none');
+
+    // Tambah tabel invalid (nama kosong): tampil lokal, tak pernah dikirim.
+    fireEvent.click(screen.getByRole('button', { name: 'tbl-add-invalid' }));
+    expect(screen.getByTestId('tables').textContent).toBe('(unnamed)');
+    await act(async () => {});
+    await flush();
+    expect(createEntity).not.toHaveBeenCalled();
+    expect(screen.getByTestId('save-error').textContent).toBe('');
+
+    // Server resync tanpa tabel itu (joined) — tabel lokal dipertahankan.
+    const ws = FakeWs.instances[0]!;
+    void ws.open();
+    act(() => {
+      ws.emit(JSON.stringify({ type: 'joined', projectId: PROJECT_ID, role: 'owner', teamId: 't' }));
+    });
+    await flush();
+
+    expect(screen.getByTestId('tables').textContent).toBe('(unnamed)');
+    expect(createEntity).not.toHaveBeenCalled();
+  });
+
   it('sends a status frame when setStatus is called', async () => {
     vi.spyOn(api, 'getState').mockResolvedValue({ state: makeState(), version: 1 });
 
@@ -1364,5 +1551,54 @@ describe('realtime state:diff integration', () => {
     });
 
     expect(getState).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('mergePreservedEntities (resync tak menghapus kerja lokal)', () => {
+  const tb = (id: string, name: string) => ({ id, name });
+
+  it('tanpa key: kembalikan fresh apa adanya', () => {
+    const fresh = makeState();
+    expect(mergePreservedEntities(fresh, makeState(), new Set())).toBe(fresh);
+    expect(mergePreservedEntities(fresh, null, new Set(['tables:tb9']))).toBe(fresh);
+  });
+
+  it('append tabel lokal yang belum ada di server', () => {
+    const fresh = makeState();
+    const local = { ...makeState(), tables: [{ ...makeState().tasks[0], ...tb('tb9', '') }] as never };
+    const merged = mergePreservedEntities(fresh, local, new Set(['tables:tb9']));
+    expect(merged.tables.map((x) => x.id)).toEqual(['tb9']);
+    expect(fresh.tables).toEqual([]);
+  });
+
+  it('versi lokal menang atas server untuk id yang sama', () => {
+    const fresh = makeState();
+    (fresh as { tables: { id: string; name: string }[] }).tables = [tb('tb1', 'Server')];
+    const local = makeState();
+    (local as { tables: { id: string; name: string }[] }).tables = [tb('tb1', 'Lokal')];
+    const merged = mergePreservedEntities(fresh, local, new Set(['tables:tb1']));
+    expect((merged.tables as { name: string }[])[0]?.name).toBe('Lokal');
+  });
+
+  it('lokal sudah dihapus: ikut server; key asing diabaikan; tak pernah throw', () => {
+    const fresh = makeState();
+    (fresh as { tables: { id: string }[] }).tables = [{ id: 'tb1' }] as never;
+    const merged = mergePreservedEntities(fresh, makeState(), new Set(['tables:tb9', 'nope', 'tasks:x']));
+    expect(merged.tables.map((x) => x.id)).toEqual(['tb1']);
+    expect(() => mergePreservedEntities(null as never, null, new Set())).not.toThrow();
+  });
+
+  it('dokumen erdLayout lokal dipertahankan saat key layout pending', () => {
+    const fresh = { ...makeState(), erdLayout: {} };
+    const local = { ...makeState(), erdLayout: { tb1: { x: 10, y: 10 } } };
+    const merged = mergePreservedEntities(fresh, local, new Set(['erdLayout:layout']));
+    expect(merged.erdLayout).toEqual({ tb1: { x: 10, y: 10 } });
+  });
+
+  it('tanpa key layout: erdLayout ikut server', () => {
+    const fresh = { ...makeState(), erdLayout: {} };
+    const local = { ...makeState(), erdLayout: { tb1: { x: 10, y: 10 } } };
+    const merged = mergePreservedEntities(fresh, local, new Set(['tables:tb1']));
+    expect(merged.erdLayout).toEqual({});
   });
 });

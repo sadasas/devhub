@@ -27,6 +27,8 @@ export const LIMITS = {
   WHITEBOARD_DESCRIPTION: 2_000,
   WHITEBOARD_ELEMENTS: 1_000,
   WHITEBOARDS_PER_PROJECT: 50,
+  ERDGROUP_NAME: 50,
+  ERDGROUPS_PER_PROJECT: 20,
   TIMELINE_ORDER: 5000,
 } as const;
 
@@ -114,6 +116,8 @@ export const columnSchema = z.object({
   type: z.string().min(1).max(100),
   nullable: z.boolean().default(true),
   primaryKey: z.boolean().default(false),
+  // zod-only, tanpa migrasi DB (precedent color): absen = false.
+  autoincrement: z.boolean().optional(),
   default: z.string().max(500).nullable().optional(),
   comment: z.string().max(2_000).default(''),
 });
@@ -122,6 +126,13 @@ export const tableSchema = z.object({
   ...baseFields,
   name: z.string().min(1).max(300),
   comment: z.string().max(2_000).default(''),
+  // zod-only, tanpa migrasi DB (precedent dueDate/startDate/pinned):
+  // data lama tanpa field tetap valid (optional), null = tanpa warna.
+  color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, { message: 'Must be a hex color like #rrggbb' })
+    .nullable()
+    .optional(),
   columns: z.array(columnSchema).max(200).default([]),
   indexes: z.array(z.string().max(500)).max(50).default([]),
 });
@@ -395,6 +406,27 @@ export const whiteboardSchema = z.object({
   elements: z.array(whiteboardElementSchema).max(LIMITS.WHITEBOARD_ELEMENTS).default([]),
 });
 
+/**
+ * Area grup tabel di ERD (ala ChartDB subject areas) — boundary visual + label.
+ * Geometri eksplisit (x/y/w/h) bila dibuat dari kanvas; absen = bounds turunan
+ * dari tabel anggota (dihitung render-time, grup lama tetap jalan).
+ * zod-only, tanpa migrasi DB: koleksi default [] untuk proyek lama.
+ */
+export const erdGroupSchema = z.object({
+  ...baseFields,
+  name: z.string().min(1).max(LIMITS.ERDGROUP_NAME),
+  color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, { message: 'Must be a hex color like #rrggbb' })
+    .nullable()
+    .optional(),
+  tableIds: z.array(z.string().uuid()).max(500).default([]),
+  x: z.number().min(-100_000).max(100_000).nullable().optional(),
+  y: z.number().min(-100_000).max(100_000).nullable().optional(),
+  w: z.number().min(120).max(100_000).nullable().optional(),
+  h: z.number().min(80).max(100_000).nullable().optional(),
+});
+
 export const stateSchema = z.object({
   tasks: z.array(taskSchema).max(5_000).default([]),
   issues: z.array(issueSchema).max(5_000).default([]),
@@ -408,6 +440,7 @@ export const stateSchema = z.object({
   apiCollections: z.array(apiCollectionSchema).max(500).default([]),
   apiEndpoints: z.array(apiEndpointSchema).max(5_000).default([]),
   whiteboards: z.array(whiteboardSchema).max(LIMITS.WHITEBOARDS_PER_PROJECT).default([]),
+  erdGroups: z.array(erdGroupSchema).max(LIMITS.ERDGROUPS_PER_PROJECT).default([]),
   timelineOrder: z.record(z.string().max(100), z.array(z.string().uuid()).max(5000)).default({}),
   timelineRow: z.record(z.string().max(100), z.record(z.string().max(100), z.number().int().min(0).max(10000))).default({}),
   erdLayout: erdLayoutSchema,
@@ -440,6 +473,7 @@ export type WhiteboardShape = z.infer<typeof whiteboardShapeSchema>;
 export type WhiteboardEdge = z.infer<typeof whiteboardEdgeSchema>;
 export type WhiteboardRef = z.infer<typeof whiteboardRefSchema>;
 export type Whiteboard = z.infer<typeof whiteboardSchema>;
+export type ErdGroup = z.infer<typeof erdGroupSchema>;
 export type ErdPosition = z.infer<typeof erdPositionSchema>;
 export type ErdLayout = z.infer<typeof erdLayoutSchema>;
 
@@ -456,6 +490,7 @@ export const emptyState: State = {
   apiCollections: [],
   apiEndpoints: [],
   whiteboards: [],
+  erdGroups: [],
   timelineOrder: {},
   timelineRow: {},
   erdLayout: {},

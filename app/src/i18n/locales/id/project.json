@@ -35,6 +35,7 @@
   },
   "actions": {
     "menu": "Aksi project",
+    "yourRole": "Peran Anda",
     "copy": "Salin",
     "copied": "Tersalin",
     "export": "Ekspor",
@@ -43,6 +44,44 @@
     "sharePrivate": "Bagikan · Privat",
     "saveAsTemplate": "Simpan sebagai template",
     "delete": "Hapus"
+  },
+  "settings": {
+    "title": "Pengaturan project",
+    "back": "Kembali ke project",
+    "general": "Umum",
+    "integrations": "Integrasi",
+    "generalTitle": "Umum",
+    "generalDesc": "Nama dan deskripsi project. Perubahan berlaku untuk project ini.",
+    "copyId": "Salin ID",
+    "copied": "Tersalin",
+    "unsaved": "Ada perubahan belum disimpan.",
+    "integrationsTitle": "Integrasi",
+    "integrationsDesc": "Koneksi eksternal untuk project ini. Tautan level akun ada di profil Anda.",
+    "nameLabel": "Nama project",
+    "descLabel": "Deskripsi",
+    "idLabel": "ID Project",
+    "teamLabel": "Tim",
+    "statusLabel": "Status",
+    "statusActive": "Aktif",
+    "statusArchived": "Diarsipkan",
+    "save": "Simpan perubahan",
+    "saved": "Tersimpan.",
+    "saveError": "Gagal menyimpan pengaturan project.",
+    "readonly": "Hanya owner dan admin yang dapat mengubah pengaturan project.",
+    "danger": "Zona berbahaya",
+    "dangerTitle": "Zona berbahaya",
+    "dangerDesc": "Aksi ireversibel dan visibilitas untuk project ini.",
+    "dangerArchiveName": "Arsipkan project",
+    "dangerArchiveCopy": "Sembunyikan project ini dari daftar. Bisa dikembalikan kapan saja.",
+    "dangerArchive": "Arsipkan",
+    "dangerRestoreName": "Kembalikan project",
+    "dangerRestoreCopy": "Kembalikan project ini menjadi aktif. Board dan data tidak berubah.",
+    "dangerRestore": "Kembalikan",
+    "dangerDeleteName": "Hapus project",
+    "dangerDeleteCopy": "Hapus permanen project ini beserta seluruh datanya. Tidak dapat dibatalkan.",
+    "dangerDelete": "Hapus",
+    "dangerTypeLabel": "Nama project",
+    "dangerTypeMismatch": "Nama tidak cocok."
   },
   "deleteModal": {
     "title": "Hapus project",
@@ -356,7 +395,42 @@
       "toolbarAria": "Peralatan kanvas ERD",
       "present": "Presentasi",
       "exitPresent": "Keluar presentasi",
+      "presentAnnounce": "Mode presentasi. Tekan Escape untuk keluar.",
+      "sheetExpand": "Buka panel",
+      "sheetCollapse": "Tutup panel",
       "presentAnnounce": "Mode presentasi. Tekan Escape untuk keluar."
+    },
+    "rail": {
+      "aria": "Tab panel ERD",
+      "tables": "Tabel",
+      "refs": "Ref",
+      "areas": "Area",
+      "versions": "Versi",
+      "dbml": "DBML"
+    },
+    "dbml": {
+      "title": "Pratinjau DBML",
+      "copy": "Salin DBML",
+      "copied": "Tersalin",
+      "copyFailed": "Gagal menyalin",
+      "download": "Unduh .dbml",
+      "empty": "Tidak ada tabel untuk diekspor",
+      "previewAria": "Pratinjau sumber DBML"
+    },
+    "areas": {
+      "title": "Area",
+      "new": "Area baru",
+      "empty": "Belum ada area — kelompokkan tabel ke dalam domain.",
+      "untitled": "Area tanpa nama",
+      "defaultName": "Area {{n}}",
+      "membersLabel": "Tabel",
+      "membersCount": "{{count}} tabel",
+      "noTables": "Belum ada tabel untuk ditambahkan.",
+      "delete": "Hapus area",
+      "snapshotHidden": "Area disembunyikan saat melihat snapshot.",
+      "colorLabel": "Warna",
+      "addTable": "Tambah tabel…",
+      "removeMember": "Keluarkan {{name}} dari area"
     },
     "panel": {
       "aria": "Properti tabel atau relasi",
@@ -386,10 +460,12 @@
       "cardinalityLabel": "Kardinalitas",
       "onDeleteLabel": "Saat hapus",
       "deleteRelation": "Hapus relasi",
-      "tableSelected": "Tabel {{name}} dipilih — panel properti diperbarui",
+      "tableSelected": "Tabel {{name}} dipilih — {{count}} relasi — panel properti diperbarui",
       "relationSelected": "Relasi {{label}} dipilih — panel properti diperbarui",
       "tablesTab": "Tabel",
       "relationsTab": "Relasi",
+      "versionsTab": "Versi",
+      "dbmlTab": "DBML",
       "tablesSection": "Tabel",
       "relationsSection": "Relasi",
       "noTables": "Belum ada tabel.",
@@ -409,11 +485,8 @@
       "columnsLabel": "Kolom",
       "captionName": "Nama",
       "captionType": "Tipe",
-      "captionNull": "Null",
-      "captionPk": "PK",
       "captionDefault": "Default",
       "captionComment": "Komentar",
-      "captionUnique": "Unique",
       "detailCaptionFlags": "Flag",
       "colAria": "Kolom {{name}}",
       "typeAria": "Tipe dari {{name}}",
@@ -432,6 +505,10 @@
       "uniqueTitle": "Unique",
       "uniqueDisabledTitle": "Isi nama kolom dulu untuk mengaktifkan unique",
       "uniqueAria": "Unique untuk kolom {{name}}",
+      "autoAria": "Auto increment untuk kolom {{name}}",
+      "autoDisabledTitle": "Auto increment butuh tipe kolom integer",
+      "indexedAria": "Index untuk kolom {{name}}",
+      "indexedDisabledTitle": "Isi nama kolom dulu untuk mengaktifkan index",
       "columnCommentPlaceholder": "komentar",
       "columnCommentAria": "Komentar dari {{name}}",
       "typeCustomOption": "Kustom…",
@@ -453,11 +530,13 @@
       "noColumnsView": "Belum ada kolom.",
       "addColumn": "Tambah kolom",
       "indexesLabel": "Indeks",
-      "indexesHelper": "Nama kolom atau ekspresi, dipisah koma.",
-      "indexesPlaceholder": "created_at, lower(email)",
+      "indexesToggleHint": "Gunakan toggle U dan I di tiap kolom.",
+      "removeIndexAria": "Hapus indeks {{index}}",
       "updatedEditInfo": "Diperbarui {{time}} · menghapus kolom akan menghapus relasinya",
       "unnamedTable": "Tabel tanpa nama",
       "unnamedColumn": "tanpa nama",
+      "colorLabel": "Warna header",
+      "resetColor": "Header default",
       "activity": "Aktivitas",
       "updated": "Diperbarui {{time}}",
       "deleteConfirmTitle": "Hapus tabel?",
@@ -786,6 +865,7 @@
     "counts": {
       "tasks": "Task",
       "openIssues": "Issue terbuka",
+      "overdue": "Terlambat",
       "outdatedDeps": "Dependensi kedaluwarsa",
       "testCases": "Test case",
       "stackEntries": "Entri stack",
@@ -793,6 +873,8 @@
       "decisions": "Keputusan",
       "milestones": "Milestone"
     },
+    "yourRole": "Peran Anda: {{role}}",
+    "editSection": "Ubah",
     "chartsSectionAria": "Grafik",
     "membersSectionAria": "Anggota",
     "briefSectionAria": "Brief produk",
@@ -836,6 +918,10 @@
     },
     "nextMilestone": "Milestone berikutnya:",
     "nextMilestoneDate": "· {{date}}",
+    "overdueMilestones": "Milestone terlambat ({{count}}):",
+    "noDatedMilestones": "Belum ada tanggal — {{count}} milestone aktif tanpa target.",
+    "lateHint": "Terlambat: melewati due date dan belum selesai",
+    "smallTeamNote": "Tim kecil — beban kerja terbagi ke sedikit orang.",
     "chartsEmptyTitle": "Belum ada yang bisa digrafikkan",
     "chartsEmptyDesc": "Buat task atau issue dan grafik akan muncul di sini.",
     "membersTitle": "Anggota",
@@ -874,7 +960,7 @@
     },
     "welcome": {
       "title": "Selamat datang di DevHub",
-      "body": "Memori teknis untuk task, issue, dan keputusan. Tur 7 langkah ini menunjukkan jalan tercepat dari tim hingga rilis."
+      "body": "Memori teknis untuk task, issue, dan keputusan. Tur 13 langkah ini menunjukkan jalan tercepat dari tim hingga rilis."
     },
     "team": {
       "title": "Buat tim Anda",
@@ -884,21 +970,45 @@
       "title": "Buat project pertama",
       "body": "Project menampung board, issue, stack, schema, dan rilis. Buat satu untuk membuka seluruh workspace."
     },
-    "plan": {
-      "title": "Rencana: Board + Issue",
-      "body": "Pecah pekerjaan jadi task di Board (Alt+1) dan lacak bug di Issue (Alt+2). Shortcut N dijeda selama tur ini."
+    "board": {
+      "title": "Board: Status, Milestone, Kalender",
+      "body": "Tiga view di switcher atas: Status (kanban Todo ke Done), Milestone (per rilis), dan Kalender (jatuh tempo, drag antar hari). Tekan N untuk task baru."
     },
-    "build": {
-      "title": "Bangun: Test + Stack + Schema",
-      "body": "Kunci kualitas dengan Test Case (Alt+3), catat versi di Stack (Alt+4), dan modelkan data di Schema (Alt+5)."
+    "issues": {
+      "title": "Issue: severity + reproduksi",
+      "body": "Catat bug dengan severity Critical ke Low dan langkah reproduksi (mendukung markdown). Urutkan per severity/status, pin yang kritis."
     },
-    "decide": {
-      "title": "Putuskan: Keputusan + Rilis + API",
-      "body": "Catat ADR di Keputusan (Alt+6), kelompokkan pekerjaan di Rilis (Alt+7), dan dokumentasikan endpoint di API (Alt+8)."
+    "tests": {
+      "title": "Test: kunci kualitas",
+      "body": "Tulis test case berisi langkah dan hasil harapan, tautkan ke task/issue, lalu tandai pass, fail, atau pending."
     },
-    "collab": {
-      "title": "Kolaborasi: Whiteboard + Ringkasan",
-      "body": "Sketsa alur di Whiteboard (Alt+9) dan pantau kesehatan di Ringkasan (Alt+0). Selesaikan di sini, atau ulangi kapan saja dari Bantuan."
+    "stack": {
+      "title": "Stack: catat versi",
+      "body": "Inventarisasi teknologi dan versi per kategori. Tandai yang outdated agar muncul di Overview."
+    },
+    "schema": {
+      "title": "Schema: model data + ERD",
+      "body": "Definisikan tabel, kolom (PK, null, default), index, dan relasi — lalu periksa graf ERD."
+    },
+    "decisions": {
+      "title": "Decisions: ADR ringan",
+      "body": "Catat konteks, opsi, keputusan, dan konsekuensi, agar tak ada keputusan hilang di chat."
+    },
+    "releases": {
+      "title": "Releases: milestone + changelog",
+      "body": "Kelompokkan task per milestone (versi plus target tanggal) dan tulis changelog saat rilis."
+    },
+    "api": {
+      "title": "API: koleksi + endpoint + docs",
+      "body": "Kelompokkan endpoint per koleksi (GET, POST, dan lainnya), lengkapi param, body, dan response — lalu baca sebagai docs siap share."
+    },
+    "whiteboard": {
+      "title": "Whiteboard: sketsa + flowchart",
+      "body": "Brainstorming dan flowchart dalam satu kanvas, plus kartu ref task/issue. Cubit untuk zoom di mobile."
+    },
+    "overview": {
+      "title": "Overview: kesehatan project",
+      "body": "Pantau done vs total, open issue, dep outdated, dan kontribusi per member. Selesaikan di sini — ulangi kapan saja dari Bantuan."
     }
   }
 }

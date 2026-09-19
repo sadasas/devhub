@@ -5,6 +5,7 @@
    Tabel di-sort by name agar deterministik (diff git bersih). */
 
 import type { OnDelete, Relation, Table } from '../../lib/types';
+import { serialTypeFor } from './column-helpers';
 
 const ON_DELETE_SQL: Record<OnDelete, string> = {
   cascade: 'CASCADE',
@@ -145,9 +146,17 @@ export function toPostgresDDL(tables: Table[], relations: Relation[]): string {
     for (const c of t.columns ?? []) {
       if (!c || c.name.trim() === '') continue;
       const enumType = colEnumType.get(`${t.id}.${c.id}`);
-      const dataType = enumType ? safeIdent(enumType) : c.type.trim() !== '' ? c.type.trim() : 'TEXT';
+      // Auto increment: INTEGER -> SERIAL (kanonis, DEFAULT eksplisit digugurkan).
+      let serial: string | null = null;
+      try {
+        serial = c.autoincrement === true ? serialTypeFor(c.type) : null;
+      } catch {
+        serial = null;
+      }
+      const dataType = enumType ? safeIdent(enumType) : serial ?? (c.type.trim() !== '' ? c.type.trim() : 'TEXT');
       const notNull = !c.nullable || c.primaryKey;
-      const def = c.default != null && c.default.trim() !== '' ? ` DEFAULT ${c.default.trim()}` : '';
+      const def =
+        !serial && c.default != null && c.default.trim() !== '' ? ` DEFAULT ${c.default.trim()}` : '';
       lines.push(`  ${safeIdent(c.name)} ${dataType}${notNull ? ' NOT NULL' : ''}${def}`);
       if (c.primaryKey) pkCols.push(safeIdent(c.name));
     }

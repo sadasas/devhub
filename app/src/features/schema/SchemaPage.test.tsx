@@ -126,7 +126,7 @@ describe('SchemaPage', () => {
     expect(screen.getByRole('button', { name: /Export v0\.1\.0 as/i })).toBeTruthy();
   });
 
-  it('F2-5 Tidy: visible for editors in ERD, dispatches clear + announces, focus stays', () => {
+  it('F2-5 Tidy: hanya di pill mode kanvas — tidak ada di header tab biasa', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
       state: {
@@ -146,14 +146,8 @@ describe('SchemaPage', () => {
         <SchemaPage projectName="Demo Project" />
       </MemoryRouter>,
     );
-    const tidy = screen.getByRole('button', { name: /^Tidy$|^Rapikan$/ });
-    // jsdom fireEvent.click does not focus like a real browser — focus first
-    // to mirror the real "focus stays on the button" behaviour.
-    tidy.focus();
-    fireEvent.click(tidy);
-    expect(dispatch).toHaveBeenCalledWith({ type: 'erdLayout/clear' });
-    expect(screen.getByText(/tidied|dirapikan/i)).toBeTruthy();
-    expect(document.activeElement).toBe(tidy);
+    expect(screen.queryByRole('button', { name: /^Tidy$|^Rapikan$/ })).toBeNull();
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'erdLayout/clear' });
   });
 
   it('F2-5 Tidy: hidden for viewers and in snapshot mode (read-only)', () => {    useProjectMock.mockReturnValue({
@@ -174,6 +168,20 @@ describe('SchemaPage', () => {
       </MemoryRouter>,
     );
     expect(screen.queryByRole('button', { name: /^Tidy$|^Rapikan$/ })).toBeNull();
+  });
+
+  it('versions header dua baris: Sort + Save version di baris aksi kanan', () => {
+    renderPage();
+    const actions = document.querySelector('.versions-actions-row');
+    expect(actions).not.toBeNull();
+    // SortControl + tombol Save version ada di baris aksi, bukan baris judul.
+    expect(actions!.querySelector('.sort-control')).not.toBeNull();
+    expect(
+      within(actions as HTMLElement).getByRole('button', { name: /Save version|Simpan versi/i }),
+    ).toBeTruthy();
+    const titleRow = document.querySelector('.versions-title-row');
+    expect(titleRow?.textContent).toMatch(/Schema versions/i);
+    expect(titleRow?.querySelector('.versions-actions-row')).toBeNull();
   });
 });
 
@@ -237,7 +245,7 @@ describe('SchemaPage mobile header', () => {
       expect(icon).toBeTruthy();
     }
   });
-  it('opens versions from the compact button beside tidy (no inline bar)', () => {
+  it('opens versions from the compact button (no inline bar)', () => {
     render(
       <MemoryRouter initialEntries={['/p/p1?tab=schema&schemaView=erd']}>
         <SchemaPage projectName="Demo Project" />

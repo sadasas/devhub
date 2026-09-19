@@ -1,12 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import {
+  isApiCollectionValid,
+  isApiEndpointValid,
+  isColumnValid,
   isDecisionValid,
+  isErdGroupValid,
   isIssueValid,
   isMilestoneValid,
   isNonEmptyTitle,
+  isRelationValid,
+  isSchemaVersionValid,
+  isTableValid,
   isTaskValid,
   isTechValid,
   isTestCaseValid,
+  isWhiteboardValid,
 } from './entity-validation';
 
 describe('isNonEmptyTitle', () => {
@@ -41,5 +49,39 @@ describe('entity validators (autosave guard)', () => {
     expect(isTechValid({ name: 'React' })).toBe(true);
     expect(isMilestoneValid({ name: '' })).toBe(false);
     expect(isMilestoneValid({ name: 'M26' })).toBe(true);
+  });
+
+  it('table valid hanya bila nama + semua kolom (nama & type) terisi', () => {
+    const col = { name: 'id', type: 'uuid' };
+    expect(isTableValid({ name: '', columns: [col] })).toBe(false);
+    expect(isTableValid({ name: '  ', columns: [col] })).toBe(false);
+    expect(isTableValid({ name: 'users', columns: [] })).toBe(true);
+    expect(isTableValid({ name: 'users', columns: [{ name: '', type: 'uuid' }] })).toBe(false);
+    expect(isTableValid({ name: 'users', columns: [{ name: 'id', type: '' }] })).toBe(false);
+    expect(isTableValid({ name: 'users', columns: [col, { name: 'email', type: 'text' }] })).toBe(true);
+    expect(isColumnValid({ name: '', type: 'uuid' })).toBe(false);
+    expect(isColumnValid({ name: 'id', type: '' })).toBe(false);
+    expect(isColumnValid(col)).toBe(true);
+  });
+
+  it('relation valid bila 4 ujung terisi; api/version/whiteboard ikut min(1)', () => {
+    const rel = { fromTableId: 't1', fromColumnId: 'c1', toTableId: 't2', toColumnId: 'c2' };
+    expect(isRelationValid(rel)).toBe(true);
+    expect(isRelationValid({ ...rel, toColumnId: '' })).toBe(false);
+    expect(isApiCollectionValid({ name: '' })).toBe(false);
+    expect(isApiCollectionValid({ name: 'Users API' })).toBe(true);
+    expect(isApiEndpointValid({ name: 'List', path: '' })).toBe(false);
+    expect(isApiEndpointValid({ name: '', path: '/a' })).toBe(false);
+    expect(isApiEndpointValid({ name: 'List', path: '/a' })).toBe(true);
+    expect(isSchemaVersionValid({ version: '' })).toBe(false);
+    expect(isSchemaVersionValid({ version: 'v1' })).toBe(true);
+    expect(isWhiteboardValid({ name: '' })).toBe(false);
+    expect(isWhiteboardValid({ name: 'Plan' })).toBe(true);
+  });
+
+  it('area valid bila nama terisi', () => {
+    expect(isErdGroupValid({ name: '' })).toBe(false);
+    expect(isErdGroupValid({ name: '  ' })).toBe(false);
+    expect(isErdGroupValid({ name: 'Billing' })).toBe(true);
   });
 });

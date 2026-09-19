@@ -245,18 +245,31 @@ export function Layout() {
     return off;
   }, []);
 
-  // Mobile drawer auto-close on navigation — except when ENTERING the
-  // settings route: the drawer must stay open on the settings submenu list
+  // Mobile drawer auto-close on navigation — except when ENTERING a
+  // settings view: the drawer must stay open on the settings submenu list
   // and only close after the user picks a section (SettingsNav onSelect).
-  const prevPathRef = useRef(location.pathname);
+  // Berlaku untuk team (/x/settings) maupun project (/project/:id?tab=settings).
+  // Perubahan query biasa (sort/filter) tidak menyentuh drawer.
+  const prevLocRef = useRef(location.pathname + location.search);
   useEffect(() => {
-    const prev = prevPathRef.current;
-    prevPathRef.current = location.pathname;
-    const enteringSettings =
-      location.pathname.endsWith('/settings') && !prev.endsWith('/settings');
-    if (enteringSettings) return;
-    setNavOpen(false);
-  }, [location.pathname]);
+    const prev = prevLocRef.current;
+    const cur = location.pathname + location.search;
+    prevLocRef.current = cur;
+    const prevPath = prev.split('?')[0] ?? '';
+    if (location.pathname !== prevPath) {
+      const enteringSettings =
+        location.pathname.endsWith('/settings') && !prev.endsWith('/settings');
+      if (enteringSettings) return;
+      setNavOpen(false);
+      return;
+    }
+    const wasProjectSettings = prev.includes('tab=settings');
+    const isProjectSettings =
+      location.pathname.startsWith('/project/') &&
+      new URLSearchParams(location.search).get('tab') === 'settings';
+    if (isProjectSettings && !wasProjectSettings) return;
+    if (!isProjectSettings && wasProjectSettings) setNavOpen(false);
+  }, [location.pathname, location.search]);
 
   useEffect(() => {
     if (!navOpen) return;
@@ -360,6 +373,12 @@ export function Layout() {
   }, [tourActive, tourStep, teams]);
   const effectiveTeamId = tourTeamId ?? activeTeamId;
 
+  // Tour steps 1-2 need a laid-out sidebar anchor: force the rail expanded
+  // (in-memory only, never persisted) so the spotlight never falls back to
+  // a distant dashboard button while the wizard points at the sidebar.
+  const tourForcesSidebarOpen = tourActive && tourStep <= 2;
+  const sidebarCollapsedEffective = sidebarCollapsed && !tourForcesSidebarOpen;
+
   // Team chat (button, panel, shortcuts) follows the selected team.
 
   const isChatInlineOpen = chatOpen && !isMobileChat;
@@ -376,7 +395,7 @@ export function Layout() {
   if (teamGuard === 'toHome') return <Navigate to="/" replace />;
 
   return (
-    <div className="layout" data-chat-open={isChatInlineOpen ? 'true' : undefined} data-sidebar-collapsed={sidebarCollapsed ? 'true' : undefined} style={{ ['--sidebar-w' as any]: `${sidebarCollapsed ? 0 : sidebarWidth}px`, ['--chat-w' as any]: `${isChatInlineOpen ? chatWidth : 0}px` } as React.CSSProperties}>
+    <div className="layout" data-chat-open={isChatInlineOpen ? 'true' : undefined} data-sidebar-collapsed={sidebarCollapsedEffective ? 'true' : undefined} style={{ ['--sidebar-w' as any]: `${sidebarCollapsedEffective ? 0 : sidebarWidth}px`, ['--chat-w' as any]: `${isChatInlineOpen ? chatWidth : 0}px` } as React.CSSProperties}>
       <a
         className="skip-link"
         href="#main-content"
@@ -420,7 +439,7 @@ export function Layout() {
           inert={!navOpen ? true : undefined}
         >
           <div className="sidebar-drawer-inner">
-            <Sidebar activeTeamId={activeTeamId} onCreateTeam={() => setCreateTeamOpen(true)} onNavigate={() => setNavOpen(false)} />
+            <Sidebar activeTeamId={effectiveTeamId} onCreateTeam={() => setCreateTeamOpen(true)} onNavigate={() => setNavOpen(false)} />
           </div>
         </div>
       )}
@@ -435,10 +454,10 @@ export function Layout() {
                 if (window.matchMedia('(max-width: 860px)').matches) setNavOpen((o) => !o);
                 else setSidebarCollapsed((v) => !v);
               }}
-              aria-label={sidebarCollapsed ? t('layout.expandSidebar') : t('layout.collapseSidebar')}
-              aria-expanded={!sidebarCollapsed}
+              aria-label={sidebarCollapsedEffective ? t('layout.expandSidebar') : t('layout.collapseSidebar')}
+              aria-expanded={!sidebarCollapsedEffective}
               aria-controls="sidebar-region"
-              title={sidebarCollapsed ? t('layout.expandSidebar') : t('layout.collapseSidebar')}
+              title={sidebarCollapsedEffective ? t('layout.expandSidebar') : t('layout.collapseSidebar')}
             >
               <List size={18} weight="bold" aria-hidden="true" />
             </button>

@@ -95,7 +95,8 @@
       "version": "Version",
       "targetDate": "Target date",
       "dueDate": "Due date",
-      "startDate": "Start date"
+      "startDate": "Start date",
+      "color": "Color"
     },
     "expandWithCount": "View full ({{count}} characters)",
     "collapse": "Hide",

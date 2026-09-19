@@ -6,6 +6,9 @@ import type { Column, Relation, Table } from '../../lib/types';
 import type { State } from '../../lib/types';
 import { relationLabel, shortId } from '../../lib/utils';
 import { isUniqueIndex } from './column-helpers';
+import { headerFill, headerTitleColor, normalizeHeaderColor } from './erd-header-color';
+import { dropTargetGroup, resolveGroupBox, resizeBox } from './erd-groups';
+import type { ErdGroupBox, GroupCorner } from './erd-groups';
 import { Button } from '../../components/Button';
 import { TooltipCard } from '../../components/Tooltip';
 
@@ -124,6 +127,21 @@ interface ERDProps {
   locateRequest?: ERDLocateRequest | null;
   /** F2-5: commit a node move (dispatch erdLayout/set + persist lives in the caller). */
   onMoveTable?: (tableId: string, pos: ErdPosition) => void;
+  /**
+   * Drop spasial ke area: dipanggil saat node selesai digeser — groupId bila
+   * titik drop di dalam bounds sebuah area, null bila di luar semua area
+   * (caller melepas membership bila ada). Opsional; tanpa grup = tidak dipanggil.
+   */
+  onAssignTableGroup?: (tableId: string, groupId: string | null) => void;
+  /** Commit geometri area (geser/resize dari kanvas). Opsional. */
+  onMoveGroup?: (groupId: string, box: { x: number; y: number; w: number; h: number }) => void;
+  /**
+   * Bulk commit posisi member area (geser grup dari kanvas): satu array
+   * untuk semua member agar caller persist sekali (hindari N PATCH se-tick
+   * yang balapan last-write-wins di server). Opsional; tanpa ini fallback
+   * ke loop onMoveTable per member.
+   */
+  onMoveTables?: (moves: { tableId: string; x: number; y: number }[]) => void;
   /** F2-5: open the table modal (SchemaPage setTableId). No-op in readOnly/snapshot. */
   onOpenTable?: (tableId: string) => void;
   /**
@@ -211,6 +229,9 @@ export function ERD({
   readOnly = false,
   locateRequest = null,
   onMoveTable,
+  onMoveTables,
+  onAssignTableGroup,
+  onMoveGroup,
   onOpenTable,
   onConnectColumns,
   onDoubleClickEmpty,
@@ -238,6 +259,29 @@ export function ERD({
   const [dragging, setDragging] = useState(false);
   const [nodeDraggingId, setNodeDraggingId] = useState<string | null>(null);
   const [dragPreview, setDragPreview] = useState<{ tableId: string; x: number; y: number } | null>(null);
+  // Geser grup: drag label area memindahkan semua anggota (delta dunia, commit per tabel).
+  // Resize: drag handle sudut mengubah geometri rect (anggota tetap).
+  const [groupDragPreview, setGroupDragPreview] = useState<{
+    groupId: string;
+    mode: 'move' | 'resize';
+    box: { x: number; y: number; w: number; h: number };
+    dx: number;
+    dy: number;
+  } | null>(null);
+  const groupDragRef = useRef<{
+    groupId: string;
+    mode: 'move' | 'resize';
+    corner?: GroupCorner;
+    pointerId: number;
+    startClientX: number;
+    startClientY: number;
+    moved: boolean;
+    orig: { x: number; y: number; w: number; h: number };
+  } | null>(null);
+  // Seleksi grup (internal kanvas): menampilkan resize handle. Manajemen
+  // keyboard tetap via checkbox panel.
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const canDragGroups = !readOnly && !!onMoveTable;
   const spaceHeldRef = useRef(false);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const highlightTimerRef = useRef<number | null>(null);
@@ -293,6 +337,12 @@ export function ERD({
   const clearTips = useCallback(() => {
     setColTip(null);
     setRelTip(null);
+  }, []);
+
+  /** Geser grup dibatalkan: buang preview tanpa commit. */
+  const cancelGroupDrag = useCallback(() => {
+    groupDragRef.current = null;
+    setGroupDragPreview(null);
   }, []);
 
   const containerSize = useCallback(() => {
@@ -444,8 +494,86 @@ export function ERD({
     () => layoutTables(state.tables, state.erdLayout),
     [state.tables, state.erdLayout],
   );
+  // Posisi render: layout + preview drag node + offset drag grup.
+  // Satu sumber kebenaran untuk node, relasi, dan boundary area.
+  const renderPos = useMemo(() => {
+    const m = new Map<string, ErdPosition>();
+    const groups = state.erdGroups ?? [];
+    for (const l of layout) {
+      let x = l.x;
+      let y = l.y;
+      if (dragPreview?.tableId === l.table.id) {
+        x = dragPreview.x;
+        y = dragPreview.y;
+      } else if (groupDragPreview?.mode === 'move') {
+        const g = groups.find((gg) => gg.id === groupDragPreview.groupId);
+        if (g && (g.tableIds ?? []).includes(l.table.id)) {
+          x += groupDragPreview.dx;
+          y += groupDragPreview.dy;
+        }
+      }
+      m.set(l.table.id, { x, y });
+    }
+    return m;
+  }, [layout, dragPreview, groupDragPreview, state.erdGroups]);
+  // Areas: bounds eksplisit bila ada, else turunan anggota (ikut preview drag).
+  const groupBoxes: ErdGroupBox[] = useMemo(() => {
+    const rl = layout.map((l) => ({
+      table: l.table,
+      x: renderPos.get(l.table.id)?.x ?? l.x,
+      y: renderPos.get(l.table.id)?.y ?? l.y,
+      h: l.h,
+    }));
+    const out: ErdGroupBox[] = [];
+    for (const g of state.erdGroups ?? []) {
+      if (groupDragPreview && groupDragPreview.groupId === g.id) {
+        const b = groupDragPreview.box;
+        out.push({ group: g, x: b.x, y: b.y, w: b.w, h: b.h });
+        continue;
+      }
+      const box = resolveGroupBox(g, rl, TABLE_W);
+      if (box) out.push(box);
+    }
+    return out;
+  }, [state.erdGroups, renderPos, layout, groupDragPreview]);
   const layoutRef = useRef(layout);
   layoutRef.current = layout;
+  const groupsRef = useRef(state.erdGroups);
+  groupsRef.current = state.erdGroups;
+
+  // U8: derivasi connected/neighbor dari selectedTableId (snapshot-safe: dari props/state args).
+  // Incident = relasi yang menyentuh tabel terpilih; neighbor = ujung lainnya.
+  const connectedRelIds = useMemo(() => {
+    if (!selectedTableId) return new Set<string>();
+    const s = new Set<string>();
+    for (const r of state.relations ?? []) {
+      if (!r) continue;
+      if (r.fromTableId === selectedTableId || r.toTableId === selectedTableId) s.add(r.id);
+    }
+    return s;
+  }, [state.relations, selectedTableId]);
+  const neighborTableIds = useMemo(() => {
+    if (!selectedTableId) return new Set<string>();
+    const s = new Set<string>();
+    for (const r of state.relations ?? []) {
+      if (!r) continue;
+      if (r.fromTableId === selectedTableId && r.toTableId !== selectedTableId) s.add(r.toTableId);
+      else if (r.toTableId === selectedTableId && r.fromTableId !== selectedTableId) s.add(r.fromTableId);
+    }
+    return s;
+  }, [state.relations, selectedTableId]);
+  const hasFocusSelection = selectedTableId !== null && selectedTableId !== undefined && selectedTableId !== '';
+  const incidentCountFor = useCallback(
+    (tableId: string) => {
+      let n = 0;
+      for (const r of state.relations ?? []) {
+        if (!r) continue;
+        if (r.fromTableId === tableId || r.toTableId === tableId) n += 1;
+      }
+      return n;
+    },
+    [state.relations],
+  );
 
   useEffect(() => {
     return () => {
@@ -532,6 +660,21 @@ export function ERD({
         cancelConnect(true);
         return;
       }
+      // Geser grup aktif dibatalkan dulu (tanpa commit).
+      if (e.key === 'Escape' && groupDragRef.current) {
+        e.stopPropagation();
+        e.preventDefault();
+        cancelGroupDrag();
+        return;
+      }
+      // Seleksi grup dilepas sebelum tier panel (fokus tetap di kanvas).
+      if (e.key === 'Escape' && selectedGroupId) {
+        e.stopPropagation();
+        e.preventDefault();
+        setSelectedGroupId(null);
+        svgRef.current?.focus();
+        return;
+      }
       // Ronde 4: panel selection closes (focus back to the canvas) instead of
       // bubbling to the canvas-overlay window handler (which closes canvas).
       if (e.key === 'Escape' && panelSelectionOpen && onClosePanelSelection) {
@@ -541,7 +684,7 @@ export function ERD({
         svgRef.current?.focus();
       }
     },
-    [cancelConnect, panelSelectionOpen, onClosePanelSelection, colTip, relTip],
+    [cancelConnect, cancelGroupDrag, panelSelectionOpen, onClosePanelSelection, colTip, relTip, selectedGroupId],
   );
 
   useEffect(() => {
@@ -857,6 +1000,55 @@ export function ERD({
     }
   };
 
+  /**
+   * Geser grup dari label boundary-nya (satu-satunya handle geser —
+   * klik area kosong tetap pan). Seluruh anggota ikut bergeser preview,
+   * commit per tabel + geometri (bila eksplisit) saat pointerup.
+   * Tap tanpa gerak = seleksi grup (menampilkan resize handle).
+   */
+  const startGroupDrag = (e: React.PointerEvent<SVGElement>, groupId: string) => {
+    // Space held = pan walau mulai dari dalam area (pola whiteboard F2-5) —
+    // return sebelum stopPropagation agar svg pan handler tetap menerima event.
+    if (spaceHeldRef.current) return;
+    e.stopPropagation();
+    e.preventDefault();
+    if (e.button !== 0 || readOnly || !onMoveTable) return;
+    const box = groupBoxes.find((b) => b.group.id === groupId);
+    if (!box) return;
+    setSelectedGroupId(groupId);
+    groupDragRef.current = {
+      groupId,
+      mode: 'move',
+      pointerId: e.pointerId,
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      moved: false,
+      orig: { x: box.x, y: box.y, w: box.w, h: box.h },
+    };
+  };
+
+  /** Resize grup dari handle sudut (min clamp di resizeBox). */
+  const startGroupResize = (e: React.PointerEvent<SVGCircleElement>, groupId: string, corner: GroupCorner) => {
+    // Konsisten dengan startGroupDrag: space held = pan.
+    if (spaceHeldRef.current) return;
+    e.stopPropagation();
+    e.preventDefault();
+    if (e.button !== 0 || readOnly || !onMoveTable) return;
+    const box = groupBoxes.find((b) => b.group.id === groupId);
+    if (!box) return;
+    setSelectedGroupId(groupId);
+    groupDragRef.current = {
+      groupId,
+      mode: 'resize',
+      corner,
+      pointerId: e.pointerId,
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      moved: false,
+      orig: { x: box.x, y: box.y, w: box.w, h: box.h },
+    };
+  };
+
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
     if (e.button !== 0) return;
     // Space held (or readOnly) always pans — existing behaviour preserved.
@@ -954,6 +1146,30 @@ export function ERD({
       setConnectPreview({ fromX: conn.fromX, fromY: conn.fromY, toX: w.x, toY: w.y });
       return;
     }
+    // Geser/resize grup: delta dunia di-preview (anggota + boundary).
+    const gd = groupDragRef.current;
+    if (gd) {
+      if (e.pointerId !== gd.pointerId) return;
+      if (!gd.moved && Math.hypot(e.clientX - gd.startClientX, e.clientY - gd.startClientY) < DRAG_THRESHOLD_PX) return;
+      gd.moved = true;
+      suppressRelClickRef.current = true;
+      const s = Math.max(MIN_ZOOM, viewRef.current.s);
+      const dx = Math.round(((e.clientX - gd.startClientX) / s) * 10) / 10;
+      const dy = Math.round(((e.clientY - gd.startClientY) / s) * 10) / 10;
+      if (gd.mode === 'resize' && gd.corner) {
+        const box = resizeBox(gd.orig, gd.corner, dx, dy);
+        setGroupDragPreview({ groupId: gd.groupId, mode: 'resize', box, dx: 0, dy: 0 });
+      } else {
+        setGroupDragPreview({
+          groupId: gd.groupId,
+          mode: 'move',
+          box: { x: gd.orig.x + dx, y: gd.orig.y + dy, w: gd.orig.w, h: gd.orig.h },
+          dx,
+          dy,
+        });
+      }
+      return;
+    }
     const pending = nodeDragRef.current;
     if (pending) {
       if (e.pointerId !== pending.pointerId) return;
@@ -1045,8 +1261,26 @@ export function ERD({
         y: Math.round((pending.origY + dyScreen / s) * 10) / 10,
       };
       onMoveTable?.(pending.tableId, next);
+      // Auto-membership spasial: uji tengah node hasil drop terhadap bounds
+      // grup (tanpa tabel yang digeser). Tanpa grup / tanpa handler = diam.
+      if (onAssignTableGroup) {
+        const groups = groupsRef.current ?? [];
+        if (groups.length > 0) {
+          const box = layoutRef.current.find((l) => l.table.id === pending.tableId);
+          const cx = next.x + TABLE_W / 2;
+          const cy = next.y + (box ? box.h / 2 : HEADER_H);
+          const target = dropTargetGroup(groups, layoutRef.current, TABLE_W, pending.tableId, { x: cx, y: cy });
+          if (target) {
+            const already = (target.tableIds ?? []).includes(pending.tableId);
+            if (!already) onAssignTableGroup(pending.tableId, target.id);
+          } else {
+            const memberOf = groups.some((g) => (g.tableIds ?? []).includes(pending.tableId));
+            if (memberOf) onAssignTableGroup(pending.tableId, null);
+          }
+        }
+      }
     },
-    [onMoveTable],
+    [onMoveTable, onAssignTableGroup],
   );
 
   const endNodeDrag = (e: React.PointerEvent<SVGSVGElement>, cancelled: boolean) => {
@@ -1179,6 +1413,49 @@ export function ERD({
       }
       // Fall through: the tap is also a normal node-focus / pan-end no-op.
     }
+    // Geser/resize grup selesai: drag = commit, tap = tanpa aksi (seleksi via onClick label).
+    const gd = groupDragRef.current;
+    if (gd && e.pointerId === gd.pointerId) {
+      groupDragRef.current = null;
+      setGroupDragPreview(null);
+      if (!gd.moved) return;
+      const s = Math.max(MIN_ZOOM, viewRef.current.s);
+      const dx = Math.round(((e.clientX - gd.startClientX) / s) * 10) / 10;
+      const dy = Math.round(((e.clientY - gd.startClientY) / s) * 10) / 10;
+      if (gd.mode === 'resize') {
+        onMoveGroup?.(gd.groupId, resizeBox(gd.orig, gd.corner ?? 'se', dx, dy));
+      } else if (onMoveTables ?? onMoveTable) {
+        const members = (groupsRef.current ?? []).find((g) => g.id === gd.groupId)?.tableIds ?? [];
+        const moves: { tableId: string; x: number; y: number }[] = [];
+        for (const l of layoutRef.current) {
+          if (!members.includes(l.table.id)) continue;
+          moves.push({
+            tableId: l.table.id,
+            x: Math.round((l.x + dx) * 10) / 10,
+            y: Math.round((l.y + dy) * 10) / 10,
+          });
+        }
+        if (moves.length > 0) {
+          if (onMoveTables) onMoveTables(moves);
+          else for (const m of moves) onMoveTable?.(m.tableId, { x: m.x, y: m.y });
+        }
+        // Rect eksplisit ikut bergeser; turunan mengikuti anggota.
+        const g = (groupsRef.current ?? []).find((x) => x.id === gd.groupId);
+        if (g && Number.isFinite(g.x) && Number.isFinite(g.y) && Number.isFinite(g.w) && Number.isFinite(g.h)) {
+          onMoveGroup?.(gd.groupId, {
+            x: Math.round((gd.orig.x + dx) * 10) / 10,
+            y: Math.round((gd.orig.y + dy) * 10) / 10,
+            w: gd.orig.w,
+            h: gd.orig.h,
+          });
+        }
+      }
+      suppressRelClickRef.current = true;
+      window.setTimeout(() => {
+        suppressRelClickRef.current = false;
+      }, 0);
+      return;
+    }
     if (endNodeDrag(e, false)) return;
     dragStartRef.current = null;
     panCapturedRef.current = null;
@@ -1189,6 +1466,11 @@ export function ERD({
     // U3: interruption aborts the connect without side effects.
     if (connectDragRef.current && e.pointerId === connectDragRef.current.pointerId) {
       cancelConnect(true);
+      return;
+    }
+    // Geser grup yang terinterupsi dibatalkan tanpa commit.
+    if (groupDragRef.current && e.pointerId === groupDragRef.current.pointerId) {
+      cancelGroupDrag();
       return;
     }
     pendingTapRef.current = null;
@@ -1239,12 +1521,13 @@ export function ERD({
         return;
       }
       // Shift+Enter selects the props panel (click parity); plain Enter still opens the editor.
+      // U10: announce +count relasi insiden (snapshot-safe dari state.relations).
       if (e.key === 'Enter' && e.shiftKey) {
         e.preventDefault();
         e.stopPropagation();
         onSelectTable?.(table.id);
         onSelectRelation?.(null);
-        if (onSelectTable) setAnnounce(t('schema.panel.tableSelected', { name: table.name }));
+        if (onSelectTable) setAnnounce(t('schema.panel.tableSelected', { name: table.name, count: incidentCountFor(table.id) }));
         return;
       }
       if (e.key === 'Enter' || e.key === ' ') {
@@ -1266,11 +1549,11 @@ export function ERD({
         svgRef.current?.focus();
       }
     },
-    [onMoveTable, onOpenTable, onSelectTable, onSelectRelation, readOnly, t, panelSelectionOpen, onClosePanelSelection],
+    [onMoveTable, onOpenTable, onSelectTable, onSelectRelation, readOnly, t, panelSelectionOpen, onClosePanelSelection, incidentCountFor],
   );
 
-  const renderX = (l: ErLayout) => (dragPreview?.tableId === l.table.id ? dragPreview.x : l.x);
-  const renderY = (l: ErLayout) => (dragPreview?.tableId === l.table.id ? dragPreview.y : l.y);
+  const renderX = (l: ErLayout) => renderPos.get(l.table.id)?.x ?? l.x;
+  const renderY = (l: ErLayout) => renderPos.get(l.table.id)?.y ?? l.y;
 
   const tipTable = colTip ? layout.find((l) => l.table.id === colTip.tableId)?.table ?? null : null;
   const tipCol = tipTable?.columns.find((c) => c.id === colTip?.columnId) ?? null;
@@ -1317,14 +1600,20 @@ export function ERD({
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerCancel}
         onKeyDown={handleCanvasKeyDown}
-        onClick={() => {
+        onClick={(e) => {
           if (suppressRelClickRef.current) {
             suppressRelClickRef.current = false;
             return;
           }
-          // U4: empty-background click clears the props-panel selection.
+          // Tap di dalam bounds grup (teratas dulu) = seleksi grup itu;
+          // klik kosong di luar semua grup = bersihkan semua seleksi.
+          const world = toWorld(e.clientX, e.clientY, e.currentTarget);
+          const hit = [...groupBoxes].reverse().find(
+            (b) => world.x >= b.x && world.x <= b.x + b.w && world.y >= b.y && world.y <= b.y + b.h,
+          );
           onSelectTable?.(null);
           onSelectRelation?.(null);
+          setSelectedGroupId(hit ? hit.group.id : null);
         }}
         onDoubleClick={(e) => {
           // U2 canvas-only: empty-background dblclick opens NewTable at the
@@ -1355,6 +1644,75 @@ export function ERD({
           </marker>
         </defs>
         <g transform={`translate(${view.x},${view.y}) scale(${view.s})`}>
+          {groupBoxes.map(({ group, x, y, w, h }) => {
+            const stroke = normalizeHeaderColor(group.color ?? null);
+            const labelFill = stroke ? headerTitleColor(stroke) : null;
+            const selected = selectedGroupId === group.id;
+            const corners: { id: GroupCorner; cx: number; cy: number; cursor: string }[] = [
+              { id: 'nw', cx: x, cy: y, cursor: 'nwse-resize' },
+              { id: 'ne', cx: x + w, cy: y, cursor: 'nesw-resize' },
+              { id: 'sw', cx: x, cy: y + h, cursor: 'nesw-resize' },
+              { id: 'se', cx: x + w, cy: y + h, cursor: 'nwse-resize' },
+            ];
+            return (
+              <g
+                key={group.id}
+                className={`erd-group${canDragGroups ? ' erd-group-draggable' : ''}${selected ? ' erd-group-selected' : ''}`}
+                aria-hidden="true"
+              >
+                <rect
+                  x={x}
+                  y={y}
+                  width={w}
+                  height={h}
+                  rx={10}
+                  className="erd-group-box"
+                  style={stroke ? { stroke, fill: stroke } : undefined}
+                  onPointerDown={canDragGroups ? (e) => startGroupDrag(e, group.id) : undefined}
+                  onClick={(e) => {
+                    if (suppressRelClickRef.current) return;
+                    e.stopPropagation();
+                    onSelectTable?.(null);
+                    onSelectRelation?.(null);
+                    setSelectedGroupId(group.id);
+                  }}
+                />
+                <text
+                  x={x + 12}
+                  y={y + 22}
+                  className="erd-group-label"
+                  style={
+                    stroke && labelFill
+                      ? { fill: labelFill, paintOrder: 'stroke', stroke, strokeWidth: 14, strokeLinejoin: 'round', strokeOpacity: 0.25 }
+                      : undefined
+                  }
+                  onPointerDown={canDragGroups ? (e) => startGroupDrag(e, group.id) : undefined}
+                  onClick={(e) => {
+                    if (suppressRelClickRef.current) return;
+                    e.stopPropagation();
+                    onSelectTable?.(null);
+                    onSelectRelation?.(null);
+                    setSelectedGroupId(group.id);
+                  }}
+                >
+                  {truncate(group.name.trim() !== '' ? group.name : 'Area', 28)}
+                </text>
+                {selected &&
+                  canDragGroups &&
+                  corners.map((c) => (
+                    <circle
+                      key={c.id}
+                      cx={c.cx}
+                      cy={c.cy}
+                      r={6}
+                      className="erd-group-handle"
+                      style={{ cursor: c.cursor }}
+                      onPointerDown={(e) => startGroupResize(e, group.id, c.id)}
+                    />
+                  ))}
+              </g>
+            );
+          })}
           {state.relations.map((rel) => {
             const ft = layout.find((l) => l.table.id === rel.fromTableId);
             const tt = layout.find((l) => l.table.id === rel.toTableId);
@@ -1362,10 +1720,10 @@ export function ERD({
             const tc = tt?.table.columns.find((c) => c.id === rel.toColumnId);
             if (!ft || !tt || !fc || !tc) return null;
             // Relations follow the rendered (preview-inclusive) node positions.
-            const ftx = dragPreview?.tableId === ft.table.id ? dragPreview.x : ft.x;
-            const fty = dragPreview?.tableId === ft.table.id ? dragPreview.y : ft.y;
-            const ttx = dragPreview?.tableId === tt.table.id ? dragPreview.x : tt.x;
-            const tty = dragPreview?.tableId === tt.table.id ? dragPreview.y : tt.y;
+            const ftx = renderX(ft);
+            const fty = renderY(ft);
+            const ttx = renderX(tt);
+            const tty = renderY(tt);
             const fx = ftx + TABLE_W;
             const fy = fty + columnY(ft.table, fc);
             const tx = ttx;
@@ -1374,6 +1732,12 @@ export function ERD({
             const pts = `${fx},${fy} ${mx},${fy} ${mx},${ty} ${tx},${ty}`;
             const relTipActive = relTip?.relationId === rel.id;
             const isRelSelected = selectedRelationId === rel.id;
+            // U8: incident terhadap selectedTableId -> connected, sisanya redup saat fokus aktif.
+            const isIncident = connectedRelIds.has(rel.id);
+            const isDimRel = hasFocusSelection && !isIncident;
+            // U9: overlay flow hanya untuk insiden; reverse bila terpilih == sisi `to`.
+            const showFlow = hasFocusSelection && isIncident;
+            const flowReverse = showFlow && rel.toTableId === selectedTableId;
             return (
               <g
                 key={rel.id}
@@ -1381,7 +1745,7 @@ export function ERD({
                   if (el) relRefs.current.set(rel.id, el);
                   else relRefs.current.delete(rel.id);
                 }}
-                className={`erd-rel${isRelSelected ? ' erd-rel-selected' : ''}`}
+                className={`erd-rel${isRelSelected ? ' erd-rel-selected' : ''}${isIncident ? ' erd-rel-connected' : ''}${isDimRel ? ' erd-rel-dim' : ''}`}
                 role="button"
                 tabIndex={0}
                 aria-label={t('schema.erd.relAria', {
@@ -1407,6 +1771,7 @@ export function ERD({
                   // (panel varian relasi sudah punya Delete).
                   onSelectRelation?.(rel.id);
                   onSelectTable?.(null);
+                  setSelectedGroupId(null);
                   if (onSelectRelation) {
                     setAnnounce(t('schema.panel.relationSelected', { label: relationLabel(ft.table.name, fc.name, tt.table.name, tc.name) }));
                   }
@@ -1430,6 +1795,14 @@ export function ERD({
               >
                 <polyline points={pts} fill="none" stroke="transparent" strokeWidth={14} className="erd-rel-hit" />
                 <polyline points={pts} fill="none" className="erd-rel-line" />
+                {showFlow && (
+                  <polyline
+                    points={pts}
+                    fill="none"
+                    aria-hidden="true"
+                    className={`erd-rel-flow${flowReverse ? ' erd-rel-flow-reverse' : ''}`}
+                  />
+                )}
                 <text x={mx} y={(fy + ty) / 2 - 6} className="erd-cardinality" textAnchor="middle">
                   {rel.cardinality}
                 </text>
@@ -1441,8 +1814,14 @@ export function ERD({
             const isHighlighted = highlightId === table.id;
             const isDragging = nodeDraggingId === table.id && dragPreview?.tableId === table.id;
             const isSelected = selectedTableId === table.id;
+            // U8: neighbor vs redup saat ada fokus tabel (selectedTableId).
+            const isNeighbor = neighborTableIds.has(table.id);
+            const isDimNode = hasFocusSelection && !isSelected && !isNeighbor;
             const x = renderX(l);
             const y = renderY(l);
+            // U7: header berwarna — 2 rect + text (inline fill, fallback CSS saat Default).
+            const customFill = headerFill((table as Table).color ?? null);
+            const customTitle = customFill ? headerTitleColor(customFill) : null;
             return (
               <g
                 key={table.id}
@@ -1453,9 +1832,9 @@ export function ERD({
                 role="button"
                 tabIndex={0}
                 aria-label={t('schema.erd.tableAria', { name: table.name, count: table.columns.length })}
-                aria-disabled={readOnly || undefined}
+                aria-disabled={readOnly && !presenting || undefined}
                 aria-current={isSelected ? ('true' as const) : undefined}
-                className={`erd-node${isHighlighted ? ' erd-table-highlight' : ''}${isDragging ? ' erd-node-dragging' : ''}${isSelected ? ' erd-node-selected' : ''}`}
+                className={`erd-node${isHighlighted ? ' erd-table-highlight' : ''}${isDragging ? ' erd-node-dragging' : ''}${isSelected ? ' erd-node-selected' : ''}${isNeighbor ? ' erd-node-neighbor' : ''}${isDimNode ? ' erd-node-dim' : ''}`}
                 data-table-id={table.id}
                 data-dragging={isDragging || undefined}
                 style={{ transform: `translate(${x}px, ${y}px)` }}
@@ -1465,9 +1844,11 @@ export function ERD({
                   e.stopPropagation();
                   // U4: click without drag selects the table for the canvas
                   // props panel. Announce instead of stealing focus.
+                  // U10: sertakan +count relasi insiden.
                   onSelectTable?.(table.id);
                   onSelectRelation?.(null);
-                  if (onSelectTable) setAnnounce(t('schema.panel.tableSelected', { name: table.name }));
+                  setSelectedGroupId(null);
+                  if (onSelectTable) setAnnounce(t('schema.panel.tableSelected', { name: table.name, count: incidentCountFor(table.id) }));
                 }}
                 onDoubleClick={(e) => {
                   e.stopPropagation();
@@ -1475,9 +1856,21 @@ export function ERD({
                 }}
               >
                 <rect width={TABLE_W} height={l.h} rx={8} className="erd-table-body" />
-                <rect width={TABLE_W} height={HEADER_H} rx={8} className="erd-table-header" />
-                <rect y={HEADER_H - 8} width={TABLE_W} height={8} className="erd-table-header" />
-                <text x={12} y={20} className="erd-table-title">
+                <rect
+                  width={TABLE_W}
+                  height={HEADER_H}
+                  rx={8}
+                  className="erd-table-header"
+                  style={customFill ? { fill: customFill } : undefined}
+                />
+                <rect
+                  y={HEADER_H - 8}
+                  width={TABLE_W}
+                  height={8}
+                  className="erd-table-header"
+                  style={customFill ? { fill: customFill } : undefined}
+                />
+                <text x={12} y={20} className="erd-table-title" style={customTitle ? { fill: customTitle } : undefined}>
                   {truncate(table.name, 24)}
                 </text>
                 {table.columns.map((c) => {
@@ -1562,7 +1955,7 @@ export function ERD({
           )}
         </g>
       </svg>
-      {((colTip && tipTable && tipCol) || (relTip && tipRel && tipRelLabel)) && tipAnchor && !presenting && (
+      {((colTip && tipTable && tipCol) || (relTip && tipRel && tipRelLabel)) && tipAnchor && (
         <div
           id="erd-col-tip"
           role="tooltip"

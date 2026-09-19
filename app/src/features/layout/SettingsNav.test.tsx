@@ -12,16 +12,14 @@ function renderNav(entry: string, onSelect?: () => void) {
 }
 
 describe('SettingsNav', () => {
-  it('renders back link plus 5 section links defaulting to General', () => {
+  it('renders back link plus 4 section links defaulting to General', () => {
     renderNav('/alpha/settings');
     expect(screen.getByRole('link', { name: 'Back to app' }).getAttribute('href')).toBe('/alpha/projects');
     for (const name of ['General', 'Plan & billing', 'Usage', 'Danger zone']) {
       expect(screen.getByRole('link', { name })).toBeTruthy();
     }
-    // Badge text concatenates without whitespace in the accessible name.
-    const github = screen.getByRole('link', { name: 'GitHubSoon' });
-    expect(github.getAttribute('href')).toBe('/alpha/settings?section=github');
-    expect(screen.getByText('Soon')).toBeTruthy();
+    // GitHub moved to project settings — no team-level link remains.
+    expect(screen.queryByRole('link', { name: /GitHub/ })).toBeNull();
     expect(screen.getByRole('link', { name: 'General' }).getAttribute('aria-current')).toBe('page');
   });
 

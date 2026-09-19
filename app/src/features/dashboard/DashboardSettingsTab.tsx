@@ -50,7 +50,7 @@ function formatQuota(used: number, limit: number | null): string {
 // Settings tab scoped to the already-resolved active team.
 // Mirrors TeamPage patterns (rename + billing + leave/delete) as inline
 // sections in a 720px left-aligned container without touching routes or API.
-// Shell (Linear-style): sidebar nav (?section=general|plan|usage|danger|github)
+// Shell (Linear-style): sidebar nav (?section=general|plan|usage|danger)
 // renders one section at a time; drafts and dialog state live here so
 // switching sections never loses them.
 // DECISION: TeamBillingPanel is NOT embedded here. It is a full billing
@@ -626,13 +626,13 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
             </div>
             <div className="dashboard__settings-usage-links">
               <Link
-                className="btn btn-ghost btn-sm dashboard__settings-link"
+                className="btn btn-secondary btn-sm dashboard__settings-link"
                 to={`/pricing?teamId=${encodeURIComponent(team.id)}`}
               >
                 <Tag size={14} aria-hidden="true" />
                 {t('teams.billing.viewPricing')}
               </Link>
-              <Link className="btn btn-ghost btn-sm dashboard__settings-link" to="/payments">
+              <Link className="btn btn-secondary btn-sm dashboard__settings-link" to="/payments">
                 <ClockCounterClockwise size={14} aria-hidden="true" />
                 {t('dashboard.team.settingsUsageViewHistory')}
               </Link>
@@ -699,21 +699,6 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
             </Button>
           </div>
         )}
-      </section>
-      )}
-
-      {/* GitHub: coming-soon placeholder (DEF-013). Real repo linking lands here. */}
-      {activeSection === 'github' && (
-      <section className="dashboard__settings-section" aria-labelledby="dashboard-settings-github-title">
-        <h2 id="dashboard-settings-github-title" tabIndex={-1} className="dashboard__settings-section-title">
-          {t('dashboard.team.settingsGithubTitle')}
-        </h2>
-        <p className="dashboard__settings-section-desc">{t('dashboard.team.settingsGithubSoonDesc')}</p>
-        <ul className="settings-soon-list">
-          <li>{t('dashboard.team.settingsGithubSoonItem1')}</li>
-          <li>{t('dashboard.team.settingsGithubSoonItem2')}</li>
-          <li>{t('dashboard.team.settingsGithubSoonItem3')}</li>
-        </ul>
       </section>
       )}
 

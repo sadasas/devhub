@@ -3754,7 +3754,6 @@ html[data-theme='light'] .splash-bg {
 
   .key-copy-btn,
   .code-copy-btn,
-  .project-id-copy,
   .fp-color {
     min-width: 32px;
     min-height: 32px;
@@ -5921,27 +5920,6 @@ html[data-theme='light'] .splash-bg {
   margin-top: 8px;
 }
 
-.project-id-code {
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  color: var(--text-muted);
-  background: var(--bg-inset);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-sm);
-  padding: 2px 7px;
-  word-break: break-all;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.project-id-copy {
-  height: 22px;
-  padding: 0 8px;
-  font-size: 11.5px;
-}
-
 .tabs {
   display: flex;
   gap: 2px;
@@ -6376,6 +6354,26 @@ html[data-theme='light'] .splash-bg {
   border-radius: var(--radius-input);
 }
 
+/* Teknik drag ala kanban (cermin .task-card.dragging + .kanban-drop-active):
+   chip sumber pudar, cell target highlight. Nilai token identik. */
+.due-cal-task.dragging {
+  opacity: 0.4;
+}
+
+.due-cal-grid .due-cal-cell--drop-active,
+.due-cal-grid .due-cal-cell--drop-active:hover {
+  background: var(--status-success-soft);
+  border-radius: var(--radius-input);
+  outline: 1px dashed var(--status-success);
+  outline-offset: -1px;
+}
+
+/* Saat drag aktif, chip overlay tak boleh menelan dragover — semua event
+   jatuh ke cell di bawahnya sehingga highlight target selalu update. */
+.due-cal-grid.is-dragging .due-cal-task {
+  pointer-events: none;
+}
+
 .kanban-col-add {
   padding: 0 8px 8px;
   border-top: 1px solid var(--border-hairline);
@@ -6691,7 +6689,7 @@ html[data-theme='light'] .splash-bg {
 
 .save-toast {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   max-width: min(400px, calc(100vw - 32px));
   padding: 8px 12px;
@@ -6699,24 +6697,62 @@ html[data-theme='light'] .splash-bg {
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-input);
   box-shadow: none;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text-primary);
 }
 
+/* Ikon/leading langsung: nempel atas, tak ikut stretch. */
+.save-toast > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Kolom isi: teks di atas, aksi di bawah. */
+.save-toast-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.save-toast-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Tombol tutup: pojok kanan atas. */
+.save-toast-close {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .save-banner {
-  border: 1px solid var(--status-danger);
+  border-color: var(--status-danger);
   background: color-mix(in srgb, var(--status-danger) 12%, var(--bg-overlay));
+}
+
+.save-banner > svg {
   color: var(--status-danger);
 }
 
 .save-status {
-  font-size: 12px;
-  color: var(--text-muted);
+  border-color: var(--status-success);
+  background: color-mix(in srgb, var(--status-success) 12%, var(--bg-overlay));
+}
+
+.save-status > svg {
+  color: var(--status-success);
 }
 
 .conflict-banner {
-  border: 1px solid var(--status-warn);
-  background: color-mix(in srgb, var(--status-warn) 14%, var(--bg-overlay));
+  border-color: var(--status-warn);
+  background: color-mix(in srgb, var(--status-warn) 12%, var(--bg-overlay));
+}
+
+.conflict-banner > svg {
   color: var(--status-warn);
 }
 
@@ -7109,6 +7145,7 @@ html[data-theme='light'] .splash-bg {
 .schema-side-collapsed-label {
   writing-mode: vertical-rl;
   transform: rotate(180deg);
+  font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -7496,6 +7533,111 @@ html[data-theme='light'] .splash-bg {
   filter: drop-shadow(0 0 3px var(--accent-ring));
 }
 
+/* U8: connected/neighbor saat fokus tabel (derivasi selectedTableId), sisanya redup. */
+.erd-rel-connected polyline.erd-rel-line {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.erd-node-neighbor .erd-table-body {
+  stroke: var(--accent);
+}
+
+.erd-rel-dim {
+  opacity: 0.3;
+}
+
+.erd-node-dim {
+  opacity: 0.35;
+}
+
+/* U9: +1 polyline overlay .erd-rel-flow per relasi insiden (points sama).
+   Dot-flow penuh ala ChartDB: dot bulat besar + glow, sepanjang garis. */
+.erd-rel-flow {
+  stroke: var(--accent);
+  stroke-width: 4;
+  stroke-dasharray: 0.1 8;
+  stroke-linecap: round;
+  pointer-events: none;
+  filter: drop-shadow(0 0 3px var(--accent-ring));
+  animation: erd-flow 0.7s linear infinite;
+}
+
+.erd-rel-flow-reverse {
+  animation-direction: reverse;
+}
+
+@keyframes erd-flow {
+  to {
+    stroke-dashoffset: -8.1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .erd-rel-flow {
+    display: none;
+  }
+  .erd-rel-dim,
+  .erd-node-dim {
+    opacity: 1;
+  }
+}
+
+/* Areas: boundary dashed di belakang node + label (bounds render-time). */
+.erd-group {
+  pointer-events: none;
+}
+
+.erd-group-draggable .erd-group-label {
+  pointer-events: auto;
+  cursor: grab;
+}
+
+.erd-group-draggable .erd-group-label:active {
+  cursor: grabbing;
+}
+
+/* Border boundary bisa di-grab untuk geser (visibleStroke);
+   interior tetap tembus ke kanvas untuk pan. */
+.erd-group-draggable .erd-group-box {
+  pointer-events: visibleStroke;
+  cursor: grab;
+}
+
+.erd-group-draggable .erd-group-box:active {
+  cursor: grabbing;
+}
+
+/* Resize handle sudut grup terseleksi (drag; keyboard via checkbox panel). */
+.erd-group-handle {
+  fill: var(--bg-overlay);
+  stroke: var(--accent);
+  stroke-width: 2;
+  pointer-events: auto;
+}
+
+.erd-group-selected .erd-group-box {
+  stroke-width: 2.5;
+  /* Area aktif: seluruh badan bisa di-grab untuk geser (bukan cuma
+     garis/label). Non-aktif tetap visibleStroke = interior tembus ke pan. */
+  pointer-events: auto;
+}
+
+.erd-group-box {
+  fill: var(--accent-dim);
+  fill-opacity: 0.08;
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+  stroke-dasharray: 8 6;
+}
+
+.erd-group-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--text-muted);
+}
+
 .erd-cardinality {
   font-family: var(--font-mono);
   font-size: 10px;
@@ -7508,6 +7650,14 @@ html[data-theme='light'] .splash-bg {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Overlay placeholder tembus klik ke kanvas di bawahnya (area tetap
+     bisa diseleksi/digeser saat belum ada tabel); hanya tombol yang
+     menangkap pointer. */
+  pointer-events: none;
+}
+
+.erd-empty button {
+  pointer-events: auto;
 }
 
 .erd-hint {
@@ -7543,18 +7693,26 @@ html[data-theme='light'] .splash-bg {
   justify-content: center;
 }
 
-/* Ronde 5 ITEM 5: zoom ke kiri panel overlay (340 + 24 = 364), sejajar bawah panel. */
+/* U3: panel dock kiri (left:68px w:320px) — zoom kembali ke kanan, sejajar bawah. */
 .erd-canvas-main .erd-zoom {
-  right: 364px;
+  right: 12px;
   bottom: 12px;
   z-index: 7;
 }
 
-/* Mode presentasi: hanya kanvas. Panel/topbar di-unmount di TSX;
-   zoom + tooltip disembunyikan di sini. Pan/zoom tetap jalan. */
-.erd-canvas-mode-presenting .erd-zoom,
-.erd-canvas-mode-presenting .erd-col-tip {
+/* Mode presentasi: hanya kanvas. Panel/topbar di-unmount di TSX; zoom
+   disembunyikan di sini (tooltip tetap tampil — seleksi + hover aktif
+   saat presentasi). Pan/zoom tetap jalan. */
+.erd-canvas-mode-presenting .erd-zoom {
   display: none !important;
+}
+
+/* Layar kecil: tombol zoom + / − / reset disembunyikan (gestur pinch
+   + pan tetap jalan). */
+@media (max-width: 640px) {
+  .erd-zoom {
+    display: none;
+  }
 }
 
 .erd-present-exit {
@@ -7598,7 +7756,7 @@ html[data-theme='light'] .splash-bg {
   inset: 0;
   z-index: 31;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   background: var(--bg-base);
   color: var(--text-primary);
 }
@@ -7606,36 +7764,93 @@ html[data-theme='light'] .splash-bg {
    The topbar stays covered by the fullscreen canvas (z 31 > nav 10). */
 body[data-erd-canvas="open"] .chat-drawer { display: none !important; }
 
+/* Sidebar full-height: one merged card [rail | panel], top to bottom. */
+.erd-sidebar {
+  display: flex;
+  align-self: stretch;
+  flex-shrink: 0;
+  width: 388px;
+  min-height: 0;
+  margin: 12px 0 12px 12px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-raised);
+  z-index: 6;
+  overflow: hidden;
+}
+
+.erd-sidebar-panel {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Mobile sheet handle — hanya tampil dalam media ≤860px (di bawah). */
+.erd-sheet-handle {
+  display: none;
+}
+
+.erd-sidebar-panel .erd-canvas-panel {
+  width: auto;
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+}
+
 .erd-canvas-mode-top {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 5;
-  pointer-events: none;
-  background: transparent;
+  top: 12px;
+  left: auto;
+  right: 12px;
+  transform: none;
+  z-index: 6;
+  pointer-events: auto;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-input);
+  box-shadow: var(--shadow-raised);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-shrink: 0;
-  flex-wrap: wrap;
-  padding: 12px 16px 8px;
+  gap: 4px;
+  max-width: calc(100% - 24px);
+  padding: 4px 6px 4px 14px;
 }
 
-.erd-canvas-mode-title,
-.erd-canvas-mode-pill,
-.erd-canvas-mode-close {
-  pointer-events: auto;
-}
-
-.erd-canvas-mode-close {
+.erd-canvas-mode-top .btn {
   flex-shrink: 0;
   width: 36px;
   min-width: 36px;
   min-height: 36px;
   padding: 0;
-  margin-left: auto;
+}
+
+.erd-canvas-mode-title,
+.erd-canvas-mode-close {
+  pointer-events: auto;
+}
+
+.erd-canvas-mode-close {
+  position: static;
+  transform: none;
+  flex-shrink: 0;
+  width: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
 }
 
 .erd-canvas-mode-close:focus-visible {
@@ -7644,7 +7859,9 @@ body[data-erd-canvas="open"] .chat-drawer { display: none !important; }
 }
 
 .erd-canvas-mode-title {
-  max-width: 240px;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 44vw;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -7655,8 +7872,11 @@ body[data-erd-canvas="open"] .chat-drawer { display: none !important; }
 
 .erd-canvas-mode-pill {
   position: absolute;
+  bottom: 16px;
   left: 50%;
   transform: translateX(-50%);
+  top: auto;
+  z-index: 6;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -7664,33 +7884,106 @@ body[data-erd-canvas="open"] .chat-drawer { display: none !important; }
   margin-inline: 0;
   padding: 4px 6px;
   overflow: visible;
+  pointer-events: auto;
   background: var(--bg-overlay);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-input);
   box-shadow: var(--shadow-raised);
 }
 
+/* Rail lives inside the sidebar card — static, borderless, divider on the right. */
+.erd-rail {
+  position: static;
+  left: auto;
+  top: auto;
+  bottom: auto;
+  width: 56px;
+  flex-shrink: 0;
+  z-index: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 0;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--border-hairline);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.erd-rail-btn {
+  width: 44px;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.erd-rail-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.erd-rail-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.erd-rail-btn-active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent-ring);
+}
+
+.erd-rail-label {
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.erd-canvas-mode-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+}
+
 .erd-canvas-mode-pill .btn,
 .erd-canvas-mode-pill .schema-issues-badge {
   flex-shrink: 0;
-  min-height: 36px;
+  min-height: 44px;
 }
 
-/* Pill icon-only square buttons (New Table / New Relation / Tidy / Export):
-   36px ghost squares, label lives in .sr-only + aria-label/title. */
+/* Pill icon-only square buttons (New Table / Relation / Area / Tidy / Export):
+   44px ghost squares berisi ikon 32px, label lives in .sr-only + aria-label/title. */
 .erd-canvas-mode-pill .btn {
-  width: 36px;
-  min-width: 36px;
+  width: 44px;
+  min-width: 44px;
   padding: 0;
 }
 
 /* (Tooltip CSS-only pill lama dihapus — diganti komponen Tooltip reusable.) */
 
 .erd-canvas-mode-body {
+  position: relative;
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
   gap: 0;
+  min-width: 0;
   min-height: 0;
   padding: 0;
   overflow: hidden;
@@ -7812,31 +8105,6 @@ body[data-erd-canvas="open"] .chat-drawer { display: none !important; }
 .erd-canvas-main .erd-canvas {
   flex: 1 1 auto;
   min-width: 0;
-}
-
-.erd-canvas-panel {
-  width: 340px;
-  flex-shrink: 0;
-  min-height: 320px;
-  max-height: 100%;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 14px;
-  background: var(--bg-overlay);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-card);
-}
-
-.erd-canvas-main .erd-canvas-panel {
-  position: absolute;
-  top: 64px;
-  right: 12px;
-  bottom: 12px;
-  width: 340px;
-  z-index: 5;
-  box-shadow: var(--shadow-raised);
 }
 
 .erd-panel-empty-body {
@@ -8125,6 +8393,38 @@ body[data-erd-canvas="open"] .chat-drawer { display: none !important; }
   border: 1px solid var(--border-hairline);
   font-size: 11px;
   color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.erd-panel-index-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.erd-panel-chip-x {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.erd-panel-chip-x:hover {
+  color: var(--status-danger);
+}
+
+.erd-panel-chip-x:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .erd-panel-actions {
@@ -8135,52 +8435,243 @@ body[data-erd-canvas="open"] .chat-drawer { display: none !important; }
   padding-top: 4px;
 }
 
+/* Icon-only panel buttons: 32px square, label lives in .sr-only + aria/title. */
+.erd-panel-icon-btn {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+}
+
+/* TableColorPicker — native round color input + Default reset (dark-only). */
+.table-color-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-color-native {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: none;
+  cursor: pointer;
+}
+
+.table-color-native::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.table-color-native::-webkit-color-swatch {
+  border: none;
+  border-radius: 999px;
+}
+
+.table-color-native::-moz-color-swatch {
+  border: none;
+  border-radius: 999px;
+}
+
+.table-color-native:hover {
+  border-color: var(--accent);
+}
+
+.table-color-native:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.table-color-native:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.table-color-swatch {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.table-color-swatch:hover {
+  border-color: var(--accent);
+}
+
+.table-color-swatch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.table-color-swatch:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.table-color-checked {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.table-color-default {
+  background: var(--bg-inset);
+}
+
+.table-color-default-x {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* U4: DBML viewer + Versions list di panel (snapshot-safe). */
+.erd-dbml-pre {
+  margin: 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: 12px;
+  background: var(--bg-inset);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  line-height: 1.6;
+  white-space: pre;
+  color: var(--text-primary);
+}
+
+.erd-dbml-pre:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.erd-panel-versions-list {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
 @media (max-width: 860px) {
+  .erd-canvas-mode {
+    flex-direction: column;
+  }
   .erd-canvas-mode-top {
-    gap: 8px;
-    padding: 10px 12px 6px;
+    left: 12px;
+    right: 12px;
+    transform: none;
+    max-width: none;
   }
   .erd-canvas-mode-title {
-    max-width: 40vw;
-  }
-  .erd-canvas-mode-pill {
-    position: static;
-    transform: none;
-    order: 3;
-    flex-basis: 100%;
-    max-width: 100%;
-    margin-inline: 0;
-    overflow-x: auto;
+    max-width: none;
   }
   .erd-canvas-mode-body {
-    padding: 6px 12px 12px;
-    gap: 12px;
-    overflow-y: auto;
+    padding: 0;
+    gap: 0;
+    overflow: hidden;
   }
-  /* U4: panel becomes a bottom-sheet on mobile. */
+  .erd-canvas-mode-content {
+    min-height: 0;
+  }
+  /* Sidebar becomes a bottom-sheet below the canvas. */
+  .erd-sidebar {
+    order: 2;
+    flex-direction: column;
+    width: auto;
+    align-self: auto;
+    min-width: 0;
+    max-width: 100%;
+    margin: 8px 12px 1px;
+    max-height: 46dvh;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  /* Mobile sheet ala sketsa: peek = handle + tab bar; expanded = konten
+     + tab bar (tap toggle, tanpa drag). */
+  .erd-sidebar.erd-sheet-expanded {
+    max-height: 74dvh;
+  }
+  .erd-sheet-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    order: 0;
+    flex-shrink: 0;
+    min-height: 44px;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+  .erd-sheet-grip {
+    width: 40px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--border-strong);
+  }
+  .erd-sheet-handle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+  .erd-sidebar .erd-sidebar-panel {
+    order: 1;
+  }
+  .erd-sidebar:not(.erd-sheet-expanded) .erd-sidebar-panel {
+    display: none;
+  }
+  .erd-sidebar.erd-sheet-expanded .erd-sidebar-panel {
+    max-height: 62dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  /* Rail vertikal -> tab bar horizontal paling bawah (selalu terlihat). */
+  .erd-sidebar .erd-rail {
+    order: 2;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: stretch;
+    gap: 2px;
+    padding: 4px 4px max(4px, env(safe-area-inset-bottom, 0px));
+    border-right: none;
+    border-top: 1px solid var(--border-hairline);
+  }
+  .erd-sidebar .erd-rail-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+  }
+  /* Expanded: pill di atas tab menu disembunyikan (aksi pindah ke tombol + panel).
+     Saat ciut (peek) pill tampil sebagai jalan pintas aksi. */
+  .erd-sidebar.erd-sheet-expanded + .erd-canvas-mode-body .erd-canvas-mode-pill {
+    display: none;
+  }
+  /* Issues menempel di bawah scroll sheet. */
+  .erd-sidebar #erd-panel-issues-strip {
+    position: sticky;
+    bottom: 0;
+    background: var(--bg-overlay);
+  }
+  /* Pill toolbar merapat di atas sheet (jeda total 16px ke panel menu). */
+  .erd-canvas-mode-pill {
+    bottom: 8px;
+  }
   .erd-canvas-main {
     flex-direction: column;
     height: auto;
   }
   .erd-canvas-main .erd-canvas {
     min-height: 280px;
-  }
-  .erd-canvas-panel {
-    width: auto;
-    min-height: 0;
-    max-height: 60dvh;
-  }
-  .erd-canvas-main .erd-canvas-panel {
-    position: static;
-    top: auto;
-    right: auto;
-    bottom: auto;
-    width: auto;
-    z-index: auto;
-    box-shadow: none;
-  }
-  .erd-canvas-main .erd-canvas-panel-empty {
-    max-height: 60dvh;
   }
   /* Ronde 5 ITEM 5: mobile — zoom kembali right:10 agar tak tertutup bottom-sheet. */
   .erd-canvas-main .erd-zoom {
@@ -8222,7 +8713,7 @@ body[data-erd-canvas="open"] .chat-drawer { display: none !important; }
 
 .col-edit-caption {
   display: grid;
-  grid-template-columns: 1fr 1fr 44px 36px 0.9fr 1fr 44px 28px;
+  grid-template-columns: 1fr 1fr auto 0.9fr 1fr 28px;
   gap: 8px;
   font-family: var(--font-mono);
   font-size: 10px;
@@ -8233,7 +8724,7 @@ body[data-erd-canvas="open"] .chat-drawer { display: none !important; }
 
 .col-edit-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 44px 36px 0.9fr 1fr 44px 28px;
+  grid-template-columns: 1fr 1fr auto 0.9fr 1fr 28px;
   gap: 8px;
   align-items: center;
 }
@@ -8255,6 +8746,55 @@ body[data-erd-canvas="open"] .chat-drawer { display: none !important; }
 }
 
 /* U6: combobox tipe kolom di grid — SearchableSelect + input custom ditumpuk di kolom type. */
+/* ColumnFlagsToggle — 3 tombol compact [N][kunci][U] pengganti 3 checkbox. */
+.col-flags {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.col-flag-btn {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.col-flag-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.col-flag-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.col-flag-btn[aria-pressed="true"] {
+  background: var(--accent-dim);
+  border-color: var(--accent-ring);
+  color: var(--accent);
+}
+
+.col-flag-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Grid kolom modal: 3 sel cek (null/pk/unique) digabung 1 sel flags. */
+.col-edit-caption-flags {
+  text-align: center;
+}
 .col-type-combo {
   display: flex;
   flex-direction: column;
@@ -8492,6 +9032,21 @@ input[type='checkbox'] {
    Scrolls with the panel (panel has overflow-y auto; bottom-sheet 60dvh on mobile). */
 .erd-panel-issues {
   flex-shrink: 0;
+  /* Jarak strip issues dengan konten tab di atasnya. */
+  margin-top: 8px;
+}
+
+/* Header tombol issues: ramping di semua state + viewport (dari 12.5px). */
+.schema-issues-head-button {
+  font-size: 11px;
+  padding: 4px 6px;
+  margin-bottom: 0;
+}
+.schema-issues-head-button[aria-expanded="true"] {
+  margin-bottom: 8px;
+}
+.schema-issues-strip:has(.schema-issues-head-button[aria-expanded="false"]) {
+  padding: 6px 10px;
 }
 
 .erd-panel-issues-head {
@@ -8621,7 +9176,7 @@ input[type='checkbox'] {
 
 .version-notes {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary);
 }
 
@@ -8773,19 +9328,43 @@ input[type='checkbox'] {
 }
 
 .versions-section .data-list-header {
-  flex-wrap: nowrap;
   align-items: center;
+  gap: 4px;
+}
+
+/* Header versions dua baris: judul di atas, aksi (Sort/Diff/Save) rata kanan di bawah. */
+.versions-section .versions-header {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+}
+
+.versions-section .versions-title-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.versions-section .versions-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 4px;
 }
 
 .versions-section .data-list-header .data-list-count {
   margin-right: auto;
-  font-size: 13px;
+  font-family: var(--font-mono);
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text-secondary);
-  font-family: inherit;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .versions-section .data-list-header .sort-control-trigger,
@@ -9072,6 +9651,114 @@ input[type='checkbox'] {
   font-size: 11px;
   color: var(--text-muted);
   text-align: right;
+}
+
+.member-small-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0 0 8px;
+}
+
+.about-stat-link {
+  color: inherit;
+  text-decoration: none;
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.about-stat-link:hover {
+  border-color: var(--accent);
+}
+
+.about-stat-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.bar-row-link {
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--radius-card);
+}
+
+.bar-row-link:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.bar-row-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.legend-row-link {
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--radius-card);
+}
+
+.legend-row-link:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.legend-row-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.stat-card-link {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.stat-card-link:hover {
+  color: var(--accent);
+}
+
+.stat-note-warn {
+  color: var(--status-danger);
+}
+
+.about-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.about-card-head .section-title {
+  margin-bottom: 0;
+}
+
+.about-card-edit {
+  flex-shrink: 0;
+}
+
+.about-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.about-hero-top .about-description {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.about-desc-edit {
+  flex-shrink: 0;
+}
+
+.overview-public-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border: 1px dashed var(--border-hairline);
+  border-radius: var(--radius-card);
 }
 
 .stat-card {
@@ -10546,21 +11233,6 @@ input[type='checkbox'] {
   color: var(--text-muted);
 }
 
-.about-idrow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 10px 0 0;
-}
-
-.about-idrow .project-id-code {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .about-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -11480,8 +12152,20 @@ input[type='checkbox'] {
   }
 
   .settings-action {
-    align-items: flex-start;
+    align-items: stretch;
     flex-direction: column;
+  }
+
+  /* Tombol + switch selalu rata kanan di mobile; baris --inline
+     (mis. toggle sync) tetap horizontal penuh. */
+  .settings-action > .btn,
+  .settings-action > .consent-switch {
+    align-self: flex-end;
+  }
+
+  .settings-action--inline {
+    flex-direction: row;
+    align-items: center;
   }
 
   .profile-collections {
@@ -18735,7 +19419,7 @@ html[data-theme='light'] .tour-overlay-dim {
 }
 
 .dashboard__settings-section-desc {
-  margin: 0;
+  margin: 0 0 16px;
   font-size: 13px;
   color: var(--text-muted);
 }
@@ -18916,7 +19600,6 @@ html[data-theme='light'] .tour-overlay-dim {
   gap: 12px;
   flex-wrap: wrap;
   padding-top: 12px;
-  border-top: 1px solid var(--border-strong);
 }
 
 .dashboard__settings-danger-main {
@@ -19982,7 +20665,9 @@ html[data-theme='light'] .back-btn:hover {
 
 .breadcrumb-current {
   display: inline-block;
-  max-width: min(320px, 40vw);
+  /* Tanpa cap px: flex (flex:1 + shrink + ellipsis) yang menentukan —
+     truncate hanya saat actions benar-benar butuh ruang. Cap mobile
+     (55vw/38vw) di bawah tetap berlaku. */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -21377,9 +22062,12 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
     padding: 16px;
   }
   .erd-canvas-mode-top {
-    position: relative;
-    padding: 0 0 12px;
-    row-gap: 8px;
+    top: 8px;
+    /* Kartu aksi pojok kanan (Present + X) menempel kanan + fit content. */
+    left: auto;
+    right: 12px;
+    width: fit-content;
+    max-width: calc(100% - 24px);
   }
   .erd-canvas-mode-title {
     display: none;
@@ -21394,10 +22082,6 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
   .erd-canvas-mode-close {
     min-width: 44px;
     min-height: 44px;
-    position: absolute;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
     margin-left: 0;
   }
   /* Zoom hint bawah mati di overlay mobile (pinch tetap jalan). */
@@ -21820,5 +22504,86 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
 @media (prefers-reduced-motion: reduce) {
   .api-page .api-sidebar {
     transition: none;
+  }
+}
+
+/* GCal integration (T4) — Tier-2 composition only.
+   Tier-1 primitives reused: profile-panel, section-title, settings-action,
+   consent-switch, save-toast. Spacing hanya tangga space-* (2/8/10/16),
+   warna via var(--*), tanpa font-size/hex/radius mentah baru. */
+.gcal-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.gcal-identity {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.gcal-identity-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.gcal-switch {
+  min-height: 44px;
+  min-width: 44px;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (hover: none) {
+  .gcal-switch {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+@media (max-width: 640px) {
+  .gcal-identity {
+    gap: 8px;
+  }
+}
+
+/* Project settings (2-pane shell, cermin team settings + profile-layout).
+   Tier-2 komposisi saja: nav reuse .settings-nav/.sidebar-item, panel reuse
+   .profile-panel/.section-title/.settings-row. Spacing tangga space-*,
+   warna/radius via var — tanpa nilai mentah baru. */
+.project-settings {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.project-settings-nav {
+  position: sticky;
+  top: 16px;
+  min-width: 0;
+}
+
+.project-settings-panel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (max-width: 860px) {
+  .project-settings {
+    grid-template-columns: 1fr;
+  }
+
+  /* Mobile: nav sudah ada di sidebar utama (takeover drawer) —
+     nav dalam konten disembunyikan agar tak ganda. */
+  .project-settings-nav {
+    display: none;
   }
 }

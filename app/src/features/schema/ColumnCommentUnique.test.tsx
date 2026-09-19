@@ -78,8 +78,7 @@ describe('U7 Comment + Unique di grid kolom', () => {
     useProjectMock.mockReset();
   });
 
-  it('NewTableModal: comment per kolom tersimpan saat submit', () => {
-    const dispatch = vi.fn();
+  it('NewTableModal: comment per kolom tersimpan saat submit', () => {    const dispatch = vi.fn();
     renderNew(dispatch);
     fireEvent.change(screen.getByPlaceholderText('users'), { target: { value: 'users' } });
     fireEvent.change(screen.getByPlaceholderText('name'), { target: { value: 'email' } });
@@ -90,6 +89,18 @@ describe('U7 Comment + Unique di grid kolom', () => {
     fireEvent.click(screen.getByRole('button', { name: /Create table|Buat tabel/ }));
     const add = dispatch.mock.calls.find((c) => c[0]?.type === 'table/add');
     expect(add?.[0]?.table?.columns?.[0]?.comment).toBe('pemilik akun');
+  });
+
+  it('NewTableModal: type kosong dinormalkan ke TEXT agar tersimpan', () => {
+    const dispatch = vi.fn();
+    renderNew(dispatch);
+    fireEvent.change(screen.getByPlaceholderText('users'), { target: { value: 'users' } });
+    // Kolom bernama tanpa type (combobox dibiarkan kosong).
+    fireEvent.change(screen.getByPlaceholderText('name'), { target: { value: 'email' } });
+    fireEvent.click(screen.getByRole('button', { name: /Create table|Buat tabel/ }));
+    const add = dispatch.mock.calls.find((c) => c[0]?.type === 'table/add');
+    expect(add?.[0]?.table?.columns?.[0]?.name).toBe('email');
+    expect(add?.[0]?.table?.columns?.[0]?.type).toBe('TEXT');
   });
 
   it('TableModal: comment per kolom dispatch table/update', () => {
@@ -106,34 +117,31 @@ describe('U7 Comment + Unique di grid kolom', () => {
     expect(upd?.[0]?.patch?.columns?.find((c: { id: string }) => c.id === 'c2')?.comment).toBe('');
   });
 
-  it('NewTableModal: unique off→on via B2, indexes lain dipertahankan', () => {
+  it('NewTableModal: toggle I + U menambah entri index', () => {
     const dispatch = vi.fn();
     renderNew(dispatch);
     fireEvent.change(screen.getByPlaceholderText('users'), { target: { value: 'users' } });
     fireEvent.change(screen.getByPlaceholderText('name'), { target: { value: 'email' } });
-    fireEvent.change(screen.getByLabelText(/Indexes|Indeks/), { target: { value: 'created_at' } });
-    const unique = screen.getByLabelText(/Unique for column email|Unique untuk kolom email/) as HTMLInputElement;
-    expect(unique.checked).toBe(false);
-    fireEvent.click(unique);
+    fireEvent.click(screen.getByRole('button', { name: /Index for column email|Index untuk kolom email/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Unique for column email|Unique untuk kolom email/ }));
     fireEvent.click(screen.getByRole('button', { name: /Create table|Buat tabel/ }));
     const add = dispatch.mock.calls.find((c) => c[0]?.type === 'table/add');
-    expect(add?.[0]?.table?.indexes).toEqual(['created_at', 'unique:email']);
+    expect(add?.[0]?.table?.indexes).toEqual(['email', 'unique:email']);
   });
 
-  it('NewTableModal: unique on→off menghapus entri itu saja', () => {
+  it('NewTableModal: toggle U on→off menghapus entri itu saja', () => {
     const dispatch = vi.fn();
     renderNew(dispatch);
     fireEvent.change(screen.getByPlaceholderText('users'), { target: { value: 'users' } });
     fireEvent.change(screen.getByPlaceholderText('name'), { target: { value: 'email' } });
-    fireEvent.change(screen.getByLabelText(/Indexes|Indeks/), {
-      target: { value: 'created_at, unique:email, unique:name' },
-    });
-    const unique = screen.getByLabelText(/Unique for column email|Unique untuk kolom email/) as HTMLInputElement;
-    expect(unique.checked).toBe(true);
+    const unique = screen.getByRole('button', { name: /Unique for column email|Unique untuk kolom email/ });
     fireEvent.click(unique);
+    expect(unique.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(unique);
+    expect(unique.getAttribute('aria-pressed')).toBe('false');
     fireEvent.click(screen.getByRole('button', { name: /Create table|Buat tabel/ }));
     const add = dispatch.mock.calls.find((c) => c[0]?.type === 'table/add');
-    expect(add?.[0]?.table?.indexes).toEqual(['created_at', 'unique:name']);
+    expect(add?.[0]?.table?.indexes).toEqual([]);
   });
 
   it('TableModal: unique on→off via toggleUnique, entri lain dipertahankan', () => {
@@ -142,8 +150,8 @@ describe('U7 Comment + Unique di grid kolom', () => {
       tableWith({ indexes: ['created_at', 'unique:email', 'unique:name'] }),
       dispatch,
     );
-    const unique = screen.getByLabelText(/Unique for column email|Unique untuk kolom email/) as HTMLInputElement;
-    expect(unique.checked).toBe(true);
+    const unique = screen.getByRole('button', { name: /Unique for column email|Unique untuk kolom email/ });
+    expect(unique.getAttribute('aria-pressed')).toBe('true');
     fireEvent.click(unique);
     const upd = dispatch.mock.calls.find((c) => c[0]?.type === 'table/update');
     expect(upd?.[0]?.patch?.indexes).toEqual(['created_at', 'unique:name']);
@@ -152,28 +160,45 @@ describe('U7 Comment + Unique di grid kolom', () => {
   it('TableModal: unique off→on append unique:<col>', () => {
     const dispatch = vi.fn();
     renderTable(tableWith({ indexes: ['created_at'] }), dispatch);
-    const unique = screen.getByLabelText(/Unique for column email|Unique untuk kolom email/) as HTMLInputElement;
-    expect(unique.checked).toBe(false);
+    const unique = screen.getByRole('button', { name: /Unique for column email|Unique untuk kolom email/ });
+    expect(unique.getAttribute('aria-pressed')).toBe('false');
     fireEvent.click(unique);
     const upd = dispatch.mock.calls.find((c) => c[0]?.type === 'table/update');
     expect(upd?.[0]?.patch?.indexes).toEqual(['created_at', 'unique:email']);
+  });
+
+  it('TableModal: toggle I menambah index biasa; chip × menghapus entri custom', () => {
+    const dispatch = vi.fn();
+    renderTable(tableWith({ indexes: ['lower(email)'] }), dispatch);
+    fireEvent.click(screen.getByRole('button', { name: /Index for column email|Index untuk kolom email/ }));
+    const addIdx = dispatch.mock.calls.find(
+      (c) => c[0]?.type === 'table/update' && Array.isArray(c[0]?.patch?.indexes),
+    );
+    expect(addIdx?.[0]?.patch?.indexes).toEqual(['lower(email)', 'email']);
+    // Chip ekspresi (legacy/impor) bisa dihapus manual.
+    fireEvent.click(screen.getByRole('button', { name: /Remove index lower\(email\)|Hapus indeks lower\(email\)/ }));
+    const delIdx = [...dispatch.mock.calls]
+      .reverse()
+      .find((c) => c[0]?.type === 'table/update' && Array.isArray(c[0]?.patch?.indexes));
+    expect(delIdx?.[0]?.patch?.indexes).toEqual([]);
   });
 
   it('Unique disabled saat nama kolom kosong (kedua modal) + comment selalu aktif', () => {
     // NewTableModal: baris awal nama kosong
     const dispatch = vi.fn();
     renderNew(dispatch);
-    const uniqueEmpty = screen.getByLabelText(
-      /Unique for column unnamed|Unique untuk kolom tanpa nama/,
-    ) as HTMLInputElement;
+    const uniqueEmpty = screen.getByRole('button', {
+      name: /Unique for column unnamed|Unique untuk kolom tanpa nama/,
+    }) as HTMLButtonElement;
     expect(uniqueEmpty.disabled).toBe(true);
-    expect(uniqueEmpty.closest('label')?.getAttribute('title')).toMatch(/nama kolom|column name/i);
+    expect(uniqueEmpty.getAttribute('title')).toMatch(/nama kolom|column name/i);
     const commentEmpty = screen.getByLabelText(/Comment of|Komentar dari/) as HTMLInputElement;
     expect(commentEmpty.disabled).toBe(false);
     // isi nama → unique aktif
     fireEvent.change(screen.getByPlaceholderText('name'), { target: { value: 'email' } });
     expect(
-      (screen.getByLabelText(/Unique for column email|Unique untuk kolom email/) as HTMLInputElement).disabled,
+      (screen.getByRole('button', { name: /Unique for column email|Unique untuk kolom email/ }) as HTMLButtonElement)
+        .disabled,
     ).toBe(false);
   });
 });

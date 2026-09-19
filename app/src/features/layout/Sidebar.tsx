@@ -29,6 +29,8 @@ import { NewProjectModal } from '../dashboard/NewProjectModal';
 import { useActivityUnread } from '../../state/ActivityUnreadContext';
 import { WorkspaceSwitcher, writeLastActiveTeamId } from './WorkspaceSwitcher';
 import { SettingsNav } from './SettingsNav';
+import { ProjectSettingsNav } from '../project/ProjectSettingsNav';
+import { normalizeProjectTabId } from '../project/projectSettingsSections';
 
 interface SidebarProps {
   activeTeamId?: string | null;
@@ -274,6 +276,45 @@ export function Sidebar({ activeTeamId, onCreateTeam, onNavigate }: SidebarProps
   // Single-sidebar rule: on the settings route the main sidebar swaps its
   // team nav for the settings nav (no second sidebar in content).
   const settingsMode = location.pathname.endsWith('/settings');
+  // Project settings (?tab=settings di /project/:id) ikut aturan yang sama
+  // TAPI hanya di mobile (drawer): di desktop nav settings tetap di dalam
+  // konten agar tak ganda. Fail-closed: project tak dikenal atau role viewer
+  // tetap nav normal (konten pun fallback board).
+  // Takeover sidebar HANYA di mobile (drawer, ≤860px — breakpoint yang sama
+  // dengan drawer switch): di desktop nav settings tetap di dalam konten.
+  const [isMobileSidebar, setIsMobileSidebar] = useState<boolean>(() => {
+    try {
+      return typeof window !== 'undefined' ? window.matchMedia('(max-width: 860px)').matches : false;
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    try {
+      const mql = window.matchMedia('(max-width: 860px)');
+      const onChange = () => setIsMobileSidebar(mql.matches);
+      onChange();
+      mql.addEventListener('change', onChange);
+      return () => mql.removeEventListener('change', onChange);
+    } catch {
+      return;
+    }
+  }, []);
+  const projectSearch = new URLSearchParams(location.search);
+  const projectSettingsMatch = location.pathname.match(/^\/project\/([^/]+)$/);
+  const settingsProject = projectSettingsMatch
+    ? ((projects ?? []).find((p) => p.id === projectSettingsMatch[1]) ?? null)
+    : null;
+  const projectSettingsMode =
+    isMobileSidebar &&
+    projectSearch.get('tab') === 'settings' &&
+    settingsProject !== null &&
+    settingsProject.role !== 'viewer';
+  const projectSettingsFrom = normalizeProjectTabId(projectSearch.get('from'));
+  const projectSettingsTo =
+    settingsProject !== null
+      ? `/project/${encodeURIComponent(settingsProject.id)}?tab=${projectSettingsFrom}`
+      : '/';
 
   // Reset local UI when switching team context, and load that team's
   // pinned list from storage.
@@ -436,6 +477,17 @@ export function Sidebar({ activeTeamId, onCreateTeam, onNavigate }: SidebarProps
               onCreateTeam={() => onCreateTeam?.()}
             />
             <SettingsNav teamSlug={activeTeam.slug || activeTeam.id} dashboardTo={dashboardTo} onSelect={onNavigate} />
+            <UserFooter />
+          </>
+        ) : projectSettingsMode && settingsProject !== null ? (
+          <>
+            <WorkspaceSwitcher
+              teams={teams ?? []}
+              activeTeamId={activeTeam.id}
+              onSelectTeam={handleSelectTeam}
+              onCreateTeam={() => onCreateTeam?.()}
+            />
+            <ProjectSettingsNav projectId={settingsProject.id} projectTo={projectSettingsTo} onSelect={onNavigate} />
             <UserFooter />
           </>
         ) : (

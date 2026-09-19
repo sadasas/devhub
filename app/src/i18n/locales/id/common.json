@@ -95,7 +95,8 @@
       "version": "Versi",
       "targetDate": "Tanggal target",
       "dueDate": "Tanggal jatuh tempo",
-      "startDate": "Tanggal mulai"
+      "startDate": "Tanggal mulai",
+      "color": "Warna"
     },
     "expandWithCount": "Lihat lengkap ({{count}} karakter)",
     "collapse": "Sembunyikan",

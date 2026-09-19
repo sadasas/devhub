@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { CaretDown, DownloadSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '../../components/Tooltip';
-import type { Relation, Table } from '../../lib/types';
+import type { ErdGroup, Relation, Table } from '../../lib/types';
 import { safeFileName, triggerDownload } from '../whiteboard/export';
 import { toPostgresDDL } from './ddl-export';
 import { toDBML } from './dbml-export';
@@ -11,6 +11,8 @@ import { downloadERDPNG, downloadERDSVG } from './erd-export';
 interface SchemaExportMenuProps {
   tables: Table[];
   relations: Relation[];
+  /** Area groups for the ERD image export (live or [] in snapshot view). */
+  groups?: readonly ErdGroup[];
   /** Project display name for the download filename. Empty falls back to "schema". */
   projectName: string;
   /** Snapshot version label (e.g. "v1.2.0") when viewing ?v=, otherwise null for live. */
@@ -19,7 +21,7 @@ interface SchemaExportMenuProps {
   iconOnly?: boolean;
 }
 
-export function SchemaExportMenu({ tables, relations, projectName, versionLabel = null, iconOnly = false }: SchemaExportMenuProps) {
+export function SchemaExportMenu({ tables, relations, groups = [], projectName, versionLabel = null, iconOnly = false }: SchemaExportMenuProps) {
   const { t } = useTranslation('project');
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -91,13 +93,13 @@ export function SchemaExportMenu({ tables, relations, projectName, versionLabel 
   };
 
   const handleExportSvg = () => {
-    downloadERDSVG(tables, relations, erdBase());
+    downloadERDSVG(tables, relations, erdBase(), groups);
     setOpen(false);
     triggerRef.current?.focus();
   };
 
   const handleExportPng = () => {
-    downloadERDPNG(tables, relations, erdBase());
+    downloadERDPNG(tables, relations, erdBase(), groups);
     setOpen(false);
     triggerRef.current?.focus();
   };
@@ -116,7 +118,7 @@ export function SchemaExportMenu({ tables, relations, projectName, versionLabel 
           aria-label={menuAria}
           onClick={() => setOpen((v) => !v)}
         >
-          <DownloadSimple size={15} aria-hidden="true" />
+          <DownloadSimple size={32} aria-hidden="true" />
           <span className="sr-only">{triggerLabel}</span>
         </button>
         </Tooltip>

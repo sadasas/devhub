@@ -135,6 +135,18 @@ describe('DueCalendar', () => {
     expect(onOpenTask).toHaveBeenCalledWith('55555555-5555-4555-8555-555555555555');
   });
 
+  it('menutup tooltip chip saat drag dimulai dan bisa dibuka lagi setelah drop', () => {
+    renderCalendar();
+    const chip = screen.getByText('Ship calendar').closest('.due-cal-task') as HTMLElement;
+    fireEvent.focus(chip);
+    expect(screen.getByRole('tooltip')).toBeTruthy();
+    fireEvent.dragStart(chip, { dataTransfer: dataTransfer() });
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    fireEvent.dragEnd(chip);
+    fireEvent.focus(chip);
+    expect(screen.getByRole('tooltip')).toBeTruthy();
+  });
+
   it('reschedules a task by dropping it on another day', () => {
     renderCalendar();
     const chip = screen.getByText('Ship calendar');
@@ -157,6 +169,75 @@ describe('DueCalendar', () => {
       id: '55555555-5555-4555-8555-555555555555',
       patch: { dueDate: null },
     });
+  });
+
+  it('menandai chip sumber pudar + highlight cell target saat drag (ala kanban)', () => {
+    renderCalendar();
+    const chip = screen.getByText('Ship calendar').closest('.due-cal-task') as HTMLElement;
+    const target = document.querySelector('[data-date="2026-08-21"]') as HTMLElement;
+    expect(chip.classList.contains('dragging')).toBe(false);
+    fireEvent.dragStart(chip, { dataTransfer: dataTransfer() });
+    expect(chip.classList.contains('dragging')).toBe(true);
+    fireEvent.dragOver(target, { dataTransfer: dataTransfer() });
+    expect(target.classList.contains('due-cal-cell--drop-active')).toBe(true);
+    fireEvent.drop(target, { dataTransfer: dataTransfer() });
+    expect(mocks.dispatch).toHaveBeenCalledWith({
+      type: 'task/update',
+      id: '55555555-5555-4555-8555-555555555555',
+      patch: { dueDate: '2026-08-21' },
+    });
+    expect(target.classList.contains('due-cal-cell--drop-active')).toBe(false);
+    expect(chip.classList.contains('dragging')).toBe(true);
+    fireEvent.dragEnd(chip);
+    expect(chip.classList.contains('dragging')).toBe(false);
+  });
+
+  it('menandai grid is-dragging selama drag agar chip tak menelan dragover', () => {
+    renderCalendar();
+    const grid = document.querySelector('.due-cal-grid') as HTMLElement;
+    const chip = screen.getByText('Ship calendar').closest('.due-cal-task') as HTMLElement;
+    expect(grid.classList.contains('is-dragging')).toBe(false);
+    fireEvent.dragStart(chip, { dataTransfer: dataTransfer() });
+    expect(grid.classList.contains('is-dragging')).toBe(true);
+    fireEvent.dragEnd(chip);
+    expect(grid.classList.contains('is-dragging')).toBe(false);
+  });
+
+  it('highlight seluruh rentang span task multi-hari (bukan 1 cell)', () => {
+    mockState.tasks = [
+      ...mockState.tasks,
+      {
+        id: '77777777-7777-4777-8777-777777777777',
+        title: 'Span task',
+        status: 'todo',
+        priority: 'medium',
+        labels: [],
+        blockedBy: [],
+        startDate: '2026-08-19',
+        dueDate: '2026-08-20',
+        description: '',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ];
+    renderCalendar();
+    const chip = screen.getByText('Span task').closest('.due-cal-task') as HTMLElement;
+    const spanTransfer = () => ({ getData: () => '77777777-7777-4777-8777-777777777777', setData: vi.fn(), effectAllowed: 'move' }) as unknown as DataTransfer;
+    fireEvent.dragStart(chip, { dataTransfer: spanTransfer() });
+    const c21 = document.querySelector('[data-date="2026-08-21"]') as HTMLElement;
+    const c22 = document.querySelector('[data-date="2026-08-22"]') as HTMLElement;
+    const c23 = document.querySelector('[data-date="2026-08-23"]') as HTMLElement;
+    fireEvent.dragOver(c21, { dataTransfer: spanTransfer() });
+    expect(c21.classList.contains('due-cal-cell--drop-active')).toBe(true);
+    expect(c22.classList.contains('due-cal-cell--drop-active')).toBe(true);
+    expect(c23.classList.contains('due-cal-cell--drop-active')).toBe(false);
+    fireEvent.drop(c21, { dataTransfer: spanTransfer() });
+    expect(mocks.dispatch).toHaveBeenCalledWith({
+      type: 'task/update',
+      id: '77777777-7777-4777-8777-777777777777',
+      patch: { dueDate: '2026-08-22', startDate: '2026-08-21' },
+    });
+    expect(document.querySelector('.due-cal-cell--drop-active')).toBeNull();
   });
 
   it('navigates months with the prev and next buttons', () => {

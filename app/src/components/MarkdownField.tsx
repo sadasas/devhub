@@ -20,6 +20,10 @@ interface MarkdownFieldProps {
   id?: string;
   /** 'bare' = borderless + autogrow + fokus berarti edit (tanpa toggle). */
   variant?: 'default' | 'bare';
+  /** Bare: langsung mode edit saat mount (untuk modal yang tujuannya mengedit). Default false = preview dulu. */
+  startEditing?: boolean;
+  /** Bare: sembunyikan baris kepala ikon+label (bila judul sudah ada di tempat lain, mis. header modal). Default false. */
+  hideHead?: boolean;
   /** @deprecated Diabaikan — mode bare kini fokus=edit otomatis. Jangan dipakai di kode baru. */
   previewToggle?: boolean;
 }
@@ -35,11 +39,13 @@ export function MarkdownField({
   maxLength = 10000,
   id,
   variant = 'default',
+  startEditing = false,
+  hideHead = false,
   previewToggle: _previewToggle = false,
 }: MarkdownFieldProps) {
   const { t } = useTranslation(['project', 'tracker']);
   const [fullscreen, setFullscreen] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(startEditing);
   const [focused, setFocused] = useState(false);
   const bareRef = useRef<HTMLTextAreaElement | null>(null);
   // Autogrow tanpa batas untuk varian bare — yang scroll parent-nya, bukan textarea.
@@ -55,12 +61,14 @@ export function MarkdownField({
     <>
       {variant === 'bare' ? (
         <div className="md-bare">
-          <div className="md-bare-head">
-            <span className="md-inline-icon">
-              <Icon size={12} aria-hidden="true" /> {label}
-            </span>
-            <span className="spacer" />
-          </div>
+          {!hideHead && (
+            <div className="md-bare-head">
+              <span className="md-inline-icon">
+                <Icon size={12} aria-hidden="true" /> {label}
+              </span>
+              <span className="spacer" />
+            </div>
+          )}
           {editing || value.length === 0 ? (
             <textarea
               ref={bareRef}

@@ -496,4 +496,55 @@ Keputusan kunci: presentasi memakai Fullscreen API (bukan CSS semu) dengan unmou
 
 ---
 
+## 28. ERD Canvas R2 — warna header + rail kiri + animasi relasi
+
+Paket ChartDB-style di overlay ERD fullscreen (`?schemaView=erd&canvas=1`), seluruhnya zod-only tanpa migrasi DB (precedent M19/M20):
+
+| Fokus | Isi |
+|---|---|
+| Warna header | `Table.color` (`#rrggbb`, `null` = Default, regex server + `FE_LIMITS.TABLE_COLOR`); `erd-header-color.ts` pure (luminance WCAG + judul kontras); `TableColorPicker` = native `<input type="color">` bulat + tombol Default (palet preset dihapus), dipakai panel + `TableModal` + `NewTableModal`; render `ERD.tsx` via inline `style fill` (regresi cascade: presentation attr kalah oleh CSS class); `erd-export.ts` SVG ikut warna; diff mencatat `color: a → b` |
+| Rail kiri | `ERDCanvasMode` sidebar full-height 1 kartu `[rail \| panel]` + area kanan (judul center-top, kanvas penuh, pill bottom-center); sub-tab dalam panel dihapus (rail satu-satunya switcher); tab Versions (reuse list/Save/Diff/`?v=`) + viewer DBML (copy + download) masuk canvas; issues tetap paling bawah semua tab |
+| Editor panel | Type kolom editable via `ColumnTypeCombobox` reuse (hint read-only dihapus); hapus kolom pakai ikon `Trash` 13px sesuai token (panel + kedua modal); tambah kolom auto-expand + fokus input nama (panel + kedua modal fokus) |
+| Animasi relasi | Tabel diklik → relasi insiden overlay `.erd-rel-flow` (dash mengalir keluar, reverse bila sisi `to`) + tetangga outline dashed + sisanya redup; `prefers-reduced-motion` = highlight statis; announce SR +count relasi; export SVG bebas class animasi; tanpa relasi = tanpa animasi (by-design) |
+
+**Verifikasi akhir paket (build mode):** schema 321/321 (29 file), `tsc -b` app+server bersih (catatan: `tsc -p tsconfig.json` root vakuum karena solution file — selalu pakai `tsc -b`), lint 0 error; full app suite — hanya 3 whiteboard pre-existing (terbukti di tree bersih) + 1 board flake (lolos 3× terisolasi, file tak tersentuh paket ini); server `table-color`/`erd-groups` mengikuti pola DB-test (butuh `DATABASE_URL_TEST`, jalan di CI).
+
+### Autosave guard semua entity (lanjutan §28)
+
+Guard `isInvalidEntityAction`/`isStoredEntityInvalid` yang dulu hanya 6 entity (tasks/issues/decisions/testCases/techEntries/milestones) diperluas ke tables (+semua kolom name & type), relations, apiCollections/apiEndpoints, whiteboards (nama saja), schemaVersions — mirror `min(1)` backend. Draft invalid tetap bisa diketik lokal; kirim ditahan tanpa `saveError`/retry 400 sampai valid. Menutup kasus kolom kosong (`unnamed`) yang memicu 400 berulang.
+
+### Anti-hilang resync: preservasi kerja lokal belum tersimpan
+
+Rantai "data hilang sendiri": submit modal memproduksi kolom type-kosong → guard menahan mutasi diam-diam → indikator tetap "All changes saved" (`setLastSavedAt` tanpa kecuali) → resync/poll menimpa penuh dari server. Perbaikan: (1) submit `NewTableModal` menormalkan type kosong → `'TEXT'` (menyamai fallback exporter); (2) `invalidPendingRef` mencatat entity tertahan; `mergePreservedEntities` (murni, teruji) menggabungkan versi lokal di atas snapshot server di semua jalur penggantian state (resync WS, polling 5s, post-replay) — kecuali `resolveConflict` eksplisit pilihan pengguna; (3) key dibersihkan saat entity valid/terkirim/dihapus. Tanpa ubah API context (tak ada push-toast; banner existing dipertahankan).
+
+### Footer TableModal ala IssueModal
+
+Footer `TableModal`: tombol Delete danger di kiri + indikator save-state (`Saving…` / CheckCircle + `All changes saved`) di kanan — mirror `IssueModal`, layout via `.modal-footer:has(.save-state)` yang sudah ada (tanpa CSS baru). Kunci i18n wajib prefix eksplisit `tracker:` (pelajaran: `useTranslation` array-ns tidak fallback lintas-ns untuk key tanpa prefix — TechModal/MilestoneModal sudah begitu; IssueModal lolos karena ns pertamanya tracker).
+
+### Issues nempel bawah sidebar
+
+`.erd-sidebar-panel` jadi `overflow:hidden` + aside `flex column height:100%`; tabpanel scroll internal (`flex:1`, sudah ada), issues `flex-shrink:0` (sudah ada) — tanpa ubah TSX. Berlaku juga di bottom-sheet mobile (46dvh).
+
+### Areas ala ChartDB (grup domain di ERD)
+
+`erdGroups` sebagai granular entity penuh (zod-only, tanpa migrasi): `{name, color, tableIds}` + geometri opsional `{x, y, w, h}` (min 120×80; absen = bounds turunan anggota, grup lama tetap jalan), cap 20/proyek, cascade hapus-tabel strip membership (server + client), realtime/activity/search/unread otomatis via registrasi generik, export/import JSON ikut, snapshot `?v=` menyembunyikan areas (snapshot hanya tables+relations). UI: rail ke-5 + tabpanel Areas sendiri (ikon `Selection`); create via toolbar (`SelectionPlus`, auto-expand lewat `groupFocusRequest` pola locateRequest); rename/warna/member checkbox/hapus di panel; render boundary dashed + label chip berwarna (halo `paint-order`, ikut export SVG/PNG); drop spasial join/leave (`onAssignTableGroup`, terkecil menang); geser label/border grup = geser semua anggota (preview offset, commit per tabel + geometri bila eksplisit) + resize 4 handle sudut (commit `onMoveGroup`, min clamp); Esc tier + klik kosong melepas; keyboard via checkbox panel; guard autosave `isErdGroupValid`. Interaksi pointer: border `visibleStroke` (drag geser, interior tetap pan), label + handle `pointer-events auto` (pernah mati karena warisan `none` dari parent — boundary tak tersentuh = klik tembus jadi pan + handle tak bisa diklik). Tanpa MCP tools, tanpa nested.
+
+### Flags toggle kolom [N]/[kunci]/[U]
+
+Tiga checkbox (Nullable/Primary key/Unique) diganti grup toggle compact shared `ColumnFlagsToggle` (panel + TableModal + NewTableModal) + helper murni `nextColumnFlags` (invarian PK ⟹ NOT NULL dua arah); Unique tetap berbasis `indexes[]` (pindah dari kepala baris/grid ke grup); grid modal 8→6 kolom + caption "Flags" reuse; badge U di kepala baris panel agar status tetap terbaca.
+
+### Auto increment
+
+Flag `Column.autoincrement` (zod-only): toggle ke-4 grup flags (ikon Hash, aktif hanya untuk tipe integer via `canAutoincrement`); DDL `INTEGER→SERIAL`/`BIGINT→BIGSERIAL`/`SMALLINT→SMALLSERIAL` + DEFAULT digugurkan; DBML `[increment]`; impor menormalkan `SERIAL→INTEGER` + flag (round-trip); tipe SERIAL tulisan-tangan lolos apa adanya (kompatibel mundur).
+
+### Hapus input manual Indexes
+
+Input teks koma diganti: toggle "Indexed" (I) per kolom untuk index biasa + chip read-only + hapus per entri untuk composite/ekspresi/legacy (TableModal; NewTableModal tampil chip + hint); composite baru eksplisit tidak didukung; lint `index-typo` dipertahankan; export/diff/impor tak berubah.
+
+### Picker warna khusus kanvas
+
+`TableColorPicker` dihapus dari TableModal + NewTableModal (tabel baru selalu Default); pengaturan warna hanya via panel kanvas ERD.
+
+---
+
 *End of Roadmap.*

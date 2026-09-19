@@ -6,11 +6,9 @@ import {
   ChartBar,
   CurrencyCircleDollar,
   GearSix,
-  GithubLogo,
   MagnifyingGlass,
   Trash,
 } from '@phosphor-icons/react';
-import { Badge } from '../../components/Badge';
 import { SETTINGS_SUB_KEYS, normalizeSettingsSection, type SettingsSection } from '../dashboard/settingsSections';
 
 interface SettingsNavProps {
@@ -30,11 +28,10 @@ export function SettingsNav({ teamSlug, dashboardTo, onSelect }: SettingsNavProp
   const [query, setQuery] = useState('');
   const active = normalizeSettingsSection(searchParams.get('section'));
 
-  const items: { key: SettingsSection; icon: ReactNode; label: string; soon?: boolean }[] = [
+  const items: { key: SettingsSection; icon: ReactNode; label: string }[] = [
     { key: 'general', icon: <GearSix size={15} weight="duotone" aria-hidden="true" />, label: t('dashboard.team.settingsGeneralTitle') as string },
     { key: 'plan', icon: <CurrencyCircleDollar size={15} weight="duotone" aria-hidden="true" />, label: t('dashboard.team.settingsNavPlanBilling') as string },
     { key: 'usage', icon: <ChartBar size={15} weight="duotone" aria-hidden="true" />, label: t('dashboard.team.settingsUsageTitle') as string },
-    { key: 'github', icon: <GithubLogo size={15} weight="duotone" aria-hidden="true" />, label: t('dashboard.team.settingsGithubTitle') as string, soon: true },
     { key: 'danger', icon: <Trash size={15} weight="duotone" aria-hidden="true" />, label: t('dashboard.team.settingsDangerTitle') as string },
   ];
   const filter = query.trim().toLowerCase();
@@ -95,7 +92,6 @@ export function SettingsNav({ teamSlug, dashboardTo, onSelect }: SettingsNavProp
                 </span>
               )}
             </span>
-            {item.soon && <Badge tone="info">{t('dashboard.team.settingsNavSoon')}</Badge>}
           </Link>
         );
       })}

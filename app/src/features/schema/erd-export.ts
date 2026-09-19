@@ -7,8 +7,10 @@
    Dark-only palette mirrors the app CSS vars as literal hex/rgba so the
    file renders standalone (incl. a solid canvas background). */
 
-import type { Relation, Table } from '../../lib/types';
+import type { ErdGroup, Relation, Table } from '../../lib/types';
 import { safeFileName, triggerDownload } from '../whiteboard/export';
+import { headerTitleColor, normalizeHeaderColor } from './erd-header-color';
+import { resolveGroupBox } from './erd-groups';
 
 export const ERD_TABLE_W = 208;
 export const ERD_HEADER_H = 30;
@@ -26,6 +28,7 @@ const ERD_ACCENT = '#5db69b';
 const ERD_TEXT = '#e8e8ea';
 const ERD_TEXT_MUTED = '#8e8e98';
 const ERD_REL_STROKE = 'rgba(255, 255, 255, 0.11)';
+const ERD_GROUP_STROKE = 'rgba(255, 255, 255, 0.25)';
 const ERD_FONT = "ui-monospace, 'Cascadia Code', Consolas, Menlo, monospace";
 
 interface ErdBox {
@@ -79,15 +82,42 @@ function columnY(index: number): number {
   return ERD_HEADER_H + index * ERD_ROW_H + ERD_ROW_H / 2;
 }
 
-/** Serializes tables + relations to a standalone SVG document (no DOM needed). */
+/** Serializes tables + relations (+ optional area groups) to a standalone SVG document (no DOM needed). */
 export function serializeERD(
   tables: readonly Table[] | null | undefined,
   relations: readonly Relation[] | null | undefined,
+  groups: readonly ErdGroup[] | null | undefined = [],
 ): string {
   const safeTables = tables ?? [];
   const safeRelations = relations ?? [];
   const layout = layoutTables(safeTables);
   const byId = new Map(layout.map((l) => [l.table.id, l]));
+
+  const groupBoxes = (groups ?? [])
+    .map((group) => resolveGroupBox(group, layout, ERD_TABLE_W))
+    .filter((b): b is NonNullable<typeof b> => b !== null);
+  const groupSvg = groupBoxes
+    .map(({ group, x, y, w, h }) => {
+      let stroke = ERD_GROUP_STROKE;
+      try {
+        const c = normalizeHeaderColor(group.color ?? null);
+        if (c) stroke = c;
+      } catch {
+        /* fallback default */
+      }
+      const label = group.name.trim() !== '' ? group.name : 'Area';
+      const custom = stroke !== ERD_GROUP_STROKE;
+      const labelFill = custom ? headerTitleColor(stroke) : ERD_TEXT_MUTED;
+      const halo = custom
+        ? ` paint-order="stroke" stroke="${stroke}" stroke-width="14" stroke-linejoin="round" stroke-opacity="0.25"`
+        : '';
+      return (
+        `<g><title>${esc(label)}</title>` +
+        `<rect x="${round(x)}" y="${round(y)}" width="${round(w)}" height="${round(h)}" rx="10" fill="${stroke}" fill-opacity="0.08" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="8 6"/>` +
+        `<text x="${round(x + 12)}" y="${round(y + 22)}" font-size="11" font-weight="600" fill="${labelFill}"${halo}>${esc(truncate(label, 28))}</text></g>`
+      );
+    })
+    .join('');
 
   let minX = 0;
   let minY = 0;
@@ -98,6 +128,13 @@ export function serializeERD(
     minY = Math.min(...layout.map((l) => l.y));
     maxX = Math.max(...layout.map((l) => l.x + ERD_TABLE_W));
     maxY = Math.max(...layout.map((l) => l.y + l.h));
+  }
+  // Rect area eksplisit bisa melampaui tabel — ikutkan ke viewBox.
+  for (const b of groupBoxes) {
+    if (b.x < minX) minX = b.x;
+    if (b.y < minY) minY = b.y;
+    if (b.x + b.w > maxX) maxX = b.x + b.w;
+    if (b.y + b.h > maxY) maxY = b.y + b.h;
   }
   const vx = minX - ERD_EXPORT_MARGIN;
   const vy = minY - ERD_EXPORT_MARGIN;
@@ -132,6 +169,20 @@ export function serializeERD(
   const tableSvg = layout
     .map((l) => {
       const table = l.table;
+      // U11: warna header + judul kontras per tabel (tanpa class animasi — murni fill inline).
+      // never-throw: normalize gagal -> fallback default.
+      let customFill: string | null = null;
+      let titleFill = ERD_ACCENT;
+      let headFill = ERD_HEADER_FILL;
+      try {
+        customFill = normalizeHeaderColor((table as Table).color ?? null);
+        if (customFill) {
+          headFill = customFill;
+          titleFill = headerTitleColor(customFill);
+        }
+      } catch {
+        customFill = null;
+      }
       const cols = table.columns
         .map((c, idx) => {
           const y = ERD_HEADER_H + idx * ERD_ROW_H;
@@ -148,9 +199,9 @@ export function serializeERD(
       return (
         `<g transform="translate(${round(l.x)},${round(l.y)})"><title>${esc(table.name)}</title>` +
         `<rect width="${ERD_TABLE_W}" height="${round(l.h)}" rx="8" fill="${ERD_TABLE_FILL}" stroke="${ERD_TABLE_STROKE}" stroke-width="1"/>` +
-        `<rect width="${ERD_TABLE_W}" height="${ERD_HEADER_H}" rx="8" fill="${ERD_HEADER_FILL}"/>` +
-        `<rect y="${ERD_HEADER_H - 8}" width="${ERD_TABLE_W}" height="8" fill="${ERD_HEADER_FILL}"/>` +
-        `<text x="12" y="20" font-size="11.5" font-weight="600" fill="${ERD_ACCENT}">${esc(truncate(table.name, 24))}</text>` +
+        `<rect width="${ERD_TABLE_W}" height="${ERD_HEADER_H}" rx="8" fill="${headFill}"/>` +
+        `<rect y="${ERD_HEADER_H - 8}" width="${ERD_TABLE_W}" height="8" fill="${headFill}"/>` +
+        `<text x="12" y="20" font-size="11.5" font-weight="600" fill="${titleFill}">${esc(truncate(table.name, 24))}</text>` +
         `${cols}</g>`
       );
     })
@@ -160,7 +211,7 @@ export function serializeERD(
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${round(vx)} ${round(vy)} ${round(vw)} ${round(vh)}" ` +
     `width="${round(vw)}" height="${round(vh)}" font-family="${ERD_FONT}" role="img">` +
     `<rect x="${round(vx)}" y="${round(vy)}" width="${round(vw)}" height="${round(vh)}" fill="${ERD_BG}"/>` +
-    `${relSvg}${tableSvg}</svg>`
+    `${groupSvg}${relSvg}${tableSvg}</svg>`
   );
 }
 
@@ -169,8 +220,9 @@ export function downloadERDSVG(
   tables: readonly Table[],
   relations: readonly Relation[],
   filenameBase: string,
+  groups: readonly ErdGroup[] = [],
 ): void {
-  const svg = serializeERD(tables, relations);
+  const svg = serializeERD(tables, relations, groups);
   const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
   triggerDownload(url, `${safeFileName(filenameBase)}.svg`);
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
@@ -181,8 +233,9 @@ export function downloadERDPNG(
   tables: readonly Table[],
   relations: readonly Relation[],
   filenameBase: string,
+  groups: readonly ErdGroup[] = [],
 ): void {
-  const svg = serializeERD(tables, relations);
+  const svg = serializeERD(tables, relations, groups);
   const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
   const img = new Image();
   img.onload = () => {

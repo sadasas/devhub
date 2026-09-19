@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
-import { Archive, ArrowCounterClockwise, ChartBar, Check, Copy, PencilSimple } from '@phosphor-icons/react';
+import { Link } from 'react-router';
+import { Archive, ArrowCounterClockwise, ChartBar, PencilSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import type { Project } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { useProjects } from '../../state/projects-context';
-import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { api } from '../../lib/api';
 import { formatDate } from '../../lib/utils';
 import { formatHours } from '../../lib/format';
@@ -22,7 +22,7 @@ import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { DataErrorState } from '../../components/DataErrorState';
 import { Skeleton } from '../../components/Skeleton';
-import { EditPrdModal } from '../project/EditPrdModal';
+import { EditPrdSectionModal, type PrdEditKey } from '../project/EditPrdSectionModal';
 
 const STATUS_ORDER: TaskStatus[] = ['todo', 'inProgress', 'review', 'done'];
 const SEVERITY_ORDER: IssueSeverity[] = ['critical', 'high', 'medium', 'low'];
@@ -86,28 +86,71 @@ function Donut({ segments, total }: { segments: { value: number; color: string }
   );
 }
 
-function Bars({ rows }: { rows: { label: string; value: number; color: string }[] }) {
+function Bars({
+  rows,
+  formatValue,
+  ariaLabel,
+}: {
+  rows: { label: string; value: number; color: string; tab?: string; projectId?: string }[];
+  formatValue?: (v: number) => string;
+  ariaLabel?: string;
+}) {
   const max = Math.max(1, ...rows.map((r) => r.value));
+  const fmt = formatValue ?? ((v: number) => String(v));
   return (
-    <div className="bars">
-      {rows.map((r) => (
-        <div key={r.label} className="bar-row">
-          <span className="bar-label">{r.label}</span>
-          <div className="bar-track">
-            <div className="bar-fill" style={{ width: `${(r.value / max) * 100}%`, background: r.color }} />
+    <div className="bars" role="img" aria-label={ariaLabel}>
+      {rows.map((r) => {
+        const row = (
+          <>
+            <span className="bar-label">{r.label}</span>
+            <div className="bar-track">
+              <div className="bar-fill" style={{ width: `${(r.value / max) * 100}%`, background: r.color }} />
+            </div>
+            <span className="bar-value tabular">{fmt(r.value)}</span>
+          </>
+        );
+        return r.tab && r.projectId ? (
+          <Link
+            key={r.label}
+            className="bar-row bar-row-link"
+            to={`/project/${encodeURIComponent(r.projectId)}?tab=${r.tab}`}
+            aria-label={`${r.label}: ${fmt(r.value)}`}
+          >
+            {row}
+          </Link>
+        ) : (
+          <div key={r.label} className="bar-row">
+            {row}
           </div>
-          <span className="bar-value">{formatHours(r.value)}</span>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
-function StatCard({ title, value, children }: { title: string; value: string; children?: ReactNode }) {
+function StatCard({
+  title,
+  value,
+  children,
+  linkTo,
+}: {
+  title: string;
+  value: string;
+  children?: ReactNode;
+  linkTo?: string;
+}) {
   return (
     <div className="stat-card">
-      <h3 className="stat-card-title">{title}</h3>
-      <span className="stat-card-value">{value}</span>
+      <div className="stat-card-head">
+        <h3 className="stat-card-title">{title}</h3>
+        {linkTo && (
+          <Link className="stat-card-link" to={linkTo}>
+            &rarr;
+            <span className="sr-only">{title}</span>
+          </Link>
+        )}
+      </div>
+      {value !== '' && <span className="stat-card-value">{value}</span>}
       {children}
     </div>
   );
@@ -156,12 +199,12 @@ function MemberBars({ open, done }: { open: number; done: number }) {
   );
 }
 
-function MemberRow({ stat }: { stat: MemberStat }) {
+function MemberRow({ stat, lateHint }: { stat: MemberStat; lateHint: string }) {
   const total = stat.open + stat.done;
   const pct = total > 0 ? Math.round((stat.done / total) * 100) : 0;
   const unassigned = stat.id === null;
   return (
-    <div className={`member-row${unassigned ? ' member-row-unassigned' : ''}`}>
+    <div className={`member-row${unassigned ? ' member-row-unassigned' : ''}`} role="row">
       {stat.id ? (
         <Avatar
           src={stat.avatarUrl ?? null}
@@ -176,19 +219,30 @@ function MemberRow({ stat }: { stat: MemberStat }) {
           —
         </span>
       )}
-      <span className="member-name" title={stat.email}>
+      <span className="member-name" title={stat.email} role="cell">
         {stat.email}
       </span>
-      <div className="member-bar-wrap">
+      <div className="member-bar-wrap" role="cell">
         <MemberBars open={stat.open} done={stat.done} />
       </div>
-      <span className="member-nums tabular">
+      <span className="member-nums tabular" role="cell">
         <span>{stat.open}</span>
         <span>{stat.done}</span>
         <span>{stat.est}</span>
-        <span className={stat.overdue > 0 ? 'member-overdue' : undefined}>{stat.overdue}</span>
+        <span
+          className={stat.overdue > 0 ? 'member-overdue' : undefined}
+          title={lateHint}
+        >
+          {stat.overdue}
+        </span>
       </span>
-      <span className="member-pct tabular">{pct}%</span>
+      <span
+        className="member-pct tabular"
+        role="cell"
+        title={`${stat.done}/${total}`}
+      >
+        {pct}%
+      </span>
     </div>
   );
 }
@@ -197,12 +251,11 @@ export function OverviewPage({ project }: { project: Project }) {
   const { t } = useTranslation('project');
   const { state, loading, error, loadError, canEdit, teamId, retryLoad } = useProject();
   const { update } = useProjects();
-  const [editOpen, setEditOpen] = useState(false);
+  const [editingKey, setEditingKey] = useState<PrdEditKey | null>(null);
   const [restoring, setRestoring] = useState(false);
   const [membersLoaded, setMembersLoaded] = useState(false);
   const [memberNames, setMemberNames] = useState<Record<string, string>>({});
   const [memberAvatars, setMemberAvatars] = useState<Record<string, string | null>>({});
-  const { copied: idCopied, copy: copyId } = useCopyFeedback();
 
   useEffect(() => {
     if (!teamId) {
@@ -240,7 +293,6 @@ export function OverviewPage({ project }: { project: Project }) {
         <div aria-hidden="true">
           <div className="data-list-header">
             <Skeleton style={{ width: 130, height: 15 }} />
-            <Skeleton style={{ width: 96, height: 28, borderRadius: 8 }} />
           </div>
           <div className="about-hero">
             <Skeleton style={{ width: "90%", height: 14 }} />
@@ -249,13 +301,9 @@ export function OverviewPage({ project }: { project: Project }) {
                 <Skeleton key={i} style={{ width: w, height: 20, borderRadius: 999 }} />
               ))}
             </p>
-            <div className="about-idrow" style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
-              <Skeleton style={{ width: 220, height: 14 }} />
-              <Skeleton style={{ width: 64, height: 28, borderRadius: 8 }} />
-            </div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: 10, marginBottom: 22, marginTop: 16 }}>
-            {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+            {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
               <Skeleton key={i} style={{ height: 68, borderRadius: 12 }} />
             ))}
           </div>
@@ -328,23 +376,30 @@ export function OverviewPage({ project }: { project: Project }) {
   const hasChartData = state.tasks.length > 0 || state.issues.length > 0;
   const prdSetCount = PRD_SECTIONS.filter((s) => project.prd[s.key].trim()).length;
 
+  const projectTabTo = (tab: string) => `/project/${encodeURIComponent(project.id)}?tab=${tab}`;
+  const openTasks = state.tasks.filter((task) => task.status !== 'done');
+  const openIssues = state.issues.filter((i) => !['resolved', 'wontfix'].includes(i.status));
+
   const counts = [
     {
       label: t('overview.counts.tasks'),
       value: stats.totalTasks > 0 ? `${stats.doneTasks}/${stats.totalTasks}` : '0',
+      tab: 'board',
     },
-    { label: t('overview.counts.openIssues'), value: String(stats.openIssues) },
-    { label: t('overview.counts.outdatedDeps'), value: String(stats.outdatedDeps) },
-    { label: t('overview.counts.testCases'), value: String(state.testCases.length) },
-    { label: t('overview.counts.stackEntries'), value: String(state.techEntries.length) },
-    { label: t('overview.counts.tables'), value: String(state.tables.length) },
-    { label: t('overview.counts.decisions'), value: String(state.decisions.length) },
+    { label: t('overview.counts.openIssues'), value: String(stats.openIssues), tab: 'issues' },
+    { label: t('overview.counts.overdue'), value: String(stats.overdueTasks), tab: 'board' },
+    { label: t('overview.counts.outdatedDeps'), value: String(stats.outdatedDeps), tab: 'stack' },
+    { label: t('overview.counts.testCases'), value: String(state.testCases.length), tab: 'tests' },
+    { label: t('overview.counts.stackEntries'), value: String(state.techEntries.length), tab: 'stack' },
+    { label: t('overview.counts.tables'), value: String(state.tables.length), tab: 'schema' },
+    { label: t('overview.counts.decisions'), value: String(state.decisions.length), tab: 'decisions' },
     {
       label: t('overview.counts.milestones'),
       value:
         stats.totalMilestones > 0
           ? `${stats.releasedMilestones}/${stats.totalMilestones}`
           : '0',
+      tab: 'releases',
     },
   ];
 
@@ -352,18 +407,40 @@ export function OverviewPage({ project }: { project: Project }) {
     value: state.tasks.filter((task) => task.status === s).length,
     color: STATUS_COLOR[s],
   }));
-  const priorityRows = TASK_PRIORITY_ORDER.map((p) => ({
+  // Urgent-first: paling penting di atas. Hanya task open agar tim yang sudah
+  // selesai tidak terlihat masih menumpuk.
+  const priorityRows = [...TASK_PRIORITY_ORDER].reverse().map((p) => ({
     label: t(`overview.priority.${p}`),
-    value: state.tasks.filter((task) => task.priority === p).length,
+    value: openTasks.filter((task) => task.priority === p).length,
     color: PRIORITY_COLOR[p],
+    tab: 'board',
+    projectId: project.id,
   }));
+  // Hanya issue open — konsisten dengan counter Open issues.
   const severityRows = SEVERITY_ORDER.map((s) => ({
     label: t(`overview.severity.${s}`),
-    value: state.issues.filter((i) => i.severity === s).length,
+    value: openIssues.filter((i) => i.severity === s).length,
     color: SEVERITY_COLOR[s],
+    tab: 'issues',
+    projectId: project.id,
   }));
-  const estimateHours = Math.round(state.tasks.reduce((sum, t) => sum + (t.estimate ?? 0), 0) * 10) / 10;
-  const actualHours = Math.round(state.tasks.reduce((sum, t) => sum + (t.actualHours ?? 0), 0) * 10) / 10;
+  const estimateHours = Math.round(openTasks.reduce((sum, t) => sum + (t.estimate ?? 0), 0) * 10) / 10;
+  const actualHours =
+    Math.round(state.tasks.reduce((sum, t) => sum + (t.actualHours ?? 0), 0) * 10) / 10;
+  const variancePct =
+    estimateHours > 0 ? Math.round(((actualHours - estimateHours) / estimateHours) * 100) : null;
+  const varianceLabel =
+    variancePct === null ? '' : ` · ${variancePct > 0 ? '+' : ''}${variancePct}%`;
+
+  // Fallback next milestone: jangan hilang diam-diam saat paling dibutuhkan
+  // (overdue / in-progress tanpa tanggal valid).
+  const nowMs = Date.now();
+  const overdueMilestones = state.milestones
+    .filter((m) => m.status !== 'released' && m.targetDate && Date.parse(m.targetDate) < nowMs)
+    .sort((a, b) => Date.parse(a.targetDate!) - Date.parse(b.targetDate!));
+  const unscheduledMilestones = state.milestones.filter(
+    (m) => m.status !== 'released' && !m.targetDate,
+  );
 
   const today = todayIso();
   const memberMap = new Map<string | null, MemberStat>();
@@ -383,8 +460,11 @@ export function OverviewPage({ project }: { project: Project }) {
       memberMap.set(key, s);
     }
     if (task.status === 'done') s.done += 1;
-    else s.open += 1;
-    s.est += task.estimate ?? 0;
+    else {
+      s.open += 1;
+      // Workload = sisa kerja open saja; task done tidak ikut membengkakkan est.
+      s.est = Math.round((s.est + (task.estimate ?? 0)) * 10) / 10;
+    }
     if (task.dueDate && task.status !== 'done' && task.dueDate < today) s.overdue += 1;
   }
   const memberStats = [...memberMap.values()].sort((a, b) => {
@@ -397,21 +477,26 @@ export function OverviewPage({ project }: { project: Project }) {
     <div className="about-body">
       <div className="data-list-header">
         <span className="data-list-count">{t('overview.heading')}</span>
-        {canEdit && (
-          <Button
-            size="sm"
-            leftIcon={<PencilSimple size={14} aria-hidden="true" />}
-            onClick={() => setEditOpen(true)}
-          >
-            {t('overview.editPrd')}
-          </Button>
-        )}
       </div>
 
       <div className="about-hero">
-        <p className={`about-description${project.description.trim() ? '' : ' about-description-empty'}`}>
-          {project.description.trim() ? renderInline(project.description) : t('overview.noDescriptionYet')}
-        </p>
+        <div className="about-hero-top">
+          <p className={`about-description${project.description.trim() ? '' : ' about-description-empty'}`}>
+            {project.description.trim() ? renderInline(project.description) : t('overview.noDescriptionYet')}
+          </p>
+          {canEdit && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="about-desc-edit"
+              leftIcon={<PencilSimple size={12} aria-hidden="true" />}
+              onClick={() => setEditingKey('description')}
+              aria-label={`${t('overview.editPrd')}: ${t('prd.titleLabel')}`}
+            >
+              {t('overview.editSection')}
+            </Button>
+          )}
+        </div>
         <p className="about-meta">
           <span className="about-meta-chip">{t('overview.teamChip', { name: project.teamName })}</span>
           <span className="about-meta-chip">{t('overview.createdChip', { date: formatDate(project.createdAt) })}</span>
@@ -422,27 +507,11 @@ export function OverviewPage({ project }: { project: Project }) {
             </Badge>
           </span>
           <span className="about-meta-chip">
-            <Badge tone={TEAM_ROLE[project.role].tone}>{t(`overview.teamRole.${project.role}`)}</Badge>
+            <Badge tone={TEAM_ROLE[project.role].tone}>
+              {t('overview.yourRole', { role: t(`overview.teamRole.${project.role}`) })}
+            </Badge>
           </span>
         </p>
-        <div className="about-idrow">
-          <code className="project-id-code">{project.id}</code>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="project-id-copy"
-            leftIcon={
-              idCopied ? (
-                <Check size={12} weight="bold" aria-hidden="true" />
-              ) : (
-                <Copy size={12} aria-hidden="true" />
-              )
-            }
-            onClick={() => void copyId(project.id)}
-          >
-            {idCopied ? t('actions.copied') : t('actions.copy')}
-          </Button>
-        </div>
         {project.status === 'archived' && canEdit && (
           <div style={{ marginTop: 10 }}>
             <Button
@@ -474,56 +543,94 @@ export function OverviewPage({ project }: { project: Project }) {
 
       <div className="about-stats">
         {counts.map((c) => (
-          <div key={c.label} className="about-stat">
+          <Link
+            key={c.label}
+            className="about-stat about-stat-link"
+            to={projectTabTo(c.tab)}
+            aria-label={`${c.label}: ${c.value}`}
+          >
             <span className="about-stat-title">{c.label}</span>
             <span className="about-stat-value">{c.value}</span>
-          </div>
+          </Link>
         ))}
       </div>
 
       <section className="overview-group" aria-label={t('overview.chartsSectionAria')}>
         <OverviewGroupHead title={t('overview.chartsSectionAria')} />
         {hasChartData ? (
-          <div className="stats-grid">
-            <StatCard title={t('overview.stat.tasksByStatus')} value="">
-              <div className="stat-body-row">
-                <div className="donut-wrap">
-                  <Donut segments={donut} total={stats.totalTasks} />
+          <>
+            <div className="stats-grid">
+              <StatCard
+                title={t('overview.stat.tasksByStatus')}
+                value=""
+                linkTo={projectTabTo('board')}
+              >
+                <div className="stat-body-row">
+                  <div className="donut-wrap">
+                    <Donut segments={donut} total={stats.totalTasks} />
+                  </div>
+                  <div className="chart-legend">
+                    {STATUS_ORDER.map((s) => (
+                      <Link
+                        key={s}
+                        className="legend-row legend-row-link"
+                        to={projectTabTo('board')}
+                        aria-label={`${t(`overview.legend.${s}`)}: ${state.tasks.filter((task) => task.status === s).length}`}
+                      >
+                        <span className="legend-dot" style={{ background: STATUS_COLOR[s] }} />
+                        <span>{t(`overview.legend.${s}`)}</span>
+                        <span className="legend-count">{state.tasks.filter((task) => task.status === s).length}</span>
+                      </Link>
+                    ))}
+                  </div>
                 </div>
-                <div className="chart-legend">
-                  {STATUS_ORDER.map((s) => (
-                    <div key={s} className="legend-row">
-                      <span className="legend-dot" style={{ background: STATUS_COLOR[s] }} />
-                      <span>{t(`overview.legend.${s}`)}</span>
-                      <span className="legend-count">{state.tasks.filter((task) => task.status === s).length}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </StatCard>
-            <StatCard title={t('overview.stat.tasksByPriority')} value="">
-              <Bars rows={priorityRows} />
-            </StatCard>
-            <StatCard title={t('overview.stat.issuesBySeverity')} value="">
-              <Bars rows={severityRows} />
-            </StatCard>
-            <StatCard title={t('overview.stat.estVsActual')} value={`${formatHours(actualHours)}h / ${formatHours(estimateHours)}h`}>
-              <Bars
-                rows={[
-                  { label: t('overview.stat.estimate'), value: estimateHours, color: 'var(--accent)' },
-                  { label: t('overview.stat.actual'), value: actualHours, color: 'var(--status-warn)' },
-                ]}
-              />
-            </StatCard>
-            {stats.nextMilestone && (
+              </StatCard>
+              <StatCard
+                title={t('overview.stat.tasksByPriority')}
+                value=""
+                linkTo={projectTabTo('board')}
+              >
+                <Bars rows={priorityRows} ariaLabel={t('overview.stat.tasksByPriority')} />
+              </StatCard>
+              <StatCard
+                title={t('overview.stat.issuesBySeverity')}
+                value=""
+                linkTo={projectTabTo('issues')}
+              >
+                <Bars rows={severityRows} ariaLabel={t('overview.stat.issuesBySeverity')} />
+              </StatCard>
+              <StatCard
+                title={t('overview.stat.estVsActual')}
+                value={`${formatHours(actualHours)}h / ${formatHours(estimateHours)}h${varianceLabel}`}
+              >
+                <Bars
+                  rows={[
+                    { label: t('overview.stat.estimate'), value: estimateHours, color: 'var(--accent)' },
+                    { label: t('overview.stat.actual'), value: actualHours, color: 'var(--status-warn)' },
+                  ]}
+                  formatValue={(v) => `${formatHours(v)}h`}
+                  ariaLabel={t('overview.stat.estVsActual')}
+                />
+              </StatCard>
+            </div>
+            {stats.nextMilestone ? (
               <p className="stat-note">
                 {t('overview.nextMilestone')} <strong>{stats.nextMilestone.name}</strong>
                 {stats.nextMilestone.targetDate
                   ? ` ${t('overview.nextMilestoneDate', { date: formatDate(stats.nextMilestone.targetDate) })}`
                   : ''}
               </p>
-            )}
-          </div>
+            ) : overdueMilestones.length > 0 ? (
+              <p className="stat-note stat-note-warn">
+                {t('overview.overdueMilestones', { count: overdueMilestones.length })}{' '}
+                <strong>{overdueMilestones[0]!.name}</strong>
+              </p>
+            ) : unscheduledMilestones.length > 0 ? (
+              <p className="stat-note">
+                {t('overview.noDatedMilestones', { count: unscheduledMilestones.length })}
+              </p>
+            ) : null}
+          </>
         ) : (
           <EmptyState
             icon={<ChartBar size={22} />}
@@ -551,21 +658,24 @@ export function OverviewPage({ project }: { project: Project }) {
               </div>
             </div>
           ) : (
-            <div className="member-list">
-              <div className="member-row member-row-head" aria-hidden="true">
+            <div className="member-list" role="table" aria-label={t('overview.membersSectionAria')}>
+              {memberStats.filter((s) => s.id !== null).length <= 1 && (
+                <p className="member-small-note">{t('overview.smallTeamNote')}</p>
+              )}
+              <div className="member-row member-row-head" role="row">
                 <span aria-hidden="true" />
-                <span className="member-name">{t('overview.memberHead.member')}</span>
-                <div className="member-bar-wrap" />
-                <span className="member-nums tabular">
+                <span className="member-name" role="columnheader">{t('overview.memberHead.member')}</span>
+                <div className="member-bar-wrap" aria-hidden="true" />
+                <span className="member-nums tabular" role="columnheader">
                   <span>{t('overview.memberHead.open')}</span>
                   <span>{t('overview.memberHead.done')}</span>
                   <span>{t('overview.memberHead.estHours')}</span>
-                  <span>{t('overview.memberHead.late')}</span>
+                  <span title={t('overview.lateHint')}>{t('overview.memberHead.late')}</span>
                 </span>
-                <span className="member-pct tabular">{t('overview.memberHead.pctDone')}</span>
+                <span className="member-pct tabular" role="columnheader">{t('overview.memberHead.pctDone')}</span>
               </div>
               {memberStats.map((s) => (
-                <MemberRow key={s.id ?? 'unassigned'} stat={s} />
+                <MemberRow key={s.id ?? 'unassigned'} stat={s} lateHint={t('overview.lateHint')} />
               ))}
             </div>
           )}
@@ -579,10 +689,24 @@ export function OverviewPage({ project }: { project: Project }) {
             const value = project.prd[s.key];
             return (
               <section key={s.key} className="about-card">
-                <h3 className="section-title">
-                  <s.icon size={14} weight="bold" aria-hidden="true" />
-                  {t(`prd.section.${s.key}.label`)}
-                </h3>
+                <div className="about-card-head">
+                  <h3 className="section-title">
+                    <s.icon size={14} weight="bold" aria-hidden="true" />
+                    {t(`prd.section.${s.key}.label`)}
+                  </h3>
+                  {canEdit && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="about-card-edit"
+                      leftIcon={<PencilSimple size={12} aria-hidden="true" />}
+                      onClick={() => setEditingKey(s.key)}
+                      aria-label={`${t('overview.editPrd')}: ${t(`prd.section.${s.key}.label`)}`}
+                    >
+                      {t('overview.editSection')}
+                    </Button>
+                  )}
+                </div>
                 {value.trim() ? (
                   <div className="about-card-body">
                     <MarkdownBlocks text={value} />
@@ -596,7 +720,12 @@ export function OverviewPage({ project }: { project: Project }) {
         </div>
       </section>
 
-      <EditPrdModal open={editOpen} onClose={() => setEditOpen(false)} project={project} />
+      <EditPrdSectionModal
+        open={editingKey !== null}
+        section={editingKey ?? 'description'}
+        onClose={() => setEditingKey(null)}
+        project={project}
+      />
     </div>
   );
 }

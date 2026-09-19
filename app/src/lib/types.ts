@@ -74,6 +74,7 @@ export interface Column {
   type: string;
   nullable: boolean;
   primaryKey: boolean;
+  autoincrement?: boolean;
   default?: string | null;
   comment: string;
 }
@@ -81,6 +82,7 @@ export interface Column {
 export interface Table extends Base {
   name: string;
   comment: string;
+  color?: string | null;
   columns: Column[];
   indexes: string[];
 }
@@ -440,6 +442,18 @@ export interface Whiteboard extends Base {
   elements: WhiteboardElement[];
 }
 
+/** Area grup tabel di ERD — bounds dihitung render-time dari tabel anggota. */
+export interface ErdGroup extends Base {
+  name: string;
+  color?: string | null;
+  tableIds: string[];
+  /** Geometri eksplisit (kanvas); absen = bounds turunan anggota. */
+  x?: number | null;
+  y?: number | null;
+  w?: number | null;
+  h?: number | null;
+}
+
 export interface ErdPosition {
   x: number;
   y: number;
@@ -460,6 +474,7 @@ export interface State {
   apiCollections: ApiCollection[];
   apiEndpoints: ApiEndpoint[];
   whiteboards: Whiteboard[];
+  erdGroups?: ErdGroup[];
   timelineOrder?: Record<string, string[]>;
   timelineRow?: Record<string, Record<string, number>>;
   erdLayout?: ErdLayout;

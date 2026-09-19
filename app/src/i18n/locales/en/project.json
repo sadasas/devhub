@@ -35,6 +35,7 @@
   },
   "actions": {
     "menu": "Project actions",
+    "yourRole": "Your role",
     "copy": "Copy",
     "copied": "Copied",
     "export": "Export",
@@ -43,6 +44,44 @@
     "sharePrivate": "Share · Private",
     "saveAsTemplate": "Save as template",
     "delete": "Delete"
+  },
+  "settings": {
+    "title": "Project settings",
+    "back": "Back to project",
+    "general": "General",
+    "integrations": "Integrations",
+    "generalTitle": "General",
+    "generalDesc": "Project name and description. Changes apply to this project.",
+    "copyId": "Copy ID",
+    "copied": "Copied",
+    "unsaved": "You have unsaved changes.",
+    "integrationsTitle": "Integrations",
+    "integrationsDesc": "External connections for this project. Account-level links live in your profile.",
+    "nameLabel": "Project name",
+    "descLabel": "Description",
+    "idLabel": "Project ID",
+    "teamLabel": "Team",
+    "statusLabel": "Status",
+    "statusActive": "Active",
+    "statusArchived": "Archived",
+    "save": "Save changes",
+    "saved": "Saved.",
+    "saveError": "Failed to save project settings.",
+    "readonly": "Only owners and admins can edit project settings.",
+    "danger": "Danger zone",
+    "dangerTitle": "Danger zone",
+    "dangerDesc": "Irreversible and visibility actions for this project.",
+    "dangerArchiveName": "Archive project",
+    "dangerArchiveCopy": "Hide this project from lists. You can restore it anytime.",
+    "dangerArchive": "Archive",
+    "dangerRestoreName": "Restore project",
+    "dangerRestoreCopy": "Bring this project back to active. Board and data are untouched.",
+    "dangerRestore": "Restore",
+    "dangerDeleteName": "Delete project",
+    "dangerDeleteCopy": "Permanently delete this project and all its data. This cannot be undone.",
+    "dangerDelete": "Delete",
+    "dangerTypeLabel": "Project name",
+    "dangerTypeMismatch": "Name does not match."
   },
   "deleteModal": {
     "title": "Delete project",
@@ -356,7 +395,41 @@
       "toolbarAria": "ERD canvas tools",
       "present": "Present",
       "exitPresent": "Exit presentation",
-      "presentAnnounce": "Presentation mode. Press Escape to exit."
+      "presentAnnounce": "Presentation mode. Press Escape to exit.",
+      "sheetExpand": "Expand panel",
+      "sheetCollapse": "Collapse panel"
+    },
+    "rail": {
+      "aria": "ERD panel tabs",
+      "tables": "Tables",
+      "refs": "Refs",
+      "areas": "Areas",
+      "versions": "Versions",
+      "dbml": "DBML"
+    },
+    "dbml": {
+      "title": "DBML preview",
+      "copy": "Copy DBML",
+      "copied": "Copied",
+      "copyFailed": "Copy failed",
+      "download": "Download .dbml",
+      "empty": "No tables to export",
+      "previewAria": "DBML source preview"
+    },
+    "areas": {
+      "title": "Areas",
+      "new": "New area",
+      "empty": "No areas yet — group tables into domains.",
+      "untitled": "Untitled area",
+      "defaultName": "Area {{n}}",
+      "membersLabel": "Tables",
+      "membersCount": "{{count}} tables",
+      "noTables": "No tables to add yet.",
+      "delete": "Delete area",
+      "snapshotHidden": "Areas are hidden while viewing a snapshot.",
+      "colorLabel": "Color",
+      "addTable": "Add table…",
+      "removeMember": "Remove {{name}} from area"
     },
     "panel": {
       "aria": "Table or relation properties",
@@ -386,10 +459,12 @@
       "cardinalityLabel": "Cardinality",
       "onDeleteLabel": "On delete",
       "deleteRelation": "Delete relation",
-      "tableSelected": "Table {{name}} selected — properties panel updated",
+      "tableSelected": "Table {{name}} selected — {{count}} relations — properties panel updated",
       "relationSelected": "Relation {{label}} selected — properties panel updated",
       "tablesTab": "Tables",
       "relationsTab": "Relations",
+      "versionsTab": "Versions",
+      "dbmlTab": "DBML",
       "tablesSection": "Tables",
       "relationsSection": "Relations",
       "noTables": "No tables yet.",
@@ -409,11 +484,8 @@
       "columnsLabel": "Columns",
       "captionName": "Name",
       "captionType": "Type",
-      "captionNull": "Null",
-      "captionPk": "PK",
       "captionDefault": "Default",
       "captionComment": "Comment",
-      "captionUnique": "Unique",
       "detailCaptionFlags": "Flags",
       "colAria": "Column {{name}}",
       "typeAria": "Type of {{name}}",
@@ -432,6 +504,10 @@
       "uniqueTitle": "Unique",
       "uniqueDisabledTitle": "Enter a column name first to toggle unique",
       "uniqueAria": "Unique for column {{name}}",
+      "autoAria": "Auto increment for column {{name}}",
+      "autoDisabledTitle": "Auto increment needs an integer column type",
+      "indexedAria": "Index for column {{name}}",
+      "indexedDisabledTitle": "Enter a column name first to toggle index",
       "columnCommentPlaceholder": "comment",
       "columnCommentAria": "Comment of {{name}}",
       "typeCustomOption": "Custom…",
@@ -453,11 +529,13 @@
       "noColumnsView": "No columns yet.",
       "addColumn": "Add column",
       "indexesLabel": "Indexes",
-      "indexesHelper": "Comma-separated column or expression names.",
-      "indexesPlaceholder": "created_at, lower(email)",
+      "indexesToggleHint": "Use the U and I toggles on each column.",
+      "removeIndexAria": "Remove index {{index}}",
       "updatedEditInfo": "Updated {{time}} · deleting a column removes its relations",
       "unnamedTable": "Unnamed table",
       "unnamedColumn": "unnamed",
+      "colorLabel": "Header color",
+      "resetColor": "Default header color",
       "activity": "Activity",
       "updated": "Updated {{time}}",
       "deleteConfirmTitle": "Delete table?",
@@ -786,6 +864,7 @@
     "counts": {
       "tasks": "Tasks",
       "openIssues": "Open issues",
+      "overdue": "Overdue",
       "outdatedDeps": "Outdated deps",
       "testCases": "Test cases",
       "stackEntries": "Stack entries",
@@ -793,6 +872,8 @@
       "decisions": "Decisions",
       "milestones": "Milestones"
     },
+    "yourRole": "Your role: {{role}}",
+    "editSection": "Edit",
     "chartsSectionAria": "Charts",
     "membersSectionAria": "Members",
     "briefSectionAria": "Product brief",
@@ -836,6 +917,10 @@
     },
     "nextMilestone": "Next milestone:",
     "nextMilestoneDate": "· {{date}}",
+    "overdueMilestones": "Overdue milestones ({{count}}):",
+    "noDatedMilestones": "No upcoming date — {{count}} active milestone(s) without target.",
+    "lateHint": "Overdue: past due date and not done",
+    "smallTeamNote": "Small team — workload is shared across a few people.",
     "chartsEmptyTitle": "Nothing to chart yet",
     "chartsEmptyDesc": "Create tasks or issues and charts will appear here.",
     "membersTitle": "Members",
@@ -874,7 +959,7 @@
     },
     "welcome": {
       "title": "Welcome to DevHub",
-      "body": "Your technical memory for tasks, issues, and decisions. This 7-step tour shows the fastest path from team to shipped release."
+      "body": "Your technical memory for tasks, issues, and decisions. This 13-step tour shows the fastest path from team to shipped release."
     },
     "team": {
       "title": "Create your team",
@@ -884,21 +969,45 @@
       "title": "Create your first project",
       "body": "Projects hold the board, issues, stack, schema, and releases. Create one to unlock the full workspace."
     },
-    "plan": {
-      "title": "Plan: Board + Issues",
-      "body": "Break work into tasks on the Board (Alt+1) and track bugs in Issues (Alt+2). The N shortcut is paused during this tour."
+    "board": {
+      "title": "Board: Status, Milestone, Calendar",
+      "body": "Three views in the top switcher: Status (Todo to Done kanban), Milestone (per release), and Calendar (due dates, drag between days). Press N for a new task."
     },
-    "build": {
-      "title": "Build: Tests + Stack + Schema",
-      "body": "Lock quality with Test Cases (Alt+3), record versions in Stack (Alt+4), and model data in Schema (Alt+5)."
+    "issues": {
+      "title": "Issues: severity + reproduction",
+      "body": "Log bugs with Critical to Low severity and reproduction steps (markdown supported). Sort by severity or status, pin what is critical."
     },
-    "decide": {
-      "title": "Decide: Decisions + Releases + API",
-      "body": "Log ADRs in Decisions (Alt+6), group work in Releases (Alt+7), and document endpoints in API (Alt+8)."
+    "tests": {
+      "title": "Tests: lock quality",
+      "body": "Write test cases with steps and expected results, link them to tasks or issues, and mark pass, fail, or pending."
     },
-    "collab": {
-      "title": "Collaborate: Whiteboard + Overview",
-      "body": "Sketch flows in Whiteboard (Alt+9) and review health in Overview (Alt+0). Finish here, or replay anytime from Help."
+    "stack": {
+      "title": "Stack: record versions",
+      "body": "Keep an inventory of technologies and versions by category. Flag outdated entries so they surface in Overview."
+    },
+    "schema": {
+      "title": "Schema: model data + ERD",
+      "body": "Define tables, columns (PK, null, default), indexes, and relations — then inspect the ERD graph."
+    },
+    "decisions": {
+      "title": "Decisions: lightweight ADRs",
+      "body": "Record context, options, decision, and consequences, so no decision gets lost in chat."
+    },
+    "releases": {
+      "title": "Releases: milestones + changelog",
+      "body": "Group tasks per milestone (version plus target date) and write a changelog when you ship."
+    },
+    "api": {
+      "title": "API: collections + endpoints + docs",
+      "body": "Group endpoints per collection (GET, POST, and more), fill in params, body, and responses — then read it as shareable docs."
+    },
+    "whiteboard": {
+      "title": "Whiteboard: sketch + flowchart",
+      "body": "Brainstorm and flowchart on one canvas, and pin task or issue reference cards. Pinch to zoom on mobile."
+    },
+    "overview": {
+      "title": "Overview: project health",
+      "body": "Track done versus total, open issues, outdated deps, and per-member contribution. Finish here, or replay anytime from Help."
     }
   }
 }

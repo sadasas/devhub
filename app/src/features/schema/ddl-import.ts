@@ -1654,12 +1654,21 @@ function parseCreateTableStmt(stmt: string, line: number, ctx: Ctx): 'ok' | 'unp
       defCapped = truncateWithWarning(ctx, line, pc.default.trim(), FE_LIMITS.COLUMN_DEFAULT, `column "${nameCapped.value}" default`).value;
     }
     const isPk = pc.primaryKey || pkLower.has(pc.name.toLowerCase());
+    // SERIAL -> basis integer + flag autoincrement (round-trip dengan ddl-export).
+    const serialMatch = typeCapped.value.trim().match(/^(smallserial|serial|bigserial)(\s*\(.*\))?$/i);
+    const serialBase =
+      serialMatch != null
+        ? ({ smallserial: 'SMALLINT', serial: 'INTEGER', bigserial: 'BIGINT' } as Record<string, string>)[
+            serialMatch[1]!.toLowerCase()
+          ]!
+        : null;
     columns.push({
       id: newId(),
       name: nameCapped.value,
-      type: typeCapped.value,
+      type: serialBase ?? typeCapped.value,
       nullable: isPk ? false : pc.nullable,
       primaryKey: isPk,
+      autoincrement: serialBase != null,
       default: defCapped,
       comment: '',
     });

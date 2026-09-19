@@ -23,6 +23,24 @@ async function main() {
   const registry = new RoomRegistry();
   attachRoomRegistry(registry);
   const realtime = createRealtimeServer(server, registry);
+  // T3 GCal outbox worker: interval in-process 60s (tanpa cron lib baru).
+  // - Di-skip saat NODE_ENV=test agar suite vitest deterministik.
+  // - Nonaktifkan via GCAL_OUTBOX_POLL=false bila scheduler eksternal
+  //   (systemd timer / pg_cron) memanggil POST /api/v1/integrations/gcal/outbox/process.
+  // - Aman multi-instance: SELECT due + satu-pending-per-task (coalescing) membuat
+  //   double-process idempoten (insert→patch via event_map).
+  if (config.NODE_ENV !== 'test' && process.env.GCAL_OUTBOX_POLL !== 'false') {
+    const timer = setInterval(() => {
+      void import('./modules/integrations/gcal/application/sync-service.js')
+        .then((m) => m.processOutbox())
+        .catch((err: unknown) => {
+          logger.warn('gcal outbox poll failed', {
+            error: err instanceof Error ? err.message : String(err),
+          });
+        });
+    }, 60_000);
+    timer.unref();
+  }
   server.listen(config.PORT, () => {
     logger.info('devhub-server listening', { port: config.PORT, env: config.NODE_ENV });
   });

@@ -482,8 +482,8 @@
       "add": "Tambah response",
       "remove": "Hapus response"
     },
-      "activity": "Aktivitas",
-      "duplicateEndpoint": "Endpoint dengan method dan path ini sudah ada.",
+    "activity": "Aktivitas",
+    "duplicateEndpoint": "Endpoint dengan method dan path ini sudah ada.",
     "collection": {
       "nameAria": "Nama koleksi",
       "descPlaceholder": "Apa yang dikelompokkan koleksi ini?",
@@ -799,6 +799,7 @@
       "testCases": "Test case"
     },
     "noDescription": "Belum ada deskripsi.",
+    "sharedSummaryNote": "Ringkasan share — grafik dan anggota disembunyikan di tampilan publik.",
     "about": {
       "team": "Tim: {{name}}"
     },
@@ -1026,5 +1027,40 @@
       "goToKeys": "Panduan OAuth",
       "goToMcp": "Buka panduan MCP"
     }
+  },
+  "gcal": {
+    "title": "Google Calendar",
+    "helper": "Sinkronkan task bertenggat ke Google Calendar. Sambungkan ulang saat koneksi kedaluwarsa.",
+    "syncTitle": "Sinkronisasi kalender",
+    "syncDesc": "Buat dan perbarui event kalender dari task bertenggat.",
+    "syncOn": "Sinkronisasi aktif",
+    "syncSaving": "Menyimpan…",
+    "syncOff": "Sinkronisasi mati",
+    "connected": "Terhubung",
+    "disconnected": "Belum terhubung",
+    "expired": "Koneksi kedaluwarsa",
+    "connect": "Hubungkan",
+    "disconnect": "Putuskan",
+    "reconnect": "Sambungkan ulang",
+    "disconnectTitle": "Putuskan Google Calendar?",
+    "disconnectDesc": "DevHub akan berhenti menyinkronkan task ke Google Calendar. Event yang sudah ada tetap ada di kalendermu.",
+    "bannerText": "Google Calendar perlu disambungkan ulang — sinkronisasi dijeda.",
+    "loadError": "Gagal memuat status kalender.",
+    "toggleError": "Gagal memperbarui pengaturan sinkronisasi.",
+    "disconnectError": "Gagal memutuskan koneksi.",
+    "retry": "Coba lagi",
+    "loading": "Memuat status kalender…",
+    "lastSync": "Terakhir sinkron {{date}}",
+    "neverSynced": "Belum pernah sinkron",
+    "syncPaused": "Sinkronisasi dijeda",
+    "dismiss": "Tutup",
+    "connectedFlash": "Google Calendar terhubung.",
+    "failed": "Koneksi gagal",
+    "errorInvalidState": "Upaya koneksi kedaluwarsa. Silakan coba Connect lagi.",
+    "errorExchange": "Google menolak koneksi. Periksa setup redirect URI.",
+    "errorNoRefresh": "Google tidak mengembalikan refresh token. Cabut akses lalu coba lagi.",
+    "errorProvider": "Google mengembalikan error. Silakan coba lagi.",
+    "errorSession": "Sesi kedaluwarsa. Masuk lalu coba lagi.",
+    "errorUnknown": "Koneksi Google Calendar gagal ({{code}})."
   }
 }

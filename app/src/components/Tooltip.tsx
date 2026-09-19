@@ -1,4 +1,4 @@
-import { cloneElement, isValidElement, useId, useRef, useState } from 'react';
+import { cloneElement, isValidElement, useEffect, useId, useRef, useState } from 'react';
 import type { CSSProperties, ReactElement, ReactNode, Ref } from 'react';
 import {
   FloatingArrow,
@@ -75,6 +75,7 @@ export interface TooltipProps extends Omit<TooltipCardProps, 'className' | 'id'>
   delay?: number;
   side?: TooltipSide;
   align?: TooltipAlign;
+  /** Nonaktif total: tak terbuka + yang sedang terbuka langsung ditutup. */
   disabled?: boolean;
   /** Class untuk pembungkus trigger (mode wrap saja). */
   triggerClassName?: string;
@@ -108,6 +109,12 @@ export function Tooltip({
   const [open, setOpen] = useState(false);
   const arrowRef = useRef<SVGSVGElement | null>(null);
   const tooltipId = useId();
+
+  // disabled juga MENUTUP yang sedang terbuka (mis. drag HTML5 dimulai saat
+  // hover/fokus aktif — browser tak menembakkan mouseleave saat drag).
+  useEffect(() => {
+    if (disabled) setOpen(false);
+  }, [disabled]);
 
   const { refs, floatingStyles, context } = useFloating({
     open,
