@@ -99,7 +99,6 @@ export function NewWhiteboardModal({ onClose }: NewWhiteboardModalProps) {
           label={t('whiteboard.newModal.description')}
           rows={3}
           maxLength={2000}
-          helper={t('whiteboard.newModal.descHelper')}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />

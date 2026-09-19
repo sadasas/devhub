@@ -12969,7 +12969,6 @@ input[type='checkbox'] {
 .wb-shell .board-toolbar .wb-tool-actions { gap: 2px; }
 .wb-shell .board-toolbar .wb-sep { margin: 0 2px; flex-shrink: 0; align-self: center; }
 /* Tooltips inside the scroll strip may clip while scrolled; native title remains. */
-.wb-export-menu.wb-shape-menu { z-index: 70; display: grid; grid-template-columns: repeat(7, auto); gap: 2px; padding: 4px; width: max-content; min-width: 0; max-width: calc(100vw - 16px); }
 .wb-export-item.wb-shape-opt { padding: 2px; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; }
 .wb-export-item.wb-shape-opt svg { display: block; width: 28px; height: 28px; }
 .wb-export-item.wb-shape-opt:hover { color: var(--accent); }
@@ -13010,39 +13009,37 @@ input[type='checkbox'] {
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
-/* WB-16/WB-19: board title overlay, top-left inside canvas. */
-.wb-board-title {
+/* WB-16/WB-19: corner panels inside canvas (top-left history/layers,
+   top-right board/present/export). Same tokens as the bottom pill. */
+.wb-corner-tl, .wb-corner-tr {
   position: absolute;
   top: 10px;
-  left: 12px;
-  z-index: 13;
-  font-size: 13px;
+  z-index: 26;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-input);
+  box-shadow: var(--shadow-raised);
+}
+.wb-corner-tl { left: 12px; }
+.wb-corner-tr { right: 12px; max-width: calc(100% - 24px); }
+.wb-corner-name {
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
-  max-width: 38%;
+  padding: 0 6px;
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  pointer-events: none;
+  flex-shrink: 1;
 }
-/* WB-16/WB-19: exit control, top-right inside canvas in overlay modes. */
-.wb-exit-overlay {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 30;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: var(--radius-sm);
-  border: none;
-  background: none;
-  color: var(--text-muted);
-  cursor: pointer;
-}
-.wb-exit-overlay:hover { color: var(--text-primary); background: var(--surface-hover); }
+.wb-corner-tr .wb-export-anchor { position: relative; display: inline-flex; }
+.wb-corner-tr .wb-export-menu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 27; }
+.wb-corner-tl .wb-layers-pop { top: calc(100% + 6px); left: 0; right: auto; bottom: auto; }
 /* WB-17: fullscreen + presentation overlays (schema ERD canvas-mode pattern). */
 .wb-shell.wb-fullscreen,
 .wb-shell.wb-presenting {
@@ -13302,19 +13299,8 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
     padding-right: 10px;
   }
 
-  /* Mode canvas fullscreen: judul board mati, layers di samping tombol close
-     (close 30px di right:10 → layers right:48, sejajar top:10). */
-  .wb-fullscreen .wb-board-title {
-    display: none;
-  }
-  .wb-fullscreen .wb-mobile-layers-anchor {
-    top: 10px;
-    right: 48px;
-  }
-
-  /* Bar zoom + hint bawah disembunyikan (pinch-to-zoom tetap jalan). */
-  .wb-shell .erd-zoom,
-  .wb-shell .wb-hint {
+  /* Bar zoom bawah disembunyikan (pinch-to-zoom tetap jalan). */
+  .wb-shell .erd-zoom {
     display: none;
   }
 
@@ -13327,15 +13313,9 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
     bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   }
 
-  /* Toolbar sembunyi saat sheet properti terbuka (keduanya di bawah). */
-  .wb-main-canvas:has(.wb-mobile-props) .board-toolbar {
-    visibility: hidden;
-  }
-
-  /* Tombol ikon overlay disamakan 32px. */
-  .wb-mobile-undo .sub-tab,
-  .wb-more-grid .sub-tab,
-  .wb-more-actions .sub-tab {
+  /* Tombol ⋮ pill kanan-atas: bujur sangkar agar ikon tepat di tengah
+     (gaya .sub-tab global adalah kapsul tab berteks). */
+  .wb-mobile-tr .sub-tab {
     width: 32px;
     height: 32px;
     padding: 0;
@@ -13345,19 +13325,13 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
     flex-shrink: 0;
   }
 
-  /* Menu •••: toolbar di bawah, panel buka ke atas.
-     Shape submenu ikut buka ke atas: netralkan `top` bawaan
-     .wb-export-menu agar jangkar `bottom` inline berlaku. */
-  .wb-shell .board-toolbar .wb-shape-menu {
-    top: auto;
-  }
   .wb-more-menu {
     position: absolute;
     bottom: calc(100% + 8px);
     left: 50%;
     transform: translateX(-50%);
     z-index: 26;
-    width: max-content;
+    width: 224px;
     max-width: calc(100vw - 32px);
     display: flex;
     flex-direction: column;
@@ -13369,20 +13343,10 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
     box-shadow: var(--shadow-raised);
   }
   .wb-more-grid {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    justify-items: center;
     gap: 2px;
-    max-width: 224px;
-  }
-  .wb-more-sep {
-    height: 1px;
-    background: var(--border-hairline);
-    margin: 2px 4px;
-  }
-  .wb-more-actions {
-    display: flex;
-    gap: 2px;
-    justify-content: center;
   }
   /* Export di dalam panel ••• tampil sebagai daftar statis. */
   .wb-more-export > .wb-export-menu {
@@ -13394,111 +13358,154 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
     min-width: 0;
   }
 
-  /* Undo/redo kiri atas, layers kanan atas. Undo segmented 32px —
-     sama tinggi dengan pill layers (tombol 32px tetap, hemat kanvas). */
-  .wb-mobile-undo {
+  /* Mobile FigJam chrome (sketsa): ramping, pill TL/TR + pill bawah + props bawah. */
+  .wb-mobile-tl, .wb-mobile-tr {
     position: absolute;
     top: 10px;
-    left: 10px;
     z-index: 26;
     display: flex;
+    align-items: center;
     gap: 2px;
-    padding: 0;
+    padding: 4px;
     background: var(--bg-overlay);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-input);
     box-shadow: var(--shadow-raised);
   }
-  .wb-mobile-layers-anchor {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 26;
-  }
-  .wb-mobile-layers {
-    gap: 6px;
-    padding: 0 10px;
-    height: 32px;
-    background: var(--bg-overlay);
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-input);
-    box-shadow: var(--shadow-raised);
-  }
-  .wb-mobile-layers-count {
-    font-size: 11px;
-    color: var(--text-secondary);
-  }
-  .wb-mobile-layers-panel {
+  .wb-mobile-tl { left: 12px; }
+  .wb-mobile-tr { right: 12px; max-width: calc(100% - 24px); }
+  .wb-mobile-trmenu {
     position: absolute;
     top: calc(100% + 8px);
     right: 0;
-    width: min(280px, calc(100vw - 20px));
-    max-height: 50vh;
-    max-height: 50dvh;
-    overflow-y: auto;
-    background: var(--bg-elevated);
-    border: 1px solid var(--border-hairline);
-    border-radius: var(--radius-card);
-    padding: 10px;
-    box-shadow: var(--shadow-raised);
-  }
-
-  /* Sheet properti bawah (auto-hide bila tak ada seleksi/konten). */
-  .wb-mobile-props {
-    position: absolute;
-    left: 8px;
-    right: 8px;
-    bottom: 8px;
-    z-index: 26;
+    z-index: 27;
     display: flex;
-    flex-direction: column;
-    max-height: 46vh;
-    max-height: 46dvh;
-    padding: 6px 12px 12px;
+    flex-direction: row;
+    gap: 2px;
+    min-width: 0;
+    padding: 4px;
     background: var(--bg-overlay);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-card);
     box-shadow: var(--shadow-raised);
   }
-  .wb-mobile-props-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 4px 0 8px;
+  .wb-mobile-trmenu .wb-export-anchor { position: relative; display: flex; }
+  .wb-mobile-delete { color: var(--status-danger); }
+  /* Panel properti menggantikan toolbar saat ada seleksi: selebar layar agar
+     ruang kiri-kanan terpakai, kontrol mengalir ke baris berikut. */
+  .wb-main-canvas .wb-floatwrap {
+    top: auto !important;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    left: 10px !important;
+    right: 10px;
+    transform: none !important;
+    z-index: 25;
+    max-width: none;
   }
-  .wb-mobile-props-delete {
+  .wb-main-canvas .wb-floatwrap .wb-selection-bar {
+    width: 100%;
+    gap: 2px;
+    padding: 4px;
+    border-radius: var(--radius-input);
+    flex-wrap: wrap;
+    align-items: center;
+    align-content: flex-start;
+    max-height: 38dvh;
+    overflow-y: auto;
+  }
+  /* Semua anak bar (termasuk span Tooltip) jadi flex center: baseline
+     ikon-vs-teks tidak lagi membuat item turun/naik. */
+  .wb-main-canvas .wb-floatwrap .wb-selection-bar > * {
+    display: inline-flex;
+    align-items: center;
+  }
+  .wb-main-canvas .wb-floatwrap .wb-dd { align-items: center; }
+  /* Toolbar sembunyi selama panel properti duduk di titiknya. */
+  .wb-main-canvas:has(.wb-floatwrap) .board-toolbar {
+    visibility: hidden;
+  }
+  /* Sel 32px + glyph 20px: muat tanpa bleed (aturan glyph 32px dicabut —
+     glyph lebih besar dari sel membuat ikon saling tumpuk). */
+  .wb-main-canvas .wb-floatwrap .wb-stripbtn,
+  .wb-main-canvas .wb-floatwrap .wb-selection-btn {
+    width: 32px;
+    height: 32px;
+  }
+  .wb-main-canvas .wb-floatwrap .wb-stripbtn svg:not(.wb-caret),
+  .wb-main-canvas .wb-floatwrap .wb-selection-btn svg:not(.wb-caret) {
+    width: 20px;
+    height: 20px;
+  }
+  /* Kembalikan lebar auto khusus toggle dropdown berteks ("Ag", angka):
+     aturan sel 32px di atas sempat menjepitnya jadi kotak. */
+  .wb-main-canvas .wb-floatwrap .wb-stripbtn.wb-dd-btn {
+    width: auto;
+    height: 32px;
+    padding: 0 6px;
+  }
+  /* Mobile rotate handle: tombol mengambang di atas seleksi yang bisa diputar. */
+  .wb-rotate-fab {
+    position: absolute;
+    z-index: 26;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    transform: translate(-50%, -50%);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 44px;
-    min-height: 36px;
-    padding: 0 8px;
+    background: var(--bg-overlay);
+    border: 1px solid var(--border-strong);
+    border-radius: 50%;
+    box-shadow: var(--shadow-raised);
+    color: var(--text-secondary);
+    cursor: grab;
+    touch-action: none;
+  }
+  .wb-rotate-fab:active { cursor: grabbing; color: var(--accent); }
+  /* Sheet ⋮ panel properti: aksi saja, scroll vertikal bila penuh. */
+  .wb-moresheet-sep { height: 1px; background: var(--border-hairline); margin: 8px 0; }
+  .wb-moresheet-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; }
+  .wb-moresheet-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 4px;
     background: none;
     border: none;
     border-radius: var(--radius-sm);
-    color: var(--status-danger);
+    color: var(--text-secondary);
     cursor: pointer;
   }
-  .wb-mobile-props-delete:hover {
-    background: var(--surface-hover);
+  .wb-moresheet-cell:hover { background: var(--surface-hover); }
+  .wb-moresheet-cell:disabled { opacity: 0.4; cursor: default; }
+  .wb-moresheet-cellname { font-size: 12px; text-align: center; }
+  .wb-moresheet-list { display: flex; flex-direction: column; gap: 2px; }
+  .wb-moresheet-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    text-align: left;
+    cursor: pointer;
   }
-  .wb-mobile-props-body {
-    overflow-y: auto;
-    min-height: 0;
-  }
-  /* Judul ganda inspector disembunyikan — sheet sudah punya header. */
-  .wb-mobile-props-body .wb-inspector-head {
-    display: none;
-  }
+  .wb-moresheet-row:hover { background: var(--surface-hover); }
+  .wb-moresheet-row:disabled { opacity: 0.4; cursor: default; }
+  .wb-moresheet-danger { color: var(--status-danger); }
+  .wb-moresheet-rowname { font-size: 12px; }
+  [data-testid="wb-selection"] { stroke-dasharray: 6 4; }
 }
 @media (prefers-reduced-motion: reduce) {
   .wb-canvas { background-image: none; }
 }
 .wb-svg { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
 .wb-svg.dragging { cursor: grabbing; }
-.wb-hint { position: absolute; left: 10px; bottom: 10px; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-muted); pointer-events: none; letter-spacing: 0.02em; }
-.wb-minimap { position: absolute; left: 10px; bottom: 34px; width: 168px; height: 110px; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); overflow: hidden; cursor: pointer; box-shadow: var(--shadow-raised); }
+.wb-minimap { position: absolute; left: 10px; bottom: 10px; width: 168px; height: 110px; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); overflow: hidden; cursor: pointer; box-shadow: var(--shadow-raised); }
 .wb-minimap svg { display: block; width: 100%; height: 100%; }
 .wb-minimap:hover { border-color: var(--accent); }
 .wb-sep { width: 1px; height: 18px; background: var(--border-strong); }
@@ -13510,12 +13517,6 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 .wb-main { display: flex; gap: 16px; align-items: stretch; min-width: 0; }
 .wb-main-canvas { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
 .wb-side { width: 280px; flex-shrink: 0; background: var(--bg-elevated); border: 1px solid var(--border-hairline); border-radius: var(--radius-card); padding: 12px; overflow-y: auto; max-height: calc(100dvh - 340px); align-self: stretch; }
-.wb-inspector { display: flex; flex-direction: column; gap: 10px; font-size: 12.5px; }
-.wb-inspector-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border-hairline); }
-.wb-inspector-title { font-size: 12.5px; font-weight: 600; color: var(--text-primary); }
-.wb-inspector-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px 12px; text-align: center; }
-.wb-inspector-empty-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
-.wb-inspector-empty-desc { font-size: 12.5px; color: var(--text-muted); line-height: 1.5; }
 .wb-font-slider { display: flex; gap: 8px; align-items: center; }
 .wb-font-slider input[type="range"] { flex: 1; accent-color: var(--accent); }
 .wb-font-input { width: 64px; flex-shrink: 0; }
@@ -13572,6 +13573,332 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 .wb-shell:fullscreen .wb-main { flex: 1 1 auto; min-height: 0; }
 .wb-shell:fullscreen .wb-side { max-height: none; }
 .wb-shell:fullscreen .wb-layers-wrap { max-height: none; }
+/* FigJam chrome (2026-09): delightful bottom-center pill, floating panels.
+   Toolbar pindah dari atas ke bawah; dock kanan permanen diganti kartu
+   thrown (inspector) + popover (layers); semua panel gelap mengikuti token. */
+.wb-shell .board-toolbar { top: auto; bottom: 12px; }
+.wb-topbar .wb-export-wrap { flex-shrink: 0; }
+/* Primer shape strip di atas pill (7 FigJam-identical + More). */
+.wb-shape-strip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 26;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-raised);
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  overflow-x: auto;
+}
+.wb-shape-cell { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 2px; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; flex-shrink: 0; }
+.wb-shape-cell:hover { color: var(--accent); background: var(--bg-elevated); }
+.wb-shape-cell[aria-checked="true"] { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--bg-elevated); }
+.wb-shape-cell svg { display: block; }
+.wb-shape-more { padding: 6px 10px; font-size: 12px; white-space: nowrap; background: none; border: 1px solid var(--border-hairline); border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; flex-shrink: 0; }
+.wb-shape-more:hover { color: var(--accent); border-color: var(--accent); }
+/* Panel besar di atas pill: More shapes + ref picker (tabs + search + grid). */
+.wb-library-anchor, .wb-refpanel-anchor { position: absolute; left: 50%; transform: translateX(-50%); bottom: 72px; z-index: 28; width: min(560px, calc(100% - 24px)); }
+.wb-morepanel, .wb-refpanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: min(52vh, 420px);
+  min-height: 280px;
+  padding: 10px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-raised);
+  overflow: hidden;
+}
+.wb-moretabs {
+    display: flex;
+    gap: 2px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+
+    flex: 0 0 auto;
+    flex-shrink: 0;
+}
+.wb-moretab, .wb-reftab { padding: 4px 8px; font-size: 12px; white-space: nowrap; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; flex-shrink: 0; }
+.wb-moretab:hover, .wb-reftab:hover { color: var(--text-primary); background: var(--bg-elevated); }
+.wb-moretab-active, .wb-reftab-active { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
+.wb-moresearch, .wb-refsearch { display: block; }
+.wb-moresearch .input, .wb-refsearch .input { width: 100%; }
+.wb-morerecent-head, .wb-refrecent-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--text-muted); }
+.wb-morerecent-row { display: flex; gap: 2px; overflow-x: auto; padding: 2px 0; }
+.wb-moregrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    gap: 8px 4px;
+
+    overflow-y: auto;
+    padding: 2px;
+
+    flex: 1 1 auto;
+    min-height: 0;
+
+    align-items: start;
+    align-content: start;       /* PENTING */
+    grid-auto-rows: max-content; /* PENTING */
+}
+.wb-moreopt { display: flex; flex-direction: column; align-items: center; gap: 2px; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; overflow: hidden; }
+.wb-morethumb { height: 40px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.wb-moreopt > svg { display: block; flex-shrink: 0; }
+.wb-moreopt:hover { color: var(--text-primary); background: var(--bg-elevated); }
+.wb-moreopt-active { border-color: var(--accent); background: var(--accent-dim); color: var(--text-primary); }
+.wb-morename { font-size: 11px; line-height: 1.35; text-align: center; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; white-space: normal; overflow-wrap: break-word; max-width: 100%; }
+.wb-moreempty { padding: 12px; font-size: 12.5px; color: var(--text-muted); text-align: center; }
+.wb-reflist { margin: 0; padding: 0; list-style: none; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.wb-reflink { background: none; border: none; padding: 2px 4px; font-size: 12px; color: var(--accent); cursor: pointer; border-radius: var(--radius-sm); }
+.wb-reflink:hover { text-decoration: underline; }
+.wb-refnew { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; font-size: 12.5px; text-align: left; background: none; border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; }
+.wb-refnew:hover { color: var(--accent); border-color: var(--accent); }
+/* Ref panel mengambang di dalam kanvas (ganti Modal tengah). */
+.wb-canvas .wb-refpanel { position: absolute; left: 50%; transform: translateX(-50%); bottom: 72px; z-index: 28; width: min(560px, calc(100% - 24px)); }
+/* Popover layers dari toolbar (ganti aside dock). */
+.wb-layers-pop { position: absolute; right: 12px; bottom: 64px; z-index: 28; width: 264px; max-height: 46vh; overflow-y: auto; background: var(--bg-elevated); border: 1px solid var(--border-hairline); border-radius: var(--radius-card); padding: 10px; box-shadow: var(--shadow-raised); }
+/* Bulk dots + rotate di floating bar. */
+.wb-selection-bar .wb-swatches { display: inline-flex; align-items: center; gap: 4px; padding: 0 2px; }
+.wb-selection-bar .wb-dot { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--border-strong); cursor: pointer; padding: 0; }
+.wb-selection-bar .wb-dot:hover { border-color: var(--accent); transform: scale(1.1); }
+/* Context menu kanan (FigJam Image 4). */
+.wb-ctxmenu { position: fixed; z-index: 30; display: flex; flex-direction: column; min-width: 232px; max-width: 280px; padding: 4px; background: var(--bg-overlay); border: 1px solid var(--border-strong); border-radius: var(--radius-card); box-shadow: var(--shadow-raised); outline: none; }
+.wb-ctxsec { display: flex; flex-direction: column; }
+.wb-ctxsep { height: 1px; background: var(--border-hairline); margin: 4px 6px; }
+.wb-ctxrow { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; padding: 6px 10px; font-size: 12.5px; text-align: left; background: none; border: none; border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; }
+.wb-ctxrow:hover:not(:disabled) { background: var(--bg-elevated); color: var(--text-primary); }
+.wb-ctxrow:disabled { opacity: 0.45; cursor: default; }
+.wb-ctxrow-danger { color: var(--status-danger); }
+.wb-ctxrow-danger:hover:not(:disabled) { color: var(--status-danger); }
+.wb-ctxkey { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+/* FigJam sizes (2026-09): 32px glyphs ONLY in the bottom toolbar pill
+   (incl. mobile pill, more menu + snap) and in
+   shape cells/thumbnails. Floating bars, popups, zoom and layers stay small. */
+.wb-shell .board-toolbar .wb-tool-scroll .sub-tab,
+.wb-shell .board-toolbar .wb-tool-actions .sub-tab,
+.wb-more-grid .sub-tab {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.wb-shell .board-toolbar .sub-tab svg,
+.wb-tool-actions .sub-tab svg,
+.wb-more-grid .sub-tab svg,
+.wb-shape-cell svg,
+.wb-moreopt svg {
+  width: 32px;
+  height: 32px;
+}
+/* Stacked floating pills above the selection. */
+.wb-floatwrap { position: absolute; z-index: 26; display: flex; flex-direction: column; gap: 8px; align-items: center; max-width: calc(100% - 24px); }
+.wb-floatwrap .wb-selection-bar { position: static; right: auto; top: auto; flex-wrap: nowrap; justify-content: flex-start; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.wb-floatwrap .wb-selection-bar::-webkit-scrollbar { display: none; }
+/* Strip + bar inline controls. */
+.wb-stripdots, .wb-stripstep { display: inline-flex; align-items: center; gap: 4px; }
+.wb-stripdots .wb-rainbow { width: 20px; height: 20px; flex-shrink: 0; }
+.wb-stripbtn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.wb-stripbtn:hover { background: var(--bg-elevated); color: var(--text-primary); }
+.wb-stripbtn-active { background: var(--accent-dim); color: var(--accent); }
+.wb-stripnum { font-family: var(--font-mono); font-size: 12px; min-width: 28px; text-align: center; color: var(--text-secondary); }
+.wb-dot { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--border-strong); cursor: pointer; padding: 0; flex-shrink: 0; }
+.wb-dot:hover { border-color: var(--accent); transform: scale(1.1); }
+.wb-dot-active { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* Color + line popups anchored to the floating bar. */
+.wb-colorpop, .wb-linepop {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 29;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-raised);
+}
+.wb-colorpop-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.wb-colorpop-heading { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+.wb-colorpop-grid { display: grid; grid-template-columns: repeat(6, auto); gap: 6px; }
+.wb-colorpop-grid .wb-dot { width: 28px; height: 28px; }
+.wb-rainbow { position: relative; width: 28px; height: 28px; border-radius: 50%; overflow: hidden; border: 1px solid var(--border-strong); cursor: pointer; }
+.wb-rainbow-ui { position: absolute; inset: 0; background: conic-gradient(#f4706d, #e8b955, #34c38e, #6ea8fe, #a78bfa, #f4706d); }
+.wb-rainbow-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.wb-colorpop-hex {
+  width: 100%;
+  padding: 6px 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+.wb-colorpop-hex:focus { border-color: var(--accent); }
+/* Shortcut cheatsheet dialog (table of key chips). */
+.wb-shortcuts { display: flex; flex-direction: column; gap: 12px; max-height: min(60vh, 480px); overflow-y: auto; }
+.wb-shortcuts-head { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 2px; }
+.wb-shortcuts-sec { display: flex; flex-direction: column; gap: 2px; }
+.wb-shortcuts-row { display: flex; align-items: center; gap: 10px; padding: 2px 0; }
+.wb-shortcuts-keys { display: flex; gap: 4px; min-width: 140px; flex-shrink: 0; }
+.wb-shortcut-key {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 6px;
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+.wb-shortcuts-text { font-size: 12px; color: var(--text-secondary); }
+/* Floating-bar dropdowns (font/size) + segmented align + width slider. Small by design. */
+.wb-dd { position: relative; display: inline-flex; flex-shrink: 0; }
+.wb-dd-btn { gap: 2px; min-width: 0; width: auto; padding: 0 4px; }
+.wb-dd-btn .wb-stripnum { min-width: 0; }
+.wb-dd-name { font-size: 14px; line-height: 1; color: var(--text-primary); }
+.wb-dd-pop { left: 50%; transform: translateX(-50%); width: fit-content; max-width: min(320px, calc(100vw - 32px)); }
+/* Opsi B: popup portal (floating-ui) — posisi fixed mengikuti anchor, kebal overflow strip/toolbar. */
+.wb-portal-pop { z-index: 70; }
+.wb-portal-pop > .wb-linepop,
+.wb-portal-pop > .wb-colorpop { position: static; transform: none; }
+.wb-fontopt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 8px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+}
+.wb-fontopt:hover { background: var(--bg-elevated); }
+.wb-fontopt-active { background: var(--accent-dim); }
+.wb-fontopt-sample { font-size: 17px; line-height: 1; min-width: 28px; text-align: center; }
+.wb-fontopt-check { width: 14px; display: inline-flex; align-items: center; justify-content: center; color: var(--accent); flex-shrink: 0; }
+.wb-fontopt-name { font-size: 12px; }
+/* Color dot + caret toggle (P12): one button opening the color panel. */
+.wb-dot-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.wb-dot-toggle:hover { color: var(--text-primary); }
+.wb-dot-toggle .wb-dot { width: 20px; height: 20px; }
+.wb-textdot { font-size: 15px; font-weight: 700; line-height: 1; min-width: 20px; text-align: center; }
+/* Text size rows (P13): name + value, check on the active row. */
+.wb-sizeopt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 2px 8px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+}
+.wb-sizeopt:hover { background: var(--bg-elevated); }
+.wb-sizeopt-active { background: var(--accent-dim); }
+.wb-sizeopt-check { width: 14px; display: inline-flex; align-items: center; justify-content: center; color: var(--accent); flex-shrink: 0; }
+.wb-sizeopt-name { font-size: 12px; flex: 1 1 auto; line-height: 1.2; }
+.wb-dd-pop { gap: 2px; }
+/* Boxed numeric input with steppers (P6/P13). */
+.wb-sizebox {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin-top: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.wb-sizebox-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 6px 8px;
+  font-size: 12px;
+  color: var(--text-primary);
+  background: none;
+  border: none;
+  outline: none;
+}
+.wb-sizebox-steps { display: flex; flex-direction: column; flex-shrink: 0; }
+.wb-sizebox-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  flex: 1 1 0;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+}
+.wb-sizebox-step:hover { color: var(--text-primary); background: var(--bg-overlay); }
+.fp-segmented-bar { display: inline-flex; gap: 2px; margin-bottom: 0; }
+.fp-segmented-bar .fp-seg { flex: none; display: inline-flex; align-items: center; justify-content: center; padding: 5px; }
+.wb-widthwrap { display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 4px 2px; width: fit-content; }
+.wb-slider { width: 204px; max-width: 100%; accent-color: var(--accent); cursor: pointer; }
+.wb-widthwrap .wb-sizebox { max-width: 60px; }
+.wb-shapetype-grid { display: grid; grid-template-columns: repeat(4, auto); gap: 4px; }
+.wb-shapetype-scroll { max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.wb-shape-cell-active { outline: 2px solid var(--accent); outline-offset: -2px; }
+/* Inline text editing overlay. */
+.wb-textedit {
+  position: absolute;
+  z-index: 27;
+  padding: 4px 6px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  resize: none;
+  overflow: hidden;
+  line-height: 1.35;
+  outline: none;
+  font-family: inherit;
+}
 .board-shell { display: flex; flex-direction: column; min-width: 0; }
 /* Board fullscreen = overlay CSS (bukan Fullscreen API) agar portal
    document.body (Modal z40/backdrop z50, Tooltip z80) tetap tampil di

@@ -2,17 +2,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import type { Whiteboard, WhiteboardShape, WhiteboardShapeType } from '../../lib/types';
+import { LIBRARY_ITEM_BY_ID } from './libraries';
 import {
   alignmentGuides,
   alignSelection,
   clampPopover,
   distributeSelection,
   elementBounds,
+  inRotateZone,
   matchSizeSelection,
   panBy,
   refCardLayout,
   refCardRect,
   rotatePoint,
+  rotateZoneCenter,
   rotationCenter,
   screenToWorld,
   shapePath,
@@ -576,6 +579,61 @@ describe('shapePath', () => {
     expect(d).toContain('a 50 12 0 0 0 100 0');
     expect(d).toContain('a 50 12 0 0 1 -100 0');
   });
+  it('draws triangleUp pointing up and triangleDown pointing down', () => {
+    const up = shapePath(shape('triangleUp'));
+    expect(up).toBe('M 0 60 L 50 0 L 100 60 Z');
+    const down = shapePath(shape('triangleDown'));
+    expect(down).toBe('M 0 0 L 100 0 L 50 60 Z');
+  });
+  it('draws a capsule as a full stadium', () => {
+    const d = shapePath(shape('capsule'));
+    expect(d).toMatch(/a 30 30 0 0 1 30 30/);
+    expect(d.endsWith('Z')).toBe(true);
+  });
+  it('renders 100 globally unique shape geometries (no label-only duplicates)', () => {
+    const seen = new Map<string, string>();
+    expect(LIBRARY_ITEM_BY_ID.size).toBe(100);
+    for (const item of LIBRARY_ITEM_BY_ID.values()) {
+      const d = shapePath({
+        id: `u-${item.id}`,
+        kind: 'shape',
+        shapeType: item.shapeType,
+        x: 4,
+        y: 8,
+        w: 120,
+        h: 80,
+        color: '#6ea8fe',
+        fill: false,
+        strokeWidth: 2,
+        label: '',
+      });
+      expect(d.length).toBeGreaterThan(0);
+      expect(d.startsWith('M')).toBe(true);
+      const clash = seen.get(d);
+      expect(clash, `duplicate geometry: ${item.id} renders like ${clash}`).toBeUndefined();
+      seen.set(d, item.id);
+    }
+  });
+  it('draws composite symbols with multiple subpaths', () => {
+    const multi = (st: WhiteboardShapeType) =>
+      shapePath({
+        id: `m-${st}`,
+        kind: 'shape',
+        shapeType: st,
+        x: 0,
+        y: 0,
+        w: 120,
+        h: 80,
+        color: '#6ea8fe',
+        fill: false,
+        strokeWidth: 2,
+        label: '',
+      });
+    // Double borders / markers / glyphs each add at least one extra M command.
+    for (const st of ['weakEntity', 'identifyingRel', 'intermediateRing', 'actorFigure', 'classBox', 'podHex'] as const) {
+      expect(multi(st).split('M').length).toBeGreaterThan(2);
+    }
+  });
 });
 
 describe('WB-5 rotation helpers', () => {
@@ -601,6 +659,26 @@ describe('WB-5 rotation helpers', () => {
   it('rotationCenter uses (x,y) for text and bounds center otherwise', () => {
     expect(rotationCenter({ kind: 'text', x: 5, y: 7 }, { x: 5, y: 7, w: 100, h: 20 })).toEqual({ x: 5, y: 7 });
     expect(rotationCenter({ kind: 'shape' }, { x: 0, y: 0, w: 100, h: 60 })).toEqual({ x: 50, y: 30 });
+  });
+
+  it('rotateZoneCenter pushes outward from the pivot along the corner axis', () => {
+    const z = rotateZoneCenter({ x: 116, y: 76 }, { x: 66, y: 46 });
+    // outward (50,30)/|..| * 22 ≈ (18.9, 11.3)
+    expect(z.x).toBeCloseTo(134.9, 0);
+    expect(z.y).toBeCloseTo(87.3, 0);
+  });
+
+  it('inRotateZone hits beside the corner but not on it or far away', () => {
+    const corner = { x: 116, y: 76 };
+    const pivot = { x: 66, y: 46 };
+    // WB-5 drag start point stays inside the new zone.
+    expect(inRotateZone({ x: 130, y: 90 }, corner, pivot)).toBe(true);
+    // On the corner itself (resize territory): no.
+    expect(inRotateZone(corner, corner, pivot)).toBe(false);
+    // Far away: no.
+    expect(inRotateZone({ x: 200, y: 200 }, corner, pivot)).toBe(false);
+    // Inner side toward the pivot: no.
+    expect(inRotateZone({ x: 100, y: 66 }, corner, pivot)).toBe(false);
   });
 });
 // closes describe('clampPopover') — shapePath + WB-5 blocks are nested inside it

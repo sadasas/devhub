@@ -54,6 +54,11 @@ export async function createProject(
   return body.id;
 }
 
+export async function deleteProject(ctx: APIRequestContext, projectId: string): Promise<void> {
+  const res = await ctx.delete(`/api/v1/projects/${projectId}`);
+  if (!res.ok()) throw new Error(`deleteProject failed (${res.status()}): ${await res.text()}`);
+}
+
 export async function addEntity<T>(
   ctx: APIRequestContext,
   projectId: string,

@@ -23,6 +23,8 @@ export function useTabShortcuts<T extends string>(
       // The wizard modal itself handles ESC (skip) + arrows (Back/Next).
       const tour = isTourActive();
       if (isModalOrPaletteOpen() && !tour) return;
+      // NOTE: whiteboard tools are letters-only (no digits), so plain digits
+      // never collide with the canvas. Alt+digits stay global everywhere.
       const mods = e.ctrlKey || e.metaKey || e.shiftKey;
       if (e.altKey && !mods) {
         const digit = TAB_KEYS.indexOf(e.key);

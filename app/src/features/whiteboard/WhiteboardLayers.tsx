@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CaretDown, CaretUp, LockSimple, LockSimpleOpen, MagnifyingGlass } from '@phosphor-icons/react';
+import { Tooltip } from '../../components/Tooltip';
 import type { WhiteboardElement } from '../../lib/types';
 
 interface WhiteboardLayersProps {
@@ -64,20 +65,21 @@ export function WhiteboardLayers({ elements, selectedIds, onSelect, onToggleLock
 
   return (
     <div className="wb-layers">
-      <button
-        type="button"
-        className="wb-layers-head"
-        aria-expanded={!collapsed}
-        aria-label={collapsed ? t('whiteboard.layers.expand') : t('whiteboard.layers.collapse')}
-        title={collapsed ? t('whiteboard.layers.expand') : t('whiteboard.layers.collapse')}
-        onClick={() => onToggleCollapse?.()}
-      >
-        <span className="wb-layers-title">{t('whiteboard.layers.title')}</span>
-        <span className="wb-layers-count">{elements.length}</span>
-        <span className="wb-layers-caret" aria-hidden="true">
-          {collapsed ? <CaretDown size={12} /> : <CaretUp size={12} />}
-        </span>
-      </button>
+      <Tooltip content={collapsed ? t('whiteboard.layers.expand') : t('whiteboard.layers.collapse')} side="top">
+        <button
+          type="button"
+          className="wb-layers-head"
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? t('whiteboard.layers.expand') : t('whiteboard.layers.collapse')}
+          onClick={() => onToggleCollapse?.()}
+        >
+          <span className="wb-layers-title">{t('whiteboard.layers.title')}</span>
+          <span className="wb-layers-count">{elements.length}</span>
+          <span className="wb-layers-caret" aria-hidden="true">
+            {collapsed ? <CaretDown size={12} /> : <CaretUp size={12} />}
+          </span>
+        </button>
+      </Tooltip>
       {!collapsed && (
         <>
           <label className="wb-layers-search">

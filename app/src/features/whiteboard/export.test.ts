@@ -15,8 +15,7 @@ describe('serializeWhiteboard', () => {
     expect(svg).toContain('height="174"');
   });
 
-  it('renders each element kind into SVG primitives', () => {
-    const elements: WhiteboardElement[] = [
+  it('renders each element kind into SVG primitives', () => {    const elements: WhiteboardElement[] = [
       { id: 'st', kind: 'stroke', tool: 'pen', color: '#e4e4e7', width: 2, thinning: 2, points: [[0, 0], [10, 10]] },
       { id: 'sh', kind: 'shape', shapeType: 'rect', x: 0, y: 100, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: 'Decide' },
       { id: 'tx', kind: 'text', x: 0, y: 200, color: '#e4e4e7', fontSize: 16, text: 'note', w: 200 },
@@ -151,5 +150,25 @@ describe('serializeWhiteboard', () => {
     const m = svg.match(/<polyline points="([^"]+)" fill="none" stroke="#8b5cf6"/);
     expect(m).not.toBeNull();
     expect(m![1]).toBe('100,30 300,30');
+  });
+
+  it('V1: honors vertical alignment for sticky and shape labels', () => {
+    const stickyOf = (valign?: 'top' | 'center' | 'bottom'): WhiteboardElement => ({
+      id: 's1', kind: 'sticky', x: 0, y: 0, w: 100, h: 120, color: '#e8b955', text: 'hi', fontSize: 12, valign,
+    });
+    const topY = (svg: string) => Number(svg.match(/<text x="[^"]+" y="([\d.]+)" font-size="12" fill="rgba\(6,5,4,0\.85\)"/)?.[1]);
+    const legacy = topY(serializeWhiteboard([stickyOf()]));
+    expect(legacy).toBe(16); // el.y + pad + 8
+    const centered = topY(serializeWhiteboard([stickyOf('center')]));
+    expect(centered).toBeGreaterThan(legacy);
+    const bottom = topY(serializeWhiteboard([stickyOf('bottom')]));
+    expect(bottom).toBeGreaterThan(centered);
+    const shapeOf = (valign?: 'top' | 'center' | 'bottom'): WhiteboardElement => ({
+      id: 's2', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: 'Hi', valign,
+    });
+    const shapeY = (svg: string) => Number(svg.match(/<text x="50" y="([\d.]+)" text-anchor="middle"/)?.[1]);
+    expect(shapeY(serializeWhiteboard([shapeOf()]))).toBe(30); // legacy first-line middle
+    expect(shapeY(serializeWhiteboard([shapeOf('top')]))).toBeLessThan(30);
+    expect(shapeY(serializeWhiteboard([shapeOf('bottom')]))).toBeGreaterThan(30);
   });
 });

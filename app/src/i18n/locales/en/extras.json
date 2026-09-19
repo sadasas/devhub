@@ -24,6 +24,8 @@
     },
     "toolbar": {
       "tools": "Whiteboard tools",
+      "historyPanel": "History and layers",
+      "boardPanel": "Board actions",
       "back": "Back to boards",
       "moreTools": "More tools",
       "undoTitle": "Undo (Ctrl+Z)",
@@ -54,6 +56,24 @@
       "ref": "Entity ref card",
       "boundary": "Boundary",
       "limitReached": "{{name}} — element limit reached"
+    },
+    "shortcuts": {
+      "title": "Keyboard shortcuts",
+      "tools": "Tools",
+      "edit": "Edit",
+      "arrange": "Arrange",
+      "view": "View",
+      "panHold": "Pan (hold)",
+      "selectAll": "Select all",
+      "editText": "Edit selected text",
+      "nudge": "Nudge selection",
+      "nudgeBig": "Nudge selection far",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "zoomReset": "Reset view",
+      "help": "This help",
+      "dismiss": "Deselect / close",
+      "open": "Keyboard shortcuts"
     },
     "export": {
       "title": "Export PNG/SVG",
@@ -91,7 +111,16 @@
       "deletedN": "Deleted {{count}} element(s)",
       "restore": "Restore",
       "restoreAtCap": "Board is full — delete elements before restoring",
+      "boundaryTooSmall": "Boundary too small (min 40×40).",
+      "rotate": "Rotate selection",
+      "unlockAll": "Unlock all objects",
+      "expand": "Expand",
+      "collapse": "Collapse",
+      "linkCopied": "Board link copied.",
+      "pasteReplace": "Paste to replace",
       "selectionActions": "Selection actions",
+      "alignTools": "Align tools",
+      "addText": "Add text",
       "lock": "Lock selection",
       "unlock": "Unlock selection",
       "group": "Group selection",
@@ -110,7 +139,6 @@
       "sendBackward": "Send backward",
       "deleteSelectedTitle": "Delete selected (Del)",
       "deleteSelected": "Delete selected",
-      "hint": "Scroll or pinch to zoom · drag to pan",
       "minimap": "Minimap",
       "refUntitled": "untitled {{entity}}",
       "refDeleted": "Deleted"
@@ -132,6 +160,7 @@
       "done": "Done",
       "arrowStyle": "Arrow style",
       "lineStyle": "Line style",
+      "lineWidth": "Width",
       "placeholderDecide": "e.g. Decide",
       "placeholderSystem": "e.g. System",
       "placeholderYes": "e.g. Yes / HTTP",
@@ -146,7 +175,10 @@
       "align": "Alignment",
       "align_left": "Left",
       "align_center": "Center",
-      "align_right": "Right"
+      "align_right": "Right",
+      "valign_top": "Top",
+      "valign_center": "Center",
+      "valign_bottom": "Bottom"
     },
     "inspector": {
       "panelLabel": "Element properties",
@@ -189,7 +221,11 @@
       "badgeEndpoint": "Endpoint",
       "columns": "{{count}} columns",
       "endpoints": "{{count}} endpoints",
-      "more": "+{{count}} more — refine your search"
+      "more": "+{{count}} more — refine your search",
+      "tabAll": "All",
+      "recent": "Recent",
+      "createNew": "Create new",
+      "browse": "Browse {{entity}}"
     },
     "newModal": {
       "presence": "Creating whiteboard",
@@ -200,8 +236,7 @@
       "name": "Name",
       "namePlaceholder": "e.g. Q3 architecture sketch",
       "templateLegend": "Template",
-      "description": "Description",
-      "descHelper": "Up to 2000 characters"
+      "description": "Description"
     },
     "editModal": {
       "presence": "Editing whiteboard",
@@ -210,15 +245,68 @@
       "save": "Save changes",
       "name": "Name",
       "namePlaceholder": "e.g. Q3 architecture sketch",
-      "description": "Description",
-      "descHelper": "Up to 2000 characters"
+      "description": "Description"
+    },
+    "shapeLib": {
+      "title": "More shapes",      "search": "Search shapes…",
+      "searchAria": "Search shapes",
+      "recent": "Recent",
+      "empty": "No shapes match your search.",
+      "tabBasic": "Basic",
+      "tabFlowchart": "Flowchart",
+      "tabBpmn": "BPMN",
+      "tabUml": "UML",
+      "tabErd": "ERD",
+      "tabDataflow": "Data flow",
+      "tabNetwork": "Network",
+      "tabK8s": "K8s"
+    },
+    "ctx": {
+      "menu": "Object actions",
+      "copy": "Copy",
+      "cut": "Cut",
+      "paste": "Paste",
+      "pasteReplace": "Paste to replace",
+      "duplicate": "Duplicate",
+      "copyLink": "Copy link to board",
+      "bringFront": "Bring to front",
+      "sendBack": "Send to back"
+    },
+    "textbar": {
+      "fill": "Fill color",
+      "textColor": "Text color",
+      "smaller": "Decrease font size",
+      "larger": "Increase font size",
+      "textAlign": "Text alignment",
+      "valign": "Vertical alignment",
+      "editText": "Edit text",
+      "thin": "Thin",
+      "thick": "Thick",
+      "font": "Font",
+      "size": "Text size",
+      "bold": "Bold",
+      "strikethrough": "Strikethrough",
+      "bullet": "Bulleted list",
+      "sizeSmall": "Small",
+      "sizeMedium": "Medium",
+      "sizeLarge": "Large",
+      "sizeXl": "Extra large",
+      "sizeHuge": "Huge",
+      "sizeCustom": "Custom size"
+    },
+    "colorPanel": {
+      "title": "Fill color",
+      "fill": "Fill",
+      "transparent": "Transparent",
+      "noFill": "No fill",
+      "custom": "Custom color",
+      "hex": "Hex color"
     },
     "template": {
       "blank": {
         "name": "Blank",
         "desc": "Empty canvas — start from scratch"
-      },
-      "kanban": {
+      },      "kanban": {
         "name": "Kanban",
         "desc": "Todo / In Progress / Review / Done columns"
       },

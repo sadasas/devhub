@@ -291,10 +291,12 @@ export function Layout() {
           }
         }
       }
-      // Ctrl/Cmd+C toggles team chat — guard against typing, modal, and text selection (copy)
+      // Ctrl/Cmd+C toggles team chat — guard against typing, modal, and text selection (copy).
+      // The whiteboard owns clipboard keys inside its shell (copy/paste/cut there).
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
         if (isTyping || isModal) return;
         if (window.getSelection()?.toString()) return;
+        if ((target as HTMLElement | null)?.closest?.('.wb-shell')) return;
         if (!user || !activeTeamId) return;
         e.preventDefault();
         setChatOpen((v) => !v);

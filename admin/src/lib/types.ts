@@ -176,9 +176,106 @@ export type WhiteboardShapeType =
   | 'cylinder'
   | 'parallelogram'
   | 'hexagon'
-  | 'roundedRect';
+  | 'roundedRect'
+  | 'triangleUp'
+  | 'triangleDown'
+  | 'capsule'
+  | 'triangleRight'
+  | 'hCylinder'
+  | 'trapezoid'
+  | 'trapezoidRight'
+  | 'pentagon'
+  | 'octagon'
+  | 'document'
+  | 'snipRect'
+  | 'chamferRect'
+  | 'roundedDiamond'
+  | 'plusBlock'
+  | 'chevronRight'
+  | 'doubleChevron'
+  | 'pentagonRight'
+  | 'star5'
+  | 'star4'
+  | 'sealBurst'
+  | 'shieldBox'
+  | 'semicircle'
+  | 'pieSlice'
+  | 'nutHex'
+  | 'cubeBox'
+  | 'envelopeBox'
+  | 'calendarBox'
+  | 'clockFace'
+  | 'predefinedProcess'
+  | 'manualInput'
+  | 'offPageRef'
+  | 'delayHalf'
+  | 'multiDocument'
+  | 'orJunction'
+  | 'sumJunction'
+  | 'crossDoc'
+  | 'intermediateRing'
+  | 'messageEvent'
+  | 'timerEvent'
+  | 'errorEvent'
+  | 'exclusiveGateway'
+  | 'parallelGateway'
+  | 'inclusiveGateway'
+  | 'complexGateway'
+  | 'subProcess'
+  | 'taskMarker'
+  | 'classBox'
+  | 'packageBox'
+  | 'componentBox'
+  | 'actorFigure'
+  | 'nodeBox'
+  | 'interfaceBall'
+  | 'objectBox'
+  | 'signalReceipt'
+  | 'partitionActivity'
+  | 'generalizationTri'
+  | 'weakEntity'
+  | 'identifyingRel'
+  | 'multiAttribute'
+  | 'keyAttribute'
+  | 'associativeBox'
+  | 'categoryCluster'
+  | 'ternaryInner'
+  | 'datastoreOpen'
+  | 'yourdonStore'
+  | 'diskStack'
+  | 'fileRuled'
+  | 'punchCard'
+  | 'serverBox'
+  | 'routerBox'
+  | 'cloudShape'
+  | 'firewallBox'
+  | 'antennaTower'
+  | 'printerBox'
+  | 'switchStack'
+  | 'hubSpoke'
+  | 'modemBox'
+  | 'satelliteDish'
+  | 'laptopSlab'
+  | 'rackCabinet'
+  | 'loadBalancer'
+  | 'podHex'
+  | 'serviceMesh'
+  | 'deployBox'
+  | 'ingressArrow'
+  | 'configBox'
+  | 'namespaceBox'
+  | 'cronBox'
+  | 'secretVault'
+  | 'bandedCylinder'
+  | 'sidecarBox'
+  | 'readinessProbe'
+  | 'replicaBars';
 export type WhiteboardArrowStyle = 'none' | 'open' | 'solid' | 'diamond' | 'circle';
 export type WhiteboardAlign = 'left' | 'center' | 'right';
+export type WhiteboardValign = 'top' | 'center' | 'bottom';
+export type WhiteboardFontFamily = 'simple' | 'bookish' | 'technical' | 'scribbled';
+export type WhiteboardTextList = 'none' | 'bullet';
+export type WhiteboardShapeDash = 'solid' | 'dashed' | 'none';
 
 export interface WhiteboardStroke {
   id: string;
@@ -204,6 +301,11 @@ export interface WhiteboardSticky {
   textColor?: string | null;
   fontSize?: number | null;
   align?: WhiteboardAlign | null;
+  valign?: WhiteboardValign | null;
+  fontFamily?: WhiteboardFontFamily | null;
+  bold?: boolean | null;
+  strikethrough?: boolean | null;
+  list?: WhiteboardTextList | null;
   rotation?: number;
   locked?: boolean;
   groupId?: string | null;
@@ -219,6 +321,10 @@ export interface WhiteboardText {
   text: string;
   w?: number | null;
   align?: WhiteboardAlign | null;
+  fontFamily?: WhiteboardFontFamily | null;
+  bold?: boolean | null;
+  strikethrough?: boolean | null;
+  list?: WhiteboardTextList | null;
   rotation?: number;
   locked?: boolean;
   groupId?: string | null;
@@ -235,10 +341,16 @@ export interface WhiteboardShape {
   color: string;
   fill: boolean;
   strokeWidth: number;
+  dash?: WhiteboardShapeDash | null;
   label: string;
   labelColor?: string | null;
   fontSize?: number | null;
   align?: WhiteboardAlign | null;
+  valign?: WhiteboardValign | null;
+  fontFamily?: WhiteboardFontFamily | null;
+  bold?: boolean | null;
+  strikethrough?: boolean | null;
+  list?: WhiteboardTextList | null;
   rotation?: number;
   locked?: boolean;
   groupId?: string | null;
@@ -259,6 +371,10 @@ export interface WhiteboardEdge {
   dash?: 'solid' | 'dashed' | 'dotted';
   fontSize?: number | null;
   align?: WhiteboardAlign | null;
+  fontFamily?: WhiteboardFontFamily | null;
+  bold?: boolean | null;
+  strikethrough?: boolean | null;
+  list?: WhiteboardTextList | null;
   locked?: boolean;
   groupId?: string | null;
   sourceNodeId?: string | null;
@@ -279,6 +395,10 @@ export interface WhiteboardBoundary {
   labelColor?: string | null;
   fontSize?: number | null;
   align?: WhiteboardAlign | null;
+  fontFamily?: WhiteboardFontFamily | null;
+  bold?: boolean | null;
+  strikethrough?: boolean | null;
+  list?: WhiteboardTextList | null;
   locked?: boolean;
   groupId?: string | null;
 }

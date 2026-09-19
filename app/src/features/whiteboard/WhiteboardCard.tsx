@@ -1,4 +1,4 @@
-import { ArrowSquareOut, PencilSimple, Trash } from '@phosphor-icons/react';
+import { PencilSimple, Trash } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/Button';
 import { Badge } from '../../components/Badge';
@@ -21,7 +21,7 @@ export function WhiteboardCard({ board, canEdit, unread = false, narrow = false,
   const { t } = useTranslation('extras');
   return (
     <div className="project-card wb-card">
-      <button type="button" className="wb-card-main" onClick={onOpen}>
+      <button type="button" className="wb-card-main" onClick={onOpen} aria-disabled={!onOpen}>
         <span className="project-card-title">{board.name}</span>
         <span className="project-card-desc">{board.description || t('whiteboard.card.noDescription')}</span>
       </button>
@@ -52,22 +52,12 @@ export function WhiteboardCard({ board, canEdit, unread = false, narrow = false,
           )}
         </span>
       )}
-      {canEdit && narrow && (
+      {canEdit && narrow && (onEdit || onDelete) && (
         <RowMenu
           triggerLabel={`More actions for ${board.name}`}
           menuLabel={`More actions for ${board.name}`}
           menuId={`wb-rowmenu-${board.id}`}
           actions={[
-            ...(onOpen
-              ? [
-                  {
-                    key: 'open',
-                    label: 'Open',
-                    icon: <ArrowSquareOut size={14} aria-hidden="true" />,
-                    onSelect: () => onOpen(),
-                  },
-                ]
-              : []),
             ...(onEdit
               ? [
                   {
@@ -78,13 +68,17 @@ export function WhiteboardCard({ board, canEdit, unread = false, narrow = false,
                   },
                 ]
               : []),
-            {
-              key: 'delete',
-              label: t('whiteboard.card.deleteBoard'),
-              icon: <Trash size={14} aria-hidden="true" />,
-              danger: true,
-              onSelect: () => onDelete?.(),
-            },
+            ...(onDelete
+              ? [
+                  {
+                    key: 'delete',
+                    label: t('whiteboard.card.deleteBoard'),
+                    icon: <Trash size={14} aria-hidden="true" />,
+                    danger: true,
+                    onSelect: () => onDelete(),
+                  },
+                ]
+              : []),
           ]}
         />
       )}

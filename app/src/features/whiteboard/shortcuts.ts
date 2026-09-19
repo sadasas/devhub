@@ -1,25 +1,31 @@
 /**
- * Reserved keyboard shortcuts for the whiteboard canvas (M17).
+ * Reserved keyboard shortcuts for the whiteboard canvas.
  *
- * Contract for the future canvas task:
- * - `1`–`8` select tools; Space (hold) pans; Delete/Backspace delete the
- *   selection; Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z undo/redo.
- * - Esc cancels the active tool / deselects, but only when no modal or the
- *   command palette is open (both own the Esc key globally).
+ * Contract (FigJam parity, audited 2026):
+ * - Tools are single letters (V/H/M/P/E/T/N/S/L/D/B); digits are never
+ *   tool shortcuts, so project tab keys (1-4, Alt+digits) never collide.
+ * - Space (hold) pans — never stolen from focused buttons/menus/dialogs.
+ * - Delete/Backspace delete; arrows nudge 1px (Shift: 10px).
+ * - Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z undo/redo (shell owns these).
+ * - Ctrl+C/V/X copy/paste/cut; Ctrl+D duplicate; Ctrl+Shift+V paste to
+ *   replace (Ctrl+Shift+R kept as legacy alias).
+ * - Ctrl+G group / Ctrl+Shift+G ungroup; Ctrl+]/[ reorder (+Shift: edges).
+ * - Ctrl+=/-/0 zoom in/out/reset; Ctrl+B toggles bold on text selection.
+ * - Enter edits selected text / places with a tool; Esc tiered exit.
  * - Every handler must early-return when the event target is an
  *   INPUT/TEXTAREA/contentEditable element.
  */
 export const SHORTCUTS = {
-  view: 'v',
-  select: '1',
-  pen: '2',
-  eraser: '3',
-  text: '4',
-  sticky: '5',
-  shape: '6',
-  edge: '7',
-  ref: '8',
-  marquee: '9',
+  view: 'h',
+  select: 'v',
+  pen: 'p',
+  eraser: 'e',
+  text: 't',
+  sticky: 'n',
+  shape: 's',
+  edge: 'l',
+  ref: 'd',
+  marquee: 'm',
   boundary: 'b',
   pan: 'Space',
   delete: 'Delete',
@@ -27,5 +33,25 @@ export const SHORTCUTS = {
   undo: 'Mod+Z',
   redo: 'Mod+Y',
   redoAlt: 'Mod+Shift+Z',
+  copy: 'Mod+C',
+  cut: 'Mod+X',
+  paste: 'Mod+V',
+  pasteReplace: 'Mod+Shift+V',
+  pasteReplaceAlt: 'Mod+Shift+R',
+  duplicate: 'Mod+D',
+  group: 'Mod+G',
+  ungroup: 'Mod+Shift+G',
+  bringForward: 'Mod+]',
+  sendBackward: 'Mod+[',
+  bringFront: 'Mod+Shift+]',
+  sendBack: 'Mod+Shift+[',
+  bold: 'Mod+B',
+  zoomIn: 'Mod+=',
+  zoomOut: 'Mod+-',
+  zoomReset: 'Mod+0',
+  nudge: 'Arrows',
+  nudgeBig: 'Shift+Arrows',
+  editText: 'Enter',
+  help: '?',
   escape: 'Esc',
 } as const;

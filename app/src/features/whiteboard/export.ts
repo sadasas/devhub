@@ -15,6 +15,7 @@ import {
   type RefCardData,
 } from './geometry';
 import { effectiveArrowStyle, orthogonalPath, pathMidpoint, portPoint, portToward, type Point } from './edges';
+import { fontStackOf, listedLines, type RichTextFields } from './fonts';
 
 const EXPORT_MARGIN = 32;
 
@@ -50,9 +51,17 @@ function esc(text: string): string {
     .replace(/'/g, '&apos;');
 }
 
-function textNode(x: number, y: number, fontSize: number, fill: string, content: string, anchor = 'start', weight?: number): string {
+function textNode(x: number, y: number, fontSize: number, fill: string, content: string, anchor = 'start', weight?: number, extra = ''): string {
   const weightAttr = weight ? ` font-weight="${weight}"` : '';
-  return `<text x="${round(x)}" y="${round(y)}" font-size="${fontSize}" fill="${esc(fill)}" text-anchor="${anchor}"${weightAttr}>${esc(content)}</text>`;
+  return `<text x="${round(x)}" y="${round(y)}" font-size="${fontSize}" fill="${esc(fill)}" text-anchor="${anchor}"${weightAttr}${extra}>${esc(content)}</text>`;
+}
+
+/** Serialized font-family/weight/decoration shared by every text-capable kind. */
+function fontAttrs(el: RichTextFields): string {
+  const family = esc(fontStackOf(el.fontFamily ?? undefined));
+  const weight = el.bold ? ' font-weight="700"' : '';
+  const strike = el.strikethrough ? ' text-decoration="line-through"' : '';
+  return ` font-family="${family}"${weight}${strike}`;
 }
 
 function round(v: number): number {
@@ -102,13 +111,22 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null, ctx: Exp
       const pad = 8;
       const maxLines = Math.max(1, Math.floor((el.h - pad * 2) / lineHeight));
       const innerW = Math.max(24, el.w - pad * 2);
-      const lines = wrapTextLines(el.text, fontSize, innerW)
+      const lines = wrapTextLines(listedLines(el.text, el).join('\n'), fontSize, innerW)
         .slice(0, maxLines)
         .map((line) => truncateToWidth(line, fontSize, innerW));
       const textFill = el.textColor ?? 'rgba(6,5,4,0.85)';
       const textX = align === 'center' ? el.x + el.w / 2 : align === 'right' ? el.x + el.w - pad : el.x + pad;
+      const vTop = el.y + pad + 8;
+      const blockH = lines.length * lineHeight;
+      const vMode = el.valign ?? 'top';
+      const startY =
+        vMode === 'center'
+          ? Math.max(vTop, el.y + (el.h - blockH) / 2 + 8)
+          : vMode === 'bottom'
+            ? Math.max(vTop, el.y + el.h - pad - blockH + 8)
+            : vTop;
       const body = lines
-        .map((line, i) => textNode(textX, el.y + pad + 8 + i * lineHeight, fontSize, textFill, line, anchor))
+        .map((line, i) => textNode(textX, startY + i * lineHeight, fontSize, textFill, line, anchor, undefined, fontAttrs(el)))
         .join('');
       const rot = el.rotation ? ` transform="rotate(${round(el.rotation)}, ${round(el.x + el.w / 2)}, ${round(el.y + el.h / 2)})"` : '';
       return `<g${rot}><rect x="${round(el.x)}" y="${round(el.y)}" width="${round(el.w)}" height="${round(el.h)}" rx="4" fill="${esc(el.color)}" fill-opacity="0.85"/>${body}</g>`;
@@ -119,7 +137,7 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null, ctx: Exp
       const anchor = align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start';
       const rot = el.rotation ? ` transform="rotate(${round(el.rotation)}, ${round(el.x)}, ${round(el.y)})"` : '';
       if (el.w) {
-        const lines = wrapTextLines(el.text, fontSize, el.w);
+        const lines = wrapTextLines(listedLines(el.text, el).join('\n'), fontSize, el.w);
         const baseX = align === 'center' ? el.x + el.w / 2 : align === 'right' ? el.x + el.w : el.x;
         const spans = lines
           .map(
@@ -127,9 +145,9 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null, ctx: Exp
               `<tspan x="${round(baseX)}" dy="${i === 0 ? 0 : textLineHeight(fontSize)}">${esc(line)}</tspan>`,
           )
           .join('');
-        return `<g${rot}><text x="${round(baseX)}" y="${round(el.y)}" font-size="${fontSize}" fill="${esc(el.color)}" text-anchor="${anchor}">${spans}</text></g>`;
+        return `<g${rot}><text x="${round(baseX)}" y="${round(el.y)}" font-size="${fontSize}" fill="${esc(el.color)}" text-anchor="${anchor}"${fontAttrs(el)}>${spans}</text></g>`;
       }
-      return `<g${rot}>${textNode(el.x, el.y, fontSize, el.color, el.text, anchor)}</g>`;
+      return `<g${rot}>${textNode(el.x, el.y, fontSize, el.color, listedLines(el.text, el).join('\n'), anchor, undefined, fontAttrs(el))}</g>`;
     }
     case 'shape': {
       const pad = 8;
@@ -138,18 +156,33 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null, ctx: Exp
       const anchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
       const textX = align === 'left' ? el.x + pad : align === 'right' ? el.x + el.w - pad : el.x + el.w / 2;
       const innerW = Math.max(24, el.w - pad * 2);
-      const labelLines = el.label ? wrapToWidth(el.label, fontSize, innerW, 4) : [];
+      const labelLines = el.label ? wrapToWidth(listedLines(el.label, el).join('\n'), fontSize, innerW, 4) : [];
       const fill = el.fill ? ` fill="${esc(el.color)}" fill-opacity="0.15"` : ' fill="none"';
       const isLightFill = el.fill && ["#e4e4e7","#6ea8fe","#f2b8c6","#34c38e","#5db69b","#a78bfa","#e8b955"].includes(el.color);
   const labelFill = el.labelColor ?? (isLightFill ? "#0f172a" : el.color);
+      const step = fontSize + 2;
+      const n = labelLines.length;
+      const vMode = el.valign ?? null;
+      const legacyY = el.y + el.h / 2;
+      const firstY =
+        vMode === 'top'
+          ? el.y + pad + step / 2
+          : vMode === 'bottom'
+            ? el.y + el.h - pad - (n - 1) * step - step / 2
+            : vMode === 'center'
+              ? el.y + el.h / 2 - ((n - 1) * step) / 2
+              : legacyY;
+      const y0 = Math.max(firstY, el.y + pad + step / 2);
       const label =
         labelLines.length > 0
-          ? `<text x="${round(textX)}" y="${round(el.y + el.h / 2)}" text-anchor="${anchor}" dominant-baseline="middle" font-size="${fontSize}" fill="${esc(labelFill)}">${labelLines
+          ? `<text x="${round(textX)}" y="${round(y0)}" text-anchor="${anchor}" dominant-baseline="middle" font-size="${fontSize}" fill="${esc(labelFill)}"${fontAttrs(el)}>${labelLines
               .map((line, i) => `<tspan x="${round(textX)}" dy="${i === 0 ? 0 : fontSize + 2}">${esc(line)}</tspan>`)
               .join('')}</text>`
           : '';
       const rot = el.rotation ? ` transform="rotate(${round(el.rotation)}, ${round(el.x + el.w / 2)}, ${round(el.y + el.h / 2)})"` : '';
-      return `<g${rot}><path d="${shapePath(el)}"${fill} stroke="${esc(el.color)}" stroke-width="${el.strokeWidth}"/>${label}</g>`;
+      const stroke = el.dash === 'none' ? 'none' : esc(el.color);
+      const shapeDash = el.dash === 'dashed' ? ' stroke-dasharray="8 5"' : '';
+      return `<g${rot}><path d="${shapePath(el)}"${fill} stroke="${stroke}" stroke-width="${el.strokeWidth}"${shapeDash}/>${label}</g>`;
     }
     case 'edge': {
       // WB-1: recompute node-attached endpoints exactly like the live canvas
@@ -183,15 +216,15 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null, ctx: Exp
       const fontSize = el.fontSize ?? 11;
       const align = el.align ?? 'center';
       const anchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
-      const label = el.label ? textNode(mid.x, mid.y, fontSize, el.color, el.label, anchor) : '';
+      const label = el.label ? textNode(mid.x, mid.y, fontSize, el.color, listedLines(el.label, el).join(' '), anchor, undefined, fontAttrs(el)) : '';
       return `<g><polyline points="${linePoints}" fill="none" stroke="${esc(el.color)}" stroke-width="${el.width}"${dash}/>${arrow}${label}</g>`;
     }
     case 'boundary': {
       const fontSize = el.fontSize ?? 12;
       const labelColor = (el as { labelColor?: string | null }).labelColor ?? '#e4e4e7';
       const chipW = Math.min(el.label.length * 7.5 + 12, Math.max(20, el.w - 12));
- const chip = el.label
-        ? `<g transform="translate(${round(el.x + 6)}, ${round(el.y + 6)})"><rect x="-4" y="-16" width="${round(chipW)}" height="18" rx="5" fill="${esc(el.color)}" fill-opacity="0.25"/><text x="0" y="0" font-size="${fontSize}" fill="${esc(labelColor)}">${esc(truncateToWidth(el.label, fontSize, chipW - 12))}</text></g>`
+  const chip = el.label
+        ? `<g transform="translate(${round(el.x + 6)}, ${round(el.y + 6)})"><rect x="-4" y="-16" width="${round(chipW)}" height="18" rx="5" fill="${esc(el.color)}" fill-opacity="0.25"/><text x="0" y="0" font-size="${fontSize}" fill="${esc(labelColor)}"${fontAttrs(el)}>${esc(truncateToWidth(listedLines(el.label, el).join(' '), fontSize, chipW - 12))}</text></g>`
         : '';
       return `<g><rect x="${round(el.x)}" y="${round(el.y)}" width="${round(el.w)}" height="${round(el.h)}" rx="8" fill="${esc(el.color)}" fill-opacity="0.05" stroke="${esc(el.color)}" stroke-width="1.5" stroke-dasharray="6 4"/>${chip}</g>`;
     }

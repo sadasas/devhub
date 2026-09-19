@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from 'react';
+import { Children, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type PointerEventHandler as ReactPointerEventHandler, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AlignBottom,
@@ -7,31 +7,47 @@ import {
   AlignLeft,
   AlignRight,
   AlignTop,
+  ArrowClockwise,
   ArrowDown,
-  ArrowUp,
+  ArrowLineDown,
+  ArrowLineUp,
   ArrowsHorizontal,
   ArrowsVertical,
+  ArrowUp,
+  CaretDown,
+  CaretUp,
+  ClipboardText,
   Columns,
+  Copy,
   CornersOut,
-  Intersect,
-  LockSimple,
-  LockSimpleOpen,
-  MagnetStraight,
+  DotsThreeVertical,
+  DownloadSimple,
+  Image,
+  Keyboard,
+  Link,
+  LockKey,
+  LockOpen,
   MagnifyingGlassMinus,
   MagnifyingGlassPlus,
+  Minus,
   Rows,
+  Scissors,
+  SquaresFour,
   Trash,
-  Union,
 } from '@phosphor-icons/react';
 import type {
   State,
   Whiteboard,
+  WhiteboardAlign,
+  WhiteboardBoundary,
   WhiteboardEdge,
   WhiteboardElement,
+  WhiteboardFontFamily,
   WhiteboardRefEntity,
   WhiteboardShape,
-  WhiteboardSticky,
   WhiteboardShapeType,
+  WhiteboardSticky,
+  WhiteboardValign,
 } from '../../lib/types';
 import { useProjectOptional } from '../../state/project-context';
 import { useNavigate } from 'react-router';
@@ -42,6 +58,7 @@ import {
   alignSelection,
   distributeSelection,
   elementBounds,
+  inRotateZone,
   matchSizeSelection,
   type MatchSizeMode,
   rectsIntersect,
@@ -52,8 +69,8 @@ import {
   screenToWorld,
   worldToScreen,
   shapePath,
-  snapToGrid,
   snapRotation,
+  snapToGrid,
   truncateToWidth,
   textLineHeight,
   unionBounds,
@@ -108,7 +125,15 @@ import {
   type WbTool,
 } from './tools';
 import { isModalOrPaletteOpen, isTypingTarget } from '../../lib/keys';
+import { listedLines, svgTextStyle } from './fonts';
+import { AlignDropdown, ColorDropdown, DropCaret, DropdownShell, FontDropdown, SizeDropdown, TextStyleToggles, ValignDropdown, WidthSlider } from './WhiteboardTextControls';
+import { SHAPE_LIBRARY_TABS } from './libraries';
+import { ShapeThumb } from './ShapeThumb';
 import { RefPicker } from './RefPicker';
+import { Tooltip } from '../../components/Tooltip';
+import { BottomSheet } from '../../components/BottomSheet';
+import { WhiteboardContextMenu } from './WhiteboardContextMenu';
+import { downloadWhiteboardPng, downloadWhiteboardSvg } from './export';
 import { buildRefDataMap } from './ref-data';
 import type { WhiteboardHistory } from './useWhiteboardHistory';
 
@@ -122,12 +147,14 @@ interface WhiteboardCanvasProps {
   selectedIds?: string[];
   onSelectedChange?: (ids: string[]) => void;
   onToolChange?: (tool: WbTool) => void;
+  registerDelete?: (fn: () => void) => void;
+  isMobile?: boolean;
+  onOpenShortcuts?: () => void;
   /** WB-6/WB-10: surface transient hints, optionally with a one-shot action. */
   onNotice?: (msg: string, action?: { label: string; run: () => void }) => void;
   /** WB-17: presentation mode — hide all chrome (zoom, hint, minimap, selection bar). */
   hideChrome?: boolean;
   snapOn?: boolean;
-  onSnapChange?: (v: boolean) => void;
   penColor?: string;
   penWidth?: number;
   eraserWidth?: number;
@@ -138,6 +165,10 @@ interface WhiteboardCanvasProps {
   textColor?: string;
   textFontSize?: number;
   textAlign?: string | null;
+  textFontFamily?: WhiteboardFontFamily | null;
+  textBold?: boolean | null;
+  textStrike?: boolean | null;
+  textBullet?: boolean | null;
   shapeColor?: string;
   shapeLabelColor?: string;
   shapeFontSize?: number;
@@ -175,50 +206,61 @@ const TOOL_CURSOR: Record<WbTool, string> = {
 const MAX_ELEMENTS = 1000;
 const NO_BOUNDARY: ReadonlySet<string> = new Set(['boundary']);
 const RESIZEABLE_KINDS: ReadonlySet<string> = new Set(['shape', 'sticky', 'boundary', 'text']);
-/** Kinds with a schema `rotation` field (server state.ts) — inline rotate handle targets. */
+/** Kinds with a schema `rotation` field (server state.ts) — rotation edits live in the floating bar. */
 const ROTATABLE_KINDS: ReadonlySet<string> = new Set(['shape', 'sticky', 'text']);
+/** Kinds that expose FigJam-style side port dots for drag-to-connect. */
+const CONNECTABLE_KINDS: ReadonlySet<string> = new Set(['shape', 'sticky', 'text', 'ref']);
+/** Kinds with inline-editable text (double-click / Enter). */
+const TEXT_EDITABLE: ReadonlySet<string> = new Set(['sticky', 'text', 'shape', 'edge', 'boundary']);
 const RESIZE_MIN = 20;
-/** Rotate handle: screen-space hit radius (px) + gap above the element (world units at s=1). */
-const ROTATE_HIT = 12;
-const ROTATE_GAP = 26;
-/** Right dock overlay width (288px panel + margins) + top toolbar height for occlusion flip. */
-const DOCK_OVERLAY_W = 308;
-const TOP_OVERLAY_H = 58;
+/** FigJam-style adornments: generous screen-space hit targets (px at any zoom). */
+const CORNER_HIT = 12;
+/** Rotate cursor: curved arrow readable on both themes, hotspot centered. */
+const ROTATE_CURSOR =
+  `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E` +
+  `%3Cpath d='M20 12a8 8 0 1 1-2.34-5.66' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round'/%3E` +
+  `%3Cpath d='M20 12a8 8 0 1 1-2.34-5.66' fill='none' stroke='%230f172a' stroke-width='1.75' stroke-linecap='round'/%3E` +
+  `%3Cpath d='M20 3.5v5h-5' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'/%3E` +
+  `%3Cpath d='M20 3.5v5h-5' fill='none' stroke='%230f172a' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E` +
+  `%3C/svg%3E") 12 12, grab`;
+const PORT_HIT = 14;
+const PORT_R = 5;
+/** Resize corners in the element's rotated frame. */
+type ResizeCorner = 'nw' | 'ne' | 'sw' | 'se';
+const RESIZE_CORNERS: ReadonlyArray<ResizeCorner> = ['nw', 'ne', 'sw', 'se'];
 
-/**
- * Rotate-handle world position in the UNROTATED frame — always below (or flipped
- * above) the element's AABB. Never orbits with element rotation, so the handle
- * can't end up hidden behind the element/panels when the element is flipped.
- */
-function rotateHandleWorld(b: Rect, s: number, flipped: boolean): { x: number; y: number } {
-  return { x: b.x + b.w / 2, y: flipped ? b.y - ROTATE_GAP / s : b.y + b.h + ROTATE_GAP / s };
+/** World corner for an anchored resize in the element's rotated frame. */
+function resizeCornerPoint(b: Rect, c: Point, rdeg: number, corner: ResizeCorner): Point {
+  const px = corner === 'ne' || corner === 'se' ? b.x + b.w : b.x;
+  const py = corner === 'sw' || corner === 'se' ? b.y + b.h : b.y;
+  return rotatePoint(px, py, c.x, c.y, rdeg);
 }
-
-/**
- * Occlusion flip: prefer below; flip above when the below-handle would fall
- * under the right dock overlay or outside the canvas, provided above is visible.
- * Shared by render + hit test so both always agree.
- */
-function shouldFlipRotateHandle(
-  view: { x: number; y: number; s: number },
-  svgRect: { width: number; height: number } | null,
-  b: Rect,
-  s: number,
-  off: { dx: number; dy: number },
-): boolean {
-  if (!svgRect) return false;
-  const below = worldToScreen(view, b.x + b.w / 2 + off.dx, b.y + b.h + ROTATE_GAP / s + off.dy);
-  const underDock =
-    below.x > svgRect.width - DOCK_OVERLAY_W &&
-    below.y > TOP_OVERLAY_H - 12 &&
-    below.y < svgRect.height - 8;
-  const outBottom = below.y > svgRect.height - 18;
-  if (!underDock && !outBottom) return false;
-  const above = worldToScreen(view, b.x + b.w / 2 + off.dx, b.y - ROTATE_GAP / s + off.dy);
-  if (above.y < TOP_OVERLAY_H || above.y > svgRect.height - 8) return false;
-  if (above.x > svgRect.width - DOCK_OVERLAY_W && above.y > TOP_OVERLAY_H - 12) return false;
-  return true;
-}
+/** Where the ref picker's Browse / Create-new actions land per entity. */
+const REF_CREATE_TARGET: Record<WhiteboardRefEntity, { tab: string; fresh: string }> = {
+  tasks: { tab: 'board', fresh: '1' },
+  issues: { tab: 'issues', fresh: '1' },
+  testCases: { tab: 'tests', fresh: '1' },
+  milestones: { tab: 'releases', fresh: '1' },
+  techEntries: { tab: 'stack', fresh: '1' },
+  decisions: { tab: 'decisions', fresh: '1' },
+  tables: { tab: 'schema', fresh: '1' },
+  apiCollections: { tab: 'api', fresh: '1' },
+  apiEndpoints: { tab: 'api', fresh: 'endpoint' },
+};
+/** Optional model fields: absent on legacy elements but still writable via bars. */
+const OPTIONAL_PATCH_FIELDS: ReadonlySet<string> = new Set([
+  'fontSize',
+  'align',
+  'valign',
+  'textColor',
+  'labelColor',
+  'dash',
+  'fill',
+  'fontFamily',
+  'bold',
+  'strikethrough',
+  'list',
+]);
 const noopDispatch = () => {};
 const DEFAULT_EDGE_COLOR = '#e4e4e7';
 const DEFAULT_EDGE_WIDTH = 2;
@@ -257,6 +299,10 @@ interface EdgeDraft {
 interface ElementViewProps {
   el: WhiteboardElement;
   selected?: boolean;
+  /** Hides the element text while the inline editor owns it (P8: no double text). */
+  editing?: boolean;
+  /** FigJam Add-text: ghost click selects + edits. */
+  onGhostEdit?: (el: WhiteboardElement) => void;
   offset?: DragOffset | null;
   derivedEndpoints?: EdgeEndpoints | null;
   refData?: RefCardData | null;
@@ -267,6 +313,8 @@ interface ElementViewProps {
 const ElementView = memo(function ElementView({
   el,
   selected,
+  editing = false,
+  onGhostEdit,
   offset,
   derivedEndpoints,
   refData,
@@ -284,7 +332,6 @@ const ElementView = memo(function ElementView({
       fill="none"
       stroke="var(--accent)"
       strokeWidth={1.5}
-      strokeDasharray="4 3"
       pointerEvents="none"
     />
   );
@@ -311,29 +358,63 @@ const ElementView = memo(function ElementView({
         const pad = 8;
         const maxLines = Math.max(1, Math.floor((el.h - pad * 2) / lineHeight));
         const innerW = Math.max(24, el.w - pad * 2);
-        const lines = wrapTextLines(el.text, fontSize, innerW)
+        const style = svgTextStyle(el);
+        const lines = wrapTextLines(listedLines(el.text, el).join('\n'), fontSize, innerW)
           .slice(0, maxLines)
           .map((line) => truncateToWidth(line, fontSize, innerW));
         const rot = el.rotation ? `rotate(${el.rotation}, ${el.x + el.w / 2}, ${el.y + el.h /2})` : undefined;
         const textFill = el.textColor ?? 'rgba(6,5,4,0.85)';
         const anchor = align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start';
         const textX = align === 'center' ? el.x + el.w / 2 : align === 'right' ? el.x + el.w - pad : el.x + pad;
+        // V1 vertical align (null = legacy top start).
+        const vTop = el.y + pad + 8;
+        const blockH = lines.length * lineHeight;
+        const vMode = el.valign ?? 'top';
+        const startY =
+          vMode === 'center'
+            ? Math.max(vTop, el.y + (el.h - blockH) / 2 + 8)
+            : vMode === 'bottom'
+              ? Math.max(vTop, el.y + el.h - pad - blockH + 8)
+              : vTop;
+        const showGhost = el.text === '' && selected && !editing;
+        const ghostDown = (e: ReactPointerEvent<SVGTextElement>) => {
+          e.stopPropagation();
+          e.preventDefault();
+          onGhostEdit?.(el);
+        };
         return (
           <g transform={rot}>
             <rect x={el.x} y={el.y} width={el.w} height={el.h} rx={4} fill={el.color} fillOpacity={0.85} />
-            {lines.length > 0 &&
+            {!editing &&
+              lines.length > 0 &&
               lines.map((line, i) => (
                 <text
                   key={i}
                   x={textX}
-                  y={el.y + pad + 8 + i * lineHeight}
+                  y={startY + i * lineHeight}
                   fontSize={fontSize}
                   fill={textFill}
                   textAnchor={anchor as any}
+                  {...style}
                 >
                   {line}
                 </text>
               ))}
+            {showGhost && (
+              <text
+                x={textX}
+                y={vTop}
+                fontSize={fontSize}
+                fill={textFill}
+                opacity={0.45}
+                textAnchor={anchor as any}
+                style={{ cursor: 'text' }}
+                onPointerDown={ghostDown}
+                {...style}
+              >
+                {t('whiteboard.canvas.addText')}
+              </text>
+            )}
           </g>
         );
       }
@@ -342,25 +423,56 @@ const ElementView = memo(function ElementView({
         const align = el.align ?? 'left';
         const anchor = align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start';
         const rot = el.rotation ? `rotate(${el.rotation}, ${el.x}, ${el.y})` : undefined;
+        const style = svgTextStyle(el);
+        const showGhost = el.text === '' && selected && !editing;
+        if (editing) {
+          return <g transform={rot} />;
+        }
+        const ghostDown = (e: ReactPointerEvent<SVGTextElement>) => {
+          e.stopPropagation();
+          e.preventDefault();
+          onGhostEdit?.(el);
+        };
         if (el.w) {
-          const lines = wrapTextLines(el.text, fontSize, el.w);
+          const lines = wrapTextLines(listedLines(el.text, el).join('\n'), fontSize, el.w);
           const baseX = align === 'center' ? el.x + el.w / 2 : align === 'right' ? el.x + el.w : el.x;
           return (
             <g transform={rot}>
-              <text x={baseX} y={el.y} fontSize={fontSize} fill={el.color} textAnchor={anchor as any}>
+              <text x={baseX} y={el.y} fontSize={fontSize} fill={el.color} textAnchor={anchor as any} {...style}>
                 {lines.map((line, i) => (
                   <tspan key={i} x={baseX} dy={i === 0 ? 0 : textLineHeight(fontSize)}>
                     {line}
                   </tspan>
                 ))}
+                {showGhost && (
+                  <tspan
+                    x={baseX}
+                    dy={lines.length > 0 ? textLineHeight(fontSize) : 0}
+                    opacity={0.45}
+                    style={{ cursor: 'text' }}
+                    onPointerDown={ghostDown as unknown as ReactPointerEventHandler<SVGTSpanElement>}
+                  >
+                    {t('whiteboard.canvas.addText')}
+                  </tspan>
+                )}
               </text>
             </g>
           );
         }
         return (
           <g transform={rot}>
-            <text x={el.x} y={el.y} fontSize={fontSize} fill={el.color} textAnchor={anchor as any}>
-              {el.text}
+            <text x={el.x} y={el.y} fontSize={fontSize} fill={el.color} textAnchor={anchor as any} {...style}>
+              {showGhost ? (
+                <tspan
+                  opacity={0.45}
+                  style={{ cursor: 'text' }}
+                  onPointerDown={ghostDown as unknown as ReactPointerEventHandler<SVGTSpanElement>}
+                >
+                  {t('whiteboard.canvas.addText')}
+                </tspan>
+              ) : (
+                listedLines(el.text, el).join('\n')
+              )}
             </text>
           </g>
         );
@@ -370,37 +482,76 @@ const ElementView = memo(function ElementView({
         const fontSize = el.fontSize ?? 12;
         const align = el.align ?? 'center';
         const innerW = Math.max(24, el.w - pad * 2);
-        const labelLines = el.label ? wrapToWidth(el.label, fontSize, innerW, 4) : [];
+        const labelLines = el.label ? wrapToWidth(listedLines(el.label, el).join('\n'), fontSize, innerW, 4) : [];
         const rot = el.rotation ? `rotate(${el.rotation}, ${el.x + el.w / 2}, ${el.y + el.h / 2})` : undefined;
         const isLightFill = el.fill && ["#e4e4e7","#6ea8fe","#f2b8c6","#34c38e","#5db69b","#a78bfa","#e8b955"].includes(el.color);
         const labelFill = el.labelColor ?? (isLightFill ? "#0f172a" : el.color);
         const anchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
         const textX = align === 'left' ? el.x + pad : align === 'right' ? el.x + el.w - pad : el.x + el.w / 2;
+        const style = svgTextStyle(el);
+        const showGhost = el.label === '' && selected && !editing;
+        // V1 vertical align (null = legacy: first line centered).
+        const step = fontSize + 2;
+        const n = labelLines.length;
+        const vMode = el.valign ?? null;
+        const legacyY = el.y + el.h / 2;
+        const firstY =
+          vMode === 'top'
+            ? el.y + pad + step / 2
+            : vMode === 'bottom'
+              ? el.y + el.h - pad - (n - 1) * step - step / 2
+              : vMode === 'center'
+                ? el.y + el.h / 2 - ((n - 1) * step) / 2
+                : legacyY;
+        const y0 = Math.max(firstY, el.y + pad + step / 2);
+        const ghostDown = (e: ReactPointerEvent<SVGTextElement>) => {
+          e.stopPropagation();
+          e.preventDefault();
+          onGhostEdit?.(el);
+        };
         return (
           <g transform={rot}>
             <path
               d={shapePath(el)}
               fill={el.fill ? el.color : 'none'}
               fillOpacity={el.fill ? 0.15 : undefined}
-              stroke={el.color}
+              stroke={el.dash === 'none' ? 'none' : el.color}
               strokeWidth={el.strokeWidth}
+              strokeDasharray={el.dash === 'dashed' ? '8 5' : undefined}
             />
-            {labelLines.length > 0 && (
+            {labelLines.length > 0 && !editing && (
               <text
                 className="wb-shape-label"
                 x={textX}
-                y={el.y + el.h / 2}
+                y={y0}
                 textAnchor={anchor as any}
                 dominantBaseline="middle"
                 fontSize={fontSize}
                 fill={labelFill}
                 pointerEvents="none"
+                {...style}
               >
                 {labelLines.map((line, i) => (
                   <tspan key={i} x={textX} dy={i === 0 ? 0 : fontSize + 2}>
                     {line}
                   </tspan>
                 ))}
+              </text>
+            )}
+            {showGhost && (
+              <text
+                x={textX}
+                y={vMode === 'top' ? el.y + pad + step / 2 : vMode === 'bottom' ? el.y + el.h - pad - step / 2 : legacyY}
+                textAnchor={anchor as any}
+                dominantBaseline="middle"
+                fontSize={fontSize}
+                fill={labelFill}
+                opacity={0.45}
+                style={{ cursor: 'text' }}
+                onPointerDown={ghostDown}
+                {...style}
+              >
+                {t('whiteboard.canvas.addText')}
               </text>
             )}
           </g>
@@ -457,7 +608,7 @@ const ElementView = memo(function ElementView({
               />
             )}
             {arrow}
-            {el.label && (() => {
+            {!editing && el.label && (() => {
               const fontSize = el.fontSize ?? 11;
               const align = el.align ?? 'center';
               const anchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
@@ -470,8 +621,9 @@ const ElementView = memo(function ElementView({
                   fontSize={fontSize}
                   fill={el.color}
                   pointerEvents="none"
+                  {...svgTextStyle(el)}
                 >
-                  {el.label}
+                  {listedLines(el.label, el).join(' ')}
                 </text>
               );
             })()}
@@ -493,7 +645,7 @@ const ElementView = memo(function ElementView({
               strokeWidth={1.5}
               strokeDasharray="6 4"
             />
-            {el.label && (() => {
+            {!editing && el.label && (() => {
               const fontSize = el.fontSize ?? 12;
               const labelColor = (el as { labelColor?: string | null }).labelColor ?? '#f1f5f9';
               const chipW = Math.min(el.label.length * 7.5 + 12, Math.max(20, el.w - 12));
@@ -508,8 +660,8 @@ const ElementView = memo(function ElementView({
                     fill={el.color}
                     fillOpacity={0.25}
                   />
-                  <text x={0} y={0} fontSize={fontSize} fill={labelColor}>
-                    {truncateToWidth(el.label, fontSize, chipW - 12)}
+                  <text x={0} y={0} fontSize={fontSize} fill={labelColor} {...svgTextStyle(el)}>
+                    {truncateToWidth(listedLines(el.label, el).join(' '), fontSize, chipW - 12)}
                   </text>
                 </g>
               );
@@ -624,7 +776,7 @@ interface DraftStroke {
   points: Array<[number, number]>;
 }
 
-export function WhiteboardCanvas({ board, tool, history, readOnly = false, readOnlyState = null, readOnlyProjectId, selectedIds: selectedIdsProp, onSelectedChange, onToolChange, snapOn: snapOnProp, onSnapChange, penColor: penColorProp, penWidth: penWidthProp, eraserWidth: eraserWidthProp, stickyColor: stickyColorProp, stickyTextColor: stickyTextColorProp, stickyFontSize: stickyFontSizeProp, stickyAlign: stickyAlignProp, textColor: textColorProp, textFontSize: textFontSizeProp, textAlign: textAlignProp, shapeColor: shapeColorProp, shapeLabelColor: shapeLabelColorProp, shapeFontSize: shapeFontSizeProp, shapeAlign: shapeAlignProp, shapeType: shapeTypeProp, shapeLabel: shapeLabelProp, shapeFill: shapeFillProp, onNotice: onNoticeProp, edgeColor: edgeColorProp, edgeFontSize: edgeFontSizeProp, edgeAlign: edgeAlignProp, edgeLabel: edgeLabelProp, edgeArrowStyle: edgeArrowStyleProp, edgeDash: edgeDashProp, boundaryColor: boundaryColorProp, boundaryLabelColor: boundaryLabelColorProp, boundaryFontSize: boundaryFontSizeProp, boundaryAlign: boundaryAlignProp, boundaryLabel: boundaryLabelProp, panToId, hideChrome = false }: WhiteboardCanvasProps) {
+export function WhiteboardCanvas({ board, tool, history, readOnly = false, readOnlyState = null, readOnlyProjectId, selectedIds: selectedIdsProp, onSelectedChange, onToolChange, onOpenShortcuts: onOpenShortcutsProp, registerDelete: registerDeleteProp, isMobile: isMobileProp, snapOn: snapOnProp, penColor: penColorProp, penWidth: penWidthProp, eraserWidth: eraserWidthProp, stickyColor: stickyColorProp, stickyTextColor: stickyTextColorProp, stickyFontSize: stickyFontSizeProp, stickyAlign: stickyAlignProp, textColor: textColorProp, textFontSize: textFontSizeProp, textAlign: textAlignProp, textFontFamily: textFontFamilyProp, textBold: textBoldProp, textStrike: textStrikeProp, textBullet: textBulletProp, shapeColor: shapeColorProp, shapeLabelColor: shapeLabelColorProp, shapeFontSize: shapeFontSizeProp, shapeAlign: shapeAlignProp, shapeType: shapeTypeProp, shapeLabel: shapeLabelProp, shapeFill: shapeFillProp, onNotice: onNoticeProp, edgeColor: edgeColorProp, edgeFontSize: edgeFontSizeProp, edgeAlign: edgeAlignProp, edgeLabel: edgeLabelProp, edgeArrowStyle: edgeArrowStyleProp, edgeDash: edgeDashProp, boundaryColor: boundaryColorProp, boundaryLabelColor: boundaryLabelColorProp, boundaryFontSize: boundaryFontSizeProp, boundaryAlign: boundaryAlignProp, boundaryLabel: boundaryLabelProp, panToId, hideChrome = false }: WhiteboardCanvasProps) {
   const { t } = useTranslation('extras');
   const proj = useProjectOptional(null);
   const { canEdit, dispatch, projectId, state } =
@@ -639,13 +791,9 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     [navigate, projectId],
   );
   const [spaceHeld, setSpaceHeld] = useState(false);
-  const [internalSnapOn, setInternalSnapOn] = useState(true);
+  const [internalSnapOn] = useState(true);
   const snapOn = snapOnProp ?? internalSnapOn;
   const snap = useCallback((v: number) => (snapOn ? snapToGrid(v) : v), [snapOn]);
-  const toggleSnap = useCallback(() => {
-    if (onSnapChange) onSnapChange(!snapOn);
-    else setInternalSnapOn((v) => !v);
-  }, [onSnapChange, snapOn]);
   const [canvasSize, setCanvasSize] = useState({ w: 800, h: 600 });
   const panEnabled = tool === 'select' || tool === 'view' || spaceHeld;
   const view = useCanvasView(panEnabled);
@@ -686,11 +834,53 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   const [refPending, setRefPending] = useState<Point | null>(null);
   const [collapsedRefs, setCollapsedRefs] = useState<ReadonlySet<string>>(() => new Set());
   const [clipboard, setClipboard] = useState<WhiteboardElement[] | null>(null);
-  const [resizePreview, setResizePreview] = useState<{ w: number; h: number } | null>(null);
-  const resizeRef = useRef<{ startWorld: Point; startW: number; startH: number; startX: number; startY: number } | null>(null);
-  // WB-5: inline rotate gesture — ref holds the drag, preview holds live degrees.
-  const [rotatePreview, setRotatePreview] = useState<number | null>(null);
-  const rotateRef = useRef<{ id: string; center: Point; startAng: number; startRot: number } | null>(null);
+  const [resizePreview, setResizePreview] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const resizeRef = useRef<{ startWorld: Point; startW: number; startH: number; startX: number; startY: number; corner: ResizeCorner; aspect: number } | null>(null);
+  // FigJam-style right-click object menu (screen coords) — actions reuse the
+  // floating-bar callbacks so menu and bar can never disagree.
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
+  // S1: measured floatwrap width + requested center for fit-clamping.
+  const floatWrapRef = useRef<HTMLDivElement | null>(null);
+  const floatFxRef = useRef(0);
+  const [barAdj, setBarAdj] = useState(0);
+  // Touch long-press opens the same menu (no right button on touch).
+  const longPressRef = useRef<{ timer: number; x: number; y: number } | null>(null);
+  const cancelLongPress = () => {
+    if (longPressRef.current) {
+      window.clearTimeout(longPressRef.current.timer);
+      longPressRef.current = null;
+    }
+  };
+  const openCtxMenuAt = (clientX: number, clientY: number) => {
+    if (isReadOnly) return;
+    const svg = view.ref.current;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const pt = screenToWorld(view.view, clientX - rect.left, clientY - rect.top);
+    const hit = elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects);
+    if (hit && !selectedIds.includes(hit.id)) setSelectedIds([hit.id]);
+    const hasSel = !!hit || selectedIds.length > 0;
+    const hasClip = !!clipboard && clipboard.length > 0;
+    if (!hasSel && !hasClip) return;
+    setCtxMenu({ x: clientX, y: clientY });
+  };
+  // Single-click zone: element border/body vs inner text area (drives which bar shows).
+  const [, setTextZoneId] = useState<string | null>(null);
+  // Inline text editing overlay (double-click / Enter).
+  const [editingText, setEditingText] = useState<{ id: string; value: string } | null>(null);
+  // Open popup inside the floating bar: fill color grid, line controls,
+  // font list, size list or stroke-width slider.
+  interface BarPopState {
+    kind: 'fill' | 'line' | 'font' | 'size' | 'align' | 'valign' | 'width' | 'shapeType' | 'border';
+    field?: 'color' | 'textColor' | 'labelColor';
+  }
+  const [barPop, setBarPop] = useState<BarPopState | null>(null);
+  // Mobile ⋮ bottom sheet: actions for the current selection.
+  const [moreSheet, setMoreSheet] = useState(false);
+  // FigJam rotate gesture: hover-near-corner drag (no persistent handle/button).
+  const rotateDragRef = useRef<{ id: string; center: Point; startAng: number; startRot: number } | null>(null);
+  const [rotateLive, setRotateLive] = useState<number | null>(null);
+  const [hoverRotate, setHoverRotate] = useState(false);
   // WB-10: one-step trash — last explicitly deleted elements, restorable via notice.
   const trashRef = useRef<WhiteboardElement[] | null>(null);
   // Latest elements for the deferred restore action (avoids stale closures).
@@ -850,6 +1040,11 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     }
   }, [board.id, board.elements, dispatch, history, selectedIds, isReadOnly, onNoticeProp, t, restoreTrash]);
 
+  // Mobile trash button: shell calls the latest removeSelection through this ref.
+  useEffect(() => {
+    registerDeleteProp?.(removeSelection);
+  }, [registerDeleteProp, removeSelection]);
+
   const reorderSelection = useCallback(
     (dir: 1 | -1) => {
       if (isReadOnly) return;
@@ -876,6 +1071,57 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     [board.elements, board.id, dispatch, history, selectedIds, isReadOnly],
   );
 
+  /** FigJam "Bring to front / Send to back": jumps the selection to an end. */
+  const reorderToEdge = useCallback(
+    (edge: 'front' | 'back') => {
+      if (isReadOnly) return;
+      if (selectedIds.length === 0) return;
+      const sel = new Set(selectedIds);
+      const moving = board.elements.filter((el) => sel.has(el.id) && !el.locked);
+      if (moving.length === 0) return;
+      const rest = board.elements.filter((el) => !moving.includes(el));
+      const next = edge === 'front' ? [...rest, ...moving] : [...moving, ...rest];
+      if (next.every((el, i) => el.id === board.elements[i]?.id)) return;
+      history.record();
+      dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
+    },
+    [board.elements, board.id, dispatch, history, selectedIds, isReadOnly],
+  );
+
+  /** Copies a deep link to this board (FigJam "Copy link to section"). Silent — no toast. */
+  const copyBoardLink = useCallback(() => {
+    if (isReadOnly) return;
+    const url =
+      typeof window === 'undefined'
+        ? ''
+        : `${window.location.origin}/project/${projectId}?tab=whiteboard&view=board&id=${board.id}`;
+    try {
+      void navigator.clipboard?.writeText(url);
+    } catch {
+      /* silent by design (D8: no transient notices) */
+    }
+  }, [board.id, isReadOnly, projectId]);
+
+  /** Downloads the current selection (FigJam "Copy as PNG" / export selection). */
+  const downloadSelection = useCallback(
+    (kind: 'png' | 'svg') => {
+      if (isReadOnly || selectedIds.length === 0) return;
+      const elements = board.elements.filter((el) => selectedIds.includes(el.id));
+      const sel = { ...board, elements };
+      const refData = new Map(elements.map((el) => [el.id, refDataMap.get(el.id) ?? null] as const));
+      try {
+        if (kind === 'png') {
+          downloadWhiteboardPng(sel, refData, {});
+        } else {
+          downloadWhiteboardSvg(sel, refData, {});
+        }
+      } catch {
+        /* silent by design (D8: no transient notices) */
+      }
+    },
+    [board, isReadOnly, refDataMap, selectedIds],
+  );
+
   const copiedElements = useCallback(() => {
     const sel = new Set(selectedIds);
     return board.elements.filter((el) => {
@@ -892,34 +1138,39 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     setClipboard(copiedElements());
   }, [copiedElements, selectedIds]);
 
+  /** Clones clipboard elements with fresh ids + remapped in-selection edges. */
+  const cloneWithFreshIds = useCallback((source: WhiteboardElement[], offset: number): WhiteboardElement[] => {
+    const idMap = new Map<string, string>();
+    const pasted = source.map((el) => {
+      const next = { ...el, id: newId() };
+      idMap.set(el.id, next.id);
+      return next;
+    });
+    return pasted.map((el) => {
+      if (el.kind === 'edge') {
+        return {
+          ...el,
+          sourceNodeId: el.sourceNodeId ? (idMap.get(el.sourceNodeId) ?? el.sourceNodeId) : el.sourceNodeId,
+          targetNodeId: el.targetNodeId ? (idMap.get(el.targetNodeId) ?? el.targetNodeId) : el.targetNodeId,
+        };
+      }
+      if (el.kind === 'stroke') return el;
+      return { ...el, x: el.x + offset, y: el.y + offset };
+    });
+  }, []);
+
   const applyPaste = useCallback(
     (source: WhiteboardElement[], offset: number) => {
       if (isReadOnly) return;
       if (source.length === 0) return;
       if (board.elements.length + source.length > MAX_ELEMENTS) return;
-      const idMap = new Map<string, string>();
-      const pasted = source.map((el) => {
-        const next = { ...el, id: newId() };
-        idMap.set(el.id, next.id);
-        return next;
-      });
-      const placed = pasted.map((el) => {
-        if (el.kind === 'edge') {
-          return {
-            ...el,
-            sourceNodeId: el.sourceNodeId ? (idMap.get(el.sourceNodeId) ?? el.sourceNodeId) : el.sourceNodeId,
-            targetNodeId: el.targetNodeId ? (idMap.get(el.targetNodeId) ?? el.targetNodeId) : el.targetNodeId,
-          };
-        }
-        if (el.kind === 'stroke') return el;
-        return { ...el, x: el.x + offset, y: el.y + offset };
-      });
+      const placed = cloneWithFreshIds(source, offset);
       history.record();
       dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...board.elements, ...placed] } });
       setSelectedIds(placed.map((el) => el.id));
       setClipboard(placed);
     },
-    [board.elements, board.id, dispatch, history, isReadOnly],
+    [board.elements, board.id, cloneWithFreshIds, dispatch, history, isReadOnly],
   );
 
   const pasteElements = useCallback(
@@ -930,6 +1181,69 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     },
     [applyPaste, clipboard, isReadOnly],
   );
+
+  /** FigJam "Paste to replace": swaps the selection for the clipboard in one undo step. */
+  const replaceSelection = useCallback(() => {
+    if (isReadOnly) return;
+    if (!clipboard || clipboard.length === 0 || selectedIds.length === 0) return;
+    const sel = new Set(selectedIds);
+    const lockedIds = new Set(board.elements.filter((el) => el.locked).map((el) => el.id));
+    if (!board.elements.some((el) => sel.has(el.id) && !lockedIds.has(el.id))) return;
+    const kept = board.elements.filter((el) => {
+      if (lockedIds.has(el.id)) return true;
+      if (sel.has(el.id)) return false;
+      if (el.kind === 'edge' && ((el.sourceNodeId && sel.has(el.sourceNodeId) && !lockedIds.has(el.sourceNodeId)) || (el.targetNodeId && sel.has(el.targetNodeId) && !lockedIds.has(el.targetNodeId)))) {
+        return false;
+      }
+      return true;
+    });
+    if (kept.length + clipboard.length > MAX_ELEMENTS) return;
+    const placed = cloneWithFreshIds(clipboard, 0);
+    setCollapsedRefs((prev) => {
+      const keep = new Set<string>();
+      for (const el of kept) if (el.kind === 'ref' && prev.has(el.id)) keep.add(el.id);
+      return keep.size === prev.size ? prev : keep;
+    });
+    history.record();
+    dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...kept, ...placed] } });
+    setSelectedIds(placed.map((el) => el.id));
+    setClipboard(placed);
+  }, [board.elements, board.id, clipboard, cloneWithFreshIds, dispatch, history, isReadOnly, selectedIds]);
+
+  /** Bulk-applies a patch to every selected, unlocked element that owns each field. */
+  const applyBulkPatch = useCallback(
+    (patch: Record<string, unknown>) => {
+      if (isReadOnly || selectedIds.length === 0) return;
+      const sel = new Set(selectedIds);
+      const keys = Object.keys(patch);
+      // Optional model fields may be absent on legacy elements — still writable.
+      const optional: ReadonlySet<string> = OPTIONAL_PATCH_FIELDS;
+      const next = board.elements.map((el) => {
+        if (!sel.has(el.id) || el.locked) return el;
+        const sub: Record<string, unknown> = {};
+        for (const k of keys) {
+          if (k in el || optional.has(k)) sub[k] = patch[k];
+        }
+        if (Object.keys(sub).length === 0) return el;
+        return { ...el, ...sub };
+      });
+      if (next.every((el, i) => el === board.elements[i])) return;
+      history.record();
+      dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
+    },
+    [board.elements, board.id, dispatch, history, isReadOnly, selectedIds],
+  );
+
+  const unlockAll = useCallback(() => {
+    if (isReadOnly) return;
+    if (!board.elements.some((el) => el.locked)) return;
+    history.record();
+    dispatch({
+      type: 'whiteboard/update',
+      id: board.id,
+      patch: { elements: board.elements.map((el) => (el.locked ? ({ ...el, locked: false } as WhiteboardElement) : el)) },
+    });
+  }, [board.elements, board.id, dispatch, history, isReadOnly]);
 
   const onDistribute = useCallback(
     (axis: 'x' | 'y') => () => {
@@ -995,6 +1309,110 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     [board.elements, board.id, dispatch, history, selectedIds, isReadOnly],
   );
 
+  /** Icon-only floating-bar button with a custom tooltip (no native caption). */
+  const barBtn = (tip: string, onClick: () => void, icon: ReactNode) => (
+    <Tooltip content={tip} side="top">
+      <button type="button" className="wb-selection-btn" aria-label={tip} onClick={onClick}>
+        {icon}
+      </button>
+    </Tooltip>
+  );
+
+  /**
+   * Mobile bottom panel: all property controls inline, wrapping to the next
+   * row when they overflow (FigJam-style grid). The ⋮ actions button is
+   * appended once at the end of the last bar (moreBtn). Desktop unchanged.
+   * Children.toArray re-keys, so callers pass plain nodes without manual keys.
+   */
+  const maybeSplit = (...controls: ReactNode[]) => {
+    return <>{Children.toArray(controls)}</>;
+  };
+
+  /** ⋮ button opening the actions sheet; rendered once at the end of the last bar. */
+  const moreBtn = isMobileProp ? (
+    <Tooltip content={t('whiteboard.toolbar.moreTools')} side="top">
+      <button
+        type="button"
+        className="wb-selection-btn"
+        aria-label={t('whiteboard.toolbar.moreTools')}
+        aria-haspopup="dialog"
+        aria-expanded={moreSheet}
+        onClick={() => setMoreSheet((v) => !v)}
+      >
+        <DotsThreeVertical size={15} aria-hidden="true" />
+      </button>
+    </Tooltip>
+  ) : null;
+
+  interface SheetAction {
+    id: string;
+    icon: ReactNode;
+    label: string;
+    disabled: boolean;
+    danger?: boolean;
+    run: () => void;
+  }
+
+  /** Mobile ⋮ sheet: all selection actions, scrollable. */
+  const renderMoreSheet = () => {
+    if (!isMobileProp || !moreSheet) return null;
+    const hasSel = selectedIds.length > 0;
+    const hasClip = !!clipboard && clipboard.length > 0;
+    const hasLocked = board.elements.some((el) => selectedIds.includes(el.id) && el.locked);
+    const anyLocked = board.elements.some((el) => el.locked);
+    const grouped = board.elements.some((el) => selectedIds.includes(el.id) && el.groupId);
+    const runSheet = (fn: () => void) => () => {
+      fn();
+      setMoreSheet(false);
+    };
+    const duplicateSel = () => {
+      const src = copiedElements();
+      if (src.length === 0) return;
+      setClipboard(src);
+      applyPaste(src, 24);
+    };
+    const quick: SheetAction[] = [
+      { id: 'duplicate', icon: <Copy size={20} aria-hidden="true" />, label: t('whiteboard.ctx.duplicate'), disabled: !hasSel || isReadOnly, run: duplicateSel },
+      { id: 'group', icon: <SquaresFour size={20} aria-hidden="true" />, label: grouped ? t('whiteboard.canvas.ungroup') : t('whiteboard.canvas.group'), disabled: !hasSel || isReadOnly, run: grouped ? onUngroup : onGroup },
+      { id: 'png', icon: <Image size={20} aria-hidden="true" />, label: t('whiteboard.export.pngSelection'), disabled: !hasSel, run: () => downloadSelection('png') },
+      { id: 'link', icon: <Link size={20} aria-hidden="true" />, label: t('whiteboard.ctx.copyLink'), disabled: !hasSel, run: copyBoardLink },
+    ];
+    const rows: SheetAction[] = [
+      { id: 'copy', icon: <Copy size={18} aria-hidden="true" />, label: t('whiteboard.ctx.copy'), disabled: !hasSel, run: copySelection },
+      { id: 'cut', icon: <Scissors size={18} aria-hidden="true" />, label: t('whiteboard.ctx.cut'), disabled: !hasSel || isReadOnly, run: () => { copySelection(); removeSelection(); } },
+      { id: 'paste', icon: <ClipboardText size={18} aria-hidden="true" />, label: t('whiteboard.ctx.paste'), disabled: !hasClip || isReadOnly, run: () => pasteElements(24) },
+      { id: 'svg', icon: <DownloadSimple size={18} aria-hidden="true" />, label: t('whiteboard.export.svgSelection'), disabled: !hasSel, run: () => downloadSelection('svg') },
+      { id: 'front', icon: <ArrowLineUp size={18} aria-hidden="true" />, label: t('whiteboard.ctx.bringFront'), disabled: !hasSel || isReadOnly, run: () => reorderToEdge('front') },
+      { id: 'forward', icon: <ArrowUp size={18} aria-hidden="true" />, label: t('whiteboard.canvas.bringForward'), disabled: !hasSel || isReadOnly, run: () => reorderSelection(1) },
+      { id: 'backward', icon: <ArrowDown size={18} aria-hidden="true" />, label: t('whiteboard.canvas.sendBackward'), disabled: !hasSel || isReadOnly, run: () => reorderSelection(-1) },
+      { id: 'back', icon: <ArrowLineDown size={18} aria-hidden="true" />, label: t('whiteboard.ctx.sendBack'), disabled: !hasSel || isReadOnly, run: () => reorderToEdge('back') },
+      { id: 'lock', icon: hasLocked ? <LockOpen size={18} aria-hidden="true" /> : <LockKey size={18} aria-hidden="true" />, label: hasLocked ? t('whiteboard.canvas.unlock') : t('whiteboard.canvas.lock'), disabled: !hasSel || isReadOnly, run: onToggleLock },
+      { id: 'unlockAll', icon: <LockOpen size={18} aria-hidden="true" />, label: t('whiteboard.canvas.unlockAll'), disabled: !anyLocked || isReadOnly, run: unlockAll },
+      { id: 'delete', icon: <Trash size={18} aria-hidden="true" />, label: t('whiteboard.canvas.deleteSelected'), disabled: !hasSel || isReadOnly, danger: true, run: removeSelection },
+    ];
+    return (
+      <BottomSheet open title={t('whiteboard.toolbar.moreTools')} onClose={() => setMoreSheet(false)} hideHeader>
+        <div className="wb-moresheet-grid" role="group" aria-label={t('whiteboard.toolbar.moreTools')}>
+          {quick.map((a) => (
+            <button key={a.id} type="button" className="wb-moresheet-cell" disabled={a.disabled} onClick={runSheet(a.run)}>
+              {a.icon}
+              <span className="wb-moresheet-cellname">{a.label}</span>
+            </button>
+          ))}
+        </div>
+        <div className="wb-moresheet-sep" role="separator" aria-hidden="true" />
+        <div className="wb-moresheet-list" role="group" aria-label={t('whiteboard.ctx.menu')}>
+          {rows.map((a) => (
+            <button key={a.id} type="button" className={`wb-moresheet-row${a.danger ? ' wb-moresheet-danger' : ''}`} disabled={a.disabled} onClick={runSheet(a.run)}>
+              {a.icon}
+              <span className="wb-moresheet-rowname">{a.label}</span>
+            </button>
+          ))}
+        </div>
+      </BottomSheet>
+    );
+  };
+
   const onToggleLock = useCallback(() => {
     if (isReadOnly) return;
     if (selectedIds.length === 0) return;
@@ -1047,7 +1465,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         setSelectedIds(board.elements.filter((el) => !el.locked).map((el) => el.id));
         return;
       }
-      if (mod && e.key.toLowerCase() === 'v') {
+      if (mod && !e.shiftKey && e.key.toLowerCase() === 'v') {
         if (isReadOnly) return;
         e.preventDefault();
         pasteElements(24);
@@ -1062,7 +1480,69 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         applyPaste(src, 24);
         return;
       }
+      if (mod && e.shiftKey && e.key.toLowerCase() === 'r') {
+        if (isReadOnly) return;
+        if (selectedIds.length === 0) return;
+        e.preventDefault();
+        replaceSelection();
+        return;
+      }
+      if (mod && e.shiftKey && e.key.toLowerCase() === 'v') {
+        if (isReadOnly) return;
+        if (selectedIds.length === 0) return;
+        e.preventDefault();
+        replaceSelection();
+        return;
+      }
+      if (mod && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'x') {
+        if (isReadOnly) return;
+        if (selectedIds.length === 0) return;
+        e.preventDefault();
+        copySelection();
+        removeSelection();
+        return;
+      }
+      if (mod && !e.altKey && e.key.toLowerCase() === 'g') {
+        if (isReadOnly) return;
+        if (selectedIds.length === 0) return;
+        const sel = new Set(selectedIds);
+        const grouped = board.elements.some((el) => sel.has(el.id) && (el as { groupId?: string | null }).groupId);
+        e.preventDefault();
+        if (e.shiftKey) onUngroup();
+        else if (grouped) onUngroup();
+        else onGroup();
+        return;
+      }
+      if (mod && !e.altKey && (e.code === 'BracketRight' || e.code === 'BracketLeft')) {
+        if (isReadOnly) return;
+        if (selectedIds.length === 0) return;
+        e.preventDefault();
+        const forward = e.code === 'BracketRight';
+        if (e.shiftKey) reorderToEdge(forward ? 'front' : 'back');
+        else reorderSelection(forward ? 1 : -1);
+        return;
+      }
+      if (mod && !e.shiftKey && !e.altKey && (e.key === '=' || e.key === '+' || e.key === '-' || e.key === '_' || e.key === '0')) {
+        if (isReadOnly) return;
+        e.preventDefault();
+        if (e.key === '0') view.resetView();
+        else view.zoomAt(e.key === '=' || e.key === '+' ? 1.25 : 1 / 1.25);
+        return;
+      }
+      if (mod && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'b') {
+        if (isReadOnly) return;
+        if (selectedIds.length === 0) return;
+        const rich = board.elements.filter((el) => selectedIds.includes(el.id) && !el.locked && TEXT_EDITABLE.has(el.kind));
+        if (rich.length === 0) return;
+        e.preventDefault();
+        const allBold = rich.every((el) => (el as { bold?: boolean | null }).bold);
+        applyBulkPatch({ bold: !allBold });
+        return;
+      }
       if (e.code === 'Space' || e.key === ' ') {
+        // Let focused controls (buttons, menu items, dialog widgets) keep Space activation.
+        const t = e.target as HTMLElement | null;
+        if (t && t !== e.currentTarget && typeof t.closest === 'function' && t.closest('button, a, input, select, textarea, [contenteditable], [role="menu"], [role="dialog"], [role="listbox"], [role="option"]')) return;
         e.preventDefault();
         setSpaceHeld(true);
         return;
@@ -1078,7 +1558,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         if (isReadOnly) return;
         if (selectedIds.length === 0) return;
         e.preventDefault();
-        const step = e.shiftKey ? 1 : 8;
+        const step = e.shiftKey ? 10 : 1;
         let dx = 0;
         let dy = 0;
         if (e.key === 'ArrowLeft') dx = -step;
@@ -1120,8 +1600,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         }
         setSelectedIds([]);
         setDragOffset(null);
-        rotateRef.current = null;
-        setRotatePreview(null);
+        setCtxMenu(null);
         marqueeRef.current = null;
         setMarquee(null);
       }
@@ -1138,7 +1617,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlur);
     };
-  }, [selectedIds, removeSelection, copySelection, pasteElements, copiedElements, applyPaste, board.elements, isReadOnly]);
+  }, [selectedIds, removeSelection, copySelection, pasteElements, copiedElements, applyPaste, replaceSelection, board.elements, isReadOnly]);
 
   useEffect(() => {
     if (tool !== 'select' && tool !== 'marquee') {
@@ -1146,16 +1625,70 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       setDragOffset(null);
       resizeRef.current = null;
       setResizePreview(null);
-      rotateRef.current = null;
-      setRotatePreview(null);
+      setCtxMenu(null);
+      setTextZoneId(null);
+      setEditingText(null);
+      setBarPop(null);
+      setMoreSheet(false);
+      rotateDragRef.current = null;
+      setRotateLive(null);
       marqueeRef.current = null;
       setMarquee(null);
     }
+    // G1: entering the ref tool opens the picker at the viewport center;
+    // leaving any tool closes it (never lingers across a tool switch).
+    if (tool === 'ref' && !isReadOnly) {
+      const vp = worldViewportRect(view.view, canvasSize.w, canvasSize.h);
+      const center = { x: vp.x + vp.w / 2, y: vp.y + vp.h / 2 };
+      setRefPending((prev) => prev ?? center);
+    } else {
+      setRefPending(null);
+    }
   }, [tool]);
+
+  // Floating popups belong to the current selection — never linger across it.
+  // (Outside-dismiss is owned by each portal popup via floating-ui useDismiss.)
+  useEffect(() => {
+    setBarPop(null);
+    setMoreSheet(false);
+    if (selectedIds.length !== 1) setTextZoneId(null);
+    if (editingText && !selectedIds.includes(editingText.id)) setEditingText(null);
+  }, [selectedIds, board.id, editingText]);
+
+  // S1: keep the measured bar inside the canvas (12px margins). Runs every
+  // render; the guarded setState prevents loops. jsdom reports width 0, in
+  // which case the adjustment is 0 and legacy clamping stands.
+  useLayoutEffect(() => {
+    const el = floatWrapRef.current;
+    if (!el) return;
+    const w = el.offsetWidth;
+    if (w <= 0) {
+      setBarAdj((prev) => (prev === 0 ? prev : 0));
+      return;
+    }
+    const fx = floatFxRef.current;
+    const W = canvasSize.w;
+    const M = 12;
+    let cx = fx;
+    if (W - M * 2 < w) cx = W / 2;
+    else if (fx - w / 2 < M) cx = M + w / 2;
+    else if (fx + w / 2 > W - M) cx = W - M - w / 2;
+    const adj = cx - fx;
+    setBarAdj((prev) => (prev === adj ? prev : adj));
+  });
 
   const worldAt = (e: ReactPointerEvent<SVGSVGElement>): Point => {
     const rect = e.currentTarget.getBoundingClientRect();
     return screenToWorld(view.view, e.clientX - rect.left, e.clientY - rect.top);
+  };
+
+  /** Advances the in-progress edge draft (edge tool or FigJam side-port drag). */
+  const updateEdgeDraft = (e: ReactPointerEvent<SVGSVGElement>) => {
+    const d = edgeDraftRef.current;
+    if (!d) return;
+    const next = { ...d, cur: worldAt(e) };
+    edgeDraftRef.current = next;
+    setEdgeDraft(next);
   };
 
   const startDraw = (e: ReactPointerEvent<SVGSVGElement>) => {
@@ -1204,7 +1737,9 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       });
       return;
     }
-    if (board.elements.length >= MAX_ELEMENTS) return;
+    if (board.elements.length >= MAX_ELEMENTS) {
+      return;
+    }
     history.record();
     const strokeColor = current.tool === 'pen' ? (penColorProp ?? drawColor(current.tool)) : drawColor(current.tool);
     const strokeWidth = current.tool === 'pen' ? (penWidthProp ?? drawWidth(current.tool)) : drawWidth(current.tool);
@@ -1233,8 +1768,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     let placed: WhiteboardElement;
     if (tool === 'sticky') {
       const base = buildSticky(spt.x, spt.y, stickyColorProp ?? STICKY_COLOR, stickyTextColorProp ?? null);
-      placed = { ...base, fontSize: Math.max(4, Math.min(72, stickyFontSizeProp ?? 12)), align: (stickyAlignProp as WhiteboardElement['kind'] extends never ? never : string) ?? 'left' } as WhiteboardElement;
-      (placed as WhiteboardSticky).fontSize = Math.max(4, Math.min(72, stickyFontSizeProp ?? 12));
+      placed = { ...base, fontSize: Math.max(4, Math.min(96, stickyFontSizeProp ?? 12)), align: (stickyAlignProp as WhiteboardElement['kind'] extends never ? never : string) ?? 'left' } as WhiteboardElement;
+      (placed as WhiteboardSticky).fontSize = Math.max(4, Math.min(96, stickyFontSizeProp ?? 12));
       (placed as WhiteboardSticky).align = (stickyAlignProp ?? 'left') as any;
     } else if (tool === 'shape') {
       const base = buildShape(spt.x, spt.y, shapeColorProp ?? SHAPE_COLOR, (shapeTypeProp as WhiteboardShapeType) ?? 'rect', shapeLabelColorProp ?? null);
@@ -1242,15 +1777,25 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         ...base,
         label: shapeLabelProp ?? '',
         fill: shapeFillProp ?? false,
-        fontSize: Math.max(4, Math.min(72, shapeFontSizeProp ?? 12)),
+        fontSize: Math.max(4, Math.min(96, shapeFontSizeProp ?? 12)),
         align: (shapeAlignProp ?? 'center') as any,
       } as WhiteboardElement;
       placed = withDefaults;
     } else {
       const base = buildText(spt.x, spt.y, textColorProp ?? TEXT_COLOR);
-      placed = { ...base, fontSize: Math.max(4, Math.min(72, textFontSizeProp ?? 16)), align: (textAlignProp ?? 'left') as any } as WhiteboardElement;
+      placed = {
+        ...base,
+        fontSize: Math.max(4, Math.min(96, textFontSizeProp ?? 16)),
+        align: (textAlignProp ?? 'left') as any,
+        fontFamily: (textFontFamilyProp ?? 'simple') as WhiteboardFontFamily,
+        bold: textBoldProp ?? false,
+        strikethrough: textStrikeProp ?? false,
+        list: (textBulletProp ? 'bullet' : 'none') as 'none' | 'bullet',
+      } as WhiteboardElement;
     }
-    if (board.elements.length >= MAX_ELEMENTS) return;
+    if (board.elements.length >= MAX_ELEMENTS) {
+      return;
+    }
     history.record();
     dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...board.elements, placed] } });
     setSelectedIds([placed.id]);
@@ -1299,7 +1844,6 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     const target = elementsAtPoint(board.elements, d.cur, EDGE_TOUCH_TOLERANCE, refRects, NO_BOUNDARY);
     // WB-6: dropping on empty space/self is a silent no-op no more.
     if (!target || target.id === d.fromId) {
-      if (!isReadOnly) onNoticeProp?.(t('whiteboard.canvas.edgeDropEmpty'));
       return;
     }
     const fromBounds = boundsFor(fromEl);
@@ -1320,14 +1864,16 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       label: edgeLabelProp ?? '',
       arrowStyle: (edgeArrowStyleProp as WhiteboardEdge['arrowStyle']) ?? 'solid',
       dash: (edgeDashProp as WhiteboardEdge['dash']) ?? 'solid',
-      fontSize: Math.max(4, Math.min(72, edgeFontSizeProp ?? 11)),
+      fontSize: Math.max(4, Math.min(96, edgeFontSizeProp ?? 11)),
       align: (edgeAlignProp ?? 'center') as any,
       sourceNodeId: fromEl.id,
       targetNodeId: target.id,
       sourcePort,
       targetPort,
     };
-    if (board.elements.length >= MAX_ELEMENTS) return;
+    if (board.elements.length >= MAX_ELEMENTS) {
+      return;
+    }
     history.record();
     dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...board.elements, edge] } });
     // WB-6: select the new edge so its label is one click away in the inspector.
@@ -1340,7 +1886,9 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     setRefPending(null);
     if (isReadOnly) return;
     if (!pt) return;
-    if (board.elements.length >= MAX_ELEMENTS) return;
+    if (board.elements.length >= MAX_ELEMENTS) {
+      return;
+    }
     history.record();
     dispatch({
       type: 'whiteboard/update',
@@ -1349,36 +1897,122 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     });
   };
 
+  /** Text content accessors (sticky/text → text, shape/edge/boundary → label). */
+  const textOf = (el: WhiteboardElement): string | null => {
+    if (el.kind === 'sticky' || el.kind === 'text') return el.text;
+    if (el.kind === 'shape' || el.kind === 'edge' || el.kind === 'boundary') return el.label;
+    return null;
+  };
+  const textFontOf = (el: WhiteboardElement): number => {
+    if (el.kind === 'text') return el.fontSize;
+    if (el.kind === 'edge') return el.fontSize ?? 11;
+    if (el.kind === 'sticky' || el.kind === 'shape' || el.kind === 'boundary') return el.fontSize ?? 12;
+    return 12;
+  };
+  /** FigJam split: inner text area (text bar + inline edit) vs border/body (element bar). */
+  const hitTextArea = (el: WhiteboardElement, pt: Point): boolean => {
+    const pad = 8;
+    if (el.kind === 'sticky') {
+      return pointInRect(pt, { x: el.x + pad, y: el.y + pad, w: Math.max(1, el.w - pad * 2), h: Math.max(1, el.h - pad * 2) });
+    }
+    if (el.kind === 'text') {
+      return pointInRect(pt, boundsFor(el));
+    }
+    if (el.kind === 'shape') {
+      if (!el.label) return false;
+      const fontSize = el.fontSize ?? 12;
+      const innerW = Math.max(24, el.w - pad * 2);
+      const lines = wrapToWidth(el.label, fontSize, innerW, 4);
+      const h = lines.length * (fontSize + 2);
+      return pointInRect(pt, { x: el.x + el.w / 2 - innerW / 2, y: el.y + el.h / 2 - h / 2, w: innerW, h });
+    }
+    if (el.kind === 'edge') {
+      if (!el.label) return false;
+      const ep = derivedEdges.get(el.id) ?? { x1: el.x1, y1: el.y1, x2: el.x2, y2: el.y2 };
+      const mid = pathMidpoint([
+        { x: ep.x1, y: ep.y1 },
+        { x: ep.x2, y: ep.y2 },
+      ]);
+      return Math.hypot(pt.x - mid.x, pt.y - mid.y) <= 16;
+    }
+    if (el.kind === 'boundary') {
+      if (!el.label) return false;
+      const chipW = Math.min(el.label.length * 7.5 + 12, Math.max(20, el.w - 12));
+      return pointInRect(pt, { x: el.x + 2, y: el.y - 10, w: chipW + 8, h: 28 });
+    }
+    return false;
+  };
+
+  const startTextEdit = (el: WhiteboardElement) => {
+    if (isReadOnly) return;
+    if (!TEXT_EDITABLE.has(el.kind) || el.locked) return;
+    const current = textOf(el);
+    if (current === null) return;
+    setEditingText({ id: el.id, value: current });
+    setBarPop(null);
+  };
+
+  /** FigJam Add-text: clicking the ghost selects and opens inline editing. */
+  const ghostEdit = (target: WhiteboardElement) => {
+    if (isReadOnly || target.locked) return;
+    setSelectedIds([target.id]);
+    setTextZoneId(target.id);
+    startTextEdit(target);
+  };
+
+  const commitTextEdit = () => {
+    const draft = editingText;
+    setEditingText(null);
+    if (isReadOnly || !draft) return;
+    const el = board.elements.find((e) => e.id === draft.id);
+    const field = el && (el.kind === 'sticky' || el.kind === 'text' ? 'text' : 'label');
+    if (!el || !field || (el as unknown as Record<string, unknown>)[field] === draft.value) {
+      if (el) setTextZoneId(el.id);
+      return;
+    }
+    history.record();
+    dispatch({
+      type: 'whiteboard/update',
+      id: board.id,
+      patch: { elements: board.elements.map((e) => (e.id === draft.id ? { ...e, [field]: draft.value } : e)) },
+    });
+    setTextZoneId(draft.id);
+  };
+
   const handlePointerDown = (e: ReactPointerEvent<SVGSVGElement>) => {
     if (e.button !== 0) return;
     const pt = worldAt(e);
-    // WB-5: selection-handle hit tests (screen space). Handles can float over
-    // empty canvas (e.g. rotate handle below the element), so the pan guard
-    // below must not swallow them.
-    const hitRotateHandle = (): { id: string; center: Point; startAng: number; startRot: number } | null => {
+    // Touch long-press opens the object menu (no right button on touch).
+    if (e.pointerType === 'touch' && !isReadOnly) {
+      cancelLongPress();
+      const cx = e.clientX;
+      const cy = e.clientY;
+      longPressRef.current = {
+        timer: window.setTimeout(() => {
+          longPressRef.current = null;
+          openCtxMenuAt(cx, cy);
+        }, 550),
+        x: cx,
+        y: cy,
+      };
+    }
+    // FigJam-style adornment hit tests (screen space). Corner/port handles can
+    // float over empty canvas, so the pan guard below must not swallow them.
+    const hitResizeCorner = (): ResizeCorner | null => {
       if (selectedIds.length !== 1 || isReadOnly) return null;
-      const target = board.elements.find((el) => el.id === selectedIds[0] && ROTATABLE_KINDS.has(el.kind) && !el.locked);
+      const target = board.elements.find((el) => el.id === selectedIds[0] && RESIZEABLE_KINDS.has(el.kind) && !el.locked);
       if (!target) return null;
       const b = boundsFor(target);
       const off = dragOffset ?? { dx: 0, dy: 0 };
-      const s = Math.max(0.3, view.view.s);
-      const c = rotationCenter(target, b);
-      const deg = (target as { rotation?: number }).rotation ?? 0;
-      // Fixed-frame handle (never orbits with rotation) + occlusion flip.
-      // Frozen while dragging so the handle can't jump mid-gesture.
-      const dragging = rotateRef.current?.id === target.id;
-      const svgRect = view.ref.current?.getBoundingClientRect() ?? null;
-      const flipped = !dragging && shouldFlipRotateHandle(view.view, svgRect, b, s, off);
-      const hp = rotateHandleWorld(b, s, flipped);
-      const screenHandle = worldToScreen(view.view, hp.x + off.dx, hp.y + off.dy);
+      const rdeg = (target as { rotation?: number }).rotation ?? 0;
+      const rc = rotationCenter(target, b);
       const screenPt = worldToScreen(view.view, pt.x, pt.y);
-      if (Math.hypot(screenPt.x - screenHandle.x, screenPt.y - screenHandle.y) > ROTATE_HIT) return null;
-      return {
-        id: target.id,
-        center: { x: c.x + off.dx, y: c.y + off.dy },
-        startAng: (Math.atan2(pt.y - (c.y + off.dy), pt.x - (c.x + off.dx)) * 180) / Math.PI,
-        startRot: deg,
-      };
+      for (const corner of RESIZE_CORNERS) {
+        const hp = resizeCornerPoint(b, rc, rdeg, corner);
+        const screenHandle = worldToScreen(view.view, hp.x + off.dx, hp.y + off.dy);
+        if (Math.hypot(screenPt.x - screenHandle.x, screenPt.y - screenHandle.y) <= CORNER_HIT) return corner;
+      }
+      return null;
     };
     if (
       tool === 'view' ||
@@ -1402,6 +2036,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         if (!alreadySelected || selectedIds.length !== 1) {
           setSelectedIds([hitAny.id]);
         }
+        setTextZoneId(hitTextArea(hitAny, pt) ? hitAny.id : null);
         if (onToolChange) onToolChange('select');
         // prepare drag for select
         if (!readOnly) {
@@ -1412,29 +2047,47 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       }
     }
     if (tool === 'select') {
-      // WB-5: rotate-handle hit test (screen space, before resize — different corner).
-      const rh = hitRotateHandle();
-      if (rh) {
-        rotateRef.current = { id: rh.id, center: rh.center, startAng: rh.startAng, startRot: rh.startRot };
+      // FigJam-style corner resize (screen space, before element hit test).
+      const corner = hitResizeCorner();
+      if (corner) {
+        const target = board.elements.find((el) => el.id === selectedIds[0])!;
+        const b = boundsFor(target);
+        resizeRef.current = {
+          startWorld: pt,
+          startW: b.w,
+          startH: b.h,
+          startX: b.x,
+          startY: b.y,
+          corner,
+          aspect: b.h === 0 ? 1 : b.w / b.h,
+        };
         return;
       }
-      const resizeTargetEl = selectedIds.length === 1 ? board.elements.find((el) => el.id === selectedIds[0] && RESIZEABLE_KINDS.has(el.kind) && !el.locked) : undefined;
-      if (resizeTargetEl && !isReadOnly) {
-        const b = boundsFor(resizeTargetEl);
-        const off = dragOffset ?? { dx: 0, dy: 0 };
-        // WB-5: corner follows element rotation (matches the adornment group).
-        const rdeg = (resizeTargetEl as { rotation?: number }).rotation ?? 0;
-        const rc = rotationCenter(resizeTargetEl, b);
-        const corner = rotatePoint(b.x + b.w, b.y + b.h, rc.x, rc.y, rdeg);
-        const hx = corner.x + off.dx;
-        const hy = corner.y + off.dy;
-        // Use screen-space hit test - 20px generous (was 6 world = 1.8px at zoom 0.3)
-        const handleSize = 10 / Math.max(0.3, view.view.s);
-        const screenHandle = worldToScreen(view.view, hx, hy);
-        const screenPt = worldToScreen(view.view, pt.x, pt.y);
-        if (Math.hypot(screenPt.x - screenHandle.x, screenPt.y - screenHandle.y) <= handleSize) {
-          resizeRef.current = { startWorld: pt, startW: b.w, startH: b.h, startX: b.x, startY: b.y };
-          return;
+      // FigJam rotate gesture: zone beside the corners (shape/text only —
+        // FigJam forbids sticky rotation).
+      if (selectedIds.length === 1 && !isReadOnly && !editingText) {
+        const target = board.elements.find((el) => el.id === selectedIds[0]);
+        if (target && (target.kind === 'shape' || target.kind === 'text') && !target.locked) {
+          const b = boundsFor(target);
+          const off = dragOffset ?? { dx: 0, dy: 0 };
+          const rdeg = (target as { rotation?: number }).rotation ?? 0;
+          const rc = rotationCenter(target, b);
+          const screenPt = worldToScreen(view.view, pt.x, pt.y);
+          const rcScreen = worldToScreen(view.view, rc.x + off.dx, rc.y + off.dy);
+          for (const c of RESIZE_CORNERS) {
+            const hp = resizeCornerPoint(b, rc, rdeg, c);
+            const sp = worldToScreen(view.view, hp.x + off.dx, hp.y + off.dy);
+            if (inRotateZone(screenPt, sp, rcScreen)) {
+              rotateDragRef.current = {
+                id: target.id,
+                center: { x: rc.x + off.dx, y: rc.y + off.dy },
+                startAng: (Math.atan2(pt.y - (rc.y + off.dy), pt.x - (rc.x + off.dx)) * 180) / Math.PI,
+                startRot: rdeg,
+              };
+              setHoverRotate(false);
+              return;
+            }
+          }
         }
       }
       const hit = elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects);
@@ -1443,6 +2096,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         // Viewers keep pan-on-empty for navigation.
         if (isReadOnly) {
           setSelectedIds([]);
+          setTextZoneId(null);
           setDragOffset(null);
           panDragRef.current = true;
           view.onPointerDown(e);
@@ -1472,6 +2126,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         nextSel = [hit.id];
       }
       setSelectedIds(nextSel);
+      // FigJam split: inner text area → text bar, border/body → element bar.
+      setTextZoneId(!e.shiftKey && nextSel.length === 1 && hitTextArea(hit, pt) ? hit.id : null);
       if (!readOnly) {
         dragRef.current = { startWorld: pt, originals: new Map(board.elements.map((el) => [el.id, el])) };
       }
@@ -1517,45 +2173,125 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     }
   };
 
+  // FigJam rotate gesture commit — shared by the canvas ring-drag and the
+  // mobile floating rotate handle (both feed rotateDragRef/rotateLive).
+  const commitRotateDrag = () => {
+    const r = rotateDragRef.current;
+    const preview = rotateLive;
+    rotateDragRef.current = null;
+    setRotateLive(null);
+    if (!r || isReadOnly) return;
+    if (preview !== null && preview !== r.startRot) {
+      history.record();
+      dispatch({
+        type: 'whiteboard/update',
+        id: board.id,
+        patch: {
+          elements: board.elements.map((el) => (el.id === r.id ? { ...el, rotation: preview } : el)),
+        },
+      });
+    }
+  };
+
   const handlePointerMove = (e: ReactPointerEvent<SVGSVGElement>) => {
     if (spaceHeld || panDragRef.current) {
       view.onPointerMove(e);
+      return;
+    }
+    if (longPressRef.current) {
+      const lp = longPressRef.current;
+      if (Math.hypot(e.clientX - lp.x, e.clientY - lp.y) > 12) cancelLongPress();
+    }
+    // FigJam-style port draft (started from a side dot) updates regardless of tool.
+    if (edgeDraftRef.current) {
+      if (isReadOnly) return;
+      updateEdgeDraft(e);
       return;
     }
     if (tool === 'select') {
       if (isReadOnly) {
         // suppress all mutating previews for viewer
         if (resizeRef.current) setResizePreview(null);
-        if (rotateRef.current) setRotatePreview(null);
+        if (rotateDragRef.current) {
+          rotateDragRef.current = null;
+          setRotateLive(null);
+        }
         return;
       }
       const pt = worldAt(e);
-      // WB-5: live rotation degrees (Shift = 45° steps).
-      if (rotateRef.current) {
-        const r = rotateRef.current;
+      // FigJam rotate gesture: live degrees while dragging the ring.
+      if (rotateDragRef.current) {
+        const r = rotateDragRef.current;
         const ang = (Math.atan2(pt.y - r.center.y, pt.x - r.center.x) * 180) / Math.PI;
         let delta = ang - r.startAng;
         while (delta > 180) delta -= 360;
         while (delta < -180) delta += 360;
-        setRotatePreview(snapRotation(r.startRot + delta, e.shiftKey));
+        setRotateLive(snapRotation(r.startRot + delta, e.shiftKey));
         return;
+      }
+      // Hover-only rotate affordance (no buttons pressed): cursor feedback.
+      if (e.buttons === 0 && !dragRef.current && !marqueeRef.current && !resizeRef.current && selectedIds.length === 1 && !editingText) {
+        const target = board.elements.find((el) => el.id === selectedIds[0]);
+        let inRing = false;
+        if (target && (target.kind === 'shape' || target.kind === 'text') && !target.locked) {
+          const b = boundsFor(target);
+          const rdeg = (target as { rotation?: number }).rotation ?? 0;
+          const rc = rotationCenter(target, b);
+          const screenPt = worldToScreen(view.view, pt.x, pt.y);
+          const rcScreen = worldToScreen(view.view, rc.x, rc.y);
+          for (const c of RESIZE_CORNERS) {
+            const hp = resizeCornerPoint(b, rc, rdeg, c);
+            const sp = worldToScreen(view.view, hp.x, hp.y);
+            if (inRotateZone(screenPt, sp, rcScreen)) {
+              inRing = true;
+              break;
+            }
+          }
+        }
+        if (inRing !== hoverRotate) setHoverRotate(inRing);
+      } else if (hoverRotate) {
+        setHoverRotate(false);
       }
       if (resizeRef.current) {
         const r = resizeRef.current;
         const dx = pt.x - r.startWorld.x;
         const dy = pt.y - r.startWorld.y;
-        const w = Math.max(RESIZE_MIN, snap(r.startW + dx));
-        const h = Math.max(RESIZE_MIN, snap(r.startH + dy));
+        // Fixed corner stays; the dragged corner follows the pointer (snapped).
+        const fixedRight = r.corner === 'ne' || r.corner === 'se';
+        const fixedBottom = r.corner === 'sw' || r.corner === 'se';
+        let nw = fixedRight ? snap(r.startW + dx) : snap(r.startW - dx);
+        let nh = fixedBottom ? snap(r.startH + dy) : snap(r.startH - dy);
+        if (e.shiftKey) {
+          // FigJam: Shift locks the aspect ratio around the fixed corner.
+          const k = Math.max(nw / r.startW, nh / r.startH);
+          nw = r.startW * k;
+          nh = r.startH * k;
+        }
+        if (e.altKey) {
+          // Alt resizes symmetrically around the center.
+          const cx = r.startX + r.startW / 2;
+          const cy = r.startY + r.startH / 2;
+          nw = Math.max(RESIZE_MIN, nw);
+          nh = Math.max(RESIZE_MIN, nh);
+          setResizePreview({ x: cx - nw / 2, y: cy - nh / 2, w: nw, h: nh });
+        } else {
+          nw = Math.max(RESIZE_MIN, nw);
+          nh = Math.max(RESIZE_MIN, nh);
+          const nx = fixedRight ? r.startX : r.startX + r.startW - nw;
+          const ny = fixedBottom ? r.startY : r.startY + r.startH - nh;
+          setResizePreview({ x: nx, y: ny, w: nw, h: nh });
+        }
         const target = selectedIds.length === 1 ? board.elements.find((el) => el.id === selectedIds[0]) : undefined;
         if (target?.kind === 'text') {
-          const wrapW = Math.min(w, 2000);
+          const wrapW = Math.min(Math.max(RESIZE_MIN, nw), 2000);
+          const nx = e.altKey ? r.startX + (r.startW - wrapW) / 2 : fixedRight ? r.startX : r.startX + r.startW - wrapW;
           setResizePreview({
+            x: nx,
+            y: r.startY,
             w: wrapW,
             h: wrapTextLines(target.text, target.fontSize, wrapW).length * textLineHeight(target.fontSize) + 2,
           });
-          return;
         }
-        setResizePreview({ w, h });
         return;
       }
       // WB-7: marquee started from select-tool empty-drag.
@@ -1598,11 +2334,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     }
     if (tool === 'edge') {
       if (isReadOnly) return;
-      const d = edgeDraftRef.current;
-      if (!d) return;
-      const next = { ...d, cur: worldAt(e) };
-      edgeDraftRef.current = next;
-      setEdgeDraft(next);
+      updateEdgeDraft(e);
       return;
     }
     if (tool === 'marquee') {
@@ -1643,9 +2375,15 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   };
 
   const handlePointerUp = (_e: ReactPointerEvent<SVGSVGElement>) => {
+    cancelLongPress();
     if (spaceHeld || panDragRef.current) {
       panDragRef.current = false;
       view.onPointerUp();
+      return;
+    }
+    // FigJam-style port draft (started from a side dot) commits regardless of tool.
+    if (edgeDraftRef.current) {
+      commitEdge();
       return;
     }
     if (tool === 'marquee') {
@@ -1658,23 +2396,9 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         commitMarquee();
         return;
       }
-      // WB-5: commit inline rotation.
-      if (rotateRef.current) {
-        const r = rotateRef.current;
-        const preview = rotatePreview;
-        rotateRef.current = null;
-        setRotatePreview(null);
-        if (isReadOnly) return;
-        if (preview !== null && preview !== r.startRot) {
-          history.record();
-          dispatch({
-            type: 'whiteboard/update',
-            id: board.id,
-            patch: {
-              elements: board.elements.map((el) => (el.id === r.id ? { ...el, rotation: preview } : el)),
-            },
-          });
-        }
+      // FigJam rotate gesture commit.
+      if (rotateDragRef.current) {
+        commitRotateDrag();
         return;
       }
       if (resizeRef.current) {
@@ -1686,7 +2410,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         if (preview && targetId) {
           history.record();
           const target = board.elements.find((el) => el.id === targetId);
-          const patch = target?.kind === 'text' ? { w: preview.w } : { w: preview.w, h: preview.h };
+          const patch = target?.kind === 'text' ? { x: preview.x, w: preview.w } : { x: preview.x, y: preview.y, w: preview.w, h: preview.h };
           dispatch({
             type: 'whiteboard/update',
             id: board.id,
@@ -1725,11 +2449,15 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       const y = Math.min(d.y1, d.y2);
       const w = Math.abs(d.x2 - d.x1);
       const h = Math.abs(d.y2 - d.y1);
-      if (w < 40 || h < 40) return;
-      if (board.elements.length >= MAX_ELEMENTS) return;
+      if (w < 40 || h < 40) {
+        return;
+      }
+      if (board.elements.length >= MAX_ELEMENTS) {
+        return;
+      }
       history.record();
       const baseB = buildBoundary(x, y, w, h, boundaryColorProp ?? BOUNDARY_COLOR);
-      const boundary = { ...baseB, label: boundaryLabelProp ?? '', labelColor: boundaryLabelColorProp ?? '#e4e4e7', fontSize: Math.max(4, Math.min(72, boundaryFontSizeProp ?? 12)), align: (boundaryAlignProp ?? 'left') as any } as typeof baseB;
+      const boundary = { ...baseB, label: boundaryLabelProp ?? '', labelColor: boundaryLabelColorProp ?? '#e4e4e7', fontSize: Math.max(4, Math.min(96, boundaryFontSizeProp ?? 12)), align: (boundaryAlignProp ?? 'left') as any } as typeof baseB;
       dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...board.elements, boundary] } });
       setSelectedIds([boundary.id]);
       if (onToolChange) onToolChange('select');
@@ -1738,6 +2466,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   };
 
   const handlePointerCancel = (_e: ReactPointerEvent<SVGSVGElement>) => {
+    cancelLongPress();
     if (spaceHeld || panDragRef.current) {
       panDragRef.current = false;
       view.onPointerCancel();
@@ -1749,8 +2478,10 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       setGuides(null);
       resizeRef.current = null;
       setResizePreview(null);
-      rotateRef.current = null;
-      setRotatePreview(null);
+      rotateDragRef.current = null;
+      setRotateLive(null);
+      edgeDraftRef.current = null;
+      setEdgeDraft(null);
       marqueeRef.current = null;
       setMarquee(null);
       return;
@@ -1796,23 +2527,111 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     }
     if (hit.kind === 'stroke') return;
     if (isReadOnly) return;
-    // Double-click now selects the element so the right inspector shows — no overlay popover.
+    // FigJam: double-click selects; on text-capable kinds it also opens inline editing.
     setSelectedIds([hit.id]);
+    if (TEXT_EDITABLE.has(hit.kind)) {
+      setTextZoneId(hit.id);
+      startTextEdit(hit);
+    } else {
+      setTextZoneId(null);
+    }
+  };
+
+  /** FigJam right-click: selects the element under the cursor, then opens the object menu. */
+  const handleContextMenu = (e: ReactMouseEvent<HTMLDivElement>) => {
+    if (isReadOnly) return;
+    e.preventDefault();
+    openCtxMenuAt(e.clientX, e.clientY);
+  };
+
+  const ctxSections = (): Array<Array<{ id: string; label: string; shortcut?: string; danger?: boolean; disabled?: boolean; run: () => void }>> => {
+    const hasSel = selectedIds.length > 0;
+    const hasClip = !!clipboard && clipboard.length > 0;
+    const hasLocked = board.elements.some((el) => selectedIds.includes(el.id) && el.locked);
+    const hasGroup = board.elements.some((el) => selectedIds.includes(el.id) && el.groupId);
+    const anyLocked = board.elements.some((el) => el.locked);
+    return [
+      [
+        { id: 'copy', label: t('whiteboard.ctx.copy'), shortcut: 'Ctrl+C', disabled: !hasSel, run: copySelection },
+        { id: 'cut', label: t('whiteboard.ctx.cut'), shortcut: 'Ctrl+X', disabled: !hasSel, run: () => { copySelection(); removeSelection(); } },
+        { id: 'paste', label: t('whiteboard.ctx.paste'), shortcut: 'Ctrl+V', disabled: !hasClip, run: () => pasteElements(24) },
+        { id: 'replace', label: t('whiteboard.ctx.pasteReplace'), shortcut: 'Ctrl+Shift+V', disabled: !hasSel || !hasClip, run: replaceSelection },
+        {
+          id: 'duplicate',
+          label: t('whiteboard.ctx.duplicate'),
+          shortcut: 'Ctrl+D',
+          disabled: !hasSel,
+          run: () => {
+            const src = copiedElements();
+            if (src.length === 0) return;
+            setClipboard(src);
+            applyPaste(src, 24);
+          },
+        },
+      ],
+      [
+        { id: 'delete', label: t('whiteboard.canvas.deleteSelected'), shortcut: 'Del', danger: true, disabled: !hasSel, run: removeSelection },
+      ],
+      [
+        { id: 'link', label: t('whiteboard.ctx.copyLink'), disabled: !hasSel, run: copyBoardLink },
+        { id: 'png', label: t('whiteboard.export.pngSelection'), disabled: !hasSel, run: () => downloadSelection('png') },
+        { id: 'svg', label: t('whiteboard.export.svgSelection'), disabled: !hasSel, run: () => downloadSelection('svg') },
+      ],
+      [
+        { id: 'front', label: t('whiteboard.ctx.bringFront'), shortcut: 'Ctrl+Shift+]', disabled: !hasSel, run: () => reorderToEdge('front') },
+        { id: 'forward', label: t('whiteboard.canvas.bringForward'), shortcut: 'Ctrl+]', disabled: !hasSel, run: () => reorderSelection(1) },
+        { id: 'backward', label: t('whiteboard.canvas.sendBackward'), shortcut: 'Ctrl+[', disabled: !hasSel, run: () => reorderSelection(-1) },
+        { id: 'back', label: t('whiteboard.ctx.sendBack'), shortcut: 'Ctrl+Shift+[', disabled: !hasSel, run: () => reorderToEdge('back') },
+      ],
+      [
+        {
+          id: 'group',
+          label: hasGroup ? t('whiteboard.canvas.ungroup') : t('whiteboard.canvas.group'),
+          shortcut: hasGroup ? 'Ctrl+Shift+G' : 'Ctrl+G',
+          disabled: !hasSel,
+          run: hasGroup ? onUngroup : onGroup,
+        },
+        {
+          id: 'lock',
+          label: hasLocked ? t('whiteboard.canvas.unlock') : t('whiteboard.canvas.lock'),
+          disabled: !hasSel,
+          run: onToggleLock,
+        },
+        { id: 'unlockAll', label: t('whiteboard.canvas.unlockAll'), disabled: !anyLocked, run: unlockAll },
+      ],
+    ];
   };
 
   const handleCanvasKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (isReadOnly) return;
     if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      const placeTools: WbTool[] = ['sticky', 'text', 'shape'];
+      if (e.target !== e.currentTarget) return;
+      // FigJam: Enter edits the selected text, like double-click.
+      if (tool === 'select' && selectedIds.length === 1) {
+        const sel = board.elements.find((el) => el.id === selectedIds[0]);
+        if (sel && TEXT_EDITABLE.has(sel.kind) && !sel.locked) {
+          e.preventDefault();
+          setTextZoneId(sel.id);
+          startTextEdit(sel);
+          return;
+        }
+      }
+      const placeTools: WbTool[] = ['sticky', 'text', 'shape', 'boundary', 'ref'];
       if (!placeTools.includes(tool)) return;
       if (e.target !== e.currentTarget) return;
       e.preventDefault();
-      const el = view.ref.current;
-      if (!el) return;
+      const el = view.ref.current;      if (!el) return;
       const rect = el.getBoundingClientRect();
       const cx = rect.width / 2;
       const cy = rect.height / 2;
       const world = screenToWorld(view.view, cx, cy);
+      if (tool === 'ref') {
+        setRefPending(world);
+        return;
+      }
+      if (board.elements.length >= MAX_ELEMENTS) {
+        return;
+      }
       let newEl: WhiteboardElement | null = null;
       if (tool === 'sticky')
         newEl = buildSticky(world.x - STICKY_W / 2, world.y - STICKY_H / 2, stickyColorProp ?? STICKY_COLOR, stickyTextColorProp ?? null) as WhiteboardElement;
@@ -1825,8 +2644,15 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
           (shapeTypeProp as unknown as WhiteboardShape['shapeType']) ?? 'rect',
           shapeLabelColorProp ?? null,
         ) as WhiteboardElement;
+      else if (tool === 'boundary')
+        newEl = {
+          ...buildBoundary(world.x - 150, world.y - 100, 300, 200, boundaryColorProp ?? BOUNDARY_COLOR),
+          label: boundaryLabelProp ?? '',
+          labelColor: boundaryLabelColorProp ?? '#e4e4e7',
+          fontSize: Math.max(4, Math.min(96, boundaryFontSizeProp ?? 12)),
+          align: (boundaryAlignProp ?? 'left') as WhiteboardBoundary['align'],
+        } as WhiteboardElement;
       if (!newEl) return;
-      if (board.elements.length >= MAX_ELEMENTS) return;
       history.record();
       dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...board.elements, newEl] } });
       setSelectedIds([newEl.id]);
@@ -1841,11 +2667,12 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       aria-label={t('whiteboard.canvas.label', { name: board.name, count: board.elements.length })}
       tabIndex={0}
       onKeyDown={handleCanvasKeyDown}
+      onContextMenu={handleContextMenu}
     >
       <svg
         ref={view.ref}
         className={`wb-svg ${view.dragging ? 'dragging' : ''}`}
-        style={{ cursor: view.dragging || spaceHeld ? 'grabbing' : TOOL_CURSOR[tool] }}
+        style={{ cursor: view.dragging || spaceHeld ? 'grabbing' : hoverRotate || rotateLive !== null ? ROTATE_CURSOR : TOOL_CURSOR[tool] }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -1856,8 +2683,10 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
           {visibleElements.map((el) => (
             <ElementView
               key={el.id}
-              el={el}
+              el={rotateDragRef.current?.id === el.id && rotateLive !== null ? ({ ...el, rotation: rotateLive } as WhiteboardElement) : el}
               selected={selectedSet.has(el.id)}
+              editing={editingText?.id === el.id}
+              onGhostEdit={ghostEdit}
               offset={selectedSet.has(el.id) ? dragOffset : null}
               derivedEndpoints={
                 el.kind === 'edge' ? shiftEndpoints(derivedEdges.get(el.id) ?? null, dragOffset, selectedSet, el) : null
@@ -1954,8 +2783,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
             })()}
           {(resizeRef.current || null) && resizePreview && resizeRef.current && (
             <rect
-              x={resizeRef.current.startX}
-              y={resizeRef.current.startY}
+              x={resizePreview.x}
+              y={resizePreview.y}
               width={resizePreview.w}
               height={resizePreview.h}
               fill="none"
@@ -1967,101 +2796,116 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
             />
           )}
           {(() => {
-            // WB-5/15: resize handle lives in the element's rotated frame (visual corner).
-            // The rotate handle stays in the FIXED frame below/above the AABB — it must
-            // not orbit with rotation, or it ends up hidden when the element is flipped.
+            // FigJam-style adornments: 4 corner scale squares + 4 side port
+            // dots, all in the element's rotated frame (single rotation —
+            // points are unrotated here, the wrapper <g> applies the turn).
             const target = selectedIds.length === 1 ? (board.elements.find((el) => el.id === selectedIds[0]) ?? null) : null;
-            if (!target || isReadOnly) return null;
+            if (!target || isReadOnly || editingText) return null;
             const canResize = RESIZEABLE_KINDS.has(target.kind) && !target.locked;
-            const canRotate = ROTATABLE_KINDS.has(target.kind) && !target.locked;
-            if (!canResize && !canRotate) return null;
+            const canConnect = CONNECTABLE_KINDS.has(target.kind) && !target.locked;
+            if (!canResize && !canConnect) return null;
             const b = boundsFor(target);
             const off = dragOffset ?? { dx: 0, dy: 0 };
             const s = Math.max(0.3, view.view.s);
             const handleSize = 10 / s;
-            const shownRot = target.id === rotateRef.current?.id && rotatePreview !== null
-              ? rotatePreview
-              : ((target as { rotation?: number }).rotation ?? 0);
+            const liveRot = rotateDragRef.current?.id === target.id ? rotateLive : null;
+            const shownRot = liveRot ?? (target as { rotation?: number }).rotation ?? 0;
             const c = rotationCenter(target, b);
             const rotAttr = shownRot ? `rotate(${shownRot}, ${c.x}, ${c.y})` : undefined;
-            const rotR = 8 / s;
-            const dragging = rotateRef.current?.id === target.id;
-            const svgRect = view.ref.current?.getBoundingClientRect() ?? null;
-            const flipped = !dragging && shouldFlipRotateHandle(view.view, svgRect, b, s, off);
-            const hp = rotateHandleWorld(b, s, flipped);
-            const rotX = hp.x;
-            const rotY = hp.y;
-            const stemY = flipped ? b.y : b.y + b.h;
-            const startRotate = (clientX: number, clientY: number) => {
+            const portR = PORT_R / s;
+            const startPortDraft = (clientX: number, clientY: number) => {
               const svg = view.ref.current;
               if (!svg) return;
               const rect = svg.getBoundingClientRect();
               const p = screenToWorld(view.view, clientX - rect.left, clientY - rect.top);
-              rotateRef.current = {
-                id: target.id,
-                center: { x: c.x + off.dx, y: c.y + off.dy },
-                startAng: (Math.atan2(p.y - (c.y + off.dy), p.x - (c.x + off.dx)) * 180) / Math.PI,
-                startRot: shownRot,
-              };
+              const d = { fromId: target.id, fromBounds: boundsFor(target), cur: p };
+              edgeDraftRef.current = d;
+              setEdgeDraft(d);
             };
+            const portAt = (side: 'top' | 'right' | 'bottom' | 'left'): Point =>
+              side === 'top'
+                ? { x: b.x + b.w / 2, y: b.y }
+                : side === 'right'
+                  ? { x: b.x + b.w, y: b.y + b.h / 2 }
+                  : side === 'bottom'
+                    ? { x: b.x + b.w / 2, y: b.y + b.h }
+                    : { x: b.x, y: b.y + b.h / 2 };
+            const boxCorner = (corner: ResizeCorner): Point => ({
+              x: corner === 'ne' || corner === 'se' ? b.x + b.w : b.x,
+              y: corner === 'sw' || corner === 'se' ? b.y + b.h : b.y,
+            });
             return (
               <g transform={`translate(${off.dx} ${off.dy})`}>
                 <g transform={rotAttr}>
-                  {canResize && (
-                    <rect
-                      x={b.x + b.w - handleSize / 2}
-                      y={b.y + b.h - handleSize / 2}
-                      width={handleSize}
-                      height={handleSize}
-                      fill="var(--accent)"
-                      stroke="var(--bg-base)"
-                      strokeWidth={1.5 / view.view.s}
-                      style={{ cursor: 'nwse-resize' }}
-                      pointerEvents="all"
-                      onPointerDown={(e) => {
-                        e.stopPropagation();
-                        (e.currentTarget as Element).setPointerCapture?.((e as any).pointerId);
-                        const svg = view.ref.current;
-                        if (!svg) return;
-                        const rect = svg.getBoundingClientRect();
-                        const pt = screenToWorld(view.view, e.clientX - rect.left, e.clientY - rect.top);
-                        resizeRef.current = { startWorld: pt, startW: b.w, startH: b.h, startX: b.x, startY: b.y };
-                      }}
-                      data-testid="wb-resize-handle"
-                    />
-                  )}
+                  {canResize &&
+                    RESIZE_CORNERS.map((corner) => {
+                      const hp = boxCorner(corner);
+                      const cursor = corner === 'nw' || corner === 'se' ? 'nwse-resize' : 'nesw-resize';
+                      return (
+                        <rect
+                          key={corner}
+                          x={hp.x - handleSize / 2}
+                          y={hp.y - handleSize / 2}
+                          width={handleSize}
+                          height={handleSize}
+                          fill="var(--bg-elevated)"
+                          stroke="var(--accent)"
+                          strokeWidth={1.5 / view.view.s}
+                          style={{ cursor }}
+                          pointerEvents="all"
+                          onPointerDown={(e) => {
+                            e.stopPropagation();
+                            const svg = view.ref.current;
+                            if (!svg) return;
+                            svg.setPointerCapture?.(e.pointerId);
+                            const rect = svg.getBoundingClientRect();
+                            const pt = screenToWorld(view.view, e.clientX - rect.left, e.clientY - rect.top);
+                            resizeRef.current = {
+                              startWorld: pt,
+                              startW: b.w,
+                              startH: b.h,
+                              startX: b.x,
+                              startY: b.y,
+                              corner,
+                              aspect: b.h === 0 ? 1 : b.w / b.h,
+                            };
+                          }}
+                          data-testid="wb-resize-handle"
+                        />
+                      );
+                    })}
+                  {canConnect &&
+                    (['top', 'right', 'bottom', 'left'] as const).map((side) => {
+                      const p = portAt(side);
+                      return (
+                        <g key={side}>
+                          <circle
+                            cx={p.x}
+                            cy={p.y}
+                            r={PORT_HIT / s}
+                            fill="transparent"
+                            pointerEvents="all"
+                            style={{ cursor: 'crosshair' }}
+                            onPointerDown={(e) => {
+                              e.stopPropagation();
+                              const svg = view.ref.current;
+                              if (!svg) return;
+                              try {
+                                svg.setPointerCapture(e.pointerId);
+                              } catch {
+                                /* jsdom — moves still target the svg */
+                              }
+                              startPortDraft(e.clientX, e.clientY);
+                            }}
+                            data-testid="wb-port-handle"
+                          >
+                            <title>{t('whiteboard.canvas.edgeDropEmpty')}</title>
+                          </circle>
+                          <circle cx={p.x} cy={p.y} r={portR} fill="var(--accent)" pointerEvents="none" />
+                        </g>
+                      );
+                    })}
                 </g>
-                {canRotate && (
-                  <g>
-                    <line
-                      x1={rotX}
-                      y1={stemY}
-                      x2={rotX}
-                      y2={rotY}
-                      stroke="var(--accent)"
-                      strokeWidth={1.5 / view.view.s}
-                      pointerEvents="none"
-                    />
-                    <circle
-                      cx={rotX}
-                      cy={rotY}
-                      r={rotR}
-                      fill="var(--bg-elevated)"
-                      stroke="var(--accent)"
-                      strokeWidth={1.5 / view.view.s}
-                      style={{ cursor: 'grab' }}
-                      pointerEvents="all"
-                      onPointerDown={(e) => {
-                        e.stopPropagation();
-                        (e.currentTarget as Element).setPointerCapture?.((e as any).pointerId);
-                        startRotate(e.clientX, e.clientY);
-                      }}
-                      data-testid="wb-rotate-handle"
-                    >
-                      <title>{`${Math.round(shownRot)}°`}</title>
-                    </circle>
-                  </g>
-                )}
               </g>
             );
           })()}
@@ -2118,45 +2962,47 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       </svg>
       {!hideChrome && (
       <div className="erd-zoom" role="group" aria-label={t('whiteboard.canvas.zoomGroup')}>
-        <button
-          type="button"
-          className="erd-zoom-btn"
-          title={t('whiteboard.canvas.zoomIn')}
-          aria-label={t('whiteboard.canvas.zoomIn')}
-            onClick={() => view.zoomAt(1.25)}
-        >
-          <MagnifyingGlassPlus size={15} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          className="erd-zoom-btn"
-          title={t('whiteboard.canvas.zoomOut')}
-          aria-label={t('whiteboard.canvas.zoomOut')}
-            onClick={() => view.zoomAt(1 / 1.25)}
-        >
-          <MagnifyingGlassMinus size={15} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          className="erd-zoom-btn"
-          title={t('whiteboard.canvas.resetView')}
-          aria-label={t('whiteboard.canvas.resetView')}
-          onClick={() => view.resetView()}
-        >
-          <CornersOut size={15} aria-hidden="true" />
-        </button>
-        {canEdit && (
+        <Tooltip content={t('whiteboard.canvas.zoomIn')} side="top">
           <button
             type="button"
-            className={`erd-zoom-btn${snapOn ? ' erd-zoom-btn-active' : ''}`}
-            title={snapOn ? t('whiteboard.canvas.snapOn') : t('whiteboard.canvas.snapOff')}
-            aria-label={snapOn ? t('whiteboard.canvas.snapOn') : t('whiteboard.canvas.snapOff')}
-            aria-pressed={snapOn}
-            onClick={toggleSnap}
+            className="erd-zoom-btn"
+            aria-label={t('whiteboard.canvas.zoomIn')}
+              onClick={() => view.zoomAt(1.25)}
           >
-            <MagnetStraight size={15} aria-hidden="true" />
+            <MagnifyingGlassPlus size={15} aria-hidden="true" />
           </button>
-        )}
+        </Tooltip>
+        <Tooltip content={t('whiteboard.canvas.zoomOut')} side="top">
+          <button
+            type="button"
+            className="erd-zoom-btn"
+            aria-label={t('whiteboard.canvas.zoomOut')}
+              onClick={() => view.zoomAt(1 / 1.25)}
+          >
+            <MagnifyingGlassMinus size={15} aria-hidden="true" />
+          </button>
+        </Tooltip>
+        <Tooltip content={t('whiteboard.shortcuts.open')} side="top">
+          <button
+            type="button"
+            className="erd-zoom-btn"
+            aria-label={t('whiteboard.shortcuts.open')}
+            aria-haspopup="dialog"
+            onClick={() => onOpenShortcutsProp?.()}
+          >
+            <Keyboard size={15} aria-hidden="true" />
+          </button>
+        </Tooltip>
+        <Tooltip content={t('whiteboard.canvas.resetView')} side="top">
+          <button
+            type="button"
+            className="erd-zoom-btn"
+            aria-label={t('whiteboard.canvas.resetView')}
+            onClick={() => view.resetView()}
+          >
+            <CornersOut size={15} aria-hidden="true" />
+          </button>
+        </Tooltip>
       </div>
       )}
       {canEdit && !hideChrome && selectedIds.length > 0 && (() => {
@@ -2176,190 +3022,423 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         const below = topPt.y < 68;
         const fx = Math.min(Math.max(topPt.x, 120), Math.max(120, canvasSize.w - 120));
         const fy = below ? botPt.y + GAP : topPt.y - GAP;
+        floatFxRef.current = fx;
         return (
         <div
-          className="wb-selection-bar wb-selection-float"
-          role="group"
-          aria-label={t('whiteboard.canvas.selectionActions')}
-          style={{ left: fx, top: fy, transform: below ? 'translateX(-50%)' : 'translate(-50%,-100%)' }}
+          className="wb-floatwrap"
+          ref={floatWrapRef}
+          style={{ left: fx + barAdj, top: fy, transform: below ? 'translateX(-50%)' : 'translate(-50%,-100%)' }}
         >
-          {(() => {
-            const hasLocked = board.elements.some((el) => selectedIds.includes(el.id) && el.locked);
-            return (
-              <>
-                <button
-                  type="button"
-                  className="wb-selection-btn"
-                  title={hasLocked ? t('whiteboard.canvas.unlock') : t('whiteboard.canvas.lock')}
-                  aria-label={hasLocked ? t('whiteboard.canvas.unlock') : t('whiteboard.canvas.lock')}
-                  aria-pressed={hasLocked}
-                  onClick={onToggleLock}
+          {selectedIds.length >= 2 && (
+          <div
+            className="wb-selection-bar"
+            role="group"
+            aria-label={t('whiteboard.canvas.alignTools')}
+          >
+            {maybeSplit(
+              barBtn(t('whiteboard.canvas.alignLeft'), onAlign('left'), <AlignLeft size={15} aria-hidden="true" />),
+              barBtn(t('whiteboard.canvas.alignCenterH'), onAlign('centerX'), <AlignCenterHorizontal size={15} aria-hidden="true" />),
+              barBtn(t('whiteboard.canvas.alignRight'), onAlign('right'), <AlignRight size={15} aria-hidden="true" />),
+              barBtn(t('whiteboard.canvas.alignTop'), onAlign('top'), <AlignTop size={15} aria-hidden="true" />),
+              barBtn(t('whiteboard.canvas.alignMiddleV'), onAlign('middleY'), <AlignCenterVertical size={15} aria-hidden="true" />),
+              barBtn(t('whiteboard.canvas.alignBottom'), onAlign('bottom'), <AlignBottom size={15} aria-hidden="true" />),
+              ...(selectedIds.length >= 3
+                ? [
+                    barBtn(t('whiteboard.canvas.distributeH'), onDistribute('x'), <Columns size={15} aria-hidden="true" />),
+                    barBtn(t('whiteboard.canvas.distributeV'), onDistribute('y'), <Rows size={15} aria-hidden="true" />),
+                  ]
+                : []),
+              ...(selectedIds.length >= 2
+                ? [
+                    barBtn(t('whiteboard.canvas.matchWidth'), onMatchSize('width'), <ArrowsHorizontal size={15} aria-hidden="true" />),
+                    barBtn(t('whiteboard.canvas.matchHeight'), onMatchSize('height'), <ArrowsVertical size={15} aria-hidden="true" />),
+                  ]
+                : []),
+            )}
+          </div>
+          )}
+          <div
+            className="wb-selection-bar"
+            role="group"
+            aria-label={t('whiteboard.canvas.selectionActions')}
+          >
+            {selectedIds.length > 1 && (() => {
+              const first = board.elements.find(
+                (el): el is WhiteboardElement & { color: string } =>
+                  selectedIds.includes(el.id) && !el.locked && 'color' in el && typeof (el as { color?: unknown }).color === 'string',
+              );
+              const cur = first?.color ?? '#e4e4e7';
+              return (
+                <ColorDropdown
+                  value={cur}
+                  open={barPop?.kind === 'fill'}
+                  onToggle={() => setBarPop(barPop?.kind === 'fill' ? null : { kind: 'fill', field: 'color' })}
+                  onClose={() => setBarPop(null)}
+                  onPick={(c) => applyBulkPatch({ color: c })}
+                  label={t('whiteboard.textbar.fill')}
+                />
+              );
+            })()}
+            {(() => {
+              if (selectedIds.length !== 1) return null;
+              const el = board.elements.find((e) => e.id === selectedIds[0]);
+              if (!el || el.locked) return null;
+              if (el.kind === 'ref') {
+                const collapsed = collapsedRefs.has(el.id);
+                return (
+                  <>
+                    <Tooltip content={collapsed ? t('whiteboard.canvas.expand') : t('whiteboard.canvas.collapse')} side="top">
+                      <button
+                        type="button"
+                        className="wb-selection-btn"
+                        aria-label={collapsed ? t('whiteboard.canvas.expand') : t('whiteboard.canvas.collapse')}
+                        aria-pressed={collapsed}
+                        onClick={() => toggleCollapse(el.id)}
+                      >
+                        {collapsed ? (
+                          <CaretDown size={15} aria-hidden="true" />
+                        ) : (
+                          <CaretUp size={15} aria-hidden="true" />
+                        )}
+                      </button>
+                    </Tooltip>
+                    <Tooltip content={t('whiteboard.ctx.menu')} side="top">
+                      <button
+                        type="button"
+                        className="wb-selection-btn"
+                        aria-label={t('whiteboard.ctx.menu')}
+                        aria-haspopup="menu"
+                        onClick={(e) => {
+                          const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                          setCtxMenu({ x: r.left, y: r.bottom + 6 });
+                        }}
+                      >
+                        <DotsThreeVertical size={15} aria-hidden="true" />
+                      </button>
+                    </Tooltip>
+                  </>
+                );
+              }
+              const rich = el as {
+                fontFamily?: WhiteboardFontFamily | null;
+                bold?: boolean | null;
+                strikethrough?: boolean | null;
+                list?: 'none' | 'bullet' | null;
+                align?: WhiteboardAlign | null;
+                valign?: WhiteboardValign | null;
+              };
+              const fs = textFontOf(el);
+              const align: WhiteboardAlign = rich.align ?? (el.kind === 'shape' || el.kind === 'edge' ? 'center' : 'left');
+              // Legacy look preserved when valign is null (sticky: top, shape: centered first line).
+              const valign: WhiteboardValign = rich.valign ?? (el.kind === 'shape' ? 'center' : 'top');
+              // Edge labels reuse the line color (edges own no labelColor field).
+              const textField = (el.kind === 'sticky' ? 'textColor' : el.kind === 'text' || el.kind === 'edge' ? 'color' : 'labelColor') as 'color' | 'textColor' | 'labelColor';
+              // V2 merged panel: text props join as soon as there is text or an edit is open.
+              const isEditing = editingText?.id === el.id;
+              const hasText =
+                el.kind === 'sticky' || el.kind === 'text'
+                  ? el.text !== ''
+                  : el.kind === 'shape' || el.kind === 'edge' || el.kind === 'boundary'
+                    ? el.label !== ''
+                    : false;
+              const showTextProps = el.kind === 'text' || hasText || isEditing;
+              const togglePop = (kind: 'fill' | 'line' | 'font' | 'size' | 'align' | 'valign' | 'width' | 'shapeType' | 'border', field?: 'color' | 'textColor' | 'labelColor') => {
+                setBarPop(barPop?.kind === kind ? null : { kind, field });
+              };
+              const colorDot = (field: 'color' | 'textColor' | 'labelColor', label: string) => {
+                const cur = (el as unknown as Record<string, unknown>)[field];
+                return (
+                  <ColorDropdown
+                    value={typeof cur === 'string' ? cur : null}
+                    title={field === 'color' ? undefined : t('whiteboard.textbar.textColor')}
+                    open={barPop?.kind === 'fill' && (barPop.field ?? 'color') === field}
+                    onToggle={() => togglePop('fill', field)}
+                    onClose={() => setBarPop(null)}
+                    onPick={(c) => applyBulkPatch({ [field]: c })}
+                    label={label}
+                    glyph={field === 'color' ? 'dot' : 'letter'}
+                  />
+                );
+              };
+              const textControls = (withColor: boolean): ReactNode[] => [
+                <FontDropdown
+                  value={rich.fontFamily ?? 'simple'}
+                  open={barPop?.kind === 'font'}
+                  onToggle={() => togglePop('font')}
+                  onClose={() => setBarPop(null)}
+                  onPick={(f) => applyBulkPatch({ fontFamily: f })}
+                />,
+                <SizeDropdown
+                  value={fs}
+                  open={barPop?.kind === 'size'}
+                  onToggle={() => togglePop('size')}
+                  onClose={() => setBarPop(null)}
+                  onPick={(s) => applyBulkPatch({ fontSize: s })}
+                />,
+                <TextStyleToggles
+                  bold={!!rich.bold}
+                  strikethrough={!!rich.strikethrough}
+                  bullet={rich.list === 'bullet'}
+                  onBold={() => applyBulkPatch({ bold: !rich.bold })}
+                  onStrikethrough={() => applyBulkPatch({ strikethrough: !rich.strikethrough })}
+                  onBullet={() => applyBulkPatch({ list: rich.list === 'bullet' ? 'none' : 'bullet' })}
+                />,
+                <AlignDropdown
+                  value={align}
+                  open={barPop?.kind === 'align'}
+                  onToggle={() => togglePop('align')}
+                  onClose={() => setBarPop(null)}
+                  onChange={(a) => applyBulkPatch({ align: a })}
+                />,
+                ...((el.kind === 'sticky' || el.kind === 'shape'
+                  ? [
+                      <ValignDropdown
+                        value={valign}
+                        open={barPop?.kind === 'valign'}
+                        onToggle={() => togglePop('valign')}
+                        onClose={() => setBarPop(null)}
+                        onChange={(v) => applyBulkPatch({ valign: v })}
+                      />,
+                    ]
+                  : [])),
+                ...(withColor ? [colorDot(textField, t('whiteboard.textbar.textColor'))] : []),
+              ];
+              const linePop = (label: string, edge: WhiteboardEdge) => (
+                <DropdownShell
+                  open={barPop?.kind === 'line'}
+                  onToggle={() => togglePop('line')}
+                  onClose={() => setBarPop(null)}
+                  label={label}
+                  popLabel={t('whiteboard.popover.lineStyle')}
+                  button={
+                    <>
+                      <Minus size={15} aria-hidden="true" />
+                      <DropCaret />
+                    </>
+                  }
                 >
-                  {hasLocked ? (
-                    <LockSimpleOpen size={15} aria-hidden="true" />
-                  ) : (
-                    <LockSimple size={15} aria-hidden="true" />
-                  )}
-                </button>
-                <span className="wb-sep" aria-hidden="true" />
-                {(() => {
-                  const hasGroup = board.elements.some((el) => selectedIds.includes(el.id) && el.groupId);
-                  return (
+                  <WidthSlider
+                    value={edge.width}
+                    min={1}
+                    max={20}
+                    label={t('whiteboard.popover.lineWidth')}
+                    onChange={(v) => applyBulkPatch({ width: v })}
+                  />
+                  <div className="fp-segmented" role="group" aria-label={t('whiteboard.popover.lineStyle')}>
+                    {(['solid', 'dashed', 'dotted'] as const).map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        role="radio"
+                        aria-checked={(edge.dash ?? 'solid') === d}
+                        className={`fp-seg${(edge.dash ?? 'solid') === d ? ' fp-seg-active' : ''}`}
+                        onClick={() => applyBulkPatch({ dash: d })}
+                      >
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="fp-segmented" role="group" aria-label={t('whiteboard.popover.arrowStyle')}>
+                    {(['none', 'open', 'solid', 'diamond', 'circle'] as const).map((st) => (
+                      <button
+                        key={st}
+                        type="button"
+                        role="radio"
+                        aria-checked={effectiveArrowStyle(edge) === st}
+                        className={`fp-seg${effectiveArrowStyle(edge) === st ? ' fp-seg-active' : ''}`}
+                        onClick={() => applyBulkPatch({ arrowStyle: st })}
+                      >
+                        {st}
+                      </button>
+                    ))}
+                  </div>
+                </DropdownShell>
+              );
+              const widthPop = (w: number, label: string, onPick: (v: number) => void) => (
+                <DropdownShell
+                  open={barPop?.kind === 'width'}
+                  onToggle={() => togglePop('width')}
+                  onClose={() => setBarPop(null)}
+                  label={label}
+                  popLabel={t('whiteboard.popover.lineWidth')}
+                  button={
+                    <>
+                      <span className="wb-stripnum tabular" aria-hidden="true">
+                        {Math.round(w)}
+                      </span>
+                      <DropCaret />
+                    </>
+                  }
+                >
+                  <WidthSlider value={w} min={1} max={20} label={t('whiteboard.popover.lineWidth')} onChange={onPick} />
+                </DropdownShell>
+              );
+              const typePop = (shape: WhiteboardShape) => (
+                <DropdownShell
+                  open={barPop?.kind === 'shapeType'}
+                  onToggle={() => togglePop('shapeType')}
+                  onClose={() => setBarPop(null)}
+                  label={t('whiteboard.popover.shapeType')}
+                  popLabel={t('whiteboard.popover.shapeType')}
+                  button={
+                    <>
+                      <ShapeThumb shapeType={shape.shapeType} size={15} />
+                      <DropCaret />
+                    </>
+                  }
+                >
+                  <div className="wb-shapetype-scroll">
+                    {SHAPE_LIBRARY_TABS.map((tb) => (
+                      <div key={tb.id}>
+                        <div className="wb-morerecent-head" role="presentation">
+                          <span>{t(tb.labelKey)}</span>
+                        </div>
+                        <div className="wb-shapetype-grid" role="radiogroup" aria-label={t(tb.labelKey)}>
+                          {tb.items.map((item) => (
+                            <Tooltip key={item.id} content={item.name} side="top">
+                              <button
+                                type="button"
+                                role="radio"
+                                aria-checked={shape.shapeType === item.shapeType}
+                                aria-label={item.name}
+                                className={`wb-shape-cell${shape.shapeType === item.shapeType ? ' wb-shape-cell-active' : ''}`}
+                                onClick={() => applyBulkPatch({ shapeType: item.shapeType })}
+                              >
+                                <ShapeThumb shapeType={item.shapeType} />
+                              </button>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <label className="fp-check">
+                    <input
+                      type="checkbox"
+                      checked={shape.fill}
+                      onChange={(e) => applyBulkPatch({ fill: e.target.checked })}
+                    />
+                    {t('whiteboard.popover.filled')}
+                  </label>
+                </DropdownShell>
+              );
+              const borderPop = (shape: WhiteboardShape) => {
+                const cur = shape.dash ?? 'solid';
+                return (
+                  <DropdownShell
+                    open={barPop?.kind === 'border'}
+                    onToggle={() => togglePop('border')}
+                    onClose={() => setBarPop(null)}
+                    label={t('whiteboard.popover.lineStyle')}
+                    popLabel={t('whiteboard.popover.lineStyle')}
+                    button={
+                      <>
+                        <Minus size={15} aria-hidden="true" />
+                        <DropCaret />
+                      </>
+                    }
+                  >
+                    {(['solid', 'dashed', 'none'] as const).map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        role="radio"
+                        aria-checked={cur === d}
+                        className={`wb-fontopt${cur === d ? ' wb-fontopt-active' : ''}`}
+                        onClick={() => applyBulkPatch({ dash: d })}
+                      >
+                        <span className="wb-fontopt-name">{d}</span>
+                      </button>
+                    ))}
+                  </DropdownShell>
+                );
+              };
+              const duplicateSelection = () => {
+                const src = copiedElements();
+                if (src.length === 0) return;
+                setClipboard(src);
+                applyPaste(src, 24);
+              };
+              if (el.kind === 'sticky') {
+                // No text and no edit: element props only (fill).
+                if (!showTextProps) return colorDot('color', t('whiteboard.textbar.fill'));
+                return maybeSplit(colorDot('color', t('whiteboard.textbar.fill')), ...textControls(true));
+              }
+              if (el.kind === 'text') return maybeSplit(...textControls(true));
+              if (el.kind === 'shape') {
+                if (!el.label && !isEditing) {
+                  // Empty shape: type + color + border dropdowns (Image: shape props).
+                  return maybeSplit(
+                    typePop(el),
+                    colorDot('color', t('whiteboard.textbar.fill')),
+                    borderPop(el),
+                    widthPop(el.strokeWidth, t('whiteboard.popover.lineWidth'), (v) => applyBulkPatch({ strokeWidth: v })),
+                  );
+                }
+                // Shape with text, or Add-text being typed: type, duplicate, fill, full text controls.
+                return maybeSplit(
+                  typePop(el),
+                  <Tooltip content={t('whiteboard.ctx.duplicate')} side="top">
                     <button
                       type="button"
                       className="wb-selection-btn"
-                      title={hasGroup ? t('whiteboard.canvas.ungroup') : t('whiteboard.canvas.group')}
-                      aria-label={hasGroup ? t('whiteboard.canvas.ungroup') : t('whiteboard.canvas.group')}
-                      onClick={hasGroup ? onUngroup : onGroup}
+                      aria-label={t('whiteboard.ctx.duplicate')}
+                      onClick={duplicateSelection}
                     >
-                      {hasGroup ? (
-                        <Intersect size={15} aria-hidden="true" />
-                      ) : (
-                        <Union size={15} aria-hidden="true" />
-                      )}
+                      <Copy size={15} aria-hidden="true" />
                     </button>
+                  </Tooltip>,
+                  colorDot('color', t('whiteboard.textbar.fill')),
+                  ...textControls(true),
+                );
+              }
+              if (el.kind === 'edge') {
+                if (!showTextProps) {
+                  return maybeSplit(
+                    colorDot('color', t('whiteboard.popover.shapeColor')),
+                    linePop(t('whiteboard.popover.lineStyle'), el),
                   );
-                })()}
-                <span className="wb-sep" aria-hidden="true" />
-              </>
-            );
-          })()}
-          {selectedIds.length >= 2 && (
-            <>
-              <button
-                type="button"
-                className="wb-selection-btn"
-                title={t('whiteboard.canvas.alignLeft')}
-                aria-label={t('whiteboard.canvas.alignLeft')}
-                onClick={onAlign('left')}
-              >
-                <AlignLeft size={15} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className="wb-selection-btn"
-                title={t('whiteboard.canvas.alignCenterH')}
-                aria-label={t('whiteboard.canvas.alignCenterH')}
-                onClick={onAlign('centerX')}
-              >
-                <AlignCenterHorizontal size={15} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className="wb-selection-btn"
-                title={t('whiteboard.canvas.alignRight')}
-                aria-label={t('whiteboard.canvas.alignRight')}
-                onClick={onAlign('right')}
-              >
-                <AlignRight size={15} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className="wb-selection-btn"
-                title={t('whiteboard.canvas.alignTop')}
-                aria-label={t('whiteboard.canvas.alignTop')}
-                onClick={onAlign('top')}
-              >
-                <AlignTop size={15} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className="wb-selection-btn"
-                title={t('whiteboard.canvas.alignMiddleV')}
-                aria-label={t('whiteboard.canvas.alignMiddleV')}
-                onClick={onAlign('middleY')}
-              >
-                <AlignCenterVertical size={15} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className="wb-selection-btn"
-                title={t('whiteboard.canvas.alignBottom')}
-                aria-label={t('whiteboard.canvas.alignBottom')}
-                onClick={onAlign('bottom')}
-              >
-                <AlignBottom size={15} aria-hidden="true" />
-              </button>
-              <span className="wb-sep" aria-hidden="true" />
-            </>
-          )}
-          {selectedIds.length >= 3 && (
-            <>
-              <button
-                type="button"
-                className="wb-selection-btn"
-                title={t('whiteboard.canvas.distributeH')}
-                aria-label={t('whiteboard.canvas.distributeH')}
-                onClick={onDistribute('x')}
-              >
-                <Columns size={15} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className="wb-selection-btn"
-                title={t('whiteboard.canvas.distributeV')}
-                aria-label={t('whiteboard.canvas.distributeV')}
-                onClick={onDistribute('y')}
-              >
-                <Rows size={15} aria-hidden="true" />
-              </button>
-            </>
-          )}
-          {selectedIds.length >= 2 && (
-            <>
-              <button
-                type="button"
-                className="wb-selection-btn"
-                title={t('whiteboard.canvas.matchWidth')}
-                aria-label={t('whiteboard.canvas.matchWidth')}
-                onClick={onMatchSize('width')}
-              >
-                <ArrowsHorizontal size={15} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className="wb-selection-btn"
-                title={t('whiteboard.canvas.matchHeight')}
-                aria-label={t('whiteboard.canvas.matchHeight')}
-                onClick={onMatchSize('height')}
-              >
-                <ArrowsVertical size={15} aria-hidden="true" />
-              </button>
-            </>
-          )}
-          <button
-            type="button"
-            className="wb-selection-btn"
-            title={t('whiteboard.canvas.bringForward')}
-            aria-label={t('whiteboard.canvas.bringForward')}
-            onClick={() => reorderSelection(1)}
-          >
-            <ArrowUp size={15} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="wb-selection-btn"
-            title={t('whiteboard.canvas.sendBackward')}
-            aria-label={t('whiteboard.canvas.sendBackward')}
-            onClick={() => reorderSelection(-1)}
-          >
-            <ArrowDown size={15} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="wb-selection-btn"
-            title={t('whiteboard.canvas.deleteSelectedTitle')}
-            aria-label={t('whiteboard.canvas.deleteSelected')}
-            onClick={removeSelection}
-          >
-            <Trash size={15} aria-hidden="true" />
-          </button>
+                }
+                return maybeSplit(
+                  colorDot('color', t('whiteboard.popover.shapeColor')),
+                  linePop(t('whiteboard.popover.lineStyle'), el),
+                  ...textControls(false),
+                );
+              }
+              if (el.kind === 'boundary') {
+                if (!showTextProps) return colorDot('color', t('whiteboard.popover.shapeColor'));
+                return maybeSplit(colorDot('color', t('whiteboard.popover.shapeColor')), ...textControls(false));
+              }
+              if (el.kind === 'stroke') {
+                return maybeSplit(
+                  colorDot('color', t('whiteboard.popover.shapeColor')),
+                  widthPop(el.width, t('whiteboard.popover.lineWidth'), (v) => applyBulkPatch({ width: v })),
+                );
+              }
+              return null;
+            })()}
+            {selectedIds.length >= 1 && !isMobileProp && (
+              <Tooltip content={t('whiteboard.ctx.menu')} side="top">
+                <button
+                  type="button"
+                  className="wb-selection-btn"
+                  aria-label={t('whiteboard.ctx.menu')}
+                  aria-haspopup="menu"
+                  onClick={(e) => {
+                    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                    setCtxMenu({ x: r.left, y: r.bottom + 6 });
+                  }}
+                >
+                  <DotsThreeVertical size={15} aria-hidden="true" />
+                </button>
+              </Tooltip>
+            )}
+            {moreBtn}
+            {/* Width/line/type/border popups render via portal DropdownShells above. */}
+          </div>
         </div>
         );
       })()}
-      {!hideChrome && (
-      <span className="wb-hint">{t('whiteboard.canvas.hint')}</span>
-      )}
       {!hideChrome && board.elements.length > 0 && (
         (() => {
           const bounds = unionBounds(board.elements.map((el) => elementBounds(el)));
@@ -2418,7 +3497,147 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         state={state}
         onPick={placeRef}
         onClose={() => setRefPending(null)}
+        onCreateNew={(entity) => {
+          const target = REF_CREATE_TARGET[entity];
+          setRefPending(null);
+          navigate(`/project/${projectId}?tab=${target.tab}&new=${target.fresh}`);
+        }}
+        onBrowse={(entity) => {
+          const target = REF_CREATE_TARGET[entity];
+          setRefPending(null);
+          navigate(`/project/${projectId}?tab=${target.tab}`);
+        }}
       />
+      {editingText && (() => {
+        const el = board.elements.find((e) => e.id === editingText.id);
+        if (!el) return null;
+        const b = boundsFor(el);
+        const tl = worldToScreen(view.view, b.x, b.y);
+        const fs = Math.max(8, textFontOf(el) * view.view.s);
+        const singleLine = el.kind === 'shape' || el.kind === 'edge' || el.kind === 'boundary';
+        const editAlign = (el as { align?: string | null }).align ?? (el.kind === 'shape' || el.kind === 'edge' ? 'center' : 'left');
+        const ink = el.kind === 'sticky'
+          ? ((el.textColor ?? '') || 'rgba(6,5,4,0.85)')
+          : el.kind === 'text' || el.kind === 'edge'
+            ? String((el as unknown as Record<string, unknown>).color ?? '#e4e4e7')
+            : el.kind === 'shape' || el.kind === 'boundary'
+              ? (String((el as unknown as Record<string, unknown>).labelColor ?? '') || (el.kind === 'boundary' ? '#e4e4e7' : String((el as unknown as Record<string, unknown>).color ?? '#e4e4e7')))
+              : '#e4e4e7';
+        return (
+          <textarea
+            className="wb-textedit"
+            aria-label={singleLine ? t('whiteboard.popover.label') : el.kind === 'sticky' ? t('whiteboard.popover.stickyTextLabel') : t('whiteboard.popover.textLabel')}
+            autoFocus
+            rows={Math.max(1, editingText.value.split('\n').length)}
+            value={editingText.value}
+            maxLength={el.kind === 'text' ? 1000 : el.kind === 'sticky' ? 500 : 200}
+            onChange={(e) => setEditingText({ id: editingText.id, value: e.target.value })}
+            onBlur={commitTextEdit}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === 'Escape') {
+                e.preventDefault();
+                setEditingText(null);
+              } else if (e.key === 'Enter' && (singleLine || (!e.shiftKey && !e.ctrlKey && !e.metaKey))) {
+                e.preventDefault();
+                commitTextEdit();
+              }
+            }}
+            style={{
+              left: tl.x,
+              top: tl.y,
+              width: Math.max(80, b.w * view.view.s),
+              fontSize: fs,
+              color: ink,
+              // FigJam Add-text: no box or border, just the caret in place.
+              background: 'transparent',
+              border: 'none',
+              boxShadow: 'none',
+              textAlign: editAlign as 'left' | 'center' | 'right',
+              ...svgTextStyle(el),
+            }}
+          />
+        );
+      })()}
+      {ctxMenu && (
+        <WhiteboardContextMenu
+          x={ctxMenu.x}
+          y={ctxMenu.y}
+          sections={ctxSections()}
+          onClose={() => setCtxMenu(null)}
+        />
+      )}
+      {renderMoreSheet()}
+      {isMobileProp && tool === 'select' && selectedIds.length === 1 && !isReadOnly && !editingText && !dragOffset && !marquee && !resizePreview && (() => {
+        const target = board.elements.find((el) => el.id === selectedIds[0]);
+        if (!target || (target.kind !== 'shape' && target.kind !== 'text') || target.locked) return null;
+        const b = boundsFor(target);
+        const rc = rotationCenter(target, b);
+        const sp = worldToScreen(view.view, rc.x, b.y);
+        const x = Math.min(Math.max(sp.x, 28), Math.max(28, canvasSize.w - 28));
+        const y = Math.max(sp.y - 56, 28);
+        const worldFromClient = (clientX: number, clientY: number) => {
+          const rect = view.ref.current?.getBoundingClientRect();
+          return screenToWorld(view.view, clientX - (rect?.left ?? 0), clientY - (rect?.top ?? 0));
+        };
+        const beginRotate = (e: ReactPointerEvent<HTMLButtonElement>) => {
+          if (!e.isPrimary) return;
+          e.stopPropagation();
+          e.preventDefault();
+          try {
+            e.currentTarget.setPointerCapture(e.pointerId);
+          } catch {
+            /* jsdom — moves still bubble from the button */
+          }
+          const pt = worldFromClient(e.clientX, e.clientY);
+          rotateDragRef.current = {
+            id: target.id,
+            center: { x: rc.x, y: rc.y },
+            startAng: (Math.atan2(pt.y - rc.y, pt.x - rc.x) * 180) / Math.PI,
+            startRot: (target as { rotation?: number }).rotation ?? 0,
+          };
+        };
+        const moveRotate = (e: ReactPointerEvent<HTMLButtonElement>) => {
+          const r = rotateDragRef.current;
+          if (!r || r.id !== target.id) return;
+          const pt = worldFromClient(e.clientX, e.clientY);
+          const ang = (Math.atan2(pt.y - r.center.y, pt.x - r.center.x) * 180) / Math.PI;
+          let delta = ang - r.startAng;
+          while (delta > 180) delta -= 360;
+          while (delta < -180) delta += 360;
+          setRotateLive(snapRotation(r.startRot + delta, false));
+        };
+        // Keyboard/AT fallback: Enter/Space nudges +15°.
+        const keyRotate = (e: ReactKeyboardEvent<HTMLButtonElement>) => {
+          if (e.key !== 'Enter' && e.key !== ' ') return;
+          e.preventDefault();
+          const cur = (target as { rotation?: number }).rotation ?? 0;
+          history.record();
+          dispatch({
+            type: 'whiteboard/update',
+            id: board.id,
+            patch: {
+              elements: board.elements.map((el) => (el.id === target.id ? { ...el, rotation: snapRotation(cur + 15, false) } : el)),
+            },
+          });
+        };
+        return (
+          <button
+            type="button"
+            className="wb-rotate-fab"
+            style={{ left: x, top: y }}
+            aria-label={t('whiteboard.canvas.rotate')}
+            onPointerDown={beginRotate}
+            onPointerMove={moveRotate}
+            onPointerUp={commitRotateDrag}
+            onPointerCancel={commitRotateDrag}
+            onKeyDown={keyRotate}
+            onContextMenu={(e) => e.preventDefault()}
+          >
+            <ArrowClockwise size={20} aria-hidden="true" />
+          </button>
+        );
+      })()}
     </div>
   );
 }

@@ -226,6 +226,62 @@ function approxTextWidth(text: string, fontSize: number, weight = 400): number {
   return measureTextWidth(text, fontSize, weight);
 }
 
+function r2(v: number): number {
+  return Math.round(v * 100) / 100;
+}
+
+/** Closed polygon from absolute points (single subpath). */
+function polyPath(pts: Array<[number, number]>): string {
+  return `M ${pts.map(([px, py]) => `${r2(px)} ${r2(py)}`).join(' L ')} Z`;
+}
+
+/** Regular n-gon inscribed in the box, first vertex at rotDeg. */
+function ngonPath(x: number, y: number, w: number, h: number, n: number, rotDeg = -90): string {
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+  const pts: Array<[number, number]> = [];
+  for (let i = 0; i < n; i += 1) {
+    const a = ((rotDeg + (360 / n) * i) * Math.PI) / 180;
+    pts.push([cx + (w / 2) * Math.cos(a), cy + (h / 2) * Math.sin(a)]);
+  }
+  return polyPath(pts);
+}
+
+/** Star/burst with alternating outer/inner radius. */
+function starPath(
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  points: number,
+  innerRatio: number,
+  rotDeg = -90,
+): string {
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+  const pts: Array<[number, number]> = [];
+  for (let i = 0; i < points * 2; i += 1) {
+    const r = i % 2 === 0 ? 1 : innerRatio;
+    const a = ((rotDeg + (180 / points) * i) * Math.PI) / 180;
+    pts.push([cx + (w / 2) * r * Math.cos(a), cy + (h / 2) * r * Math.sin(a)]);
+  }
+  return polyPath(pts);
+}
+
+/** Stroked circle subpath (composable inside multi-part symbols). */
+function circleSub(cx: number, cy: number, r: number): string {
+  const rr = Math.max(0.5, r);
+  return `M ${r2(cx - rr)} ${r2(cy)} a ${r2(rr)} ${r2(rr)} 0 1 0 ${r2(rr * 2)} 0 a ${r2(rr)} ${r2(rr)} 0 1 0 ${r2(-rr * 2)} 0 Z`;
+}
+
+function hline(x1: number, x2: number, y: number): string {
+  return `M ${r2(x1)} ${r2(y)} L ${r2(x2)} ${r2(y)}`;
+}
+
+function vline(x: number, y1: number, y2: number): string {
+  return `M ${r2(x)} ${r2(y1)} L ${r2(x)} ${r2(y2)}`;
+}
+
 export function shapePath(shape: WhiteboardShape): string {
   const { x, y, w, h } = shape;
   switch (shape.shapeType) {
@@ -244,6 +300,680 @@ export function shapePath(shape: WhiteboardShape): string {
       return `M ${x + w / 2} ${y} L ${x + w} ${y + h * 0.25} L ${x + w} ${y + h * 0.75} L ${x + w / 2} ${y + h} L ${x} ${y + h * 0.75} L ${x} ${y + h * 0.25} Z`;
     case 'roundedRect': {
       const r = Math.min(w, h) / 4;
+      return `M ${x + r} ${y} h ${w - 2 * r} a ${r} ${r} 0 0 1 ${r} ${r} v ${h - 2 * r} a ${r} ${r} 0 0 1 ${-r} ${r} h ${-(w - 2 * r)} a ${r} ${r} 0 0 1 ${-r} ${-r} v ${-(h - 2 * r)} a ${r} ${r} 0 0 1 ${r} ${-r} Z`;
+    }
+    // --- Basic extended (FigJam parity set) ---
+    case 'triangleRight':
+      return polyPath([
+        [x, y],
+        [x + w, y + h / 2],
+        [x, y + h],
+      ]);
+    case 'hCylinder': {
+      const rx = Math.max(2, w * 0.2);
+      return `M ${x + rx} ${y} a ${rx} ${h / 2} 0 0 0 0 ${h} h ${w - 2 * rx} a ${rx} ${h / 2} 0 0 1 0 ${-h} Z`;
+    }
+    case 'trapezoid':
+      return polyPath([
+        [x + w * 0.15, y],
+        [x + w * 0.85, y],
+        [x + w, y + h],
+        [x, y + h],
+      ]);
+    case 'trapezoidRight':
+      return polyPath([
+        [x, y],
+        [x + w, y],
+        [x + w * 0.75, y + h],
+        [x, y + h],
+      ]);
+    case 'pentagon':
+      return ngonPath(x, y, w, h, 5, -90);
+    case 'octagon':
+      return ngonPath(x, y, w, h, 8, -112.5);
+    case 'document': {
+      const f = Math.min(14, w * 0.2, h * 0.25);
+      return `M ${x} ${y} h ${w - f} l ${f} ${f} v ${h - f} h ${-w} Z M ${x + w - f} ${y} L ${x + w - f} ${y + f} L ${x + w} ${y + f}`;
+    }
+    case 'snipRect': {
+      const c = Math.min(14, w * 0.25, h * 0.25);
+      return polyPath([
+        [x + c, y],
+        [x + w, y],
+        [x + w, y + h],
+        [x, y + h],
+        [x, y + c],
+      ]);
+    }
+    case 'chamferRect': {
+      const c = Math.min(10, w * 0.2, h * 0.2);
+      return polyPath([
+        [x + c, y],
+        [x + w - c, y],
+        [x + w, y + c],
+        [x + w, y + h - c],
+        [x + w - c, y + h],
+        [x + c, y + h],
+        [x, y + h - c],
+        [x, y + c],
+      ]);
+    }
+    case 'roundedDiamond': {
+      // Diamond with quadratic-rounded vertices (r = 8 world units).
+      const k = 8;
+      const cxd = x + w / 2;
+      const cyd = y + h / 2;
+      const v: Array<[number, number]> = [
+        [cxd, y],
+        [x + w, cyd],
+        [cxd, y + h],
+        [x, cyd],
+      ];
+      let d = '';
+      for (let i = 0; i < 4; i += 1) {
+        const prev = v[(i + 3) % 4]!;
+        const cur = v[i]!;
+        const next = v[(i + 1) % 4]!;
+        const v1 = [cur[0]! - prev[0]!, cur[1]! - prev[1]!];
+        const v2 = [next[0]! - cur[0]!, next[1]! - cur[1]!];
+        const l1 = Math.hypot(v1[0]!, v1[1]!) || 1;
+        const l2 = Math.hypot(v2[0]!, v2[1]!) || 1;
+        const kk = Math.min(k, l1 / 2, l2 / 2);
+        const p1: [number, number] = [cur[0]! - (v1[0]! / l1) * kk, cur[1]! - (v1[1]! / l1) * kk];
+        const p2: [number, number] = [cur[0]! + (v2[0]! / l2) * kk, cur[1]! + (v2[1]! / l2) * kk];
+        d += `${i === 0 ? `M ${r2(p1[0])} ${r2(p1[1])}` : `L ${r2(p1[0])} ${r2(p1[1])}`} Q ${r2(cur[0])} ${r2(cur[1])} ${r2(p2[0])} ${r2(p2[1])} `;
+      }
+      return `${d}Z`;
+    }
+    case 'plusBlock': {
+      const a = w / 3;
+      const b = h / 3;
+      return polyPath([
+        [x + a, y],
+        [x + 2 * a, y],
+        [x + 2 * a, y + b],
+        [x + w, y + b],
+        [x + w, y + 2 * b],
+        [x + 2 * a, y + 2 * b],
+        [x + 2 * a, y + h],
+        [x + a, y + h],
+        [x + a, y + 2 * b],
+        [x, y + 2 * b],
+        [x, y + b],
+        [x + a, y + b],
+      ]);
+    }
+    case 'chevronRight': {
+      const t = h * 0.35;
+      const dpt = w * 0.55;
+      const cy = y + h / 2;
+      return polyPath([
+        [x, y],
+        [x + w, cy],
+        [x, y + h],
+        [x, y + h - t],
+        [x + w - dpt, cy],
+        [x, y + t],
+      ]);
+    }
+    case 'doubleChevron': {
+      const t = h * 0.35;
+      const hw = w / 2;
+      const cy = y + h / 2;
+      const one = (ox: number, ww: number): string =>
+        polyPath([
+          [ox, y],
+          [ox + ww, cy],
+          [ox, y + h],
+          [ox, y + h - t],
+          [ox + ww - ww * 0.55, cy],
+          [ox, y + t],
+        ]);
+      return `${one(x, hw)} ${one(x + hw, hw)}`;
+    }
+    case 'pentagonRight':
+      return polyPath([
+        [x, y],
+        [x + w * 0.6, y],
+        [x + w, y + h / 2],
+        [x + w * 0.6, y + h],
+        [x, y + h],
+      ]);
+    case 'star5':
+      return starPath(x, y, w, h, 5, 0.45, -90);
+    case 'star4':
+      return starPath(x, y, w, h, 4, 0.28, 0);
+    case 'sealBurst':
+      return starPath(x, y, w, h, 12, 0.88, -90);
+    case 'shieldBox': {
+      const cx = x + w / 2;
+      return polyPath([
+        [x, y],
+        [x + w, y],
+        [x + w, y + h * 0.55],
+        [cx, y + h],
+        [x, y + h * 0.55],
+      ]);
+    }
+    case 'semicircle':
+      return `M ${x} ${y + h / 2} A ${w / 2} ${h / 2} 0 0 1 ${x + w} ${y + h / 2} Z`;
+    case 'pieSlice': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      return `M ${cx} ${cy} L ${x + w} ${cy} A ${w / 2} ${h / 2} 0 0 0 ${cx} ${y} Z`;
+    }
+    case 'nutHex': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      return `${ngonPath(x, y, w, h, 6, -90)} ${circleSub(cx, cy, Math.min(w, h) * 0.22)}`;
+    }
+    case 'cubeBox': {
+      const cx = x + w / 2;
+      const top = polyPath([
+        [cx, y],
+        [x + w, y + h * 0.25],
+        [cx, y + h * 0.5],
+        [x, y + h * 0.25],
+      ]);
+      const left = polyPath([
+        [x, y + h * 0.25],
+        [cx, y + h * 0.5],
+        [cx, y + h],
+        [x, y + h * 0.75],
+      ]);
+      const right = polyPath([
+        [cx, y + h * 0.5],
+        [x + w, y + h * 0.25],
+        [x + w, y + h * 0.75],
+        [cx, y + h],
+      ]);
+      return `${top} ${left} ${right}`;
+    }
+    case 'envelopeBox':
+      return `M ${x} ${y} h ${w} v ${h} h ${-w} Z M ${x} ${y} L ${x + w / 2} ${y + h * 0.45} L ${x + w} ${y}`;
+    case 'calendarBox': {
+      return `M ${x} ${y} h ${w} v ${h} h ${-w} Z ${hline(x, x + w, y + h * 0.25)} ${circleSub(x + w * 0.3, y, 3)} ${circleSub(x + w * 0.7, y, 3)}`;
+    }
+    case 'clockFace': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const r = Math.min(w, h) * 0.42;
+      const dots = [0, 90, 180, 270]
+        .map((deg) => {
+          const a = ((deg - 90) * Math.PI) / 180;
+          return circleSub(cx + r * 0.78 * Math.cos(a), cy + r * 0.78 * Math.sin(a), 1.2);
+        })
+        .join(' ');
+      return `${circleSub(cx, cy, r)} M ${r2(cx)} ${r2(cy)} L ${r2(cx)} ${r2(cy - r * 0.55)} M ${r2(cx)} ${r2(cy)} L ${r2(cx + r * 0.4)} ${r2(cy + r * 0.25)} ${dots}`;
+    }
+    // --- Flowchart symbols (distinct geometries only; plain rect/diamond/etc live in Basic) ---
+    case 'predefinedProcess':
+      return `M ${x} ${y} h ${w} v ${h} h ${-w} Z ${vline(x + w * 0.15, y, y + h)} ${vline(x + w * 0.85, y, y + h)}`;
+    case 'manualInput':
+      return polyPath([
+        [x + w * 0.12, y],
+        [x + w, y],
+        [x + w, y + h],
+        [x, y + h],
+      ]);
+    case 'offPageRef':
+      return ngonPath(x, y, w, h, 5, 90);
+    case 'delayHalf': {
+      const r = Math.min(h / 2, w);
+      return `M ${x} ${y} H ${x + w - r} A ${r} ${r} 0 0 1 ${x + w - r} ${y + h} H ${x} Z`;
+    }
+    case 'multiDocument': {
+      const f = Math.min(14, w * 0.2, h * 0.25);
+      return `M ${x} ${y} h ${w - f} l ${f} ${f} v ${h - f} h ${-w} Z M ${x + 7} ${y - 7} h ${w} v ${h} h ${-w} Z`;
+    }
+    case 'orJunction': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const r = Math.min(w, h) * 0.42;
+      const k = 0.3;
+      return `${circleSub(cx, cy, r)} M ${r2(x + w * k)} ${r2(y + h * k)} L ${r2(x + w * (1 - k))} ${r2(y + h * (1 - k))} M ${r2(x + w * (1 - k))} ${r2(y + h * k)} L ${r2(x + w * k)} ${r2(y + h * (1 - k))}`;
+    }
+    case 'sumJunction': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const r = Math.min(w, h) * 0.42;
+      return `${circleSub(cx, cy, r)} ${vline(cx, cy - r * 0.6, cy + r * 0.6)} ${hline(cx - r * 0.6, cx + r * 0.6, cy)}`;
+    }
+    case 'crossDoc': {
+      const k = 0.3;
+      return `M ${x} ${y} h ${w} v ${h} h ${-w} Z M ${r2(x + w * k)} ${r2(y + h * k)} L ${r2(x + w * (1 - k))} ${r2(y + h * (1 - k))} M ${r2(x + w * (1 - k))} ${r2(y + h * k)} L ${r2(x + w * k)} ${r2(y + h * (1 - k))}`;
+    }
+    // --- BPMN symbols ---
+    case 'intermediateRing': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const r = Math.min(w, h) * 0.42;
+      return `${circleSub(cx, cy, r)} ${circleSub(cx, cy, r * 0.68)}`;
+    }
+    case 'messageEvent': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const r = Math.min(w, h) * 0.42;
+      const ew = r * 0.9;
+      const eh = r * 0.62;
+      return `${circleSub(cx, cy, r)} M ${r2(cx - ew / 2)} ${r2(cy - eh / 2)} h ${r2(ew)} v ${r2(eh)} h ${r2(-ew)} Z M ${r2(cx - ew / 2)} ${r2(cy - eh / 2)} L ${r2(cx)} ${r2(cy + eh * 0.1)} L ${r2(cx + ew / 2)} ${r2(cy - eh / 2)}`;
+    }
+    case 'timerEvent': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const r = Math.min(w, h) * 0.42;
+      return `${circleSub(cx, cy, r)} M ${r2(cx)} ${r2(cy)} L ${r2(cx)} ${r2(cy - r * 0.55)} M ${r2(cx)} ${r2(cy)} L ${r2(cx + r * 0.42)} ${r2(cy + r * 0.2)}`;
+    }
+    case 'errorEvent': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const r = Math.min(w, h) * 0.42;
+      return `${circleSub(cx, cy, r)} M ${r2(cx + r * 0.15)} ${r2(cy - r * 0.6)} L ${r2(cx - r * 0.25)} ${r2(cy + r * 0.1)} L ${r2(cx + r * 0.05)} ${r2(cy + r * 0.1)} L ${r2(cx - r * 0.15)} ${r2(cy + r * 0.6)}`;
+    }
+    case 'exclusiveGateway': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const k = 0.32;
+      return `${polyPath([
+        [cx, y],
+        [x + w, cy],
+        [cx, y + h],
+        [x, cy],
+      ])} M ${r2(x + w * k)} ${r2(y + h * k)} L ${r2(x + w * (1 - k))} ${r2(y + h * (1 - k))} M ${r2(x + w * (1 - k))} ${r2(y + h * k)} L ${r2(x + w * k)} ${r2(y + h * (1 - k))}`;
+    }
+    case 'parallelGateway': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      return `${polyPath([
+        [cx, y],
+        [x + w, cy],
+        [cx, y + h],
+        [x, cy],
+      ])} ${vline(cx, cy - h * 0.2, cy + h * 0.2)} ${hline(cx - w * 0.2, cx + w * 0.2, cy)}`;
+    }
+    case 'inclusiveGateway': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      return `${polyPath([
+        [cx, y],
+        [x + w, cy],
+        [cx, y + h],
+        [x, cy],
+      ])} ${circleSub(cx, cy, Math.min(w, h) * 0.2)}`;
+    }
+    case 'complexGateway': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const k = 0.2;
+      return `${polyPath([
+        [cx, y],
+        [x + w, cy],
+        [cx, y + h],
+        [x, cy],
+      ])} ${polyPath([
+        [cx, cy - h * k],
+        [cx + w * k, cy],
+        [cx, cy + h * k],
+        [cx - w * k, cy],
+      ])}`;
+    }
+    case 'subProcess': {
+      const r = Math.min(w, h) / 6;
+      const s = Math.min(w, h) * 0.16;
+      const cx = x + w / 2;
+      return `M ${x + r} ${y} h ${w - 2 * r} a ${r} ${r} 0 0 1 ${r} ${r} v ${h - 2 * r} a ${r} ${r} 0 0 1 ${-r} ${r} h ${-(w - 2 * r)} a ${r} ${r} 0 0 1 ${-r} ${-r} v ${-(h - 2 * r)} a ${r} ${r} 0 0 1 ${r} ${-r} Z M ${r2(cx - s / 2)} ${r2(y + h - s - 4)} h ${r2(s)} v ${r2(s)} h ${r2(-s)} Z`;
+    }
+    case 'taskMarker': {
+      const r = Math.min(w, h) / 6;
+      const c = Math.min(12, w * 0.2, h * 0.3);
+      return `M ${x + r} ${y} h ${w - 2 * r} a ${r} ${r} 0 0 1 ${r} ${r} v ${h - 2 * r} a ${r} ${r} 0 0 1 ${-r} ${r} h ${-(w - 2 * r)} a ${r} ${r} 0 0 1 ${-r} ${-r} v ${-(h - 2 * r)} a ${r} ${r} 0 0 1 ${r} ${-r} Z M ${x + 2} ${y + c} L ${x + c} ${y + 2}`;
+    }
+    // --- UML symbols ---
+    case 'classBox':
+      return `M ${x} ${y} h ${w} v ${h} h ${-w} Z ${hline(x, x + w, y + h / 3)} ${hline(x, x + w, y + (2 * h) / 3)}`;
+    case 'packageBox': {
+      const tw = w * 0.35;
+      const th = Math.min(12, h * 0.2);
+      return `M ${x} ${y} h ${w} v ${h} h ${-w} Z M ${x} ${y} h ${tw} v ${th} h ${-tw} Z`;
+    }
+    case 'componentBox': {
+      const s = Math.min(12, w * 0.14, h * 0.2);
+      return `M ${x} ${y} h ${w} v ${h} h ${-w} Z M ${x + w - 2} ${y + h * 0.25} h ${s} v ${s} h ${-s} Z M ${x + w - 2} ${y + h * 0.55} h ${s} v ${s} h ${-s} Z`;
+    }
+    case 'actorFigure': {
+      const cx = x + w / 2;
+      const hr = Math.min(w, h) * 0.11;
+      const hy = y + h * 0.16;
+      const sy = y + h * 0.3;
+      const ey = y + h * 0.62;
+      return `${circleSub(cx, hy, hr)} M ${r2(cx)} ${r2(sy)} L ${r2(cx)} ${r2(ey)} M ${r2(x + w * 0.28)} ${r2(y + h * 0.4)} L ${r2(x + w * 0.72)} ${r2(y + h * 0.4)} M ${r2(cx)} ${r2(ey)} L ${r2(x + w * 0.3)} ${r2(y + h)} M ${r2(cx)} ${r2(ey)} L ${r2(x + w * 0.7)} ${r2(y + h)}`;
+    }
+    case 'nodeBox': {
+      const dx = w * 0.2;
+      const dy = h * 0.2;
+      return `M ${x} ${y + dy} h ${w - dx} v ${h - dy} h ${-(w - dx)} Z M ${x} ${y + dy} L ${x + dx} ${y} L ${x + w} ${y} L ${x + w - dx} ${y + dy} Z M ${x + w - dx} ${y + dy} L ${x + w} ${y} L ${x + w} ${y + h - dy} L ${x + w - dx} ${y + h} Z`;
+    }
+    case 'interfaceBall': {
+      const cx = x + w / 2;
+      const r = Math.min(w, h) * 0.3;
+      const cy = y + h * 0.35;
+      return `${circleSub(cx, cy, r)} M ${r2(cx)} ${r2(cy + r)} L ${r2(cx)} ${r2(y + h)}`;
+    }
+    case 'objectBox':
+      return `M ${x} ${y} h ${w} v ${h} h ${-w} Z ${hline(x + 6, x + w - 6, y + h - 8)}`;
+    case 'signalReceipt': {
+      const n = w * 0.25;
+      return polyPath([
+        [x + w, y],
+        [x + w, y + h],
+        [x, y + h],
+        [x + n, y + h / 2],
+        [x, y],
+      ]);
+    }
+    case 'partitionActivity': {
+      const cx = x + w / 2;
+      const r = Math.min(w, h) / 2;
+      return `M ${x + r} ${y} h ${w - 2 * r} a ${r} ${r} 0 0 1 ${r} ${r} v ${h - 2 * r} a ${r} ${r} 0 0 1 ${-r} ${r} h ${-(w - 2 * r)} a ${r} ${r} 0 0 1 ${-r} ${-r} v ${-(h - 2 * r)} a ${r} ${r} 0 0 1 ${r} ${-r} Z ${vline(cx, y + 4, y + h - 4)}`;
+    }
+    case 'generalizationTri': {
+      const cx = x + w / 2;
+      const th = h * 0.7;
+      return `${polyPath([
+        [x + w * 0.2, y],
+        [x + w * 0.8, y],
+        [cx, y + th],
+      ])} ${vline(cx, y + th, y + h)}`;
+    }
+    // --- ERD symbols ---
+    case 'weakEntity': {
+      const ix = w * 0.12;
+      const iy = h * 0.12;
+      return `M ${x} ${y} h ${w} v ${h} h ${-w} Z M ${x + ix} ${y + iy} h ${w - 2 * ix} v ${h - 2 * iy} h ${-(w - 2 * ix)} Z`;
+    }
+    case 'identifyingRel': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const k = 0.18;
+      return `${polyPath([
+        [cx, y],
+        [x + w, cy],
+        [cx, y + h],
+        [x, cy],
+      ])} ${polyPath([
+        [cx, y + h * k],
+        [x + w - w * k, cy],
+        [cx, y + h - h * k],
+        [x + w * k, cy],
+      ])}`;
+    }
+    case 'multiAttribute': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const rx = w / 2;
+      const ry = h / 2;
+      return `M ${r2(cx - rx)} ${r2(cy)} a ${r2(rx)} ${r2(ry)} 0 1 0 ${r2(rx * 2)} 0 a ${r2(rx)} ${r2(ry)} 0 1 0 ${r2(-rx * 2)} 0 Z ${vline(cx - w * 0.15, cy - h * 0.3, cy + h * 0.3)} ${vline(cx + w * 0.15, cy - h * 0.3, cy + h * 0.3)}`;
+    }
+    case 'keyAttribute': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      return `${(() => {
+        const rx = w / 2;
+        const ry = h / 2;
+        return `M ${r2(cx - rx)} ${r2(cy)} a ${r2(rx)} ${r2(ry)} 0 1 0 ${r2(rx * 2)} 0 a ${r2(rx)} ${r2(ry)} 0 1 0 ${r2(-rx * 2)} 0 Z`;
+      })()} ${hline(cx - w * 0.3, cx + w * 0.3, y + h - 6)}`;
+    }
+    case 'associativeBox': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const k = 0.22;
+      return `M ${x} ${y} h ${w} v ${h} h ${-w} Z ${polyPath([
+        [cx, cy - h * k],
+        [cx + w * k, cy],
+        [cx, cy + h * k],
+        [cx - w * k, cy],
+      ])}`;
+    }
+    case 'categoryCluster': {
+      const cx = x + w / 2;
+      return `M ${x} ${y} h ${w} v ${h} h ${-w} Z ${circleSub(cx, y + h, h * 0.12)} ${vline(cx, y + h, y + h + h * 0.12)}`;
+    }
+    case 'ternaryInner': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const k = 0.35;
+      return `${polyPath([
+        [cx, y],
+        [x + w, cy],
+        [cx, y + h],
+        [x, cy],
+      ])} ${polyPath([
+        [cx, cy - h * k * 0.6],
+        [cx + w * k * 0.5, cy + h * k * 0.4],
+        [cx - w * k * 0.5, cy + h * k * 0.4],
+      ])}`;
+    }
+    // --- Data-flow symbols ---
+    case 'datastoreOpen':
+      return `${hline(x, x + w, y)} ${hline(x, x + w, y + h)} ${vline(x, y, y + h)}`;
+    case 'yourdonStore':
+      return `${hline(x, x + w, y + h * 0.35)} ${hline(x, x + w, y + h * 0.65)}`;
+    case 'diskStack': {
+      const cx = x + w / 2;
+      const rx = w * 0.42;
+      const ry = h * 0.13;
+      return [y + h * 0.25, y + h * 0.5, y + h * 0.75]
+        .map(
+          (ey) =>
+            `M ${r2(cx - rx)} ${r2(ey)} a ${r2(rx)} ${r2(ry)} 0 1 0 ${r2(rx * 2)} 0 a ${r2(rx)} ${r2(ry)} 0 1 0 ${r2(-rx * 2)} 0 Z`,
+        )
+        .join(' ');
+    }
+    case 'fileRuled': {
+      const f = Math.min(14, w * 0.2, h * 0.25);
+      return `M ${x} ${y} h ${w - f} l ${f} ${f} v ${h - f} h ${-w} Z M ${x + w - f} ${y} L ${x + w - f} ${y + f} L ${x + w} ${y + f} ${hline(x + 8, x + w - 8, y + h * 0.45)} ${hline(x + 8, x + w - 8, y + h * 0.6)}`;
+    }
+    case 'punchCard': {
+      const c = Math.min(14, w * 0.25, h * 0.25);
+      const s = Math.min(10, w * 0.12, h * 0.16);
+      const hx = x + w * 0.35;
+      const hx2 = x + w * 0.6;
+      const hy = y + h * 0.42;
+      return `M ${x} ${y} L ${x + w - c} ${y} L ${x + w} ${y + c} L ${x + w} ${y + h} L ${x} ${y + h} Z M ${r2(hx)} ${r2(hy)} h ${r2(s)} v ${r2(s)} h ${r2(-s)} Z M ${r2(hx2)} ${r2(hy)} h ${r2(s)} v ${r2(s)} h ${r2(-s)} Z`;
+    }
+    // --- Network symbols ---
+    case 'serverBox': {
+      const ly1 = y + h * 0.35;
+      const ly2 = y + h * 0.6;
+      return `M ${x} ${y} h ${w} v ${h} h ${-w} Z ${hline(x + 8, x + w * 0.3, ly1)} ${hline(x + 8, x + w * 0.3, ly2)} ${circleSub(x + w * 0.85, ly1, 2.5)} ${circleSub(x + w * 0.85, ly2, 2.5)}`;
+    }
+    case 'routerBox': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      return `M ${x} ${y} h ${w} v ${h} h ${-w} Z ${circleSub(cx, cy, Math.min(w, h) * 0.25)}`;
+    }
+    case 'cloudShape': {
+      return `M ${r2(x + w * 0.18)} ${r2(y + h * 0.78)} A ${r2(w * 0.16)} ${r2(h * 0.2)} 0 0 1 ${r2(x + w * 0.2)} ${r2(y + h * 0.42)} A ${r2(w * 0.2)} ${r2(h * 0.24)} 0 0 1 ${r2(x + w * 0.5)} ${r2(y + h * 0.22)} A ${r2(w * 0.17)} ${r2(h * 0.22)} 0 0 1 ${r2(x + w * 0.78)} ${r2(y + h * 0.4)} A ${r2(w * 0.15)} ${r2(h * 0.2)} 0 0 1 ${r2(x + w * 0.82)} ${r2(y + h * 0.78)} Z`;
+    }
+    case 'firewallBox': {
+      const cy = y + h / 2;
+      return `M ${x} ${y} h ${w} v ${h} h ${-w} Z M ${r2(x + w * 0.3)} ${r2(cy - h * 0.2)} L ${r2(x + w * 0.45)} ${r2(cy + h * 0.05)} L ${r2(x + w * 0.55)} ${r2(cy + h * 0.05)} L ${r2(x + w * 0.7)} ${r2(cy - h * 0.2)}`;
+    }
+    case 'antennaTower': {
+      const cx = x + w / 2;
+      const tw = w * 0.16;
+      return `${polyPath([
+        [cx - tw / 2, y + h * 0.3],
+        [cx + tw / 2, y + h * 0.3],
+        [cx, y],
+      ])} ${vline(cx, y + h * 0.3, y + h)} ${(() => {
+        const my = y + h * 0.42;
+        const r = w * 0.1;
+        return `M ${r2(cx - r)} ${r2(my)} A ${r2(r)} ${r2(r)} 0 0 1 ${r2(cx - r * 0.4)} ${r2(my - r * 0.9)} M ${r2(cx + r)} ${r2(my)} A ${r2(r)} ${r2(r)} 0 0 0 ${r2(cx + r * 0.4)} ${r2(my - r * 0.9)}`;
+      })()}`;
+    }
+    case 'printerBox': {
+      const pw = w * 0.5;
+      const px = x + (w - pw) / 2;
+      // Paper tray protrudes above the body; capped so small thumbs stay in-bounds.
+      const tray = Math.min(12, h * 0.3);
+      const trayH = Math.min(22, h * 0.8);
+      return `M ${x} ${y} h ${w} v ${h} h ${-w} Z M ${r2(px)} ${r2(y - tray)} h ${r2(pw)} v ${r2(trayH)} h ${r2(-pw)} Z`;
+    }
+    case 'switchStack': {
+      const s = Math.min(12, w * 0.14, h * 0.24);
+      const cy = y + h / 2;
+      const xs = [0.22, 0.44, 0.66].map((f) => x + w * f - s / 2);
+      return `M ${x} ${y} h ${w} v ${h} h ${-w} Z ${xs
+        .map((sx) => `M ${r2(sx)} ${r2(cy - s / 2)} h ${r2(s)} v ${r2(s)} h ${r2(-s)} Z`)
+        .join(' ')}`;
+    }
+    case 'hubSpoke': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const r = Math.min(w, h) * 0.42;
+      const spokes = [45, 135, 225, 315]
+        .map((deg) => {
+          const a = (deg * Math.PI) / 180;
+          return `M ${r2(cx + r * 0.55 * Math.cos(a))} ${r2(cy + r * 0.55 * Math.sin(a))} L ${r2(cx + r * 0.8 * Math.cos(a))} ${r2(cy + r * 0.8 * Math.sin(a))}`;
+        })
+        .join(' ');
+      return `${circleSub(cx, cy, r)} ${spokes}`;
+    }
+    case 'modemBox': {
+      const cy = y + h / 2;
+      const dots = [0.3, 0.5, 0.7].map((f) => circleSub(x + w * f, cy, 3)).join(' ');
+      return `M ${x} ${y} h ${w} v ${h} h ${-w} Z ${dots}`;
+    }
+    case 'satelliteDish': {
+      const cx = x + w / 2;
+      return `M ${r2(x + w * 0.2)} ${r2(y + h * 0.25)} A ${r2(w * 0.3)} ${r2(h * 0.3)} 0 0 1 ${r2(x + w * 0.75)} ${r2(y + h * 0.55)} M ${r2(x + w * 0.55)} ${r2(y + h * 0.5)} L ${r2(cx)} ${r2(y + h * 0.72)} M ${r2(cx)} ${r2(y + h * 0.72)} L ${r2(cx)} ${r2(y + h)} ${hline(cx - w * 0.18, cx + w * 0.18, y + h)}`;
+    }
+    case 'laptopSlab': {
+      const sy = y + h * 0.62;
+      return `M ${r2(x + w * 0.1)} ${r2(y)} h ${r2(w * 0.8)} v ${r2(sy - y)} h ${r2(-w * 0.8)} Z ${polyPath([
+        [x, y + h],
+        [x + w, y + h],
+        [x + w * 0.85, sy],
+        [x + w * 0.15, sy],
+      ])}`;
+    }
+    case 'rackCabinet':
+      return `M ${x} ${y} h ${w} v ${h} h ${-w} Z ${hline(x, x + w, y + h * 0.2)} ${hline(x, x + w, y + h * 0.4)} ${hline(x, x + w, y + h * 0.6)} ${hline(x, x + w, y + h * 0.8)}`;
+    case 'loadBalancer': {
+      const cx = x + w / 2;
+      return `${polyPath([
+        [x + w * 0.2, y + h * 0.62],
+        [x + w * 0.8, y + h * 0.62],
+        [cx, y],
+      ])} ${hline(x, x + w, y + h)} ${circleSub(cx, y + h, 3)}`;
+    }
+    // --- Kubernetes symbols (simplified glyphs; official image glyphs are a follow-up) ---
+    case 'podHex': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const r = Math.min(w, h) * 0.22;
+      const ticks = [0, 60, 120, 180, 240, 300]
+        .map((deg) => {
+          const a = ((deg - 90) * Math.PI) / 180;
+          return `M ${r2(cx + r * Math.cos(a))} ${r2(cy + r * Math.sin(a))} L ${r2(cx + r * 1.45 * Math.cos(a))} ${r2(cy + r * 1.45 * Math.sin(a))}`;
+        })
+        .join(' ');
+      return `${ngonPath(x, y, w, h, 6, -90)} ${circleSub(cx, cy, r)} ${ticks}`;
+    }
+    case 'serviceMesh': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const rx = w / 2;
+      const ry = h / 2;
+      const dots = [0.3, 0.5, 0.7].map((f) => circleSub(x + w * f, cy, 2.5)).join(' ');
+      return `M ${r2(cx - rx)} ${r2(cy)} a ${r2(rx)} ${r2(ry)} 0 1 0 ${r2(rx * 2)} 0 a ${r2(rx)} ${r2(ry)} 0 1 0 ${r2(-rx * 2)} 0 Z ${hline(cx - rx * 0.7, cx + rx * 0.7, cy)} ${dots}`;
+    }
+    case 'deployBox': {
+      const bw = w * 0.16;
+      const bars = [0.4, 0.6, 0.85].map((f, i) => {
+        const bx = x + w * (0.2 + i * 0.24);
+        const bh = (h - 8) * f;
+        return `M ${r2(bx)} ${r2(y + h - 4 - bh)} h ${r2(bw)} v ${r2(bh)} h ${r2(-bw)} Z`;
+      });
+      return `M ${x} ${y} h ${w} v ${h} h ${-w} Z ${bars.join(' ')}`;
+    }
+    case 'ingressArrow': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const r = Math.min(w, h) / 2;
+      const chx = cx - w * 0.12;
+      return `M ${x + r} ${y} h ${w - 2 * r} a ${r} ${r} 0 0 1 ${r} ${r} v ${h - 2 * r} a ${r} ${r} 0 0 1 ${-r} ${r} h ${-(w - 2 * r)} a ${r} ${r} 0 0 1 ${-r} ${-r} v ${-(h - 2 * r)} a ${r} ${r} 0 0 1 ${r} ${-r} Z ${polyPath([
+        [chx, cy - h * 0.18],
+        [chx + w * 0.22, cy],
+        [chx, cy + h * 0.18],
+        [chx, cy + h * 0.18 - h * 0.12],
+        [chx + w * 0.22 - w * 0.12, cy],
+        [chx, cy - h * 0.18 + h * 0.12],
+      ])}`;
+    }
+    case 'configBox':
+      return `${polyPath([
+        [x + w * 0.25, y],
+        [x + w, y],
+        [x + w * 0.75, y + h],
+        [x, y + h],
+      ])} ${hline(x + w * 0.2, x + w * 0.8, y + h * 0.35)} ${hline(x + w * 0.15, x + w * 0.75, y + h * 0.6)}`;
+    case 'namespaceBox': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const inner: Array<[number, number]> = [];
+      for (let i = 0; i < 6; i += 1) {
+        const a = ((-90 + 60 * i) * Math.PI) / 180;
+        inner.push([cx + ((w * 0.65) / 2) * Math.cos(a), cy + ((h * 0.65) / 2) * Math.sin(a)]);
+      }
+      return `${ngonPath(x, y, w, h, 6, -90)} ${polyPath(inner)}`;
+    }
+    case 'cronBox': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const r = Math.min(w, h) * 0.3;
+      return `M ${x} ${y} h ${w} v ${h} h ${-w} Z M ${r2(cx)} ${r2(cy)} L ${r2(cx)} ${r2(cy - r)} M ${r2(cx)} ${r2(cy)} L ${r2(cx + r * 0.7)} ${r2(cy + r * 0.4)}`;
+    }
+    case 'secretVault': {
+      const cx = x + w / 2;
+      const ky = y + h * 0.38;
+      return `M ${x} ${y} h ${w} v ${h} h ${-w} Z ${circleSub(cx, ky, h * 0.09)} M ${r2(cx)} ${r2(ky + h * 0.09)} L ${r2(cx)} ${r2(ky + h * 0.28)}`;
+    }
+    case 'bandedCylinder': {
+      const ry = Math.max(2, h * 0.2);
+      const cy = y + ry;
+      return `M ${x} ${cy} a ${w / 2} ${ry} 0 0 0 ${w} 0 v ${h - 2 * ry} a ${w / 2} ${ry} 0 0 1 ${-w} 0 Z ${hline(x, x + w, cy + (h - 2 * ry) / 2)}`;
+    }
+    case 'sidecarBox': {
+      const sw = w * 0.3;
+      return `M ${x} ${y} h ${w} v ${h} h ${-w} Z M ${r2(x + w - 2)} ${r2(y + h * 0.3)} h ${r2(sw)} v ${r2(h * 0.4)} h ${r2(-sw)} Z`;
+    }
+    case 'readinessProbe': {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      return `${polyPath([
+        [cx, y],
+        [x + w, cy],
+        [cx, y + h],
+        [x, cy],
+      ])} M ${r2(cx - w * 0.14)} ${r2(cy)} L ${r2(cx - w * 0.03)} ${r2(cy + h * 0.12)} L ${r2(cx + w * 0.15)} ${r2(cy - h * 0.14)}`;
+    }
+    case 'replicaBars': {
+      const bw = w * 0.16;
+      const bars = [0.4, 0.65, 0.9].map((f, i) => {
+        const bx = x + w * (0.14 + i * 0.28);
+        const bh = (h - 4) * f;
+        return `M ${r2(bx)} ${r2(y + h - 2 - bh)} h ${r2(bw)} v ${r2(bh)} h ${r2(-bw)} Z`;
+      });
+      return bars.join(' ');
+    }
+    case 'triangleUp':
+      return `M ${x} ${y + h} L ${x + w / 2} ${y} L ${x + w} ${y + h} Z`;
+    case 'triangleDown':
+      return `M ${x} ${y} L ${x + w} ${y} L ${x + w / 2} ${y + h} Z`;
+    case 'capsule': {
+      const r = Math.min(w, h) / 2;
       return `M ${x + r} ${y} h ${w - 2 * r} a ${r} ${r} 0 0 1 ${r} ${r} v ${h - 2 * r} a ${r} ${r} 0 0 1 ${-r} ${r} h ${-(w - 2 * r)} a ${r} ${r} 0 0 1 ${-r} ${-r} v ${-(h - 2 * r)} a ${r} ${r} 0 0 1 ${r} ${-r} Z`;
     }
     default:
@@ -533,4 +1263,25 @@ export function rotationCenter(el: { kind: string; x?: number; y?: number }, bou
     return { x: el.x, y: el.y };
   }
   return { x: bounds.x + bounds.w / 2, y: bounds.y + bounds.h / 2 };
+}
+
+/** FigJam-style rotate zone: offset outward from a scale corner (screen px). */
+export const ROTATE_ZONE_OFFSET = 22;
+export const ROTATE_ZONE_R = 12;
+
+/**
+ * Center of the rotate zone beside a corner: pushed outward along the
+ * corner→pivot axis. All inputs/outputs are in the same (screen) space.
+ */
+export function rotateZoneCenter(corner: { x: number; y: number }, pivot: { x: number; y: number }): { x: number; y: number } {
+  const dx = corner.x - pivot.x;
+  const dy = corner.y - pivot.y;
+  const len = Math.hypot(dx, dy) || 1;
+  return { x: corner.x + (dx / len) * ROTATE_ZONE_OFFSET, y: corner.y + (dy / len) * ROTATE_ZONE_OFFSET };
+}
+
+/** True when a screen point sits in the rotate zone beside a corner. */
+export function inRotateZone(pt: { x: number; y: number }, corner: { x: number; y: number }, pivot: { x: number; y: number }): boolean {
+  const z = rotateZoneCenter(corner, pivot);
+  return Math.hypot(pt.x - z.x, pt.y - z.y) <= ROTATE_ZONE_R;
 }

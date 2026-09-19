@@ -1,5 +1,5 @@
 import { newId } from "../../lib/utils";
-import type { WhiteboardElement } from "../../lib/types";
+import type { WhiteboardElement, WhiteboardShapeType } from "../../lib/types";
 
 export interface WhiteboardTemplate {
   id: string;
@@ -26,7 +26,7 @@ const text = (x: number, y: number, str: string, fontSize = 14, color = C.primar
 const sticky = (x: number, y: number, str: string, w = 200, h = 60, color = C.warn): WhiteboardElement => ({
   id: id(), kind: "sticky", x, y, w, h, color, text: str,
 });
-const shape = (x: number, y: number, label: string, w = 190, h = 56, color = C.info, shapeType: "rect" | "roundedRect" | "diamond" | "ellipse" | "hexagon" | "cylinder" | "parallelogram" = "rect"): WhiteboardElement => ({
+const shape = (x: number, y: number, label: string, w = 190, h = 56, color = C.info, shapeType: WhiteboardShapeType = "rect"): WhiteboardElement => ({
   id: id(), kind: "shape", shapeType, x, y, w, h, color, fill: true, strokeWidth: 2, label, labelColor: "#0f172a",
 });
 const boundary = (x: number, y: number, label: string, w: number, h: number, color = C.info): WhiteboardElement => ({

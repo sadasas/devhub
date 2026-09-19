@@ -1,8 +1,10 @@
 import { test, expect } from '../helpers/fixture';
-import { ownerContext, getTeamId, createProject, uniqueName, addEntity } from '../helpers/api';
+import { ownerContext, getTeamId, createProject, deleteProject, uniqueName, addEntity } from '../helpers/api';
 import { waitForSaved } from '../helpers/wait';
 
-test.describe('whiteboard canvas journeys', () => {
+// Serial + per-test cleanup: the Free workspace fits 3 projects, so the four
+// journeys below must never hold more than one project at a time.
+test.describe.serial('whiteboard canvas journeys', () => {
   test('draw → save → reload keeps elements', async ({ page }) => {
     const ctx = await ownerContext();
     const teamId = await getTeamId(ctx);
@@ -28,7 +30,7 @@ test.describe('whiteboard canvas journeys', () => {
     const startX = box.x + box.width / 2 - 100;
     const startY = box.y + box.height / 2;
 
-    await page.getByRole('button', { name: 'Pen — 2' }).click();
+    await page.getByRole('button', { name: 'Pen — P' }).click();
     await page.mouse.move(startX, startY);
     await page.mouse.down();
     for (let i = 1; i <= 8; i += 1) {
@@ -39,10 +41,8 @@ test.describe('whiteboard canvas journeys', () => {
       page.getByRole('group', { name: new RegExp(`${boardName} — 1 elements`) }),
     ).toBeVisible();
 
-    await page.getByRole('button', { name: 'Sticky note — 5' }).click();
+    await page.getByRole('button', { name: 'Sticky note — N' }).click();
     await page.mouse.click(box.x + box.width / 2 + 120, box.y + box.height / 2 + 100);
-    await expect(page.getByRole('dialog', { name: 'Edit sticky' })).toBeVisible();
-    await page.getByRole('button', { name: 'Finish editing' }).click();
     await expect(
       page.getByRole('group', { name: new RegExp(`${boardName} — 2 elements`) }),
     ).toBeVisible();
@@ -55,15 +55,17 @@ test.describe('whiteboard canvas journeys', () => {
       page.getByRole('group', { name: new RegExp(`${boardName} — 2 elements`) }),
     ).toBeVisible();
     await page.getByRole('button', { name: 'Back to boards' }).click();
-    const card = page.locator('.wb-card-main', { hasText: boardName });
+    const card = page.locator('.wb-card', { hasText: boardName });
     await expect(card).toBeVisible();
-    await expect(card.getByText('2 elements')).toBeVisible();
+    await expect(card.getByText(/2 elements/)).toBeVisible();
 
-    await card.click();
+    await card.locator('.wb-card-main').click();
     await expect(canvas).toBeVisible();
     await expect(
       page.getByRole('group', { name: new RegExp(`${boardName} — 2 elements`) }),
     ).toBeVisible();
+
+    await deleteProject(ctx, projectId);
   });
 
   test('dragging a node keeps the locked edge ports attached', async ({ page }) => {
@@ -129,6 +131,52 @@ test.describe('whiteboard canvas journeys', () => {
     const reloaded = page.locator('svg.wb-svg polyline');
     await expect(reloaded).toHaveCount(1);
     await expect(reloaded).toHaveAttribute('points', '100,30 232,30 232,158 256,158');
+
+    await deleteProject(ctx, projectId);
+  });
+
+  test('figjam chrome: corner handles, port dots, shape strip and object menu', async ({ page }) => {
+    const ctx = await ownerContext();
+    const teamId = await getTeamId(ctx);
+    const projectId = await createProject(ctx, teamId, uniqueName('E2E-WB-Figjam'));
+    const boardName = uniqueName('E2E-Board');
+
+    const { entity: board } = await addEntity<{ id: string }>(ctx, projectId, 'whiteboards', {
+      id: crypto.randomUUID(),
+      name: boardName,
+      description: '',
+      elements: [
+        { id: crypto.randomUUID(), kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' },
+      ],
+    });
+
+    await page.goto(`/project/${projectId}?tab=whiteboard&id=${board.id}`);
+    const canvas = page.locator('svg.wb-svg');
+    await expect(canvas).toBeVisible();
+
+    // Default tool is select: clicking the sticky selects it with FigJam adornments.
+    const box = (await canvas.boundingBox())!;
+    await page.mouse.click(box.x + 16 + 50, box.y + 16 + 30);
+    await expect(page.locator('[data-testid="wb-resize-handle"]')).toHaveCount(4);
+    await expect(page.locator('[data-testid="wb-port-handle"]')).toHaveCount(4);
+
+    // Shape primer strip (7 FigJam-identical) + More shapes library panel.
+    await page.getByRole('button', { name: 'Shape — S' }).click();
+    const menu = page.getByRole('menu', { name: 'Shape type' });
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole('menuitemradio')).toHaveCount(7);
+    await page.getByRole('button', { name: 'More shapes' }).click();
+    await expect(page.getByRole('dialog', { name: 'More shapes' })).toBeVisible();
+
+    // Right-click object menu re-selects and offers FigJam actions.
+    await page.keyboard.press('Escape');
+    await page.mouse.click(box.x + 16 + 50, box.y + 16 + 30, { button: 'right' });
+    const ctxMenu = page.getByRole('menu', { name: 'Object actions' });
+    await expect(ctxMenu).toBeVisible();
+    await expect(ctxMenu.getByRole('menuitem', { name: 'Copy Ctrl+C' })).toBeVisible();
+    await expect(ctxMenu.getByRole('menuitem', { name: 'Paste to replace Ctrl+Shift+V' })).toBeVisible();
+
+    await deleteProject(ctx, projectId);
   });
 
   test('labels an edge via popover and copy/paste duplicates the selection', async ({ page }) => {
@@ -161,7 +209,7 @@ test.describe('whiteboard canvas journeys', () => {
     const bX = box.x + 16 + 250;
     const bY = box.y + 16 + 30;
 
-    await page.getByRole('button', { name: 'Edge — 7' }).click();
+    await page.getByRole('button', { name: 'Edge — L' }).click();
     await page.mouse.move(aX, aY);
     await page.mouse.down();
     await page.mouse.move(bX, bY, { steps: 5 });
@@ -170,26 +218,38 @@ test.describe('whiteboard canvas journeys', () => {
       page.getByRole('group', { name: new RegExp(`${boardName} — 3 elements`) }),
     ).toBeVisible();
 
-    const polyline = page.locator('svg.wb-svg polyline');
-    await expect(polyline).toHaveCount(1);
-    await polyline.dblclick({ force: true });
-    const popover = page.getByRole('dialog', { name: 'Edit edge' });
-    await expect(popover).toBeVisible();
-    await popover.getByLabel('Label').fill('Yes');
-    await popover.getByRole('button', { name: 'Finish editing' }).click();
+    // Edge polylines only — the selection halo is a second polyline per selected edge.
+    const edgeLines = page.locator('svg.wb-svg polyline:not([stroke-opacity])');
+    await expect(edgeLines).toHaveCount(1);
+    await edgeLines.first().dblclick({ force: true });
+    const editor = page.getByRole('textbox', { name: 'Label' });
+    await expect(editor).toBeVisible();
+    await editor.fill('Yes');
+    await editor.press('Enter');
     await expect(page.locator('svg.wb-svg .wb-edge-label', { hasText: 'Yes' })).toBeVisible();
 
     const box2 = (await canvas.boundingBox())!;
-    await page.getByRole('button', { name: 'Select area — 9' }).click();
-    await page.mouse.move(box2.x + 16 + 20, box2.y + 16 + 10);
+    // Back to select, clear the edge selection/text bar on empty canvas,
+    // then marquee all three (edge included) clear of the corner panels.
+    await page.getByRole('button', { name: 'Select — V' }).click();
+    await page.mouse.click(box2.x + 16 + 400, box2.y + 16 + 200);
+    await page.getByRole('button', { name: 'Select area — M' }).click();
+    // Marquee below the top-left corner panel, ending clear of both corner
+    // panels; rect still overlaps both stickies and the edge (svg y 16..76/30).
+    await page.mouse.move(box2.x + 16 + 60, box2.y + 16 + 90);
     await page.mouse.down();
-    await page.mouse.move(box2.x + 16 + 290, box2.y + 16 + 60, { steps: 8 });
+    await page.mouse.move(box2.x + 16 + 340, box2.y + 16 + 20, { steps: 8 });
     await page.mouse.up();
     await expect(page.locator('[data-testid="wb-selection"]')).toHaveCount(2);
     await expect(page.getByRole('group', { name: 'Selection actions' })).toBeVisible();
 
-    await page.keyboard.press('Control+c');
-    await page.keyboard.press('Control+v');
+    // Focus the canvas first: shortcuts are canvas-scoped like FigJam.
+    // NOTE: headless-shell swallows the Ctrl+V letter keydown (Ctrl+X works),
+    // so paste goes through the object menu here; keyboard paste is unit-tested.
+    await canvas.press('Control+c');
+    // Right-click empty canvas below the stickies (clear of inspector/chat overlays).
+    await page.mouse.click(box2.x + 16 + 150, box2.y + 16 + 200, { button: 'right' });
+    await page.getByRole('menu', { name: 'Object actions' }).getByRole('menuitem', { name: 'Paste Ctrl+V' }).click();
     await expect(
       page.getByRole('group', { name: new RegExp(`${boardName} — 6 elements`) }),
     ).toBeVisible();
@@ -202,7 +262,9 @@ test.describe('whiteboard canvas journeys', () => {
     await expect(
       page.getByRole('group', { name: new RegExp(`${boardName} — 6 elements`) }),
     ).toBeVisible();
-    await expect(page.locator('svg.wb-svg polyline')).toHaveCount(2);
+    await expect(page.locator('svg.wb-svg polyline:not([stroke-opacity])')).toHaveCount(2);
     await expect(page.locator('svg.wb-svg .wb-edge-label', { hasText: 'Yes' })).toHaveCount(2);
+
+    await deleteProject(ctx, projectId);
   });
 });

@@ -108,6 +108,36 @@ describe('MCP whiteboard tools', () => {
     expect(kinds).toEqual(['edge', 'sticky', 'text']);
   });
 
+  it('round-trips the FigJam-parity shape types (triangleUp/triangleDown/capsule)', async () => {
+    const cookie = await register('wb-shapes@test.dev');
+    const projectId = await createProject(cookie);
+    const key = await createKey(cookie);
+
+    const shapes = (['triangleUp', 'triangleDown', 'capsule', 'actorFigure', 'firewallBox', 'weakEntity', 'datastoreOpen', 'podHex'] as const).map((shapeType, i) => ({
+      kind: 'shape',
+      shapeType,
+      x: i * 150,
+      y: 0,
+      w: 120,
+      h: 80,
+      color: '#6ea8fe',
+      fill: false,
+      strokeWidth: 2,
+      label: shapeType,
+    }));
+    const text = await toolText(key, 'create_whiteboard', {
+      projectId,
+      name: 'Shapes',
+      elements: shapes,
+    });
+    const result = JSON.parse(text) as { elementCount: number };
+    expect(result.elementCount).toBe(8);
+
+    const state = await fetchState(cookie, projectId);
+    const types = (state.whiteboards[0]?.elements as Array<{ shapeType: string }>).map((e) => e.shapeType).sort();
+    expect(types).toEqual(['actorFigure', 'capsule', 'datastoreOpen', 'firewallBox', 'podHex', 'triangleDown', 'triangleUp', 'weakEntity']);
+  });
+
   it('creates a board without elements (empty canvas)', async () => {
     const cookie = await register('wb-empty@test.dev');
     const projectId = await createProject(cookie);

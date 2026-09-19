@@ -105,13 +105,14 @@ describe('WhiteboardList narrow', () => {
     expect(document.querySelector('.wb-card .wb-trash')).toBeNull();
   });
 
-  it('kebab Open opens the board and closes menu', () => {
+  it('kebab has no Open item; card title opens the board', () => {
     const onOpen = vi.fn();
     renderPage(undefined, onOpen);
     fireEvent.click(screen.getAllByRole('button', { name: /More actions for/ })[0]!);
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Open' }));
+    expect(screen.queryByRole('menuitem', { name: 'Open' })).toBeNull();
+    expect(screen.getByRole('menuitem', { name: 'Edit board' })).toBeTruthy();
+    fireEvent.click(screen.getByText('Roadmap'));
     expect(onOpen).toHaveBeenCalledWith('wb1');
-    expect(screen.queryByRole('menu')).toBeNull();
   });
 
   it('kebab Delete opens confirm dialog', () => {

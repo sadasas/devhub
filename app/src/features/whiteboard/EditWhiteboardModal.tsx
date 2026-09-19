@@ -67,7 +67,6 @@ export function EditWhiteboardModal({ board, onClose }: EditWhiteboardModalProps
           label={t('whiteboard.editModal.description')}
           rows={3}
           maxLength={2000}
-          helper={t('whiteboard.editModal.descHelper')}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />

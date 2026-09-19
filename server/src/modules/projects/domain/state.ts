@@ -247,6 +247,12 @@ const whiteboardStrokeSchema = z.object({
   groupId: z.string().uuid().nullable().default(null),
 });
 
+const whiteboardFontFamily = z.enum(['simple', 'bookish', 'technical', 'scribbled']).nullable().optional();
+const whiteboardBold = z.boolean().nullable().optional();
+const whiteboardStrike = z.boolean().nullable().optional();
+const whiteboardList = z.enum(['none', 'bullet']).nullable().optional();
+const whiteboardValign = z.enum(['top', 'center', 'bottom']).nullable().optional();
+
 const whiteboardStickySchema = z.object({
   id: whiteboardElementId,
   kind: z.literal('sticky'),
@@ -257,8 +263,13 @@ const whiteboardStickySchema = z.object({
   color: z.string().max(20).default('#e8b955'),
   text: z.string().max(500).default(''),
   textColor: z.string().max(20).nullable().optional(),
-  fontSize: z.number().min(4).max(72).nullable().optional(),
+  fontSize: z.number().min(4).max(96).nullable().optional(),
   align: z.enum(['left', 'center', 'right']).nullable().optional(),
+  valign: whiteboardValign,
+  fontFamily: whiteboardFontFamily,
+  bold: whiteboardBold,
+  strikethrough: whiteboardStrike,
+  list: whiteboardList,
   rotation: z.number().min(-360).max(360).default(0),
   locked: z.boolean().default(false),
   groupId: z.string().uuid().nullable().default(null),
@@ -274,6 +285,10 @@ const whiteboardTextSchema = z.object({
   text: z.string().max(1000).default(''),
   w: z.number().min(20).max(2000).nullable().optional(),
   align: z.enum(['left', 'center', 'right']).nullable().optional(),
+  fontFamily: whiteboardFontFamily,
+  bold: whiteboardBold,
+  strikethrough: whiteboardStrike,
+  list: whiteboardList,
   rotation: z.number().min(-360).max(360).default(0),
   locked: z.boolean().default(false),
   groupId: z.string().uuid().nullable().default(null),
@@ -282,7 +297,7 @@ const whiteboardTextSchema = z.object({
 const whiteboardShapeSchema = z.object({
   id: whiteboardElementId,
   kind: z.literal('shape'),
-  shapeType: z.enum(['rect', 'diamond', 'ellipse', 'cylinder', 'parallelogram', 'hexagon', 'roundedRect']),
+  shapeType: z.enum(['rect', 'diamond', 'ellipse', 'cylinder', 'parallelogram', 'hexagon', 'roundedRect', 'triangleUp', 'triangleDown', 'capsule', 'triangleRight', 'hCylinder', 'trapezoid', 'trapezoidRight', 'pentagon', 'octagon', 'document', 'snipRect', 'chamferRect', 'roundedDiamond', 'plusBlock', 'chevronRight', 'doubleChevron', 'pentagonRight', 'star5', 'star4', 'sealBurst', 'shieldBox', 'semicircle', 'pieSlice', 'nutHex', 'cubeBox', 'envelopeBox', 'calendarBox', 'clockFace', 'predefinedProcess', 'manualInput', 'offPageRef', 'delayHalf', 'multiDocument', 'orJunction', 'sumJunction', 'crossDoc', 'intermediateRing', 'messageEvent', 'timerEvent', 'errorEvent', 'exclusiveGateway', 'parallelGateway', 'inclusiveGateway', 'complexGateway', 'subProcess', 'taskMarker', 'classBox', 'packageBox', 'componentBox', 'actorFigure', 'nodeBox', 'interfaceBall', 'objectBox', 'signalReceipt', 'partitionActivity', 'generalizationTri', 'weakEntity', 'identifyingRel', 'multiAttribute', 'keyAttribute', 'associativeBox', 'categoryCluster', 'ternaryInner', 'datastoreOpen', 'yourdonStore', 'diskStack', 'fileRuled', 'punchCard', 'serverBox', 'routerBox', 'cloudShape', 'firewallBox', 'antennaTower', 'printerBox', 'switchStack', 'hubSpoke', 'modemBox', 'satelliteDish', 'laptopSlab', 'rackCabinet', 'loadBalancer', 'podHex', 'serviceMesh', 'deployBox', 'ingressArrow', 'configBox', 'namespaceBox', 'cronBox', 'secretVault', 'bandedCylinder', 'sidecarBox', 'readinessProbe', 'replicaBars']),
   x: whiteboardCoord,
   y: whiteboardCoord,
   w: z.number().min(1).max(10_000),
@@ -290,10 +305,16 @@ const whiteboardShapeSchema = z.object({
   color: z.string().max(20).default('#6ea8fe'),
   fill: z.boolean().default(false),
   strokeWidth: z.number().min(0.5).max(100).default(2),
+  dash: z.enum(['solid', 'dashed', 'none']).default('solid'),
   label: z.string().max(200).default(''),
   labelColor: z.string().max(20).nullable().optional(),
-  fontSize: z.number().min(4).max(72).nullable().optional(),
+  fontSize: z.number().min(4).max(96).nullable().optional(),
   align: z.enum(['left', 'center', 'right']).nullable().optional(),
+  valign: whiteboardValign,
+  fontFamily: whiteboardFontFamily,
+  bold: whiteboardBold,
+  strikethrough: whiteboardStrike,
+  list: whiteboardList,
   rotation: z.number().min(-360).max(360).default(0),
   locked: z.boolean().default(false),
   groupId: z.string().uuid().nullable().default(null),
@@ -312,8 +333,12 @@ const whiteboardEdgeSchema = z.object({
   label: z.string().max(200).default(''),
   arrowStyle: z.enum(['none', 'open', 'solid', 'diamond', 'circle']).default('none'),
   dash: z.enum(['solid', 'dashed', 'dotted']).default('solid'),
-  fontSize: z.number().min(4).max(72).nullable().optional(),
+  fontSize: z.number().min(4).max(96).nullable().optional(),
   align: z.enum(['left', 'center', 'right']).nullable().optional(),
+  fontFamily: whiteboardFontFamily,
+  bold: whiteboardBold,
+  strikethrough: whiteboardStrike,
+  list: whiteboardList,
   locked: z.boolean().default(false),
   groupId: z.string().uuid().nullable().default(null),
   sourceNodeId: whiteboardElementId.nullable().optional(),
@@ -332,8 +357,12 @@ const whiteboardBoundarySchema = z.object({
   color: z.string().max(20).default('#6ea8fe'),
   label: z.string().max(200).default(''),
   labelColor: z.string().max(20).nullable().optional(),
-  fontSize: z.number().min(4).max(72).nullable().optional(),
+  fontSize: z.number().min(4).max(96).nullable().optional(),
   align: z.enum(['left', 'center', 'right']).nullable().optional(),
+  fontFamily: whiteboardFontFamily,
+  bold: whiteboardBold,
+  strikethrough: whiteboardStrike,
+  list: whiteboardList,
   locked: z.boolean().default(false),
   groupId: z.string().uuid().nullable().default(null),
 });

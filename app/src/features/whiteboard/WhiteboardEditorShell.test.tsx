@@ -92,7 +92,7 @@ describe('whiteboard editor shell', () => {
     renderShell(BOARD);
     const toolbar = screen.getByRole('toolbar', { name: 'Whiteboard tools' });
 
-    for (const name of ['Select — 1', 'Pen — 2', 'Eraser — 3', 'Entity ref card — 8']) {
+    for (const name of ['Select — V', 'Pen — P', 'Eraser — E', 'Entity ref card — D']) {
       const btn = screen.getByRole('button', { name });
       expect(btn.hasAttribute('disabled')).toBe(false);
       expect(btn.closest('[role="toolbar"]')).toBe(toolbar);
@@ -104,12 +104,12 @@ describe('whiteboard editor shell', () => {
 
   it('toggles the active tool with aria-pressed on click', () => {
     renderShell(BOARD);
-    const view = screen.getByRole('button', { name: 'View only — v' });
-    const select = screen.getByRole('button', { name: 'Select — 1' });
-    const pen = screen.getByRole('button', { name: 'Pen — 2' });
+    const view = screen.getByRole('button', { name: 'View only — H' });
+    const select = screen.getByRole('button', { name: 'Select — V' });
+    const pen = screen.getByRole('button', { name: 'Pen — P' });
 
-    expect(view.getAttribute('aria-pressed')).toBe('true');
-    expect(select.getAttribute('aria-pressed')).toBe('false');
+    expect(view.getAttribute('aria-pressed')).toBe('false');
+    expect(select.getAttribute('aria-pressed')).toBe('true');
     expect(pen.getAttribute('aria-pressed')).toBe('false');
 
     fireEvent.click(pen);
@@ -121,6 +121,25 @@ describe('whiteboard editor shell', () => {
     expect(pen.getAttribute('aria-pressed')).toBe('false');
   });
 
+  it('activates tools via FigJam-style letter aliases as well as digits', () => {
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch: vi.fn() });
+    renderShell(BOARD);
+    const text = screen.getByRole('button', { name: 'Text — T' });
+    const sticky = screen.getByRole('button', { name: 'Sticky note — N' });
+    const edge = screen.getByRole('button', { name: 'Edge — L' });
+    fireEvent.keyDown(window, { key: 't' });
+    expect(text.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.keyDown(window, { key: 'T' });
+    expect(text.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.keyDown(window, { key: 'n' });
+    expect(sticky.getAttribute('aria-pressed')).toBe('true');
+    expect(text.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.keyDown(window, { key: 'l' });
+    expect(edge.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.keyDown(window, { key: 'h' });
+    expect(screen.getByRole('button', { name: 'View only — H' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
   it('commits a pen gesture as a single dispatched stroke', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
@@ -130,7 +149,7 @@ describe('whiteboard editor shell', () => {
       dispatch,
     });
     renderShell(BOARD);
-    fireEvent.click(screen.getByRole('button', { name: 'Pen — 2' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Pen — P' }));
 
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
     expect(svg).not.toBeNull();
@@ -164,7 +183,7 @@ describe('whiteboard editor shell', () => {
       dispatch,
     });
     renderShell(BOARD);
-    fireEvent.click(screen.getByRole('button', { name: 'Pen — 2' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Pen — P' }));
 
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
     fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 30 });
@@ -173,22 +192,22 @@ describe('whiteboard editor shell', () => {
     expect(dispatch).not.toHaveBeenCalled();
   });
 
-  it('activates text/sticky/shape via number shortcuts 4-6', () => {
+  it('activates text/sticky/shape via letter shortcuts', () => {
     renderShell(BOARD);
-    const text = screen.getByRole('button', { name: 'Text — 4' });
-    const sticky = screen.getByRole('button', { name: 'Sticky note — 5' });
-    const shape = screen.getByRole('button', { name: 'Shape — 6' });
+    const text = screen.getByRole('button', { name: 'Text — T' });
+    const sticky = screen.getByRole('button', { name: 'Sticky note — N' });
+    const shape = screen.getByRole('button', { name: 'Shape — S' });
 
-    fireEvent.keyDown(window, { key: '4' });
+    fireEvent.keyDown(window, { key: 't' });
     expect(text.getAttribute('aria-pressed')).toBe('true');
-    fireEvent.keyDown(window, { key: '5' });
+    fireEvent.keyDown(window, { key: 'n' });
     expect(sticky.getAttribute('aria-pressed')).toBe('true');
     expect(text.getAttribute('aria-pressed')).toBe('false');
-    fireEvent.keyDown(window, { key: '6' });
+    fireEvent.keyDown(window, { key: 's' });
     expect(shape.getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('places a sticky on click and commits color and text via the inspector', () => {
+  it('places a sticky on click and edits color and text via floating bars', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
       state: null,
@@ -208,7 +227,7 @@ describe('whiteboard editor shell', () => {
     });
     const view = renderShell(current);
     const rerender = () => view.rerender(<MemoryRouter><WhiteboardEditorShell board={current} state={makeState()} onBack={() => {}} /></MemoryRouter>);
-    fireEvent.click(screen.getByRole('button', { name: 'Sticky note — 5' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sticky note — N' }));
 
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
     // Click on empty canvas (right of the existing sticky) to place.
@@ -227,17 +246,23 @@ describe('whiteboard editor shell', () => {
     expect(placed.patch.elements[1]).toMatchObject({ kind: 'sticky', text: '' });
     rerender();
 
-    const panel = screen.getByRole('complementary', { name: 'Edit sticky' });
+    // Element bar (border click): fill dot opens the FigJam color panel.
+    fireEvent.click(screen.getByRole('button', { name: 'Fill color #e8b955' }));
+    const panel = screen.getByRole('dialog', { name: 'Fill color' });
     expect(panel).not.toBeNull();
-
-    fireEvent.change(within(panel).getByDisplayValue('#e8b955'), { target: { value: '#f4706d' } });
+    fireEvent.click(within(panel).getByRole('button', { name: 'Fill color #f4706d' }));
     expect(dispatch).toHaveBeenCalledTimes(2);
     const colored = (dispatch.mock.calls[1]![0] as { patch: { elements: Array<Record<string, unknown>> } }).patch.elements;
     expect(colored.some((el) => el.color === '#f4706d')).toBe(true);
     rerender();
 
-    fireEvent.change(within(panel).getByRole('textbox'), { target: { value: 'Meeting notes' } });
-    fireEvent.keyDown(within(panel).getByRole('textbox'), { key: 'Enter' });
+    // Double-click the s1 text area edits inline; Enter commits once.
+    fireEvent.doubleClick(svg, { clientX: 116, clientY: 76 });
+    const editor = screen.getByRole('textbox', { name: 'Sticky text' });
+    // P8: the canvas text hides while the editor owns it (no double text).
+    expect((document.querySelector('svg.wb-svg') as SVGSVGElement).textContent).not.toContain('Hi');
+    fireEvent.change(editor, { target: { value: 'Meeting notes' } });
+    fireEvent.keyDown(editor, { key: 'Enter' });
     expect(dispatch).toHaveBeenCalledTimes(3);
     const edited = (dispatch.mock.calls[2]![0] as { patch: { elements: Array<Record<string, unknown>> } }).patch.elements;
     expect(edited.some((el) => el.text === 'Meeting notes')).toBe(true);
@@ -263,7 +288,7 @@ describe('whiteboard editor shell', () => {
     });
     const view = renderShell(current);
     const rerender = () => view.rerender(<MemoryRouter><WhiteboardEditorShell board={current} state={makeState()} onBack={() => {}} /></MemoryRouter>);
-    fireEvent.click(screen.getByRole('button', { name: 'Sticky note — 5' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sticky note — N' }));
 
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
     // Click on empty canvas (right of the existing sticky) to place.
@@ -271,8 +296,7 @@ describe('whiteboard editor shell', () => {
     fireEvent.pointerUp(svg, { clientX: 400, clientY: 120 });
     rerender();
 
-    const panel = screen.getByRole('complementary', { name: 'Edit sticky' });
-    fireEvent.keyDown(panel, { key: 'Escape' });
+    fireEvent.keyDown(window, { key: 'Escape' });
 
     expect(dispatch).toHaveBeenCalledTimes(2);
     const remaining = (dispatch.mock.calls[1]![0] as { patch: { elements: Array<Record<string, unknown>> } }).patch.elements;
@@ -280,7 +304,7 @@ describe('whiteboard editor shell', () => {
     expect(remaining[0]).toMatchObject({ id: 's1', text: 'Hi' });
   });
 
-  it('keeps the inspector usable when placing an element at the bottom-right corner', () => {
+  it('keeps the floating bar usable when placing an element at the bottom-right corner', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
       state: null,
@@ -296,18 +320,18 @@ describe('whiteboard editor shell', () => {
     });
     const view = renderShell(current);
     const rerender = () => view.rerender(<MemoryRouter><WhiteboardEditorShell board={current} state={makeState()} onBack={() => {}} /></MemoryRouter>);
-    fireEvent.click(screen.getByRole('button', { name: 'Sticky note — 5' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sticky note — N' }));
 
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
     fireEvent.pointerDown(svg, { button: 0, clientX: 700, clientY: 500 });
     fireEvent.pointerUp(svg, { clientX: 700, clientY: 500 });
     rerender();
 
-    expect(screen.getByRole('complementary', { name: 'Edit sticky' })).not.toBeNull();
+    expect(screen.getByRole('group', { name: 'Selection actions' })).not.toBeNull();
 
-    fireEvent.keyDown(screen.getByRole('complementary', { name: 'Edit sticky' }), { key: 'Escape' });
+    fireEvent.keyDown(window, { key: 'Escape' });
     rerender();
-    expect(screen.queryByRole('complementary', { name: 'Edit sticky' })).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Selection actions' })).toBeNull();
   });
 
   it('selects a node on click and moves it with a single dispatched update', () => {
@@ -326,7 +350,7 @@ describe('whiteboard editor shell', () => {
       ],
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
@@ -367,14 +391,18 @@ describe('whiteboard editor shell', () => {
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     // Marquee world (0,0) → (300,60): touches both a and b.
-    fireEvent.click(screen.getByRole('button', { name: 'Select area — 9' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select area — M' }));
     fireEvent.pointerDown(svg, { button: 0, clientX: 16, clientY: 16 });
     fireEvent.pointerMove(svg, { clientX: 316, clientY: 76 });
     fireEvent.pointerUp(svg, { clientX: 316, clientY: 76 });
-    expect(screen.getByRole('button', { name: 'Delete selected' })).not.toBeNull();
+    // Delete lives in the right-click object menu (FigJam parity).
+    expect(screen.queryByRole('menu', { name: 'Object actions' })).toBeNull();
+    fireEvent.contextMenu(svg, { clientX: 316, clientY: 76 });
+    expect(screen.getByRole('menu', { name: 'Object actions' })).not.toBeNull();
+    expect(screen.getByRole('menuitem', { name: 'Delete selected Del' })).not.toBeNull();
 
     // Switch to select and drag a → the multi-selection is kept and both move.
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     fireEvent.pointerDown(svg, { button: 0, clientX: 50, clientY: 30 });
     fireEvent.pointerMove(svg, { clientX: 100, clientY: 80 });
     fireEvent.pointerUp(svg, { clientX: 100, clientY: 80 });
@@ -421,7 +449,7 @@ describe('whiteboard editor shell', () => {
       ],
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
@@ -453,7 +481,7 @@ describe('whiteboard editor shell', () => {
       ],
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Edge — 7' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edge — L' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
@@ -498,7 +526,7 @@ describe('whiteboard editor shell', () => {
       ],
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Edge — 7' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edge — L' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
@@ -553,7 +581,7 @@ describe('whiteboard editor shell', () => {
       ],
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     fireEvent.pointerDown(svg, { button: 0, clientX: 266, clientY: 46 });
@@ -568,17 +596,17 @@ describe('whiteboard editor shell', () => {
     expect(dispatch).toHaveBeenCalledTimes(1);
   });
 
-  it('selects the edge tool with the digit 7 shortcut', () => {
+  it('selects the edge tool with the letter shortcut', () => {
     renderShell(BOARD);
-    const edge = screen.getByRole('button', { name: 'Edge — 7' });
-    fireEvent.keyDown(window, { key: '7' });
+    const edge = screen.getByRole('button', { name: 'Edge — L' });
+    fireEvent.keyDown(window, { key: 'l' });
     expect(edge.getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('activates the ref tool with the digit 8 shortcut', () => {
+  it('activates the ref tool with the letter shortcut', () => {
     renderShell(BOARD);
-    const refBtn = screen.getByRole('button', { name: 'Entity ref card — 8' });
-    fireEvent.keyDown(window, { key: '8' });
+    const refBtn = screen.getByRole('button', { name: 'Entity ref card — D' });
+    fireEvent.keyDown(window, { key: 'd' });
     expect(refBtn.getAttribute('aria-pressed')).toBe('true');
   });
 
@@ -594,7 +622,7 @@ describe('whiteboard editor shell', () => {
       dispatch,
     });
     renderShell(BOARD);
-    fireEvent.click(screen.getByRole('button', { name: 'Entity ref card — 8' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Entity ref card — D' }));
 
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
     fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 120 });
@@ -603,7 +631,7 @@ describe('whiteboard editor shell', () => {
     const dialog = screen.getByRole('dialog', { name: 'Link an entity' });
     expect(dialog).not.toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: /Build login/ }));
+    fireEvent.click(screen.getByRole('option', { name: /Build login/ }));
 
     expect(dispatch).toHaveBeenCalledTimes(1);
     const action = dispatch.mock.calls[0]![0] as {
@@ -637,16 +665,16 @@ describe('whiteboard editor shell', () => {
       dispatch,
     });
     renderShell(BOARD);
-    fireEvent.click(screen.getByRole('button', { name: 'Entity ref card — 8' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Entity ref card — D' }));
 
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
     fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 120 });
     fireEvent.pointerUp(svg, { clientX: 100, clientY: 120 });
 
-    const endpoint = screen.getByRole('button', { name: /List projects/ });
+    const endpoint = screen.getByRole('option', { name: /List projects/ });
     expect(endpoint.textContent).toContain('GET /api/projects');
 
-    const milestone = screen.getByRole('button', { name: /M18 Ship/ });
+    const milestone = screen.getByRole('option', { name: /M18 Ship/ });
     expect(milestone.textContent).toContain('Milestone');
     fireEvent.click(milestone);
 
@@ -677,7 +705,7 @@ describe('whiteboard editor shell', () => {
       dispatch,
     });
     renderShell(BOARD);
-    fireEvent.click(screen.getByRole('button', { name: 'Entity ref card — 8' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Entity ref card — D' }));
 
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
     fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 120 });
@@ -705,7 +733,7 @@ describe('whiteboard editor shell', () => {
       elements: [{ id: 'r1', kind: 'ref', entity: 'tasks', entityId: 't1', x: 0, y: 0 }],
     };
     renderShellWithProbe(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     expect(screen.getByTestId('loc').textContent).toBe('/');
@@ -739,7 +767,7 @@ describe('whiteboard editor shell', () => {
     expect(screen.getByTestId('loc').textContent).toBe('/');
   });
 
-  it('opens the inspector when a sticky is double-clicked', () => {
+  it('edits sticky text inline on double-click and cancels empty edits with Escape', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
       state: null,
@@ -752,17 +780,20 @@ describe('whiteboard editor shell', () => {
       elements: [{ id: 'a', kind: 'sticky', x: 0, y: 0, w: 200, h: 120, color: '#e8b955', text: 'A' }],
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     fireEvent.doubleClick(svg, { clientX: 20, clientY: 20 });
 
-    expect(screen.getByRole('complementary', { name: 'Edit sticky' })).not.toBeNull();
-    fireEvent.keyDown(screen.getByRole('complementary', { name: 'Edit sticky' }), { key: 'Escape' });
-    expect(screen.queryByRole('complementary', { name: 'Edit sticky' })).toBeNull();
+    const editor = screen.getByRole('textbox', { name: 'Sticky text' });
+    expect(editor).not.toBeNull();
+    fireEvent.change(editor, { target: { value: 'B' } });
+    fireEvent.keyDown(editor, { key: 'Escape' });
+    expect(screen.queryByRole('textbox', { name: 'Sticky text' })).toBeNull();
+    expect(dispatch).not.toHaveBeenCalled();
   });
 
-  it('opens the inspector when a shape is double-clicked', () => {
+  it('opens inline editing when a shape label is double-clicked', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
       state: null,
@@ -776,16 +807,29 @@ describe('whiteboard editor shell', () => {
         { id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 200, h: 120, color: '#e8b955', fill: true, strokeWidth: 2, label: '' },
       ],
     };
-    renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    let current: Whiteboard = { ...board };
+    dispatch.mockImplementation((action: { type: string; patch?: { elements: WhiteboardElement[] } }) => {
+      if (action.type === 'whiteboard/update' && action.patch) {
+        current = { ...current, elements: action.patch.elements };
+      }
+    });
+    const view = renderShell(current);
+    const rerender = () => view.rerender(<MemoryRouter><WhiteboardEditorShell board={current} state={makeState()} onBack={() => {}} /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     fireEvent.doubleClick(svg, { clientX: 20, clientY: 20 });
+    const editor = screen.getByRole('textbox', { name: 'Label' });
+    fireEvent.change(editor, { target: { value: 'Gateway' } });
+    fireEvent.keyDown(editor, { key: 'Enter' });
+    rerender();
 
-    expect(screen.getByRole('complementary', { name: 'Edit shape' })).not.toBeNull();
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+    expect(action.patch.elements.find((e) => e.id === 's1')).toMatchObject({ label: 'Gateway' });
   });
 
-  it('opens the edge inspector on double-click and edits label, color and arrow style', () => {
+  it('edits an edge label inline and its style via the floating line panel', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
       state: null,
@@ -801,25 +845,34 @@ describe('whiteboard editor shell', () => {
         { id: 'e1', kind: 'edge', sourceNodeId: 'a', targetNodeId: 'b', arrowhead: true, label: '', arrowStyle: 'solid', x1: 200, y1: 60, x2: 300, y2: 60, color: '#8b5cf6', width: 2 },
       ],
     };
-    renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    let current: Whiteboard = { ...board };
+    dispatch.mockImplementation((action: { type: string; patch?: { elements: WhiteboardElement[] } }) => {
+      if (action.type === 'whiteboard/update' && action.patch) {
+        current = { ...current, elements: action.patch.elements };
+      }
+    });
+    const view = renderShell(current);
+    const rerender = () => view.rerender(<MemoryRouter><WhiteboardEditorShell board={current} state={makeState()} onBack={() => {}} /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     fireEvent.doubleClick(svg, { clientX: 266, clientY: 76 });
-
-const panel = screen.getByRole('complementary', { name: 'Edit edge' });
-    expect(panel).not.toBeNull();
-    fireEvent.change(within(panel).getByRole('textbox', { name: 'Label' }), { target: { value: 'HTTP' } });
+    const editor = screen.getByRole('textbox', { name: 'Label' });
+    fireEvent.change(editor, { target: { value: 'HTTP' } });
+    fireEvent.keyDown(editor, { key: 'Enter' });
+    rerender();
 
     const labelPatch = dispatch.mock.calls.at(-1)![0] as { patch: { elements: Array<Record<string, unknown>> } };
     expect(labelPatch.patch.elements.find((e) => e.kind === 'edge')).toMatchObject({ label: 'HTTP' });
 
-    fireEvent.click(within(panel).getByRole('radio', { name: 'diamond' }));
+    // Click the line (away from the label) for the element bar, then open Line style.
+    fireEvent.pointerDown(svg, { button: 0, clientX: 231, clientY: 76 });
+    fireEvent.pointerUp(svg, { clientX: 231, clientY: 76 });
+    fireEvent.click(screen.getByRole('button', { name: 'Line style' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'diamond' }));
+    rerender();
     const arrowPatch = dispatch.mock.calls.at(-1)![0] as { patch: { elements: Array<Record<string, unknown>> } };
     expect(arrowPatch.patch.elements.find((e) => e.kind === 'edge')).toMatchObject({ arrowStyle: 'diamond' });
-
-    fireEvent.keyDown(panel, { key: 'Escape' });
-    expect(screen.queryByRole('complementary', { name: 'Edit edge' })).toBeNull();
   });
 
   it('renders a wrapped shape label centered in the shape', () => {
@@ -869,13 +922,13 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
 
     expect(svg.style.cursor).toBe('grab');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Text — 4' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Text — T' }));
     expect(svg.style.cursor).toBe('text');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Pen — 2' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Pen — P' }));
     expect(svg.style.cursor).toBe('crosshair');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     expect(svg.style.cursor).toBe('grab');
   });
 
@@ -911,7 +964,7 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
       elements: [{ id: 'r1', kind: 'ref', entity: 'tasks', entityId: 't1', x: 0, y: 0 }],
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 120 });
@@ -1059,14 +1112,16 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
       ],
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
-    expect(screen.queryByRole('button', { name: 'Delete selected' })).toBeNull();
+    expect(screen.queryByRole('menu', { name: 'Object actions' })).toBeNull();
 
     fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+    fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }));
+    fireEvent.contextMenu(svg, { clientX: 20, clientY: 20 });
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete selected Del' }));
 
     expect(dispatch).toHaveBeenCalledTimes(1);
     const action = dispatch.mock.calls[0]![0] as {
@@ -1095,7 +1150,7 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
     const view = renderShell(current);
     const rerender = () => view.rerender(<MemoryRouter><WhiteboardEditorShell board={current} state={makeState()} onBack={() => {}} /></MemoryRouter>);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Pen — 2' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Pen — P' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
     fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 30 });
     fireEvent.pointerMove(svg, { clientX: 40, clientY: 50 });
@@ -1125,7 +1180,7 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
       elements: [{ id: 'a', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' }],
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     // World = client - 16; (184,184) is empty space, not the sticky at (0,0,100,60).
@@ -1155,7 +1210,7 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
       elements: [{ id: 'a', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' }],
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
     // drag a box covering the sticky: world (-20,-20)..(150,100)
     fireEvent.pointerDown(svg, { button: 0, clientX: 0, clientY: 0 });
@@ -1193,7 +1248,7 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
       ],
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Eraser — 3' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Eraser — E' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     // Eraser drag from world (20,20) to (30,20) — client coords add 16.
@@ -1244,7 +1299,7 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
       ],
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Eraser — 3' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Eraser — E' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     // Eraser drag over both points: world (0,0) → (4,0).
@@ -1270,7 +1325,7 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
       dispatch,
     });
     renderShell(BOARD);
-    fireEvent.click(screen.getByRole('button', { name: 'Eraser — 3' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Eraser — E' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     // Eraser drag over empty space: world (100,100) → (110,100).
@@ -1298,7 +1353,7 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
       ],
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Select area — 9' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select area — M' }));
 
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
     expect(screen.queryByRole('button', { name: 'Delete selected' })).toBeNull();
@@ -1308,8 +1363,8 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
     fireEvent.pointerMove(svg, { clientX: 216, clientY: 76 });
     fireEvent.pointerUp(svg, { clientX: 216, clientY: 76 });
 
-    expect(screen.getByRole('button', { name: 'Delete selected' })).not.toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }));
+    fireEvent.contextMenu(svg, { clientX: 216, clientY: 76 });
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete selected Del' }));
 
     expect(dispatch).toHaveBeenCalledTimes(1);
     const action = dispatch.mock.calls[0]![0] as { patch: { elements: { id: string }[] } };
@@ -1338,13 +1393,14 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
     // Select a with the select tool first.
     fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
     fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
-    fireEvent.click(screen.getByRole('button', { name: 'Select area — 9' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select area — M' }));
 
     // Marquee world (250,0) → (350,60): only b.
     fireEvent.pointerDown(svg, { button: 0, clientX: 266, clientY: 16 });
     fireEvent.pointerMove(svg, { clientX: 366, clientY: 76 });
     fireEvent.pointerUp(svg, { clientX: 366, clientY: 76 });
-    fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }));
+    fireEvent.contextMenu(svg, { clientX: 366, clientY: 76 });
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete selected Del' }));
 
     expect(dispatch).toHaveBeenCalledTimes(1);
     const action = dispatch.mock.calls[0]![0] as { patch: { elements: { id: string }[] } };
@@ -1368,13 +1424,13 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
       ],
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     // Select a by clicking it, then shift+marquee over b.
     fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
     fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
-    fireEvent.click(screen.getByRole('button', { name: 'Select area — 9' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select area — M' }));
     // jsdom does not apply modifier keys from the PointerEvent init dict, so
     // define shiftKey on the constructed event directly.
     const shiftDown = new PointerEvent('pointerdown', {
@@ -1388,7 +1444,8 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
     svg.dispatchEvent(shiftDown);
     fireEvent.pointerMove(svg, { clientX: 366, clientY: 76 });
     fireEvent.pointerUp(svg, { clientX: 366, clientY: 76 });
-    fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }));
+    fireEvent.contextMenu(svg, { clientX: 366, clientY: 76 });
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete selected Del' }));
 
     expect(dispatch).toHaveBeenCalledTimes(1);
     const action = dispatch.mock.calls[0]![0] as { patch: { elements: { id: string }[] } };
@@ -1404,7 +1461,7 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
       dispatch,
     });
     renderShell(BOARD);
-    fireEvent.click(screen.getByRole('button', { name: 'Select area — 9' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select area — M' }));
 
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
     expect(document.querySelector('[data-testid="wb-marquee"]')).toBeNull();
@@ -1427,9 +1484,9 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
       dispatch,
     });
     renderShell(BOARD);
-    const btn = screen.getByRole('button', { name: 'Select area — 9' });
+    const btn = screen.getByRole('button', { name: 'Select area — M' });
     expect(btn.getAttribute('aria-pressed')).toBe('false');
-    fireEvent.keyDown(window, { key: '9' });
+    fireEvent.keyDown(window, { key: 'm' });
     expect(btn.getAttribute('aria-pressed')).toBe('true');
   });
 
@@ -1496,16 +1553,16 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
     const alert = screen.getByRole('alert');
     expect(alert.textContent).toContain('1000/1000 elements');
     expect(alert.textContent).toContain('Element limit reached');
-    expect(screen.getByRole('button', { name: 'Pen — 2' }).hasAttribute('disabled')).toBe(true);
-    expect(screen.getByRole('button', { name: 'Sticky note — 5' }).hasAttribute('disabled')).toBe(true);
-    expect(screen.getByRole('button', { name: 'Shape — 6' }).hasAttribute('disabled')).toBe(true);
-    expect(screen.getByRole('button', { name: 'Select — 1' }).hasAttribute('disabled')).toBe(false);
-    expect(screen.getByRole('button', { name: 'Eraser — 3' }).hasAttribute('disabled')).toBe(false);
+    expect(screen.getByRole('button', { name: 'Pen — P' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: 'Sticky note — N' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: 'Shape — S' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: 'Select — V' }).hasAttribute('disabled')).toBe(false);
+    expect(screen.getByRole('button', { name: 'Eraser — E' }).hasAttribute('disabled')).toBe(false);
 
     // The shortcut is blocked too, and the canvas guard rejects placement.
-    const stickyBtn = screen.getByRole('button', { name: 'Sticky note — 5' });
+    const stickyBtn = screen.getByRole('button', { name: 'Sticky note — N' });
     expect(stickyBtn.getAttribute('aria-pressed')).toBe('false');
-    fireEvent.keyDown(window, { key: '5' });
+    fireEvent.keyDown(window, { key: 'n' });
     expect(stickyBtn.getAttribute('aria-pressed')).toBe('false');
 
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
@@ -1537,7 +1594,7 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
       })),
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Pen — 2' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Pen — P' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
     fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 30 });
     fireEvent.pointerMove(svg, { clientX: 40, clientY: 50 });
@@ -1603,16 +1660,18 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
     expect(topbar.querySelector('.back-btn')).not.toBeNull();
     expect(topbar.textContent).toContain('Plan');
     expect(topbar.textContent).toContain('Canvas');
+    // corner panels: undo/redo/layers top-left, board/present/export top-right
+    expect(document.querySelector('.wb-corner-tl')).not.toBeNull();
+    expect(document.querySelector('.wb-corner-tr .wb-corner-name')?.textContent).toBe('Plan');
     // no in-canvas title in normal mode
-    expect(document.querySelector('.wb-board-title')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Exit fullscreen — F' })).toBeNull();
 
     // enter fullscreen overlay from the top bar
     fireEvent.click(screen.getByRole('button', { name: 'Fullscreen — F' }));
     expect(shell.classList.contains('wb-fullscreen')).toBe(true);
-    // back + topbar gone; title overlay + X visible inside the canvas
+    // back + topbar gone; corner panel with name + X visible inside the canvas
     expect(document.querySelector('.wb-topbar')).toBeNull();
-    expect(document.querySelector('.wb-board-title')?.textContent).toBe('Plan');
+    expect(document.querySelector('.wb-corner-tr .wb-corner-name')?.textContent).toBe('Plan');
     const exitBtn = screen.getByRole('button', { name: 'Exit fullscreen — F' });
     expect(exitBtn.closest('.wb-main-canvas')).not.toBeNull();
 
@@ -1643,10 +1702,10 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
     // enter presentation from the pill (true browser fullscreen + hidden chrome)
     fireEvent.click(screen.getByRole('button', { name: 'Present board' }));
     expect(shell.classList.contains('wb-presenting')).toBe(true);
-    // all chrome hidden, canvas + X remain
+    // all chrome hidden, canvas + corner panel with X remain
     expect(document.querySelector('.board-toolbar')).toBeNull();
     expect(document.querySelector('.wb-dock-right')).toBeNull();
-    expect(document.querySelector('.wb-board-title')).toBeNull();
+    expect(document.querySelector('.wb-corner-tr')).not.toBeNull();
     expect(document.querySelector('svg.wb-svg')).not.toBeNull();
     screen.getByRole('button', { name: 'Exit presentation' });
 
@@ -1707,7 +1766,7 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
       ],
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     // Drag a from (0,0) by (+33,+65): snaps to (32,64).
@@ -1737,7 +1796,7 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
       ],
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     // Select a, drag it so its top approaches b's top (y diff within 4px).
@@ -1771,7 +1830,7 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     // Marquee over all three, then distribute horizontally.
-    fireEvent.click(screen.getByRole('button', { name: 'Select area — 9' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select area — M' }));
     fireEvent.pointerDown(svg, { button: 0, clientX: 16, clientY: 16 });
     fireEvent.pointerMove(svg, { clientX: 676, clientY: 76 });
     fireEvent.pointerUp(svg, { clientX: 676, clientY: 76 });
@@ -1806,11 +1865,11 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     // Marquee a + b + e1 (not c).
-    fireEvent.click(screen.getByRole('button', { name: 'Select area — 9' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select area — M' }));
     fireEvent.pointerDown(svg, { button: 0, clientX: 16, clientY: 16 });
     fireEvent.pointerMove(svg, { clientX: 316, clientY: 76 });
     fireEvent.pointerUp(svg, { clientX: 316, clientY: 76 });
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
 
     fireEvent.keyDown(window, { key: 'c', ctrlKey: true });
     fireEvent.keyDown(window, { key: 'v', ctrlKey: true });
@@ -1850,11 +1909,11 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
     renderShell(board);
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
-    fireEvent.click(screen.getByRole('button', { name: 'Select area — 9' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select area — M' }));
     fireEvent.pointerDown(svg, { button: 0, clientX: 16, clientY: 16 });
     fireEvent.pointerMove(svg, { clientX: 316, clientY: 76 });
     fireEvent.pointerUp(svg, { clientX: 316, clientY: 76 });
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
 
     fireEvent.keyDown(window, { key: 'c', ctrlKey: true });
     fireEvent.keyDown(window, { key: 'v', ctrlKey: true });
@@ -1882,11 +1941,11 @@ const panel = screen.getByRole('complementary', { name: 'Edit edge' });
     renderShell(board);
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
-    fireEvent.click(screen.getByRole('button', { name: 'Select area — 9' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select area — M' }));
     fireEvent.pointerDown(svg, { button: 0, clientX: 16, clientY: 16 });
     fireEvent.pointerMove(svg, { clientX: 316, clientY: 76 });
     fireEvent.pointerUp(svg, { clientX: 316, clientY: 76 });
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
 
     fireEvent.keyDown(window, { key: 'd', ctrlKey: true });
     expect(dispatch).toHaveBeenCalledTimes(1);
@@ -1928,13 +1987,15 @@ renderShell(board);
   it('activates the boundary tool with the B shortcut', () => {
     renderShell(BOARD);
     fireEvent.keyDown(window, { key: 'b' });
-    expect(screen.getByRole('button', { name: 'Boundary — b' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Boundary — B' }).getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('activates the view-only tool with the V shortcut', () => {
+  it('activates the view-only tool with the H shortcut (V selects)', () => {
     renderShell(BOARD);
+    fireEvent.keyDown(window, { key: 'h' });
+    expect(screen.getByRole('button', { name: 'View only — H' }).getAttribute('aria-pressed')).toBe('true');
     fireEvent.keyDown(window, { key: 'v' });
-    expect(screen.getByRole('button', { name: 'View only — v' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Select — V' }).getAttribute('aria-pressed')).toBe('true');
   });
 
   it('view-only mode pans instead of selecting or editing elements', () => {
@@ -1950,7 +2011,7 @@ renderShell(board);
       elements: [{ id: 's1', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' }],
     };
     renderShell(boardWithSticky);
-    fireEvent.click(screen.getByRole('button', { name: 'View only — v' }));
+    fireEvent.click(screen.getByRole('button', { name: 'View only — H' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     fireEvent.pointerDown(svg, { button: 0, clientX: 30, clientY: 30 });
@@ -1970,7 +2031,7 @@ renderShell(board);
       dispatch,
     });
     renderShell(BOARD);
-    fireEvent.click(screen.getByRole('button', { name: 'Boundary — b' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Boundary — B' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     fireEvent.pointerDown(svg, { button: 0, clientX: 16, clientY: 16 });
@@ -1993,7 +2054,7 @@ const boundary = action.patch.elements.find((el) => el.kind === 'boundary');
       dispatch,
     });
     renderShell(BOARD);
-    fireEvent.click(screen.getByRole('button', { name: 'Boundary — b' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Boundary — B' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     fireEvent.pointerDown(svg, { button: 0, clientX: 16, clientY: 16 });
@@ -2027,7 +2088,7 @@ const children = Array.from(svg.querySelectorAll('g')).map((g) => g.children[0])
     expect(svg.textContent).toContain('System');
   });
 
-  it('opens the boundary inspector on double-click and patches label and color', () => {
+  it('edits a boundary label inline on double-click', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
       state: null,
@@ -2039,14 +2100,22 @@ const children = Array.from(svg.querySelectorAll('g')).map((g) => g.children[0])
       ...BOARD,
       elements: [{ id: 'bd1', kind: 'boundary', x: 0, y: 0, w: 300, h: 200, color: '#6ea8fe', label: '' }],
     };
-    renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    let current: Whiteboard = { ...board };
+    dispatch.mockImplementation((action: { type: string; patch?: { elements: WhiteboardElement[] } }) => {
+      if (action.type === 'whiteboard/update' && action.patch) {
+        current = { ...current, elements: action.patch.elements };
+      }
+    });
+    const view = renderShell(current);
+    const rerender = () => view.rerender(<MemoryRouter><WhiteboardEditorShell board={current} state={makeState()} onBack={() => {}} /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     fireEvent.doubleClick(svg, { clientX: 50, clientY: 50 });
-    const panel = screen.getByRole('complementary', { name: 'Edit boundary' });
-    expect(panel).not.toBeNull();
-    fireEvent.change(within(panel).getByRole('textbox', { name: 'Label' }), { target: { value: 'System' } });
+    const editor = screen.getByRole('textbox', { name: 'Label' });
+    fireEvent.change(editor, { target: { value: 'System' } });
+    fireEvent.keyDown(editor, { key: 'Enter' });
+    rerender();
     const patch = dispatch.mock.calls.at(-1)![0] as { patch: { elements: Array<Record<string, unknown>> } };
     expect(patch.patch.elements.find((el) => el.kind === 'boundary')).toMatchObject({ label: 'System' });
   });
@@ -2064,7 +2133,7 @@ const children = Array.from(svg.querySelectorAll('g')).map((g) => g.children[0])
       elements: [{ id: 'bd1', kind: 'boundary', x: 0, y: 0, w: 300, h: 200, color: '#6ea8fe', label: '' }],
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Edge — 7' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edge — L' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 100 });
@@ -2154,11 +2223,12 @@ const paths = Array.from(svg.querySelectorAll('path')).map((p) => p.getAttribute
       ],
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
     fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
     fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
-    fireEvent.click(screen.getByRole('button', { name: 'Bring forward' }));
+    fireEvent.contextMenu(svg, { clientX: 20, clientY: 20 });
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Bring forward Ctrl+]' }));
     const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
     expect(action.patch.elements.map((el) => el.id)).toEqual(['b', 'a']);
   });
@@ -2179,11 +2249,12 @@ const paths = Array.from(svg.querySelectorAll('path')).map((p) => p.getAttribute
       ],
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
     fireEvent.pointerDown(svg, { button: 0, clientX: 220, clientY: 20 });
     fireEvent.pointerUp(svg, { clientX: 220, clientY: 20 });
-    fireEvent.click(screen.getByRole('button', { name: 'Send backward' }));
+    fireEvent.contextMenu(svg, { clientX: 220, clientY: 20 });
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Send backward Ctrl+[' }));
     const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
     expect(action.patch.elements.map((el) => el.id)).toEqual(['b', 'a']);
   });
@@ -2201,7 +2272,7 @@ const paths = Array.from(svg.querySelectorAll('path')).map((p) => p.getAttribute
       elements: [{ id: 'a', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' }],
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
     fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
     fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
@@ -2219,7 +2290,7 @@ const el = action.patch.elements.find((e) => e.id === 'a');
     expect(el).toMatchObject({ w: 140, h: 96 });
   });
 
-  it('WB-5: shows the rotate handle for a selected shape and commits snapped rotation', () => {
+  it('WB-5: rotates a selected shape via the hover-corner gesture (no button, no handle)', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
       state: null,
@@ -2232,17 +2303,21 @@ const el = action.patch.elements.find((e) => e.id === 'a');
       elements: [{ id: 'a', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '' }],
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
     fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
     fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
-    expect(document.querySelector('[data-testid="wb-rotate-handle"]')).not.toBeNull();
+    // FigJam parity: no rotate handle on canvas, no rotate button in the bar.
+    expect(document.querySelector('[data-testid="wb-rotate-handle"]')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Rotate 90°' })).toBeNull();
+    // ...but the four corner scale handles are present.
+    expect(document.querySelectorAll('[data-testid="wb-resize-handle"]')).toHaveLength(4);
 
-    // WB-22: handle below the shape — world (50,86) → client (66,102); start angle +90°.
-    fireEvent.pointerDown(svg, { button: 0, clientX: 66, clientY: 102 });
-    // Drag to world (100,86): angle atan2(56,50) ≈ 48.2° → delta ≈ -41.8° → snap -45°.
-    fireEvent.pointerMove(svg, { clientX: 116, clientY: 102 });
-    fireEvent.pointerUp(svg, { clientX: 116, clientY: 102 });
+    // SE corner world (100,60) → client (116,76); ring point (130,90) ≈ 19.8px out.
+    fireEvent.pointerDown(svg, { button: 0, clientX: 130, clientY: 90 });
+    // Drag toward world (134,24): delta ≈ -38.6° → snaps to -45°.
+    fireEvent.pointerMove(svg, { clientX: 150, clientY: 40 });
+    fireEvent.pointerUp(svg, { clientX: 150, clientY: 40 });
 
     expect(dispatch).toHaveBeenCalledTimes(1);
     const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
@@ -2250,7 +2325,74 @@ const el = action.patch.elements.find((e) => e.id === 'a');
     expect(el).toMatchObject({ rotation: -45 });
   });
 
-  it('WB-5: hides the rotate handle for non-rotatable kinds', () => {
+  it('WB-5: rotate preview follows the drag angle before commit', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    renderShell({
+      ...BOARD,
+      elements: [{ id: 'a', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '' }],
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+    fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
+    // Start the rotate drag but do not release: the element already shows -45°.
+    fireEvent.pointerDown(svg, { button: 0, clientX: 130, clientY: 90 });
+    fireEvent.pointerMove(svg, { clientX: 150, clientY: 40 });
+    expect(svg.querySelector('g[transform*="rotate(-45"]')).not.toBeNull();
+    expect(dispatch).not.toHaveBeenCalled();
+    fireEvent.pointerUp(svg, { clientX: 150, clientY: 40 });
+    expect(dispatch).toHaveBeenCalledTimes(1);
+  });
+
+  it('WB-5: hovering beside a corner shows the rotate cursor', () => {
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch: vi.fn() });
+    renderShell({
+      ...BOARD,
+      elements: [{ id: 'a', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '' }],
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+    fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
+    expect(svg.style.cursor).toBe('grab');
+    // Beside the SE corner (zone center ≈ 135,87): rotate cursor, no click needed.
+    fireEvent.pointerMove(svg, { clientX: 135, clientY: 87 });
+    expect(svg.style.cursor).toContain('url(');
+    fireEvent.pointerMove(svg, { clientX: 400, clientY: 400 });
+    expect(svg.style.cursor).toBe('grab');
+  });
+
+  it('WB-5: rotated adornments use a single rotation (handles + ports follow the outline)', () => {
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch: vi.fn() });
+    renderShell({
+      ...BOARD,
+      elements: [{ id: 'a', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '', rotation: 90 }],
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    fireEvent.pointerDown(svg, { button: 0, clientX: 66, clientY: 46 });
+    fireEvent.pointerUp(svg, { clientX: 66, clientY: 46 });
+    // Handle rects sit on the unrotated box corners (10px @ s=1) …
+    const handles = [...document.querySelectorAll('[data-testid="wb-resize-handle"]')];
+    expect(handles).toHaveLength(4);
+    const xs = handles.map((h) => Number(h.getAttribute('x'))).sort((a, b) => a - b);
+    const ys = handles.map((h) => Number(h.getAttribute('y'))).sort((a, b) => a - b);
+    expect(xs).toEqual([-5, -5, 95, 95]);
+    expect(ys).toEqual([-5, -5, 55, 55]);
+    // …inside exactly one rotate wrapper (no double rotation).
+    expect(handles[0]!.parentElement?.getAttribute('transform')).toBe('rotate(90, 50, 30)');
+    // Ports sit on the box sides in the same rotated frame.
+    const ports = [...document.querySelectorAll('[data-testid="wb-port-handle"]')];
+    expect(ports).toHaveLength(4);
+    const cxs = ports.map((p) => Number(p.getAttribute('cx'))).sort((a, b) => a - b);
+    const cys = ports.map((p) => Number(p.getAttribute('cy'))).sort((a, b) => a - b);
+    expect(cxs).toEqual([0, 50, 50, 100]);
+    expect(cys).toEqual([0, 30, 30, 60]);
+    expect(ports[0]!.parentElement?.parentElement?.getAttribute('transform')).toBe('rotate(90, 50, 30)');
+  });
+
+  it('WB-5: no rotate gesture for sticky (FigJam forbids it) or locked kinds', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
       state: null,
@@ -2260,15 +2402,18 @@ const el = action.patch.elements.find((e) => e.id === 'a');
     });
     const board: Whiteboard = {
       ...BOARD,
-      elements: [{ id: 'b1', kind: 'boundary', x: 0, y: 0, w: 200, h: 120, color: '#6ea8fe', label: '' }],
+      elements: [{ id: 's1', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' }],
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
     fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
     fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
-    expect(document.querySelector('[data-testid="wb-rotate-handle"]')).toBeNull();
-    expect(document.querySelector('[data-testid="wb-resize-handle"]')).not.toBeNull();
+    // Ring drag on a sticky starts nothing (falls through to element hit → drag).
+    fireEvent.pointerDown(svg, { button: 0, clientX: 130, clientY: 90 });
+    fireEvent.pointerMove(svg, { clientX: 150, clientY: 40 });
+    fireEvent.pointerUp(svg, { clientX: 150, clientY: 40 });
+    expect(dispatch).not.toHaveBeenCalled();
   });
 
 it('clamps resize to the minimum size and hides the handle for non-resizeable kinds', () => {
@@ -2312,7 +2457,7 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       elements: [{ id: 't1', kind: 'text', x: 0, y: 0, color: '#e4e4e7', fontSize: 16, text: 'alpha beta gamma delta epsilon zeta eta theta' }],
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
     fireEvent.pointerDown(svg, { button: 0, clientX: 26, clientY: 12 });
     fireEvent.pointerUp(svg, { clientX: 26, clientY: 12 });
@@ -2330,7 +2475,7 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
     expect(el).not.toHaveProperty('h');
   });
 
-  it('inserts a newline on Shift+Enter in the text inspector and finishes on plain Enter', () => {
+  it('inserts a newline on Shift+Enter in inline editing and commits on plain Enter', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
       state: null,
@@ -2346,25 +2491,27 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
     });
     const view = renderShell(current);
     const rerender = () => view.rerender(<MemoryRouter><WhiteboardEditorShell board={current} state={makeState()} onBack={() => {}} /></MemoryRouter>);
-    fireEvent.keyDown(window, { key: '4' });
+    fireEvent.keyDown(window, { key: 't' });
 
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
     fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 120 });
     fireEvent.pointerUp(svg, { clientX: 100, clientY: 120 });
     rerender();
 
-    const textbox = screen.getByRole('textbox');
+    // Enter on the focused canvas opens inline editing for the placed text.
+    const canvasDiv = document.querySelector('.wb-canvas') as HTMLElement;
+    fireEvent.keyDown(canvasDiv, { key: 'Enter' });
+    const textbox = screen.getByRole('textbox', { name: 'Text' });
     fireEvent.change(textbox, { target: { value: 'line one' } });
     fireEvent.keyDown(textbox, { key: 'Enter', shiftKey: true });
     rerender();
-    expect(screen.getByRole('complementary', { name: 'Edit text' })).not.toBeNull();
+    expect(screen.getByRole('textbox', { name: 'Text' })).not.toBeNull();
 
     fireEvent.change(textbox, { target: { value: 'line one\nline two' } });
     fireEvent.keyDown(textbox, { key: 'Enter' });
     rerender();
-    // Plain Enter finishes editing (blurs the field).
-    expect(document.activeElement).not.toBe(textbox);
-    expect(screen.getByRole('complementary', { name: 'Edit text' })).not.toBeNull();
+    // Plain Enter commits once and unmounts the editor.
+    expect(screen.queryByRole('textbox', { name: 'Text' })).toBeNull();
 
     const placed = dispatch.mock.calls.find((c) => {
       const action = c[0] as { patch?: { elements: Array<Record<string, unknown>> } };
@@ -2421,15 +2568,16 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       clickSpy.mockRestore();
     });
 
-    it('WB-3: shows an alert notice when the PDF popup is blocked', () => {
+    it('WB-3: stays silent (no error toast) when the PDF popup is blocked', () => {
       const openSpy = vi.fn().mockReturnValue(null);
       Object.defineProperty(window, 'open', { value: openSpy, configurable: true });
       renderShell({ ...BOARD, elements: [STICKY] });
       fireEvent.click(screen.getByRole('button', { name: 'Export diagram' }));
       fireEvent.click(screen.getByRole('menuitem', { name: 'PDF document' }));
       expect(openSpy).toHaveBeenCalledTimes(1);
-      const alert = screen.getByRole('alert');
-      expect(alert.textContent).toContain('Popup blocked');
+      // D8: error transient notices are gone — the restore slot is the only message.
+      expect(screen.queryByRole('alert')).toBeNull();
+      expect(screen.queryByRole('status')).toBeNull();
     });
   });
 
@@ -2443,17 +2591,19 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       const dispatch = vi.fn();
       useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
       renderShell({ ...BOARD, elements: AB });
-      fireEvent.click(screen.getByRole('button', { name: 'Edge — 7' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Edge — L' }));
       return { dispatch, svg: document.querySelector('svg.wb-svg') as SVGSVGElement };
     }
 
-    it('shows a notice (not silence) when an edge is dropped on empty space', () => {
+    it('stays silent (no notice) when an edge is dropped on empty space', () => {
       const { dispatch, svg } = renderEdgeBoard();
       fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
       fireEvent.pointerMove(svg, { clientX: 500, clientY: 400 });
       fireEvent.pointerUp(svg, { clientX: 500, clientY: 400 });
       expect(dispatch).not.toHaveBeenCalled();
-      expect(screen.getByRole('alert').textContent).toContain('Drop onto a shape');
+      // D8: edge-drop hint notice removed.
+      expect(screen.queryByRole('alert')).toBeNull();
+      expect(screen.queryByRole('status')).toBeNull();
     });
 
     it('selects a newly drawn edge so its label is one click away', () => {
@@ -2471,12 +2621,13 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
         );
       }
       render(<LiveShell />);
-      fireEvent.click(screen.getByRole('button', { name: 'Edge — 7' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Edge — L' }));
       const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
       fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
       fireEvent.pointerMove(svg, { clientX: 320, clientY: 80 });
       fireEvent.pointerUp(svg, { clientX: 320, clientY: 80 });
-      expect(screen.getByRole('complementary', { name: 'Edit edge' })).not.toBeNull();
+      expect(screen.getByRole('group', { name: 'Selection actions' })).not.toBeNull();
+      expect(screen.getByRole('button', { name: 'Line style' })).not.toBeNull();
     });
   });
 
@@ -2485,7 +2636,7 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       const dispatch = vi.fn();
       useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
       renderShell({ ...BOARD, elements: [] });
-      fireEvent.click(screen.getByRole('button', { name: 'Sticky note — 5' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Sticky note — N' }));
       const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
       // client (40,40) → world (24,24) → within snap radius of grid 32
       fireEvent.pointerDown(svg, { button: 0, clientX: 40, clientY: 40 });
@@ -2516,13 +2667,15 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       return dispatch;
     }
 
-    it('opens the source entity from the inspector Open button', () => {
+    it('opens the source entity via double-click (no link icon in the ref bar)', () => {
       renderRefBoard();
-      fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
       const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
       fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
       fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
-      fireEvent.click(screen.getByRole('button', { name: 'Open source' }));
+      // D14: the external-link icon is gone from the floating bar.
+      expect(screen.queryByRole('button', { name: 'Open source' })).toBeNull();
+      fireEvent.doubleClick(svg, { button: 0, clientX: 20, clientY: 20 });
       expect(screen.getByTestId('loc').textContent).toBe('/project/p1?tab=board&entity=tasks&id=t1');
     });
 
@@ -2540,15 +2693,15 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
         dispatch: vi.fn(),
       });
       renderShell(BOARD);
-      fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
-      fireEvent.click(screen.getByRole('button', { name: 'Entity ref card — 8' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Entity ref card — D' }));
       const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
       fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 120 });
       fireEvent.pointerUp(svg, { clientX: 100, clientY: 120 });
       const dialog = screen.getByRole('dialog', { name: 'Link an entity' });
       fireEvent.change(within(dialog).getByRole('textbox'), { target: { value: 'done' } });
-      expect(within(dialog).getByRole('button', { name: /Unrelated chore/ })).not.toBeNull();
-      expect(within(dialog).queryByRole('button', { name: /Build login/ })).toBeNull();
+      expect(within(dialog).getByRole('option', { name: /Unrelated chore/ })).not.toBeNull();
+      expect(within(dialog).queryByRole('option', { name: /Build login/ })).toBeNull();
     });
 
     it('shows a truncated hint when more than 50 entities match', () => {
@@ -2560,8 +2713,8 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
         dispatch: vi.fn(),
       });
       renderShell(BOARD);
-      fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
-      fireEvent.click(screen.getByRole('button', { name: 'Entity ref card — 8' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Entity ref card — D' }));
       const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
       fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 120 });
       fireEvent.pointerUp(svg, { clientX: 100, clientY: 120 });
@@ -2576,7 +2729,7 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
       renderShell(BOARD);
       expect(screen.queryByRole('button', { name: 'Shape type' })).toBeNull();
-      fireEvent.click(screen.getByRole('button', { name: 'Shape — 6' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Shape — S' }));
       const menu = screen.getByRole('menu', { name: 'Shape type' });
       const items = within(menu).getAllByRole('menuitemradio');
       expect(items).toHaveLength(7);
@@ -2599,32 +2752,27 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
         ...BOARD,
         elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '' }],
       });
-      fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
       const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
       fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
       fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
-      fireEvent.click(screen.getByRole('button', { name: 'Shape — 6' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Shape — S' }));
       fireEvent.click(screen.getByRole('menuitemradio', { name: 'ellipse' }));
       const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
       expect(action.patch.elements[0]).toMatchObject({ id: 's1', shapeType: 'ellipse' });
     });
 
-    it('WB-21: opens the shape menu on hover intent', () => {
-      vi.useFakeTimers();
-      try {
-        useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch: vi.fn() });
-        renderShell(BOARD);
-        fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
-        const shapeBtn = screen.getByRole('button', { name: 'Shape — 6' });
-        fireEvent.mouseEnter(shapeBtn);
-        expect(screen.queryByRole('menu', { name: 'Shape type' })).toBeNull();
-        act(() => {
-          vi.advanceTimersByTime(250);
-        });
-        expect(screen.getByRole('menu', { name: 'Shape type' })).not.toBeNull();
-      } finally {
-        vi.useRealTimers();
-      }
+    it('WB-21: opens the shape menu on click (no hover intent)', () => {
+      useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch: vi.fn() });
+      renderShell(BOARD);
+      fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
+      const shapeBtn = screen.getByRole('button', { name: 'Shape — S' });
+      fireEvent.mouseEnter(shapeBtn);
+      expect(screen.queryByRole('menu', { name: 'Shape type' })).toBeNull();
+      fireEvent.click(shapeBtn);
+      expect(screen.getByRole('menu', { name: 'Shape type' })).not.toBeNull();
+      fireEvent.click(shapeBtn);
+      expect(screen.queryByRole('menu', { name: 'Shape type' })).toBeNull();
     });
 
     it('WB-25: shape options show tooltips and the popup fits content', () => {
@@ -2632,8 +2780,8 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       try {
         useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch: vi.fn() });
         renderShell(BOARD);
-        fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
-        fireEvent.click(screen.getByRole('button', { name: 'Shape — 6' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Shape — S' }));
         const menu = screen.getByRole('menu', { name: 'Shape type' });
         const diamond = within(menu).getByRole('menuitemradio', { name: 'diamond' });
         fireEvent.mouseEnter(diamond);
@@ -2652,15 +2800,15 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       try {
         useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch: vi.fn() });
         renderShell(BOARD);
-        fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
-        const pen = screen.getByRole('button', { name: 'Pen — 2' });
+        fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
+        const pen = screen.getByRole('button', { name: 'Pen — P' });
         fireEvent.mouseEnter(pen);
         expect(screen.queryByRole('tooltip')).toBeNull();
         act(() => {
           vi.advanceTimersByTime(200);
         });
         const tip = screen.getByRole('tooltip');
-        expect(tip.textContent).toBe('Pen — 2');
+        expect(tip.textContent).toBe('Pen — P');
         expect(tip.querySelector('.tooltip-card-dark')).not.toBeNull();
         fireEvent.mouseLeave(pen);
         expect(screen.queryByRole('tooltip')).toBeNull();
@@ -2669,20 +2817,148 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       }
     });
 
-    it('has no shape-type grid left in the inspector', () => {
+    it('shows type+color+border dropdowns (no inspector) for a selected empty shape', () => {
       const dispatch = vi.fn();
       useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
       renderShell({
         ...BOARD,
         elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '' }],
       });
-      fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
-      fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
       const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
       fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
       fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
-      expect(screen.getByRole('complementary', { name: 'Edit shape' })).not.toBeNull();
-      expect(screen.queryByRole('radiogroup', { name: 'Shape type' })).toBeNull();
+      // No inspector anywhere; the floating bar carries type + color + border.
+      expect(screen.queryByRole('complementary')).toBeNull();
+      expect(screen.getByRole('button', { name: 'Shape type' })).not.toBeNull();
+      expect(screen.getByRole('button', { name: 'Fill color #6ea8fe' })).not.toBeNull();
+      expect(screen.getByRole('button', { name: 'Line style' })).not.toBeNull();
+      // Type dropdown: all tabs + fill switch.
+      fireEvent.click(screen.getByRole('button', { name: 'Shape type' }));
+      const typeDialog = screen.getByRole('dialog', { name: 'Shape type' });
+      expect(within(typeDialog).getByRole('radiogroup', { name: 'Basic' })).not.toBeNull();
+      expect(within(typeDialog).getByRole('checkbox', { name: 'Filled' })).not.toBeNull();
+      // Non-basic tab content is present too.
+      expect(within(typeDialog).getByRole('radio', { name: 'Predefined process' })).not.toBeNull();
+      fireEvent.click(within(typeDialog).getByRole('radio', { name: 'Predefined process' }));
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      let action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+      expect(action.patch.elements[0]).toMatchObject({ id: 's1', shapeType: 'predefinedProcess' });
+      // Border dropdown: solid / dashed / none.
+      fireEvent.click(screen.getByRole('button', { name: 'Line style' }));
+      const borderDialog = screen.getByRole('dialog', { name: 'Line style' });
+      fireEvent.click(within(borderDialog).getByRole('radio', { name: 'dashed' }));
+      action = dispatch.mock.calls[1]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+      expect(action.patch.elements[0]).toMatchObject({ id: 's1', dash: 'dashed' });
+    });
+
+    it('V2: clicking Add text on an empty shape opens the editor and the merged text bar', () => {
+      const dispatch = vi.fn();
+      useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+      renderShell({
+        ...BOARD,
+        elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '' }],
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
+      const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+      fireEvent.pointerDown(svg, { button: 0, clientX: 66, clientY: 46 });
+      fireEvent.pointerUp(svg, { clientX: 66, clientY: 46 });
+      // Element-only bar while empty and idle.
+      expect(screen.getByRole('button', { name: 'Shape type' })).not.toBeNull();
+      expect(screen.queryByRole('button', { name: 'Font' })).toBeNull();
+      // Click the ghost → inline editor + merged text props (incl. shape type).
+      fireEvent.pointerDown(screen.getByText('Add text'));
+      expect(screen.getByRole('textbox', { name: 'Label' })).not.toBeNull();
+      expect(screen.getByRole('button', { name: 'Font' })).not.toBeNull();
+      expect(screen.getByRole('button', { name: 'Duplicate' })).not.toBeNull();
+      expect(screen.getByRole('button', { name: 'Shape type' })).not.toBeNull();
+    });
+
+    it('V2: empty sticky shows fill only; editor is borderless', () => {
+      const dispatch = vi.fn();
+      useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+      renderShell({
+        ...BOARD,
+        elements: [{ id: 'a', kind: 'sticky', x: 0, y: 0, w: 200, h: 120, color: '#e8b955', text: '' }],
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
+      const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+      fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+      fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
+      expect(screen.getByRole('button', { name: 'Fill color #e8b955' })).not.toBeNull();
+      expect(screen.queryByRole('button', { name: 'Font' })).toBeNull();
+      fireEvent.pointerDown(screen.getByText('Add text'));
+      const editor = screen.getByRole('textbox', { name: 'Sticky text' }) as HTMLTextAreaElement;
+      expect(editor.style.background).toBe('transparent');
+      expect(editor.style.borderStyle).toBe('none');
+      expect(screen.getByRole('button', { name: 'Font' })).not.toBeNull();
+    });
+
+    it('V1: vertical align segmented applies to sticky and shape', () => {      const dispatch = vi.fn();
+      useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+      renderShell({
+        ...BOARD,
+        elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: 'Hi' }],
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
+      const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+      fireEvent.pointerDown(svg, { button: 0, clientX: 66, clientY: 46 });
+      fireEvent.pointerUp(svg, { clientX: 66, clientY: 46 });
+      fireEvent.click(screen.getByRole('button', { name: 'Vertical alignment' }));
+      const group = screen.getByRole('radiogroup', { name: 'Vertical alignment' });
+      fireEvent.click(within(group).getByRole('radio', { name: 'Bottom' }));
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+      expect(action.patch.elements.find((e) => e.id === 's1')).toMatchObject({ valign: 'bottom' });
+    });
+
+    it('more button opens the object menu with the right-click actions', () => {
+      const dispatch = vi.fn();
+      useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+      renderShell({
+        ...BOARD,
+        elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: 'Hi' }],
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
+      const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+      fireEvent.pointerDown(svg, { button: 0, clientX: 66, clientY: 46 });
+      fireEvent.pointerUp(svg, { clientX: 66, clientY: 46 });
+      const more = screen.getByRole('button', { name: 'Object actions' });
+      fireEvent.click(more);
+      const menu = screen.getByRole('menu', { name: 'Object actions' });
+      expect(within(menu).getByRole('menuitem', { name: /Duplicate/ })).not.toBeNull();
+      fireEvent.click(within(menu).getByRole('menuitem', { name: /Duplicate/ }));
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+      expect(action.patch.elements).toHaveLength(2);
+    });
+
+    it('shows the Image7 text bar (duplicate + font + size + toggles + align) for a shape with text', () => {
+      const dispatch = vi.fn();
+      useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+      renderShell({
+        ...BOARD,
+        elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: 'Hi' }],
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
+      const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+      fireEvent.pointerDown(svg, { button: 0, clientX: 66, clientY: 46 });
+      fireEvent.pointerUp(svg, { clientX: 66, clientY: 46 });
+      expect(screen.getByRole('button', { name: 'Duplicate' })).not.toBeNull();
+      expect(screen.getByRole('button', { name: 'Shape type' })).not.toBeNull();
+      expect(screen.getByRole('button', { name: 'Fill color #6ea8fe' })).not.toBeNull();
+      expect(screen.getByRole('button', { name: 'Font' })).not.toBeNull();
+      expect(screen.getByRole('button', { name: 'Text size' })).not.toBeNull();
+      expect(screen.getByRole('button', { name: 'Bold' })).not.toBeNull();
+      expect(screen.getByRole('button', { name: 'Strikethrough' })).not.toBeNull();
+      expect(screen.getByRole('button', { name: 'Bulleted list' })).not.toBeNull();
+      expect(screen.getByRole('button', { name: 'Text alignment' })).not.toBeNull();
+      // Duplicate pastes a copy with an offset.
+      fireEvent.click(screen.getByRole('button', { name: 'Duplicate' }));
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+      expect(action.patch.elements).toHaveLength(2);
     });
   });
 
@@ -2694,54 +2970,80 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
         ...BOARD,
         elements: [{ id: 's1', kind: 'sticky', x: 0, y: 200, w: 100, h: 60, color: '#e8b955', text: 'A' }],
       });
-      fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
       const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
       // world (84,230) → client (100,246)
       fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 246 });
       fireEvent.pointerUp(svg, { clientX: 100, clientY: 246 });
-      const bar = document.querySelector('.wb-selection-bar') as HTMLElement;
-      expect(bar).not.toBeNull();
+      const wrap = document.querySelector('.wb-floatwrap') as HTMLElement;
+      expect(wrap).not.toBeNull();
       // bbox center x=50 → screen 66; top y=200 → screen 216; above → top 216-12=204
-      expect(bar.style.left).toBe('120px');
-      expect(bar.style.top).toBe('204px');
+      expect(wrap.style.left).toBe('120px');
+      expect(wrap.style.top).toBe('204px');
     });
   });
+
+  it('duplicates a marquee selection via Ctrl+C / Ctrl+V', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    renderShell({
+      ...BOARD,
+      elements: [
+        { id: 'a', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' },
+        { id: 'b', kind: 'sticky', x: 200, y: 0, w: 100, h: 60, color: '#e8b955', text: 'B' },
+      ],
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Select area — M' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    // Marquee world (20,10) → (290,60): client +16.
+    fireEvent.pointerDown(svg, { button: 0, clientX: 36, clientY: 26 });
+    fireEvent.pointerMove(svg, { clientX: 306, clientY: 76 });
+    fireEvent.pointerUp(svg, { clientX: 306, clientY: 76 });
+    fireEvent.keyDown(window, { key: 'c', ctrlKey: true });
+    fireEvent.keyDown(window, { key: 'v', ctrlKey: true });
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+    expect(action.patch.elements).toHaveLength(4);
+  });
+
     const STICKY_L: WhiteboardElement = { id: 's1', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' };
 
-    it('renders the toolbar pill and dock inside the canvas container', () => {
+    it('renders the bottom pill toolbar with no permanent panels', () => {
       renderShell({ ...BOARD, elements: [STICKY_L] });
       const wrap = document.querySelector('.wb-main-canvas');
       expect(wrap).not.toBeNull();
       expect(wrap?.querySelector('.board-toolbar')).not.toBeNull();
-      const dock = wrap?.querySelector('.wb-dock-right');
-      expect(dock).not.toBeNull();
-      expect(dock?.querySelectorAll('aside').length).toBe(2);
+      // FigJam chrome: no permanent right dock, no inspector, no layers aside.
+      expect(wrap?.querySelector('.wb-dock-right')).toBeNull();
+      expect(wrap?.querySelector('.wb-layers-wrap')).toBeNull();
+      expect(screen.queryByRole('complementary')).toBeNull();
     });
 
-    it('has no toolbar collapse buttons; Properties stays mounted', () => {
+    it('shows the floating bar only while something is selected', () => {
       renderShell({ ...BOARD, elements: [STICKY_L] });
-      // the only 'Show layers' button is the panel header itself (toolbar toggles removed)
-      expect(screen.getAllByRole('button', { name: 'Show layers' })).toHaveLength(1);
-      expect(screen.queryByRole('button', { name: 'Hide layers' })).toBeNull();
-      expect(screen.queryByRole('button', { name: 'Show properties' })).toBeNull();
-      expect(screen.queryByRole('button', { name: 'Collapse properties' })).toBeNull();
-      expect(screen.getByRole('complementary', { name: 'Element properties' })).not.toBeNull();
+      expect(document.querySelector('.wb-floatwrap')).toBeNull();
+      const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+      fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+      fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
+      expect(document.querySelector('.wb-floatwrap')).not.toBeNull();
+      expect(screen.getByRole('group', { name: 'Selection actions' })).not.toBeNull();
     });
 
-    it('toggles the Layers list from its panel header', () => {
+    it('toggles the Layers popover from the toolbar button', () => {
       renderShell({ ...BOARD, elements: [STICKY_L] });
-      // collapsed by default: header visible, list hidden
-      const header = screen.getByRole('button', { name: 'Show layers' });
-      expect(header.getAttribute('aria-expanded')).toBe('false');
+      const toggle = screen.getByRole('button', { name: 'Layers' });
+      expect(toggle.getAttribute('aria-expanded')).toBe('false');
       expect(screen.queryByRole('listbox', { name: 'Element layers' })).toBeNull();
-      fireEvent.click(header);
-      expect(header.getAttribute('aria-expanded')).toBe('true');
+      fireEvent.click(toggle);
+      expect(toggle.getAttribute('aria-expanded')).toBe('true');
       expect(screen.getByRole('listbox', { name: 'Element layers' })).not.toBeNull();
+      fireEvent.click(toggle);
+      expect(screen.queryByRole('listbox', { name: 'Element layers' })).toBeNull();
     });
 
     it('WB-4: shows selection export items only when something is selected', () => {
       renderShell({ ...BOARD, elements: [STICKY_L] });
-      fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
       fireEvent.click(screen.getByRole('button', { name: 'Export diagram' }));
       expect(screen.queryByRole('menuitem', { name: 'PNG selection' })).toBeNull();
       fireEvent.keyDown(window, { key: 'Escape' });
@@ -2756,7 +3058,7 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
 
     it('WB-4: toggles the transparent-background checkbox', () => {
       renderShell({ ...BOARD, elements: [STICKY_L] });
-      fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
       fireEvent.click(screen.getByRole('button', { name: 'Export diagram' }));
       const box = screen.getByRole('menuitemcheckbox', { name: 'Transparent background' });
       expect(box.getAttribute('aria-checked')).toBe('false');
@@ -2778,18 +3080,19 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
         );
       }
       render(<LiveShell />);
-      fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
       const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
       fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
       fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
       fireEvent.keyDown(window, { key: 'Delete' });
-      const alert = screen.getByRole('alert');
-      expect(alert.textContent).toContain('Deleted 1');
+      // D8: the restore slot is a status (not an error alert).
+      const status = screen.getByRole('status');
+      expect(status.textContent).toContain('Deleted 1');
       expect((document.querySelector('svg.wb-svg') as SVGSVGElement).textContent).toBe('');
       fireEvent.click(screen.getByRole('button', { name: 'Restore' }));
       // restored sticky is back on the canvas
       expect((document.querySelector('svg.wb-svg') as SVGSVGElement).textContent).toContain('A');
-      expect(screen.queryByRole('alert')).toBeNull();
+      expect(screen.queryByRole('status')).toBeNull();
     });
 
     it('WB-9: match width resizes the selection to the last selected element', () => {
@@ -2802,9 +3105,9 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
           { id: 'b', kind: 'shape', shapeType: 'rect', x: 200, y: 0, w: 150, h: 80, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '' },
         ],
       });
-      fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
-      fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
-      fireEvent.click(screen.getByRole('button', { name: 'Select — 1' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
       const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
       // marquee over both shapes (world -20..390 x, -20..100 y)
       fireEvent.pointerDown(svg, { button: 0, clientX: 0, clientY: 0 });
@@ -2835,77 +3138,483 @@ describe('whiteboard editor shell mobile', () => {
     window.matchMedia = realMatchMedia;
   });
 
-  it('renders a compact pill with hand first + more, without desktop actions or dock', () => {
+  it('renders the sketch chrome: slim topbar, TL undo/redo, TR more, bottom pill with hand', () => {
     renderShell(BOARD);
-    const pill = document.querySelector('.board-toolbar .wb-tool-scroll')!;
+    // Slim topbar stays on mobile: back + name + icon-only Canvas, no desktop corners.
+    const topbar = document.querySelector('.wb-topbar')!;
+    expect(topbar).not.toBeNull();
+    expect(topbar.querySelector('.back-btn')).not.toBeNull();
+    expect(topbar.textContent).toContain('Plan');
+    expect(document.querySelector('.wb-corner-tl')).toBeNull();
+    expect(document.querySelector('.wb-corner-tr')).toBeNull();
+    // TL pill: undo + redo only (no back).
+    const tl = document.querySelector('.wb-mobile-tl')!;
+    expect(tl).not.toBeNull();
+    expect(tl.querySelectorAll('button')).toHaveLength(2);
+    expect(screen.getByRole('button', { name: /Undo/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Redo/ })).toBeTruthy();
+    // TR pill: more only (no initials, no X in normal mode).
+    const tr = document.querySelector('.wb-mobile-tr')!;
+    expect(tr).not.toBeNull();
+    expect(tr.querySelectorAll('button')).toHaveLength(1);
+    expect(within(tr as HTMLElement).getByRole('button', { name: 'More tools' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Back to boards' })).not.toBeNull();
+    // Bottom pill: select/pen/shape/view + more, text lives in ⋯.
+    const pill = document.querySelector('.board-toolbar .wb-mobile-pill')!;
     const labels = [...pill.querySelectorAll('button')].map((b) => b.getAttribute('aria-label'));
-    expect(labels[0]).toMatch(/View/);
-    expect(screen.getByRole('button', { name: /View/ })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Select —/ })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Pen —/ })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Shape —/ })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'More tools' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /Text —/ })).toBeNull();
-    expect(screen.queryByRole('button', { name: /Sticky note —/ })).toBeNull();
+    expect(labels.some((l) => l && /Select —/.test(l))).toBe(true);
+    expect(labels.some((l) => l && /Pen —/.test(l))).toBe(true);
+    expect(labels.some((l) => l && /Shape —/.test(l))).toBe(true);
+    expect(labels.some((l) => l && /View/.test(l))).toBe(true);
+    expect(labels.some((l) => l && /Text —/.test(l))).toBe(false);
     expect(document.querySelector('.wb-tool-actions')).toBeNull();
     expect(document.querySelector('.wb-dock-right')).toBeNull();
   });
 
-  it('defaults to the hand tool in all modes', () => {
+  it('defaults to the select tool in all modes', () => {
     renderShell(BOARD);
-    expect(screen.getByRole('button', { name: /View/ }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: /Select —/ }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: /Pen —/ }).getAttribute('aria-pressed')).toBe('false');
   });
 
-  it('reveals secondary tools in the more menu and picks on tap', () => {
+  it('reveals secondary tools (incl. text and snap) in the more menu and picks on tap', () => {
     renderShell(BOARD);
-    fireEvent.click(screen.getByRole('button', { name: 'More tools' }));
+    const pill = document.querySelector('.board-toolbar .wb-mobile-pill')!;
+    fireEvent.click(within(pill as HTMLElement).getByRole('button', { name: 'More tools' }));
     const sticky = screen.getByRole('button', { name: /Sticky note —/ });
     expect(sticky.closest('.wb-more-menu')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Text —/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Snap/ })).toBeTruthy();
     fireEvent.click(sticky);
     expect(document.querySelector('.wb-more-menu')).toBeNull();
   });
 
-  it('shows undo/layers overlays and hides the props sheet with no selection', () => {
-    renderShell(BOARD);
-    expect(document.querySelector('.wb-mobile-undo')).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Undo/ })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Redo/ })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Layers/ })).toBeTruthy();
-    expect(document.querySelector('.wb-mobile-props')).toBeNull();
+  it('swaps to delete+X and hides the main pill when something is selected', () => {
+    renderShell({
+      ...BOARD,
+      elements: [{ id: 's1', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' }],
+    });
+    expect(document.querySelector('.wb-mobile-pill')).not.toBeNull();
+    expect(document.querySelector('.wb-mobile-tl')).not.toBeNull();
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 60 });
+    fireEvent.pointerUp(svg, { clientX: 100, clientY: 60 });
+    // Main pill + TL pill gone; TR shows trash only (no back in normal mode).
+    expect(document.querySelector('.wb-mobile-pill')).toBeNull();
+    expect(document.querySelector('.wb-mobile-tl')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Delete selected' })).not.toBeNull();
+    // Floating bar is rendered for the selection (bottom-anchored via CSS).
+    expect(document.querySelector('.wb-floatwrap')).not.toBeNull();
   });
 
-  it('opens the layers panel and shows the props sheet after picking a layer', () => {
+  it('deletes via the TR trash button', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    renderShell({
+      ...BOARD,
+      elements: [{ id: 's1', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' }],
+    });
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 60 });
+    fireEvent.pointerUp(svg, { clientX: 100, clientY: 60 });
+    fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }));
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0]![0]).toMatchObject({
+      type: 'whiteboard/update',
+      patch: { elements: [] },
+    });
+  });
+
+  it('shows all props inline with a more button opening the actions sheet', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    renderShell({
+      ...BOARD,
+      elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: 'Hi' }],
+    });
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    fireEvent.pointerDown(svg, { button: 0, clientX: 66, clientY: 46 });
+    fireEvent.pointerUp(svg, { clientX: 66, clientY: 46 });
+    const bar = document.querySelector('.wb-selection-bar[aria-label="Selection actions"]')!;
+    // All property controls inline (no 4-item cap) + ⋮ (object-actions ⋮ hidden on mobile).
+    expect(bar.querySelectorAll('button').length).toBeGreaterThan(5);
+    expect(screen.queryByRole('button', { name: 'Duplicate' })).not.toBeNull();
+    expect(screen.queryByRole('button', { name: 'Object actions' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'More tools' }));
+    // Sheet holds actions, not leftover property controls.
+    const sheet = screen.getByRole('dialog', { name: 'More tools' });
+    expect(within(sheet).getByRole('button', { name: 'Bring to front' })).toBeTruthy();
+    expect(within(sheet).queryByRole('button', { name: 'Bold' })).toBeNull();
+  });
+
+  it('opens present/export from the TR more menu (no layers on mobile)', () => {
+    renderShell(BOARD);
+    const tr = document.querySelector('.wb-mobile-tr')!;
+    fireEvent.click(within(tr as HTMLElement).getByRole('button', { name: 'More tools' }));
+    const menu = document.querySelector('.wb-mobile-trmenu')!;
+    expect(menu).not.toBeNull();
+    expect(menu.querySelector('[aria-label="Present board"]')).not.toBeNull();
+    expect(menu.querySelector('[aria-label="Export diagram"]')).not.toBeNull();
+    expect(menu.querySelector('[aria-label="Layers"]')).toBeNull();
+  });
+
+  it('shows TL undo/redo and TR menu, no props panel with no selection', () => {
+    renderShell(BOARD);
+    const tl = document.querySelector('.wb-mobile-tl')!;
+    expect(tl.querySelectorAll('button')).toHaveLength(2);
+    expect(screen.getByRole('button', { name: /Undo/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Redo/ })).toBeTruthy();
+    expect(document.querySelector('.wb-mobile-tr')).not.toBeNull();
+    expect(document.querySelector('.wb-mobile-props')).toBeNull();
+    expect(screen.queryByRole('complementary')).toBeNull();
+  });
+
+  it('has no layers entry in the mobile TR menu (layers popover is desktop-only)', () => {
     const board: Whiteboard = {
       ...BOARD,
       elements: [{ id: 's1', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' }],
     };
     renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: /Layers/ }));
-    expect(document.querySelector('.wb-mobile-layers-panel')).toBeTruthy();
-    fireEvent.click(document.querySelector('.wb-mobile-layers-panel .wb-layer-row')!);
-    const sheet = document.querySelector('.wb-mobile-props');
-    expect(sheet).toBeTruthy();
-    expect(sheet!.querySelector('.wb-mobile-props-head .wb-inspector-title')?.textContent).toBe('Sticky note');
-    expect(within(sheet as HTMLElement).getByRole('button', { name: 'Delete selected' })).toBeTruthy();
+    const tr = document.querySelector('.wb-mobile-tr')!;
+    fireEvent.click(within(tr as HTMLElement).getByRole('button', { name: 'More tools' }));
+    expect(document.querySelector('.wb-mobile-trmenu [aria-label="Layers"]')).toBeNull();
+    expect(document.querySelector('.wb-layers-pop')).toBeNull();
   });
 
-  it('deletes the selection from the props sheet', () => {
+  it('deletes the selection from the long-press object menu on mobile', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
     const board: Whiteboard = {
       ...BOARD,
       elements: [{ id: 's1', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' }],
     };
-    renderShell(board);
-    fireEvent.click(screen.getByRole('button', { name: /Layers/ }));
-    fireEvent.click(document.querySelector('.wb-mobile-layers-panel .wb-layer-row')!);
-    const sheet = document.querySelector('.wb-mobile-props') as HTMLElement;
-    fireEvent.click(within(sheet).getByRole('button', { name: 'Delete selected' }));
+    try {
+      vi.useFakeTimers();
+      renderShell(board);
+      const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+      fireEvent.pointerDown(svg, { button: 0, pointerType: 'touch', clientX: 100, clientY: 60 });
+      fireEvent.pointerUp(svg, { clientX: 100, clientY: 60 });
+      fireEvent.pointerDown(svg, { button: 0, pointerType: 'touch', clientX: 100, clientY: 60 });
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+      expect(screen.getByRole('menu', { name: 'Object actions' })).toBeTruthy();
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Delete selected Del' }));
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      expect(dispatch.mock.calls[0]![0]).toMatchObject({
+        type: 'whiteboard/update',
+        patch: { elements: [] },
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('whiteboard figjam interactions', () => {
+  const STICKY_A: WhiteboardElement = { id: 'a', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' };
+
+  function selectFirst(svg: SVGSVGElement) {
+    fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+    fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
+  }
+
+  it('shows four corner handles and four port dots for a selected shape', () => {
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch: vi.fn() });
+    renderShell({ ...BOARD, elements: [STICKY_A] });
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    expect(document.querySelectorAll('[data-testid="wb-resize-handle"]')).toHaveLength(0);
+    selectFirst(svg);
+    expect(document.querySelectorAll('[data-testid="wb-resize-handle"]')).toHaveLength(4);
+    expect(document.querySelectorAll('[data-testid="wb-port-handle"]')).toHaveLength(4);
+  });
+
+  it('resizes from the north-west corner, moving x/y', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    renderShell({ ...BOARD, elements: [STICKY_A] });
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    selectFirst(svg);
+    // NW corner world (0,0) → client (16,16); drag to (56,46): world (40,30).
+    fireEvent.pointerDown(svg, { button: 0, clientX: 16, clientY: 16 });
+    fireEvent.pointerMove(svg, { clientX: 56, clientY: 46 });
+    expect(document.querySelector('[data-testid="wb-resize-preview"]')).not.toBeNull();
+    fireEvent.pointerUp(svg, { clientX: 56, clientY: 46 });
     expect(dispatch).toHaveBeenCalledTimes(1);
-    expect(dispatch.mock.calls[0]![0]).toMatchObject({
-      type: 'whiteboard/update',
-      patch: { elements: [] },
+    const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+    // snap(100-40)=snap(60)=64? radius 8: |60-64|=4 → 64; x=100-64=36. snap(60-30)=snap(30)=32? |30-32|=2 → 32; y=60-32=28.
+    expect(action.patch.elements.find((e) => e.id === 'a')).toMatchObject({ x: 36, y: 28, w: 64, h: 32 });
+  });
+
+  it('opens the object menu on right-click and deletes via the menu', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    renderShell({ ...BOARD, elements: [STICKY_A] });
+    const canvas = document.querySelector('.wb-canvas') as HTMLElement;
+    fireEvent.contextMenu(canvas, { clientX: 20, clientY: 20 });
+    const menu = screen.getByRole('menu', { name: 'Object actions' });
+    expect(within(menu).getByRole('menuitem', { name: 'Copy Ctrl+C' })).not.toBeNull();
+    expect(within(menu).getByRole('menuitem', { name: 'Paste to replace Ctrl+Shift+V' })).not.toBeNull();
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Delete selected Del' }));
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0]![0]).toMatchObject({ type: 'whiteboard/update', patch: { elements: [] } });
+  });
+
+  it('replaces the selection with the clipboard via Ctrl+Shift+V (Ctrl+Shift+R alias)', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    renderShell({ ...BOARD, elements: [STICKY_A] });
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    selectFirst(svg);
+    fireEvent.keyDown(window, { key: 'c', ctrlKey: true });
+    fireEvent.keyDown(window, { key: 'V', ctrlKey: true, shiftKey: true });
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+    expect(action.patch.elements).toHaveLength(1);
+    expect(action.patch.elements[0]).toMatchObject({ kind: 'sticky', x: 0, y: 0 });
+    expect((action.patch.elements[0] as { id: string }).id).not.toBe('a');
+  });
+
+  it('cuts the selection via Ctrl+X (copy + delete)', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    renderShell({ ...BOARD, elements: [STICKY_A] });
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    selectFirst(svg);
+    fireEvent.keyDown(window, { key: 'x', ctrlKey: true });
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+    expect(action.patch.elements).toHaveLength(0);
+  });
+
+  it('groups and ungroups via Ctrl+G / Ctrl+Shift+G', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    renderShell({
+      ...BOARD,
+      elements: [
+        STICKY_A,
+        { id: 'b', kind: 'sticky', x: 200, y: 0, w: 100, h: 60, color: '#e8b955', text: 'B' },
+      ],
     });
-    expect(document.querySelector('.wb-mobile-props')).toBeNull();
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement | null;
+    expect(svg).not.toBeNull();
+    fireEvent.keyDown(window, { key: 'a', ctrlKey: true });
+    fireEvent.keyDown(window, { key: 'g', ctrlKey: true });
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const grouped = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+    const gid = (grouped.patch.elements[0] as { groupId: string }).groupId;
+    expect(gid).toBeTruthy();
+    expect((grouped.patch.elements[1] as { groupId: string }).groupId).toBe(gid);
+  });
+
+  it('nudges 1px with arrows and 10px with Shift+arrows', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    renderShell({ ...BOARD, elements: [STICKY_A] });
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    selectFirst(svg);
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    fireEvent.keyDown(window, { key: 'ArrowRight', shiftKey: true });
+    expect(dispatch).toHaveBeenCalledTimes(2);
+    const first = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+    expect(first.patch.elements.find((e) => e.id === 'a')).toMatchObject({ x: 1 });
+    const second = dispatch.mock.calls[1]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+    expect(second.patch.elements.find((e) => e.id === 'a')).toMatchObject({ x: 10 });
+  });
+
+  it('opens the shortcuts dialog with ? and closes it', () => {
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch: vi.fn() });
+    renderShell(BOARD);
+    fireEvent.keyDown(window, { key: '?' });
+    expect(screen.getByRole('dialog', { name: 'Keyboard shortcuts' })).not.toBeNull();
+    expect(screen.getByText('Tools')).not.toBeNull();
+    expect(screen.getByText('Undo (Ctrl+Z)')).not.toBeNull();
+    fireEvent.keyDown(screen.getByRole('dialog', { name: 'Keyboard shortcuts' }), { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'Keyboard shortcuts' })).toBeNull();
+  });
+
+  it('bulk-recolors a multi-selection via the fill dot and color panel', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    renderShell({
+      ...BOARD,
+      elements: [
+        STICKY_A,
+        { id: 'b', kind: 'sticky', x: 200, y: 0, w: 100, h: 60, color: '#e8b955', text: 'B' },
+      ],
+    });
+    fireEvent.keyDown(window, { key: 'a', ctrlKey: true });
+    fireEvent.click(screen.getByRole('button', { name: 'Fill color #e8b955' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fill color #6ea8fe' }));
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+    expect(action.patch.elements.filter((e) => e.color === '#6ea8fe')).toHaveLength(2);
+  });
+
+  it('opens More shapes with 8 tabs and places a library triangle', () => {
+    localStorage.clear();
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    renderShell(BOARD);
+    fireEvent.click(screen.getByRole('button', { name: 'Shape — S' }));
+    fireEvent.click(screen.getByRole('button', { name: 'More shapes' }));
+    const dialog = screen.getByRole('dialog', { name: 'More shapes' });
+    expect(within(dialog).getAllByRole('button', { name: /Basic|Flowchart|BPMN|UML|ERD|Data flow|Network|K8s/ })).toHaveLength(8);
+    fireEvent.click(within(dialog).getByRole('option', { name: 'Triangle' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 100 });
+    fireEvent.pointerUp(svg, { clientX: 100, clientY: 100 });
+    const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+    expect(action.patch.elements[0]).toMatchObject({ kind: 'shape', shapeType: 'triangleUp' });
+  });
+
+  it('shows ref picker tabs with All active and a Create-new action', () => {    localStorage.clear();
+    useProjectMock.mockReturnValue({
+      state: {
+        tasks: [{ id: 't1', title: 'Build login', status: 'todo' }],
+        issues: [],
+      },
+      role: 'owner',
+      canEdit: true,
+      dispatch: vi.fn(),
+    });
+    renderShell(BOARD);
+    fireEvent.click(screen.getByRole('button', { name: 'Entity ref card — D' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 120 });
+    fireEvent.pointerUp(svg, { clientX: 100, clientY: 120 });
+    const dialog = screen.getByRole('dialog', { name: 'Link an entity' });
+    expect(within(dialog).getByRole('button', { name: 'All' }).getAttribute('aria-pressed')).toBe('true');
+    expect(within(dialog).getByRole('button', { name: /Create new/ })).not.toBeNull();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Task' }));
+    expect(within(dialog).getByRole('option', { name: /Build login/ })).not.toBeNull();
+  });
+
+  it('shows the text bar (font + size + toggles + align) when clicking a sticky text area', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    renderShell({
+      ...BOARD,
+      elements: [{ id: 'a', kind: 'sticky', x: 0, y: 0, w: 200, h: 120, color: '#e8b955', text: 'Hi' }],
+    });
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    // World (100,60) → client (116,76): inside the text block.
+    fireEvent.pointerDown(svg, { button: 0, clientX: 116, clientY: 76 });
+    fireEvent.pointerUp(svg, { clientX: 116, clientY: 76 });
+    expect(screen.getByRole('button', { name: 'Font' })).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Text size' })).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Bold' })).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Strikethrough' })).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Bulleted list' })).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Text alignment' })).not.toBeNull();
+    // Alignment lives in a popup now (P4).
+    fireEvent.click(screen.getByRole('button', { name: 'Text alignment' }));
+    expect(screen.getByRole('radiogroup', { name: 'Text alignment' })).not.toBeNull();
+    // Sticky keeps its fill dot next to the text controls.
+    expect(screen.getByRole('button', { name: 'Fill color #e8b955' })).not.toBeNull();
+    // Size dropdown offers presets; Medium sets 24.
+    fireEvent.click(screen.getByRole('button', { name: 'Text size' }));
+    const sizeDialog = screen.getByRole('dialog', { name: 'Text size' });
+    fireEvent.click(within(sizeDialog).getByRole('radio', { name: /Medium/ }));
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+    expect(action.patch.elements.find((e) => e.id === 'a')).toMatchObject({ fontSize: 24 });
+  });
+
+  it('P7: pointerdown on a color swatch does not close the panel before click commits', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    renderShell({
+      ...BOARD,
+      elements: [{ id: 's1', kind: 'sticky', x: 0, y: 0, w: 200, h: 120, color: '#e8b955', text: 'Hi' }],
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    // Border click → element bar with the fill dot.
+    fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+    fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
+    fireEvent.click(screen.getByRole('button', { name: 'Fill color #e8b955' }));
+    const panel = screen.getByRole('dialog', { name: 'Fill color' });
+    const swatch = within(panel).getByRole('button', { name: 'Fill color #f4706d' });
+    // Real browsers fire pointerdown before click; closed sibling dropdowns
+    // must not steal it and unmount the panel.
+    fireEvent.pointerDown(swatch);
+    expect(screen.getByRole('dialog', { name: 'Fill color' })).not.toBeNull();
+    fireEvent.click(swatch);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const pick = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+    expect(pick.patch.elements.find((e) => e.id === 's1')).toMatchObject({ color: '#f4706d' });
+  });
+
+  it('changes the pen default from the toolbar strip and places with it', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    renderShell(BOARD);
+    fireEvent.click(screen.getByRole('button', { name: 'Pen — P' }));
+    const strip = document.querySelector('.board-toolbar .wb-shape-strip') as HTMLElement;
+    expect(strip).not.toBeNull();
+    fireEvent.click(within(strip).getByRole('button', { name: 'Fill color #f4706d' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 30 });
+    fireEvent.pointerMove(svg, { clientX: 40, clientY: 50 });
+    fireEvent.pointerMove(svg, { clientX: 60, clientY: 70 });
+    fireEvent.pointerUp(svg, { clientX: 60, clientY: 70 });
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+    expect(action.patch.elements[0]).toMatchObject({ kind: 'stroke', color: '#f4706d' });
+  });
+
+  it('Q4: sets pen width from the strip slider popup', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    renderShell(BOARD);
+    fireEvent.click(screen.getByRole('button', { name: 'Pen — P' }));
+    const strip = document.querySelector('.board-toolbar .wb-shape-strip') as HTMLElement;
+    fireEvent.click(within(strip).getByRole('button', { name: 'Width' }));
+    // Portal popup lives on document.body, outside the strip.
+    const dialog = screen.getByRole('dialog', { name: 'Width' });
+    fireEvent.change(within(dialog).getByRole('slider', { name: 'Width' }), { target: { value: '6' } });
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 30 });
+    fireEvent.pointerMove(svg, { clientX: 40, clientY: 50 });
+    fireEvent.pointerMove(svg, { clientX: 60, clientY: 70 });
+    fireEvent.pointerUp(svg, { clientX: 60, clientY: 70 });
+    const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+    expect(action.patch.elements[0]).toMatchObject({ kind: 'stroke', width: 6 });
+  });
+
+  it('Q5: text strip mirrors the bar controls and applies to placement', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    renderShell(BOARD);
+    fireEvent.click(screen.getByRole('button', { name: 'Text — T' }));
+    const strip = document.querySelector('.board-toolbar .wb-shape-strip') as HTMLElement;
+    expect(within(strip).getByRole('button', { name: 'Font' })).not.toBeNull();
+    expect(within(strip).getByRole('button', { name: 'Text size' })).not.toBeNull();
+    expect(within(strip).getByRole('button', { name: 'Bold' })).not.toBeNull();
+    expect(within(strip).getByRole('button', { name: 'Text alignment' })).not.toBeNull();
+    // no stepper / inline align in the text strip anymore
+    expect(within(strip).queryByRole('button', { name: 'Decrease font size' })).toBeNull();
+    fireEvent.click(within(strip).getByRole('button', { name: 'Bold' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 100 });
+    fireEvent.pointerUp(svg, { clientX: 100, clientY: 100 });
+    const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+    expect(action.patch.elements[0]).toMatchObject({ kind: 'text', bold: true, fontFamily: 'simple' });
+  });
+
+  it('Q6/Q7: boundary strip is dots-only, edge strip has no arrow button', () => {
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch: vi.fn() });
+    renderShell(BOARD);
+    fireEvent.click(screen.getByRole('button', { name: 'Boundary — B' }));
+    let strip = document.querySelector('.board-toolbar .wb-shape-strip') as HTMLElement;
+    expect(within(strip).getAllByRole('button').length).toBeGreaterThan(0);
+    expect(within(strip).queryByRole('button', { name: 'Text size' })).toBeNull();
+    expect(within(strip).queryByRole('radiogroup', { name: 'Text alignment' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Edge — L' }));
+    strip = document.querySelector('.board-toolbar .wb-shape-strip') as HTMLElement;
+    expect(within(strip).queryByRole('button', { name: 'Arrow style' })).toBeNull();
+    expect(within(strip).getByRole('button', { name: 'Text size' })).not.toBeNull();
   });
 });

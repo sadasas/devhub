@@ -24,6 +24,8 @@
     },
     "toolbar": {
       "tools": "Perangkat whiteboard",
+      "historyPanel": "Riwayat dan layers",
+      "boardPanel": "Aksi board",
       "back": "Kembali ke daftar board",
       "moreTools": "Alat lainnya",
       "undoTitle": "Undo (Ctrl+Z)",
@@ -54,6 +56,24 @@
       "ref": "Kartu referensi entitas",
       "boundary": "Batas",
       "limitReached": "{{name}} — batas elemen tercapai"
+    },
+    "shortcuts": {
+      "title": "Pintasan keyboard",
+      "tools": "Perangkat",
+      "edit": "Ubah",
+      "arrange": "Susun",
+      "view": "Tampil",
+      "panHold": "Geser (tahan)",
+      "selectAll": "Pilih semua",
+      "editText": "Ubah teks terpilih",
+      "nudge": "Geser sedikit seleksi",
+      "nudgeBig": "Geser jauh seleksi",
+      "zoomIn": "Perbesar",
+      "zoomOut": "Perkecil",
+      "zoomReset": "Atur ulang tampilan",
+      "help": "Bantuan ini",
+      "dismiss": "Batal pilih / tutup",
+      "open": "Pintasan keyboard"
     },
     "export": {
       "title": "Ekspor PNG/SVG",
@@ -91,7 +111,16 @@
       "deletedN": "{{count}} elemen dihapus",
       "restore": "Kembalikan",
       "restoreAtCap": "Board penuh — hapus elemen dulu sebelum mengembalikan",
+      "boundaryTooSmall": "Boundary terlalu kecil (min 40×40).",
+      "rotate": "Putar seleksi",
+      "unlockAll": "Buka semua kunci",
+      "expand": "Bentangkan",
+      "collapse": "Ciutkan",
+      "linkCopied": "Tautan board disalin.",
+      "pasteReplace": "Tempel ganti",
       "selectionActions": "Aksi seleksi",
+      "alignTools": "Alat perataan",
+      "addText": "Tambah teks",
       "lock": "Kunci seleksi",
       "unlock": "Buka kunci seleksi",
       "group": "Grupkan seleksi",
@@ -110,7 +139,6 @@
       "sendBackward": "Mundurkan",
       "deleteSelectedTitle": "Hapus yang dipilih (Del)",
       "deleteSelected": "Hapus yang dipilih",
-      "hint": "Gulir atau cubit untuk zoom · seret untuk menggeser",
       "minimap": "Minimap",
       "refUntitled": "tanpa judul {{entity}}",
       "refDeleted": "Terhapus"
@@ -132,6 +160,7 @@
       "done": "Selesai",
       "arrowStyle": "Gaya panah",
       "lineStyle": "Gaya garis",
+      "lineWidth": "Lebar garis",
       "placeholderDecide": "mis. Putuskan",
       "placeholderSystem": "mis. Sistem",
       "placeholderYes": "mis. Ya / HTTP",
@@ -146,7 +175,10 @@
       "align": "Perataan",
       "align_left": "Kiri",
       "align_center": "Tengah",
-      "align_right": "Kanan"
+      "align_right": "Kanan",
+      "valign_top": "Atas",
+      "valign_center": "Tengah",
+      "valign_bottom": "Bawah"
     },
     "inspector": {
       "panelLabel": "Properti elemen",
@@ -189,7 +221,11 @@
       "badgeEndpoint": "Endpoint",
       "columns": "{{count}} kolom",
       "endpoints": "{{count}} endpoint",
-      "more": "+{{count}} lagi — persempit pencarian"
+      "more": "+{{count}} lagi — persempit pencarian",
+      "tabAll": "Semua",
+      "recent": "Terkini",
+      "createNew": "Buat baru",
+      "browse": "Jelajahi {{entity}}"
     },
     "newModal": {
       "presence": "Membuat whiteboard",
@@ -200,8 +236,7 @@
       "name": "Nama",
       "namePlaceholder": "mis. Sketsa arsitektur Q3",
       "templateLegend": "Template",
-      "description": "Deskripsi",
-      "descHelper": "Hingga 2000 karakter"
+      "description": "Deskripsi"
     },
     "editModal": {
       "presence": "Mengubah whiteboard",
@@ -210,8 +245,63 @@
       "save": "Simpan perubahan",
       "name": "Nama",
       "namePlaceholder": "mis. Sketsa arsitektur Q3",
-      "description": "Deskripsi",
-      "descHelper": "Hingga 2000 karakter"
+      "description": "Deskripsi"
+    },
+    "shapeLib": {
+      "title": "Bentuk lainnya",
+      "search": "Cari bentuk…",
+      "searchAria": "Cari bentuk",
+      "recent": "Terkini",
+      "empty": "Tidak ada bentuk yang cocok.",
+      "tabBasic": "Dasar",
+      "tabFlowchart": "Alur",
+      "tabBpmn": "BPMN",
+      "tabUml": "UML",
+      "tabErd": "ERD",
+      "tabDataflow": "Alur data",
+      "tabNetwork": "Jaringan",
+      "tabK8s": "K8s"
+    },
+    "ctx": {
+      "menu": "Aksi objek",
+      "copy": "Salin",
+      "cut": "Potong",
+      "paste": "Tempel",
+      "pasteReplace": "Tempel ganti",
+      "duplicate": "Duplikat",
+      "copyLink": "Salin tautan board",
+      "bringFront": "Bawa ke depan",
+      "sendBack": "Kirim ke belakang"
+    },
+    "textbar": {
+      "fill": "Warna isi",
+      "textColor": "Warna teks",
+      "smaller": "Kecilkan font",
+      "larger": "Besarkan font",
+      "textAlign": "Perataan teks",
+      "valign": "Perataan vertikal",
+      "editText": "Ubah teks",
+      "thin": "Tipis",
+      "thick": "Tebal",
+      "font": "Font",
+      "size": "Ukuran teks",
+      "bold": "Tebal",
+      "strikethrough": "Coret",
+      "bullet": "Daftar bullet",
+      "sizeSmall": "Kecil",
+      "sizeMedium": "Sedang",
+      "sizeLarge": "Besar",
+      "sizeXl": "Ekstra besar",
+      "sizeHuge": "Sangat besar",
+      "sizeCustom": "Ukuran kustom"
+    },
+    "colorPanel": {
+      "title": "Warna isi",
+      "fill": "Isi",
+      "transparent": "Transparan",
+      "noFill": "Tanpa isi",
+      "custom": "Warna kustom",
+      "hex": "Warna hex"
     },
     "template": {
       "blank": {

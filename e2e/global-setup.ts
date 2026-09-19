@@ -76,8 +76,29 @@ export default async function globalSetup(): Promise<void> {
 
   const authDir = path.join(HERE, '.auth');
   mkdirSync(authDir, { recursive: true });
+  // Pre-seed privacy consent so the banner never intercepts clicks in tests.
+  // Shape matches app/src/lib/consent.ts ConsentState (rejected = analytics off).
+  const consent = JSON.stringify({
+    status: 'rejected',
+    analytics: false,
+    timestamp: new Date(0).toISOString(),
+    policyVersion: '2026-09-01',
+    bannerVersion: 1,
+  });
   writeFileSync(
     path.join(authDir, 'owner.json'),
-    JSON.stringify({ cookies, origins: [] }, null, 2),
+    JSON.stringify(
+      {
+        cookies,
+        origins: [
+          {
+            origin: 'http://localhost:5174',
+            localStorage: [{ name: 'devhub_consent_v1', value: consent }],
+          },
+        ],
+      },
+      null,
+      2,
+    ),
   );
 }
