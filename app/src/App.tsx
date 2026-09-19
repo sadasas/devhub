@@ -41,6 +41,7 @@ const PricingPageLazy = lazy(() => import('./features/pricing/PricingPage').then
 const PaymentHistoryPageLazy = lazy(() => import('./features/billing/PaymentHistoryPage').then((m) => ({ default: m.PaymentHistoryPage })));
 const BillingRedirectPageLazy = lazy(() => import('./features/teams/BillingRedirectPage').then((m) => ({ default: m.BillingRedirectPage })));
 const ResetPasswordPageLazy = lazy(() => import('./features/auth/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })));
+const VerifyEmailPageLazy = lazy(() => import('./features/auth/VerifyEmailPage').then((m) => ({ default: m.VerifyEmailPage })));
 const NotFoundLazy = lazy(() => import('./components/NotFound').then((m) => ({ default: m.NotFoundPage })));
 const CommandPaletteLazy = lazy(() => import('./components/CommandPalette').then((m) => ({ default: m.CommandPalette })));
 
@@ -241,6 +242,14 @@ export default function App() {
               element={
                 <RouteBoundary fallback={<div role="status" aria-label="Loading reset password" aria-busy="true" style={{ padding: 24 }}><span className="sr-only">Loading reset password…</span><div aria-hidden="true" style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 400 }}><Skeleton style={{ width: 140, height: 20 }} /><Skeleton style={{ width: "100%", height: 44, borderRadius: 8 }} /><Skeleton style={{ width: "100%", height: 44, borderRadius: 8 }} /><Skeleton style={{ width: "100%", height: 44, borderRadius: 8 }} /></div></div>}>
                   <ResetPasswordPageLazy />
+                </RouteBoundary>
+              }
+            />
+            <Route
+              path="/verify-email"
+              element={
+                <RouteBoundary fallback={<div role="status" aria-label="Loading email verification" aria-busy="true" style={{ padding: 24 }}><span className="sr-only">Loading email verification…</span><div aria-hidden="true" style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 400 }}><Skeleton style={{ width: 140, height: 20 }} /><Skeleton style={{ width: "100%", height: 44, borderRadius: 8 }} /><Skeleton style={{ width: "100%", height: 44, borderRadius: 8 }} /></div></div>}>
+                  <VerifyEmailPageLazy />
                 </RouteBoundary>
               }
             />

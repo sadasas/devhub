@@ -36,6 +36,7 @@ import {
   updateTeamSlugWithHistory,
 } from '../infrastructure/teamRepository.js';
 import { assertMemberQuota } from '../../plans/application/quotaService.js';
+import { enqueueMail } from '../../mail/outbox.js';
 import {
   TEAM_SLUG_MAX_LENGTH,
   TEAM_SLUG_MIN_LENGTH,
@@ -433,6 +434,8 @@ export async function inviteMember(userId: string, teamId: string, body: unknown
       throw err;
     },
   );
+  // M31: beritahu invitee via email (in-app saja tidak cukup — invitee harus login dulu untuk tahu).
+  await enqueueMail(email, 'invite', { teamName: row.name, role, expiresDays: 7 });
   return {
     invitation: {
       id: inv.id,

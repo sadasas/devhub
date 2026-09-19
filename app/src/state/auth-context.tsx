@@ -65,10 +65,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const register = useCallback(async (email: string, password: string) => {
+    // T6 hard gate: register TIDAK auto-login dan TIDAK set user.
+    // AuthPage menampilkan layar "cek email"; user masuk setelah verifikasi + login.
     await api.register(email, password);
-    const u = await api.me();
-    setUser(u);
-    void putMeta('user', u).catch(() => {});
   }, []);
 
   const logout = useCallback(async () => {

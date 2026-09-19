@@ -691,6 +691,8 @@ export interface User {
   createdAt: string;
   avatarUrl?: string | null;
   emailVerified?: boolean;
+  /** Deadline grace period user lama (ISO) — null = hard gate / sudah verified. Untuk banner UI (T6/T7). */
+  graceUntil?: string | null;
   hasPassword?: boolean;
   providers?: string[];
 }

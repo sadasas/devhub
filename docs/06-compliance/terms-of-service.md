@@ -25,6 +25,7 @@ We may change, suspend, or discontinue any part of the Service (including featur
 ## 3. Your Account
 
 - You must provide a valid email address and accurate registration information.
+- **Email verification is required:** after registering you must click the verification link (valid 24 hours) before you can log in. Accounts created before this rule took effect had a 14-day grace period; unverified accounts past their deadline cannot log in until verified.
 - You are responsible for keeping your credentials confidential and for all activity under your account.
 - You must be at least 16 years old (or the minimum age in your jurisdiction) to use the Service.
 - One person may maintain one account; creating accounts to evade restrictions is prohibited.
@@ -79,6 +80,7 @@ The Service may integrate with third-party services only when **you** configure 
 
 - **AI coding agents** (via MCP) with **your** authorization, revocable via Profile → Authorized Apps. You are responsible for what you share through them.
 - **Pakasir** for payments (§5) and **Google/GitHub** for optional social login. Their terms and privacy policies apply to their pages/services.
+- **Resend** for transactional account emails (registration verification, password reset, team invitations) — operated by us, not configured by you; see Privacy Policy §2.4. Email delivery depends on your mail provider; check spam if a link does not arrive.
 
 ---
 

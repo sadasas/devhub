@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../src/app.js';
+import { pool } from '../src/db/pool.js';
 import { resetDb } from './setup.js';
 
 const app = createApp();
@@ -12,12 +13,27 @@ function uniqueIp(): string {
 }
 
 async function register(email: string): Promise<string> {
+  // T6 hard gate: selesaikan verifikasi lalu login (kontrak: return cookie).
   const res = await request(app)
     .post('/api/v1/auth/register')
     .set('X-Forwarded-For', uniqueIp())
     .send({ email, password: 'password123' });
   expect(res.status).toBe(201);
-  const cookie = (res.headers['set-cookie'] as unknown as string[] | undefined)?.[0];
+  const tok = await pool.query<{ token: string }>(
+    'SELECT t.token FROM email_verify_tokens t JOIN users u ON u.id = t.user_id WHERE u.email = $1 AND t.used_at IS NULL',
+    [email],
+  );
+  expect(tok.rows[0]?.token).toBeDefined();
+  await request(app)
+    .post('/api/v1/auth/verify-email')
+    .set('X-Forwarded-For', uniqueIp())
+    .send({ token: tok.rows[0]!.token });
+  const login = await request(app)
+    .post('/api/v1/auth/login')
+    .set('X-Forwarded-For', uniqueIp())
+    .send({ email, password: 'password123' });
+  expect(login.status).toBe(200);
+  const cookie = (login.headers['set-cookie'] as unknown as string[] | undefined)?.[0];
   expect(cookie).toBeDefined();
   return cookie!.split(';')[0]!;
 }

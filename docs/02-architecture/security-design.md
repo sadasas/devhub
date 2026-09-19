@@ -42,7 +42,7 @@
 
 - Algorithm: bcryptjs, cost factor **12** (≥ 10 minimum enforced in code).
 - Policy: min length 8, max 72 (bcrypt input limit); email normalized (lowercase, trimmed) + unique constraint.
-- No self-service password reset yet (contact the operator; noted in ToS).
+- Self-service password reset via email (M31): `POST /auth/forgot-password` (rate-limit 5/15m, anti-enumeration — always `{ok:true}`), token 1 jam single-use, link via Resend; token never exposed in API responses. Registration requires email verification (24h link, hard gate; legacy accounts had a 14-day grace period).
 
 ### 3.2 JWT session
 

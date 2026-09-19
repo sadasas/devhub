@@ -12,12 +12,30 @@ export function uniqueIp(): string {
 }
 
 export async function register(email: string): Promise<string> {
+  // T6 hard gate: register TIDAK auto-login — selesaikan verifikasi lalu login,
+  // agar kontrak helper (return session cookie) tetap sama untuk semua test.
   const res = await request(app)
     .post('/api/v1/auth/register')
     .set('X-Forwarded-For', uniqueIp())
     .send({ email, password: 'password123' });
   expect(res.status).toBe(201);
-  const cookie = (res.headers['set-cookie'] as unknown as string[] | undefined)?.[0];
+  const tok = await pool.query<{ token: string }>(
+    'SELECT t.token FROM email_verify_tokens t JOIN users u ON u.id = t.user_id WHERE u.email = $1 AND t.used_at IS NULL',
+    [email],
+  );
+  const token = tok.rows[0]?.token;
+  expect(token).toBeDefined();
+  const verify = await request(app)
+    .post('/api/v1/auth/verify-email')
+    .set('X-Forwarded-For', uniqueIp())
+    .send({ token });
+  expect(verify.status).toBe(200);
+  const login = await request(app)
+    .post('/api/v1/auth/login')
+    .set('X-Forwarded-For', uniqueIp())
+    .send({ email, password: 'password123' });
+  expect(login.status).toBe(200);
+  const cookie = (login.headers['set-cookie'] as unknown as string[] | undefined)?.[0];
   expect(cookie).toBeDefined();
   return cookie!.split(';')[0]!;
 }

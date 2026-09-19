@@ -41,6 +41,25 @@ async function main() {
     }, 60_000);
     timer.unref();
   }
+  // M31 mail outbox worker: interval in-process 60s (tanpa cron lib baru).
+  // - Di-skip saat NODE_ENV=test agar suite vitest deterministik.
+  // - Di-skip saat MAIL_ENABLED=false (kill-switch: antrean ditahan, tidak kirim).
+  // - Nonaktifkan via MAIL_OUTBOX_POLL=false bila scheduler eksternal
+  //   memanggil POST /api/v1/mail/outbox/process.
+  // - Aman multi-instance: SELECT ... FOR UPDATE SKIP LOCKED membuat
+  //   double-process tidak mengambil baris yang sama.
+  if (config.NODE_ENV !== 'test' && config.MAIL_ENABLED && process.env.MAIL_OUTBOX_POLL !== 'false') {
+    const mailTimer = setInterval(() => {
+      void import('./modules/mail/outbox.js')
+        .then((m) => m.processMailOutbox())
+        .catch((err: unknown) => {
+          logger.warn('mail outbox poll failed', {
+            error: err instanceof Error ? err.message : String(err),
+          });
+        });
+    }, 60_000);
+    mailTimer.unref();
+  }
   server.listen(config.PORT, () => {
     logger.info('devhub-server listening', { port: config.PORT, env: config.NODE_ENV });
   });

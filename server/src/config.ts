@@ -64,6 +64,14 @@ const envSchema = z.object({
         .filter(Boolean),
     ),
   MCP_KEY_ENC_KEY: z.string().max(500).default(''),
+  // Transactional email via Resend (041_mail_outbox, ADR accepted 2026-09-19).
+  // MAIL_ENABLED=false (default) = antrean ditahan, tidak ada kirim keluar.
+  RESEND_API_KEY: z.string().max(500).default(''),
+  MAIL_FROM: z.string().max(500).default(''),
+  MAIL_ENABLED: z
+    .string()
+    .default('false')
+    .transform((v) => v === 'true'),
 });
 
 export type Config = z.infer<typeof envSchema>;
