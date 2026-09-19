@@ -189,6 +189,7 @@ is reserved for floating layers.
 | 2026-09-15 | Settings: halaman 1-page → shell 2-pane (sidebar + `?section=` general/plan/usage/danger/github, satu section dirender); nav reuse rank `sidebar-item`, ikon 15px duotone, search + `aria-current`; item GitHub + badge Segera + panel teaser (depan: repo link DEF-013) |
 | 2026-09-15 | Panel konten 1 CSS tunggal semua page: override khusus `.dashboard__members/.dashboard__settings` (overflow + padding-bottom 24px) DIHAPUS; seluruh aturan ukuran panel hanya di blok kanonis pcard (flex-fill + tabpanel); terbukti Chromium 1280×720 (settings 640 vs templates 660); board/kanban tanpa pcard tidak tersentuh |
 | 2026-09-15 | Settings search: indeks keyword sub-setting per section (`SETTINGS_SUB_KEYS`, label i18n) + hint "Cocok: …" (11px muted) + clear-on-navigate; mis. "url" → Umum |
+| 2026-09-19 | `erd-group-label`, `erd-rail-label`, `versions-title-row` (dari ERD hardening main) didaftar di ALLOWLIST guard-css (grandfathered, gate kembali hijau) |
 
 ---
 
