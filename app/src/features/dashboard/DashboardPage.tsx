@@ -498,7 +498,7 @@ export function DashboardPage() {
   const filteredEmpty = !loading && teamProjects !== null && teamProjects.length > 0 && filteredSorted.length === 0;
 
   // Shared by manual Next, auto-advance, and resume: jump into the newest
-  // project of the active team and resume the tour at the Board step.
+  // project of the active team and resume the tour at the Plan step.
   const advanceFromProjectStep = () => {
     if (!teamProjects || teamProjects.length === 0) return false;
     const first = [...teamProjects].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))[0];
@@ -527,12 +527,6 @@ export function DashboardPage() {
   }, [tourCanAutoStart, loading]);
 
   const handleTourNext = () => {
-    // Step 1 (team) has no anchor on the workspace page — skip straight to
-    // the sidebar-anchored project step when a team already exists.
-    if (tour.step === 1 && !teamsEmpty) {
-      tour.goTo(2);
-      return;
-    }
     if (tour.step === 2 && advanceFromProjectStep()) return;
     tour.next();
   };
@@ -1007,7 +1001,7 @@ export function DashboardPage() {
       />
       <CreateTeamModal open={teamCreateOpen} onClose={() => setTeamCreateOpen(false)} />
 
-      {tour.active && tour.step <= 2 && (
+      {tour.active && (
         <OnboardingWizard
           step={tour.step}
           total={tour.total}

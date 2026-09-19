@@ -8,7 +8,7 @@ export const TOUR_SKIPPED_KEY = 'devhub:tour:skipped';
 export const TOUR_FINISHED_KEY = 'devhub:tour:finished';
 export const TOUR_STEP_KEY = 'devhub:tour:step';
 
-export const TOUR_TOTAL = 13;
+export const TOUR_TOTAL = 7;
 
 let tourActiveFlag = false;
 const listeners = new Set<() => void>();

@@ -25,10 +25,7 @@ export function WelcomeHeader({ displayName, projectCount, openIssuesTotal, outd
         </h1>
         <p className="page-subtitle">{subtitle}</p>
       </div>
-      {/* Tour anchor note: the canonical step-2 anchor is the sidebar New
-          project button; this dashboard button is intentionally -alt so the
-          spotlight never splits between two identical targets. */}
-      <Button size="md" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={onNewProject} data-tour-id="create-project-alt">
+      <Button size="md" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={onNewProject} data-tour-id="create-project">
         {t('dashboard.newProject')}
       </Button>
     </header>

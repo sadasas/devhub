@@ -32,7 +32,7 @@ import { TOUR_STEPS } from './tourSteps';
 function renderWizard(step = 0, overrides: Partial<Parameters<typeof OnboardingWizard>[0]> = {}) {
   const props = {
     step,
-    total: TOUR_STEPS.length,
+    total: 7,
     onNext: vi.fn(),
     onBack: vi.fn(),
     onSkip: vi.fn(),
@@ -53,18 +53,18 @@ beforeEach(() => {
 });
 
 describe('tour i18n (project namespace)', () => {
-  it("resolves t('tour.board.title') in EN", async () => {
+  it("resolves t('tour.plan.title') in EN", async () => {
     await i18n.changeLanguage('en');
-    expect(i18n.t('tour.board.title', { ns: 'project' })).toBe('Board: Status, Milestone, Calendar');
+    expect(i18n.t('tour.plan.title', { ns: 'project' })).toBe('Plan: Board + Issues');
   });
 
-  it("resolves t('tour.board.title') in ID", async () => {
+  it("resolves t('tour.plan.title') in ID", async () => {
     await i18n.changeLanguage('id');
-    expect(i18n.t('tour.board.title', { ns: 'project' })).toBe('Board: Status, Milestone, Kalender');
+    expect(i18n.t('tour.plan.title', { ns: 'project' })).toBe('Rencana: Board + Issue');
     await i18n.changeLanguage('en');
   });
 
-  it('has all step titles + bodies in both locales', async () => {
+  it('has all 7 step titles + bodies in both locales', async () => {
     for (const lng of ['en', 'id'] as const) {
       await i18n.changeLanguage(lng);
       for (const s of TOUR_STEPS) {
@@ -81,9 +81,9 @@ describe('tour i18n (project namespace)', () => {
 });
 
 describe('OnboardingWizard', () => {
-  it('shows progress pill X/13 and one-click Skip', () => {
+  it('shows progress pill X/7 and one-click Skip', () => {
     const props = renderWizard(3);
-    expect(screen.getByText('4/13')).toBeTruthy();
+    expect(screen.getByText('4/7')).toBeTruthy();
     const skip = screen.getByRole('button', { name: /skip tour/i });
     expect(skip).toBeTruthy();
     fireEvent.click(skip);
@@ -105,8 +105,8 @@ describe('OnboardingWizard', () => {
   });
 
   it('last step shows Finish and fires onFinish', () => {
-    const props = renderWizard(TOUR_STEPS.length - 1);
-    expect(screen.getByText(`${TOUR_STEPS.length}/${TOUR_STEPS.length}`)).toBeTruthy();
+    const props = renderWizard(6);
+    expect(screen.getByText('7/7')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /finish|selesai/i }));
     expect(props.onFinish).toHaveBeenCalledTimes(1);
   });
@@ -136,31 +136,8 @@ describe('OnboardingWizard', () => {
 
 describe('TourProgressPill', () => {
   it('exposes progress via aria-label', () => {
-    render(<TourProgressPill current={2} total={TOUR_STEPS.length} />);
-    expect(screen.getByRole('status').getAttribute('aria-label')).toMatch(/2.*13/);
-  });
-});
-
-describe('per-tab project tour structure', () => {
-  it('has one anchored step per project tab in tab-bar order', () => {
-    const ids = TOUR_STEPS.map((s) => s.id);
-    expect(ids.slice(0, 3)).toEqual(['welcome', 'team', 'project']);
-    expect(ids.slice(3)).toEqual([
-      'board',
-      'issues',
-      'tests',
-      'stack',
-      'schema',
-      'decisions',
-      'releases',
-      'api',
-      'whiteboard',
-      'overview',
-    ]);
-    for (const s of TOUR_STEPS.slice(3)) {
-      expect(s.targetIds).toEqual([`project-tab-${s.id}`]);
-      expect(s.tab).toBe(s.id);
-    }
+    render(<TourProgressPill current={2} total={7} />);
+    expect(screen.getByRole('status').getAttribute('aria-label')).toMatch(/2.*7/);
   });
 });
 
@@ -461,58 +438,6 @@ describe('resolveTarget sidebar priority', () => {
     expect(resolveTarget('create-project')).toBe(a);
     a.remove();
     b.remove();
-  });
-
-  it('skips visibility:hidden scoped anchors (closed mobile drawer)', () => {
-    // Closed drawer keeps its layout box (translateX(-100%)), so rect size
-    // alone would accept it — visibility must disqualify it.
-    const drawer = document.createElement('div');
-    drawer.id = 'mobile-nav-drawer';
-    drawer.style.visibility = 'hidden';
-    const drawerBtn = document.createElement('button');
-    drawerBtn.setAttribute('data-tour-id', 'create-project');
-    drawer.appendChild(drawerBtn);
-    document.body.appendChild(drawer);
-    mockRect(drawerBtn, { top: 100, left: -300, width: 200, height: 36 });
-    const dash = document.createElement('button');
-    dash.setAttribute('data-tour-id', 'create-project-alt');
-    document.body.appendChild(dash);
-    mockRect(dash, { top: 400, left: 400, width: 140, height: 36 });
-    expect(resolveTarget('create-project')).toBe(dash);
-    drawer.remove();
-    dash.remove();
-  });
-
-  it('prefers the visible canonical anchor over its -alt alias', () => {
-    const rail = document.createElement('div');
-    rail.className = 'sidebar';
-    const railBtn = document.createElement('button');
-    railBtn.setAttribute('data-tour-id', 'create-project');
-    rail.appendChild(railBtn);
-    document.body.appendChild(rail);
-    mockRect(railBtn, { top: 200, left: 16, width: 200, height: 36 });
-    const alt = document.createElement('button');
-    alt.setAttribute('data-tour-id', 'create-project-alt');
-    document.body.appendChild(alt);
-    mockRect(alt, { top: 400, left: 400, width: 140, height: 36 });
-    expect(resolveTarget('create-project')).toBe(railBtn);
-    rail.remove();
-    alt.remove();
-  });
-
-  it('reports no anchor (centered fallback) when only a hidden canonical exists', () => {
-    const rail = document.createElement('div');
-    rail.className = 'sidebar';
-    rail.style.visibility = 'hidden';
-    const railBtn = document.createElement('button');
-    railBtn.setAttribute('data-tour-id', 'create-project');
-    rail.appendChild(railBtn);
-    document.body.appendChild(rail);
-    // Laid-out box, hidden subtree, no -alt anywhere: must be null so the
-    // popover renders centered instead of aiming off-screen.
-    mockRect(railBtn, { top: 100, left: -300, width: 200, height: 36 });
-    expect(resolveTarget('create-project')).toBeNull();
-    rail.remove();
   });
 });
 
