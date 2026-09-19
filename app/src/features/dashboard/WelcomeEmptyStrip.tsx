@@ -38,8 +38,7 @@ export function WelcomeEmptyNoProject({
       <h3 className="welcome-empty-title">{teamName ? t('dashboard.welcome.empty.noProjectIn', { name: teamName }) : t('dashboard.welcome.empty.noProjectTitle')}</h3>
       <p className="welcome-empty-desc">{t('dashboard.welcome.empty.noProjectDesc')}</p>
       <div className="welcome-empty-actions">
-        {/* -alt: canonical step-2 anchor lives in the sidebar (see WelcomeHeader note). */}
-        <Button size="md" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={onCreate} data-tour-id="create-project-alt">
+        <Button size="md" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={onCreate} data-tour-id="create-project">
           {t('dashboard.welcome.empty.createProject')}
         </Button>
         {onImport && (

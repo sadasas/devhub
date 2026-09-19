@@ -15,12 +15,6 @@ export interface ProjectTabNavProps {
   active: string;
   onSelect: (id: string) => void;
   unread: Record<string, number | { new: number; deleted: number; total: number }>;
-  /**
-   * Id tab yang dipaksa selalu tampil (tidak masuk menu More).
-   * Dipakai tour onboarding agar anchor spotlight tidak hilang saat
-   * viewport sempit — tab target step selalu terukur di bar utama.
-   */
-  forceVisibleIds?: ReadonlyArray<string>;
 }
 
 type UnreadCount = { new: number; deleted: number; total: number };
@@ -73,7 +67,7 @@ function TabBadge({ tabId, label, count }: { tabId: string; label: string; count
  * path to avoid resize → scroll → observe feedback loops (flicker).
  * Roving Arrow/Home/End is preserved; Alt+1..0 stays in useTabShortcuts.
  */
-export function ProjectTabNav({ tabs, active, onSelect, unread, forceVisibleIds }: ProjectTabNavProps) {
+export function ProjectTabNav({ tabs, active, onSelect, unread }: ProjectTabNavProps) {
   const { t } = useTranslation('project');
   const navRef = useRef<HTMLElement | null>(null);
   const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
@@ -95,16 +89,13 @@ export function ProjectTabNav({ tabs, active, onSelect, unread, forceVisibleIds 
   }, []);
 
   const overflowSet = useMemo(() => new Set<string>(overflowIds), [overflowIds]);
-  // Force-visible ids behave like the active tab: pinned to the main row so
-  // the tour spotlight always has a laid-out anchor (never stuck in More).
-  const forceSet = useMemo(() => new Set<string>(forceVisibleIds ?? []), [forceVisibleIds]);
   const visibleTabs = useMemo(
-    () => tabs.filter((tab) => tab.id === active || forceSet.has(tab.id) || !overflowSet.has(tab.id)),
-    [tabs, active, forceSet, overflowSet],
+    () => tabs.filter((tab) => tab.id === active || !overflowSet.has(tab.id)),
+    [tabs, active, overflowSet],
   );
   const hiddenTabs = useMemo(
-    () => tabs.filter((tab) => tab.id !== active && !forceSet.has(tab.id) && overflowSet.has(tab.id)),
-    [tabs, active, forceSet, overflowSet],
+    () => tabs.filter((tab) => tab.id !== active && overflowSet.has(tab.id)),
+    [tabs, active, overflowSet],
   );
 
   const focusTab = useCallback((id: string) => {
@@ -130,12 +121,9 @@ export function ProjectTabNav({ tabs, active, onSelect, unread, forceVisibleIds 
       setOverflowNext([]);
       return;
     }
-    // Normalize: drop ids that no longer exist, equal active, or are
-    // force-visible (active + forced are pinned visible, never in More).
+    // Normalize: drop ids that no longer exist or equal active (active is pinned visible).
     const valid = new Set(tabs.map((tab) => tab.id));
-    const current = overflowIdsRef.current.filter(
-      (id) => id !== active && !forceSet.has(id) && valid.has(id),
-    );
+    const current = overflowIdsRef.current.filter((id) => id !== active && valid.has(id));
     if (current.length !== overflowIdsRef.current.length) {
       const order = new Map(tabs.map((tab, index) => [tab.id, index] as const));
       const sorted = [...current].sort((a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0));
@@ -167,12 +155,12 @@ export function ProjectTabNav({ tabs, active, onSelect, unread, forceVisibleIds 
       }
       return;
     }
-    // Overflow: move the last visible non-active, non-forced tab into the
-    // menu, preserving tabs order inside the overflow list.
+    // Overflow: move the last visible non-active tab into the menu,
+    // preserving tabs order inside the overflow list.
     const visibleInOrder = tabs.filter((tab) => tab.id === active || !current.includes(tab.id));
     for (let i = visibleInOrder.length - 1; i >= 0; i -= 1) {
       const candidate = visibleInOrder[i];
-      if (!candidate || candidate.id === active || forceSet.has(candidate.id)) continue;
+      if (!candidate || candidate.id === active) continue;
       const id = candidate.id;
       if (current.includes(id)) return;
       const next = [...current, id];
@@ -181,7 +169,7 @@ export function ProjectTabNav({ tabs, active, onSelect, unread, forceVisibleIds 
       setOverflowNext(next);
       return;
     }
-  }, [tabs, active, forceSet, setOverflowNext]);
+  }, [tabs, active, setOverflowNext]);
 
   const scheduleMeasure = useCallback(() => {
     cancelAnimationFrame(rafRef.current);

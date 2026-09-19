@@ -63,40 +63,7 @@ function elementRect(el: Element): AnchorRect {
 
 function isLaidOut(el: Element): boolean {
   const r = elementRect(el);
-  if (r.width <= 0 || r.height <= 0) return false;
-  return isSubtreeVisible(el);
-}
-
-/**
- * Off-canvas chrome (mobile drawer closed = translateX(-100%) +
- * visibility:hidden) keeps its full layout box, so rect size alone would
- * accept an invisible anchor and the spotlight would cut a hole off-screen.
- * Reject hidden subtrees. Prefers the native checkVisibility API, falling
- * back to a manual ancestor walk (also jsdom-testable).
- */
-function isSubtreeVisible(el: Element): boolean {
-  try {
-    const checker = (
-      el as unknown as {
-        checkVisibility?: (opts?: { checkVisibilityCSS?: boolean }) => boolean;
-      }
-    ).checkVisibility;
-    if (typeof checker === 'function') {
-      return checker.call(el, { checkVisibilityCSS: true });
-    }
-  } catch {
-    // Engine quirk — fall through to the manual walk below.
-  }
-  try {
-    let cur: Element | null = el;
-    while (cur) {
-      if (getComputedStyle(cur).visibility === 'hidden') return false;
-      cur = cur.parentElement;
-    }
-  } catch {
-    // Style API unavailable (SSR) — treat as visible.
-  }
-  return true;
+  return r.width > 0 && r.height > 0;
 }
 
 /**
@@ -106,20 +73,8 @@ function isSubtreeVisible(el: Element): boolean {
  * at the sidebar — not the big dashboard button. Falls back to any visible
  * match (e.g. dashboard when the drawer is closed), then to the first
  * match regardless of layout (jsdom / not yet measured).
- * Final fallback: the `{id}-alt` alias (dashboard duplicates kept
- * intentionally un-targeted so the spotlight never splits). This is what
- * saves mobile step 2: the closed drawer is visibility:hidden (rejected
- * by isLaidOut) while the dashboard -alt button is on screen.
  */
 export function resolveTarget(id: string): HTMLElement | null {
-  try {
-    return resolveTargetIn(id) ?? resolveTargetIn(`${id}-alt`);
-  } catch {
-    return null;
-  }
-}
-
-function resolveTargetIn(id: string): HTMLElement | null {
   try {
     const byId = document.getElementById(id);
     if (byId) return byId;
@@ -129,25 +84,10 @@ function resolveTargetIn(id: string): HTMLElement | null {
       if (scoped && isLaidOut(scoped)) return scoped;
     }
     const all = Array.from(document.querySelectorAll(sel)) as HTMLElement[];
-    const seen = all.find((el) => isLaidOut(el));
-    if (seen) return seen;
-    // Nothing measurable: fall back to the first match ONLY when no match
-    // is positively hidden (laid-out box + hidden subtree, e.g. the closed
-    // mobile drawer). A hidden match means the anchor exists but is
-    // off-screen — returning it would aim the spotlight at nothing, so
-    // report "no anchor" and let the caller try the -alt alias (or the
-    // centered fallback) instead.
-    if (all.some(isPositivelyHidden)) return null;
-    return all[0] ?? null;
+    return all.find((el) => isLaidOut(el)) ?? all[0] ?? null;
   } catch {
     return null;
   }
-}
-
-/** Laid-out box with a hidden subtree — off-screen chrome, never an anchor. */
-function isPositivelyHidden(el: Element): boolean {
-  const r = elementRect(el);
-  return r.width > 0 && r.height > 0 && !isSubtreeVisible(el);
 }
 
 export function resolveTargets(ids: string[]): HTMLElement[] {
