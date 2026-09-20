@@ -3,7 +3,7 @@ import { MarkdownBlocks } from "../../lib/markdown";
 import { MILESTONE_STATUS } from "../../lib/labels";
 import type { Milestone, Task } from "../../lib/types";
 import { shortId } from "../../lib/utils";
-import { Check, Rocket } from "@phosphor-icons/react";
+import { Check, Clock, Rocket } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
 
 interface Props {
@@ -77,7 +77,7 @@ export function ReleasesTimelineView({ milestones, tasks, onSelect, unreadIds, s
               )}
             </div>
             <div className={"timeline-dot " + dotForStatus(m.status)} aria-hidden="true">
-              {m.status === "released" ? <Check size={14} weight="bold" /> : m.status === "inProgress" ? <Rocket size={14} weight="fill" /> : null}
+              {m.status === "released" ? <Check size={14} weight="bold" /> : m.status === "inProgress" ? <Rocket size={14} weight="fill" /> : <Clock size={14} />}
             </div>
             {readOnly || !onSelect ? (
               // Publik: div statis — tidak ada button tanpa aksi (P2 fail-closed).

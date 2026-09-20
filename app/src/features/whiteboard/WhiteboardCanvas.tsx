@@ -53,6 +53,7 @@ import { useProjectOptional } from '../../state/project-context';
 import { useNavigate } from 'react-router';
 import { entityDeepLink } from '../../lib/deep-link';
 import { newId } from '../../lib/utils';
+import { FE_LIMITS } from '../../lib/limits';
 import {
   alignmentGuides,
   alignSelection,
@@ -130,6 +131,7 @@ import { AlignDropdown, ColorDropdown, DropCaret, DropdownShell, FontDropdown, S
 import { SHAPE_LIBRARY_TABS } from './libraries';
 import { ShapeThumb } from './ShapeThumb';
 import { RefPicker } from './RefPicker';
+import { Button } from '../../components/Button';
 import { Tooltip } from '../../components/Tooltip';
 import { BottomSheet } from '../../components/BottomSheet';
 import { WhiteboardContextMenu } from './WhiteboardContextMenu';
@@ -2962,47 +2964,43 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       </svg>
       {!hideChrome && (
       <div className="erd-zoom" role="group" aria-label={t('whiteboard.canvas.zoomGroup')}>
-        <Tooltip content={t('whiteboard.canvas.zoomIn')} side="top">
-          <button
-            type="button"
-            className="erd-zoom-btn"
-            aria-label={t('whiteboard.canvas.zoomIn')}
-              onClick={() => view.zoomAt(1.25)}
-          >
-            <MagnifyingGlassPlus size={15} aria-hidden="true" />
-          </button>
-        </Tooltip>
-        <Tooltip content={t('whiteboard.canvas.zoomOut')} side="top">
-          <button
-            type="button"
-            className="erd-zoom-btn"
-            aria-label={t('whiteboard.canvas.zoomOut')}
-              onClick={() => view.zoomAt(1 / 1.25)}
-          >
-            <MagnifyingGlassMinus size={15} aria-hidden="true" />
-          </button>
-        </Tooltip>
-        <Tooltip content={t('whiteboard.shortcuts.open')} side="top">
-          <button
-            type="button"
-            className="erd-zoom-btn"
-            aria-label={t('whiteboard.shortcuts.open')}
-            aria-haspopup="dialog"
-            onClick={() => onOpenShortcutsProp?.()}
-          >
-            <Keyboard size={15} aria-hidden="true" />
-          </button>
-        </Tooltip>
-        <Tooltip content={t('whiteboard.canvas.resetView')} side="top">
-          <button
-            type="button"
-            className="erd-zoom-btn"
-            aria-label={t('whiteboard.canvas.resetView')}
-            onClick={() => view.resetView()}
-          >
-            <CornersOut size={15} aria-hidden="true" />
-          </button>
-        </Tooltip>
+        <Button
+          variant="secondary"
+          size="sm"
+          aria-label={t('whiteboard.canvas.zoomIn')}
+          title={t('whiteboard.canvas.zoomIn')}
+          onClick={() => view.zoomAt(1.2)}
+        >
+          <MagnifyingGlassPlus size={13} aria-hidden="true" />
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          aria-label={t('whiteboard.canvas.zoomOut')}
+          title={t('whiteboard.canvas.zoomOut')}
+          onClick={() => view.zoomAt(1 / 1.2)}
+        >
+          <MagnifyingGlassMinus size={13} aria-hidden="true" />
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          aria-label={t('whiteboard.shortcuts.open')}
+          title={t('whiteboard.shortcuts.open')}
+          aria-haspopup="dialog"
+          onClick={() => onOpenShortcutsProp?.()}
+        >
+          <Keyboard size={13} aria-hidden="true" />
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          aria-label={t('whiteboard.canvas.resetView')}
+          title={t('whiteboard.canvas.resetView')}
+          onClick={() => view.resetView()}
+        >
+          <CornersOut size={13} aria-hidden="true" />
+        </Button>
       </div>
       )}
       {canEdit && !hideChrome && selectedIds.length > 0 && (() => {
@@ -3530,7 +3528,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
             autoFocus
             rows={Math.max(1, editingText.value.split('\n').length)}
             value={editingText.value}
-            maxLength={el.kind === 'text' ? 1000 : el.kind === 'sticky' ? 500 : 200}
+            maxLength={el.kind === 'text' ? FE_LIMITS.WHITEBOARD_TEXT : el.kind === 'sticky' ? FE_LIMITS.WHITEBOARD_STICKY : FE_LIMITS.WHITEBOARD_LABEL}
             onChange={(e) => setEditingText({ id: editingText.id, value: e.target.value })}
             onBlur={commitTextEdit}
             onKeyDown={(e) => {

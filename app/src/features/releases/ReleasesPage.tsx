@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useProject } from "../../state/project-context";
 import { useEntityDeepLink } from "../../hooks/useEntityDeepLink";
@@ -64,21 +64,33 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
   const milestonesForHook = state?.milestones ?? [];
   const { rview, mid, setRview, setMid } = useRviewParam(milestonesForHook);
   const isNarrow = useIsReleasesNarrow();
+  const tabListRef = useRef<HTMLButtonElement>(null);
+  const tabTimelineRef = useRef<HTMLButtonElement>(null);
+  const handleRviewKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      e.preventDefault();
+      const next = rview === "list" ? ("timeline" as const) : ("list" as const);
+      setRview(next);
+      (next === "list" ? tabListRef : tabTimelineRef).current?.focus();
+    },
+    [rview, setRview],
+  );
 
   if (loading) {
     return (
       <>
-      <div className="data-list-header releases-toolbar" aria-hidden="true">
-        <span className="releases-header-left" style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <Skeleton style={{ width: 90, height: 13 }} />
-          <span style={{ display: "flex", gap: 4 }}>
-            <Skeleton style={{ width: 72, height: 28, borderRadius: 8 }} />
-            <Skeleton style={{ width: 84, height: 28, borderRadius: 8 }} />
-          </span>
-        </span>
+      <div className="data-list-header" aria-hidden="true">
+        <Skeleton style={{ width: 90, height: 13 }} />
         <span className="data-list-actions" style={{ display: "flex", gap: 8 }}>
           <Skeleton style={{ width: 110, height: 28, borderRadius: 8 }} />
           <Skeleton style={{ width: 96, height: 28, borderRadius: 8 }} />
+        </span>
+      </div>
+      <div className="releases-subtabs-row" aria-hidden="true">
+        <span style={{ display: "flex", gap: 4 }}>
+          <Skeleton style={{ width: 72, height: 28, borderRadius: 8 }} />
+          <Skeleton style={{ width: 84, height: 28, borderRadius: 8 }} />
         </span>
       </div>
       {rview === "timeline" ? (
@@ -169,20 +181,14 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
 
   return (
     <div className="releases-page">
-      <div className="data-list-header releases-toolbar">
-        <span className="releases-header-left">
+      <div className="data-list-header">
+        {!isNarrow ? (
           <span className="data-list-count">{t("releases.count", { count: state.milestones.length })}</span>
-          <div className="sub-tabs releases-view-toggle" role="tablist" aria-label={t("releases.viewToggle.aria", { defaultValue: "Releases view" })}>
-            <button type="button" role="tab" className={"sub-tab " + (rview === "list" ? "sub-tab-active" : "")} aria-selected={rview === "list"} aria-controls="releases-panel" aria-label={t("releases.viewToggle.list", { defaultValue: "Daftar" })} title={t("releases.viewToggle.list", { defaultValue: "Daftar" })} onClick={() => setRview("list")}>
-              <ListBullets size={13} aria-hidden="true" />
-              <span className="sub-tab-label">{t("releases.viewToggle.list", { defaultValue: "Daftar" })}</span>
-            </button>
-            <button type="button" role="tab" className={"sub-tab " + (rview === "timeline" ? "sub-tab-active" : "")} aria-selected={rview === "timeline"} aria-controls="releases-panel" aria-label={t("releases.viewToggle.timeline", { defaultValue: "Timeline" })} title={t("releases.viewToggle.timeline", { defaultValue: "Timeline" })} onClick={() => setRview("timeline")}>
-              <Clock size={13} aria-hidden="true" />
-              <span className="sub-tab-label">{t("releases.viewToggle.timeline", { defaultValue: "Timeline" })}</span>
-            </button>
-          </div>
-        </span>
+        ) : (
+          <span className="sr-only" role="status">
+            {t("releases.count", { count: state.milestones.length })}
+          </span>
+        )}
         <span className="data-list-actions">
           {rview === "list" && (
             <SortControl
@@ -198,8 +204,47 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
           )}
         </span>
       </div>
+      <div className="releases-subtabs-row">
+        <div className="sub-tabs releases-view-toggle" role="tablist" aria-label={t("releases.viewToggle.aria", { defaultValue: "Releases view" })}>
+          <button
+            ref={tabListRef}
+            type="button"
+            role="tab"
+            id="tab-releases-list"
+            aria-controls="releases-panel"
+            className={"sub-tab " + (rview === "list" ? "sub-tab-active" : "")}
+            aria-selected={rview === "list"}
+            tabIndex={rview === "list" ? 0 : -1}
+            aria-label={t("releases.viewToggle.list", { defaultValue: "Daftar" })}
+            title={t("releases.viewToggle.list", { defaultValue: "Daftar" })}
+            onClick={() => setRview("list")}
+            onKeyDown={handleRviewKeyDown}
+          >
+            <ListBullets size={13} aria-hidden="true" />
+            <span className="sub-tab-label">{t("releases.viewToggle.list", { defaultValue: "Daftar" })}</span>
+          </button>
+          <button
+            ref={tabTimelineRef}
+            type="button"
+            role="tab"
+            id="tab-releases-timeline"
+            aria-controls="releases-panel"
+            className={"sub-tab " + (rview === "timeline" ? "sub-tab-active" : "")}
+            aria-selected={rview === "timeline"}
+            tabIndex={rview === "timeline" ? 0 : -1}
+            aria-label={t("releases.viewToggle.timeline", { defaultValue: "Timeline" })}
+            title={t("releases.viewToggle.timeline", { defaultValue: "Timeline" })}
+            onClick={() => setRview("timeline")}
+            onKeyDown={handleRviewKeyDown}
+          >
+            <Clock size={13} aria-hidden="true" />
+            <span className="sub-tab-label">{t("releases.viewToggle.timeline", { defaultValue: "Timeline" })}</span>
+          </button>
+        </div>
+        <div className="releases-subtabs-actions" />
+      </div>
 
-      <div id="releases-panel" role="tabpanel">
+      <div id="releases-panel" role="tabpanel" aria-labelledby={rview === "list" ? "tab-releases-list" : "tab-releases-timeline"} tabIndex={0}>
         {rview === "list" ? (
           <ReleasesListView
             milestones={sortedMilestones}

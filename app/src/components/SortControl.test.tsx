@@ -27,6 +27,10 @@ describe('SortControl', () => {
     render(<SortControl options={OPTIONS} value={null} onChange={onChange} />);
     fireEvent.click(screen.getByRole('button', { name: /Sort/ }));
     fireEvent.click(screen.getByRole('menuitemradio', { name: 'Created' }));
+    // klik pertama = pending, menu tetap buka, belum ada onChange
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole('menu')).toBeTruthy();
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Created' }));
     expect(onChange).toHaveBeenCalledWith({ key: 'createdAt', dir: 'asc' });
   });
 
@@ -36,6 +40,8 @@ describe('SortControl', () => {
       <SortControl options={OPTIONS} value={{ key: 'name', dir: 'desc' }} onChange={onChange} />,
     );
     fireEvent.click(screen.getByRole('button', { name: /Name/ }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Created' }));
+    expect(onChange).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('menuitemradio', { name: 'Created' }));
     expect(onChange).toHaveBeenCalledWith({ key: 'createdAt', dir: 'desc' });
   });
@@ -75,22 +81,41 @@ describe('SortControl', () => {
     expect(screen.getByRole('button', { name: /Sort/ }).getAttribute('aria-expanded')).toBe('true');
   });
 
-  it('shows the direction group even without an active sort', () => {
+  it('hides the direction group until a key is picked', () => {
     render(<SortControl options={OPTIONS} value={null} onChange={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: /Sort/ }));
-    expect(screen.getByRole('menuitemradio', { name: 'Ascending' })).toBeTruthy();
-    expect(screen.getByRole('menuitemradio', { name: 'Descending' })).toBeTruthy();
+    expect(screen.queryByRole('menuitemradio', { name: 'Ascending' })).toBeNull();
+    expect(screen.queryByRole('menuitemradio', { name: 'Descending' })).toBeNull();
+  });
+
+  it('reveals the direction group neutral after picking a key', () => {
+    render(<SortControl options={OPTIONS} value={null} onChange={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /Sort/ }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Created' }));
+    expect(screen.getByRole('menuitemradio', { name: 'Ascending' }).getAttribute('aria-checked')).toBe('false');
+    expect(screen.getByRole('menuitemradio', { name: 'Descending' }).getAttribute('aria-checked')).toBe('false');
+  });
+
+  it('applies the picked direction for the pending key and closes', () => {
+    const onChange = vi.fn();
+    render(<SortControl options={OPTIONS} value={null} onChange={onChange} />);
+    fireEvent.click(screen.getByRole('button', { name: /Sort/ }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Created' }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Descending' }));
+    expect(onChange).toHaveBeenCalledWith({ key: 'createdAt', dir: 'desc' });
+    expect(screen.queryByRole('menu')).toBeNull();
   });
 
   it('applies direction + key in a single opening', () => {
     const onChange = vi.fn();
     render(<SortControl options={OPTIONS} value={null} onChange={onChange} />);
     fireEvent.click(screen.getByRole('button', { name: /Sort/ }));
-    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Descending' }));
-    // menu tetap buka, belum ada onChange
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Created' }));
+    // menu tetap buka, belum ada onChange — arah baru muncul
     expect(onChange).not.toHaveBeenCalled();
     expect(screen.getByRole('menu')).toBeTruthy();
-    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Created' }));
+    expect(screen.getByRole('menuitemradio', { name: 'Descending' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Descending' }));
     expect(onChange).toHaveBeenCalledWith({ key: 'createdAt', dir: 'desc' });
   });
 

@@ -133,11 +133,15 @@ export function KeysPage() {
         <div className="data-list">
           {apps.map((app) => (
             <div key={app.clientId} className="data-row">
-              <div className="data-row-main">
+              <div className="data-row-top">
                 <div className="data-row-title">
                   <span className="row-title-text">{app.clientName}</span>
                   <span className="key-status-dot" title={t("account:keys.active")} />
                 </div>
+                <span className="data-row-props">
+                  <Button size="sm" variant="danger" loading={revoking === app.clientId} onClick={() => { setRevokeTarget(app); setRevokeError(null); }} leftIcon={<Trash size={14} aria-hidden="true" />}>{t("account:keys.revoke")}</Button>
+                </span>
+              </div>
                 <div className="data-row-meta">
                   <code>{app.tokenPrefix}</code>
                   <span>· {app.scope}</span>
@@ -163,10 +167,6 @@ export function KeysPage() {
                 </div>
                 <div className="data-row-meta">
                   {app.redirectUris[0]} · {new Date(app.createdAt).toLocaleDateString(locale)}
-                </div>
-              </div>
-                <div className="data-row-side">
-                  <Button size="sm" variant="danger" loading={revoking === app.clientId} onClick={() => { setRevokeTarget(app); setRevokeError(null); }} leftIcon={<Trash size={14} aria-hidden="true" />}>{t("account:keys.revoke")}</Button>
                 </div>
             </div>
           ))}
