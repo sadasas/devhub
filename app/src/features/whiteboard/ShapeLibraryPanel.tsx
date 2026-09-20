@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { FE_LIMITS } from '../../lib/limits';
 import type { WhiteboardShape } from '../../lib/types';
 import { Tooltip } from '../../components/Tooltip';
 import { ShapeThumb } from './ShapeThumb';
@@ -114,7 +115,7 @@ export function ShapeLibraryPanel({ onPick, onClose }: ShapeLibraryPanelProps) {
           placeholder={t('whiteboard.shapeLib.search')}
           aria-label={t('whiteboard.shapeLib.searchAria')}
           value={query}
-          maxLength={100}
+          maxLength={FE_LIMITS.SEARCH}
           onChange={(e) => setQuery(e.target.value)}
         />
       </label>

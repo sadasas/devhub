@@ -586,7 +586,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               value={task.description}
               onChange={(v) => update({ description: v })}
               placeholder={t('board.newTaskModal.descriptionPlaceholder')}
-              maxLength={10000}
+              maxLength={LIMITS.TASK_DESCRIPTION}
               rows={4}
               variant="bare"
               previewToggle

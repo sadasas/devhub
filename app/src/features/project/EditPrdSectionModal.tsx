@@ -15,7 +15,7 @@ import { MarkdownField } from '../../components/MarkdownField';
 export type PrdEditKey = 'description' | keyof ProjectPrd;
 
 /** Batas server (zod max 5_000 per seksi) — UI disamakan agar tidak gagal save diam-diam. */
-const SECTION_MAX = 5_000;
+const SECTION_MAX = 2_000;
 
 interface EditPrdSectionModalProps {
   open: boolean;
