@@ -68,6 +68,35 @@ export const REF_LAYOUT = {
   toggle: { w: 14, h: 14, rightOff: 19, topOff: 6 },
 } as const;
 
+/** Per-entity accent for ref cards (border, title, chips, toggle). Single source for canvas + export. */
+export interface RefEntityAccent {
+  color: string;
+  softFill: string;
+  chipFill: string;
+  toggleFill: string;
+}
+const TASK_REF_ACCENT: RefEntityAccent = {
+  color: '#6ea8fe',
+  softFill: 'rgba(110,168,254,0.10)',
+  chipFill: 'rgba(110,168,254,0.18)',
+  toggleFill: 'rgba(110,168,254,0.25)',
+};
+export const REF_ENTITY_ACCENT: Record<string, RefEntityAccent> = {
+  tasks: TASK_REF_ACCENT,
+  issues: { color: '#f2555a', softFill: 'rgba(242,85,90,0.10)', chipFill: 'rgba(242,85,90,0.18)', toggleFill: 'rgba(242,85,90,0.25)' },
+  testCases: { color: '#a78bfa', softFill: 'rgba(167,139,250,0.10)', chipFill: 'rgba(167,139,250,0.18)', toggleFill: 'rgba(167,139,250,0.25)' },
+  milestones: { color: '#34c38e', softFill: 'rgba(52,195,142,0.10)', chipFill: 'rgba(52,195,142,0.18)', toggleFill: 'rgba(52,195,142,0.25)' },
+  techEntries: { color: '#22d3ee', softFill: 'rgba(34,211,238,0.10)', chipFill: 'rgba(34,211,238,0.18)', toggleFill: 'rgba(34,211,238,0.25)' },
+  decisions: { color: '#e8b955', softFill: 'rgba(232,185,85,0.10)', chipFill: 'rgba(232,185,85,0.18)', toggleFill: 'rgba(232,185,85,0.25)' },
+  tables: { color: '#f472b6', softFill: 'rgba(244,114,182,0.10)', chipFill: 'rgba(244,114,182,0.18)', toggleFill: 'rgba(244,114,182,0.25)' },
+  apiCollections: { color: '#fb923c', softFill: 'rgba(251,146,60,0.10)', chipFill: 'rgba(251,146,60,0.18)', toggleFill: 'rgba(251,146,60,0.25)' },
+  apiEndpoints: { color: '#94a3b8', softFill: 'rgba(148,163,184,0.10)', chipFill: 'rgba(148,163,184,0.18)', toggleFill: 'rgba(148,163,184,0.25)' },
+};
+/** Unknown entities fall back to the task (blue) accent. */
+export function refEntityAccent(entity: string): RefEntityAccent {
+  return REF_ENTITY_ACCENT[entity] ?? TASK_REF_ACCENT;
+}
+
 /** One text block of the expanded ref card: baseline of the first line + its wrapped lines. */
 export interface RefCardBlock {
   y: number;
@@ -90,7 +119,8 @@ export function refCardLayout(data: RefCardData): RefCardLayout {
   const { pad, titleH, rowH, descLineH } = REF_LAYOUT;
   const innerW = REF_LAYOUT.expandedW - pad * 2;
   const titleW = innerW - REF_LAYOUT.toggle.rightOff;
-  const titleLines = wrapToWidth(data.title, 12, titleW);
+  // Title renders bold (600) — measure with the same weight or long titles overflow.
+  const titleLines = wrapToWidth(data.title, 12, titleW, Infinity, 600);
   const metaLines = wrapToWidth(data.meta, 10, innerW);
   const subLines = data.sub ? wrapToWidth(data.sub, 10, innerW) : [];
   const countsText = [data.hours, ...data.counts].filter(Boolean).join(' · ');
@@ -144,33 +174,32 @@ export function refCardRect(
 }
 
 /** Truncates a single line to fit maxWidth, appending an ellipsis. */
-export function truncateToWidth(text: string, fontSize: number, maxWidth: number): string {
-  if (approxTextWidth(text, fontSize) <= maxWidth) return text;
+export function truncateToWidth(text: string, fontSize: number, maxWidth: number, weight = 400): string {
+  if (approxTextWidth(text, fontSize, weight) <= maxWidth) return text;
   let lo = 1;
   let hi = text.length;
   while (lo < hi) {
     const mid = (lo + hi + 1) >> 1;
-    if (approxTextWidth(text.slice(0, mid), fontSize) <= maxWidth) lo = mid;
+    if (approxTextWidth(text.slice(0, mid), fontSize, weight) <= maxWidth) lo = mid;
     else hi = mid - 1;
   }
   return `${text.slice(0, Math.max(1, lo - 1))}…`;
 }
 
 /** Greedy word wrap by measured width; hard-breaks over-long words. No line cap when maxLines is omitted. */
-export function wrapToWidth(text: string, fontSize: number, maxWidth: number, maxLines = Infinity): string[] {
+export function wrapToWidth(text: string, fontSize: number, maxWidth: number, maxLines = Infinity, weight = 400): string[] {
   const words = text.split(/\s+/).filter((w) => w.length > 0);
   if (words.length === 0) return [];
   const lines: string[] = [];
-  const maxChars = Math.max(8, Math.floor(maxWidth / (fontSize * 0.62)));
   let current = '';
   const pushLine = (line: string) => {
     lines.push(line);
     return lines.length >= maxLines;
   };
   for (const word of words) {
-    if (approxTextWidth(word, fontSize) <= maxWidth) {
+    if (approxTextWidth(word, fontSize, weight) <= maxWidth) {
       const candidate = current ? `${current} ${word}` : word;
-      if (approxTextWidth(candidate, fontSize) > maxWidth && current) {
+      if (approxTextWidth(candidate, fontSize, weight) > maxWidth && current) {
         if (pushLine(current)) return lines;
         current = word;
       } else {
@@ -180,10 +209,21 @@ export function wrapToWidth(text: string, fontSize: number, maxWidth: number, ma
     }
     if (current && pushLine(current)) return lines;
     current = '';
+    // Hard-break over-long words by measured width (not a fixed char count)
+    // so committed render breaks at the same points as the live editor.
+    // Mirrors truncateToWidth's binary search; cut < rest.length guarantees progress.
     let rest = word;
-    while (rest.length > maxChars) {
-      if (pushLine(rest.slice(0, maxChars))) return lines;
-      rest = rest.slice(maxChars);
+    while (rest.length > 1 && approxTextWidth(rest, fontSize, weight) > maxWidth) {
+      let lo = 1;
+      let hi = rest.length - 1;
+      while (lo < hi) {
+        const mid = (lo + hi + 1) >> 1;
+        if (approxTextWidth(rest.slice(0, mid), fontSize, weight) <= maxWidth) lo = mid;
+        else hi = mid - 1;
+      }
+      const cut = Math.max(1, lo);
+      if (pushLine(rest.slice(0, cut))) return lines;
+      rest = rest.slice(cut);
     }
     current = rest;
   }
@@ -195,9 +235,13 @@ export function wrapToWidth(text: string, fontSize: number, maxWidth: number, ma
 export const CHIP_CHAR_W = 5.6;
 
 const MEASURE_STACK =
-  "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+  "'Geist Variable', 'Geist Mono Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 let measureCtx: CanvasRenderingContext2D | null | undefined;
 const measureCache = new Map<string, number>();
+if (typeof document !== 'undefined' && typeof document.fonts !== 'undefined') {
+  // Webfont fallback metrics may be cached before Geist loads — drop them once ready.
+  document.fonts.ready.then(() => measureCache.clear()).catch(() => {});
+}
 
 /** Real glyph width via canvas 2D when available; tuned estimator otherwise (jsdom). */
 function measureTextWidth(text: string, fontSize: number, weight: number): number {
@@ -219,7 +263,10 @@ function measureTextWidth(text: string, fontSize: number, weight: number): numbe
     const c = text.charCodeAt(i);
     w += c > 0x2e7f ? 1 : c === 0x20 ? 0.3 : 0.62; // CJK/wide 1em, space 0.3em, latin 0.62em
   }
-  return Math.max(w * fontSize, 40);
+  // Conservative bold widening so the no-canvas fallback never under-measures
+  // bold (600) render text. Weight-400 paths are byte-identical to before.
+  const bold = weight >= 600 ? 1.06 : 1;
+  return Math.max(w * fontSize * bold, 40);
 }
 
 function approxTextWidth(text: string, fontSize: number, weight = 400): number {
@@ -987,8 +1034,8 @@ export function textLineHeight(fontSize: number): number {
 }
 
 /** Wraps text to maxWidth line by line, preserving explicit newlines (Shift+Enter). */
-export function wrapTextLines(text: string, fontSize: number, maxWidth: number): string[] {
-  return text.split('\n').flatMap((line) => wrapToWidth(line, fontSize, maxWidth));
+export function wrapTextLines(text: string, fontSize: number, maxWidth: number, weight = 400): string[] {
+  return text.split('\n').flatMap((line) => wrapToWidth(line, fontSize, maxWidth, Infinity, weight));
 }
 
 export function elementBounds(el: Partial<WhiteboardElement> & { kind: string }): Rect {

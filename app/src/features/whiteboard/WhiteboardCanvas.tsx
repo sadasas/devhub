@@ -64,6 +64,7 @@ import {
   rectsIntersect,
   refCardLayout,
   refCardRect,
+  refEntityAccent,
   rotatePoint,
   rotationCenter,
   screenToWorld,
@@ -150,8 +151,8 @@ interface WhiteboardCanvasProps {
   registerDelete?: (fn: () => void) => void;
   isMobile?: boolean;
   onOpenShortcuts?: () => void;
-  /** WB-6/WB-10: surface transient hints, optionally with a one-shot action. */
-  onNotice?: (msg: string, action?: { label: string; run: () => void }) => void;
+  /** Surface transient cap-limit feedback via the shell's global toast. */
+  onNotice?: (msg: string) => void;
   /** WB-17: presentation mode — hide all chrome (zoom, hint, minimap, selection bar). */
   hideChrome?: boolean;
   snapOn?: boolean;
@@ -673,6 +674,7 @@ const ElementView = memo(function ElementView({
         const isCollapsed = missing || collapsed;
         const b = boundsProp ?? elementBounds(el);
         const { x, y, w, h } = b;
+        const accent = refEntityAccent(el.entity);
         const toggle = REF_LAYOUT.toggle;
         const btnX = x + w - toggle.rightOff;
         const btnY = y + toggle.topOff;
@@ -688,12 +690,19 @@ const ElementView = memo(function ElementView({
                 </text>
               ))
             : null;
+        const clipId = `wb-refclip-${el.id}`;
         return (
           <g style={missing ? { pointerEvents: 'none' } : undefined}>
-            <rect x={x} y={y} width={w} height={h} rx={6} fill="rgba(110,168,254,0.10)" stroke="#6ea8fe" strokeWidth={1.5} />
+            <defs>
+              <clipPath id={clipId}>
+                <rect x={x} y={y} width={w} height={h} rx={6} />
+              </clipPath>
+            </defs>
+            <rect x={x} y={y} width={w} height={h} rx={6} fill={accent.softFill} stroke={accent.color} strokeWidth={1.5} />
+            <g clipPath={`url(#${clipId})`}>
             {layout ? (
               <g>
-                {renderBlock(layout.title, 't', 12, missing ? '#8a8a93' : '#6ea8fe', 600)}
+                {renderBlock(layout.title, 't', 12, missing ? '#8a8a93' : accent.color, 600)}
                 {renderBlock(layout.meta, 'm', 10, missing ? '#6b7280' : '#8a8a93')}
                 {renderBlock(layout.sub, 's', 10, '#8a8a93')}
                 {layout.labelRows.map((row, ri) => {
@@ -704,7 +713,7 @@ const ElementView = memo(function ElementView({
                         const cw = label.length * CHIP_CHAR_W + 12;
                         const chip = (
                           <g key={`${label}-${li}`}>
-                            <rect x={lx} y={y + row.y - 9} width={cw} height={13} rx={3} fill="rgba(110,168,254,0.18)" />
+                            <rect x={lx} y={y + row.y - 9} width={cw} height={13} rx={3} fill={accent.chipFill} />
                             <text x={lx + 6} y={y + row.y} fontSize={9} fill="#8a8a93">
                               {label}
                             </text>
@@ -722,7 +731,7 @@ const ElementView = memo(function ElementView({
             ) : (
               <g>
                 <text x={x + pad} y={y + pad + 13} fontSize={12} fill={missing ? '#8a8a93' : '#6ea8fe'} fontWeight={600}>
-                  {truncateToWidth(missing ? t('whiteboard.canvas.refUntitled', { entity: el.entity }) : refData!.title, 12, w - pad * 2 - toggle.rightOff)}
+                  {truncateToWidth(missing ? t('whiteboard.canvas.refUntitled', { entity: el.entity }) : refData!.title, 12, w - pad * 2 - toggle.rightOff, 600)}
                 </text>
                 <text x={x + pad} y={y + pad + REF_LAYOUT.titleH + 10} fontSize={10} fill={missing ? '#6b7280' : '#8a8a93'}>
                   {missing ? t('whiteboard.canvas.refDeleted') : refData!.meta}
@@ -731,12 +740,13 @@ const ElementView = memo(function ElementView({
             )}
             {!missing && (
               <g>
-                <rect x={btnX} y={btnY} width={toggle.w} height={toggle.h} rx={4} fill="rgba(110,168,254,0.25)" stroke="#6ea8fe" strokeWidth={1} />
-                <text x={btnCx} y={btnCy} fontSize={11} fill="#6ea8fe" textAnchor="middle">
+                <rect x={btnX} y={btnY} width={toggle.w} height={toggle.h} rx={4} fill={accent.toggleFill} stroke={accent.color} strokeWidth={1} />
+                <text x={btnCx} y={btnCy} fontSize={11} fill={accent.color} textAnchor="middle">
                   {isCollapsed ? '+' : '−'}
                 </text>
               </g>
             )}
+            </g>
           </g>
         );
       }
@@ -830,6 +840,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   const [marquee, setMarquee] = useState<{ x1: number; y1: number; x2: number; y2: number; shift: boolean } | null>(null);
   const marqueeRef = useRef<{ x1: number; y1: number; x2: number; y2: number; shift: boolean } | null>(null);
   const [boundaryDraft, setBoundaryDraft] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
+  // FigJam drag-to-place: live shape preview while dragging with the shape tool.
+  const [shapeDraft, setShapeDraft] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   const [guides, setGuides] = useState<Guide[] | null>(null);
   const [refPending, setRefPending] = useState<Point | null>(null);
   const [collapsedRefs, setCollapsedRefs] = useState<ReadonlySet<string>>(() => new Set());
@@ -881,15 +893,6 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   const rotateDragRef = useRef<{ id: string; center: Point; startAng: number; startRot: number } | null>(null);
   const [rotateLive, setRotateLive] = useState<number | null>(null);
   const [hoverRotate, setHoverRotate] = useState(false);
-  // WB-10: one-step trash — last explicitly deleted elements, restorable via notice.
-  const trashRef = useRef<WhiteboardElement[] | null>(null);
-  // Latest elements for the deferred restore action (avoids stale closures).
-  const elementsRef = useRef(board.elements);
-  elementsRef.current = board.elements;
-
-  useEffect(() => {
-    trashRef.current = null;
-  }, [board.id]);
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const [viewport, setViewport] = useState<Rect | null>(null);
@@ -985,27 +988,10 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     return { fromEl, hover };
   }, [board.elements, edgeDraft, refRects]);
 
-  // WB-10: re-adds the last explicitly deleted elements (cap-guarded).
-  const restoreTrash = useCallback(() => {
-    if (isReadOnly) return;
-    const trashed = trashRef.current;
-    if (!trashed || trashed.length === 0) return;
-    const current = elementsRef.current;
-    // skip ids already back (e.g. restored via undo first)
-    const fresh = trashed.filter((t) => !current.some((el) => el.id === t.id));
-    if (fresh.length === 0) {
-      trashRef.current = null;
-      return;
-    }
-    if (current.length + fresh.length > MAX_ELEMENTS) {
-      onNoticeProp?.(t('whiteboard.canvas.restoreAtCap'));
-      return;
-    }
-    trashRef.current = null;
-    history.record();
-    dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...current, ...fresh] } });
-    setSelectedIds(fresh.map((el) => el.id));
-  }, [board.id, dispatch, history, isReadOnly, onNoticeProp, t]);
+  // Board-full feedback goes to the shell's global toast (top-right).
+  const notifyAtCap = useCallback(() => {
+    onNoticeProp?.(t('whiteboard.cap.atLimit'));
+  }, [onNoticeProp, t]);
 
   const removeSelection = useCallback(() => {
     if (isReadOnly) return;
@@ -1025,20 +1011,12 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       for (const el of next) if (el.kind === 'ref' && prev.has(el.id)) keep.add(el.id);
       return keep.size === prev.size ? prev : keep;
     });
-    const removed = board.elements.filter((el) => !next.includes(el));
+    // Silent delete — no toast. Undo via history (Ctrl+Z) still works.
     history.record();
     dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: next } });
     setSelectedIds([]);
     setDragOffset(null);
-    // WB-10: stash for one-step restore (survives reload-unaware undo).
-    if (removed.length > 0) {
-      trashRef.current = removed;
-      onNoticeProp?.(t('whiteboard.canvas.deletedN', { count: removed.length }), {
-        label: t('whiteboard.canvas.restore'),
-        run: restoreTrash,
-      });
-    }
-  }, [board.id, board.elements, dispatch, history, selectedIds, isReadOnly, onNoticeProp, t, restoreTrash]);
+  }, [board.id, board.elements, dispatch, history, selectedIds, isReadOnly]);
 
   // Mobile trash button: shell calls the latest removeSelection through this ref.
   useEffect(() => {
@@ -1163,14 +1141,17 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     (source: WhiteboardElement[], offset: number) => {
       if (isReadOnly) return;
       if (source.length === 0) return;
-      if (board.elements.length + source.length > MAX_ELEMENTS) return;
+      if (board.elements.length + source.length > MAX_ELEMENTS) {
+        notifyAtCap();
+        return;
+      }
       const placed = cloneWithFreshIds(source, offset);
       history.record();
       dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...board.elements, ...placed] } });
       setSelectedIds(placed.map((el) => el.id));
       setClipboard(placed);
     },
-    [board.elements, board.id, cloneWithFreshIds, dispatch, history, isReadOnly],
+    [board.elements, board.id, cloneWithFreshIds, dispatch, history, isReadOnly, notifyAtCap],
   );
 
   const pasteElements = useCallback(
@@ -1197,7 +1178,10 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       }
       return true;
     });
-    if (kept.length + clipboard.length > MAX_ELEMENTS) return;
+    if (kept.length + clipboard.length > MAX_ELEMENTS) {
+      notifyAtCap();
+      return;
+    }
     const placed = cloneWithFreshIds(clipboard, 0);
     setCollapsedRefs((prev) => {
       const keep = new Set<string>();
@@ -1208,7 +1192,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...kept, ...placed] } });
     setSelectedIds(placed.map((el) => el.id));
     setClipboard(placed);
-  }, [board.elements, board.id, clipboard, cloneWithFreshIds, dispatch, history, isReadOnly, selectedIds]);
+  }, [board.elements, board.id, clipboard, cloneWithFreshIds, dispatch, history, isReadOnly, selectedIds, notifyAtCap]);
 
   /** Bulk-applies a patch to every selected, unlocked element that owns each field. */
   const applyBulkPatch = useCallback(
@@ -1738,6 +1722,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       return;
     }
     if (board.elements.length >= MAX_ELEMENTS) {
+      notifyAtCap();
       return;
     }
     history.record();
@@ -1794,6 +1779,42 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       } as WhiteboardElement;
     }
     if (board.elements.length >= MAX_ELEMENTS) {
+      notifyAtCap();
+      return;
+    }
+    history.record();
+    dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...board.elements, placed] } });
+    setSelectedIds([placed.id]);
+    if (onToolChange) onToolChange('select');
+  };
+
+  /** FigJam drag-to-place: commits the drag rect as a shape. Tiny drags count
+   * as a click and fall back to the fixed-size placement at the press point. */
+  const commitShapeDraft = (d: { x1: number; y1: number; x2: number; y2: number }) => {
+    if (isReadOnly) return;
+    const w = Math.abs(d.x2 - d.x1);
+    const h = Math.abs(d.y2 - d.y1);
+    if (Math.max(w, h) < 8) {
+      placeElement();
+      return;
+    }
+    // This was a real drag — the click anchor must not double-place.
+    placeStartRef.current = null;
+    // WB-6: newborn elements respect the snap toggle like drags do.
+    const x = snap(Math.min(d.x1, d.x2));
+    const y = snap(Math.min(d.y1, d.y2));
+    const base = buildShape(x, y, shapeColorProp ?? SHAPE_COLOR, (shapeTypeProp as WhiteboardShapeType) ?? 'rect', shapeLabelColorProp ?? null);
+    const placed = {
+      ...base,
+      w,
+      h,
+      label: shapeLabelProp ?? '',
+      fill: shapeFillProp ?? false,
+      fontSize: Math.max(4, Math.min(96, shapeFontSizeProp ?? 12)),
+      align: (shapeAlignProp ?? 'center') as any,
+    } as WhiteboardElement;
+    if (board.elements.length >= MAX_ELEMENTS) {
+      notifyAtCap();
       return;
     }
     history.record();
@@ -1872,6 +1893,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       targetPort,
     };
     if (board.elements.length >= MAX_ELEMENTS) {
+      notifyAtCap();
       return;
     }
     history.record();
@@ -1887,6 +1909,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     if (isReadOnly) return;
     if (!pt) return;
     if (board.elements.length >= MAX_ELEMENTS) {
+      notifyAtCap();
       return;
     }
     history.record();
@@ -2143,6 +2166,11 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       if (isReadOnly) return;
       e.currentTarget.setPointerCapture(e.pointerId);
       placeStartRef.current = { clientX: e.clientX, clientY: e.clientY };
+      if (tool === 'shape') {
+        // FigJam drag-to-place: the live preview scales until pointerup.
+        cancelLongPress();
+        setShapeDraft({ x1: pt.x, y1: pt.y, x2: pt.x, y2: pt.y });
+      }
       return;
     }
     if (tool === 'edge') {
@@ -2337,6 +2365,13 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       updateEdgeDraft(e);
       return;
     }
+    if (tool === 'shape') {
+      if (isReadOnly) return;
+      if (!shapeDraft) return;
+      const pt = worldAt(e);
+      setShapeDraft({ ...shapeDraft, x2: snap(pt.x), y2: snap(pt.y) });
+      return;
+    }
     if (tool === 'marquee') {
       const m = marqueeRef.current;
       if (!m) return;
@@ -2431,7 +2466,16 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       return;
     }
     if (isPlaceTool) {
-      if (isReadOnly) return;
+      if (isReadOnly) {
+        setShapeDraft(null);
+        return;
+      }
+      if (tool === 'shape' && shapeDraft) {
+        const d = shapeDraft;
+        setShapeDraft(null);
+        commitShapeDraft(d);
+        return;
+      }
       placeElement();
       return;
     }
@@ -2453,6 +2497,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         return;
       }
       if (board.elements.length >= MAX_ELEMENTS) {
+        notifyAtCap();
         return;
       }
       history.record();
@@ -2492,6 +2537,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     }
     if (isPlaceTool) {
       placeStartRef.current = null;
+      setShapeDraft(null);
       return;
     }
     if (tool === 'edge') {
@@ -2630,6 +2676,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         return;
       }
       if (board.elements.length >= MAX_ELEMENTS) {
+        notifyAtCap();
         return;
       }
       let newEl: WhiteboardElement | null = null;
@@ -2778,6 +2825,35 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                   strokeDasharray="6 4"
                   pointerEvents="none"
                   data-testid="wb-boundary-draft"
+                />
+              );
+            })()}
+          {shapeDraft &&
+            (() => {
+              const x = Math.min(shapeDraft.x1, shapeDraft.x2);
+              const y = Math.min(shapeDraft.y1, shapeDraft.y2);
+              const w = Math.abs(shapeDraft.x2 - shapeDraft.x1);
+              const h = Math.abs(shapeDraft.y2 - shapeDraft.y1);
+              const ghost = {
+                kind: 'shape',
+                shapeType: (shapeTypeProp as WhiteboardShapeType) ?? 'rect',
+                x,
+                y,
+                w,
+                h,
+                color: shapeColorProp ?? SHAPE_COLOR,
+                fill: shapeFillProp ?? false,
+              } as WhiteboardShape;
+              return (
+                <path
+                  d={shapePath(ghost)}
+                  fill={ghost.fill ? ghost.color : 'none'}
+                  fillOpacity={ghost.fill ? 0.15 : undefined}
+                  stroke="var(--accent)"
+                  strokeWidth={1.5}
+                  strokeDasharray="6 4"
+                  pointerEvents="none"
+                  data-testid="wb-shape-draft"
                 />
               );
             })()}
@@ -3512,8 +3588,10 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         const el = board.elements.find((e) => e.id === editingText.id);
         if (!el) return null;
         const b = boundsFor(el);
-        const tl = worldToScreen(view.view, b.x, b.y);
-        const fs = Math.max(8, textFontOf(el) * view.view.s);
+        const s = view.view.s;
+        const toSX = (wx: number) => worldToScreen(view.view, wx, 0).x;
+        const toSY = (wy: number) => worldToScreen(view.view, 0, wy).y;
+        const fs = textFontOf(el) * s;
         const singleLine = el.kind === 'shape' || el.kind === 'edge' || el.kind === 'boundary';
         const editAlign = (el as { align?: string | null }).align ?? (el.kind === 'shape' || el.kind === 'edge' ? 'center' : 'left');
         const ink = el.kind === 'sticky'
@@ -3523,12 +3601,103 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
             : el.kind === 'shape' || el.kind === 'boundary'
               ? (String((el as unknown as Record<string, unknown>).labelColor ?? '') || (el.kind === 'boundary' ? '#e4e4e7' : String((el as unknown as Record<string, unknown>).color ?? '#e4e4e7')))
               : '#e4e4e7';
+        // Mirror the rendered label geometry (world units) so text doesn't jump
+        // when editing starts. Alphabetic-baseline kinds offset by an ascent
+        // estimate; middle-baseline kinds (shape) center the first line on y0.
+        let boxLeftW = b.x;
+        let boxTopW = b.y;
+        let boxW = b.w;
+        let boxH = Math.max(1, editingText.value.split('\n').length) * textLineHeight(textFontOf(el));
+        let lineHW = textLineHeight(textFontOf(el));
+        let rowsN = Math.max(1, editingText.value.split('\n').length);
+        if (el.kind === 'shape') {
+          const pad = 8;
+          const fontSize = el.fontSize ?? 12;
+          const innerW = Math.max(24, el.w - pad * 2);
+          const step = fontSize + 2;
+          const n = Math.max(1, wrapToWidth(listedLines(editingText.value, el).join('\n'), fontSize, innerW).length);
+          const vMode = el.valign ?? null;
+          const legacyY = el.y + el.h / 2;
+          const firstY =
+            vMode === 'top'
+              ? el.y + pad + step / 2
+              : vMode === 'bottom'
+                ? el.y + el.h - pad - (n - 1) * step - step / 2
+                : vMode === 'center'
+                  ? el.y + el.h / 2 - ((n - 1) * step) / 2
+                  : legacyY;
+          const y0 = Math.max(firstY, el.y + pad + step / 2);
+          boxLeftW = el.x + pad;
+          boxTopW = y0 - step / 2;
+          boxW = innerW;
+          boxH = n * step;
+          lineHW = step;
+          rowsN = n;
+        } else if (el.kind === 'sticky') {
+          const pad = 8;
+          const fontSize = el.fontSize ?? 12;
+          const lineHeight = textLineHeight(fontSize);
+          const innerW = Math.max(24, el.w - pad * 2);
+          const n = Math.max(1, wrapTextLines(editingText.value, fontSize, innerW).length);
+          const vTop = el.y + pad + 8;
+          const blockH = n * lineHeight;
+          const vMode = el.valign ?? 'top';
+          const startY =
+            vMode === 'center'
+              ? Math.max(vTop, el.y + (el.h - blockH) / 2 + 8)
+              : vMode === 'bottom'
+                ? Math.max(vTop, el.y + el.h - pad - blockH + 8)
+                : vTop;
+          boxLeftW = el.x + pad;
+          boxTopW = startY - fontSize * 0.8;
+          boxW = innerW;
+          boxH = n * lineHeight;
+          lineHW = lineHeight;
+          rowsN = n;
+        } else if (el.kind === 'text' && el.w) {
+          const fontSize = el.fontSize;
+          const lineHeight = textLineHeight(fontSize);
+          const n = Math.max(1, wrapTextLines(editingText.value, fontSize, el.w).length);
+          boxLeftW = el.x;
+          boxTopW = el.y - fontSize * 0.8;
+          boxW = el.w;
+          boxH = n * lineHeight;
+          lineHW = lineHeight;
+          rowsN = n;
+        } else if (el.kind === 'edge') {
+          const edge = el as WhiteboardEdge;
+          const fontSize = edge.fontSize ?? 11;
+          const lineHeight = textLineHeight(fontSize);
+          const ep = shiftEndpoints(derivedEdges.get(edge.id) ?? null, dragOffset, selectedSet, edge)
+            ?? { x1: edge.x1, y1: edge.y1, x2: edge.x2, y2: edge.y2 };
+          const path = edge.sourcePort && edge.targetPort
+            ? orthogonalPath({ x1: ep.x1, y1: ep.y1, x2: ep.x2, y2: ep.y2 }, edge.sourcePort, edge.targetPort)
+            : null;
+          const mid = pathMidpoint(path ?? [{ x: ep.x1, y: ep.y1 }, { x: ep.x2, y: ep.y2 }]);
+          const estW = Math.max(80, Math.min(b.w, editingText.value.replace(/\n/g, ' ').length * fontSize * 0.62 + 16));
+          boxLeftW = mid.x - estW / 2;
+          boxTopW = mid.y - lineHeight / 2;
+          boxW = estW;
+          boxH = lineHeight;
+          lineHW = lineHeight;
+          rowsN = 1;
+        } else if (el.kind === 'boundary') {
+          const fontSize = el.fontSize ?? 12;
+          const lineHeight = textLineHeight(fontSize);
+          const chipW = Math.min(editingText.value.length * 7.5 + 12, Math.max(20, el.w - 12));
+          boxLeftW = el.x + 6;
+          boxTopW = el.y + 6 - fontSize * 0.8;
+          boxW = Math.max(40, chipW);
+          boxH = lineHeight;
+          lineHW = lineHeight;
+          rowsN = 1;
+        }
         return (
           <textarea
             className="wb-textedit"
             aria-label={singleLine ? t('whiteboard.popover.label') : el.kind === 'sticky' ? t('whiteboard.popover.stickyTextLabel') : t('whiteboard.popover.textLabel')}
             autoFocus
-            rows={Math.max(1, editingText.value.split('\n').length)}
+            rows={rowsN}
             value={editingText.value}
             maxLength={el.kind === 'text' ? 1000 : el.kind === 'sticky' ? 500 : 200}
             onChange={(e) => setEditingText({ id: editingText.id, value: e.target.value })}
@@ -3544,15 +3713,18 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
               }
             }}
             style={{
-              left: tl.x,
-              top: tl.y,
-              width: Math.max(80, b.w * view.view.s),
+              left: toSX(boxLeftW),
+              top: toSY(boxTopW),
+              width: Math.max(80, boxW * s),
+              height: Math.max(lineHW * s, boxH * s),
+              lineHeight: `${lineHW * s}px`,
               fontSize: fs,
               color: ink,
               // FigJam Add-text: no box or border, just the caret in place.
               background: 'transparent',
               border: 'none',
               boxShadow: 'none',
+              padding: 0,
               textAlign: editAlign as 'left' | 'center' | 'right',
               ...svgTextStyle(el),
             }}

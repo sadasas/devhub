@@ -91,6 +91,17 @@ describe('serializeWhiteboard', () => {
     expect(svg).toContain('backend');
     expect(svg).toContain('do the thing');
     expect(svg).not.toContain('untitled tasks');
+    expect(svg).toContain('<clipPath id="refclip-r1"');
+    expect(svg).toContain('clip-path="url(#refclip-r1)"');
+  });
+
+  it('paints exported ref cards with per-entity accents', () => {
+    const elements: WhiteboardElement[] = [
+      { id: 'r1', kind: 'ref', entity: 'issues', entityId: '11111111-1111-4111-8111-111111111111', x: 0, y: 0 },
+    ];
+    const svg = serializeWhiteboard(elements);
+    expect(svg).toContain('#f2555a');
+    expect(svg).not.toContain('#6ea8fe');
   });
 
   it('escapes XML-sensitive characters in labels and text', () => {

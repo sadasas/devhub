@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowClockwise, ArrowCounterClockwise, ArrowLeft, ArrowsOutSimple, BoundingBox, Cards, Cursor, DotsThree, DotsThreeVertical, Eraser, Export, FlowArrow, FrameCorners, HandPointing, MagnetStraight, Note, PenNib, Presentation, Selection, Stack, TextT, Trash, X } from '@phosphor-icons/react';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
+import { ToastStack } from '../../components/ToastStack';
 import { Tooltip } from '../../components/Tooltip';
 import type { State, Whiteboard, WhiteboardAlign, WhiteboardFontFamily, WhiteboardShapeType, WhiteboardArrowStyle } from '../../lib/types';
 import { WhiteboardCanvas } from './WhiteboardCanvas';
@@ -125,20 +126,16 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
   const deleteSelRef = useRef<() => void>(() => {});
   const moreMenuRef = useRef<HTMLDivElement | null>(null);
   const moreBtnRef = useRef<HTMLButtonElement | null>(null);
-  // WB-10: restore-only slot (trash restore / restore-at-cap). No error toasts (D8).
-  interface NoticeAction {
-    label: string;
-    run: () => void;
-  }
-  const [notice, setNotice] = useState<{ msg: string; action?: NoticeAction } | null>(null);
-  const noticeTimer = useRef<number | null>(null);
-  const flashNotice = (msg: string, action?: NoticeAction) => {
-    setNotice({ msg, action });
-    if (noticeTimer.current !== null) window.clearTimeout(noticeTimer.current);
-    noticeTimer.current = window.setTimeout(() => setNotice(null), 6000);
+  // Board-full feedback lives in the global toast (top-right) so deletes stay silent.
+  const [capToast, setCapToast] = useState<string | null>(null);
+  const capToastTimer = useRef<number | null>(null);
+  const flashCapToast = (msg: string) => {
+    setCapToast(msg);
+    if (capToastTimer.current !== null) window.clearTimeout(capToastTimer.current);
+    capToastTimer.current = window.setTimeout(() => setCapToast(null), 5000);
   };
   useEffect(() => () => {
-    if (noticeTimer.current !== null) window.clearTimeout(noticeTimer.current);
+    if (capToastTimer.current !== null) window.clearTimeout(capToastTimer.current);
   }, []);
   // WB-4: transparent-background toggle (default bakes the theme canvas BG).
   const [exportTransparent, setExportTransparent] = useState<boolean>(() => {
@@ -913,14 +910,19 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
         else toggleFullscreen();
         return;
       }
-      if (key === '?' && !mod && !readOnly) {
+      if (key === '?' && !mod) {
         e.preventDefault();
         setShortcutsOpen(true);
         return;
       }
-      // WB-17: tiered Esc — panels, then present, then fullscreen.
+      // WB-17: tiered Esc — dialog, panels, then present, then fullscreen.
       // (Export menu owns its Esc; canvas clears selection itself.)
       if (key === 'Escape') {
+        if (shortcutsOpen) {
+          e.preventDefault();
+          setShortcutsOpen(false);
+          return;
+        }
         if (shapeMenuOpen || libraryOpen || layersOpen || trMoreOpen) {
           e.preventDefault();
           setShapeMenuOpen(false);
@@ -984,7 +986,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [atCap, readOnly, presenting, isFullscreen, shapeMenuOpen, libraryOpen, layersOpen, trMoreOpen]);
+  }, [atCap, readOnly, presenting, isFullscreen, shapeMenuOpen, libraryOpen, layersOpen, trMoreOpen, shortcutsOpen]);
 
   return (
     <div className={`wb-shell${isFullscreen ? ' wb-fullscreen' : ''}${presenting ? ' wb-presenting' : ''}`} ref={shellRef}>
@@ -1114,7 +1116,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
             registerDelete={(fn) => { deleteSelRef.current = fn; }}
             isMobile={isMobile}
             onOpenShortcuts={() => setShortcutsOpen(true)}
-            onNotice={flashNotice}
+            onNotice={flashCapToast}
             panToId={panToId}
           />
       {!presenting && (
@@ -1308,25 +1310,8 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
       )}
         </div>
       </div>
-      {!presenting && (notice || nearCap || readOnly) && (
+      {!presenting && (nearCap || readOnly) && (
         <div className="wb-status-row">
-        {notice && (
-          <div className="wb-cap-banner" role="status">
-            <span>{notice.msg}</span>
-            {notice.action && (
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => {
-                  notice.action?.run();
-                  setNotice(null);
-                }}
-              >
-                {notice.action.label}
-              </button>
-            )}
-          </div>
-        )}
         {nearCap && (
           <div className={`wb-cap-banner${atCap ? ' wb-cap-banner-danger' : ''}`} role="alert">
             <Badge tone={atCap ? 'danger' : 'warn'}>{t('whiteboard.cap.badge', { count: elementCount })}</Badge>
@@ -1345,6 +1330,23 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
         )}
         </div>
       )}
+      <ToastStack>
+        {capToast && (
+          <div className="save-toast" role="status" data-testid="wb-cap-toast">
+            <div className="save-toast-body">
+              <span>{capToast}</span>
+            </div>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm btn-icon save-toast-close"
+              aria-label={t('whiteboard.canvas.dismissCap')}
+              onClick={() => setCapToast(null)}
+            >
+              <X size={12} weight="bold" aria-hidden="true" />
+            </button>
+          </div>
+        )}
+      </ToastStack>
     </div>
   );
 }

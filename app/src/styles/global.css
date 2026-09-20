@@ -13735,6 +13735,11 @@ input[type='checkbox'] {
   display: flex;
   flex-direction: column;
 }
+/* Shortcuts dialog (Modal portals to body) must sit above the wb overlay. */
+body:has(.wb-shell.wb-fullscreen) > .modal-backdrop,
+body:has(.wb-shell.wb-presenting) > .modal-backdrop {
+  z-index: 70;
+}
 .wb-shell.wb-fullscreen .wb-main,
 .wb-shell.wb-presenting .wb-main { flex: 1 1 auto; min-height: 0; }
 .wb-shell.wb-fullscreen .wb-canvas,
