@@ -67,6 +67,8 @@
     "save": "Save changes",
     "saved": "Saved.",
     "saveError": "Failed to save project settings.",
+    "editGeneral": "Edit",
+    "editGeneralTitle": "Edit general",
     "readonly": "Only owners and admins can edit project settings.",
     "danger": "Danger zone",
     "dangerTitle": "Danger zone",

@@ -1,16 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { ArrowSquareOut, Check, ClockCounterClockwise, Copy, FloppyDisk, GearSix, SignOut, Tag, Trash } from '@phosphor-icons/react';
+import { ArrowSquareOut, Check, ClockCounterClockwise, Copy, GearSix, PencilSimple, SignOut, Tag, Trash } from '@phosphor-icons/react';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import type { BillingStatus, Team } from '../../lib/types';
-import {
-  TEAM_SLUG_MAX_LENGTH,
-  isReservedTeamSlug,
-  isValidTeamSlugFormat,
-  normalizeTeamSlug,
-} from '../../lib/team-slug';
 import { useTeams } from '../../state/teams-context';
 import { useAuth } from '../../state/auth-context';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
@@ -25,19 +19,12 @@ import { Skeleton } from '../../components/Skeleton';
 import { UsageMeter } from '../../components/UsageMeter';
 import { FE_LIMITS } from '../../lib/limits';
 import { normalizeSettingsSection } from './settingsSections';
+import { EditTeamGeneralModal } from '../teams/EditTeamGeneralModal';
 
 interface DashboardSettingsTabProps {
   team: Team;
   onBackToProjects: () => void;
 }
-
-type SlugStatus =
-  | { kind: 'idle' }
-  | { kind: 'checking' }
-  | { kind: 'available' }
-  | { kind: 'taken'; suggestion: string | null }
-  | { kind: 'reserved' }
-  | { kind: 'invalid' };
 
 // Settings shell sections (?section=) live in the shared lib so the main
 // sidebar nav (SettingsNav) and this panel resolve the same keys.
@@ -64,7 +51,7 @@ function formatQuota(used: number, limit: number | null): string {
 // Modal dialog verbatim.
 export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettingsTabProps) {
   const { t } = useTranslation('account');
-  const { renameTeam, renameSlug, deleteTeam, refresh } = useTeams();
+  const { deleteTeam, refresh } = useTeams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { copied, copy: copyText } = useCopyFeedback();
@@ -105,119 +92,15 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
   const canEditGeneral = isAdmin;
   const canDelete = isOwner;
 
-  // General form state mirrors TeamPage rename modal fields as inline inputs.
-  const [nameDraft, setNameDraft] = useState(team.name);
-  const [iconDraft, setIconDraft] = useState(team.icon ?? '');
-  const [slugDraft, setSlugDraft] = useState(team.slug ?? '');
-  const [slugStatus, setSlugStatus] = useState<SlugStatus>({ kind: 'idle' });
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  // General read view + edit modal (cermin General proyek): draft + validasi
+  // slug pindah ke EditTeamGeneralModal; di sini hanya baca + salin ID.
+  const [editOpen, setEditOpen] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
-  const slugSeq = useRef(0);
-
-  // Reset drafts whenever the active team switches.
-  useEffect(() => {
-    setNameDraft(team.name);
-    setIconDraft(team.icon ?? '');
-    setSlugDraft(team.slug ?? '');
-    setSlugStatus({ kind: 'idle' });
-    setSaveError(null);
-    setCopyError(null);
-  }, [team.id, team.name, team.icon, team.slug]);
-
-  const nameTrimmed = nameDraft.trim();
-  const iconTrimmed = iconDraft.trim();
-  const slugTrimmed = normalizeTeamSlug(slugDraft);
-  const savedIcon = (team.icon ?? '').trim();
-  const savedSlug = team.slug ?? '';
-  const nameDirty = nameTrimmed !== team.name.trim() || (iconTrimmed || '') !== (savedIcon || '');
-  const slugDirty = slugTrimmed !== savedSlug;
-  const isDirty = nameDirty || slugDirty;
-  const slugInvalid = slugDirty && slugTrimmed.length > 0 && !isValidTeamSlugFormat(slugTrimmed);
-  const slugReserved = slugDirty && !slugInvalid && isReservedTeamSlug(slugTrimmed);
-  const slugTaken = slugStatus.kind === 'taken';
-  const slugBlocked = slugDirty && (slugInvalid || slugReserved || slugTaken || slugTrimmed.length === 0);
-  const canSave = canEditGeneral && isDirty && nameTrimmed.length > 0 && !saving && !slugBlocked;
-
-  // Debounced uniqueness check for the slug draft (400ms, member-safe via
-  // excludeTeamId so keeping the current slug never reports taken).
-  useEffect(() => {
-    if (!slugDirty || !slugTrimmed) {
-      setSlugStatus({ kind: 'idle' });
-      return;
-    }
-    if (!isValidTeamSlugFormat(slugTrimmed)) {
-      setSlugStatus({ kind: 'invalid' });
-      return;
-    }
-    if (isReservedTeamSlug(slugTrimmed)) {
-      setSlugStatus({ kind: 'reserved' });
-      return;
-    }
-    setSlugStatus({ kind: 'checking' });
-    const seq = (slugSeq.current += 1);
-    const timer = setTimeout(() => {
-      void api
-        .checkTeamSlug(slugTrimmed, team.id)
-        .then((res) => {
-          if (slugSeq.current !== seq) return;
-          if (res.available) setSlugStatus({ kind: 'available' });
-          else if (res.reason === 'reserved') setSlugStatus({ kind: 'reserved' });
-          else if (res.reason === 'invalid') setSlugStatus({ kind: 'invalid' });
-          else setSlugStatus({ kind: 'taken', suggestion: res.suggestion });
-        })
-        .catch(() => {
-          if (slugSeq.current === seq) setSlugStatus({ kind: 'idle' });
-        });
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [slugTrimmed, slugDirty, team.id]);
 
   async function handleCopyId() {
     const ok = await copyText(team.id);
     if (!ok) setCopyError(t('dashboard.team.copyFailed'));
     else setCopyError(null);
-  }
-
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault();
-    if (!canSave) return;
-    setSaving(true);
-    setSaveError(null);
-    try {
-      // Final server check closes the debounce race before any write.
-      if (slugDirty) {
-        const check = await api.checkTeamSlug(slugTrimmed, team.id);
-        if (!check.available) {
-          setSlugStatus(
-            check.reason === 'reserved'
-              ? { kind: 'reserved' }
-              : check.reason === 'invalid'
-                ? { kind: 'invalid' }
-                : { kind: 'taken', suggestion: check.suggestion },
-          );
-          setSaveError(
-            check.reason === 'reserved'
-              ? t('dashboard.team.settingsSlugReserved')
-              : check.reason === 'invalid'
-                ? t('dashboard.team.settingsSlugInvalid')
-                : t('dashboard.team.settingsSlugTaken'),
-          );
-          setSaving(false);
-          return;
-        }
-      }
-      if (nameDirty) {
-        await renameTeam(team.id, nameTrimmed, iconTrimmed ? iconTrimmed : null);
-      }
-      if (slugDirty) {
-        await renameSlug(team.id, slugTrimmed);
-      }
-    } catch (err) {
-      setSaveError(getErrorMessage(err, t('teams.errors.rename')));
-    } finally {
-      setSaving(false);
-    }
   }
 
   // Shared billing fetch for Plan + Usage sections (single call per team).
@@ -348,163 +231,63 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
       <article className="pcard settings-content-card">
       <div className="pcard-body">
       <div className="narrow-center">
-      {/* General: inline name + icon + URL slug + read-only ID, dirty-gated save. */}
+      {/* General: read view (nama + URL + ID) + edit via modal. */}
       {activeSection === 'general' && (
       <section className="dashboard__settings-section" aria-labelledby="dashboard-settings-general-title">
-        <h2 id="dashboard-settings-general-title" tabIndex={-1} className="dashboard__settings-section-title">
-          {t('dashboard.team.settingsGeneralTitle')}
-        </h2>
-        <p className="dashboard__settings-section-desc">{t('dashboard.team.settingsGeneralDesc')}</p>
-        <form className="dashboard__settings-form" onSubmit={(e) => void handleSave(e)} noValidate>
-          <div className="dashboard__settings-row">
-            <div className="dashboard__settings-field dashboard__settings-field--icon">
-              <Input
-                label={t('dashboard.team.settingsIconLabel')}
-                value={iconDraft}
-                maxLength={FE_LIMITS.TEAM_ICON}
-                placeholder="😀"
-                onChange={(e) => setIconDraft(e.target.value)}
-                disabled={!canEditGeneral}
-                autoComplete="off"
-              />
-            </div>
-            <div className="dashboard__settings-field dashboard__settings-field--name">
-              <Input
-                label={t('dashboard.team.settingsNameLabel')}
-                required
-                value={nameDraft}
-                maxLength={FE_LIMITS.TEAM_NAME}
-                onChange={(e) => setNameDraft(e.target.value)}
-                disabled={!canEditGeneral}
-                autoComplete="off"
-              />
-            </div>
-          </div>
-          <div className="dashboard__settings-field dashboard__settings-field--slug team-slug">
-            <Input
-              label={t('dashboard.team.settingsSlugLabel')}
-              value={slugDraft}
-              maxLength={TEAM_SLUG_MAX_LENGTH}
-              onChange={(e) => setSlugDraft(e.target.value.toLowerCase())}
-              disabled={!canEditGeneral}
-              autoComplete="off"
-              spellCheck={false}
-              helper={
-                slugStatus.kind === 'checking'
-                  ? t('dashboard.team.settingsSlugChecking')
-                  : slugStatus.kind === 'available'
-                    ? t('dashboard.team.settingsSlugAvailable')
-                    : slugStatus.kind === 'taken'
-                      ? t('dashboard.team.settingsSlugTaken')
-                      : slugStatus.kind === 'reserved'
-                        ? t('dashboard.team.settingsSlugReserved')
-                        : slugStatus.kind === 'invalid'
-                          ? t('dashboard.team.settingsSlugInvalid')
-                          : undefined
-              }
-              error={
-                slugStatus.kind === 'taken' ||
-                slugStatus.kind === 'reserved' ||
-                slugStatus.kind === 'invalid'
-                  ? slugStatus.kind === 'taken'
-                    ? t('dashboard.team.settingsSlugTaken')
-                    : slugStatus.kind === 'reserved'
-                      ? t('dashboard.team.settingsSlugReserved')
-                      : t('dashboard.team.settingsSlugInvalid')
-                  : undefined
-              }
-              aria-describedby="dashboard-settings-slug-preview dashboard-settings-slug-status"
-            />
-            <p id="dashboard-settings-slug-preview" className="team-slug__preview">
-              <span className="team-slug__preview-path" aria-hidden="true" title={`/${slugTrimmed || savedSlug || 'team-xxxx'}/projects`}>
-                /{slugTrimmed || savedSlug || 'team-xxxx'}/projects
-              </span>
-              <span className="sr-only">
-                {t('dashboard.team.settingsSlugHelper', { slug: slugTrimmed || savedSlug || 'team-xxxx' })}
-              </span>
-              <span
-                className={
-                  slugStatus.kind === 'available'
-                    ? 'team-slug__dot team-slug__dot--available'
-                    : slugStatus.kind === 'checking'
-                      ? 'team-slug__dot team-slug__dot--checking'
-                      : slugStatus.kind === 'taken' ||
-                          slugStatus.kind === 'reserved' ||
-                          slugStatus.kind === 'invalid'
-                        ? 'team-slug__dot team-slug__dot--taken'
-                        : 'team-slug__dot'
-                }
-                aria-hidden="true"
-              />
-            </p>
-            <span id="dashboard-settings-slug-status" role="status" className="sr-only">
-              {slugStatus.kind === 'checking'
-                ? t('dashboard.team.settingsSlugChecking')
-                : slugStatus.kind === 'available'
-                  ? t('dashboard.team.settingsSlugAvailable')
-                  : slugStatus.kind === 'taken'
-                    ? t('dashboard.team.settingsSlugTaken')
-                    : slugStatus.kind === 'reserved'
-                      ? t('dashboard.team.settingsSlugReserved')
-                      : slugStatus.kind === 'invalid'
-                        ? t('dashboard.team.settingsSlugInvalid')
-                        : ''}
-            </span>
-            {slugStatus.kind === 'taken' && slugStatus.suggestion && canEditGeneral && (
-              <button
-                type="button"
-                className="team-slug__suggestion"
-                onClick={() => setSlugDraft(slugStatus.suggestion ?? '')}
-              >
-                {t('dashboard.team.settingsSlugUseSuggestion', { suggestion: slugStatus.suggestion })}
-              </button>
-            )}
-          </div>
-          <div className="dashboard__settings-id-row">
-            <div className="dashboard__settings-id-field">
-              <Input
-                label={t('dashboard.team.settingsIdLabel')}
-                value={team.id}
-                readOnly
-              />
-            </div>
+        <div className="dashboard__settings-title-row">
+          <h2 id="dashboard-settings-general-title" tabIndex={-1} className="dashboard__settings-section-title">
+            {t('dashboard.team.settingsGeneralTitle')}
+          </h2>
+          {canEditGeneral && (
             <Button
               type="button"
-              variant="secondary"
+              variant="ghost"
               size="sm"
-              className="dashboard__settings-copy"
-              leftIcon={copied ? <Check size={14} weight="bold" aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
-              onClick={() => void handleCopyId()}
-              aria-live="polite"
-              aria-label={copied ? (t('dashboard.team.settingsCopied') as string) : (t('dashboard.team.settingsCopyId') as string)}
+              leftIcon={<PencilSimple size={14} aria-hidden="true" />}
+              onClick={() => setEditOpen(true)}
+              aria-label={t('dashboard.team.settingsEditGeneral', { defaultValue: 'Edit general' })}
             >
-              {copied ? t('dashboard.team.settingsCopied') : t('dashboard.team.settingsCopyId')}
+              {t('dashboard.team.settingsEditGeneral', { defaultValue: 'Edit' })}
             </Button>
-          </div>
-          {copyError && <InlineError>{copyError}</InlineError>}
-          {saveError && <InlineError>{saveError}</InlineError>}
-          <div className="dashboard__settings-save-row">
-            <Button
-              type="submit"
-              variant="primary"
-              size="md"
-              className="dashboard__settings-save"
-              leftIcon={<FloppyDisk size={14} aria-hidden="true" />}
-              loading={saving}
-              disabled={!canSave}
-            >
-              {t('dashboard.team.settingsSave')}
-            </Button>
-            {isDirty && canEditGeneral && nameTrimmed.length > 0 && (
-              <span className="dashboard__settings-unsaved" role="status">
-                {t('dashboard.team.settingsUnsaved')}
-              </span>
-            )}
-          </div>
-          {!canEditGeneral && (
-            <p className="dashboard__settings-helper">{t('dashboard.team.settingsReadOnlyHelper')}</p>
           )}
-        </form>
+        </div>
+        <p className="dashboard__settings-section-desc">{t('dashboard.team.settingsGeneralDesc')}</p>
+        <div className="dashboard__settings-read-name">
+          {team.icon ? <span aria-hidden="true">{team.icon} </span> : null}
+          {team.name}
+        </div>
+        <div className="dashboard__settings-id-row">
+          <div className="dashboard__settings-id-field">
+            <Input
+              label={t('dashboard.team.settingsIdLabel')}
+              value={team.id}
+              readOnly
+            />
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="dashboard__settings-copy"
+            leftIcon={copied ? <Check size={14} weight="bold" aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+            onClick={() => void handleCopyId()}
+            aria-live="polite"
+            aria-label={copied ? (t('dashboard.team.settingsCopied') as string) : (t('dashboard.team.settingsCopyId') as string)}
+          >
+            {copied ? t('dashboard.team.settingsCopied') : t('dashboard.team.settingsCopyId')}
+          </Button>
+        </div>
+        <div className="dashboard__settings-read-meta-block">
+          <p className="dashboard__settings-read-label">
+            {t('dashboard.team.settingsSlugLabel')}
+          </p>
+          <p className="settings-mono">/{team.slug ?? 'team-xxxx'}/projects</p>
+        </div>
+        {copyError && <InlineError>{copyError}</InlineError>}
+        {!canEditGeneral && (
+          <p className="dashboard__settings-helper">{t('dashboard.team.settingsReadOnlyHelper')}</p>
+        )}
+        {editOpen && <EditTeamGeneralModal team={team} onClose={() => setEditOpen(false)} />}
       </section>
       )}
 

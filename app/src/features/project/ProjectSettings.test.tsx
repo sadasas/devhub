@@ -64,7 +64,10 @@ describe('ProjectSettings shell', () => {
     expect(screen.getByRole('link', { name: 'General' }).getAttribute('aria-current')).toBe('page');
     expect(screen.getByRole('link', { name: 'Integrations' }).getAttribute('href')).toContain('section=integrations');
     expect(screen.getByRole('heading', { name: 'General' })).toBeTruthy();
-    expect(screen.getByLabelText(/Project name/)).toBeTruthy();
+    expect(screen.getByText('Demo')).toBeTruthy();
+    expect(screen.getByText('Demo desc')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeTruthy();
+    expect(screen.queryByLabelText(/Project name/)).toBeNull();
   });
 
   it('renders the Integrations section with gcal stub and GitHub panel', () => {
@@ -88,7 +91,9 @@ describe('ProjectSettings shell', () => {
   });
 
   it('saves name+description via update() for admins', async () => {
-    const { rerender } = renderSettings('/project/p1?tab=settings');
+    renderSettings('/project/p1?tab=settings');
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    expect(screen.getByRole('dialog')).toBeTruthy();
     fireEvent.change(screen.getByLabelText(/Project name/), { target: { value: 'Renamed' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     await waitFor(() =>
@@ -97,31 +102,14 @@ describe('ProjectSettings shell', () => {
         description: 'Demo desc',
       }),
     );
-    // Context asli me-render ulang dengan project baru → dirty hilang → hint Saved.
-    rerender(
-      <MemoryRouter initialEntries={['/project/p1?tab=settings']}>
-        <ProjectSettings
-          project={project({ name: 'Renamed' })}
-          canEditMeta
-          canConnect
-          canArchive
-          isAdmin
-          onBack={() => {}}
-          onRequestArchive={() => {}}
-          onRequestDelete={() => {}}
-        />
-      </MemoryRouter>,
-    );
-    // Draft ikut reset ke nama baru via efek sinkronisasi.
-    await waitFor(() =>
-      expect((screen.getByLabelText(/Project name/) as HTMLInputElement).value).toBe('Renamed'),
-    );
-    expect(await screen.findByText('Saved.')).toBeTruthy();
+    // Sukses menutup modal.
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
   it('disables editing with a helper for editors', () => {
     renderSettings('/project/p1?tab=settings', { canEditMeta: false });
-    expect(screen.getByLabelText(/Project name/)).toHaveProperty('disabled', true);
+    expect(screen.queryByLabelText(/Project name/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
     expect(screen.getByText('Only owners and admins can edit project settings.')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Save changes' })).toBeNull();
   });

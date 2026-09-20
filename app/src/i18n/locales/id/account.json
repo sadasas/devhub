@@ -262,6 +262,8 @@
       "settingsCopied": "Tersalin",
       "settingsSave": "Simpan perubahan",
       "settingsUnsaved": "Ada perubahan belum disimpan",
+      "settingsEditGeneral": "Ubah",
+      "settingsEditGeneralTitle": "Ubah umum",
       "settingsReadOnlyHelper": "Hanya admin tim yang dapat mengubah pengaturan ini.",
       "settingsPlanTitle": "Paket",
       "settingsPlanDesc": "Paket saat ini dan kuota untuk workspace ini.",

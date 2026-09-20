@@ -67,6 +67,8 @@
     "save": "Simpan perubahan",
     "saved": "Tersimpan.",
     "saveError": "Gagal menyimpan pengaturan project.",
+    "editGeneral": "Ubah",
+    "editGeneralTitle": "Ubah umum",
     "readonly": "Hanya owner dan admin yang dapat mengubah pengaturan project.",
     "danger": "Zona berbahaya",
     "dangerTitle": "Zona berbahaya",
