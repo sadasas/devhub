@@ -161,7 +161,7 @@ export function NewTableModal({ open, onClose, initialPosition = null, onCreated
             value={comment}
             onChange={setComment}
             placeholder={t('schema.newTableModal.commentPlaceholder')}
-            maxLength={10000}
+            maxLength={FE_LIMITS.TABLE_COMMENT}
             rows={2}
           />
 

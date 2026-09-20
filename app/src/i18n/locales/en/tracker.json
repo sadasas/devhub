@@ -1,6 +1,8 @@
 {
   "board": {
     "viewTabs": "Board view",
+    "count_one": "{{count}} task",
+    "count_other": "{{count}} tasks",
     "calTabs": "Due date view",
     "byStatus": "By Status",
     "byMilestone": "By Milestone",

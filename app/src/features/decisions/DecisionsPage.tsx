@@ -140,7 +140,7 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
           description={t('decisions.emptyDesc')}
           action={
             canEdit && (
-              <Button size="sm" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setOpenNew(true)}>
+              <Button size="md" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={() => setOpenNew(true)}>
                 {isNarrow ? t('decisions.newDecisionShort', { defaultValue: 'Decision' }) : t('decisions.newDecision')}
               </Button>
             )
@@ -150,81 +150,92 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
         <div className="data-list">
           {decisions.map((d) => (
             <div key={d.id} className="data-row">
+              <div className="data-row-top">
+                <button
+                  type="button"
+                  className="data-row-title-btn"
+                  onClick={() => setEditId(d.id)}
+                  aria-label={d.title}
+                >
+                  <span className="data-row-title">
+                    <Badge tone={DECISION_STATUS[d.status].tone}>
+                      {t(`decisions.status.${d.status}`)}
+                    </Badge>
+                    <span className="row-title-text">{d.title}</span>
+                  </span>
+                </button>
+                <span className="data-row-props">
+                  {canEdit && !isNarrow && (
+                    <span className={`row-swap${d.pinned ? ' is-pinned' : ''}`}>
+                      <span className="swap-group">
+                        <PinButton
+                          pinned={!!d.pinned}
+                          label="decision"
+                          onToggle={() =>
+                            dispatch({ type: 'decision/update', id: d.id, patch: { pinned: !d.pinned } })
+                          }
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm btn-icon btn-danger swap-trash"
+                          aria-label={`Delete decision ${d.title}`}
+                          title={`Delete decision ${d.title}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const btn = e.currentTarget;
+                            setConfirmDeleteId(d.id);
+                            // Blur pointer-only agar :focus-within tidak
+                            // nyangkut (pola IssuesPage).
+                            if (e.detail !== 0) btn.blur();
+                          }}
+                        >
+                          <Trash size={13} aria-hidden="true" />
+                        </button>
+                      </span>
+                    </span>
+                  )}
+                  {canEdit && isNarrow && (
+                    <RowMenu
+                      triggerLabel={`More actions for ${d.title}`}
+                      menuLabel={`More actions for ${d.title}`}
+                      menuId={`decision-rowmenu-${d.id}`}
+                      actions={[
+                        {
+                          key: 'pin',
+                          // English hardcoded mengikuti preseden PinButton.
+                          label: d.pinned ? 'Unpin decision' : 'Pin decision',
+                          icon: <PushPin size={14} weight={d.pinned ? 'fill' : 'regular'} />,
+                          onSelect: () =>
+                            dispatch({ type: 'decision/update', id: d.id, patch: { pinned: !d.pinned } }),
+                        },
+                        {
+                          key: 'delete',
+                          label: t('decisions.modal.delete'),
+                          icon: <Trash size={14} />,
+                          danger: true,
+                          onSelect: () => setConfirmDeleteId(d.id),
+                        },
+                      ]}
+                    />
+                  )}
+                </span>
+              </div>
               <button
                 type="button"
-                className="data-row-main"
+                className="data-row-body"
                 onClick={() => setEditId(d.id)}
+                aria-label={`${d.title} — ${t('decisions.openDetails', { defaultValue: 'Open decision details' })}`}
               >
-                <div className="data-row-title">
-                  <Badge tone={DECISION_STATUS[d.status].tone}>
-                    {t(`decisions.status.${d.status}`)}
-                  </Badge>
-                  <span className="row-title-text">{d.title}</span>
-                </div>
-                {d.context && <div className="data-row-sub">{d.context}</div>}
-                <div className="data-row-meta">
+                {d.context && <span className="data-row-sub">{d.context}</span>}
+                <span className="data-row-meta">
                   <span>{d.options.length} option(s)</span>
                   <span># {d.date}</span>
                   <span>#{shortId(d.id)}</span>
                   {unreadIds?.has(d.id) && (
                     <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">New</span>
                     )}
-                </div>
-              </button>              <div className="data-row-side" style={{ justifyContent: 'flex-start', gap: '4px' }}>
-                {canEdit && !isNarrow && (
-                  <span className={`row-swap${d.pinned ? ' is-pinned' : ''}`}>
-                    <span className="swap-group">
-                      <PinButton
-                        pinned={!!d.pinned}
-                        label="decision"
-                        onToggle={() =>
-                          dispatch({ type: 'decision/update', id: d.id, patch: { pinned: !d.pinned } })
-                        }
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm btn-icon btn-danger swap-trash"
-                        aria-label={`Delete decision ${d.title}`}
-                        title={`Delete decision ${d.title}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const btn = e.currentTarget;
-                          setConfirmDeleteId(d.id);
-                          // Blur pointer-only agar :focus-within tidak
-                          // nyangkut (pola IssuesPage).
-                          if (e.detail !== 0) btn.blur();
-                        }}
-                      >
-                        <Trash size={13} aria-hidden="true" />
-                      </button>
-                    </span>
-                  </span>
-                )}
-                {canEdit && isNarrow && (
-                  <RowMenu
-                    triggerLabel={`More actions for ${d.title}`}
-                    menuLabel={`More actions for ${d.title}`}
-                    menuId={`decision-rowmenu-${d.id}`}
-                    actions={[
-                      {
-                        key: 'pin',
-                        // English hardcoded mengikuti preseden PinButton.
-                        label: d.pinned ? 'Unpin decision' : 'Pin decision',
-                        icon: <PushPin size={14} weight={d.pinned ? 'fill' : 'regular'} />,
-                        onSelect: () =>
-                          dispatch({ type: 'decision/update', id: d.id, patch: { pinned: !d.pinned } }),
-                      },
-                      {
-                        key: 'delete',
-                        label: t('decisions.modal.delete'),
-                        icon: <Trash size={14} />,
-                        danger: true,
-                        onSelect: () => setConfirmDeleteId(d.id),
-                      },
-                    ]}
-                  />
-                )}
-              </div>
+                </span>
+              </button>
             </div>
           ))}
         </div>

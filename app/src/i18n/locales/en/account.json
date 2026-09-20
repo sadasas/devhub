@@ -262,6 +262,8 @@
       "settingsCopied": "Copied",
       "settingsSave": "Save changes",
       "settingsUnsaved": "Unsaved changes",
+      "settingsEditGeneral": "Edit",
+      "settingsEditGeneralTitle": "Edit general",
       "settingsReadOnlyHelper": "Only team admins can edit these settings.",
       "settingsPlanTitle": "Plan",
       "settingsPlanDesc": "Current package and quotas for this workspace.",

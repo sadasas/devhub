@@ -1242,32 +1242,32 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
                     <span className="data-list-count">{t('schema.relationsHeading')}</span>
                     {displayRelations.map((r) => (
                       <div className="data-row" key={r.id}>
-                        <div className="data-row-main">
+                        <div className="data-row-top">
                           <div className="data-row-title">
                             <span className="row-title-text font-mono">{isViewing ? relationLabelDisplay(r) : relationLabelCurrent(r)}</span>
                           </div>
-                          <div className="data-row-meta">
-                            <span>{r.cardinality}</span>
-                            <span>{t('schema.page.onDelete', { value: r.onDelete })}</span>
-                            <span>#{shortId(r.id)}</span>
-                            {!isViewing && unreadIds?.has(r.id) && (
-                              <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">
-                                New
-                              </span>
+                          <span className="data-row-props">
+                            {canEditEffective && (
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                className="btn-icon"
+                                aria-label={t('schema.page.deleteRelationAria', { label: isViewing ? relationLabelDisplay(r) : relationLabelCurrent(r) })}
+                                onClick={() => setConfirmRel(r)}
+                              >
+                                <Trash size={13} aria-hidden="true" />
+                              </Button>
                             )}
-                          </div>
+                          </span>
                         </div>
-                        <div className="data-row-side">
-                          {canEditEffective && (
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              className="btn-icon"
-                              aria-label={t('schema.page.deleteRelationAria', { label: isViewing ? relationLabelDisplay(r) : relationLabelCurrent(r) })}
-                              onClick={() => setConfirmRel(r)}
-                            >
-                              <Trash size={13} aria-hidden="true" />
-                            </Button>
+                        <div className="data-row-meta">
+                          <span>{r.cardinality}</span>
+                          <span>{t('schema.page.onDelete', { value: r.onDelete })}</span>
+                          <span>#{shortId(r.id)}</span>
+                          {!isViewing && unreadIds?.has(r.id) && (
+                            <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">
+                              New
+                            </span>
                           )}
                         </div>
                       </div>

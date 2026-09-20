@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { FE_LIMITS } from '../../lib/limits';
 import { CaretDown, CaretUp, LockSimple, LockSimpleOpen, MagnifyingGlass } from '@phosphor-icons/react';
 import { Tooltip } from '../../components/Tooltip';
 import type { WhiteboardElement } from '../../lib/types';
@@ -88,7 +89,7 @@ export function WhiteboardLayers({ elements, selectedIds, onSelect, onToggleLock
           className="wb-layers-input"
           placeholder={t('whiteboard.layers.searchPlaceholder')}
           value={query}
-          maxLength={100}
+          maxLength={FE_LIMITS.SEARCH}
           onChange={(e) => setQuery(e.target.value)}
         />
       </label>

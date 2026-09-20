@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import {
@@ -90,6 +90,18 @@ export function ProfilePage() {
   function setTab(next: ProfileTab) {
     setSearchParams(next === 'profile' ? {} : { tab: next }, { replace: true });
   }
+
+  const tabProfileRef = useRef<HTMLButtonElement>(null);
+  const tabSecurityRef = useRef<HTMLButtonElement>(null);
+  const tabAccountRef = useRef<HTMLButtonElement>(null);
+  const handleTabKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    const order: ProfileTab[] = ['profile', 'security', 'account'];
+    const next = order[(order.indexOf(tab) + (e.key === 'ArrowRight' ? 1 : order.length - 1)) % order.length] as ProfileTab;
+    setTab(next);
+    (next === 'profile' ? tabProfileRef : next === 'security' ? tabSecurityRef : tabAccountRef).current?.focus();
+  };
 
   const fetchLinked = async () => {
     setLinkedErrorRaw(null);
@@ -211,39 +223,54 @@ export function ProfilePage() {
         <main className="profile-main">
           <div className="sub-tabs" role="tablist" aria-label={t('profile.tabsAria')}>
         <button
+          ref={tabProfileRef}
           type="button"
           role="tab"
+          id="tab-profile-profile"
+          aria-controls="panel-profile-profile"
           className={`sub-tab ${tab === 'profile' ? 'sub-tab-active' : ''}`}
           onClick={() => setTab('profile')}
+          onKeyDown={handleTabKeyDown}
           aria-selected={tab === 'profile'}
+          tabIndex={tab === 'profile' ? 0 : -1}
         >
-          <UserCircle size={15} aria-hidden="true" />
+          <UserCircle size={13} aria-hidden="true" />
           {t('profile.tab.profile')}
         </button>
         <button
+          ref={tabSecurityRef}
           type="button"
           role="tab"
+          id="tab-profile-security"
+          aria-controls="panel-profile-security"
           className={`sub-tab ${tab === 'security' ? 'sub-tab-active' : ''}`}
           onClick={() => setTab('security')}
+          onKeyDown={handleTabKeyDown}
           aria-selected={tab === 'security'}
+          tabIndex={tab === 'security' ? 0 : -1}
         >
-          <LockKey size={15} aria-hidden="true" />
+          <LockKey size={13} aria-hidden="true" />
           {t('profile.tab.security')}
         </button>
         <button
+          ref={tabAccountRef}
           type="button"
           role="tab"
+          id="tab-profile-account"
+          aria-controls="panel-profile-account"
           className={`sub-tab ${tab === 'account' ? 'sub-tab-active' : ''}`}
           onClick={() => setTab('account')}
+          onKeyDown={handleTabKeyDown}
           aria-selected={tab === 'account'}
+          tabIndex={tab === 'account' ? 0 : -1}
         >
-          <IdentificationBadge size={15} aria-hidden="true" />
+          <IdentificationBadge size={13} aria-hidden="true" />
           {t('profile.tab.account')}
         </button>
       </div>
 
       {tab === 'profile' && (
-        <section className="profile-tab-panel" aria-label={t('profile.statsAria')}>
+        <section className="profile-tab-panel" id="panel-profile-profile" role="tabpanel" aria-labelledby="tab-profile-profile" tabIndex={0} aria-label={t('profile.statsAria')}>
           <ProfileStats />
 
           <div className="profile-stats">
@@ -342,7 +369,7 @@ export function ProfilePage() {
       )}
 
       {tab === 'security' && (
-        <section className="profile-tab-panel" aria-label={t('profile.securityPanelAria')}>
+        <section className="profile-tab-panel" id="panel-profile-security" role="tabpanel" aria-labelledby="tab-profile-security" tabIndex={0} aria-label={t('profile.securityPanelAria')}>
           <div className="profile-panel">
             <div className="settings-action">
               <div className="settings-action-main">
@@ -432,7 +459,7 @@ export function ProfilePage() {
       )}
 
       {tab === 'account' && (
-        <section className="profile-tab-panel" aria-label={t('profile.accountPanelAria')}>
+        <section className="profile-tab-panel" id="panel-profile-account" role="tabpanel" aria-labelledby="tab-profile-account" tabIndex={0} aria-label={t('profile.accountPanelAria')}>
           <div className="profile-panel">
             <h3 className="section-title">
               {t('profile.account.detailTitle', { defaultValue: 'Account details' })}

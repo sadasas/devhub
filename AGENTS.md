@@ -73,3 +73,35 @@ Before creating a task (session start or mid-session), ask the user whether the 
 - Sebelum `add_api_endpoint`, baca `project_state.apiEndpoints` dan cocokkan `method+path+collectionId` untuk hindari duplikat (cap 500 collections / 5000 endpoints).
 - After syncing, verify with `project_state` if unsure (default cap is 200 rows
   per collection — use `limit: 0` to see all).
+
+## UI Verification Rules (anti-ngeyel)
+
+Aturan ini berlaku untuk semua pekerjaan UI di proyek apa pun.
+Istilah generik: "dokumen token" = sumber tunggal nilai visual proyek
+(mis. `design-tokens.md`); "guard" = linter/penjaga otomatis proyek;
+`file:line` = referensi lokasi kode.
+
+1. **Screenshot pengguna adalah kebenaran.** Bila kesimpulan dari kode
+   bertentangan dengan screenshot, screenshot menang — audit ulang,
+   jangan berdalih.
+2. **Periksa rantai render penuh, bukan kelas elemen saja.** Setiap klaim
+   visual wajib menelusuri: kelas/gaya elemen + SEMUA pembungkus ke atas
+   sampai kontainer halaman (mekanisme layout yang dipakai, collapse vs
+   gap, padding kontainer, breakpoint/media query yang aktif).
+3. **Dilarang kata "identik/konsisten/sama" tanpa angka.** Setiap klaim
+   kesetaraan wajib menyebut nilai terukur kedua sisi + `file:line`.
+   Tanpa itu, tulis "belum terverifikasi".
+4. **Salah = sebut spesifik yang terlewat.** Akui lokasi/baris
+   pemeriksaan yang dilompati; dilarang menutup dengan spekulasi
+   ("mungkin beda zoom/resolusi") tanpa bukti. Kegagalan audit = data,
+   bukan aib — tapi kegagalan yang sama dua kali = pelanggaran.
+5. **Pola yang dipakai ulang wajib cek berdampingan.** Setiap reuse pola
+   (header, tampilan baca, toggle, kartu) harus dibandingkan render
+   semua pemakainya; bila belum dicek, nyatakan terbuka sebagai utang.
+6. **Standar lahir tertulis atau tidak lahir.** Pola/ritme/urutan baru
+   langsung dicatat ke dokumen token di PR yang sama — "nanti" = tidak
+   pernah.
+7. **Mode cepat wajib lapor utang.** Bila pengguna minta "tanpa tes/build",
+   akhiri dengan daftar eksplisit apa yang belum diverifikasi
+   (lint/tipe/tes/visual) + risiko terbesarnya. Jangan biarkan
+   "cepat" dibaca sebagai "aman".

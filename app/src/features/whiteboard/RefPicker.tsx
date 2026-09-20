@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { FE_LIMITS } from '../../lib/limits';
 import type { State, WhiteboardRefEntity } from '../../lib/types';
 import {
   DECISION_STATUS,
@@ -261,7 +262,7 @@ export function RefPicker({ open, state, onPick, onClose, onCreateNew, onBrowse 
           aria-label={t('whiteboard.refPicker.searchAria')}
           autoFocus={AUTO_FOCUS_INPUT}
           value={query}
-          maxLength={100}
+          maxLength={FE_LIMITS.SEARCH}
           onChange={(e) => {
             setQuery(e.target.value);
             setActive(0);

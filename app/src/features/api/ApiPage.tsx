@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useSearchParams } from 'react-router';
 import type { ChangeEvent, MouseEvent as ReactMouseEvent, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -200,7 +201,35 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [selection, setSelection] = useState<ApiSelection>(null);
   const [tab, setTab] = useState<ApiTab>('headers');
-  const [mode, setMode] = useState<ApiMode>(canEdit ? 'workspace' : 'docs');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const modeParam = searchParams.get('apiView');
+  const mode: ApiMode =
+    modeParam === 'docs' ? 'docs' : modeParam === 'workspace' ? 'workspace' : canEdit ? 'workspace' : 'docs';
+  const setMode = useCallback(
+    (next: ApiMode) => {
+      setSearchParams(
+        (prev) => {
+          const p = new URLSearchParams(prev);
+          p.set('apiView', next);
+          return p;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+  const tabWorkspaceRef = useRef<HTMLButtonElement>(null);
+  const tabDocsRef = useRef<HTMLButtonElement>(null);
+  const handleModeKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      const next: ApiMode = mode === 'workspace' ? 'docs' : 'workspace';
+      setMode(next);
+      (next === 'workspace' ? tabWorkspaceRef : tabDocsRef).current?.focus();
+    },
+    [mode, setMode],
+  );
   const [showCollection, setShowCollection] = useState(false);
   const [showEndpoint, setShowEndpoint] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
@@ -579,41 +608,17 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
 
   return (
     <div className={`api-page${isNarrow && drawerOpen ? ' sidebar-open' : ''}`}>
-      <div className="api-toolbar">
-        <div className="api-toolbar-left">
-          {!isNarrow && (
-            <span className="api-toolbar-count">
-              {t('api.count.collections', { count: collections.length })} · {t('api.count.endpoints', { count: endpoints.length })}
-            </span>
-          )}
-          <div className="sub-tabs api-mode-toggle" role="tablist" aria-label={t('api.mode.aria')}>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === 'workspace'}
-              className={`sub-tab ${mode === 'workspace' ? 'sub-tab-active' : ''}`}
-              aria-label={t('api.mode.workspace')}
-              title={t('api.mode.workspace')}
-              onClick={() => setMode('workspace')}
-            >
-              <PencilSimple size={13} aria-hidden="true" />
-              <span className="sub-tab-label">{t('api.mode.workspace')}</span>
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === 'docs'}
-              className={`sub-tab ${mode === 'docs' ? 'sub-tab-active' : ''}`}
-              aria-label={t('api.mode.docs')}
-              title={t('api.mode.docs')}
-              onClick={() => setMode('docs')}
-            >
-              <BookOpen size={13} aria-hidden="true" />
-              <span className="sub-tab-label">{t('api.mode.docs')}</span>
-            </button>
-          </div>
-        </div>
-        <div className="api-toolbar-second">
+      <div className="data-list-header">
+        {!isNarrow ? (
+          <span className="data-list-count">
+            {t('api.count.collections', { count: collections.length })} · {t('api.count.endpoints', { count: endpoints.length })}
+          </span>
+        ) : (
+          <span className="sr-only" role="status">
+            {t('api.count.collections', { count: collections.length })} · {t('api.count.endpoints', { count: endpoints.length })}
+          </span>
+        )}
+        <div className="data-list-actions">
           {!isNarrow && sortPair}
           {isNarrow ? (
             <div className="api-toolbar-actions">
@@ -652,6 +657,45 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
           )}
         </div>
       </div>
+      <div className="api-subtabs-row">
+        <div className="sub-tabs api-mode-toggle" role="tablist" aria-label={t('api.mode.aria')}>
+          <button
+            ref={tabWorkspaceRef}
+            type="button"
+            role="tab"
+            id="tab-api-workspace"
+            aria-controls="panel-api-workspace"
+            aria-selected={mode === 'workspace'}
+            tabIndex={mode === 'workspace' ? 0 : -1}
+            className={`sub-tab ${mode === 'workspace' ? 'sub-tab-active' : ''}`}
+            aria-label={t('api.mode.workspace')}
+            title={t('api.mode.workspace')}
+            onClick={() => setMode('workspace')}
+            onKeyDown={handleModeKeyDown}
+          >
+            <PencilSimple size={13} aria-hidden="true" />
+            <span className="sub-tab-label">{t('api.mode.workspace')}</span>
+          </button>
+          <button
+            ref={tabDocsRef}
+            type="button"
+            role="tab"
+            id="tab-api-docs"
+            aria-controls="panel-api-docs"
+            aria-selected={mode === 'docs'}
+            tabIndex={mode === 'docs' ? 0 : -1}
+            className={`sub-tab ${mode === 'docs' ? 'sub-tab-active' : ''}`}
+            aria-label={t('api.mode.docs')}
+            title={t('api.mode.docs')}
+            onClick={() => setMode('docs')}
+            onKeyDown={handleModeKeyDown}
+          >
+            <BookOpen size={13} aria-hidden="true" />
+            <span className="sub-tab-label">{t('api.mode.docs')}</span>
+          </button>
+        </div>
+        <div className="api-subtabs-actions" />
+      </div>
 
       {(importError || importNotice) && (
         <div className="api-import-sticky">
@@ -673,18 +717,20 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
       />
 
       {mode === 'docs' ? (
-        <ApiDocsView
-          projectName={projectName}
-          projectDescription={projectDescription}
-          collections={collections}
-          endpoints={endpoints}
-          milestones={state.milestones}
-          canEdit={canEdit}
-          onNewEndpoint={() => setShowEndpoint(true)}
-          onImport={() => fileInputRef.current?.click()}
-        />
+        <div id="panel-api-docs" role="tabpanel" aria-labelledby="tab-api-docs" tabIndex={0}>
+          <ApiDocsView
+            projectName={projectName}
+            projectDescription={projectDescription}
+            collections={collections}
+            endpoints={endpoints}
+            milestones={state.milestones}
+            canEdit={canEdit}
+            onNewEndpoint={() => setShowEndpoint(true)}
+            onImport={() => fileInputRef.current?.click()}
+          />
+        </div>
       ) : (
-        <div className="api-panes">
+        <div className="api-panes" id="panel-api-workspace" role="tabpanel" aria-labelledby="tab-api-workspace" tabIndex={0}>
         <aside
           className={`api-sidebar${dragging ? ' api-drop-active' : ''}`}
           style={isNarrow ? undefined : { width: sidebarWidth }}
@@ -810,7 +856,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                             title={t('api.tree.deleteCollection')}
                             onClick={() => setDeleteTarget({ kind: 'collection', id: c.id, name: c.name })}
                           >
-                            <Trash size={13} aria-hidden="true" />
+                            <Trash size={14} aria-hidden="true" />
                           </button>
                         )}
                       </div>
@@ -843,7 +889,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                                     title={t('api.tree.deleteEndpoint')}
                                     onClick={() => setDeleteTarget({ kind: 'endpoint', id: e.id, name: e.name })}
                                   >
-                                    <Trash size={13} aria-hidden="true" />
+                                    <Trash size={14} aria-hidden="true" />
                                   </button>
                                 )}
                               </div>
@@ -906,7 +952,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                                   title={t('api.tree.deleteEndpoint')}
                                   onClick={() => setDeleteTarget({ kind: 'endpoint', id: e.id, name: e.name })}
                                 >
-                                  <Trash size={13} aria-hidden="true" />
+                                  <Trash size={14} aria-hidden="true" />
                                 </button>
                               )}
                             </div>

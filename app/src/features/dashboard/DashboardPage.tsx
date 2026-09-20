@@ -19,6 +19,7 @@ import { Button } from '../../components/Button';
 import { Badge } from '../../components/Badge';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { TEAM_ROLE } from '../../lib/labels';
+import { FE_LIMITS } from '../../lib/limits';
 import { Tooltip } from '../../components/Tooltip';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/Skeleton';
@@ -103,7 +104,7 @@ function DashboardCommandBar({
           placeholder={t('dashboard.welcome.search.placeholder')}
           aria-label={t('dashboard.welcome.search.aria')}
           value={query}
-          maxLength={200}
+          maxLength={FE_LIMITS.SEARCH}
           onChange={(e) => onQuery(e.target.value)}
         />
         {query && (
@@ -452,6 +453,17 @@ export function DashboardPage() {
       else next.set('sort', v);
       setSearchParams(next, { replace: true });
     });
+  };
+
+  const filterBtnRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const handleFilterKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    const order = ['active', 'all', 'archived'] as const;
+    const idx = order.indexOf(showMode);
+    const next = order[(idx + (e.key === 'ArrowRight' ? 1 : order.length - 1)) % order.length] as 'active' | 'archived' | 'all';
+    commitStatus(next);
+    filterBtnRefs.current[order.indexOf(next)]?.focus();
   };
 
   const commitStatus = (v: 'active' | 'archived' | 'all') => {
@@ -828,13 +840,18 @@ export function DashboardPage() {
                   count={filteredSorted.length}
                 />
                 {teamProjects && teamProjects.length > 0 && (
-                  <div className="archive-filter" role="tablist" aria-label={t('dashboard.welcome.filter.aria')}>
+                  <div className="archive-filter" role="tablist" aria-label={t('dashboard.welcome.filter.aria')} onKeyDown={handleFilterKeyDown}>
                     {(['active', 'all', 'archived'] as const).map((v) => (
                       <button
                         key={v}
+                        ref={(el) => {
+                          filterBtnRefs.current[['active', 'all', 'archived'].indexOf(v)] = el;
+                        }}
                         type="button"
                         role="tab"
+                        id={`dashboard-filter-tab-${v}`}
                         aria-selected={showMode === v}
+                        tabIndex={showMode === v ? 0 : -1}
                         className={showMode === v ? 'archive-filter-btn archive-filter-btn-active' : 'archive-filter-btn'}
                         onClick={() => commitStatus(v)}
                       >

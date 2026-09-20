@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { CaretDown } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
+import { FE_LIMITS } from '../lib/limits';
 
 export interface SearchableOption {
   value: string;
@@ -216,7 +217,7 @@ export function SearchableSelect({
             ref={inputRef}
             className="ss-input"
             value={query}
-            maxLength={100}
+            maxLength={FE_LIMITS.FILTER}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t('select.search')}
             aria-label={t('select.searchLabel', { what: nameSource })}
