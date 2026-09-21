@@ -11,7 +11,7 @@ export async function resetDb(): Promise<void> {
     throw new Error(`Refuse TRUNCATE: NODE_ENV must be test, got ${process.env.NODE_ENV}`);
   }
   await pool.query(
-    'TRUNCATE billing_webhook_logs, billing_package_prices, billing_packages, team_payments, mcp_keys, gcal_outbox, gcal_event_map, gcal_project_settings, gcal_connections, projects, users RESTART IDENTITY CASCADE',
+    'TRUNCATE billing_webhook_logs, billing_package_prices, billing_packages, team_payments, mcp_keys, gcal_outbox, gcal_event_map, gcal_project_settings, gcal_connections, mail_outbox, email_verify_tokens, projects, users RESTART IDENTITY CASCADE',
   );
   // Seed paket default — cermin migration 021, agar tiap file test mulai konsisten.
   await pool.query(

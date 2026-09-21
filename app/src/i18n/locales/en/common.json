@@ -161,14 +161,17 @@
     "startsPrefix": "Starts {{date}}"
   },
   "due": {
-    "overdueDays_one": "OD {{count}}d",
-    "overdueDays_other": "OD {{count}}d",
-    "today": "Due today",
-    "tomorrow": "Due tomorrow",
-    "dated": "Due {{date}}",
+    "overdueDays_one": "Overdue {{count}}d",
+    "overdueDays_other": "Overdue {{count}}d",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "dated": "{{date}}",
     "doneOnTime": "Done on time",
-    "doneLate_one": "Done late {{count}}d",
-    "doneLate_other": "Done late {{count}}d"
+    "doneLate_one": "Late {{count}}d",
+    "doneLate_other": "Late {{count}}d",
+    "dueTitle": "Due {{date}}",
+    "doneOnTimeTitle": "Done {{done}} — on time (due {{due}})",
+    "doneLateTitle": "Done {{done}} — {{count}}d late (due {{due}})"
   },
   "legal": {
     "footerAria": "Legal & help",

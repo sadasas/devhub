@@ -83,6 +83,7 @@ export const RESERVED_TEAM_SLUGS: ReadonlySet<string> = new Set([
   'user',
   'users',
   'verify',
+  'verify-email',
   'well-known',
   'workspace',
   'workspaces',

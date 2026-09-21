@@ -23,6 +23,32 @@ export interface Base {
   authorId?: string | null;
 }
 
+export interface ChecklistItem {
+  id: string;
+  title: string;
+  done: boolean;
+}
+
+export type LabelColor =
+  | 'red'
+  | 'orange'
+  | 'amber'
+  | 'green'
+  | 'emerald'
+  | 'teal'
+  | 'sky'
+  | 'blue'
+  | 'violet'
+  | 'pink'
+  | 'slate'
+  | 'lime';
+
+export interface LabelDef extends Base {
+  name: string;
+  color: LabelColor;
+  description: string;
+}
+
 export interface Task extends Base {
   title: string;
   status: TaskStatus;
@@ -31,6 +57,8 @@ export interface Task extends Base {
   actualHours?: number;
   labels: string[];
   blockedBy: string[];
+  parentTaskId?: string | null;
+  checklist?: ChecklistItem[];
   milestoneId?: string | null;
   dueDate?: string | null;
   startDate?: string | null;
@@ -474,6 +502,8 @@ export interface State {
   apiCollections: ApiCollection[];
   apiEndpoints: ApiEndpoint[];
   whiteboards: Whiteboard[];
+  /** Definisi label berwarna (zod default [] — opsional agar state lama tetap valid). */
+  labelDefs?: LabelDef[];
   erdGroups?: ErdGroup[];
   timelineOrder?: Record<string, string[]>;
   timelineRow?: Record<string, Record<string, number>>;
@@ -691,6 +721,8 @@ export interface User {
   createdAt: string;
   avatarUrl?: string | null;
   emailVerified?: boolean;
+  /** Deadline grace period user lama (ISO) — null = hard gate / sudah verified. Untuk banner UI (T6/T7). */
+  graceUntil?: string | null;
   hasPassword?: boolean;
   providers?: string[];
 }

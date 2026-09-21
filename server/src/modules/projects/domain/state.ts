@@ -53,6 +53,12 @@ export const baseFields = {
 export const taskStatus = z.enum(['todo', 'inProgress', 'review', 'done']);
 export const taskPriority = z.enum(['low', 'medium', 'high', 'urgent']);
 
+export const checklistItemSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string().min(1).max(200),
+  done: z.boolean().default(false),
+});
+
 export const taskSchema = z.object({
   ...baseFields,
   title: z.string().min(1).max(LIMITS.TASK_TITLE),
@@ -62,6 +68,9 @@ export const taskSchema = z.object({
   actualHours: hours.optional(),
   labels: z.array(z.string().max(50)).max(20).default([]),
   blockedBy: z.array(z.string().uuid()).default([]),
+  // zod-only, tanpa migrasi DB: data lama tanpa field tetap valid (optional/null = tanpa parent/checklist).
+  parentTaskId: z.string().uuid().nullable().optional(),
+  checklist: z.array(checklistItemSchema).max(20).default([]),
   milestoneId: z.string().uuid().nullable().optional(),
   dueDate: isoDate.nullable().optional(),
   startDate: isoDate.nullable().optional(),
@@ -427,6 +436,30 @@ export const erdGroupSchema = z.object({
   h: z.number().min(80).max(100_000).nullable().optional(),
 });
 
+export const labelColor = z.enum([
+  'red',
+  'orange',
+  'amber',
+  'green',
+  'emerald',
+  'teal',
+  'sky',
+  'blue',
+  'violet',
+  'pink',
+  'slate',
+  'lime',
+]);
+
+// Definisi label berwarna per-project (nama = kunci, seperti Linear tanpa grup).
+// zod-only, tanpa migrasi DB: data lama tanpa field tetap valid (default []).
+export const labelDefSchema = z.object({
+  ...baseFields,
+  name: z.string().min(1).max(50),
+  color: labelColor,
+  description: z.string().max(200).default(''),
+});
+
 export const stateSchema = z.object({
   tasks: z.array(taskSchema).max(5_000).default([]),
   issues: z.array(issueSchema).max(5_000).default([]),
@@ -440,6 +473,7 @@ export const stateSchema = z.object({
   apiCollections: z.array(apiCollectionSchema).max(500).default([]),
   apiEndpoints: z.array(apiEndpointSchema).max(5_000).default([]),
   whiteboards: z.array(whiteboardSchema).max(LIMITS.WHITEBOARDS_PER_PROJECT).default([]),
+  labelDefs: z.array(labelDefSchema).max(200).default([]),
   erdGroups: z.array(erdGroupSchema).max(LIMITS.ERDGROUPS_PER_PROJECT).default([]),
   timelineOrder: z.record(z.string().max(100), z.array(z.string().uuid()).max(5000)).default({}),
   timelineRow: z.record(z.string().max(100), z.record(z.string().max(100), z.number().int().min(0).max(10000))).default({}),
@@ -473,6 +507,8 @@ export type WhiteboardShape = z.infer<typeof whiteboardShapeSchema>;
 export type WhiteboardEdge = z.infer<typeof whiteboardEdgeSchema>;
 export type WhiteboardRef = z.infer<typeof whiteboardRefSchema>;
 export type Whiteboard = z.infer<typeof whiteboardSchema>;
+export type LabelColor = z.infer<typeof labelColor>;
+export type LabelDef = z.infer<typeof labelDefSchema>;
 export type ErdGroup = z.infer<typeof erdGroupSchema>;
 export type ErdPosition = z.infer<typeof erdPositionSchema>;
 export type ErdLayout = z.infer<typeof erdLayoutSchema>;
@@ -490,6 +526,7 @@ export const emptyState: State = {
   apiCollections: [],
   apiEndpoints: [],
   whiteboards: [],
+  labelDefs: [],
   erdGroups: [],
   timelineOrder: {},
   timelineRow: {},

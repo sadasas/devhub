@@ -425,7 +425,7 @@ function PublicTaskCard({
           {task.dueDate && taskDueChip(task).label && (
             <span
               className={`task-due task-due-${taskDueChip(task).tone}`}
-              title={formatDate(task.dueDate)}
+              title={taskDueChip(task).title || formatDate(task.dueDate)}
             >
               {taskDueChip(task).label}
             </span>

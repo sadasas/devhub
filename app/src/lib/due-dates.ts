@@ -98,6 +98,17 @@ export function dueTone(bucket: DueBucket): DueTone {
 export interface DueChip {
   label: string;
   tone: DueTone;
+  /** Tooltip kaya: tanggal due + tanggal selesai + keterlambatan. */
+  title: string;
+}
+
+function fullDate(isoDate: string): string {
+  return new Intl.DateTimeFormat(getAppLocale(), {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(`${isoDate}T00:00:00Z`));
 }
 
 export function taskDueChip(
@@ -106,9 +117,21 @@ export function taskDueChip(
 ): DueChip {
   if (task.status === 'done' && task.completedAt && task.dueDate) {
     const doneDay = task.completedAt.slice(0, 10);
-    if (doneDay <= task.dueDate) return { label: i18n.t('common:due.doneOnTime'), tone: 'success' };
+    if (doneDay <= task.dueDate) {
+      return {
+        label: i18n.t('common:due.doneOnTime'),
+        tone: 'neutral',
+        title: i18n.t('common:due.doneOnTimeTitle', { done: fullDate(doneDay), due: fullDate(task.dueDate) }),
+      };
+    }
     const days = dayIndex(doneDay) - dayIndex(task.dueDate);
-    return { label: i18n.t('common:due.doneLate', { count: days }), tone: 'warn' };
+    return {
+      label: i18n.t('common:due.doneLate', { count: days }),
+      tone: 'warn',
+      title: i18n.t('common:due.doneLateTitle', { done: fullDate(doneDay), due: fullDate(task.dueDate), count: days }),
+    };
   }
-  return { label: dueLabel(task.dueDate, today), tone: dueTone(dueBucket(task.dueDate, today)) };
+  const label = dueLabel(task.dueDate, today);
+  const title = task.dueDate ? i18n.t('common:due.dueTitle', { date: fullDate(task.dueDate) }) : '';
+  return { label, tone: dueTone(dueBucket(task.dueDate, today)), title };
 }

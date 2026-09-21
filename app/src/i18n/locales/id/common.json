@@ -161,14 +161,17 @@
     "startsPrefix": "Mulai {{date}}"
   },
   "due": {
-    "overdueDays_one": "TL {{count}} hr",
-    "overdueDays_other": "TL {{count}} hr",
-    "today": "Jatuh tempo hari ini",
-    "tomorrow": "Jatuh tempo besok",
-    "dated": "Jatuh tempo {{date}}",
+    "overdueDays_one": "Telat {{count}} hr",
+    "overdueDays_other": "Telat {{count}} hr",
+    "today": "Hari ini",
+    "tomorrow": "Besok",
+    "dated": "{{date}}",
     "doneOnTime": "Selesai tepat waktu",
-    "doneLate_one": "Selesai terlambat {{count}} hr",
-    "doneLate_other": "Selesai terlambat {{count}} hr"
+    "doneLate_one": "Telat {{count}} hr",
+    "doneLate_other": "Telat {{count}} hr",
+    "dueTitle": "Jatuh tempo {{date}}",
+    "doneOnTimeTitle": "Selesai {{done}} — tepat waktu (jatuh tempo {{due}})",
+    "doneLateTitle": "Selesai {{done}} — telat {{count}} hr (jatuh tempo {{due}})"
   },
   "legal": {
     "footerAria": "Legal & bantuan",

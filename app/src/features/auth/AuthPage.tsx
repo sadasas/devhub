@@ -51,6 +51,8 @@ export function AuthPage() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [noPassword, setNoPassword] = useState(false);
+  const [unverified, setUnverified] = useState(false);
+  const [resending, setResending] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -84,6 +86,7 @@ export function AuthPage() {
     e.preventDefault();
     setError(null);
     setNoPassword(false);
+    setUnverified(false);
     setSuccess(null);
     if (isForgot) {
       if (!email) {
@@ -119,10 +122,17 @@ export function AuthPage() {
     setSubmitting(true);
     try {
       if (isRegister) {
+        // T6 hard gate: tidak auto-login — tampilkan layar cek-email.
         await register(email.trim(), password);
-      } else {
-        await login(email.trim(), password);
+        setSuccess(
+          i18n.resolvedLanguage === 'id'
+            ? `Akun dibuat. Cek email ${email.trim()} (termasuk folder spam) lalu klik link verifikasi — link berlaku 24 jam.`
+            : `Account created. Check ${email.trim()} (including spam) and click the verification link — valid for 24 hours.`,
+        );
+        setSubmitting(false);
+        return;
       }
+      await login(email.trim(), password);
       // Unified auth: if OAuth flow, redirect back to authorize endpoint
       if (returnTo) {
         window.location.href = returnTo;
@@ -140,8 +150,35 @@ export function AuthPage() {
         setSubmitting(false);
         return;
       }
+      // T6 hard gate: email belum diverifikasi — pesan jelas + kirim ulang.
+      if (err instanceof ApiError && err.code === 'EMAIL_NOT_VERIFIED') {
+        setUnverified(true);
+        setError(
+          i18n.resolvedLanguage === 'id'
+            ? 'Email belum diverifikasi. Cek inbox (dan spam) untuk link verifikasi, atau kirim ulang di bawah.'
+            : 'Email not verified yet. Check your inbox (and spam) for the verification link, or resend it below.',
+        );
+        setSubmitting(false);
+        return;
+      }
       setError(getErrorMessage(err, t('auth.error.generic')));
       setSubmitting(false);
+    }
+  }
+
+  async function onResend() {
+    if (!email || resending) return;
+    setResending(true);
+    try {
+      const { api } = await import('../../lib/api');
+      await api.resendVerification(email.trim());
+      setSuccess(
+        t('auth.verify.resent', 'If that email exists and is unverified, a verification link has been sent.'),
+      );
+    } catch (err) {
+      setError(getErrorMessage(err, t('auth.error.generic')));
+    } finally {
+      setResending(false);
     }
   }
 
@@ -343,6 +380,20 @@ export function AuthPage() {
                 : 'Tip: use the Google/GitHub buttons above to sign in, then open Profile → Security → Set password.'}
             </p>
           )}
+          {unverified && (
+            <p style={{ fontSize: 13, margin: 0 }}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={onResend}
+                disabled={resending || !email}
+              >
+                {resending
+                  ? t('auth.verify.resending', 'Sending...')
+                  : t('auth.verify.resend', 'Resend verification link')}
+              </button>
+            </p>
+          )}
           {success && (
             <div
               role="status"
@@ -425,6 +476,7 @@ export function AuthPage() {
                     setMode('login');
                     setError(null);
                     setNoPassword(false);
+                    setUnverified(false);
                     setSuccess(null);
                   }}
                 >
@@ -441,6 +493,7 @@ export function AuthPage() {
                     setMode('login');
                     setError(null);
                     setNoPassword(false);
+                    setUnverified(false);
                   }}
                 >
                   {t('auth.action.signIn')}
@@ -456,6 +509,7 @@ export function AuthPage() {
                     setMode('register');
                     setError(null);
                     setNoPassword(false);
+                    setUnverified(false);
                   }}
                 >
                   {t('auth.action.createOne')}

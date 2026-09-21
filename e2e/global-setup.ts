@@ -52,7 +52,33 @@ export default async function globalSetup(): Promise<void> {
   if (!res.ok()) {
     throw new Error(`globalSetup: register failed (${res.status()}): ${await res.text()}`);
   }
-  const cookies = res
+  // T6 hard gate: register tidak auto-login — verifikasi via token di DB lalu login.
+  const verifyPool = new pg.Pool({ connectionString: TEST_DB });
+  try {
+    const tok = await verifyPool.query<{ token: string }>(
+      'SELECT t.token FROM email_verify_tokens t JOIN users u ON u.id = t.user_id WHERE u.email = $1 AND t.used_at IS NULL',
+      [OWNER_EMAIL],
+    );
+    const token = tok.rows[0]?.token;
+    if (!token) throw new Error('globalSetup: no verify token found');
+    const verify = await ctx.post('/api/v1/auth/verify-email', {
+      headers: { 'X-Forwarded-For': uniqueIp() },
+      data: { token },
+    });
+    if (!verify.ok()) {
+      throw new Error(`globalSetup: verify failed (${verify.status()}): ${await verify.text()}`);
+    }
+  } finally {
+    await verifyPool.end();
+  }
+  const login = await ctx.post('/api/v1/auth/login', {
+    headers: { 'X-Forwarded-For': uniqueIp() },
+    data: { email: OWNER_EMAIL, password: OWNER_PASSWORD },
+  });
+  if (!login.ok()) {
+    throw new Error(`globalSetup: login failed (${login.status()}): ${await login.text()}`);
+  }
+  const cookies = login
     .headersArray()
     .filter((h) => h.name.toLowerCase() === 'set-cookie')
     .map((h) => parseSetCookie(h.value));
@@ -60,7 +86,7 @@ export default async function globalSetup(): Promise<void> {
     throw new Error('globalSetup: no session cookie received');
   }
   // No auto-create team on register: owner needs an explicit team.
-  const sessionCookie = res
+  const sessionCookie = login
     .headersArray()
     .filter((h) => h.name.toLowerCase() === 'set-cookie')
     .map((h) => h.value.split(';')[0])

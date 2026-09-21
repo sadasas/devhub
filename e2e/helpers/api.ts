@@ -1,9 +1,11 @@
 import { request, type APIRequestContext } from '@playwright/test';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import pg from 'pg';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const API_BASE = process.env.E2E_API_URL ?? 'http://localhost:3100';
+const TEST_DB = process.env.E2E_TEST_DB ?? 'postgres://devhub:devhub@localhost:5433/devhub_test';
 const OWNER_STATE = path.join(HERE, '..', '.auth', 'owner.json');
 
 export function uniqueName(prefix: string): string {
@@ -106,12 +108,34 @@ export async function registerUser(
   email: string,
   password: string,
 ): Promise<string> {
+  // T6 hard gate: register → verify via token DB → login (return session cookie).
   const res = await ctx.post('/api/v1/auth/register', {
     headers: { 'X-Forwarded-For': uniqueIp() },
     data: { email, password },
   });
   if (!res.ok()) throw new Error(`registerUser failed (${res.status()}): ${await res.text()}`);
-  const cookies = res
+  const pool = new pg.Pool({ connectionString: TEST_DB });
+  try {
+    const tok = await pool.query<{ token: string }>(
+      'SELECT t.token FROM email_verify_tokens t JOIN users u ON u.id = t.user_id WHERE u.email = $1 AND t.used_at IS NULL',
+      [email],
+    );
+    const token = tok.rows[0]?.token;
+    if (!token) throw new Error('registerUser: no verify token found');
+    const verify = await ctx.post('/api/v1/auth/verify-email', {
+      headers: { 'X-Forwarded-For': uniqueIp() },
+      data: { token },
+    });
+    if (!verify.ok()) throw new Error(`registerUser verify failed (${verify.status()}): ${await verify.text()}`);
+  } finally {
+    await pool.end();
+  }
+  const login = await ctx.post('/api/v1/auth/login', {
+    headers: { 'X-Forwarded-For': uniqueIp() },
+    data: { email, password },
+  });
+  if (!login.ok()) throw new Error(`registerUser login failed (${login.status()}): ${await login.text()}`);
+  const cookies = login
     .headersArray()
     .filter((h) => h.name.toLowerCase() === 'set-cookie')
     .map((h) => h.value.split(';')[0]);

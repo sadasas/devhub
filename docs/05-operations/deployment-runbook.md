@@ -175,6 +175,9 @@ One push to `main` can trigger deploys on Cloudflare (frontend) and Suga (backen
 | `COOKIE_DOMAIN` | FE split | Parent domain for the session cookie — **single login across app + admin subdomains (ADR-051)**. Prod (Suga): `.nrawangbatin.my.id`. Empty = host-only cookie (local dev, single frontend) |
 | `VITE_API_URL` (Cloudflare build variable) | FE split | **`/api/v1` (relative, same-origin via Worker proxy)** — SPA fetch base + WebSocket origin (see `realtime-client.ts`). Legacy absolute form `https://<hash>.suga.run/api/v1` is force-rewritten to `/api/v1` at runtime (`app/src/lib/api.ts:27-46`), but do NOT deploy new builds with the absolute value |
 | `VITE_GA_MEASUREMENT_ID` (Cloudflare build variable) | FE analytics | GA4 measurement ID (`G-XXXXXXXXXX`, real value dashboard-only). Empty/missing = placeholder `G-XXXXXXX` = zero GA network. Consent-gated page_view only (`app/src/lib/consent.ts`); bake-time — changing it requires rebuild |
+| `RESEND_API_KEY` | Mail (M31) | Resend API key, permission **Sending access** only. Empty = worker holds queue, nothing sends. **Sensitive on Suga** |
+| `MAIL_FROM` | Mail (M31) | Sender identity, e.g. `DevHub <noreply@devhub.nrawangbatin.my.id>` — domain must be Verified in Resend (DKIM + SPF) |
+| `MAIL_ENABLED` | Mail (M31) | `true` to actually send; `false` (default) = enqueue only, queue flushed when enabled. Kill-switch for mail incidents |
 
 **Cookie / same-origin ( kunci: JANGAN ganti kode ke `SameSite=None` ):** each SPA and the API are served from **one origin per frontend** (`https://devhub.nrawangbatin.my.id` for app, the admin subdomain for admin) — each Cloudflare Worker (`app/src/worker.ts`, `admin/src/worker.ts`) proxies `/api/*`, `/mcp`, `/oauth/*`, `/ws`, and `/.well-known/*` to Suga while serving static assets for everything else, and strips `Domain` from `Set-Cookie` **only when it points at the backend host**, preserving the parent-domain session cookie (`COOKIE_DOMAIN`, ADR-051) so one login covers both frontends while staying **first-party**. Therefore the session cookie is **`SameSite=Lax; HttpOnly; Secure`** in production (`server/src/shared/cookie.ts`), which blocks CSRF yet is sent on same-origin top-level and sub-requests. `SameSite=None` is intentionally NOT used — switching the code to `None` would turn a first-party session into a third-party cookie (blocked by Safari/Firefox ITP, CSRF surface). If login loops with 401, fix the proxy/origin — never the cookie.
 
@@ -200,7 +203,7 @@ One push to `main` can trigger deploys on Cloudflare (frontend) and Suga (backen
 - [ ] Migrations applied (auto at boot, or `npm run db:migrate` against the deployed DB)
 - [ ] `GET /api/v1/health` → `ok`
 - [ ] SPA loads same-origin and calls `/api` without CORS (check `CORS_ORIGIN` empty in prod)
-- [ ] Register an account → login → create project → `opencode mcp auth devhub` (browser OAuth PKCE)
+- [ ] Register an account → verify via email link → login → create project → `opencode mcp auth devhub` (browser OAuth PKCE)
 - [ ] Cookie header shows `HttpOnly; SameSite=Lax; Secure` (production, same-origin via proxy) — `SameSite=Lax` in dev (HTTP, `Secure` off)
 - [ ] `/mcp` rejects without token, works with OAuth bearer (curl with `jq -r .access_token ~/.local/share/opencode/mcp-auth.json`, see [MCP Guide §7](../03-engineering/mcp-integration.md#7-testing-the-mcp-server))
 - [ ] Backup cron in place (next section)
@@ -224,6 +227,8 @@ Hanya via dashboard Suga — JANGAN commit nilai asli ke repo (hanya docs + `ser
 - [ ] `VITE_API_URL=/api/v1` (build variable Cloudflare; JANGAN absolut `https://<hash>.suga.run/...`)
 - [ ] Webhook Pakasir menunjuk `https://devhub.nrawangbatin.my.id/api/v1/billing/webhook` (proxied Worker → Suga; test dengan payload kecil, ekspektasi `200 {ok:true}` tanpa aktivasi untuk order tak dikenal)
 - [ ] Pricing seed ADR-045 diterapkan: `psql "$DATABASE_URL" -f server/src/db/seeds/001_pro_pricing_2026-09-13.sql`, lalu verifikasi paket Pro `is_featured` + harga `(30,249000) (90,699000) (365,2490000)` + promo LAUNCH149 `(30,149000)` nonaktif
+- [ ] Email (M31): `MAIL_ENABLED=true`, `MAIL_FROM=DevHub <noreply@devhub.nrawangbatin.my.id>`, `RESEND_API_KEY` prod terisi + **Sensitive**; domain Verified di dashboard Resend (DKIM + 2 CNAME SPF hijau)
+- [ ] Email smoke test prod: register akun uji → cek inbox (SPF/DKIM/DMARC PASS, tidak spam) → klik verify → login OK; `POST /api/v1/mail/outbox/process` (auth) → `{processed:0,...,pending:0}`
 
 ---
 

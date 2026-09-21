@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CheckCircle, CaretRight, Clock, FileText, Trash } from '@phosphor-icons/react';
+import { CheckCircle, CaretRight, Clock, FileText, Trash, Stack, Circle } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { TECH_CATEGORY } from '../../lib/labels';
 import { formatDate, formatRelative } from '../../lib/utils';
@@ -221,11 +221,12 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
           <PropRow
             propKey="category"
             label={t('stack.techModal.categoryLabel')}
+            icon={<Stack size={12} aria-hidden="true" />}
             hot={hotProp === 'category'}
             setHot={setHotProp}
             canEdit={canEdit}
             view={(
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 999, background: categoryBg, fontSize: 12 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 6, background: categoryBg, fontSize: 12 }}>
                 {t(`stack.category.${entry.category}`)}
               </span>
             )}
@@ -246,11 +247,12 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
           <PropRow
             propKey="status"
             label={t('stack.techModal.statusLabel')}
+            icon={<Circle size={12} aria-hidden="true" />}
             hot={hotProp === 'status'}
             setHot={setHotProp}
             canEdit={canEdit}
             view={(
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 999, background: statusBg, fontSize: 12 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 6, background: statusBg, fontSize: 12 }}>
                 {t(`stack.statusBadge.${entry.status}`)}
               </span>
             )}
@@ -359,7 +361,7 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
       )}
       {nameEmpty && <InlineError>{t('tracker:issues.modal.titleRequired')}</InlineError>}
       <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-        <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+        <span style={{ width: 110, color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
           <Clock size={12} aria-hidden="true" /> {t('tracker:issues.modal.createdTimeLabel')}
         </span>
         <span style={{ color: 'var(--text-secondary)' }}>{formatDate(entry.createdAt)} {new Date(entry.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>

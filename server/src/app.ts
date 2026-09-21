@@ -29,6 +29,7 @@ import { socialRouter } from './modules/auth/handlers/social.routes.js';
 import { gcalPlaygroundRouter } from './modules/integrations/gcal/playground.routes.js';
 import { gcalRouter } from './modules/integrations/gcal/handlers/gcal.routes.js';
 import { gcalOutboxRouter } from './modules/integrations/gcal/handlers/gcal-outbox.routes.js';
+import { mailOutboxRouter } from './modules/mail/handlers/mail-outbox.routes.js';
 
 declare global {
   namespace Express {
@@ -219,6 +220,7 @@ export function createApp(): express.Express {
   app.use('/api/v1/admin', adminRouter);
   app.use('/api/v1/integrations/gcal', gcalPlaygroundRouter);
   app.use('/api/v1/integrations/gcal', gcalOutboxRouter);
+  app.use('/api/v1/mail', mailOutboxRouter);
   app.use('/api/v1/billing', billingPublicRouter);
   app.use('/api/v1/billing', billingRouter);
   app.use('/api/v1/integrations/gcal', gcalRouter);

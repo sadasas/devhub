@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { app, register, uniqueIp } from './helpers.js';
 import { config } from '../src/config.js';
+import { pool } from '../src/db/pool.js';
 import { resetDb } from './setup.js';
 
 describe('auth routes', () => {
@@ -9,7 +10,7 @@ describe('auth routes', () => {
     await resetDb();
   });
 
-  it('registers a user and returns a session cookie', async () => {
+  it('registers without auto-login and requires verification first (T6 hard gate)', async () => {
     const res = await request(app)
       .post('/api/v1/auth/register')
       .set('X-Forwarded-For', uniqueIp())
@@ -17,15 +18,34 @@ describe('auth routes', () => {
     expect(res.status).toBe(201);
     expect(res.body.id).toBeDefined();
     expect(res.body.email).toBe('new@test.dev');
-    expect(res.headers['set-cookie']).toBeDefined();
+    expect(res.headers['set-cookie']).toBeUndefined();
+    // Login sebelum verifikasi ditolak.
+    const blocked = await request(app)
+      .post('/api/v1/auth/login')
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ email: 'new@test.dev', password: 'password123' });
+    expect(blocked.status).toBe(403);
+    expect(blocked.body.error.code).toBe('EMAIL_NOT_VERIFIED');
   });
 
   it('sets a host-only session cookie by default (no Domain attribute)', async () => {
-    const res = await request(app)
+    // Cookie sesi kini terbit saat login (register tidak auto-login sejak T6).
+    await request(app)
       .post('/api/v1/auth/register')
       .set('X-Forwarded-For', uniqueIp())
       .send({ email: 'nodomain@test.dev', password: 'password123' });
-    expect(res.status).toBe(201);
+    const tok = await pool.query<{ token: string }>(
+      `SELECT t.token FROM email_verify_tokens t JOIN users u ON u.id = t.user_id WHERE u.email = 'nodomain@test.dev'`,
+    );
+    await request(app)
+      .post('/api/v1/auth/verify-email')
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ token: tok.rows[0]!.token });
+    const res = await request(app)
+      .post('/api/v1/auth/login')
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ email: 'nodomain@test.dev', password: 'password123' });
+    expect(res.status).toBe(200);
     const setCookie = (res.headers['set-cookie'] as unknown as string[] | undefined)?.[0] ?? '';
     expect(setCookie).toContain('SameSite=Lax');
     expect(setCookie).not.toMatch(/Domain=/i);
@@ -35,11 +55,22 @@ describe('auth routes', () => {
     const prev = config.COOKIE_DOMAIN;
     config.COOKIE_DOMAIN = '.nrawangbatin.my.id';
     try {
-      const res = await request(app)
+      await request(app)
         .post('/api/v1/auth/register')
         .set('X-Forwarded-For', uniqueIp())
         .send({ email: 'parentdomain@test.dev', password: 'password123' });
-      expect(res.status).toBe(201);
+      const tok = await pool.query<{ token: string }>(
+        `SELECT t.token FROM email_verify_tokens t JOIN users u ON u.id = t.user_id WHERE u.email = 'parentdomain@test.dev'`,
+      );
+      await request(app)
+        .post('/api/v1/auth/verify-email')
+        .set('X-Forwarded-For', uniqueIp())
+        .send({ token: tok.rows[0]!.token });
+      const res = await request(app)
+        .post('/api/v1/auth/login')
+        .set('X-Forwarded-For', uniqueIp())
+        .send({ email: 'parentdomain@test.dev', password: 'password123' });
+      expect(res.status).toBe(200);
       const setCookie = (res.headers['set-cookie'] as unknown as string[] | undefined)?.[0] ?? '';
       expect(setCookie).toContain('Domain=.nrawangbatin.my.id');
     } finally {
@@ -186,5 +217,155 @@ describe('auth routes', () => {
       .set('X-Forwarded-For', uniqueIp())
       .send({ currentPassword: 'password123', newPassword: 'newpass456' });
     expect(res.status).toBe(401);
+  });
+
+  it('forgot-password enqueues reset email without leaking the token (M31)', async () => {
+    await register('forgot1@test.dev');
+    const res = await request(app)
+      .post('/api/v1/auth/forgot-password')
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ email: 'forgot1@test.dev' });
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.token).toBeUndefined();
+    const outbox = await pool.query<{ template: string; status: string }>(
+      "SELECT template, status FROM mail_outbox WHERE to_email = 'forgot1@test.dev' AND template = 'reset'",
+    );
+    expect(outbox.rows).toHaveLength(1);
+    expect(outbox.rows[0]).toMatchObject({ template: 'reset', status: 'pending' });
+    const tokens = await pool.query<{ token: string }>(
+      `SELECT t.token FROM password_reset_tokens t JOIN users u ON u.id = t.user_id WHERE u.email = 'forgot1@test.dev'`,
+    );
+    expect(tokens.rows).toHaveLength(1);
+    // Full circle: token dari DB (test-only) → reset → login password baru.
+    const reset = await request(app)
+      .post('/api/v1/auth/reset-password')
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ token: tokens.rows[0]!.token, newPassword: 'brandnew456' });
+    expect(reset.status).toBe(200);
+    const login = await request(app)
+      .post('/api/v1/auth/login')
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ email: 'forgot1@test.dev', password: 'brandnew456' });
+    expect(login.status).toBe(200);
+  });
+
+  it('forgot-password keeps single active token and answers ok for unknown email', async () => {
+    await register('forgot2@test.dev');
+    const ip = uniqueIp();
+    // NOTE: forgotLimiter 5/15m per IP — 2 request di bawah limit.
+    await request(app).post('/api/v1/auth/forgot-password').set('X-Forwarded-For', ip).send({ email: 'forgot2@test.dev' });
+    await request(app).post('/api/v1/auth/forgot-password').set('X-Forwarded-For', ip).send({ email: 'forgot2@test.dev' });
+    const tokens = await pool.query<{ token: string }>(
+      `SELECT t.token FROM password_reset_tokens t JOIN users u ON u.id = t.user_id WHERE u.email = 'forgot2@test.dev' AND t.used_at IS NULL`,
+    );
+    expect(tokens.rows).toHaveLength(1);
+    const unknown = await request(app)
+      .post('/api/v1/auth/forgot-password')
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ email: 'nobody-here@test.dev' });
+    expect(unknown.status).toBe(200);
+    expect(unknown.body.ok).toBe(true);
+    expect(unknown.body.token).toBeUndefined();
+  });
+
+  it('register enqueues verify email and verify-email sets the flag (M31)', async () => {
+    // Direct POST (tanpa helper yang auto-verify) agar pre-state teramati.
+    const reg = await request(app)
+      .post('/api/v1/auth/register')
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ email: 'verify1@test.dev', password: 'password123' });
+    expect(reg.status).toBe(201);
+    const outbox = await pool.query<{ template: string; status: string }>(
+      "SELECT template, status FROM mail_outbox WHERE to_email = 'verify1@test.dev' AND template = 'verify'",
+    );
+    expect(outbox.rows).toHaveLength(1);
+    expect(outbox.rows[0]).toMatchObject({ template: 'verify', status: 'pending' });
+    const before = await pool.query<{ email_verified: boolean }>(
+      "SELECT email_verified FROM users WHERE email = 'verify1@test.dev'",
+    );
+    expect(before.rows[0]?.email_verified).toBe(false);
+    const tokens = await pool.query<{ token: string }>(
+      `SELECT t.token FROM email_verify_tokens t JOIN users u ON u.id = t.user_id WHERE u.email = 'verify1@test.dev'`,
+    );
+    expect(tokens.rows).toHaveLength(1);
+    const verify = await request(app)
+      .post('/api/v1/auth/verify-email')
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ token: tokens.rows[0]!.token });
+    expect(verify.status).toBe(200);
+    const login = await request(app)
+      .post('/api/v1/auth/login')
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ email: 'verify1@test.dev', password: 'password123' });
+    expect(login.status).toBe(200);
+    const cookie = (login.headers['set-cookie'] as unknown as string[] | undefined)?.[0]!.split(';')[0]!;
+    const after = await request(app).get('/api/v1/auth/me').set('Cookie', cookie);
+    expect(after.body.emailVerified).toBe(true);
+    // Reuse token yang sama ditolak.
+    const reuse = await request(app)
+      .post('/api/v1/auth/verify-email')
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ token: tokens.rows[0]!.token });
+    expect(reuse.status).toBe(400);
+    // Token ngawur ditolak.
+    const bogus = await request(app)
+      .post('/api/v1/auth/verify-email')
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ token: 'tidak-ada-token-ini-0123456789' });
+    expect(bogus.status).toBe(400);
+  });
+
+  it('grandfather: legacy user logs in during grace with graceUntil, blocked after (T6/TC7)', async () => {
+    // Simulasi user lama: register (unverified) lalu beri deadline seperti backfill 042.
+    await request(app)
+      .post('/api/v1/auth/register')
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ email: 'legacy@test.dev', password: 'password123' });
+    await pool.query("UPDATE users SET verification_deadline = now() + interval '14 days' WHERE email = 'legacy@test.dev'");
+
+    const login = await request(app)
+      .post('/api/v1/auth/login')
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ email: 'legacy@test.dev', password: 'password123' });
+    expect(login.status).toBe(200);
+    const cookie = (login.headers['set-cookie'] as unknown as string[] | undefined)?.[0]!.split(';')[0]!;
+    const me = await request(app).get('/api/v1/auth/me').set('Cookie', cookie);
+    expect(me.body.emailVerified).toBe(false);
+    expect(typeof me.body.graceUntil).toBe('string');
+
+    // Simulasi lewat deadline → kena gate seperti user baru.
+    await pool.query("UPDATE users SET verification_deadline = now() - interval '1 day' WHERE email = 'legacy@test.dev'");
+    const late = await request(app)
+      .post('/api/v1/auth/login')
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ email: 'legacy@test.dev', password: 'password123' });
+    expect(late.status).toBe(403);
+    expect(late.body.error.code).toBe('EMAIL_NOT_VERIFIED');
+  });
+
+  it('resend-verification issues a new token without enumeration (T6)', async () => {
+    await request(app)
+      .post('/api/v1/auth/register')
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ email: 'resend1@test.dev', password: 'password123' });
+    const res = await request(app)
+      .post('/api/v1/auth/resend-verification')
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ email: 'resend1@test.dev' });
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    // Token lama dicabut, tepat 1 aktif.
+    const tokens = await pool.query(
+      `SELECT t.token FROM email_verify_tokens t JOIN users u ON u.id = t.user_id WHERE u.email = 'resend1@test.dev' AND t.used_at IS NULL`,
+    );
+    expect(tokens.rows).toHaveLength(1);
+    // Email tak dikenal: tetap OK, tanpa bocor.
+    const unknown = await request(app)
+      .post('/api/v1/auth/resend-verification')
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ email: 'ghost-verify@test.dev' });
+    expect(unknown.status).toBe(200);
+    expect(unknown.body.ok).toBe(true);
   });
 });

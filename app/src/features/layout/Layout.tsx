@@ -24,6 +24,63 @@ const CHAT_WIDTH_KEY = 'devhub:layout:chatWidth';
 const CHAT_OPEN_PREFIX = 'devhub:layout:chatOpen:';
 const TOPBAR_CHAT_UNREAD_POLL_MS = 30_000;
 
+// Banner grace period verifikasi email (T6/T7): tampil untuk user lama yang
+// belum verified dan masih punya deadline. User baru (hard gate) tidak pernah
+// sampai sini tanpa verifikasi — mereka berhenti di AuthPage.
+function GraceBanner({ email, graceUntil }: { email: string; graceUntil: string }) {
+  const { t, i18n } = useTranslation('account');
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
+  let date = graceUntil;
+  try {
+    date = new Date(graceUntil).toLocaleDateString(i18n.resolvedLanguage === 'id' ? 'id-ID' : 'en-US', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  } catch {
+    // pakai mentah bila gagal parse
+  }
+  async function onResend() {
+    if (resending || resent) return;
+    setResending(true);
+    try {
+      await api.resendVerification(email);
+      setResent(true);
+    } catch {
+      // diam: banner tetap, user bisa coba lagi
+    } finally {
+      setResending(false);
+    }
+  }
+  return (
+    <div
+      role="status"
+      style={{
+        padding: '8px 16px',
+        fontSize: 13,
+        background: 'var(--status-warn-soft)',
+        color: 'var(--status-warn)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        flexWrap: 'wrap',
+      }}
+    >
+      <span style={{ flex: 1, minWidth: 200 }}>
+        {t('auth.grace.banner', `Verifikasi email kamu sebelum ${date}, atau akun ini akan dikunci.`)}
+      </span>
+      <button type="button" className="btn btn-ghost btn-sm" onClick={onResend} disabled={resending || resent}>
+        {resent
+          ? t('auth.verify.resentShort', 'Link terkirim — cek inbox.')
+          : resending
+            ? t('auth.verify.resending', 'Sending...')
+            : t('auth.verify.resend', 'Resend verification link')}
+      </button>
+    </div>
+  );
+}
+
 // Content-header chat toggle — bar action (36px) inside main's sticky
 // content-header (replaces the removed floating FAB + global topbar).
 // Calls the existing toggleChat() event (no prop drilling) and reflects
@@ -156,6 +213,7 @@ export function Layout() {
         'pricing',
         'payments',
         'reset-password',
+        'verify-email',
         'privacy',
         'terms',
         '404',
@@ -438,6 +496,9 @@ export function Layout() {
         </div>
       )}
       <main className={`main${isZeroTeam ? ' main--onboarding' : ''}`} id="main-content" tabIndex={-1} inert={!isZeroTeam && navOpen ? true : undefined}>
+        {user && !user.emailVerified && user.graceUntil && (
+          <GraceBanner email={user.email} graceUntil={user.graceUntil} />
+        )}
         <div className={`content-header${isZeroTeam ? ' content-header--minimal' : ''}`}>
           {!isZeroTeam && (
             <button

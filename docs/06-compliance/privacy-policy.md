@@ -39,9 +39,18 @@ Payments are processed by **Pakasir** (payment processor for QRIS/virtual-accoun
 
 What we explicitly **do not store**: virtual-account numbers, QR payloads / QR images, card numbers, or any payment-instrument credentials. Those appear only on the Pakasir hosted payment page (`app.pakasir.com`) and never touch our systems. Cancel a pending order any time from the Billing page.
 
+### 2.4 Transactional email (Resend)
+
+Account emails (registration verification, password reset, team invitations) are sent by **Resend** (`resend.com`) as our sub-processor. What Resend processes per email:
+
+- **Recipient address, subject, and message body** (e.g. your team name in an invitation, the verification/reset link).
+- **Delivery metadata:** send/bounce/complaint events, retained 30 days (Resend Free plan).
+
+What we store ourselves: the outbox record (`mail_outbox`: recipient, template, send status, attempts) for retries and debugging — never email credentials. Resend never receives your password, project content, or payment data. Their terms and privacy policy apply to their processing.
+
 Prices may change over time; the amount charged is the amount shown and recorded at checkout. A retired package keeps working until its expiry date but cannot be purchased again.
 
-### 2.4 Technical data (automatic)
+### 2.5 Technical data (automatic)
 
 | Data | Purpose |
 |---|---|
@@ -49,7 +58,7 @@ Prices may change over time; the amount charged is the amount shown and recorded
 | Basic request info (page visited, success/error, load time) | Operation, debugging, performance |
 | Session cookie | Keeping you logged in |
 
-### 2.5 What we do NOT collect by default
+### 2.6 What we do NOT collect by default
 
 - No advertising cookies, tracking pixels, fingerprinting, or behavioral profiling.
 - No sale or rental of your data to anyone.
@@ -107,7 +116,7 @@ After a subscription expires, the workspace reverts to Free limits. For **7 days
 
 ## 7. Legal Disclosures
 
-We will only disclose data to third parties if required by law or a binding legal request under Indonesian law, and we will notify you where legally permitted. Payment confirmation with Pakasir (`app.pakasir.com`) covers only the order ID and amount — never your project content.
+We will only disclose data to third parties if required by law or a binding legal request under Indonesian law, and we will notify you where legally permitted. Payment confirmation with Pakasir (`app.pakasir.com`) covers only the order ID and amount — never your project content. Transactional email via Resend (§2.4) covers only the recipient, subject, body, and delivery metadata of account emails — never passwords or project content.
 
 ---
 

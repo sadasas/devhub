@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Trash, Scales, Clock, FileText, ListChecks, CheckCircle } from '@phosphor-icons/react';
+import { Trash, Scales, Clock, FileText, ListChecks, CheckCircle, Circle, CalendarBlank, Rocket } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatRelative } from '../../lib/utils';
 import type { Decision, DecisionStatus } from '../../lib/types';
@@ -105,11 +105,12 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
           <PropRow
             propKey="status"
             label={t('decisions.modal.statusLabel')}
+            icon={<Circle size={12} aria-hidden="true" />}
             hot={hotProp === 'status'}
             setHot={setHotProp}
             canEdit={canEdit}
             view={(
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 999, background: decision.status === 'accepted' ? 'var(--status-success-dim)' : decision.status === 'rejected' ? 'var(--status-danger-dim)' : decision.status === 'superseded' ? 'var(--bg-inset)' : 'var(--status-info-dim)', border: decision.status === 'superseded' ? '1px solid var(--border-hairline)' : 'none', fontSize: 12 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 6, background: decision.status === 'accepted' ? 'var(--status-success-dim)' : decision.status === 'rejected' ? 'var(--status-danger-dim)' : decision.status === 'superseded' ? 'var(--bg-inset)' : 'var(--status-info-dim)', border: decision.status === 'superseded' ? '1px solid var(--border-hairline)' : 'none', fontSize: 12 }}>
                 {t(`decisions.status.${decision.status}`)}
               </span>
             )}
@@ -120,6 +121,7 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
           <PropRow
             propKey="date"
             label={t('decisions.modal.dateLabel')}
+            icon={<CalendarBlank size={12} aria-hidden="true" />}
             hot={hotProp === 'date'}
             setHot={setHotProp}
             canEdit={canEdit}
@@ -142,6 +144,7 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
           <PropRow
             propKey="milestone"
             label={t('decisions.modal.milestoneLabel', { defaultValue: 'Milestone' })}
+            icon={<Rocket size={12} aria-hidden="true" />}
             hot={hotProp === 'milestone'}
             setHot={setHotProp}
             canEdit={canEdit}
@@ -186,7 +189,7 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
       )}
       {titleEmpty && <InlineError>{t('tracker:issues.modal.titleRequired')}</InlineError>}
       <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-        <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+        <span style={{ width: 110, color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
           <Clock size={12} aria-hidden="true" /> {t('tracker:issues.modal.createdTimeLabel')}
         </span>
         <span style={{ color: 'var(--text-secondary)' }}>{formatDate(decision.createdAt)} {new Date(decision.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>

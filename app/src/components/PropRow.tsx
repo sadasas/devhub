@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
+import { PencilSimple } from '@phosphor-icons/react';
 
 /** Portal dropdown/popup sedang terbuka (di luar baris) — baris tak boleh auto-tutup. */
 export function anyPanelOpen(): boolean {
@@ -19,6 +20,7 @@ export function useHotProp() {
 export function PropRow({
   propKey,
   label,
+  icon,
   view,
   control,
   trailing,
@@ -28,6 +30,7 @@ export function PropRow({
 }: {
   propKey: string;
   label: string;
+  icon?: ReactNode;
   view: ReactNode;
   control: ReactNode;
   trailing?: ReactNode;
@@ -44,18 +47,26 @@ export function PropRow({
       onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null) && !anyPanelOpen()) setHot(null); }}
       onKeyDown={(e) => { if (e.key === 'Escape') setHot(null); }}
     >
-      <span className="prop-label">{label}</span>
+      {canEdit && !hot ? (
+        <button
+          type="button"
+          className="prop-label prop-label-btn"
+          onClick={() => setHot(propKey)}
+          aria-label={`${label} — edit`}
+        >
+          {icon}
+          <span className="prop-label-text">{label}</span>
+          <PencilSimple size={12} aria-hidden="true" className="prop-edit" />
+        </button>
+      ) : (
+        <span className="prop-label">{icon}<span className="prop-label-text">{label}</span>{canEdit && <PencilSimple size={12} aria-hidden="true" className="prop-edit" />}</span>
+      )}
       {hot ? control : canEdit ? (
         <button type="button" className="prop-view" onClick={() => setHot(propKey)}>
           {view}
         </button>
       ) : view}
       {trailing}
-      {canEdit ? (
-        <span className="prop-chev" aria-hidden="true">
-          ›
-        </span>
-      ) : null}
     </div>
   );
 }

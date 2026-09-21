@@ -142,6 +142,7 @@ export type GranularEntity =
   | 'apiCollections'
   | 'apiEndpoints'
   | 'whiteboards'
+  | 'labelDefs'
   | 'erdGroups'
   | 'erdLayout';
 
@@ -205,7 +206,9 @@ function entityPath(projectId: string, entity: GranularEntity, entityId?: string
 
 export const api = {
   register: (email: string, password: string) =>
-    request<{ id: string; email: string }>('/auth/register', {
+    // T6 hard gate: register TIDAK auto-login — hanya {id, email, message}.
+    // User verifikasi via link email dulu, baru login.
+    request<{ id: string; email: string; message: string }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
@@ -234,6 +237,16 @@ export const api = {
     request<{ ok: true }>('/auth/reset-password', {
       method: 'POST',
       body: JSON.stringify({ token, newPassword }),
+    }),
+  verifyEmail: (token: string) =>
+    request<{ ok: true }>('/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    }),
+  resendVerification: (email: string) =>
+    request<{ ok: true; message: string }>('/auth/resend-verification', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
     }),
   changePassword: (currentPassword: string | null | undefined, newPassword: string) =>
     request<{ ok: true }>('/auth/password', {

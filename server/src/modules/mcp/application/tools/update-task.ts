@@ -16,6 +16,8 @@ const inputSchema = z.object({
         .optional()
         .describe('Actual hours spent — auto-derived from startDate/createdAt when status moves to done'),
   labels: z.array(z.string().max(50)).max(20).optional(),
+  parentTaskId: z.string().uuid().nullable().optional().describe('Set parent for 1-level subtask, or null to detach'),
+  checklist: z.array(z.object({ id: z.string().uuid(), title: z.string().min(1).max(200), done: z.boolean().default(false) })).max(20).optional(),
   milestoneId: z.string().uuid().nullable().optional().describe('Move task to another milestone, or null to unassign'),
   dueDate: z
     .string().max(100).refine((v) => !Number.isNaN(Date.parse(v)), { message: 'Must be a valid ISO date string' })
@@ -78,6 +80,8 @@ export function registerUpdateTask(server: McpServer): void {
         estimate: args.estimate,
         actualHours,
         labels: args.labels,
+        parentTaskId: args.parentTaskId,
+        checklist: args.checklist,
         milestoneId: args.milestoneId,
         dueDate: args.dueDate,
         startDate: args.startDate,

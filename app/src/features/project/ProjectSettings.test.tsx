@@ -15,6 +15,9 @@ vi.mock('../integrations/GCalSettings', () => ({
     <div data-testid="gcal-stub" data-project={projectId} />
   ),
 }));
+vi.mock('../../state/project-context', () => ({
+  useProject: () => ({ state: { labelDefs: [], tasks: [] }, dispatch: vi.fn(), canEdit: true }),
+}));
 
 function project(over: Partial<Project> = {}): Project {
   return {
@@ -76,6 +79,14 @@ describe('ProjectSettings shell', () => {
     const stub = screen.getByTestId('gcal-stub');
     expect(stub.getAttribute('data-project')).toBe('11111111-1111-4111-8111-111111111111');
     expect(screen.getByRole('heading', { name: 'GitHub' })).toBeTruthy();
+  });
+
+  it('renders the Labels section with add form and empty state', () => {
+    renderSettings('/project/p1?tab=settings&section=labels');
+    expect(screen.getByRole('link', { name: 'Labels' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('heading', { name: 'Labels' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Add' })).toBeTruthy();
+    expect(screen.getByPlaceholderText(/Label name/)).toBeTruthy();
   });
 
   it('falls back to General for an unknown section', () => {

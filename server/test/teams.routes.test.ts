@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { app, createTeam, emailOf, inviteUser, register, setTeamPlan, uniqueIp } from './helpers.js';
+import { pool } from '../src/db/pool.js';
 import { resetDb } from './setup.js';
 
 async function memberRoles(teamId: string, cookie: string) {
@@ -146,6 +147,26 @@ describe('teams routes', () => {
     expect(adminList.body.invitations).toHaveLength(1);
     expect(adminList.body.invitations[0].email).toBe('member@test.dev');
     expect(adminList.body.invitations[0].role).toBe('viewer');
+  });
+
+  it('invite enqueues invite email with team name and role (M31)', async () => {
+    const owner = await register('owner2@test.dev');
+    await register('member2@test.dev');
+    const teamId = await createTeam(owner, 'Tim Undangan');
+
+    const res = await request(app)
+      .post(`/api/v1/teams/${teamId}/invitations`)
+      .set('Cookie', owner)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ email: 'member2@test.dev', role: 'editor' });
+    expect(res.status).toBe(201);
+
+    const outbox = await pool.query<{ template: string; status: string; payload: unknown }>(
+      "SELECT template, status, payload FROM mail_outbox WHERE to_email = 'member2@test.dev' AND template = 'invite'",
+    );
+    expect(outbox.rows).toHaveLength(1);
+    expect(outbox.rows[0]).toMatchObject({ template: 'invite', status: 'pending' });
+    expect(outbox.rows[0]!.payload).toMatchObject({ teamName: 'Tim Undangan', role: 'editor', expiresDays: 7 });
   });
 
   it('accepts an invitation and removes it from pending', async () => {

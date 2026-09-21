@@ -3,13 +3,14 @@ import { Plus, SquaresFour, Flag, CalendarBlank, ArrowsOutSimple, ArrowsInSimple
 import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import type { Milestone, Task, TaskStatus } from '../../lib/types';
-import { isTaskCompletable } from '../../lib/utils';
+import { isTaskCompletable, openBlockerNames, taskBlockSummary } from '../../lib/utils';
 import { TASK_PRIORITY_ORDER } from '../../lib/labels';
 import { applySort, type SortSpec } from '../../lib/sort';
 import { useProject } from '../../state/project-context';
 import { useOptionalAuth } from '../../state/auth-context';
 import { api } from '../../lib/api';
 import { registerDrop, getDropHandler } from '../../lib/drop-registry';
+import { dueBucket } from '../../lib/due-dates';
 import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { useNewParam } from '../../hooks/useNewParam';
 import { useSortParam } from '../../hooks/useSortParam';
@@ -124,6 +125,18 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       { replace: true },
     );
   }, [setSearchParams]);
+  const overdueOnly = searchParams.get('overdue') === '1';
+  const setOverdue = useCallback((on: boolean) => {
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        if (on) p.set('overdue', '1');
+        else p.delete('overdue');
+        return p;
+      },
+      { replace: true },
+    );
+  }, [setSearchParams]);
   const sortSpec = TASK_SORT_SPECS.find((s) => s.key === effectiveSort.key) ?? null;
   const columnLabels: Record<TaskStatus, string> = {
     todo: t('board.column.todo'),
@@ -135,6 +148,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const [editId, setEditId] = useState<string | null>(null);
   const [newTaskAt, setNewTaskAt] = useState<NewTaskTarget | null>(null);
   const [calHideCompleted, setCalHideCompleted] = useState(false);
+  const [hideSubtasks, setHideSubtasks] = useState(false);
   const [doneBlockedMsg, setDoneBlockedMsg] = useState<string | null>(null);
   // P2: kanban swipe (status tabs) + milestone accordion (mobile).
   const [activeStatusTab, setActiveStatusTab] = useState<TaskStatus>('todo');
@@ -154,6 +168,8 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const isMilestoneAccordion = isNarrow && view === 'milestone';
   const [members, setMembers] = useState<Record<string, { email: string; displayName?: string }>>({});
   const doneBlockedTimer = useRef<number | undefined>(undefined);
+  const [undoMove, setUndoMove] = useState<{ id: string; prev: TaskStatus; next: TaskStatus } | null>(null);
+  const undoTimer = useRef<number | undefined>(undefined);
   // Fullscreen = overlay CSS (.board-shell--fullscreen), BUKAN Fullscreen API:
   // portal ke document.body (Modal, Tooltip, BottomSheet) tetap tampil di atasnya.
   const [isFs, setIsFs] = useState(false);
@@ -161,19 +177,6 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const toggleFs = useCallback(() => {
     setIsFs((v) => !v);
   }, []);
-
-  const tabStatusRef = useRef<HTMLButtonElement>(null);
-  const tabMilestoneRef = useRef<HTMLButtonElement>(null);
-  const tabCalendarRef = useRef<HTMLButtonElement>(null);
-  const handleViewKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-    e.preventDefault();
-    const order: BoardView[] = ['status', 'milestone', 'calendar'];
-    const idx = order.indexOf(view);
-    const next = order[(idx + (e.key === 'ArrowRight' ? 1 : order.length - 1)) % order.length] as BoardView;
-    setView(next);
-    (next === 'status' ? tabStatusRef : next === 'milestone' ? tabMilestoneRef : tabCalendarRef).current?.focus();
-  };
   // Overlay fullscreen mengunci scroll body (pola whiteboard WB-17).
   useEffect(() => {
     if (!isFs) return;
@@ -204,11 +207,15 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
         if (!user?.id) return;
         e.preventDefault();
         setMine(!mineOnly);
+      } else if (e.key === 'n' || e.key === 'N') {
+        if (!canEdit) return;
+        e.preventDefault();
+        setNewTaskAt({});
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [editId, newTaskAt, isFs, toggleFs, setMine, mineOnly, user]);
+  }, [editId, newTaskAt, isFs, toggleFs, setMine, mineOnly, user, canEdit]);
   const openTask = useCallback((id: string) => setEditId(id), []);
   const handleTouchDrop = useCallback((taskId: string, dropKey: string | null) => {
     getDropHandler(dropKey)?.(taskId);
@@ -242,12 +249,49 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   }, [teamId]);
 
   useEffect(() => () => window.clearTimeout(doneBlockedTimer.current), []);
+  useEffect(() => () => window.clearTimeout(undoTimer.current), []);
+
+  const showUndo = (move: { id: string; prev: TaskStatus; next: TaskStatus }) => {
+    setUndoMove(move);
+    window.clearTimeout(undoTimer.current);
+    undoTimer.current = window.setTimeout(() => setUndoMove(null), 6000);
+  };
+
+  const undoLastMove = () => {
+    if (!undoMove || !canEdit) return;
+    dispatch({ type: 'task/update', id: undoMove.id, patch: { status: undoMove.prev } });
+    window.clearTimeout(undoTimer.current);
+    setUndoMove(null);
+  };
 
   const showDoneBlocked = (msg: string) => {
     setDoneBlockedMsg(msg);
     window.clearTimeout(doneBlockedTimer.current);
-    doneBlockedTimer.current = window.setTimeout(() => setDoneBlockedMsg(null), 4000);
+    doneBlockedTimer.current = window.setTimeout(() => setDoneBlockedMsg(null), 6000);
   };
+
+  const blockedMessage = useCallback((task: Task): string => {
+    if (!state) return t('board.blockedDone', { title: task.title });
+    const names = openBlockerNames(task, state.tasks);
+    const summary = taskBlockSummary(task, state.testCases, state.tasks);
+    if (names.length > 0) {
+      const extra = names.length > 3 ? ` +${openBlockerNames(task, state.tasks, 99).length - 3}` : '';
+      return t('board.blockedByNames', {
+        defaultValue: '"{{title}}" diblokir oleh {{names}}{{extra}} — selesaikan dulu.',
+        title: task.title,
+        names: names.join(', '),
+        extra,
+      });
+    }
+    if (summary.length > 0) {
+      return t('board.blockedSummary', {
+        defaultValue: '"{{title}}" belum bisa Done: {{reasons}} belum selesai.',
+        title: task.title,
+        reasons: summary.join(', '),
+      });
+    }
+    return t('board.blockedDone', { title: task.title });
+  }, [state, t]);
 
   useEffect(() => {
     if (!canEdit || editId || newTaskAt || !state) return;
@@ -266,13 +310,13 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
         const i = COLUMNS.indexOf(task.status);
         const next = COLUMNS[(i + dir + COLUMNS.length) % COLUMNS.length]!;
         if (next === task.status) return;
-        if (next === 'done' && !isTaskCompletable(task, state.testCases)) {
-          showDoneBlocked(
-            t('board.blockedDone', { title: task.title }),
-          );
+        if (next === 'done' && !isTaskCompletable(task, state.testCases, state.tasks)) {
+          showDoneBlocked(blockedMessage(task));
           return;
         }
+        const prev = task.status;
         dispatch({ type: 'task/update', id, patch: { status: next } });
+        showUndo({ id, prev, next });
       } else {
         const ordered: (string | null)[] = [...state.milestones]
           .sort((a, b) => {
@@ -290,7 +334,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [canEdit, editId, newTaskAt, view, state, dispatch, t]);
+  }, [canEdit, editId, newTaskAt, view, state, dispatch, t, blockedMessage]);
 
   function BoardCalendarSkeleton() {
     return (
@@ -330,18 +374,15 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     }
     return (
       <>
-      <div className="data-list-header" aria-hidden="true">
-        <Skeleton style={{ width: 90, height: 13 }} />
-        <span className="data-list-actions" style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <Skeleton style={{ width: 120, height: 28, borderRadius: 8 }} />
-          <Skeleton style={{ width: 32, height: 32, borderRadius: 8 }} />
-        </span>
-      </div>
-      <div className="board-subtabs-row" aria-hidden="true">
+      <div className="board-toolbar" aria-hidden="true">
         <div style={{ display: "flex", gap: 2 }}>
           <Skeleton style={{ width: 92, height: 30, borderRadius: 8 }} />
           <Skeleton style={{ width: 104, height: 30, borderRadius: 8 }} />
           <Skeleton style={{ width: 104, height: 30, borderRadius: 8 }} />
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <Skeleton style={{ width: 120, height: 28, borderRadius: 8 }} />
+          <Skeleton style={{ width: 32, height: 32, borderRadius: 8 }} />
         </div>
       </div>
       <div className="kanban" role="status" aria-live="polite" aria-busy="true" aria-label="Loading board">
@@ -397,8 +438,15 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   if (!state) return null;
 
   const userId = user?.id ?? null;
-  const filteredTasks =
+  const mineFiltered =
     mineOnly && userId ? state.tasks.filter((t) => t.assigneeId === userId) : state.tasks;
+  const overdueCount = mineFiltered.filter(
+    (tt) => tt.status !== 'done' && dueBucket(tt.dueDate) === 'overdue',
+  ).length;
+  const filteredTasks = overdueOnly
+    ? mineFiltered.filter((tt) => tt.status !== 'done' && dueBucket(tt.dueDate) === 'overdue')
+    : mineFiltered;
+  const visibleTasks = hideSubtasks ? filteredTasks.filter((tt) => !tt.parentTaskId) : filteredTasks;
 
   const milestoneColumns = [
     ...[...state.milestones].sort((a, b) => {
@@ -413,12 +461,14 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     if (!canEdit) return;
     const task = state?.tasks.find((t) => t.id === id);
     if (!task) return;
-    if (status === 'done' && task.status !== 'done' && !isTaskCompletable(task, state!.testCases)) {
-      showDoneBlocked(t('board.blockedDone', { title: task.title }));
+    if (status === 'done' && task.status !== 'done' && !isTaskCompletable(task, state!.testCases, state!.tasks)) {
+      showDoneBlocked(blockedMessage(task));
       return;
     }
     if (task.status !== status) {
+      const prev = task.status;
       dispatch({ type: 'task/update', id, patch: { status } });
+      showUndo({ id, prev, next: status });
     }
   }
 
@@ -502,11 +552,11 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       <>
         <span className="kanban-col-label">{columnLabels[col]}</span>
         <span className="kanban-col-count tabular">
-          {filteredTasks.filter((t) => t.status === col).length}
+          {visibleTasks.filter((t) => t.status === col).length}
         </span>
       </>,
       applySort(
-        filteredTasks.filter((t) => t.status === col),
+        visibleTasks.filter((t) => t.status === col),
         sortSpec,
         effectiveSort.dir,
         (t) => !!t.pinned,
@@ -533,7 +583,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const milestoneGroups: MilestoneGroup[] = milestoneColumns.map((m) => {
     const mId = m?.id ?? null;
     const tasks = applySort(
-      filteredTasks.filter((t) => t.milestoneId === mId),
+      visibleTasks.filter((t) => t.milestoneId === mId),
       sortSpec,
       effectiveSort.dir,
       (t) => !!t.pinned,
@@ -564,10 +614,10 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
 
   // P2: penghitung + navigasi swipe.
   const statusCounts: Record<TaskStatus, number> = {
-    todo: filteredTasks.filter((t) => t.status === 'todo').length,
-    inProgress: filteredTasks.filter((t) => t.status === 'inProgress').length,
-    review: filteredTasks.filter((t) => t.status === 'review').length,
-    done: filteredTasks.filter((t) => t.status === 'done').length,
+    todo: visibleTasks.filter((t) => t.status === 'todo').length,
+    inProgress: visibleTasks.filter((t) => t.status === 'inProgress').length,
+    review: visibleTasks.filter((t) => t.status === 'review').length,
+    done: visibleTasks.filter((t) => t.status === 'done').length,
   };
   const activeStatusIndex = Math.max(0, COLUMNS.indexOf(activeStatusTab));
   const goStatusTab = (dir: 1 | -1): void => {
@@ -643,13 +693,55 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   return (
     <>
     <div className={isFs ? 'board-shell board-shell--fullscreen' : 'board-shell'}>
-      <div className="data-list-header">
-        {!isNarrow ? (
-          <span className="data-list-count">{t('board.count', { count: state.tasks.length })}</span>
-        ) : (
-          <span className="sr-only" role="status">{t('board.count', { count: state.tasks.length })}</span>
-        )}
-        <div className="data-list-actions">
+      <div className="board-toolbar">
+        <div className="sub-tabs" role="group" aria-label={t('board.viewTabs')}>
+          <button
+            type="button"
+            className={`sub-tab ${view === 'status' ? 'sub-tab-active' : ''}`}
+            onClick={() => setView('status')}
+            aria-pressed={view === 'status'}
+            aria-label={t('board.byStatus')}
+            title={t('board.byStatus')}
+          >
+            <SquaresFour size={16} aria-hidden="true" />
+            <span className="sub-tab-label">{t('board.byStatus')}</span>
+          </button>
+          <button
+            type="button"
+            className={`sub-tab ${view === 'milestone' ? 'sub-tab-active' : ''}`}
+            onClick={() => setView('milestone')}
+            aria-pressed={view === 'milestone'}
+            aria-label={t('board.byMilestone')}
+            title={t('board.byMilestone')}
+          >
+            <Flag size={16} aria-hidden="true" />
+            <span className="sub-tab-label">{t('board.byMilestone')}</span>
+          </button>
+          <button
+            type="button"
+            className={`sub-tab ${view === 'calendar' ? 'sub-tab-active' : ''}`}
+            onClick={() => setView('calendar')}
+            aria-pressed={view === 'calendar'}
+            aria-label={t('board.byCalendar', { defaultValue: 'Calendar' })}
+            title={t('board.byCalendar', { defaultValue: 'Calendar' })}
+          >
+            <CalendarBlank size={16} aria-hidden="true" />
+            <span className="sub-tab-label">{t('board.byCalendar', { defaultValue: 'Calendar' })}</span>
+          </button>
+        </div>
+        <div className="board-toolbar-actions">
+          {overdueCount > 0 && (
+            <button
+              type="button"
+              className={`sub-tab${overdueOnly ? ' sub-tab-active' : ''}`}
+              onClick={() => setOverdue(!overdueOnly)}
+              aria-pressed={overdueOnly}
+              title={overdueOnly ? t('board.overdueHide', { defaultValue: 'Tampilkan semua' }) : t('board.overdueShow', { defaultValue: 'Tampilkan yang telat' })}
+              style={overdueOnly ? undefined : { color: 'var(--status-danger)', borderColor: 'var(--status-danger)' }}
+            >
+              <span className="tabular">{t('board.overdue', { defaultValue: '{{count}} telat', count: overdueCount })}</span>
+            </button>
+          )}
           <SortControl
             options={view === 'calendar' ? [] : TASK_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: t(s.label) }))}
             value={view === 'calendar' ? null : sortValue}
@@ -663,6 +755,12 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
                     onChange: setMine,
                   }]
                 : []),
+              {
+                id: 'hide-subtasks',
+                label: t('board.hideSubtasks', { defaultValue: 'Hide subtasks' }),
+                checked: hideSubtasks,
+                onChange: setHideSubtasks,
+              },
               ...(view === 'calendar'
                 ? [{
                     id: 'hide-completed',
@@ -682,77 +780,23 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
             aria-label={isFs ? t('board.fullscreen.exit', { defaultValue: 'Exit fullscreen — F' }) : t('board.fullscreen.enter', { defaultValue: 'Fullscreen — F' })}
             title={isFs ? t('board.fullscreen.exit', { defaultValue: 'Fullscreen (F)' }) : t('board.fullscreen.enter', { defaultValue: 'Fullscreen (F)' })}
             onClick={toggleFs}
-            leftIcon={isFs ? <ArrowsInSimple size={14} aria-hidden="true" /> : <ArrowsOutSimple size={14} aria-hidden="true" />}
+            leftIcon={isFs ? <ArrowsInSimple size={15} aria-hidden="true" /> : <ArrowsOutSimple size={15} aria-hidden="true" />}
           >
             {t('board.fullscreen.canvasLabel')}
           </Button>
         </div>
       </div>
-      <div className="board-subtabs-row">
-        <div className="sub-tabs" role="tablist" aria-label={t('board.viewTabs')}>
-          <button
-            ref={tabStatusRef}
-            type="button"
-            className={`sub-tab ${view === 'status' ? 'sub-tab-active' : ''}`}
-            role="tab"
-            id="tab-board-status"
-            aria-controls="board-panel"
-            aria-selected={view === 'status'}
-            tabIndex={view === 'status' ? 0 : -1}
-            onClick={() => setView('status')}
-            onKeyDown={handleViewKeyDown}
-            aria-label={t('board.byStatus')}
-            title={t('board.byStatus')}
-          >
-            <SquaresFour size={13} aria-hidden="true" />
-            <span className="sub-tab-label">{t('board.byStatus')}</span>
-          </button>
-          <button
-            ref={tabMilestoneRef}
-            type="button"
-            className={`sub-tab ${view === 'milestone' ? 'sub-tab-active' : ''}`}
-            role="tab"
-            id="tab-board-milestone"
-            aria-controls="board-panel"
-            aria-selected={view === 'milestone'}
-            tabIndex={view === 'milestone' ? 0 : -1}
-            onClick={() => setView('milestone')}
-            onKeyDown={handleViewKeyDown}
-            aria-label={t('board.byMilestone')}
-            title={t('board.byMilestone')}
-          >
-            <Flag size={13} aria-hidden="true" />
-            <span className="sub-tab-label">{t('board.byMilestone')}</span>
-          </button>
-          <button
-            ref={tabCalendarRef}
-            type="button"
-            className={`sub-tab ${view === 'calendar' ? 'sub-tab-active' : ''}`}
-            role="tab"
-            id="tab-board-calendar"
-            aria-controls="board-panel"
-            aria-selected={view === 'calendar'}
-            tabIndex={view === 'calendar' ? 0 : -1}
-            onClick={() => setView('calendar')}
-            onKeyDown={handleViewKeyDown}
-            aria-label={t('board.byCalendar', { defaultValue: 'Calendar' })}
-            title={t('board.byCalendar', { defaultValue: 'Calendar' })}
-          >
-            <CalendarBlank size={13} aria-hidden="true" />
-            <span className="sub-tab-label">{t('board.byCalendar', { defaultValue: 'Calendar' })}</span>
-          </button>
-        </div>
-        <div className="board-subtabs-actions" />
-      </div>
 
       {doneBlockedMsg && <InlineError className="mb-12">{doneBlockedMsg}</InlineError>}
+      {undoMove && !doneBlockedMsg && (
+        <div className="mb-12" role="status" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8, background: 'var(--bg-overlay)', border: '1px solid var(--border-hairline)', fontSize: 13 }}>
+          <span style={{ color: 'var(--text-secondary)' }}>{t('board.movedTo', { defaultValue: 'Dipindah ke {{label}}', label: columnLabels[undoMove.next] ?? undoMove.next })}</span>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={undoLastMove}>
+            {t('board.undoMove', { defaultValue: 'Urungkan pindah' })}
+          </button>
+        </div>
+      )}
 
-      <div
-        id="board-panel"
-        role="tabpanel"
-        aria-labelledby={view === 'status' ? 'tab-board-status' : view === 'milestone' ? 'tab-board-milestone' : 'tab-board-calendar'}
-        tabIndex={0}
-      >
       {view === 'calendar' ? (
         <Suspense
           fallback={<BoardCalendarSkeleton />}
@@ -760,7 +804,11 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           <DueCalendar
             onOpenTask={openTask}
             onQuickCreate={(dueDate) => setNewTaskAt({ startDate: dueDate, dueDate })}
-            taskFilter={mineOnly && userId ? (t) => t.assigneeId === userId : undefined}
+            taskFilter={(tt) => {
+              if (mineOnly && userId && tt.assigneeId !== userId) return false;
+              if (overdueOnly && !(tt.status !== 'done' && dueBucket(tt.dueDate) === 'overdue')) return false;
+              return true;
+            }}
             onTouchDrop={handleTouchDrop}
             hideCompleted={calHideCompleted}
             members={members}
@@ -922,7 +970,6 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           {view === 'status' ? statusColumns : milestoneCols}
         </div>
       )}
-      </div>
       </div>
 
       <TaskModal taskId={editId} onClose={() => setEditId(null)} />

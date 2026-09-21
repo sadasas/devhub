@@ -186,7 +186,7 @@ function DagTaskCard({
           {task.title || 'Untitled task'}
         </div>
         <div className="dag-card-meta">
-          {due.label && <span className={`task-due task-due-${due.tone}`}>{due.label}</span>}
+          {due.label && <span className={`task-due task-due-${due.tone}`} title={due.title}>{due.label}</span>}
           {task.assigneeId && (
             <span className="task-avatar" title={task.assigneeId}>
               <Avatar

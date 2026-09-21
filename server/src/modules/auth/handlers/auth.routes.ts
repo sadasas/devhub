@@ -7,8 +7,8 @@ import { hashPassword, verifyPassword } from '../infrastructure/password.js';
 import { requireAuth, getUserId } from '../middleware/requireAuth.js';
 import { ApiError } from '../../../shared/errors.js';
 import { clearSessionCookie, setSessionCookie } from '../../../shared/cookie.js';
-import { config } from '../../../config.js';
 import { withTransaction, parseOrThrow } from '../../../shared/db.js';
+import { enqueueMail } from '../../mail/outbox.js';
 import { computeUserStats } from '../application/user-stats.js';
 
 const registerSchema = z.object({
@@ -82,14 +82,28 @@ authRouter.post('/register', registerLimiter, async (req, res) => {
     }
     throw err;
   }
-  setSessionCookie(res, userId, 1);
-  res.status(201).json({ id: userId, email });
+  // M31/T6 hard gate: register TIDAK auto-login. User verifikasi via link
+  // (24 jam) dulu, baru bisa login. Response tanpa cookie apa pun.
+  const verifyToken = randomBytes(32).toString('base64url');
+  await pool.query('INSERT INTO email_verify_tokens (token, user_id, expires_at) VALUES ($1,$2,$3)', [
+    verifyToken,
+    userId,
+    new Date(Date.now() + 24 * 60 * 60 * 1000),
+  ]);
+  await enqueueMail(email, 'verify', { token: verifyToken, expiresHours: 24 });
+  res.status(201).json({ id: userId, email, message: 'Check your email to verify your account.' });
 });
 
 authRouter.post('/login', loginLimiter, async (req, res) => {
   const { email, password } = parseOrThrow(loginSchema, req.body, 'Invalid login data');
-  const result = await pool.query<{ id: string; password_hash: string | null; jwt_version: number }>(
-    'SELECT id, password_hash, jwt_version FROM users WHERE email = $1',
+  const result = await pool.query<{
+    id: string;
+    password_hash: string | null;
+    jwt_version: number;
+    email_verified: boolean;
+    verification_deadline: string | null;
+  }>(
+    'SELECT id, password_hash, jwt_version, email_verified, verification_deadline FROM users WHERE email = $1',
     [email],
   );
   const user = result.rows[0];
@@ -100,6 +114,18 @@ authRouter.post('/login', loginLimiter, async (req, res) => {
   const valid = await verifyPassword(password, user?.password_hash ?? (await getDummyHash()));
   if (!user || !valid) {
     throw new ApiError(401, 'UNAUTHORIZED', 'Invalid email or password');
+  }
+  // T6 hard gate: tolak login bila belum verified, kecuali user lama yang
+  // masih dalam grace period (verification_deadline di masa depan).
+  if (!user.email_verified) {
+    const deadline = user.verification_deadline ? new Date(user.verification_deadline).getTime() : null;
+    if (deadline === null || deadline < Date.now()) {
+      throw new ApiError(
+        403,
+        'EMAIL_NOT_VERIFIED',
+        'Please verify your email before logging in. Check your inbox (and spam folder) for the verification link.',
+      );
+    }
   }
   setSessionCookie(res, user.id, user.jwt_version);
   res.json({ id: user.id, email });
@@ -158,6 +184,10 @@ const resetSchema = z.object({
   newPassword: z.string().min(8, 'Password must be at least 8 characters').max(128),
 });
 
+const verifySchema = z.object({
+  token: z.string().min(10).max(500),
+});
+
 const forgotLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 5,
@@ -165,6 +195,15 @@ const forgotLimiter = rateLimit({
   legacyHeaders: false,
   validate: { trustProxy: false },
   message: { error: { code: 'RATE_LIMITED', message: 'Too many reset attempts, try again later' } },
+});
+
+const resendLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 3,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  validate: { trustProxy: false },
+  message: { error: { code: 'RATE_LIMITED', message: 'Too many verification requests, try again later' } },
 });
 
 const profileSchema = z
@@ -187,21 +226,18 @@ authRouter.post('/forgot-password', forgotLimiter, async (req, res) => {
   }
   const token = randomBytes(32).toString('base64url');
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+  // Idempotency: satu token aktif per user — cabut token lama yang belum dipakai.
+  await pool.query('DELETE FROM password_reset_tokens WHERE user_id = $1 AND used_at IS NULL', [user.id]);
   await pool.query(
     'INSERT INTO password_reset_tokens (token, user_id, expires_at) VALUES ($1,$2,$3)',
     [token, user.id, expiresAt],
   );
-  // For MVP: return token directly (in production, send email)
-  // Also invalidate previous unused tokens for this user
-  await pool.query(
-    "DELETE FROM password_reset_tokens WHERE user_id = $1 AND token != $2 AND used_at IS NULL AND expires_at < now()",
-    [user.id, token],
-  );
+  // M31: kirim via outbox (worker → Resend). Token TIDAK PERNAH di-expose ke
+  // response di env mana pun (sebelumnya hanya disembunyikan di production).
+  await enqueueMail(email, 'reset', { token, expiresMinutes: 60 });
   res.json({
     ok: true,
     message: 'If that email exists, a reset link has been sent.',
-    // Expose token in dev/test for e2e; hide in production
-    ...(config.NODE_ENV !== 'production' ? { token, expiresAt: expiresAt.toISOString() } : {}),
   });
 });
 
@@ -231,6 +267,47 @@ authRouter.post('/reset-password', forgotLimiter, async (req, res) => {
   res.json({ ok: true });
 });
 
+authRouter.post('/verify-email', forgotLimiter, async (req, res) => {
+  const { token } = parseOrThrow(verifySchema, req.body, 'Invalid verification data');
+  const result = await pool.query<{ user_id: string; expires_at: string; used_at: string | null }>(
+    'SELECT user_id, expires_at, used_at FROM email_verify_tokens WHERE token = $1',
+    [token],
+  );
+  const row = result.rows[0];
+  if (!row) throw new ApiError(400, 'INVALID_TOKEN', 'Invalid or expired verification token');
+  if (row.used_at) throw new ApiError(400, 'INVALID_TOKEN', 'Verification token already used');
+  if (new Date(row.expires_at).getTime() < Date.now()) {
+    throw new ApiError(400, 'INVALID_TOKEN', 'Verification token expired');
+  }
+  await withTransaction(pool, async (client) => {
+    await client.query('UPDATE users SET email_verified = true, updated_at = now() WHERE id = $1', [row.user_id]);
+    await client.query('UPDATE email_verify_tokens SET used_at = now() WHERE token = $1', [token]);
+    await client.query('DELETE FROM email_verify_tokens WHERE user_id = $1 AND token != $2', [row.user_id, token]);
+  });
+  res.json({ ok: true });
+});
+
+authRouter.post('/resend-verification', resendLimiter, async (req, res) => {
+  const { email } = parseOrThrow(forgotSchema, req.body, 'Invalid email');
+  const result = await pool.query<{ id: string; email_verified: boolean }>(
+    'SELECT id, email_verified FROM users WHERE email = $1',
+    [email],
+  );
+  const user = result.rows[0];
+  // Selalu OK (anti-enumeration); kirim ulang hanya bila user ada dan belum verified.
+  if (user && !user.email_verified) {
+    await pool.query('DELETE FROM email_verify_tokens WHERE user_id = $1 AND used_at IS NULL', [user.id]);
+    const token = randomBytes(32).toString('base64url');
+    await pool.query('INSERT INTO email_verify_tokens (token, user_id, expires_at) VALUES ($1,$2,$3)', [
+      token,
+      user.id,
+      new Date(Date.now() + 24 * 60 * 60 * 1000),
+    ]);
+    await enqueueMail(email, 'verify', { token, expiresHours: 24 });
+  }
+  res.json({ ok: true, message: 'If that email exists and is unverified, a verification link has been sent.' });
+});
+
 authRouter.post('/logout', (req, res) => {
   clearSessionCookie(res);
   // Prevent caching of logout response / stale auth state
@@ -250,10 +327,11 @@ authRouter.get('/me', requireAuth, async (req, res) => {
     role: string;
     avatar_url: string | null;
     email_verified: boolean;
+    verification_deadline: string | null;
     created_at: string;
     password_hash: string | null;
   }>(
-    'SELECT id, email, display_name, bio, role, avatar_url, email_verified, created_at, password_hash FROM users WHERE id = $1',
+    'SELECT id, email, display_name, bio, role, avatar_url, email_verified, verification_deadline, created_at, password_hash FROM users WHERE id = $1',
     [userId],
   );
   const user = result.rows[0];
@@ -263,6 +341,8 @@ authRouter.get('/me', requireAuth, async (req, res) => {
     ...toUser(user as ProfileRow),
     avatarUrl: user.avatar_url,
     emailVerified: user.email_verified,
+    // T6: deadline grace period user lama (null = hard gate / sudah verified) — untuk banner UI.
+    graceUntil: user.verification_deadline ? new Date(user.verification_deadline).toISOString() : null,
     hasPassword: user.password_hash !== null,
     providers: linked.rows.map((r) => r.provider),
   });
