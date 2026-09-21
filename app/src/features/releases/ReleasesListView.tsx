@@ -54,7 +54,7 @@ function MilestoneRow({ m, tasks, unread, canEdit, onSelect, onEdit, onDelete, i
       <div className="data-row-top">
         <button
           type="button"
-          className="data-row-title-btn"
+          className="data-row-btn"
           onClick={() => onSelect(m.id)}
           aria-label={m.name}
         >

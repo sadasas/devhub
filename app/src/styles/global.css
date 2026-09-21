@@ -7047,7 +7047,7 @@ html[data-theme='light'] .splash-bg {
   min-width: 0;
 }
 
-.data-row-title-btn {
+.data-row-btn {
   flex: 1;
   min-width: 0;
   padding: 0;
@@ -7060,7 +7060,7 @@ html[data-theme='light'] .splash-bg {
   border-radius: var(--radius-sm);
 }
 
-.data-row-title-btn:focus-visible,
+.data-row-btn:focus-visible,
 .data-row-body:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -7077,7 +7077,7 @@ html[data-theme='light'] .splash-bg {
   margin-left: auto;
 }
 
-.data-row-title-btn .row-title-text {
+.data-row-btn .row-title-text {
   flex: 1;
   min-width: 0;
 }
@@ -19767,14 +19767,14 @@ html[data-theme='light'] .tour-overlay-dim {
 }
 
 /* General read view: judul + tombol Edit sebaris, nilai sebagai teks. */
-.dashboard__settings-title-row {
+.dashboard__settings-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 
-.dashboard__settings-title-row .dashboard__settings-section-title {
+.dashboard__settings-head .dashboard__settings-section-title {
   min-width: 0;
 }
 
@@ -19794,7 +19794,7 @@ html[data-theme='light'] .tour-overlay-dim {
   margin: 0;
 }
 
-.dashboard__settings-read-label {
+.dashboard__settings-read-key {
   margin: 0 0 4px;
   font-size: 13px;
   color: var(--text-muted);

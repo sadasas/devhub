@@ -160,7 +160,7 @@ return (
                 <div className="data-row-top">
                   <button
                     type="button"
-                    className="data-row-title-btn"
+                    className="data-row-btn"
                     onClick={() => setEditingId(issue.id)}
                     aria-label={issue.title}
                   >

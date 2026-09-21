@@ -22,7 +22,7 @@ export function WhiteboardCard({ board, canEdit, unread = false, narrow = false,
   return (
     <div className="project-card wb-card">
       <div className="data-row-top">
-        <button type="button" className="data-row-title-btn" onClick={onOpen} aria-disabled={!onOpen} aria-label={board.name}>
+        <button type="button" className="data-row-btn" onClick={onOpen} aria-disabled={!onOpen} aria-label={board.name}>
           <span className="project-card-title">{board.name}</span>
         </button>
         {(canEdit && !narrow && (onEdit || onDelete) || (canEdit && narrow && (onEdit || onDelete))) && (

@@ -153,7 +153,7 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
               <div className="data-row-top">
                 <button
                   type="button"
-                  className="data-row-title-btn"
+                  className="data-row-btn"
                   onClick={() => setEditId(d.id)}
                   aria-label={d.title}
                 >
