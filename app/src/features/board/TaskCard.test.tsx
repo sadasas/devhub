@@ -47,7 +47,7 @@ describe('TaskCard', () => {
   it('renders a due chip with a tone for tasks with a due date', () => {
     const future = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
     render(<TaskCard task={task({ dueDate: future })} onOpen={() => {}} />);
-    expect(screen.getByText(/^Due [A-Z][a-z]{2} \d{1,2}$/)).toBeTruthy();
+    expect(screen.getByText(/^[A-Z][a-z]{2} \d{1,2}$/)).toBeTruthy();
     expect(document.querySelector('.task-due-warn')).toBeTruthy();
   });
 
@@ -55,7 +55,7 @@ describe('TaskCard', () => {
     const past = new Date(Date.now() - 3 * 86_400_000).toISOString().slice(0, 10);
     render(<TaskCard task={task({ dueDate: past })} onOpen={() => {}} />);
     expect(document.querySelector('.task-due-danger')).toBeTruthy();
-    expect(screen.getByText(/OD \d+d/)).toBeTruthy();
+    expect(screen.getByText(/Overdue \d+d/)).toBeTruthy();
   });
 
   it('omits the due chip when there is no due date', () => {
@@ -63,7 +63,7 @@ describe('TaskCard', () => {
     expect(document.querySelector('.task-due')).toBeNull();
   });
 
-  it('renders a success chip for a done-on-time task', () => {
+  it('renders a neutral chip for a done-on-time task', () => {
     render(
       <TaskCard
         task={task({ status: 'done', dueDate: '2026-08-20', completedAt: '2026-08-14T09:00:00.000Z' })}
@@ -71,7 +71,7 @@ describe('TaskCard', () => {
       />,
     );
     expect(screen.getByText('Done on time')).toBeTruthy();
-    expect(document.querySelector('.task-due-success')).toBeTruthy();
+    expect(document.querySelector('.task-due-neutral')).toBeTruthy();
   });
 
   it('renders a warn chip for a done-late task', () => {
@@ -81,7 +81,7 @@ describe('TaskCard', () => {
         onOpen={() => {}}
       />,
     );
-    expect(screen.getByText('Done late 3d')).toBeTruthy();
+    expect(screen.getByText('Late 3d')).toBeTruthy();
     expect(document.querySelector('.task-due-warn')).toBeTruthy();
   });
 

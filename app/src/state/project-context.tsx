@@ -26,6 +26,7 @@ import {
   isDecisionValid,
   isErdGroupValid,
   isIssueValid,
+  isLabelDefValid,
   isMilestoneValid,
   isNonEmptyTitle,
   isRelationValid,
@@ -43,6 +44,7 @@ import type {
   ErdGroup,
   ErdLayout,
   Issue,
+  LabelDef,
   Milestone,
   Relation,
   SchemaVersion,
@@ -97,6 +99,9 @@ export type ProjectAction =
   | { type: 'whiteboard/add'; whiteboard: Whiteboard }
   | { type: 'whiteboard/update'; id: string; patch: UpdatePatch<Whiteboard> }
   | { type: 'whiteboard/remove'; id: string }
+  | { type: 'labelDef/add'; labelDef: LabelDef }
+  | { type: 'labelDef/update'; id: string; patch: UpdatePatch<LabelDef> }
+  | { type: 'labelDef/remove'; id: string }
   | { type: 'area/add'; area: ErdGroup }
   | { type: 'area/update'; id: string; patch: UpdatePatch<ErdGroup> }
   | { type: 'area/remove'; id: string }
@@ -130,6 +135,7 @@ const ID_COLLECTIONS = [
   'apiCollections',
   'apiEndpoints',
   'whiteboards',
+  'labelDefs',
   'erdGroups',
 ] as const;
 
@@ -197,6 +203,14 @@ export function projectReducer(state: State, action: ProjectAction): State {
               startDate: action.task.startDate,
             })
           : undefined);
+      // 1-level: parent tidak boleh subtask; self-parent ditolak.
+      let parentTaskId = action.task.parentTaskId ?? null;
+      if (parentTaskId) {
+        const parent = state.tasks.find((tt) => tt.id === parentTaskId);
+        if (!parent || parent.parentTaskId || parentTaskId === action.task.id) parentTaskId = null;
+      }
+      // Warisi milestone bila kosong (pola Linear).
+      const milestoneId = action.task.milestoneId ?? state.tasks.find((tt) => tt.id === parentTaskId)?.milestoneId ?? null;
       return {
         ...state,
         tasks: [
@@ -204,6 +218,9 @@ export function projectReducer(state: State, action: ProjectAction): State {
             ...action.task,
             completedAt,
             actualHours,
+            parentTaskId,
+            milestoneId,
+            checklist: action.task.checklist ?? [],
           },
           ...state.tasks,
         ],
@@ -212,6 +229,13 @@ export function projectReducer(state: State, action: ProjectAction): State {
     case 'task/update': {
       const prev = state.tasks.find((t) => t.id === action.id);
       let patch = action.patch;
+      // Guard parent 1-level.
+      if (prev && patch.parentTaskId !== undefined && patch.parentTaskId) {
+        const parent = state.tasks.find((tt) => tt.id === patch.parentTaskId);
+        if (!parent || parent.parentTaskId || parent.id === action.id) {
+          patch = { ...patch, parentTaskId: null };
+        }
+      }
       if (prev && patch.status !== undefined && patch.completedAt === undefined) {
         if (patch.status === 'done' && prev.status !== 'done') {
           patch = { ...patch, completedAt: nowIso() };
@@ -239,7 +263,16 @@ export function projectReducer(state: State, action: ProjectAction): State {
     case 'task/remove':
       return {
         ...state,
-        tasks: state.tasks.filter((t) => t.id !== action.id),
+        tasks: state.tasks
+          .filter((t) => t.id !== action.id)
+          .map((t) => {
+            let next = t;
+            if (t.parentTaskId === action.id) next = { ...next, parentTaskId: null, updatedAt: nowIso() };
+            if ((t.blockedBy ?? []).includes(action.id)) {
+              next = { ...next, blockedBy: (next.blockedBy ?? []).filter((x) => x !== action.id), updatedAt: nowIso() };
+            }
+            return next;
+          }),
         issues: state.issues.map((i) =>
           i.linkedTaskId === action.id ? { ...i, linkedTaskId: null, updatedAt: nowIso() } : i,
         ),
@@ -372,6 +405,19 @@ export function projectReducer(state: State, action: ProjectAction): State {
         whiteboards: state.whiteboards.filter((w) => w.id !== action.id),
       };
 
+    case 'labelDef/add':
+      return { ...state, labelDefs: [action.labelDef, ...(state.labelDefs ?? [])] };
+    case 'labelDef/update':
+      return {
+        ...state,
+        labelDefs: updateIn<LabelDef>(state.labelDefs ?? [], action.id, action.patch),
+      };
+    case 'labelDef/remove':
+      return {
+        ...state,
+        labelDefs: (state.labelDefs ?? []).filter((d) => d.id !== action.id),
+      };
+
     case 'area/add':
       return { ...state, erdGroups: [action.area, ...(state.erdGroups ?? [])] };
     case 'area/update':
@@ -434,6 +480,7 @@ const ENTITY_FOR_ACTION: Record<string, GranularEntity> = {
   apiCollection: 'apiCollections',
   apiEndpoint: 'apiEndpoints',
   whiteboard: 'whiteboards',
+  labelDef: 'labelDefs',
   area: 'erdGroups',
 };
 
@@ -450,6 +497,7 @@ const PAYLOAD_KEY: Record<string, string> = {
   apiCollection: 'collection',
   apiEndpoint: 'endpoint',
   whiteboard: 'whiteboard',
+  labelDef: 'labelDef',
   area: 'area',
 };
 
@@ -603,6 +651,12 @@ function isInvalidEntityAction(action: ProjectAction, prev: State | null): boole
       const next = (action.patch as Partial<Whiteboard>).name ?? cur.name;
       return !isNonEmptyTitle(next);
     }
+    case 'labelDef/update': {
+      const cur = (prev.labelDefs ?? []).find((d) => d.id === action.id);
+      if (!cur) return false;
+      const next = (action.patch as Partial<LabelDef>).name ?? cur.name;
+      return !isNonEmptyTitle(next);
+    }
     case 'area/update': {
       const cur = (prev.erdGroups ?? []).find((g) => g.id === action.id);
       if (!cur) return false;
@@ -631,6 +685,8 @@ function isInvalidEntityAction(action: ProjectAction, prev: State | null): boole
       return !isApiEndpointValid(action.endpoint);
     case 'whiteboard/add':
       return !isWhiteboardValid(action.whiteboard);
+    case 'labelDef/add':
+      return !isLabelDefValid(action.labelDef);
     case 'area/add':
       return !isErdGroupValid(action.area);
     case 'schemaVersion/add':
@@ -691,6 +747,10 @@ function isStoredEntityInvalid(
     case 'whiteboards': {
       const cur = state.whiteboards.find((w) => w.id === id);
       return cur ? !isWhiteboardValid(cur) : false;
+    }
+    case 'labelDefs': {
+      const cur = (state.labelDefs ?? []).find((d) => d.id === id);
+      return cur ? !isLabelDefValid(cur) : false;
     }
     case 'erdGroups': {
       const cur = (state.erdGroups ?? []).find((g) => g.id === id);

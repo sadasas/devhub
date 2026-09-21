@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Trash, FileText, ListChecks, Clock, CheckCircle } from '@phosphor-icons/react';
+import { Trash, FileText, ListChecks, Clock, CheckCircle, Circle, Bug } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatRelative } from '../../lib/utils';
 import type { TestCase, TestCaseStatus } from '../../lib/types';
@@ -101,11 +101,12 @@ export function TestModal({ testId, onClose }: TestModalProps) {
         <PropRow
           propKey="status"
           label={t('tests.modal.statusLabel')}
+          icon={<Circle size={12} aria-hidden="true" />}
           hot={hotProp === 'status'}
           setHot={setHotProp}
           canEdit={canEdit}
           view={(
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 999, background: test.status === 'pass' ? 'var(--status-success-dim)' : test.status === 'fail' ? 'var(--status-danger-dim)' : 'var(--bg-inset)', border: test.status === 'pending' ? '1px solid var(--border-hairline)' : 'none', fontSize: 12 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 6, background: test.status === 'pass' ? 'var(--status-success-dim)' : test.status === 'fail' ? 'var(--status-danger-dim)' : 'var(--bg-inset)', border: test.status === 'pending' ? '1px solid var(--border-hairline)' : 'none', fontSize: 12 }}>
               {t(`tests.status.${test.status}`)}
             </span>
           )}
@@ -116,6 +117,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
         <PropRow
           propKey="task"
           label={t('tests.modal.linkedTaskLabel')}
+          icon={<ListChecks size={12} aria-hidden="true" />}
           hot={hotProp === 'task'}
           setHot={setHotProp}
           canEdit={canEdit}
@@ -131,6 +133,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
         <PropRow
           propKey="issue"
           label={t('tests.modal.linkedIssueLabel')}
+          icon={<Bug size={12} aria-hidden="true" />}
           hot={hotProp === 'issue'}
           setHot={setHotProp}
           canEdit={canEdit}
@@ -174,7 +177,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
       )}
       {nameEmpty && <InlineError>{t('tracker:issues.modal.titleRequired')}</InlineError>}
       <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-        <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+        <span style={{ width: 110, color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
           <Clock size={12} aria-hidden="true" /> {t('tracker:issues.modal.createdTimeLabel')}
         </span>
         <span style={{ color: 'var(--text-secondary)' }}>{formatDate(test.createdAt)} {new Date(test.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>

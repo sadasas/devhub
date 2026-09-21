@@ -1,6 +1,6 @@
 import { Link, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { CaretLeft, GearSix, PlugsConnected, Trash } from '@phosphor-icons/react';
+import { CaretLeft, GearSix, PlugsConnected, Tag, Trash } from '@phosphor-icons/react';
 import {
   normalizeProjectSettingsSection,
   normalizeProjectTabId,
@@ -16,7 +16,7 @@ interface ProjectSettingsNavProps {
 
 // Nav settings per-project yang MENGGANTIKAN isi sidebar utama saat
 // ?tab=settings (single-sidebar rule, cermin SettingsNav team):
-// back ke tab terakhir (?from=) + section General/Integrations/Danger.
+// back ke tab terakhir (?from=) + section General/Labels/Integrations/Danger.
 // Links membawa ?section=; panel settings me-render section yang cocok,
 // jadi nav ini tak menyimpan state seleksi selain URL.
 export function ProjectSettingsNav({ projectId, projectTo, onSelect }: ProjectSettingsNavProps) {
@@ -27,6 +27,7 @@ export function ProjectSettingsNav({ projectId, projectTo, onSelect }: ProjectSe
 
   const items: { key: ProjectSettingsSection; icon: React.ReactNode; label: string }[] = [
     { key: 'general', icon: <GearSix size={15} weight="duotone" aria-hidden="true" />, label: t('settings.general', { defaultValue: 'General' }) },
+    { key: 'labels', icon: <Tag size={15} weight="duotone" aria-hidden="true" />, label: t('settings.labels', { defaultValue: 'Labels' }) },
     { key: 'integrations', icon: <PlugsConnected size={15} weight="duotone" aria-hidden="true" />, label: t('settings.integrations', { defaultValue: 'Integrations' }) },
     { key: 'danger', icon: <Trash size={15} weight="duotone" aria-hidden="true" />, label: t('settings.danger', { defaultValue: 'Danger' }) },
   ];

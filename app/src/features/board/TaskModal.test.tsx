@@ -151,7 +151,7 @@ describe('TaskModal milestone select', () => {
       }),
     ];
     render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
-    expect(screen.queryByText('Done late 3d')).toBeNull();
+    expect(screen.queryByText('Late 3d')).toBeNull();
     expect(screen.getByText(/Aug 10, 2026/)).toBeTruthy();
     expect(screen.getByText(/Aug 13, 2026/)).toBeTruthy();
   });
@@ -162,7 +162,7 @@ describe('TaskModal milestone select', () => {
     render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
     const chip = document.querySelector('.task-due-danger');
     expect(chip).toBeTruthy();
-    expect(chip?.textContent).toMatch(/OD/);
+    expect(chip?.textContent).toMatch(/Overdue/);
   });
 
   it('omits the done date when the task is not done', () => {
@@ -253,15 +253,11 @@ describe('TaskModal milestone select', () => {
     expect(screen.getByRole('spinbutton', { name: 'Estimate (hours)' })).toBeTruthy();
   });
 
-  it('reveals blocked-by editing on row hover and hides it on leave', () => {
+  it('shows blocked-by editing immediately without hover (touch-safe)', () => {
     render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
-    expect(screen.queryByRole('button', { name: '+ Add' })).toBeNull();
     const row = document.querySelector('.detail-side [data-blocked-row]');
     expect(row).toBeTruthy();
-    fireEvent.mouseEnter(row as Element);
     expect(screen.getByRole('button', { name: '+ Add' })).toBeTruthy();
-    fireEvent.mouseLeave(row as Element);
-    expect(screen.queryByRole('button', { name: '+ Add' })).toBeNull();
   });
 
   it('renders test cases as an info row in the sidebar', () => {
@@ -270,6 +266,7 @@ describe('TaskModal milestone select', () => {
     expect(row).toBeTruthy();
     expect(row?.textContent).toContain('—');
     expect(row?.querySelector('.prop-chev')).toBeNull();
+    expect(row?.querySelector('.prop-edit')).toBeNull();
   });
 
   it('shows a label column instead of an icon in the assignee row', async () => {
@@ -359,13 +356,15 @@ describe('TaskModal milestone select', () => {
     });
   });
 
-  it('shows actual hours in its own row without a chevron', () => {
+  it('shows actual hours as an editable row with popup', () => {
     mockState.tasks = [makeTask({ actualHours: 24.5 })];
     render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
     const row = document.querySelector('[data-prop="actual"]');
     expect(row).toBeTruthy();
     expect(row?.textContent).toContain('24.5h');
-    expect(row?.querySelector('.prop-chev')).toBeNull();
+    expect(row?.querySelector('.prop-edit')).toBeTruthy();
+    fireEvent.click(row?.querySelector('.prop-view') as Element);
+    expect(screen.getByRole('spinbutton', { name: 'Actual' })).toBeTruthy();
   });
 
   it('dispatches decimal inline estimate, keeping the dot', () => {
@@ -404,12 +403,9 @@ describe('TaskModal milestone select', () => {
     expect(input.getAttribute('inputmode')).toBe('decimal');
   });
 
-  it('reserves blocker remove buttons hidden when idle', () => {
+  it('shows blocker remove buttons immediately when editable', () => {
     mockState.tasks = [makeTask({ blockedBy: ['other-id'] }), makeTask({ id: 'other-id', title: 'Other' })];
     render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
-    const row = document.querySelector('[data-blocked-row]');
-    expect(row?.querySelector('button[aria-label^="Remove blocker"]')).toBeNull();
-    fireEvent.mouseEnter(row as Element);
     expect(screen.getByRole('button', { name: 'Remove blocker Other' })).toBeTruthy();
   });
 });

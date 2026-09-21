@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { CalendarBlank as CalendarIcon, Clock, DotsThree, FileText, Flag, Plus, Tag, User } from '@phosphor-icons/react';
+import { CalendarBlank as CalendarIcon, Clock, DotsThree, FileText, Flag, LinkSimple, Plus, Tag, User } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { formatDate, isDecimalKey, newId, nowIso, parseLabels, sanitizeDecimalInput } from '../../lib/utils';
-import { TASK_PRIORITY, TASK_PRIORITY_ORDER } from '../../lib/labels';
+import { TASK_PRIORITY, TASK_PRIORITY_ORDER, hashLabelColor } from '../../lib/labels';
 import { startAfterDue } from '../../lib/start-dates';
 import type { TaskPriority, TaskStatus, TeamMember } from '../../lib/types';
+import { LabelPickerBody } from './LabelPickerBody';
 import { useProject } from '../../state/project-context';
+import { useOptionalAuth } from '../../state/auth-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { api } from '../../lib/api';
 import { Button } from '../../components/Button';
@@ -19,7 +21,7 @@ import { DatePicker } from '../../components/DatePicker';
 import { MarkdownField } from '../../components/MarkdownField';
 import { FE_LIMITS, LIMITS } from '../../lib/limits';
 
-type PropKey = 'priority' | 'dates' | 'assignee' | 'milestone' | 'estimate' | 'labels';
+type PropKey = 'priority' | 'dates' | 'assignee' | 'milestone' | 'estimate' | 'labels' | 'blockedBy';
 
 interface NewTaskModalProps {
   open: boolean;
@@ -32,6 +34,7 @@ interface NewTaskModalProps {
 
 export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, onClose }: NewTaskModalProps) {
   const { state, dispatch, teamId } = useProject();
+  const { user } = useOptionalAuth();
   const { t } = useTranslation(['tracker', 'project']);
   usePresenceStatus(t('board.newTaskModal.presenceCreating'), open);
   const [title, setTitle] = useState('');
@@ -45,6 +48,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
   const [datesOpen, setDatesOpen] = useState(false);
   const datesPillRef = useRef<HTMLButtonElement>(null);
   const [assignee, setAssignee] = useState<string | null>(null);
+  const [blockedBy, setBlockedBy] = useState<string[]>([]);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const titleRef = useRef<HTMLTextAreaElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -63,6 +67,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
       setDueDateInput(dueDate?.slice(0, 10) ?? '');
       setStartDateInput(startDate?.slice(0, 10) ?? '');
       setAssignee(null);
+      setBlockedBy([]);
     }
   }, [open, milestoneId, dueDate, startDate]);
 
@@ -176,6 +181,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
     milestone: t('board.newTaskModal.milestoneLabel'),
     estimate: t('board.newTaskModal.estimateLabel'),
     labels: t('board.newTaskModal.labelsLabel'),
+    blockedBy: t('board.taskModal.blockedByLabel', { defaultValue: 'Blocked by' }),
   };
 
   function onSubmit(e: FormEvent) {
@@ -184,7 +190,20 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
     if (startAfterDue(startDateInput, dueDateInput)) return;
     const taskStatus = status ?? 'todo';
     const parsedEstimate = Number(estimate);
+    const parsedLabels = parseLabels(labels);
     const ts = nowIso();
+    // Buat-cepat definisi untuk nama label baru (kunci = nama, warna hash).
+    const seen = new Set((state?.labelDefs ?? []).map((d) => d.name.trim().toLowerCase()));
+    for (const raw of parsedLabels) {
+      const name = raw.trim().slice(0, 50);
+      const key = name.toLowerCase();
+      if (!name || seen.has(key)) continue;
+      seen.add(key);
+      dispatch({
+        type: 'labelDef/add',
+        labelDef: { id: newId(), createdAt: ts, updatedAt: ts, name, color: hashLabelColor(key), description: '' },
+      });
+    }
     dispatch({
       type: 'task/add',
       task: {
@@ -195,8 +214,8 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
         status: taskStatus,
         priority: priority === '' ? 'medium' : priority,
         estimate: estimate !== '' && estimate !== '.' && !Number.isNaN(parsedEstimate) ? Math.min(FE_LIMITS.ESTIMATE_MAX, Math.max(0, parsedEstimate)) : undefined,
-        labels: parseLabels(labels),
-        blockedBy: [],
+        labels: parsedLabels,
+        blockedBy: [...new Set(blockedBy)],
         milestoneId: milestone,
         dueDate: dueDateInput === '' ? null : dueDateInput,
         startDate: startDateInput === '' ? null : startDateInput,
@@ -213,6 +232,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
     setDueDateInput('');
     setStartDateInput('');
     setAssignee(null);
+    setBlockedBy([]);
     onClose();
   }
 
@@ -242,7 +262,12 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
       label=""
       ariaLabel={t('board.taskModal.assigneeLabel')}
       value={assignee}
-      options={members.map((m) => ({ value: m.id, label: m.displayName || m.email }))}
+      options={[
+        ...(user?.id && assignee !== user.id
+          ? [{ value: user.id, label: t('board.taskModal.assignToMe', { defaultValue: 'Assign to me' }) }]
+          : []),
+        ...members.map((m) => ({ value: m.id, label: m.displayName || m.email })),
+      ]}
       onChange={setAssignee}
       triggerEmptyLabel={t('board.taskModal.assigneeLabel')}
     />
@@ -281,17 +306,36 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
   );
 
   const labelsControl = (
-    <input
-      className="input"
-      placeholder={t('board.newTaskModal.labelsLabel')}
-      value={labels}
-      maxLength={FE_LIMITS.LABELS_INPUT}
-      onChange={(e) => setLabels(e.target.value)}
-      aria-label={t('board.newTaskModal.labelsLabel')}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') setPopup(null);
-      }}
-    />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220 }}>
+      <LabelPickerBody draft={labels} onChange={setLabels} />
+    </div>
+  );
+
+  const blockedByControl = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220 }}>
+      {blockedBy.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {blockedBy.map((id) => {
+            const bt = state?.tasks.find((tt) => tt.id === id);
+            return (
+              <span key={id} style={{ padding: '2px 8px', borderRadius: 6, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <LinkSimple size={10} aria-hidden="true" /> {bt?.title ?? id.slice(0, 6)}
+                <button type="button" onClick={() => setBlockedBy((prev) => prev.filter((x) => x !== id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, padding: '0 2px', lineHeight: 1 }} aria-label={`Remove blocker ${bt?.title ?? id}`}>×</button>
+              </span>
+            );
+          })}
+        </div>
+      )}
+      <SearchableSelect
+        id="new-task-blockedBy"
+        label=""
+        ariaLabel={t('board.taskModal.blockedByLabel', { defaultValue: 'Blocked by' })}
+        value={null}
+        options={(state?.tasks ?? []).filter((ot) => !blockedBy.includes(ot.id) && !ot.parentTaskId).map((ot) => ({ value: ot.id, label: `${ot.title} · ${ot.status}` }))}
+        onChange={(v) => { if (v) setBlockedBy((prev) => [...new Set([...prev, v])]); }}
+        triggerEmptyLabel={t('board.taskModal.blockedByLabel', { defaultValue: 'Blocked by' })}
+      />
+    </div>
   );
 
   const propControls: Record<PropKey, ReactNode> = {
@@ -301,6 +345,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
     milestone: milestoneControl,
     estimate: estimateControl,
     labels: labelsControl,
+    blockedBy: blockedByControl,
   };
 
   return (
@@ -455,6 +500,18 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
           >
             <span className="prop-ic" aria-hidden="true"><Tag size={14} /></span>
             <span className="prop-text">{labels === '' ? propLabels.labels : labels}</span>
+          </button>
+
+          <button
+            type="button"
+            className="prop"
+            data-prop="blockedBy"
+            data-label={propLabels.blockedBy}
+            data-pop-anchor="blockedBy"
+            onClick={(e) => (popup?.key === 'blockedBy' ? setPopup(null) : openPopup('blockedBy', e.currentTarget))}
+          >
+            <span className="prop-ic" aria-hidden="true"><LinkSimple size={14} /></span>
+            <span className="prop-text">{blockedBy.length === 0 ? propLabels.blockedBy : `${blockedBy.length} blocked`}</span>
           </button>
         </div>
         {startAfterDue(startDateInput, dueDateInput) && <div className="composer-error"><InlineError>{t('board.newTaskModal.dateWarn')}</InlineError></div>}

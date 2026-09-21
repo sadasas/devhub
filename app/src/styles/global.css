@@ -1192,7 +1192,7 @@ a:hover {
   gap: 4px 8px;
   border: 0;
   background: none;
-  padding: 3px 8px;
+  padding: 3px 0;
   border-radius: 8px;
   min-height: 34px;
   white-space: normal;
@@ -1248,10 +1248,59 @@ a:hover {
   flex: 1 1 auto;
   min-width: 0;
   font-size: 12px;
-  color: var(--text-muted);
+  font-weight: 600;
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+.detail-side .prop-label svg {
+  flex-shrink: 0;
+}
+.detail-side .prop-label-text {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.detail-side .prop-edit {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.detail-side .prop:hover .prop-edit,
+.detail-side .prop:focus-within .prop-edit,
+.detail-side .prop-edit:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  .detail-side .prop-edit {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .detail-side .prop-edit {
+    transition: none;
+  }
+}
+/* Judul properti sebagai tombol (klik = buka input) — samakan token label. */
+.detail-side .prop-label-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  line-height: inherit;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: left;
 }
 .prop-chev {
   flex-shrink: 0;
@@ -1335,6 +1384,89 @@ a:hover {
   flex-shrink: 0;
   flex-basis: 100%;
   margin-left: 0;
+}
+
+/* Mobile (≤640px): sidebar properti jadi aliran pill inline ala Linear.
+   Ditulis SETELAH rule desktop agar menang (spesifisitas sama, source-order
+   menang). Label/pencil disembunyikan, hanya value yang mengalir wrap.
+   Berlaku ke semua modal detail (konsisten); desktop tidak tersentuh. */
+@media (max-width: 640px) {
+  .detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .detail-side {
+    grid-column: 1;
+    grid-row: auto;
+    border-left: 0;
+    padding-left: 0;
+    max-height: none;
+    overflow: visible;
+  }
+  /* Pil composer: label + ikon tampil, value ellipsis; klik judul = buka input. */
+  .detail-side .prop {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+    vertical-align: middle;
+    border: 1px solid var(--border-hairline);
+    border-radius: 999px;
+    padding: 5px 11px;
+    margin: 0 8px 8px 0;
+    min-height: 32px;
+  }
+  .detail-side .prop-chev,
+  .detail-side .prop-edit {
+    display: none;
+  }
+  .detail-side .prop-label {
+    flex: 0 0 auto;
+  }
+  .detail-side .prop-label-text {
+    max-width: 28vw;
+  }
+  .detail-side .prop > .prop-view,
+  .detail-side .prop > .input,
+  .detail-side .prop > .ss-wrap,
+  .detail-side .prop > span:not(.prop-label):not(.prop-chev) {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 40vw;
+  }
+  /* Blocked by: di desktop value di bawah label (flex 100%), di mobile tetap sebaris dalam pil. */
+  .detail-side [data-blocked-row] > div:last-child {
+    flex: 0 1 auto;
+    order: 0;
+    flex-basis: auto;
+  }
+  /* Saat edit: baris melebar penuh agar kontrol muat. */
+  .detail-side .prop[data-hot] {
+    display: flex;
+    flex-basis: 100%;
+    flex-wrap: wrap;
+    margin-right: 0;
+  }
+  .detail-side .prop[data-hot] > .prop-view,
+  .detail-side .prop[data-hot] > .ss-wrap,
+  .detail-side .prop[data-hot] > .input {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+  /* Created time ikut jadi pil pertama agar seragam. */
+  .detail-side .detail-created {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--border-hairline);
+    border-radius: 999px;
+    padding: 5px 11px;
+    margin: 0 8px 8px 0;
+    min-height: 32px;
+    font-size: 12px;
+  }
 }
 
 /* DatePicker kustom — panel portal, grid bulan, footer single/range. */
@@ -6419,24 +6551,22 @@ html[data-theme='light'] .splash-bg {
   opacity: 1;
 }
 
+@media (hover: none) {
+  .task-card-pin {
+    opacity: 1;
+  }
+}
+
 .task-card-pin.pin-btn-active {
   color: var(--accent);
 }
 
-/* TaskCard contextual swap: priority badge bertukar dengan Pin saat
-   hover/focus (pola Issues swap). Badge disembunyikan in-place (ruang
-   dipertahankan, tanpa shift) tepat di bawah Pin absolute di pojok.
-   Info priority tetap ada untuk SR via .task-card sr-summary. */
+/* Priority badge tetap terlihat saat hover — Pin absolute di pojok
+   tidak menimpa badge (posisi berbeda), info priority tetap untuk SR. */
 .task-card-priority {
   transition:
     opacity var(--duration-fast) var(--ease-out),
     visibility var(--duration-fast) var(--ease-out);
-}
-
-.task-card-wrap:hover .task-card-priority,
-.task-card-wrap:focus-within .task-card-priority {
-  opacity: 0;
-  visibility: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -6469,6 +6599,12 @@ html[data-theme='light'] .splash-bg {
 .task-card:hover {
   border-color: var(--border-strong);
   background: var(--bg-overlay-hover);
+}
+
+.task-card:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 .task-card:active {
@@ -21920,6 +22056,13 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
     min-height: 44px;
   }
 
+  /* Pengecualian: pil propbar composer tetap ramping di touch (36px).
+     Spesifisitas (0,4,0) menang atas rule 44px di atas (0,1,0). */
+  .composer-propbar .prop > .ss-wrap > .ss-trigger {
+    min-height: 36px;
+    font-size: 14px;
+  }
+
   .sort-control-trigger {
     min-height: 44px;
   }
@@ -22585,5 +22728,57 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
      nav dalam konten disembunyikan agar tak ganda. */
   .project-settings-nav {
     display: none;
+  }
+}
+
+/* Minimalis: aksi destruktif baris (×/Detach) hover-reveal.
+   Selalu tampil saat keyboard-focus atau touch (tanpa hover). */
+.mini-del {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.mini-row:hover .mini-del,
+.mini-row:focus-within .mini-del,
+.mini-del:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  .mini-del {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mini-del {
+    transition: none;
+  }
+}
+
+/* Title & Description pencil hover-reveal (konsisten dengan prop-edit). */
+.editable-pencil {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  pointer-events: none;
+}
+.editable-field:hover .editable-pencil,
+.editable-field:focus-within .editable-pencil {
+  opacity: 1;
+}
+@media (hover: none) {
+  .editable-pencil {
+    opacity: 1;
+  }
+}
+@media (max-width: 640px) {
+  .editable-pencil {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .editable-pencil {
+    transition: none;
   }
 }

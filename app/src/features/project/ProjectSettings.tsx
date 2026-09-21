@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { Archive, CaretLeft, Check, Copy, FloppyDisk, GearSix, GithubLogo, PlugsConnected, Trash } from '@phosphor-icons/react';
+import { Archive, CaretLeft, Check, Copy, FloppyDisk, GearSix, GithubLogo, PlugsConnected, Tag, Trash } from '@phosphor-icons/react';
 import type { Project } from '../../lib/types';
 import { useProjects } from '../../state/projects-context';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
@@ -12,6 +12,7 @@ import { Textarea } from '../../components/Textarea';
 import { InlineError } from '../../components/InlineError';
 import { Badge } from '../../components/Badge';
 import { GCalSettings } from '../integrations/GCalSettings';
+import { LabelsSection } from './LabelsSection';
 import {
   normalizeProjectSettingsSection,
   type ProjectSettingsSection,
@@ -44,6 +45,7 @@ export function ProjectSettings({ project, canEditMeta, canConnect, canArchive, 
 
   const items: { key: ProjectSettingsSection; icon: React.ReactNode; label: string }[] = [
     { key: 'general', icon: <GearSix size={15} weight="duotone" aria-hidden="true" />, label: t('settings.general', { defaultValue: 'General' }) },
+    { key: 'labels', icon: <Tag size={15} weight="duotone" aria-hidden="true" />, label: t('settings.labels', { defaultValue: 'Labels' }) },
     { key: 'integrations', icon: <PlugsConnected size={15} weight="duotone" aria-hidden="true" />, label: t('settings.integrations', { defaultValue: 'Integrations' }) },
     { key: 'danger', icon: <Trash size={15} weight="duotone" aria-hidden="true" />, label: t('settings.danger', { defaultValue: 'Danger' }) },
   ];
@@ -85,6 +87,8 @@ export function ProjectSettings({ project, canEditMeta, canConnect, canArchive, 
       <div className="project-settings-panel">
         {section === 'general' ? (
           <GeneralSection project={project} canEditMeta={canEditMeta} />
+        ) : section === 'labels' ? (
+          <LabelsSection />
         ) : section === 'integrations' ? (
           <IntegrationsSection projectId={project.id} canConnect={canConnect} />
         ) : (

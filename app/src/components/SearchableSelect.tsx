@@ -232,7 +232,7 @@ export function SearchableSelect({
             {rows.map((row, i) => {
               const isActive = i === index;
               const isSelected = row.value === value || (row.value === null && value == null);
-              const key = row.value ?? 'empty';
+              const key = `${row.value ?? 'empty'}:${i}`;
               return (
                 <button
                   key={key}

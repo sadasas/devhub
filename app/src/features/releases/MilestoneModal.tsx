@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { CheckCircle, FileText, Trash } from "@phosphor-icons/react";
+import { CheckCircle, FileText, Trash, Circle, Tag, CalendarBlank } from "@phosphor-icons/react";
 import { formatDate, formatRelative } from "../../lib/utils";
 import type { Milestone, MilestoneStatus } from "../../lib/types";
 import type { UpdatePatch } from "../../state/project-context";
@@ -203,11 +203,12 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
         <PropRow
           propKey="status"
           label={t("releases.modal.statusLabel")}
+          icon={<Circle size={12} aria-hidden="true" />}
           hot={hotProp === "status"}
           setHot={setHotProp}
           canEdit={canEdit}
           view={(
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "2px 8px", borderRadius: 999, background: milestone.status === "released" ? "var(--status-success-dim)" : milestone.status === "inProgress" ? "var(--status-info-dim)" : "var(--bg-inset)", fontSize: 12 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "2px 8px", borderRadius: 6, background: milestone.status === "released" ? "var(--status-success-dim)" : milestone.status === "inProgress" ? "var(--status-info-dim)" : "var(--bg-inset)", fontSize: 12 }}>
               {statusLabels[milestone.status]}
             </span>
           )}
@@ -218,6 +219,7 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
         <PropRow
           propKey="version"
           label={t("releases.modal.versionLabel")}
+          icon={<Tag size={12} aria-hidden="true" />}
           hot={false}
           setHot={setVersionHot}
           canEdit={canEdit}
@@ -231,6 +233,7 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
         <PropRow
           propKey="targetDate"
           label={t("releases.modal.targetDateLabel")}
+          icon={<CalendarBlank size={12} aria-hidden="true" />}
           hot={hotProp === "targetDate"}
           setHot={setHotProp}
           canEdit={canEdit}
@@ -274,7 +277,7 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
       )}
       {nameEmpty && <InlineError>{t("tracker:issues.modal.titleRequired")}</InlineError>}
       <div className="detail-created" style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 13 }}>
-        <span style={{ width: 110, color: "var(--text-muted)", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+        <span style={{ width: 110, color: "var(--text-secondary)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12 }}>
           {t("tracker:issues.modal.createdTimeLabel")}
         </span>
         <span style={{ color: "var(--text-secondary)" }}>{formatDate(milestone.createdAt)} {new Date(milestone.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>

@@ -66,6 +66,33 @@
   --chart-track: rgba(255, 255, 255, 0.06);
   --chart-grid: rgba(255, 255, 255, 0.04);
 
+  /* Label palette — 12 warna kurasi untuk label task (pasangan solid + dim).
+     Solid dipakai sebagai warna teks di atas dim (pola status-chip, kontras AA). */
+  --label-red: #d67a7a;
+  --label-red-dim: rgba(214, 122, 122, 0.12);
+  --label-orange: #d99a6c;
+  --label-orange-dim: rgba(217, 154, 108, 0.12);
+  --label-amber: #c9a96a;
+  --label-amber-dim: rgba(201, 169, 106, 0.12);
+  --label-lime: #a8b86b;
+  --label-lime-dim: rgba(168, 184, 107, 0.12);
+  --label-green: #7fb069;
+  --label-green-dim: rgba(127, 176, 105, 0.12);
+  --label-emerald: #5db69b;
+  --label-emerald-dim: rgba(93, 182, 155, 0.12);
+  --label-teal: #6bb8ad;
+  --label-teal-dim: rgba(107, 184, 173, 0.12);
+  --label-sky: #7ba4d9;
+  --label-sky-dim: rgba(123, 164, 217, 0.12);
+  --label-blue: #7c86d8;
+  --label-blue-dim: rgba(124, 134, 216, 0.12);
+  --label-violet: #8a7dff;
+  --label-violet-dim: rgba(138, 125, 255, 0.12);
+  --label-pink: #d67fa3;
+  --label-pink-dim: rgba(214, 127, 163, 0.12);
+  --label-slate: #8a8a93;
+  --label-slate-dim: rgba(138, 138, 147, 0.12);
+
   /* Timeline — stripe/weekend */
   --bg-stripe: rgba(255, 255, 255, 0.015);
   --bg-weekend: rgba(255, 255, 255, 0.02);
@@ -175,6 +202,32 @@ html[data-theme='light'] {
   --chart-5: #7a6ee0;
   --chart-track: rgba(0, 0, 0, 0.06);
   --chart-grid: rgba(0, 0, 0, 0.04);
+
+  /* Label palette — varian terang (solid lebih gelap agar kontras di atas putih). */
+  --label-red: #b85c5c;
+  --label-red-dim: rgba(184, 92, 92, 0.10);
+  --label-orange: #b0763f;
+  --label-orange-dim: rgba(176, 118, 63, 0.10);
+  --label-amber: #9e7e3a;
+  --label-amber-dim: rgba(158, 126, 58, 0.10);
+  --label-lime: #7d8a3c;
+  --label-lime-dim: rgba(125, 138, 60, 0.10);
+  --label-green: #5d8a4a;
+  --label-green-dim: rgba(93, 138, 74, 0.10);
+  --label-emerald: #3f8a76;
+  --label-emerald-dim: rgba(63, 138, 118, 0.10);
+  --label-teal: #3d857c;
+  --label-teal-dim: rgba(61, 133, 124, 0.10);
+  --label-sky: #5b7db8;
+  --label-sky-dim: rgba(91, 125, 184, 0.10);
+  --label-blue: #5a6cb8;
+  --label-blue-dim: rgba(90, 108, 184, 0.10);
+  --label-violet: #7a6ee0;
+  --label-violet-dim: rgba(122, 110, 224, 0.10);
+  --label-pink: #b05e85;
+  --label-pink-dim: rgba(176, 94, 133, 0.10);
+  --label-slate: #6e6e78;
+  --label-slate-dim: rgba(110, 110, 120, 0.10);
 
   --bg-stripe: rgba(0, 0, 0, 0.03);
   --bg-weekend: rgba(0, 0, 0, 0.015);
