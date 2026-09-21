@@ -264,7 +264,7 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
               <div className="data-row-top">
                 <button
                   type="button"
-                  className="data-row-title-btn"
+                  className="data-row-btn"
                   onClick={() => setEditingId(entry.id)}
                   aria-label={entry.name}
                 >

@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { TASK_PRIORITY, TASK_PRIORITY_SHORT, TASK_STATUS, findLabelDef, labelChipStyleFor } from '../../lib/labels';
 import { formatDate, isTaskCompletable, linkedTestCases, shortId, taskBlockSummary } from '../../lib/utils';
 import { taskDueChip } from '../../lib/due-dates';
-import { startLabel } from '../../lib/start-dates';
 import type { Task } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { Avatar } from '../../components/Avatar';

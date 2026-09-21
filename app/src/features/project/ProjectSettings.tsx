@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { Archive, CaretLeft, Check, Copy, FloppyDisk, GearSix, GithubLogo, PencilSimple, PlugsConnected, Tag, Trash } from '@phosphor-icons/react';
+import { Archive, CaretLeft, Check, Copy, GearSix, GithubLogo, PencilSimple, PlugsConnected, Tag, Trash } from '@phosphor-icons/react';
 import type { Project } from '../../lib/types';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { Button } from '../../components/Button';
@@ -112,7 +112,7 @@ function GeneralSection({ project, canEditMeta }: { project: Project; canEditMet
     <div className="profile-panel">
       <div className="narrow-center">
       <section className="dashboard__settings-section" aria-labelledby="project-settings-general-title">
-      <div className="dashboard__settings-title-row">
+      <div className="dashboard__settings-head">
         <h2 id="project-settings-general-title" tabIndex={-1} className="dashboard__settings-section-title">
           {t('settings.generalTitle', { defaultValue: 'General' })}
         </h2>
@@ -153,7 +153,7 @@ function GeneralSection({ project, canEditMeta }: { project: Project; canEditMet
         </Button>
       </div>
       <div className="dashboard__settings-read-meta-block">
-        <p className="dashboard__settings-read-label">
+        <p className="dashboard__settings-read-key">
           {t('settings.teamLabel', { defaultValue: 'Team' })}
         </p>
         <p className="dashboard__settings-team-status">
@@ -168,7 +168,7 @@ function GeneralSection({ project, canEditMeta }: { project: Project; canEditMet
         </p>
       </div>
       <div className="dashboard__settings-read-desc-block">
-        <p className="dashboard__settings-read-label">
+        <p className="dashboard__settings-read-key">
           {t('settings.descLabel', { defaultValue: 'Description' })}
         </p>
         {desc ? (

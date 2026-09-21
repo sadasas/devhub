@@ -234,7 +234,7 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
       {/* General: read view (nama + URL + ID) + edit via modal. */}
       {activeSection === 'general' && (
       <section className="dashboard__settings-section" aria-labelledby="dashboard-settings-general-title">
-        <div className="dashboard__settings-title-row">
+        <div className="dashboard__settings-head">
           <h2 id="dashboard-settings-general-title" tabIndex={-1} className="dashboard__settings-section-title">
             {t('dashboard.team.settingsGeneralTitle')}
           </h2>
@@ -278,7 +278,7 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
           </Button>
         </div>
         <div className="dashboard__settings-read-meta-block">
-          <p className="dashboard__settings-read-label">
+          <p className="dashboard__settings-read-key">
             {t('dashboard.team.settingsSlugLabel')}
           </p>
           <p className="settings-mono">/{team.slug ?? 'team-xxxx'}/projects</p>
