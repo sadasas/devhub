@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
+import { LIMITS } from '../../lib/limits';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
@@ -57,7 +58,7 @@ export function EditWhiteboardModal({ board, onClose }: EditWhiteboardModalProps
           label={t('whiteboard.editModal.name')}
           required
           autoFocus={AUTO_FOCUS_INPUT}
-          maxLength={300}
+          maxLength={LIMITS.WHITEBOARD_NAME}
           showCount
           placeholder={t('whiteboard.editModal.namePlaceholder')}
           value={name}
@@ -66,7 +67,7 @@ export function EditWhiteboardModal({ board, onClose }: EditWhiteboardModalProps
         <Textarea
           label={t('whiteboard.editModal.description')}
           rows={3}
-          maxLength={2000}
+          maxLength={LIMITS.WHITEBOARD_DESCRIPTION}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />

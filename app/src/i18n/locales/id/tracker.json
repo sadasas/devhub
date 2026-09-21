@@ -1,6 +1,8 @@
 {
   "board": {
     "viewTabs": "Tampilan Board",
+    "count_one": "{{count}} task",
+    "count_other": "{{count}} task",
     "calTabs": "Tampilan tanggal jatuh tempo",
     "byStatus": "Berdasarkan Status",
     "byMilestone": "Berdasarkan Milestone",

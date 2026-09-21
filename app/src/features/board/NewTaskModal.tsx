@@ -391,7 +391,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
             value={description}
             onChange={setDescription}
             placeholder={t('board.newTaskModal.descriptionPlaceholder')}
-            maxLength={10000}
+            maxLength={LIMITS.TASK_DESCRIPTION}
             rows={4}
             variant="bare"
             previewToggle

@@ -43,6 +43,10 @@ inside its 256 viewBox — so a nominal 16px glyph reads optically next to a
 | `icon-section-title-size` | **14px** | Section-title glyphs (`.section-title`: "Your teams", "Usage", "Connected accounts") | Renamed 2026-09 (was `icon-panel-title-size`); kept 14px — pairs with 14px section titles. Majority Tier-1 glyph: Dashboard/Team settings + Profile + About use it |
 | `icon-button-touch` | **18px** | Standalone (icon-only) button glyphs on touch (`hover: none`) | Sole carrier of meaning → bigger. Within Phosphor-for-buttons band 16–20; M3 uses 24/48 (50%), Apple uses larger scale for standalone symbols |
 | `icon-button-label-touch` | **16px** | Leading icons of text buttons on touch | Supporting role — label stays primary. Reads optically next to 14px labels |
+| `icon-subtab-size` | **13px** | View-switcher `sub-tab` glyphs (Schema/API/Releases/Stack/Board/Profile/DueCalendar) | One tier below `icon-tab-size` (15px): sub-tabs are secondary navigation. Unifies Board 16px + Profile 15px drift (2026-09) |
+| `icon-button-left` | **14px** | `Button leftIcon` (text buttons, desktop) | Majority pattern (toolbar New/Import/row actions). Row delete Trash 13px folded to 14 (2026-09) |
+| `icon-trigger-size` | **16px** | Icon-only triggers: sort trigger, overflow `...`, drawer, tree folder | Touch-carrier exception on desktop too — small tap targets stay legible. Tree/folder decorative glyphs keep authored sizes |
+| `icon-canvas-tools` | **15px** | Whiteboard editor tool buttons (desktop) | Exception sah: authored per usage (cf. Desktop glyphs row). Touch CSS membesarkan ke 18px |
 | Desktop glyphs | Authored per usage (`size={...}`) | All desktop (`hover: hover`) rendering | No global override on desktop; proportions already correct there (13px glyph in 28px box, 18px in 32px). Audit 2026-09: observed range 9–140px across 600+ usages — historical, not normative |
 
 Rules:
@@ -235,6 +239,19 @@ Rules:
 
 - Border width HANYA 1px (kecuali kasus terverifikasi + ADR).
 - 50% dilarang untuk radius (gunakan pill).
+- **Padding panel/kartu konten = 20px seragam** (audit 2026-09: `.profile-panel`
+  16/20 + `.pcard-body` 32/20/16 disatukan ke 20px; mobile tetap 12px).
+  Pengecualian tercatat: `.pcard--compact .pcard-body` 12/20 (varian padat
+  ProjectPage), `.modal-body`/`.content-card`/`.about-card` 16px,
+  `.timeline-card`/`.data-row` 12/14px–12/10px (densitas daftar).
+- **Seksi settings = satu mekanisme jarak.** Setiap seksi settings WAJIB
+  `<section class="dashboard__settings-section" aria-labelledby="…">`
+  (flex column, `gap: 12px`, padding 20px 0); elemen di dalamnya DILARANG
+  punya margin/padding vertikal sendiri (tidak collapse di flex —
+  insiden 28-vs-16px, 2026-09). Ritme antar-blok selalu 12px.
+- **Urutan kanonis blok baca General:** 1 nama (+ikon) → 2 ID + Copy →
+  3 meta sekunder (proyek: Team·Status; tim: Team URL) → 4 Description
+  di akhir. Blok tanpa data dilewati, tidak disusun ulang.
 - Guard memindai (warn-first): margin/padding/gap/row-gap/column-gap (tangga space-*);
   border-radius mentah (50% = DILARANG); border-width selain 1px; rgba() mentah di border.
   Transition SENGAJA tidak dijaga guard (butuh triase ADR per kasus, lihat §9).
@@ -345,6 +362,13 @@ Fold map (diterapkan sesi ini):
 |---|---|---|
 | Manage plan btn-md di settings (DashboardSettingsTab:502) | btn-sm (peran action-row) |
 | --duration-slow 220ms (0 referensi) | DIHAPUS dari tokens.css |
+| EmptyState primary sm (Decisions, Releases, ApiDocs) | btn-md (mayoritas Issues/Tests/Stack/Whiteboard/Welcome; primer di kanvas halaman) |
+| Import `outline sm` di ApiDocs empty-state | `ghost sm` (samakan Import header; `outline` tetap sah untuk Copy Key) |
+| Raw `<button class="btn ... btn-danger">` di row (ReleasesListView) | Komponen `Button` (`ghost sm btn-icon btn-danger`) — tanpa size = temuan review |
+| `danger` tanpa size (= md 34px) di baris form sempit | `size="sm"` eksplisit (temuan 2026-09 ternyata sudah rapi di ApiPage — verifikasi dulu sebelum klaim) |
+| ConsentBanner Accept+Reject dua-duanya `secondary` | SENGAJA — anti dark-pattern ("ketiga tombol setara", consent.note). Jangan "perbaiki" ke primary |
+| WhiteboardList sort memuat `createdAt`, halaman lain memfilter | Dicatat, belum diputuskan (opsi sort produk — butuh keputusan owner, bukan lipat diam-diam) |
+| Board `?view=` + Dashboard `?status` + Profile `?tab=` tablist tanpa roving/arrow | Dilengkapi 2026-09 (tablist + roving tabIndex + ArrowLeft/Right + aria-controls/tabpanel); Board naik ke pola header A + `board.count` |
 | .btn tanpa size (tinggi auto) | DILARANG — sisa 1 file (AuthPage OAuth, ikut task per-area Auth) |
 
 Rules:

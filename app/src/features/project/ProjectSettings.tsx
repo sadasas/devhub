@@ -1,16 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { Archive, CaretLeft, Check, Copy, FloppyDisk, GearSix, GithubLogo, PlugsConnected, Tag, Trash } from '@phosphor-icons/react';
+import { Archive, CaretLeft, Check, Copy, FloppyDisk, GearSix, GithubLogo, PencilSimple, PlugsConnected, Tag, Trash } from '@phosphor-icons/react';
 import type { Project } from '../../lib/types';
-import { useProjects } from '../../state/projects-context';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
-import { getErrorMessage } from '../../lib/errors';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
-import { Textarea } from '../../components/Textarea';
-import { InlineError } from '../../components/InlineError';
 import { Badge } from '../../components/Badge';
+import { EditGeneralModal } from './EditGeneralModal';
 import { GCalSettings } from '../integrations/GCalSettings';
 import { LabelsSection } from './LabelsSection';
 import {
@@ -107,150 +104,86 @@ export function ProjectSettings({ project, canEditMeta, canConnect, canArchive, 
 
 function GeneralSection({ project, canEditMeta }: { project: Project; canEditMeta: boolean }) {
   const { t } = useTranslation('project');
-  const { update } = useProjects();
   const { copied, copy } = useCopyFeedback();
-  const [nameDraft, setNameDraft] = useState(project.name);
-  const [descDraft, setDescDraft] = useState(project.description ?? '');
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [savedTick, setSavedTick] = useState(0);
-
-  // Reset draft saat project berganti / tersimpan dari luar.
-  useEffect(() => {
-    setNameDraft(project.name);
-    setDescDraft(project.description ?? '');
-    setSaveError(null);
-  }, [project.id, project.name, project.description]);
-
-  const nameTrimmed = nameDraft.trim();
-  const descTrimmed = descDraft.trim();
-  const dirty = nameTrimmed !== project.name.trim() || descTrimmed !== (project.description ?? '').trim();
-  const canSave = canEditMeta && dirty && nameTrimmed.length > 0 && nameTrimmed.length <= 300 && !saving;
-
-  const handleSave = async () => {
-    setSaveError(null);
-    setSaving(true);
-    try {
-      await update(project.id, { name: nameTrimmed, description: descTrimmed });
-      setSavedTick((n) => n + 1);
-    } catch (err) {
-      setSaveError(getErrorMessage(err, t('settings.saveError', { defaultValue: 'Failed to save project settings.' })));
-    } finally {
-      setSaving(false);
-    }
-  };
+  const [editOpen, setEditOpen] = useState(false);
+  const desc = (project.description ?? '').trim();
 
   return (
     <div className="profile-panel">
       <div className="narrow-center">
-      <h2 id="project-settings-general-title" tabIndex={-1} className="dashboard__settings-section-title">
-        {t('settings.generalTitle', { defaultValue: 'General' })}
-      </h2>
+      <section className="dashboard__settings-section" aria-labelledby="project-settings-general-title">
+      <div className="dashboard__settings-title-row">
+        <h2 id="project-settings-general-title" tabIndex={-1} className="dashboard__settings-section-title">
+          {t('settings.generalTitle', { defaultValue: 'General' })}
+        </h2>
+        {canEditMeta && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            leftIcon={<PencilSimple size={14} aria-hidden="true" />}
+            onClick={() => setEditOpen(true)}
+            aria-label={t('settings.editGeneral', { defaultValue: 'Edit general' })}
+          >
+            {t('settings.editGeneral', { defaultValue: 'Edit' })}
+          </Button>
+        )}
+      </div>
       <p className="dashboard__settings-section-desc">
         {t('settings.generalDesc', {
           defaultValue: 'Project name and description. Changes apply to this project.',
         })}
       </p>
-      <form
-        className="dashboard__settings-form"
-        noValidate
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (canSave) void handleSave();
-        }}
-      >
-        <div className="dashboard__settings-field">
-          <Input
-            id="project-settings-name"
-            label={t('settings.nameLabel', { defaultValue: 'Project name' })}
-            required
-            value={nameDraft}
-            maxLength={300}
-            onChange={(e) => setNameDraft(e.target.value)}
-            disabled={!canEditMeta}
-            autoComplete="off"
-          />
+      <div className="dashboard__settings-read-name">{project.name}</div>
+      <div className="dashboard__settings-id-row">
+        <div className="dashboard__settings-id-field">
+          <Input label={t('settings.idLabel', { defaultValue: 'Project ID' })} value={project.id} readOnly />
         </div>
-        <div className="dashboard__settings-field">
-          <Textarea
-            id="project-settings-desc"
-            label={t('settings.descLabel', { defaultValue: 'Description' })}
-            value={descDraft}
-            rows={3}
-            maxLength={5000}
-            showCount
-            disabled={!canEditMeta}
-            onChange={(e) => setDescDraft(e.target.value)}
-          />
-        </div>
-        <div className="dashboard__settings-id-row">
-          <div className="dashboard__settings-id-field">
-            <Input label={t('settings.idLabel', { defaultValue: 'Project ID' })} value={project.id} readOnly />
-          </div>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="dashboard__settings-copy"
-            leftIcon={copied ? <Check size={14} weight="bold" aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
-            onClick={() => void copy(project.id)}
-            aria-live="polite"
-            aria-label={copied ? t('settings.copied', { defaultValue: 'Copied' }) : t('settings.copyId', { defaultValue: 'Copy ID' })}
-          >
-            {copied ? t('settings.copied', { defaultValue: 'Copied' }) : t('settings.copyId', { defaultValue: 'Copy ID' })}
-          </Button>
-        </div>
-        <dl className="settings-rows">
-          <div className="settings-row-group">
-            <div className="settings-row">
-              <dt>{t('settings.teamLabel', { defaultValue: 'Team' })}</dt>
-              <dd>{project.teamName}</dd>
-            </div>
-          </div>
-          <div className="settings-row-group">
-            <div className="settings-row">
-              <dt>{t('settings.statusLabel', { defaultValue: 'Status' })}</dt>
-              <dd>
-                <Badge tone={project.status === 'archived' ? 'warn' : 'success'} dot>
-                  {project.status === 'archived'
-                    ? t('settings.statusArchived', { defaultValue: 'Archived' })
-                    : t('settings.statusActive', { defaultValue: 'Active' })}
-                </Badge>
-              </dd>
-            </div>
-          </div>
-        </dl>
-        {saveError && <InlineError>{saveError}</InlineError>}
-        {canEditMeta ? (
-          <div className="dashboard__settings-save-row">
-            <Button
-              type="submit"
-              variant="primary"
-              size="md"
-              className="dashboard__settings-save"
-              leftIcon={<FloppyDisk size={14} aria-hidden="true" />}
-              loading={saving}
-              disabled={!canSave}
-            >
-              {t('settings.save', { defaultValue: 'Save changes' })}
-            </Button>
-            {dirty && nameTrimmed.length > 0 && (
-              <span className="dashboard__settings-unsaved" role="status">
-                {t('settings.unsaved', { defaultValue: 'You have unsaved changes.' })}
-              </span>
-            )}
-            {savedTick > 0 && !dirty && !saveError && (
-              <span className="dashboard__settings-unsaved" role="status">
-                {t('settings.saved', { defaultValue: 'Saved.' })}
-              </span>
-            )}
-          </div>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="dashboard__settings-copy"
+          leftIcon={copied ? <Check size={14} weight="bold" aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+          onClick={() => void copy(project.id)}
+          aria-live="polite"
+          aria-label={copied ? t('settings.copied', { defaultValue: 'Copied' }) : t('settings.copyId', { defaultValue: 'Copy ID' })}
+        >
+          {copied ? t('settings.copied', { defaultValue: 'Copied' }) : t('settings.copyId', { defaultValue: 'Copy ID' })}
+        </Button>
+      </div>
+      <div className="dashboard__settings-read-meta-block">
+        <p className="dashboard__settings-read-label">
+          {t('settings.teamLabel', { defaultValue: 'Team' })}
+        </p>
+        <p className="dashboard__settings-team-status">
+          <span>{project.teamName}</span>
+          <span aria-hidden="true" className="dashboard__settings-team-status-sep">·</span>
+          <span className="sr-only">{t('settings.statusLabel', { defaultValue: 'Status' })}: </span>
+          <Badge tone={project.status === 'archived' ? 'warn' : 'success'} dot>
+            {project.status === 'archived'
+              ? t('settings.statusArchived', { defaultValue: 'Archived' })
+              : t('settings.statusActive', { defaultValue: 'Active' })}
+          </Badge>
+        </p>
+      </div>
+      <div className="dashboard__settings-read-desc-block">
+        <p className="dashboard__settings-read-label">
+          {t('settings.descLabel', { defaultValue: 'Description' })}
+        </p>
+        {desc ? (
+          <p className="dashboard__settings-read-desc">{desc}</p>
         ) : (
-          <p className="dashboard__settings-helper">
-            {t('settings.readonly', { defaultValue: 'Only owners and admins can edit project settings.' })}
-          </p>
+          <span className="detail-empty">—</span>
         )}
-      </form>
+      </div>
+      {!canEditMeta && (
+        <p className="dashboard__settings-helper">
+          {t('settings.readonly', { defaultValue: 'Only owners and admins can edit project settings.' })}
+        </p>
+      )}
+      {editOpen && <EditGeneralModal project={project} onClose={() => setEditOpen(false)} />}
+      </section>
       </div>
     </div>
   );
@@ -353,6 +286,7 @@ function IntegrationsSection({ projectId, canConnect }: { projectId: string; can
   return (
     <div className="profile-panel">
       <div className="narrow-center">
+      <section className="dashboard__settings-section" aria-labelledby="project-settings-integrations-title">
       <h2 id="project-settings-integrations-title" tabIndex={-1} className="dashboard__settings-section-title">
         {t('settings.integrationsTitle', { defaultValue: 'Integrations' })}
       </h2>
@@ -376,6 +310,7 @@ function IntegrationsSection({ projectId, canConnect }: { projectId: string; can
         <li>{tAccount('dashboard.team.settingsGithubSoonItem2')}</li>
         <li>{tAccount('dashboard.team.settingsGithubSoonItem3')}</li>
       </ul>
+      </section>
       </div>
     </div>
   );

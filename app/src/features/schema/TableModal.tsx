@@ -122,7 +122,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                   className="input"
                   value={table.name}
                   autoFocus
-                  maxLength={300}
+                  maxLength={FE_LIMITS.TABLE_NAME}
                   required
                   onChange={(e) => update({ name: e.target.value })}
                   onBlur={() => setActiveField(null)}
@@ -203,7 +203,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                       onChange={(e) => update({ comment: e.target.value })}
                       onBlur={() => setActiveField(null)}
                       aria-label={t('schema.table.commentLabel')}
-                      maxLength={10000}
+                      maxLength={FE_LIMITS.TABLE_COMMENT}
                     />
                   </>
                 ) : (
@@ -426,7 +426,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                   placeholder={t('schema.newTableModal.commentPlaceholder')}
                   onChange={(e) => canEdit && update({ comment: e.target.value })}
                   aria-label={t('schema.table.commentLabel')}
-                  maxLength={10000}
+                  maxLength={FE_LIMITS.TABLE_COMMENT}
                 />
               </div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>

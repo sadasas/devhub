@@ -2745,6 +2745,40 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       expect(action.patch.elements[0]).toMatchObject({ kind: 'shape', shapeType: 'diamond' });
     });
 
+    it('drags with the shape tool to preview and commit a drag-sized shape', () => {
+      const dispatch = vi.fn();
+      useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+      renderShell(BOARD);
+      fireEvent.click(screen.getByRole('button', { name: 'Shape — S' }));
+      fireEvent.click(screen.getByRole('menuitemradio', { name: 'diamond' }));
+      const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+      // press: world (84,84) at the default (16,16) pan — no ghost yet
+      fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 100 });
+      // drag: world (284,204) snaps to (288,204) — ghost scales along
+      fireEvent.pointerMove(svg, { clientX: 300, clientY: 220 });
+      expect(document.querySelector('[data-testid="wb-shape-draft"]')).not.toBeNull();
+      fireEvent.pointerUp(svg, { clientX: 300, clientY: 220 });
+      expect(document.querySelector('[data-testid="wb-shape-draft"]')).toBeNull();
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+      expect(action.patch.elements[0]).toMatchObject({ kind: 'shape', shapeType: 'diamond', x: 84, y: 84, w: 204, h: 120 });
+    });
+
+    it('clicks without dragging to place the default-size shape', () => {
+      const dispatch = vi.fn();
+      useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+      renderShell(BOARD);
+      fireEvent.click(screen.getByRole('button', { name: 'Shape — S' }));
+      fireEvent.click(screen.getByRole('menuitemradio', { name: 'diamond' }));
+      const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+      fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 100 });
+      fireEvent.pointerUp(svg, { clientX: 100, clientY: 100 });
+      expect(document.querySelector('[data-testid="wb-shape-draft"]')).toBeNull();
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+      expect(action.patch.elements[0]).toMatchObject({ kind: 'shape', shapeType: 'diamond', x: 84, y: 84, w: 120, h: 80 });
+    });
+
     it('patches a selected shape without leaving the inspector', () => {
       const dispatch = vi.fn();
       useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
@@ -3066,7 +3100,7 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       expect(box.getAttribute('aria-checked')).toBe('true');
     });
 
-    it('WB-10: deleting offers one-step restore from the notice', () => {
+    it('deleting is silent (no toast, no restore button)', () => {
       function LiveShell() {
         const [elements, setElements] = useState([STICKY_L]);
         const dispatch = (action: { patch: { elements: WhiteboardElement[] } }) => {
@@ -3085,14 +3119,42 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
       fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
       fireEvent.keyDown(window, { key: 'Delete' });
-      // D8: the restore slot is a status (not an error alert).
-      const status = screen.getByRole('status');
-      expect(status.textContent).toContain('Deleted 1');
+      // element is gone and no toast appears (undo via Ctrl+Z still works through history).
       expect((document.querySelector('svg.wb-svg') as SVGSVGElement).textContent).toBe('');
-      fireEvent.click(screen.getByRole('button', { name: 'Restore' }));
-      // restored sticky is back on the canvas
-      expect((document.querySelector('svg.wb-svg') as SVGSVGElement).textContent).toContain('A');
       expect(screen.queryByRole('status')).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Restore' })).toBeNull();
+      expect(screen.queryByTestId('wb-cap-toast')).toBeNull();
+    });
+
+    it('board-full feedback appears in the global toast (top-right) when paste is blocked at cap', { timeout: 60000 }, () => {
+      const full = Array.from({ length: 1000 }, (_, i) => ({
+        id: `e${i}`,
+        kind: 'shape',
+        shapeType: 'rect',
+        x: (i % 40) * 120,
+        y: Math.floor(i / 40) * 100,
+        w: 100,
+        h: 60,
+        color: '#6ea8fe',
+        fill: false,
+        strokeWidth: 2,
+        label: '',
+      })) as WhiteboardElement[];
+      const dispatch = vi.fn();
+      useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+      renderShell({ ...BOARD, elements: full });
+      // permanent cap banner is still there
+      expect(screen.getByRole('alert').textContent).toContain('Element limit reached');
+      fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
+      const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+      fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+      fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
+      fireEvent.keyDown(window, { key: 'c', ctrlKey: true });
+      fireEvent.keyDown(window, { key: 'v', ctrlKey: true });
+      // paste blocked -> transient global toast, nothing dispatched
+      expect(dispatch).not.toHaveBeenCalled();
+      const toast = screen.getByTestId('wb-cap-toast');
+      expect(toast.textContent).toContain('Element limit reached');
     });
 
     it('WB-9: match width resizes the selection to the last selected element', () => {
@@ -3432,6 +3494,137 @@ describe('whiteboard figjam interactions', () => {
     expect(screen.getByText('Undo (Ctrl+Z)')).not.toBeNull();
     fireEvent.keyDown(screen.getByRole('dialog', { name: 'Keyboard shortcuts' }), { key: 'Escape' });
     expect(screen.queryByRole('dialog', { name: 'Keyboard shortcuts' })).toBeNull();
+  });
+
+  it('opens the shortcuts dialog in canvas fullscreen and Esc closes the dialog first', () => {
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch: vi.fn() });
+    renderShell(BOARD);
+    fireEvent.click(screen.getByRole('button', { name: 'Fullscreen — F' }));
+    const shell = document.querySelector('.wb-shell') as HTMLElement;
+    expect(shell.classList.contains('wb-fullscreen')).toBe(true);
+    fireEvent.keyDown(window, { key: '?' });
+    expect(screen.getByRole('dialog', { name: 'Keyboard shortcuts' })).not.toBeNull();
+    // Esc closes the dialog but stays in fullscreen
+    fireEvent.keyDown(screen.getByRole('dialog', { name: 'Keyboard shortcuts' }), { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'Keyboard shortcuts' })).toBeNull();
+    expect(shell.classList.contains('wb-fullscreen')).toBe(true);
+  });
+
+  it('opens the shortcuts dialog in present mode via ?', () => {
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch: vi.fn() });
+    renderShell(BOARD);
+    fireEvent.click(screen.getByRole('button', { name: 'Present board' }));
+    const shell = document.querySelector('.wb-shell') as HTMLElement;
+    expect(shell.classList.contains('wb-presenting')).toBe(true);
+    // zoom chrome (incl. the help button) is hidden in presentation
+    expect(document.querySelector('.erd-zoom')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Keyboard shortcuts' })).toBeNull();
+    // ? opens it while presenting
+    fireEvent.keyDown(window, { key: '?' });
+    expect(screen.getByRole('dialog', { name: 'Keyboard shortcuts' })).not.toBeNull();
+    // Esc closes the dialog but stays in presentation
+    fireEvent.keyDown(screen.getByRole('dialog', { name: 'Keyboard shortcuts' }), { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'Keyboard shortcuts' })).toBeNull();
+    expect(shell.classList.contains('wb-presenting')).toBe(true);
+  });
+
+  it('inline shape editor stays vertically centered and grows with wrapped text', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    const diamond = {
+      id: 'd1',
+      kind: 'shape',
+      shapeType: 'diamond',
+      x: 0,
+      y: 0,
+      w: 200,
+      h: 160,
+      color: '#6ea8fe',
+      fill: false,
+      strokeWidth: 2,
+      label: 'Hi',
+    } as WhiteboardElement;
+    renderShell({ ...BOARD, elements: [diamond] });
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    // select the diamond via its center: world (100,80) -> client (116,96)
+    fireEvent.pointerDown(svg, { button: 0, clientX: 116, clientY: 96 });
+    fireEvent.pointerUp(svg, { clientX: 116, clientY: 96 });
+    // Enter starts inline editing
+    fireEvent.keyDown(document.querySelector('.wb-canvas') as HTMLElement, { key: 'Enter' });
+    const box = document.querySelector('textarea.wb-textedit') as HTMLTextAreaElement;
+    expect(box).not.toBeNull();
+    expect(box.value).toBe('Hi');
+    // shape center in screen px: world y 80 at scale 1 with the default (16,16) pan
+    const centerY = 80 + 16;
+    const top = parseFloat(box.style.top);
+    const height = parseFloat(box.style.height);
+    // overlay is centered on the shape — not pinned to its top edge (old: 16px)
+    expect(Math.abs(top + height / 2 - centerY)).toBeLessThanOrEqual(2);
+    // typing a long label wraps and grows the box instead of clipping
+    fireEvent.change(box, { target: { value: `a${'a'.repeat(119)}` } });
+    const grown = document.querySelector('textarea.wb-textedit') as HTMLTextAreaElement;
+    const grownHeight = parseFloat(grown.style.height);
+    expect(grownHeight).toBeGreaterThan(height);
+    expect(Number(grown.getAttribute('rows'))).toBeGreaterThan(1);
+    // legacy (valign null) pins the first line at the vertical center like the
+    // committed render does — typing more lines extends downward, first line unmoved
+    expect(grown.style.top).toBe(box.style.top);
+    // nothing committed while typing
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('inline editor keeps the true font size instead of flooring to 8px', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    const tiny: WhiteboardElement = { id: 't1', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'Hi', fontSize: 4 };
+    renderShell({ ...BOARD, elements: [tiny] });
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+    fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
+    fireEvent.keyDown(document.querySelector('.wb-canvas') as HTMLElement, { key: 'Enter' });
+    const box = document.querySelector('textarea.wb-textedit') as HTMLTextAreaElement;
+    expect(box).not.toBeNull();
+    // committed render shows 4px — the editor must match, not jump to 8px
+    expect(box.style.fontSize).toBe('4px');
+  });
+
+  it('paints ref cards with per-entity accents instead of all blue', () => {
+    const state: State = {
+      ...makeState(),
+      tasks: [
+        { id: 't1', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', title: 'Ship it', status: 'todo', priority: 'medium', labels: [], blockedBy: [], description: '' },
+      ],
+      issues: [
+        { id: 'i1', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', title: 'Flaky test', severity: 'high', status: 'open', description: '', reproduction: '' },
+      ],
+    };
+    useProjectMock.mockReturnValue({ state, role: 'owner', canEdit: true, dispatch: vi.fn() });
+    render(
+      <MemoryRouter>
+        <WhiteboardEditorShell
+          board={{
+            ...BOARD,
+            elements: [
+              { id: 'r1', kind: 'ref', entity: 'tasks', entityId: 't1', x: 0, y: 0 },
+              { id: 'r2', kind: 'ref', entity: 'issues', entityId: 'i1', x: 300, y: 0 },
+            ],
+          }}
+          state={state}
+          onBack={() => {}}
+        />
+      </MemoryRouter>,
+    );
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    // both cards resolved live (titles rendered, not the missing placeholder)
+    expect(svg.textContent).toContain('Ship it');
+    expect(svg.textContent).toContain('Flaky test');
+    const strokes = Array.from(svg.querySelectorAll('rect')).map((r) => r.getAttribute('stroke'));
+    expect(strokes).toContain('#6ea8fe');
+    expect(strokes).toContain('#f2555a');
+    // card content is clipped to the card bounds so long text can't spill out
+    const clips = Array.from(svg.querySelectorAll('clipPath')).map((c) => c.getAttribute('id'));
+    expect(clips).toEqual(expect.arrayContaining(['wb-refclip-r1', 'wb-refclip-r2']));
+    expect(svg.querySelector('g[clip-path]')).not.toBeNull();
   });
 
   it('bulk-recolors a multi-selection via the fill dot and color panel', () => {

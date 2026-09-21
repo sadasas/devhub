@@ -14,6 +14,8 @@ import {
   panBy,
   refCardLayout,
   refCardRect,
+  refEntityAccent,
+  REF_LAYOUT,
   rotatePoint,
   rotateZoneCenter,
   rotationCenter,
@@ -23,6 +25,7 @@ import {
   snapToGrid,
   TEXT_LINE_H,
   textLineHeight,
+  truncateToWidth,
   wrapText,
   wrapTextLines,
   wrapToWidth,
@@ -408,6 +411,36 @@ describe('geometry', () => {
     for (const line of wrapToWidth(dense, 10, maxWidth)) {
       expect(line.length * 0.62 * 10).toBeLessThanOrEqual(maxWidth + 1);
     }
+  });
+
+  it('wraps bold titles within the card title width (rendered at weight 600)', () => {
+    const titleW = REF_LAYOUT.expandedW - REF_LAYOUT.pad * 2 - REF_LAYOUT.toggle.rightOff;
+    const lines = wrapToWidth('u'.repeat(60), 12, titleW, Infinity, 600);
+    expect(lines.length).toBeGreaterThan(1);
+    for (const line of lines) {
+      expect(line.length * 0.62 * 12 * 1.06).toBeLessThanOrEqual(titleW + 1);
+    }
+    const layout = refCardLayout({ title: 'u'.repeat(60), meta: 'M', labels: [], counts: [], description: '' });
+    expect(layout.title.lines.length).toBeGreaterThan(1);
+    for (const line of layout.title.lines) {
+      expect(line.length * 0.62 * 12 * 1.06).toBeLessThanOrEqual(titleW + 1);
+    }
+  });
+
+  it('truncates bold titles at least as aggressively as regular weight', () => {
+    const titleW = REF_LAYOUT.expandedW - REF_LAYOUT.pad * 2 - REF_LAYOUT.toggle.rightOff;
+    const plain = truncateToWidth('u'.repeat(60), 12, titleW);
+    const bold = truncateToWidth('u'.repeat(60), 12, titleW, 600);
+    expect(bold.endsWith('…')).toBe(true);
+    expect(bold.length).toBeLessThanOrEqual(plain.length);
+  });
+
+  it('gives every ref entity a distinct accent with a blue fallback', () => {
+    const entities = ['tasks', 'issues', 'testCases', 'milestones', 'techEntries', 'decisions', 'tables', 'apiCollections', 'apiEndpoints'];
+    const colors = entities.map((e) => refEntityAccent(e).color);
+    expect(new Set(colors).size).toBe(entities.length);
+    expect(refEntityAccent('tasks').color).toBe('#6ea8fe');
+    expect(refEntityAccent('bogus')).toEqual(refEntityAccent('tasks'));
   });
 });
 

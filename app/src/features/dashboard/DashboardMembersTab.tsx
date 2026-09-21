@@ -4,6 +4,7 @@ import { EnvelopeSimple, MagnifyingGlass, Trash, UsersThree, X } from '@phosphor
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import { TEAM_ROLE } from '../../lib/labels';
+import { FE_LIMITS } from '../../lib/limits';
 import type { Team, TeamInvitation, TeamMember, TeamRole } from '../../lib/types';
 import { useTeams } from '../../state/teams-context';
 import { Avatar } from '../../components/Avatar';
@@ -203,7 +204,7 @@ export function DashboardMembersTab({ team }: DashboardMembersTabProps) {
             placeholder={t('dashboard.team.membersSearchPlaceholder')}
             aria-label={t('dashboard.team.membersSearchAria')}
             value={query}
-            maxLength={200}
+            maxLength={FE_LIMITS.SEARCH}
             onChange={(e) => setQuery(e.target.value)}
           />
           {query && (
@@ -296,54 +297,54 @@ export function DashboardMembersTab({ team }: DashboardMembersTabProps) {
                 className="data-row dashboard__members-row"
                 role="listitem"
               >
-                <Avatar
-                  src={(m as { avatarUrl?: string | null }).avatarUrl ?? null}
-                  name={displayName}
-                  email={m.email}
-                  id={m.id}
-                  size={40}
-                  style={{ flexShrink: 0 }}
-                />
-                <div className="data-row-main">
+                <div className="data-row-top">
+                  <Avatar
+                    src={(m as { avatarUrl?: string | null }).avatarUrl ?? null}
+                    name={displayName}
+                    email={m.email}
+                    id={m.id}
+                    size={40}
+                    style={{ flexShrink: 0 }}
+                  />
                   <span className="data-row-title">
                     <span className="row-title-text">{displayName}</span>
                     <Badge tone={TEAM_ROLE[m.role].tone}>{TEAM_ROLE[m.role].label}</Badge>
                   </span>
-                  <span className="data-row-meta">
-                    {m.displayName?.trim()
-                      ? `${m.email} · ${t('teams.joinedOn', { date: new Date(m.joinedAt).toLocaleDateString() })}`
-                      : t('teams.joinedOn', { date: new Date(m.joinedAt).toLocaleDateString() })}
+                  <span className="data-row-props">
+                    {roleOptions.length > 0 && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setRoleError(null);
+                          setRoleTarget(m);
+                        }}
+                        aria-label={t('teams.changeRoleModal.openAria', { name: displayName })}
+                      >
+                        {TEAM_ROLE[m.role].label} <span aria-hidden="true">▾</span>
+                      </Button>
+                    )}
+                    {!isOwner && isAdmin && (
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        leftIcon={<Trash size={13} aria-hidden="true" />}
+                        loading={busyId === m.id}
+                        onClick={() => {
+                          setRemoveError(null);
+                          setRemoveTarget(m);
+                        }}
+                      >
+                        {t('teams.remove')}
+                      </Button>
+                    )}
                   </span>
                 </div>
-                <div className="data-row-side">
-                  {roleOptions.length > 0 && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => {
-                        setRoleError(null);
-                        setRoleTarget(m);
-                      }}
-                      aria-label={t('teams.changeRoleModal.openAria', { name: displayName })}
-                    >
-                      {TEAM_ROLE[m.role].label} <span aria-hidden="true">▾</span>
-                    </Button>
-                  )}
-                  {!isOwner && isAdmin && (
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      leftIcon={<Trash size={13} aria-hidden="true" />}
-                      loading={busyId === m.id}
-                      onClick={() => {
-                        setRemoveError(null);
-                        setRemoveTarget(m);
-                      }}
-                    >
-                      {t('teams.remove')}
-                    </Button>
-                  )}
-                </div>
+                <span className="data-row-meta">
+                  {m.displayName?.trim()
+                    ? `${m.email} · ${t('teams.joinedOn', { date: new Date(m.joinedAt).toLocaleDateString() })}`
+                    : t('teams.joinedOn', { date: new Date(m.joinedAt).toLocaleDateString() })}
+                </span>
               </div>
             );
           })}
@@ -357,29 +358,29 @@ export function DashboardMembersTab({ team }: DashboardMembersTabProps) {
           <div className="dashboard__members-list">
             {pendingInvites.map((inv) => (
               <div key={inv.id} className="data-row dashboard__members-row">
-                <div className="data-row-main">
+                <div className="data-row-top">
                   <span className="data-row-title">
                     <span className="row-title-text">{inv.email}</span>
                     <Badge tone={TEAM_ROLE[inv.role].tone}>{TEAM_ROLE[inv.role].label}</Badge>
                   </span>
-                  <span className="data-row-meta">
-                    {t('teams.expiresOn', { date: new Date(inv.expiresAt).toLocaleDateString() })}
+                  <span className="data-row-props">
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      leftIcon={<Trash size={13} aria-hidden="true" />}
+                      loading={busyId === inv.id}
+                      onClick={() => {
+                        setWithdrawError(null);
+                        setWithdrawTarget(inv);
+                      }}
+                    >
+                      {t('teams.withdraw')}
+                    </Button>
                   </span>
                 </div>
-                <div className="data-row-side dashboard__members-pending-actions">
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    leftIcon={<Trash size={13} aria-hidden="true" />}
-                    loading={busyId === inv.id}
-                    onClick={() => {
-                      setWithdrawError(null);
-                      setWithdrawTarget(inv);
-                    }}
-                  >
-                    {t('teams.withdraw')}
-                  </Button>
-                </div>
+                <span className="data-row-meta">
+                  {t('teams.expiresOn', { date: new Date(inv.expiresAt).toLocaleDateString() })}
+                </span>
               </div>
             ))}
           </div>

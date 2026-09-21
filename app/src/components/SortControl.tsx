@@ -64,7 +64,8 @@ export function SortControl({
 }: SortControlProps) {
   const [open, setOpen] = useState(false);
   // Arah tertunda saat belum ada key aktif — memungkinkan pilih arah + key dalam satu bukaan.
-  const [pendingDir, setPendingDir] = useState<SortDir>('asc');
+  // null = belum disentuh user di bukaan ini (kedua segmen netral, tanpa highlight palsu).
+  const [pendingDir, setPendingDir] = useState<SortDir | null>(null);
   // Key tertunda khusus bottom sheet mobile (commit via Terapkan).
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -72,14 +73,18 @@ export function SortControl({
   const { t } = useTranslation();
   const isMobile = useIsMobileSheet();
   const activeLabel = value ? (options.find((o) => o.value === value.key)?.label ?? value.key) : t('sort.trigger');
-  const activeDir = value?.dir ?? pendingDir;
+  // Arah hanya disorot bila benar-benar aktif (value) atau baru dipilih (pending).
+  // Key pending yang beda dari value mulai netral — highlight value lama tidak bocor.
+  // Bukaan segar tanpa sort = grup arah tidak dirender sama sekali (progressive disclosure).
+  const activeDir: SortDir | null =
+    pendingDir ?? (pendingKey != null && pendingKey !== value?.key ? null : (value?.dir ?? null));
   // Tanpa opsi sort (mis. mode kalender) panel hanya berisi filter.
   const showSort = options.length > 0;
 
   const toggleMenu = useCallback(() => {
     setOpen((v) => {
       if (!v) {
-        setPendingDir(value?.dir ?? 'asc');
+        setPendingDir(value?.dir ?? null);
         setPendingKey(value?.key ?? null);
       }
       return !v;
@@ -105,22 +110,29 @@ export function SortControl({
   }, [open, isMobile]);
 
   const selectKey = (key: string) => {
-    onChange({ key, dir: value?.dir ?? pendingDir });
-    setOpen(false);
+    if (key === pendingKey) {
+      // Klik ulang key yang sedang pending (atau key aktif) → terapkan + tutup.
+      onChange({ key, dir: value?.dir ?? pendingDir ?? 'asc' });
+      setOpen(false);
+    } else {
+      // Pilihan baru → tandai pending, menu tetap buka untuk pilih arah.
+      setPendingKey(key);
+    }
   };
 
   const selectDir = (dir: SortDir) => {
-    if (value) {
-      onChange({ ...value, dir });
+    const key = pendingKey ?? value?.key ?? null;
+    if (key) {
+      onChange({ key, dir });
       setOpen(false);
     } else {
-      // Belum ada key — cukup tandai, menu tetap buka untuk pilih key.
+      // Tak terjangkau (grup arah hanya tampil bila ada key) — pengaman saja.
       setPendingDir(dir);
     }
   };
 
   const applySheet = () => {
-    if (pendingKey) onChange({ key: pendingKey, dir: pendingDir });
+    if (pendingKey) onChange({ key: pendingKey, dir: pendingDir ?? 'asc' });
     else onChange(null);
     setOpen(false);
   };
@@ -225,6 +237,7 @@ export function SortControl({
                   })}
                 </div>
               </div>
+              {pendingKey && (
               <div
                 className="seg-control"
                 role="radiogroup"
@@ -251,6 +264,7 @@ export function SortControl({
                   );
                 })}
               </div>
+              )}
             </>
           )}
           {filters.length > 0 && (
@@ -311,14 +325,15 @@ export function SortControl({
                 <button
                   key={o.value}
                   type="button"
-                  className={`sort-menu-row ${value?.key === o.value ? 'sort-menu-row-active' : ''}`}
+                  className={`sort-menu-row ${o.value === (pendingKey ?? value?.key) ? 'sort-menu-row-active' : ''}`}
                   role="menuitemradio"
-                  aria-checked={value?.key === o.value}
+                  aria-checked={o.value === (pendingKey ?? value?.key)}
                   onClick={() => selectKey(o.value)}
                 >
                   {o.label}
                 </button>
               ))}
+              {(value || pendingKey) && (
               <div className="sort-menu-dir seg-control" role="group" aria-label={t('sort.direction')}>
                 {(['asc', 'desc'] as const).map((dir) => (
                   <button
@@ -338,6 +353,7 @@ export function SortControl({
                   </button>
                 ))}
               </div>
+              )}
             </>
           )}
           {filters.length > 0 && (

@@ -610,50 +610,39 @@ function PublicIssues({
           : undefined;
         return (
           <div key={issue.id} className="data-row">
-            <div className="data-row-main">
+            <div className="data-row-top">
               <button
                 type="button"
+                className="data-row-title-btn"
                 onClick={() => onOpenIssue(issue.id)}
                 aria-label={issue.title}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  padding: 0,
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 4,
-                  font: 'inherit',
-                  color: 'inherit',
-                }}
               >
                 <span className="data-row-title">{issue.title}</span>
-                <span className="data-row-sub">
-                  {t('public.issue.severity', { value: issue.severity })}
-                </span>
-                {issue.description && (
-                  <span className="data-row-sub public-issue-text">{issue.description}</span>
-                )}
-                {issue.reproduction && (
-                  <span className="data-row-sub public-issue-text">{issue.reproduction}</span>
-                )}
               </button>
-              {linkedTask && (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  style={{ alignSelf: 'flex-start', padding: 0, height: 'auto' }}
-                  onClick={() => onOpenTask(linkedTask.id)}
-                  aria-label={linkedTask.title}
-                >
-                  → {linkedTask.title}
-                </button>
-              )}
+              <span className="data-row-props">
+                <Badge tone={ISSUE_STATUS[issue.status].tone}>{ISSUE_STATUS[issue.status].label}</Badge>
+              </span>
             </div>
-            <div className="data-row-side">
-              <Badge tone={ISSUE_STATUS[issue.status].tone}>{ISSUE_STATUS[issue.status].label}</Badge>
-            </div>
+            <span className="data-row-sub">
+              {t('public.issue.severity', { value: issue.severity })}
+            </span>
+            {issue.description && (
+              <span className="data-row-sub public-issue-text">{issue.description}</span>
+            )}
+            {issue.reproduction && (
+              <span className="data-row-sub public-issue-text">{issue.reproduction}</span>
+            )}
+            {linkedTask && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                style={{ alignSelf: 'flex-start', padding: 0, height: 'auto' }}
+                onClick={() => onOpenTask(linkedTask.id)}
+                aria-label={linkedTask.title}
+              >
+                → {linkedTask.title}
+              </button>
+            )}
           </div>
         );
       })}

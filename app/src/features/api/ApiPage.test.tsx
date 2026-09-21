@@ -825,7 +825,8 @@ describe('ApiPage mobile (≤640px)', () => {
   it('hides the count and shows the short Endpoint CTA with icon-only mode tabs', () => {
     renderPage();
     expect(document.querySelector('.api-page')).toBeTruthy();
-    expect(screen.queryByText('1 collection · 1 endpoint')).toBeNull();
+    expect(document.querySelector('.api-page .data-list-count')).toBeNull();
+    expect(screen.getByText('1 collection · 1 endpoint').closest('.sr-only')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Endpoint' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Workspace' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Docs' })).toBeTruthy();

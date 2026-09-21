@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
+import { LIMITS } from '../../lib/limits';
 import { newId, nowIso } from '../../lib/utils';
 import { Plus } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
@@ -70,7 +71,7 @@ export function NewWhiteboardModal({ onClose }: NewWhiteboardModalProps) {
           label={t('whiteboard.newModal.name')}
           required
           autoFocus={AUTO_FOCUS_INPUT}
-          maxLength={300}
+          maxLength={LIMITS.WHITEBOARD_NAME}
           showCount
           placeholder={t('whiteboard.newModal.namePlaceholder')}
           value={name}
@@ -98,7 +99,7 @@ export function NewWhiteboardModal({ onClose }: NewWhiteboardModalProps) {
         <Textarea
           label={t('whiteboard.newModal.description')}
           rows={3}
-          maxLength={2000}
+          maxLength={LIMITS.WHITEBOARD_DESCRIPTION}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
