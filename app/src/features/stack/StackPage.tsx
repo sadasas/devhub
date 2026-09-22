@@ -178,13 +178,13 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     <div className="stack-page">
 <div className="data-list-header">
         {!isNarrow ? (
-          <span className="data-list-count">
+          <h1 className="data-list-count" style={{ fontSize: 20, margin: 0 }}>
             {t('stack.count', { count: entries.length })}
-          </span>
+          </h1>
         ) : (
-          <span className="sr-only" role="status">
+          <h1 className="sr-only" role="status">
             {t('stack.count', { count: entries.length })}
-          </span>
+          </h1>
         )}
         <span className="data-list-actions">
           {view === 'list' && (

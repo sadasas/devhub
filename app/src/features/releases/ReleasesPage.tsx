@@ -183,7 +183,7 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
     <div className="releases-page">
       <div className="data-list-header">
         {!isNarrow ? (
-          <span className="data-list-count">{t("releases.count", { count: state.milestones.length })}</span>
+          <h1 className="data-list-count" style={{ fontSize: 20, margin: 0 }}>{t("releases.count", { count: state.milestones.length })}</h1>
         ) : (
           <span className="sr-only" role="status">
             {t("releases.count", { count: state.milestones.length })}
