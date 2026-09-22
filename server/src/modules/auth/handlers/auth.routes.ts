@@ -216,11 +216,28 @@ const profileSchema = z
   });
 
 authRouter.post('/forgot-password', forgotLimiter, async (req, res) => {
-  const { email } = parseOrThrow(forgotSchema, req.body, 'Invalid email');
-  const result = await pool.query<{ id: string }>('SELECT id FROM users WHERE email = $1', [email]);
+  // Diam total: format salah pun dibalas generik (tanpa 400) agar tidak ada
+  // sinyal enumeration maupun notifikasi error ke alamat asing.
+  const parsed = forgotSchema.safeParse(req.body);
+  const email = parsed.success ? parsed.data.email : null;
+  const result = email
+    ? await pool.query<{ id: string }>('SELECT id FROM users WHERE email = $1', [email])
+    : { rows: [] as { id: string }[] };
   const user = result.rows[0];
   // Always return ok to avoid email enumeration (even if user not found)
-  if (!user) {
+  if (!user || !email) {
+    res.json({ ok: true, message: 'If that email exists, a reset link has been sent.' });
+    return;
+  }
+  // Throttle 1/jam per email: token aktif (<1 jam, belum kedaluwarsa) berarti
+  // email sudah dikirim — jangan kirim lagi, balas generik yang sama.
+  const recent = await pool.query(
+    `SELECT created_at FROM password_reset_tokens
+     WHERE user_id = $1 AND expires_at > now()
+     ORDER BY created_at DESC LIMIT 1`,
+    [user.id],
+  );
+  if (recent.rows[0]) {
     res.json({ ok: true, message: 'If that email exists, a reset link has been sent.' });
     return;
   }

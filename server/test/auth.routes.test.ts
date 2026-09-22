@@ -369,3 +369,80 @@ describe('auth routes', () => {
     expect(unknown.body.ok).toBe(true);
   });
 });
+
+describe('forgot-password diam + throttle 1/jam per email', () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  async function resetTokens(email: string): Promise<string[]> {
+    const r = await pool.query<{ token: string }>(
+      `SELECT t.token FROM password_reset_tokens t JOIN users u ON u.id = t.user_id WHERE u.email = $1 ORDER BY t.created_at`,
+      [email],
+    );
+    return r.rows.map((x) => x.token);
+  }
+
+  async function resetMails(email: string): Promise<number> {
+    const r = await pool.query<{ n: string }>(
+      `SELECT COUNT(*)::text AS n FROM mail_outbox WHERE to_email = $1 AND template = 'reset'`,
+      [email],
+    );
+    return Number(r.rows[0]?.n ?? 0);
+  }
+
+  async function forgot(email: string): Promise<{ status: number; body: unknown }> {
+    const res = await request(app)
+      .post('/api/v1/auth/forgot-password')
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ email });
+    return { status: res.status, body: res.body as unknown };
+  }
+
+  it('email tak terdaftar: 200 generik, tanpa token, tanpa email keluar', async () => {
+    const res = await forgot('ghost-forgot@test.dev');
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ ok: true });
+    expect(await resetTokens('ghost-forgot@test.dev')).toHaveLength(0);
+    expect(await resetMails('ghost-forgot@test.dev')).toBe(0);
+  });
+
+  it('format salah: 200 generik (diam), tanpa token, tanpa email keluar', async () => {
+    const res = await forgot('bukan-email');
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ ok: true });
+    expect(await resetTokens('bukan-email')).toHaveLength(0);
+    expect(await resetMails('bukan-email')).toBe(0);
+  });
+
+  it('email terdaftar: 1 token + 1 email; request ke-2 <1 jam diam tanpa kirim lagi', async () => {
+    await register('throttle1@test.dev');
+    const first = await forgot('throttle1@test.dev');
+    expect(first.status).toBe(200);
+    expect(await resetTokens('throttle1@test.dev')).toHaveLength(1);
+    expect(await resetMails('throttle1@test.dev')).toBe(1);
+
+    const second = await forgot('throttle1@test.dev');
+    expect(second.status).toBe(200);
+    expect(second.body).toMatchObject({ ok: true });
+    // Token tidak dibuat ulang, outbox tidak bertambah.
+    expect(await resetTokens('throttle1@test.dev')).toHaveLength(1);
+    expect(await resetMails('throttle1@test.dev')).toBe(1);
+  });
+
+  it('token kedaluwarsa: request baru diizinkan (link lama sudah mati)', async () => {
+    await register('throttle2@test.dev');
+    await forgot('throttle2@test.dev');
+    expect(await resetMails('throttle2@test.dev')).toBe(1);
+    // Kedaluwarsakan token aktif secara manual.
+    await pool.query(
+      `UPDATE password_reset_tokens SET expires_at = now() - interval '1 minute'
+       WHERE user_id = (SELECT id FROM users WHERE email = 'throttle2@test.dev')`,
+    );
+    const retry = await forgot('throttle2@test.dev');
+    expect(retry.status).toBe(200);
+    // Token lama yang kedaluwarsa dicabut + 1 token segar; outbox bertambah 1.
+    expect(await resetTokens('throttle2@test.dev')).toHaveLength(1);
+    expect(await resetMails('throttle2@test.dev')).toBe(2);
+  });
+});
