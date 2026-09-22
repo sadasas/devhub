@@ -411,7 +411,7 @@ export function AuthPage() {
                   setError(null);
                   setSuccess(null);
                 }}
-                style={{ fontSize: 13, padding: '4px 8px' }}
+                style={{ fontSize: 12, padding: '4px 8px' }}
               >
                 {t('auth.forgot.link', 'Forgot password?')}
               </button>
@@ -454,7 +454,7 @@ export function AuthPage() {
                 borderRadius: 8,
                 background: 'var(--status-success-soft)',
                 color: 'var(--status-success)',
-                fontSize: 13,
+                fontSize: 14,
                 lineHeight: 1.5,
                 wordBreak: 'break-all',
               }}
