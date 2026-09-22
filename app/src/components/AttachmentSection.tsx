@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { DownloadSimple, LinkSimple, Plus, Trash } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
+import * as Tus from 'tus-js-client';
 import { api, ApiError } from '../lib/api';
 import { getErrorMessage, isPlanLimitError } from '../lib/errors';
 import { formatBytes } from '../lib/format';
@@ -32,6 +33,53 @@ function putFile(url: string, file: File, onProgress: (pct: number) => void): Pr
     xhr.onerror = () => reject(new Error('Upload failed'));
     xhr.onabort = () => reject(new Error('Upload cancelled'));
     xhr.send(file);
+  });
+}
+
+/**
+ * Upload resumable via protokol TUS (dokumen resmi Supabase).
+ * Endpoint + token presigned dari backend — service key tak pernah ke browser.
+ */
+function putFileTus(
+  file: File,
+  tus: { tusEndpoint: string; uploadToken: string; bucket: string; objectName: string },
+  onProgress: (pct: number) => void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const upload = new Tus.Upload(file, {
+      endpoint: tus.tusEndpoint,
+      retryDelays: [0, 3000, 5000, 10000, 20000],
+      headers: {
+        'x-signature': tus.uploadToken,
+        'x-upsert': 'true',
+      },
+      uploadDataDuringCreation: true,
+      removeFingerprintOnSuccess: true,
+      chunkSize: 6 * 1024 * 1024,
+      metadata: {
+        bucketName: tus.bucket,
+        objectName: tus.objectName,
+        contentType: file.type || 'application/octet-stream',
+        cacheControl: '3600',
+      },
+      onError: (err) => reject(err instanceof Error ? err : new Error('Upload failed')),
+      onProgress: (bytesUploaded, bytesTotal) => {
+        if (bytesTotal > 0) {
+          onProgress(Math.min(99, Math.round((bytesUploaded / bytesTotal) * 100)));
+        }
+      },
+      onSuccess: () => {
+        onProgress(100);
+        resolve();
+      },
+    });
+    void upload
+      .findPreviousUploads()
+      .then((previous) => {
+        if (previous.length > 0) upload.resumeFromPreviousUpload(previous[0]!);
+        upload.start();
+      })
+      .catch((err) => reject(err instanceof Error ? err : new Error('Upload failed')));
   });
 }
 
@@ -151,7 +199,13 @@ export function AttachmentSection({
         mime: file.type || 'application/octet-stream',
         size: file.size,
       });
-      await putFile(sign.uploadUrl, file, setProgress);
+      // Jalur utama: TUS resumable. sign.uploadUrl dipertahankan sebagai
+      // fallback bila token TUS tak tersedia (mis. Supabase tak balas token).
+      if (sign.tus) {
+        await putFileTus(file, sign.tus, setProgress);
+      } else {
+        await putFile(sign.uploadUrl, file, setProgress);
+      }
       const attachment: Attachment = {
         id: newId(),
         provider: 'devhub',

@@ -646,7 +646,17 @@ export const api = {
     mime: string;
     size: number;
   }) =>
-    request<{ uploadUrl: string; storageKey: string; expiresIn: number }>('/attachments/sign-upload', {
+    request<{
+      uploadUrl: string;
+      storageKey: string;
+      expiresIn: number;
+      tus: {
+        tusEndpoint: string;
+        uploadToken: string;
+        bucket: string;
+        objectName: string;
+      } | null;
+    }>('/attachments/sign-upload', {
       method: 'POST',
       body: JSON.stringify(input),
     }),

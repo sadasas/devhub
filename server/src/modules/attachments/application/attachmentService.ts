@@ -24,6 +24,7 @@ import {
   isStorageEnabled,
   maxUploadBytes,
   mintDownloadUrl,
+  mintTusPresigned,
   mintUploadUrl,
   removeObject,
 } from '../infrastructure/storageClient.js';
@@ -120,7 +121,27 @@ export async function signUpload(userId: string, input: SignUploadInput) {
   }
   const storageKey = fileKey(teamId, input.projectId, input.entity, input.entityId, input.name);
   const { uploadUrl, expiresIn } = await mintUploadUrl(storageKey);
-  return { uploadUrl, storageKey, expiresIn };
+  // Token TUS presigned (resumable, dokumen resmi Supabase). Bila Supabase
+  // tidak mengembalikan token, frontend fallback ke PUT uploadUrl di atas.
+  let tus = null as null | {
+    tusEndpoint: string;
+    uploadToken: string;
+    bucket: string;
+    objectName: string;
+  };
+  try {
+    const presigned = await mintTusPresigned(storageKey);
+    tus = {
+      tusEndpoint: presigned.tusEndpoint,
+      uploadToken: presigned.uploadToken,
+      bucket: presigned.bucket,
+      objectName: presigned.objectName,
+    };
+  } catch (err) {
+    // Fallback diam-diam ke PUT — sign-upload tetap sukses selama uploadUrl ada.
+    void err;
+  }
+  return { uploadUrl, storageKey, expiresIn, tus };
 }
 
 export interface ConfirmInput {

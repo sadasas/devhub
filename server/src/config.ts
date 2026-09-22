@@ -79,6 +79,9 @@ const envSchema = z.object({
   DEVHUB_STORAGE_SERVICE_KEY: z.string().max(500).default(''),
   DEVHUB_STORAGE_BUCKET: z.string().max(200).default('devhub-attachments'),
   DEVHUB_STORAGE_UPLOAD_MAX_MB: z.coerce.number().int().min(1).max(100).default(10),
+  // Endpoint TUS resumable Supabase (opsional — diturunkan otomatis bila kosong).
+  // Contoh: https://<ref>.storage.supabase.co/storage/v1/upload/resumable
+  DEVHUB_STORAGE_TUS_ENDPOINT: z.string().max(500).default(''),
 });
 
 export type Config = z.infer<typeof envSchema>;
