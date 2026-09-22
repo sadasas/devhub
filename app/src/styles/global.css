@@ -10616,7 +10616,7 @@ input[type='checkbox'] {
 }
 
 .docs-section-title {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--text-primary);
@@ -10651,14 +10651,15 @@ input[type='checkbox'] {
   border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
   border-radius: var(--radius-pill);
   background: var(--bg-elevated);
-  font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
   font-weight: 600;
   color: var(--accent);
 }
 
 .docs-step-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0 0 6px;
@@ -10674,7 +10675,7 @@ input[type='checkbox'] {
 }
 
 .docs-step-desc {
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.6;
   color: var(--text-secondary);
   margin: 0 0 14px;
@@ -10851,7 +10852,7 @@ input[type='checkbox'] {
 
 .docs-config-card-label {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-muted);
   overflow: hidden;
@@ -11078,13 +11079,13 @@ input[type='checkbox'] {
 }
 
 .docs-card-title {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .docs-card-sub {
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--text-muted);
 }
@@ -11139,10 +11140,8 @@ input[type='checkbox'] {
 }
 
 .docs-diagram-label {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-family: var(--font-sans);
+  font-size: 12px;
   color: var(--text-muted);
 }
 
@@ -11201,11 +11200,9 @@ input[type='checkbox'] {
 }
 
 .code-block-badge {
-  font-family: var(--font-mono);
-  font-size: 10px;
+  font-family: var(--font-sans);
+  font-size: 12px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
   padding: 3px 7px;
   border-radius: var(--radius-sm);
   background: var(--accent-dim);
@@ -11214,7 +11211,7 @@ input[type='checkbox'] {
 
 .code-block-label {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -11252,8 +11249,8 @@ input[type='checkbox'] {
 }
 
 .docs-chip {
-  font-family: var(--font-mono);
-  font-size: 11px;
+  font-family: var(--font-sans);
+  font-size: 12px;
   color: var(--text-secondary);
   background: var(--bg-inset);
   border: 1px solid var(--border-hairline);
@@ -11288,11 +11285,9 @@ input[type='checkbox'] {
 }
 
 .docs-troubleshooting-table thead th {
-  font-family: var(--font-mono);
-  font-size: 11px;
+  font-family: var(--font-sans);
+  font-size: 12px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
   color: var(--text-muted);
   background: var(--bg-inset);
   padding: 10px 12px;
@@ -12746,7 +12741,7 @@ input[type='checkbox'] {
 .api-search-count {
   flex: 0 0 auto;
   margin: 0 12px 6px;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--text-muted);
 }
 
@@ -12894,7 +12889,7 @@ input[type='checkbox'] {
 }
 
 .api-tree-item-title {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -12905,7 +12900,7 @@ input[type='checkbox'] {
 
 .api-tree-item-path {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 12px;
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -12913,8 +12908,8 @@ input[type='checkbox'] {
 }
 
 .api-tree-count {
-  font-family: var(--font-mono);
-  font-size: 10px;
+  font-family: var(--font-sans);
+  font-size: 12px;
   color: var(--text-muted);
   background: var(--surface-hover);
   border: 1px solid var(--border-hairline);
@@ -13073,7 +13068,7 @@ input[type='checkbox'] {
   flex: 1 1 auto;
   min-width: 0;
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .api-path-view {
@@ -13298,7 +13293,7 @@ input[type='checkbox'] {
 }
 
 .preview-title {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
@@ -13313,15 +13308,14 @@ input[type='checkbox'] {
 }
 
 .preview-label {
-  font-size: 11px;
+  font-family: var(--font-sans);
+  font-size: 12px;
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
   color: var(--text-muted);
 }
 
 .preview-body {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-secondary);
   line-height: 1.6;
   margin: 0;
@@ -17568,15 +17562,14 @@ details[open] > .milestone-group-summary::before {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
   color: var(--text-muted);
 }
 
 .dag-layer-title {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
+  font-size: 12px;
 }
 
 .dag-layer-grid {
@@ -17634,7 +17627,7 @@ details[open] > .milestone-group-summary::before {
 }
 
 .dag-card-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--text-primary);
   line-height: 1.35;
@@ -17649,7 +17642,7 @@ details[open] > .milestone-group-summary::before {
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-muted);
 }
 
@@ -17930,18 +17923,18 @@ details[open] > .milestone-group-summary::before {
   min-width: 0;
 }
 .timeline-date-month {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-muted);
   text-transform: capitalize;
 }
 .timeline-date-day {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1;
 }
 .timeline-date-year {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-muted);
 }
 .timeline-date-empty {
