@@ -260,7 +260,8 @@ a:hover {
    11px is below body size; use only for short, non-essential feedback text,
    never for labels, errors, or anything requiring emphasis. */
 .field-helper--micro {
-  font-size: 11px;
+  font-family: var(--font-sans);
+  font-size: 12px;
   color: var(--text-muted);
   line-height: 1.5;
 }
@@ -457,9 +458,9 @@ a:hover {
 .ss-hint {
   margin-left: auto;
   flex: 0 0 auto;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 .ss-empty {
@@ -565,11 +566,11 @@ a:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   border: 2px solid var(--status-info-dim);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-on-accent);
 }
@@ -604,8 +605,8 @@ a:hover {
 }
 
 .sort-control-label {
-  font-size: 11px;
-  color: var(--text-muted);
+  font-size: 12px;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
