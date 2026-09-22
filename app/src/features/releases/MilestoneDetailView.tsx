@@ -171,7 +171,7 @@ export function MilestoneDetailView({ milestone, tasks, issues, testCases, decis
                 <div key={idx} className={"dag-layer " + (isReady ? "dag-layer--ready" : "")} role="listitem">
                   <div className="dag-layer-header">
                     <span className="dag-layer-title">{idx === 0 ? t("releases.flow.layerReady") : t("releases.flow.layerBlocked", { idx: idx + 1 })}</span>
-                    <span className="tabular" style={{ fontSize: 11, color: "var(--text-muted)" }}>{layer.length}</span>
+                    <span className="tabular" style={{ fontSize: 12, color: "var(--text-secondary)" }}>{layer.length}</span>
                   </div>
                   <div className="dag-layer-grid">
                     {layer.map((task) => {
