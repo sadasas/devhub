@@ -1780,8 +1780,10 @@ a:hover {
 
   /* Urutan mobile: judul (-2), created (-1), properti (2 via aside), sisanya (3).
      Judul edit dibungkus .editable-field-title agar order tetap kena
-     (order hanya berlaku untuk grid-item = direct child). */
+     (order hanya berlaku untuk grid-item = direct child). textarea
+     mentah ikut dicakup agar markup lama/tanpa wrapper tetap benar. */
   .detail-grid .editable-field-title,
+  .detail-grid textarea.composer-title,
   .detail-grid h3.detail-title {
     order: -2;
   }
@@ -1790,7 +1792,7 @@ a:hover {
     order: -1;
   }
 
-  .detail-grid > .detail-main > *:not(textarea.composer-title):not(h3.detail-title):not(.detail-created) {
+  .detail-grid > .detail-main > *:not(textarea.composer-title):not(h3.detail-title):not(.detail-created):not(.editable-field-title) {
     order: 3;
   }
 
