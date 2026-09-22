@@ -24,6 +24,7 @@ const BASE: BillingStatus = {
   usage: {
     members: { used: 1, limit: 2 },
     projects: { used: 3, limit: 3 },
+    storage: { usedBytes: 0, limitBytes: 0 },
   },
   payments: [],
 };
@@ -61,13 +62,14 @@ describe('TeamBillingPanel', () => {
       usage: {
         members: { used: 5, limit: null },
         projects: { used: 40, limit: null },
+        storage: { usedBytes: 1048576, limitBytes: null },
       },
       payments: [],
     });
     renderPanel();
 
     expect(await screen.findByText(/Active until/)).toBeTruthy();
-    expect(screen.getAllByText('Unlimited')).toHaveLength(2);
+    expect(screen.getAllByText('Unlimited')).toHaveLength(3);
     expect(screen.queryByRole('button', { name: /View Pricing/ })).toBeNull();
   });
 

@@ -78,6 +78,7 @@ export function registerCreateTask(server: McpServer): void {
         pinned: args.pinned,
         assigneeId: args.assigneeId ?? null,
         description: args.description,
+        attachments: [],
       };
       state.tasks.push(task);
       await saveState(args.projectId, state);

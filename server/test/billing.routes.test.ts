@@ -62,7 +62,7 @@ async function createLimitedPackage(
   durationDays = 30,
 ): Promise<{ id: string; name: string; max_members: number | null; max_projects: number | null; priceId: string }> {
   const pkgRes = await pool.query<{ id: string }>(
-    `INSERT INTO billing_packages (name, description, is_free, max_members, max_projects, sort_order) VALUES ($1,'',false,$2,$3, 10) RETURNING id`,
+    `INSERT INTO billing_packages (name, description, is_free, max_members, max_projects, max_storage_bytes, sort_order) VALUES ($1,'',false,$2,$3,10485760, 10) RETURNING id`,
     [name, maxMembers, maxProjects],
   );
   const pkgId = pkgRes.rows[0]!.id;

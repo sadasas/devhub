@@ -56,6 +56,8 @@ const ENTITY_LABELS: Record<string, string> = {
 const COUNT_DIFF_FIELDS: Record<string, string[]> = {
   whiteboards: ['elements'],
   erdGroups: ['tableIds'],
+  tasks: ['attachments'],
+  issues: ['attachments'],
 };
 
 export function entityLabel(entity: string): string {

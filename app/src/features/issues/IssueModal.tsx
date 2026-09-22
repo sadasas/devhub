@@ -8,8 +8,10 @@ import type { UpdatePatch } from '../../state/project-context';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { ActivityList } from '../../components/ActivityList';
+import { AttachmentSection } from '../../components/AttachmentSection';
 import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
+import { PlanLimitModal } from '../../components/PlanLimitModal';
 import { PropRow, useHotProp } from '../../components/PropRow';
 import { DetailShell } from '../../components/DetailShell';
 import { DetailEmpty } from '../../components/DetailList';
@@ -34,9 +36,10 @@ interface IssueModalProps {
 }
 
 export function IssueModal({ issueId, onClose }: IssueModalProps) {
-  const { state, dispatch, canEdit, projectId, saving, lastSavedAt } = useProject();
+  const { state, dispatch, canEdit, projectId, teamId, saving, lastSavedAt } = useProject();
   const { hotProp, setHotProp } = useHotProp();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [storageLimitOpen, setStorageLimitOpen] = useState(false);
   const [fullscreenField, setFullscreenField] = useState<FullscreenField>(null);
   const { t } = useTranslation(['tracker', 'project']);
   const titleRef = useRef<HTMLTextAreaElement | null>(null);
@@ -44,6 +47,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
   useEffect(() => {
     setHotProp(null);
     setConfirmOpen(false);
+    setStorageLimitOpen(false);
     setFullscreenField(null);
   }, [issueId]);
 
@@ -438,9 +442,26 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
           </div>
         </div>
       )}
+      <AttachmentSection
+        projectId={projectId}
+        entity="issues"
+        entityId={issue.id}
+        attachments={issue.attachments ?? []}
+        canEdit={canEdit}
+        onChanged={(next) => update({ attachments: next })}
+        onQuotaExceeded={() => setStorageLimitOpen(true)}
+      />
       <h4 className="detail-subtitle">{t('issues.modal.activity')}</h4>
       <ActivityList projectId={projectId} entity="issues" entityId={issue.id} />
       <p className="field-helper">{t('issues.modal.updated', { time: formatRelative(issue.updatedAt) })}</p>
+      {teamId && (
+        <PlanLimitModal
+          open={storageLimitOpen}
+          resource="storage"
+          teamId={teamId}
+          onClose={() => setStorageLimitOpen(false)}
+        />
+      )}
     </DetailShell>
   );
 }

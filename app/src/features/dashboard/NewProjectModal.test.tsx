@@ -59,6 +59,7 @@ const PRO_PACKAGE: BillingPackage = {
   isFree: false,
   maxMembers: null,
   maxProjects: null,
+  maxStorageBytes: 104857600,
   sortOrder: 1,
   isFeatured: true,
   prices: [{ id: 'pr-30', durationDays: 30, priceIdr: 250_000, originalPriceIdr: null }],

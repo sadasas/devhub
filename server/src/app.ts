@@ -21,6 +21,7 @@ import { requireMcpKey } from './modules/mcp/handlers/require-key.js';
 import { hashMcpKey } from './modules/keys/infrastructure/keys.js';
 import { oauthRouter } from './modules/oauth/oauth.routes.js';
 import { entityRouter } from './modules/projects/handlers/v1/entity-router.js';
+import { attachmentsRouter } from './modules/attachments/handlers/attachments.routes.js';
 import { searchRouter } from './modules/search/handlers/v1/search.routes.js';
 import { activityRouter } from './modules/activity/handlers/v1/activity.routes.js';
 import { adminRouter } from './modules/admin/handlers/admin.routes.js';
@@ -210,6 +211,7 @@ export function createApp(): express.Express {
   app.use('/api/v1/auth', socialRouter);
   app.use('/api/v1/projects', projectsRouter);
   app.use('/api/v1/projects', entityRouter);
+  app.use('/api/v1/attachments', attachmentsRouter);
   app.use('/api/v1/projects', activityRouter);
   app.use('/api/v1/teams', teamsRouter);
   app.use('/api/v1/teams', chatRouter);

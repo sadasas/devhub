@@ -1,7 +1,7 @@
 import { Check, Infinity as InfinityIcon } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import type { BillingPackage } from '../../lib/types';
-import { formatIdr } from '../../lib/format';
+import { formatBytes, formatIdr } from '../../lib/format';
 
 type Props = { packages: BillingPackage[] };
 
@@ -21,6 +21,12 @@ function allDurations(pkgs: BillingPackage[]): number[] {
     for (const pr of p.prices) set.add(pr.durationDays);
   }
   return [...set].sort((a, b) => a - b);
+}
+
+function formatStorage(bytes: number | null): string {
+  if (bytes === null) return '∞';
+  if (bytes <= 0) return '—';
+  return formatBytes(bytes);
 }
 
 export function PricingCompare({ packages }: Props) {
@@ -66,6 +72,19 @@ export function PricingCompare({ packages }: Props) {
           <span className="quota-pill"><InfinityIcon size={12} weight="bold" aria-hidden /> {t('pricing.benefits.unlimitedProjects', { defaultValue: 'Tanpa batas' })}</span>
         ) : (
           <span className="quota-num tabular">{t('pricing.benefits.projects', { n: pkg.maxProjects })}</span>
+        ),
+    },
+    {
+      id: 'storage',
+      label: t('pricing.compareRow.storage', { defaultValue: 'Penyimpanan DevHub' }),
+      group: t('pricing.compareGroup.limits', { defaultValue: 'Batasan' }),
+      render: (pkg) =>
+        pkg.maxStorageBytes === null ? (
+          <span className="quota-pill"><InfinityIcon size={12} weight="bold" aria-hidden /> {t('pricing.benefits.unlimitedStorage', { defaultValue: 'Tanpa batas' })}</span>
+        ) : pkg.maxStorageBytes <= 0 ? (
+          <span className="quota-num tabular">{t('pricing.benefits.storageLinksOnly', { defaultValue: 'Tautan saja' })}</span>
+        ) : (
+          <span className="quota-num tabular">{formatStorage(pkg.maxStorageBytes)}</span>
         ),
     },
     ...priceRows,

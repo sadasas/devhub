@@ -5,7 +5,7 @@ import { Button } from './Button';
 import { Modal } from './Modal';
 import { InlineError } from './InlineError';
 
-export type PlanLimitResource = 'projects' | 'members';
+export type PlanLimitResource = 'projects' | 'members' | 'storage';
 
 interface PlanLimitModalProps {
   open: boolean;
@@ -20,6 +20,7 @@ interface PlanLimitModalProps {
 const COPY: Record<PlanLimitResource, string> = {
   projects: 'Project limit reached on your current plan.',
   members: 'Member limit reached on your current plan.',
+  storage: 'DevHub storage is full on your current plan.',
 };
 
 export function PlanLimitModal({
@@ -81,7 +82,11 @@ export function PlanLimitModal({
               defaultValue: `Pakai ${details.used}/${details.limit}`,
             })}
           </InlineError>
-          <p className="modal-copy">{t('extras:pricing.downgradeBlockedHelp', { defaultValue: 'Kurangi anggota atau proyek, atau pilih paket dengan limit lebih tinggi.' })}</p>
+          <p className="modal-copy">
+            {resource === 'storage'
+              ? t('extras:pricing.downgradeBlockedHelpStorage', { defaultValue: 'Hapus file lama atau pilih paket dengan penyimpanan lebih besar.' })
+              : t('extras:pricing.downgradeBlockedHelp', { defaultValue: 'Kurangi anggota atau proyek, atau pilih paket dengan limit lebih tinggi.' })}
+          </p>
         </div>
       </Modal>
     );
@@ -106,6 +111,11 @@ export function PlanLimitModal({
     >
       <div className="form-stack">
         <p className="modal-copy">{resource ? COPY[resource] : ''}</p>
+        {resource === 'storage' && (
+          <p className="modal-copy">
+            {t('extras:pricing.storageFullHelp', { defaultValue: 'File lama tetap aman & bisa diunduh. File besar tetap bisa via tautan (gratis, tanpa kuota).' })}
+          </p>
+        )}
         {details && (
           <InlineError className="billing-warn">
             {t('extras:pricing.downgradeBlockedHint', {

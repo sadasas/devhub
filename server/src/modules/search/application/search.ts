@@ -25,6 +25,7 @@ interface EntitySpec {
   fields: FieldSpec[];
   deriveTitle?: (item: Record<string, unknown>, state: State) => string;
   extraCollector?: (item: Record<string, unknown>, state: State) => ExtraText[];
+  extraField?: string;
 }
 
 function relationsDeriveTitle(item: Record<string, unknown>, state: State): string {
@@ -36,6 +37,15 @@ function relationsDeriveTitle(item: Record<string, unknown>, state: State): stri
   return `${fromName}.${String(item.fromColumnId ?? '')} → ${toName}.${String(item.toColumnId ?? '')}`;
 }
 
+function attachmentNames(item: Record<string, unknown>): ExtraText[] {
+  const list = Array.isArray(item.attachments) ? item.attachments : [];
+  const out: ExtraText[] = [];
+  for (const a of list as Array<Record<string, unknown>>) {
+    if (typeof a.name === 'string' && a.name) out.push({ text: a.name, weight: 1 });
+  }
+  return out;
+}
+
 export const SEARCH_ENTITIES: EntitySpec[] = [
   {
     key: 'tasks',
@@ -45,6 +55,8 @@ export const SEARCH_ENTITIES: EntitySpec[] = [
       { path: 'description', weight: 1 },
       { path: 'labels', weight: 1 },
     ],
+    extraCollector: (item) => attachmentNames(item),
+    extraField: 'attachments',
   },
   {
     key: 'issues',
@@ -54,6 +66,8 @@ export const SEARCH_ENTITIES: EntitySpec[] = [
       { path: 'description', weight: 1 },
       { path: 'reproduction', weight: 1 },
     ],
+    extraCollector: (item) => attachmentNames(item),
+    extraField: 'attachments',
   },
   {
     key: 'testCases',
@@ -263,7 +277,7 @@ export function searchState(state: State, query: string, perEntityLimit = ENTITY
             entity: spec.key,
             entityId,
             title,
-            field: 'elements',
+            field: spec.extraField ?? 'elements',
             snippet: best.snippet,
             score: best.score,
           });

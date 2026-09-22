@@ -38,6 +38,7 @@ export function registerAddIssue(server: McpServer): void {
         reproduction: args.reproduction,
         linkedTaskId: args.linkedTaskId ?? null,
         pinned: args.pinned,
+        attachments: [],
       };
       state.issues.push(issue);
       await saveState(args.projectId, state);

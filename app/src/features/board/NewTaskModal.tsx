@@ -6,13 +6,15 @@ import { useTranslation } from 'react-i18next';
 import { formatDate, isDecimalKey, newId, nowIso, parseLabels, sanitizeDecimalInput } from '../../lib/utils';
 import { TASK_PRIORITY, TASK_PRIORITY_ORDER, hashLabelColor } from '../../lib/labels';
 import { startAfterDue } from '../../lib/start-dates';
-import type { TaskPriority, TaskStatus, TeamMember } from '../../lib/types';
+import type { Attachment, TaskPriority, TaskStatus, TeamMember } from '../../lib/types';
 import { LabelPickerBody } from './LabelPickerBody';
 import { useProject } from '../../state/project-context';
 import { useOptionalAuth } from '../../state/auth-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { api } from '../../lib/api';
 import { Button } from '../../components/Button';
+import { AttachmentSection } from '../../components/AttachmentSection';
+import { PlanLimitModal } from '../../components/PlanLimitModal';
 import { InlineError } from '../../components/InlineError';
 import { Modal } from '../../components/Modal';
 import { Avatar } from '../../components/Avatar';
@@ -33,7 +35,7 @@ interface NewTaskModalProps {
 }
 
 export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, onClose }: NewTaskModalProps) {
-  const { state, dispatch, teamId } = useProject();
+  const { state, dispatch, teamId, projectId, canEdit } = useProject();
   const { user } = useOptionalAuth();
   const { t } = useTranslation(['tracker', 'project']);
   usePresenceStatus(t('board.newTaskModal.presenceCreating'), open);
@@ -57,11 +59,22 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
   const [popupPos, setPopupPos] = useState<{ top: number; left: number } | null>(null);
   const popRef = useRef<HTMLDivElement | null>(null);
   const [expanded, setExpanded] = useState(false);
+  /** Lampiran staged: ID draft dibuat saat modal dibuka agar storageKey stabil. */
+  const [draftId, setDraftId] = useState(() => newId());
+  const [draft, setDraft] = useState<Attachment[]>([]);
+  const [uploadBusy, setUploadBusy] = useState(false);
+  const [storageLimitOpen, setStorageLimitOpen] = useState(false);
+  const savedRef = useRef(false);
 
   useEffect(() => {
     if (open) {
       setTitle('');
       setExpanded(false);
+      setDraftId(newId());
+      setDraft([]);
+      setUploadBusy(false);
+      setStorageLimitOpen(false);
+      savedRef.current = false;
       setMilestone(milestoneId ?? null);
       // Prefill dari konteks papan (mis. tanggal yang diklik di calendar).
       setDueDateInput(dueDate?.slice(0, 10) ?? '');
@@ -207,7 +220,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
     dispatch({
       type: 'task/add',
       task: {
-        id: newId(),
+        id: draftId,
         createdAt: ts,
         updatedAt: ts,
         title: title.trim(),
@@ -221,8 +234,10 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
         startDate: startDateInput === '' ? null : startDateInput,
         assigneeId: assignee,
         description: description.trim(),
+        ...(draft.length > 0 ? { attachments: draft } : {}),
       },
     });
+    savedRef.current = true;
     setTitle('');
     setPriority('');
     setEstimate('');
@@ -233,6 +248,20 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
     setStartDateInput('');
     setAssignee(null);
     setBlockedBy([]);
+    setDraft([]);
+    onClose();
+  }
+
+  /** Tutup tanpa save → bersihkan file staged yang yatim (best-effort). */
+  function handleClose() {
+    if (!savedRef.current && projectId) {
+      for (const a of draft) {
+        if (a.provider === 'devhub' && a.storageKey) {
+          void api.attachmentAbandon(projectId, a.storageKey).catch(() => {});
+        }
+      }
+    }
+    savedRef.current = false;
     onClose();
   }
 
@@ -349,10 +378,11 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
   };
 
   return (
+    <>
     <Modal
       open={open}
       title={t('board.newTaskModal.title')}
-      onClose={onClose}
+      onClose={handleClose}
       width="lg"
       className={expanded ? 'modal-composer modal-composer--fullscreen' : 'modal-composer'}
       expandable
@@ -361,7 +391,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
       expandLabel={t('board.newTaskModal.expandView')}
       collapseLabel={t('board.newTaskModal.contractView')}
       footer={
-        <Button type="submit" size="md" form="new-task-form" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} disabled={!title.trim() || !!startAfterDue(startDateInput, dueDateInput)}>
+        <Button type="submit" size="md" form="new-task-form" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} disabled={!title.trim() || !!startAfterDue(startDateInput, dueDateInput) || uploadBusy}>
           {t('board.newTaskModal.submit')}
         </Button>
       }
@@ -396,6 +426,19 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
             variant="bare"
             previewToggle
           />
+          {canEdit && projectId && (
+            <AttachmentSection
+              mode="staged"
+              projectId={projectId}
+              entity="tasks"
+              entityId={draftId}
+              attachments={draft}
+              canEdit={canEdit}
+              onChanged={setDraft}
+              onQuotaExceeded={() => setStorageLimitOpen(true)}
+              onBusyChange={setUploadBusy}
+            />
+          )}
         </div>
         <div className="composer-propbar" ref={barRef}>
           <span
@@ -531,5 +574,14 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
         document.body,
       )}
     </Modal>
+      {teamId && (
+        <PlanLimitModal
+          open={storageLimitOpen}
+          resource="storage"
+          teamId={teamId}
+          onClose={() => setStorageLimitOpen(false)}
+        />
+      )}
+    </>
   );
 }

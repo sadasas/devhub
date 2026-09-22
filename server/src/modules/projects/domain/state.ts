@@ -30,6 +30,8 @@ export const LIMITS = {
   ERDGROUP_NAME: 30,
   ERDGROUPS_PER_PROJECT: 20,
   TIMELINE_ORDER: 5000,
+  ATTACHMENT_NAME: 200,
+  ATTACHMENTS_PER_ENTITY: 20,
 } as const;
 
 export const isoDate = z.string().max(100).refine((v) => !Number.isNaN(Date.parse(v)), {
@@ -52,6 +54,24 @@ export const baseFields = {
 
 export const taskStatus = z.enum(['todo', 'inProgress', 'review', 'done']);
 export const taskPriority = z.enum(['low', 'medium', 'high', 'urgent']);
+
+/**
+ * Lampiran file pada task/issue — zod-only, tanpa migrasi DB (precedent
+ * dueDate/startDate/pinned). Hanya metadata pointer; bytes tidak pernah
+ * menyentuh Postgres/Express (dipegang penyimpanan objek DevHub atau
+ * berupa tautan luar). `size: 0` untuk tipe tautan (tak dihitung kuota).
+ */
+export const attachmentSchema = z.object({
+  id: z.string().uuid(),
+  provider: z.enum(['devhub', 'link']),
+  name: z.string().min(1).max(LIMITS.ATTACHMENT_NAME),
+  mime: z.string().max(100).default(''),
+  size: z.number().int().nonnegative(),
+  storageKey: z.string().max(500).nullable().optional(),
+  url: z.string().max(2000).nullable().optional(),
+  linkedBy: z.string().uuid().nullable().optional(),
+  linkedAt: isoDate,
+});
 
 export const checklistItemSchema = z.object({
   id: z.string().uuid(),
@@ -78,6 +98,7 @@ export const taskSchema = z.object({
   assigneeId: z.string().uuid().nullable().optional(),
   pinned: z.boolean().default(false),
   description: z.string().max(LIMITS.TASK_DESCRIPTION).default(''),
+  attachments: z.array(attachmentSchema).max(LIMITS.ATTACHMENTS_PER_ENTITY).default([]),
 });
 
 export const issueSeverity = z.enum(['critical', 'high', 'medium', 'low']);
@@ -92,6 +113,7 @@ export const issueSchema = z.object({
   reproduction: z.string().max(LIMITS.ISSUE_REPRODUCTION).default(''),
   linkedTaskId: z.string().uuid().nullable().optional(),
   pinned: z.boolean().default(false),
+  attachments: z.array(attachmentSchema).max(LIMITS.ATTACHMENTS_PER_ENTITY).default([]),
 });
 
 export const testCaseStatus = z.enum(['pass', 'fail', 'pending']);

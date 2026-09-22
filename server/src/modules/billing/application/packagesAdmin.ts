@@ -18,6 +18,7 @@ const packageInputSchema = z.object({
   isFree: z.boolean().optional(),
   maxMembers: z.number().int().positive().nullable().optional(),
   maxProjects: z.number().int().positive().nullable().optional(),
+  maxStorageBytes: z.number().int().min(0).max(1099511627776).nullable().optional(),
   sortOrder: z.number().int().min(0).max(999).optional(),
   isActive: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
@@ -54,6 +55,7 @@ export function serializePackage(row: {
   is_free: boolean;
   max_members: number | null;
   max_projects: number | null;
+  max_storage_bytes: number | null;
   sort_order: number;
   is_active: boolean;
   is_featured: boolean;
@@ -66,6 +68,7 @@ export function serializePackage(row: {
     isFree: row.is_free,
     maxMembers: row.max_members,
     maxProjects: row.max_projects,
+    maxStorageBytes: row.max_storage_bytes === null ? null : Number(row.max_storage_bytes),
     sortOrder: row.sort_order,
     isActive: row.is_active,
     isFeatured: row.is_featured,

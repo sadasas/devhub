@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage, isPlanLimitError } from '../../lib/errors';
 import type { BillingPackage, BillingStatus } from '../../lib/types';
-import { formatIdr } from '../../lib/format';
+import { formatBytes, formatIdr } from '../../lib/format';
 import { Button } from '../../components/Button';
 import { DataErrorState } from '../../components/DataErrorState';
 import { SearchableSelect } from '../../components/SearchableSelect';
@@ -22,12 +22,18 @@ import { PlanLimitModal, type PlanLimitResource } from '../../components/PlanLim
 
 const FAQ_ITEM_KEYS = ['upgrade', 'trial', 'payment', 'timing', 'downgrade', 'expired'] as const;
 
-function isDowngrade(curMembers: number | null, curProjects: number | null, pkg: BillingPackage): boolean {
-  const curM = curMembers === null ? Infinity : curMembers;
-  const curP = curProjects === null ? Infinity : curProjects;
-  const tgtM = pkg.maxMembers === null ? Infinity : pkg.maxMembers;
-  const tgtP = pkg.maxProjects === null ? Infinity : pkg.maxProjects;
-  return tgtM < curM || tgtP < curP;
+function isDowngrade(
+  curMembers: number | null,
+  curProjects: number | null,
+  curStorageBytes: number | null,
+  pkg: BillingPackage,
+): boolean {
+  const num = (v: number | null): number => (v === null ? Infinity : v);
+  return (
+    num(pkg.maxMembers) < num(curMembers) ||
+    num(pkg.maxProjects) < num(curProjects) ||
+    num(pkg.maxStorageBytes) < num(curStorageBytes)
+  );
 }
 
 export function PricingPage() {
@@ -147,14 +153,28 @@ export function PricingPage() {
     // pre-check downgrade over-limit to open modal instantly without API roundtrip
     if (billingStatus) {
       const pkg = packages?.find((p) => p.id === pkgId);
-      if (pkg && isDowngrade(billingStatus.usage.members.limit, billingStatus.usage.projects.limit, pkg)) {
+      if (
+        pkg &&
+        isDowngrade(
+          billingStatus.usage.members.limit,
+          billingStatus.usage.projects.limit,
+          billingStatus.usage.storage.limitBytes,
+          pkg,
+        )
+      ) {
         const overMembers = pkg.maxMembers !== null && billingStatus.usage.members.used > pkg.maxMembers;
         const overProjects = pkg.maxProjects !== null && billingStatus.usage.projects.used > pkg.maxProjects;
-        if (overMembers || overProjects) {
-          const resource: PlanLimitResource = overMembers ? 'members' : 'projects';
-          const limit = resource === 'members' ? (pkg.maxMembers as number) : (pkg.maxProjects as number);
-          const used = resource === 'members' ? billingStatus.usage.members.used : billingStatus.usage.projects.used;
-          setLimitModal({ open: true, resource, details: { limit, used }, targetName: pkg.name });
+        const overStorage =
+          pkg.maxStorageBytes !== null && billingStatus.usage.storage.usedBytes > pkg.maxStorageBytes;
+        if (overMembers || overProjects || overStorage) {
+          const resource: PlanLimitResource = overMembers ? 'members' : overProjects ? 'projects' : 'storage';
+          if (resource === 'storage') {
+            setLimitModal({ open: true, resource, details: null, targetName: pkg.name });
+          } else {
+            const limit = resource === 'members' ? (pkg.maxMembers as number) : (pkg.maxProjects as number);
+            const used = resource === 'members' ? billingStatus.usage.members.used : billingStatus.usage.projects.used;
+            setLimitModal({ open: true, resource, details: { limit, used }, targetName: pkg.name });
+          }
           return;
         }
       }
@@ -183,11 +203,15 @@ export function PricingPage() {
     } catch (err) {
       if (isPlanLimitError(err)) {
         const details = err.details as { resource?: string; limit?: number; used?: number; pendingPackageName?: string } | undefined;
-        const resource: PlanLimitResource = details?.resource === 'projects' ? 'projects' : 'members';
-        const limit = typeof details?.limit === 'number' ? details.limit : 0;
-        const used = typeof details?.used === 'number' ? details.used : 0;
+        const resource: PlanLimitResource =
+          details?.resource === 'projects' ? 'projects' : details?.resource === 'storage' ? 'storage' : 'members';
         const pkg = packages?.find((p) => p.id === pkgId);
-        setLimitModal({ open: true, resource, details: { limit, used }, targetName: pkg?.name ?? (details?.pendingPackageName as string) ?? null });
+        // Storage: angka byte mentah tak terbaca — modal menampilkan copy generik.
+        const modalDetails =
+          resource === 'storage' || typeof details?.limit !== 'number' || typeof details?.used !== 'number'
+            ? null
+            : { limit: details.limit, used: details.used };
+        setLimitModal({ open: true, resource, details: modalDetails, targetName: pkg?.name ?? (details?.pendingPackageName as string) ?? null });
         setBusyKey(null);
         return;
       }
@@ -394,14 +418,29 @@ export function PricingPage() {
               let downgradeBlockedReason: string | null = null;
               let isDowngradeFlag = false;
               if (billingStatus) {
-                isDowngradeFlag = isDowngrade(billingStatus.usage.members.limit, billingStatus.usage.projects.limit, pkg);
+                isDowngradeFlag = isDowngrade(
+                  billingStatus.usage.members.limit,
+                  billingStatus.usage.projects.limit,
+                  billingStatus.usage.storage.limitBytes,
+                  pkg,
+                );
                 if (isDowngradeFlag) {
                   const overMembers = pkg.maxMembers !== null && billingStatus.usage.members.used > pkg.maxMembers;
                   const overProjects = pkg.maxProjects !== null && billingStatus.usage.projects.used > pkg.maxProjects;
-                  if (overMembers || overProjects) {
-                    const limit = overMembers ? (pkg.maxMembers as number) : (pkg.maxProjects as number);
-                    const used = overMembers ? billingStatus.usage.members.used : billingStatus.usage.projects.used;
-                    downgradeBlockedReason = t('pricing.downgradeBlockedHint', { used, limit, defaultValue: `Melebihi pemakaianmu (${used}/${limit})` });
+                  const overStorage =
+                    pkg.maxStorageBytes !== null && billingStatus.usage.storage.usedBytes > pkg.maxStorageBytes;
+                  if (overMembers || overProjects || overStorage) {
+                    if (overStorage && !overMembers && !overProjects) {
+                      downgradeBlockedReason = t('pricing.downgradeBlockedHintStorage', {
+                        used: formatBytes(billingStatus.usage.storage.usedBytes),
+                        limit: formatBytes(pkg.maxStorageBytes as number),
+                        defaultValue: `Melebihi penyimpananmu (${formatBytes(billingStatus.usage.storage.usedBytes)}/${formatBytes(pkg.maxStorageBytes as number)})`,
+                      });
+                    } else {
+                      const limit = overMembers ? (pkg.maxMembers as number) : (pkg.maxProjects as number);
+                      const used = overMembers ? billingStatus.usage.members.used : billingStatus.usage.projects.used;
+                      downgradeBlockedReason = t('pricing.downgradeBlockedHint', { used, limit, defaultValue: `Melebihi pemakaianmu (${used}/${limit})` });
+                    }
                   }
                 }
               }

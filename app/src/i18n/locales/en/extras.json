@@ -597,6 +597,9 @@
       "members": "{{n}} members",
       "unlimitedProjects": "Unlimited projects",
       "projects": "{{n}} projects",
+      "unlimitedStorage": "Unlimited storage",
+      "storageLinksOnly": "Links only",
+      "storage": "{{size}} DevHub storage",
       "coreFeatures": "All core features",
       "exportJson": "Export JSON",
       "prioritySupport": "Priority support"

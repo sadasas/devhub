@@ -45,7 +45,7 @@ const user: User = {
 
 const billing: BillingStatus = {
   team: { id: 'team-1', name: 'Alpha', plan: 'free', planExpiresAt: null, planPackageName: 'Free' },
-  usage: { members: { used: 1, limit: 2 }, projects: { used: 1, limit: 3 } },
+  usage: { members: { used: 1, limit: 2 }, projects: { used: 1, limit: 3 }, storage: { usedBytes: 0, limitBytes: 0 } },
   payments: [],
 };
 

@@ -22,8 +22,8 @@ async function getTeamRow(teamId: string) {
 
 async function createLimitedPackage(name = 'Basic'): Promise<string> {
   const res = await pool.query<{ id: string }>(
-    `INSERT INTO billing_packages (name, description, is_free, max_members, max_projects, sort_order, is_active)
-     VALUES ($1, 'limited for pending test', false, 5, 5, 10, true)
+    `INSERT INTO billing_packages (name, description, is_free, max_members, max_projects, max_storage_bytes, sort_order, is_active)
+     VALUES ($1, 'limited for pending test', false, 5, 5, 10485760, 10, true)
      RETURNING id`,
     [name],
   );

@@ -9,6 +9,8 @@ import { getProjectWithRole } from '../../../authorization/application/authz.js'
 import { entitySummary, type ActivityDraft } from '../../../activity/application/activity.js';
 import { broadcastDiff } from '../../../realtime/infrastructure/broadcast.js';
 import { mutateProject } from '../../application/entityService.js';
+import { releaseProjectEntityAttachments, releaseQuota, reserveQuota } from '../../../attachments/application/attachmentService.js';
+import type { Attachment } from '../../../attachments/domain/attachment.js';
 import {
   fireGcalSync,
   syncTaskCreated,
@@ -95,20 +97,53 @@ function buildEntityRouter(entities: EntityConfig[]): Router {
           });
         }
       }
-      const { version } = await mutateProject(userId, req.params.projectId, parseIfMatch(req), (state) => {
-        const items = itemsOf(state, cfg.key);
-        if (items.some((i) => i.id === id)) {
-          throw new ApiError(400, 'VALIDATION_ERROR', `${cfg.label} already exists: ${id}`);
+      const { version } = await (async () => {
+        // Staged-upload flow (new modal): pointer lampiran ikut dalam payload
+        // create — reservasi kuota dulu, kompensasi bila mutasi gagal.
+        let reserveTeam: string | null = null;
+        let reservedBytes = 0;
+        if (cfg.key === 'tasks' || cfg.key === 'issues') {
+          const staged = (payload as { attachments?: unknown }).attachments;
+          if (Array.isArray(staged)) {
+            for (const a of staged as Array<{ provider?: unknown; size?: unknown }>) {
+              if (a.provider === 'devhub' && typeof a.size === 'number' && a.size > 0) {
+                reservedBytes += a.size;
+              }
+            }
+          }
+          if (reservedBytes > 0) {
+            const proj = await getProjectWithRole(userId, req.params.projectId);
+            if (!proj) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
+            reserveTeam = proj.team_id;
+            await reserveQuota(proj.team_id, reservedBytes);
+          }
         }
-        items.push(entity);
-        return {
-          entity: cfg.key,
-          entityId: id,
-          action: 'created',
-          summary: entitySummary(cfg.key, entity),
-          after: entity,
-        } satisfies ActivityDraft;
-      });
+        try {
+          return await mutateProject(userId, req.params.projectId, parseIfMatch(req), (state) => {
+            const items = itemsOf(state, cfg.key);
+            if (items.some((i) => i.id === id)) {
+              throw new ApiError(400, 'VALIDATION_ERROR', `${cfg.label} already exists: ${id}`);
+            }
+            items.push(entity);
+            return {
+              entity: cfg.key,
+              entityId: id,
+              action: 'created',
+              summary: entitySummary(cfg.key, entity),
+              after: entity,
+            } satisfies ActivityDraft;
+          });
+        } catch (err) {
+          if (reserveTeam && reservedBytes > 0) {
+            try {
+              await releaseQuota(reserveTeam, reservedBytes);
+            } catch {
+              // Kompensasi best-effort — drift dikoreksi via reconcile.
+            }
+          }
+          throw err;
+        }
+      })();
       broadcastDiff(req.params.projectId, {
         type: 'state:diff',
         projectId: req.params.projectId,
@@ -194,11 +229,16 @@ function buildEntityRouter(entities: EntityConfig[]): Router {
 
     router.delete(`/:projectId/${cfg.key}/:entityId`, async (req, res) => {
       const userId = getUserId(req);
+      let removedAttachments: Attachment[] | undefined;
       const { version } = await mutateProject(userId, req.params.projectId, parseIfMatch(req), (state) => {
         const items = itemsOf(state, cfg.key);
         const idx = items.findIndex((i) => i.id === req.params.entityId);
         if (idx === -1) throw new ApiError(404, 'NOT_FOUND', `${cfg.label} not found: ${req.params.entityId}`);
         const before = items[idx]!;
+        if (cfg.key === 'tasks' || cfg.key === 'issues') {
+          const list = (before as unknown as { attachments?: unknown }).attachments;
+          if (Array.isArray(list)) removedAttachments = list as Attachment[];
+        }
         items.splice(idx, 1);
         cfg.onDelete?.(state, req.params.entityId);
         return {
@@ -215,6 +255,9 @@ function buildEntityRouter(entities: EntityConfig[]): Router {
         version,
         ops: [{ entity: cfg.key, id: req.params.entityId, op: 'deleted' }],
       });
+      if (removedAttachments && removedAttachments.length > 0) {
+        void releaseProjectEntityAttachments(req.params.projectId, removedAttachments).catch(() => {});
+      }
       // T3 GCal push: delete task → delete event (idempoten via event_map).
       if (cfg.key === 'tasks') {
         const projectId = req.params.projectId;

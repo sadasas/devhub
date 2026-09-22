@@ -23116,3 +23116,9 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
     transition: none;
   }
 }
+
+/* Lampiran: aksi baris hidden sampai hover/fokus (desktop); selalu tampil di sentuh. */
+.mini-row .att-actions { display: inline-flex; gap: 4px; flex-shrink: 0; opacity: 0; visibility: hidden; transition: opacity var(--duration-fast) var(--ease-out), visibility var(--duration-fast) var(--ease-out); }
+.mini-row:hover .att-actions, .mini-row:focus-within .att-actions { opacity: 1; visibility: visible; }
+@media (hover: none) { .mini-row .att-actions { opacity: 1; visibility: visible; } }
+@media (prefers-reduced-motion: reduce) { .mini-row .att-actions { transition: none; } }

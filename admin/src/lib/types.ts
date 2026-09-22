@@ -523,6 +523,7 @@ export interface BillingPackage {
   isFree: boolean;
   maxMembers: number | null;
   maxProjects: number | null;
+  maxStorageBytes: number | null;
   prices: PackagePrice[];
 }
 
@@ -731,6 +732,7 @@ export interface AdminPackage {
   isFree: boolean;
   maxMembers: number | null;
   maxProjects: number | null;
+  maxStorageBytes: number | null;
   sortOrder: number;
   isActive: boolean;
   isFeatured: boolean;

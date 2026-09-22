@@ -7,6 +7,9 @@ export interface TeamUsage {
   packageName: string;
   memberLimit: number | null;
   projectLimit: number | null;
+  /** Byte; null = unlimited, 0 = upload mati. */
+  storageLimit: number | null;
+  storageUsed: number;
   memberCount: number;
   projectCount: number;
   pendingPackageId?: string | null;
@@ -27,21 +30,28 @@ export interface PlanLimitDetails {
  * Dipakai di billingService untuk cabang renewal/upgrade/downgrade.
  */
 export function isDowngrade(
-  cur: { maxMembers: number | null; maxProjects: number | null },
-  target: { max_members: number | null; max_projects: number | null } | { maxMembers: number | null; maxProjects: number | null },
+  cur: { maxMembers: number | null; maxProjects: number | null; maxStorageBytes?: number | null },
+  target:
+    | { max_members: number | null; max_projects: number | null; max_storage_bytes?: number | null }
+    | { maxMembers: number | null; maxProjects: number | null; maxStorageBytes?: number | null },
 ): boolean {
-  const curMembers = cur.maxMembers === null ? Infinity : cur.maxMembers;
-  const curProjects = cur.maxProjects === null ? Infinity : cur.maxProjects;
+  const num = (v: number | null | undefined): number => (v === null || v === undefined ? Infinity : v);
+  const curMembers = num(cur.maxMembers);
+  const curProjects = num(cur.maxProjects);
+  const curStorage = num(cur.maxStorageBytes);
   let targetMembers: number;
   let targetProjects: number;
+  let targetStorage: number;
   if ('max_members' in target) {
-    const t = target as { max_members: number | null; max_projects: number | null };
-    targetMembers = t.max_members === null ? Infinity : t.max_members;
-    targetProjects = t.max_projects === null ? Infinity : t.max_projects;
+    const t = target as { max_members: number | null; max_projects: number | null; max_storage_bytes?: number | null };
+    targetMembers = num(t.max_members);
+    targetProjects = num(t.max_projects);
+    targetStorage = num(t.max_storage_bytes);
   } else {
-    const t = target as { maxMembers: number | null; maxProjects: number | null };
-    targetMembers = t.maxMembers === null ? Infinity : t.maxMembers;
-    targetProjects = t.maxProjects === null ? Infinity : t.maxProjects;
+    const t = target as { maxMembers: number | null; maxProjects: number | null; maxStorageBytes?: number | null };
+    targetMembers = num(t.maxMembers);
+    targetProjects = num(t.maxProjects);
+    targetStorage = num(t.maxStorageBytes);
   }
-  return targetMembers < curMembers || targetProjects < curProjects;
+  return targetMembers < curMembers || targetProjects < curProjects || targetStorage < curStorage;
 }

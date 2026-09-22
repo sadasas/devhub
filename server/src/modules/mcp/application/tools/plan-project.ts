@@ -80,6 +80,7 @@ export function registerPlanProject(server: McpServer): void {
           checklist: [] as { id: string; title: string; done: boolean }[],
           pinned: false,
           description: '',
+          attachments: [],
         };
         state.tasks.push(task);
         return { id: task.id, title: task.title, estimate: task.estimate ?? null };
