@@ -19678,25 +19678,21 @@ html[data-theme='light'] .tour-overlay-dim {
   color: var(--text-muted);
 }
 
-/* General read view: judul + tombol Edit sebaris, nilai sebagai teks.
-   Tombol absolute-kanan (di luar flow) agar tinggi head = tinggi judul di
-   semua section — gap 12px section yang mengatur jarak, seragam. */
+/* General read view: judul + tombol Edit sebaris. Tombol di flow kanan via
+   margin-left:auto (tanpa absolute/translate — kebal :active scale);
+   tinggi head dikunci min-height agar gap judul-deskripsi seragam. */
 .dashboard__settings-head {
-  position: relative;
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
+  min-height: 36px;
   margin-bottom: 0;
-  padding-right: 76px;
 }
 .dashboard__settings-head .btn {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  flex: none;
+  margin-left: auto;
 }
 
 .dashboard__settings-head .dashboard__settings-section-title {
