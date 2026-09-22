@@ -101,7 +101,7 @@ function PaymentFacts({
         <span className="billing-redirect-mono" title={payment.orderId} style={{ maxWidth: 160 }}>
           {shortId(payment.orderId)}
         </span>
-        <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>· Rp {amount.toLocaleString('id-ID')}</span>
+        <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>· Rp {amount.toLocaleString('id-ID')}</span>
       </dd>
       <dt>{t('teams.payment.facts.created')}</dt>
       <dd>{formatDateShort(createdAt)}</dd>

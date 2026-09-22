@@ -85,8 +85,8 @@ export function ReleasesTimelineView({ milestones, tasks, onSelect, unreadIds, s
               <div className="timeline-card timeline-card--static" role="article" aria-label={m.name}>
                 <div className="timeline-card-head">
                   <Badge tone={MILESTONE_STATUS[m.status].tone}>{t("releases.statusBadge." + m.status)}</Badge>
-                  {m.version && <span className="font-mono tabular" style={{ fontSize: 11, color: "var(--text-muted)" }}>v{m.version.replace(/^v/i, "")}</span>}
-                  <span className="font-mono tabular" style={{ fontSize: 11, color: "var(--text-muted)" }}>#{shortId(m.id)}</span>
+                  {m.version && <span className="tabular" style={{ fontSize: 12, color: "var(--text-secondary)" }}>v{m.version.replace(/^v/i, "")}</span>}
+                  <span className="tabular" style={{ fontSize: 12, color: "var(--text-secondary)" }}>#{shortId(m.id)}</span>
                   {unreadIds?.has(m.id) && <span className="unread-pill">New</span>}
                 </div>
                 <div className="timeline-card-title">{m.name}</div>
@@ -104,8 +104,8 @@ export function ReleasesTimelineView({ milestones, tasks, onSelect, unreadIds, s
             <button type="button" className="timeline-card" onClick={() => onSelect(m.id)} aria-label={m.name}>
               <div className="timeline-card-head">
                 <Badge tone={MILESTONE_STATUS[m.status].tone}>{t("releases.statusBadge." + m.status)}</Badge>
-                {m.version && <span className="font-mono tabular" style={{ fontSize: 11, color: "var(--text-muted)" }}>v{m.version.replace(/^v/i, "")}</span>}
-                <span className="font-mono tabular" style={{ fontSize: 11, color: "var(--text-muted)" }}>#{shortId(m.id)}</span>
+                {m.version && <span className="tabular" style={{ fontSize: 12, color: "var(--text-secondary)" }}>v{m.version.replace(/^v/i, "")}</span>}
+                <span className="tabular" style={{ fontSize: 12, color: "var(--text-secondary)" }}>#{shortId(m.id)}</span>
                 {unreadIds?.has(m.id) && <span className="unread-pill">New</span>}
               </div>
               <div className="timeline-card-title">{m.name}</div>

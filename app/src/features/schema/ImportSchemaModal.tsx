@@ -396,7 +396,7 @@ export function ImportSchemaModal({ open, onClose }: ImportSchemaModalProps) {
               {FORMAT_OPTIONS.map((f) => (
                 <label
                   key={f}
-                  style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: 13, cursor: 'pointer' }}
+                  style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: 14, cursor: 'pointer' }}
                 >
                   <input type="radio" name="import-format" checked={format === f} onChange={() => setFormat(f)} />
                   {formatLabel[f]}
@@ -420,7 +420,7 @@ export function ImportSchemaModal({ open, onClose }: ImportSchemaModalProps) {
                 <Badge tone="success">{t('schema.import.newBucket', { count: preview.displayNew.length })}</Badge>
                 <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {preview.displayNew.map((tbl) => (
-                    <li key={tbl.id} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 13 }}>
+                    <li key={tbl.id} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 14 }}>
                       <span className="font-mono">{tbl.name}</span>
                       <span className="field-helper" style={{ margin: 0 }}>
                         · {t('schema.columnCount', { count: tbl.columns.length })}
@@ -434,7 +434,7 @@ export function ImportSchemaModal({ open, onClose }: ImportSchemaModalProps) {
                   <Badge tone="warn">{t('schema.import.skippedBucket', { count: preview.displaySkipped.length })}</Badge>
                   <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {preview.displaySkipped.map((tbl) => (
-                      <li key={tbl.id} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 13 }}>
+                      <li key={tbl.id} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 14 }}>
                         <span className="font-mono">{tbl.name}</span>
                         <span className="field-helper" style={{ margin: 0 }}>
                           · {t('schema.columnCount', { count: tbl.columns.length })}
@@ -503,7 +503,7 @@ export function ImportSchemaModal({ open, onClose }: ImportSchemaModalProps) {
           <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
             <legend className="field-label">{t('schema.import.modeLabel')}</legend>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13, cursor: 'pointer' }}>
+              <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 14, cursor: 'pointer' }}>
                 <input
                   type="radio"
                   name="import-mode"
@@ -518,7 +518,7 @@ export function ImportSchemaModal({ open, onClose }: ImportSchemaModalProps) {
                   </span>
                 </span>
               </label>
-              <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13, cursor: 'pointer' }}>
+              <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 14, cursor: 'pointer' }}>
                 <input
                   type="radio"
                   name="import-mode"
@@ -537,7 +537,7 @@ export function ImportSchemaModal({ open, onClose }: ImportSchemaModalProps) {
           </fieldset>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13, cursor: 'pointer' }}>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 14, cursor: 'pointer' }}>
               <input
                 type="checkbox"
                 checked={saveSnapshot}
