@@ -29,6 +29,8 @@ The Service is operated by the DevHub project owner ("the Operator"), domiciled 
 
 All content you create inside the Service: projects, tasks, issues, test cases, tech stack entries, schema definitions, decisions, milestones, statistics, and any notes you enter. This data belongs to you and is stored to provide the Service to you.
 
+**File attachments (premium workspaces):** files you upload to a task or issue are stored in managed DevHub object storage (byte content), while the app database keeps only metadata (file name, type, size, link reference). Each package has a storage quota set by the admin (the Free package has no upload quota — links only). Deleting an attachment, its task/issue, or its project removes the stored file; JSON export carries the attachment list (metadata), not the file bytes.
+
 ### 2.3 Billing data (Pakasir)
 
 Payments are processed by **Pakasir** (payment processor for QRIS/virtual-account). What we store, per workspace purchase:

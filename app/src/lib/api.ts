@@ -1,5 +1,6 @@
 import type {
   ActivityUnreadSummary,
+  Attachment,
   BillingPackage,
   BillingStatus,
   ChatMessage,
@@ -635,6 +636,54 @@ export const api = {
   paymentHistory: () => request<{ payments: PaymentHistoryItem[] }>('/billing/payments'),
   getPayment: (orderId: string) =>
     request<{ payment: PaymentHistoryItem }>(`/billing/payments/${encodeURIComponent(orderId)}`),
+
+  /** Lampiran file (Penyimpanan DevHub) — bytes tak pernah lewat API ini. */
+  attachmentSignUpload: (input: {
+    projectId: string;
+    entity: 'tasks' | 'issues';
+    entityId: string;
+    name: string;
+    mime: string;
+    size: number;
+  }) =>
+    request<{ uploadUrl: string; storageKey: string; expiresIn: number }>('/attachments/sign-upload', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+  attachmentConfirm: (input: {
+    projectId: string;
+    entity: 'tasks' | 'issues';
+    entityId: string;
+    attachment: Attachment;
+  }) => request<{ ok: true; version: number }>('/attachments/confirm', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  }),
+  attachmentAddLink: (input: {
+    projectId: string;
+    entity: 'tasks' | 'issues';
+    entityId: string;
+    name: string;
+    url: string;
+  }) =>
+    request<{ attachment: Attachment; version: number }>('/attachments/link', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+  attachmentSignDownload: (projectId: string, attachmentId: string) =>
+    request<{ downloadUrl: string; expiresIn: number; name: string; mime: string; size: number }>(
+      `/attachments/sign-download?projectId=${encodeURIComponent(projectId)}&attachmentId=${encodeURIComponent(attachmentId)}`,
+    ),
+  attachmentRemove: (projectId: string, entity: 'tasks' | 'issues', entityId: string, attachmentId: string) =>
+    request<{ ok: true; version: number }>(
+      `/attachments/${encodeURIComponent(projectId)}/${entity}/${encodeURIComponent(entityId)}/${encodeURIComponent(attachmentId)}`,
+      { method: 'DELETE' },
+    ),
+  attachmentAbandon: (projectId: string, storageKey: string) =>
+    request<{ ok: true }>('/attachments/abandon', {
+      method: 'POST',
+      body: JSON.stringify({ projectId, storageKey }),
+    }),
 
   /** Google Calendar (T4): semua URL terpusat di sini — jangan hardcode di komponen. */
   gcalStatus: (projectId: string) =>

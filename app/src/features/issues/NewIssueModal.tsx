@@ -3,11 +3,14 @@ import type { FormEvent } from 'react';
 import { Bug, FileText, WarningCircle } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { newId, nowIso } from '../../lib/utils';
-import type { IssueSeverity } from '../../lib/types';
+import type { Attachment, IssueSeverity } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
+import { api } from '../../lib/api';
+import { AttachmentSection } from '../../components/AttachmentSection';
 import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
+import { PlanLimitModal } from '../../components/PlanLimitModal';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { MarkdownField } from '../../components/MarkdownField';
 import { LIMITS } from '../../lib/limits';
@@ -23,19 +26,31 @@ interface NewIssueModalProps {
 }
 
 export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
-  const { dispatch } = useProject();
+  const { dispatch, projectId, teamId, canEdit } = useProject();
   const { t } = useTranslation(['tracker', 'project']);
   usePresenceStatus(t('issues.newModal.presenceCreating'), open);
   const [title, setTitle] = useState('');
   const [severity, setSeverity] = useState<IssueSeverity | ''>('');
   const [description, setDescription] = useState('');
   const [reproduction, setReproduction] = useState('');
+  /** Lampiran staged: ID draft dibuat saat modal dibuka agar storageKey stabil. */
+  const [draftId, setDraftId] = useState(() => newId());
+  const [draft, setDraft] = useState<Attachment[]>([]);
+  const [uploadBusy, setUploadBusy] = useState(false);
+  const [storageLimitOpen, setStorageLimitOpen] = useState(false);
+  const savedRef = useRef(false);
   const titleRef = useRef<HTMLTextAreaElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const barRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!open) {
+    if (open) {
+      setDraftId(newId());
+      setDraft([]);
+      setUploadBusy(false);
+      setStorageLimitOpen(false);
+      savedRef.current = false;
+    } else {
       setTitle('');
       setSeverity('');
       setDescription('');
@@ -59,7 +74,7 @@ export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
     dispatch({
       type: 'issue/add',
       issue: {
-        id: newId(),
+        id: draftId,
         createdAt: ts,
         updatedAt: ts,
         title: title.trim(),
@@ -68,28 +83,45 @@ export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
         description: description.trim(),
         reproduction: reproduction.trim(),
         linkedTaskId: null,
+        ...(draft.length > 0 ? { attachments: draft } : {}),
       },
     });
+    savedRef.current = true;
     setTitle('');
     setSeverity('');
     setDescription('');
     setReproduction('');
+    setDraft([]);
+    onClose();
+  }
+
+  /** Tutup tanpa save → bersihkan file staged yang yatim (best-effort). */
+  function handleClose() {
+    if (!savedRef.current && projectId) {
+      for (const a of draft) {
+        if (a.provider === 'devhub' && a.storageKey) {
+          void api.attachmentAbandon(projectId, a.storageKey).catch(() => {});
+        }
+      }
+    }
+    savedRef.current = false;
     onClose();
   }
 
   return (
+    <>
     <Modal
       open={open}
       title={t('issues.newModal.title')}
-      onClose={onClose}
+      onClose={handleClose}
       width="lg"
       className="modal-composer"
       footer={
         <>
-          <Button variant="ghost" size="md" onClick={onClose}>
+          <Button variant="ghost" size="md" onClick={handleClose}>
             {t('issues.newModal.cancel')}
           </Button>
-          <Button type="submit" size="md" form="new-issue-form" leftIcon={<Bug size={14} aria-hidden="true" />} disabled={!title.trim()}>
+          <Button type="submit" size="md" form="new-issue-form" leftIcon={<Bug size={14} aria-hidden="true" />} disabled={!title.trim() || uploadBusy}>
             {t('issues.newModal.submit')}
           </Button>
         </>
@@ -137,6 +169,19 @@ export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
             variant="bare"
             previewToggle
           />
+          {canEdit && projectId && (
+            <AttachmentSection
+              mode="staged"
+              projectId={projectId}
+              entity="issues"
+              entityId={draftId}
+              attachments={draft}
+              canEdit={canEdit}
+              onChanged={setDraft}
+              onQuotaExceeded={() => setStorageLimitOpen(true)}
+              onBusyChange={setUploadBusy}
+            />
+          )}
         </div>
         <div className="composer-propbar" ref={barRef}>
           <span
@@ -161,5 +206,14 @@ export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
         </div>
       </form>
     </Modal>
+    {teamId && (
+      <PlanLimitModal
+        open={storageLimitOpen}
+        resource="storage"
+        teamId={teamId}
+        onClose={() => setStorageLimitOpen(false)}
+      />
+    )}
+    </>
   );
 }

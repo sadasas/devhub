@@ -15,7 +15,7 @@ import { FilterBar } from '../../components/FilterBar';
 import { InlineError } from '../../components/InlineError';
 import { RowMenu } from '../../components/RowMenu';
 import { Skeleton } from '../../components/Skeleton';
-import { formatIdr } from '../../lib/format';
+import { formatBytes, formatIdr } from '../../lib/format';
 import { PackageModal } from './PackageModal';
 
 interface PackagesTabProps {
@@ -208,6 +208,7 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
               isActive: pkg.isActive ? 'active' : 'inactive',
               maxMembers: pkg.maxMembers ?? '',
               maxProjects: pkg.maxProjects ?? '',
+              maxStorageBytes: pkg.maxStorageBytes ?? '',
               durationDays: pr.durationDays,
               priceIdr: pr.priceIdr,
             }))
@@ -217,6 +218,7 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
                 isActive: pkg.isActive ? 'active' : 'inactive',
                 maxMembers: pkg.maxMembers ?? '',
                 maxProjects: pkg.maxProjects ?? '',
+                maxStorageBytes: pkg.maxStorageBytes ?? '',
                 durationDays: '',
                 priceIdr: '',
               },
@@ -228,6 +230,7 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
         { key: 'isActive', label: 'isActive' },
         { key: 'maxMembers', label: 'maxMembers' },
         { key: 'maxProjects', label: 'maxProjects' },
+        { key: 'maxStorageBytes', label: 'maxStorageBytes' },
         { key: 'durationDays', label: 'durationDays' },
         { key: 'priceIdr', label: 'priceIdr' },
       ],
@@ -336,6 +339,9 @@ export function PackagesTab({ refreshKey, onSettled }: PackagesTabProps) {
                   </span>
                   <span className="data-row-meta tabular">
                     {t('admin.packages.maxProjects', { value: pkg.maxProjects === null ? t('common:usage.unlimited') : pkg.maxProjects })}
+                  </span>
+                  <span className="data-row-meta tabular">
+                    {t('admin.packages.maxStorage', { value: pkg.maxStorageBytes === null ? t('common:usage.unlimited') : formatBytes(pkg.maxStorageBytes) })}
                   </span>
                 </span>
               ),

@@ -4,10 +4,13 @@ interface UsageMeterProps {
   label: string;
   used: number;
   limit: number | null;
+  /** Format angka mentah → teks (mis. byte → "82 MB"). Default: angka polos. */
+  format?: (n: number) => string;
 }
 
-export function UsageMeter({ label, used, limit }: UsageMeterProps) {
+export function UsageMeter({ label, used, limit, format }: UsageMeterProps) {
   const { t } = useTranslation();
+  const fmt = format ?? ((n: number) => String(n));
   if (limit === null) {
     return (
       <div className="usage-meter">
@@ -27,12 +30,12 @@ export function UsageMeter({ label, used, limit }: UsageMeterProps) {
         aria-valuenow={used}
         aria-valuemin={0}
         aria-valuemax={limit}
-        aria-label={t('usage.ofLimit', { label, used, limit })}
+        aria-label={t('usage.ofLimit', { label, used: fmt(used), limit: fmt(limit) })}
       >
         <div className={`usage-meter-fill usage-meter-${tone}`} style={{ width: `${pct}%` }} />
       </div>
       <span className="usage-meter-value">
-        {used} / {limit}
+        {fmt(used)} / {fmt(limit)}
       </span>
     </div>
   );

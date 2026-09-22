@@ -337,8 +337,30 @@ export async function deleteProject(userId: string, projectId: string): Promise<
   const row = await getProjectWithRole(userId, projectId);
   if (!row) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
   assertAdmin(row.role);
+  const data = row.data as {
+    tasks?: Array<{ attachments?: Array<{ provider?: string; size?: number; storageKey?: string | null }> }>;
+    issues?: Array<{ attachments?: Array<{ provider?: string; size?: number; storageKey?: string | null }> }>;
+  };
+  const owned = [...(data.tasks ?? []), ...(data.issues ?? [])].flatMap((i) => i.attachments ?? []).filter(
+    (a) => a.provider === 'devhub' && (a.size ?? 0) > 0,
+  );
   const deleted = await repoDeleteProject(projectId);
   if (!deleted) throw new ApiError(404, 'NOT_FOUND', 'Project not found');
+  if (owned.length > 0) {
+    const total = owned.reduce((n, a) => n + (a.size ?? 0), 0);
+    void (async () => {
+      try {
+        await pool.query('UPDATE teams SET storage_used_bytes = GREATEST(0, storage_used_bytes - $2) WHERE id = $1', [
+          row.team_id,
+          total,
+        ]);
+        const { removeObject } = await import('../../attachments/infrastructure/storageClient.js');
+        await Promise.all(owned.map((a) => (a.storageKey ? removeObject(a.storageKey) : Promise.resolve())));
+      } catch {
+        // best-effort — counter bisa dihitung ulang via reconcile
+      }
+    })();
+  }
 }
 
 export async function getProjectState(

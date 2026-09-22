@@ -23,9 +23,11 @@ import { useProject, wouldCreateCycle } from '../../state/project-context';
 import { useOptionalAuth } from '../../state/auth-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { ActivityList } from '../../components/ActivityList';
+import { AttachmentSection } from '../../components/AttachmentSection';
 import { Avatar } from '../../components/Avatar';
 import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
+import { PlanLimitModal } from '../../components/PlanLimitModal';
 import { PropRow } from '../../components/PropRow';
 import { DetailShell } from '../../components/DetailShell';
 import { DatePicker } from '../../components/DatePicker';
@@ -221,6 +223,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
   const [doneWarn, setDoneWarn] = useState<string | null>(null);
   const [rangeWarn, setRangeWarn] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [storageLimitOpen, setStorageLimitOpen] = useState(false);
   const [checkDraft, setCheckDraft] = useState('');
   const [subDraft, setSubDraft] = useState('');
   const [subAdding, setSubAdding] = useState(false);
@@ -247,6 +250,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
     setDoneWarn(null);
     setRangeWarn(null);
     setConfirmOpen(false);
+    setStorageLimitOpen(false);
     setEstimateOpen(false);
     setActualOpen(false);
     setLabelsOpen(false);
@@ -1065,6 +1069,15 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
               )}
             </div>
 
+            <AttachmentSection
+              projectId={projectId}
+              entity="tasks"
+              entityId={task.id}
+              attachments={task.attachments ?? []}
+              canEdit={canEdit}
+              onChanged={(next) => update({ attachments: next })}
+              onQuotaExceeded={() => setStorageLimitOpen(true)}
+            />
             <h4 className="detail-subtitle">Activity</h4>
             <ActivityList projectId={projectId} entity="tasks" entityId={task.id} />
             <p className="field-helper">Updated {formatRelative(task.updatedAt)}</p>
@@ -1076,6 +1089,14 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
       onClose={() => setConfirmOpen(false)}
       onConfirm={remove}
     />
+    {teamId && (
+      <PlanLimitModal
+        open={storageLimitOpen}
+        resource="storage"
+        teamId={teamId}
+        onClose={() => setStorageLimitOpen(false)}
+      />
+    )}
     </>
   );
 }

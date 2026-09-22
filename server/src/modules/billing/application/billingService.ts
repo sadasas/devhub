@@ -39,6 +39,13 @@ function requirePakasirConfigured(): void {
   }
 }
 
+/** pg mengembalikan BIGINT sebagai string — normalisasi ke number|null. */
+function numOrNull(v: unknown): number | null {
+  if (v === null || v === undefined) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
 export interface CheckoutResult {
   orderId: string;
   url: string;
@@ -59,6 +66,7 @@ export async function startCheckout(userId: string, body: unknown): Promise<Chec
   if (pkg.is_free) {
     throw new ApiError(400, 'VALIDATION_ERROR', 'The Free plan does not require a purchase');
   }
+  pkg.max_storage_bytes = numOrNull(pkg.max_storage_bytes);
   const price = await findActivePrice(priceId, packageId);
   if (!price) throw new ApiError(404, 'NOT_FOUND', 'Price option not found');
 
@@ -75,15 +83,26 @@ export async function startCheckout(userId: string, body: unknown): Promise<Chec
     curPackageId = trCheckout.plan_package_id;
   }
   const isSameCheckout = curPackageId !== null && curPackageId === pkg.id;
-  const curLimitsCheckout = { maxMembers: usage?.memberLimit ?? null, maxProjects: usage?.projectLimit ?? null };
+  const curLimitsCheckout = {
+    maxMembers: usage?.memberLimit ?? null,
+    maxProjects: usage?.projectLimit ?? null,
+    maxStorageBytes: usage?.storageLimit ?? null,
+  };
   const isDowngradeCheckout = !isSameCheckout && isDowngrade(curLimitsCheckout, pkg);
   if (isDowngradeCheckout && usage) {
     const overMembers = pkg.max_members !== null && usage.memberCount > pkg.max_members;
     const overProjects = pkg.max_projects !== null && usage.projectCount > pkg.max_projects;
-    if (overMembers || overProjects) {
-      const resource: 'members' | 'projects' = overMembers ? 'members' : 'projects';
-      const limit = resource === 'members' ? pkg.max_members! : pkg.max_projects!;
-      const used = resource === 'members' ? usage.memberCount : usage.projectCount;
+    const overStorage = pkg.max_storage_bytes !== null && usage.storageUsed > pkg.max_storage_bytes;
+    if (overMembers || overProjects || overStorage) {
+      const resource: 'members' | 'projects' | 'storage' = overMembers
+        ? 'members'
+        : overProjects
+          ? 'projects'
+          : 'storage';
+      const limit =
+        resource === 'members' ? pkg.max_members! : resource === 'projects' ? pkg.max_projects! : pkg.max_storage_bytes!;
+      const used =
+        resource === 'members' ? usage.memberCount : resource === 'projects' ? usage.projectCount : usage.storageUsed;
       throw new ApiError(402, PLAN_LIMIT_CODE, `Downgrade blocked: workspace exceeds target ${resource} limit`, {
         resource,
         limit,
@@ -374,13 +393,12 @@ export async function handleWebhook(body: unknown, meta?: WebhookMeta): Promise<
   const duration = completed.duration_days;
 
   // Ambil target paket untuk tentukan downgrade (pakai query langsung agar tetap bisa meski is_active=false pasca-checkout)
-  const targetRes = await pool.query<{ id: string; name: string; max_members: number | null; max_projects: number | null; is_free: boolean }>(
-    'SELECT id, name, max_members, max_projects, is_free FROM billing_packages WHERE id = $1',
+  const targetRes = await pool.query<{ id: string; name: string; max_members: number | null; max_projects: number | null; max_storage_bytes: number | null; is_free: boolean }>(
+    'SELECT id, name, max_members, max_projects, max_storage_bytes, is_free FROM billing_packages WHERE id = $1',
     [packageId],
   );
   const targetPkg = targetRes.rows[0];
-  if (!targetPkg) {
-    await persistWebhookLog({
+  if (!targetPkg) {    await persistWebhookLog({
       orderId: order_id,
       amount,
       incomingStatus: status ?? null,
@@ -396,6 +414,7 @@ export async function handleWebhook(body: unknown, meta?: WebhookMeta): Promise<
     return { ok: true };
   }
 
+  targetPkg.max_storage_bytes = numOrNull(targetPkg.max_storage_bytes);
   // Load usage efektif setelah lazy-activation (getEffectiveUsage sudah menangani pending expiry)
   const usage = await getEffectiveUsage(teamId);
   // Fresh team row setelah lazy-activation untuk tentukan curPackageId & permanent bypass
@@ -409,7 +428,11 @@ export async function handleWebhook(body: unknown, meta?: WebhookMeta): Promise<
     curPackageId = tr.plan_package_id;
   }
   const isSame = curPackageId !== null && curPackageId === packageId;
-  const curLimits = { maxMembers: usage?.memberLimit ?? null, maxProjects: usage?.projectLimit ?? null };
+  const curLimits = {
+    maxMembers: usage?.memberLimit ?? null,
+    maxProjects: usage?.projectLimit ?? null,
+    maxStorageBytes: usage?.storageLimit ?? null,
+  };
   const downgrade = !isSame && isDowngrade(curLimits, targetPkg);
 
   if (!downgrade) {
@@ -499,13 +522,14 @@ export async function getBillingOverview(userId: string, teamId: string) {
     name: string;
     maxMembers: number | null;
     maxProjects: number | null;
+    maxStorageBytes: number | null;
     durationDays: number;
     activateAt: string;
     createdAt: string;
   } | null = null;
   if (extra?.plan_pending_package_id && extra.plan_pending_duration && extra.plan_pending_created_at) {
-    const pendRes = await pool.query<{ id: string; name: string; max_members: number | null; max_projects: number | null }>(
-      'SELECT id, name, max_members, max_projects FROM billing_packages WHERE id = $1',
+    const pendRes = await pool.query<{ id: string; name: string; max_members: number | null; max_projects: number | null; max_storage_bytes: number | null }>(
+      'SELECT id, name, max_members, max_projects, max_storage_bytes FROM billing_packages WHERE id = $1',
       [extra.plan_pending_package_id],
     );
     const pend = pendRes.rows[0];
@@ -516,6 +540,7 @@ export async function getBillingOverview(userId: string, teamId: string) {
         name: pend.name,
         maxMembers: pend.max_members,
         maxProjects: pend.max_projects,
+        maxStorageBytes: numOrNull(pend.max_storage_bytes),
         durationDays: extra.plan_pending_duration,
         activateAt,
         createdAt: extra.plan_pending_created_at.toISOString(),
@@ -541,6 +566,10 @@ export async function getBillingOverview(userId: string, teamId: string) {
       projects: {
         used: usage?.projectCount ?? 0,
         limit: usage?.projectLimit ?? null,
+      },
+      storage: {
+        usedBytes: usage?.storageUsed ?? 0,
+        limitBytes: usage?.storageLimit ?? null,
       },
     },
     payments: payments.map(serializePayment),

@@ -31,3 +31,13 @@ export function formatHours(n: number): string {
   if (!Number.isFinite(rounded)) return '0';
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 }
+
+/** Byte → "100 MB" — dipakai kolom kuota paket admin. */
+export function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes < 0) return '—';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1048576) return `${bytes < 10240 ? (bytes / 1024).toFixed(1) : Math.round(bytes / 1024)} KB`;
+  const mb = bytes / 1048576;
+  if (mb >= 1024) return `${(mb / 1024).toFixed(mb % 1024 === 0 ? 0 : 1)} GB`;
+  return `${mb >= 100 ? Math.round(mb) : mb.toFixed(mb >= 10 ? 0 : 1)} MB`;
+}

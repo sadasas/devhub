@@ -556,6 +556,7 @@ export const api = {
     isFree?: boolean;
     maxMembers?: number | null;
     maxProjects?: number | null;
+    maxStorageBytes?: number | null;
     sortOrder?: number;
     isActive?: boolean;
     isFeatured?: boolean;
@@ -573,6 +574,7 @@ export const api = {
       isFree?: boolean;
       maxMembers?: number | null;
       maxProjects?: number | null;
+      maxStorageBytes?: number | null;
       sortOrder?: number;
       isActive?: boolean;
       isFeatured?: boolean;

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { BillingPackage, PackagePrice } from '../../lib/types';
 import { Button } from '../../components/Button';
 import { Badge } from '../../components/Badge';
-import { formatIdr } from '../../lib/format';
+import { formatBytes, formatIdr } from '../../lib/format';
 
 type TFunc = (k: string, o?: Record<string, unknown>) => string;
 function formatDuration(_t: TFunc, d: number) {
@@ -19,6 +19,9 @@ function computeBenefits(t: TFunc, p: BillingPackage) {
   else b.push(t('pricing.benefits.members', { n: p.maxMembers }));
   if (p.maxProjects === null) b.push(t('pricing.benefits.unlimitedProjects'));
   else b.push(t('pricing.benefits.projects', { n: p.maxProjects }));
+  if (p.maxStorageBytes === null) b.push(t('pricing.benefits.unlimitedStorage'));
+  else if (p.maxStorageBytes <= 0) b.push(t('pricing.benefits.storageLinksOnly'));
+  else b.push(t('pricing.benefits.storage', { size: formatBytes(p.maxStorageBytes) }));
   return b;
 }
 const STATIC_BENEFIT_KEYS = [

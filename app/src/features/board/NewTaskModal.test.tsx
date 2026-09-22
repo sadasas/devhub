@@ -10,7 +10,14 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../../state/project-context', () => ({
-  useProject: () => ({ state: mockState, dispatch: mocks.dispatch, canEdit: true, setStatus: mocks.setStatus }),
+  useProject: () => ({
+    state: mockState,
+    dispatch: mocks.dispatch,
+    canEdit: true,
+    setStatus: mocks.setStatus,
+    projectId: mockCtx.projectId,
+    teamId: mockCtx.teamId,
+  }),
 }));
 
 const MILESTONE_A = '44444444-4444-4444-8444-444444444444';
@@ -34,6 +41,7 @@ function makeState(milestones: State['milestones']): State {
 }
 
 let mockState: State;
+let mockCtx: { projectId?: string; teamId?: string } = {};
 
 function renderModal(props: Partial<React.ComponentProps<typeof NewTaskModal>> = {}) {
   return render(
@@ -46,6 +54,7 @@ function renderModal(props: Partial<React.ComponentProps<typeof NewTaskModal>> =
 describe('NewTaskModal milestone picker', () => {
   beforeEach(() => {
     mocks.dispatch.mockReset();
+    mockCtx = {};
     mockState = makeState([
       { id: MILESTONE_A, name: 'V0.2.0', version: '0.2.0', status: 'planned', changelog: '', createdAt: '2026-08-01T00:00:00.000Z', updatedAt: '2026-08-01T00:00:00.000Z' },
       { id: MILESTONE_B, name: 'V0.3.0', version: '0.3.0', status: 'planned', changelog: '', createdAt: '2026-08-01T00:00:00.000Z', updatedAt: '2026-08-01T00:00:00.000Z' },
@@ -204,6 +213,49 @@ describe('NewTaskModal milestone picker', () => {
       expect.objectContaining({
         type: 'task/add',
         task: expect.objectContaining({ milestoneId: null }),
+      }),
+    );
+  });
+});
+
+describe('NewTaskModal staged attachments', () => {
+  beforeEach(() => {
+    mocks.dispatch.mockReset();
+    mockCtx = { projectId: 'p1', teamId: 't1' };
+    mockState = makeState([]);
+  });
+
+  afterEach(() => {
+    mockCtx = {};
+    vi.restoreAllMocks();
+  });
+
+  it('hides the section without project context', () => {
+    mockCtx = {};
+    renderModal();
+    expect(screen.queryByText(/Files upload now, attached when you save/)).toBeNull();
+  });
+
+  it('stages a link and includes it in task/add on submit', () => {
+    renderModal();
+    expect(screen.getByText(/Files upload now, attached when you save/)).toBeDefined();
+    fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'Task with link' } });
+    fireEvent.click(screen.getByRole('button', { name: /Add attachment/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Add link/ }));
+    fireEvent.change(screen.getByLabelText(/Link name/), { target: { value: 'Spec' } });
+    fireEvent.change(screen.getByLabelText('Link URL'), { target: { value: 'https://example.com/s.pdf' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    expect(screen.getByText('Spec')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Add task' }));
+    expect(mocks.dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'task/add',
+        task: expect.objectContaining({
+          title: 'Task with link',
+          attachments: [
+            expect.objectContaining({ provider: 'link', name: 'Spec', url: 'https://example.com/s.pdf' }),
+          ],
+        }),
       }),
     );
   });

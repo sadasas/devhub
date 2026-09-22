@@ -22,6 +22,8 @@ export interface PackageRow {
   is_free: boolean;
   max_members: number | null;
   max_projects: number | null;
+  /** Byte; null = unlimited, 0 = tanpa upload. */
+  max_storage_bytes: number | null;
   sort_order: number;
   is_active: boolean;
   is_featured: boolean;

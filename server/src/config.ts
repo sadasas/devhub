@@ -72,6 +72,13 @@ const envSchema = z.object({
     .string()
     .default('false')
     .transform((v) => v === 'true'),
+  // Penyimpanan lampiran DevHub (bucket objek S3-compatible, opsional).
+  // Kosong = fitur upload mati (endpoint mengembalikan STORAGE_DISABLED);
+  // lampiran tipe tautan tetap bisa dipakai tanpa konfigurasi ini.
+  DEVHUB_STORAGE_URL: z.string().max(500).default(''),
+  DEVHUB_STORAGE_SERVICE_KEY: z.string().max(500).default(''),
+  DEVHUB_STORAGE_BUCKET: z.string().max(200).default('devhub-attachments'),
+  DEVHUB_STORAGE_UPLOAD_MAX_MB: z.coerce.number().int().min(1).max(100).default(10),
 });
 
 export type Config = z.infer<typeof envSchema>;

@@ -47,6 +47,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
   const [description, setDescription] = useState('');
   const [maxMembers, setMaxMembers] = useState('');
   const [maxProjects, setMaxProjects] = useState('');
+  const [maxStorageMB, setMaxStorageMB] = useState('');
   const [sortOrder, setSortOrder] = useState('0');
   const [isActive, setIsActive] = useState(true);
   const [isFeatured, setIsFeatured] = useState(false);
@@ -56,6 +57,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
   const [nameError, setNameError] = useState<string | undefined>(undefined);
   const [maxMembersError, setMaxMembersError] = useState<string | undefined>(undefined);
   const [maxProjectsError, setMaxProjectsError] = useState<string | undefined>(undefined);
+  const [maxStorageError, setMaxStorageError] = useState<string | undefined>(undefined);
   const [sortOrderError, setSortOrderError] = useState<string | undefined>(undefined);
   const [priceErrors, setPriceErrors] = useState<PriceFieldErrors[]>([]);
   const [pendingRemoveIndex, setPendingRemoveIndex] = useState<number | null>(null);
@@ -68,6 +70,9 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
       setDescription(pkg.description || '');
       setMaxMembers(pkg.maxMembers === null ? '' : String(pkg.maxMembers));
       setMaxProjects(pkg.maxProjects === null ? '' : String(pkg.maxProjects));
+      setMaxStorageMB(
+        pkg.maxStorageBytes === null ? '' : String(Math.round((pkg.maxStorageBytes / 1048576) * 100) / 100),
+      );
       setSortOrder(String(pkg.sortOrder));
       setIsActive(pkg.isActive);
       setIsFeatured(pkg.isFeatured);
@@ -87,6 +92,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
       setDescription('');
       setMaxMembers('');
       setMaxProjects('');
+      setMaxStorageMB('');
       setSortOrder('0');
       setIsActive(true);
       setIsFeatured(false);
@@ -96,6 +102,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
     setNameError(undefined);
     setMaxMembersError(undefined);
     setMaxProjectsError(undefined);
+    setMaxStorageError(undefined);
     setSortOrderError(undefined);
     setPriceErrors([]);
     setPendingRemoveIndex(null);
@@ -191,6 +198,21 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
       }
     }
 
+    let parsedStorageBytes: number | null = null;
+    if (maxStorageMB.trim() === '') {
+      parsedStorageBytes = null;
+      setMaxStorageError(undefined);
+    } else {
+      const mb = Number(maxStorageMB);
+      if (!Number.isFinite(mb) || mb < 0 || mb > 1048576) {
+        setMaxStorageError(t('admin.packageModal.errors.maxStorageInvalid'));
+        valid = false;
+      } else {
+        parsedStorageBytes = Math.round(mb * 1048576);
+        setMaxStorageError(undefined);
+      }
+    }
+
     let parsedSort = 0;
     if (sortOrder.trim() === '') {
       setSortOrderError(t('admin.packageModal.errors.sortOrderInvalid'));
@@ -249,6 +271,7 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
         description: description.trim() || undefined,
         maxMembers: parsedMembers,
         maxProjects: parsedProjects,
+        maxStorageBytes: parsedStorageBytes,
         sortOrder: parsedSort,
         isActive,
         isFeatured,
@@ -330,6 +353,17 @@ export function PackageModal({ open, pkg, onClose, onSaved }: PackageModalProps)
             error={maxProjectsError}
           />
         </div>
+        <Input
+          label={t('admin.packageModal.maxStorage')}
+          type="number"
+          min={0}
+          max={1048576}
+          value={maxStorageMB}
+          onChange={(e) => { setMaxStorageMB(e.target.value); if (maxStorageError) setMaxStorageError(undefined); }}
+          placeholder={t('common:usage.unlimited')}
+          helper={maxStorageError ? undefined : t('admin.packageModal.maxStorageHelper')}
+          error={maxStorageError}
+        />
         <Input
           label={t('admin.packageModal.sortOrder')}
           type="number"

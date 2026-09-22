@@ -672,6 +672,8 @@
       "free": "Gratis",
       "members": "Anggota",
       "projects": "Proyek",
+      "storage": "Penyimpanan DevHub",
+      "storageFull": "{{used}} dari {{limit}} — file lama aman, upload baru dijeda.",
       "viewPricing": "Lihat Pricing",
       "contactAdmin": "Hubungi admin tim untuk meningkatkan workspace ini.",
       "pendingTitle": "Pembayaran tertunda",

@@ -672,6 +672,8 @@
       "free": "Free",
       "members": "Members",
       "projects": "Projects",
+      "storage": "DevHub storage",
+      "storageFull": "{{used}} of {{limit}} — old files stay safe, new uploads are paused.",
       "viewPricing": "View Pricing",
       "contactAdmin": "Contact a team admin to upgrade this workspace.",
       "pendingTitle": "Pembayaran tertunda",

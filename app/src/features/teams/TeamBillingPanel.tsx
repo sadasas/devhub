@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
+import { formatBytes } from '../../lib/format';
 import type { BillingStatus } from '../../lib/types';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
@@ -16,6 +17,10 @@ import { UsageMeter } from '../../components/UsageMeter';
 interface TeamBillingPanelProps {
   teamId: string;
   isAdmin: boolean;
+}
+
+function formatMB(bytes: number): string {
+  return formatBytes(bytes);
 }
 
 export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
@@ -59,7 +64,7 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
             <Skeleton style={{ width: 56, height: 18, borderRadius: 999 }} />
           </div>
           <div className="usage-meter-list" style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
-            {[0, 1].map((i) => (
+            {[0, 1, 2].map((i) => (
               <div key={i} className="usage-meter" style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Skeleton style={{ width: 64, height: 12 }} />
                 <Skeleton style={{ flex: 1, height: 8, borderRadius: 999 }} />
@@ -226,6 +231,12 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
                 used={data!.usage.projects.used}
                 limit={pendingPkg.maxProjects}
               />
+              <UsageMeter
+                label={t('teams.billing.storage')}
+                used={data!.usage.storage.usedBytes}
+                limit={pendingPkg.maxStorageBytes}
+                format={formatMB}
+              />
             </div>
             {bannerErrorScheduled && <InlineError>{bannerErrorScheduled}</InlineError>}
             <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
@@ -279,6 +290,12 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
             label={t('teams.billing.projects')}
             used={data!.usage.projects.used}
             limit={data!.usage.projects.limit}
+          />
+          <UsageMeter
+            label={t('teams.billing.storage')}
+            used={data!.usage.storage.usedBytes}
+            limit={data!.usage.storage.limitBytes}
+            format={formatMB}
           />
         </div>
         {plan === 'free' &&

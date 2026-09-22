@@ -599,6 +599,9 @@
       "members": "{{n}} anggota",
       "unlimitedProjects": "Proyek tanpa batas",
       "projects": "{{n}} proyek",
+      "unlimitedStorage": "Penyimpanan tanpa batas",
+      "storageLinksOnly": "Tautan saja",
+      "storage": "{{size}} Penyimpanan DevHub",
       "coreFeatures": "Semua fitur core",
       "exportJson": "Export JSON",
       "prioritySupport": "Priority support"

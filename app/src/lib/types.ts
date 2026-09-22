@@ -29,6 +29,21 @@ export interface ChecklistItem {
   done: boolean;
 }
 
+export type AttachmentProvider = 'devhub' | 'link';
+
+export interface Attachment {
+  id: string;
+  provider: AttachmentProvider;
+  name: string;
+  mime: string;
+  /** Byte; 0 untuk tipe tautan (tak dihitung kuota). */
+  size: number;
+  storageKey?: string | null;
+  url?: string | null;
+  linkedBy?: string | null;
+  linkedAt: string;
+}
+
 export type LabelColor =
   | 'red'
   | 'orange'
@@ -66,6 +81,7 @@ export interface Task extends Base {
   assigneeId?: string | null;
   pinned?: boolean;
   description: string;
+  attachments?: Attachment[];
 }
 
 export interface Issue extends Base {
@@ -76,6 +92,7 @@ export interface Issue extends Base {
   reproduction: string;
   linkedTaskId?: string | null;
   pinned?: boolean;
+  attachments?: Attachment[];
 }
 
 export interface TestCase extends Base {
@@ -582,6 +599,8 @@ export interface BillingPackage {
   isFree: boolean;
   maxMembers: number | null;
   maxProjects: number | null;
+  /** Byte; null = unlimited, 0 = tanpa upload. */
+  maxStorageBytes: number | null;
   sortOrder: number;
   isFeatured: boolean;
   prices: PackagePrice[];
@@ -619,6 +638,7 @@ export interface BillingPendingPackage {
   name: string;
   maxMembers: number | null;
   maxProjects: number | null;
+  maxStorageBytes: number | null;
   durationDays: number;
   activateAt: string;
   createdAt: string;
@@ -637,6 +657,7 @@ export interface BillingStatus {
   usage: {
     members: BillingUsageItem;
     projects: BillingUsageItem;
+    storage: { usedBytes: number; limitBytes: number | null };
   };
   payments: BillingPayment[];
 }

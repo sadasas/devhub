@@ -7,6 +7,8 @@ export interface TeamUsage {
   packageName: string;
   memberLimit: number | null;
   projectLimit: number | null;
+  storageLimit: number | null;
+  storageUsed: number;
   memberCount: number;
   projectCount: number;
   pendingPackageId?: string | null;
@@ -49,6 +51,8 @@ export async function getTeamUsage(teamId: string): Promise<TeamUsage | null> {
               COALESCE(cur.name, fr.name)                  AS "packageName",
               CASE WHEN cur.id IS NOT NULL THEN cur.max_members   ELSE fr.max_members   END AS "memberLimit",
               CASE WHEN cur.id IS NOT NULL THEN cur.max_projects  ELSE fr.max_projects  END AS "projectLimit",
+              CASE WHEN cur.id IS NOT NULL THEN cur.max_storage_bytes ELSE fr.max_storage_bytes END AS "storageLimit",
+              t.storage_used_bytes::int AS "storageUsed",
               (SELECT count(*)::int FROM projects p WHERE p.team_id = t.id)     AS "projectCount",
               (SELECT count(*)::int FROM team_members tm WHERE tm.team_id = t.id) AS "memberCount",
               t.plan_pending_package_id AS "pendingPackageId",
@@ -61,14 +65,19 @@ export async function getTeamUsage(teamId: string): Promise<TeamUsage | null> {
          ON cur.id = t.plan_package_id
         AND (t.plan_expires_at IS NULL OR t.plan_expires_at > now())
        LEFT JOIN LATERAL (
-         SELECT name, max_members, max_projects
+         SELECT name, max_members, max_projects, max_storage_bytes
          FROM billing_packages WHERE is_free LIMIT 1
        ) fr ON true
-       LEFT JOIN billing_packages pend ON pend.id = t.plan_pending_package_id
-       WHERE t.id = $1`,
+        LEFT JOIN billing_packages pend ON pend.id = t.plan_pending_package_id
+        WHERE t.id = $1`,
       [teamId],
     );
-    return result.rows[0] ?? null;
+    const row = result.rows[0] ?? null;
+    // pg mengembalikan BIGINT sebagai string — normalisasi agar kontrak JSON tetap number.
+    if (row && row.storageLimit !== null && row.storageLimit !== undefined) {
+      row.storageLimit = Number(row.storageLimit);
+    }
+    return row;
   });
 }
 
