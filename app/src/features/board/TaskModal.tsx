@@ -14,9 +14,10 @@ import {
 import { formatDate, formatRelative, isDecimalKey, isTaskCompletable, linkedTestCases, newId, nowIso, openBlockerNames, parseLabels, sanitizeDecimalInput, taskBlockSummary } from '../../lib/utils';
 import { api } from '../../lib/api';
 import { taskDueChip } from '../../lib/due-dates';
-import { startAfterDue } from '../../lib/start-dates';
+import { startAfterDue, subRangeOutsideParent } from '../../lib/start-dates';
 import type { Task, TaskPriority, TaskStatus, TeamMember } from '../../lib/types';
 import { LabelPickerBody } from './LabelPickerBody';
+import { GCalSyncedMark } from '../integrations/GCalSyncedMark';
 import type { UpdatePatch } from '../../state/project-context';
 import { useProject, wouldCreateCycle } from '../../state/project-context';
 import { useOptionalAuth } from '../../state/auth-context';
@@ -218,6 +219,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
   );
   const [cycleWarn, setCycleWarn] = useState<string | null>(null);
   const [doneWarn, setDoneWarn] = useState<string | null>(null);
+  const [rangeWarn, setRangeWarn] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [checkDraft, setCheckDraft] = useState('');
   const [subDraft, setSubDraft] = useState('');
@@ -243,6 +245,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
     setPickingBlocker(false);
     setCycleWarn(null);
     setDoneWarn(null);
+    setRangeWarn(null);
     setConfirmOpen(false);
     setEstimateOpen(false);
     setActualOpen(false);
@@ -326,6 +329,20 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
   const subtasks = state!.tasks.filter((tt) => tt.parentTaskId === task.id);
   const subDone = subtasks.filter((tt) => tt.status === 'done').length;
   const parentTask = task.parentTaskId ? state!.tasks.find((tt) => tt.id === task.parentTaskId) : undefined;
+  /** Subtask yang keluar rentang task ini (hanya relevan bila task ini parent). */
+  const orphanedSubtasks = !task.parentTaskId
+    ? subtasks.filter((ss) => subRangeOutsideParent(ss, task) !== null)
+    : [];
+  const clampSubtasks = () => {
+    for (const ss of orphanedSubtasks) {
+      const patch: { startDate?: string | null; dueDate?: string | null } = {};
+      if (task.startDate && ss.startDate && ss.startDate < task.startDate) patch.startDate = task.startDate;
+      if (task.dueDate && ss.dueDate && ss.dueDate > task.dueDate) patch.dueDate = task.dueDate;
+      if (Object.keys(patch).length > 0) {
+        dispatch({ type: 'task/update', id: ss.id, patch });
+      }
+    }
+  };
   const parentOptions = state!.tasks.filter(
     (tt) => tt.id !== task.id && !tt.parentTaskId && tt.parentTaskId !== task.id && subtasks.every((ss) => ss.id !== tt.id),
   );
@@ -370,7 +387,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
         updatedAt: ts,
         title: title.slice(0, 300),
         status: 'todo',
-        priority: 'medium',
+        priority: task.priority,
         labels: [],
         blockedBy: [],
         parentTaskId: task.id,
@@ -466,10 +483,13 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                   <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>—</span>
                 ) : (
                   <span style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', maxWidth: '100%' }}>
-                    <span>
-                      {task.startDate ? formatDate(task.startDate) : t('board.taskModal.startDateLabel')}
-                      {' - '}
-                      {task.dueDate ? formatDate(task.dueDate) : t('board.taskModal.dueDateLabel')}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <span>
+                        {task.startDate ? formatDate(task.startDate) : t('board.taskModal.startDateLabel')}
+                        {' - '}
+                        {task.dueDate ? formatDate(task.dueDate) : t('board.taskModal.dueDateLabel')}
+                      </span>
+                      <GCalSyncedMark taskId={task.id} projectId={projectId} />
                     </span>
                     {task.dueDate && taskDueChip(task).tone === 'danger' && (
                       <span style={{ display: 'block', marginTop: 4 }}>
@@ -487,8 +507,22 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                     mode="range"
                     start={task.startDate?.slice(0, 10) ?? null}
                     end={task.dueDate?.slice(0, 10) ?? null}
-                    onApply={(s, e) => { update({ startDate: s, dueDate: e }); setHotProp(null); }}
-                    onClose={() => setHotProp(null)}
+                    minDate={parentTask?.startDate?.slice(0, 10) ?? null}
+                    maxDate={parentTask?.dueDate?.slice(0, 10) ?? null}
+                    onApply={(s, e) => {
+                      if (parentTask && subRangeOutsideParent({ startDate: s, dueDate: e }, parentTask)) {
+                        setRangeWarn(t('board.taskModal.subRangeWarn', {
+                          defaultValue: 'Date is outside the parent range ({{start}} – {{due}}).',
+                          start: parentTask.startDate ? formatDate(parentTask.startDate) : '…',
+                          due: parentTask.dueDate ? formatDate(parentTask.dueDate) : '…',
+                        }));
+                        return;
+                      }
+                      setRangeWarn(null);
+                      update({ startDate: s, dueDate: e });
+                      setHotProp(null);
+                    }}
+                    onClose={() => { setRangeWarn(null); setHotProp(null); }}
                   />
                 )}
               />
@@ -496,6 +530,27 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
 
 
               {dateWarn && <InlineError>{dateWarn}</InlineError>}
+              {rangeWarn && <InlineError>{rangeWarn}</InlineError>}
+              {orphanedSubtasks.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <InlineError>
+                    {t('board.taskModal.parentShrinkWarn', {
+                      defaultValue: '{{count}} subtasks are outside the new range.',
+                      count: orphanedSubtasks.length,
+                    })}
+                  </InlineError>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={clampSubtasks}
+                  >
+                    {t('board.taskModal.clampSubtasks', {
+                      defaultValue: 'Sesuaikan {{count}} subtask',
+                      count: orphanedSubtasks.length,
+                    })}
+                  </button>
+                </div>
+              )}
 
               {/* Tags */}
               <div
@@ -793,7 +848,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
       </>}
     >
             {canEdit ? (
-              <div className="editable-field" style={{ position: 'relative' }}>
+              <div className="editable-field editable-field-title" style={{ position: 'relative' }}>
                 <textarea
                   ref={titleRef}
                   className="composer-title"

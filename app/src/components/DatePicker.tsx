@@ -20,6 +20,9 @@ export interface DatePickerProps {
    * dirender di dalam popup yang sudah terposisi (mis. propbar NewTaskModal).
    */
   anchorEl?: HTMLElement | null;
+  /** Batas pilih (mis. rentang parent untuk subtask) — hari di luar disabled. */
+  minDate?: string | null;
+  maxDate?: string | null;
 }
 
 const SINGLE_WIDTH = 300;
@@ -45,6 +48,7 @@ function MonthPanel({
   focusIso,
   isSelected,
   isInRange,
+  isDisabled,
   onFocusDay,
   onPick,
   onPrev,
@@ -59,6 +63,7 @@ function MonthPanel({
   focusIso: string;
   isSelected: (iso: string) => boolean;
   isInRange: (iso: string) => boolean;
+  isDisabled?: (iso: string) => boolean;
   onFocusDay: (iso: string) => void;
   onPick: (iso: string) => void;
   onPrev: () => void;
@@ -86,12 +91,14 @@ function MonthPanel({
         ))}
         {weeks.flat().map((iso) => {
           const outside = !inMonth(iso, year, month);
+          const disabled = isDisabled?.(iso) ?? false;
           const cls = [
             'dp-day',
             outside ? 'outside' : '',
             iso === today ? 'today' : '',
             isSelected(iso) ? 'selected' : '',
             isInRange(iso) ? 'inrange' : '',
+            disabled ? 'disabled' : '',
           ]
             .filter(Boolean)
             .join(' ');
@@ -100,10 +107,12 @@ function MonthPanel({
               key={iso}
               type="button"
               data-day={iso}
-              tabIndex={iso === focusIso ? 0 : -1}
+              tabIndex={iso === focusIso && !disabled ? 0 : -1}
               className={cls}
               aria-label={iso}
               aria-pressed={isSelected(iso)}
+              aria-disabled={disabled || undefined}
+              disabled={disabled}
               onFocus={() => onFocusDay(iso)}
               onClick={() => onPick(iso)}
             >
@@ -116,7 +125,7 @@ function MonthPanel({
   );
 }
 
-export function DatePicker({ id, mode, start, end, onApply, onClose, anchorEl }: DatePickerProps) {
+export function DatePicker({ id, mode, start, end, onApply, onClose, anchorEl, minDate, maxDate }: DatePickerProps) {
   const { t } = useTranslation('tracker');
   const anchorRef = useRef<HTMLSpanElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -234,6 +243,8 @@ export function DatePicker({ id, mode, start, end, onApply, onClose, anchorEl }:
     mode === 'single' ? iso === pending.start : iso === pending.start || (pending.end != null && iso === pending.end);
   const isInRange = (iso: string) =>
     mode === 'range' && pending.start != null && pending.end != null && iso > pending.start && iso < pending.end;
+  const isDisabled = (iso: string) =>
+    (minDate != null && iso < minDate) || (maxDate != null && iso > maxDate);
 
   const monthProps = {
     headers,
@@ -241,6 +252,7 @@ export function DatePicker({ id, mode, start, end, onApply, onClose, anchorEl }:
     focusIso,
     isSelected,
     isInRange,
+    isDisabled,
     onFocusDay: setFocusIso,
     onPick: pick,
     onPrev: () => moveMonth(-1),

@@ -4,6 +4,7 @@ import { CaretLeft, CaretRight, CalendarBlank, Check, Circle, Clock, Eye, CheckC
 import { useTranslation } from 'react-i18next';
 import { addDaysIso, inMonth, isoOf, monthName, parseIso, visibleMonthMatrix, weekDays } from '../../lib/calendar';
 import { dueBucket, dueLabel, dueTone, taskDueChip, todayIso } from '../../lib/due-dates';
+import { subRangeOutsideParent } from '../../lib/start-dates';
 import { TASK_PRIORITY, TASK_PRIORITY_ORDER, TASK_STATUS } from '../../lib/labels';
 import { formatDate } from '../../lib/utils';
 import { getAppLocale } from '../../i18n';
@@ -13,11 +14,13 @@ import { useProject } from '../../state/project-context';
 import { registerDrop } from '../../lib/drop-registry';
 import { useTouchDrag } from '../../hooks/useTouchDrag';
 import { Avatar } from '../../components/Avatar';
+import { InlineError } from '../../components/InlineError';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { MonthPicker } from '../../components/MonthPicker';
 import { Tooltip } from '../../components/Tooltip';
+import { GCalSyncedMark } from '../integrations/GCalSyncedMark';
 import { TaskCard } from './TaskCard';
 
 interface MemberInfo {
@@ -46,7 +49,7 @@ interface DueCalendarProps {
  * (e.g. public view with `tasks` prop) instead of throwing.
  * BoardPage path (inside provider) keeps existing behaviour.
  */
-function useProjectSafe(): { state: { tasks: Task[] } | null; canEdit: boolean; dispatch?: (a: any) => void } | null {
+function useProjectSafe(): { state: { tasks: Task[] } | null; canEdit: boolean; dispatch?: (a: any) => void; projectId?: string } | null {
   try {
     return useProject() as unknown as { state: { tasks: Task[] } | null; canEdit: boolean; dispatch: (a: any) => void };
   } catch {
@@ -225,6 +228,7 @@ function CalTaskChip({ task, date, segmentStart, span, members, onOpenTask, onTo
         {STATUS_ICON[task.status]}
       </span>
       <span className="due-cal-task-title">{task.title}</span>
+      <GCalSyncedMark taskId={task.id} projectId={project?.projectId} />
       {assigneeName && task.assigneeId && (
         <span aria-hidden="true" style={{ display: 'inline-flex', flexShrink: 0 }}>
           <Avatar src={assignee?.avatarUrl ?? null} name={assigneeName} email={assignee?.email} id={task.assigneeId} size={16} alt="" />
@@ -307,6 +311,14 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
   }
   const [moveTaskId, setMoveTaskId] = useState<string | null>(null);
   const [moveDateDraft, setMoveDateDraft] = useState<string>('');
+  const [rangeBlocked, setRangeBlocked] = useState(false);
+  const rangeTimer = useRef<number | undefined>(undefined);
+  const flashRangeBlocked = useCallback(() => {
+    setRangeBlocked(true);
+    window.clearTimeout(rangeTimer.current);
+    rangeTimer.current = window.setTimeout(() => setRangeBlocked(false), 4000);
+  }, []);
+  useEffect(() => () => window.clearTimeout(rangeTimer.current), []);
   const { t } = useTranslation('tracker');
 
   const anchorDate = parseIso(anchor);
@@ -522,6 +534,10 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
         dragGrabDateRef.current = null;
         return;
       }
+      // Subtask tidak boleh keluar rentang parent (tolak drop + pesan).
+      const parent = task.parentTaskId ? allTasks.find((t) => t.id === task.parentTaskId) : undefined;
+      const wouldViolate = (start: string | null | undefined, due: string | null | undefined) =>
+        parent ? subRangeOutsideParent({ startDate: start ?? null, dueDate: due ?? null }, parent) !== null : false;
       if (task.startDate && task.dueDate && task.startDate !== task.dueDate) {
         const oldStart = task.startDate;
         const oldDue = task.dueDate!;
@@ -534,15 +550,23 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
         const newStart = addDaysIso(date, -offset);
         const newDue = addDaysIso(newStart, duration);
         dragGrabDateRef.current = null;
+        if (wouldViolate(newStart, newDue)) {
+          flashRangeBlocked();
+          return;
+        }
         if (task.dueDate !== newDue || task.startDate !== newStart) {
           dispatch({ type: 'task/update', id: taskId, patch: { dueDate: newDue, startDate: newStart } });
         }
       } else {
         dragGrabDateRef.current = null;
+        if (wouldViolate(task.startDate, date)) {
+          flashRangeBlocked();
+          return;
+        }
         if (task.dueDate !== date) dispatch({ type: 'task/update', id: taskId, patch: { dueDate: date } });
       }
     },
-    [readOnly, canEdit, allTasks, dispatch],
+    [readOnly, canEdit, allTasks, dispatch, flashRangeBlocked],
   );
 
   const openMove = useCallback((taskId: string) => {
@@ -733,6 +757,14 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
         </div>
         )}
       </div>
+
+      {rangeBlocked && (
+        <div style={{ padding: '0 0 8px' }}>
+          <InlineError>
+            {t('board.cal.subRangeBlocked', { defaultValue: 'Subtask date is outside the parent range.' })}
+          </InlineError>
+        </div>
+      )}
 
       <div className="due-cal-body">
         <div className={`due-cal-grid due-cal-${weekMode ? 'week' : 'month'}${dragActive ? ' is-dragging' : ''}`} role="grid" aria-label={t('board.cal.month')} style={{ position: 'relative', gridTemplateRows: gridRowTemplate }}>

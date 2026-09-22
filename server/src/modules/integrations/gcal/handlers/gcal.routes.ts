@@ -329,6 +329,28 @@ const gcalSettingsBodySchema = z.object({
   syncEnabled: z.boolean(),
 });
 
+// GET /api/v1/integrations/gcal/synced?projectId= — daftar taskId yang punya
+// event di Google Calendar (dari gcal_event_map). Read-only: viewer boleh baca.
+// Dipakai board untuk marker per-task + membedakan board terintegrasi.
+gcalRouter.get("/synced", gcalLimiter, requireAuth, async (req, res) => {
+  const userId = getUserId(req);
+  const projectIdRaw = typeof req.query.projectId === "string" ? req.query.projectId : null;
+  if (!projectIdRaw) throw new ApiError(400, "INVALID_PAYLOAD", "projectId is required");
+  const projectId = parseOrThrow(
+    z.object({ projectId: z.string().uuid() }),
+    { projectId: projectIdRaw },
+    "Invalid project id",
+  ).projectId;
+  const membership = await getProjectWithRole(userId, projectId);
+  if (!membership) throw new ApiError(404, "NOT_FOUND", "Project not found");
+  noStore(res);
+  const rows = await pool.query<{ task_id: string }>(
+    "SELECT task_id FROM gcal_event_map WHERE project_id = $1",
+    [projectId],
+  );
+  res.json({ taskIds: rows.rows.map((r) => r.task_id) });
+});
+
 // POST /api/v1/integrations/gcal/settings — toggle sync per-project (write role).
 // Enable: butuh koneksi 'connected' milik aktor, lalu ensureCalendar (auto-create
 // `DevHub - <project>`, idempotent). Disable: hanya set flag, tanpa call Google.

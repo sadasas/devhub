@@ -4,11 +4,13 @@ import { MemoryRouter } from 'react-router';
 import type { State, Task } from '../../lib/types';
 import { TaskModal } from './TaskModal';
 
-const { setStatusMock, listMembersMock, fetchActivityMock, canEditMock } = vi.hoisted(() => ({
+const { setStatusMock, listMembersMock, fetchActivityMock, canEditMock, gcalStatusMock, gcalSyncedMock } = vi.hoisted(() => ({
   setStatusMock: vi.fn(),
   listMembersMock: vi.fn(),
   fetchActivityMock: vi.fn(),
   canEditMock: { value: true },
+  gcalStatusMock: vi.fn().mockResolvedValue({ connected: false, expired: false, email: null, syncEnabled: false, lastSyncAt: null }),
+  gcalSyncedMock: vi.fn().mockResolvedValue({ taskIds: [] }),
 }));
 
 vi.mock('../../state/project-context', () => ({
@@ -17,7 +19,12 @@ vi.mock('../../state/project-context', () => ({
 }));
 
 vi.mock('../../lib/api', () => ({
-  api: { listMembers: listMembersMock, fetchActivity: fetchActivityMock },
+  api: {
+    listMembers: listMembersMock,
+    fetchActivity: fetchActivityMock,
+    gcalStatus: gcalStatusMock,
+    gcalSynced: gcalSyncedMock,
+  },
 }));
 
 const TASK_ID = '55555555-5555-4555-8555-555555555555';
@@ -341,19 +348,17 @@ describe('TaskModal milestone select', () => {
     expect(screen.getByRole('dialog', { name: 'Choose date' })).toBeTruthy();
   });
 
-  it('holds commas in the labels draft until blur commits two labels', () => {
+  it('toggles a library label into the draft without dispatching yet', () => {
+    mockState.labelDefs = [
+      { id: 'ld1', name: 'bug', color: 'red', description: '', createdAt: '2026-08-01T00:00:00.000Z', updatedAt: '2026-08-01T00:00:00.000Z' },
+    ];
     render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
     fireEvent.click(document.querySelector('[data-prop="labels"] .prop-view') as Element);
-    const input = screen.getByRole('textbox', { name: 'Labels' });
-    fireEvent.change(input, { target: { value: 'bug, fix' } });
-    expect((input as HTMLInputElement).value).toBe('bug, fix');
-    expect(mockDispatch).not.toHaveBeenCalled();
-    fireEvent.blur(input);
-    expect(mockDispatch).toHaveBeenCalledWith({
-      type: 'task/update',
-      id: TASK_ID,
-      patch: { labels: ['bug', 'fix'] },
-    });
+    fireEvent.click(screen.getByRole('button', { name: 'bug' }));
+    expect(screen.getByText('Selected')).toBeTruthy();
+    expect(mockDispatch).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'task/update' }),
+    );
   });
 
   it('shows actual hours as an editable row with popup', () => {
@@ -386,13 +391,14 @@ describe('TaskModal milestone select', () => {
     expect(document.querySelector('[data-prop="labels"]')?.textContent).toBe(before);
   });
 
-  it('cancels the labels draft on Escape without dispatching', () => {
+  it('creates a label definition inline from the picker', () => {
     render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
     fireEvent.click(document.querySelector('[data-prop="labels"] .prop-view') as Element);
-    fireEvent.change(screen.getByRole('textbox', { name: 'Labels' }), { target: { value: 'bug' } });
-    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Labels' }), { key: 'Escape' });
-    expect(mockDispatch).not.toHaveBeenCalled();
-    expect(screen.queryByRole('dialog', { name: 'Labels' })).toBeNull();
+    fireEvent.change(screen.getByRole('textbox', { name: 'New label…' }), { target: { value: 'urgent-fix' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create label "urgent-fix"' }));
+    expect(mockDispatch).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'labelDef/add' }),
+    );
   });
 
   it('opens the estimate popup with a numeric guard on keys', () => {

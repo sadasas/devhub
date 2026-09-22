@@ -81,11 +81,12 @@ describe('ProjectSettings shell', () => {
     expect(screen.getByRole('heading', { name: 'GitHub' })).toBeTruthy();
   });
 
-  it('renders the Labels section with add form and empty state', () => {
+  it('renders the Labels section with add button and empty state', () => {
     renderSettings('/project/p1?tab=settings&section=labels');
     expect(screen.getByRole('link', { name: 'Labels' }).getAttribute('aria-current')).toBe('page');
     expect(screen.getByRole('heading', { name: 'Labels' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Add' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    expect(screen.getByRole('dialog', { name: 'New label' })).toBeTruthy();
     expect(screen.getByPlaceholderText(/Label name/)).toBeTruthy();
   });
 

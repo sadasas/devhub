@@ -17,6 +17,9 @@ import { useSortParam } from '../../hooks/useSortParam';
 import { Button } from '../../components/Button';
 import { Skeleton } from '../../components/Skeleton';
 import { SortControl } from '../../components/SortControl';
+import { GCalSyncButton } from '../integrations/GCalSyncButton';
+import { GCalBanner } from '../integrations/GCalBanner';
+import { useGCalSync } from '../../hooks/useGCalSync';
 import { TaskCard } from './TaskCard';
 import { TaskModal } from './TaskModal';
 import { NewTaskModal } from './NewTaskModal';
@@ -77,7 +80,9 @@ interface NewTaskTarget {
 
 export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   const { t } = useTranslation('tracker');
-  const { state, loading, error, loadError, dispatch, canEdit, teamId, retryLoad } = useProject();
+  const { state, loading, error, loadError, dispatch, canEdit, teamId, retryLoad, projectId } = useProject();
+  const gcal = useGCalSync(projectId);
+  const showGcalExpired = gcal.status?.connected === true && gcal.status?.expired === true;
   const [searchParams, setSearchParams] = useSearchParams();
   const rawView = searchParams.get('view');
   // calendar replaces timeline (user request) — keep legacy redirects
@@ -784,10 +789,17 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           >
             {t('board.fullscreen.canvasLabel')}
           </Button>
+          <GCalSyncButton projectId={projectId} canEdit={canEdit} />
         </div>
       </div>
 
       {doneBlockedMsg && <InlineError className="mb-12">{doneBlockedMsg}</InlineError>}
+      {showGcalExpired && canEdit && (
+        <GCalBanner
+          email={gcal.status?.email}
+          onReconnect={() => window.location.assign(api.gcalConnectUrl(projectId, window.location.href))}
+        />
+      )}
       {undoMove && !doneBlockedMsg && (
         <div className="mb-12" role="status" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8, background: 'var(--bg-overlay)', border: '1px solid var(--border-hairline)', fontSize: 13 }}>
           <span style={{ color: 'var(--text-secondary)' }}>{t('board.movedTo', { defaultValue: 'Dipindah ke {{label}}', label: columnLabels[undoMove.next] ?? undoMove.next })}</span>

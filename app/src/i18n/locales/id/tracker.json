@@ -47,6 +47,14 @@
     "markDone": "Tandai selesai",
     "unmarkDone": "Kembalikan ke Todo",
     "hideSubtasks": "Sembunyikan subtask",
+    "gcal": {
+      "connect": "Hubungkan Google Calendar",
+      "reconnect": "Koneksi kedaluwarsa — hubungkan ulang",
+      "syncedAt": "Tersinkron {{time}}",
+      "syncOn": "Sync menyala",
+      "syncOff": "Sync mati",
+      "syncedTask": "Tersinkron ke Google Calendar"
+    },
     "dropHere": "Letakkan task di sini",
     "emptySwipe": "Belum ada task di {{label}}",
     "emptyMineSwipe": "Tidak ada task milikmu di {{label}}",
@@ -173,6 +181,7 @@
       "daySummary_other": "{{count}} task",
       "daySummaryDone_one": "{{count}} task · {{done}} selesai",
       "daySummaryDone_other": "{{count}} task · {{done}} selesai",
+      "subRangeBlocked": "Tanggal subtask di luar rentang parent.",
       "monthPicker": {
         "pickMonth": "Pilih bulan",
         "dialogLabel": "Pilih bulan dan tahun",

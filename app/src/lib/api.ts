@@ -638,6 +638,8 @@ export const api = {
   /** Google Calendar (T4): semua URL terpusat di sini — jangan hardcode di komponen. */
   gcalStatus: (projectId: string) =>
     request<GCalStatus>(`/integrations/gcal/status?projectId=${encodeURIComponent(projectId)}`),
+  gcalSynced: (projectId: string) =>
+    request<{ taskIds: string[] }>(`/integrations/gcal/synced?projectId=${encodeURIComponent(projectId)}`),
   gcalDisconnect: (projectId: string) =>
     request<{ ok: true }>('/integrations/gcal/disconnect', {
       method: 'POST',
