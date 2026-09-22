@@ -313,7 +313,7 @@ export function AuthPage() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '2px 0' }}>
                 <div style={{ flex: 1, height: 1, background: 'var(--border-hairline)' }} />
-                <span style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>or</span>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>or</span>
                 <div style={{ flex: 1, height: 1, background: 'var(--border-hairline)' }} />
               </div>
             </>
@@ -418,21 +418,21 @@ export function AuthPage() {
             </div>
           )}
           {returnTo && !isForgot && (
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', margin: 0 }}>
+            <p style={{ fontSize: 14, color: 'var(--text-muted)', textAlign: 'center', margin: 0 }}>
               {t('auth.oauth.returnToHint', 'You will be redirected to authorize the external app after sign in.')}
             </p>
           )}
 
           {error && <InlineError>{error}</InlineError>}
           {noPassword && oauthProviders.google && (
-            <p style={{ fontSize: 13, margin: 0 }}>
+            <p style={{ fontSize: 14, margin: 0 }}>
               {i18n.resolvedLanguage === 'id'
                 ? 'Tip: pakai tombol Google/GitHub di atas untuk masuk, lalu buka Profil → Keamanan → Atur kata sandi.'
                 : 'Tip: use the Google/GitHub buttons above to sign in, then open Profile → Security → Set password.'}
             </p>
           )}
           {unverified && (
-            <p style={{ fontSize: 13, margin: 0 }}>
+            <p style={{ fontSize: 14, margin: 0 }}>
               <button
                 type="button"
                 className="btn btn-ghost btn-sm"
