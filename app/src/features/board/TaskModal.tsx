@@ -888,7 +888,6 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 variant="bare"
                 previewToggle
               />
-              {canEdit && <PencilSimple size={12} aria-hidden="true" className="editable-pencil" />}
             </div>
             {doneWarn && <InlineError>{doneWarn}</InlineError>}
 

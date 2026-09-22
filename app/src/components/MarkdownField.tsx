@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import { ArrowsOutSimple, FileText } from '@phosphor-icons/react';
+import { ArrowsOutSimple, FileText, PencilSimple } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { MarkdownBlocks } from '../lib/markdown';
@@ -67,6 +67,7 @@ export function MarkdownField({
                 <Icon size={12} aria-hidden="true" /> {label}
               </span>
               <span className="spacer" />
+              <PencilSimple size={12} aria-hidden="true" className="editable-pencil" />
             </div>
           )}
           {editing || value.length === 0 ? (
