@@ -4,12 +4,14 @@ import { useTranslation } from 'react-i18next';
 import { TASK_PRIORITY, TASK_PRIORITY_SHORT, TASK_STATUS, findLabelDef, labelChipStyleFor } from '../../lib/labels';
 import { formatDate, isTaskCompletable, linkedTestCases, shortId, taskBlockSummary } from '../../lib/utils';
 import { taskDueChip } from '../../lib/due-dates';
+import { startLabel } from '../../lib/start-dates';
 import type { Task } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { Avatar } from '../../components/Avatar';
 import { Badge } from '../../components/Badge';
 import { PinButton } from '../../components/PinButton';
 import { Tooltip } from '../../components/Tooltip';
+import { GCalSyncedMark } from '../integrations/GCalSyncedMark';
 import { useTouchDrag } from '../../hooks/useTouchDrag';
 
 interface MemberInfo {
@@ -44,7 +46,7 @@ export const TaskCard = memo(function TaskCard({
   density = 'full',
 }: TaskCardProps) {
   const { t } = useTranslation('tracker');
-  const { state, canEdit, dispatch } = useProject();
+  const { state, canEdit, dispatch, projectId } = useProject();
   const cardRef = useRef<HTMLDivElement>(null);
   const handleTouchDrop = useCallback(
     (dropKey: string | null) => onTouchDrop?.(task.id, dropKey),
@@ -256,6 +258,13 @@ export const TaskCard = memo(function TaskCard({
                 </span>
               </Tooltip>
             )}
+            {!task.dueDate && task.startDate && (
+              <Tooltip tone="light" title={formatDate(task.startDate)}>
+                <span className="task-start">
+                  {startLabel(task.startDate)}
+                </span>
+              </Tooltip>
+            )}
             {(task.estimate != null || task.actualHours != null || subEstimate > 0) && !(task.dueDate && dueChip.label) && (
               <Tooltip tone="light" title={String(t('board.taskCard.actualEstimate'))}>
                 <span className="tabular">
@@ -263,6 +272,7 @@ export const TaskCard = memo(function TaskCard({
                 </span>
               </Tooltip>
             )}
+            <GCalSyncedMark taskId={task.id} projectId={projectId} />
             {subtasks.length > 0 && (
               <Tooltip tone="light" title={subtasks.map((ss) => `${ss.title} (${ss.status})`).join(', ')}>
                 <span className="task-tests">

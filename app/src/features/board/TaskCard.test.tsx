@@ -125,7 +125,7 @@ describe('TaskCard', () => {
     expect(document.querySelector('.task-card .sr-only')?.textContent).toMatch(/Medium/);
   });
 
-  it('renders an assignee avatar and username when the member map knows the assignee', () => {
+  it('renders an assignee avatar with name tooltip when the member map knows the assignee', () => {
     render(
       <TaskCard
         task={task({ assigneeId: 'm1' })}
@@ -133,8 +133,9 @@ describe('TaskCard', () => {
         onOpen={() => {}}
       />,
     );
-    expect(document.querySelector('.task-assignee-name')?.textContent).toBe('Adit S');
     expect(document.querySelector('.task-assignee-avatar')).toBeTruthy();
+    expect(document.querySelector('.task-avatar .sr-only')?.textContent).toBe('Adit S');
+    expect(document.querySelector('.task-assignee-name')).toBeNull();
   });
 
   it('falls back to the email when the assignee has no display name', () => {
@@ -145,7 +146,7 @@ describe('TaskCard', () => {
         onOpen={() => {}}
       />,
     );
-    expect(document.querySelector('.task-assignee-name')?.textContent).toBe('adit@test.dev');
+    expect(document.querySelector('.task-avatar .sr-only')?.textContent).toBe('adit@test.dev');
   });
 
   it('omits the assignee avatar when the assignee is unknown or missing', () => {

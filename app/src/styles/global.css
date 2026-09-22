@@ -1577,6 +1577,15 @@ a:hover {
 .dp-day.outside {
   opacity: 0.4;
 }
+.dp-day.disabled,
+.dp-day:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.dp-day.disabled:hover,
+.dp-day:disabled:hover {
+  background: none;
+}
 .dp-day.today {
   box-shadow: inset 0 0 0 1px var(--accent);
 }
@@ -1775,8 +1784,10 @@ a:hover {
     display: contents;
   }
 
-  /* Urutan mobile: judul (-2), created (-1), properti (2 via aside), sisanya (3). */
-  .detail-grid textarea.composer-title,
+  /* Urutan mobile: judul (-2), created (-1), properti (2 via aside), sisanya (3).
+     Judul edit dibungkus .editable-field-title agar order tetap kena
+     (order hanya berlaku untuk grid-item = direct child). */
+  .detail-grid .editable-field-title,
   .detail-grid h3.detail-title {
     order: -2;
   }

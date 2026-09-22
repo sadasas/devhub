@@ -47,6 +47,14 @@
     "markDone": "Mark done",
     "unmarkDone": "Move back to Todo",
     "hideSubtasks": "Hide subtasks",
+    "gcal": {
+      "connect": "Connect Google Calendar",
+      "reconnect": "Connection expired — reconnect",
+      "syncedAt": "Synced {{time}}",
+      "syncOn": "Sync on",
+      "syncOff": "Sync off",
+      "syncedTask": "Synced to Google Calendar"
+    },
     "dropHere": "Drop tasks here",
     "emptySwipe": "No tasks in {{label}}",
     "emptyMineSwipe": "No tasks assigned to you in {{label}}",
@@ -173,6 +181,7 @@
       "daySummary_other": "{{count}} tasks",
       "daySummaryDone_one": "{{count}} task · {{done}} done",
       "daySummaryDone_other": "{{count}} tasks · {{done}} done",
+      "subRangeBlocked": "Subtask date is outside the parent range.",
       "monthPicker": {
         "pickMonth": "Pick month",
         "dialogLabel": "Pick month and year",

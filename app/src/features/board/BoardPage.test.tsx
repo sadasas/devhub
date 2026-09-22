@@ -51,6 +51,7 @@ vi.mock('../../lib/api', () => {
         syncEnabled: false,
         lastSyncAt: null,
       }),
+      gcalSynced: vi.fn().mockResolvedValue({ taskIds: [] }),
       gcalSetSync: vi.fn(),
       gcalDisconnect: vi.fn(),
       gcalConnectUrl: vi.fn((id: string) => `/api/v1/integrations/gcal/connect?projectId=${id}`),
