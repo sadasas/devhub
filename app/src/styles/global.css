@@ -5007,7 +5007,7 @@ html[data-theme='light'] .splash-bg {
 }
 
 .welcome-queue-sub {
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0;
   text-transform: none;
   color: var(--text-muted);
@@ -5233,8 +5233,8 @@ html[data-theme='light'] .splash-bg {
 }
 
 .welcome-count {
-  font-family: var(--font-mono);
-  font-size: 11px;
+  font-family: var(--font-sans);
+  font-size: 12px;
   color: var(--text-muted);
   padding-left: 2px;
 }
@@ -5438,8 +5438,8 @@ html[data-theme='light'] .splash-bg {
 }
 
 .welcome-row-team {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-family: var(--font-sans);
+  font-size: 12px;
   color: var(--text-muted);
   background: var(--bg-inset);
   border: none;
@@ -5457,8 +5457,8 @@ html[data-theme='light'] .splash-bg {
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
-  font-family: var(--font-mono);
-  font-size: 11px;
+  font-family: var(--font-sans);
+  font-size: 12px;
   color: var(--text-secondary);
 }
 
@@ -5573,9 +5573,9 @@ html[data-theme='light'] .splash-bg {
   background: transparent;
   border: none;
   border-radius: var(--radius-pill);
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--text-muted);
   cursor: pointer;
@@ -16181,8 +16181,8 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 
 .pricing-price-original {
   margin: 0;
-  font-family: var(--font-mono);
-  font-size: 12.5px;
+  font-family: var(--font-sans);
+  font-size: 12px;
   color: var(--text-muted);
   text-decoration: line-through;
   font-variant-numeric: tabular-nums;
@@ -16280,10 +16280,10 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 
 .pricing-compare-title {
   margin: 0 0 10px;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
   color: var(--text-muted);
 }
 
@@ -18364,7 +18364,7 @@ details[open] > .milestone-group-summary::before {
 
 /* L1a — invariant workspace eyebrow (text, Workspace · Nama) */
 .billing-context {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 1.4;
   color: var(--text-muted);
@@ -22454,10 +22454,7 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
   }
 
   .issues-page .data-list-count,
-  .tests-page .data-list-count,
-  .stack-page .data-list-count,
   .decisions-page .data-list-count,
-  .releases-page .data-list-count,
   .board-shell > .data-list-header > .data-list-count,
   .api-page > .data-list-header > .data-list-count,
   .schema-page > .data-list-header > .data-list-count {
