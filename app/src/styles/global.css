@@ -8985,6 +8985,10 @@ body[data-erd-canvas="open"] .chat-drawer { display: none !important; }
 .col-edit-caption-flags {
   text-align: center;
 }
+
+.col-edit-caption-comment {
+  text-align: center;
+}
 .col-type-combo {
   display: flex;
   flex-direction: column;
