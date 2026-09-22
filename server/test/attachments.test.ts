@@ -39,7 +39,7 @@ describe('attachments (043)', () => {
   });
 
   it('sign-upload is disabled without storage config (generic message)', async () => {
-    const cookie = await register('att-a@example.com');
+    const cookie = await register('att-a@gmail.com');
     const teamId = await createTeam(cookie);
     const projectId = await createProject(cookie, 'P', teamId);
     const taskId = await createTask(cookie, projectId);
@@ -53,7 +53,7 @@ describe('attachments (043)', () => {
   });
 
   it('link flow: add → listed on task → delete → gone', async () => {
-    const cookie = await register('att-b@example.com');
+    const cookie = await register('att-b@gmail.com');
     const teamId = await createTeam(cookie);
     const projectId = await createProject(cookie, 'P', teamId);
     const taskId = await createTask(cookie, projectId);
@@ -79,8 +79,8 @@ describe('attachments (043)', () => {
   });
 
   it('viewer cannot link (403), rejects bad url (400)', async () => {
-    const owner = await register('att-c@example.com');
-    const viewer = await register('att-d@example.com');
+    const owner = await register('att-c@gmail.com');
+    const viewer = await register('att-d@gmail.com');
     const teamId = await createTeam(owner);
     const projectId = await createProject(owner, 'P', teamId);
     const taskId = await createTask(owner, projectId);
@@ -98,7 +98,7 @@ describe('attachments (043)', () => {
   });
 
   it('confirm enforces storage quota on Free (402 PLAN_LIMIT resource storage)', async () => {
-    const cookie = await register('att-e@example.com');
+    const cookie = await register('att-e@gmail.com');
     const teamId = await createTeam(cookie);
     const projectId = await createProject(cookie, 'P', teamId);
     const taskId = await createTask(cookie, projectId);
@@ -127,7 +127,7 @@ describe('attachments (043)', () => {
   });
 
   it('confirm on Pro reserves quota, delete releases it', async () => {
-    const cookie = await register('att-f@example.com');
+    const cookie = await register('att-f@gmail.com');
     const teamId = await createTeam(cookie);
     await pool.query(
       `UPDATE teams SET plan = 'pro',
@@ -170,7 +170,7 @@ describe('attachments (043)', () => {
   });
 
   it('billing status exposes storage usage; packages expose maxStorageBytes', async () => {
-    const cookie = await register('att-g@example.com');
+    const cookie = await register('att-g@gmail.com');
     const teamId = await createTeam(cookie);
     const status = await request(app)
       .get(`/api/v1/billing/status/${teamId}`)
@@ -190,7 +190,7 @@ describe('attachments (043)', () => {
   });
 
   it('create task with staged devhub attachments reserves quota on Pro', async () => {
-    const cookie = await register('att-h@example.com');
+    const cookie = await register('att-h@gmail.com');
     const teamId = await createTeam(cookie);
     await pool.query(
       `UPDATE teams SET plan = 'pro',
@@ -231,7 +231,7 @@ describe('attachments (043)', () => {
   });
 
   it('create task with staged devhub attachments is blocked on Free (402)', async () => {
-    const cookie = await register('att-i@example.com');
+    const cookie = await register('att-i@gmail.com');
     const teamId = await createTeam(cookie);
     const projectId = await createProject(cookie, 'P', teamId);
     const taskId = '44444444-4444-4444-8444-444444444444';
@@ -267,7 +267,7 @@ describe('attachments (043)', () => {
   });
 
   it('abandon removes staged object; rejects foreign keys and strangers', async () => {
-    const cookie = await register('att-j@example.com');
+    const cookie = await register('att-j@gmail.com');
     const teamId = await createTeam(cookie);
     const projectId = await createProject(cookie, 'P', teamId);
     const ok = await request(app)
@@ -281,7 +281,7 @@ describe('attachments (043)', () => {
       .set('Cookie', cookie)
       .send({ projectId, storageKey: `other-team/${projectId}/tasks/draft/x.png` });
     expect(foreign.status).toBe(400);
-    const stranger = await register('att-k@example.com');
+    const stranger = await register('att-k@gmail.com');
     const denied = await request(app)
       .post('/api/v1/attachments/abandon')
       .set('Cookie', stranger)
