@@ -23,7 +23,7 @@ describe('plan quotas (ADR-043 Fase 1)', () => {
 
   beforeEach(async () => {
     await resetDb();
-    owner = await register('owner@test.dev');
+    owner = await register('owner@gmail.com');
     teamId = await getFirstTeamId(owner);
   });
 
@@ -46,7 +46,7 @@ describe('plan quotas (ADR-043 Fase 1)', () => {
   });
 
   it('allows unlimited projects once an admin sets the team to pro', async () => {
-    const adminEmail = 'admin@test.dev';
+    const adminEmail = 'admin@gmail.com';
     const admin = await register(adminEmail);
     await promoteToAdmin(adminEmail);
     for (let i = 0; i < 3; i++) await createProject(owner, `P${i}`, teamId);
@@ -78,10 +78,10 @@ describe('plan quotas (ADR-043 Fase 1)', () => {
   });
 
   it('blocks inviting a third member on a free team', async () => {
-    const second = await register('second@test.dev');
+    const second = await register('second@gmail.com');
     await inviteUser(owner, second, teamId, 'editor');
 
-    const third = await register('third@test.dev');
+    const third = await register('third@gmail.com');
     const invite = await request(app)
       .post(`/api/v1/teams/${teamId}/invitations`)
       .set('Cookie', owner)
@@ -94,7 +94,7 @@ describe('plan quotas (ADR-043 Fase 1)', () => {
   });
 
   it('blocks accepting a pending invitation once the team is full (race guard)', async () => {
-    const late = await register('late@test.dev');
+    const late = await register('late@gmail.com');
     const invite = await request(app)
       .post(`/api/v1/teams/${teamId}/invitations`)
       .set('Cookie', owner)
@@ -102,7 +102,7 @@ describe('plan quotas (ADR-043 Fase 1)', () => {
       .send({ email: await emailOf(late), role: 'viewer' });
     expect(invite.status).toBe(201);
 
-    const filler = await register('filler@test.dev');
+    const filler = await register('filler@gmail.com');
     await inviteUser(owner, filler, teamId, 'editor');
 
     const list = await request(app)

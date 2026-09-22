@@ -23,13 +23,13 @@ describe('chat routes', () => {
   });
 
   it('posts and lists messages with keyset pagination', async () => {
-    const cookie = await register('chat@test.dev');
+    const cookie = await register('chat@gmail.com');
     const teamId = await createTeam(cookie, 'Chat');
 
     const sent = await sendMessage(cookie, teamId, 'hello world');
     expect(sent.status).toBe(201);
     expect(sent.body.message.content).toBe('hello world');
-    expect(sent.body.message.authorName).toBe('chat@test.dev');
+    expect(sent.body.message.authorName).toBe('chat@gmail.com');
 
     await sendMessage(cookie, teamId, 'second');
     await sendMessage(cookie, teamId, 'third');
@@ -58,7 +58,7 @@ describe('chat routes', () => {
   });
 
   it('rejects invalid message data', async () => {
-    const cookie = await register('chat2@test.dev');
+    const cookie = await register('chat2@gmail.com');
     const teamId = await createTeam(cookie);
 
     const empty = await sendMessage(cookie, teamId, '   ');
@@ -82,8 +82,8 @@ describe('chat routes', () => {
   });
 
   it('rejects messages from non-members', async () => {
-    const owner = await register('owner@test.dev');
-    const outsider = await register('outsider@test.dev');
+    const owner = await register('owner@gmail.com');
+    const outsider = await register('outsider@gmail.com');
     const teamId = await createTeam(owner);
 
     const sent = await sendMessage(outsider, teamId, 'nope');
@@ -97,8 +97,8 @@ describe('chat routes', () => {
   });
 
   it('rejects message deletion — chat history is permanent', async () => {
-    const owner = await register('owner@test.dev');
-    const editor = await register('editor@test.dev');
+    const owner = await register('owner@gmail.com');
+    const editor = await register('editor@gmail.com');
     const teamId = await createTeam(owner);
     await inviteUser(owner, editor, teamId, 'editor');
 
@@ -122,8 +122,8 @@ describe('chat routes', () => {
   });
 
   it('reports unread counts and records read state', async () => {
-    const owner = await register('owner@test.dev');
-    const editor = await register('editor@test.dev');
+    const owner = await register('owner@gmail.com');
+    const editor = await register('editor@gmail.com');
     const teamId = await createTeam(owner);
     await inviteUser(owner, editor, teamId, 'editor');
 
@@ -158,8 +158,8 @@ describe('chat routes', () => {
   });
 
 it('filters to the team when counting unread and excludes own messages', async () => {
-    const owner = await register('multi@test.dev');
-    const editor = await register('multi-editor@test.dev');
+    const owner = await register('multi@gmail.com');
+    const editor = await register('multi-editor@gmail.com');
     const teamA = await createTeam(owner, 'A');
     const teamB = await createTeam(owner, 'B');
     await inviteUser(owner, editor, teamA, 'editor');
@@ -182,7 +182,7 @@ it('filters to the team when counting unread and excludes own messages', async (
   });
 
   it('resolves entity refs from team projects', async () => {
-    const cookie = await register('refs@test.dev');
+    const cookie = await register('refs@gmail.com');
     const teamId = await createTeam(cookie, 'Refs');
     const projectId = await createProject(cookie, 'Refs project', teamId);
 
@@ -216,7 +216,7 @@ it('filters to the team when counting unread and excludes own messages', async (
   });
 
   it('returns null titles for unknown refs', async () => {
-    const cookie = await register('refs2@test.dev');
+    const cookie = await register('refs2@gmail.com');
     const teamId = await createTeam(cookie, 'Refs2');
     await createProject(cookie, 'Empty project', teamId);
 
@@ -235,7 +235,7 @@ it('filters to the team when counting unread and excludes own messages', async (
   });
 
   it('derives titles for relations and schema versions', async () => {
-    const cookie = await register('refs3@test.dev');
+    const cookie = await register('refs3@gmail.com');
     const teamId = await createTeam(cookie, 'Refs3');
     const projectId = await createProject(cookie, 'Schema project', teamId);
 
@@ -269,7 +269,7 @@ it('filters to the team when counting unread and excludes own messages', async (
   });
 
   it('rejects invalid resolve-refs payloads', async () => {
-    const cookie = await register('refs4@test.dev');
+    const cookie = await register('refs4@gmail.com');
     const teamId = await createTeam(cookie, 'Refs4');
 
     const empty = await request(app)
@@ -288,8 +288,8 @@ it('filters to the team when counting unread and excludes own messages', async (
   });
 
   it('rejects resolve-refs from non-members', async () => {
-    const owner = await register('refs5@test.dev');
-    const outsider = await register('refs6@test.dev');
+    const owner = await register('refs5@gmail.com');
+    const outsider = await register('refs6@gmail.com');
     const teamId = await createTeam(owner, 'Refs5');
 
     const res = await request(app)

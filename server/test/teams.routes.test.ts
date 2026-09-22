@@ -19,7 +19,7 @@ describe('teams routes', () => {
   });
 
   it('creates a team with the creator as owner', async () => {
-    const cookie = await register('creator@test.dev');
+    const cookie = await register('creator@gmail.com');
     const teamId = await createTeam(cookie, 'Engineering');
     const res = await request(app)
       .get(`/api/v1/teams/${teamId}`)
@@ -32,8 +32,8 @@ describe('teams routes', () => {
   });
 
   it('hides teams from non-members', async () => {
-    const owner = await register('owner@test.dev');
-    const outsider = await register('outsider@test.dev');
+    const owner = await register('owner@gmail.com');
+    const outsider = await register('outsider@gmail.com');
     const teamId = await createTeam(owner);
     const res = await request(app)
       .get(`/api/v1/teams/${teamId}`)
@@ -43,8 +43,8 @@ describe('teams routes', () => {
   });
 
   it('renames a team as admin and rejects viewers', async () => {
-    const owner = await register('owner@test.dev');
-    const viewer = await register('viewer@test.dev');
+    const owner = await register('owner@gmail.com');
+    const viewer = await register('viewer@gmail.com');
     const teamId = await createTeam(owner);
     await inviteUser(owner, viewer, teamId, 'viewer');
 
@@ -64,8 +64,8 @@ describe('teams routes', () => {
   });
 
   it('deletes a team as owner only', async () => {
-    const owner = await register('owner@test.dev');
-    const admin = await register('admin@test.dev');
+    const owner = await register('owner@gmail.com');
+    const admin = await register('admin@gmail.com');
     const teamId = await createTeam(owner);
     await inviteUser(owner, admin, teamId, 'admin');
 
@@ -83,21 +83,21 @@ describe('teams routes', () => {
   });
 
   it('lists members with their roles', async () => {
-    const owner = await register('owner@test.dev');
-    const editor = await register('editor@test.dev');
+    const owner = await register('owner@gmail.com');
+    const editor = await register('editor@gmail.com');
     const teamId = await createTeam(owner);
     await inviteUser(owner, editor, teamId, 'editor');
 
     const members = await memberRoles(teamId, owner);
     expect(members).toHaveLength(2);
-    expect(members.find((m) => m.email === 'editor@test.dev')?.role).toBe('editor');
-    expect(members.find((m) => m.email === 'owner@test.dev')?.role).toBe('owner');
-    expect(members.find((m) => m.email === 'owner@test.dev')?.displayName).toBe('owner@test.dev');
-    expect(members.find((m) => m.email === 'editor@test.dev')?.displayName).toBe('editor@test.dev');
+    expect(members.find((m) => m.email === 'editor@gmail.com')?.role).toBe('editor');
+    expect(members.find((m) => m.email === 'owner@gmail.com')?.role).toBe('owner');
+    expect(members.find((m) => m.email === 'owner@gmail.com')?.displayName).toBe('owner@gmail.com');
+    expect(members.find((m) => m.email === 'editor@gmail.com')?.displayName).toBe('editor@gmail.com');
   });
 
   it('rejects invitations without an existing account', async () => {
-    const owner = await register('owner@test.dev');
+    const owner = await register('owner@gmail.com');
     const teamId = await createTeam(owner);
     const res = await request(app)
       .post(`/api/v1/teams/${teamId}/invitations`)
@@ -108,15 +108,15 @@ describe('teams routes', () => {
   });
 
   it('blocks self-invites and duplicate pending invites', async () => {
-    const owner = await register('owner@test.dev');
-    const member = await register('member@test.dev');
+    const owner = await register('owner@gmail.com');
+    const member = await register('member@gmail.com');
     const teamId = await createTeam(owner);
 
     const self = await request(app)
       .post(`/api/v1/teams/${teamId}/invitations`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'owner@test.dev', role: 'editor' });
+      .send({ email: 'owner@gmail.com', role: 'editor' });
     expect(self.status).toBe(400);
 
     await inviteUser(owner, member, teamId, 'editor');
@@ -124,20 +124,20 @@ describe('teams routes', () => {
       .post(`/api/v1/teams/${teamId}/invitations`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'member@test.dev', role: 'viewer' });
+      .send({ email: 'member@gmail.com', role: 'viewer' });
     expect(dup.status).toBe(400);
   });
 
   it('lists pending invitations for admins only', async () => {
-    const owner = await register('owner@test.dev');
-    await register('member@test.dev');
+    const owner = await register('owner@gmail.com');
+    await register('member@gmail.com');
     const teamId = await createTeam(owner);
 
     await request(app)
       .post(`/api/v1/teams/${teamId}/invitations`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'member@test.dev', role: 'viewer' });
+      .send({ email: 'member@gmail.com', role: 'viewer' });
 
     const adminList = await request(app)
       .get(`/api/v1/teams/${teamId}/invitations`)
@@ -145,24 +145,24 @@ describe('teams routes', () => {
       .set('X-Forwarded-For', uniqueIp());
     expect(adminList.status).toBe(200);
     expect(adminList.body.invitations).toHaveLength(1);
-    expect(adminList.body.invitations[0].email).toBe('member@test.dev');
+    expect(adminList.body.invitations[0].email).toBe('member@gmail.com');
     expect(adminList.body.invitations[0].role).toBe('viewer');
   });
 
   it('invite enqueues invite email with team name and role (M31)', async () => {
-    const owner = await register('owner2@test.dev');
-    await register('member2@test.dev');
+    const owner = await register('owner2@gmail.com');
+    await register('member2@gmail.com');
     const teamId = await createTeam(owner, 'Tim Undangan');
 
     const res = await request(app)
       .post(`/api/v1/teams/${teamId}/invitations`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'member2@test.dev', role: 'editor' });
+      .send({ email: 'member2@gmail.com', role: 'editor' });
     expect(res.status).toBe(201);
 
     const outbox = await pool.query<{ template: string; status: string; payload: unknown }>(
-      "SELECT template, status, payload FROM mail_outbox WHERE to_email = 'member2@test.dev' AND template = 'invite'",
+      "SELECT template, status, payload FROM mail_outbox WHERE to_email = 'member2@gmail.com' AND template = 'invite'",
     );
     expect(outbox.rows).toHaveLength(1);
     expect(outbox.rows[0]).toMatchObject({ template: 'invite', status: 'pending' });
@@ -170,13 +170,13 @@ describe('teams routes', () => {
   });
 
   it('accepts an invitation and removes it from pending', async () => {
-    const owner = await register('owner@test.dev');
-    const member = await register('member@test.dev');
+    const owner = await register('owner@gmail.com');
+    const member = await register('member@gmail.com');
     const teamId = await createTeam(owner);
     await inviteUser(owner, member, teamId, 'admin');
 
     const members = await memberRoles(teamId, owner);
-    expect(members.find((m) => m.email === 'member@test.dev')?.role).toBe('admin');
+    expect(members.find((m) => m.email === 'member@gmail.com')?.role).toBe('admin');
 
     const pending = await request(app)
       .get(`/api/v1/teams/${teamId}/invitations`)
@@ -186,8 +186,8 @@ describe('teams routes', () => {
   });
 
   it('lets the invitee decline an invitation', async () => {
-    const owner = await register('owner@test.dev');
-    const member = await register('member@test.dev');
+    const owner = await register('owner@gmail.com');
+    const member = await register('member@gmail.com');
     const teamId = await createTeam(owner);
     const email = await emailOf(member);
 
@@ -214,9 +214,9 @@ describe('teams routes', () => {
   });
 
   it('lets an admin withdraw a pending invitation', async () => {
-    const owner = await register('owner@test.dev');
-    const admin = await register('admin@test.dev');
-    await register('member@test.dev');
+    const owner = await register('owner@gmail.com');
+    const admin = await register('admin@gmail.com');
+    await register('member@gmail.com');
     const teamId = await createTeam(owner);
     await inviteUser(owner, admin, teamId, 'admin');
     await setTeamPlan(teamId, 'pro');
@@ -225,7 +225,7 @@ describe('teams routes', () => {
       .post(`/api/v1/teams/${teamId}/invitations`)
       .set('Cookie', owner)
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'member@test.dev', role: 'viewer' });
+      .send({ email: 'member@gmail.com', role: 'viewer' });
     const invitationId = invite.body.invitation.id as string;
 
     const withdrawn = await request(app)
@@ -242,14 +242,14 @@ describe('teams routes', () => {
   });
 
   it('changes member roles as admin and protects the owner row', async () => {
-    const owner = await register('owner@test.dev');
-    const member = await register('member@test.dev');
+    const owner = await register('owner@gmail.com');
+    const member = await register('member@gmail.com');
     const teamId = await createTeam(owner);
     await inviteUser(owner, member, teamId, 'editor');
 
     const members = await memberRoles(teamId, owner);
-    const memberId = members.find((m) => m.email === 'member@test.dev')!.id;
-    const ownerId = members.find((m) => m.email === 'owner@test.dev')!.id;
+    const memberId = members.find((m) => m.email === 'member@gmail.com')!.id;
+    const ownerId = members.find((m) => m.email === 'owner@gmail.com')!.id;
 
     const change = await request(app)
       .patch(`/api/v1/teams/${teamId}/members/${memberId}`)
@@ -267,15 +267,15 @@ describe('teams routes', () => {
   });
 
   it('rejects role changes from editors', async () => {
-    const owner = await register('owner@test.dev');
-    const editor = await register('editor@test.dev');
-    const member = await register('member@test.dev');
+    const owner = await register('owner@gmail.com');
+    const editor = await register('editor@gmail.com');
+    const member = await register('member@gmail.com');
     const teamId = await createTeam(owner);
     await inviteUser(owner, editor, teamId, 'editor');
     await inviteUser(owner, member, teamId, 'viewer');
 
     const members = await memberRoles(teamId, owner);
-    const memberId = members.find((m) => m.email === 'member@test.dev')!.id;
+    const memberId = members.find((m) => m.email === 'member@gmail.com')!.id;
 
     const res = await request(app)
       .patch(`/api/v1/teams/${teamId}/members/${memberId}`)
@@ -286,13 +286,13 @@ describe('teams routes', () => {
   });
 
   it('transfers ownership and demotes the old owner to admin', async () => {
-    const owner = await register('owner@test.dev');
-    const member = await register('member@test.dev');
+    const owner = await register('owner@gmail.com');
+    const member = await register('member@gmail.com');
     const teamId = await createTeam(owner);
     await inviteUser(owner, member, teamId, 'admin');
 
     const members = await memberRoles(teamId, owner);
-    const memberId = members.find((m) => m.email === 'member@test.dev')!.id;
+    const memberId = members.find((m) => m.email === 'member@gmail.com')!.id;
 
     const transfer = await request(app)
       .patch(`/api/v1/teams/${teamId}/members/${memberId}`)
@@ -302,20 +302,20 @@ describe('teams routes', () => {
     expect(transfer.status).toBe(200);
 
     const after = await memberRoles(teamId, owner);
-    expect(after.find((m) => m.email === 'member@test.dev')?.role).toBe('owner');
-    expect(after.find((m) => m.email === 'owner@test.dev')?.role).toBe('admin');
+    expect(after.find((m) => m.email === 'member@gmail.com')?.role).toBe('owner');
+    expect(after.find((m) => m.email === 'owner@gmail.com')?.role).toBe('admin');
   });
 
   it('prevents non-owners from transferring ownership', async () => {
-    const owner = await register('owner@test.dev');
-    const admin = await register('admin@test.dev');
-    const member = await register('member@test.dev');
+    const owner = await register('owner@gmail.com');
+    const admin = await register('admin@gmail.com');
+    const member = await register('member@gmail.com');
     const teamId = await createTeam(owner);
     await inviteUser(owner, admin, teamId, 'admin');
     await inviteUser(owner, member, teamId, 'viewer');
 
     const members = await memberRoles(teamId, admin);
-    const memberId = members.find((m) => m.email === 'member@test.dev')!.id;
+    const memberId = members.find((m) => m.email === 'member@gmail.com')!.id;
 
     const res = await request(app)
       .patch(`/api/v1/teams/${teamId}/members/${memberId}`)
@@ -326,14 +326,14 @@ describe('teams routes', () => {
   });
 
   it('removes members as admin and protects the owner', async () => {
-    const owner = await register('owner@test.dev');
-    const member = await register('member@test.dev');
+    const owner = await register('owner@gmail.com');
+    const member = await register('member@gmail.com');
     const teamId = await createTeam(owner);
     await inviteUser(owner, member, teamId, 'viewer');
 
     const members = await memberRoles(teamId, owner);
-    const memberId = members.find((m) => m.email === 'member@test.dev')!.id;
-    const ownerId = members.find((m) => m.email === 'owner@test.dev')!.id;
+    const memberId = members.find((m) => m.email === 'member@gmail.com')!.id;
+    const ownerId = members.find((m) => m.email === 'owner@gmail.com')!.id;
 
     const blocked = await request(app)
       .delete(`/api/v1/teams/${teamId}/members/${ownerId}`)
@@ -352,13 +352,13 @@ describe('teams routes', () => {
   });
 
   it('lets a member leave on their own', async () => {
-    const owner = await register('owner@test.dev');
-    const member = await register('member@test.dev');
+    const owner = await register('owner@gmail.com');
+    const member = await register('member@gmail.com');
     const teamId = await createTeam(owner);
     await inviteUser(owner, member, teamId, 'viewer');
 
     const members = await memberRoles(teamId, owner);
-    const memberId = members.find((m) => m.email === 'member@test.dev')!.id;
+    const memberId = members.find((m) => m.email === 'member@gmail.com')!.id;
 
     const leave = await request(app)
       .delete(`/api/v1/teams/${teamId}/members/${memberId}`)
@@ -374,7 +374,7 @@ describe('teams routes', () => {
   });
 
   it('returns 404 for invalid uuid params instead of 500', async () => {
-    const cookie = await register('badid@test.dev');
+    const cookie = await register('badid@gmail.com');
 
     const team = await request(app)
       .get('/api/v1/teams/not-a-uuid')

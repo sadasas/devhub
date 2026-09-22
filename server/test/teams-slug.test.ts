@@ -50,7 +50,7 @@ describe('team slugs', () => {
   });
 
   it('auto-generates slug from name with -2 dedup', async () => {
-    const cookie = await register('slug1@test.dev');
+    const cookie = await register('slug1@gmail.com');
     const id1 = await createTeam(cookie, 'Acme Corp');
     const t1 = await getTeam(cookie, id1);
     expect(t1.slug).toBe('acme-corp');
@@ -60,14 +60,14 @@ describe('team slugs', () => {
   });
 
   it('falls back to team-xxxx for empty slugs', async () => {
-    const cookie = await register('slug2@test.dev');
+    const cookie = await register('slug2@gmail.com');
     const id = await createTeam(cookie, '---');
     const t = await getTeam(cookie, id);
     expect(t.slug).toMatch(/^team-[a-z0-9]{4}$/);
   });
 
   it('rejects reserved and duplicate explicit slugs', async () => {
-    const cookie = await register('slug3@test.dev');
+    const cookie = await register('slug3@gmail.com');
     const reserved = await request(app)
       .post('/api/v1/teams')
       .set('Cookie', cookie)
@@ -92,7 +92,7 @@ describe('team slugs', () => {
   });
 
   it('renames slug with history redirect', async () => {
-    const cookie = await register('slug4@test.dev');
+    const cookie = await register('slug4@gmail.com');
     const teamId = await createTeam(cookie, 'Acme Corp');
     const before = await getTeam(cookie, teamId);
     expect(before.slug).toBe('acme-corp');
@@ -124,7 +124,7 @@ describe('team slugs', () => {
     expect(old.body.redirectTo).toBe('acme-2');
 
     // Old slug stays reserved for other teams.
-    const other = await register('slug4b@test.dev');
+    const other = await register('slug4b@gmail.com');
     const taken = await request(app)
       .post('/api/v1/teams')
       .set('Cookie', other)
@@ -134,7 +134,7 @@ describe('team slugs', () => {
   });
 
   it('checks slug availability with suggestion', async () => {
-    const cookie = await register('slug5@test.dev');
+    const cookie = await register('slug5@gmail.com');
     await createTeam(cookie, 'Acme');
 
     const taken = await request(app)
@@ -161,8 +161,8 @@ describe('team slugs', () => {
   });
 
   it('hides by-slug from non-members', async () => {
-    const owner = await register('slug6@test.dev');
-    const outsider = await register('slug6b@test.dev');
+    const owner = await register('slug6@gmail.com');
+    const outsider = await register('slug6b@gmail.com');
     const teamId = await createTeam(owner, 'Acme Corp');
     const t = await getTeam(owner, teamId);
     const res = await request(app)

@@ -66,7 +66,7 @@ describe('MCP whiteboard tools', () => {
   });
 
   it('lists the whiteboard tools over MCP', async () => {
-    const cookie = await register('wb-tools@test.dev');
+    const cookie = await register('wb-tools@gmail.com');
     const key = await createKey(cookie);
     const res = await mcpCall(key, {
       jsonrpc: '2.0',
@@ -81,7 +81,7 @@ describe('MCP whiteboard tools', () => {
   });
 
   it('creates a board with elements and assigns ids to id-less elements', async () => {
-    const cookie = await register('wb-create@test.dev');
+    const cookie = await register('wb-create@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -109,7 +109,7 @@ describe('MCP whiteboard tools', () => {
   });
 
   it('round-trips the FigJam-parity shape types (triangleUp/triangleDown/capsule)', async () => {
-    const cookie = await register('wb-shapes@test.dev');
+    const cookie = await register('wb-shapes@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -139,7 +139,7 @@ describe('MCP whiteboard tools', () => {
   });
 
   it('creates a board without elements (empty canvas)', async () => {
-    const cookie = await register('wb-empty@test.dev');
+    const cookie = await register('wb-empty@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -153,7 +153,7 @@ describe('MCP whiteboard tools', () => {
   });
 
   it('rejects a 51st board (fifty per project cap)', async () => {
-    const cookie = await register('wb-cap@test.dev');
+    const cookie = await register('wb-cap@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -166,7 +166,7 @@ describe('MCP whiteboard tools', () => {
   });
 
   it('rejects more than 1000 elements', async () => {
-    const cookie = await register('wb-1000@test.dev');
+    const cookie = await register('wb-1000@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -177,7 +177,7 @@ describe('MCP whiteboard tools', () => {
   });
 
   it('rejects malformed elements with a clear message', async () => {
-    const cookie = await register('wb-bad@test.dev');
+    const cookie = await register('wb-bad@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -192,7 +192,7 @@ describe('MCP whiteboard tools', () => {
   });
 
   it('updates name and description while preserving elements', async () => {
-    const cookie = await register('wb-rename@test.dev');
+    const cookie = await register('wb-rename@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -220,7 +220,7 @@ describe('MCP whiteboard tools', () => {
   });
 
   it('replaces elements wholesale on update', async () => {
-    const cookie = await register('wb-replace@test.dev');
+    const cookie = await register('wb-replace@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -244,7 +244,7 @@ describe('MCP whiteboard tools', () => {
   });
 
   it('does not log a no-op update', async () => {
-    const cookie = await register('wb-noop@test.dev');
+    const cookie = await register('wb-noop@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -263,7 +263,7 @@ describe('MCP whiteboard tools', () => {
   });
 
   it('rejects an unknown board id', async () => {
-    const cookie = await register('wb-unknown@test.dev');
+    const cookie = await register('wb-unknown@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -277,11 +277,11 @@ describe('MCP whiteboard tools', () => {
   });
 
   it('rejects a viewer writing to the project', async () => {
-    const ownerCookie = await register('wb-owner@test.dev');
+    const ownerCookie = await register('wb-owner@gmail.com');
     const teamId = await getFirstTeamId(ownerCookie);
     const projectId = await createProject(ownerCookie, 'Viewer board project', teamId);
 
-    const viewerCookie = await register('wb-viewer@test.dev');
+    const viewerCookie = await register('wb-viewer@gmail.com');
     await inviteUser(ownerCookie, viewerCookie, teamId, 'viewer');
     const viewerKey = await createKey(viewerCookie);
 
@@ -292,7 +292,7 @@ describe('MCP whiteboard tools', () => {
   });
 
   it('WB-10: patch adds, updates and deletes elements granularly', async () => {
-    const cookie = await register('wb-patch@test.dev');
+    const cookie = await register('wb-patch@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -321,7 +321,7 @@ describe('MCP whiteboard tools', () => {
   });
 
   it('WB-10: patch cascades incident edges when a node is deleted', async () => {
-    const cookie = await register('wb-patch-edge@test.dev');
+    const cookie = await register('wb-patch-edge@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -352,7 +352,7 @@ describe('MCP whiteboard tools', () => {
   });
 
   it('WB-10: patch rejects unknown ids, kind changes and duplicates', async () => {
-    const cookie = await register('wb-patch-bad@test.dev');
+    const cookie = await register('wb-patch-bad@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 

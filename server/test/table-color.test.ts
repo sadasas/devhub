@@ -35,7 +35,7 @@ describe('table color (U1 zod-only, no DB migration)', () => {
   }
 
   it('round-trips color via PUT and GET state', async () => {
-    const cookie = await register('tablecolor@test.dev');
+    const cookie = await register('tablecolor@gmail.com');
     const projectId = await createProject(cookie);
     const state = { ...emptyState, tables: [{ ...baseTable, color: '#ff0000' }] };
 
@@ -44,7 +44,7 @@ describe('table color (U1 zod-only, no DB migration)', () => {
   });
 
   it('treats missing color on legacy tables as null-ish (backward-compat)', async () => {
-    const cookie = await register('tablecolor2@test.dev');
+    const cookie = await register('tablecolor2@gmail.com');
     const projectId = await createProject(cookie);
     // legacy: tanpa field color sama sekali — tetap valid, terbaca null-ish
     const legacy = await putAndGet(cookie, projectId, { ...emptyState, tables: [{ ...baseTable }] });
@@ -52,7 +52,7 @@ describe('table color (U1 zod-only, no DB migration)', () => {
   });
 
   it('preserves explicit null color and strips unknown fields', async () => {
-    const cookie = await register('tablecolor3@test.dev');
+    const cookie = await register('tablecolor3@gmail.com');
     const projectId = await createProject(cookie);
     const state = { ...emptyState, tables: [{ ...baseTable, color: null, bogusField: 'nope' }] };
 
@@ -62,7 +62,7 @@ describe('table color (U1 zod-only, no DB migration)', () => {
   });
 
   it.each(['red', '#12345', '#gggggg'])('rejects invalid color %s with 400', async (color) => {
-    const cookie = await register(`tablecolor-bad-${color.replace(/[^a-z0-9]/gi, '')}@test.dev`);
+    const cookie = await register(`tablecolor-bad-${color.replace(/[^a-z0-9]/gi, '')}@gmail.com`);
     const projectId = await createProject(cookie);
     const state = { ...emptyState, tables: [{ ...baseTable, color }] };
 
@@ -75,7 +75,7 @@ describe('table color (U1 zod-only, no DB migration)', () => {
   });
 
   it('round-trips color via granular entity API and schema snapshot', async () => {
-    const cookie = await register('tablecolor4@test.dev');
+    const cookie = await register('tablecolor4@gmail.com');
     const projectId = await createProject(cookie);
 
     const created = await request(app)

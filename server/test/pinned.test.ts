@@ -37,7 +37,7 @@ describe('pinned field (M13.7)', () => {
   }
 
   it('round-trips pinned on all four entities', async () => {
-    const cookie = await register('pin@test.dev');
+    const cookie = await register('pin@gmail.com');
     const projectId = await createProject(cookie);
     const state = {
       ...emptyState,
@@ -92,7 +92,7 @@ describe('pinned field (M13.7)', () => {
   });
 
   it('defaults pinned to false when missing', async () => {
-    const cookie = await register('pin2@test.dev');
+    const cookie = await register('pin2@gmail.com');
     const projectId = await createProject(cookie);
     const state = { ...emptyState, tasks: [{ ...baseTask }] };
 
@@ -101,7 +101,7 @@ describe('pinned field (M13.7)', () => {
   });
 
   it('strips unknown fields alongside pinned', async () => {
-    const cookie = await register('pin3@test.dev');
+    const cookie = await register('pin3@gmail.com');
     const projectId = await createProject(cookie);
     const state = { ...emptyState, tasks: [{ ...baseTask, pinned: false, bogusField: 'nope' }] };
 

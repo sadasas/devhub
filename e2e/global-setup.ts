@@ -7,7 +7,7 @@ import pg from 'pg';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const TEST_DB = process.env.E2E_TEST_DB ?? 'postgres://devhub:devhub@localhost:5433/devhub_test';
 const API_BASE = process.env.E2E_API_URL ?? 'http://localhost:3100';
-const OWNER_EMAIL = `owner-${Date.now()}@e2e.devhub.test`;
+const OWNER_EMAIL = `owner-${Date.now()}@gmail.com`;
 const OWNER_PASSWORD = 'E2ePassw0rd!';
 
 function uniqueIp(): string {

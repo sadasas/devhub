@@ -19,8 +19,8 @@ describe('admin routes', () => {
 
   beforeEach(async () => {
     await resetDb();
-    const adminEmail = 'admin@test.dev';
-    const userEmail = 'member@test.dev';
+    const adminEmail = 'admin@gmail.com';
+    const userEmail = 'member@gmail.com';
     const adminCookieRaw = await register(adminEmail);
     userCookie = await register(userEmail);
     await promoteToAdmin(adminEmail);
@@ -84,7 +84,7 @@ describe('admin routes', () => {
       .set('X-Forwarded-For', uniqueIp());
     body = search.body as typeof body;
     expect(body.total).toBe(1);
-    expect(body.users[0]?.email).toBe('member@test.dev');
+    expect(body.users[0]?.email).toBe('member@gmail.com');
     expect(body.users[0]?.role).toBe('user');
 
     const paged = await request(app)
@@ -103,7 +103,7 @@ describe('admin routes', () => {
   });
 
   it('changes a user role and blocks self-demote', async () => {
-    const targetId = await userIdOf('member@test.dev');
+    const targetId = await userIdOf('member@gmail.com');
     const promote = await request(app)
       .patch(`/api/v1/admin/users/${targetId}/role`)
       .set('Cookie', adminCookie)
@@ -118,7 +118,7 @@ describe('admin routes', () => {
       .set('X-Forwarded-For', uniqueIp());
     expect((me.body as { role?: string }).role).toBe('admin');
 
-    const adminId = await userIdOf('admin@test.dev');
+    const adminId = await userIdOf('admin@gmail.com');
     const selfDemote = await request(app)
       .patch(`/api/v1/admin/users/${adminId}/role`)
       .set('Cookie', adminCookie)
@@ -153,8 +153,8 @@ describe('admin routes', () => {
     const projectId = await createProject(adminCookie, 'Admin test project', teamId);
     await pool.query(
       `INSERT INTO activity_log (project_id, entity, entity_id, action, author_id, author_name, summary)
-       VALUES ($1, 'tasks', gen_random_uuid(), 'created', $2, 'admin@test.dev', 'created task "Demo"')`,
-      [projectId, await userIdOf('admin@test.dev')],
+       VALUES ($1, 'tasks', gen_random_uuid(), 'created', $2, 'admin@gmail.com', 'created task "Demo"')`,
+      [projectId, await userIdOf('admin@gmail.com')],
     );
 
     const teamsRes = await request(app)

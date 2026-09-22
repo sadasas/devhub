@@ -34,7 +34,7 @@ describe('erdGroups (areas, zod-only entity, no DB migration)', () => {
   }
 
   it('round-trips erdGroups via PUT and GET state', async () => {
-    const cookie = await register('erdgroups@test.dev');
+    const cookie = await register('erdgroups@gmail.com');
     const projectId = await createProject(cookie);
     const got = await putAndGet(cookie, projectId, { ...emptyState, erdGroups: [baseGroup] });
     expect(got.erdGroups).toHaveLength(1);
@@ -42,7 +42,7 @@ describe('erdGroups (areas, zod-only entity, no DB migration)', () => {
   });
 
   it('defaults missing erdGroups to [] (backward-compat proyek lama)', async () => {
-    const cookie = await register('erdgroups2@test.dev');
+    const cookie = await register('erdgroups2@gmail.com');
     const projectId = await createProject(cookie);
     const { erdGroups, ...legacy } = emptyState;
     void erdGroups;
@@ -51,7 +51,7 @@ describe('erdGroups (areas, zod-only entity, no DB migration)', () => {
   });
 
   it('rejects invalid erdGroups (empty name, bad color)', async () => {
-    const cookie = await register('erdgroups3@test.dev');
+    const cookie = await register('erdgroups3@gmail.com');
     const projectId = await createProject(cookie);
     for (const bad of [
       { ...baseGroup, name: '' },
@@ -68,7 +68,7 @@ describe('erdGroups (areas, zod-only entity, no DB migration)', () => {
   });
 
   it('supports granular POST / PATCH / DELETE area', async () => {
-    const cookie = await register('erdgroups4@test.dev');
+    const cookie = await register('erdgroups4@gmail.com');
     const projectId = await createProject(cookie);
     const ip = () => ({ Cookie: cookie, 'X-Forwarded-For': uniqueIp() } as Record<string, string>);
 
@@ -99,7 +99,7 @@ describe('erdGroups (areas, zod-only entity, no DB migration)', () => {
   });
 
   it('enforces the 20-areas cap', async () => {
-    const cookie = await register('erdgroups5@test.dev');
+    const cookie = await register('erdgroups5@gmail.com');
     const projectId = await createProject(cookie);
     const many = Array.from({ length: 21 }, (_, i) => ({
       ...baseGroup,

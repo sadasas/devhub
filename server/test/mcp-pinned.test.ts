@@ -39,7 +39,7 @@ describe('MCP pinned (M13.7)', () => {
   });
 
   it('creates and pins a task', async () => {
-    const cookie = await register('mcppin@test.dev');
+    const cookie = await register('mcppin@gmail.com');
     const key = await createKey(cookie);
     const projectId = await createProject(cookie);
 
@@ -49,7 +49,7 @@ describe('MCP pinned (M13.7)', () => {
   });
 
   it('unpins a task via update_task', async () => {
-    const cookie = await register('mcppin2@test.dev');
+    const cookie = await register('mcppin2@gmail.com');
     const key = await createKey(cookie);
     const projectId = await createProject(cookie);
 
@@ -63,7 +63,7 @@ describe('MCP pinned (M13.7)', () => {
   });
 
   it('pins an issue and a test case', async () => {
-    const cookie = await register('mcppin3@test.dev');
+    const cookie = await register('mcppin3@gmail.com');
     const key = await createKey(cookie);
     const projectId = await createProject(cookie);
 
@@ -75,7 +75,7 @@ describe('MCP pinned (M13.7)', () => {
   });
 
   it('pins a decision at creation', async () => {
-    const cookie = await register('mcppin4@test.dev');
+    const cookie = await register('mcppin4@gmail.com');
     const key = await createKey(cookie);
     const projectId = await createProject(cookie);
 
@@ -85,7 +85,7 @@ describe('MCP pinned (M13.7)', () => {
   });
 
   it('defaults pinned to false when not provided', async () => {
-    const cookie = await register('mcppin5@test.dev');
+    const cookie = await register('mcppin5@gmail.com');
     const key = await createKey(cookie);
     const projectId = await createProject(cookie);
 

@@ -21,7 +21,7 @@ describe("gcal project settings contract (T3/T4)", () => {
   });
 
   it("status?projectId without connection returns combined shape, no leak", async () => {
-    const cookie = await register("gcal-status-proj@test.dev");
+    const cookie = await register("gcal-status-proj@gmail.com");
     const teamId = await createTeam(cookie);
     const projectId = await createProject(cookie, "Status proj", teamId);
 
@@ -41,8 +41,8 @@ describe("gcal project settings contract (T3/T4)", () => {
   });
 
   it("status?projectId for non-member is 404 (no existence leak beyond member gate)", async () => {
-    const owner = await register("gcal-status-owner@test.dev");
-    const stranger = await register("gcal-status-stranger@test.dev");
+    const owner = await register("gcal-status-owner@gmail.com");
+    const stranger = await register("gcal-status-stranger@gmail.com");
     const teamId = await createTeam(owner);
     const projectId = await createProject(owner, "Private proj", teamId);
 
@@ -54,7 +54,7 @@ describe("gcal project settings contract (T3/T4)", () => {
   });
 
   it("settings enable without connection is 409 NEEDS_RECONNECT; disable works", async () => {
-    const cookie = await register("gcal-settings-noconn@test.dev");
+    const cookie = await register("gcal-settings-noconn@gmail.com");
     const teamId = await createTeam(cookie);
     const projectId = await createProject(cookie, "Settings proj", teamId);
 
@@ -78,7 +78,7 @@ describe("gcal project settings contract (T3/T4)", () => {
   });
 
   it("settings enable with connection auto-creates calendar and status reflects it", async () => {
-    const cookie = await register("gcal-settings-ok@test.dev");
+    const cookie = await register("gcal-settings-ok@gmail.com");
     const userId = await userIdOf(cookie);
     const teamId = await createTeam(cookie);
     const projectId = await createProject(cookie, "Settings ok", teamId);
@@ -111,8 +111,8 @@ describe("gcal project settings contract (T3/T4)", () => {
   });
 
   it("viewer cannot toggle settings (fail-closed)", async () => {
-    const owner = await register("gcal-settings-viewer-owner@test.dev");
-    const viewer = await register("gcal-settings-viewer@test.dev");
+    const owner = await register("gcal-settings-viewer-owner@gmail.com");
+    const viewer = await register("gcal-settings-viewer@gmail.com");
     const teamId = await createTeam(owner);
     await inviteUser(owner, viewer, teamId, "viewer");
     const projectId = await createProject(owner, "Viewer proj", teamId);
@@ -126,7 +126,7 @@ describe("gcal project settings contract (T3/T4)", () => {
   });
 
   it("disconnect with projectId also disables project sync", async () => {
-    const cookie = await register("gcal-disc-proj@test.dev");
+    const cookie = await register("gcal-disc-proj@gmail.com");
     const userId = await userIdOf(cookie);
     const teamId = await createTeam(cookie);
     const projectId = await createProject(cookie, "Disc proj", teamId);
@@ -159,7 +159,7 @@ describe("gcal project settings contract (T3/T4)", () => {
   });
 
   it("enable with old-scope token (403 insufficientPermissions) asks reconnect", async () => {
-    const cookie = await register("gcal-settings-scope@test.dev");
+    const cookie = await register("gcal-settings-scope@gmail.com");
     const userId = await userIdOf(cookie);
     const teamId = await createTeam(cookie);
     const projectId = await createProject(cookie, "Settings scope", teamId);
@@ -199,7 +199,7 @@ describe("gcal project settings contract (T3/T4)", () => {
   });
 
   it("enable with Calendar API disabled (403 accessNotConfigured) keeps connection, actionable message", async () => {
-    const cookie = await register("gcal-settings-apioff@test.dev");
+    const cookie = await register("gcal-settings-apioff@gmail.com");
     const userId = await userIdOf(cookie);
     const teamId = await createTeam(cookie);
     const projectId = await createProject(cookie, "Settings apioff", teamId);

@@ -25,7 +25,7 @@ vi.mock('../../state/project-context', () => ({
 }));
 
 vi.mock('../../state/auth-context', () => ({
-  useOptionalAuth: () => ({ user: { id: 'u1', email: 'me@test.dev' } }),
+  useOptionalAuth: () => ({ user: { id: 'u1', email: 'me@gmail.com' } }),
 }));
 
 vi.mock('../../lib/api', () => {
@@ -117,8 +117,8 @@ beforeEach(() => {
   fetchActivityMock.mockReset();
   fetchActivityMock.mockResolvedValue({ items: [] });
   listMembersMock.mockResolvedValue([
-    { id: 'u1', email: 'me@test.dev', displayName: 'Me' },
-    { id: 'u2', email: 'other@test.dev', displayName: 'Other' },
+    { id: 'u1', email: 'me@gmail.com', displayName: 'Me' },
+    { id: 'u2', email: 'other@gmail.com', displayName: 'Other' },
   ]);
   mockState = makeState();
 });

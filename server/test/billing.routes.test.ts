@@ -115,7 +115,7 @@ describe('billing Pakasir + paket dinamis (ADR-044/045)', () => {
 
   beforeEach(async () => {
     await resetDb();
-    owner = await register('owner@test.dev');
+    owner = await register('owner@gmail.com');
     teamId = await getFirstTeamId(owner);
     config.PAKASIR_ENABLED = true;
     config.PAKASIR_SANDBOX = true;
@@ -191,7 +191,7 @@ describe('billing Pakasir + paket dinamis (ADR-044/045)', () => {
   });
 
   it('non-admin member cannot checkout (403)', async () => {
-    const editor = await register('editor@test.dev');
+    const editor = await register('editor@gmail.com');
     await inviteUser(owner, editor, teamId, 'editor');
     const pro = await getProPackage();
 
@@ -318,7 +318,7 @@ describe('billing Pakasir + paket dinamis (ADR-044/045)', () => {
   });
 
   it('admin manages packages: create, patch prices, delete guards', async () => {
-    const adminEmail = 'platform-admin@test.dev';
+    const adminEmail = 'platform-admin@gmail.com';
     const admin = await register(adminEmail);
     await pool.query("UPDATE users SET role = 'admin' WHERE email = $1", [adminEmail]);
 
@@ -388,7 +388,7 @@ describe('billing Pakasir + paket dinamis (ADR-044/045)', () => {
   });
 
   it('admin marks exactly one package as recommended (is_featured)', async () => {
-    const adminEmail = 'platform-admin@test.dev';
+    const adminEmail = 'platform-admin@gmail.com';
     const admin = await register(adminEmail);
     await pool.query("UPDATE users SET role = 'admin' WHERE email = $1", [adminEmail]);
     const auth = (r: request.Test) => r.set('Cookie', admin).set('X-Forwarded-For', uniqueIp());
@@ -432,7 +432,7 @@ describe('billing Pakasir + paket dinamis (ADR-044/045)', () => {
   });
 
   it('admin editing Free limits applies immediately to quotas', async () => {
-    const adminEmail = 'platform-admin@test.dev';
+    const adminEmail = 'platform-admin@gmail.com';
     const admin = await register(adminEmail);
     await pool.query("UPDATE users SET role = 'admin' WHERE email = $1", [adminEmail]);
     const freeId = await pool
@@ -497,14 +497,14 @@ describe('billing Pakasir + paket dinamis (ADR-044/045)', () => {
     const pro = await getProPackage();
     const co = await checkout(owner, { teamId, packageId: pro.id, priceId: pro.price30Id });
 
-    const stranger = await register('stranger@test.dev');
+    const stranger = await register('stranger@gmail.com');
     const forbidden = await request(app)
       .get(`/api/v1/billing/resume/${co.body.orderId}`)
       .set('Cookie', stranger)
       .set('X-Forwarded-For', uniqueIp());
     expect(forbidden.status).toBe(404);
 
-    const teamAdmin = await register('tadmin@test.dev');
+    const teamAdmin = await register('tadmin@gmail.com');
     await inviteUser(owner, teamAdmin, teamId, 'admin');
     const allowed = await request(app)
       .get(`/api/v1/billing/resume/${co.body.orderId}`)
@@ -588,8 +588,8 @@ describe('billing Pakasir + paket dinamis (ADR-044/045)', () => {
   it('downgrade checkout blocked when member count exceeds target limit (402)', async () => {
     const small = await createLimitedPackage('Small', 2, null, 80_000, 30);
     await pool.query("UPDATE teams SET plan='pro', plan_package_id=$2, plan_expires_at=now()+interval '10 days' WHERE id=$1", [teamId, (await getProPackage()).id]);
-    const u2 = await register('u2@test.dev');
-    const u3 = await register('u3@test.dev');
+    const u2 = await register('u2@gmail.com');
+    const u3 = await register('u3@gmail.com');
     await inviteUser(owner, u2, teamId, 'editor');
     await inviteUser(owner, u3, teamId, 'editor');
     // sekarang memberCount = 3 > limit 2

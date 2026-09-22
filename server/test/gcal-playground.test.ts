@@ -85,7 +85,7 @@ describe("gcal playground dry-run (T6)", () => {
   });
 
   it("returns mapped event JSON without calling Google", async () => {
-    const cookie = await register("dry-run@test.dev");
+    const cookie = await register("dry-run@gmail.com");
     const projectId = await createProject(cookie, "Dry run");
     await seedTasks(cookie, projectId);
 
@@ -122,7 +122,7 @@ describe("gcal playground dry-run (T6)", () => {
   });
 
   it("validates the payload with zod", async () => {
-    const cookie = await register("dry-run-bad@test.dev");
+    const cookie = await register("dry-run-bad@gmail.com");
     const res = await request(app)
       .post("/api/v1/integrations/gcal/playground/dry-run")
       .set("Cookie", cookie)

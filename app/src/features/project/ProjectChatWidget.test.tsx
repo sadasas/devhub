@@ -15,7 +15,7 @@ vi.mock('../../lib/api', () => ({
 
 vi.mock('../../state/auth-context', () => ({
   useAuth: () => ({
-    user: { id: 'u1', email: 'ana@test.dev', displayName: 'Ana', bio: '', createdAt: '' },
+    user: { id: 'u1', email: 'ana@gmail.com', displayName: 'Ana', bio: '', createdAt: '' },
   }),
 }));
 

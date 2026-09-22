@@ -139,7 +139,7 @@ describe('realtime WS server', () => {
   });
 
   it('greets an authenticated user and joins a project room', async () => {
-    const cookie = await register(`ws-join-${uniqueIp()}@test.dev`);
+    const cookie = await register(`ws-join-${uniqueIp()}@gmail.com`);
     const projectId = await createProject(cookie, 'WS join');
 
     const ws = await openWs(cookie);
@@ -160,8 +160,8 @@ describe('realtime WS server', () => {
   });
 
   it('rejects a non-member join with an error frame and keeps the connection open', async () => {
-    const ownerCookie = await register(`ws-owner-${uniqueIp()}@test.dev`);
-    const outsiderCookie = await register(`ws-outsider-${uniqueIp()}@test.dev`);
+    const ownerCookie = await register(`ws-owner-${uniqueIp()}@gmail.com`);
+    const outsiderCookie = await register(`ws-outsider-${uniqueIp()}@gmail.com`);
     const projectId = await createProject(ownerCookie, 'WS private');
 
     const ws = await openWs(outsiderCookie);
@@ -178,7 +178,7 @@ describe('realtime WS server', () => {
   });
 
   it('answers ping with pong', async () => {
-    const cookie = await register(`ws-ping-${uniqueIp()}@test.dev`);
+    const cookie = await register(`ws-ping-${uniqueIp()}@gmail.com`);
     const ws = await openWs(cookie);
     await nextMessage(ws);
 
@@ -191,7 +191,7 @@ describe('realtime WS server', () => {
   });
 
   it('responds left when leaving a room and removes the socket from the registry', async () => {
-    const cookie = await register(`ws-leave-${uniqueIp()}@test.dev`);
+    const cookie = await register(`ws-leave-${uniqueIp()}@gmail.com`);
     const projectId = await createProject(cookie, 'WS leave');
 
     const ws = await openWs(cookie);
@@ -216,8 +216,8 @@ describe('realtime WS server', () => {
   });
 
   it('broadcasts presence to room members when someone joins', async () => {
-    const ownerCookie = await register(`ws-pr1-${uniqueIp()}@test.dev`);
-    const memberCookie = await register(`ws-pr2-${uniqueIp()}@test.dev`);
+    const ownerCookie = await register(`ws-pr1-${uniqueIp()}@gmail.com`);
+    const memberCookie = await register(`ws-pr2-${uniqueIp()}@gmail.com`);
     const teamId = await getFirstTeamId(ownerCookie);
     await inviteUser(ownerCookie, memberCookie, teamId);
     const projectId = await createProject(ownerCookie, 'WS presence', teamId);
@@ -259,8 +259,8 @@ describe('realtime WS server', () => {
   });
 
   it('broadcasts presence updates when a member leaves or disconnects', async () => {
-    const ownerCookie = await register(`ws-pr3-${uniqueIp()}@test.dev`);
-    const memberCookie = await register(`ws-pr4-${uniqueIp()}@test.dev`);
+    const ownerCookie = await register(`ws-pr3-${uniqueIp()}@gmail.com`);
+    const memberCookie = await register(`ws-pr4-${uniqueIp()}@gmail.com`);
     const teamId = await getFirstTeamId(ownerCookie);
     await inviteUser(ownerCookie, memberCookie, teamId);
     const projectId = await createProject(ownerCookie, 'WS presence 2', teamId);
@@ -297,7 +297,7 @@ describe('realtime WS server', () => {
   });
 
   it('tracks multiple sockets of the same user in one room', async () => {
-    const cookie = await register(`ws-multi-${uniqueIp()}@test.dev`);
+    const cookie = await register(`ws-multi-${uniqueIp()}@gmail.com`);
     const projectId = await createProject(cookie, 'WS multi');
 
     const wsA = await openWs(cookie);
@@ -333,8 +333,8 @@ describe('realtime WS server', () => {
   });
 
   it('rebroadcasts presence when a member leaves via the leave frame', async () => {
-    const ownerCookie = await register(`ws-lv1-${uniqueIp()}@test.dev`);
-    const memberCookie = await register(`ws-lv2-${uniqueIp()}@test.dev`);
+    const ownerCookie = await register(`ws-lv1-${uniqueIp()}@gmail.com`);
+    const memberCookie = await register(`ws-lv2-${uniqueIp()}@gmail.com`);
     const teamId = await getFirstTeamId(ownerCookie);
     await inviteUser(ownerCookie, memberCookie, teamId);
     const projectId = await createProject(ownerCookie, 'WS leave presence', teamId);
@@ -374,7 +374,7 @@ describe('realtime WS server', () => {
   });
 
   it('terminates connections that do not answer heartbeats', async () => {
-    const cookie = await register(`ws-hb-${uniqueIp()}@test.dev`);
+    const cookie = await register(`ws-hb-${uniqueIp()}@gmail.com`);
     const hbServer = createServer(app);
     const hbRealtime = createRealtimeServer(hbServer, new RoomRegistry(), { heartbeatMs: 60 });
     await new Promise<void>((resolve) => hbServer.listen(0, resolve));
@@ -399,7 +399,7 @@ describe('realtime WS server', () => {
   });
 
   it('closes the connection when the session token becomes stale (jwt_version bump)', async () => {
-    const cookie = await register(`ws-stale-${uniqueIp()}@test.dev`);
+    const cookie = await register(`ws-stale-${uniqueIp()}@gmail.com`);
     const change = await request(app)
       .patch('/api/v1/auth/password')
       .set('Cookie', cookie)
@@ -413,7 +413,7 @@ describe('realtime WS server', () => {
   });
 
   it('sends an error frame for malformed messages', async () => {
-    const cookie = await register(`ws-bad-${uniqueIp()}@test.dev`);
+    const cookie = await register(`ws-bad-${uniqueIp()}@gmail.com`);
     const ws = await openWs(cookie);
     await nextMessage(ws);
 
@@ -438,8 +438,8 @@ describe('realtime WS server', () => {
   });
 
   it('joins a team room as a member and rejects outsiders', async () => {
-    const ownerCookie = await register(`ws-tm1-${uniqueIp()}@test.dev`);
-    const outsiderCookie = await register(`ws-tm2-${uniqueIp()}@test.dev`);
+    const ownerCookie = await register(`ws-tm1-${uniqueIp()}@gmail.com`);
+    const outsiderCookie = await register(`ws-tm2-${uniqueIp()}@gmail.com`);
     const teamId = await createTeam(ownerCookie, 'Chat team');
 
     const ws = await openWs(ownerCookie);
@@ -464,8 +464,8 @@ describe('realtime WS server', () => {
   });
 
   it('persists chat messages and broadcasts to the team room', async () => {
-    const ownerCookie = await register(`ws-cs1-${uniqueIp()}@test.dev`);
-    const memberCookie = await register(`ws-cs2-${uniqueIp()}@test.dev`);
+    const ownerCookie = await register(`ws-cs1-${uniqueIp()}@gmail.com`);
+    const memberCookie = await register(`ws-cs2-${uniqueIp()}@gmail.com`);
     const teamId = await createTeam(ownerCookie, 'Chat team 2');
     await inviteUser(ownerCookie, memberCookie, teamId);
 
@@ -508,7 +508,7 @@ describe('realtime WS server', () => {
   });
 
   it('rejects invalid chat payloads without persisting', async () => {
-    const cookie = await register(`ws-cs3-${uniqueIp()}@test.dev`);
+    const cookie = await register(`ws-cs3-${uniqueIp()}@gmail.com`);
     const teamId = await createTeam(cookie, 'Chat team 3');
     const ws = await openWs(cookie);
     await nextMessage(ws);
@@ -549,8 +549,8 @@ describe('realtime WS server', () => {
   });
 
   it('broadcasts REST-sent messages to the team room', async () => {
-    const ownerCookie = await register(`ws-cs4-${uniqueIp()}@test.dev`);
-    const memberCookie = await register(`ws-cs5-${uniqueIp()}@test.dev`);
+    const ownerCookie = await register(`ws-cs4-${uniqueIp()}@gmail.com`);
+    const memberCookie = await register(`ws-cs5-${uniqueIp()}@gmail.com`);
     const teamId = await createTeam(ownerCookie, 'Chat team 4');
     await inviteUser(ownerCookie, memberCookie, teamId);
 

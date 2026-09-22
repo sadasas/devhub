@@ -95,8 +95,8 @@ describe('TaskModal milestone select', () => {
     fetchActivityMock.mockReset();
     fetchActivityMock.mockResolvedValue([]);
     listMembersMock.mockResolvedValue([
-      { id: 'm1', email: 'adit@test.dev', role: 'editor', joinedAt: '2026-01-01T00:00:00.000Z' },
-      { id: 'm2', email: 'rani@test.dev', role: 'viewer', joinedAt: '2026-01-01T00:00:00.000Z' },
+      { id: 'm1', email: 'adit@gmail.com', role: 'editor', joinedAt: '2026-01-01T00:00:00.000Z' },
+      { id: 'm2', email: 'rani@gmail.com', role: 'viewer', joinedAt: '2026-01-01T00:00:00.000Z' },
     ]);
     mockState = makeState();
   });
@@ -279,7 +279,7 @@ describe('TaskModal milestone select', () => {
   it('shows a label column instead of an icon in the assignee row', async () => {
     mockState.tasks = [makeTask({ assigneeId: 'm1' })];
     render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
-    await screen.findByText('adit@test.dev');
+    await screen.findByText('adit@gmail.com');
     const row = document.querySelector('[data-prop="assignee"]');
     expect(row?.querySelector('.prop-label')?.textContent).toBe('Assignee');
     expect(row?.querySelector('.prop-ic')).toBeNull();

@@ -44,7 +44,7 @@ describe('API keys', () => {
   });
 
   it('creates a key, returns the raw key once, then lists it', async () => {
-    const cookie = await register('a@test.dev');
+    const cookie = await register('a@gmail.com');
 
     const created = await request(app)
       .post('/api/v1/keys')
@@ -71,7 +71,7 @@ describe('API keys', () => {
   });
 
   it('requires a name when creating a key', async () => {
-    const cookie = await register('b@test.dev');
+    const cookie = await register('b@gmail.com');
     const res = await request(app).post('/api/v1/keys').set('Cookie', cookie).send({});
     expect(res.status).toBe(400);
 
@@ -80,7 +80,7 @@ describe('API keys', () => {
   });
 
   it('reveals the full key back to its owner', async () => {
-    const cookie = await register('b@test.dev');
+    const cookie = await register('b@gmail.com');
     const created = await request(app).post('/api/v1/keys').set('Cookie', cookie).send({ name: 'reveal' });
     expect(created.status).toBe(201);
     const { id, key } = created.body;
@@ -91,17 +91,17 @@ describe('API keys', () => {
   });
 
   it('cannot reveal another user key', async () => {
-    const cookieA = await register('b@test.dev');
+    const cookieA = await register('b@gmail.com');
     const created = await request(app).post('/api/v1/keys').set('Cookie', cookieA).send({ name: 'mine' });
     const id = created.body.id as string;
 
-    const cookieB = await register('c@test.dev');
+    const cookieB = await register('c@gmail.com');
     const revealed = await request(app).get(`/api/v1/keys/${id}/reveal`).set('Cookie', cookieB);
     expect(revealed.status).toBe(404);
   });
 
   it('cannot reveal a revoked key', async () => {
-    const cookie = await register('b@test.dev');
+    const cookie = await register('b@gmail.com');
     const created = await request(app).post('/api/v1/keys').set('Cookie', cookie).send({ name: 'revoked' });
     const id = created.body.id as string;
 
@@ -111,7 +111,7 @@ describe('API keys', () => {
   });
 
   it('revokes a key (soft delete) and hides it from the list', async () => {
-    const cookie = await register('c@test.dev');
+    const cookie = await register('c@gmail.com');
     const created = await request(app).post('/api/v1/keys').set('Cookie', cookie).send({ name: 'x' });
     const id = created.body.id as string;
 
@@ -126,7 +126,7 @@ describe('API keys', () => {
   });
 
   it('paginates the active-key list (GitHub-style page/perPage)', async () => {
-    const cookie = await register('p@test.dev');
+    const cookie = await register('p@gmail.com');
     for (let i = 1; i <= 7; i += 1) {
       const created = await request(app)
         .post('/api/v1/keys')
@@ -150,7 +150,7 @@ describe('API keys', () => {
   });
 
   it('rejects invalid pagination parameters', async () => {
-    const cookie = await register('q@test.dev');
+    const cookie = await register('q@gmail.com');
     const badPage = await request(app).get('/api/v1/keys?page=0').set('Cookie', cookie);
     expect(badPage.status).toBe(400);
 
@@ -170,7 +170,7 @@ describe('API keys', () => {
   });
 
   it('rejects invalid payloads', async () => {
-    const cookie = await register('d@test.dev');
+    const cookie = await register('d@gmail.com');
     const res = await request(app)
       .post('/api/v1/keys')
       .set('Cookie', cookie)
@@ -179,11 +179,11 @@ describe('API keys', () => {
   });
 
   it('cannot revoke another user key', async () => {
-    const cookieA = await register('e@test.dev');
+    const cookieA = await register('e@gmail.com');
     const created = await request(app).post('/api/v1/keys').set('Cookie', cookieA).send({ name: 'x' });
     const id = created.body.id as string;
 
-    const cookieB = await register('f@test.dev');
+    const cookieB = await register('f@gmail.com');
     const del = await request(app).delete(`/api/v1/keys/${id}`).set('Cookie', cookieB);
     expect(del.status).toBe(404);
 

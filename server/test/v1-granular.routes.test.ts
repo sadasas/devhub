@@ -15,7 +15,7 @@ describe('granular entity API v1', () => {
     await resetDb();
   });
   it('creates, lists, patches and deletes a task with version bumps and ETags', async () => {
-    const cookie = await register('v1-task@test.dev');
+    const cookie = await register('v1-task@gmail.com');
     const projectId = await createProject(cookie);
 
     const created = await request(app)
@@ -71,7 +71,7 @@ describe('granular entity API v1', () => {
   });
 
   it('round-trips a whiteboard with a discriminated element union and enforces caps', async () => {
-    const cookie = await register('v1-board@test.dev');
+    const cookie = await register('v1-board@gmail.com');
     const projectId = await createProject(cookie);
 
     const taskCreated = await request(app)
@@ -157,7 +157,7 @@ describe('granular entity API v1', () => {
   });
 
   it('keeps omitted fields untouched on partial PATCH (no zod default injection)', async () => {
-    const cookie = await register('v1-partial@test.dev');
+    const cookie = await register('v1-partial@gmail.com');
     const projectId = await createProject(cookie);
 
     const taskCreated = await request(app)
@@ -216,7 +216,7 @@ describe('granular entity API v1', () => {
   });
 
   it('enforces the per-project whiteboard cap', async () => {
-    const cookie = await register('v1-boardcap@test.dev');
+    const cookie = await register('v1-boardcap@gmail.com');
     const projectId = await createProject(cookie);
 
     const cap = LIMITS.WHITEBOARDS_PER_PROJECT;
@@ -238,7 +238,7 @@ describe('granular entity API v1', () => {
   });
 
   it('creates nested tables with columns and cascades relations on table delete', async () => {
-    const cookie = await register('v1-table@test.dev');
+    const cookie = await register('v1-table@gmail.com');
     const projectId = await createProject(cookie);
 
     const table = await request(app)
@@ -293,7 +293,7 @@ describe('granular entity API v1', () => {
   });
 
   it('clears milestoneId, linkedTaskId and collectionId on delete', async () => {
-    const cookie = await register('v1-cascade@test.dev');
+    const cookie = await register('v1-cascade@gmail.com');
     const projectId = await createProject(cookie);
 
     const milestoneId = uid();
@@ -372,7 +372,7 @@ describe('granular entity API v1', () => {
   });
 
   it('rejects stale If-Match with 409 and accepts the current version', async () => {
-    const cookie = await register('v1-conflict@test.dev');
+    const cookie = await register('v1-conflict@gmail.com');
     const projectId = await createProject(cookie);
     const taskId = uid();
 
@@ -413,7 +413,7 @@ describe('granular entity API v1', () => {
   });
 
   it('paginates lists with an after cursor', async () => {
-    const cookie = await register('v1-page@test.dev');
+    const cookie = await register('v1-page@gmail.com');
     const projectId = await createProject(cookie);
     for (let i = 0; i < 3; i++) {
       await request(app)
@@ -440,8 +440,8 @@ describe('granular entity API v1', () => {
   });
 
   it('enforces roles: viewer read-only, non-member hidden', async () => {
-    const ownerCookie = await register('v1-owner@test.dev');
-    const viewerCookie = await register('v1-viewer@test.dev');
+    const ownerCookie = await register('v1-owner@gmail.com');
+    const viewerCookie = await register('v1-viewer@gmail.com');
     const projectId = await createProject(ownerCookie);
     await inviteUser(ownerCookie, viewerCookie, await getFirstTeamId(ownerCookie), 'viewer');
     const taskId = uid();
@@ -481,7 +481,7 @@ describe('granular entity API v1', () => {
     expect(list.body.items).toHaveLength(1);
     expect(owner.body.entity.title).toBe('Owner task');
 
-    const stranger = await register('v1-stranger@test.dev');
+    const stranger = await register('v1-stranger@gmail.com');
     const hidden = await request(app)
       .get(`${API}/projects/${projectId}/tasks`)
       .set('Cookie', stranger)

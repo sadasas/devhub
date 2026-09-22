@@ -37,7 +37,7 @@ describe('activity log API v1', () => {
   });
 
   it('records created, updated and deleted entries with summary and changes', async () => {
-    const cookie = await register('activity-lifecycle@test.dev');
+    const cookie = await register('activity-lifecycle@gmail.com');
     const projectId = await createProject(cookie);
     const taskId = uid();
 
@@ -77,7 +77,7 @@ describe('activity log API v1', () => {
   });
 
   it('writes no activity on validation error or version conflict', async () => {
-    const cookie = await register('activity-conflict@test.dev');
+    const cookie = await register('activity-conflict@gmail.com');
     const projectId = await createProject(cookie);
     const taskId = uid();
 
@@ -101,7 +101,7 @@ describe('activity log API v1', () => {
   });
 
   it('clusters rapid updates from the same author into one row', async () => {
-    const cookie = await register('activity-cluster@test.dev');
+    const cookie = await register('activity-cluster@gmail.com');
     const projectId = await createProject(cookie);
     const taskId = uid();
 
@@ -132,8 +132,8 @@ describe('activity log API v1', () => {
   });
 
   it('keeps separate rows for different authors', async () => {
-    const owner = await register('activity-owner@test.dev');
-    const editor = await register('activity-editor@test.dev');
+    const owner = await register('activity-owner@gmail.com');
+    const editor = await register('activity-editor@gmail.com');
     const teamId = await getFirstTeamId(owner);
     await inviteUser(owner, editor, teamId, 'editor');
     const projectId = await createProject(owner);
@@ -163,9 +163,9 @@ describe('activity log API v1', () => {
   });
 
   it('lets viewers read activity but hides it from non-members', async () => {
-    const owner = await register('activity-vis-owner@test.dev');
-    const viewer = await register('activity-vis-viewer@test.dev');
-    const outsider = await register('activity-vis-out@test.dev');
+    const owner = await register('activity-vis-owner@gmail.com');
+    const viewer = await register('activity-vis-viewer@gmail.com');
+    const outsider = await register('activity-vis-out@gmail.com');
     const teamId = await getFirstTeamId(owner);
     await inviteUser(owner, viewer, teamId, 'viewer');
     const projectId = await createProject(owner);
@@ -187,7 +187,7 @@ describe('activity log API v1', () => {
   });
 
   it('requires authentication and applies limit and entity filters', async () => {
-    const cookie = await register('activity-filter@test.dev');
+    const cookie = await register('activity-filter@gmail.com');
     const projectId = await createProject(cookie);
 
     for (const i of [1, 2, 3]) {
@@ -215,8 +215,8 @@ describe('activity log API v1', () => {
   });
 
   it('filters activity by authorId', async () => {
-    const owner = await register('activity-author-owner@test.dev');
-    const editor = await register('activity-author-editor@test.dev');
+    const owner = await register('activity-author-owner@gmail.com');
+    const editor = await register('activity-author-editor@gmail.com');
     const teamId = await getFirstTeamId(owner);
     await inviteUser(owner, editor, teamId, 'editor');
     const projectId = await createProject(owner);
@@ -254,7 +254,7 @@ describe('activity log API v1', () => {
   });
 
   it('summarises whiteboard element changes with a count diff instead of a JSON dump', async () => {
-    const cookie = await register('activity-whiteboard@test.dev');
+    const cookie = await register('activity-whiteboard@gmail.com');
     const projectId = await createProject(cookie);
     const boardId = uid();
 

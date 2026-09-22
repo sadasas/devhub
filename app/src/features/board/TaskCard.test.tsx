@@ -129,7 +129,7 @@ describe('TaskCard', () => {
     render(
       <TaskCard
         task={task({ assigneeId: 'm1' })}
-        members={{ m1: { email: 'adit@test.dev', displayName: 'Adit S' } }}
+        members={{ m1: { email: 'adit@gmail.com', displayName: 'Adit S' } }}
         onOpen={() => {}}
       />,
     );
@@ -142,15 +142,15 @@ describe('TaskCard', () => {
     render(
       <TaskCard
         task={task({ assigneeId: 'm1' })}
-        members={{ m1: { email: 'adit@test.dev' } }}
+        members={{ m1: { email: 'adit@gmail.com' } }}
         onOpen={() => {}}
       />,
     );
-    expect(document.querySelector('.task-avatar .sr-only')?.textContent).toBe('adit@test.dev');
+    expect(document.querySelector('.task-avatar .sr-only')?.textContent).toBe('adit@gmail.com');
   });
 
   it('omits the assignee avatar when the assignee is unknown or missing', () => {
-    render(<TaskCard task={task({ assigneeId: 'm9' })} members={{ m1: { email: 'adit@test.dev' } }} onOpen={() => {}} />);
+    render(<TaskCard task={task({ assigneeId: 'm9' })} members={{ m1: { email: 'adit@gmail.com' } }} onOpen={() => {}} />);
     expect(document.querySelector('.task-avatar')).toBeNull();
   });
 

@@ -24,7 +24,7 @@ describe('task assigneeId (M24)', () => {
   };
 
   it('round-trips assigneeId via PUT and GET state', async () => {
-    const cookie = await register('assignee@test.dev');
+    const cookie = await register('assignee@gmail.com');
     const projectId = await createProject(cookie);
     const state = { ...emptyState, tasks: [{ ...baseTask, assigneeId: ASSIGNEE }] };
 
@@ -44,7 +44,7 @@ describe('task assigneeId (M24)', () => {
   });
 
   it('preserves a null assigneeId and strips unknown task fields', async () => {
-    const cookie = await register('assignee2@test.dev');
+    const cookie = await register('assignee2@gmail.com');
     const projectId = await createProject(cookie);
     const state = { ...emptyState, tasks: [{ ...baseTask, assigneeId: null, bogusField: 'nope' }] };
 
@@ -65,7 +65,7 @@ describe('task assigneeId (M24)', () => {
   });
 
   it('rejects a malformed assigneeId with 400', async () => {
-    const cookie = await register('assignee3@test.dev');
+    const cookie = await register('assignee3@gmail.com');
     const projectId = await createProject(cookie);
     const state = { ...emptyState, tasks: [{ ...baseTask, assigneeId: 'not-a-uuid' }] };
 

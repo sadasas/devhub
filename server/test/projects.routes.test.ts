@@ -15,7 +15,7 @@ describe('projects routes', () => {
   });
 
   it('creates a project in a team and lists it with the role', async () => {
-    const cookie = await register('owner@test.dev');
+    const cookie = await register('owner@gmail.com');
     const teamId = await getFirstTeamId(cookie);
     const res = await request(app)
       .post('/api/v1/projects')
@@ -37,8 +37,8 @@ describe('projects routes', () => {
   });
 
   it('rejects creating a project in a team the user cannot write to', async () => {
-    const ownerCookie = await register('owner2@test.dev');
-    const memberCookie = await register('viewer2@test.dev');
+    const ownerCookie = await register('owner2@gmail.com');
+    const memberCookie = await register('viewer2@gmail.com');
     const teamId = await createTeam(ownerCookie);
     await inviteUser(ownerCookie, memberCookie, teamId, 'viewer');
 
@@ -51,8 +51,8 @@ describe('projects routes', () => {
   });
 
   it('allows editors to create projects', async () => {
-    const ownerCookie = await register('owner3@test.dev');
-    const editorCookie = await register('editor3@test.dev');
+    const ownerCookie = await register('owner3@gmail.com');
+    const editorCookie = await register('editor3@gmail.com');
     const teamId = await createTeam(ownerCookie);
     await inviteUser(ownerCookie, editorCookie, teamId, 'editor');
 
@@ -65,9 +65,9 @@ describe('projects routes', () => {
   });
 
   it('hides projects from non-members', async () => {
-    const cookie = await register('owner4@test.dev');
+    const cookie = await register('owner4@gmail.com');
     const projectId = await createProject(cookie);
-    const outsider = await register('outsider@test.dev');
+    const outsider = await register('outsider@gmail.com');
 
     const res = await request(app)
       .get(`/api/v1/projects/${projectId}`)
@@ -77,8 +77,8 @@ describe('projects routes', () => {
   });
 
   it('patches a project as a writer and rejects viewers', async () => {
-    const ownerCookie = await register('owner5@test.dev');
-    const memberCookie = await register('viewer5@test.dev');
+    const ownerCookie = await register('owner5@gmail.com');
+    const memberCookie = await register('viewer5@gmail.com');
     const teamId = await createTeam(ownerCookie);
     await inviteUser(ownerCookie, memberCookie, teamId, 'viewer');
     const projectId = await createProject(ownerCookie, 'Test project', teamId);
@@ -100,7 +100,7 @@ describe('projects routes', () => {
   });
 
   it('round-trips project state via PUT and GET', async () => {
-    const cookie = await register('state@test.dev');
+    const cookie = await register('state@gmail.com');
     const projectId = await createProject(cookie);
     const state = {
       ...emptyState,
@@ -139,7 +139,7 @@ describe('projects routes', () => {
   });
 
   it('rejects stale state writes with 409', async () => {
-    const cookie = await register('conflict@test.dev');
+    const cookie = await register('conflict@gmail.com');
     const projectId = await createProject(cookie);
 
     const first = await request(app)
@@ -167,7 +167,7 @@ describe('projects routes', () => {
   });
 
   it('patches a single PRD section without wiping the others', async () => {
-    const cookie = await register('prd-patch@test.dev');
+    const cookie = await register('prd-patch@gmail.com');
     const projectId = await createProject(cookie);
 
     const seed = await request(app)
@@ -197,7 +197,7 @@ describe('projects routes', () => {
   });
 
   it('returns 404 for an invalid project id instead of 500', async () => {
-    const cookie = await register('badid@test.dev');
+    const cookie = await register('badid@gmail.com');
 
     const get = await request(app)
       .get('/api/v1/projects/not-a-uuid')
@@ -220,8 +220,8 @@ describe('projects routes', () => {
   });
 
   it('rejects state writes from viewers', async () => {
-    const ownerCookie = await register('owner6@test.dev');
-    const memberCookie = await register('viewer6@test.dev');
+    const ownerCookie = await register('owner6@gmail.com');
+    const memberCookie = await register('viewer6@gmail.com');
     const teamId = await createTeam(ownerCookie);
     await inviteUser(ownerCookie, memberCookie, teamId, 'viewer');
     const projectId = await createProject(ownerCookie, 'Test project', teamId);
@@ -235,8 +235,8 @@ describe('projects routes', () => {
   });
 
   it('deletes a project as admin and rejects editors', async () => {
-    const ownerCookie = await register('owner7@test.dev');
-    const editorCookie = await register('editor7@test.dev');
+    const ownerCookie = await register('owner7@gmail.com');
+    const editorCookie = await register('editor7@gmail.com');
     const teamId = await createTeam(ownerCookie);
     await inviteUser(ownerCookie, editorCookie, teamId, 'editor');
     const projectId = await createProject(ownerCookie, 'Test project', teamId);
@@ -261,7 +261,7 @@ describe('projects routes', () => {
   });
 
   it('exports a project document with meta', async () => {
-    const cookie = await register('export@test.dev');
+    const cookie = await register('export@gmail.com');
     const projectId = await createProject(cookie);
 
     const res = await request(app)
@@ -275,7 +275,7 @@ describe('projects routes', () => {
   });
 
   it('imports into an existing project when accessible', async () => {
-    const cookie = await register('import@test.dev');
+    const cookie = await register('import@gmail.com');
     const projectId = await createProject(cookie);
 
     const exported = await request(app)
@@ -295,7 +295,7 @@ describe('projects routes', () => {
   });
 
   it('imports into a new project for an unknown project id', async () => {
-    const cookie = await register('import2@test.dev');
+    const cookie = await register('import2@gmail.com');
     const doc = {
       meta: {
         app: 'devhub',
@@ -323,7 +323,7 @@ describe('projects routes', () => {
   });
 
   it('saves owner contact links and returns them in the list', async () => {
-    const cookie = await register('cta@test.dev');
+    const cookie = await register('cta@gmail.com');
     const projectId = await createProject(cookie);
 
     const patched = await request(app)
@@ -355,7 +355,7 @@ describe('projects routes', () => {
   });
 
   it('rejects non-http(s) or oversized contact links with 400', async () => {
-    const cookie = await register('cta2@test.dev');
+    const cookie = await register('cta2@gmail.com');
     const projectId = await createProject(cookie);
 
     for (const bad of ['javascript:alert(1)', 'ftp://files.example/x', `https://${'a'.repeat(2048)}.example`]) {
@@ -369,8 +369,8 @@ describe('projects routes', () => {
   });
 
   it('rejects contact link edits from non-admins and on archived projects', async () => {
-    const ownerCookie = await register('cta3@test.dev');
-    const editorCookie = await register('cta3e@test.dev');
+    const ownerCookie = await register('cta3@gmail.com');
+    const editorCookie = await register('cta3e@gmail.com');
     const teamId = await createTeam(ownerCookie);
     await inviteUser(ownerCookie, editorCookie, teamId, 'editor');
     const projectId = await createProject(ownerCookie, 'CTA roles', teamId);

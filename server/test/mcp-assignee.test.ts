@@ -40,7 +40,7 @@ describe('MCP task assigneeId (M24)', () => {
   });
 
   it('creates a task with an assignee', async () => {
-    const cookie = await register('mcpassignee@test.dev');
+    const cookie = await register('mcpassignee@gmail.com');
     const key = await createKey(cookie);
     const projectId = await createProject(cookie);
 
@@ -56,7 +56,7 @@ describe('MCP task assigneeId (M24)', () => {
   });
 
   it('updates the assignee and clears it with null', async () => {
-    const cookie = await register('mcpassignee2@test.dev');
+    const cookie = await register('mcpassignee2@gmail.com');
     const key = await createKey(cookie);
     const projectId = await createProject(cookie);
 
@@ -75,7 +75,7 @@ describe('MCP task assigneeId (M24)', () => {
   });
 
   it('rejects an invalid assignee uuid', async () => {
-    const cookie = await register('mcpassignee3@test.dev');
+    const cookie = await register('mcpassignee3@gmail.com');
     const key = await createKey(cookie);
     const projectId = await createProject(cookie);
 

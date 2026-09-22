@@ -42,7 +42,7 @@ describe('billing verify negatif: mismatch + double webhook (Tier 2)', () => {
 
   beforeEach(async () => {
     await resetDb();
-    owner = await register('neg-owner@test.dev');
+    owner = await register('neg-owner@gmail.com');
     teamId = await getFirstTeamId(owner);
     config.PAKASIR_ENABLED = true;
     config.PAKASIR_SANDBOX = true;

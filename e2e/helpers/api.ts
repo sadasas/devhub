@@ -13,7 +13,7 @@ export function uniqueName(prefix: string): string {
 }
 
 export function uniqueEmail(): string {
-  return `user-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@e2e.devhub.test`;
+  return `user-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@gmail.com`;
 }
 
 export function uniqueIp(): string {

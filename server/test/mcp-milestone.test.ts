@@ -45,7 +45,7 @@ describe('MCP add_milestone', () => {
   });
 
   it('creates a milestone with default status planned', async () => {
-    const cookie = await register('mcpmilestone@test.dev');
+    const cookie = await register('mcpmilestone@gmail.com');
     const key = await createKey(cookie);
     const projectId = await createProject(cookie);
 
@@ -64,7 +64,7 @@ describe('MCP add_milestone', () => {
   });
 
   it('creates a milestone with version, target date and changelog', async () => {
-    const cookie = await register('mcpmilestone2@test.dev');
+    const cookie = await register('mcpmilestone2@gmail.com');
     const key = await createKey(cookie);
     const projectId = await createProject(cookie);
 
@@ -85,7 +85,7 @@ describe('MCP add_milestone', () => {
   });
 
   it('rejects an empty name', async () => {
-    const cookie = await register('mcpmilestone3@test.dev');
+    const cookie = await register('mcpmilestone3@gmail.com');
     const key = await createKey(cookie);
     const projectId = await createProject(cookie);
 
@@ -103,7 +103,7 @@ describe('MCP add_milestone', () => {
   });
 
   it('round-trips add_milestone then update_milestone', async () => {
-    const cookie = await register('mcpmilestone4@test.dev');
+    const cookie = await register('mcpmilestone4@gmail.com');
     const key = await createKey(cookie);
     const projectId = await createProject(cookie);
 

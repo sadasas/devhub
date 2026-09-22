@@ -45,7 +45,7 @@ describe('user stats API (GET /me/stats)', () => {
   });
 
   it('returns a zero-filled 365-day window for a fresh user', async () => {
-    const cookie = await register('stats-empty@test.dev');
+    const cookie = await register('stats-empty@gmail.com');
     const res = await request(app).get(`${API}/auth/me/stats`).set('Cookie', cookie);
     expect(res.status).toBe(200);
     expect(res.body.days).toHaveLength(365);
@@ -58,7 +58,7 @@ describe('user stats API (GET /me/stats)', () => {
   });
 
   it('counts contributions, task completions and resolved issues per user', async () => {
-    const cookie = await register('stats-count@test.dev');
+    const cookie = await register('stats-count@gmail.com');
     const userId = await userIdOf(cookie);
     const projectId = await createProject(cookie);
 
@@ -85,8 +85,8 @@ describe('user stats API (GET /me/stats)', () => {
   });
 
   it('only counts stats for the requesting user', async () => {
-    const cookieA = await register('stats-a@test.dev');
-    const cookieB = await register('stats-b@test.dev');
+    const cookieA = await register('stats-a@gmail.com');
+    const cookieB = await register('stats-b@gmail.com');
     const userIdA = await userIdOf(cookieA);
     const projectIdA = await createProject(cookieA);
 
@@ -98,7 +98,7 @@ describe('user stats API (GET /me/stats)', () => {
   });
 
   it('computes current and longest streaks from daily activity', async () => {
-    const cookie = await register('stats-streak@test.dev');
+    const cookie = await register('stats-streak@gmail.com');
     const userId = await userIdOf(cookie);
     const projectId = await createProject(cookie);
 
@@ -118,7 +118,7 @@ describe('user stats API (GET /me/stats)', () => {
   });
 
   it('counts today as part of the current streak', async () => {
-    const cookie = await register('stats-streak-today@test.dev');
+    const cookie = await register('stats-streak-today@gmail.com');
     const userId = await userIdOf(cookie);
     const projectId = await createProject(cookie);
 

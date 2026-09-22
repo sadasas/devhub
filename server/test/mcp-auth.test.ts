@@ -53,7 +53,7 @@ describe('MCP auth and ownership', () => {
   });
 
   it('rejects a revoked key', async () => {
-    const cookie = await register('revoked@test.dev');
+    const cookie = await register('revoked@gmail.com');
     const created = await request(app).post('/api/v1/keys').set('Cookie', cookie).send({ name: 'x' });
     const id = created.body.id as string;
     const key = created.body.key as string;
@@ -70,7 +70,7 @@ describe('MCP auth and ownership', () => {
   });
 
   it('serves tools with a valid key', async () => {
-    const cookie = await register('valid@test.dev');
+    const cookie = await register('valid@gmail.com');
     const key = await createKey(cookie);
     const res = await mcpCall(key, {
       jsonrpc: '2.0',
@@ -85,10 +85,10 @@ describe('MCP auth and ownership', () => {
   });
 
   it('cannot read another user project', async () => {
-    const cookieA = await register('owner@test.dev');
+    const cookieA = await register('owner@gmail.com');
     const projectId = await createProject(cookieA);
 
-    const cookieB = await register('other@test.dev');
+    const cookieB = await register('other@gmail.com');
     const keyB = await createKey(cookieB);
 
     const res = await toolCall(keyB, 'project_state', { projectId });
@@ -102,7 +102,7 @@ describe('MCP auth and ownership', () => {
   });
 
   it('reads and updates own project', async () => {
-    const cookie = await register('mine@test.dev');
+    const cookie = await register('mine@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -120,7 +120,7 @@ describe('MCP auth and ownership', () => {
   });
 
   it('returns a validation error for invalid arguments', async () => {
-    const cookie = await register('badargs@test.dev');
+    const cookie = await register('badargs@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -131,7 +131,7 @@ describe('MCP auth and ownership', () => {
   });
 
   it('project_state exposes schema and tech stack data', async () => {
-    const cookie = await register('schema@test.dev');
+    const cookie = await register('schema@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -172,7 +172,7 @@ describe('MCP auth and ownership', () => {
   });
 
   it('add_relation links tables and validates column ids', async () => {
-    const cookie = await register('rel@test.dev');
+    const cookie = await register('rel@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -232,7 +232,7 @@ describe('MCP auth and ownership', () => {
   });
 
   it('rejects duplicate table and tech names', async () => {
-    const cookie = await register('dup@test.dev');
+    const cookie = await register('dup@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -248,7 +248,7 @@ describe('MCP auth and ownership', () => {
   });
 
   it('update_prd edits the PRD and project_state exposes it', async () => {
-    const cookie = await register('prd@test.dev');
+    const cookie = await register('prd@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -272,7 +272,7 @@ describe('MCP auth and ownership', () => {
   });
 
   it('update_prd preserves untouched sections and clears with empty strings', async () => {
-    const cookie = await register('prd2@test.dev');
+    const cookie = await register('prd2@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -285,11 +285,11 @@ describe('MCP auth and ownership', () => {
   });
 
   it('update_prd rejects a viewer', async () => {
-    const ownerCookie = await register('prd-owner@test.dev');
+    const ownerCookie = await register('prd-owner@gmail.com');
     const teamId = await getFirstTeamId(ownerCookie);
     const projectId = await createProject(ownerCookie, 'Viewer project', teamId);
 
-    const viewerCookie = await register('prd-viewer@test.dev');
+    const viewerCookie = await register('prd-viewer@gmail.com');
     await inviteUser(ownerCookie, viewerCookie, teamId, 'viewer');
     const viewerKey = await createKey(viewerCookie);
 
@@ -300,7 +300,7 @@ describe('MCP auth and ownership', () => {
   });
 
   it('update_prd rejects an unknown project', async () => {
-    const cookie = await register('prd3@test.dev');
+    const cookie = await register('prd3@gmail.com');
     const key = await createKey(cookie);
 
     const res = await toolCall(key, 'update_prd', {
@@ -313,7 +313,7 @@ describe('MCP auth and ownership', () => {
   });
 
   it('update_issue changes status, severity and linked task', async () => {
-    const cookie = await register('issue@test.dev');
+    const cookie = await register('issue@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -348,7 +348,7 @@ describe('MCP auth and ownership', () => {
   });
 
   it('update_issue clears the linked task with null', async () => {
-    const cookie = await register('issue2@test.dev');
+    const cookie = await register('issue2@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -364,7 +364,7 @@ describe('MCP auth and ownership', () => {
   });
 
   it('update_issue rejects an unknown issue', async () => {
-    const cookie = await register('issue3@test.dev');
+    const cookie = await register('issue3@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -379,7 +379,7 @@ describe('MCP auth and ownership', () => {
   });
 
   it('update_issue rejects an invalid status', async () => {
-    const cookie = await register('issue4@test.dev');
+    const cookie = await register('issue4@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -394,7 +394,7 @@ describe('MCP auth and ownership', () => {
   });
 
   it('add_relation rejects an identical duplicate relation', async () => {
-    const cookie = await register('duprel@test.dev');
+    const cookie = await register('duprel@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -451,7 +451,7 @@ describe('MCP auth and ownership', () => {
   });
 
   it('delete_relation removes exactly one relation and rejects unknown ids', async () => {
-    const cookie = await register('delrel@test.dev');
+    const cookie = await register('delrel@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 

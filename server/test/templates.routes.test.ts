@@ -43,7 +43,7 @@ async function saveTemplate(cookie: string, projectId: string, name = 'Sprint st
 
 describe('templates (owner-only)', () => {
   it('saves a template from a project and lists it for the owner only', async () => {
-    const owner = await register('tpl-owner@test.dev');
+    const owner = await register('tpl-owner@gmail.com');
     const projectId = await createProject(owner, 'Source project');
     await seedState(owner, projectId);
     const templateId = await saveTemplate(owner, projectId);
@@ -67,8 +67,8 @@ describe('templates (owner-only)', () => {
   });
 
   it('hides templates from teammates: list/get/update/delete are owner-only', async () => {
-    const owner = await register('tpl-priv-owner@test.dev');
-    const mate = await register('tpl-priv-mate@test.dev');
+    const owner = await register('tpl-priv-owner@gmail.com');
+    const mate = await register('tpl-priv-mate@gmail.com');
     const teamId = await getFirstTeamId(owner);
     await inviteUser(owner, mate, teamId, 'admin');
     const projectId = await createProject(owner, 'Source', teamId);
@@ -102,7 +102,7 @@ describe('templates (owner-only)', () => {
   });
 
   it('owner can rename a template; empty patch is rejected', async () => {
-    const owner = await register('tpl-rename@test.dev');
+    const owner = await register('tpl-rename@gmail.com');
     const projectId = await createProject(owner, 'Source');
     const templateId = await saveTemplate(owner, projectId, 'Old name');
 
@@ -123,7 +123,7 @@ describe('templates (owner-only)', () => {
   });
 
   it('instantiates into a selectable target team (cross-team)', async () => {
-    const owner = await register('tpl-cross@test.dev');
+    const owner = await register('tpl-cross@gmail.com');
     const teamA = await getFirstTeamId(owner);
     const teamB = await createTeam(owner, 'Second team');
     const projectA = await createProject(owner, 'A', teamA);
@@ -152,8 +152,8 @@ describe('templates (owner-only)', () => {
   });
 
   it('instantiate requires a team the owner belongs to', async () => {
-    const owner = await register('tpl-noteam@test.dev');
-    const outsider = await register('tpl-noteam-out@test.dev');
+    const owner = await register('tpl-noteam@gmail.com');
+    const outsider = await register('tpl-noteam-out@gmail.com');
     const outsiderTeam = await getFirstTeamId(outsider);
     const projectId = await createProject(owner, 'Source');
     await seedState(owner, projectId);
@@ -168,8 +168,8 @@ describe('templates (owner-only)', () => {
   });
 
   it('non-owner cannot instantiate someone else template (404)', async () => {
-    const owner = await register('tpl-inst-own@test.dev');
-    const other = await register('tpl-inst-other@test.dev');
+    const owner = await register('tpl-inst-own@gmail.com');
+    const other = await register('tpl-inst-other@gmail.com');
     const otherTeam = await getFirstTeamId(other);
     const projectId = await createProject(owner, 'Source');
     await seedState(owner, projectId);
@@ -184,8 +184,8 @@ describe('templates (owner-only)', () => {
   });
 
   it('non-member cannot save a template from a project', async () => {
-    const owner = await register('tpl-own2@test.dev');
-    const outsider = await register('tpl-outs@test.dev');
+    const owner = await register('tpl-own2@gmail.com');
+    const outsider = await register('tpl-outs@gmail.com');
     const projectId = await createProject(owner, 'Private source');
     const res = await request(app)
       .post('/api/v1/templates')
@@ -196,8 +196,8 @@ describe('templates (owner-only)', () => {
   });
 
   it('viewer cannot save a template', async () => {
-    const owner = await register('tpl-own3@test.dev');
-    const viewer = await register('tpl-view@test.dev');
+    const owner = await register('tpl-own3@gmail.com');
+    const viewer = await register('tpl-view@gmail.com');
     const teamId = await getFirstTeamId(owner);
     await inviteUser(owner, viewer, teamId, 'viewer');
     const projectId = await createProject(owner, 'Source', teamId);
@@ -210,8 +210,8 @@ describe('templates (owner-only)', () => {
   });
 
   it('viewer cannot instantiate into their read-only team (403), owner can', async () => {
-    const owner = await register('tpl-own4@test.dev');
-    const viewer = await register('tpl-view2@test.dev');
+    const owner = await register('tpl-own4@gmail.com');
+    const viewer = await register('tpl-view2@gmail.com');
     const teamId = await getFirstTeamId(owner);
     await inviteUser(owner, viewer, teamId, 'viewer');
     // Viewer owns a personal template from their own workspace.
@@ -239,8 +239,8 @@ describe('templates (owner-only)', () => {
   });
 
   it('owner deletes their template; teammate delete is 404', async () => {
-    const owner = await register('tpl-own5@test.dev');
-    const editor = await register('tpl-editor@test.dev');
+    const owner = await register('tpl-own5@gmail.com');
+    const editor = await register('tpl-editor@gmail.com');
     const teamId = await getFirstTeamId(owner);
     await inviteUser(owner, editor, teamId, 'editor');
     const projectId = await createProject(owner, 'Source', teamId);

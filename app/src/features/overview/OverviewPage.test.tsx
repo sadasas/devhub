@@ -85,8 +85,8 @@ describe('OverviewPage members', () => {
     useProjectMock.mockReset();
     listMembersMock.mockReset();
     listMembersMock.mockResolvedValue([
-      { id: 'm1', email: 'adit@test.dev', role: 'editor', joinedAt: '2026-01-01T00:00:00.000Z' },
-      { id: 'm2', email: 'rani@test.dev', role: 'viewer', joinedAt: '2026-01-01T00:00:00.000Z' },
+      { id: 'm1', email: 'adit@gmail.com', role: 'editor', joinedAt: '2026-01-01T00:00:00.000Z' },
+      { id: 'm2', email: 'rani@gmail.com', role: 'viewer', joinedAt: '2026-01-01T00:00:00.000Z' },
     ]);
     useProjectMock.mockReturnValue({
       state: makeState(),
@@ -100,32 +100,32 @@ describe('OverviewPage members', () => {
 
   it('renders member rows with aggregated numbers and an unassigned row', async () => {
     render(<MemoryRouter><OverviewPage project={PROJECT} /></MemoryRouter>);
-    await screen.findByText('adit@test.dev');
-    expect(await screen.findByText('adit@test.dev')).toBeTruthy();
-    expect(screen.getByText('rani@test.dev')).toBeTruthy();
+    await screen.findByText('adit@gmail.com');
+    expect(await screen.findByText('adit@gmail.com')).toBeTruthy();
+    expect(screen.getByText('rani@gmail.com')).toBeTruthy();
     expect(screen.getByText('Unassigned')).toBeTruthy();
   });
 
   it('sorts members by open count desc and computes completion percent', async () => {
     render(<MemoryRouter><OverviewPage project={PROJECT} /></MemoryRouter>);
-    await screen.findByText('adit@test.dev');
+    await screen.findByText('adit@gmail.com');
     const rows = document.querySelectorAll('.member-row:not(.member-row-head)');
-    expect(rows[0]!.textContent).toContain('adit@test.dev');
+    expect(rows[0]!.textContent).toContain('adit@gmail.com');
     expect(rows[0]!.textContent).toContain('33%');
-    expect(rows[1]!.textContent).toContain('rani@test.dev');
+    expect(rows[1]!.textContent).toContain('rani@gmail.com');
     expect(rows[2]!.textContent).toContain('Unassigned');
   });
 
   it('marks overdue count with the danger tone', async () => {
     render(<MemoryRouter><OverviewPage project={PROJECT} /></MemoryRouter>);
-    await screen.findByText('adit@test.dev');
+    await screen.findByText('adit@gmail.com');
     const rows = document.querySelectorAll('.member-row:not(.member-row-head)');
     expect(rows[0]!.querySelector('.member-overdue')).toBeTruthy();
   });
 
   it('labels the numeric columns Est h and % Done in the header', async () => {
     render(<MemoryRouter><OverviewPage project={PROJECT} /></MemoryRouter>);
-    await screen.findByText('adit@test.dev');
+    await screen.findByText('adit@gmail.com');
     const head = document.querySelector('.member-row-head');
     expect(head?.textContent).toContain('Est h');
     expect(head?.textContent).toContain('% Done');
@@ -133,7 +133,7 @@ describe('OverviewPage members', () => {
 
   it('aligns the header cells with the data row columns', async () => {
     render(<MemoryRouter><OverviewPage project={PROJECT} /></MemoryRouter>);
-    await screen.findByText('adit@test.dev');
+    await screen.findByText('adit@gmail.com');
     const head = document.querySelector('.member-row-head');
     expect(head?.children.length).toBe(5);
     expect(head?.children[1]?.textContent).toBe('Member');
@@ -142,14 +142,14 @@ describe('OverviewPage members', () => {
 
   it('shows the stacked bar tooltip with open and done counts', async () => {
     render(<MemoryRouter><OverviewPage project={PROJECT} /></MemoryRouter>);
-    await screen.findByText('adit@test.dev');
+    await screen.findByText('adit@gmail.com');
     const track = document.querySelector('.member-bar-track');
     expect(track?.getAttribute('title')).toBe('2 open · 1 done');
   });
 
   it('scales bar segments to each member own ratio, not the busiest', async () => {
     render(<MemoryRouter><OverviewPage project={PROJECT} /></MemoryRouter>);
-    await screen.findByText('adit@test.dev');
+    await screen.findByText('adit@gmail.com');
     const tracks = document.querySelectorAll('.member-bar-track');
     const aditFills = tracks[0]!.querySelectorAll('.member-bar-fill');
     expect(parseFloat((aditFills[0] as HTMLElement).style.width)).toBeCloseTo(66.67, 1);
@@ -181,8 +181,8 @@ describe('OverviewPage improvements', () => {
     listMembersMock.mockReset();
     updateMock.mockReset();
     listMembersMock.mockResolvedValue([
-      { id: 'm1', email: 'adit@test.dev', role: 'editor', joinedAt: '2026-01-01T00:00:00.000Z' },
-      { id: 'm2', email: 'rani@test.dev', role: 'viewer', joinedAt: '2026-01-01T00:00:00.000Z' },
+      { id: 'm1', email: 'adit@gmail.com', role: 'editor', joinedAt: '2026-01-01T00:00:00.000Z' },
+      { id: 'm2', email: 'rani@gmail.com', role: 'viewer', joinedAt: '2026-01-01T00:00:00.000Z' },
     ]);
     useProjectMock.mockReturnValue({
       state: makeState(),
@@ -252,7 +252,7 @@ describe('OverviewPage improvements', () => {
       teamId: 'team1',
     });
     render(<MemoryRouter><OverviewPage project={PROJECT} /></MemoryRouter>);
-    await screen.findByText('adit@test.dev');
+    await screen.findByText('adit@gmail.com');
     expect(screen.queryByRole('button', { name: /Edit PRD/ })).toBeNull();
     expect(document.querySelector('.data-list-header button')).toBeNull();
     expect(document.querySelector('.data-list-header a')).toBeNull();

@@ -125,7 +125,7 @@ describe('realtime state broadcast', () => {
   }
 
   it('broadcasts a created diff when an entity is posted', async () => {
-    const cookie = await register(`br-create-${uniqueIp()}@test.dev`);
+    const cookie = await register(`br-create-${uniqueIp()}@gmail.com`);
     const projectId = await createProject(cookie, 'BR create');
     const ws = await joinProject(cookie, projectId);
     const diffPromise = nextOfType(ws, 'state:diff');
@@ -160,7 +160,7 @@ describe('realtime state broadcast', () => {
   });
 
   it('broadcasts an updated diff with the full entity after a patch', async () => {
-    const cookie = await register(`br-update-${uniqueIp()}@test.dev`);
+    const cookie = await register(`br-update-${uniqueIp()}@gmail.com`);
     const projectId = await createProject(cookie, 'BR update');
     const created = await request(httpServer)
       .post(`/api/v1/projects/${projectId}/tasks`)
@@ -200,7 +200,7 @@ describe('realtime state broadcast', () => {
   });
 
   it('broadcasts a deleted diff without an after entity', async () => {
-    const cookie = await register(`br-delete-${uniqueIp()}@test.dev`);
+    const cookie = await register(`br-delete-${uniqueIp()}@gmail.com`);
     const projectId = await createProject(cookie, 'BR delete');
     const created = await request(httpServer)
       .post(`/api/v1/projects/${projectId}/tasks`)
@@ -238,7 +238,7 @@ describe('realtime state broadcast', () => {
   });
 
   it('broadcasts an activity:new frame after an entity mutation', async () => {
-    const cookie = await register(`br-act-${uniqueIp()}@test.dev`);
+    const cookie = await register(`br-act-${uniqueIp()}@gmail.com`);
     const projectId = await createProject(cookie, 'BR activity');
     const ws = await joinProject(cookie, projectId);
     const activityPromise = nextOfType(ws, 'activity:new');
@@ -286,8 +286,8 @@ describe('realtime state broadcast', () => {
   });
 
   it('does not broadcast to users without membership', async () => {
-    const ownerCookie = await register(`br-owner-${uniqueIp()}@test.dev`);
-    const outsiderCookie = await register(`br-outsider-${uniqueIp()}@test.dev`);
+    const ownerCookie = await register(`br-owner-${uniqueIp()}@gmail.com`);
+    const outsiderCookie = await register(`br-outsider-${uniqueIp()}@gmail.com`);
     const projectId = await createProject(ownerCookie, 'BR private');
 
     const ws = await openWs(outsiderCookie);
@@ -315,7 +315,7 @@ describe('realtime state broadcast', () => {
   });
 
   it('broadcasts a coarse sync after a bulk state PUT', async () => {
-    const cookie = await register(`br-sync-${uniqueIp()}@test.dev`);
+    const cookie = await register(`br-sync-${uniqueIp()}@gmail.com`);
     const projectId = await createProject(cookie, 'BR sync');
     const ws = await joinProject(cookie, projectId);
     const syncPromise = nextOfType(ws, 'state:sync');
@@ -334,7 +334,7 @@ describe('realtime state broadcast', () => {
   });
 
   it('broadcasts a coarse sync after an MCP tool writes the state', async () => {
-    const cookie = await register(`br-mcp-${uniqueIp()}@test.dev`);
+    const cookie = await register(`br-mcp-${uniqueIp()}@gmail.com`);
     const key = await createKey(cookie);
     const projectId = await createProject(cookie, 'BR mcp');
     const ws = await joinProject(cookie, projectId);
@@ -371,7 +371,7 @@ describe('realtime state broadcast', () => {
   });
 
   it('reflects status frames in the presence broadcast', async () => {
-    const cookie = await register(`br-status-${uniqueIp()}@test.dev`);
+    const cookie = await register(`br-status-${uniqueIp()}@gmail.com`);
     const projectId = await createProject(cookie, 'BR status');
     const ws = await joinProject(cookie, projectId);
     await nextOfType(ws, 'presence').catch(() => {});
@@ -391,7 +391,7 @@ describe('realtime state broadcast', () => {
   });
 
   it('rejects a status activity longer than 200 characters', async () => {
-    const cookie = await register(`br-statuslen-${uniqueIp()}@test.dev`);
+    const cookie = await register(`br-statuslen-${uniqueIp()}@gmail.com`);
     const projectId = await createProject(cookie, 'BR status len');
     const ws = await joinProject(cookie, projectId);
     await nextOfType(ws, 'presence').catch(() => {});

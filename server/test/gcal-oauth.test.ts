@@ -38,7 +38,7 @@ describe("gcal oauth foundation (T1+T2)", () => {
   });
 
   it("connect redirects to Google with no-store + Vary:Cookie", async () => {
-    const cookie = await register("gcal-connect@test.dev");
+    const cookie = await register("gcal-connect@gmail.com");
     const res = await request(app)
       .get("/api/v1/integrations/gcal/connect")
       .set("Cookie", cookie)
@@ -51,7 +51,7 @@ describe("gcal oauth foundation (T1+T2)", () => {
   });
 
   it("callback rejects state mismatch (302 gcal_error=INVALID_STATE, no JSON)", async () => {
-    const cookie = await register("gcal-mismatch@test.dev");
+    const cookie = await register("gcal-mismatch@gmail.com");
     const connect = await request(app)
       .get("/api/v1/integrations/gcal/connect")
       .set("Cookie", cookie)
@@ -71,7 +71,7 @@ describe("gcal oauth foundation (T1+T2)", () => {
   });
 
   it("callback surfaces provider error as redirect (302 gcal_error=OAUTH_PROVIDER_ERROR)", async () => {
-    const cookie = await register("gcal-provider-err@test.dev");
+    const cookie = await register("gcal-provider-err@gmail.com");
     const connect = await request(app)
       .get("/api/v1/integrations/gcal/connect")
       .set("Cookie", cookie)
@@ -89,7 +89,7 @@ describe("gcal oauth foundation (T1+T2)", () => {
   });
 
   it("callback surfaces exchange failure without leaking tokens", async () => {
-    const cookie = await register("gcal-exchange@test.dev");
+    const cookie = await register("gcal-exchange@gmail.com");
     const connect = await request(app)
       .get("/api/v1/integrations/gcal/connect")
       .set("Cookie", cookie)
@@ -117,7 +117,7 @@ describe("gcal oauth foundation (T1+T2)", () => {
   });
 
   it("callback happy path stores encrypted tokens, status hides them", async () => {
-    const cookie = await register("gcal-happy@test.dev");
+    const cookie = await register("gcal-happy@gmail.com");
     const connect = await request(app)
       .get("/api/v1/integrations/gcal/connect")
       .set("Cookie", cookie)
@@ -163,7 +163,7 @@ describe("gcal oauth foundation (T1+T2)", () => {
   });
 
   it("callback honors validated returnTo and rejects open redirect", async () => {
-    const cookie = await register("gcal-returnto@test.dev");
+    const cookie = await register("gcal-returnto@gmail.com");
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -218,7 +218,7 @@ describe("gcal oauth foundation (T1+T2)", () => {
   });
 
   it("status without connection returns disconnected, no token leak", async () => {
-    const cookie = await register("gcal-noconn@test.dev");
+    const cookie = await register("gcal-noconn@gmail.com");
     const res = await request(app)
       .get("/api/v1/integrations/gcal/status")
       .set("Cookie", cookie)
@@ -230,7 +230,7 @@ describe("gcal oauth foundation (T1+T2)", () => {
   });
 
   it("disconnect removes stored tokens and status flips to false", async () => {
-    const cookie = await register("gcal-disc@test.dev");
+    const cookie = await register("gcal-disc@gmail.com");
     const me = await request(app).get("/api/v1/auth/me").set("Cookie", cookie);
     const userId = (me.body as { id: string }).id;
     await pool.query(

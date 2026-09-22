@@ -40,14 +40,14 @@ describe('global search API v1', () => {
   });
 
   it('rejects queries shorter than 2 characters', async () => {
-    const cookie = await register('search-short@test.dev');
+    const cookie = await register('search-short@gmail.com');
     const res = await search(cookie, 'a');
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
   });
 
   it('returns an empty result set when nothing matches', async () => {
-    const cookie = await register('search-none@test.dev');
+    const cookie = await register('search-none@gmail.com');
     const projectId = await createProject(cookie, 'Search none');
     await addEntity(cookie, projectId, 'tasks', {
       title: 'Unrelated task',
@@ -62,7 +62,7 @@ describe('global search API v1', () => {
   });
 
   it('searches across all member projects and groups hits per project', async () => {
-    const cookie = await register('search-cross@test.dev');
+    const cookie = await register('search-cross@gmail.com');
     const first = await createProject(cookie, 'Search first');
     const second = await createProject(cookie, 'Search second');
     await addEntity(cookie, first, 'tasks', {
@@ -90,7 +90,7 @@ describe('global search API v1', () => {
   });
 
   it('matches case-insensitively and ranks title hits above body hits', async () => {
-    const cookie = await register('search-rank@test.dev');
+    const cookie = await register('search-rank@gmail.com');
     const projectId = await createProject(cookie, 'Search rank');
     const titleId = await addEntity(cookie, projectId, 'tasks', {
       title: 'ALPHA in title',
@@ -116,7 +116,7 @@ describe('global search API v1', () => {
   });
 
   it('boosts prefix matches above substring matches', async () => {
-    const cookie = await register('search-prefix@test.dev');
+    const cookie = await register('search-prefix@gmail.com');
     const projectId = await createProject(cookie, 'Search prefix');
     await addEntity(cookie, projectId, 'tasks', {
       title: 'beta alpha',
@@ -140,7 +140,7 @@ describe('global search API v1', () => {
   });
 
   it('searches nested fields such as decision options and endpoint paths', async () => {
-    const cookie = await register('search-nested@test.dev');
+    const cookie = await register('search-nested@gmail.com');
     const projectId = await createProject(cookie, 'Search nested');
     const decisionId = await addEntity(cookie, projectId, 'decisions', {
       title: 'Storage choice',
@@ -170,7 +170,7 @@ describe('global search API v1', () => {
   });
 
   it('caps results at 5 per entity', async () => {
-    const cookie = await register('search-cap@test.dev');
+    const cookie = await register('search-cap@gmail.com');
     const projectId = await createProject(cookie, 'Search cap');
     for (let i = 0; i < 7; i += 1) {
       await addEntity(cookie, projectId, 'tasks', {
@@ -188,7 +188,7 @@ describe('global search API v1', () => {
   });
 
   it('respects the limit query parameter', async () => {
-    const cookie = await register('search-limit@test.dev');
+    const cookie = await register('search-limit@gmail.com');
     const projectId = await createProject(cookie, 'Search limit');
     await addEntity(cookie, projectId, 'tasks', {
       title: 'Limit alpha one',
@@ -210,8 +210,8 @@ describe('global search API v1', () => {
   });
 
   it('never exposes projects the user is not a member of', async () => {
-    const owner = await register('search-owner@test.dev');
-    const outsider = await register('search-outsider@test.dev');
+    const owner = await register('search-owner@gmail.com');
+    const outsider = await register('search-outsider@gmail.com');
     const projectId = await createProject(owner, 'Search private');
     await addEntity(owner, projectId, 'tasks', {
       title: 'Secret alpha task',
@@ -226,7 +226,7 @@ describe('global search API v1', () => {
   });
 
   it('indexes whiteboard text elements and referenced entity titles without uuid or hex noise', async () => {
-    const cookie = await register('search-whiteboard@test.dev');
+    const cookie = await register('search-whiteboard@gmail.com');
     const projectId = await createProject(cookie);
     const milestoneId = await addEntity(cookie, projectId, 'milestones', {
       id: '22222222-2222-4222-8222-222222222222',
@@ -318,7 +318,7 @@ describe('global search API v1', () => {
   });
 
   it('searches tables, relations, and schema versions with derived titles', async () => {
-    const cookie = await register('search-derived@test.dev');
+    const cookie = await register('search-derived@gmail.com');
     const projectId = await createProject(cookie, 'Search derived');
     const tb1 = await addEntity(cookie, projectId, 'tables', { name: 'users', columns: [] });
     const tb2 = await addEntity(cookie, projectId, 'tables', { name: 'projects', columns: [] });

@@ -60,7 +60,7 @@ describe('GCalSyncButton (board toolbar, compact)', () => {
       status({
         connected: true,
         syncEnabled: true,
-        email: 'me@test.dev',
+        email: 'me@gmail.com',
         lastSyncAt: new Date(Date.now() - 5 * 60_000).toISOString(),
       }),
     );
@@ -70,7 +70,7 @@ describe('GCalSyncButton (board toolbar, compact)', () => {
 
   it('shows reconnect state when expired', async () => {
     apiMock.gcalStatus.mockResolvedValue(
-      status({ connected: true, expired: true, syncEnabled: true, email: 'me@test.dev' }),
+      status({ connected: true, expired: true, syncEnabled: true, email: 'me@gmail.com' }),
     );
     renderButton(nextPid(), true);
     await screen.findByRole('link', { name: /expired.*reconnect/ });

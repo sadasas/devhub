@@ -44,7 +44,7 @@ describe('B1 pending package lazy activation (022)', () => {
 
   beforeEach(async () => {
     await resetDb();
-    owner = await register('pending-owner@test.dev');
+    owner = await register('pending-owner@gmail.com');
     teamId = await getFirstTeamId(owner);
     const proRow = await pool.query<{ id: string }>(
       "SELECT id FROM billing_packages WHERE name = 'Pro' AND is_active LIMIT 1",

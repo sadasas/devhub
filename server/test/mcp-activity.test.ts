@@ -59,7 +59,7 @@ describe('MCP activity logging', () => {
   });
 
   it('records an MCP-created task in the project activity feed', async () => {
-    const cookie = await register('mcp-activity-create@test.dev');
+    const cookie = await register('mcp-activity-create@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -75,7 +75,7 @@ describe('MCP activity logging', () => {
   });
 
   it('records an update against the same entity row', async () => {
-    const cookie = await register('mcp-activity-update@test.dev');
+    const cookie = await register('mcp-activity-update@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -89,7 +89,7 @@ describe('MCP activity logging', () => {
   });
 
   it('records deletions of relations created over MCP', async () => {
-    const cookie = await register('mcp-activity-delete@test.dev');
+    const cookie = await register('mcp-activity-delete@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -134,7 +134,7 @@ describe('MCP activity logging', () => {
   });
 
   it('does not log an updated row when a no-op update leaves the state unchanged', async () => {
-    const cookie = await register('mcp-activity-noop@test.dev');
+    const cookie = await register('mcp-activity-noop@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -150,7 +150,7 @@ describe('MCP activity logging', () => {
   });
 
   it('records each entity created by plan_project', async () => {
-    const cookie = await register('mcp-activity-plan@test.dev');
+    const cookie = await register('mcp-activity-plan@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 

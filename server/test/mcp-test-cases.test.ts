@@ -54,7 +54,7 @@ describe('MCP test case tools', () => {
   });
 
   it('lists add_test_case and update_test_case', async () => {
-    const cookie = await register('tclist@test.dev');
+    const cookie = await register('tclist@gmail.com');
     const key = await createKey(cookie);
     const res = await mcpCall(key, {
       jsonrpc: '2.0',
@@ -68,7 +68,7 @@ describe('MCP test case tools', () => {
   });
 
   it('adds a test case linked to a task', async () => {
-    const cookie = await register('tcadd@test.dev');
+    const cookie = await register('tcadd@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -99,7 +99,7 @@ describe('MCP test case tools', () => {
   });
 
   it('adds an issue carrying a description for test-case linkage', async () => {
-    const cookie = await register('tcissue@test.dev');
+    const cookie = await register('tcissue@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -126,7 +126,7 @@ describe('MCP test case tools', () => {
   });
 
   it('updates a test case status and links', async () => {
-    const cookie = await register('tcupd@test.dev');
+    const cookie = await register('tcupd@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -152,7 +152,7 @@ describe('MCP test case tools', () => {
   });
 
   it('rejects update of an unknown test case', async () => {
-    const cookie = await register('tcmiss@test.dev');
+    const cookie = await register('tcmiss@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
@@ -167,10 +167,10 @@ describe('MCP test case tools', () => {
   });
 
   it('viewers cannot add test cases', async () => {
-    const owner = await register('tcowner@test.dev');
+    const owner = await register('tcowner@gmail.com');
     const teamId = await getFirstTeamId(owner);
     const projectId = await createProject(owner, 'Shared', teamId);
-    const viewer = await register('tcviewer@test.dev');
+    const viewer = await register('tcviewer@gmail.com');
     await inviteUser(owner, viewer, teamId, 'viewer');
     const viewerKey = await createKey(viewer);
 

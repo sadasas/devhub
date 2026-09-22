@@ -88,7 +88,7 @@ describe('public project routes', () => {
   });
 
   it('serves the project meta without authentication when public', async () => {
-    const cookie = await register('pub-meta@test.dev');
+    const cookie = await register('pub-meta@gmail.com');
     const projectId = await createProject(cookie, 'Public meta');
     await makePublic(cookie, projectId);
 
@@ -103,7 +103,7 @@ describe('public project routes', () => {
   });
 
   it('keeps tabs closed when visibility is public without explicit publicTabs (fail-closed)', async () => {
-    const cookie = await register('pub-tabs@test.dev');
+    const cookie = await register('pub-tabs@gmail.com');
     const projectId = await createProject(cookie);
     await makePublic(cookie, projectId);
 
@@ -116,7 +116,7 @@ describe('public project routes', () => {
   });
 
   it('filters the public state to the shared tabs only', async () => {
-    const cookie = await register('pub-filter@test.dev');
+    const cookie = await register('pub-filter@gmail.com');
     const projectId = await createProject(cookie);
     await seedState(cookie, projectId);
 
@@ -139,7 +139,7 @@ describe('public project routes', () => {
   });
 
   it('shares the whiteboard tab in the public state', async () => {
-    const cookie = await register('pub-wb@test.dev');
+    const cookie = await register('pub-wb@gmail.com');
     const projectId = await createProject(cookie);
     await seedState(cookie, projectId);
 
@@ -162,8 +162,8 @@ describe('public project routes', () => {
   });
 
   it('rejects publicTabs changes from non-admin members', async () => {
-    const ownerCookie = await register('pts-owner@test.dev');
-    const editorCookie = await register('pts-editor@test.dev');
+    const ownerCookie = await register('pts-owner@gmail.com');
+    const editorCookie = await register('pts-editor@gmail.com');
     const teamId = await createTeam(ownerCookie);
     await inviteUser(ownerCookie, editorCookie, teamId, 'editor');
     const projectId = await createProject(ownerCookie, 'Tabs', teamId);
@@ -177,7 +177,7 @@ describe('public project routes', () => {
   });
 
   it('rejects invalid publicTabs values', async () => {
-    const cookie = await register('pts-invalid@test.dev');
+    const cookie = await register('pts-invalid@gmail.com');
     const projectId = await createProject(cookie);
 
     const res = await request(app)
@@ -189,7 +189,7 @@ describe('public project routes', () => {
   });
 
   it('serves the full state without authentication when public', async () => {
-    const cookie = await register('pub-state@test.dev');
+    const cookie = await register('pub-state@gmail.com');
     const projectId = await createProject(cookie);
     await makePublic(cookie, projectId);
     const restrict = await request(app)
@@ -240,7 +240,7 @@ describe('public project routes', () => {
   });
 
   it('returns 404 for a private project', async () => {
-    const cookie = await register('private@test.dev');
+    const cookie = await register('private@gmail.com');
     const projectId = await createProject(cookie);
 
     const meta = await request(app)
@@ -262,7 +262,7 @@ describe('public project routes', () => {
   });
 
   it('creates projects as private by default', async () => {
-    const cookie = await register('default-priv@test.dev');
+    const cookie = await register('default-priv@gmail.com');
     const teamId = await createTeam(cookie);
     const res = await request(app)
       .post('/api/v1/projects')
@@ -274,9 +274,9 @@ describe('public project routes', () => {
   });
 
   it('lets owners toggle visibility, rejects editors and rejects non-admins on public', async () => {
-    const ownerCookie = await register('vis-owner@test.dev');
-    const editorCookie = await register('vis-editor@test.dev');
-    const viewerCookie = await register('vis-viewer@test.dev');
+    const ownerCookie = await register('vis-owner@gmail.com');
+    const editorCookie = await register('vis-editor@gmail.com');
+    const viewerCookie = await register('vis-viewer@gmail.com');
     const teamId = await createTeam(ownerCookie);
     await inviteUser(ownerCookie, editorCookie, teamId, 'editor');
     const projectId = await createProject(ownerCookie, 'Toggle me', teamId);
@@ -322,7 +322,7 @@ describe('public project routes', () => {
   });
 
   it('exposes owner contact links in the public meta when set', async () => {
-    const cookie = await register('cta-pub@test.dev');
+    const cookie = await register('cta-pub@gmail.com');
     const projectId = await createProject(cookie, 'CTA public');
     const saved = await request(app)
       .patch(`/api/v1/projects/${projectId}`)
@@ -346,7 +346,7 @@ describe('public project routes', () => {
   });
 
   it('returns null contact links when unset or invalid in storage (fail-closed)', async () => {
-    const cookie = await register('cta-null@test.dev');
+    const cookie = await register('cta-null@gmail.com');
     const projectId = await createProject(cookie, 'CTA null');
     await makePublic(cookie, projectId);
 

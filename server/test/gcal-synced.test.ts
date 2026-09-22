@@ -10,7 +10,7 @@ describe("gcal synced task list (board markers)", () => {
   });
 
   it("returns empty list when nothing is mapped", async () => {
-    const cookie = await register("gcal-synced-empty@test.dev");
+    const cookie = await register("gcal-synced-empty@gmail.com");
     const teamId = await createTeam(cookie);
     const projectId = await createProject(cookie, "Synced empty", teamId);
 
@@ -23,7 +23,7 @@ describe("gcal synced task list (board markers)", () => {
   });
 
   it("returns mapped task ids for members", async () => {
-    const cookie = await register("gcal-synced-list@test.dev");
+    const cookie = await register("gcal-synced-list@gmail.com");
     const teamId = await createTeam(cookie);
     const projectId = await createProject(cookie, "Synced list", teamId);
 
@@ -43,8 +43,8 @@ describe("gcal synced task list (board markers)", () => {
   });
 
   it("rejects non-members with 404 and missing projectId with 400", async () => {
-    const owner = await register("gcal-synced-owner@test.dev");
-    const stranger = await register("gcal-synced-stranger@test.dev");
+    const owner = await register("gcal-synced-owner@gmail.com");
+    const stranger = await register("gcal-synced-stranger@gmail.com");
     const teamId = await createTeam(owner);
     const projectId = await createProject(owner, "Private synced", teamId);
 

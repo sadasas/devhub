@@ -32,11 +32,11 @@ describe('activity unread + read watermarks', () => {
 
   beforeEach(async () => {
     await resetDb();
-    ownerCookie = await register('owner@test.dev');
-    outsiderCookie = await register('outsider@test.dev');
+    ownerCookie = await register('owner@gmail.com');
+    outsiderCookie = await register('outsider@gmail.com');
     const teamId = await getFirstTeamId(ownerCookie);
     projectId = await createProject(ownerCookie, 'Unread project', teamId);
-    authorId = await userIdOf('owner@test.dev');
+    authorId = await userIdOf('owner@gmail.com');
   });
 
   it('returns empty counts when there is no activity and no watermarks', async () => {
