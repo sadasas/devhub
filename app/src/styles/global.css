@@ -1868,7 +1868,8 @@ a:hover {
 .prop-pop .input {
   width: 100%;
   border-color: transparent;
-  padding: 9px 12px;
+  padding: 6px 10px;
+  line-height: 1.4;
 }
 .prop-pop .input:hover {
   border-color: transparent;
@@ -2117,8 +2118,10 @@ button.prop {
   color: var(--text-muted);
 }
 
-/* Composer borderless fields opt out of the global focus-visible halo. */
+/* Composer borderless fields: hairline focus cue (kompromi visual, bukan halo). */
 .composer-title:focus-visible,
+  outline: 1px solid var(--border-strong);
+  outline-offset: 2px;
 .textarea-bare:focus-visible {
   box-shadow: none;
 }
@@ -19686,11 +19689,24 @@ html[data-theme='light'] .tour-overlay-dim {
   color: var(--text-muted);
 }
 
-/* General read view: judul + tombol Edit sebaris, nilai sebagai teks. */
+/* General read view: judul + tombol Edit sebaris, nilai sebagai teks.
+   Tombol absolute-kanan (di luar flow) agar tinggi head = tinggi judul di
+   semua section — gap 12px section yang mengatur jarak, seragam. */
+  position: relative;
 .dashboard__settings-head {
+  flex-direction: row;
+  flex-wrap: nowrap;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 0;
+  padding-right: 76px;
+}
+.dashboard__settings-head .btn {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
   gap: 12px;
 }
 
