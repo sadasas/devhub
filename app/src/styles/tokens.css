@@ -130,6 +130,18 @@
   --font-sans: 'Geist Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
   --font-mono: 'Geist Mono Variable', 'Cascadia Code', 'Consolas', monospace;
 
+  /* Type scale — tangga teks tunggal (Gelombang 1).
+     caption 12px = chips/label/meta sekunder;
+     ui 14px      = nilai/form kecil, emphasis body;
+     body 16px    = body/prose + input;
+     title 20px   = judul halaman (h1 board);
+     display 24px = angka/stat hero. */
+  --text-caption: 12px;
+  --text-ui: 14px;
+  --text-body: 16px;
+  --text-title: 20px;
+  --text-display: 24px;
+
   /* Layout */
   --rail-w-compact: 64px;
   --rail-w-expanded: 180px;
