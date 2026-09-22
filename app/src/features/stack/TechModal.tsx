@@ -180,9 +180,9 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
 
   const versionLabel = t('stack.techModal.versionLabel');
   const versionView = entry.version ? (
-    <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>{entry.version}</span>
+    <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>{entry.version}</span>
   ) : (
-    <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>—</span>
+    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>—</span>
   );
 
   return (
@@ -360,7 +360,7 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
         </h3>
       )}
       {nameEmpty && <InlineError>{t('tracker:issues.modal.titleRequired')}</InlineError>}
-      <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
+      <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12 }}>
         <span style={{ width: 110, color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
           <Clock size={12} aria-hidden="true" /> {t('tracker:issues.modal.createdTimeLabel')}
         </span>
@@ -385,7 +385,7 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
               <FileText size={12} aria-hidden="true" /> {t('stack.techModal.notesLabel')}
             </span>
           </div>
-          <div style={{ fontSize: 13, lineHeight: 1.6, color: entry.notes.trim() ? 'var(--text-secondary)' : 'var(--text-muted)', minHeight: 40, overflowWrap: 'anywhere' }}>
+          <div style={{ fontSize: 14, lineHeight: 1.6, color: entry.notes.trim() ? 'var(--text-secondary)' : 'var(--text-muted)', minHeight: 40, overflowWrap: 'anywhere' }}>
             {entry.notes.trim() ? <MarkdownBlocks text={entry.notes} /> : t('stack.techModal.noNotes')}
           </div>
         </div>
