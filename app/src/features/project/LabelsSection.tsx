@@ -136,7 +136,8 @@ export function LabelsSection() {
   return (
     <div className="profile-panel">
       <div className="narrow-center">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <section className="dashboard__settings-section" aria-labelledby="project-settings-labels-title">
+        <div className="dashboard__settings-head">
           <h2 id="project-settings-labels-title" tabIndex={-1} className="dashboard__settings-section-title" style={{ flex: 1, minWidth: 0, margin: 0 }}>
             {t('settings.labelsTitle', { defaultValue: 'Labels' })}
           </h2>
@@ -152,7 +153,7 @@ export function LabelsSection() {
 
         <div style={{ marginTop: 2 }}>
           {defs.length === 0 && (
-            <p style={{ color: 'var(--text-muted)', fontSize: 13, fontStyle: 'italic' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: 14, fontStyle: 'italic' }}>
               {t('settings.labelsEmpty', { defaultValue: 'No labels yet.' })}
             </p>
           )}
@@ -178,7 +179,7 @@ export function LabelsSection() {
                     {def.description}
                   </span>
                 )}
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0, marginLeft: def.description ? 0 : 'auto' }} className="tabular">
+                <span style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0, marginLeft: def.description ? 0 : 'auto' }} className="tabular">
                   {t('settings.labelsUsed', { defaultValue: '{{count}} tasks', count })}
                 </span>
                 {canEdit && (
@@ -200,6 +201,7 @@ export function LabelsSection() {
             {t('settings.readonly', { defaultValue: 'Only owners and admins can edit project settings.' })}
           </p>
         )}
+      </section>
       </div>
 
       <Modal
