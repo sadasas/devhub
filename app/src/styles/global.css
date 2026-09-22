@@ -3133,7 +3133,7 @@ html[data-theme='light'] .splash-bg {
   background: var(--bg-inset);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-input);
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--text-primary);
   outline: none;
 }
@@ -3440,7 +3440,6 @@ html[data-theme='light'] .splash-bg {
 
 @media (hover: none) {
   .sidebar-filter-input {
-    font-size: 16px;
     min-height: 36px;
   }
 
@@ -3805,9 +3804,10 @@ html[data-theme='light'] .splash-bg {
 }
 
 /* ============================================================
-    Touch — coarse pointers (mobile / tablets)
-    iOS zoom-on-focus fix (inputs must be ≥16px) + ≥44px targets (Apple HIG)
-    ============================================================ */
+   Touch — coarse pointers (mobile / tablets)
+   Blok ini HANYA min-height/padding target sentuh (44px).
+   Font-size mengikuti tangga base — DILARANG bump font per-device.
+   ============================================================ */
 
 @media (hover: none) {
   .btn-sm,
@@ -5884,10 +5884,6 @@ html[data-theme='light'] .splash-bg {
 }
 
 @media (hover: none) {
-  .welcome-search-input {
-    font-size: 16px;
-  }
-
   .welcome-row-chevron {
     opacity: 1;
   }
@@ -15065,9 +15061,6 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 @supports (field-sizing: content) {
   .chat-input { field-sizing: content; }
 }
-@media (hover: none) {
-  .chat-input { font-size: 16px; }
-}
 .chat-sentinel { height: 1px; flex-shrink: 0; }
 
 .mention-popup { position: absolute; bottom: calc(100% + 8px); left: 0; right: 0; max-height: min(200px, 40vh); overflow-y: auto; scrollbar-width: thin; background: var(--bg-overlay); border: 1px solid var(--border-strong); border-radius: var(--radius-card); box-shadow: var(--shadow-raised); z-index: 5; padding: 6px; }
@@ -19577,10 +19570,6 @@ html[data-theme='light'] .tour-overlay-dim {
     height: 44px;
     padding: 0 12px;
   }
-
-  .settings-nav-search-input {
-    font-size: 16px;
-  }
 }
 
 .settings-nav-search-icon {
@@ -22241,7 +22230,7 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
 /* P3-1: semua popup form (select/date/month/prop) di ≤640px jadi panel
    tengah layar — tidak pernah terpotong tepi. Compute() di TS meng-clamp
    left/top agar tidak keluar viewport, tapi inline top/left/width tetap
-   rawan clipping saat keyboard iOS terbuka atau anchor di tepi.
+   rawan clipping saat keyboard terbuka atau anchor di tepi.
    Override inline style via !important (hanya posisi, bukan logika). */
 @media (max-width: 640px) {
   .dp-panel,
@@ -22316,7 +22305,6 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
      Spesifisitas (0,4,0) menang atas rule 44px di atas (0,1,0). */
   .composer-propbar .prop > .ss-wrap > .ss-trigger {
     min-height: 36px;
-    font-size: 14px;
   }
 
   .sort-control-trigger {
