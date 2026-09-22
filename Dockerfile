@@ -2,6 +2,10 @@ FROM node:22-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY server/package.json server/package.json
+# npm 10 bawaan node:22-alpine crash `edgesOut` pada graf workspace (build Suga
+# gagal deterministik 19+21 Sep 2026). Pin ke npm 11.19.0 = versi yang terbukti
+# hijau via `npm ci --dry-run` lokal. Hapus baris ini bila base image update npm.
+RUN npm i -g npm@11.19.0
 RUN npm ci --workspace=server --include-workspace-root
 COPY server/tsconfig.json server/tsconfig.json
 COPY server/scripts server/scripts
@@ -16,6 +20,7 @@ ENV NODE_ENV=production
 # Set at deploy time via Suga env var: TRUST_PROXY=true
 COPY package.json package-lock.json ./
 COPY server/package.json server/package.json
+RUN npm i -g npm@11.19.0
 RUN npm ci --workspace=server --include-workspace-root --omit=dev
 COPY --from=build /app/server/dist server/dist
 EXPOSE 3000
