@@ -14,16 +14,16 @@ describe('auth routes', () => {
     const res = await request(app)
       .post('/api/v1/auth/register')
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'new@test.dev', password: 'password123' });
+      .send({ email: 'new@gmail.com', password: 'password123' });
     expect(res.status).toBe(201);
     expect(res.body.id).toBeDefined();
-    expect(res.body.email).toBe('new@test.dev');
+    expect(res.body.email).toBe('new@gmail.com');
     expect(res.headers['set-cookie']).toBeUndefined();
     // Login sebelum verifikasi ditolak.
     const blocked = await request(app)
       .post('/api/v1/auth/login')
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'new@test.dev', password: 'password123' });
+      .send({ email: 'new@gmail.com', password: 'password123' });
     expect(blocked.status).toBe(403);
     expect(blocked.body.error.code).toBe('EMAIL_NOT_VERIFIED');
   });
@@ -33,9 +33,9 @@ describe('auth routes', () => {
     await request(app)
       .post('/api/v1/auth/register')
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'nodomain@test.dev', password: 'password123' });
+      .send({ email: 'nodomain@gmail.com', password: 'password123' });
     const tok = await pool.query<{ token: string }>(
-      `SELECT t.token FROM email_verify_tokens t JOIN users u ON u.id = t.user_id WHERE u.email = 'nodomain@test.dev'`,
+      `SELECT t.token FROM email_verify_tokens t JOIN users u ON u.id = t.user_id WHERE u.email = 'nodomain@gmail.com'`,
     );
     await request(app)
       .post('/api/v1/auth/verify-email')
@@ -44,7 +44,7 @@ describe('auth routes', () => {
     const res = await request(app)
       .post('/api/v1/auth/login')
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'nodomain@test.dev', password: 'password123' });
+      .send({ email: 'nodomain@gmail.com', password: 'password123' });
     expect(res.status).toBe(200);
     const setCookie = (res.headers['set-cookie'] as unknown as string[] | undefined)?.[0] ?? '';
     expect(setCookie).toContain('SameSite=Lax');
@@ -58,9 +58,9 @@ describe('auth routes', () => {
       await request(app)
         .post('/api/v1/auth/register')
         .set('X-Forwarded-For', uniqueIp())
-        .send({ email: 'parentdomain@test.dev', password: 'password123' });
+        .send({ email: 'parentdomain@gmail.com', password: 'password123' });
       const tok = await pool.query<{ token: string }>(
-        `SELECT t.token FROM email_verify_tokens t JOIN users u ON u.id = t.user_id WHERE u.email = 'parentdomain@test.dev'`,
+        `SELECT t.token FROM email_verify_tokens t JOIN users u ON u.id = t.user_id WHERE u.email = 'parentdomain@gmail.com'`,
       );
       await request(app)
         .post('/api/v1/auth/verify-email')
@@ -69,7 +69,7 @@ describe('auth routes', () => {
       const res = await request(app)
         .post('/api/v1/auth/login')
         .set('X-Forwarded-For', uniqueIp())
-        .send({ email: 'parentdomain@test.dev', password: 'password123' });
+        .send({ email: 'parentdomain@gmail.com', password: 'password123' });
       expect(res.status).toBe(200);
       const setCookie = (res.headers['set-cookie'] as unknown as string[] | undefined)?.[0] ?? '';
       expect(setCookie).toContain('Domain=.nrawangbatin.my.id');
@@ -82,17 +82,17 @@ describe('auth routes', () => {
     const res = await request(app)
       .post('/api/v1/auth/register')
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'MiXeD@Test.Dev', password: 'password123' });
+      .send({ email: 'MiXeD@gmail.com', password: 'password123' });
     expect(res.status).toBe(201);
-    expect(res.body.email).toBe('mixed@test.dev');
+    expect(res.body.email).toBe('mixed@gmail.com');
   });
 
   it('rejects a duplicate email with 409', async () => {
-    await register('dup@test.dev');
+    await register('dup@gmail.com');
     const res = await request(app)
       .post('/api/v1/auth/register')
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'dup@test.dev', password: 'password123' });
+      .send({ email: 'dup@gmail.com', password: 'password123' });
     expect(res.status).toBe(409);
   });
 
@@ -106,12 +106,12 @@ describe('auth routes', () => {
     const shortPw = await request(app)
       .post('/api/v1/auth/register')
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'ok@test.dev', password: 'short' });
+      .send({ email: 'ok@gmail.com', password: 'short' });
     expect(shortPw.status).toBe(400);
   });
 
   it('starts with zero teams for new registrations (no auto-create)', async () => {
-    const cookie = await register('noteam@test.dev');
+    const cookie = await register('noteam@gmail.com');
     const res = await request(app)
       .get('/api/v1/teams')
       .set('Cookie', cookie)
@@ -121,29 +121,29 @@ describe('auth routes', () => {
   });
 
   it('logs in with correct credentials', async () => {
-    await register('login@test.dev');
+    await register('login@gmail.com');
     const res = await request(app)
       .post('/api/v1/auth/login')
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'login@test.dev', password: 'password123' });
+      .send({ email: 'login@gmail.com', password: 'password123' });
     expect(res.status).toBe(200);
     expect(res.headers['set-cookie']).toBeDefined();
   });
 
   it('rejects a wrong password', async () => {
-    await register('login2@test.dev');
+    await register('login2@gmail.com');
     const res = await request(app)
       .post('/api/v1/auth/login')
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'login2@test.dev', password: 'wrong-password' });
+      .send({ email: 'login2@gmail.com', password: 'wrong-password' });
     expect(res.status).toBe(401);
   });
 
   it('returns the current user from /me', async () => {
-    const cookie = await register('me@test.dev');
+    const cookie = await register('me@gmail.com');
     const res = await request(app).get('/api/v1/auth/me').set('Cookie', cookie);
     expect(res.status).toBe(200);
-    expect(res.body.email).toBe('me@test.dev');
+    expect(res.body.email).toBe('me@gmail.com');
   });
 
   it('rejects /me without a session', async () => {
@@ -152,7 +152,7 @@ describe('auth routes', () => {
   });
 
   it('logs out and clears the session cookie', async () => {
-    const cookie = await register('out@test.dev');
+    const cookie = await register('out@gmail.com');
     const logout = await request(app).post('/api/v1/auth/logout').set('Cookie', cookie);
     expect(logout.status).toBe(200);
     const setCookie = (logout.headers['set-cookie'] as unknown as string[] | undefined)?.[0];
@@ -161,7 +161,7 @@ describe('auth routes', () => {
   });
 
   it('changes the password and logs in with the new one', async () => {
-    const cookie = await register('pw@test.dev');
+    const cookie = await register('pw@gmail.com');
     const change = await request(app)
       .patch('/api/v1/auth/password')
       .set('Cookie', cookie)
@@ -173,18 +173,18 @@ describe('auth routes', () => {
     const oldLogin = await request(app)
       .post('/api/v1/auth/login')
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'pw@test.dev', password: 'password123' });
+      .send({ email: 'pw@gmail.com', password: 'password123' });
     expect(oldLogin.status).toBe(401);
 
     const newLogin = await request(app)
       .post('/api/v1/auth/login')
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'pw@test.dev', password: 'newpass456' });
+      .send({ email: 'pw@gmail.com', password: 'newpass456' });
     expect(newLogin.status).toBe(200);
   });
 
   it('rejects a wrong current password', async () => {
-    const cookie = await register('pw2@test.dev');
+    const cookie = await register('pw2@gmail.com');
     const res = await request(app)
       .patch('/api/v1/auth/password')
       .set('Cookie', cookie)
@@ -195,7 +195,7 @@ describe('auth routes', () => {
   });
 
   it('rejects a weak or identical new password', async () => {
-    const cookie = await register('pw3@test.dev');
+    const cookie = await register('pw3@gmail.com');
     const weak = await request(app)
       .patch('/api/v1/auth/password')
       .set('Cookie', cookie)
@@ -220,21 +220,21 @@ describe('auth routes', () => {
   });
 
   it('forgot-password enqueues reset email without leaking the token (M31)', async () => {
-    await register('forgot1@test.dev');
+    await register('forgot1@gmail.com');
     const res = await request(app)
       .post('/api/v1/auth/forgot-password')
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'forgot1@test.dev' });
+      .send({ email: 'forgot1@gmail.com' });
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
     expect(res.body.token).toBeUndefined();
     const outbox = await pool.query<{ template: string; status: string }>(
-      "SELECT template, status FROM mail_outbox WHERE to_email = 'forgot1@test.dev' AND template = 'reset'",
+      "SELECT template, status FROM mail_outbox WHERE to_email = 'forgot1@gmail.com' AND template = 'reset'",
     );
     expect(outbox.rows).toHaveLength(1);
     expect(outbox.rows[0]).toMatchObject({ template: 'reset', status: 'pending' });
     const tokens = await pool.query<{ token: string }>(
-      `SELECT t.token FROM password_reset_tokens t JOIN users u ON u.id = t.user_id WHERE u.email = 'forgot1@test.dev'`,
+      `SELECT t.token FROM password_reset_tokens t JOIN users u ON u.id = t.user_id WHERE u.email = 'forgot1@gmail.com'`,
     );
     expect(tokens.rows).toHaveLength(1);
     // Full circle: token dari DB (test-only) → reset → login password baru.
@@ -246,18 +246,18 @@ describe('auth routes', () => {
     const login = await request(app)
       .post('/api/v1/auth/login')
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'forgot1@test.dev', password: 'brandnew456' });
+      .send({ email: 'forgot1@gmail.com', password: 'brandnew456' });
     expect(login.status).toBe(200);
   });
 
   it('forgot-password keeps single active token and answers ok for unknown email', async () => {
-    await register('forgot2@test.dev');
+    await register('forgot2@gmail.com');
     const ip = uniqueIp();
     // NOTE: forgotLimiter 5/15m per IP — 2 request di bawah limit.
-    await request(app).post('/api/v1/auth/forgot-password').set('X-Forwarded-For', ip).send({ email: 'forgot2@test.dev' });
-    await request(app).post('/api/v1/auth/forgot-password').set('X-Forwarded-For', ip).send({ email: 'forgot2@test.dev' });
+    await request(app).post('/api/v1/auth/forgot-password').set('X-Forwarded-For', ip).send({ email: 'forgot2@gmail.com' });
+    await request(app).post('/api/v1/auth/forgot-password').set('X-Forwarded-For', ip).send({ email: 'forgot2@gmail.com' });
     const tokens = await pool.query<{ token: string }>(
-      `SELECT t.token FROM password_reset_tokens t JOIN users u ON u.id = t.user_id WHERE u.email = 'forgot2@test.dev' AND t.used_at IS NULL`,
+      `SELECT t.token FROM password_reset_tokens t JOIN users u ON u.id = t.user_id WHERE u.email = 'forgot2@gmail.com' AND t.used_at IS NULL`,
     );
     expect(tokens.rows).toHaveLength(1);
     const unknown = await request(app)
@@ -274,19 +274,19 @@ describe('auth routes', () => {
     const reg = await request(app)
       .post('/api/v1/auth/register')
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'verify1@test.dev', password: 'password123' });
+      .send({ email: 'verify1@gmail.com', password: 'password123' });
     expect(reg.status).toBe(201);
     const outbox = await pool.query<{ template: string; status: string }>(
-      "SELECT template, status FROM mail_outbox WHERE to_email = 'verify1@test.dev' AND template = 'verify'",
+      "SELECT template, status FROM mail_outbox WHERE to_email = 'verify1@gmail.com' AND template = 'verify'",
     );
     expect(outbox.rows).toHaveLength(1);
     expect(outbox.rows[0]).toMatchObject({ template: 'verify', status: 'pending' });
     const before = await pool.query<{ email_verified: boolean }>(
-      "SELECT email_verified FROM users WHERE email = 'verify1@test.dev'",
+      "SELECT email_verified FROM users WHERE email = 'verify1@gmail.com'",
     );
     expect(before.rows[0]?.email_verified).toBe(false);
     const tokens = await pool.query<{ token: string }>(
-      `SELECT t.token FROM email_verify_tokens t JOIN users u ON u.id = t.user_id WHERE u.email = 'verify1@test.dev'`,
+      `SELECT t.token FROM email_verify_tokens t JOIN users u ON u.id = t.user_id WHERE u.email = 'verify1@gmail.com'`,
     );
     expect(tokens.rows).toHaveLength(1);
     const verify = await request(app)
@@ -297,7 +297,7 @@ describe('auth routes', () => {
     const login = await request(app)
       .post('/api/v1/auth/login')
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'verify1@test.dev', password: 'password123' });
+      .send({ email: 'verify1@gmail.com', password: 'password123' });
     expect(login.status).toBe(200);
     const cookie = (login.headers['set-cookie'] as unknown as string[] | undefined)?.[0]!.split(';')[0]!;
     const after = await request(app).get('/api/v1/auth/me').set('Cookie', cookie);
@@ -321,13 +321,13 @@ describe('auth routes', () => {
     await request(app)
       .post('/api/v1/auth/register')
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'legacy@test.dev', password: 'password123' });
-    await pool.query("UPDATE users SET verification_deadline = now() + interval '14 days' WHERE email = 'legacy@test.dev'");
+      .send({ email: 'legacy@gmail.com', password: 'password123' });
+    await pool.query("UPDATE users SET verification_deadline = now() + interval '14 days' WHERE email = 'legacy@gmail.com'");
 
     const login = await request(app)
       .post('/api/v1/auth/login')
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'legacy@test.dev', password: 'password123' });
+      .send({ email: 'legacy@gmail.com', password: 'password123' });
     expect(login.status).toBe(200);
     const cookie = (login.headers['set-cookie'] as unknown as string[] | undefined)?.[0]!.split(';')[0]!;
     const me = await request(app).get('/api/v1/auth/me').set('Cookie', cookie);
@@ -335,11 +335,11 @@ describe('auth routes', () => {
     expect(typeof me.body.graceUntil).toBe('string');
 
     // Simulasi lewat deadline → kena gate seperti user baru.
-    await pool.query("UPDATE users SET verification_deadline = now() - interval '1 day' WHERE email = 'legacy@test.dev'");
+    await pool.query("UPDATE users SET verification_deadline = now() - interval '1 day' WHERE email = 'legacy@gmail.com'");
     const late = await request(app)
       .post('/api/v1/auth/login')
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'legacy@test.dev', password: 'password123' });
+      .send({ email: 'legacy@gmail.com', password: 'password123' });
     expect(late.status).toBe(403);
     expect(late.body.error.code).toBe('EMAIL_NOT_VERIFIED');
   });
@@ -348,16 +348,16 @@ describe('auth routes', () => {
     await request(app)
       .post('/api/v1/auth/register')
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'resend1@test.dev', password: 'password123' });
+      .send({ email: 'resend1@gmail.com', password: 'password123' });
     const res = await request(app)
       .post('/api/v1/auth/resend-verification')
       .set('X-Forwarded-For', uniqueIp())
-      .send({ email: 'resend1@test.dev' });
+      .send({ email: 'resend1@gmail.com' });
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
     // Token lama dicabut, tepat 1 aktif.
     const tokens = await pool.query(
-      `SELECT t.token FROM email_verify_tokens t JOIN users u ON u.id = t.user_id WHERE u.email = 'resend1@test.dev' AND t.used_at IS NULL`,
+      `SELECT t.token FROM email_verify_tokens t JOIN users u ON u.id = t.user_id WHERE u.email = 'resend1@gmail.com' AND t.used_at IS NULL`,
     );
     expect(tokens.rows).toHaveLength(1);
     // Email tak dikenal: tetap OK, tanpa bocor.
@@ -416,33 +416,33 @@ describe('forgot-password diam + throttle 1/jam per email', () => {
   });
 
   it('email terdaftar: 1 token + 1 email; request ke-2 <1 jam diam tanpa kirim lagi', async () => {
-    await register('throttle1@test.dev');
-    const first = await forgot('throttle1@test.dev');
+    await register('throttle1@gmail.com');
+    const first = await forgot('throttle1@gmail.com');
     expect(first.status).toBe(200);
-    expect(await resetTokens('throttle1@test.dev')).toHaveLength(1);
-    expect(await resetMails('throttle1@test.dev')).toBe(1);
+    expect(await resetTokens('throttle1@gmail.com')).toHaveLength(1);
+    expect(await resetMails('throttle1@gmail.com')).toBe(1);
 
-    const second = await forgot('throttle1@test.dev');
+    const second = await forgot('throttle1@gmail.com');
     expect(second.status).toBe(200);
     expect(second.body).toMatchObject({ ok: true });
     // Token tidak dibuat ulang, outbox tidak bertambah.
-    expect(await resetTokens('throttle1@test.dev')).toHaveLength(1);
-    expect(await resetMails('throttle1@test.dev')).toBe(1);
+    expect(await resetTokens('throttle1@gmail.com')).toHaveLength(1);
+    expect(await resetMails('throttle1@gmail.com')).toBe(1);
   });
 
   it('token kedaluwarsa: request baru diizinkan (link lama sudah mati)', async () => {
-    await register('throttle2@test.dev');
-    await forgot('throttle2@test.dev');
-    expect(await resetMails('throttle2@test.dev')).toBe(1);
+    await register('throttle2@gmail.com');
+    await forgot('throttle2@gmail.com');
+    expect(await resetMails('throttle2@gmail.com')).toBe(1);
     // Kedaluwarsakan token aktif secara manual.
     await pool.query(
       `UPDATE password_reset_tokens SET expires_at = now() - interval '1 minute'
-       WHERE user_id = (SELECT id FROM users WHERE email = 'throttle2@test.dev')`,
+       WHERE user_id = (SELECT id FROM users WHERE email = 'throttle2@gmail.com')`,
     );
-    const retry = await forgot('throttle2@test.dev');
+    const retry = await forgot('throttle2@gmail.com');
     expect(retry.status).toBe(200);
     // Token lama yang kedaluwarsa dicabut + 1 token segar; outbox bertambah 1.
-    expect(await resetTokens('throttle2@test.dev')).toHaveLength(1);
-    expect(await resetMails('throttle2@test.dev')).toBe(2);
+    expect(await resetTokens('throttle2@gmail.com')).toHaveLength(1);
+    expect(await resetMails('throttle2@gmail.com')).toBe(2);
   });
 });

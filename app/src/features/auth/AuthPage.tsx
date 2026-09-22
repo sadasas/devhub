@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { FormEvent } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowRight, Eye, EyeSlash, TerminalWindow, GithubLogo, GoogleLogo } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
@@ -75,7 +75,7 @@ export function AuthPage() {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | ReactNode | null>(null);
   const [noPassword, setNoPassword] = useState(false);
   const [unverified, setUnverified] = useState(false);
   const [resending, setResending] = useState(false);
@@ -152,6 +152,23 @@ export function AuthPage() {
         i18n.resolvedLanguage === 'id'
           ? 'Centang persetujuan Syarat & Privasi untuk lanjut.'
           : 'Please accept the Terms & Privacy to continue.',
+      );
+      return;
+    }
+    // Registrasi dibatasi @gmail.com (backend penegak final) — hemat roundtrip.
+    if (isRegister && !email.trim().toLowerCase().endsWith('@gmail.com')) {
+      setError(
+        i18n.resolvedLanguage === 'id' ? (
+          <>
+            Hanya email @gmail.com yang bisa mendaftar. Untuk whitelist domain, hubungi{' '}
+            <a href="mailto:support@devhub.nrawangbatin.my.id">support@devhub.nrawangbatin.my.id</a>.
+          </>
+        ) : (
+          <>
+            Only @gmail.com email addresses can register. To whitelist your domain, contact{' '}
+            <a href="mailto:support@devhub.nrawangbatin.my.id">support@devhub.nrawangbatin.my.id</a>.
+          </>
+        ),
       );
       return;
     }

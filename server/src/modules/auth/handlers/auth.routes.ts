@@ -60,6 +60,14 @@ export const authRouter = Router();
 
 authRouter.post('/register', registerLimiter, async (req, res) => {
   const { email, password } = parseOrThrow(registerSchema, req.body, 'Invalid registration data');
+  // Registrasi dibatasi @gmail.com — domain lain butuh whitelist via support.
+  if (!email.endsWith('@gmail.com')) {
+    throw new ApiError(
+      403,
+      'EMAIL_DOMAIN_NOT_ALLOWED',
+      'Only @gmail.com addresses can register. To whitelist your domain, contact support@devhub.nrawangbatin.my.id.',
+    );
+  }
   const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
   if (existing.rowCount && existing.rowCount > 0) {
     throw new ApiError(409, 'CONFLICT', 'Email already registered');
