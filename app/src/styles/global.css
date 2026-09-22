@@ -2120,9 +2120,9 @@ button.prop {
 
 /* Composer borderless fields: hairline focus cue (kompromi visual, bukan halo). */
 .composer-title:focus-visible,
+.textarea-bare:focus-visible {
   outline: 1px solid var(--border-strong);
   outline-offset: 2px;
-.textarea-bare:focus-visible {
   box-shadow: none;
 }
 
@@ -4756,8 +4756,8 @@ html[data-theme='light'] .splash-bg {
   min-height: 14px;
   font-family: var(--font-sans);
   font-size: 12px;
-  font-variant-numeric: tabular-nums;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .task-activity-value {
@@ -6864,8 +6864,8 @@ html[data-theme='light'] .splash-bg {
 .data-list-count {
   font-family: var(--font-sans);
   font-size: 11px;
-  font-variant-numeric: tabular-nums;
   color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .pager {
@@ -9780,8 +9780,8 @@ input[type='checkbox'] {
 .overview-group-count {
   font-family: var(--font-sans);
   font-size: 12px;
-  font-variant-numeric: tabular-nums;
   color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .member-list {
@@ -9873,8 +9873,8 @@ input[type='checkbox'] {
   gap: 2px;
   font-size: 12px;
   color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .member-overdue {
@@ -9885,8 +9885,8 @@ input[type='checkbox'] {
 .member-pct {
   font-size: 12px;
   color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .member-small-note {
@@ -10389,8 +10389,8 @@ input[type='checkbox'] {
   color: var(--accent);
   background: var(--accent-dim);
   border-radius: var(--radius-pill);
-  font-variant-numeric: tabular-nums;
   padding: 1px 6px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ============================================================
@@ -19681,13 +19681,14 @@ html[data-theme='light'] .tour-overlay-dim {
 /* General read view: judul + tombol Edit sebaris, nilai sebagai teks.
    Tombol absolute-kanan (di luar flow) agar tinggi head = tinggi judul di
    semua section — gap 12px section yang mengatur jarak, seragam. */
-  position: relative;
 .dashboard__settings-head {
+  position: relative;
+  display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
-  display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: 0;
   padding-right: 76px;
 }
@@ -19696,7 +19697,6 @@ html[data-theme='light'] .tour-overlay-dim {
   right: 0;
   top: 50%;
   transform: translateY(-50%);
-  gap: 12px;
 }
 
 .dashboard__settings-head .dashboard__settings-section-title {
@@ -19724,11 +19724,11 @@ html[data-theme='light'] .tour-overlay-dim {
   font-size: 12px;
   color: var(--text-muted);
 }
+
 .dashboard__settings-read-desc-block .dashboard__settings-read-key,
 .dashboard__settings-read-desc {
   font-size: 14px;
 }
-
 
 .dashboard__settings-read-desc {
   margin: 0;
@@ -19742,8 +19742,8 @@ html[data-theme='light'] .tour-overlay-dim {
 .dashboard__settings-team-status {
   display: inline-flex;
   align-items: center;
-  font-size: 12px;
   gap: 8px;
+  font-size: 12px;
 }
 
 .dashboard__settings-team-status-sep {
