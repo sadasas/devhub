@@ -123,13 +123,14 @@ export function AuthPage() {
       try {
         const { api } = await import('../../lib/api');
         await api.forgotPassword(email.trim());
-        // T10: sukses → layar cek-email dedicated (bukan banner inline).
-        navigate(`/check-email?case=forgot&email=${encodeURIComponent(email.trim())}`);
-        return;
-      } catch (err) {
-        setError(getErrorMessage(err, t('auth.error.generic')));
+      } catch {
+        // Diam total: respons apa pun (termasuk gagal) tetap ke layar cek-email
+        // generik — tanpa notifikasi error agar tak ada sinyal enumeration.
+      } finally {
         setSubmitting(false);
       }
+      // T10: sukses → layar cek-email dedicated (bukan banner inline).
+      navigate(`/check-email?case=forgot&email=${encodeURIComponent(email.trim())}`);
       return;
     }
     if (isRegister && password !== confirm) {
