@@ -1192,7 +1192,7 @@ a:hover {
   gap: 4px 8px;
   border: 0;
   background: none;
-  padding: 3px 8px;
+  padding: 3px 0;
   border-radius: 8px;
   min-height: 34px;
   white-space: normal;
@@ -1248,10 +1248,59 @@ a:hover {
   flex: 1 1 auto;
   min-width: 0;
   font-size: 12px;
-  color: var(--text-muted);
+  font-weight: 600;
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+.detail-side .prop-label svg {
+  flex-shrink: 0;
+}
+.detail-side .prop-label-text {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.detail-side .prop-edit {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.detail-side .prop:hover .prop-edit,
+.detail-side .prop:focus-within .prop-edit,
+.detail-side .prop-edit:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  .detail-side .prop-edit {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .detail-side .prop-edit {
+    transition: none;
+  }
+}
+/* Judul properti sebagai tombol (klik = buka input) — samakan token label. */
+.detail-side .prop-label-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  line-height: inherit;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: left;
 }
 .prop-chev {
   flex-shrink: 0;
@@ -1335,6 +1384,89 @@ a:hover {
   flex-shrink: 0;
   flex-basis: 100%;
   margin-left: 0;
+}
+
+/* Mobile (≤640px): sidebar properti jadi aliran pill inline ala Linear.
+   Ditulis SETELAH rule desktop agar menang (spesifisitas sama, source-order
+   menang). Label/pencil disembunyikan, hanya value yang mengalir wrap.
+   Berlaku ke semua modal detail (konsisten); desktop tidak tersentuh. */
+@media (max-width: 640px) {
+  .detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .detail-side {
+    grid-column: 1;
+    grid-row: auto;
+    border-left: 0;
+    padding-left: 0;
+    max-height: none;
+    overflow: visible;
+  }
+  /* Pil composer: label + ikon tampil, value ellipsis; klik judul = buka input. */
+  .detail-side .prop {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+    vertical-align: middle;
+    border: 1px solid var(--border-hairline);
+    border-radius: 999px;
+    padding: 5px 11px;
+    margin: 0 8px 8px 0;
+    min-height: 32px;
+  }
+  .detail-side .prop-chev,
+  .detail-side .prop-edit {
+    display: none;
+  }
+  .detail-side .prop-label {
+    flex: 0 0 auto;
+  }
+  .detail-side .prop-label-text {
+    max-width: 28vw;
+  }
+  .detail-side .prop > .prop-view,
+  .detail-side .prop > .input,
+  .detail-side .prop > .ss-wrap,
+  .detail-side .prop > span:not(.prop-label):not(.prop-chev) {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 40vw;
+  }
+  /* Blocked by: di desktop value di bawah label (flex 100%), di mobile tetap sebaris dalam pil. */
+  .detail-side [data-blocked-row] > div:last-child {
+    flex: 0 1 auto;
+    order: 0;
+    flex-basis: auto;
+  }
+  /* Saat edit: baris melebar penuh agar kontrol muat. */
+  .detail-side .prop[data-hot] {
+    display: flex;
+    flex-basis: 100%;
+    flex-wrap: wrap;
+    margin-right: 0;
+  }
+  .detail-side .prop[data-hot] > .prop-view,
+  .detail-side .prop[data-hot] > .ss-wrap,
+  .detail-side .prop[data-hot] > .input {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+  /* Created time ikut jadi pil pertama agar seragam. */
+  .detail-side .detail-created {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--border-hairline);
+    border-radius: 999px;
+    padding: 5px 11px;
+    margin: 0 8px 8px 0;
+    min-height: 32px;
+    font-size: 12px;
+  }
 }
 
 /* DatePicker kustom — panel portal, grid bulan, footer single/range. */
@@ -3866,14 +3998,14 @@ html[data-theme='light'] .splash-bg {
   }
 
   .data-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 12px;
     padding: 16px;
   }
 
   .data-row-side {
     flex-direction: row;
-    align-items: stretch;
+    align-items: flex-start;
     gap: 8px;
   }
 
@@ -3882,6 +4014,11 @@ html[data-theme='light'] .splash-bg {
     height: 44px;
     min-height: 44px;
     justify-content: center;
+  }
+
+  .data-row-side .btn-icon {
+    flex: 0 0 auto;
+    width: 44px;
   }
 
   .data-row-side .btn-danger {
@@ -6419,24 +6556,22 @@ html[data-theme='light'] .splash-bg {
   opacity: 1;
 }
 
+@media (hover: none) {
+  .task-card-pin {
+    opacity: 1;
+  }
+}
+
 .task-card-pin.pin-btn-active {
   color: var(--accent);
 }
 
-/* TaskCard contextual swap: priority badge bertukar dengan Pin saat
-   hover/focus (pola Issues swap). Badge disembunyikan in-place (ruang
-   dipertahankan, tanpa shift) tepat di bawah Pin absolute di pojok.
-   Info priority tetap ada untuk SR via .task-card sr-summary. */
+/* Priority badge tetap terlihat saat hover — Pin absolute di pojok
+   tidak menimpa badge (posisi berbeda), info priority tetap untuk SR. */
 .task-card-priority {
   transition:
     opacity var(--duration-fast) var(--ease-out),
     visibility var(--duration-fast) var(--ease-out);
-}
-
-.task-card-wrap:hover .task-card-priority,
-.task-card-wrap:focus-within .task-card-priority {
-  opacity: 0;
-  visibility: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -6469,6 +6604,12 @@ html[data-theme='light'] .splash-bg {
 .task-card:hover {
   border-color: var(--border-strong);
   background: var(--bg-overlay-hover);
+}
+
+.task-card:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 .task-card:active {
@@ -6883,6 +7024,85 @@ html[data-theme='light'] .splash-bg {
   white-space: nowrap;
 }
 
+/* Split-row anatomy (semua halaman yang sudah migrasi): baris-atas =
+   judul kiri + properti kanan (sejajar tengah); deskripsi + meta
+   full-width di bawahnya — area deskripsi tak pernah tersentuh kolom.
+   Berlaku otomatis untuk setiap .data-row yang memakai .data-row-top. */
+.data-list .data-row:has(> .data-row-top) {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.data-row-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.data-row-top > .data-row-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.data-row-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.data-row-btn:focus-visible,
+.data-row-body:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--accent-ring);
+}
+
+.data-row-props {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.data-row-btn .row-title-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.issues-page .row-title-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.data-row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
 .data-row-sub {
   font-size: 12px;
   color: var(--text-muted);
@@ -7213,6 +7433,32 @@ html[data-theme='light'] .splash-bg {
   min-width: 0;
 }
 
+/* Board — Opsi A (cermin Schema/API/Releases/Stack): baris 1 =
+   .data-list-header (count + actions), baris 2 = .board-subtabs-row
+   (switcher Status/Milestone/Calendar). .board-toolbar* lama dibiarkan
+   untuk WhiteboardEditorShell yang masih memakainya. */
+.board-subtabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.board-subtabs-row .sub-tabs {
+  margin-bottom: 0;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.board-subtabs-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .toolbar-check {
   display: inline-flex;
   align-items: center;
@@ -7313,16 +7559,19 @@ html[data-theme='light'] .splash-bg {
 
 /* P0: <768px view switcher becomes icon-only segmented (aria-label keeps text). */
 @media (max-width: 767px) {
-  .board-toolbar .sub-tabs {
+  .board-toolbar .sub-tabs,
+  .board-shell .board-subtabs-row .sub-tabs {
     gap: 2px;
   }
-  .board-toolbar .sub-tab {
+  .board-toolbar .sub-tab,
+  .board-shell .board-subtabs-row .sub-tab {
     min-width: 44px;
     min-height: 44px;
     padding: 8px 10px;
     justify-content: center;
   }
-  .board-toolbar .sub-tab-label {
+  .board-toolbar .sub-tab-label,
+  .board-shell .board-subtabs-row .sub-tab-label {
     display: none;
   }
 }
@@ -8915,6 +9164,56 @@ input[type='checkbox'] {
   margin-bottom: 0;
   flex-shrink: 1;
   min-width: 0;
+}
+
+/* API — Opsi A: samakan hirarki dengan Schema.
+   Baris 1 = .data-list-header (count + actions),
+   baris 2 = .api-subtabs-row (switcher Workspace/Docs). */
+.api-subtabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.api-subtabs-row .sub-tabs {
+  margin-bottom: 0;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.api-subtabs-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Releases — Opsi A (cermin API): baris 1 = .data-list-header
+   (count + actions), baris 2 = .releases-subtabs-row
+   (switcher Daftar/Timeline). */
+.releases-subtabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.releases-subtabs-row .sub-tabs {
+  margin-bottom: 0;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.releases-subtabs-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .schema-issues-badge {
@@ -11603,7 +11902,7 @@ input[type='checkbox'] {
 }
 
 .profile-panel {
-  padding: 16px 20px;
+  padding: 20px;
   background: var(--bg-elevated);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-card);
@@ -12234,6 +12533,31 @@ input[type='checkbox'] {
 
 .stack-header-left .sub-tabs {
   margin-bottom: 0;
+}
+
+/* Stack — Opsi A (cermin API/Releases): baris 1 = .data-list-header
+   (count + actions), baris 2 = .stack-subtabs-row
+   (switcher List/Graph). */
+.stack-subtabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.stack-subtabs-row .sub-tabs {
+  margin-bottom: 0;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.stack-subtabs-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .stack-graph-wrap {
@@ -13590,6 +13914,12 @@ input[type='checkbox'] {
 .tab-panel-loading { display:flex; flex-direction:column; gap:12px; }
 /* Whiteboard — list + editor shell */
 .wb-card { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: start; }
+/* Anatomi split (2026-09): baris-atas + isi full-width — keduanya
+   bentang penuh grid agar deskripsi tak tersentuh kolom aksi. */
+.wb-card > .data-row-top,
+.wb-card > .data-row-body {
+  grid-column: 1 / -1;
+}
 .wb-card-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 0; background: none; border: none; text-align: left; font: inherit; color: inherit; cursor: pointer; border-radius: var(--radius-sm); }
 .wb-card-main:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent-ring); }
 .wb-shell { display: flex; flex-direction: column; gap: 16px; }
@@ -13734,6 +14064,11 @@ input[type='checkbox'] {
   padding: 12px;
   display: flex;
   flex-direction: column;
+}
+/* Shortcuts dialog (Modal portals to body) must sit above the wb overlay. */
+body:has(.wb-shell.wb-fullscreen) > .modal-backdrop,
+body:has(.wb-shell.wb-presenting) > .modal-backdrop {
+  z-index: 70;
 }
 .wb-shell.wb-fullscreen .wb-main,
 .wb-shell.wb-presenting .wb-main { flex: 1 1 auto; min-height: 0; }
@@ -15154,6 +15489,11 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.due-cal-toolbar .sub-tabs {
+  margin-bottom: 0;
+  flex-shrink: 0;
 }
 
 .due-cal-nav {
@@ -17574,9 +17914,11 @@ details[open] > .milestone-group-summary::before {
 }
 .timeline-dot--active { background: var(--status-info); border-color: var(--status-info); color: var(--text-on-accent); }
 .timeline-dot--released { background: var(--accent); border-color: var(--accent); color: var(--text-on-accent); }
-.timeline-dot--planned { background: var(--bg-elevated); border: none; color: var(--text-muted); }
+.timeline-dot--planned { background: var(--bg-elevated); border: 2px solid var(--border-strong); color: var(--text-muted); }
 /* timeline dot icon: always white on solid */
 .timeline-dot--released svg, .timeline-dot--active svg { color: var(--text-on-accent); fill: currentColor; }
+/* planned is hollow — icon follows muted text so it stays visible on the elevated surface */
+.timeline-dot--planned svg { color: var(--text-muted); }
 .timeline-card {
   flex: 1;
   min-width: 0;
@@ -19419,8 +19761,62 @@ html[data-theme='light'] .tour-overlay-dim {
 }
 
 .dashboard__settings-section-desc {
-  margin: 0 0 16px;
+  margin: 0;
   font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* General read view: judul + tombol Edit sebaris, nilai sebagai teks. */
+.dashboard__settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dashboard__settings-head .dashboard__settings-section-title {
+  min-width: 0;
+}
+
+.dashboard__settings-read-name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.dashboard__settings-read-desc-block {
+  margin: 0;
+}
+
+.dashboard__settings-read-meta-block {
+  margin: 0;
+}
+
+.dashboard__settings-read-key {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.dashboard__settings-read-desc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Team·Status satu baris: flex + gap eksplisit (bukan spasi teks),
+   separator muted, label status hanya untuk screen reader. */
+.dashboard__settings-team-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard__settings-team-status-sep {
   color: var(--text-muted);
 }
 
@@ -19599,7 +19995,7 @@ html[data-theme='light'] .tour-overlay-dim {
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  padding-top: 12px;
+  padding-top: 0;
 }
 
 .dashboard__settings-danger-main {
@@ -20038,9 +20434,10 @@ html[data-theme='light'] .tour-overlay-dim {
   overflow: clip;
 }
 
-/* Inner spacing: roomy on desktop, compact on mobile. */
+/* Inner spacing (standar panel Tier-1, audit 2026-09: roomy 20px
+   seragam dengan .profile-panel — dulu 32px 20px 16px). */
 .pcard-body {
-  padding: 32px 20px 16px;
+  padding: 20px;
 }
 
 @media (max-width: 640px) {
@@ -20227,6 +20624,59 @@ aside.sidebar {
 .sidebar-project-row .sidebar-project-item {
   flex: 1;
   min-width: 0;
+}
+
+/* Hover milik baris penuh (termasuk area pin) — cermin active. */
+.sidebar-project-row:hover {
+  background: var(--surface-hover);
+}
+
+.sidebar-project-row:hover > .sidebar-item,
+.sidebar-project-row > .sidebar-item:hover {
+  background: transparent;
+  color: var(--text-primary);
+}
+
+/* Netralisasi hover link versi light — (0,4,1) mengalahkan
+   html[data-theme='light'] .sidebar-item:hover (0,3,1). Tanpa ini
+   background link menumpuk di atas background baris. */
+html[data-theme='light'] .sidebar-project-row:hover > .sidebar-item,
+html[data-theme='light'] .sidebar-project-row > .sidebar-item:hover {
+  background: transparent;
+}
+
+html[data-theme='light'] .sidebar-project-row:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* Highlight aktif milik baris penuh (termasuk area pin), bukan NavLink
+   saja — jika tidak, background + garis aksen berhenti sebelum tombol pin
+   dan pin terlihat terpotong di tepi. Kelas is-active dihitung React
+   (cermin semantik NavLink), NavLink tetap pembawa aria-current;
+   yang pindah hanya lapisan cat (nilai disalin persis). */
+.sidebar-project-row.is-active {
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: var(--radius-input);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.sidebar-project-row.is-active > .sidebar-item-active,
+.sidebar-project-row.is-active > .sidebar-item-active:hover {
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Varian terang highlight baris: nilai dark rgba(255,255,255,.07) tak
+   terlihat di light — selama ini highlight light "dipinjam" dari link
+   (.06), sumber penumpukan warna. */
+html[data-theme='light'] .sidebar-project-row.is-active {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+html[data-theme='light'] .sidebar-project-row.is-active > .sidebar-item-active,
+html[data-theme='light'] .sidebar-project-row.is-active > .sidebar-item-active:hover {
+  background: transparent;
+  box-shadow: none;
 }
 
 .pin-toggle {
@@ -21920,6 +22370,13 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
     min-height: 44px;
   }
 
+  /* Pengecualian: pil propbar composer tetap ramping di touch (36px).
+     Spesifisitas (0,4,0) menang atas rule 44px di atas (0,1,0). */
+  .composer-propbar .prop > .ss-wrap > .ss-trigger {
+    min-height: 36px;
+    font-size: 14px;
+  }
+
   .sort-control-trigger {
     min-height: 44px;
   }
@@ -21957,7 +22414,7 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
     white-space: nowrap;
   }
 
-  /* Issues + tests + stack + decisions + releases + whiteboard mobile: tanpa count, aksi
+  /* Issues + tests + stack + decisions + releases + whiteboard + api + board mobile: tanpa count, aksi
      (sort icon-only + tombol pendek) rata kanan atas. */
   .issues-page .data-list-header,
   .tests-page .data-list-header,
@@ -21965,6 +22422,8 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
   .decisions-page .data-list-header,
   .releases-page .data-list-header,
   .whiteboard-page .data-list-header,
+  .board-shell > .data-list-header,
+  .api-page > .data-list-header,
   .schema-page > .data-list-header {
     justify-content: flex-end;
   }
@@ -21975,6 +22434,8 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
   .decisions-page .data-list-actions,
   .releases-page .data-list-actions,
   .whiteboard-page .data-list-actions,
+  .board-shell > .data-list-header .data-list-actions,
+  .api-page > .data-list-header .data-list-actions,
   .schema-page > .data-list-header .data-list-actions {
     width: auto;
     margin-left: auto;
@@ -21986,6 +22447,8 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
   .stack-page .data-list-count,
   .decisions-page .data-list-count,
   .releases-page .data-list-count,
+  .board-shell > .data-list-header > .data-list-count,
+  .api-page > .data-list-header > .data-list-count,
   .schema-page > .data-list-header > .data-list-count {
     display: none;
   }
@@ -22002,6 +22465,10 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
   .decisions-page .sort-control-trigger .sort-trigger-chev,
   .releases-page .sort-control-trigger .sort-trigger-text,
   .releases-page .sort-control-trigger .sort-trigger-chev,
+  .api-page .api-sort-pair .sort-control-trigger .sort-trigger-text,
+  .api-page .api-sort-pair .sort-control-trigger .sort-trigger-chev,
+  .board-shell > .data-list-header .sort-control-trigger .sort-trigger-text,
+  .board-shell > .data-list-header .sort-control-trigger .sort-trigger-chev,
   .schema-page > .data-list-header .sort-control-trigger .sort-trigger-text,
   .schema-page > .data-list-header .sort-control-trigger .sort-trigger-chev {
     display: none;
@@ -22013,19 +22480,25 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
   .decisions-page .sort-control-trigger,
   .releases-page .sort-control-trigger,
   .whiteboard-page .sort-control-trigger,
+  .api-page .api-sort-pair .sort-control-trigger,
+  .board-shell > .data-list-header .sort-control-trigger,
   .schema-page > .data-list-header .sort-control-trigger {
     padding: 0 10px;
   }
 
   /* Schema mobile: toggle Tables/ERD icon-only (teks di aria-label). */
-  .schema-page .schema-subtabs-row .sub-tab {
+  .schema-page .schema-subtabs-row .sub-tab,
+  .api-page .api-subtabs-row .sub-tab,
+  .board-shell .board-subtabs-row .sub-tab {
     min-width: 44px;
     min-height: 44px;
     padding: 8px 10px;
     justify-content: center;
   }
 
-  .schema-page .schema-subtabs-row .sub-tab-label {
+  .schema-page .schema-subtabs-row .sub-tab-label,
+  .api-page .api-subtabs-row .sub-tab-label,
+  .board-shell .board-subtabs-row .sub-tab-label {
     display: none;
   }
 
@@ -22218,13 +22691,21 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
 
 /* P3-3c: toolbar wrap + padding kartu di semua tab.
    .data-list-header/.board-toolbar/.api-toolbar sudah wrap; tambah yang
-   belum: .schema-subtabs-row (Schema) + .wb-topbar (Whiteboard). */
-.schema-subtabs-row {
+   belum: .schema-subtabs-row (Schema) + .api-subtabs-row (API) + .wb-topbar (Whiteboard). */
+.schema-subtabs-row,
+.api-subtabs-row,
+.releases-subtabs-row,
+.stack-subtabs-row,
+.board-subtabs-row {
   flex-wrap: wrap;
 }
 
 @media (max-width: 640px) {
-  .schema-subtabs-row {
+  .schema-subtabs-row,
+  .api-subtabs-row,
+  .releases-subtabs-row,
+  .stack-subtabs-row,
+  .board-subtabs-row {
     row-gap: 8px;
   }
 
@@ -22585,5 +23066,57 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
      nav dalam konten disembunyikan agar tak ganda. */
   .project-settings-nav {
     display: none;
+  }
+}
+
+/* Minimalis: aksi destruktif baris (×/Detach) hover-reveal.
+   Selalu tampil saat keyboard-focus atau touch (tanpa hover). */
+.mini-del {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.mini-row:hover .mini-del,
+.mini-row:focus-within .mini-del,
+.mini-del:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  .mini-del {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mini-del {
+    transition: none;
+  }
+}
+
+/* Title & Description pencil hover-reveal (konsisten dengan prop-edit). */
+.editable-pencil {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  pointer-events: none;
+}
+.editable-field:hover .editable-pencil,
+.editable-field:focus-within .editable-pencil {
+  opacity: 1;
+}
+@media (hover: none) {
+  .editable-pencil {
+    opacity: 1;
+  }
+}
+@media (max-width: 640px) {
+  .editable-pencil {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .editable-pencil {
+    transition: none;
   }
 }

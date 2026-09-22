@@ -44,7 +44,7 @@ function DagCard({ task, state, blockedBy, external, onOpen }: { task: Task; sta
         </div>
         <div className="dag-card-title" title={task.title}>{task.title || "Untitled task"}</div>
         <div className="dag-card-meta">
-          {due.label && <span className={"task-due task-due-" + due.tone}>{due.label}</span>}
+          {due.label && <span className={"task-due task-due-" + due.tone} title={due.title}>{due.label}</span>}
           {task.assigneeId && (
             <span className="task-avatar">
               <Avatar

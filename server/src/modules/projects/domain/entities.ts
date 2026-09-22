@@ -15,6 +15,7 @@ import {
   apiEndpointSchema,
   whiteboardSchema,
   erdGroupSchema,
+  labelDefSchema,
   type State,
 } from './state.js';
 
@@ -92,6 +93,7 @@ export const ENTITIES: EntityConfig[] = [
   }),
   mk('apiEndpoints', 'API endpoint', apiEndpointSchema),
   mk('whiteboards', 'Whiteboard', whiteboardSchema),
+  mk('labelDefs', 'Label', labelDefSchema),
   mk('erdGroups', 'Area', erdGroupSchema),
 ];
 

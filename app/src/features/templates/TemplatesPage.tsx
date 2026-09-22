@@ -124,33 +124,33 @@ export function TemplatesPage() {
             <div className="data-list">
               {templates.map((tpl) => (
                 <div key={tpl.id} className="data-row">
-                  <div className="data-row-main">
+                  <div className="data-row-top">
                     <div className="data-row-title">
                       <span className="row-title-text">{tpl.name}</span>
                     </div>
-                    {tpl.description && <div className="data-row-meta">{tpl.description}</div>}
-                    <div className="data-row-meta">
-                      <span>{t('templates.row.created', { date: formatDate(tpl.createdAt) })}</span>
-                    </div>
+                    <span className="data-row-props">
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        leftIcon={<Trash size={14} aria-hidden="true" />}
+                        onClick={() => openDelete(tpl)}
+                        aria-label={`${t('templates.delete')}: ${tpl.name}`}
+                      >
+                        {t('templates.delete')}
+                      </Button>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        leftIcon={<Copy size={14} aria-hidden="true" />}
+                        onClick={() => setUseTarget(tpl)}
+                      >
+                        {t('templates.use')}
+                      </Button>
+                    </span>
                   </div>
-                  <div className="data-row-side">
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      leftIcon={<Trash size={14} aria-hidden="true" />}
-                      onClick={() => openDelete(tpl)}
-                      aria-label={`${t('templates.delete')}: ${tpl.name}`}
-                    >
-                      {t('templates.delete')}
-                    </Button>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      leftIcon={<Copy size={14} aria-hidden="true" />}
-                      onClick={() => setUseTarget(tpl)}
-                    >
-                      {t('templates.use')}
-                    </Button>
+                  {tpl.description && <div className="data-row-meta">{tpl.description}</div>}
+                  <div className="data-row-meta">
+                    <span>{t('templates.row.created', { date: formatDate(tpl.createdAt) })}</span>
                   </div>
                 </div>
               ))}

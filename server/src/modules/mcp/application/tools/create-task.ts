@@ -13,6 +13,8 @@ const inputSchema = z.object({
   estimate: z.number().int().min(0).optional().describe('Estimated hours'),
   actualHours: hours.optional().describe('Actual hours spent (auto-derived when status is done)'),
   labels: z.array(z.string().max(50)).max(20).default([]),
+  parentTaskId: z.string().uuid().nullable().optional().describe('Optional parent task for 1-level subtask'),
+  checklist: z.array(z.object({ id: z.string().uuid(), title: z.string().min(1).max(200), done: z.boolean().default(false) })).max(20).default([]),
   milestoneId: z.string().uuid().nullable().optional().describe('Optional milestone to group this task under'),
   dueDate: z
     .string().max(100).refine((v) => !Number.isNaN(Date.parse(v)), { message: 'Must be a valid ISO date string' })
@@ -67,6 +69,8 @@ export function registerCreateTask(server: McpServer): void {
         actualHours,
         labels: args.labels,
         blockedBy: [] as string[],
+        parentTaskId: args.parentTaskId ?? null,
+        checklist: args.checklist ?? [],
         milestoneId: args.milestoneId,
         dueDate: args.dueDate,
         startDate: args.startDate,

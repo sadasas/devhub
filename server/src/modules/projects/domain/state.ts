@@ -5,29 +5,29 @@ import { z } from 'zod';
  * input tool MCP agar tidak ada drift (audit 2026-08b, MCP-2).
  */
 export const LIMITS = {
-  TASK_TITLE: 300,
-  TASK_DESCRIPTION: 10_000,
-  ISSUE_TITLE: 300,
-  ISSUE_DESCRIPTION: 10_000,
-  ISSUE_REPRODUCTION: 10_000,
-  TESTCASE_NAME: 300,
-  TESTCASE_STEPS: 10_000,
-  TESTCASE_EXPECTED: 5_000,
-  DECISION_TITLE: 300,
-  DECISION_CONTEXT: 20_000,
-  DECISION_OPTION: 1_000,
+  TASK_TITLE: 100,
+  TASK_DESCRIPTION: 3_000,
+  ISSUE_TITLE: 100,
+  ISSUE_DESCRIPTION: 3_000,
+  ISSUE_REPRODUCTION: 3_000,
+  TESTCASE_NAME: 100,
+  TESTCASE_STEPS: 3_000,
+  TESTCASE_EXPECTED: 2_000,
+  DECISION_TITLE: 100,
+  DECISION_CONTEXT: 5_000,
+  DECISION_OPTION: 500,
   DECISION_OPTIONS: 20,
-  DECISION_TEXT: 20_000,
-  DECISION_CONSEQUENCES: 10_000,
-  MILESTONE_NAME: 300,
-  MILESTONE_VERSION: 100,
-  MILESTONE_CHANGELOG: 20_000,
-  BRIEF: 50_000,
-  WHITEBOARD_NAME: 300,
-  WHITEBOARD_DESCRIPTION: 2_000,
+  DECISION_TEXT: 5_000,
+  DECISION_CONSEQUENCES: 3_000,
+  MILESTONE_NAME: 100,
+  MILESTONE_VERSION: 50,
+  MILESTONE_CHANGELOG: 5_000,
+  BRIEF: 10_000,
+  WHITEBOARD_NAME: 100,
+  WHITEBOARD_DESCRIPTION: 500,
   WHITEBOARD_ELEMENTS: 1_000,
   WHITEBOARDS_PER_PROJECT: 50,
-  ERDGROUP_NAME: 50,
+  ERDGROUP_NAME: 30,
   ERDGROUPS_PER_PROJECT: 20,
   TIMELINE_ORDER: 5000,
 } as const;
@@ -53,6 +53,12 @@ export const baseFields = {
 export const taskStatus = z.enum(['todo', 'inProgress', 'review', 'done']);
 export const taskPriority = z.enum(['low', 'medium', 'high', 'urgent']);
 
+export const checklistItemSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string().min(1).max(200),
+  done: z.boolean().default(false),
+});
+
 export const taskSchema = z.object({
   ...baseFields,
   title: z.string().min(1).max(LIMITS.TASK_TITLE),
@@ -62,6 +68,9 @@ export const taskSchema = z.object({
   actualHours: hours.optional(),
   labels: z.array(z.string().max(50)).max(20).default([]),
   blockedBy: z.array(z.string().uuid()).default([]),
+  // zod-only, tanpa migrasi DB: data lama tanpa field tetap valid (optional/null = tanpa parent/checklist).
+  parentTaskId: z.string().uuid().nullable().optional(),
+  checklist: z.array(checklistItemSchema).max(20).default([]),
   milestoneId: z.string().uuid().nullable().optional(),
   dueDate: isoDate.nullable().optional(),
   startDate: isoDate.nullable().optional(),
@@ -427,6 +436,30 @@ export const erdGroupSchema = z.object({
   h: z.number().min(80).max(100_000).nullable().optional(),
 });
 
+export const labelColor = z.enum([
+  'red',
+  'orange',
+  'amber',
+  'green',
+  'emerald',
+  'teal',
+  'sky',
+  'blue',
+  'violet',
+  'pink',
+  'slate',
+  'lime',
+]);
+
+// Definisi label berwarna per-project (nama = kunci, seperti Linear tanpa grup).
+// zod-only, tanpa migrasi DB: data lama tanpa field tetap valid (default []).
+export const labelDefSchema = z.object({
+  ...baseFields,
+  name: z.string().min(1).max(50),
+  color: labelColor,
+  description: z.string().max(200).default(''),
+});
+
 export const stateSchema = z.object({
   tasks: z.array(taskSchema).max(5_000).default([]),
   issues: z.array(issueSchema).max(5_000).default([]),
@@ -440,6 +473,7 @@ export const stateSchema = z.object({
   apiCollections: z.array(apiCollectionSchema).max(500).default([]),
   apiEndpoints: z.array(apiEndpointSchema).max(5_000).default([]),
   whiteboards: z.array(whiteboardSchema).max(LIMITS.WHITEBOARDS_PER_PROJECT).default([]),
+  labelDefs: z.array(labelDefSchema).max(200).default([]),
   erdGroups: z.array(erdGroupSchema).max(LIMITS.ERDGROUPS_PER_PROJECT).default([]),
   timelineOrder: z.record(z.string().max(100), z.array(z.string().uuid()).max(5000)).default({}),
   timelineRow: z.record(z.string().max(100), z.record(z.string().max(100), z.number().int().min(0).max(10000))).default({}),
@@ -473,6 +507,8 @@ export type WhiteboardShape = z.infer<typeof whiteboardShapeSchema>;
 export type WhiteboardEdge = z.infer<typeof whiteboardEdgeSchema>;
 export type WhiteboardRef = z.infer<typeof whiteboardRefSchema>;
 export type Whiteboard = z.infer<typeof whiteboardSchema>;
+export type LabelColor = z.infer<typeof labelColor>;
+export type LabelDef = z.infer<typeof labelDefSchema>;
 export type ErdGroup = z.infer<typeof erdGroupSchema>;
 export type ErdPosition = z.infer<typeof erdPositionSchema>;
 export type ErdLayout = z.infer<typeof erdLayoutSchema>;
@@ -490,6 +526,7 @@ export const emptyState: State = {
   apiCollections: [],
   apiEndpoints: [],
   whiteboards: [],
+  labelDefs: [],
   erdGroups: [],
   timelineOrder: {},
   timelineRow: {},

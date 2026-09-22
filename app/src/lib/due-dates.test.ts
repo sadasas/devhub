@@ -57,15 +57,15 @@ describe('dueColumnDate', () => {
 describe('dueLabel', () => {
   const TODAY = '2026-08-17';
   it('formats overdue with a day count', () => {
-    expect(dueLabel('2026-08-16', TODAY)).toBe('OD 1d');
-    expect(dueLabel('2026-08-14', TODAY)).toBe('OD 3d');
+    expect(dueLabel('2026-08-16', TODAY)).toBe('Overdue 1d');
+    expect(dueLabel('2026-08-14', TODAY)).toBe('Overdue 3d');
   });
   it('labels today and tomorrow', () => {
-    expect(dueLabel('2026-08-17', TODAY)).toBe('Due today');
-    expect(dueLabel('2026-08-18', TODAY)).toBe('Due tomorrow');
+    expect(dueLabel('2026-08-17', TODAY)).toBe('Today');
+    expect(dueLabel('2026-08-18', TODAY)).toBe('Tomorrow');
   });
   it('formats future dates', () => {
-    expect(dueLabel('2026-08-25', TODAY)).toMatch(/^Due Aug 25$/);
+    expect(dueLabel('2026-08-25', TODAY)).toMatch(/^Aug 25$/);
   });
   it('returns empty for missing dates', () => {
     expect(dueLabel(null, TODAY)).toBe('');
@@ -100,7 +100,7 @@ describe('taskDueChip', () => {
         { status: 'done', dueDate: '2026-08-20', completedAt: '2026-08-15T09:00:00.000Z' },
         TODAY,
       ),
-    ).toEqual({ label: 'Done on time', tone: 'success' });
+    ).toMatchObject({ label: 'Done on time', tone: 'neutral' });
   });
 
   it('treats same-day completion as on time', () => {
@@ -109,7 +109,7 @@ describe('taskDueChip', () => {
         { status: 'done', dueDate: '2026-08-15', completedAt: '2026-08-15T23:59:00.000Z' },
         TODAY,
       ),
-    ).toEqual({ label: 'Done on time', tone: 'success' });
+    ).toMatchObject({ label: 'Done on time', tone: 'neutral' });
   });
 
   it('labels a done-late task with a fixed day count', () => {
@@ -118,18 +118,27 @@ describe('taskDueChip', () => {
         { status: 'done', dueDate: '2026-08-10', completedAt: '2026-08-13T10:00:00.000Z' },
         TODAY,
       ),
-    ).toEqual({ label: 'Done late 3d', tone: 'warn' });
+    ).toMatchObject({ label: 'Late 3d', tone: 'warn' });
+  });
+
+  it('exposes a rich tooltip with due + done dates', () => {
+    const chip = taskDueChip(
+      { status: 'done', dueDate: '2026-08-10', completedAt: '2026-08-13T10:00:00.000Z' },
+      TODAY,
+    );
+    expect(chip.title).toMatch(/2026/);
+    expect(chip.title).toMatch(/3/);
   });
 
   it('falls back to active overdue for done tasks without completedAt', () => {
     expect(
       taskDueChip({ status: 'done', dueDate: '2026-08-16', completedAt: null }, TODAY),
-    ).toEqual({ label: 'OD 1d', tone: 'danger' });
+    ).toMatchObject({ label: 'Overdue 1d', tone: 'danger' });
   });
 
   it('keeps active labeling for open tasks', () => {
     expect(
       taskDueChip({ status: 'todo', dueDate: '2026-08-16', completedAt: null }, TODAY),
-    ).toEqual({ label: 'OD 1d', tone: 'danger' });
+    ).toMatchObject({ label: 'Overdue 1d', tone: 'danger' });
   });
 });

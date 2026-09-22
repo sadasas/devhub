@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DashboardSettingsTab } from './DashboardSettingsTab';
@@ -101,6 +101,31 @@ describe('DashboardSettingsTab panel', () => {
     renderSettings('/alpha/settings?section=github');
     expect(await screen.findByRole('heading', { name: 'General' })).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'GitHub' })).toBeNull();
+  });
+
+  it('renders General as read view with an Edit button for admins', async () => {
+    renderSettings('/alpha/settings');
+    expect(await screen.findByRole('heading', { name: 'General' })).toBeTruthy();
+    expect(screen.getByText('Alpha')).toBeTruthy();
+    expect(screen.queryByLabelText(/Team name/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeTruthy();
+  });
+
+  it('saves name via the edit modal', async () => {
+    const renameTeam = vi.fn().mockResolvedValue(undefined);
+    useTeamsMock.mockReturnValue({
+      renameTeam,
+      renameSlug: vi.fn(),
+      deleteTeam: vi.fn(),
+      refresh: vi.fn(),
+    });
+    renderSettings('/alpha/settings');
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(/Team name/), { target: { value: 'Beta' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    await waitFor(() => expect(renameTeam).toHaveBeenCalledWith('team-1', 'Beta', null));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
   it('renders no-access without content for viewers', async () => {

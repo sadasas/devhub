@@ -13,6 +13,7 @@ import { toggleChat } from '../lib/chat-events';
 import { isTourActive } from '../features/onboarding/tour-events';
 import { LANGUAGES, useAppLocale } from '../i18n/useAppLocale';
 import { useTheme } from '../state/theme-context';
+import { FE_LIMITS } from '../lib/limits';
 
 interface PaletteCommand {
   id: string;
@@ -434,7 +435,7 @@ export function CommandPalette() {
           ref={inputRef}
           className="palette-input"
           value={query}
-          maxLength={200}
+          maxLength={FE_LIMITS.SEARCH}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t('palette.searchPlaceholder')}
           aria-label={t('palette.searchCommands')}

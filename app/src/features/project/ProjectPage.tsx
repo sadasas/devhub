@@ -24,6 +24,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, Link, useParams, useSearchParams } from 'react-router';
 import { api } from '../../lib/api';
+import { FE_LIMITS } from '../../lib/limits';
 import { getErrorMessage, isPlanLimitError } from '../../lib/errors';
 import { offlineProvider } from '../../lib/idb-provider';
 import { TEAM_ROLE } from '../../lib/labels';
@@ -938,7 +939,7 @@ export function ProjectPage() {
               id="delete-confirm-input"
               label={t('settings.dangerTypeLabel', { defaultValue: 'Project name' })}
               value={deleteConfirm}
-              maxLength={300}
+              maxLength={FE_LIMITS.PROJECT_NAME}
               placeholder={t('settings.dangerTypePlaceholder', { defaultValue: 'Type the project name to confirm' })}
               error={deleteConfirm.length > 0 && deleteConfirm.trim() !== project.name ? (t('settings.dangerTypeMismatch', { defaultValue: 'Name does not match.' }) as string) : undefined}
               aria-describedby="delete-desc"

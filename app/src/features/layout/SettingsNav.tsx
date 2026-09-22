@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { FE_LIMITS } from '../../lib/limits';
 import {
   CaretLeft,
   ChartBar,
@@ -66,7 +67,7 @@ export function SettingsNav({ teamSlug, dashboardTo, onSelect }: SettingsNavProp
           placeholder={t('dashboard.team.settingsNavSearchPlaceholder') as string}
           aria-label={t('dashboard.team.settingsNavSearchAria') as string}
           value={query}
-          maxLength={100}
+          maxLength={FE_LIMITS.SEARCH}
           onChange={(e) => setQuery(e.target.value)}
         />
       </div>

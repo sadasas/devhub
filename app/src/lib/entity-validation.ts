@@ -87,3 +87,8 @@ export function isWhiteboardValid(whiteboard: { name: string }): boolean {
 export function isErdGroupValid(group: { name: string }): boolean {
   return isNonEmptyTitle(group?.name);
 }
+
+/** Mirror labelDefSchema: name wajib (color enum + description divalidasi server). */
+export function isLabelDefValid(def: { name: string }): boolean {
+  return isNonEmptyTitle(def?.name);
+}

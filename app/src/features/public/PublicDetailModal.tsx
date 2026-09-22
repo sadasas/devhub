@@ -9,6 +9,8 @@ import {
   ISSUE_STATUS,
   TASK_PRIORITY,
   TASK_STATUS,
+  findLabelDef,
+  labelChipStyleFor,
 } from '../../lib/labels';
 import { taskDueChip } from '../../lib/due-dates';
 import { formatDate, formatRelative, linkedTestCases } from '../../lib/utils';
@@ -60,7 +62,7 @@ export function PublicTaskDetailModal({ task, state, onClose, onOpenTask }: Publ
             setHot={noopHot}
             canEdit={false}
             view={(
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 999, background: task.status === 'done' ? 'var(--status-success-dim)' : task.status === 'review' ? 'var(--status-warn-dim)' : task.status === 'inProgress' ? 'var(--status-info-dim)' : 'var(--bg-inset)', fontSize: 12 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 6, background: task.status === 'done' ? 'var(--status-success-dim)' : task.status === 'review' ? 'var(--status-warn-dim)' : task.status === 'inProgress' ? 'var(--status-info-dim)' : 'var(--bg-inset)', fontSize: 12 }}>
                 {TASK_STATUS[task.status].label}
               </span>
             )}
@@ -73,7 +75,7 @@ export function PublicTaskDetailModal({ task, state, onClose, onOpenTask }: Publ
             setHot={noopHot}
             canEdit={false}
             view={(
-              <span style={{ padding: '2px 8px', borderRadius: 999, background: task.priority === 'urgent' ? 'var(--status-danger-dim)' : task.priority === 'high' ? 'var(--status-warn-dim)' : task.priority === 'medium' ? 'var(--status-info-dim)' : 'var(--bg-inset)', fontSize: 11, color: task.priority === 'urgent' ? 'var(--status-danger)' : task.priority === 'high' ? 'var(--status-warn)' : task.priority === 'medium' ? 'var(--status-info)' : 'var(--text-secondary)' }}>
+              <span style={{ padding: '2px 8px', borderRadius: 6, background: task.priority === 'urgent' ? 'var(--status-danger-dim)' : task.priority === 'high' ? 'var(--status-warn-dim)' : task.priority === 'medium' ? 'var(--status-info-dim)' : 'var(--bg-inset)', fontSize: 11, color: task.priority === 'urgent' ? 'var(--status-danger)' : task.priority === 'high' ? 'var(--status-warn)' : task.priority === 'medium' ? 'var(--status-info)' : 'var(--text-secondary)' }}>
                 {TASK_PRIORITY[task.priority].label}
               </span>
             )}
@@ -96,7 +98,7 @@ export function PublicTaskDetailModal({ task, state, onClose, onOpenTask }: Publ
                 </span>
                 {task.dueDate && taskDueChip(task).tone === 'danger' && (
                   <span style={{ display: 'block', marginTop: 4 }}>
-                    <span className={`task-due task-due-${taskDueChip(task).tone}`}>{taskDueChip(task).label}</span>
+                    <span className={`task-due task-due-${taskDueChip(task).tone}`} title={taskDueChip(task).title}>{taskDueChip(task).label}</span>
                   </span>
                 )}
                 {task.status === 'done' && task.completedAt && (
@@ -114,7 +116,11 @@ export function PublicTaskDetailModal({ task, state, onClose, onOpenTask }: Publ
             canEdit={false}
             view={task.labels.length > 0 ? (
               <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {task.labels.map((l, i) => <span key={`${l}-${i}`} style={{ padding: '2px 8px', borderRadius: 999, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, color: 'var(--text-secondary)' }}>{l}</span>)}
+                {task.labels.map((l, i) => {
+                  const style = labelChipStyleFor(l, state.labelDefs);
+                  const title = findLabelDef(l, state.labelDefs)?.description || l;
+                  return <span key={`${l}-${i}`} title={title} style={{ padding: '2px 8px', borderRadius: 6, background: style.background, fontSize: 11, color: style.color }}>{l}</span>;
+                })}
               </span>
             ) : (
               <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>
@@ -170,12 +176,12 @@ export function PublicTaskDetailModal({ task, state, onClose, onOpenTask }: Publ
                     type="button"
                     onClick={() => onOpenTask(bt.id)}
                     aria-label={bt.title}
-                    style={{ padding: '2px 8px', borderRadius: 999, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: 'inherit', fontFamily: 'inherit' }}
+                    style={{ padding: '2px 8px', borderRadius: 6, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: 'inherit', fontFamily: 'inherit' }}
                   >
                     <LinkSimple size={10} aria-hidden="true" /> {bt.title}
                   </button>
                 ) : (
-                  <span key={bt.id} style={{ padding: '2px 8px', borderRadius: 999, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span key={bt.id} style={{ padding: '2px 8px', borderRadius: 6, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                     <LinkSimple size={10} aria-hidden="true" /> {bt.title}
                   </span>
                 )
@@ -202,7 +208,7 @@ export function PublicTaskDetailModal({ task, state, onClose, onOpenTask }: Publ
         {task.title || <DetailEmpty>{t('board.taskModal.untitled')}</DetailEmpty>}
       </h3>
       <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-        <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+        <span style={{ width: 110, color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
           <Clock size={12} aria-hidden="true" /> {t('issues.modal.createdTimeLabel')}
         </span>
         <span style={{ color: 'var(--text-secondary)' }}>{formatDate(task.createdAt)} {new Date(task.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -258,7 +264,7 @@ export function PublicIssueDetailModal({ issue, state, onClose, onOpenTask }: Pu
                   alignItems: 'center',
                   gap: 6,
                   padding: '2px 8px',
-                  borderRadius: 999,
+                  borderRadius: 6,
                   background:
                     issue.severity === 'critical'
                       ? 'var(--status-danger-dim)'
@@ -297,7 +303,7 @@ export function PublicIssueDetailModal({ issue, state, onClose, onOpenTask }: Pu
                   alignItems: 'center',
                   gap: 6,
                   padding: '2px 8px',
-                  borderRadius: 999,
+                  borderRadius: 6,
                   background:
                     issue.status === 'resolved'
                       ? 'var(--status-success-dim)'
@@ -364,7 +370,7 @@ export function PublicIssueDetailModal({ issue, state, onClose, onOpenTask }: Pu
         {issue.title || <DetailEmpty>{t('issues.modal.untitledIssue')}</DetailEmpty>}
       </h3>
       <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-        <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+        <span style={{ width: 110, color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
           <Clock size={12} aria-hidden="true" /> {t('issues.modal.createdTimeLabel')}
         </span>
         <span style={{ color: 'var(--text-secondary)' }}>

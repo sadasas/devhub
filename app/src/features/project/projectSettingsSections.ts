@@ -1,8 +1,9 @@
 // Section keys for the project-settings shell (?tab=settings&section=).
 // Mirrors team settings (?section=) but scoped to one project: 'general'
-// (meta), 'integrations' (provider cards) and 'danger' (archive + delete).
+// (meta), 'labels' (task label definitions), 'integrations' (provider cards)
+// and 'danger' (archive + delete).
 // Unknown values fall back to General.
-export const PROJECT_SETTINGS_SECTIONS = ['general', 'integrations', 'danger'] as const;
+export const PROJECT_SETTINGS_SECTIONS = ['general', 'labels', 'integrations', 'danger'] as const;
 export type ProjectSettingsSection = (typeof PROJECT_SETTINGS_SECTIONS)[number];
 
 export function normalizeProjectSettingsSection(raw: string | null): ProjectSettingsSection {
@@ -42,6 +43,10 @@ export const PROJECT_SETTINGS_SUB_KEYS: Record<ProjectSettingsSection, string[]>
     'project.settings.idLabel',
   ],
   integrations: ['project.settings.integrationsTitle'],
+  labels: [
+    'project.settings.labelsTitle',
+    'project.settings.labelsAdd',
+  ],
   danger: [
     'project.settings.dangerArchiveName',
     'project.settings.dangerDeleteName',

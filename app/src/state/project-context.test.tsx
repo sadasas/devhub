@@ -1180,6 +1180,42 @@ describe('actualHours derivation', () => {
     });
     expect(next.tasks[0]!.actualHours).toBe(3);
   });
+
+  it('detaches parent when parent is itself a subtask (1-level only)', () => {
+    const ts = { createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' };
+    const parent: typeof TASK = { ...TASK, id: 'p1', parentTaskId: 'gp' };
+    const state = { ...makeState(), tasks: [{ ...TASK, ...ts, id: 'gp' }, { ...parent, ...ts }] };
+    const next = projectReducer(state, {
+      type: 'task/add',
+      task: { ...TASK, ...ts, id: 'child', parentTaskId: 'p1' },
+    });
+    expect(next.tasks[0]!.parentTaskId).toBeNull();
+  });
+
+  it('inherits milestone from parent when empty', () => {
+    const ts = { createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' };
+    const state = { ...makeState(), tasks: [{ ...TASK, ...ts, id: 'p1', milestoneId: 'm1' }] };
+    const next = projectReducer(state, {
+      type: 'task/add',
+      task: { ...TASK, ...ts, id: 'child', parentTaskId: 'p1', milestoneId: null },
+    });
+    expect(next.tasks[0]!.milestoneId).toBe('m1');
+  });
+
+  it('detaches subtasks and unlinks blockedBy on remove', () => {
+    const ts = { createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' };
+    const state = {
+      ...makeState(),
+      tasks: [
+        { ...TASK, ...ts, id: 'p1' },
+        { ...TASK, ...ts, id: 'child', parentTaskId: 'p1' },
+        { ...TASK, ...ts, id: 't3', blockedBy: ['p1'] },
+      ],
+    };
+    const next = projectReducer(state, { type: 'task/remove', id: 'p1' });
+    expect(next.tasks.find((t) => t.id === 'child')!.parentTaskId).toBeNull();
+    expect(next.tasks.find((t) => t.id === 't3')!.blockedBy).toEqual([]);
+  });
 });
 
 class FakeWs {

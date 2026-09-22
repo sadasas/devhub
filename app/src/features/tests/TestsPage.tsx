@@ -151,101 +151,111 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
               : undefined;
 return (
               <div key={test.id} className="data-row">
+                <div className="data-row-top">
+                  <button
+                    type="button"
+                    className="data-row-btn"
+                    onClick={() => setEditingId(test.id)}
+                    aria-label={test.name}
+                  >
+                    <span className="data-row-title">
+                      <span className="row-title-text">{test.name}</span>
+                    </span>
+                  </button>
+                  <span className="data-row-props">
+                    {canEdit ? (
+                      <span className={`row-swap${test.pinned ? ' is-pinned' : ''}`}>
+                        <span className="swap-status">
+                          <Badge tone={TEST_CASE_STATUS[test.status].tone}>
+                            {t(`tests.status.${test.status}`)}
+                          </Badge>
+                        </span>
+                        {!isNarrow && (
+                          <span className="swap-group">
+                            <PinButton
+                              pinned={!!test.pinned}
+                              label="test case"
+                              onToggle={() =>
+                                dispatch({
+                                  type: 'testCase/update',
+                                  id: test.id,
+                                  patch: { pinned: !test.pinned },
+                                })
+                              }
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-sm btn-icon btn-danger swap-trash"
+                              aria-label={`Delete test case ${test.name}`}
+                              title={`Delete test case ${test.name}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const btn = e.currentTarget;
+                                setConfirmDeleteId(test.id);
+                                // Blur pointer-only agar :focus-within tidak
+                                // nyangkut (pola IssuesPage).
+                                if (e.detail !== 0) btn.blur();
+                              }}
+                            >
+                              <Trash size={13} aria-hidden="true" />
+                            </button>
+                          </span>
+                        )}
+                        {isNarrow && (
+                          <RowMenu
+                            triggerLabel={`More actions for ${test.name}`}
+                            menuLabel={`More actions for ${test.name}`}
+                            menuId={`test-rowmenu-${test.id}`}
+                            actions={[
+                              {
+                                key: 'pin',
+                                // English hardcoded mengikuti preseden PinButton.
+                                label: test.pinned ? 'Unpin test case' : 'Pin test case',
+                                icon: <PushPin size={14} weight={test.pinned ? 'fill' : 'regular'} />,
+                                onSelect: () =>
+                                  dispatch({
+                                    type: 'testCase/update',
+                                    id: test.id,
+                                    patch: { pinned: !test.pinned },
+                                  }),
+                              },
+                              {
+                                key: 'delete',
+                                label: t('tests.modal.delete'),
+                                icon: <Trash size={14} />,
+                                danger: true,
+                                onSelect: () => setConfirmDeleteId(test.id),
+                              },
+                            ]}
+                          />
+                        )}
+                      </span>
+                    ) : (
+                      <Badge tone={TEST_CASE_STATUS[test.status].tone}>
+                        {t(`tests.status.${test.status}`)}
+                      </Badge>
+                    )}
+                  </span>
+                </div>
                 <button
                   type="button"
-                  className="data-row-main"
+                  className="data-row-body"
                   onClick={() => setEditingId(test.id)}
+                  aria-label={`${test.name} — ${t('tests.openDetails', { defaultValue: 'Open test case details' })}`}
                 >
-                  <div className="data-row-title">
-                    <span className="row-title-text">{test.name}</span>
-                  </div>
-                  <div className="data-row-sub">
+                  <span className="data-row-sub">
                     {t('tests.rowSteps', { steps: test.steps || '—' })}
                     {test.expected && <span> · {t('tests.rowExpected', { expected: test.expected })}</span>}
-                  </div>
-                  <div className="data-row-meta">
+                  </span>
+                  <span className="data-row-meta">
                     {linkedTask && <span>{t('tests.metaTask', { title: linkedTask.title })}</span>}
                     {linkedIssue && <span>{t('tests.metaIssue', { title: linkedIssue.title })}</span>}
                     <span>#{shortId(test.id)}</span>
                     {unreadIds?.has(test.id) && (
                       <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">New</span>
                       )}
-                  </div>
+                  </span>
                 </button>
-                <div className="data-row-side" style={{ justifyContent: 'flex-start', gap: '4px' }}>
-                  {canEdit ? (
-                    <span className={`row-swap${test.pinned ? ' is-pinned' : ''}`}>
-                      <span className="swap-status">
-                        <Badge tone={TEST_CASE_STATUS[test.status].tone}>
-                          {t(`tests.status.${test.status}`)}
-                        </Badge>
-                      </span>
-                      {!isNarrow && (
-                        <span className="swap-group">
-                          <PinButton
-                            pinned={!!test.pinned}
-                            label="test case"
-                            onToggle={() =>
-                              dispatch({
-                                type: 'testCase/update',
-                                id: test.id,
-                                patch: { pinned: !test.pinned },
-                              })
-                            }
-                          />
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-sm btn-icon btn-danger swap-trash"
-                            aria-label={`Delete test case ${test.name}`}
-                            title={`Delete test case ${test.name}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const btn = e.currentTarget;
-                              setConfirmDeleteId(test.id);
-                              // Blur pointer-only agar :focus-within tidak
-                              // nyangkut (pola IssuesPage).
-                              if (e.detail !== 0) btn.blur();
-                            }}
-                          >
-                            <Trash size={13} aria-hidden="true" />
-                          </button>
-                        </span>
-                      )}
-                      {isNarrow && (
-                        <RowMenu
-                          triggerLabel={`More actions for ${test.name}`}
-                          menuLabel={`More actions for ${test.name}`}
-                          menuId={`test-rowmenu-${test.id}`}
-                          actions={[
-                            {
-                              key: 'pin',
-                              // English hardcoded mengikuti preseden PinButton.
-                              label: test.pinned ? 'Unpin test case' : 'Pin test case',
-                              icon: <PushPin size={14} weight={test.pinned ? 'fill' : 'regular'} />,
-                              onSelect: () =>
-                                dispatch({
-                                  type: 'testCase/update',
-                                  id: test.id,
-                                  patch: { pinned: !test.pinned },
-                                }),
-                            },
-                            {
-                              key: 'delete',
-                              label: t('tests.modal.delete'),
-                              icon: <Trash size={14} />,
-                              danger: true,
-                              onSelect: () => setConfirmDeleteId(test.id),
-                            },
-                          ]}
-                        />
-                      )}
-                    </span>
-                  ) : (
-                    <Badge tone={TEST_CASE_STATUS[test.status].tone}>
-                      {t(`tests.status.${test.status}`)}
-                    </Badge>
-                  )}
-                </div>
               </div>
             );
           })}

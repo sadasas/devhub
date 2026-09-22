@@ -89,10 +89,44 @@ export function linkedTestCases(taskId: string, testCases: TestCase[]): TestCase
   return testCases.filter((tc) => tc.taskId === taskId);
 }
 
-export function isTaskCompletable(task: Task, testCases: TestCase[]): boolean {
+export function isTaskCompletable(task: Task, testCases: TestCase[], tasks?: Task[]): boolean {
   const linked = linkedTestCases(task.id, testCases);
-  if (linked.length === 0) return true;
-  return linked.every((tc) => tc.status === 'pass');
+  if (linked.length > 0 && !linked.every((tc) => tc.status === 'pass')) return false;
+  // Hard-block: tidak bisa Done selama ada blocker / subtask / checklist belum selesai.
+  if (tasks) {
+    const openBlockers = [...new Set(task.blockedBy ?? [])]
+      .map((id) => tasks.find((t) => t.id === id))
+      .filter((t): t is Task => t !== undefined)
+      .filter((t) => t.status !== 'done');
+    if (openBlockers.length > 0) return false;
+    const openSubtasks = tasks.filter((t) => t.parentTaskId === task.id && t.status !== 'done');
+    if (openSubtasks.length > 0) return false;
+  }
+  const checklist = task.checklist ?? [];
+  if (checklist.length > 0 && !checklist.every((c) => c.done)) return false;
+  return true;
+}
+
+export function openBlockerNames(task: Task, tasks: Task[], max = 3): string[] {
+  const names = [...new Set(task.blockedBy ?? [])]
+    .map((id) => tasks.find((t) => t.id === id))
+    .filter((t): t is Task => t !== undefined)
+    .filter((t) => t.status !== 'done')
+    .map((t) => t.title || 'Untitled task');
+  return names.slice(0, max);
+}
+
+export function taskBlockSummary(task: Task, testCases: TestCase[], tasks: Task[]): string[] {
+  const reasons: string[] = [];
+  const pendingTc = testCases.filter((tc) => tc.taskId === task.id && tc.status !== 'pass');
+  if (pendingTc.length > 0) reasons.push(`${pendingTc.length} test case`);
+  const blockers = openBlockerNames(task, tasks, 99);
+  if (blockers.length > 0) reasons.push(`${blockers.length} blocker`);
+  const openSub = tasks.filter((t) => t.parentTaskId === task.id && t.status !== 'done');
+  if (openSub.length > 0) reasons.push(`${openSub.length} subtask`);
+  const openCheck = (task.checklist ?? []).filter((c) => !c.done);
+  if (openCheck.length > 0) reasons.push(`${openCheck.length} checklist`);
+  return reasons;
 }
 
 /** Shared API search predicate (sidebar tree + docs view): name, path, method, description. Empty query matches everything. */

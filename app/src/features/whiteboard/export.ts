@@ -3,6 +3,7 @@ import {
   elementBounds,
   refCardLayout,
   refCardRect,
+  refEntityAccent,
   shapePath,
   textLineHeight,
   truncateToWidth,
@@ -232,14 +233,18 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null, ctx: Exp
       const rect = refCardRect(el, refData, false);
       const { x, y, w, h } = rect;
       const pad = REF_LAYOUT.pad;
-      const card = `<rect x="${round(x)}" y="${round(y)}" width="${round(w)}" height="${round(h)}" rx="6" fill="rgba(110,168,254,0.10)" stroke="#6ea8fe" stroke-width="1.5"/>`;
+      const accent = refEntityAccent(el.entity);
+      const card = `<rect x="${round(x)}" y="${round(y)}" width="${round(w)}" height="${round(h)}" rx="6" fill="${accent.softFill}" stroke="${accent.color}" stroke-width="1.5"/>`;
+      // Guarantee nothing paints outside the card even if font metrics drift.
+      const clipId = `refclip-${el.id}`;
+      const clip = `<clipPath id="${clipId}"><rect x="${round(x)}" y="${round(y)}" width="${round(w)}" height="${round(h)}" rx="6"/></clipPath>`;
       if (refData) {
         const layout = refCardLayout(refData);
         const blockSvg = (lines: string[], fontSize: number, fill: string, blkY: number, step: number, weight?: number) =>
           lines
             .map((line, i) => textNode(x + pad, y + blkY + i * step, fontSize, fill, line, 'start', weight))
             .join('');
-        const title = blockSvg(layout.title.lines, 12, '#6ea8fe', layout.title.y, layout.title.step, 600);
+        const title = blockSvg(layout.title.lines, 12, accent.color, layout.title.y, layout.title.step, 600);
         const meta = blockSvg(layout.meta.lines, 10, '#8a8a93', layout.meta.y, layout.meta.step);
         const sub = layout.sub ? blockSvg(layout.sub.lines, 10, '#8a8a93', layout.sub.y, layout.sub.step) : '';
         const chips = layout.labelRows
@@ -248,7 +253,7 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null, ctx: Exp
             return row.labels
               .map((label) => {
                 const cw = label.length * CHIP_CHAR_W + 12;
-                const chip = `<rect x="${round(lx)}" y="${round(y + row.y - 9)}" width="${round(cw)}" height="13" rx="3" fill="rgba(110,168,254,0.18)"/><text x="${round(lx + 6)}" y="${round(y + row.y)}" font-size="9" fill="#8a8a93">${esc(label)}</text>`;
+                const chip = `<rect x="${round(lx)}" y="${round(y + row.y - 9)}" width="${round(cw)}" height="13" rx="3" fill="${accent.chipFill}"/><text x="${round(lx + 6)}" y="${round(y + row.y)}" font-size="9" fill="#8a8a93">${esc(label)}</text>`;
                 lx += cw + 4;
                 return chip;
               })
@@ -257,10 +262,10 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null, ctx: Exp
           .join('');
         const counts = layout.counts ? blockSvg(layout.counts.lines, 10, '#8a8a93', layout.counts.y, layout.counts.step) : '';
         const desc = layout.desc ? blockSvg(layout.desc.lines, 10, '#6b7280', layout.desc.y, layout.desc.step) : '';
-        return `<g>${card}${title}${meta}${sub}${chips}${counts}${desc}</g>`;
+        return `<g>${clip}${card}<g clip-path="url(#${clipId})">${title}${meta}${sub}${chips}${counts}${desc}</g></g>`;
       }
-      const title = truncateToWidth(`untitled ${el.entity}`, 12, w - pad * 2 - REF_LAYOUT.toggle.rightOff);
-      return `<g>${card}${textNode(x + pad, y + pad + 13, 12, '#8a8a93', title, 'start', 600)}${textNode(x + pad, y + pad + REF_LAYOUT.titleH + 10, 10, '#6b7280', 'Deleted')}</g>`;
+      const title = truncateToWidth(`untitled ${el.entity}`, 12, w - pad * 2 - REF_LAYOUT.toggle.rightOff, 600);
+      return `<g>${clip}${card}<g clip-path="url(#${clipId})">${textNode(x + pad, y + pad + 13, 12, '#8a8a93', title, 'start', 600)}${textNode(x + pad, y + pad + REF_LAYOUT.titleH + 10, 10, '#6b7280', 'Deleted')}</g></g>`;
     }
     default:
       return '';

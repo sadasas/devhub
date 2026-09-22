@@ -3,6 +3,8 @@ import type {
   DecisionStatus,
   IssueSeverity,
   IssueStatus,
+  LabelColor,
+  LabelDef,
   MilestoneStatus,
   ProjectStatus,
   TaskPriority,
@@ -99,3 +101,76 @@ export const TEAM_ROLE: Record<TeamRole, Meta> = {
   editor: { label: 'Editor', tone: 'neutral' },
   viewer: { label: 'Viewer', tone: 'warn' },
 };
+
+/* ------------------------------------------------------------------ */
+/* Label berwarna (object ala Linear, tanpa group di v1)               */
+/* ------------------------------------------------------------------ */
+
+export const LABEL_COLOR_ORDER: LabelColor[] = [
+  'red',
+  'orange',
+  'amber',
+  'lime',
+  'green',
+  'emerald',
+  'teal',
+  'sky',
+  'blue',
+  'violet',
+  'pink',
+  'slate',
+];
+
+export const LABEL_COLOR_LABEL: Record<LabelColor, string> = {
+  red: 'Red',
+  orange: 'Orange',
+  amber: 'Amber',
+  lime: 'Lime',
+  green: 'Green',
+  emerald: 'Emerald',
+  teal: 'Teal',
+  sky: 'Sky',
+  blue: 'Blue',
+  violet: 'Violet',
+  pink: 'Pink',
+  slate: 'Slate',
+};
+
+function normLabelName(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+export function findLabelDef(name: string, defs: readonly LabelDef[] | undefined): LabelDef | undefined {
+  const norm = normLabelName(name);
+  if (!norm) return undefined;
+  return (defs ?? []).find((d) => normLabelName(d.name) === norm);
+}
+
+/** Warna deterministik untuk label tanpa definisi (hash nama → palet). */
+export function hashLabelColor(name: string): LabelColor {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) {
+    h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  }
+  return LABEL_COLOR_ORDER[h % LABEL_COLOR_ORDER.length]!;
+}
+
+export function labelColorFor(name: string, defs: readonly LabelDef[] | undefined): LabelColor {
+  return findLabelDef(name, defs)?.color ?? hashLabelColor(normLabelName(name));
+}
+
+/** Gaya chip label: pasangan token solid + dim (pola status-chip). */
+export function labelChipStyle(color: LabelColor): { background: string; color: string } {
+  return { background: `var(--label-${color}-dim)`, color: `var(--label-${color})` };
+}
+
+export function labelChipStyleFor(name: string, defs: readonly LabelDef[] | undefined): { background: string; color: string } {
+  return labelChipStyle(labelColorFor(name, defs));
+}
+
+/** Jumlah task yang memakai label (untuk count di Settings). */
+export function labelUsageCount(name: string, taskLabels: readonly string[][]): number {
+  const norm = normLabelName(name);
+  if (!norm) return 0;
+  return taskLabels.filter((ls) => ls.some((l) => normLabelName(l) === norm)).length;
+}

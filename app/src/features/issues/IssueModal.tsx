@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Trash, Clock, Bug, FileText, CheckCircle } from '@phosphor-icons/react';
+import { Trash, Clock, Bug, FileText, CheckCircle, Warning, Circle, LinkSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { ISSUE_SEVERITY, ISSUE_STATUS } from '../../lib/labels';
 import { formatDate, formatRelative } from '../../lib/utils';
@@ -111,6 +111,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
           <PropRow
             propKey="severity"
             label={t('issues.modal.severityLabel')}
+            icon={<Warning size={12} aria-hidden="true" />}
             hot={hotProp === 'severity'}
             setHot={setHotProp}
             canEdit={canEdit}
@@ -162,6 +163,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
           <PropRow
             propKey="status"
             label={t('issues.modal.statusLabel')}
+            icon={<Circle size={12} aria-hidden="true" />}
             hot={hotProp === 'status'}
             setHot={setHotProp}
             canEdit={canEdit}
@@ -217,6 +219,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
           <PropRow
             propKey="linkedTask"
             label={t('issues.modal.linkedTaskLabel')}
+            icon={<LinkSimple size={12} aria-hidden="true" />}
             hot={hotProp === 'linkedTask'}
             setHot={setHotProp}
             canEdit={canEdit}
@@ -368,7 +371,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
         </h3>
       )}
       <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-        <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+        <span style={{ width: 110, color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
           <Clock size={12} aria-hidden="true" /> {t('issues.modal.createdTimeLabel')}
         </span>
         <span style={{ color: 'var(--text-secondary)' }}>

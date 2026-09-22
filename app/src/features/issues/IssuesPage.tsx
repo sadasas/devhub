@@ -156,103 +156,113 @@ export function IssuesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
               ? state.tasks.find((t) => t.id === issue.linkedTaskId)
               : undefined;
 return (
-              <div key={issue.id} className={`data-row${issue.pinned ? ' is-pinned' : ''}`}>
-                <button
-                  type="button"
-                  className="data-row-main"
-                  onClick={() => setEditingId(issue.id)}
-                >
-                  <div className="data-row-title">
-                    <Badge tone={ISSUE_SEVERITY[issue.severity].tone}>
-                      {t(`issues.severity.${issue.severity}`)}
-                    </Badge>
-                    <span className="row-title-text">{issue.title}</span>
-                  </div>
-                  {issue.description && <div className="data-row-sub">{issue.description}</div>}
-                  {issue.reproduction && <div className="data-row-sub">{issue.reproduction}</div>}
-                  <div className="data-row-meta">
-                    {linked && <span>{t('issues.linkedTo', { title: linked.title })}</span>}
-                    <span>#{shortId(issue.id)}</span>
-                    {unreadIds?.has(issue.id) && (
-                      <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">New</span>
-                      )}
-                  </div>
-                </button>
-                <div className="data-row-side" style={{ justifyContent: 'flex-start', gap: '4px' }}>
-                  {canEdit ? (
-                    <span className={`row-swap${issue.pinned ? ' is-pinned' : ''}`}>
-                      <span className="swap-status">
-                        <Badge tone={ISSUE_STATUS[issue.status].tone}>{t(`issues.status.${issue.status}`)}</Badge>
-                      </span>
-                      {!isNarrow && (
-                        <span className="swap-group">
-                          <PinButton
-                            pinned={!!issue.pinned}
-                            label="issue"
-                            onToggle={() =>
-                              dispatch({
-                                type: 'issue/update',
-                                id: issue.id,
-                                patch: { pinned: !issue.pinned },
-                              })
-                            }
-                          />
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-sm btn-icon btn-danger swap-trash"
-                            aria-label={`Delete issue ${issue.title}`}
-                            title={`Delete issue ${issue.title}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const btn = e.currentTarget;
-                              setConfirmDeleteId(issue.id);
-                              // Sama seperti PinButton: blur pointer-only agar
-                              // :focus-within tidak nyangkut. Bonus: focus trap
-                              // mengembalikan fokus ke body (bukan Trash) saat
-                              // dialog ditutup via pointer, jadi actions tetap
-                              // hilang. Keyboard (detail 0) tetap restore ke Trash.
-                              if (e.detail !== 0) btn.blur();
-                            }}
-                          >
-                            <Trash size={13} aria-hidden="true" />
-                          </button>
+              <div key={issue.id} className={`data-row issue-row${issue.pinned ? ' is-pinned' : ''}`}>
+                <div className="data-row-top">
+                  <button
+                    type="button"
+                    className="data-row-btn"
+                    onClick={() => setEditingId(issue.id)}
+                    aria-label={issue.title}
+                  >
+                    <span className="data-row-title">
+                      <Badge tone={ISSUE_SEVERITY[issue.severity].tone}>
+                        {t(`issues.severity.${issue.severity}`)}
+                      </Badge>
+                      <span className="row-title-text">{issue.title}</span>
+                    </span>
+                  </button>
+                  <span className="data-row-props">
+                    {canEdit ? (
+                      <span className={`row-swap${issue.pinned ? ' is-pinned' : ''}`}>
+                        <span className="swap-status">
+                          <Badge tone={ISSUE_STATUS[issue.status].tone}>{t(`issues.status.${issue.status}`)}</Badge>
                         </span>
-                      )}
-                      {isNarrow && (
-                        <RowMenu
-                          triggerLabel={`More actions for ${issue.title}`}
-                          menuLabel={`More actions for ${issue.title}`}
-                          menuId={`issue-rowmenu-${issue.id}`}
-                          actions={[
-                            {
-                              key: 'pin',
-                              // English hardcoded mengikuti preseden PinButton
-                              // ("Pin/Unpin issue") dan menu Archive/Restore
-                              // di ProjectPage.
-                              label: issue.pinned ? 'Unpin issue' : 'Pin issue',
-                              icon: <PushPin size={14} weight={issue.pinned ? 'fill' : 'regular'} />,
-                              onSelect: () =>
+                        {!isNarrow && (
+                          <span className="swap-group">
+                            <PinButton
+                              pinned={!!issue.pinned}
+                              label="issue"
+                              onToggle={() =>
                                 dispatch({
                                   type: 'issue/update',
                                   id: issue.id,
                                   patch: { pinned: !issue.pinned },
-                                }),
-                            },
-                            {
-                              key: 'delete',
-                              label: t('issues.modal.delete'),
-                              icon: <Trash size={14} />,
-                              danger: true,
-                              onSelect: () => setConfirmDeleteId(issue.id),
-                            },
-                          ]}
-                        />
-                      )}
-                    </span>
-                  ) : (
-                    <Badge tone={ISSUE_STATUS[issue.status].tone}>{t(`issues.status.${issue.status}`)}</Badge>
-                  )}
+                                })
+                              }
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-sm btn-icon btn-danger swap-trash"
+                              aria-label={`Delete issue ${issue.title}`}
+                              title={`Delete issue ${issue.title}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const btn = e.currentTarget;
+                                setConfirmDeleteId(issue.id);
+                                // Sama seperti PinButton: blur pointer-only agar
+                                // :focus-within tidak nyangkut. Bonus: focus trap
+                                // mengembalikan fokus ke body (bukan Trash) saat
+                                // dialog ditutup via pointer, jadi actions tetap
+                                // hilang. Keyboard (detail 0) tetap restore ke Trash.
+                                if (e.detail !== 0) btn.blur();
+                              }}
+                            >
+                              <Trash size={13} aria-hidden="true" />
+                            </button>
+                          </span>
+                        )}
+                        {isNarrow && (
+                          <RowMenu
+                            triggerLabel={`More actions for ${issue.title}`}
+                            menuLabel={`More actions for ${issue.title}`}
+                            menuId={`issue-rowmenu-${issue.id}`}
+                            actions={[
+                              {
+                                key: 'pin',
+                                // English hardcoded mengikuti preseden PinButton
+                                // ("Pin/Unpin issue") dan menu Archive/Restore
+                                // di ProjectPage.
+                                label: issue.pinned ? 'Unpin issue' : 'Pin issue',
+                                icon: <PushPin size={14} weight={issue.pinned ? 'fill' : 'regular'} />,
+                                onSelect: () =>
+                                  dispatch({
+                                    type: 'issue/update',
+                                    id: issue.id,
+                                    patch: { pinned: !issue.pinned },
+                                  }),
+                              },
+                              {
+                                key: 'delete',
+                                label: t('issues.modal.delete'),
+                                icon: <Trash size={14} />,
+                                danger: true,
+                                onSelect: () => setConfirmDeleteId(issue.id),
+                              },
+                            ]}
+                          />
+                        )}
+                      </span>
+                    ) : (
+                      <Badge tone={ISSUE_STATUS[issue.status].tone}>{t(`issues.status.${issue.status}`)}</Badge>
+                    )}
+                  </span>
                 </div>
+                <button
+                  type="button"
+                  className="data-row-body"
+                  onClick={() => setEditingId(issue.id)}
+                  aria-label={`${issue.title} — ${t('issues.openDetails', { defaultValue: 'Open issue details' })}`}
+                >
+                  {issue.description && <span className="data-row-sub">{issue.description}</span>}
+                  {issue.reproduction && <span className="data-row-sub">{issue.reproduction}</span>}
+                  <span className="data-row-meta">
+                    {linked && <span>{t('issues.linkedTo', { title: linked.title })}</span>}
+                    <span>#{shortId(issue.id)}</span>
+                    {unreadIds?.has(issue.id) && (
+                      <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">New</span>
+                    )}
+                  </span>
+                </button>
               </div>
             );
           })}

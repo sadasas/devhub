@@ -142,6 +142,7 @@ export type GranularEntity =
   | 'apiCollections'
   | 'apiEndpoints'
   | 'whiteboards'
+  | 'labelDefs'
   | 'erdGroups'
   | 'erdLayout';
 

@@ -9,6 +9,7 @@ import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { Textarea } from '../../components/Textarea';
 import { useAuth } from '../../state/auth-context';
+import { FE_LIMITS } from '../../lib/limits';
 
 interface ProfileEditModalProps {
   open: boolean;
@@ -80,7 +81,7 @@ export function ProfileEditModal({ open, onClose }: ProfileEditModalProps) {
           autoFocus={autoFocusName}
           onChange={(e) => setDisplayName(e.target.value)}
           placeholder={t('profile.editModal.displayNamePlaceholder')}
-          maxLength={60}
+          maxLength={FE_LIMITS.DISPLAY_NAME}
           showCount
           autoComplete="name"
         />
@@ -89,7 +90,7 @@ export function ProfileEditModal({ open, onClose }: ProfileEditModalProps) {
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           placeholder={t('profile.editModal.bioPlaceholder')}
-          maxLength={500}
+          maxLength={FE_LIMITS.BIO}
           showCount
           rows={3}
           helper={

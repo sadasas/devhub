@@ -122,7 +122,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                   className="input"
                   value={table.name}
                   autoFocus
-                  maxLength={300}
+                  maxLength={FE_LIMITS.TABLE_NAME}
                   required
                   onChange={(e) => update({ name: e.target.value })}
                   onBlur={() => setActiveField(null)}
@@ -168,7 +168,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '4px 0' }}>
               {/* Created time — seperti Issue/Task */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                <span style={{ width: 110, color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
                   <Clock size={12} aria-hidden="true" /> {t('tracker:issues.modal.createdTimeLabel')}
                 </span>
                 <span style={{ color: 'var(--text-secondary)' }}>
@@ -203,7 +203,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                       onChange={(e) => update({ comment: e.target.value })}
                       onBlur={() => setActiveField(null)}
                       aria-label={t('schema.table.commentLabel')}
-                      maxLength={10000}
+                      maxLength={FE_LIMITS.TABLE_COMMENT}
                     />
                   </>
                 ) : (
@@ -372,7 +372,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
 
               {/* Indexes — chips read-only + hapus per entri (kelola via toggle U/I per kolom) */}
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, fontSize: 13 }}>
-                <span style={{ width: 110, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                <span style={{ width: 110, color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
                   <Table size={12} aria-hidden="true" /> {t('schema.table.indexesLabel')}
                 </span>
                 {table.indexes.length > 0 ? (
@@ -426,7 +426,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                   placeholder={t('schema.newTableModal.commentPlaceholder')}
                   onChange={(e) => canEdit && update({ comment: e.target.value })}
                   aria-label={t('schema.table.commentLabel')}
-                  maxLength={10000}
+                  maxLength={FE_LIMITS.TABLE_COMMENT}
                 />
               </div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>

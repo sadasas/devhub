@@ -76,6 +76,8 @@ export function registerPlanProject(server: McpServer): void {
           actualHours: undefined,
           labels: [] as string[],
           blockedBy: [] as string[],
+          parentTaskId: null,
+          checklist: [] as { id: string; title: string; done: boolean }[],
           pinned: false,
           description: '',
         };

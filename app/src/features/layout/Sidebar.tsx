@@ -23,6 +23,7 @@ import { useProjects } from '../../state/projects-context';
 import { useTeams } from '../../state/teams-context';
 import { useAuth } from '../../state/auth-context';
 import { Button } from '../../components/Button';
+import { FE_LIMITS } from '../../lib/limits';
 import { Skeleton } from '../../components/Skeleton';
 import { Avatar } from '../../components/Avatar';
 import { NewProjectModal } from '../dashboard/NewProjectModal';
@@ -106,15 +107,21 @@ const ProjectRow = memo(function ProjectRow({
   onTogglePin: (projectId: string) => void;
 }) {
   const { t } = useTranslation('shell');
+  const { pathname } = useLocation();
+  const to = `/project/${p.id}`;
+  // Cerminkan semantik aktif NavLink (prefix match tanpa `end`): highlight
+  // milik baris penuh (termasuk pin), bukan link saja — deterministik dari
+  // React, tanpa :has.
+  const rowActive = pathname === to || pathname.startsWith(to + '/');
   const hasBadge = badge.total > 0;
   const pinLabel = pinned
     ? (t('sidebar.unpinProject', { name: p.name }) as string)
     : (t('sidebar.pinProject', { name: p.name }) as string);
   return (
-    <div className="sidebar-project-row">
+    <div className={`sidebar-project-row${rowActive ? ' is-active' : ''}`}>
       <NavLink
         key={p.id}
-        to={`/project/${p.id}`}
+        to={to}
         className={itemClass('sidebar-project-item')}
         title={p.name}
       >
@@ -556,7 +563,7 @@ export function Sidebar({ activeTeamId, onCreateTeam, onNavigate }: SidebarProps
                   placeholder={t('sidebar.filterPlaceholder') as string}
                   aria-label={t('sidebar.filterPlaceholder') as string}
                   value={filterQuery}
-                  maxLength={100}
+                  maxLength={FE_LIMITS.FILTER}
                   onChange={(e) => setFilterQuery(e.target.value)}
                 />
               </div>

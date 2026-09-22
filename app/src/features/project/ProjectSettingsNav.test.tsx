@@ -14,12 +14,12 @@ function renderNav(entry: string, onSelect?: () => void) {
 }
 
 describe('ProjectSettingsNav', () => {
-  it('renders back link plus 3 section links defaulting to General', () => {
+  it('renders back link plus 4 section links defaulting to General', () => {
     renderNav(`/project/${PID}?tab=settings`);
     expect(screen.getByRole('link', { name: 'Back to project' }).getAttribute('href')).toBe(
       `/project/${PID}?tab=board`,
     );
-    for (const name of ['General', 'Integrations', 'Danger zone']) {
+    for (const name of ['General', 'Labels', 'Integrations', 'Danger zone']) {
       expect(screen.getByRole('link', { name })).toBeTruthy();
     }
     expect(screen.getByRole('link', { name: 'General' }).getAttribute('aria-current')).toBe('page');
