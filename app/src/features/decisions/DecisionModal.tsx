@@ -126,7 +126,7 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
             setHot={setHotProp}
             canEdit={canEdit}
             view={(
-              <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                 {decision.date ? formatDate(decision.date) : '—'}
               </span>
             )}
@@ -149,7 +149,7 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
             setHot={setHotProp}
             canEdit={canEdit}
             view={(
-              <span style={{ fontSize: 13, color: milestone ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
+              <span style={{ fontSize: 12, color: milestone ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
                 {milestone ? milestone.name : '—'}
               </span>
             )}
@@ -188,7 +188,7 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
         </h3>
       )}
       {titleEmpty && <InlineError>{t('tracker:issues.modal.titleRequired')}</InlineError>}
-      <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
+      <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12 }}>
         <span style={{ width: 110, color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
           <Clock size={12} aria-hidden="true" /> {t('tracker:issues.modal.createdTimeLabel')}
         </span>
