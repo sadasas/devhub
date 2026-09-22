@@ -135,9 +135,9 @@ is reserved for floating layers.
 
 ## 4. Touch & responsive rules (summary)
 
-- Touch targets: 44px minimum on `hover: none` (Apple HIG; WCAG 2.5.8 floor
+- Touch targets: 44px minimum on `hover: none` (WCAG 2.5.8 floor
   is 24px). Desktop icon buttons 32px, text buttons 28px — intentional.
-- Inputs `font-size: 16px` on touch (blocks iOS auto-zoom).
+- Inputs `font-size: 13px` di semua device.
 - Heights: `100dvh` with `100vh` fallback (mobile browser chrome);
   `env(safe-area-inset-*)` for notch/home indicator.
 - Viewport thresholds: **640px** = mobile (paired JS+CSS:
