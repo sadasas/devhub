@@ -264,9 +264,13 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
       value={assignee}
       options={[
         ...(user?.id && assignee !== user.id
-          ? [{ value: user.id, label: t('board.taskModal.assignToMe', { defaultValue: 'Assign to me' }) }]
+          ? (() => {
+            const me = members.find((m) => m.id === user.id);
+            const n = me?.displayName || me?.email || t('board.taskModal.assignToMe', { defaultValue: 'Assign to me' });
+            return [{ value: user.id, label: t('board.taskModal.assignToMe', { defaultValue: 'Assign to me' }), icon: <Avatar src={me?.avatarUrl ?? null} name={n} email={me?.email} id={user.id} size={20} alt="" /> }];
+          })()
           : []),
-        ...members.map((m) => ({ value: m.id, label: m.displayName || m.email })),
+        ...members.map((m) => { const n = m.displayName || m.email; return { value: m.id, label: n, icon: <Avatar src={m.avatarUrl ?? null} name={n} email={m.email} id={m.id} size={20} alt="" /> }; }),
       ]}
       onChange={setAssignee}
       triggerEmptyLabel={t('board.taskModal.assigneeLabel')}
