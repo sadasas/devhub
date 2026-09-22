@@ -114,7 +114,7 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   return (
     <div className="tests-page">
       <div className="data-list-header">
-        <h1 className="data-list-count" style={{ fontSize: 20, margin: 0 }}>{t('tests.count', { count: tests.length })}</h1>
+        <h1 className="data-list-count" style={{ margin: 0, fontWeight: 400 }}>{t('tests.count', { count: tests.length })}</h1>
         <span className="data-list-actions">
           <SortControl
             options={TEST_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: t(s.label) }))}

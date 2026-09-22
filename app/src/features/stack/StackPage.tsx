@@ -178,7 +178,7 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
     <div className="stack-page">
 <div className="data-list-header">
         {!isNarrow ? (
-          <h1 className="data-list-count" style={{ fontSize: 20, margin: 0 }}>
+          <h1 className="data-list-count" style={{ margin: 0, fontWeight: 400 }}>
             {t('stack.count', { count: entries.length })}
           </h1>
         ) : (
