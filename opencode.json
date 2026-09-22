@@ -5,6 +5,11 @@
       "type": "remote",
       "url": "https://devhub.nrawangbatin.my.id/mcp",
       "enabled": true
+    },
+    "suga": {
+      "type": "remote",
+      "url": "https://dashboard.suga.app/api/mcp",
+      "enabled": true
     }
   }
 }
