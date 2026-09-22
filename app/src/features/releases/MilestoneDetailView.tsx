@@ -51,9 +51,9 @@ function DagCard({ task, state, blockedBy, external, onOpen }: { task: Task; sta
                 src={null}
                 name={task.assigneeId.slice(0, 2)}
                 id={task.assigneeId}
-                size={18}
+                size={24}
                 className="task-assignee-avatar"
-                style={{ width: 18, height: 18, fontSize: 9 } as React.CSSProperties}
+                style={{ width: 24, height: 24, fontSize: 12 } as React.CSSProperties}
               />
             </span>
           )}
