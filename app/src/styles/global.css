@@ -2056,6 +2056,7 @@ button.prop {
 
 /* MarkdownField bare variant — borderless, autogrow, toggle */
 .md-bare {
+  position: relative;
   background: none;
   border: 0;
   border-radius: 0;
