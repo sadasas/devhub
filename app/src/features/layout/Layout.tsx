@@ -58,7 +58,7 @@ function GraceBanner({ email, graceUntil }: { email: string; graceUntil: string 
       role="status"
       style={{
         padding: '8px 16px',
-        fontSize: 13,
+        fontSize: 14,
         background: 'var(--status-warn-soft)',
         color: 'var(--status-warn)',
         display: 'flex',

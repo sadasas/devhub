@@ -75,7 +75,7 @@ export function PublicTaskDetailModal({ task, state, onClose, onOpenTask }: Publ
             setHot={noopHot}
             canEdit={false}
             view={(
-              <span style={{ padding: '2px 8px', borderRadius: 6, background: task.priority === 'urgent' ? 'var(--status-danger-dim)' : task.priority === 'high' ? 'var(--status-warn-dim)' : task.priority === 'medium' ? 'var(--status-info-dim)' : 'var(--bg-inset)', fontSize: 11, color: task.priority === 'urgent' ? 'var(--status-danger)' : task.priority === 'high' ? 'var(--status-warn)' : task.priority === 'medium' ? 'var(--status-info)' : 'var(--text-secondary)' }}>
+              <span style={{ padding: '2px 8px', borderRadius: 6, background: task.priority === 'urgent' ? 'var(--status-danger-dim)' : task.priority === 'high' ? 'var(--status-warn-dim)' : task.priority === 'medium' ? 'var(--status-info-dim)' : 'var(--bg-inset)', fontSize: 12, color: task.priority === 'urgent' ? 'var(--status-danger)' : task.priority === 'high' ? 'var(--status-warn)' : task.priority === 'medium' ? 'var(--status-info)' : 'var(--text-secondary)' }}>
                 {TASK_PRIORITY[task.priority].label}
               </span>
             )}
@@ -88,9 +88,9 @@ export function PublicTaskDetailModal({ task, state, onClose, onOpenTask }: Publ
             setHot={noopHot}
             canEdit={false}
             view={!(task.startDate || task.dueDate) ? (
-              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>—</span>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>—</span>
             ) : (
-              <span style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', maxWidth: '100%' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', maxWidth: '100%' }}>
                 <span>
                   {task.startDate ? formatDate(task.startDate) : t('board.taskModal.startDateLabel')}
                   {' - '}
@@ -119,11 +119,11 @@ export function PublicTaskDetailModal({ task, state, onClose, onOpenTask }: Publ
                 {task.labels.map((l, i) => {
                   const style = labelChipStyleFor(l, state.labelDefs);
                   const title = findLabelDef(l, state.labelDefs)?.description || l;
-                  return <span key={`${l}-${i}`} title={title} style={{ padding: '2px 8px', borderRadius: 6, background: style.background, fontSize: 11, color: style.color }}>{l}</span>;
+                  return <span key={`${l}-${i}`} title={title} style={{ padding: '2px 8px', borderRadius: 6, background: style.background, fontSize: 12, color: style.color }}>{l}</span>;
                 })}
               </span>
             ) : (
-              <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>—</span>
             )}
             control={<span />}
           />
@@ -134,7 +134,7 @@ export function PublicTaskDetailModal({ task, state, onClose, onOpenTask }: Publ
             setHot={noopHot}
             canEdit={false}
             view={(
-              <span style={{ fontSize: 13, color: milestone ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
+              <span style={{ fontSize: 12, color: milestone ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
                 {milestone ? milestone.name : '—'}
               </span>
             )}
@@ -147,7 +147,7 @@ export function PublicTaskDetailModal({ task, state, onClose, onOpenTask }: Publ
             setHot={noopHot}
             canEdit={false}
             view={(
-              <span style={{ fontSize: 13, color: task.estimate != null ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
+              <span style={{ fontSize: 12, color: task.estimate != null ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
                 {task.estimate != null ? `${task.estimate}h` : '—'}
               </span>
             )}
@@ -160,13 +160,13 @@ export function PublicTaskDetailModal({ task, state, onClose, onOpenTask }: Publ
             setHot={noopHot}
             canEdit={false}
             view={(
-              <span style={{ fontSize: 13, color: task.actualHours != null ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
+              <span style={{ fontSize: 12, color: task.actualHours != null ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
                 {task.actualHours != null ? `${task.actualHours}h` : '—'}
               </span>
             )}
             control={<span />}
           />
-          <div className="prop" data-prop="blockedBy" style={{ fontSize: 13 }}>
+          <div className="prop" data-prop="blockedBy" style={{ fontSize: 12 }}>
             <span className="prop-label">{t('board.taskModal.blockedByLabel')}</span>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, flex: 1, minWidth: 0, alignItems: 'center', order: 2, flexBasis: '100%' }}>
               {blockedTasks.length > 0 ? blockedTasks.map((bt) => (
@@ -176,16 +176,16 @@ export function PublicTaskDetailModal({ task, state, onClose, onOpenTask }: Publ
                     type="button"
                     onClick={() => onOpenTask(bt.id)}
                     aria-label={bt.title}
-                    style={{ padding: '2px 8px', borderRadius: 6, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: 'inherit', fontFamily: 'inherit' }}
+                    style={{ padding: '2px 8px', borderRadius: 6, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: 'inherit', fontFamily: 'inherit' }}
                   >
                     <LinkSimple size={10} aria-hidden="true" /> {bt.title}
                   </button>
                 ) : (
-                  <span key={bt.id} style={{ padding: '2px 8px', borderRadius: 6, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span key={bt.id} style={{ padding: '2px 8px', borderRadius: 6, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                     <LinkSimple size={10} aria-hidden="true" /> {bt.title}
                   </span>
                 )
-              )) : <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>}
+              )) : <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>—</span>}
             </div>
           </div>
           <PropRow
@@ -195,7 +195,7 @@ export function PublicTaskDetailModal({ task, state, onClose, onOpenTask }: Publ
             setHot={noopHot}
             canEdit={false}
             view={(
-              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                 {testCases.length === 0 ? '—' : `${testCases.length} linked`}
               </span>
             )}
@@ -207,7 +207,7 @@ export function PublicTaskDetailModal({ task, state, onClose, onOpenTask }: Publ
       <h3 className="detail-title">
         {task.title || <DetailEmpty>{t('board.taskModal.untitled')}</DetailEmpty>}
       </h3>
-      <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
+      <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12 }}>
         <span style={{ width: 110, color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
           <Clock size={12} aria-hidden="true" /> {t('issues.modal.createdTimeLabel')}
         </span>
@@ -219,7 +219,7 @@ export function PublicTaskDetailModal({ task, state, onClose, onOpenTask }: Publ
             <FileText size={12} aria-hidden="true" /> {t('board.taskModal.descriptionLabel')}
           </span>
         </div>
-        <div style={{ fontSize: 13, lineHeight: 1.6, color: task.description.trim() ? 'var(--text-secondary)' : 'var(--text-muted)', overflowWrap: 'anywhere' }}>
+        <div style={{ fontSize: 12, lineHeight: 1.6, color: task.description.trim() ? 'var(--text-secondary)' : 'var(--text-muted)', overflowWrap: 'anywhere' }}>
           {task.description.trim() ? (
             <MarkdownBlocks text={task.description} />
           ) : (
@@ -345,21 +345,21 @@ export function PublicIssueDetailModal({ issue, state, onClose, onOpenTask }: Pu
                   type="button"
                   onClick={() => onOpenTask(issue.linkedTaskId!)}
                   aria-label={linkedTask.title}
-                  style={{ background: 'none', border: 'none', padding: 0, fontSize: 13, color: 'var(--text-secondary)', overflowWrap: 'anywhere', maxWidth: '100%', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
+                  style={{ background: 'none', border: 'none', padding: 0, fontSize: 12, color: 'var(--text-secondary)', overflowWrap: 'anywhere', maxWidth: '100%', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
                 >
                   {linkedTask.title}
                 </button>
               ) : (
-                <span style={{ fontSize: 13, color: 'var(--text-secondary)', overflowWrap: 'anywhere', maxWidth: '100%' }}>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', overflowWrap: 'anywhere', maxWidth: '100%' }}>
                   {linkedTask.title}
                 </span>
               )
             ) : issue.linkedTaskId ? (
-              <span style={{ color: 'var(--text-muted)', fontSize: 13, fontStyle: 'italic' }}>
+              <span style={{ color: 'var(--text-muted)', fontSize: 12, fontStyle: 'italic' }}>
                 {t('issues.modal.taskDeleted')}
               </span>
             ) : (
-              <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>—</span>
             )}
             control={<span />}
           />
@@ -369,7 +369,7 @@ export function PublicIssueDetailModal({ issue, state, onClose, onOpenTask }: Pu
       <h3 className="detail-title">
         {issue.title || <DetailEmpty>{t('issues.modal.untitledIssue')}</DetailEmpty>}
       </h3>
-      <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
+      <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12 }}>
         <span style={{ width: 110, color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
           <Clock size={12} aria-hidden="true" /> {t('issues.modal.createdTimeLabel')}
         </span>
@@ -384,7 +384,7 @@ export function PublicIssueDetailModal({ issue, state, onClose, onOpenTask }: Pu
             <FileText size={12} aria-hidden="true" /> {t('issues.modal.descriptionLabel')}
           </span>
         </div>
-        <div style={{ fontSize: 13, lineHeight: 1.6, color: issue.description.trim() ? 'var(--text-secondary)' : 'var(--text-muted)', overflowWrap: 'anywhere' }}>
+        <div style={{ fontSize: 12, lineHeight: 1.6, color: issue.description.trim() ? 'var(--text-secondary)' : 'var(--text-muted)', overflowWrap: 'anywhere' }}>
           {issue.description.trim() ? (
             <MarkdownBlocks text={issue.description} />
           ) : (
@@ -398,7 +398,7 @@ export function PublicIssueDetailModal({ issue, state, onClose, onOpenTask }: Pu
             <Bug size={12} aria-hidden="true" /> {t('issues.modal.reproductionStepsLabel')}
           </span>
         </div>
-        <div style={{ fontSize: 13, lineHeight: 1.6, color: issue.reproduction.trim() ? 'var(--text-secondary)' : 'var(--text-muted)', overflowWrap: 'anywhere' }}>
+        <div style={{ fontSize: 12, lineHeight: 1.6, color: issue.reproduction.trim() ? 'var(--text-secondary)' : 'var(--text-muted)', overflowWrap: 'anywhere' }}>
           {issue.reproduction.trim() ? (
             <MarkdownBlocks text={issue.reproduction} />
           ) : (

@@ -253,8 +253,11 @@ function measureTextWidth(text: string, fontSize: number, weight: number): numbe
     const cached = measureCache.get(key);
     if (cached !== undefined) return cached;
     if (measureCache.size > 5000) measureCache.clear();
-    measureCtx.font = `${weight} ${fontSize}px ${MEASURE_STACK}`;
-    const w = measureCtx.measureText(text).width;
+    // Skala DPR saja (tajam di zoom 200%): ukur pada font ×dpr lalu bagi dpr.
+    // Logika layout/wrap tak berubah — hasil dinormalisasi ke CSS px.
+    const dpr = typeof window !== 'undefined' && window.devicePixelRatio ? window.devicePixelRatio : 1;
+    measureCtx.font = `${weight} ${fontSize * dpr}px ${MEASURE_STACK}`;
+    const w = measureCtx.measureText(text).width / dpr;
     measureCache.set(key, w);
     return w;
   }

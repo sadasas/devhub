@@ -45,7 +45,7 @@ export function PricingCompare({ packages }: Props) {
         if (!pr) return <span className="pricing-compare-muted">-</span>;
         return (
           <span className="tabular">
-            {formatIdr(pr.priceIdr)} {pr.originalPriceIdr && pr.originalPriceIdr > pr.priceIdr ? <span className="pricing-price-original" style={{ display: 'inline', marginLeft: 6, fontSize: 11 }}>{formatIdr(pr.originalPriceIdr)}</span> : null}
+            {formatIdr(pr.priceIdr)} {pr.originalPriceIdr && pr.originalPriceIdr > pr.priceIdr ? <span className="pricing-price-original" style={{ display: 'inline', marginLeft: 6, fontSize: 12 }}>{formatIdr(pr.originalPriceIdr)}</span> : null}
           </span>
         );
       },

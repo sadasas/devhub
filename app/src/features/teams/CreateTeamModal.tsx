@@ -227,7 +227,7 @@ export function CreateTeamModal({ open, onClose, onSuccess }: CreateTeamModalPro
             form="create-team-form"
             leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />}
             loading={submitting}
-            disabled={!name.trim() || slugBlocked || submitting}
+            disabled={!name.trim() || slugBlocked || submitting || slugStatus.kind === 'checking'}
           >
             {t('teams.createModal.create')}
           </Button>

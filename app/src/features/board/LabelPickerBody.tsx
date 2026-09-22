@@ -86,7 +86,7 @@ export function LabelPickerBody({
                     gap: 4,
                     padding: '2px 4px 2px 8px',
                     borderRadius: 6,
-                    fontSize: 11,
+                    fontSize: 12,
                     background: style.background,
                     color: style.color,
                   }}
@@ -96,9 +96,9 @@ export function LabelPickerBody({
                     type="button"
                     onClick={() => remove(name)}
                     aria-label={`Remove ${name}`}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 12, padding: '0 2px', lineHeight: 1, display: 'inline-flex' }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 'inherit', padding: 0, lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, minWidth: 24, minHeight: 24, borderRadius: 6 }}
                   >
-                    <X size={11} aria-hidden="true" />
+                    <X size={12} aria-hidden="true" />
                   </button>
                 </span>
               );
@@ -126,7 +126,7 @@ export function LabelPickerBody({
                     gap: 6,
                     padding: '2px 8px',
                     borderRadius: 6,
-                    fontSize: 11,
+                    fontSize: 12,
                     background: style.background,
                     color: style.color,
                     border: '1px solid transparent',
@@ -165,10 +165,11 @@ export function LabelPickerBody({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
+              alignSelf: 'stretch',
               gap: 4,
               padding: '0 10px',
               borderRadius: 6,
-              fontSize: 12,
+              fontSize: 13,
               background: canCreate ? 'var(--accent-dim)' : 'var(--bg-inset)',
               color: canCreate ? 'var(--accent)' : 'var(--text-muted)',
               border: 'none',
@@ -191,15 +192,15 @@ export function LabelPickerBody({
               title={LABEL_COLOR_LABEL[c]}
               onClick={() => setCreateColor(c)}
               style={{
-                width: 18,
-                height: 18,
+                width: 24,
+                height: 24,
                 borderRadius: '50%',
                 flexShrink: 0,
                 cursor: 'pointer',
                 background: `var(--label-${c})`,
                 border: 'none',
                 outline: activeColor === c ? '2px solid var(--accent)' : '2px solid transparent',
-                outlineOffset: 1,
+                outlineOffset: 2,
               }}
             />
           ))}

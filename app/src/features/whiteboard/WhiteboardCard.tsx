@@ -20,7 +20,19 @@ interface WhiteboardCardProps {
 export function WhiteboardCard({ board, canEdit, unread = false, narrow = false, onOpen, onEdit, onDelete }: WhiteboardCardProps) {
   const { t } = useTranslation('extras');
   return (
-    <div className="project-card wb-card">
+    <div
+      className="project-card wb-card"
+      role="button"
+      tabIndex={0}
+      aria-label={`${board.name} — ${t('whiteboard.card.openBoard', { defaultValue: 'Open board' })}`}
+      onClick={() => onOpen?.()}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen?.();
+        }
+      }}
+    >
       <div className="data-row-top">
         <button type="button" className="data-row-btn" onClick={onOpen} aria-disabled={!onOpen} aria-label={board.name}>
           <span className="project-card-title">{board.name}</span>
@@ -36,7 +48,7 @@ export function WhiteboardCard({ board, canEdit, unread = false, narrow = false,
                     className="btn-icon wb-edit"
                     aria-label={t('whiteboard.card.editBoard')}
                     title={t('whiteboard.card.editBoard')}
-                    onClick={onEdit}
+                    onClick={(e) => { e.stopPropagation(); onEdit?.(); }}
                   >
                     <PencilSimple size={14} aria-hidden="true" />
                   </Button>
@@ -47,7 +59,7 @@ export function WhiteboardCard({ board, canEdit, unread = false, narrow = false,
                     size="sm"
                     className="btn-icon wb-trash"
                     aria-label={t('whiteboard.card.deleteBoard')}
-                    onClick={onDelete}
+                    onClick={(e) => { e.stopPropagation(); onDelete?.(); }}
                   >
                     <Trash size={14} aria-hidden="true" />
                   </Button>

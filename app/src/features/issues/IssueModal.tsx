@@ -230,7 +230,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
             view={linkedTask ? (
               <span
                 style={{
-                  fontSize: 13,
+                  fontSize: 12,
                   color: 'var(--text-secondary)',
                   overflowWrap: 'anywhere',
                   maxWidth: '100%',
@@ -239,11 +239,11 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
                 {linkedTask.title}
               </span>
             ) : issue.linkedTaskId ? (
-              <span style={{ color: 'var(--text-muted)', fontSize: 13, fontStyle: 'italic' }}>
+              <span style={{ color: 'var(--text-muted)', fontSize: 12, fontStyle: 'italic' }}>
                 {t('issues.modal.taskDeleted')}
               </span>
             ) : (
-              <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>—</span>
             )}
             control={(
               <SearchableSelect
@@ -273,7 +273,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
               <div className="field">
                 <div className="issue-fullscreen-split" style={{ display: 'flex', gap: 16, flex: 1, minHeight: 0, alignItems: 'stretch' }}>
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('tracker:issues.modal.editTab')}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>{t('tracker:issues.modal.editTab')}</div>
                     <textarea
                       id="issue-desc-fullscreen"
                       className="textarea"
@@ -288,7 +288,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
                     />
                   </div>
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('tracker:issues.modal.previewTab')}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>{t('tracker:issues.modal.previewTab')}</div>
                     <div className="md-preview" style={{ flex: 1, minHeight: 0, height: '100%', overflow: 'auto' }}>
                       {issue.description.trim() ? (
                         <MarkdownBlocks text={issue.description} />
@@ -315,7 +315,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
               <div className="field">
                 <div className="issue-fullscreen-split" style={{ display: 'flex', gap: 16, flex: 1, minHeight: 0, alignItems: 'stretch' }}>
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('tracker:issues.modal.editTab')}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>{t('tracker:issues.modal.editTab')}</div>
                     <textarea
                       id="issue-repro-fullscreen"
                       className="textarea"
@@ -330,7 +330,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
                     />
                   </div>
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('tracker:issues.modal.previewTab')}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>{t('tracker:issues.modal.previewTab')}</div>
                     <div className="md-preview" style={{ flex: 1, minHeight: 0, height: '100%', overflow: 'auto' }}>
                       {issue.reproduction.trim() ? (
                         <MarkdownBlocks text={issue.reproduction} />
@@ -374,7 +374,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
           {issue.title || <DetailEmpty>{t('issues.modal.untitledIssue')}</DetailEmpty>}
         </h3>
       )}
-      <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
+      <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12 }}>
         <span style={{ width: 110, color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
           <Clock size={12} aria-hidden="true" /> {t('issues.modal.createdTimeLabel')}
         </span>
@@ -405,7 +405,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
               <FileText size={12} aria-hidden="true" /> {t('issues.modal.descriptionLabel')}
             </span>
           </div>
-          <div style={{ fontSize: 13, lineHeight: 1.6, color: issue.description.trim() ? 'var(--text-secondary)' : 'var(--text-muted)', overflowWrap: 'anywhere' }}>
+          <div style={{ fontSize: 14, lineHeight: 1.6, color: issue.description.trim() ? 'var(--text-secondary)' : 'var(--text-muted)', overflowWrap: 'anywhere' }}>
             {issue.description.trim() ? (
               <MarkdownBlocks text={issue.description} />
             ) : (
@@ -433,7 +433,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
               <Bug size={12} aria-hidden="true" /> {t('issues.modal.reproductionStepsLabel')}
             </span>
           </div>
-          <div style={{ fontSize: 13, lineHeight: 1.6, color: issue.reproduction.trim() ? 'var(--text-secondary)' : 'var(--text-muted)', overflowWrap: 'anywhere' }}>
+          <div style={{ fontSize: 14, lineHeight: 1.6, color: issue.reproduction.trim() ? 'var(--text-secondary)' : 'var(--text-muted)', overflowWrap: 'anywhere' }}>
             {issue.reproduction.trim() ? (
               <MarkdownBlocks text={issue.reproduction} />
             ) : (

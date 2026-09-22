@@ -530,11 +530,11 @@ export function OverviewPage({ project }: { project: Project }) {
             >
               Restore project
             </Button>
-            <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--text-muted)' }}>Archived projects are read-only.</span>
+            <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--text-secondary)' }}>Archived projects are read-only.</span>
           </div>
         )}
         {project.status === 'archived' && !canEdit && (
-          <p style={{ marginTop: 10, fontSize: 12, color: 'var(--text-muted)' }}>
+          <p style={{ marginTop: 10, fontSize: 12, color: 'var(--text-secondary)' }}>
             <Archive size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} aria-hidden="true" />
             This project is archived — read-only.
           </p>

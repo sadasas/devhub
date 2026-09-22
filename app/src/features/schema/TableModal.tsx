@@ -416,7 +416,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
           <div className="field">
             <div className="issue-fullscreen-split" style={{ display: 'flex', gap: 16, flex: 1, minHeight: 0, alignItems: 'stretch' }}>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('tracker:issues.modal.editTab')}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>{t('tracker:issues.modal.editTab')}</div>
                 <textarea
                   className="textarea"
                   style={{ flex: 1, minHeight: 0, height: '100%', resize: 'none' }}
@@ -430,7 +430,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                 />
               </div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('tracker:issues.modal.previewTab')}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>{t('tracker:issues.modal.previewTab')}</div>
                 <div className="md-preview" style={{ flex: 1, minHeight: 0, height: '100%', overflow: 'auto', whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)' }}>
                   {table.comment.trim() ? table.comment : <span className="md-preview-empty">{t('project:prd.nothingToPreview')}</span>}
                 </div>

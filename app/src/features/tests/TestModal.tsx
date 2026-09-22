@@ -176,7 +176,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
         </h3>
       )}
       {nameEmpty && <InlineError>{t('tracker:issues.modal.titleRequired')}</InlineError>}
-      <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
+      <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12 }}>
         <span style={{ width: 110, color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
           <Clock size={12} aria-hidden="true" /> {t('tracker:issues.modal.createdTimeLabel')}
         </span>
@@ -199,7 +199,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
             <ListChecks size={12} aria-hidden="true" /> {t('tests.modal.stepsLabel')}
           </div>
-          <div style={{ fontSize: 13, lineHeight: 1.6, color: test.steps.trim() ? 'var(--text-secondary)' : 'var(--text-muted)', overflowWrap: 'anywhere' }}>
+          <div style={{ fontSize: 14, lineHeight: 1.6, color: test.steps.trim() ? 'var(--text-secondary)' : 'var(--text-muted)', overflowWrap: 'anywhere' }}>
             {test.steps.trim() ? <MarkdownBlocks text={test.steps} /> : t('tests.modal.noSteps')}
           </div>
         </div>
@@ -221,7 +221,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
             <FileText size={12} aria-hidden="true" /> {t('tests.modal.expectedLabel')}
           </div>
-          <div style={{ fontSize: 13, lineHeight: 1.6, color: test.expected.trim() ? 'var(--text-secondary)' : 'var(--text-muted)', overflowWrap: 'anywhere' }}>
+          <div style={{ fontSize: 14, lineHeight: 1.6, color: test.expected.trim() ? 'var(--text-secondary)' : 'var(--text-muted)', overflowWrap: 'anywhere' }}>
             {test.expected.trim() ? <MarkdownBlocks text={test.expected} /> : t('tests.modal.noExpected')}
           </div>
         </div>

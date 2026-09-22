@@ -91,8 +91,8 @@ export function CheckEmailPage() {
         <div className="auth-form" style={{ gap: 12 }}>
           <EnvelopeSimple size={32} aria-hidden="true" style={{ color: 'var(--text-muted)' }} />
           <div>
-            <h2 className="auth-form-title" style={{ fontSize: 15 }}>{title}</h2>
-            <p className="auth-form-sub" style={{ fontSize: 13 }}>
+            <h2 className="auth-form-title" style={{ fontSize: 16 }}>{title}</h2>
+            <p className="auth-form-sub" style={{ fontSize: 14 }}>
               {body}
               {email && (
                 <>
@@ -107,7 +107,7 @@ export function CheckEmailPage() {
           {resent && (
             <div
               role="status"
-              style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--status-success-soft)', color: 'var(--status-success)', fontSize: 13 }}
+              style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--status-success-soft)', color: 'var(--status-success)', fontSize: 14 }}
             >
               {t('auth.checkEmail.resent', 'Sent — check your inbox (and spam).')}
             </div>
@@ -120,8 +120,8 @@ export function CheckEmailPage() {
             {!resending && <ArrowRight size={14} weight="bold" aria-hidden="true" />}
           </Button>
 
-          <p className="auth-switch" style={{ fontSize: 13 }}>
-            {kind === 'register' ? (
+          <p className="auth-switch" style={{ fontSize: 14 }}>
+              {kind === 'register' ? (
               <>
                 {t('auth.checkEmail.wrongEmail', 'Wrong address?')}{' '}
                 <button type="button" className="btn btn-ghost btn-sm" onClick={() => navigate('/?mode=register')}>
@@ -137,7 +137,7 @@ export function CheckEmailPage() {
               </>
             )}
           </p>
-          <p className="auth-switch" style={{ fontSize: 13 }}>
+          <p className="auth-switch" style={{ fontSize: 14 }}>
             <Link to="/" className="btn btn-ghost btn-sm">
               {t('auth.action.signIn')}
             </Link>

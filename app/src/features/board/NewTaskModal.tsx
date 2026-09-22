@@ -293,9 +293,13 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
       value={assignee}
       options={[
         ...(user?.id && assignee !== user.id
-          ? [{ value: user.id, label: t('board.taskModal.assignToMe', { defaultValue: 'Assign to me' }) }]
+          ? (() => {
+            const me = members.find((m) => m.id === user.id);
+            const n = me?.displayName || me?.email || t('board.taskModal.assignToMe', { defaultValue: 'Assign to me' });
+            return [{ value: user.id, label: t('board.taskModal.assignToMe', { defaultValue: 'Assign to me' }), icon: <Avatar src={me?.avatarUrl ?? null} name={n} email={me?.email} id={user.id} size={20} alt="" /> }];
+          })()
           : []),
-        ...members.map((m) => ({ value: m.id, label: m.displayName || m.email })),
+        ...members.map((m) => { const n = m.displayName || m.email; return { value: m.id, label: n, icon: <Avatar src={m.avatarUrl ?? null} name={n} email={m.email} id={m.id} size={20} alt="" /> }; }),
       ]}
       onChange={setAssignee}
       triggerEmptyLabel={t('board.taskModal.assigneeLabel')}
@@ -349,7 +353,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
             return (
               <span key={id} style={{ padding: '2px 8px', borderRadius: 6, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                 <LinkSimple size={10} aria-hidden="true" /> {bt?.title ?? id.slice(0, 6)}
-                <button type="button" onClick={() => setBlockedBy((prev) => prev.filter((x) => x !== id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, padding: '0 2px', lineHeight: 1 }} aria-label={`Remove blocker ${bt?.title ?? id}`}>×</button>
+                <button type="button" onClick={() => setBlockedBy((prev) => prev.filter((x) => x !== id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, padding: '0 2px', lineHeight: 1, minWidth: 24, minHeight: 24 }} aria-label={`Remove blocker ${bt?.title ?? id}`}>×</button>
               </span>
             );
           })}

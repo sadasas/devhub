@@ -531,7 +531,7 @@ function LifecycleAccordion({
   return (
     <details className="docs-accordion" open={defaultOpen}>
       <summary>
-        <h3 style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>{title}</h3>
+        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{title}</h3>
         <CaretDown size={12} weight="bold" aria-hidden="true" className="docs-accordion-chevron" />
       </summary>
       <div className="docs-accordion-body">
@@ -866,7 +866,7 @@ export function McpDocsPage() {
                       <text x="87" y="62" textAnchor="middle" fontSize="12" fontWeight="600" fill="var(--text-primary)" fontFamily="var(--font-sans)">
                         {t('docs.hub.browserLabel', { defaultValue: 'Browser' })}
                       </text>
-                      <text x="87" y="80" textAnchor="middle" fontSize="10" fill="var(--text-muted)" fontFamily="var(--font-mono)">
+                      <text x="87" y="80" textAnchor="middle" fontSize="12" fill="var(--text-secondary)" fontFamily="var(--font-sans)">
                         {t('docs.hub.agentLabel', { defaultValue: 'Agent' })}
                       </text>
                     </g>
@@ -876,10 +876,10 @@ export function McpDocsPage() {
                       <text x="360" y="58" textAnchor="middle" fontSize="12" fontWeight="600" fill="var(--text-primary)" fontFamily="var(--font-mono)">
                         {t('docs.hub.mcpLabel', { defaultValue: 'POST /mcp' })}
                       </text>
-                      <text x="360" y="76" textAnchor="middle" fontSize="10" fill="var(--text-muted)" fontFamily="var(--font-mono)">
+                      <text x="360" y="76" textAnchor="middle" fontSize="12" fill="var(--text-secondary)" fontFamily="var(--font-sans)">
                         {t('docs.hub.transportLabel', { defaultValue: 'Streamable HTTP' })}
                       </text>
-                      <text x="360" y="92" textAnchor="middle" fontSize="9" fill="var(--text-muted)" fontFamily="var(--font-mono)">
+                      <text x="360" y="92" textAnchor="middle" fontSize="12" fill="var(--text-secondary)" fontFamily="var(--font-sans)">
                         {mcpUrl}
                       </text>
                     </g>
@@ -889,7 +889,7 @@ export function McpDocsPage() {
                       <text x="634" y="62" textAnchor="middle" fontSize="12" fontWeight="600" fill="var(--text-primary)" fontFamily="var(--font-sans)">
                         {t('docs.hub.postgresLabel', { defaultValue: 'Postgres' })}
                       </text>
-                      <text x="634" y="80" textAnchor="middle" fontSize="10" fill="var(--text-muted)" fontFamily="var(--font-mono)">
+                      <text x="634" y="80" textAnchor="middle" fontSize="12" fill="var(--text-secondary)" fontFamily="var(--font-sans)">
                         Postgres
                       </text>
                     </g>

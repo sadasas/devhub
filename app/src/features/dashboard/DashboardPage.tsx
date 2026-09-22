@@ -649,7 +649,7 @@ export function DashboardPage() {
       ) : showSlugNotFound ? (
         <div className="team-workspace">
           <div className="team-workspace__card" role="status" aria-live="polite">
-            <h1 className="team-workspace__title">{t('dashboard.team.slugNotFoundTitle')}</h1>
+            <h2 className="team-workspace__title">{t('dashboard.team.slugNotFoundTitle')}</h2>
             <p className="team-workspace__desc">{t('dashboard.team.slugNotFoundDesc')}</p>
             <div className="team-workspace__actions">
               <Button variant="secondary" size="sm" onClick={() => navigate('/')}>

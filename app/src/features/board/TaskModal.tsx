@@ -211,11 +211,11 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
   const [pickingBlocker, setPickingBlocker] = useState(false);
   /** Chip blocked-by; tombol × hanya saat baris hot (mode edit). */
   const blockerChip = (bt: { id: string; title: string }, removable: boolean) => (
-    <span key={bt.id} style={{ padding: '2px 8px', borderRadius: 6, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+    <span key={bt.id} style={{ padding: '2px 8px', borderRadius: 6, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
       <LinkSimple size={10} aria-hidden="true" /> {bt.title} {removable ? (
-        <button type="button" onClick={() => toggleBlocker(bt.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, padding: '0 2px', lineHeight: 1 }} aria-label={`Remove blocker ${bt.title}`}>×</button>
+        <button type="button" onClick={() => toggleBlocker(bt.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 'inherit', padding: '0 2px', lineHeight: 1, minWidth: 24, minHeight: 24 }} aria-label={`Remove blocker ${bt.title}`}>×</button>
       ) : (
-        <span aria-hidden="true" style={{ color: 'var(--text-muted)', fontSize: 12, padding: '0 2px', lineHeight: 1, visibility: 'hidden' }}>×</span>
+        <span aria-hidden="true" style={{ color: 'var(--text-muted)', fontSize: 'inherit', padding: '0 2px', lineHeight: 1, visibility: 'hidden' }}>×</span>
       )}
     </span>
   );
@@ -314,7 +314,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
     const title = findLabelDef(l, labelDefs)?.description || l;
     return (
       <Tooltip key={`${l}-${i}`} tone="light" title={title}>
-        <span style={{ padding: '2px 8px', borderRadius: 6, background: style.background, fontSize: 11, color: style.color }}>{l}</span>
+        <span style={{ padding: '2px 8px', borderRadius: 6, background: style.background, fontSize: 12, color: style.color }}>{l}</span>
       </Tooltip>
     );
   };
@@ -466,7 +466,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 setHot={setHotProp}
                 canEdit={canEdit}
                 view={(
-                  <span style={{ padding: '2px 8px', borderRadius: 6, background: task.priority === 'urgent' ? 'var(--status-danger-dim)' : task.priority === 'high' ? 'var(--status-warn-dim)' : task.priority === 'medium' ? 'var(--status-info-dim)' : 'var(--bg-inset)', fontSize: 11, color: task.priority === 'urgent' ? 'var(--status-danger)' : task.priority === 'high' ? 'var(--status-warn)' : task.priority === 'medium' ? 'var(--status-info)' : 'var(--text-secondary)' }}>
+                  <span style={{ padding: '2px 8px', borderRadius: 6, background: task.priority === 'urgent' ? 'var(--status-danger-dim)' : task.priority === 'high' ? 'var(--status-warn-dim)' : task.priority === 'medium' ? 'var(--status-info-dim)' : 'var(--bg-inset)', fontSize: 12, color: task.priority === 'urgent' ? 'var(--status-danger)' : task.priority === 'high' ? 'var(--status-warn)' : task.priority === 'medium' ? 'var(--status-info)' : 'var(--text-secondary)' }}>
                     {TASK_PRIORITY[task.priority].label}
                   </span>
                 )}
@@ -826,7 +826,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                       {pickingBlocker ? (
                         <SearchableSelect defaultOpen id="blockedBy-picker" label="" value={null} options={otherTasks.filter(ot => !task.blockedBy.includes(ot.id) && !ot.parentTaskId).map(ot => ({ value: ot.id, label: `${ot.title} · ${ot.status}` }))} onChange={(v) => { if (v) { toggleBlocker(v); setPickingBlocker(false); } }} />
                       ) : (
-                        <button type="button" onClick={() => setPickingBlocker(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, padding: 0 }}>+ Add</button>
+                        <button type="button" onClick={() => setPickingBlocker(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, padding: '6px 8px', minWidth: 24, minHeight: 24 }}>+ Add</button>
                       )}
                     </>
                   ) : (
@@ -977,7 +977,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                   {parentTask?.title ?? t('board.taskModal.parentMissing', { defaultValue: '(missing)' })}
                 </span>
                 {canEdit && (
-                  <button type="button" className="mini-del" onClick={() => update({ parentTaskId: null })} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, padding: '0 2px', flexShrink: 0 }}>
+                  <button type="button" className="mini-del" onClick={() => update({ parentTaskId: null })} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, padding: '6px 8px', minWidth: 24, minHeight: 24, flexShrink: 0 }}>
                     {t('board.taskModal.detachParent', { defaultValue: 'Detach' })}
                   </button>
                 )}
