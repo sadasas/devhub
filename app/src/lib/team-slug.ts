@@ -78,6 +78,7 @@ export const RESERVED_TEAM_SLUGS: ReadonlySet<string> = new Set([
   'users',
   'verify',
   'verify-email',
+  'check-email',
   'well-known',
   'workspace',
   'workspaces',
@@ -142,4 +143,5 @@ export const STATIC_ROUTE_SEGMENTS: ReadonlySet<string> = new Set([
   'payments',
   'reset-password',
   'verify-email',
+  'check-email',
 ]);

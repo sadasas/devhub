@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
+import { useNavigate } from 'react-router';
 import { ArrowRight, Eye, EyeSlash, TerminalWindow, GithubLogo, GoogleLogo } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { ApiError } from '../../lib/api';
@@ -41,11 +42,36 @@ function getOAuthError(): string | null {
   }
 }
 
+function getPrefilledEmail(): string | null {
+  // T9: dari redirect verify sukses (?email=). Validasi format sederhana —
+  // URL sampah diabaikan, form tetap normal.
+  try {
+    const raw = new URLSearchParams(window.location.search).get('email') ?? '';
+    const email = raw.trim().toLowerCase();
+    if (email.length >= 3 && email.length <= 254 && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return email;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthPage() {
   const { t, i18n } = useTranslation('account');
   const { login, register } = useAuth();
-  const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
-  const [email, setEmail] = useState('');
+  const navigate = useNavigate();
+  // T10: mode awal boleh dari ?mode= (link "salah alamat" dari /check-email).
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot'>(() => {
+    try {
+      const m = new URLSearchParams(window.location.search).get('mode');
+      if (m === 'register' || m === 'forgot') return m;
+      return 'login';
+    } catch {
+      return 'login';
+    }
+  });
+  const [email, setEmail] = useState<string>(() => getPrefilledEmail() ?? '');
+  // Banner panduan hanya bila datang dari verify (prefill valid).
+  const [justVerified, setJustVerified] = useState<boolean>(() => getPrefilledEmail() !== null);
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -97,10 +123,9 @@ export function AuthPage() {
       try {
         const { api } = await import('../../lib/api');
         await api.forgotPassword(email.trim());
-        // Token dev TIDAK ditampilkan ke user (anti-bocor): hanya pesan generik.
-        // Di lingkungan DEV pun tidak dirender; lihat Network/DB bila perlu debug.
-        setSuccess(t('auth.forgot.success', 'If that email exists, a reset link has been sent.'));
-        setSubmitting(false);
+        // T10: sukses → layar cek-email dedicated (bukan banner inline).
+        navigate(`/check-email?case=forgot&email=${encodeURIComponent(email.trim())}`);
+        return;
       } catch (err) {
         setError(getErrorMessage(err, t('auth.error.generic')));
         setSubmitting(false);
@@ -109,6 +134,16 @@ export function AuthPage() {
     }
     if (isRegister && password !== confirm) {
       setError(t('auth.error.passwordMismatch'));
+      return;
+    }
+    // T12: guard min-8 di klien (form noValidate mematikan minLength browser;
+    // backend tetap penegak final). Berlaku register saja, bukan login.
+    if (isRegister && password.length < 8) {
+      setError(
+        i18n.resolvedLanguage === 'id'
+          ? 'Kata sandi minimal 8 karakter.'
+          : 'Password must be at least 8 characters.',
+      );
       return;
     }
     if (isRegister && !termsAccepted) {
@@ -122,14 +157,9 @@ export function AuthPage() {
     setSubmitting(true);
     try {
       if (isRegister) {
-        // T6 hard gate: tidak auto-login — tampilkan layar cek-email.
+        // T10 hard gate: tidak auto-login — ke layar cek-email dedicated.
         await register(email.trim(), password);
-        setSuccess(
-          i18n.resolvedLanguage === 'id'
-            ? `Akun dibuat. Cek email ${email.trim()} (termasuk folder spam) lalu klik link verifikasi — link berlaku 24 jam.`
-            : `Account created. Check ${email.trim()} (including spam) and click the verification link — valid for 24 hours.`,
-        );
-        setSubmitting(false);
+        navigate(`/check-email?case=register&email=${encodeURIComponent(email.trim())}`);
         return;
       }
       await login(email.trim(), password);
@@ -224,6 +254,26 @@ export function AuthPage() {
             </p>
           </div>
 
+          {justVerified && mode === 'login' && (
+            <div
+              role="status"
+              aria-live="polite"
+              style={{
+                padding: '10px 12px',
+                borderRadius: 8,
+                background: 'var(--status-info-soft)',
+                color: 'var(--status-info)',
+                fontSize: 13,
+                lineHeight: 1.5,
+              }}
+            >
+              {t(
+                'auth.verify.prefillHint',
+                'Email verified. Sign in below to get started — your email is already filled in.',
+              )}
+            </div>
+          )}
+
           {!providersKnown && !isForgot && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }} aria-hidden="true">
               <Skeleton style={{ width: "100%", height: 44, borderRadius: 8 }} />
@@ -286,6 +336,7 @@ export function AuthPage() {
                 label={t('auth.field.password')}
                 type={showPassword ? 'text' : 'password'}
                 autoComplete={isRegister ? 'new-password' : 'current-password'}
+                autoFocus={justVerified && mode === 'login'}
                 required
                 minLength={8}
                 maxLength={FE_LIMITS.PASSWORD}
@@ -415,7 +466,7 @@ export function AuthPage() {
           <Button
             type="submit"
             loading={submitting}
-            disabled={submitting || !email || (!isForgot && !password) || (isRegister && !termsAccepted)}
+            disabled={submitting || !email || (!isForgot && !password) || (isRegister && !termsAccepted) || (isRegister && password.length < 8)}
           >
             {isForgot
               ? t('auth.forgot.submit', 'Send reset link')
@@ -477,6 +528,7 @@ export function AuthPage() {
                     setError(null);
                     setNoPassword(false);
                     setUnverified(false);
+                    setJustVerified(false);
                     setSuccess(null);
                   }}
                 >
@@ -494,6 +546,7 @@ export function AuthPage() {
                     setError(null);
                     setNoPassword(false);
                     setUnverified(false);
+                    setJustVerified(false);
                   }}
                 >
                   {t('auth.action.signIn')}
@@ -510,6 +563,7 @@ export function AuthPage() {
                     setError(null);
                     setNoPassword(false);
                     setUnverified(false);
+                    setJustVerified(false);
                   }}
                 >
                   {t('auth.action.createOne')}

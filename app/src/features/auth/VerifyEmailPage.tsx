@@ -33,9 +33,13 @@ export function VerifyEmailPage() {
     attempted.current = true;
     (async () => {
       try {
-        await api.verifyEmail(token);
+        const result = await api.verifyEmail(token);
+        // T9: bawa email ke login (prefill) — panduan jelas, tanpa ketik ulang.
         setPhase('done');
-        setTimeout(() => navigate('/', { replace: true }), 2500);
+        setTimeout(
+          () => navigate(`/?email=${encodeURIComponent(result.email)}`, { replace: true }),
+          2500,
+        );
       } catch (err) {
         setError(getErrorMessage(err, t('auth.error.generic')));
         setPhase('error');
@@ -76,7 +80,10 @@ export function VerifyEmailPage() {
             <h2 className="auth-form-title">{t('auth.verify.title', 'Verify your email')}</h2>
             <p className="auth-form-sub">
               {phase === 'done'
-                ? t('auth.verify.success', 'Email verified — redirecting to login...')
+                ? t(
+                    'auth.verify.successNext',
+                    'Email verified! One last step — sign in with your password. Redirecting to login...',
+                  )
                 : phase === 'error'
                   ? t('auth.verify.failedSub', 'This link is invalid or expired. Request a new one below.')
                   : t('auth.verify.working', 'Verifying your email...')}

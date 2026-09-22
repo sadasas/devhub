@@ -239,7 +239,8 @@ export const api = {
       body: JSON.stringify({ token, newPassword }),
     }),
   verifyEmail: (token: string) =>
-    request<{ ok: true }>('/auth/verify-email', {
+    // T9: server mengembalikan email pemilik token untuk prefill form login.
+    request<{ ok: true; email: string }>('/auth/verify-email', {
       method: 'POST',
       body: JSON.stringify({ token }),
     }),
