@@ -165,6 +165,7 @@ export function LabelPickerBody({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
+              alignSelf: 'stretch',
               gap: 4,
               padding: '0 10px',
               borderRadius: 6,
