@@ -123,6 +123,7 @@ export async function registerUser(
     const token = tok.rows[0]?.token;
     if (!token) throw new Error('registerUser: no verify token found');
     const verify = await ctx.post('/api/v1/auth/verify-email', {
+      // IP unik per panggilan agar tidak menabrak forgotLimiter 5/15m antar-test.
       headers: { 'X-Forwarded-For': uniqueIp() },
       data: { token },
     });
@@ -140,4 +141,24 @@ export async function registerUser(
     .filter((h) => h.name.toLowerCase() === 'set-cookie')
     .map((h) => h.value.split(';')[0]);
   return cookies.join('; ');
+}
+
+/** Verifikasi user yang sudah register via UI (ambil token dari DB, tanpa login). */
+export async function verifyUserByEmail(ctx: APIRequestContext, email: string): Promise<void> {
+  const pool = new pg.Pool({ connectionString: TEST_DB });
+  try {
+    const tok = await pool.query<{ token: string }>(
+      'SELECT t.token FROM email_verify_tokens t JOIN users u ON u.id = t.user_id WHERE u.email = $1 AND t.used_at IS NULL',
+      [email],
+    );
+    const token = tok.rows[0]?.token;
+    if (!token) throw new Error('verifyUserByEmail: no verify token found');
+    const verify = await ctx.post('/api/v1/auth/verify-email', {
+      headers: { 'X-Forwarded-For': uniqueIp() },
+      data: { token },
+    });
+    if (!verify.ok()) throw new Error(`verifyUserByEmail failed (${verify.status()}): ${await verify.text()}`);
+  } finally {
+    await pool.end();
+  }
 }

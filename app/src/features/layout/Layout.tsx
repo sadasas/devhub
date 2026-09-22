@@ -214,6 +214,7 @@ export function Layout() {
         'payments',
         'reset-password',
         'verify-email',
+        'check-email',
         'privacy',
         'terms',
         '404',

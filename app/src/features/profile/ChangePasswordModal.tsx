@@ -67,9 +67,11 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
 
   const isSetMode = user?.hasPassword === false;
 
-  const canSubmit = isSetMode
-    ? newPassword !== '' && confirmPassword !== ''
-    : currentPassword !== '' && newPassword !== '' && confirmPassword !== '';
+  const canSubmit =
+    newPassword.length >= 8 &&
+    (isSetMode
+      ? newPassword !== '' && confirmPassword !== ''
+      : currentPassword !== '' && newPassword !== '' && confirmPassword !== '');
 
   const title = isSetMode
     ? t('profile.changeModal.setTitle', { defaultValue: 'Set password' })
@@ -86,6 +88,15 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
     setChangeError(null);
     if (newPassword !== confirmPassword) {
       setChangeError(t('profile.changeModal.mismatch'));
+      requestAnimationFrame(() => errorRef.current?.focus());
+      return;
+    }
+    // T12: guard min-8 di klien untuk ganti maupun set-password pertama
+    // (backend tetap penegak final).
+    if (newPassword.length < 8) {
+      setChangeError(
+        t('profile.changeModal.passwordMin', { defaultValue: 'Password must be at least 8 characters.' }),
+      );
       requestAnimationFrame(() => errorRef.current?.focus());
       return;
     }

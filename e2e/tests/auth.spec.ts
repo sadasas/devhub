@@ -1,5 +1,5 @@
 import { test, expect, type Page, withApiRoutes } from '../helpers/fixture';
-import { uniqueEmail, uniqueIp } from '../helpers/api';
+import { uniqueEmail, uniqueIp, verifyUserByEmail } from '../helpers/api';
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
@@ -16,7 +16,7 @@ async function bypassLimiter(page: Page, paths: string[]): Promise<void> {
 }
 
 test.describe('auth round-trip', () => {
-  test('register → dashboard → logout → login', async ({ page }) => {
+  test('register → verify → dashboard → logout → login', async ({ page, request }) => {
     const email = uniqueEmail();
     await bypassLimiter(page, ['/api/v1/auth/register', '/api/v1/auth/login']);
 
@@ -30,6 +30,19 @@ test.describe('auth round-trip', () => {
     await pw.first().fill(PASSWORD);
     await pw.nth(1).fill(PASSWORD);
     await page.getByRole('button', { name: 'Create account' }).click();
+
+    // T10: sukses register → layar cek-email dedicated (bukan dashboard).
+    await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
+    await expect(page.getByText(email)).toBeVisible();
+
+    // Verifikasi via API (token dari DB, seperti buka link email) lalu masuk.
+    await verifyUserByEmail(request, email);
+    await page.goto('/');
+    await expect(page.getByRole('heading', { name: 'Sign in to DevHub' })).toBeVisible();
+
+    await page.locator('form.auth-form').getByLabel('Email').fill(email);
+    await page.locator('form.auth-form input[type="password"]').fill(PASSWORD);
+    await page.getByRole('button', { name: 'Sign in' }).click();
 
     await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible();
 

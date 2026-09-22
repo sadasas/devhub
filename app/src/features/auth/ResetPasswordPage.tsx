@@ -31,14 +31,13 @@ export function ResetPasswordPage() {
       return;
     }
     if (password.length < 8) {
-      setError(t('auth.error.generic'));
+      setError(t('auth.error.passwordMin', 'Password must be at least 8 characters.'));
       return;
     }
     setSubmitting(true);
     try {
       await api.resetPassword(token, password);
       setSuccess(true);
-      setTimeout(() => navigate('/', { replace: true }), 2000);
     } catch (err) {
       setError(getErrorMessage(err, t('auth.error.generic')));
       setSubmitting(false);
@@ -115,16 +114,22 @@ export function ResetPasswordPage() {
           />
 
           {error && <InlineError>{error}</InlineError>}
-          {success && (
-            <div role="status" style={{ padding: 10, borderRadius: 8, background: 'var(--status-success-soft)', color: 'var(--status-success)', fontSize: 13 }}>
-              {t('auth.forgot.resetSuccess', 'Password updated — redirecting to login...')}
+          {success ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div role="status" style={{ padding: 10, borderRadius: 8, background: 'var(--status-success-soft)', color: 'var(--status-success)', fontSize: 13 }}>
+                {t('auth.forgot.resetSuccess', 'Password updated. Sign in with your new password.')}
+              </div>
+              <Button onClick={() => navigate('/', { replace: true })}>
+                {t('auth.action.signIn')}
+                <ArrowRight size={14} weight="bold" aria-hidden="true" />
+              </Button>
             </div>
+          ) : (
+            <Button type="submit" loading={submitting} disabled={submitting || !password || !confirm || success}>
+              {t('auth.forgot.resetSubmit', 'Update password')}
+              {!submitting && <ArrowRight size={14} weight="bold" aria-hidden="true" />}
+            </Button>
           )}
-
-          <Button type="submit" loading={submitting} disabled={submitting || !password || !confirm || success}>
-            {t('auth.forgot.resetSubmit', 'Update password')}
-            {!submitting && <ArrowRight size={14} weight="bold" aria-hidden="true" />}
-          </Button>
         </form>
       </main>
     </div>

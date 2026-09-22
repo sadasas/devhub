@@ -56,6 +56,16 @@ describe('mail templates (6 kasus)', () => {
   it('6) APP_PUBLIC_URL kosong → MailTemplateError (link akan rusak)', () => {
     expect(() => renderMail('reset', { token: 'test-token-reset-0001' }, '')).toThrow(MailTemplateError);
   });
+
+  it('7) shell v2: table 600px + logo + footer URL (T8)', () => {
+    const rendered = renderMail('verify', { token: 'test-token-verify-0001' }, APP_URL);
+    expect(rendered.html).toContain('<table');
+    expect(rendered.html).toContain('max-width:600px');
+    expect(rendered.html).toContain(`${APP_URL}/logo-email.png`);
+    expect(rendered.html).toContain('alt="DevHub"');
+    expect(rendered.html).toContain(APP_URL);
+    expect(rendered.text).toContain(APP_URL);
+  });
 });
 
 describe('resend adapter (4 kasus, mocked)', () => {

@@ -269,8 +269,10 @@ authRouter.post('/reset-password', forgotLimiter, async (req, res) => {
 
 authRouter.post('/verify-email', forgotLimiter, async (req, res) => {
   const { token } = parseOrThrow(verifySchema, req.body, 'Invalid verification data');
-  const result = await pool.query<{ user_id: string; expires_at: string; used_at: string | null }>(
-    'SELECT user_id, expires_at, used_at FROM email_verify_tokens WHERE token = $1',
+  const result = await pool.query<{ user_id: string; email: string; expires_at: string; used_at: string | null }>(
+    `SELECT t.user_id, u.email, t.expires_at, t.used_at
+       FROM email_verify_tokens t JOIN users u ON u.id = t.user_id
+      WHERE t.token = $1`,
     [token],
   );
   const row = result.rows[0];
@@ -284,7 +286,8 @@ authRouter.post('/verify-email', forgotLimiter, async (req, res) => {
     await client.query('UPDATE email_verify_tokens SET used_at = now() WHERE token = $1', [token]);
     await client.query('DELETE FROM email_verify_tokens WHERE user_id = $1 AND token != $2', [row.user_id, token]);
   });
-  res.json({ ok: true });
+  // T9: kembalikan email agar UI bisa prefill form login (tanpa bocor data lain).
+  res.json({ ok: true, email: row.email });
 });
 
 authRouter.post('/resend-verification', resendLimiter, async (req, res) => {
