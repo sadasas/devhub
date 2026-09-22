@@ -40,7 +40,7 @@ function DagCard({ task, state, blockedBy, external, onOpen }: { task: Task; sta
         <div className="dag-card-top">
           <Badge tone={TASK_PRIORITY[task.priority].tone} dot>{TASK_PRIORITY[task.priority].label}</Badge>
           {state !== "done" && <Badge tone={tone as any} dot>{label}</Badge>}
-          <span className="font-mono tabular" style={{ fontSize: 11, color: "var(--text-muted)" }}>#{shortId(task.id)}</span>
+          <span className="tabular" style={{ fontSize: 12, color: "var(--text-secondary)" }}>#{shortId(task.id)}</span>
         </div>
         <div className="dag-card-title" title={task.title}>{task.title || "Untitled task"}</div>
         <div className="dag-card-meta">
@@ -61,7 +61,7 @@ function DagCard({ task, state, blockedBy, external, onOpen }: { task: Task; sta
         </div>
         {(blockedBy.length > 0 || (external && external.length > 0)) && (
           <div className="dag-card-blocked">
-            <span className="field-helper" style={{ fontSize: 11 }}>{t("releases.flow.blockedBy", { defaultValue: "Blocked by:" })} {blockedBy.map((b) => b.title).join(", ")}{external && external.length > 0 ? " + " + external.length + " external" : ""}</span>
+            <span className="field-helper" style={{ fontSize: 12 }}>{t("releases.flow.blockedBy", { defaultValue: "Blocked by:" })} {blockedBy.map((b) => b.title).join(", ")}{external && external.length > 0 ? " + " + external.length + " external" : ""}</span>
           </div>
         )}
       </button>
@@ -109,7 +109,7 @@ export function MilestoneDetailView({ milestone, tasks, issues, testCases, decis
           <div className="release-flow-hero-main">
             <div className="data-row-title">
               <Badge tone={MILESTONE_STATUS[milestone.status].tone}>{t("releases.statusBadge." + milestone.status)}</Badge>
-              <span className="row-title-text" style={{ fontSize: 15, fontWeight: 600 }}>{milestone.name}</span>
+              <span className="row-title-text" style={{ fontSize: 16, fontWeight: 600 }}>{milestone.name}</span>
               {milestone.version && <span className="data-row-meta font-mono">v{milestone.version.replace(/^v/i, "")}</span>}
             </div>
             <div className="data-row-meta" style={{ marginTop: 6 }}>
@@ -127,7 +127,7 @@ export function MilestoneDetailView({ milestone, tasks, issues, testCases, decis
             </div>
             <span className="tabular" style={{ marginLeft: 8 }}>{t("releases.progressDone", { done, total })} · {progress}%</span>
           </div>
-          <span className={"badge " + (gatedReady ? "badge-success" : "badge-warn")} style={{ fontSize: 11 }}>{gatedReady ? t("releases.flow.ready") : t("releases.flow.notReady")} · {readiness.passCount}/{readiness.total}</span>
+          <span className={"badge " + (gatedReady ? "badge-success" : "badge-warn")} style={{ fontSize: 12 }}>{gatedReady ? t("releases.flow.ready") : t("releases.flow.notReady")} · {readiness.passCount}/{readiness.total}</span>
         </div>
       </div>
 
