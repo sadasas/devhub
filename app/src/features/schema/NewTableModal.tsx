@@ -6,7 +6,6 @@ import { newId, nowIso } from '../../lib/utils';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { Button } from '../../components/Button';
-import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { MarkdownField } from '../../components/MarkdownField';
 import { FE_LIMITS } from '../../lib/limits';
@@ -144,16 +143,35 @@ export function NewTableModal({ open, onClose, initialPosition = null, onCreated
       }
     >
       <form id="new-table-form" className="form-stack" onSubmit={onSubmit} noValidate>
-        <Input
-          label={t('schema.newTableModal.nameLabel')}
-          required
-          autoFocus={autoFocusName}
-          placeholder={t('schema.newTableModal.namePlaceholder')}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          maxLength={FE_LIMITS.TABLE_NAME}
-          showCount
-        />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <label className="field-label" htmlFor="new-table-name-input">
+            {t('schema.newTableModal.nameLabel')}
+            <span className="field-required" aria-hidden="true">
+              {' '}*
+            </span>
+          </label>
+          <input
+            id="new-table-name-input"
+            value={name}
+            autoFocus={autoFocusName}
+            placeholder={t('schema.newTableModal.namePlaceholder')}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={FE_LIMITS.TABLE_NAME}
+            required
+            aria-label={t('schema.newTableModal.nameLabel')}
+            style={{
+              border: 0,
+              outline: 0,
+              background: 'transparent',
+              color: 'var(--text-primary)',
+              fontSize: 16,
+              fontWeight: 600,
+              lineHeight: 1.4,
+              padding: '4px 0',
+              width: '100%',
+            }}
+          />
+        </div>
         <div className="new-table-extra-fields">
           <MarkdownField
             label={t('schema.newTableModal.commentLabel')}
@@ -163,6 +181,8 @@ export function NewTableModal({ open, onClose, initialPosition = null, onCreated
             placeholder={t('schema.newTableModal.commentPlaceholder')}
             maxLength={FE_LIMITS.TABLE_COMMENT}
             rows={2}
+            variant="bare"
+            previewToggle
           />
 
           <div
@@ -195,7 +215,7 @@ export function NewTableModal({ open, onClose, initialPosition = null, onCreated
                 <span>{t('schema.table.captionType')}</span>
                 <span className="col-edit-caption-flags">{t('schema.table.detailCaptionFlags')}</span>
                 <span>{t('schema.table.captionDefault')}</span>
-                <span>{t('schema.table.captionComment')}</span>
+                <span className="col-edit-caption-comment">{t('schema.table.captionComment')}</span>
                 <span />
               </div>
               {columns.map((c) => (
@@ -269,7 +289,7 @@ export function NewTableModal({ open, onClose, initialPosition = null, onCreated
                     onChange={(e) => updateColumn(c.id, { comment: e.target.value })}
                   />
                   <Button
-                    variant="ghost"
+                    variant="danger"
                     size="sm"
                     className="btn-icon"
                     aria-label={t('schema.table.deleteColAria', { name: c.name || t('schema.table.fbUnnamed') })}

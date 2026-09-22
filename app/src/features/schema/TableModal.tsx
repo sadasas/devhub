@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowsOutSimple, CheckCircle, Clock, FileText, Plus, Table, Trash, X } from '@phosphor-icons/react';
+import { CheckCircle, Clock, FileText, Plus, Table, Trash, X } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatRelative, newId } from '../../lib/utils';
 import type { Column } from '../../lib/types';
@@ -14,11 +14,13 @@ import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { DetailEmpty } from '../../components/DetailList';
 import { InlineError } from '../../components/InlineError';
+import { Input } from '../../components/Input';
+import { MarkdownField } from '../../components/MarkdownField';
 import { Modal } from '../../components/Modal';
 import { ColumnTypeCombobox } from './ColumnTypeCombobox';
 import { ColumnFlagsToggle } from './ColumnFlagsToggle';
 
-type ActiveField = 'name' | 'comment' | null;
+type ActiveField = 'name' | null;
 
 interface TableModalProps {
   tableId: string | null;
@@ -30,12 +32,10 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
   const { state, dispatch, canEdit, projectId, saving, lastSavedAt } = useProject();
   const [activeField, setActiveField] = useState<ActiveField>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [fullscreenField, setFullscreenField] = useState<ActiveField>(null);
 
   useEffect(() => {
     setActiveField(null);
     setConfirmOpen(false);
-    setFullscreenField(null);
   }, [tableId]);
 
   const table = tableId ? state?.tables.find((t) => t.id === tableId) : undefined;
@@ -84,7 +84,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
       <Modal
         open={tableId !== null}
         title={t('schema.table.viewTitle')}
-        onClose={fullscreenField ? () => setFullscreenField(null) : onClose}
+        onClose={onClose}
         width="lg"
         footer={
           canEdit ? (
@@ -115,29 +115,35 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
       >
         <div className="form-stack">
           <>
-            {/* Title inline — seperti IssueModal */}
+            {/* Title inline — komponen Input yang sama persis dengan NewTableModal */}
             {activeField === 'name' && canEdit ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
-                <input
-                  className="input"
-                  value={table.name}
-                  autoFocus
-                  maxLength={FE_LIMITS.TABLE_NAME}
-                  required
-                  onChange={(e) => update({ name: e.target.value })}
-                  onBlur={() => setActiveField(null)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') setActiveField(null);
-                    if (e.key === 'Escape') setActiveField(null);
-                  }}
-                  aria-label={t('schema.table.nameLabel')}
-                  placeholder={t('schema.newTableModal.namePlaceholder')}
-                />
-              </div>
+              <Input
+                label={t('schema.table.nameLabel')}
+                required
+                autoFocus
+                placeholder={t('schema.newTableModal.namePlaceholder')}
+                value={table.name}
+                onChange={(e) => update({ name: e.target.value })}
+                onBlur={() => setActiveField(null)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') setActiveField(null);
+                  if (e.key === 'Escape') setActiveField(null);
+                }}
+                id="tbl-title-input"
+                maxLength={FE_LIMITS.TABLE_NAME}
+                showCount
+              />
             ) : (
-              <h3
-                className="detail-title"
-                onClick={() => canEdit && setActiveField('name')}
+              <>
+                <label className="field-label" htmlFor="tbl-title-input">
+                  {t('schema.table.nameLabel')}
+                  <span className="field-required" aria-hidden="true">
+                    {' '}*
+                  </span>
+                </label>
+                <h3
+                  className="detail-title"
+                  onClick={() => canEdit && setActiveField('name')}
                 style={{
                   cursor: canEdit ? 'text' : undefined,
                   padding: '4px 6px',
@@ -162,6 +168,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
               >
                 {table.name || <DetailEmpty>{t('schema.table.unnamedTable')}</DetailEmpty>}
               </h3>
+              </>
             )}
             {titleEmpty && activeField !== 'name' && <InlineError>{t('tracker:issues.modal.titleRequired')}</InlineError>}
 
@@ -176,49 +183,26 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                 </span>
               </div>
 
-              {/* Comment — card bg-inset seperti Issue description */}
-              <div style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', borderRadius: 8, padding: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {/* Comment — MarkdownField seperti IssueModal */}
+              {canEdit ? (
+                <MarkdownField
+                  label={t('schema.table.commentLabel')}
+                  icon={FileText}
+                  value={table.comment}
+                  onChange={(v) => update({ comment: v })}
+                  placeholder={t('schema.newTableModal.commentPlaceholder')}
+                  maxLength={FE_LIMITS.TABLE_COMMENT}
+                  rows={3}
+                  variant="bare"
+                  previewToggle
+                />
+              ) : (
+                <div style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', borderRadius: 8, padding: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
                     <FileText size={12} aria-hidden="true" /> {t('schema.table.commentLabel')}
-                  </span>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm btn-icon"
-                    aria-label={t('tracker:issues.modal.fullscreenAriaDescription')}
-                    title={t('tracker:issues.modal.fullscreenAriaDescription')}
-                    onClick={() => setFullscreenField('comment')}
-                  >
-                    <ArrowsOutSimple size={14} aria-hidden="true" />
-                  </button>
-                </div>
-                {activeField === 'comment' && canEdit ? (
-                  <>
-                    <textarea
-                      className="textarea"
-                      value={table.comment}
-                      autoFocus
-                      rows={3}
-                      placeholder={t('schema.newTableModal.commentPlaceholder')}
-                      onChange={(e) => update({ comment: e.target.value })}
-                      onBlur={() => setActiveField(null)}
-                      aria-label={t('schema.table.commentLabel')}
-                      maxLength={FE_LIMITS.TABLE_COMMENT}
-                    />
-                  </>
-                ) : (
+                  </div>
                   <div
-                    onClick={() => canEdit && setActiveField('comment')}
-                    role={canEdit ? 'button' : undefined}
-                    tabIndex={canEdit ? 0 : undefined}
-                    onKeyDown={(e) => {
-                      if (canEdit && (e.key === 'Enter' || e.key === ' ')) {
-                        e.preventDefault();
-                        setActiveField('comment');
-                      }
-                    }}
                     style={{
-                      cursor: canEdit ? 'text' : undefined,
                       fontSize: 13,
                       lineHeight: 1.6,
                       color: table.comment.trim() ? 'var(--text-secondary)' : 'var(--text-muted)',
@@ -228,8 +212,8 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                   >
                     {table.comment.trim() ? table.comment : t('schema.noComment')}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Columns — card bg-inset, selalu editable jika canEdit */}
               <div style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', borderRadius: 8, padding: 16 }}>
@@ -251,7 +235,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                         <span>{t('schema.table.captionType')}</span>
                         <span className="col-edit-caption-flags">{t('schema.table.detailCaptionFlags')}</span>
                         <span>{t('schema.table.captionDefault')}</span>
-                        <span>{t('schema.table.captionComment')}</span>
+                        <span className="col-edit-caption-comment">{t('schema.table.captionComment')}</span>
                         <span />
                       </div>
                       {table.columns.map((c) => (
@@ -329,7 +313,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                             onChange={(e) => updateColumn(c.id, { comment: e.target.value })}
                           />
                           <Button
-                            variant="ghost"
+                            variant="danger"
                             size="sm"
                             className="btn-icon"
                             aria-label={t('schema.table.deleteColAria', { name: c.name || t('schema.table.fbUnnamed') })}
@@ -411,37 +395,6 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
           </>
         </div>
       </Modal>
-      {fullscreenField === 'comment' && (
-        <Modal open title={t('tracker:issues.modal.fullscreenTitle', { label: t('schema.table.commentLabel') })} onClose={() => setFullscreenField(null)} width="lg" className="modal-fullscreen">
-          <div className="field">
-            <div className="issue-fullscreen-split" style={{ display: 'flex', gap: 16, flex: 1, minHeight: 0, alignItems: 'stretch' }}>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>{t('tracker:issues.modal.editTab')}</div>
-                <textarea
-                  className="textarea"
-                  style={{ flex: 1, minHeight: 0, height: '100%', resize: 'none' }}
-                  value={table.comment}
-                  autoFocus={canEdit}
-                  readOnly={!canEdit}
-                  placeholder={t('schema.newTableModal.commentPlaceholder')}
-                  onChange={(e) => canEdit && update({ comment: e.target.value })}
-                  aria-label={t('schema.table.commentLabel')}
-                  maxLength={FE_LIMITS.TABLE_COMMENT}
-                />
-              </div>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>{t('tracker:issues.modal.previewTab')}</div>
-                <div className="md-preview" style={{ flex: 1, minHeight: 0, height: '100%', overflow: 'auto', whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)' }}>
-                  {table.comment.trim() ? table.comment : <span className="md-preview-empty">{t('project:prd.nothingToPreview')}</span>}
-                </div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginTop: 8 }}>
-              <p className="field-helper" style={{ margin: 0 }}>{canEdit ? t('tracker:issues.modal.fullscreenHelper') : t('tracker:issues.modal.fullscreenHelperReadOnly')}</p>
-            </div>
-          </div>
-        </Modal>
-      )}
       <ConfirmDeleteDialog
         open={confirmOpen}
         title={t('schema.table.deleteConfirmTitle')}
