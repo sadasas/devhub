@@ -185,8 +185,7 @@ describe('SortControl', () => {
     expect(onFilter).toHaveBeenCalledWith(true);
   });
 
-  it('hides sort sections when options are empty but keeps filters', () => {
-    render(
+  it('hides sort sections when options are empty but keeps filters', () => {    render(
       <SortControl
         options={[]}
         value={null}
@@ -198,5 +197,21 @@ describe('SortControl', () => {
     expect(screen.getByRole('menu')).toBeTruthy();
     expect(screen.queryByRole('menuitemradio')).toBeNull();
     expect(screen.getByRole('checkbox', { name: 'Only mine' })).toBeTruthy();
+  });
+
+  it('nests the direction group directly under the active option', () => {
+    render(<SortControl options={OPTIONS} value={{ key: 'name', dir: 'asc' }} onChange={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /Name/ }));
+    const nameRow = screen.getByRole('menuitemradio', { name: 'Name' });
+    const dirGroup = screen.getByRole('group', { name: 'Direction' });
+    expect(nameRow.nextElementSibling).toBe(dirGroup);
+  });
+
+  it('moves the nested direction group when another key is picked', () => {
+    render(<SortControl options={OPTIONS} value={null} onChange={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /Sort/ }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Created' }));
+    const createdRow = screen.getByRole('menuitemradio', { name: 'Created' });
+    expect(createdRow.nextElementSibling?.getAttribute('aria-label')).toBe('Direction');
   });
 });

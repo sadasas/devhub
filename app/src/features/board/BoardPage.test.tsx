@@ -127,8 +127,8 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function openSortMenu() {
-  fireEvent.click(screen.getByRole('button', { name: 'Sort' }));
+function openFilterMenu() {
+  fireEvent.click(screen.getByRole('button', { name: /^Filter/ }));
 }
 
 describe('BoardPage only my tasks filter', () => {
@@ -140,7 +140,7 @@ describe('BoardPage only my tasks filter', () => {
 
   it('filters columns to the current user when toggled and persists ?mine=1', () => {
     renderBoard();
-    openSortMenu();
+    openFilterMenu();
     fireEvent.click(screen.getByRole('checkbox', { name: 'Only my tasks' }));
     expect(document.querySelectorAll('[data-testid="task-card"]').length).toBe(2);
     expect(screen.getByTestId('url-probe').textContent).toContain('mine=1');
@@ -152,7 +152,7 @@ describe('BoardPage only my tasks filter', () => {
   it('restores all tasks when toggled off', () => {
     renderBoard('/?mine=1');
     expect(document.querySelectorAll('[data-testid="task-card"]').length).toBe(2);
-    openSortMenu();
+    openFilterMenu();
     fireEvent.click(screen.getByRole('checkbox', { name: 'Only my tasks' }));
     expect(document.querySelectorAll('[data-testid="task-card"]').length).toBe(3);
     expect(screen.getByTestId('url-probe').textContent).not.toContain('mine');
@@ -163,7 +163,7 @@ describe('BoardPage only my tasks filter', () => {
     const todoCount = () =>
       document.querySelector('[data-testid="kanban-col-todo"] .kanban-col-count')?.textContent;
     expect(todoCount()).toBe('3');
-    openSortMenu();
+    openFilterMenu();
     fireEvent.click(screen.getByRole('checkbox', { name: 'Only my tasks' }));
     expect(todoCount()).toBe('2');
   });
@@ -254,16 +254,17 @@ describe('BoardPage status swipe (narrow)', () => {
 });
 
 describe('BoardPage calendar toolbar filters', () => {
-  it('shows sort trigger + Canvas in actions, filters inside the sort menu', async () => {
+  it('hides the sort trigger in calendar mode, filters inside the filter menu', async () => {
     renderBoard('/?view=calendar');
-    const trigger = screen.getByRole('button', { name: 'Sort' });
-    const actions = trigger.closest('.board-toolbar-actions')!;
+    // Tak ada opsi sort di mode kalender → trigger Sort disembunyikan total.
+    expect(screen.queryByRole('button', { name: 'Sort' })).toBeNull();
+    const filterTrigger = screen.getByRole('button', { name: 'Filter' });
+    const actions = filterTrigger.closest('.board-toolbar-actions')!;
     expect(actions).toBeTruthy();
     const fsBtn = screen.getByRole('button', { name: /Fullscreen/ });
     expect(fsBtn.closest('.board-toolbar-actions')).toBe(actions);
-    fireEvent.click(trigger);
+    fireEvent.click(filterTrigger);
     expect(screen.getByRole('menu')).toBeTruthy();
-    // Calendar mode: no sort options, only filters.
     expect(screen.queryByRole('menuitemradio')).toBeNull();
     expect(screen.getByRole('checkbox', { name: 'Only my tasks' })).toBeTruthy();
     expect(screen.getByRole('checkbox', { name: 'Hide completed' })).toBeTruthy();
@@ -279,7 +280,7 @@ describe('BoardPage calendar toolbar filters', () => {
     renderBoard('/?view=calendar');
     await screen.findByText('Open chip');
     expect(screen.getByText('Done chip')).toBeTruthy();
-    openSortMenu();
+    openFilterMenu();
     fireEvent.click(screen.getByRole('checkbox', { name: 'Hide completed' }));
     expect(screen.queryByText('Done chip')).toBeNull();
     expect(screen.getByText('Open chip')).toBeTruthy();

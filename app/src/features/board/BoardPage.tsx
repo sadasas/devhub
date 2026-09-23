@@ -17,6 +17,7 @@ import { useSortParam } from '../../hooks/useSortParam';
 import { Button } from '../../components/Button';
 import { Skeleton } from '../../components/Skeleton';
 import { SortControl } from '../../components/SortControl';
+import { FilterControl } from '../../components/FilterControl';
 import { GCalSyncButton } from '../integrations/GCalSyncButton';
 import { GCalBanner } from '../integrations/GCalBanner';
 import { useGCalSync } from '../../hooks/useGCalSync';
@@ -751,6 +752,8 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
             options={view === 'calendar' ? [] : TASK_SORT_SPECS.filter((s) => s.key !== 'createdAt').map((s) => ({ value: s.key, label: t(s.label) }))}
             value={view === 'calendar' ? null : sortValue}
             onChange={setSort}
+          />
+          <FilterControl
             filters={[
               ...(userId
                 ? [{
