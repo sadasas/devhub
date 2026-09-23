@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CaretLeft, CaretRight, CalendarBlank, Check, Circle, Clock, Eye, CheckCircle, Flag, GitBranch, Plus } from
+import { CaretLeft, CaretRight, CalendarBlank, Check, GitBranch, Plus } from
 '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { addDaysIso, inMonth, isoOf, monthName, parseIso, visibleMonthMatrix, weekDays } from '../../lib/calendar';
 import { dueBucket, dueLabel, dueTone, taskDueChip, todayIso } from '../../lib/due-dates';
 import { subRangeOutsideParent } from '../../lib/start-dates';
 import { TASK_PRIORITY, TASK_PRIORITY_ORDER, TASK_STATUS } from '../../lib/labels';
+import { TaskPriorityIcon, TaskStatusIcon } from '../../lib/task-icons';
 import { formatDate } from '../../lib/utils';
 import { getAppLocale } from '../../i18n';
 
@@ -77,10 +78,10 @@ interface CalTaskChipProps {
 }
 
 const STATUS_ICON: Record<string, React.ReactNode> = {
-  todo: <Circle size={14} weight="bold" aria-hidden="true" />,
-  inProgress: <Clock size={14} weight="bold" aria-hidden="true" />,
-  review: <Eye size={14} weight="bold" aria-hidden="true" />,
-  done: <CheckCircle size={14} weight="fill" aria-hidden="true" />,
+  todo: <TaskStatusIcon status="todo" size={14} />,
+  inProgress: <TaskStatusIcon status="inProgress" size={14} />,
+  review: <TaskStatusIcon status="review" size={14} />,
+  done: <TaskStatusIcon status="done" size={14} />,
 };
 
 function useMediaQuery(query: string): boolean {
@@ -168,7 +169,7 @@ function CalTaskChip({ task, date, segmentStart, span, members, onOpenTask, onTo
             {TASK_STATUS[task.status].label}
           </span>
           <span className="task-activity-tip-row">
-            <Flag size={12} aria-hidden="true" />
+            <TaskPriorityIcon priority={task.priority} size={12} />
             {TASK_PRIORITY[task.priority].label}
           </span>
           {assigneeName && task.assigneeId && (

@@ -6,6 +6,7 @@ import { useEntityDeepLink } from '../../hooks/useEntityDeepLink';
 import { useNewParam } from '../../hooks/useNewParam';
 import { useSortParam } from '../../hooks/useSortParam';
 import { ISSUE_SEVERITY, ISSUE_STATUS } from '../../lib/labels';
+import { IssueStatusIcon, TaskSeverityIcon } from '../../lib/task-icons';
 import { applySort, type SortSpec } from '../../lib/sort';
 import { shortId } from '../../lib/utils';
 import type { Issue } from '../../lib/types';
@@ -166,6 +167,7 @@ return (
                   >
                     <span className="data-row-title">
                       <Badge tone={ISSUE_SEVERITY[issue.severity].tone}>
+                        <TaskSeverityIcon severity={issue.severity} size={11} />
                         {t(`issues.severity.${issue.severity}`)}
                       </Badge>
                       <span className="row-title-text">{issue.title}</span>
@@ -175,7 +177,10 @@ return (
                     {canEdit ? (
                       <span className={`row-swap${issue.pinned ? ' is-pinned' : ''}`}>
                         <span className="swap-status">
-                          <Badge tone={ISSUE_STATUS[issue.status].tone}>{t(`issues.status.${issue.status}`)}</Badge>
+                      <Badge tone={ISSUE_STATUS[issue.status].tone}>
+                        <IssueStatusIcon status={issue.status} size={11} />
+                        {t(`issues.status.${issue.status}`)}
+                      </Badge>
                         </span>
                         {!isNarrow && (
                           <span className="swap-group">
@@ -243,7 +248,10 @@ return (
                         )}
                       </span>
                     ) : (
-                      <Badge tone={ISSUE_STATUS[issue.status].tone}>{t(`issues.status.${issue.status}`)}</Badge>
+                      <Badge tone={ISSUE_STATUS[issue.status].tone}>
+                        <IssueStatusIcon status={issue.status} size={11} />
+                        {t(`issues.status.${issue.status}`)}
+                      </Badge>
                     )}
                   </span>
                 </div>

@@ -6,6 +6,7 @@ import { EmptyState } from '../../components/EmptyState';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { InlineError } from '../../components/InlineError';
 import { MILESTONE_STATUS, TASK_PRIORITY, TASK_STATUS } from '../../lib/labels';
+import { TaskPriorityIcon } from '../../lib/task-icons';
 import type { Decision, Milestone, SchemaVersion, Task } from '../../lib/types';
 import { formatDate, formatRelative, shortId } from '../../lib/utils';
 import { taskDueChip } from '../../lib/due-dates';
@@ -171,7 +172,8 @@ function DagTaskCard({
     <div className={`dag-card dag-card--${state} ${task.pinned ? 'card-pinned' : ''}`}>
       <button type="button" className="dag-card-main" onClick={() => onOpen(task.id)} aria-label={`${task.title} — ${stateLabel}`}>
         <div className="dag-card-top">
-          <Badge tone={TASK_PRIORITY[task.priority].tone} dot>
+          <Badge tone={TASK_PRIORITY[task.priority].tone}>
+            <TaskPriorityIcon priority={task.priority} size={11} />
             {TASK_PRIORITY[task.priority].label}
           </Badge>
           <Badge tone={tone as never} dot>
