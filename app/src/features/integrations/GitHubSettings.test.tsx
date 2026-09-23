@@ -49,7 +49,8 @@ describe('GitHubSettings', () => {
 
   it('shows connect button and manual bind when disconnected', async () => {
     renderSettings();
-    expect(await screen.findByRole('button', { name: 'Connect GitHub' })).toBeTruthy();
+    // Label pendek "Connect" = pola mirror Google (bukan "Connect GitHub").
+    expect(await screen.findByRole('button', { name: 'Connect' })).toBeTruthy();
     expect(screen.getByLabelText('Installation ID')).toBeTruthy();
   });
 
@@ -59,7 +60,7 @@ describe('GitHubSettings', () => {
       repos: [{ owner: 'acme', repo: 'api', fullName: 'acme/api', isPrivate: true }],
     });
     renderSettings();
-    await screen.findByRole('button', { name: 'Connect GitHub' });
+    await screen.findByRole('button', { name: 'Connect' });
     fireEvent.change(screen.getByLabelText('Installation ID'), { target: { value: '77' } });
     fireEvent.click(screen.getByRole('button', { name: 'Bind installed App' }));
     await waitFor(() => expect(apiMock.githubSetup).toHaveBeenCalledWith(77));
@@ -71,7 +72,7 @@ describe('GitHubSettings', () => {
 
   it('rejects non-numeric installation IDs', async () => {
     renderSettings();
-    await screen.findByRole('button', { name: 'Connect GitHub' });
+    await screen.findByRole('button', { name: 'Connect' });
     fireEvent.change(screen.getByLabelText('Installation ID'), { target: { value: 'abc' } });
     fireEvent.click(screen.getByRole('button', { name: 'Bind installed App' }));
     expect(await screen.findByText('Enter a numeric installation ID.')).toBeTruthy();

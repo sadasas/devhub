@@ -348,7 +348,7 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
               <GitHubDisclosure />
               {pendingInstall ? (
                 <>
-                  <p className="field-helper" style={{ margin: 0 }}>
+                  <p className="field-helper">
                     {t('settings.githubInstalledUnmapped', {
                       defaultValue: 'App installed — pick a repository below to finish connecting.',
                     })}
@@ -375,6 +375,7 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
                   </div>
                 </>
               ) : (
+                <>
                 <div className="settings-action">
                   <div className="settings-action-main">
                     <div className="github-identity">
@@ -420,6 +421,7 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
                     })}
                   </p>
                 )}
+                </>
               )}
               {canConnect && !isAdmin && (
                 <p className="field-helper">
