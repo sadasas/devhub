@@ -55,6 +55,17 @@
       "syncOff": "Sync off",
       "syncedTask": "Synced to Google Calendar"
     },
+    "github": {
+      "openPr": "Open pull request",
+      "mergedSuggest": "A linked PR was merged. Mark this task done?",
+      "markDone": "Mark done",
+      "noLinks": "No linked branches or PRs yet. Include DEV-{{key}} in a branch or PR to link automatically.",
+      "openInGithub": "Open in GitHub",
+      "unlink": "Unlink {{ref}}",
+      "copied": "Copied",
+      "copyBranch": "Copy branch",
+      "readonly": "Read-only: only editors can unlink."
+    },
     "dropHere": "Drop tasks here",
     "emptySwipe": "No tasks in {{label}}",
     "emptyMineSwipe": "No tasks assigned to you in {{label}}",

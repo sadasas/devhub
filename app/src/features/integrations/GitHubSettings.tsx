@@ -5,6 +5,7 @@ import { GithubLogo, PlugsConnected } from '@phosphor-icons/react';
 import { api } from '../../lib/api';
 import type { GitHubAutomation, GitHubInstallationRepo, GitHubStatus } from '../../lib/types';
 import { Button } from '../../components/Button';
+import { Input } from '../../components/Input';
 import { SearchableSelect } from '../../components/SearchableSelect';
 
 interface GitHubSettingsProps {
@@ -29,6 +30,7 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingInstall, setPendingInstall] = useState<{ installationId: number; repos: GitHubInstallationRepo[] } | null>(null);
   const [picked, setPicked] = useState('');
+  const [manualId, setManualId] = useState('');
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -96,6 +98,31 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
     }
   }
 
+  /**
+   * Bind manual untuk dead-end "install langsung dari GitHub" (tanpa params):
+   * user paste Installation ID dari URL halaman App GitHub.
+   */
+  async function bindManual() {
+    const installationId = Number(manualId.trim());
+    if (!Number.isInteger(installationId) || installationId <= 0) {
+      setError(t('settings.githubManualInvalid', { defaultValue: 'Enter a numeric installation ID.' }));
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await api.githubSetup(installationId);
+      const { repos } = await api.githubInstallRepos(installationId);
+      setPendingInstall({ installationId, repos });
+      setPicked(repos[0] ? `${repos[0].owner}/${repos[0].repo}` : '');
+      setManualId('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Bind failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function disconnect() {
     setBusy(true);
     setError(null);
@@ -143,10 +170,16 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
     }
   }
 
-  async function startConnect() {
-    setBusy(true);
+  async function startConnect() {    setBusy(true);
     setError(null);
     try {
+      // Simpan project asal agar gate global bisa default-kan picker setelah
+      // redirect GitHub (pengganti `state` ala OAuth — Setup URL statis).
+      try {
+        window.localStorage.setItem('devhub:github:pendingProject', projectId);
+      } catch {
+        // storage penuh/diblokir — flow tetap jalan via picker manual.
+      }
       const { installUrl } = await api.githubInstallUrl();
       window.location.href = installUrl;
     } catch (e) {
@@ -255,6 +288,11 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
               </p>
               {pendingInstall ? (
                 <>
+                  <p className="field-helper" style={{ margin: 0 }}>
+                    {t('settings.githubInstalledUnmapped', {
+                      defaultValue: 'App installed — pick a repository below to finish connecting.',
+                    })}
+                  </p>
                   <SearchableSelect
                     id="github-repo-pick"
                     label={t('settings.githubPickRepo', { defaultValue: 'Repository' })}
@@ -277,6 +315,7 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
                   </div>
                 </>
               ) : (
+                <>
                 <div>
                   <Button
                     type="button"
@@ -289,6 +328,30 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
                     {t('settings.githubConnect', { defaultValue: 'Connect GitHub' })}
                   </Button>
                 </div>
+                {isAdmin && (
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                    <div style={{ minWidth: 200, flex: '1 1 200px' }}>
+                      <Input
+                        label={t('settings.githubManualId', { defaultValue: 'Installation ID' })}
+                        value={manualId}
+                        onChange={(e) => setManualId(e.target.value)}
+                        placeholder="12345678"
+                        inputMode="numeric"
+                      />
+                    </div>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => void bindManual()} disabled={busy || !manualId.trim()}>
+                      {t('settings.githubManualBind', { defaultValue: 'Bind installed App' })}
+                    </Button>
+                  </div>
+                )}
+                {isAdmin && (
+                  <p className="field-helper" style={{ margin: 0 }}>
+                    {t('settings.githubManualHint', {
+                      defaultValue: 'Installed directly from GitHub without the button above? Paste the installation ID from the App page URL.',
+                    })}
+                  </p>
+                )}
+                </>
               )}
               {canConnect && !isAdmin && (
                 <p className="field-helper">

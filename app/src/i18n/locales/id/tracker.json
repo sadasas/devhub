@@ -55,6 +55,17 @@
       "syncOff": "Sync mati",
       "syncedTask": "Tersinkron ke Google Calendar"
     },
+    "github": {
+      "openPr": "Buka pull request",
+      "mergedSuggest": "PR tertaut sudah di-merge. Tandai task ini selesai?",
+      "markDone": "Tandai selesai",
+      "noLinks": "Belum ada branch atau PR tertaut. Sertakan DEV-{{key}} di branch atau PR untuk menautkan otomatis.",
+      "openInGithub": "Buka di GitHub",
+      "unlink": "Lepas {{ref}}",
+      "copied": "Tersalin",
+      "copyBranch": "Salin branch",
+      "readonly": "Baca saja: hanya editor yang dapat melepas tautan."
+    },
     "dropHere": "Letakkan task di sini",
     "emptySwipe": "Belum ada task di {{label}}",
     "emptyMineSwipe": "Tidak ada task milikmu di {{label}}",

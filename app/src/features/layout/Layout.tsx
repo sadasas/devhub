@@ -15,6 +15,7 @@ import { resolveTeamlessRedirect } from './team-guard';
 import { useProjects } from '../../state/projects-context';
 import { useAuth } from '../../state/auth-context';
 import { CreateTeamModal } from '../teams/CreateTeamModal';
+import { GitHubSetupGate } from '../integrations/GitHubSetupGate';
 import { ProjectChatWidget } from '../project/ProjectChatWidget';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 
@@ -438,17 +439,32 @@ export function Layout() {
 
   // Zero-team guard: team-scoped pages bounce to onboarding (or invites).
   // Pure decision in ./team-guard (unit-tested); loading renders normally.
+  // Query dipertahankan agar setup-return (?github=installed) selamat sampai
+  // dashboard dan bisa diselesaikan gate global (bukan hilang di bounce).
   const teamGuard = resolveTeamlessRedirect({
     userPresent: !!user,
     teams,
     invitationCount: invitations.length,
     pathname: location.pathname,
   });
-  if (teamGuard === 'toInvites') return <Navigate to="/invites" replace />;
-  if (teamGuard === 'toHome') return <Navigate to="/" replace />;
+  if (teamGuard === 'toInvites')
+    return (
+      <>
+        <GitHubSetupGate />
+        <Navigate to={{ pathname: '/invites', search: location.search }} replace />
+      </>
+    );
+  if (teamGuard === 'toHome')
+    return (
+      <>
+        <GitHubSetupGate />
+        <Navigate to={{ pathname: '/', search: location.search }} replace />
+      </>
+    );
 
   return (
     <div className="layout" data-chat-open={isChatInlineOpen ? 'true' : undefined} data-sidebar-collapsed={sidebarCollapsed ? 'true' : undefined} style={{ ['--sidebar-w' as any]: `${sidebarCollapsed ? 0 : sidebarWidth}px`, ['--chat-w' as any]: `${isChatInlineOpen ? chatWidth : 0}px` } as React.CSSProperties}>
+      <GitHubSetupGate />
       <a
         className="skip-link"
         href="#main-content"

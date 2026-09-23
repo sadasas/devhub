@@ -42,7 +42,7 @@ export function GitHubTaskSection({ task, canEdit, onChanged, onMarkDone }: GitH
             gap: 8,
             flexWrap: 'wrap',
             padding: '8px 10px',
-            borderRadius: 8,
+            borderRadius: 'var(--radius-card)',
             background: 'var(--status-success-dim)',
             fontSize: 13,
           }}
@@ -76,7 +76,7 @@ export function GitHubTaskSection({ task, canEdit, onChanged, onMarkDone }: GitH
                   alignItems: 'center',
                   gap: 8,
                   padding: '6px 8px',
-                  borderRadius: 8,
+                  borderRadius: 'var(--radius-input)',
                   background: 'var(--bg-inset)',
                   fontSize: 13,
                   minWidth: 0,
@@ -118,9 +118,10 @@ export function GitHubTaskSection({ task, canEdit, onChanged, onMarkDone }: GitH
             whiteSpace: 'nowrap',
             fontSize: 12,
             padding: '6px 8px',
-            borderRadius: 8,
+            borderRadius: 'var(--radius-input)',
             background: 'var(--bg-inset)',
             color: 'var(--text-secondary)',
+            fontFamily: 'var(--font-mono)',
           }}
           title={branchCmd}
         >
