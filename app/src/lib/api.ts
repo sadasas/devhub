@@ -6,6 +6,9 @@ import type {
   ChatMessage,
   ChatRef,
   ChatResolvedRef,
+  GitHubAutomation,
+  GitHubInstallationRepo,
+  GitHubStatus,
   Invitation,
   McpKeyList,
   McpKeyCreated,
@@ -722,4 +725,34 @@ export const api = {
     }),
   gcalConnectUrl: (projectId: string, returnTo?: string) =>
     `${API_BASE}/integrations/gcal/connect?projectId=${encodeURIComponent(projectId)}${returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : ''}`,
+
+  /** GitHub App integration: semua URL terpusat di sini — jangan hardcode di komponen. */
+  githubInstallUrl: () => request<{ installUrl: string }>('/integrations/github/install-url'),
+  githubSetup: (installationId: number, setupAction?: string) =>
+    request<{ installationId: number; accountLogin: string | null; accountType: string | null }>(
+      `/integrations/github/setup?installation_id=${installationId}${setupAction ? `&setup_action=${encodeURIComponent(setupAction)}` : ''}`,
+    ),
+  githubInstallRepos: (installationId: number) =>
+    request<{ repos: GitHubInstallationRepo[] }>(`/integrations/github/installations/${installationId}/repos`),
+  githubStatus: (projectId: string) =>
+    request<GitHubStatus>(`/integrations/github/status?projectId=${encodeURIComponent(projectId)}`),
+  githubConnect: (projectId: string, installationId: number, owner: string, repo: string) =>
+    request<{ mapping: unknown }>('/integrations/github/repos', {
+      method: 'POST',
+      body: JSON.stringify({ projectId, installationId, owner, repo }),
+    }),
+  githubDisconnect: (projectId: string) =>
+    request<{ ok: true }>(`/integrations/github/repos?projectId=${encodeURIComponent(projectId)}`, {
+      method: 'DELETE',
+    }),
+  githubAutomation: (projectId: string, automation: GitHubAutomation) =>
+    request<{ automation: GitHubAutomation }>('/integrations/github/repos', {
+      method: 'PATCH',
+      body: JSON.stringify({ projectId, automation }),
+    }),
+  githubDrain: (projectId: string) =>
+    request<{ drained: number; succeeded: number; failed: number; pending: number }>(
+      `/integrations/github/outbox/drain?projectId=${encodeURIComponent(projectId)}`,
+      { method: 'POST' },
+    ),
 };

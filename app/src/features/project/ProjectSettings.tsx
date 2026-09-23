@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { Archive, CaretLeft, Check, Copy, GearSix, GithubLogo, PencilSimple, PlugsConnected, Tag, Trash } from '@phosphor-icons/react';
+import { Archive, CaretLeft, Check, Copy, GearSix, PencilSimple, PlugsConnected, Tag, Trash } from '@phosphor-icons/react';
 import type { Project } from '../../lib/types';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { Button } from '../../components/Button';
@@ -9,6 +9,7 @@ import { Input } from '../../components/Input';
 import { Badge } from '../../components/Badge';
 import { EditGeneralModal } from './EditGeneralModal';
 import { GCalSettings } from '../integrations/GCalSettings';
+import { GitHubSettings } from '../integrations/GitHubSettings';
 import { LabelsSection } from './LabelsSection';
 import {
   normalizeProjectSettingsSection,
@@ -87,7 +88,7 @@ export function ProjectSettings({ project, canEditMeta, canConnect, canArchive, 
         ) : section === 'labels' ? (
           <LabelsSection />
         ) : section === 'integrations' ? (
-          <IntegrationsSection projectId={project.id} canConnect={canConnect} />
+          <IntegrationsSection projectId={project.id} canConnect={canConnect} isAdmin={isAdmin} />
         ) : (
           <DangerSection
             project={project}
@@ -280,9 +281,8 @@ function DangerSection({
     </div>
   );
 }
-function IntegrationsSection({ projectId, canConnect }: { projectId: string; canConnect: boolean }) {
+function IntegrationsSection({ projectId, canConnect, isAdmin }: { projectId: string; canConnect: boolean; isAdmin: boolean }) {
   const { t } = useTranslation('project');
-  const { t: tAccount } = useTranslation('account');
   return (
     <div className="profile-panel">
       <div className="narrow-center">
@@ -296,20 +296,7 @@ function IntegrationsSection({ projectId, canConnect }: { projectId: string; can
         })}
       </p>
       <GCalSettings projectId={projectId} canEdit={canConnect} bare />
-      <h3 className="section-title">
-        <GithubLogo size={14} weight="fill" aria-hidden="true" />
-        {tAccount('dashboard.team.settingsGithubTitle', { defaultValue: 'GitHub' })}
-      </h3>
-      <p className="field-helper">
-        {tAccount('dashboard.team.settingsGithubSoonDesc', {
-          defaultValue: 'Repository linking is coming soon.',
-        })}
-      </p>
-      <ul className="settings-soon-list">
-        <li>{tAccount('dashboard.team.settingsGithubSoonItem1')}</li>
-        <li>{tAccount('dashboard.team.settingsGithubSoonItem2')}</li>
-        <li>{tAccount('dashboard.team.settingsGithubSoonItem3')}</li>
-      </ul>
+      <GitHubSettings projectId={projectId} canConnect={canConnect} isAdmin={isAdmin} />
       </section>
       </div>
     </div>

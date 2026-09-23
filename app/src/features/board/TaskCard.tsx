@@ -13,6 +13,7 @@ import { TaskPriorityIcon, TaskStatusIcon } from '../../lib/task-icons';
 import { PinButton } from '../../components/PinButton';
 import { Tooltip } from '../../components/Tooltip';
 import { GCalSyncedMark } from '../integrations/GCalSyncedMark';
+import { GitHubLinkBadge } from '../integrations/GitHubLinkBadge';
 import { useTouchDrag } from '../../hooks/useTouchDrag';
 
 interface MemberInfo {
@@ -309,6 +310,7 @@ export const TaskCard = memo(function TaskCard({
               </Tooltip>
             )}
             <GCalSyncedMark taskId={task.id} projectId={projectId} />
+            <GitHubLinkBadge links={task.githubLinks} />
             {subDueChip && subDueRollup && (
               <Tooltip title={subDueChip.title || formatDate(subDueRollup)}>
                 <span className={`task-due task-due-${subDueChip.tone}`}>

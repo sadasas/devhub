@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
 import { newId, nowIso, textContent } from '../../domain/entity.js';
-import { hours, LIMITS } from '../../../projects/domain/state.js';
+import { hours, LIMITS, githubLinkSchema } from '../../../projects/domain/state.js';
 import { deriveActualHours } from '../../../projects/domain/hours.js';
 
 const inputSchema = z.object({
@@ -39,6 +39,11 @@ const inputSchema = z.object({
     .optional()
     .describe('Optional assignee (team member id), or null to clear'),
   description: z.string().max(LIMITS.TASK_DESCRIPTION).default(''),
+  githubLinks: z
+    .array(githubLinkSchema)
+    .max(LIMITS.GITHUB_LINKS_PER_TASK)
+    .optional()
+    .describe('Optional GitHub branch/PR/commit links to attach'),
 });
 
 export function registerCreateTask(server: McpServer): void {
@@ -79,6 +84,7 @@ export function registerCreateTask(server: McpServer): void {
         assigneeId: args.assigneeId ?? null,
         description: args.description,
         attachments: [],
+        githubLinks: args.githubLinks ?? [],
       };
       state.tasks.push(task);
       await saveState(args.projectId, state);

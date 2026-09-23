@@ -81,6 +81,7 @@ export function registerPlanProject(server: McpServer): void {
           pinned: false,
           description: '',
           attachments: [],
+          githubLinks: [],
         };
         state.tasks.push(task);
         return { id: task.id, title: task.title, estimate: task.estimate ?? null };

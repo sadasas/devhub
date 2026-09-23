@@ -69,6 +69,7 @@
 | [ADR-048](#adr-048) | OAuth social login Google & GitHub — keep email+password, inbound PKCE, auto-link verified, public providers | Accepted | 2026-08-31 |
 | [ADR-050](#adr-050) | Target market expansion: solo → large engineering orgs (2 → 2,000) — complementary to Jira/Linear | Accepted | 2026-09-03 |
 | [ADR-051](#adr-051) | Admin frontend same-origin Worker proxy + shared parent-domain session (single login app + admin) | Accepted | 2026-09-13 |
+| [ADR-052](#adr-052) | GitHub App integration: repo link, webhook auto-link, suggest-don't-execute automation | Accepted | 2026-09-23 |
 
 ---
 
@@ -689,4 +690,24 @@
   - **`SameSite` tetap `Lax`** (first-party di semua subdomain) — `SameSite=None` sengaja TIDAK dipakai (third-party cookie, diblokir Safari/Firefox ITP, permukaan CSRF).
 - **Consequences:** Positive — origin BE tersembunyi dari kedua bundle; tanpa preflight CORS (`CORS_ORIGIN` tetap kosong); satu login untuk app + admin; guard mencegah regresi absolut. Negative — cookie kini dikirim ke SEMUA subdomain parent (constraint: jangan host konten untrusted di subdomain yang sama); logika preserve-`Domain` di worker menjadi load-bearing (regresi = login lintas-frontend rusak — ditutup test server + checklist runbook §7); dev lokal tidak berubah.
 - **Alternatives:** Pertahankan absolut + allowlist `CORS_ORIGIN` (ditolak: sesi ganda permanen, eksposur origin, preflight); `SameSite=None; Secure` (ditolak: third-party, ITP-blocked, CSRF; pola lama sudah dipensiunkan runbook §6b); auth token terpisah untuk admin (ditolak: sistem auth kedua, permukaan audit baru).
+
+---
+
+### ADR-052
+**GitHub App integration: repo link, webhook auto-link, suggest-don't-execute automation**
+
+- **Status:** Accepted (2026-09-23) — M GitHub v0.32.0 (branch `feat/github-integration`)
+- **Context:** DEF-013 mendefer integrasi GitHub ke V3+. OAuth login GitHub (ADR-048, scope `read:user`) tidak memberi akses repo — butuh GitHub App terpisah (fine-grained permissions, short-lived token, centralized webhook; GitHub resmi merekomendasikan Apps atas OAuth Apps). Tanpa worker/queue, tanpa GHES, tim part-time. Positioning: complementary memory (PR -> ADR/schema/API), bukan sync-status head-to-head vs Linear.
+- **Decision:**
+  - **GitHub App (1 untuk semua workspace):** install per-org (`Only select repositories`), permission minimal `Contents:read, Issues:read/write, PR:read/write, Checks:read, Commit statuses:read, Deployments:read`; user lain cukup klik Install (tanpa daftar App). Token instalasi sealed AES-256-GCM (reuse `key-crypto`, pola `token-vault` gcal).
+  - **DB (`046_github.sql`):** `github_installations` (per installasi), `github_project_repos` (1 repo/project, automation jsonb default suggest/suggest), `github_webhook_events` (idempotency `delivery_id` PK), `github_outbox` (retry 1m/5m/30m, drain manual tanpa worker).
+  - **State (zod-only, tanpa migrasi):** `task.githubLinks[]` (max 20, dedupe repo+kind+ref) + `issue.fixPr` + `ciState`/`reviewState` pada link PR; mirror `app/src/lib/types.ts`.
+  - **Webhook (`POST /webhooks/github`, express.raw sebelum express.json):** verify HMAC sha256 + dedupe delivery; event `push`/`pull_request` (magic words UUID/DEV-/short8) + `pull_request_review`/`check_run|suite` (completed) -> link + ci/review meta; `installation*` -> status lifecycle. Gagal apply -> outbox + tetap 200 (retry via drain, bukan redelivery GitHub yang ter-dedupe).
+  - **Automation locked `suggest`:** default tanpa auto-move; mode `auto` (opt-in per project): opened -> todo→inProgress, merged -> done (+completedAt mirror `deriveTaskPatch`); merged + suggest -> banner UI "Tandai Done?" (F5). Linkback comment 1x per (PR, task baru).
+  - **Aktor webhook:** `connected_by` bila masih writer, fallback owner/admin/editor pertama (mutasi teratribusi, tanpa bot user).
+  - **Import:** one-time issues -> tasks, idempoten label `gh:owner/repo#N`, PR di-skip, cap 300 (flag truncated). MCP `create_task`/`update_task` terima `githubLinks`.
+  - **Connect/disconnect admin-only** (owner/admin tim; GitHub side butuh Org Owner/Repo Admin untuk install pertama). Disconnect hapus mapping saja; link task dipertahankan sebagai riwayat (badge "disconnected").
+- **Consequences:** Positive — e2e link <15 dtk tanpa double-entry; timeline ringkas 1 row/event; least-privilege + sealed token; tanpa worker baru. Negative — tanpa worker, retry outbox manual/oportunistik; token 1 jam refresh lazy (skew 5 mnt); monorepo multi-project memproses N project per delivery; `installation token` butuh env App (tanpa itu 503 `GITHUB_NOT_CONFIGURED`).
+- **Alternatives:** PAT per-request tanpa App (ditolak: scope lebar, token panjang, tanpa webhook); full 2-way issues mirror (ditolak: konflik + beban queue, selective sync lebih jujur); auto-Done diam-diam (ditolak: QA ke-skip, suggest-only); worker/queue dedicated (ditolak: over-engineering untuk volume saat ini, outbox+drain cukup).
+
 

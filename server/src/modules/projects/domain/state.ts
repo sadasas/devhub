@@ -32,6 +32,12 @@ export const LIMITS = {
   TIMELINE_ORDER: 5000,
   ATTACHMENT_NAME: 200,
   ATTACHMENTS_PER_ENTITY: 20,
+  GITHUB_LINKS_PER_TASK: 20,
+  GITHUB_LINK_TITLE: 300,
+  GITHUB_LINK_URL: 2_000,
+  GITHUB_LINK_REF: 200,
+  GITHUB_OWNER: 100,
+  GITHUB_REPO: 100,
 } as const;
 
 export const isoDate = z.string().max(100).refine((v) => !Number.isNaN(Date.parse(v)), {
@@ -73,6 +79,49 @@ export const attachmentSchema = z.object({
   linkedAt: isoDate,
 });
 
+/**
+ * Tautan GitHub pada task/issue — zod-only, tanpa migrasi DB (precedent
+ * attachments di atas). Satu link = 1 branch/PR/commit di 1 repo
+ * (`owner/repo`). Status dibaca dari GitHub API; `unknown` bila belum
+ * pernah refresh. Dedupe `repo+kind+ref` ditegakkan di application layer.
+ */
+export const githubLinkKind = z.enum(['branch', 'pr', 'commit']);
+export const githubLinkStatus = z.enum(['open', 'draft', 'merged', 'closed', 'unknown']);
+
+export const githubLinkSchema = z.object({
+  id: z.string().uuid(),
+  repo: z
+    .string()
+    .min(1)
+    .max(LIMITS.GITHUB_OWNER + 1 + LIMITS.GITHUB_REPO)
+    .regex(/^[^/\s]+\/[^/\s]+$/, { message: 'Must be owner/repo' }),
+  kind: githubLinkKind,
+  ref: z.string().min(1).max(LIMITS.GITHUB_LINK_REF),
+  url: z.string().max(LIMITS.GITHUB_LINK_URL).default(''),
+  title: z.string().max(LIMITS.GITHUB_LINK_TITLE).default(''),
+  status: githubLinkStatus,
+  lastSyncedAt: isoDate.nullable().optional(),
+  linkedBy: z.string().uuid().nullable().optional(),
+  linkedAt: isoDate.nullable().optional(),
+  // F4: status CI + review khusus link PR (diisi webhook check_run/review).
+  ciState: z.enum(['pass', 'fail', 'pending']).nullable().optional(),
+  reviewState: z.enum(['approved', 'changes_requested']).nullable().optional(),
+});
+
+/** Mapping 1 DevHub project <-> 1 repo GitHub (keputusan: per-project). */
+export const githubRepoSchema = z.object({
+  owner: z.string().min(1).max(LIMITS.GITHUB_OWNER),
+  repo: z.string().min(1).max(LIMITS.GITHUB_REPO),
+});
+
+export const githubAutomationMode = z.enum(['suggest', 'auto', 'off']);
+
+/** Aturan PR -> status task. Default suggest/suggest: tanpa auto-move diam-diam. */
+export const githubAutomationSchema = z.object({
+  onPrOpened: githubAutomationMode.default('suggest'),
+  onPrMerged: githubAutomationMode.default('suggest'),
+});
+
 export const checklistItemSchema = z.object({
   id: z.string().uuid(),
   title: z.string().min(1).max(200),
@@ -99,6 +148,8 @@ export const taskSchema = z.object({
   pinned: z.boolean().default(false),
   description: z.string().max(LIMITS.TASK_DESCRIPTION).default(''),
   attachments: z.array(attachmentSchema).max(LIMITS.ATTACHMENTS_PER_ENTITY).default([]),
+  // zod-only, tanpa migrasi DB (precedent attachments): link GitHub per task.
+  githubLinks: z.array(githubLinkSchema).max(LIMITS.GITHUB_LINKS_PER_TASK).default([]),
 });
 
 export const issueSeverity = z.enum(['critical', 'high', 'medium', 'low']);
@@ -114,6 +165,8 @@ export const issueSchema = z.object({
   linkedTaskId: z.string().uuid().nullable().optional(),
   pinned: z.boolean().default(false),
   attachments: z.array(attachmentSchema).max(LIMITS.ATTACHMENTS_PER_ENTITY).default([]),
+  // zod-only: 1 fix-PR per issue (laporan vs perbaikan terpisah — prinsip UX GH).
+  fixPr: githubLinkSchema.nullable().optional(),
 });
 
 export const testCaseStatus = z.enum(['pass', 'fail', 'pending']);
@@ -505,6 +558,11 @@ export const stateSchema = z.object({
 export type State = z.infer<typeof stateSchema>;
 export type Task = z.infer<typeof taskSchema>;
 export type Issue = z.infer<typeof issueSchema>;
+export type GitHubLink = z.infer<typeof githubLinkSchema>;
+export type GitHubLinkKind = z.infer<typeof githubLinkKind>;
+export type GitHubLinkStatus = z.infer<typeof githubLinkStatus>;
+export type GitHubRepo = z.infer<typeof githubRepoSchema>;
+export type GitHubAutomation = z.infer<typeof githubAutomationSchema>;
 export type TestCase = z.infer<typeof testCaseSchema>;
 export type TechEntry = z.infer<typeof techEntrySchema>;
 export type Table = z.infer<typeof tableSchema>;

@@ -64,6 +64,49 @@ export interface LabelDef extends Base {
   description: string;
 }
 
+export interface GitHubLink {
+  id: string;
+  repo: string;
+  kind: 'branch' | 'pr' | 'commit';
+  ref: string;
+  url: string;
+  title: string;
+  status: 'open' | 'draft' | 'merged' | 'closed' | 'unknown';
+  lastSyncedAt?: string | null;
+  linkedBy?: string | null;
+  linkedAt?: string | null;
+  ciState?: 'pass' | 'fail' | 'pending' | null;
+  reviewState?: 'approved' | 'changes_requested' | null;
+}
+
+export interface GitHubRepo {
+  owner: string;
+  repo: string;
+}
+
+export type GitHubAutomationMode = 'suggest' | 'auto' | 'off';
+
+export interface GitHubAutomation {
+  onPrOpened: GitHubAutomationMode;
+  onPrMerged: GitHubAutomationMode;
+}
+
+export interface GitHubStatus {
+  connected: boolean;
+  owner: string | null;
+  repo: string | null;
+  installationId: number | null;
+  accountLogin: string | null;
+  automation: GitHubAutomation | null;
+}
+
+export interface GitHubInstallationRepo {
+  owner: string;
+  repo: string;
+  fullName: string;
+  isPrivate: boolean;
+}
+
 export interface Task extends Base {
   title: string;
   status: TaskStatus;
@@ -82,6 +125,7 @@ export interface Task extends Base {
   pinned?: boolean;
   description: string;
   attachments?: Attachment[];
+  githubLinks?: GitHubLink[];
 }
 
 export interface Issue extends Base {
@@ -93,6 +137,7 @@ export interface Issue extends Base {
   linkedTaskId?: string | null;
   pinned?: boolean;
   attachments?: Attachment[];
+  fixPr?: GitHubLink | null;
 }
 
 export interface TestCase extends Base {

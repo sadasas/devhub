@@ -19,6 +19,7 @@ import { startAfterDue, subRangeOutsideParent } from '../../lib/start-dates';
 import type { Task, TaskPriority, TaskStatus, TeamMember } from '../../lib/types';
 import { LabelPickerBody } from './LabelPickerBody';
 import { GCalSyncedMark } from '../integrations/GCalSyncedMark';
+import { GitHubTaskSection } from '../integrations/GitHubTaskSection';
 import type { UpdatePatch } from '../../state/project-context';
 import { useProject, wouldCreateCycle } from '../../state/project-context';
 import { useOptionalAuth } from '../../state/auth-context';
@@ -1320,6 +1321,12 @@ export function TaskModal({ taskId, onClose, onNavigate }: TaskModalProps) {
               canEdit={canEdit}
               onChanged={(next) => update({ attachments: next })}
               onQuotaExceeded={() => setStorageLimitOpen(true)}
+            />
+            <GitHubTaskSection
+              task={task}
+              canEdit={canEdit}
+              onChanged={(next) => update({ githubLinks: next })}
+              onMarkDone={() => changeStatus('done')}
             />
             <h4 className="detail-subtitle">Activity</h4>
             <ActivityList projectId={projectId} entity="tasks" entityId={task.id} />
