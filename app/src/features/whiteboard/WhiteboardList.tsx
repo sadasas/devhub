@@ -158,7 +158,7 @@ export function WhiteboardList({ onOpen, loading = false, unreadIds }: Whiteboar
         </div>
       )}
 
-      {openNew && <NewWhiteboardModal onClose={() => setOpenNew(false)} />}
+      {openNew && <NewWhiteboardModal onClose={() => setOpenNew(false)} onCreated={onOpen} />}
 
       {editing && <EditWhiteboardModal board={editing} onClose={() => setEditId(null)} />}
 

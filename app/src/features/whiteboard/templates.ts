@@ -8,14 +8,20 @@ export interface WhiteboardTemplate {
   build: () => WhiteboardElement[];
 }
 
+// Palet template untuk kanvas putih (FigJam): ink gelap yang terbaca di
+// atas putih. `warn` dipertahankan untuk fill sticky/shape terang.
 const C = {
-  primary: "#e4e4e7",
-  accent: "#5db69b",
-  info: "#6ea8fe",
+  primary: "#374151",
+  accent: "#047857",
+  info: "#2563eb",
   warn: "#e8b955",
-  violet: "#a78bfa",
-  pink: "#f2b8c6",
+  violet: "#7c3aed",
+  pink: "#db2777",
 };
+
+// Fill gelap → label terang; fill terang (warn) → label gelap.
+const DARK_TEMPLATE_FILLS = new Set([C.primary, C.accent, C.info, C.violet, C.pink]);
+const templateLabelOn = (fill: string): string => (DARK_TEMPLATE_FILLS.has(fill) ? "#f8fafc" : "#0f172a");
 
 const id = () => newId();
 // @ts-ignore - kept for template extensibility
@@ -27,7 +33,7 @@ const sticky = (x: number, y: number, str: string, w = 200, h = 60, color = C.wa
   id: id(), kind: "sticky", x, y, w, h, color, text: str,
 });
 const shape = (x: number, y: number, label: string, w = 190, h = 56, color = C.info, shapeType: WhiteboardShapeType = "rect"): WhiteboardElement => ({
-  id: id(), kind: "shape", shapeType, x, y, w, h, color, fill: true, strokeWidth: 2, label, labelColor: "#0f172a",
+  id: id(), kind: "shape", shapeType, x, y, w, h, color, fill: true, strokeWidth: 2, label, labelColor: templateLabelOn(color),
 });
 const boundary = (x: number, y: number, label: string, w: number, h: number, color = C.info): WhiteboardElement => ({
   id: id(), kind: "boundary", x, y, w, h, color, label,

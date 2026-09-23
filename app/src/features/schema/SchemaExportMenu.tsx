@@ -107,7 +107,7 @@ export function SchemaExportMenu({ tables, relations, groups = [], projectName, 
   if (iconOnly) {
     return (
       <div className="sort-control" ref={wrapRef}>
-        <Tooltip content={menuAria} side="bottom">
+        <Tooltip content={menuAria} side="bottom" disabled={open}>
         <button
           ref={triggerRef}
           type="button"

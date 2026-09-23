@@ -6,7 +6,6 @@ import {
   AlignTop,
   CaretDown,
   CaretUp,
-  Check,
   ListBullets,
   TextAlignCenter,
   TextAlignLeft,
@@ -69,7 +68,7 @@ export function DropdownShell({ open, onToggle, onClose, label, button, children
   return (
     <>
     <span className="wb-dd" ref={refs.setReference} data-wb-popup-root>
-      <Tooltip content={label} side="top">
+      <Tooltip content={label} side="top" disabled={open}>
         <button
           type="button"
           className={`wb-stripbtn wb-dd-btn${open ? ' wb-stripbtn-active' : ''}`}
@@ -117,7 +116,7 @@ interface ColorDropdownProps {
 
 /** Fill/text color dot + caret opening the shared color panel in a portal. */
 export function ColorDropdown({ value, title, open, onToggle, onClose, onPick, label, glyph = 'dot' }: ColorDropdownProps & { glyph?: 'dot' | 'letter' }) {
-  const cur = typeof value === 'string' && value ? value : '#e4e4e7';
+  const cur = typeof value === 'string' && value ? value : '#374151';
   const name = `${label} ${cur}`;
   return (
     <DropdownShell
@@ -185,9 +184,6 @@ export function FontDropdown({ value, open, onToggle, onClose, onPick }: FontDro
             onClose();
           }}
         >
-          <span className="wb-fontopt-check" aria-hidden="true">
-            {cur === f ? <Check size={14} /> : null}
-          </span>
           <span className="wb-fontopt-sample" style={{ fontFamily: fontStackOf(f) }} aria-hidden="true">
             Ag
           </span>
@@ -261,9 +257,6 @@ export function SizeDropdown({ value, open, onToggle, onClose, onPick }: SizeDro
             onClose();
           }}
         >
-          <span className="wb-sizeopt-check" aria-hidden="true">
-            {cur === p.value ? <Check size={14} /> : null}
-          </span>
           <span className="wb-sizeopt-name" style={{ fontSize: Math.min(p.value, 30) }}>{t(`whiteboard.textbar.${SIZE_KEY[i]}`)}</span>
           <span className="wb-stripnum tabular" aria-hidden="true">
             {p.value}
