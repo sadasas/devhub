@@ -1,8 +1,8 @@
 # Terms of Service — DevHub
 
 **Effective date:** 2026-08-13
-**Last updated:** 2026-09-13
-**Version:** 2026-09-13-v3
+**Last updated:** 2026-09-23
+**Version:** 2026-09-23-v4
 
 ---
 
@@ -80,6 +80,8 @@ The Service may integrate with third-party services only when **you** configure 
 
 - **AI coding agents** (via MCP) with **your** authorization, revocable via Profile → Authorized Apps. You are responsible for what you share through them.
 - **Pakasir** for payments (§5) and **Google/GitHub** for optional social login. Their terms and privacy policies apply to their pages/services.
+- **Google Calendar sync** (optional, per project): syncs task titles, dates, descriptions and status to a DevHub-created calendar in your Google account under the least-privilege `calendar.app.created` scope. Disconnect anytime in Project settings; Google's terms and privacy policy apply to their side.
+- **GitHub App** (optional, per project): reads PR/commit/check/review metadata on the linked repo and posts linkback comments when a PR first links tasks; task links are kept as history after disconnect. GitHub's terms and privacy statement apply to their side.
 - **Resend** for transactional account emails (registration verification, password reset, team invitations) — operated by us, not configured by you; see Privacy Policy §2.4. Email delivery depends on your mail provider; check spam if a link does not arrive.
 
 ---

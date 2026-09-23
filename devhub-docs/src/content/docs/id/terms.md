@@ -1,9 +1,9 @@
 ---
 title: Syarat Layanan
-description: Aturan penggunaan DevHub — akun, penggunaan wajar, paket, billing, refund. Dokumen kanonis versi 2026-09-13-v3, berlaku 2026-08-13.
+description: Aturan penggunaan DevHub — akun, penggunaan wajar, paket, billing, refund. Dokumen kanonis versi 2026-09-23-v4, berlaku 2026-08-13.
 ---
 
-> **Dokumen legal kanonis — versi `2026-09-13-v3`, terakhir diperbarui 2026-09-13, berlaku 2026-08-13.**
+> **Dokumen legal kanonis — versi `2026-09-23-v4`, terakhir diperbarui 2026-09-23, berlaku 2026-08-13.**
 > Halaman ini adalah satu-satunya sumber kebenaran. Terjemahan bahasa Indonesia dari [Terms of Service](/terms/) — jika ada perbedaan, versi Inggris yang berlaku.
 > Rute aplikasi `/terms` mengarah ke sini.
 
@@ -66,6 +66,8 @@ Layanan dapat terintegrasi dengan layanan pihak ketiga hanya bila **Anda** mengo
 
 - **Agen coding AI** (via MCP) dengan otorisasi **milik Anda**, dapat dicabut via Profile → Authorized Apps. Anda bertanggung jawab atas apa yang Anda bagikan melaluinya.
 - **Pakasir** untuk pembayaran (§5) dan **Google/GitHub** untuk login sosial opsional. Syarat dan kebijakan privasi mereka berlaku untuk halaman/layanan mereka.
+- **Sinkron Google Calendar** (opsional, per proyek): menyinkronkan judul, tanggal, deskripsi, dan status task ke kalender buatan DevHub di akun Google Anda dalam scope least-privilege `calendar.app.created`. Putuskan kapan saja di Project settings; syarat dan kebijakan privasi Google berlaku untuk sisi mereka.
+- **GitHub App** (opsional, per proyek): membaca metadata PR/commit/check/review di repo tertaut dan memposting komentar linkback saat PR pertama kali menautkan task; tautan task dipertahankan sebagai riwayat setelah disconnect. Syarat dan pernyataan privasi GitHub berlaku untuk sisi mereka.
 
 ## 9. Penafian Garansi
 

@@ -105,7 +105,17 @@
     "dangerDeleteCopy": "Permanently delete this project and all its data. This cannot be undone.",
     "dangerDelete": "Delete",
     "dangerTypeLabel": "Project name",
-    "dangerTypeMismatch": "Name does not match."
+    "dangerTypeMismatch": "Name does not match.",
+    "githubNotConnected": "Not connected",
+    "githubConnectShort": "Connect",
+    "githubFeatures1": "Links PRs, commits and branches to tasks automatically via DEV keys, with a linkback comment on first-linked PRs.",
+    "githubFeatures2": "Syncs review and CI status to linked tasks, with status automation (Auto / Suggest / Off) and retry for failed syncs.",
+    "githubAccess": "DevHub reads PR, commit, check and review metadata on the connected repo via webhooks and the GitHub API. Access uses a short-lived GitHub App token — your GitHub password is never stored.",
+    "githubLegalPrefix": "Details:",
+    "githubPrivacyLink": "Privacy Policy",
+    "githubTermsLink": "Terms",
+    "githubRevokeLink": "GitHub App settings",
+    "githubSideLink": "GitHub's policies"
   },
   "deleteModal": {
     "title": "Delete project",

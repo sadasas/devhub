@@ -286,7 +286,7 @@ function IntegrationsSection({ projectId, canConnect, isAdmin }: { projectId: st
   return (
     <div className="profile-panel">
       <div className="narrow-center">
-      <section className="dashboard__settings-section" aria-labelledby="project-settings-integrations-title">
+      <section className="dashboard__settings-section dashboard__settings-section--integrations" aria-labelledby="project-settings-integrations-title">
       <h2 id="project-settings-integrations-title" tabIndex={-1} className="dashboard__settings-section-title">
         {t('settings.integrationsTitle', { defaultValue: 'Integrations' })}
       </h2>

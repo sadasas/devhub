@@ -1040,7 +1040,7 @@
   },
   "gcal": {
     "title": "Google Calendar",
-    "helper": "Sync tasks with due dates to Google Calendar. Reconnect when the connection expires.",
+    "helper": "Sync tasks with due dates to Google Calendar.",
     "syncTitle": "Calendar sync",
     "syncDesc": "Create and update calendar events from tasks with due dates.",
     "syncOn": "Sync on",
@@ -1071,6 +1071,14 @@
     "errorNoRefresh": "Google did not return a refresh token. Revoke access and retry.",
     "errorProvider": "Google returned an error. Please try again.",
     "errorSession": "Session expired. Log in and retry.",
-    "errorUnknown": "Google Calendar connection failed ({{code}})."
+    "errorUnknown": "Google Calendar connection failed ({{code}}).",
+    "why": "Tasks with start or due dates become all-day events in a “DevHub - <project>” calendar; edits and deletions sync automatically.",
+    "features2": "Sync can be turned off per project without disconnecting; reconnect when the token expires.",
+    "access": "DevHub can only create and manage calendars and events it created — it cannot read your other calendars. Connection tokens are stored encrypted.",
+    "legalPrefix": "Details:",
+    "privacyLink": "Privacy Policy",
+    "termsLink": "Terms",
+    "revokeLink": "Google account permissions",
+    "googleLink": "Google's API policies"
   }
 }

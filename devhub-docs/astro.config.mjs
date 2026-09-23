@@ -28,6 +28,7 @@ export default defineConfig({
 					translations: { id: 'Panduan' },
 					items: [
 						{ label: 'MCP Integration', translations: { id: 'Integrasi MCP' }, slug: 'mcp' },
+						{ label: 'Project Integrations', translations: { id: 'Integrasi Proyek' }, slug: 'integrations' },
 						{ label: 'Billing & Pricing', translations: { id: 'Billing & Harga' }, slug: 'billing' },
 						{ label: 'Roadmap', translations: { id: 'Peta jalan' }, slug: 'roadmap' },
 						{ label: 'Status', translations: { id: 'Status' }, slug: 'status' },

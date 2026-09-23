@@ -253,6 +253,9 @@ Rules:
   (flex column, `gap: 12px`, padding 20px 0); elemen di dalamnya DILARANG
   punya margin/padding vertikal sendiri (tidak collapse di flex —
   insiden 28-vs-16px, 2026-09). Ritme antar-blok selalu 12px.
+  Pengecualian: grup disclosure integrasi (`.integration-disclosure`,
+  buat-apa + akses + legal) adalah SATU blok dengan garis internal rapat
+  `gap: 4px` — cermin pola `danger-name` → copy (`margin-bottom: 4px).
 - **Urutan kanonis blok baca General:** 1 nama (+ikon) → 2 ID + Copy →
   3 meta sekunder (proyek: Team·Status; tim: Team URL) → 4 Description
   di akhir. Blok tanpa data dilewati, tidak disusun ulang.

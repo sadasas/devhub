@@ -1042,7 +1042,7 @@
   },
   "gcal": {
     "title": "Google Calendar",
-    "helper": "Sinkronkan task bertenggat ke Google Calendar. Sambungkan ulang saat koneksi kedaluwarsa.",
+    "helper": "Sinkronkan task bertenggat ke Google Calendar.",
     "syncTitle": "Sinkronisasi kalender",
     "syncDesc": "Buat dan perbarui event kalender dari task bertenggat.",
     "syncOn": "Sinkronisasi aktif",
@@ -1073,6 +1073,14 @@
     "errorNoRefresh": "Google tidak mengembalikan refresh token. Cabut akses lalu coba lagi.",
     "errorProvider": "Google mengembalikan error. Silakan coba lagi.",
     "errorSession": "Sesi kedaluwarsa. Masuk lalu coba lagi.",
-    "errorUnknown": "Koneksi Google Calendar gagal ({{code}})."
+    "errorUnknown": "Koneksi Google Calendar gagal ({{code}}).",
+    "why": "Task bertanggal awal/tenggat menjadi event sehari penuh di kalender “DevHub - <project>”; suntingan dan penghapusan tersinkron otomatis.",
+    "features2": "Sinkronisasi dapat dimatikan per proyek tanpa memutuskan koneksi; sambungkan ulang saat token kedaluwarsa.",
+    "access": "DevHub hanya dapat membuat dan mengelola kalender serta event buatannya — tidak dapat membaca kalendermu yang lain. Token koneksi disimpan terenkripsi.",
+    "legalPrefix": "Detail:",
+    "privacyLink": "Kebijakan Privasi",
+    "termsLink": "Syarat",
+    "revokeLink": "izin akun Google",
+    "googleLink": "kebijakan API Google"
   }
 }

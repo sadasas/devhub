@@ -22966,7 +22966,7 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
 .gcal-stack {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .gcal-identity {
@@ -22980,8 +22980,18 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
 .gcal-identity-text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
   min-width: 0;
+}
+
+/* Skala teks identitas = skala baris danger-zone (13/600 + 4, copy 12). */
+.gcal-identity-text .settings-action-title {
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.gcal-identity-text .settings-action-desc {
+  font-size: 12px;
 }
 
 .gcal-switch {
@@ -23000,6 +23010,93 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
 
 @media (max-width: 640px) {
   .gcal-identity {
+    gap: 8px;
+  }
+}
+
+/* Integrations scope (Project settings) — ritme disamakan ke danger-zone.
+   Seksi settings WAJIB gap 12 tanpa margin/padding vertikal sendiri (§7):
+   nol-kan margin .section-title + padding-top/gap .settings-action,
+   reset margin UA <p class="field-helper"> ke 0. Nilai hanya tangga space-*. */
+.dashboard__settings-section--integrations .section-title {
+  margin: 0;
+}
+
+.dashboard__settings-section--integrations .section-title:not(:first-child) {
+  margin-top: 0;
+}
+
+.dashboard__settings-section--integrations .settings-action {
+  gap: 12px;
+  padding-top: 0;
+}
+
+.dashboard__settings-section--integrations .field-helper {
+  margin: 0;
+}
+
+/* Grup disclosure integrasi (buat-apa + akses + legal): SATU blok dalam
+   ritme luar 12px, garis di dalamnya rapat 4px — cermin pola
+   danger-name -> copy (margin-bottom 4px). Gap 4px = tangga space-*. */
+.integration-disclosure {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* GitHub integration — mirror pola GCal (Tier-2 komposisi saja).
+   Stack/identitas 1:1 dengan .gcal-*: gap 12/10/8, teks 13/600 + 4 + copy 12
+   = skala baris danger-zone. Tanpa font-size/hex/radius mentah baru. */
+.github-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.github-identity {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.github-identity-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+
+.github-identity-text .settings-action-title {
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.github-identity-text .settings-action-desc {
+  font-size: 12px;
+}
+
+.integration-inline-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.integration-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.integration-action-end {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .github-identity {
     gap: 8px;
   }
 }

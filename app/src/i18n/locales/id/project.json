@@ -105,7 +105,17 @@
     "dangerDeleteCopy": "Hapus permanen project ini beserta seluruh datanya. Tidak dapat dibatalkan.",
     "dangerDelete": "Hapus",
     "dangerTypeLabel": "Nama project",
-    "dangerTypeMismatch": "Nama tidak cocok."
+    "dangerTypeMismatch": "Nama tidak cocok.",
+    "githubNotConnected": "Belum terhubung",
+    "githubConnectShort": "Hubungkan",
+    "githubFeatures1": "Menautkan PR, commit, dan branch ke task otomatis via DEV key, plus komentar linkback di PR yang pertama menautkan.",
+    "githubFeatures2": "Menyinkronkan status review dan CI ke task tertaut, dengan automasi status (Auto / Suggest / Off) dan retry untuk sync yang gagal.",
+    "githubAccess": "DevHub membaca metadata PR, commit, check, dan review di repo terhubung via webhook dan GitHub API. Akses memakai token GitHub App berumur pendek — kata sandi GitHub-mu tidak pernah disimpan.",
+    "githubLegalPrefix": "Detail:",
+    "githubPrivacyLink": "Kebijakan Privasi",
+    "githubTermsLink": "Syarat",
+    "githubRevokeLink": "Pengaturan GitHub App",
+    "githubSideLink": "kebijakan GitHub"
   },
   "deleteModal": {
     "title": "Hapus project",

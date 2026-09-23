@@ -2,6 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CalendarBlank, GoogleLogo } from '@phosphor-icons/react';
 import { api, type GCalStatus } from '../../lib/api';
+import {
+  DOCS_PRIVACY_URL,
+  DOCS_TERMS_URL,
+  GOOGLE_ACCOUNT_PERMISSIONS_URL,
+  GOOGLE_API_USER_DATA_POLICY_URL,
+} from '../../lib/docs-urls';
 import { getErrorMessage } from '../../lib/errors';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
@@ -153,6 +159,45 @@ export function GCalSettings({ projectId, canEdit, bare = false }: GCalSettingsP
             defaultValue: 'Sync tasks with due dates to Google Calendar. Reconnect when the connection expires.',
           })}
         </p>
+        <div className="integration-disclosure">
+          <p className="field-helper">
+            {t('gcal.why', {
+              defaultValue:
+                'Tasks with start or due dates become all-day events in a “DevHub - <project>” calendar; edits and deletions sync automatically.',
+            })}
+          </p>
+          <p className="field-helper">
+            {t('gcal.features2', {
+              defaultValue:
+                'Sync can be turned off per project without disconnecting; reconnect when the token expires.',
+            })}
+          </p>
+          <p className="field-helper">
+            {t('gcal.access', {
+              defaultValue:
+                'DevHub can only create and manage calendars and events it created — it cannot read your other calendars. Connection tokens are stored encrypted.',
+            })}
+          </p>
+          <p className="field-helper">
+            {t('gcal.legalPrefix', { defaultValue: 'Details:' })}{' '}
+            <a href={DOCS_PRIVACY_URL} target="_blank" rel="noopener">
+              {t('gcal.privacyLink', { defaultValue: 'Privacy Policy' })}
+            </a>
+            {' · '}
+            <a href={DOCS_TERMS_URL} target="_blank" rel="noopener">
+              {t('gcal.termsLink', { defaultValue: 'Terms' })}
+            </a>
+            {' · '}
+            <a href={GOOGLE_ACCOUNT_PERMISSIONS_URL} target="_blank" rel="noopener">
+              {t('gcal.revokeLink', { defaultValue: 'Google account permissions' })}
+            </a>
+            {' · '}
+            <a href={GOOGLE_API_USER_DATA_POLICY_URL} target="_blank" rel="noopener">
+              {t('gcal.googleLink', { defaultValue: "Google's API policies" })}
+            </a>
+            .
+          </p>
+        </div>
         {loading ? (
           <p className="field-helper" role="status">
             {t('gcal.loading', { defaultValue: 'Loading calendar status…' })}
@@ -177,19 +222,16 @@ export function GCalSettings({ projectId, canEdit, bare = false }: GCalSettingsP
                             t('gcal.connected', { defaultValue: 'Connected' }))
                           : t('gcal.disconnected', { defaultValue: 'Not connected' })}
                       </span>
-                      <span className="settings-action-desc">
-                        {connected
-                          ? status?.lastSyncAt
+                      {connected && (
+                        <span className="settings-action-desc">
+                          {status?.lastSyncAt
                             ? t('gcal.lastSync', {
                                 defaultValue: 'Last synced {{date}}',
                                 date: status.lastSyncAt,
                               })
-                            : t('gcal.neverSynced', { defaultValue: 'Never synced' })
-                          : t('gcal.syncDesc', {
-                              defaultValue:
-                                'Create and update calendar events from tasks with due dates.',
-                            })}
-                      </span>
+                            : t('gcal.neverSynced', { defaultValue: 'Never synced' })}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -205,7 +247,11 @@ export function GCalSettings({ projectId, canEdit, bare = false }: GCalSettingsP
                     {t('gcal.disconnect', { defaultValue: 'Disconnect' })}
                   </Button>
                 ) : (
-                  <a className="btn btn-primary btn-md" href={api.gcalConnectUrl(projectId, window.location.href)}>
+                  <a
+                    className="btn btn-secondary btn-sm"
+                    href={api.gcalConnectUrl(projectId, window.location.href)}
+                  >
+                    <GoogleLogo size={14} weight="bold" aria-hidden="true" />
                     {t('gcal.connect', { defaultValue: 'Connect' })}
                   </a>
                 )}

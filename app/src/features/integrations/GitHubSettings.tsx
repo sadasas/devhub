@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { GithubLogo, PlugsConnected } from '@phosphor-icons/react';
+import { GithubLogo } from '@phosphor-icons/react';
 import { api } from '../../lib/api';
+import {
+  DOCS_PRIVACY_URL,
+  DOCS_TERMS_URL,
+  GITHUB_INSTALLATIONS_URL,
+  GITHUB_PRIVACY_URL,
+} from '../../lib/docs-urls';
 import type { GitHubAutomation, GitHubInstallationRepo, GitHubStatus } from '../../lib/types';
 import { Button } from '../../components/Button';
 import { SearchableSelect } from '../../components/SearchableSelect';
@@ -11,6 +17,58 @@ interface GitHubSettingsProps {
   projectId: string;
   canConnect: boolean;
   isAdmin: boolean;
+}
+
+/**
+ * Disclosure fokus fitur: fitur yang dipakai + akses + legal secukupnya.
+ * SATU blok grup (gap internal 4px) dalam ritme luar 12px — cermin pola
+ * danger-name -> copy. Klaim hanya dari kode: webhook push/PR/review/checks
+ * + komentar linkback (webhook-service.ts), token instalasi ~1 jam (github-app.ts),
+ * mode automation (link-service.ts), DEV keys (domain/github.ts).
+ */
+function GitHubDisclosure() {
+  const { t } = useTranslation('project');
+  return (
+    <div className="integration-disclosure">
+      <p className="field-helper">
+        {t('settings.githubFeatures1', {
+          defaultValue:
+            'Links PRs, commits and branches to tasks automatically via DEV keys, with a linkback comment on first-linked PRs.',
+        })}
+      </p>
+      <p className="field-helper">
+        {t('settings.githubFeatures2', {
+          defaultValue:
+            'Syncs review and CI status to linked tasks, with status automation (Auto / Suggest / Off) and retry for failed syncs.',
+        })}
+      </p>
+      <p className="field-helper">
+        {t('settings.githubAccess', {
+          defaultValue:
+            'DevHub reads PR, commit, check and review metadata on the connected repo via webhooks and the GitHub API. Access uses a short-lived GitHub App token — your GitHub password is never stored.',
+        })}
+      </p>
+      <p className="field-helper">
+        {t('settings.githubLegalPrefix', { defaultValue: 'Details:' })}{' '}
+        <a href={DOCS_PRIVACY_URL} target="_blank" rel="noopener">
+          {t('settings.githubPrivacyLink', { defaultValue: 'Privacy Policy' })}
+        </a>
+        {' · '}
+        <a href={DOCS_TERMS_URL} target="_blank" rel="noopener">
+          {t('settings.githubTermsLink', { defaultValue: 'Terms' })}
+        </a>
+        {' · '}
+        <a href={GITHUB_INSTALLATIONS_URL} target="_blank" rel="noopener">
+          {t('settings.githubRevokeLink', { defaultValue: 'GitHub App settings' })}
+        </a>
+        {' · '}
+        <a href={GITHUB_PRIVACY_URL} target="_blank" rel="noopener">
+          {t('settings.githubSideLink', { defaultValue: "GitHub's policies" })}
+        </a>
+        .
+      </p>
+    </div>
+  );
 }
 
 /**
@@ -156,7 +214,7 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
   }
 
   return (
-    <div>
+    <div className="github-stack">
       <h3 className="section-title">
         <GithubLogo size={14} weight="fill" aria-hidden="true" />
         GitHub
@@ -180,18 +238,19 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
             </p>
           )}
           {status?.connected ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <p className="field-helper" style={{ margin: 0 }}>
+            <div className="github-stack">
+              <p className="field-helper">
                 {t('settings.githubLinkedTo', {
                   defaultValue: 'Linked to {{repo}}{{account}}.',
                   repo: `${status.owner}/${status.repo}`,
                   account: status.accountLogin ? ` (${status.accountLogin})` : '',
                 })}
               </p>
+              <GitHubDisclosure />
               {isAdmin && (
                 <>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <span className="field-helper" style={{ margin: 0 }}>
+                  <div className="integration-inline-row">
+                    <span className="field-helper">
                       {t('settings.githubOnPrOpened', { defaultValue: 'On PR opened' })}
                     </span>
                     <SearchableSelect
@@ -210,7 +269,7 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
                         if (v && status.automation) void saveAutomation({ ...status.automation, onPrOpened: v as GitHubAutomation['onPrOpened'] });
                       }}
                     />
-                    <span className="field-helper" style={{ margin: 0 }}>
+                    <span className="field-helper">
                       {t('settings.githubOnPrMerged', { defaultValue: 'On PR merged' })}
                     </span>
                     <SearchableSelect
@@ -230,7 +289,7 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
                       }}
                     />
                   </div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <div className="integration-actions">
                     <Button type="button" variant="ghost" size="sm" onClick={() => void drain()} disabled={busy}>
                       {t('settings.githubDrain', { defaultValue: 'Retry failed sync' })}
                     </Button>
@@ -247,12 +306,13 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
               )}
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <p className="field-helper" style={{ margin: 0 }}>
+            <div className="github-stack">
+              <p className="field-helper">
                 {t('settings.githubDesc', {
                   defaultValue: 'Link pull requests and commits to tasks automatically via DEV keys. One repository per project.',
                 })}
               </p>
+              <GitHubDisclosure />
               {pendingInstall ? (
                 <>
                   <SearchableSelect
@@ -270,23 +330,33 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
                       if (v) setPicked(v);
                     }}
                   />
-                  <div>
+                  <div className="integration-action-end">
                     <Button type="button" variant="primary" size="sm" onClick={() => void connectPicked()} disabled={busy || !picked || !isAdmin}>
                       {t('settings.githubConnectRepo', { defaultValue: 'Connect repository' })}
                     </Button>
                   </div>
                 </>
               ) : (
-                <div>
+                <div className="settings-action">
+                  <div className="settings-action-main">
+                    <div className="github-identity">
+                      <GithubLogo size={18} weight="fill" aria-hidden="true" />
+                      <div className="github-identity-text">
+                        <span className="settings-action-title">
+                          {t('settings.githubNotConnected', { defaultValue: 'Not connected' })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                   <Button
                     type="button"
                     variant="secondary"
                     size="sm"
-                    leftIcon={<PlugsConnected size={14} aria-hidden="true" />}
+                    leftIcon={<GithubLogo size={14} weight="fill" aria-hidden="true" />}
                     onClick={() => void startConnect()}
                     disabled={busy || !canConnect || !isAdmin}
                   >
-                    {t('settings.githubConnect', { defaultValue: 'Connect GitHub' })}
+                    {t('settings.githubConnectShort', { defaultValue: 'Connect' })}
                   </Button>
                 </div>
               )}
