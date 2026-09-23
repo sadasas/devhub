@@ -119,7 +119,7 @@ export function WhiteboardColorPanel({
             <input
               type="color"
               className="wb-rainbow-input"
-              value={/^#[0-9a-f]{6}$/i.test(value ?? '') ? (value as string) : '#6ea8fe'}
+              value={/^#[0-9a-f]{6}$/i.test(value ?? '') ? (value as string) : '#2563eb'}
               onChange={(e) => onPick(e.target.value)}
               aria-label={t('whiteboard.colorPanel.custom')}
             />
@@ -132,7 +132,7 @@ export function WhiteboardColorPanel({
         value={hex}
         spellCheck={false}
         autoComplete="off"
-        placeholder="#6ea8fe"
+          placeholder="#2563eb"
         aria-label={t('whiteboard.colorPanel.hex')}
         onChange={(e) => setHex(e.target.value)}
         onBlur={commitHex}

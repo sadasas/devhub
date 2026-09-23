@@ -42,6 +42,8 @@ describe('serializeWhiteboard', () => {
     const stickyIdx = svg.indexOf('>hi</text>');
     expect(boundaryIdx).toBeGreaterThan(-1);
     expect(stickyIdx).toBeGreaterThan(boundaryIdx);
+    // Chip label di dalam border pojok kiri (x+6, y+18) — sinkron dengan canvas.
+    expect(svg).toContain('translate(-14, -2)');
   });
 
   it('serializes an edge with an orthogonal path when ports are present', () => {
@@ -119,21 +121,21 @@ describe('serializeWhiteboard', () => {
     expect(svg.endsWith('</svg>')).toBe(true);
   });
 
-  it('WB-4: bakes the theme canvas background by default', () => {
+  it('WB-4: bakes the white canvas background by default (FigJam lock)', () => {
     const svg = serializeWhiteboard([sticky(0, 0)]);
-    expect(svg).toContain('fill="#0f0f11"');
+    expect(svg).toContain('fill="#ffffff"');
     expect(svg).toContain('wb-export-dots');
   });
 
   it('WB-4: omits the background when transparency is asked', () => {
     const svg = serializeWhiteboard([sticky(0, 0)], undefined, { background: 'transparent' });
     expect(svg).not.toContain('wb-export-dots');
-    expect(svg).not.toContain('#0f0f11');
+    expect(svg).not.toContain('#ffffff');
   });
 
-  it('WB-4: bakes the light background for the light theme', () => {
-    const svg = serializeWhiteboard([sticky(0, 0)], undefined, { theme: 'light' });
-    expect(svg).toContain('fill="#f4f3f0"');
+  it('WB-4: honors an explicit dark theme override', () => {
+    const svg = serializeWhiteboard([sticky(0, 0)], undefined, { theme: 'dark' });
+    expect(svg).toContain('fill="#0f0f11"');
   });
 
   it('WB-1: recomputes node-attached edge endpoints instead of stale raw coords', () => {

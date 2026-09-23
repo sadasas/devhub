@@ -4,16 +4,16 @@ import type { WhiteboardBoundary, WhiteboardRef, WhiteboardRefEntity, Whiteboard
 /** Tools that draw on the canvas. `select` pans/zooms (and later selects); `view` pans/zooms only. */
 export type WbTool = 'view' | 'select' | 'marquee' | 'pen' | 'eraser' | 'text' | 'sticky' | 'shape' | 'edge' | 'ref' | 'boundary';
 
-export const PEN_COLOR = '#e4e4e7';
+export const PEN_COLOR = '#374151';
 export const ERASER_COLOR = '#8a8a93';
 export const PEN_WIDTH = 2;
 export const ERASER_WIDTH = 6;
 export const THINNING = 2;
 
 export const STICKY_COLOR = '#e8b955';
-export const TEXT_COLOR = '#e4e4e7';
-export const SHAPE_COLOR = '#6ea8fe';
-export const BOUNDARY_COLOR = '#6ea8fe';
+export const TEXT_COLOR = '#374151';
+export const SHAPE_COLOR = '#2563eb';
+export const BOUNDARY_COLOR = '#2563eb';
 
 export const STICKY_W = 200;
 export const STICKY_H = 120;

@@ -56,6 +56,33 @@ describe('WhiteboardList', () => {
     expect(document.querySelectorAll('.unread-pill').length).toBe(0);
   });
 
+  it('create board dispatches and opens the new board detail via onOpen', () => {
+    const onOpen = vi.fn();
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: { whiteboards: [board()] },
+      loading: false,
+      error: null,
+      canEdit: true,
+      dispatch,
+      setStatus: vi.fn(),
+    });
+    renderPage(undefined, onOpen);
+    fireEvent.click(screen.getByRole('button', { name: 'New board' }));
+    expect(screen.getByRole('dialog', { name: 'New whiteboard' })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'Sprint plan' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create board' }));
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const added = dispatch.mock.calls[0]![0] as { type: string; whiteboard: { id: string; name: string } };
+    expect(added.type).toBe('whiteboard/add');
+    expect(added.whiteboard.name).toBe('Sprint plan');
+    expect(added.whiteboard.id).toMatch(/.+/);
+    // Langsung arahkan ke detail board yang baru dibuat.
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onOpen).toHaveBeenCalledWith(added.whiteboard.id);
+    expect(screen.queryByRole('dialog', { name: 'New whiteboard' })).toBeNull();
+  });
+
   it('desktop: Edit opens the edit modal, Trash uses hover-reveal wb-trash', () => {
     renderPage();
     expect(document.querySelectorAll('.wb-card .wb-trash').length).toBe(2);

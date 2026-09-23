@@ -10,9 +10,9 @@ const ELEMENTS_DESCRIPTION =
   '`id` is optional — the server assigns one when omitted. ' +
   'Examples: ' +
   '{ kind: "sticky", x: 0, y: 0, w: 200, h: 120, color: "#e8b955", text: "note" }, ' +
-  '{ kind: "text", x: 0, y: 0, color: "#e4e4e7", fontSize: 16, text: "title" }, ' +
-  '{ kind: "shape", shapeType: "rect", x: 0, y: 0, w: 120, h: 80, color: "#6ea8fe", fill: false, strokeWidth: 2, label: "" }, ' +
-  '{ kind: "boundary", x: 0, y: 0, w: 300, h: 200, color: "#6ea8fe", label: "" }, ' +
+  '{ kind: "text", x: 0, y: 0, color: "#374151", fontSize: 16, text: "title" }, ' +
+  '{ kind: "shape", shapeType: "rect", x: 0, y: 0, w: 120, h: 80, color: "#2563eb", fill: false, strokeWidth: 2, label: "" }, ' +
+  '{ kind: "boundary", x: 0, y: 0, w: 300, h: 200, color: "#2563eb", label: "" }, ' +
   '{ kind: "edge", x1: 0, y1: 0, x2: 200, y2: 0, color: "#8b5cf6", width: 2, arrowhead: true, arrowStyle: "solid", dash: "solid", label: "", sourceNodeId: null, targetNodeId: null }, ' +
   '{ kind: "ref", entity: "tasks", entityId: "<task-uuid>", x: 0, y: 0 }';
 

@@ -14005,6 +14005,12 @@ body:has(.wb-shell.wb-fullscreen) > .modal-backdrop,
 body:has(.wb-shell.wb-presenting) > .modal-backdrop {
   z-index: 70;
 }
+/* BottomSheet (portals to body, z-overlay 50) would sink under the wb
+   overlay (z 60) in fullscreen/presenting — boost it like Modal. */
+body:has(.wb-shell.wb-fullscreen) > .sheet-backdrop,
+body:has(.wb-shell.wb-presenting) > .sheet-backdrop {
+  z-index: 70;
+}
 .wb-shell.wb-fullscreen .wb-main,
 .wb-shell.wb-presenting .wb-main { flex: 1 1 auto; min-height: 0; }
 .wb-shell.wb-fullscreen .wb-canvas,
@@ -14201,7 +14207,8 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 .wb-template-option:focus-within { box-shadow: 0 0 0 2px var(--accent-ring); }
 .wb-template-name { font-size: 12.5px; font-weight: 600; color: var(--text-primary); }
 .wb-template-desc { font-size: 11px; color: var(--text-muted); }
-.wb-canvas { position: relative; height: calc(100dvh - 340px); min-height: 480px; border: 1px solid var(--border-hairline); border-radius: var(--radius-card); background-color: var(--bg-base); background-image: radial-gradient(circle, var(--border-strong) 1.1px, transparent 1.1px); background-size: 20px 20px; overflow: hidden; user-select: none; overscroll-behavior: contain; }
+/* Kanvas ala FigJam: selalu putih bersih + dot gelap di SEMUA theme app. Elemen memakai palet gelap. */
+.wb-canvas { position: relative; height: calc(100dvh - 340px); min-height: 480px; border: 1px solid var(--border-hairline); border-radius: var(--radius-card); background-color: #ffffff; background-image: radial-gradient(circle, rgba(0,0,0,0.11) 1.1px, transparent 1.1px); background-size: 20px 20px; overflow: hidden; user-select: none; overscroll-behavior: contain; }
 
 @media (max-width: 860px) {
   .wb-canvas { height: 62dvh; min-height: 320px; }
@@ -14760,7 +14767,6 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 .wb-fontopt:hover { background: var(--bg-elevated); }
 .wb-fontopt-active { background: var(--accent-dim); }
 .wb-fontopt-sample { font-size: 17px; line-height: 1; min-width: 28px; text-align: center; }
-.wb-fontopt-check { width: 14px; display: inline-flex; align-items: center; justify-content: center; color: var(--accent); flex-shrink: 0; }
 .wb-fontopt-name { font-size: 12px; }
 /* Color dot + caret toggle (P12): one button opening the color panel. */
 .wb-dot-toggle {
@@ -14794,7 +14800,6 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 }
 .wb-sizeopt:hover { background: var(--bg-elevated); }
 .wb-sizeopt-active { background: var(--accent-dim); }
-.wb-sizeopt-check { width: 14px; display: inline-flex; align-items: center; justify-content: center; color: var(--accent); flex-shrink: 0; }
 .wb-sizeopt-name { font-size: 12px; flex: 1 1 auto; line-height: 1.2; }
 .wb-dd-pop { gap: 2px; }
 /* Boxed numeric input with steppers (P6/P13). */

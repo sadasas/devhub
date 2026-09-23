@@ -131,6 +131,18 @@ export function Tooltip({
   const role = useRole(context, { role: 'tooltip' });
   const { getReferenceProps, getFloatingProps } = useInteractions([hover, focus, dismiss, role]);
 
+  // Tutup paksa saat trigger di-klik (mobile tap = hover+focus tanpa mouseleave,
+  // desktop = kursor diam di atas tombol). Blur hanya untuk klik pointer
+  // (detail > 0) agar fokus keyboard tetap terjaga.
+  const closeOnTriggerClick = (e: { currentTarget?: unknown; detail?: number }) => {
+    setOpen(false);
+    const detail = typeof e?.detail === 'number' ? e.detail : 1;
+    if (detail > 0) {
+      const el = e?.currentTarget as HTMLElement | undefined;
+      el?.blur?.();
+    }
+  };
+
   const hasBody =
     content !== undefined || title !== undefined || description !== undefined || icon !== undefined || media !== undefined;
   const show = open && !disabled && hasBody;
@@ -162,7 +174,7 @@ export function Tooltip({
 
   // Elemen DOM non-disabled → clone: tanpa node pembungkus ekstra (grid/flex utuh).
   if (useClone) {
-    const refProps = getReferenceProps();
+    const refProps = getReferenceProps() as Record<string, unknown>;
     const merged: Record<string, unknown> = { ...refProps, ref: mergedRef };
     for (const [key, value] of Object.entries(refProps)) {
       if (key === 'ref') continue;
@@ -174,6 +186,20 @@ export function Tooltip({
           tipFn(...args);
         };
       }
+    }
+    // Rantai onClick: child dulu, lalu ref floating-ui, lalu tutup + blur pointer.
+    // refProps umumnya tak punya onClick (useDismiss hanya Esc/outside),
+    // jadi handler ini yang menutup tooltip yang nempel setelah tap/klik.
+    // Loop di atas sudah menggabung onClick bila refClick ada — timpa dengan
+    // versi yang selalu menutup agar tepat sekali panggil tiap sisi.
+    {
+      const childClick = childProps['onClick'] as ((...args: never[]) => void) | undefined;
+      const refClick = refProps['onClick'] as ((...args: never[]) => void) | undefined;
+      merged['onClick'] = (...args: never[]) => {
+        if (typeof childClick === 'function') childClick(...args);
+        if (typeof refClick === 'function') refClick(...args);
+        closeOnTriggerClick((args[0] ?? {}) as { currentTarget?: unknown; detail?: number });
+      };
     }
     if (merged['aria-describedby'] !== undefined && childProps['aria-describedby'] !== undefined) {
       merged['aria-describedby'] = `${childProps['aria-describedby']} ${tooltipId}`;
@@ -190,13 +216,21 @@ export function Tooltip({
   }
 
   // Komposit / disabled → bungkus span (event tak jalan di tombol disabled).
+  // Klik menggelembung dari child ke span, jadi tutup di sini juga.
+  const spanRefProps = getReferenceProps() as Record<string, unknown>;
+  const spanRefClick = spanRefProps['onClick'] as ((...args: never[]) => void) | undefined;
+  const handleSpanClick = (...args: never[]) => {
+    if (typeof spanRefClick === 'function') spanRefClick(...args);
+    closeOnTriggerClick((args[0] ?? {}) as { currentTarget?: unknown; detail?: number });
+  };
   return (
     <>
       <span
         ref={refs.setReference}
         className={`tooltip-ref${triggerClassName ? ` ${triggerClassName}` : ''}`}
         data-tooltip-open={open || undefined}
-        {...getReferenceProps()}
+        {...spanRefProps}
+        onClick={handleSpanClick}
       >
         {children}
       </span>

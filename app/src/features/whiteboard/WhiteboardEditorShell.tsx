@@ -17,6 +17,20 @@ import { pushShapeRecent, type LibraryItem } from './libraries';
 import { SHORTCUTS } from './shortcuts';
 import { isModalOrPaletteOpen, isTypingTarget } from '../../lib/keys';
 import type { WbTool } from './tools';
+import { BOUNDARY_COLOR, PEN_COLOR, SHAPE_COLOR, TEXT_COLOR } from './tools';
+import { remapLegacyLightColor } from './canvas-palette';
+
+/**
+ * Baca warna tersimpan dengan remap prefs light-legacy (didesain untuk
+ * kanvas gelap) ke padanan gelap — kanvas kini selalu putih.
+ */
+function storedInk(key: string, fallback: string): string {
+  try {
+    return remapLegacyLightColor(localStorage.getItem(key) ?? fallback);
+  } catch {
+    return fallback;
+  }
+}
 import { useWhiteboardHistory } from './useWhiteboardHistory';
 import { buildRefDataMap } from './ref-data';
 import { downloadWhiteboardPdf, downloadWhiteboardPng, downloadWhiteboardSvg } from './export';
@@ -175,13 +189,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
       return true;
     }
   });
-  const [penColor, setPenColor] = useState<string>(() => {
-    try {
-      return localStorage.getItem('wb:penColor') ?? '#e4e4e7';
-    } catch {
-      return '#e4e4e7';
-    }
-  });
+  const [penColor, setPenColor] = useState<string>(() => storedInk('wb:penColor', PEN_COLOR));
   const [penWidth, setPenWidth] = useState<number>(() => {
     try {
       const v = Number(localStorage.getItem('wb:penWidth'));
@@ -207,9 +215,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
   const [stickyAlign, setStickyAlign] = useState<WhiteboardAlign>(() => {
     try { return (localStorage.getItem('wb:stickyAlign') as WhiteboardAlign) ?? 'left'; } catch { return 'left'; }
   });
-  const [textColor, setTextColor] = useState<string>(() => {
-    try { return localStorage.getItem('wb:textColor') ?? '#e4e4e7'; } catch { return '#e4e4e7'; }
-  });
+  const [textColor, setTextColor] = useState<string>(() => storedInk('wb:textColor', TEXT_COLOR));
   const [textFontSize, setTextFontSize] = useState<number>(() => {
     try { const v = Number(localStorage.getItem('wb:textFontSize')); return clampFont(v, 16); } catch { return 16; }
   });
@@ -228,9 +234,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
   const [textBullet, setTextBullet] = useState<boolean>(() => {
     try { return localStorage.getItem('wb:textBullet') === '1'; } catch { return false; }
   });
-  const [shapeColor, setShapeColor] = useState<string>(() => {
-    try { return localStorage.getItem('wb:shapeColor') ?? '#6ea8fe'; } catch { return '#6ea8fe'; }
-  });
+  const [shapeColor, setShapeColor] = useState<string>(() => storedInk('wb:shapeColor', SHAPE_COLOR));
   const [shapeFontSize, setShapeFontSize] = useState<number>(() => {
     try { const v = Number(localStorage.getItem('wb:shapeFontSize')); return clampFont(v, 12); } catch { return 12; }
   });
@@ -243,20 +247,16 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
   const [shapeFill, setShapeFill] = useState<boolean>(() => {
     try { return localStorage.getItem('wb:shapeFill') === '1'; } catch { return false; }
   });
-  const [edgeColor, setEdgeColor] = useState<string>(() => {
-    try { return localStorage.getItem('wb:edgeColor') ?? '#e4e4e7'; } catch { return '#e4e4e7'; }
-  });
+  const [edgeColor, setEdgeColor] = useState<string>(() => storedInk('wb:edgeColor', TEXT_COLOR));
   const [edgeFontSize, setEdgeFontSize] = useState<number>(() => {
     try { const v = Number(localStorage.getItem('wb:edgeFontSize')); return clampFont(v, 11); } catch { return 11; }
   });
   const [edgeArrowStyle] = useState<WhiteboardArrowStyle>(() => {
     try { const v = localStorage.getItem('wb:edgeArrowStyle'); return (v && ALLOWED_ARROW.has(v) ? v : 'solid') as WhiteboardArrowStyle; } catch { return 'solid'; }
   });
-  const [boundaryColor, setBoundaryColor] = useState<string>(() => {
-    try { return localStorage.getItem('wb:boundaryColor') ?? '#6ea8fe'; } catch { return '#6ea8fe'; }
-  });
+  const [boundaryColor, setBoundaryColor] = useState<string>(() => storedInk('wb:boundaryColor', BOUNDARY_COLOR));
   const [boundaryFontSize] = useState<number>(() => {
-    try { const v = Number(localStorage.getItem('wb:boundaryFontSize')); return clampFont(v, 12); } catch { return 12; }
+    try { const v = Number(localStorage.getItem('wb:boundaryFontSize')); return clampFont(v, 14); } catch { return 14; }
   });
   const [boundaryAlign] = useState<WhiteboardAlign>(() => {
     try { return (localStorage.getItem('wb:boundaryAlign') as WhiteboardAlign) ?? 'left'; } catch { return 'left'; }
@@ -447,7 +447,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
     const { active, disabled, tip, name } = toolBtnState(item);
     const isShape = item.id === 'shape';
     return (
-      <Tooltip key={item.id} content={tip} side="bottom">
+      <Tooltip key={item.id} content={tip} side="bottom" disabled={isShape ? shapeMenuOpen : false}>
         <button
           ref={isShape ? shapeBtnRef : undefined}
           type="button"
@@ -471,7 +471,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
   };
 
   const renderLayersButton = () => (
-    <Tooltip content={t('whiteboard.layers.title')} side="bottom">
+    <Tooltip content={t('whiteboard.layers.title')} side="bottom" disabled={layersOpen}>
       <button
         ref={layersBtnRef}
         type="button"
@@ -550,7 +550,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
   );
 
   const renderExportButton = () => (
-    <Tooltip content={elementCount === 0 ? t('whiteboard.export.emptyTitle') : t('whiteboard.export.title')} side="bottom">
+    <Tooltip content={elementCount === 0 ? t('whiteboard.export.emptyTitle') : t('whiteboard.export.title')} side="bottom" disabled={exportOpen}>
       <button
         type="button"
         className="sub-tab"
@@ -682,7 +682,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
           <input
             type="color"
             className="wb-rainbow-input"
-            value={/^#[0-9a-f]{6}$/i.test(value ?? '') ? (value as string) : '#6ea8fe'}
+            value={/^#[0-9a-f]{6}$/i.test(value ?? '') ? (value as string) : '#2563eb'}
             onChange={(e) => onPick(e.target.value)}
             aria-label={t('whiteboard.colorPanel.custom')}
           />
@@ -1108,7 +1108,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
             edgeArrowStyle={edgeArrowStyle}
             edgeDash="solid"
             boundaryColor={boundaryColor}
-            boundaryLabelColor="#e4e4e7"
+            boundaryLabelColor="#374151"
             boundaryFontSize={boundaryFontSize}
             boundaryAlign={boundaryAlign}
             boundaryLabel=""
@@ -1130,7 +1130,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
             <div className="sub-tabs wb-tool-scroll wb-mobile-pill" role="toolbar" aria-label={t('whiteboard.toolbar.tools')}>
               {TOOLS.filter((item) => MOBILE_TOOL_IDS.has(item.id)).map((item) => renderToolButton(item))}
               <span className="wb-sep" aria-hidden="true" />
-              <Tooltip content={t('whiteboard.toolbar.moreTools')} side="bottom">
+              <Tooltip content={t('whiteboard.toolbar.moreTools')} side="bottom" disabled={moreOpen}>
                 <button
                   ref={moreBtnRef}
                   type="button"
@@ -1256,7 +1256,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
       )}
       {isMobile && !presenting && selectedIds.length === 0 && (
         <div className="wb-mobile-tr" role="toolbar" aria-label={t('whiteboard.toolbar.boardPanel')}>
-          <Tooltip content={t('whiteboard.toolbar.moreTools')} side="bottom">
+          <Tooltip content={t('whiteboard.toolbar.moreTools')} side="bottom" disabled={trMoreOpen}>
             <button
               ref={trMoreBtnRef}
               type="button"

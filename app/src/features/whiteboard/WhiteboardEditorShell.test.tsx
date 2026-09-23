@@ -2086,6 +2086,16 @@ const children = Array.from(svg.querySelectorAll('g')).map((g) => g.children[0])
     expect(boundaryIdx).toBeGreaterThan(-1);
     expect(stickyIdx).toBeGreaterThan(boundaryIdx);
     expect(svg.textContent).toContain('System');
+    // Chip label duduk di DALAM border pojok kiri: translate = (x+6, y+18),
+    // gap atas (2px) sama dengan gap kiri — bukan (x+6, y+6) yang menabrak garis.
+    const chip = Array.from(svg.querySelectorAll('g[transform]')).find(
+      (g) => g.getAttribute('transform') === 'translate(-14, -2)',
+    );
+    expect(chip?.textContent).toContain('System');
+    // Tinggi mengikuti font default 14 (h=21, y=-19) → atas di dalam border.
+    const chipRect = chip?.querySelector('rect');
+    expect(Number(chipRect?.getAttribute('height'))).toBe(21);
+    expect(Number(chipRect?.getAttribute('y'))).toBe(-19);
   });
 
   it('edits a boundary label inline on double-click', () => {
@@ -3343,7 +3353,7 @@ describe('whiteboard editor shell mobile', () => {
     expect(document.querySelector('.wb-layers-pop')).toBeNull();
   });
 
-  it('deletes the selection from the long-press object menu on mobile', () => {
+  it('does NOT open the desktop object menu on long-press in mobile (sheet ⋮ instead)', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
     const board: Whiteboard = {
@@ -3360,16 +3370,43 @@ describe('whiteboard editor shell mobile', () => {
       act(() => {
         vi.advanceTimersByTime(600);
       });
-      expect(screen.getByRole('menu', { name: 'Object actions' })).toBeTruthy();
-      fireEvent.click(screen.getByRole('menuitem', { name: 'Delete selected Del' }));
-      expect(dispatch).toHaveBeenCalledTimes(1);
-      expect(dispatch.mock.calls[0]![0]).toMatchObject({
-        type: 'whiteboard/update',
-        patch: { elements: [] },
-      });
+      expect(screen.queryByRole('menu', { name: 'Object actions' })).toBeNull();
+      // Seleksi tetap terjadi — aksi hapus tersedia via sheet ⋮.
+      const bar = document.querySelector('.wb-selection-bar[aria-label="Selection actions"]')!;
+      expect(bar).not.toBeNull();
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('ignores synthetic contextmenu on mobile (no desktop menu)', () => {
+    renderShell({
+      ...BOARD,
+      elements: [{ id: 's1', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' }],
+    });
+    const canvas = document.querySelector('.wb-canvas') as HTMLElement;
+    fireEvent.contextMenu(canvas, { clientX: 100, clientY: 60 });
+    expect(screen.queryByRole('menu', { name: 'Object actions' })).toBeNull();
+  });
+
+  it('toggles the actions sheet from the selection-bar ⋮ on mobile', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    renderShell({
+      ...BOARD,
+      elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: 'Hi' }],
+    });
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    fireEvent.pointerDown(svg, { button: 0, clientX: 66, clientY: 46 });
+    fireEvent.pointerUp(svg, { clientX: 66, clientY: 46 });
+    const bar = document.querySelector('.wb-selection-bar[aria-label="Selection actions"]') as HTMLElement;
+    const moreBtn = within(bar).getByRole('button', { name: 'More tools' });
+    expect(screen.queryByRole('dialog', { name: 'More tools' })).toBeNull();
+    fireEvent.click(moreBtn);
+    const sheet = screen.getByRole('dialog', { name: 'More tools' });
+    expect(within(sheet).getByRole('button', { name: 'Bring to front' })).toBeTruthy();
+    fireEvent.click(moreBtn);
+    expect(screen.queryByRole('dialog', { name: 'More tools' })).toBeNull();
   });
 });
 
@@ -3619,7 +3656,7 @@ describe('whiteboard figjam interactions', () => {
     expect(svg.textContent).toContain('Ship it');
     expect(svg.textContent).toContain('Flaky test');
     const strokes = Array.from(svg.querySelectorAll('rect')).map((r) => r.getAttribute('stroke'));
-    expect(strokes).toContain('#6ea8fe');
+    expect(strokes).toContain('#2563eb');
     expect(strokes).toContain('#f2555a');
     // card content is clipped to the card bounds so long text can't spill out
     const clips = Array.from(svg.querySelectorAll('clipPath')).map((c) => c.getAttribute('id'));

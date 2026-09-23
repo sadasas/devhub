@@ -439,7 +439,7 @@ describe('geometry', () => {
     const entities = ['tasks', 'issues', 'testCases', 'milestones', 'techEntries', 'decisions', 'tables', 'apiCollections', 'apiEndpoints'];
     const colors = entities.map((e) => refEntityAccent(e).color);
     expect(new Set(colors).size).toBe(entities.length);
-    expect(refEntityAccent('tasks').color).toBe('#6ea8fe');
+    expect(refEntityAccent('tasks').color).toBe('#2563eb');
     expect(refEntityAccent('bogus')).toEqual(refEntityAccent('tasks'));
   });
 });

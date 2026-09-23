@@ -89,6 +89,37 @@ describe('Tooltip', () => {
       vi.useRealTimers();
     }
   });
+
+  it('klik pointer menutup tooltip tapi tetap menjalankan onClick child', () => {
+    const onClick = vi.fn();
+    render(
+      <Tooltip content="Halo tip">
+        <button type="button" onClick={onClick}>Trigger</button>
+      </Tooltip>,
+    );
+    const btn = screen.getByRole('button', { name: 'Trigger' });
+    fireEvent.focus(btn);
+    expect(screen.getByRole('tooltip').textContent).toBe('Halo tip');
+    fireEvent.click(btn, { detail: 1 });
+    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('tooltip')).toBeNull();
+  });
+
+  it('klik keyboard tidak blur tapi tetap menutup tooltip', () => {
+    const blurSpy = vi.fn();
+    render(
+      <Tooltip content="Halo tip">
+        <button type="button">Trigger</button>
+      </Tooltip>,
+    );
+    const btn = screen.getByRole('button', { name: 'Trigger' }) as HTMLButtonElement;
+    btn.blur = blurSpy;
+    fireEvent.focus(btn);
+    expect(screen.queryByRole('tooltip')).not.toBeNull();
+    fireEvent.click(btn, { detail: 0 });
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    expect(blurSpy).not.toHaveBeenCalled();
+  });
 });
 
 describe('TooltipCard', () => {

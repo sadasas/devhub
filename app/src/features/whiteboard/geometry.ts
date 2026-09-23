@@ -75,22 +75,24 @@ export interface RefEntityAccent {
   chipFill: string;
   toggleFill: string;
 }
+// Aksen digelapkan agar judul/toggle card terbaca di kanvas putih
+// (issues merah sudah cukup kontras → dipertahankan).
 const TASK_REF_ACCENT: RefEntityAccent = {
-  color: '#6ea8fe',
-  softFill: 'rgba(110,168,254,0.10)',
-  chipFill: 'rgba(110,168,254,0.18)',
-  toggleFill: 'rgba(110,168,254,0.25)',
+  color: '#2563eb',
+  softFill: 'rgba(37,99,235,0.10)',
+  chipFill: 'rgba(37,99,235,0.18)',
+  toggleFill: 'rgba(37,99,235,0.25)',
 };
 export const REF_ENTITY_ACCENT: Record<string, RefEntityAccent> = {
   tasks: TASK_REF_ACCENT,
   issues: { color: '#f2555a', softFill: 'rgba(242,85,90,0.10)', chipFill: 'rgba(242,85,90,0.18)', toggleFill: 'rgba(242,85,90,0.25)' },
-  testCases: { color: '#a78bfa', softFill: 'rgba(167,139,250,0.10)', chipFill: 'rgba(167,139,250,0.18)', toggleFill: 'rgba(167,139,250,0.25)' },
-  milestones: { color: '#34c38e', softFill: 'rgba(52,195,142,0.10)', chipFill: 'rgba(52,195,142,0.18)', toggleFill: 'rgba(52,195,142,0.25)' },
-  techEntries: { color: '#22d3ee', softFill: 'rgba(34,211,238,0.10)', chipFill: 'rgba(34,211,238,0.18)', toggleFill: 'rgba(34,211,238,0.25)' },
-  decisions: { color: '#e8b955', softFill: 'rgba(232,185,85,0.10)', chipFill: 'rgba(232,185,85,0.18)', toggleFill: 'rgba(232,185,85,0.25)' },
-  tables: { color: '#f472b6', softFill: 'rgba(244,114,182,0.10)', chipFill: 'rgba(244,114,182,0.18)', toggleFill: 'rgba(244,114,182,0.25)' },
-  apiCollections: { color: '#fb923c', softFill: 'rgba(251,146,60,0.10)', chipFill: 'rgba(251,146,60,0.18)', toggleFill: 'rgba(251,146,60,0.25)' },
-  apiEndpoints: { color: '#94a3b8', softFill: 'rgba(148,163,184,0.10)', chipFill: 'rgba(148,163,184,0.18)', toggleFill: 'rgba(148,163,184,0.25)' },
+  testCases: { color: '#7c3aed', softFill: 'rgba(124,58,237,0.10)', chipFill: 'rgba(124,58,237,0.18)', toggleFill: 'rgba(124,58,237,0.25)' },
+  milestones: { color: '#047857', softFill: 'rgba(4,120,87,0.10)', chipFill: 'rgba(4,120,87,0.18)', toggleFill: 'rgba(4,120,87,0.25)' },
+  techEntries: { color: '#0e7490', softFill: 'rgba(14,116,144,0.10)', chipFill: 'rgba(14,116,144,0.18)', toggleFill: 'rgba(14,116,144,0.25)' },
+  decisions: { color: '#b45309', softFill: 'rgba(180,83,9,0.10)', chipFill: 'rgba(180,83,9,0.18)', toggleFill: 'rgba(180,83,9,0.25)' },
+  tables: { color: '#db2777', softFill: 'rgba(219,39,119,0.10)', chipFill: 'rgba(219,39,119,0.18)', toggleFill: 'rgba(219,39,119,0.25)' },
+  apiCollections: { color: '#ea580c', softFill: 'rgba(234,88,12,0.10)', chipFill: 'rgba(234,88,12,0.18)', toggleFill: 'rgba(234,88,12,0.25)' },
+  apiEndpoints: { color: '#64748b', softFill: 'rgba(100,116,139,0.10)', chipFill: 'rgba(100,116,139,0.18)', toggleFill: 'rgba(100,116,139,0.25)' },
 };
 /** Unknown entities fall back to the task (blue) accent. */
 export function refEntityAccent(entity: string): RefEntityAccent {
@@ -233,6 +235,25 @@ export function wrapToWidth(text: string, fontSize: number, maxWidth: number, ma
 
 /** Estimated glyph width per latin char at 9px chip text (0.62em). */
 export const CHIP_CHAR_W = 5.6;
+
+/**
+ * Boundary label chip: vertical offset of the chip text baseline from the
+ * boundary top edge. Chip height scales with the font (1.5×) around the
+ * baseline, so the chip sits fully INSIDE the border (top-left corner),
+ * never straddling the dashed line. Shared by canvas render, SVG export
+ * and the inline edit overlay (keep the three in sync).
+ */
+export const BOUNDARY_LABEL_DY = 18;
+
+/**
+ * Lebar chip label boundary mengikuti teks: ukur asli via canvas 2D bila
+ * tersedia, estimator bila tidak (jsdom/export). Padding 12px, dibatasi
+ * lebar boundary agar tak meluber keluar garis.
+ */
+export function boundaryChipWidth(label: string, fontSize: number, maxW: number, bold = false): number {
+  const textW = approxTextWidth(label, fontSize, bold ? 600 : 400);
+  return Math.min(textW + 12, Math.max(20, maxW));
+}
 
 const MEASURE_STACK =
   "'Geist Variable', 'Geist Mono Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";

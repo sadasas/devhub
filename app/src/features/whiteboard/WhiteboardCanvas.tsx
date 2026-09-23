@@ -79,6 +79,8 @@ import {
   worldViewportRect,
   wrapTextLines,
   wrapToWidth,
+  BOUNDARY_LABEL_DY,
+  boundaryChipWidth,
   CHIP_CHAR_W,
   REF_LAYOUT,
   type AlignMode,
@@ -265,7 +267,7 @@ const OPTIONAL_PATCH_FIELDS: ReadonlySet<string> = new Set([
   'list',
 ]);
 const noopDispatch = () => {};
-const DEFAULT_EDGE_COLOR = '#e4e4e7';
+const DEFAULT_EDGE_COLOR = '#374151';
 const DEFAULT_EDGE_WIDTH = 2;
 
 
@@ -649,22 +651,26 @@ const ElementView = memo(function ElementView({
               strokeDasharray="6 4"
             />
             {!editing && el.label && (() => {
-              const fontSize = el.fontSize ?? 12;
-              const labelColor = (el as { labelColor?: string | null }).labelColor ?? '#f1f5f9';
-              const chipW = Math.min(el.label.length * 7.5 + 12, Math.max(20, el.w - 12));
+              const fontSize = el.fontSize ?? 14;
+              const labelColor = (el as { labelColor?: string | null }).labelColor ?? '#0f172a';
+              const bold = !!(el as { bold?: boolean | null }).bold;
+              const chipW = boundaryChipWidth(listedLines(el.label, el).join(' '), fontSize, el.w - 12, bold);
+              // Tinggi mengikuti font (12px → persis 18/-16 seperti semula),
+              // baseline selalu di tengah optikal bg.
+              const chipH = fontSize * 1.5;
               return (
-                <g transform={`translate(${el.x + 6}, ${el.y + 6})`}>
+                <g transform={`translate(${el.x + 6}, ${el.y + BOUNDARY_LABEL_DY})`}>
                   <rect
                     x={-4}
-                    y={-16}
+                    y={-(chipH - 2)}
                     width={chipW}
-                    height={18}
+                    height={chipH}
                     rx={5}
                     fill={el.color}
                     fillOpacity={0.25}
                   />
                   <text x={0} y={0} fontSize={fontSize} fill={labelColor} {...svgTextStyle(el)}>
-                    {truncateToWidth(listedLines(el.label, el).join(' '), fontSize, chipW - 12)}
+                    {truncateToWidth(listedLines(el.label, el).join(' '), fontSize, chipW - 12, bold ? 600 : 400)}
                   </text>
                 </g>
               );
@@ -732,7 +738,7 @@ const ElementView = memo(function ElementView({
               </g>
             ) : (
               <g>
-                <text x={x + pad} y={y + pad + 13} fontSize={12} fill={missing ? '#8a8a93' : '#6ea8fe'} fontWeight={600}>
+                <text x={x + pad} y={y + pad + 13} fontSize={12} fill={missing ? '#8a8a93' : '#2563eb'} fontWeight={600}>
                   {truncateToWidth(missing ? t('whiteboard.canvas.refUntitled', { entity: el.entity }) : refData!.title, 12, w - pad * 2 - toggle.rightOff, 600)}
                 </text>
                 <text x={x + pad} y={y + pad + REF_LAYOUT.titleH + 10} fontSize={10} fill={missing ? '#6b7280' : '#8a8a93'}>
@@ -1316,7 +1322,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
 
   /** ⋮ button opening the actions sheet; rendered once at the end of the last bar. */
   const moreBtn = isMobileProp ? (
-    <Tooltip content={t('whiteboard.toolbar.moreTools')} side="top">
+    <Tooltip content={t('whiteboard.toolbar.moreTools')} side="top" disabled={moreSheet}>
       <button
         type="button"
         className="wb-selection-btn"
@@ -1931,7 +1937,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   const textFontOf = (el: WhiteboardElement): number => {
     if (el.kind === 'text') return el.fontSize;
     if (el.kind === 'edge') return el.fontSize ?? 11;
-    if (el.kind === 'sticky' || el.kind === 'shape' || el.kind === 'boundary') return el.fontSize ?? 12;
+    if (el.kind === 'boundary') return el.fontSize ?? 14;
+    if (el.kind === 'sticky' || el.kind === 'shape') return el.fontSize ?? 12;
     return 12;
   };
   /** FigJam split: inner text area (text bar + inline edit) vs border/body (element bar). */
@@ -2008,7 +2015,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     if (e.button !== 0) return;
     const pt = worldAt(e);
     // Touch long-press opens the object menu (no right button on touch).
-    if (e.pointerType === 'touch' && !isReadOnly) {
+    // Mobile memakai BottomSheet ⋮ — menu desktop tak pernah dibuka di mobile.
+    if (e.pointerType === 'touch' && !isReadOnly && !isMobileProp) {
       cancelLongPress();
       const cx = e.clientX;
       const cy = e.clientY;
@@ -2504,7 +2512,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       }
       history.record();
       const baseB = buildBoundary(x, y, w, h, boundaryColorProp ?? BOUNDARY_COLOR);
-      const boundary = { ...baseB, label: boundaryLabelProp ?? '', labelColor: boundaryLabelColorProp ?? '#e4e4e7', fontSize: Math.max(4, Math.min(96, boundaryFontSizeProp ?? 12)), align: (boundaryAlignProp ?? 'left') as any } as typeof baseB;
+      const boundary = { ...baseB, label: boundaryLabelProp ?? '', labelColor: boundaryLabelColorProp ?? '#374151', fontSize: Math.max(4, Math.min(96, boundaryFontSizeProp ?? 14)), align: (boundaryAlignProp ?? 'left') as any } as typeof baseB;
       dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...board.elements, boundary] } });
       setSelectedIds([boundary.id]);
       if (onToolChange) onToolChange('select');
@@ -2589,6 +2597,9 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   const handleContextMenu = (e: ReactMouseEvent<HTMLDivElement>) => {
     if (isReadOnly) return;
     e.preventDefault();
+    // Browser mobile mensintesis contextmenu saat long-press — abaikan,
+    // mobile memakai BottomSheet ⋮ (menu desktop tak pernah dibuka di mobile).
+    if (isMobileProp) return;
     openCtxMenuAt(e.clientX, e.clientY);
   };
 
@@ -2697,8 +2708,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         newEl = {
           ...buildBoundary(world.x - 150, world.y - 100, 300, 200, boundaryColorProp ?? BOUNDARY_COLOR),
           label: boundaryLabelProp ?? '',
-          labelColor: boundaryLabelColorProp ?? '#e4e4e7',
-          fontSize: Math.max(4, Math.min(96, boundaryFontSizeProp ?? 12)),
+          labelColor: boundaryLabelColorProp ?? '#374151',
+          fontSize: Math.max(4, Math.min(96, boundaryFontSizeProp ?? 14)),
           align: (boundaryAlignProp ?? 'left') as WhiteboardBoundary['align'],
         } as WhiteboardElement;
       if (!newEl) return;
@@ -3141,7 +3152,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                 (el): el is WhiteboardElement & { color: string } =>
                   selectedIds.includes(el.id) && !el.locked && 'color' in el && typeof (el as { color?: unknown }).color === 'string',
               );
-              const cur = first?.color ?? '#e4e4e7';
+              const cur = first?.color ?? '#374151';
               return (
                 <ColorDropdown
                   value={cur}
@@ -3479,9 +3490,10 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                   ...textControls(false),
                 );
               }
+              // Title boundary polos: tanpa properti teks (font/size/bold/align) —
+              // hanya warna border. Title tetap bisa diketik via edit inline.
               if (el.kind === 'boundary') {
-                if (!showTextProps) return colorDot('color', t('whiteboard.popover.shapeColor'));
-                return maybeSplit(colorDot('color', t('whiteboard.popover.shapeColor')), ...textControls(false));
+                return colorDot('color', t('whiteboard.popover.shapeColor'));
               }
               if (el.kind === 'stroke') {
                 return maybeSplit(
@@ -3492,7 +3504,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
               return null;
             })()}
             {selectedIds.length >= 1 && !isMobileProp && (
-              <Tooltip content={t('whiteboard.ctx.menu')} side="top">
+              <Tooltip content={t('whiteboard.ctx.menu')} side="top" disabled={ctxMenu !== null}>
                 <button
                   type="button"
                   className="wb-selection-btn"
@@ -3558,7 +3570,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                   width={vpMini.w}
                   height={vpMini.h}
                   fill="rgba(228,228,231,0.08)"
-                  stroke="#e4e4e7"
+                  stroke="#6ea8fe"
                   strokeWidth={1}
                 />
               </svg>
@@ -3595,10 +3607,10 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         const ink = el.kind === 'sticky'
           ? ((el.textColor ?? '') || 'rgba(6,5,4,0.85)')
           : el.kind === 'text' || el.kind === 'edge'
-            ? String((el as unknown as Record<string, unknown>).color ?? '#e4e4e7')
+            ? String((el as unknown as Record<string, unknown>).color ?? '#374151')
             : el.kind === 'shape' || el.kind === 'boundary'
-              ? (String((el as unknown as Record<string, unknown>).labelColor ?? '') || (el.kind === 'boundary' ? '#e4e4e7' : String((el as unknown as Record<string, unknown>).color ?? '#e4e4e7')))
-              : '#e4e4e7';
+              ? (String((el as unknown as Record<string, unknown>).labelColor ?? '') || (el.kind === 'boundary' ? '#374151' : String((el as unknown as Record<string, unknown>).color ?? '#374151')))
+              : '#374151';
         // Mirror the rendered label geometry (world units) so text doesn't jump
         // when editing starts. Alphabetic-baseline kinds offset by an ascent
         // estimate; middle-baseline kinds (shape) center the first line on y0.
@@ -3680,14 +3692,15 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
           lineHW = lineHeight;
           rowsN = 1;
         } else if (el.kind === 'boundary') {
-          const fontSize = el.fontSize ?? 12;
-          const lineHeight = textLineHeight(fontSize);
-          const chipW = Math.min(editingText.value.length * 7.5 + 12, Math.max(20, el.w - 12));
+          const fontSize = el.fontSize ?? 14;
+          // Cermin chip: box = bg persis (lebar mengikuti label, teks tengah vertikal).
+          const chipH = fontSize * 1.5;
+          const chipW = boundaryChipWidth(editingText.value, fontSize, el.w - 12, !!(el as { bold?: boolean | null }).bold);
           boxLeftW = el.x + 6;
-          boxTopW = el.y + 6 - fontSize * 0.8;
+          boxTopW = el.y + BOUNDARY_LABEL_DY - (chipH - 2);
           boxW = Math.max(40, chipW);
-          boxH = lineHeight;
-          lineHW = lineHeight;
+          boxH = chipH;
+          lineHW = chipH;
           rowsN = 1;
         }
         return (
@@ -3729,7 +3742,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
           />
         );
       })()}
-      {ctxMenu && (
+      {ctxMenu && !isMobileProp && (
         <WhiteboardContextMenu
           x={ctxMenu.x}
           y={ctxMenu.y}

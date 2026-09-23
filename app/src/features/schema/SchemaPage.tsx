@@ -210,7 +210,7 @@ function CanvasPillMoreMenu({ tables, relations, groups = [], projectName, versi
 
   return (
     <>
-      <Tooltip content={t('schema.page.moreActions')} side="bottom">
+      <Tooltip content={t('schema.page.moreActions')} side="bottom" disabled={open}>
       <Button
         variant="ghost"
         size="sm"

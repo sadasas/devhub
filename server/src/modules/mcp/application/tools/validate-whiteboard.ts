@@ -6,9 +6,9 @@ import { whiteboardElementSchema, type WhiteboardElement } from '../../../projec
 const ELEMENTS_DESCRIPTION =
   'Elements to validate (max 1000). Same schema as create_whiteboard. Each element: { id?, kind: "stroke"|"sticky"|"text"|"shape"|"edge"|"boundary"|"ref", ...fields }. ' +
   'Examples: { kind: "sticky", x: 0, y: 0, w: 200, h: 120, color: "#e8b955", text: "note" }, ' +
-  '{ kind: "text", x: 0, y: 0, color: "#e4e4e7", fontSize: 16, text: "title" }, ' +
-  '{ kind: "shape", shapeType: "rect", x: 0, y: 0, w: 120, h: 80, color: "#6ea8fe", fill: false, strokeWidth: 2, label: "" }, ' +
-  '{ kind: "boundary", x: 0, y: 0, w: 300, h: 200, color: "#6ea8fe", label: "" }';
+  '{ kind: "text", x: 0, y: 0, color: "#374151", fontSize: 16, text: "title" }, ' +
+  '{ kind: "shape", shapeType: "rect", x: 0, y: 0, w: 120, h: 80, color: "#2563eb", fill: false, strokeWidth: 2, label: "" }, ' +
+  '{ kind: "boundary", x: 0, y: 0, w: 300, h: 200, color: "#2563eb", label: "" }';
 
 const inputSchema = z.object({
   projectId: z.string().uuid().describe('UUID of the project to validate against (for future ref-data expansion)'),

@@ -10,6 +10,8 @@ import {
   unionBounds,
   wrapTextLines,
   wrapToWidth,
+  BOUNDARY_LABEL_DY,
+  boundaryChipWidth,
   CHIP_CHAR_W,
   REF_LAYOUT,
   type Rect,
@@ -32,15 +34,16 @@ export interface DownloadOptions extends ExportOptions {
   onError?: () => void;
 }
 
-const EXPORT_BG: Record<ExportTheme, string> = { light: '#f4f3f0', dark: '#0f0f11' };
+const EXPORT_BG: Record<ExportTheme, string> = { light: '#ffffff', dark: '#0f0f11' };
 const EXPORT_DOT: Record<ExportTheme, string> = { light: 'rgba(0,0,0,0.11)', dark: 'rgba(255,255,255,0.11)' };
 
+/**
+ * Kanvas selalu putih ala FigJam: export selalu terang kecuali pemanggil
+ * meminta eksplisit (param `theme`). WYSIWYG dengan layar.
+ */
 function resolveExportTheme(explicit?: ExportTheme): ExportTheme {
   if (explicit) return explicit;
-  if (typeof document !== 'undefined') {
-    return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
-  }
-  return 'dark';
+  return 'light';
 }
 
 function esc(text: string): string {
@@ -221,11 +224,13 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null, ctx: Exp
       return `<g><polyline points="${linePoints}" fill="none" stroke="${esc(el.color)}" stroke-width="${el.width}"${dash}/>${arrow}${label}</g>`;
     }
     case 'boundary': {
-      const fontSize = el.fontSize ?? 12;
-      const labelColor = (el as { labelColor?: string | null }).labelColor ?? '#e4e4e7';
-      const chipW = Math.min(el.label.length * 7.5 + 12, Math.max(20, el.w - 12));
+      const fontSize = el.fontSize ?? 14;
+      const labelColor = (el as { labelColor?: string | null }).labelColor ?? '#374151';
+      const bold = !!(el as { bold?: boolean | null }).bold;
+      const chipW = boundaryChipWidth(listedLines(el.label, el).join(' '), fontSize, el.w - 12, bold);
+      const chipH = fontSize * 1.5;
   const chip = el.label
-        ? `<g transform="translate(${round(el.x + 6)}, ${round(el.y + 6)})"><rect x="-4" y="-16" width="${round(chipW)}" height="18" rx="5" fill="${esc(el.color)}" fill-opacity="0.25"/><text x="0" y="0" font-size="${fontSize}" fill="${esc(labelColor)}"${fontAttrs(el)}>${esc(truncateToWidth(listedLines(el.label, el).join(' '), fontSize, chipW - 12))}</text></g>`
+        ? `<g transform="translate(${round(el.x + 6)}, ${round(el.y + BOUNDARY_LABEL_DY)})"><rect x="-4" y="${round(-(chipH - 2))}" width="${round(chipW)}" height="${round(chipH)}" rx="5" fill="${esc(el.color)}" fill-opacity="0.25"/><text x="0" y="0" font-size="${fontSize}" fill="${esc(labelColor)}"${fontAttrs(el)}>${esc(truncateToWidth(listedLines(el.label, el).join(' '), fontSize, chipW - 12, bold ? 600 : 400))}</text></g>`
         : '';
       return `<g><rect x="${round(el.x)}" y="${round(el.y)}" width="${round(el.w)}" height="${round(el.h)}" rx="8" fill="${esc(el.color)}" fill-opacity="0.05" stroke="${esc(el.color)}" stroke-width="1.5" stroke-dasharray="6 4"/>${chip}</g>`;
     }
@@ -284,7 +289,7 @@ export function serializeWhiteboard(
   const y = bounds.y - EXPORT_MARGIN;
   const w = bounds.w + EXPORT_MARGIN * 2;
   const h = bounds.h + EXPORT_MARGIN * 2;
-  // WB-4: bake the canvas background (theme-aware) unless transparency is asked.
+  // WB-4: bake the canvas background (always light like the canvas) unless transparency is asked.
   let chrome = '';
   if ((opts?.background ?? 'theme') === 'theme') {
     const theme = resolveExportTheme(opts?.theme);

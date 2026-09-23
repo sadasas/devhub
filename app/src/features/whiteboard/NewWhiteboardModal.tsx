@@ -18,9 +18,11 @@ const AUTO_FOCUS_INPUT = typeof window !== 'undefined' && window.matchMedia?.('(
 
 interface NewWhiteboardModalProps {
   onClose: () => void;
+  /** Dipanggil dengan id board baru setelah dispatch — pemanggil mengarahkan ke detail. */
+  onCreated?: (id: string) => void;
 }
 
-export function NewWhiteboardModal({ onClose }: NewWhiteboardModalProps) {
+export function NewWhiteboardModal({ onClose, onCreated }: NewWhiteboardModalProps) {
   const { t } = useTranslation('extras');
   const { state, dispatch, canEdit } = useProject();
   usePresenceStatus(t('whiteboard.newModal.presence'));
@@ -34,10 +36,11 @@ export function NewWhiteboardModal({ onClose }: NewWhiteboardModalProps) {
     if (!name.trim() || atCap) return;
     const template = WHITEBOARD_TEMPLATES.find((t) => t.id === templateId) ?? WHITEBOARD_TEMPLATES[0]!;
     const ts = nowIso();
+    const id = newId();
     dispatch({
       type: 'whiteboard/add',
       whiteboard: {
-        id: newId(),
+        id,
         createdAt: ts,
         updatedAt: ts,
         name: name.trim(),
@@ -45,6 +48,7 @@ export function NewWhiteboardModal({ onClose }: NewWhiteboardModalProps) {
         elements: template.build(),
       },
     });
+    onCreated?.(id);
     onClose();
   };
 
