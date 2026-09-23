@@ -47,6 +47,25 @@ export function shortTaskKey(taskId: string): string {
   return taskId.replace(/-/g, '').slice(0, 8).toUpperCase();
 }
 
+/** Project asal tombol Connect (pengganti `state` OAuth — Setup URL statis). */
+export const GITHUB_PENDING_PROJECT_KEY = 'devhub:github:pendingProject';
+
+export function readPendingProject(): string | null {
+  try {
+    return window.localStorage.getItem(GITHUB_PENDING_PROJECT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function clearPendingProject(): void {
+  try {
+    window.localStorage.removeItem(GITHUB_PENDING_PROJECT_KEY);
+  } catch {
+    // abaikan — flow tetap jalan via picker manual.
+  }
+}
+
 /** Mirror server formatBranchName: `feat/<short8>-<slug>` (max 80). */
 export function formatBranchName(taskId: string, title: string, prefix = 'feat'): string {
   const short = taskId.replace(/-/g, '').slice(0, 8).toLowerCase();

@@ -23095,6 +23095,20 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
   justify-content: flex-end;
 }
 
+/* Baris bind manual installation ID (dead-end install langsung dari GitHub):
+   input fleksibel + tombol, sejajar bawah. Gap 8px tangga space-*. */
+.integration-manual-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.integration-manual-field {
+  min-width: 200px;
+  flex: 1 1 200px;
+}
+
 @media (max-width: 640px) {
   .github-identity {
     gap: 8px;
