@@ -13,14 +13,18 @@ export const MAX_ATTACHMENTS_PER_ENTITY = LIMITS.ATTACHMENTS_PER_ENTITY;
 
 /**
  * Allowlist tipe file upload langsung. executable/script ditolak
- * (lampiran bug: screenshot, log, spec, arsip). Tipe lain → pakai tautan.
+ * (lampiran bug: screenshot, log, spec, arsip, rekaman layar).
+ * Tipe lain → pakai tautan.
  */
-const ALLOWED_MIME_PREFIXES = ['image/', 'text/'];
+const ALLOWED_MIME_PREFIXES = ['image/', 'text/', 'video/'];
 const ALLOWED_MIME_EXACT = new Set([
   'application/pdf',
   'application/json',
   'application/zip',
   'application/x-zip-compressed',
+  'video/mp4',
+  'video/webm',
+  'video/quicktime',
 ]);
 
 export function isAllowedMime(mime: string): boolean {

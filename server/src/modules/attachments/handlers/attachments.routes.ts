@@ -16,6 +16,7 @@ import {
   signDownload,
   signUpload,
 } from '../application/attachmentService.js';
+import { unfurlLink } from '../application/unfurlService.js';
 
 export const attachmentsRouter = Router();
 attachmentsRouter.use(requireAuth);
@@ -56,6 +57,26 @@ attachmentsRouter.get('/sign-download', async (req, res) => {
     return;
   }
   res.json(await signDownload(userId, projectId, attachmentId));
+});
+
+const unfurlLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 30,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  validate: { trustProxy: false },
+  message: { error: { code: 'RATE_LIMITED', message: 'Too many preview requests, try again later' } },
+});
+
+/** Link unfurl ala Linear: OG title/desc/image + favicon (SSRF-guarded, cached 1 jam). */
+attachmentsRouter.get('/unfurl', unfurlLimiter, async (req, res) => {
+  getUserId(req);
+  const url = String(req.query.url ?? '');
+  if (!url) {
+    res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'url is required' } });
+    return;
+  }
+  res.json(await unfurlLink(url));
 });
 
 attachmentsRouter.delete('/:projectId/:entity/:entityId/:attachmentId', async (req, res) => {

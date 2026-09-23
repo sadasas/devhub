@@ -694,6 +694,16 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ projectId, storageKey }),
     }),
+  attachmentUnfurl: (url: string) =>
+    request<{
+      url: string;
+      domain: string;
+      title: string;
+      description: string;
+      image: string | null;
+      favicon: string | null;
+      fallback: boolean;
+    }>(`/attachments/unfurl?url=${encodeURIComponent(url)}`),
 
   /** Google Calendar (T4): semua URL terpusat di sini — jangan hardcode di komponen. */
   gcalStatus: (projectId: string) =>

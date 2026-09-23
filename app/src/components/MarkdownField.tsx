@@ -3,10 +3,16 @@ import { ArrowsOutSimple, FileText, PencilSimple } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { MarkdownBlocks } from '../lib/markdown';
+import type { Attachment } from '../lib/types';
 import { Modal } from './Modal';
 
 // autoFocus hanya desktop (hover) — di touch, keyboard virtual melonjak (pola Modal).
 const AUTO_FOCUS_INPUT = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
+
+export interface MarkdownEmbedContext {
+  projectId: string;
+  attachments: Attachment[];
+}
 
 interface MarkdownFieldProps {
   label: string;
@@ -26,6 +32,12 @@ interface MarkdownFieldProps {
   hideHead?: boolean;
   /** @deprecated Diabaikan — mode bare kini fokus=edit otomatis. Jangan dipakai di kode baru. */
   previewToggle?: boolean;
+  /**
+   * Konteks baca untuk embed lampiran `![nama](attachment:<id>)` yang sudah
+   * ada di teks. Upload hanya via seksi Attachments (satu pintu) — field ini
+   * tidak lagi mengunggah (tanpa paperclip/drop/paste).
+   */
+  embedAttachments?: MarkdownEmbedContext;
 }
 
 export function MarkdownField({
@@ -42,12 +54,14 @@ export function MarkdownField({
   startEditing = false,
   hideHead = false,
   previewToggle: _previewToggle = false,
+  embedAttachments,
 }: MarkdownFieldProps) {
   const { t } = useTranslation(['project', 'tracker']);
   const [fullscreen, setFullscreen] = useState(false);
   const [editing, setEditing] = useState(startEditing);
   const [focused, setFocused] = useState(false);
   const bareRef = useRef<HTMLTextAreaElement | null>(null);
+  const boxRef = useRef<HTMLTextAreaElement | null>(null);
   // Autogrow tanpa batas untuk varian bare — yang scroll parent-nya, bukan textarea.
   useLayoutEffect(() => {
     if (variant !== 'bare') return;
@@ -103,7 +117,11 @@ export function MarkdownField({
               }}
             >
               {value.trim() ? (
-                <MarkdownBlocks text={value} />
+                <MarkdownBlocks
+                  text={value}
+                  projectId={embedAttachments?.projectId}
+                  attachments={embedAttachments?.attachments}
+                />
               ) : (
                 <span className="md-preview-empty">{t('project:prd.nothingToPreview')}</span>
               )}
@@ -142,6 +160,7 @@ export function MarkdownField({
         </div>
         <textarea
           id={id}
+          ref={boxRef}
           className="textarea"
           rows={rows}
           placeholder={placeholder}
@@ -199,7 +218,11 @@ export function MarkdownField({
                 </div>
                 <div className="md-preview md-split-preview">
                   {value.trim() ? (
-                    <MarkdownBlocks text={value} />
+                    <MarkdownBlocks
+                      text={value}
+                      projectId={embedAttachments?.projectId}
+                      attachments={embedAttachments?.attachments}
+                    />
                   ) : (
                     <span className="md-preview-empty">{t('project:prd.nothingToPreview')}</span>
                   )}

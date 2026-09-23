@@ -8,6 +8,8 @@ vi.mock('../lib/api', () => ({
   api: {
     attachmentRemove: vi.fn().mockResolvedValue({ ok: true, version: 2 }),
     attachmentAbandon: vi.fn().mockResolvedValue({ ok: true }),
+    attachmentSignDownload: vi.fn().mockRejectedValue(new Error('no storage in test')),
+    attachmentUnfurl: vi.fn().mockRejectedValue(new Error('no unfurl in test')),
     attachmentAddLink: vi.fn().mockResolvedValue({
       attachment: { id: 'a9', provider: 'link', name: 'L', mime: '', size: 0, storageKey: null, url: 'https://x.test', linkedAt: '' },
       version: 3,
@@ -135,5 +137,32 @@ describe('AttachmentSection', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(vi.mocked(api.attachmentAbandon)).toHaveBeenCalledTimes(1));
     expect(onChanged).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows Eye preview for previewable files and opens the preview modal', async () => {
+    renderSection();
+    const previewBtn = screen.getByRole('button', { name: 'Preview screenshot.png' });
+    expect(previewBtn).toBeDefined();
+    // Link tanpa mime previewable tidak dapat tombol preview.
+    expect(screen.queryByRole('button', { name: 'Preview Spec' })).toBeNull();
+    fireEvent.click(previewBtn);
+    // Modal terbuka (sign-download gagal di test → tampil error, bukan crash).
+    expect(await screen.findByRole('dialog')).toBeDefined();
+    expect(await screen.findByText(/Download failed/)).toBeDefined();
+  });
+
+  it('link allows empty title (defaults to domain)', async () => {
+    const { api } = await import('../lib/api');
+    const onChanged = vi.fn();
+    renderSection({ mode: 'staged', attachments: [], onChanged });
+    fireEvent.click(screen.getByRole('button', { name: /Add attachment/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Add link/ }));
+    fireEvent.change(screen.getByLabelText('Link URL'), { target: { value: 'https://example.com/d.pdf' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    await waitFor(() => expect(onChanged).toHaveBeenCalledTimes(1));
+    const next = onChanged.mock.calls[0]![0] as Attachment[];
+    expect(next).toHaveLength(1);
+    expect(next[0]!.name).toBe('example.com');
+    expect(vi.mocked(api.attachmentAddLink)).not.toHaveBeenCalled();
   });
 });
