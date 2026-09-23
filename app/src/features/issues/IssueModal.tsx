@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Trash, Clock, Bug, FileText, CheckCircle, Warning, Circle, LinkSimple } from '@phosphor-icons/react';
+import { Trash, Clock, Bug, FileText, CheckCircle, Warning, Circle, LinkSimple, PencilSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { ISSUE_SEVERITY, ISSUE_STATUS } from '../../lib/labels';
+import { IssueStatusIcon, TaskSeverityIcon } from '../../lib/task-icons';
 import { formatDate, formatRelative } from '../../lib/utils';
 import type { Issue, IssueSeverity, IssueStatus } from '../../lib/types';
 import type { UpdatePatch } from '../../state/project-context';
@@ -147,6 +148,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
                           : 'var(--text-secondary)',
                 }}
               >
+                <TaskSeverityIcon severity={issue.severity} size={12} />
                 {ISSUE_SEVERITY[issue.severity].label}
               </span>
             )}
@@ -159,7 +161,8 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
                 ariaLabel={t('issues.modal.severityLabel')}
                 value={issue.severity}
                 allowEmpty={false}
-                options={SEVERITY_OPTIONS.map((s) => ({ value: s, label: t(`issues.severity.${s}`) }))}
+                options={SEVERITY_OPTIONS.map((s) => ({ value: s, label: t(`issues.severity.${s}`), icon: <TaskSeverityIcon severity={s} size={13} /> }))}
+                onOpenChange={(o) => { if (!o) setHotProp(null); }}
                 onChange={(v) => { if (v) { update({ severity: v as IssueSeverity }); setHotProp(null); } }}
               />
             )}
@@ -203,6 +206,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
                             : 'var(--text-secondary)',
                 }}
               >
+                <IssueStatusIcon status={issue.status} size={12} />
                 {ISSUE_STATUS[issue.status].label}
               </span>
             )}
@@ -215,7 +219,8 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
                 ariaLabel={t('issues.modal.statusLabel')}
                 value={issue.status}
                 allowEmpty={false}
-                options={STATUS_OPTIONS.map((s) => ({ value: s, label: t(`issues.status.${s}`) }))}
+                options={STATUS_OPTIONS.map((s) => ({ value: s, label: t(`issues.status.${s}`), icon: <IssueStatusIcon status={s} size={13} /> }))}
+                onOpenChange={(o) => { if (!o) setHotProp(null); }}
                 onChange={(v) => { if (v) { update({ status: v as IssueStatus }); setHotProp(null); } }}
               />
             )}
@@ -253,6 +258,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
                 ariaLabel={t('issues.modal.linkedTaskLabel')}
                 value={issue.linkedTaskId ?? null}
                 options={state.tasks.map((taskItem) => ({ value: taskItem.id, label: taskItem.title }))}
+                onOpenChange={(o) => { if (!o) setHotProp(null); }}
                 onChange={(v) => { update({ linkedTaskId: v }); setHotProp(null); }}
                 triggerEmptyLabel={t('issues.modal.linkedTaskLabel')}
               />
@@ -357,18 +363,22 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
       )}
     >
       {canEdit ? (
-        <textarea
-          ref={titleRef}
-          className="composer-title"
-          rows={1}
-          value={issue.title}
-          autoFocus={AUTO_FOCUS_INPUT}
-          maxLength={LIMITS.ISSUE_TITLE}
-          onChange={(e) => update({ title: e.target.value })}
-          aria-label={t('issues.modal.titleLabel')}
-          aria-invalid={titleEmpty}
-          placeholder={t('issues.newModal.titlePlaceholder')}
-        />
+        <div className="editable-field editable-field-title" style={{ position: 'relative' }}>
+          <textarea
+            ref={titleRef}
+            className="composer-title"
+            rows={1}
+            value={issue.title}
+            autoFocus={AUTO_FOCUS_INPUT}
+            maxLength={LIMITS.ISSUE_TITLE}
+            onChange={(e) => update({ title: e.target.value })}
+            aria-label={t('issues.modal.titleLabel')}
+            aria-invalid={titleEmpty}
+            placeholder={t('issues.newModal.titlePlaceholder')}
+            style={{ paddingRight: 20 }}
+          />
+          <PencilSimple size={12} aria-hidden="true" className="editable-pencil" />
+        </div>
       ) : (
         <h3 className="detail-title">
           {issue.title || <DetailEmpty>{t('issues.modal.untitledIssue')}</DetailEmpty>}
@@ -387,18 +397,20 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
         <InlineError>{t('issues.modal.titleRequired')}</InlineError>
       )}
       {canEdit ? (
-        <MarkdownField
-          label={t('issues.modal.descriptionLabel')}
-          icon={FileText}
-          value={issue.description}
-          onChange={(v) => update({ description: v })}
-          placeholder={t('issues.newModal.descriptionPlaceholder')}
-          maxLength={LIMITS.ISSUE_DESCRIPTION}
-          rows={4}
-          variant="bare"
-          previewToggle
-          embedAttachments={{ projectId, attachments: issue.attachments ?? [] }}
-        />
+        <div className="editable-field" style={{ position: 'relative' }}>
+          <MarkdownField
+            label={t('issues.modal.descriptionLabel')}
+            icon={FileText}
+            value={issue.description}
+            onChange={(v) => update({ description: v })}
+            placeholder={t('issues.newModal.descriptionPlaceholder')}
+            maxLength={LIMITS.ISSUE_DESCRIPTION}
+            rows={4}
+            variant="bare"
+            previewToggle
+            embedAttachments={{ projectId, attachments: issue.attachments ?? [] }}
+          />
+        </div>
       ) : (
         <div className="md-bare">
           <div className="md-bare-head">
@@ -416,18 +428,20 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
         </div>
       )}
       {canEdit ? (
-        <MarkdownField
-          label={t('issues.modal.reproductionStepsLabel')}
-          icon={Bug}
-          value={issue.reproduction}
-          onChange={(v) => update({ reproduction: v })}
-          placeholder={t('issues.newModal.reproductionPlaceholder')}
-          maxLength={LIMITS.ISSUE_REPRODUCTION}
-          rows={4}
-          variant="bare"
-          previewToggle
-          embedAttachments={{ projectId, attachments: issue.attachments ?? [] }}
-        />
+        <div className="editable-field" style={{ position: 'relative' }}>
+          <MarkdownField
+            label={t('issues.modal.reproductionStepsLabel')}
+            icon={Bug}
+            value={issue.reproduction}
+            onChange={(v) => update({ reproduction: v })}
+            placeholder={t('issues.newModal.reproductionPlaceholder')}
+            maxLength={LIMITS.ISSUE_REPRODUCTION}
+            rows={4}
+            variant="bare"
+            previewToggle
+            embedAttachments={{ projectId, attachments: issue.attachments ?? [] }}
+          />
+        </div>
       ) : (
         <div className="md-bare">
           <div className="md-bare-head">

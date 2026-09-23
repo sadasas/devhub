@@ -5,6 +5,7 @@ import { Button } from "../../components/Button";
 import { InlineError } from "../../components/InlineError";
 import { ConfirmDeleteDialog } from "../../components/ConfirmDeleteDialog";
 import { MILESTONE_STATUS, TASK_PRIORITY, TASK_STATUS } from "../../lib/labels";
+import { TaskPriorityIcon } from "../../lib/task-icons";
 import type { Decision, Milestone, SchemaVersion, Task, Issue, TestCase } from "../../lib/types";
 import { formatDate, formatRelative, shortId } from "../../lib/utils";
 import { taskDueChip } from "../../lib/due-dates";
@@ -38,7 +39,10 @@ function DagCard({ task, state, blockedBy, external, onOpen }: { task: Task; sta
     <div className={"dag-card dag-card--" + state + (task.pinned ? " card-pinned" : "")}>
       <button type="button" className="dag-card-main" onClick={() => onOpen(task.id)} aria-label={task.title + " - " + label}>
         <div className="dag-card-top">
-          <Badge tone={TASK_PRIORITY[task.priority].tone} dot>{TASK_PRIORITY[task.priority].label}</Badge>
+          <Badge tone={TASK_PRIORITY[task.priority].tone}>
+            <TaskPriorityIcon priority={task.priority} size={11} />
+            {TASK_PRIORITY[task.priority].label}
+          </Badge>
           {state !== "done" && <Badge tone={tone as any} dot>{label}</Badge>}
           <span className="tabular" style={{ fontSize: 12, color: "var(--text-secondary)" }}>#{shortId(task.id)}</span>
         </div>

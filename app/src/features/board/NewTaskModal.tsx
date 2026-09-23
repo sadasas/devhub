@@ -5,6 +5,7 @@ import { CalendarBlank as CalendarIcon, Clock, DotsThree, FileText, Flag, LinkSi
 import { useTranslation } from 'react-i18next';
 import { formatDate, isDecimalKey, newId, nowIso, parseLabels, sanitizeDecimalInput } from '../../lib/utils';
 import { TASK_PRIORITY, TASK_PRIORITY_ORDER, hashLabelColor } from '../../lib/labels';
+import { TaskPriorityIcon } from '../../lib/task-icons';
 import { startAfterDue } from '../../lib/start-dates';
 import type { Attachment, TaskPriority, TaskStatus, TeamMember } from '../../lib/types';
 import { LabelPickerBody } from './LabelPickerBody';
@@ -270,7 +271,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
       id="new-task-priority"
       ariaLabel={t('board.newTaskModal.priorityLabel')}
       value={priority || null}
-      options={TASK_PRIORITY_ORDER.map((p) => ({ value: p, label: TASK_PRIORITY[p].label }))}
+      options={TASK_PRIORITY_ORDER.map((p) => ({ value: p, label: TASK_PRIORITY[p].label, icon: <TaskPriorityIcon priority={p} size={13} /> }))}
       emptyLabel={t('board.newTaskModal.priorityLabel')}
       triggerEmptyLabel={t('board.newTaskModal.priorityLabel')}
       searchable={false}

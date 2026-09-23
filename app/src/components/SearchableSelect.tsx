@@ -36,6 +36,12 @@ interface SearchableSelectProps {
   /** Buka dropdown langsung saat mount (dipakai klik-to-edit TaskModal). */
   defaultOpen?: boolean;
   /**
+   * Dipanggil tiap panel buka/tutup (termasuk tutup via luar/Escape/Tab).
+   * Dipakai baris properti (PropRow) agar batal = kembali read mode,
+   * menutup celah panel hilang tapi hot tertinggal.
+   */
+  onOpenChange?: (open: boolean) => void;
+  /**
    * Tampilkan kolom pencarian di dalam dropdown. `false` untuk opsi
    * sedikit (mis. category/status TechModal) — panel langsung fokus,
    * navigasi keyboard tetap jalan.
@@ -58,6 +64,7 @@ export function SearchableSelect({
   onChange,
   defaultOpen = false,
   searchable = true,
+  onOpenChange,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(defaultOpen);
   const [query, setQuery] = useState('');
@@ -66,6 +73,11 @@ export function SearchableSelect({
   const containerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const onOpenChangeRef = useRef(onOpenChange);
+  onOpenChangeRef.current = onOpenChange;
+  useEffect(() => {
+    onOpenChangeRef.current?.(open);
+  }, [open]);
   const { t } = useTranslation();
   const resolvedEmptyLabel = emptyLabel ?? t('select.empty');
   const resolvedPlaceholder = placeholder ?? t('select.placeholder');

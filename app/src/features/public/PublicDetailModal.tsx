@@ -12,6 +12,7 @@ import {
   findLabelDef,
   labelChipStyleFor,
 } from '../../lib/labels';
+import { IssueStatusIcon, TaskPriorityIcon } from '../../lib/task-icons';
 import { taskDueChip } from '../../lib/due-dates';
 import { formatDate, formatRelative, linkedTestCases } from '../../lib/utils';
 import type { Issue, State, Task } from '../../lib/types';
@@ -75,7 +76,8 @@ export function PublicTaskDetailModal({ task, state, onClose, onOpenTask }: Publ
             setHot={noopHot}
             canEdit={false}
             view={(
-              <span style={{ padding: '2px 8px', borderRadius: 6, background: task.priority === 'urgent' ? 'var(--status-danger-dim)' : task.priority === 'high' ? 'var(--status-warn-dim)' : task.priority === 'medium' ? 'var(--status-info-dim)' : 'var(--bg-inset)', fontSize: 12, color: task.priority === 'urgent' ? 'var(--status-danger)' : task.priority === 'high' ? 'var(--status-warn)' : task.priority === 'medium' ? 'var(--status-info)' : 'var(--text-secondary)' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 6, background: task.priority === 'urgent' ? 'var(--status-danger-dim)' : task.priority === 'high' ? 'var(--status-warn-dim)' : task.priority === 'medium' ? 'var(--status-info-dim)' : 'var(--bg-inset)', fontSize: 12, color: task.priority === 'urgent' ? 'var(--status-danger)' : task.priority === 'high' ? 'var(--status-warn)' : task.priority === 'medium' ? 'var(--status-info)' : 'var(--text-secondary)' }}>
+                <TaskPriorityIcon priority={task.priority} size={12} />
                 {TASK_PRIORITY[task.priority].label}
               </span>
             )}
@@ -328,6 +330,7 @@ export function PublicIssueDetailModal({ issue, state, onClose, onOpenTask }: Pu
                             : 'var(--text-secondary)',
                 }}
               >
+                <IssueStatusIcon status={issue.status} size={12} />
                 {ISSUE_STATUS[issue.status].label}
               </span>
             )}

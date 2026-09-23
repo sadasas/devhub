@@ -678,6 +678,17 @@
       "pickWorkspace": "Select the workspace to upgrade.",
       "checkout": "Failed to start checkout.",
       "load": "Failed to load packages."
+    },
+    "confirm": {
+      "title": "Confirm payment",
+      "workspace": "Workspace",
+      "package": "Package",
+      "duration": "Duration",
+      "amount": "Amount",
+      "days": "{{count}} days",
+      "fees": "Price includes QRIS/VA fees. Remaining days stack. 7-day read-only grace after expiry.",
+      "cancel": "Cancel",
+      "pay": "Pay {{price}}"
     }
   },
   "billing": {

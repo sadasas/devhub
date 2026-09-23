@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import type { BillingPackage } from '../../lib/types';
 import { PricingPage } from './PricingPage';
@@ -42,23 +42,59 @@ describe('PricingPage (single-page flow)', () => {
   it('shows a register CTA for anonymous visitors', async () => { renderPage(); expect(await screen.findByText(/Create free account|Buat akun gratis/)).toBeDefined(); });
   it('renders FAQ section', async () => { renderPage(); expect(await screen.findByText(/FAQ|Pertanyaan Umum/)).toBeDefined(); expect(screen.getByText(/How do I upgrade|Bagaimana cara upgrade/)).toBeDefined(); expect(screen.getByText(/How do I downgrade|Bagaimana cara downgrade/)).toBeDefined(); expect(screen.getByText(/7-day read-only grace|read-only 7 hari/)).toBeDefined(); });
   it('renders trust section', async () => { renderPage(); expect(await screen.findByText(/Secure payment|Pembayaran aman/)).toBeDefined(); expect(screen.getByText(/Powered by Pakasir/)).toBeDefined(); });
-  it('shows checkout error on the correct card when multiple paid packages', async () => {
+  it('opens a confirm modal without creating the order', async () => {
     mockUser = { id: 'u1' }; mockTeams = [{ id: 't1', name: 'Test Team' }];
-    const PACKAGES_3: BillingPackage[] = [PACKAGES[0]!, PACKAGES[1]!, { id: 'pkg-biz', name: 'Business', description: 'Business tier', isFree: false, maxMembers: null, maxProjects: null, maxStorageBytes: null, sortOrder: 2, isFeatured: false, prices: [{ id: 'bz-30', durationDays: 30, priceIdr: 500_000, originalPriceIdr: null }] }];
-    mockListPackages.mockResolvedValueOnce({ packages: PACKAGES_3 }); mockStartCheckout.mockRejectedValueOnce(new Error('Billing disabled'));
     renderPage(['/pricing?teamId=t1']);
-    await screen.findByRole('heading', { name: /Pro/ }); expect(screen.getByRole('heading', { name: 'Business' })).toBeDefined();
-    const upgradeBtns = screen.getAllByRole('button', { name: /Upgrade to|Upgrade ke/ }); const bizBtn = upgradeBtns.find((b) => b.textContent?.includes('Business'))!; await act(async () => { fireEvent.click(bizBtn); });
-    const bizCard = screen.getByRole('heading', { name: 'Business' }).closest('section')!; expect(await within(bizCard).findByText(/Failed to start checkout|Gagal memulai checkout/)).toBeDefined();
-    const proCard = screen.getByRole('heading', { name: /Pro/ }).closest('section')!; expect(within(proCard).queryByText(/Failed to start checkout|Gagal memulai checkout/)).toBeNull();
+    await screen.findByRole('heading', { name: /Pro/ });
+    const proBtn = screen.getByRole('button', { name: /Upgrade to Pro|Upgrade ke Pro/ }); fireEvent.click(proBtn);
+    expect(await screen.findByText(/Confirm payment|Konfirmasi pembayaran/)).toBeDefined();
+    expect(mockStartCheckout).not.toHaveBeenCalled();
+  });
+  it('creates the order only after confirming in the modal, then redirects', async () => {
+    mockUser = { id: 'u1' }; mockTeams = [{ id: 't1', name: 'Test Team' }];
+    mockStartCheckout.mockResolvedValueOnce({ url: 'http://example.com/pay', orderId: 'order-12345678' });
+    renderPage(['/pricing?teamId=t1']);
+    await screen.findByRole('heading', { name: /Pro/ });
+    fireEvent.click(screen.getByRole('button', { name: /Upgrade to Pro|Upgrade ke Pro/ }));
+    await screen.findByText(/Confirm payment|Konfirmasi pembayaran/);
+    fireEvent.click(screen.getByRole('button', { name: /Pay Rp|Bayar Rp/ }));
+    await waitFor(() => { expect(mockStartCheckout).toHaveBeenCalledTimes(1); });
+    // sukses = modal ditutup untuk redirect (jsdom tak bisa navigasi nyata)
+    await waitFor(() => { expect(screen.queryByText(/Confirm payment|Konfirmasi pembayaran/)).toBeNull(); });
+  });
+  it('creates nothing when the confirm modal is cancelled', async () => {
+    mockUser = { id: 'u1' }; mockTeams = [{ id: 't1', name: 'Test Team' }];
+    renderPage(['/pricing?teamId=t1']);
+    await screen.findByRole('heading', { name: /Pro/ });
+    fireEvent.click(screen.getByRole('button', { name: /Upgrade to Pro|Upgrade ke Pro/ }));
+    await screen.findByText(/Confirm payment|Konfirmasi pembayaran/);
+    fireEvent.click(screen.getByRole('button', { name: /^Cancel$|^Batal$/ }));
+    expect(mockStartCheckout).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Confirm payment|Konfirmasi pembayaran/)).toBeNull();
+  });
+  it('shows checkout error inside the modal and allows retry', async () => {
+    mockUser = { id: 'u1' }; mockTeams = [{ id: 't1', name: 'Test Team' }];
+    mockStartCheckout.mockRejectedValueOnce(new Error('Billing disabled'));
+    renderPage(['/pricing?teamId=t1']);
+    await screen.findByRole('heading', { name: /Pro/ });
+    fireEvent.click(screen.getByRole('button', { name: /Upgrade to Pro|Upgrade ke Pro/ }));
+    await screen.findByText(/Confirm payment|Konfirmasi pembayaran/);
+    fireEvent.click(screen.getByRole('button', { name: /Pay Rp|Bayar Rp/ }));
+    // Error non-ApiError memakai fallback (getErrorMessage), bukan pesan mentah.
+    expect(await screen.findByText(/Failed to start checkout|Gagal memulai checkout/)).toBeDefined();
+    // modal stays open for retry
+    expect(screen.queryByText(/Confirm payment|Konfirmasi pembayaran/)).not.toBeNull();
   });
   it('prevents double checkout while one is in flight', async () => {    mockUser = { id: 'u1' }; mockTeams = [{ id: 't1', name: 'Test Team' }];
-    const PACKAGES_3: BillingPackage[] = [PACKAGES[0]!, PACKAGES[1]!, { id: 'pkg-biz', name: 'Business', description: 'Business tier', isFree: false, maxMembers: null, maxProjects: null, maxStorageBytes: null, sortOrder: 2, isFeatured: false, prices: [{ id: 'bz-30', durationDays: 30, priceIdr: 500_000, originalPriceIdr: null }] }];
-    mockListPackages.mockResolvedValueOnce({ packages: PACKAGES_3 }); let resolveCheckout!: (v: unknown) => void; mockStartCheckout.mockImplementationOnce(() => new Promise((r) => { resolveCheckout = r; }));
+    let resolveCheckout!: (v: unknown) => void; mockStartCheckout.mockImplementationOnce(() => new Promise((r) => { resolveCheckout = r; }));
     renderPage(['/pricing?teamId=t1']); await screen.findByRole('heading', { name: /Pro/ });
-    const proBtn = screen.getByRole('button', { name: /Upgrade to Pro|Upgrade ke Pro/ }); fireEvent.click(proBtn); await waitFor(() => { expect(mockStartCheckout).toHaveBeenCalledTimes(1); });
-    const bizBtn = screen.getByRole('button', { name: /Upgrade to Business|Upgrade ke Business/ }); fireEvent.click(bizBtn); expect(mockStartCheckout).toHaveBeenCalledTimes(1);
-    await act(async () => { resolveCheckout({ url: 'http://example.com', orderId: 'order-12345678', packageName: 'Pro', durationDays: 30, amount: 250000 }); });
+    fireEvent.click(screen.getByRole('button', { name: /Upgrade to Pro|Upgrade ke Pro/ }));
+    await screen.findByText(/Confirm payment|Konfirmasi pembayaran/);
+    const payBtn = screen.getByRole('button', { name: /Pay Rp|Bayar Rp/ });
+    fireEvent.click(payBtn); fireEvent.click(payBtn);
+    await waitFor(() => { expect(mockStartCheckout).toHaveBeenCalledTimes(1); });
+    await act(async () => { resolveCheckout({ url: 'http://example.com', orderId: 'order-12345678' }); });
+    expect(mockStartCheckout).toHaveBeenCalledTimes(1);
   });
   it('badges the package flagged isFeatured instead of the first paid package', async () => {
     const flagged: BillingPackage[] = [

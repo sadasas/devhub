@@ -506,13 +506,19 @@ export function ProjectPage() {
   const [shareOpen, setShareOpen] = useState(false);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
   const isMobileActions = useIsMobileActions();
+  // Prefetch dokumen export saat menu aksi dibuka — tap Export lalu membuat
+  // blob + klik anchor secara sinkron dalam gesture (mobile memblokir
+  // download yang dibuat setelah jeda async).
+  const [exportDocCache, setExportDocCache] = useState<{ id: string; doc: ExportDocument } | null>(null);
 
-  // close actions sheet on Escape / outside tap
+  // close actions menu on Escape / outside tap (desktop dropdown only —
+  // the mobile BottomSheet lives in a body portal outside actionsRef and
+  // closes itself via backdrop/X/Escape; letting this handler run would
+  // unmount the sheet on touchstart before the tap becomes a click).
   useEffect(() => {
-    if (!actionsOpen) return;
+    if (!actionsOpen || isMobileActions) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setActionsOpen(false);
     };
@@ -528,7 +534,17 @@ export function ProjectPage() {
       window.removeEventListener('mousedown', onDown);
       window.removeEventListener('touchstart', onDown);
     };
-  }, [actionsOpen]);
+  }, [actionsOpen, isMobileActions]);
+
+  useEffect(() => {
+    if (!actionsOpen) return;
+    let cancelled = false;
+    api.exportProjectDoc(projectId).then(
+      (doc) => { if (!cancelled) setExportDocCache({ id: projectId, doc }); },
+      () => { if (!cancelled) setExportDocCache(null); },
+    );
+    return () => { cancelled = true; };
+  }, [actionsOpen, projectId]);
 
   useEffect(() => {
     setActionsOpen(false);
@@ -632,7 +648,10 @@ export function ProjectPage() {
   async function onExport() {
     if (!project) return;
     try {
-      const doc = await api.exportProjectDoc(projectId);
+      // Pakai cache prefetch bila segar agar klik anchor sinkron dalam gesture.
+      const doc = exportDocCache && exportDocCache.id === projectId
+        ? exportDocCache.doc
+        : await api.exportProjectDoc(projectId);
       const safeName = project.name.replace(/[^a-z0-9-_]/gi, '_').toLowerCase() || 'project';
       const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -796,10 +815,11 @@ export function ProjectPage() {
                       <span className="more-item-label">{t('actions.export')}</span>
                     </button>
                     {role !== 'viewer' && !isArchived && (
-                      <button type="button" role="menuitem" className="more-item" onClick={() => { setActionsOpen(false); fileInputRef.current?.click(); }}>
+                      <label className="more-item" onClick={() => { setActionsOpen(false); }}>
+                        <input type="file" accept="application/json,.json" className="more-item-file" onChange={onImportFile} aria-label={t('actions.import')} />
                         <span className="more-item-icon"><UploadSimple size={14} aria-hidden="true" /></span>
                         <span className="more-item-label">{t('actions.import')}</span>
-                      </button>
+                      </label>
                     )}
                     {role !== 'viewer' && !isArchived && (
                       <button type="button" role="menuitem" className="more-item" onClick={() => { setActionsOpen(false); setSaveTemplateOpen(true); }}>
@@ -833,10 +853,11 @@ export function ProjectPage() {
                           <span className="more-item-label">{t('actions.export')}</span>
                         </button>
                         {role !== 'viewer' && !isArchived && (
-                          <button type="button" role="menuitem" className="more-item" onClick={() => { setActionsOpen(false); fileInputRef.current?.click(); }}>
+                          <label className="more-item" onClick={() => { setActionsOpen(false); }}>
+                            <input type="file" accept="application/json,.json" className="more-item-file" onChange={onImportFile} aria-label={t('actions.import')} />
                             <span className="more-item-icon"><UploadSimple size={18} aria-hidden="true" /></span>
                             <span className="more-item-label">{t('actions.import')}</span>
-                          </button>
+                          </label>
                         )}
                         {role !== 'viewer' && !isArchived && (
                           <button type="button" role="menuitem" className="more-item" onClick={() => { setActionsOpen(false); setSaveTemplateOpen(true); }}>
@@ -856,13 +877,6 @@ export function ProjectPage() {
               <h1 className="page-title sr-only">{project.name}</h1>
             </div>
           </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/json,.json"
-            hidden
-            onChange={onImportFile}
-          />
         </header>
 
         {isArchived && (

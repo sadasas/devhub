@@ -710,12 +710,23 @@ a:hover {
   z-index: var(--z-overlay, 30);
 }
 
+/* Arah sort bersarang di bawah opsi aktif — anak dari induknya, bukan kotak terpisah. */
 .sort-menu-dir {
   display: flex;
   gap: 4px;
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid var(--border-strong);
+  margin: 2px 2px 4px 16px;
+  padding-left: 8px;
+  border-left: 2px solid var(--accent);
+}
+
+/* Badge jumlah filter aktif di trigger FilterControl (pill hitung existing). */
+.filter-control-trigger .tab-count {
+  margin-left: 2px;
+}
+
+/* Arah sort sheet mobile bersarang di bawah radio tercentang. */
+.sheet-radio-list .seg-control {
+  margin: 2px 0 6px 22px;
 }
 
 .sort-menu-dir-row {
@@ -6189,6 +6200,16 @@ html[data-theme='light'] .splash-bg {
     color var(--duration-fast) var(--ease-out);
   font-family: var(--font-sans);
   white-space: nowrap;
+  position: relative;
+}
+
+/* Input file aktivasi-native di dalam baris aksi (label pattern):
+   tap = aktivasi langsung input (lolos iOS), bukan klik programatik. */
+.more-item-file {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 
 .more-item:hover {
@@ -7020,6 +7041,19 @@ html[data-theme='light'] .splash-bg {
   margin-left: auto;
 }
 
+/* Templates mobile: aksi turun di bawah judul, rata kanan. */
+@media (max-width: 640px) {
+  .templates-page .data-row-top {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .templates-page .data-row-props {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-end;
+  }
+}
+
 .data-row-btn .row-title-text {
   flex: 1;
   min-width: 0;
@@ -7419,18 +7453,20 @@ html[data-theme='light'] .splash-bg {
 
 /* P0: 44px touch targets + wrap spacing on narrow screens. */
 @media (max-width: 640px) {
-  /* Toolbar satu baris: switcher kiri, sort ikon-only kanan. Aksi lain
-     (filter) sudah konsolidasi ke dalam panel sort; Canvas disembunyikan. */
+  /* Toolbar dua baris bila tak muat: switcher mode di atas, aksi (sort/
+     filter/dll.) turun di bawah. Ikon-only + target 44px tetap. */
   .board-toolbar {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: center;
+    row-gap: 8px;
   }
   .board-toolbar-actions {
     gap: 8px;
     row-gap: 8px;
-    width: auto;
-    margin-left: auto;
-    flex-shrink: 0;
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-end;
+    flex-shrink: 1;
   }
   .board-toolbar .sort-control-trigger .sort-trigger-text,
   .board-toolbar .sort-control-trigger .sort-trigger-chev {
@@ -7496,6 +7532,12 @@ html[data-theme='light'] .splash-bg {
 
 .sub-tab-label {
   white-space: nowrap;
+}
+
+/* Profile: samakan size ke tab Project (13px/7px 12px); style segmented tetap. */
+.profile-main .sub-tab {
+  padding: 7px 12px;
+  font-size: 13px;
 }
 
 /* P0: <768px view switcher becomes icon-only segmented (aria-label keeps text). */
@@ -10119,6 +10161,10 @@ input[type='checkbox'] {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
 }
 
 .bar-track {
@@ -14048,6 +14094,9 @@ body:has(.wb-shell.wb-presenting) > .sheet-backdrop {
 
 .tooltip-card {
   max-width: min(300px, calc(100vw - 16px));
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+  border: 1px solid var(--border-inverse);
   border-radius: 10px;
   box-shadow: var(--shadow-raised);
   animation: tooltip-in 0.12s var(--ease-out);
@@ -14077,6 +14126,7 @@ body:has(.wb-shell.wb-presenting) > .sheet-backdrop {
   margin-top: 1px;
 }
 
+.tooltip-card .tooltip-icon,
 .tooltip-card-dark .tooltip-icon,
 .tooltip-card-light .tooltip-icon,
 .tooltip-card-info .tooltip-icon {
@@ -20397,12 +20447,16 @@ html[data-theme='light'] .tour-overlay-dim {
     padding: 10px 12px;
   }
   .pcard--compact .project-heading-top {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
+    row-gap: 8px;
     gap: 8px;
   }
   .pcard--compact .project-actions {
-    flex-wrap: nowrap;
-    flex-shrink: 0;
+    flex-wrap: wrap;
+    flex-shrink: 1;
+    width: 100%;
+    justify-content: flex-end;
+    margin-left: auto;
     gap: 6px;
   }
   .project-heading-top .breadcrumb {
@@ -20415,11 +20469,15 @@ html[data-theme='light'] .tour-overlay-dim {
   }
 }
 
-/* P0: 360px — single-row header (Image 2): breadcrumb ellipsis + Owner + icon buttons.
-   Share is icon-only on mobile so no wrap is needed; guards only cap text widths. */
+/* P0: 360px — guards cap text widths; actions sudah turun di bawah judul
+   via rule ≤640px di atas, jadi single-row paksa tak lagi dipakai. */
 @media (max-width: 360px) {
   .project-heading-top {
     gap: 8px;
+    row-gap: 8px;
+  }
+  .project-actions {
+    margin-left: auto;
   }
   .breadcrumb-link {
     max-width: 30vw;

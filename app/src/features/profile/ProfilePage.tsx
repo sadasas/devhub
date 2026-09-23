@@ -234,7 +234,7 @@ export function ProfilePage() {
           aria-selected={tab === 'profile'}
           tabIndex={tab === 'profile' ? 0 : -1}
         >
-          <UserCircle size={13} aria-hidden="true" />
+          <UserCircle size={15} aria-hidden="true" />
           {t('profile.tab.profile')}
         </button>
         <button
@@ -249,7 +249,7 @@ export function ProfilePage() {
           aria-selected={tab === 'security'}
           tabIndex={tab === 'security' ? 0 : -1}
         >
-          <LockKey size={13} aria-hidden="true" />
+          <LockKey size={15} aria-hidden="true" />
           {t('profile.tab.security')}
         </button>
         <button
@@ -264,7 +264,7 @@ export function ProfilePage() {
           aria-selected={tab === 'account'}
           tabIndex={tab === 'account' ? 0 : -1}
         >
-          <IdentificationBadge size={13} aria-hidden="true" />
+          <IdentificationBadge size={15} aria-hidden="true" />
           {t('profile.tab.account')}
         </button>
       </div>

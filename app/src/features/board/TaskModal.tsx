@@ -11,6 +11,7 @@ import {
   hashLabelColor,
   labelChipStyleFor,
 } from '../../lib/labels';
+import { TaskPriorityIcon, TaskStatusIcon } from '../../lib/task-icons';
 import { formatDate, formatRelative, isDecimalKey, isTaskCompletable, linkedTestCases, newId, nowIso, openBlockerNames, parseLabels, sanitizeDecimalInput, taskBlockSummary } from '../../lib/utils';
 import { api } from '../../lib/api';
 import { taskDueChip } from '../../lib/due-dates';
@@ -565,11 +566,12 @@ export function TaskModal({ taskId, onClose, onNavigate }: TaskModalProps) {
                 canEdit={canEdit}
                 view={(
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 6, background: task.status === 'done' ? 'var(--status-success-dim)' : task.status === 'review' ? 'var(--status-warn-dim)' : task.status === 'inProgress' ? 'var(--status-info-dim)' : 'var(--bg-inset)', fontSize: 12 }}>
+                    <TaskStatusIcon status={task.status} size={12} />
                     {TASK_STATUS[task.status].label}
                   </span>
                 )}
                 control={(
-                  <SearchableSelect defaultOpen searchable={false} id="task-status" label="" ariaLabel={t('board.taskModal.statusLabel')} value={task.status} allowEmpty={false} options={STATUS_OPTIONS.map((s) => ({ value: s, label: TASK_STATUS[s].label }))} onChange={(v) => { if (v) { changeStatus(v as TaskStatus); setHotProp(null); } }} />
+                  <SearchableSelect defaultOpen searchable={false} id="task-status" label="" ariaLabel={t('board.taskModal.statusLabel')} value={task.status} allowEmpty={false} options={STATUS_OPTIONS.map((s) => ({ value: s, label: TASK_STATUS[s].label, icon: <TaskStatusIcon status={s} size={13} /> }))} onOpenChange={(o) => { if (!o) setHotProp(null); }} onChange={(v) => { if (v) { changeStatus(v as TaskStatus); setHotProp(null); } }} />
                 )}
               />
               {/* Priority */}
@@ -581,12 +583,13 @@ export function TaskModal({ taskId, onClose, onNavigate }: TaskModalProps) {
                 setHot={setHotProp}
                 canEdit={canEdit}
                 view={(
-                  <span style={{ padding: '2px 8px', borderRadius: 6, background: task.priority === 'urgent' ? 'var(--status-danger-dim)' : task.priority === 'high' ? 'var(--status-warn-dim)' : task.priority === 'medium' ? 'var(--status-info-dim)' : 'var(--bg-inset)', fontSize: 12, color: task.priority === 'urgent' ? 'var(--status-danger)' : task.priority === 'high' ? 'var(--status-warn)' : task.priority === 'medium' ? 'var(--status-info)' : 'var(--text-secondary)' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 6, background: task.priority === 'urgent' ? 'var(--status-danger-dim)' : task.priority === 'high' ? 'var(--status-warn-dim)' : task.priority === 'medium' ? 'var(--status-info-dim)' : 'var(--bg-inset)', fontSize: 12, color: task.priority === 'urgent' ? 'var(--status-danger)' : task.priority === 'high' ? 'var(--status-warn)' : task.priority === 'medium' ? 'var(--status-info)' : 'var(--text-secondary)' }}>
+                    <TaskPriorityIcon priority={task.priority} size={12} />
                     {TASK_PRIORITY[task.priority].label}
                   </span>
                 )}
                 control={(
-                  <SearchableSelect defaultOpen searchable={false} id="task-priority" label="" ariaLabel={t('board.newTaskModal.priorityLabel')} value={task.priority} allowEmpty={false} options={TASK_PRIORITY_ORDER.map((p) => ({ value: p, label: TASK_PRIORITY[p].label }))} onChange={(v) => { if (v) { update({ priority: v as TaskPriority }); setHotProp(null); } }} />
+                  <SearchableSelect defaultOpen searchable={false} id="task-priority" label="" ariaLabel={t('board.newTaskModal.priorityLabel')} value={task.priority} allowEmpty={false} options={TASK_PRIORITY_ORDER.map((p) => ({ value: p, label: TASK_PRIORITY[p].label, icon: <TaskPriorityIcon priority={p} size={13} /> }))} onOpenChange={(o) => { if (!o) setHotProp(null); }} onChange={(v) => { if (v) { update({ priority: v as TaskPriority }); setHotProp(null); } }} />
                 )}
               />
 
@@ -758,7 +761,7 @@ export function TaskModal({ taskId, onClose, onNavigate }: TaskModalProps) {
                       })()
                       : []),
                     ...members.filter((m) => !(user?.id && task.assigneeId !== user.id && m.id === user.id)).map((m) => { const n = m.displayName || m.email; return { value: m.id, label: n, icon: <Avatar src={m.avatarUrl ?? null} name={n} email={m.email} id={m.id} size={20} alt="" /> }; }),
-                  ]} onChange={(v) => { update({ assigneeId: v }); setHotProp(null); }} triggerEmptyLabel={t('board.taskModal.assigneeLabel')} />
+                   ]} onOpenChange={(o) => { if (!o) setHotProp(null); }} onChange={(v) => { update({ assigneeId: v }); setHotProp(null); }} triggerEmptyLabel={t('board.taskModal.assigneeLabel')} />
                 )}
               />
 
@@ -776,7 +779,7 @@ export function TaskModal({ taskId, onClose, onNavigate }: TaskModalProps) {
                   </span>
                 )}
                 control={(
-                  <SearchableSelect defaultOpen id="task-milestone" label="" ariaLabel={t('board.taskModal.milestoneLabel')} value={task.milestoneId} options={state!.milestones.map((m) => ({ value: m.id, label: m.name }))} onChange={(v) => { update({ milestoneId: v }); setHotProp(null); }} triggerEmptyLabel={t('board.taskModal.milestoneLabel')} />
+                  <SearchableSelect defaultOpen id="task-milestone" label="" ariaLabel={t('board.taskModal.milestoneLabel')} value={task.milestoneId} options={state!.milestones.map((m) => ({ value: m.id, label: m.name }))} onOpenChange={(o) => { if (!o) setHotProp(null); }} onChange={(v) => { update({ milestoneId: v }); setHotProp(null); }} triggerEmptyLabel={t('board.taskModal.milestoneLabel')} />
                 )}
               />
 
@@ -939,7 +942,7 @@ export function TaskModal({ taskId, onClose, onNavigate }: TaskModalProps) {
                     <>
                       {blockedTasks.map((bt) => blockerChip(bt, true))}
                       {pickingBlocker ? (
-                        <SearchableSelect defaultOpen id="blockedBy-picker" label="" value={null} options={otherTasks.filter(ot => !task.blockedBy.includes(ot.id) && !ot.parentTaskId).map(ot => ({ value: ot.id, label: `${ot.title} · ${ot.status}` }))} onChange={(v) => { if (v) { toggleBlocker(v); setPickingBlocker(false); } }} />
+                        <SearchableSelect defaultOpen id="blockedBy-picker" label="" value={null} options={otherTasks.filter(ot => !task.blockedBy.includes(ot.id) && !ot.parentTaskId).map(ot => ({ value: ot.id, label: `${ot.title} · ${ot.status}` }))} onOpenChange={(o) => { if (!o) setPickingBlocker(false); }} onChange={(v) => { if (v) { toggleBlocker(v); setPickingBlocker(false); } }} />
                       ) : (
                         <button type="button" onClick={() => setPickingBlocker(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, padding: '6px 8px', minWidth: 24, minHeight: 24 }}>+ Add</button>
                       )}
@@ -1197,7 +1200,7 @@ export function TaskModal({ taskId, onClose, onNavigate }: TaskModalProps) {
                             ariaLabel={t('board.taskModal.subPriority', { defaultValue: 'Subtask priority' })}
                             value={subPriority}
                             searchable={false}
-                            options={TASK_PRIORITY_ORDER.map((p) => ({ value: p, label: TASK_PRIORITY[p].label }))}
+                            options={TASK_PRIORITY_ORDER.map((p) => ({ value: p, label: TASK_PRIORITY[p].label, icon: <TaskPriorityIcon priority={p} size={13} /> }))}
                             emptyLabel={t('board.taskModal.followParent', { defaultValue: 'Follow parent' })}
                             triggerEmptyLabel={t('board.taskModal.subPriorityInherit', { defaultValue: '{{label}} (inherited)', label: TASK_PRIORITY[task.priority].label })}
                             onChange={(v) => setSubPriority(v as TaskPriority | null)}
@@ -1229,6 +1232,7 @@ export function TaskModal({ taskId, onClose, onNavigate }: TaskModalProps) {
                   ariaLabel={t('board.taskModal.parentLabel', { defaultValue: 'Parent:' })}
                   value={task.parentTaskId ?? null}
                   options={parentOptions.map((ot) => ({ value: ot.id, label: `${ot.title} · ${ot.status}` }))}
+                  onOpenChange={(o) => { if (!o) setParentPicking(false); }}
                   onChange={(v) => { update({ parentTaskId: v }); setParentPicking(false); }}
                   triggerEmptyLabel={t('board.taskModal.setParent', { defaultValue: 'Make subtask of…' })}
                 />
