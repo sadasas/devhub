@@ -195,6 +195,9 @@ is reserved for floating layers.
 | 2026-09-15 | Settings search: indeks keyword sub-setting per section (`SETTINGS_SUB_KEYS`, label i18n) + hint "Cocok: …" (11px muted) + clear-on-navigate; mis. "url" → Umum |
 | 2026-09-19 | `erd-group-label`, `erd-rail-label`, `versions-title-row` (dari ERD hardening main) didaftar di ALLOWLIST guard-css (grandfathered, gate kembali hijau) |
 | 2026-09-22 | `.editable-field-title` (wrapper judul TaskModal untuk pencil hover-reveal; memperbaiki order mobile judul yang jatuh karena selector `textarea.composer-title` tak lagi kena) didaftar di ALLOWLIST guard-css |
+| 2026-09-22 | Lampiran ala Linear: thumb 40px + tombol Eye → `AttachmentPreviewModal` (reuse `.md-preview`/`.modal-fullscreen`, zoom gambar, video, PDF `sandbox`, teks cap 1MB); `LinkCard` (favicon+domain, OG title/desc/image via `/attachments/unfurl` SSRF-guarded cache 1 jam); embed deskripsi `![alt](attachment:<id>)` (blob URL sesi, lolos expiry 60 dtk signed URL); upload dari editor (paperclip/drag-drop/paste, staged vs attached). Kelas baru `.link-card` tanpa `*-title/*-label` (guard hijau); video dibuka di allowlist (`video/*`) |
+| 2026-09-22 | Subtask ala Linear/Asana/ClickUp (gaya subtle, tanpa tint): tambah inline judul+assignee+tanggal di TaskModal (reuse `SearchableSelect` + `DatePicker range` portal; chain Enter, validasi rentang parent saat buat); baris subtask indent 16 + rail `border-hairline` 1px, avatar 14-16 + meta 11px muted + due chip existing; badge `Subtask` (`Badge neutral`) + breadcrumb `btn-ghost btn-sm`; kartu board: ikon `GitBranch` 11 + sub-label parent 11px muted, progress reuse `.usage-meter-bar/fill`, due rollup via `taskDueChip`; kalender: ikon + parent di tooltip/chip. Nol kelas/hex/spacing/font baru (guard hijau) |
+| 2026-09-23 | Tooltip satu gaya inverse theme-aware: prop `tone` dihapus (±30 call-site), `.tooltip-card-{dark,light,info}` + arrow varian dilipat ke 1 blok token (`--surface/text/border/icon-inverse`, nilai dibalik per tema); hex `#111827/#2f6df6` keluar dari allowlist guard; aturan: plain vs rich tak lagi dibedakan tone (konsensus Linear/GitHub/Onyx, inversi Radix) |
 
 ---
 
@@ -296,8 +299,11 @@ Domain warna SAH di luar token UI (bukan drift):
   Keputusan owner 2026-09-15: #34c38e → accent #5db69b untuk default elemen BARU (templates) + swatch palet; #34c38e dipertahankan di isLightFill (WhiteboardCanvas + export, cermin sinkron) untuk konten lama.
 - **Brand/ilustrasi** (Logo, DoodleIllustration, bento-fill #fff): karya
   tetap, tidak ikut tema.
-- **Varian tooltip** (dark #111827, info #2f6df6): live + ter-test
-  (Tooltip, WhiteboardEditorShell); retokenisasi ikut task whiteboard.
+- **Varian tooltip** (dulu dark `#111827`, info `#2f6df6`): DILIPAT 2026-09-23 ke
+  satu gaya inverse theme-aware (`--surface-inverse`/`--text-inverse`/
+  `--border-inverse`/`--icon-inverse`, nilai dibalik per tema ala Radix;
+  preseden unifikasi Onyx DAN-2927). Prop `tone` dihapus dari
+  `Tooltip`/`TooltipCard`; ±30 call-site dibersihkan.
 
   Pengecualian guard untuk domain di atas hidup di `HEX_FILE_ALLOWLIST` /
   `HEX_VALUE_ALLOWLIST` (`app/scripts/guard-css-classes.mjs`) — cermin

@@ -19,11 +19,10 @@ export function GCalSyncedMark({
   if (!syncedIds.has(taskId)) return null;
   return (
     <Tooltip
-      tone="light"
       title={t('board.gcal.syncedTask', { defaultValue: 'Synced to Google Calendar' })}
     >
       <span
-        style={{ display: 'inline-flex', color: 'var(--text-muted)' }}
+        style={{ display: 'inline-flex', color: 'inherit' }}
         aria-hidden="true"
       >
         <GoogleLogo size={11} aria-hidden="true" />

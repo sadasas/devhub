@@ -90,7 +90,7 @@ export function GCalSyncButton({
   );
 
   return (
-    <Tooltip tone="light" title={fullLabel}>
+    <Tooltip title={fullLabel}>
       {button}
     </Tooltip>
   );

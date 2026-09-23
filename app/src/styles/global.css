@@ -14047,22 +14047,12 @@ body:has(.wb-shell.wb-presenting) > .modal-backdrop {
   animation: tooltip-in 0.12s var(--ease-out);
 }
 
-.tooltip-card-dark {
-  background: #111827;
-  color: #f9fafb;
-  border: 1px solid #111827;
-}
-
-.tooltip-card-light {
-  background: var(--bg-overlay);
-  color: var(--text-primary);
-  border: 1px solid var(--border-strong);
-}
-
+.tooltip-card-dark,
+.tooltip-card-light,
 .tooltip-card-info {
-  background: #2f6df6;
-  color: #ffffff;
-  border: 1px solid #2f6df6;
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+  border: 1px solid var(--border-inverse);
 }
 
 .tooltip-body {
@@ -14081,16 +14071,10 @@ body:has(.wb-shell.wb-presenting) > .modal-backdrop {
   margin-top: 1px;
 }
 
-.tooltip-card-dark .tooltip-icon {
-  color: #c7d2fe;
-}
-
-.tooltip-card-light .tooltip-icon {
-  color: var(--accent);
-}
-
+.tooltip-card-dark .tooltip-icon,
+.tooltip-card-light .tooltip-icon,
 .tooltip-card-info .tooltip-icon {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--icon-inverse);
 }
 
 .tooltip-text {
@@ -14123,16 +14107,10 @@ body:has(.wb-shell.wb-presenting) > .modal-backdrop {
   height: auto;
 }
 
-.tooltip-arrow {
-  fill: #111827;
-}
-
-.tooltip-arrow-light {
-  fill: var(--bg-overlay);
-}
-
+.tooltip-arrow,
+.tooltip-arrow-light,
 .tooltip-arrow-info {
-  fill: #2f6df6;
+  fill: var(--surface-inverse);
 }
 
 @keyframes tooltip-in {

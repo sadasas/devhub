@@ -18,12 +18,10 @@ import {
 } from '@floating-ui/react';
 import type { Placement } from '@floating-ui/react';
 
-export type TooltipTone = 'dark' | 'light' | 'info';
 export type TooltipSide = 'top' | 'bottom' | 'left' | 'right';
 export type TooltipAlign = 'start' | 'center' | 'end';
 
 export interface TooltipCardProps {
-  tone?: TooltipTone;
   title?: ReactNode;
   description?: ReactNode;
   icon?: ReactNode;
@@ -35,10 +33,10 @@ export interface TooltipCardProps {
 
 /**
  * Totem tampilan tooltip — dipakai langsung (ERD canvas, konten kustom)
- * maupun di dalam <Tooltip> interaktif.
+ * maupun di dalam <Tooltip> interaktif. Satu gaya inverse theme-aware
+ * (keputusan 2026-09-23: unifikasi tone ala Linear/Onyx, inversi ala Radix).
  */
 export function TooltipCard({
-  tone = 'dark',
   title,
   description,
   icon,
@@ -48,7 +46,7 @@ export function TooltipCard({
   children,
 }: TooltipCardProps) {
   return (
-    <div id={id} className={`tooltip-card tooltip-card-${tone}${className ? ` ${className}` : ''}`}>
+    <div id={id} className={`tooltip-card${className ? ` ${className}` : ''}`}>
       {media && (
         <div className="tooltip-media" aria-hidden={title !== undefined || description !== undefined}>
           {media}
@@ -99,7 +97,6 @@ export function Tooltip({
   icon,
   media,
   children,
-  tone = 'dark',
   side = 'top',
   align = 'center',
   delay = 150,
@@ -143,10 +140,10 @@ export function Tooltip({
         style={{ ...floatingStyles, zIndex: 80 } as CSSProperties}
         {...getFloatingProps()}
       >
-        <TooltipCard tone={tone} title={title} description={description} icon={icon} media={media} id={tooltipId}>
+        <TooltipCard title={title} description={description} icon={icon} media={media} id={tooltipId}>
           {content}
         </TooltipCard>
-        <FloatingArrow ref={arrowRef} context={context} className={`tooltip-arrow tooltip-arrow-${tone}`} />
+        <FloatingArrow ref={arrowRef} context={context} className="tooltip-arrow" />
       </div>
     </FloatingPortal>
   ) : null;

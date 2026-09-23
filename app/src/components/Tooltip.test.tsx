@@ -42,15 +42,18 @@ describe('Tooltip', () => {
     await waitForElementToBeRemoved(() => screen.queryByRole('tooltip'));
   });
 
-  it('mendukung varian tone + title + description + icon + media', () => {
+  it('mendukung title + description + icon + media dalam satu gaya inverse', () => {
     render(
-      <Tooltip tone="info" side="bottom" title="Judul" description="Deskripsi" icon={<span>i</span>} media={<img alt="" src="x.png" />}>
+      <Tooltip side="bottom" title="Judul" description="Deskripsi" icon={<span>i</span>} media={<img alt="" src="x.png" />}>
         <button type="button">T</button>
       </Tooltip>,
     );
     fireEvent.focus(screen.getByRole('button', { name: 'T' }));
     const tip = screen.getByRole('tooltip');
-    expect(tip.querySelector('.tooltip-card-info')).not.toBeNull();
+    // Satu gaya: tanpa suffix tone apa pun.
+    expect(tip.querySelector('.tooltip-card')).not.toBeNull();
+    expect(tip.querySelector('.tooltip-card-dark,.tooltip-card-light,.tooltip-card-info')).toBeNull();
+    expect(tip.querySelector('.tooltip-arrow-light,.tooltip-arrow-info')).toBeNull();
     expect(tip.textContent).toContain('Judul');
     expect(tip.textContent).toContain('Deskripsi');
   });
@@ -92,12 +95,12 @@ describe('Tooltip', () => {
 });
 
 describe('TooltipCard', () => {
-  it('render kartu light dengan judul', () => {
+  it('render kartu single-style dengan judul', () => {
     render(
-      <TooltipCard tone="light" title="Kolom A">
+      <TooltipCard title="Kolom A">
         <span>baris kustom</span>
       </TooltipCard>,
     );
-    expect(document.querySelector('.tooltip-card-light')?.textContent).toContain('Kolom A');
+    expect(document.querySelector('.tooltip-card')?.textContent).toContain('Kolom A');
   });
 });

@@ -24,6 +24,12 @@
   --text-muted: #8e8e98;
   --text-on-accent: #ffffff;
 
+  /* Inverse — satu gaya tooltip/kontras (terang↔gelap mengikuti tema) */
+  --surface-inverse: #f9fafb;
+  --text-inverse: #111827;
+  --border-inverse: #f9fafb;
+  --icon-inverse: var(--accent);
+
   /* Accent — sage soft (ex-emerald #34c38e -> muted) */
   --accent: #5db69b;
   --accent-hover: #6bc1a7;
@@ -182,6 +188,12 @@ html[data-theme='light'] {
   --text-secondary: #5a5a64;
   --text-muted: #6e6e78;
   --text-on-accent: #ffffff;
+
+  /* Inverse — cermin :root (kotak gelap + teks terang di tema terang) */
+  --surface-inverse: #111827;
+  --text-inverse: #f9fafb;
+  --border-inverse: #111827;
+  --icon-inverse: var(--accent);
 
   --accent: #4a8b6f;
   --accent-hover: #5a9d7f;

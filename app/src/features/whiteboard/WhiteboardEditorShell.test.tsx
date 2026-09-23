@@ -2843,7 +2843,7 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
         });
         const tip = screen.getByRole('tooltip');
         expect(tip.textContent).toBe('Pen — P');
-        expect(tip.querySelector('.tooltip-card-dark')).not.toBeNull();
+        expect(tip.querySelector('.tooltip-card')).not.toBeNull();
         fireEvent.mouseLeave(pen);
         expect(screen.queryByRole('tooltip')).toBeNull();
       } finally {
