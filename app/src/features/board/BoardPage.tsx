@@ -984,7 +984,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       )}
       </div>
 
-      <TaskModal taskId={editId} onClose={() => setEditId(null)} />
+      <TaskModal taskId={editId} onClose={() => setEditId(null)} onNavigate={setEditId} />
       <NewTaskModal
         open={newTaskAt !== null}
         status={newTaskAt?.status ?? null}

@@ -3,6 +3,8 @@ import { Modal } from './Modal';
 
 interface DetailShellProps {
   title: string;
+  /** Pengganti judul header (mis. breadcrumb subtask) — bila diisi dipakai sebagai judul Modal. */
+  headerTitle?: ReactNode;
   onClose: () => void;
   footer?: ReactNode;
   sidebarHead?: ReactNode;
@@ -20,6 +22,7 @@ interface DetailShellProps {
  */
 export function DetailShell({
   title,
+  headerTitle,
   onClose,
   footer,
   sidebarHead,
@@ -31,7 +34,7 @@ export function DetailShell({
     <>
       <Modal
         open
-        title={title}
+        title={headerTitle ?? title}
         onClose={onClose}
         width="lg"
         className="modal-composer modal-composer--fullscreen"

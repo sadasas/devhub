@@ -157,6 +157,7 @@ export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
             rows={4}
             variant="bare"
             previewToggle
+            embedAttachments={projectId ? { projectId, attachments: draft } : undefined}
           />
           <MarkdownField
             label={t('issues.newModal.reproductionStepsLabel')}
@@ -168,6 +169,7 @@ export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
             rows={4}
             variant="bare"
             previewToggle
+            embedAttachments={projectId ? { projectId, attachments: draft } : undefined}
           />
           {canEdit && projectId && (
             <AttachmentSection

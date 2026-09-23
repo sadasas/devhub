@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { createPortal } from 'react-dom';
-import { Trash, Clock, LinkSimple, FileText, CheckCircle, Plus, Circle, Flag, CalendarBlank, Tag, User, Rocket, ChartBar, ListChecks, PencilSimple } from '@phosphor-icons/react';
+import { Trash, Clock, LinkSimple, FileText, CheckCircle, Plus, Circle, Flag, CalendarBlank, Tag, User, Rocket, ChartBar, ListChecks, PencilSimple, CaretLeft, GitBranch, LinkBreak } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import {
   TASK_PRIORITY,
@@ -25,6 +25,7 @@ import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { ActivityList } from '../../components/ActivityList';
 import { AttachmentSection } from '../../components/AttachmentSection';
 import { Avatar } from '../../components/Avatar';
+import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { PlanLimitModal } from '../../components/PlanLimitModal';
@@ -46,9 +47,11 @@ const AUTO_FOCUS_INPUT = typeof window !== 'undefined' && window.matchMedia?.('(
 interface TaskModalProps {
   taskId: string | null;
   onClose: () => void;
+  /** Navigasi antar task di dalam modal (klik subtask / breadcrumb parent). */
+  onNavigate?: (taskId: string) => void;
 }
 
-export function TaskModal({ taskId, onClose }: TaskModalProps) {
+export function TaskModal({ taskId, onClose, onNavigate }: TaskModalProps) {
   const { t } = useTranslation(['tracker','project']);
   const { state, dispatch, canEdit, projectId, teamId, saving, lastSavedAt } = useProject();
   const { user } = useOptionalAuth();
@@ -227,6 +230,16 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
   const [checkDraft, setCheckDraft] = useState('');
   const [subDraft, setSubDraft] = useState('');
   const [subAdding, setSubAdding] = useState(false);
+  /** Properti inline subtask baru: assignee default kosong, tanggal default kosong. */
+  const [subAssignee, setSubAssignee] = useState<string | null>(null);
+  const [subPriority, setSubPriority] = useState<TaskPriority | null>(null);
+  const [subStart, setSubStart] = useState<string | null>(null);
+  const [subDue, setSubDue] = useState<string | null>(null);
+  const [subRangeErr, setSubRangeErr] = useState<string | null>(null);
+  const [subDatesOpen, setSubDatesOpen] = useState(false);
+  const subDatesTriggerRef = useRef<HTMLButtonElement>(null);
+  const subCardRef = useRef<HTMLDivElement>(null);
+  const subTitleRef = useRef<HTMLTextAreaElement>(null);
   const [checkAdding, setCheckAdding] = useState(false);
   const [parentPicking, setParentPicking] = useState(false);
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -257,6 +270,12 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
     setCheckDraft('');
     setSubDraft('');
     setSubAdding(false);
+    setSubAssignee(null);
+    setSubPriority(null);
+    setSubStart(null);
+    setSubDue(null);
+    setSubRangeErr(null);
+    setSubDatesOpen(false);
     setCheckAdding(false);
     setParentPicking(false);
   }, [taskId]);
@@ -268,7 +287,53 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
       ta.style.height = 'auto';
       ta.style.height = `${ta.scrollHeight}px`;
     }
+    const sub = subTitleRef.current;
+    if (sub) {
+      sub.style.height = 'auto';
+      sub.style.height = `${sub.scrollHeight}px`;
+    }
   });
+
+  // Popup tanggal subtask menutup saat klik di luar (panel dp-portal dikecualikan).
+  useEffect(() => {
+    if (!subDatesOpen) return;
+    const onDown = (e: PointerEvent) => {
+      const el = e.target as Element | null;
+      if (subDatesTriggerRef.current?.contains(el as Node)) return;
+      if (el?.closest?.('.dp-panel')) return;
+      setSubDatesOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSubDatesOpen(false);
+    };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [subDatesOpen]);
+
+  // Kartu tambah subtask menutup saat klik di luar (draft dibuang) —
+  // panel picker portal (.ss-panel/.dp-panel) dikecualikan.
+  useEffect(() => {
+    if (!subAdding) return;
+    const onDown = (e: PointerEvent) => {
+      const el = e.target as Element | null;
+      if (subCardRef.current?.contains(el as Node)) return;
+      if (el?.closest?.('.ss-panel,.dp-panel')) return;
+      setSubDraft('');
+      setSubAssignee(null);
+      setSubPriority(null);
+      setSubStart(null);
+      setSubDue(null);
+      setSubRangeErr(null);
+      setSubDatesOpen(false);
+      setSubAdding(false);
+    };
+    document.addEventListener('pointerdown', onDown);
+    return () => document.removeEventListener('pointerdown', onDown);
+  }, [subAdding]);
 
   const task = state?.tasks.find((t) => t.id === taskId);
   usePresenceStatus(t('board.taskModal.presenceEditing'), task != null);
@@ -313,7 +378,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
     const style = labelChipStyleFor(l, labelDefs);
     const title = findLabelDef(l, labelDefs)?.description || l;
     return (
-      <Tooltip key={`${l}-${i}`} tone="light" title={title}>
+      <Tooltip key={`${l}-${i}`} title={title}>
         <span style={{ padding: '2px 8px', borderRadius: 6, background: style.background, fontSize: 12, color: style.color }}>{l}</span>
       </Tooltip>
     );
@@ -379,9 +444,24 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
     update({ checklist: [...checklist, { id: newId(), title, done: false }] });
     setCheckDraft('');
   };
-  const addSubtask = () => {
+  /**
+   * Buat subtask inline ala Linear/Asana: judul + assignee + tanggal.
+   * Warisan: priority + milestoneId (parent); assignee + tanggal default kosong.
+   * Tanggal di luar rentang parent ditolak saat buat (bukan jadi orphan diam-diam).
+   * Mengembalikan true bila berhasil — pemanggil memutuskan chain vs tutup.
+   */
+  const addSubtask = (): boolean => {
     const title = subDraft.trim();
-    if (!title || task.parentTaskId) return;
+    if (!title || task.parentTaskId) return false;
+    if (subRangeOutsideParent({ startDate: subStart, dueDate: subDue }, task)) {
+      setSubRangeErr(t('board.taskModal.subRangeWarn', {
+        defaultValue: 'Date is outside the parent range ({{start}} – {{due}}).',
+        start: task.startDate ? formatDate(task.startDate) : '…',
+        due: task.dueDate ? formatDate(task.dueDate) : '…',
+      }));
+      return false;
+    }
+    setSubRangeErr(null);
     const ts = new Date().toISOString();
     dispatch({
       type: 'task/add',
@@ -391,27 +471,62 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
         updatedAt: ts,
         title: title.slice(0, 300),
         status: 'todo',
-        priority: task.priority,
+        priority: subPriority ?? task.priority,
         labels: [],
         blockedBy: [],
         parentTaskId: task.id,
         checklist: [],
         milestoneId: task.milestoneId ?? null,
-        dueDate: null,
-        startDate: null,
+        dueDate: subDue,
+        startDate: subStart,
         completedAt: null,
-        assigneeId: null,
+        assigneeId: subAssignee,
         pinned: false,
         description: '',
       },
     });
+    // Chain ala Asana/Linear: judul dikosongkan, assignee+tanggal dipertahankan.
     setSubDraft('');
+    return true;
   };
 
   return (
     <>
     <DetailShell
       title={t('board.taskModal.viewTitle')}
+      headerTitle={
+        task.parentTaskId ? (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1, marginRight: 8 }}>
+            {onNavigate && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => task.parentTaskId && onNavigate(task.parentTaskId)}
+                aria-label={t('board.taskModal.backToParent', { defaultValue: 'Back to parent task' })}
+                title={parentTask?.title ?? t('board.taskModal.parentLabel', { defaultValue: 'Parent' })}
+                style={{ minWidth: 0 }}
+              >
+                <CaretLeft size={14} aria-hidden="true" />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 14, fontWeight: 600 }}>
+                  {parentTask?.title ?? t('board.taskModal.parentMissing', { defaultValue: '(missing)' })}
+                </span>
+              </button>
+            )}
+            <Badge tone="neutral">{t('board.taskModal.subtaskBadge', { defaultValue: 'Subtask' })}</Badge>
+            {canEdit && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => update({ parentTaskId: null })}
+                style={{ flexShrink: 0, fontSize: 13 }}
+              >
+                <LinkBreak size={12} aria-hidden="true" />
+                {t('board.taskModal.detachParent', { defaultValue: 'Detach' })}
+              </button>
+            )}
+          </span>
+        ) : undefined
+      }
       onClose={onClose}
       footer={
         canEdit ? (
@@ -891,11 +1006,14 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 rows={4}
                 variant="bare"
                 previewToggle
+                embedAttachments={{ projectId, attachments: task.attachments ?? [] }}
               />
             </div>
             {doneWarn && <InlineError>{doneWarn}</InlineError>}
 
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            {!task.parentTaskId && (
+              <>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
               <h4 className="detail-subtitle" style={{ marginBottom: 0, flex: 1, minWidth: 0 }}>
                 {t('board.taskModal.subtasksLabel', { defaultValue: 'Subtasks' })}
                 {subtasks.length > 0 && <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}> · {subDone}/{subtasks.length}</span>}
@@ -904,58 +1022,190 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                 <button
                   type="button"
                   onClick={() => setParentPicking(true)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, padding: 0, whiteSpace: 'nowrap' }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, padding: 0, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                 >
+                  <GitBranch size={12} aria-hidden="true" />
                   {t('board.taskModal.setParent', { defaultValue: 'Make subtask of…' })}
                 </button>
               )}
-            </div>
-            {!task.parentTaskId ? (
+              </div>
               <div style={{ marginTop: 2 }}>
                 {subtasks.length === 0 && !canEdit && <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>}
-                {subtasks.map((ss, i) => (
-                  <div
-                    key={ss.id}
-                    className="mini-row"
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0',
-                      borderTop: i === 0 ? 'none' : '1px solid var(--border-hairline)',
-                    }}
-                  >
+                {subtasks.length > 0 && (
+                <div style={{ paddingLeft: 16, borderLeft: '1px solid var(--border-hairline)' }}>
+                {subtasks.map((ss, i) => {
+                  const chip = taskDueChip(ss);
+                  const sm = ss.assigneeId ? members.find((m) => m.id === ss.assigneeId) : undefined;
+                  const sname = sm?.displayName || sm?.email;
+                  const meta = [sname, ss.dueDate ? formatDate(ss.dueDate) : null].filter(Boolean).join(' · ');
+                  const openLabel = t('board.taskModal.openSubtask', { defaultValue: 'Open subtask {{title}}', title: ss.title });
+                  const rowStyle = {
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0',
+                    borderTop: i === 0 ? 'none' : '1px solid var(--border-hairline)',
+                    cursor: onNavigate ? 'pointer' : undefined,
+                    background: 'none', borderLeft: 'none', borderRight: 'none', borderBottom: 'none',
+                    width: '100%', textAlign: 'left', font: 'inherit', color: 'inherit',
+                  } as const;
+                  const rowInner = (
+                    <>
                     <span
                       style={{
                         width: 14, height: 14, borderRadius: 4, flexShrink: 0,
                         border: '1px solid var(--border-strong)',
                         background: ss.status === 'done' ? 'var(--status-success)' : 'transparent',
-                        color: '#fff', fontSize: 10, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        color: 'white', fontSize: 10, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       }}
                       aria-hidden="true"
                     >
                       {ss.status === 'done' ? '✓' : ''}
                     </span>
-                    <span style={{ flex: 1, minWidth: 0, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-secondary)' }} title={ss.title}>{ss.title}</span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-secondary)' }} title={ss.title}>{ss.title}</span>
+                      {meta && (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {sm && sname && (
+                            <Avatar src={sm.avatarUrl ?? null} name={sname} email={sm.email} id={ss.assigneeId!} size={14} alt="" />
+                          )}
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meta}</span>
+                          {ss.dueDate && chip.tone === 'danger' && chip.label && (
+                            <span className={`task-due task-due-${chip.tone}`} title={chip.title}>{chip.label}</span>
+                          )}
+                        </span>
+                      )}
+                    </span>
                     <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>{ss.status}</span>
-                  </div>
-                ))}
+                    </>
+                  );
+                  return onNavigate ? (
+                    <button
+                      key={ss.id}
+                      type="button"
+                      className="mini-row"
+                      onClick={() => onNavigate(ss.id)}
+                      aria-label={openLabel}
+                      style={rowStyle}
+                    >
+                      {rowInner}
+                    </button>
+                  ) : (
+                    <div key={ss.id} className="mini-row" style={rowStyle}>
+                      {rowInner}
+                    </div>
+                  );
+                })}
+                </div>
+                )}
                 {canEdit && (
                   subAdding ? (
-                    <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                      <input
-                        autoFocus={AUTO_FOCUS_INPUT}
-                        className="input"
-                        value={subDraft}
-                        maxLength={300}
-                        onChange={(e) => setSubDraft(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') { e.preventDefault(); addSubtask(); setSubAdding(false); }
-                          else if (e.key === 'Escape') { setSubDraft(''); setSubAdding(false); }
-                        }}
-                        onBlur={() => { if (!subDraft.trim()) setSubAdding(false); }}
-                        placeholder={t('board.taskModal.addSubtask', { defaultValue: 'New subtask…' })}
-                        aria-label={t('board.taskModal.addSubtask', { defaultValue: 'New subtask…' })}
-                        style={{ flex: 1, minWidth: 0 }}
-                      />
-                      <Button variant="ghost" size="md" className="btn-icon" aria-label={t('board.taskModal.addSubtask', { defaultValue: 'New subtask…' })} onClick={() => { addSubtask(); setSubAdding(false); }} disabled={!subDraft.trim()}><Plus size={16} aria-hidden="true" /></Button>
+                    <div ref={subCardRef} style={{ marginTop: 4, border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-card)', background: 'var(--bg-inset)', overflow: 'hidden' }}>
+                      <div style={{ padding: '6px 12px 0' }}>
+                        <textarea
+                          ref={subTitleRef}
+                          autoFocus={AUTO_FOCUS_INPUT}
+                          className="composer-title"
+                          rows={1}
+                          value={subDraft}
+                          maxLength={300}
+                          onChange={(e) => setSubDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addSubtask(); }
+                            else if (e.key === 'Escape') { setSubDraft(''); setSubAssignee(null); setSubPriority(null); setSubStart(null); setSubDue(null); setSubRangeErr(null); setSubAdding(false); }
+                          }}
+                          placeholder={t('board.taskModal.addSubtask', { defaultValue: 'New subtask…' })}
+                          aria-label={t('board.taskModal.addSubtask', { defaultValue: 'New subtask…' })}
+                          style={{ fontSize: 13, fontWeight: 400 }}
+                        />
+                      </div>
+                      <div className="composer-propbar" style={{ borderTop: 'none', background: 'transparent', padding: '6px 8px' }}>
+                        <span
+                          className="prop"
+                          data-prop="assignee"
+                          data-label={t('board.taskModal.subAssignee', { defaultValue: 'Subtask assignee' })}
+                        >
+                          {(() => {
+                            const sel = subAssignee ? members.find((m) => m.id === subAssignee) : undefined;
+                            const sname = sel?.displayName || sel?.email;
+                            return sel && sname ? (
+                              <Avatar src={sel.avatarUrl ?? null} name={sname} email={sel.email} id={sel.id} size={18} alt="" />
+                            ) : (
+                              <span className="prop-ic" aria-hidden="true"><User size={14} /></span>
+                            );
+                          })()}
+                          <span className="sr-only">{t('board.taskModal.subAssignee', { defaultValue: 'Subtask assignee' })}</span>
+                          <SearchableSelect
+                          id="new-subtask-assignee"
+                          label=""
+                          ariaLabel={t('board.taskModal.subAssignee', { defaultValue: 'Subtask assignee' })}
+                          value={subAssignee}
+                          searchable={members.length > 5}
+                          options={[
+                            ...(user?.id
+                              ? (() => {
+                                const me = members.find((m) => m.id === user.id);
+                                const n = me?.displayName || me?.email || t('board.taskModal.assignToMe', { defaultValue: 'Assign to me' });
+                                return [{ value: user.id, label: t('board.taskModal.assignToMe', { defaultValue: 'Assign to me' }), icon: <Avatar src={me?.avatarUrl ?? null} name={n} email={me?.email} id={user.id} size={20} alt="" /> }];
+                              })()
+                              : []),
+                            ...members.filter((m) => m.id !== user?.id).map((m) => { const n = m.displayName || m.email; return { value: m.id, label: n, icon: <Avatar src={m.avatarUrl ?? null} name={n} email={m.email} id={m.id} size={20} alt="" /> }; }),
+                          ]}
+                          onChange={setSubAssignee}
+                          triggerEmptyLabel={t('board.taskModal.subAssignee', { defaultValue: 'Subtask assignee' })}
+                        />
+                        </span>
+                        <button
+                          ref={subDatesTriggerRef}
+                          type="button"
+                          className="prop"
+                          data-prop="dates"
+                          data-label={t('board.taskModal.subDates', { defaultValue: 'Subtask dates' })}
+                          onClick={() => setSubDatesOpen((v) => !v)}
+                          aria-haspopup="dialog"
+                          aria-expanded={subDatesOpen}
+                        >
+                          <span className="prop-ic" aria-hidden="true"><CalendarBlank size={14} /></span>
+                          <span className="prop-text">
+                            {subStart || subDue
+                              ? (subStart && subDue
+                                ? `${formatDate(subStart)} – ${formatDate(subDue)}`
+                                : formatDate(subStart || subDue))
+                              : t('board.taskModal.subDates', { defaultValue: 'Subtask dates' })}
+                          </span>
+                        </button>
+                        {subDatesOpen && (
+                          <DatePicker
+                            id="new-subtask-dates"
+                            mode="range"
+                            start={subStart}
+                            end={subDue}
+                            minDate={task.startDate?.slice(0, 10) ?? null}
+                            maxDate={task.dueDate?.slice(0, 10) ?? null}
+                            anchorEl={subDatesTriggerRef.current}
+                            onApply={(s, e) => { setSubStart(s); setSubDue(e); setSubRangeErr(null); setSubDatesOpen(false); }}
+                            onClose={() => setSubDatesOpen(false)}
+                          />
+                        )}
+                        <span
+                          className="prop"
+                          data-prop="priority"
+                          data-label={t('board.taskModal.subPriority', { defaultValue: 'Subtask priority' })}
+                        >
+                          <span className="prop-ic" aria-hidden="true"><Flag size={14} /></span>
+                          <span className="sr-only">{t('board.taskModal.subPriority', { defaultValue: 'Subtask priority' })}</span>
+                          <SearchableSelect
+                            id="new-subtask-priority"
+                            label=""
+                            ariaLabel={t('board.taskModal.subPriority', { defaultValue: 'Subtask priority' })}
+                            value={subPriority}
+                            searchable={false}
+                            options={TASK_PRIORITY_ORDER.map((p) => ({ value: p, label: TASK_PRIORITY[p].label }))}
+                            emptyLabel={t('board.taskModal.followParent', { defaultValue: 'Follow parent' })}
+                            triggerEmptyLabel={t('board.taskModal.subPriorityInherit', { defaultValue: '{{label}} (inherited)', label: TASK_PRIORITY[task.priority].label })}
+                            onChange={(v) => setSubPriority(v as TaskPriority | null)}
+                          />
+                        </span>
+                        <Button variant="primary" size="md" className="btn-icon" style={{ marginLeft: 'auto', flexShrink: 0 }} aria-label={t('board.taskModal.addSubtask', { defaultValue: 'New subtask…' })} onClick={() => { addSubtask(); }} disabled={!subDraft.trim()}><Plus size={16} aria-hidden="true" /></Button>
+                      </div>
+                      {subRangeErr && <div style={{ padding: '0 12px 8px' }}><InlineError>{subRangeErr}</InlineError></div>}
                     </div>
                   ) : (
                     <Button
@@ -969,18 +1219,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                   )
                 )}
               </div>
-            ) : (
-              <div className="mini-row" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, marginTop: 2 }}>
-                <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{t('board.taskModal.parentLabel', { defaultValue: 'Parent' })}</span>
-                <span style={{ color: 'var(--text-secondary)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={parentTask?.title ?? ''}>
-                  {parentTask?.title ?? t('board.taskModal.parentMissing', { defaultValue: '(missing)' })}
-                </span>
-                {canEdit && (
-                  <button type="button" className="mini-del" onClick={() => update({ parentTaskId: null })} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, padding: '6px 8px', minWidth: 24, minHeight: 24, flexShrink: 0 }}>
-                    {t('board.taskModal.detachParent', { defaultValue: 'Detach' })}
-                  </button>
-                )}
-              </div>
+              </>
             )}
             {canEdit && parentPicking && !task.parentTaskId && (
               <div style={{ marginTop: 4 }} onKeyDown={(e) => { if (e.key === 'Escape') setParentPicking(false); }}>
@@ -1054,7 +1293,7 @@ export function TaskModal({ taskId, onClose }: TaskModalProps) {
                       aria-label={t('board.taskModal.addChecklist', { defaultValue: 'New item…' })}
                       style={{ flex: 1, minWidth: 0 }}
                     />
-                    <Button variant="ghost" size="md" className="btn-icon" aria-label={t('board.taskModal.addChecklist', { defaultValue: 'New item…' })} onClick={addCheck} disabled={!checkDraft.trim()}><Plus size={16} aria-hidden="true" /></Button>
+                    <Button variant="primary" size="md" className="btn-icon" aria-label={t('board.taskModal.addChecklist', { defaultValue: 'New item…' })} onClick={addCheck} disabled={!checkDraft.trim()}><Plus size={16} aria-hidden="true" /></Button>
                   </div>
                 ) : (
                   <Button

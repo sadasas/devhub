@@ -429,6 +429,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
             rows={4}
             variant="bare"
             previewToggle
+            embedAttachments={projectId ? { projectId, attachments: draft } : undefined}
           />
           {canEdit && projectId && (
             <AttachmentSection

@@ -73,7 +73,9 @@
       "priorityTitle": "prioritas {{priority}}",
       "blockedByTooltip": "Diblokir oleh: {{names}}",
       "unread": "Belum dibaca",
-      "srSummary": "task {{status}} dengan prioritas {{priority}}. Seret untuk memindahkan antar kolom. Di layar sentuh: tekan dan tahan, lalu seret. Pindahkan dengan tombol panah saat fokus."
+      "srSummary": "task {{status}} dengan prioritas {{priority}}. Seret untuk memindahkan antar kolom. Di layar sentuh: tekan dan tahan, lalu seret. Pindahkan dengan tombol panah saat fokus.",
+      "subtaskOf": "Subtask dari {{parent}}",
+      "subtaskProgress": "{{done}} dari {{total}} subtask selesai"
     },
     "taskModal": {
       "presenceEditing": "Mengedit task",
@@ -127,7 +129,16 @@
       "deleteConfirmTitle": "Hapus task?",
       "deleteConfirmBody": "Ini menghapus task secara permanen. Tindakan ini tidak dapat dibatalkan.",
       "autosaveSaving": "Menyimpan…",
-      "autosaveSaved": "Semua perubahan tersimpan"
+      "autosaveSaved": "Semua perubahan tersimpan",
+      "subtaskBadge": "Subtask",
+      "backToParent": "Kembali ke parent task",
+      "openSubtask": "Buka subtask {{title}}",
+      "subAssignee": "Penanggung jawab subtask",
+      "subDates": "Tanggal subtask",
+      "subPriority": "Prioritas subtask",
+      "subPriorityInherit": "{{label}} (warisan)",
+      "followParent": "Ikuti parent",
+      "subRangeWarn": "Tanggal di luar rentang parent ({{start}} – {{due}})."
     },
     "attachments": {
       "title": "Lampiran",
@@ -153,7 +164,15 @@
       "downloadFailed": "Unduh gagal — coba lagi.",
       "deleteFailed": "Lampiran gagal dihapus.",
       "deleteTitle": "Hapus lampiran?",
-      "deleteDesc": "Hapus \"{{name}}\"? Tindakan ini tidak dapat dibatalkan."
+      "deleteDesc": "Hapus \"{{name}}\"? Tindakan ini tidak dapat dibatalkan.",
+      "preview": "Pratinjau {{name}}",
+      "previewLoading": "Memuat pratinjau…",
+      "previewTooLarge": "Terlalu besar untuk pratinjau — unduh untuk melihat.",
+      "previewFailed": "Pratinjau gagal — unduh untuk melihat.",
+      "previewUnsupported": "Tidak ada pratinjau dalam aplikasi untuk tipe file ini.",
+      "downloadCta": "Unduh",
+      "unfurlLoading": "Memuat pratinjau tautan…",
+      "uploadFromEditor": "Lampirkan file"
     },
     "datePicker": {
       "today": "Hari ini",
@@ -208,6 +227,7 @@
       "daySummaryDone_one": "{{count}} task · {{done}} selesai",
       "daySummaryDone_other": "{{count}} task · {{done}} selesai",
       "subRangeBlocked": "Tanggal subtask di luar rentang parent.",
+      "subtaskOf": "subtask dari {{parent}}",
       "monthPicker": {
         "pickMonth": "Pilih bulan",
         "dialogLabel": "Pilih bulan dan tahun",

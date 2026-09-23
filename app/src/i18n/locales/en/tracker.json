@@ -73,7 +73,9 @@
       "priorityTitle": "{{priority}} priority",
       "blockedByTooltip": "Blocked by: {{names}}",
       "unread": "Unread",
-      "srSummary": "{{status}} task with {{priority}} priority. Drag to move between columns. On touch: press and hold, then drag. Move with arrow keys when focused."
+      "srSummary": "{{status}} task with {{priority}} priority. Drag to move between columns. On touch: press and hold, then drag. Move with arrow keys when focused.",
+      "subtaskOf": "Subtask of {{parent}}",
+      "subtaskProgress": "{{done}} of {{total}} subtasks done"
     },
     "taskModal": {
       "presenceEditing": "Editing task",
@@ -127,7 +129,16 @@
       "deleteConfirmTitle": "Delete task?",
       "deleteConfirmBody": "This permanently deletes the task. This cannot be undone.",
       "autosaveSaving": "Saving…",
-      "autosaveSaved": "All changes saved"
+      "autosaveSaved": "All changes saved",
+      "subtaskBadge": "Subtask",
+      "backToParent": "Back to parent task",
+      "openSubtask": "Open subtask {{title}}",
+      "subAssignee": "Subtask assignee",
+      "subDates": "Subtask dates",
+      "subPriority": "Subtask priority",
+      "subPriorityInherit": "{{label}} (inherited)",
+      "followParent": "Follow parent",
+      "subRangeWarn": "Date is outside the parent range ({{start}} – {{due}})."
     },
     "attachments": {
       "title": "Attachments",
@@ -153,7 +164,15 @@
       "downloadFailed": "Download failed — please try again.",
       "deleteFailed": "Could not remove attachment.",
       "deleteTitle": "Remove attachment?",
-      "deleteDesc": "Remove \"{{name}}\"? This cannot be undone."
+      "deleteDesc": "Remove \"{{name}}\"? This cannot be undone.",
+      "preview": "Preview {{name}}",
+      "previewLoading": "Loading preview…",
+      "previewTooLarge": "Too large to preview — download to view.",
+      "previewFailed": "Preview failed — download to view instead.",
+      "previewUnsupported": "No in-app preview for this file type.",
+      "downloadCta": "Download",
+      "unfurlLoading": "Loading link preview…",
+      "uploadFromEditor": "Attach file"
     },
     "datePicker": {
       "today": "Today",
@@ -208,6 +227,7 @@
       "daySummaryDone_one": "{{count}} task · {{done}} done",
       "daySummaryDone_other": "{{count}} tasks · {{done}} done",
       "subRangeBlocked": "Subtask date is outside the parent range.",
+      "subtaskOf": "subtask of {{parent}}",
       "monthPicker": {
         "pickMonth": "Pick month",
         "dialogLabel": "Pick month and year",

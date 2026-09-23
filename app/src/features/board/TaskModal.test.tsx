@@ -415,3 +415,108 @@ describe('TaskModal milestone select', () => {
     expect(screen.getByRole('button', { name: 'Remove blocker Other' })).toBeTruthy();
   });
 });
+
+describe('TaskModal subtasks', () => {
+  beforeEach(() => {
+    mockDispatch.mockReset();
+    canEditMock.value = true;
+    fetchActivityMock.mockReset();
+    fetchActivityMock.mockResolvedValue([]);
+    listMembersMock.mockReset();
+    listMembersMock.mockResolvedValue([]);
+    mockState = makeState();
+  });
+
+  function openAddRow() {
+    render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: '+ New subtask…' }));
+    return screen.getByRole('textbox', { name: 'New subtask…' }) as HTMLTextAreaElement;
+  }
+
+  it('chains subtasks on Enter, inheriting priority and milestone with empty assignee', () => {
+    mockState.tasks = [makeTask({ priority: 'high', milestoneId: MILESTONE_A })];
+    const input = openAddRow();
+    fireEvent.change(input, { target: { value: 'Sub A' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(mockDispatch).toHaveBeenCalledTimes(1);
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: 'task/add',
+      task: expect.objectContaining({
+        title: 'Sub A',
+        status: 'todo',
+        priority: 'high',
+        milestoneId: MILESTONE_A,
+        parentTaskId: TASK_ID,
+        assigneeId: null,
+        startDate: null,
+        dueDate: null,
+      }),
+    });
+    // Chain: input tetap terbuka dan dikosongkan untuk berikutnya.
+    expect(screen.getByRole('textbox', { name: 'New subtask…' })).toBeTruthy();
+    fireEvent.change(screen.getByRole('textbox', { name: 'New subtask…' }), { target: { value: 'Sub B' } });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'New subtask…' }), { key: 'Enter' });
+    expect(mockDispatch).toHaveBeenCalledTimes(2);
+  });
+
+  it('closes the add card on outside click and on Escape', () => {
+    openAddRow();
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByRole('textbox', { name: 'New subtask…' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '+ New subtask…' }));
+    const reopened = screen.getByRole('textbox', { name: 'New subtask…' });
+    fireEvent.change(reopened, { target: { value: 'draft' } });
+    fireEvent.keyDown(reopened, { key: 'Escape' });
+    expect(screen.queryByRole('textbox', { name: 'New subtask…' })).toBeNull();
+  });
+
+  it('renders the title as a borderless composer textarea', () => {
+    openAddRow();
+    const box = screen.getByRole('textbox', { name: 'New subtask…' });
+    expect(box.tagName).toBe('TEXTAREA');
+    expect(box.classList.contains('composer-title')).toBe(true);
+  });
+
+  it('shows the inherited priority as a static pill in the add card', () => {
+    mockState.tasks = [makeTask({ priority: 'high' })];
+    openAddRow();
+    expect(screen.getByText('High')).toBeTruthy();
+  });
+
+  it('navigates when a subtask row is clicked', () => {
+    const SUB_ID = '66666666-6666-4666-8666-666666666666';
+    mockState.tasks = [makeTask({}), makeTask({ id: SUB_ID, title: 'Sub A', parentTaskId: TASK_ID })];
+    const onNavigate = vi.fn();
+    render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} onNavigate={onNavigate} /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: 'Open subtask Sub A' }));
+    expect(onNavigate).toHaveBeenCalledWith(SUB_ID);
+  });
+
+  it('shows a Subtask badge and breadcrumb back to the parent', () => {
+    const SUB_ID = '66666666-6666-4666-8666-666666666666';
+    mockState.tasks = [makeTask({ title: 'Parent task' }), makeTask({ id: SUB_ID, title: 'Sub A', parentTaskId: TASK_ID })];
+    const onNavigate = vi.fn();
+    render(<MemoryRouter><TaskModal taskId={SUB_ID} onClose={vi.fn()} onNavigate={onNavigate} /></MemoryRouter>);
+    expect(screen.getByText('Subtask')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Back to parent task' }));
+    expect(onNavigate).toHaveBeenCalledWith(TASK_ID);
+  });
+
+  it('hides the subtasks section entirely inside a subtask modal', () => {
+    const SUB_ID = '66666666-6666-4666-8666-666666666666';
+    mockState.tasks = [makeTask({}), makeTask({ id: SUB_ID, title: 'Sub A', parentTaskId: TASK_ID })];
+    render(<MemoryRouter><TaskModal taskId={SUB_ID} onClose={vi.fn()} onNavigate={vi.fn()} /></MemoryRouter>);
+    expect(screen.queryByText('Subtasks')).toBeNull();
+    expect(screen.queryByRole('button', { name: '+ New subtask…' })).toBeNull();
+  });
+
+  it('shows action icons on Detach and Make-subtask-of buttons', () => {
+    const SUB_ID = '66666666-6666-4666-8666-666666666666';
+    mockState.tasks = [makeTask({ title: 'Parent task' }), makeTask({ id: SUB_ID, title: 'Sub A', parentTaskId: TASK_ID })];
+    render(<MemoryRouter><TaskModal taskId={SUB_ID} onClose={vi.fn()} onNavigate={vi.fn()} /></MemoryRouter>);
+    expect(screen.getByRole('button', { name: 'Detach' }).querySelector('svg')).toBeTruthy();
+    mockState.tasks = [makeTask({ title: 'Parent task' })];
+    render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} onNavigate={vi.fn()} /></MemoryRouter>);
+    expect(screen.getByRole('button', { name: 'Make subtask of…' }).querySelector('svg')).toBeTruthy();
+  });
+});

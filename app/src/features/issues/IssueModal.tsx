@@ -397,6 +397,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
           rows={4}
           variant="bare"
           previewToggle
+          embedAttachments={{ projectId, attachments: issue.attachments ?? [] }}
         />
       ) : (
         <div className="md-bare">
@@ -407,7 +408,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
           </div>
           <div style={{ fontSize: 14, lineHeight: 1.6, color: issue.description.trim() ? 'var(--text-secondary)' : 'var(--text-muted)', overflowWrap: 'anywhere' }}>
             {issue.description.trim() ? (
-              <MarkdownBlocks text={issue.description} />
+              <MarkdownBlocks text={issue.description} projectId={projectId} attachments={issue.attachments ?? []} />
             ) : (
               t('issues.modal.noDescription')
             )}
@@ -425,6 +426,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
           rows={4}
           variant="bare"
           previewToggle
+          embedAttachments={{ projectId, attachments: issue.attachments ?? [] }}
         />
       ) : (
         <div className="md-bare">
@@ -435,7 +437,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
           </div>
           <div style={{ fontSize: 14, lineHeight: 1.6, color: issue.reproduction.trim() ? 'var(--text-secondary)' : 'var(--text-muted)', overflowWrap: 'anywhere' }}>
             {issue.reproduction.trim() ? (
-              <MarkdownBlocks text={issue.reproduction} />
+              <MarkdownBlocks text={issue.reproduction} projectId={projectId} attachments={issue.attachments ?? []} />
             ) : (
               t('issues.modal.noReproduction')
             )}

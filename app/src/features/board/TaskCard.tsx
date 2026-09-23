@@ -1,5 +1,5 @@
 import { memo, useCallback, useRef } from 'react';
-import { LinkSimple, ListChecks } from '@phosphor-icons/react';
+import { GitBranch, LinkSimple, ListChecks } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { TASK_PRIORITY, TASK_PRIORITY_SHORT, TASK_STATUS, findLabelDef, labelChipStyleFor } from '../../lib/labels';
 import { formatDate, isTaskCompletable, linkedTestCases, shortId, taskBlockSummary } from '../../lib/utils';
@@ -71,6 +71,19 @@ export const TaskCard = memo(function TaskCard({
   const checkDone = checklist.filter((c) => c.done).length;
   const subEstimate = subtasks.reduce((s, tt) => s + (tt.estimate ?? 0), 0);
   const isSubtask = !!task.parentTaskId;
+  const parentTask = isSubtask
+    ? (state?.tasks ?? []).find((tt) => tt.id === task.parentTaskId)
+    : undefined;
+  /** Due rollup: due terdekat subtask yang masih open (khusus parent tanpa due sendiri). */
+  const subDueRollup = (() => {
+    if (isSubtask || task.dueDate) return null;
+    const dues = subtasks.flatMap((tt) => (tt.status !== 'done' && tt.dueDate ? [tt.dueDate] : []));
+    if (dues.length === 0) return null;
+    return dues.sort()[0]!;
+  })();
+  const subDueChip = subDueRollup
+    ? taskDueChip({ status: 'todo', dueDate: subDueRollup, completedAt: null })
+    : null;
 
   const statusChip = showStatus && (
     <Badge tone={TASK_STATUS[task.status].tone}>{TASK_STATUS[task.status].label}</Badge>
@@ -91,14 +104,14 @@ export const TaskCard = memo(function TaskCard({
       {statusChip}
       {milestoneChip}
       {visibleLabels.map((label, i) => (
-        <Tooltip key={`${label}-${i}`} tone="light" title={labelTitle(label)}>
+        <Tooltip key={`${label}-${i}`} title={labelTitle(label)}>
           <span className="task-label" style={labelChipStyleFor(label, labelDefs)}>
             {label}
           </span>
         </Tooltip>
       ))}
       {hiddenLabels.length > 0 && (
-        <Tooltip tone="light" title={hiddenLabels.join(', ')}>
+        <Tooltip title={hiddenLabels.join(', ')}>
           <span className="task-label-more">+{hiddenLabels.length}</span>
         </Tooltip>
       )}
@@ -132,6 +145,12 @@ export const TaskCard = memo(function TaskCard({
           <>
             <div className="task-card-compact-name" title={task.title}>
               {task.title}
+              {isSubtask && parentTask && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-muted)', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t('board.taskCard.subtaskOf', { defaultValue: 'Subtask of {{parent}}', parent: parentTask.title })}>
+                  <GitBranch size={11} aria-hidden="true" style={{ flexShrink: 0 }} />
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{parentTask.title}</span>
+                </span>
+              )}
             </div>
             <div className="task-card-compact-row">
               {assigneeName && task.assigneeId && assignee && (
@@ -148,14 +167,14 @@ export const TaskCard = memo(function TaskCard({
                 </span>
               )}
               {visibleLabels.map((label, i) => (
-                <Tooltip key={`${label}-${i}`} tone="light" title={labelTitle(label)}>
+                <Tooltip key={`${label}-${i}`} title={labelTitle(label)}>
                   <span className="task-label" style={labelChipStyleFor(label, labelDefs)}>
                     {label}
                   </span>
                 </Tooltip>
               ))}
               {hiddenLabels.length > 0 && (
-                <Tooltip tone="light" title={hiddenLabels.join(', ')}>
+                <Tooltip title={hiddenLabels.join(', ')}>
                   <span className="task-label-more">+{hiddenLabels.length}</span>
                 </Tooltip>
               )}
@@ -186,7 +205,7 @@ export const TaskCard = memo(function TaskCard({
         ) : (
         <>
         <div className="task-card-top">
-          <Tooltip tone="light" title={String(t('board.taskCard.priorityTitle', { priority: TASK_PRIORITY[task.priority].label }))}>
+          <Tooltip title={String(t('board.taskCard.priorityTitle', { priority: TASK_PRIORITY[task.priority].label }))}>
             <Badge tone={TASK_PRIORITY[task.priority].tone} className="task-card-priority">
               {TASK_PRIORITY_SHORT[task.priority]}
             </Badge>
@@ -237,7 +256,15 @@ export const TaskCard = memo(function TaskCard({
               </button>
             </Tooltip>
           )}
-            <span style={{ flex: 1, minWidth: 0 }}>{task.title}</span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={task.title}>{task.title}</span>
+              {isSubtask && parentTask && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t('board.taskCard.subtaskOf', { defaultValue: 'Subtask of {{parent}}', parent: parentTask.title })}>
+                  <GitBranch size={11} aria-hidden="true" style={{ flexShrink: 0 }} />
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{parentTask.title}</span>
+                </span>
+              )}
+            </span>
           </div>
 
         {chipRows || null}
@@ -246,7 +273,6 @@ export const TaskCard = memo(function TaskCard({
           <span className="task-meta-left">
             {task.dueDate && dueChip.label && (
               <Tooltip
-                tone="light"
                 title={
                   task.startDate && task.startDate !== task.dueDate
                     ? `${formatDate(task.startDate)} → ${formatDate(task.dueDate)}${dueChip.title ? ` · ${dueChip.title}` : ''}`
@@ -259,43 +285,66 @@ export const TaskCard = memo(function TaskCard({
               </Tooltip>
             )}
             {!task.dueDate && task.startDate && (
-              <Tooltip tone="light" title={formatDate(task.startDate)}>
+              <Tooltip title={formatDate(task.startDate)}>
                 <span className="task-start">
                   {startLabel(task.startDate)}
                 </span>
               </Tooltip>
             )}
             {(task.estimate != null || task.actualHours != null || subEstimate > 0) && !(task.dueDate && dueChip.label) && (
-              <Tooltip tone="light" title={String(t('board.taskCard.actualEstimate'))}>
+              <Tooltip title={String(t('board.taskCard.actualEstimate'))}>
                 <span className="tabular">
                   {task.actualHours ?? 0}/{task.estimate ?? (subEstimate > 0 ? `Σ${subEstimate}` : '—')}h
                 </span>
               </Tooltip>
             )}
             <GCalSyncedMark taskId={task.id} projectId={projectId} />
+            {subDueChip && subDueRollup && (
+              <Tooltip title={subDueChip.title || formatDate(subDueRollup)}>
+                <span className={`task-due task-due-${subDueChip.tone}`}>
+                  {subDueChip.label}
+                </span>
+              </Tooltip>
+            )}
             {subtasks.length > 0 && (
-              <Tooltip tone="light" title={subtasks.map((ss) => `${ss.title} (${ss.status})`).join(', ')}>
+              <Tooltip title={subtasks.map((ss) => `${ss.title} (${ss.status})`).join(', ')}>
                 <span className="task-tests">
                   ▸ {subDone}/{subtasks.length}
                 </span>
               </Tooltip>
             )}
+            {subtasks.length > 0 && (
+              <span
+                className="usage-meter-bar"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={subtasks.length}
+                aria-valuenow={subDone}
+                aria-label={t('board.taskCard.subtaskProgress', { defaultValue: '{{done}} of {{total}} subtasks done', done: subDone, total: subtasks.length })}
+                title={t('board.taskCard.subtaskProgress', { defaultValue: '{{done}} of {{total}} subtasks done', done: subDone, total: subtasks.length })}
+                style={{ width: 56, flexShrink: 0, alignSelf: 'center' }}
+              >
+                <span className="usage-meter-fill" style={{ display: 'block', width: `${subtasks.length === 0 ? 0 : Math.round((subDone / subtasks.length) * 100)}%` }} />
+              </span>
+            )}
             {checklist.length > 0 && (
-              <Tooltip tone="light" title={checklist.map((c) => `${c.title} (${c.done ? 'done' : 'open'})`).join(', ')}>
+              <Tooltip title={checklist.map((c) => `${c.title} (${c.done ? 'done' : 'open'})`).join(', ')}>
                 <span className="task-tests">
                   ☑ {checkDone}/{checklist.length}
                 </span>
               </Tooltip>
             )}
-            {isSubtask && (
-              <Tooltip tone="light" title="Subtask">
-                <span className="task-label">sub</span>
+            {isSubtask && parentTask && (
+              <Tooltip title={t('board.taskCard.subtaskOf', { defaultValue: 'Subtask of {{parent}}', parent: parentTask.title })}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--text-muted)' }} aria-hidden="true">
+                  <GitBranch size={11} weight="bold" />
+                </span>
               </Tooltip>
             )}
           </span>
           <span className="task-meta-right">
             {assigneeName && task.assigneeId && assignee && (
-              <Tooltip tone="light" title={assigneeName}>
+              <Tooltip title={assigneeName}>
                 <span className="task-avatar">
                   <Avatar
                     src={assignee.avatarUrl ?? null}
@@ -311,7 +360,6 @@ export const TaskCard = memo(function TaskCard({
             )}
             {blockers.length > 0 && (
               <Tooltip
-                tone="light"
                 title={String(t('board.taskCard.blockedByTooltip', {
                   names: blockers.map((b) => b.title).join(', '),
                 }))}
@@ -323,7 +371,7 @@ export const TaskCard = memo(function TaskCard({
               </Tooltip>
             )}
             {testCases.length > 0 && (
-              <Tooltip tone="light" title={testCases.map((tc) => `${tc.name} (${tc.status})`).join(', ')}>
+              <Tooltip title={testCases.map((tc) => `${tc.name} (${tc.status})`).join(', ')}>
                 <span className="task-tests">
                   <ListChecks size={11} weight="bold" aria-hidden="true" />
                   {testCases.length}
@@ -331,7 +379,7 @@ export const TaskCard = memo(function TaskCard({
               </Tooltip>
             )}
             {(task.estimate != null || task.actualHours != null || subEstimate > 0) && task.dueDate && dueChip.label && (
-              <Tooltip tone="light" title={String(t('board.taskCard.actualEstimate'))}>
+              <Tooltip title={String(t('board.taskCard.actualEstimate'))}>
                 <span className="tabular">
                   {task.actualHours ?? 0}/{task.estimate ?? (subEstimate > 0 ? `Σ${subEstimate}` : '—')}h
                 </span>
@@ -339,7 +387,7 @@ export const TaskCard = memo(function TaskCard({
             )}
             <span className="task-card-id font-mono">#{shortId(task.id)}</span>
             {unread && (
-              <Tooltip tone="light" title={String(t('board.taskCard.unreadTitle', { defaultValue: 'New · not yet viewed' }))}>
+              <Tooltip title={String(t('board.taskCard.unreadTitle', { defaultValue: 'New · not yet viewed' }))}>
                 <span
                   className="unread-pill"
                   role="status"

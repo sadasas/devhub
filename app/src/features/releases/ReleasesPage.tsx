@@ -174,7 +174,7 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
           canEdit={canEdit}
         />
         <MilestoneModal milestoneId={editId} onClose={() => setEditId(null)} />
-        {taskEditId && <TaskModal taskId={taskEditId} onClose={() => setTaskEditId(null)} />}
+        {taskEditId && <TaskModal taskId={taskEditId} onClose={() => setTaskEditId(null)} onNavigate={setTaskEditId} />}
       </div>
     );
   }
@@ -275,7 +275,7 @@ export function ReleasesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> })
           dispatch({ type: "milestone/remove", id: targetId });
         }}
       />
-      {taskEditId && <TaskModal taskId={taskEditId} onClose={() => setTaskEditId(null)} />}
+      {taskEditId && <TaskModal taskId={taskEditId} onClose={() => setTaskEditId(null)} onNavigate={setTaskEditId} />}
     </div>
   );
 }
