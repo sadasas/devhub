@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CaretDown, Lock, Lightning, ShieldCheck, ArrowSquareOut } from '@phosphor-icons/react';
-import { Link, useNavigate, useSearchParams } from 'react-router';
+import { CaretDown, Lock, Lightning, ShieldCheck } from '@phosphor-icons/react';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage, isPlanLimitError } from '../../lib/errors';
@@ -8,6 +8,9 @@ import type { BillingPackage, BillingStatus } from '../../lib/types';
 import { formatBytes, formatIdr } from '../../lib/format';
 import { Button } from '../../components/Button';
 import { DataErrorState } from '../../components/DataErrorState';
+import { DetailList, DetailRow } from '../../components/DetailList';
+import { InlineError } from '../../components/InlineError';
+import { Modal } from '../../components/Modal';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { Skeleton } from '../../components/Skeleton';
 import { Avatar } from '../../components/Avatar';
@@ -37,7 +40,7 @@ function isDowngrade(
 }
 
 export function PricingPage() {
-  const { t, i18n } = useTranslation('extras');
+  const { t } = useTranslation('extras');
   const { user } = useAuth();
   const { teams } = useTeams();
   // Opsional: hitung proyek per workspace untuk picker (aman tanpa provider di test).
@@ -63,16 +66,10 @@ export function PricingPage() {
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [selectedDurationDays, setSelectedDurationDays] = useState<number | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [checkout, setCheckout] = useState<{
-    teamId: string;
-    teamName: string;
-    packageName: string;
-    durationDays: number;
-    amount: number;
-    orderId: string;
-    url: string;
-  } | null>(null);
-  const errorRef = useRef<HTMLParagraphElement>(null);
+  // Konfirmasi sebelum order dibuat: checkout (orderId/url) baru ada
+  // setelah user menekan Bayar di modal.
+  const [confirm, setConfirm] = useState<{ pkgId: string; priceId: string } | null>(null);
+  const [confirmError, setConfirmError] = useState<string | null>(null);  const errorRef = useRef<HTMLParagraphElement>(null);
   const workspaceBarRef = useRef<HTMLDivElement>(null);
   const [highlightWorkspace, setHighlightWorkspace] = useState(false);
   const [billingStatus, setBillingStatus] = useState<BillingStatus | null>(null);
@@ -145,7 +142,7 @@ export function PricingPage() {
     });
   }
 
-  async function handleBuy(pkgId: string, priceId: string) {
+  function handleBuy(pkgId: string, priceId: string) {
     if (!effectiveTeamId) {
       requestWorkspaceFocus(pkgId);
       return;
@@ -180,26 +177,46 @@ export function PricingPage() {
       }
     }
     setActionError(null);
+    setConfirmError(null);
+    setConfirm({ pkgId, priceId });
+  }
+
+  function closeConfirm() {
+    if (busyKey !== null) return;
+    setConfirm(null);
+    setConfirmError(null);
+  }
+
+  // Data ringkasan dari harga paket (klien) — order belum dibuat.
+  const confirmData = (() => {
+    if (!confirm || !effectiveTeamId) return null;
+    const team = (teams ?? []).find((tm) => tm.id === effectiveTeamId);
+    const pkg = packages?.find((p) => p.id === confirm.pkgId);
+    const price = pkg?.prices.find((pr) => pr.id === confirm.priceId) ?? null;
+    if (!pkg || !price) return null;
+    return {
+      pkgId: pkg.id,
+      priceId: price.id,
+      teamName: (team as { name?: string } | undefined)?.name ?? effectiveTeamId.slice(0, 8),
+      packageName: pkg.name,
+      durationDays: price.durationDays,
+      amount: price.priceIdr,
+    };
+  })();
+  const confirmBusy = confirmData != null && busyKey === `${confirmData.pkgId}:${confirmData.priceId}`;
+
+  async function confirmCheckout() {
+    if (!confirmData || !effectiveTeamId || busyKey !== null) return;
+    const { pkgId, priceId } = confirmData;
+    setConfirmError(null);
     setBusyKey(`${pkgId}:${priceId}`);
     try {
       const result = await api.startCheckout(effectiveTeamId, pkgId, priceId);
-      // Ringkasan anti-salah SEBELUM redirect: Workspace • Paket • Hari • Rp • order_id • QRIS/VA.
-      const team = (teams ?? []).find((tm) => tm.id === effectiveTeamId);
-      const teamName = (team as { name?: string } | undefined)?.name ?? effectiveTeamId.slice(0, 8);
-      const pkg = packages?.find((p) => p.id === pkgId);
-      const price = pkg?.prices.find((pr) => pr.id === priceId) ?? null;
-      const orderId = typeof (result as { orderId?: unknown }).orderId === 'string' ? (result as { orderId: string }).orderId : '';
       const url = typeof (result as { url?: unknown }).url === 'string' ? (result as { url: string }).url : '';
-      setCheckout({
-        teamId: effectiveTeamId,
-        teamName,
-        packageName: (result as { packageName?: string }).packageName || pkg?.name || 'Pro',
-        durationDays: (result as { durationDays?: number }).durationDays || price?.durationDays || selectedDurationDays || 30,
-        amount: (result as { amount?: number }).amount || price?.priceIdr || 0,
-        orderId,
-        url,
-      });
+      if (!url) throw new Error(t('pricing.errors.checkout'));
       setBusyKey(null);
+      setConfirm(null);
+      window.location.assign(url);
     } catch (err) {
       if (isPlanLimitError(err)) {
         const details = err.details as { resource?: string; limit?: number; used?: number; pendingPackageName?: string } | undefined;
@@ -213,11 +230,11 @@ export function PricingPage() {
             : { limit: details.limit, used: details.used };
         setLimitModal({ open: true, resource, details: modalDetails, targetName: pkg?.name ?? (details?.pendingPackageName as string) ?? null });
         setBusyKey(null);
+        setConfirm(null);
         return;
       }
-      setActionError({ pkgId, message: getErrorMessage(err, t('pricing.errors.checkout')) });
+      setConfirmError(getErrorMessage(err, t('pricing.errors.checkout')));
       setBusyKey(null);
-      requestAnimationFrame(() => errorRef.current?.focus());
     }
   }
 
@@ -333,7 +350,8 @@ export function PricingPage() {
                     })}
                     onChange={(v) => {
                       setSelectedTeamId(v ?? '');
-                      setCheckout(null);
+                      setConfirm(null);
+                      setConfirmError(null);
                       if (v) setActionError(null);
                     }}
                   />
@@ -346,48 +364,6 @@ export function PricingPage() {
                 </p>
               )}
             </div>
-          )}
-          {checkout && (
-            <section
-              className="pricing-checkout-summary"
-              role="status"
-              aria-live="polite"
-              aria-label={
-                i18n.resolvedLanguage === 'id' ? 'Ringkasan pembayaran' : 'Checkout summary'
-              }
-            >
-              <h2 className="pricing-checkout-title">
-                {i18n.resolvedLanguage === 'id' ? 'Ringkasan pembayaran' : 'Checkout summary'}
-              </h2>
-              <p className="pricing-checkout-line">
-                Workspace <strong>{checkout.teamName}</strong> • Paket <strong>{checkout.packageName}</strong> •{' '}
-                {checkout.durationDays} hari • <strong className="tabular">{formatIdr(checkout.amount)}</strong> • Order{' '}
-                <code className="font-mono" title={checkout.orderId || '-'}>{(checkout.orderId || '-').slice(0, 8)}</code> • QRIS/VA via Pakasir
-              </p>
-              <p className="pricing-checkout-fees">
-                {i18n.resolvedLanguage === 'id'
-                  ? 'Harga termasuk biaya QRIS/VA. Sisa hari paket lama ditambahkan (stacking). Setelah kedaluwarsa ada grace 7 hari read-only.'
-                  : 'Price includes QRIS/VA fees. Remaining days stack. 7-day read-only grace after expiry.'}
-              </p>
-              <div className="pricing-checkout-actions">
-                {checkout.url && (
-                  <Button
-                    variant="primary"
-                    size="md"
-                    leftIcon={<ArrowSquareOut size={14} aria-hidden="true" />}
-                    onClick={() => window.location.assign(checkout.url)}
-                  >
-                    {i18n.resolvedLanguage === 'id' ? 'Bayar via Pakasir' : 'Pay via Pakasir'}
-                  </Button>
-                )}
-                <Link
-                  className="btn btn-secondary btn-md"
-                  to={checkout.orderId ? `/billing/${encodeURIComponent(checkout.teamId)}?orderId=${encodeURIComponent(checkout.orderId)}` : `/billing/${encodeURIComponent(checkout.teamId)}`}
-                >
-                  {i18n.resolvedLanguage === 'id' ? `Kembali ke /billing/${checkout.teamId.slice(0, 8)}` : 'Back to billing status'}
-                </Link>
-              </div>
-            </section>
           )}
           {packages && paidPkgs.length > 0 && durations.length > 1 && (
             <BillingToggle packages={packages} value={selectedDurationDays} onChange={setSelectedDurationDays} />
@@ -521,6 +497,43 @@ export function PricingPage() {
           </div>
         </div>
       </article>
+      <Modal
+        open={confirmData !== null}
+        title={t('pricing.confirm.title')}
+        onClose={confirmBusy ? undefined : closeConfirm}
+        width="sm"
+        footer={
+          <>
+            <Button variant="ghost" size="md" onClick={closeConfirm} disabled={confirmBusy}>
+              {t('pricing.confirm.cancel')}
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
+              loading={confirmBusy}
+              disabled={confirmBusy || confirmData === null}
+              onClick={() => void confirmCheckout()}
+            >
+              {confirmData ? t('pricing.confirm.pay', { price: formatIdr(confirmData.amount) }) : t('pricing.confirm.pay', { price: '' })}
+            </Button>
+          </>
+        }
+      >
+        {confirmData && (
+          <>
+            <DetailList>
+              <DetailRow label={t('pricing.confirm.workspace')}>{confirmData.teamName}</DetailRow>
+              <DetailRow label={t('pricing.confirm.package')}>{confirmData.packageName}</DetailRow>
+              <DetailRow label={t('pricing.confirm.duration')}>{t('pricing.confirm.days', { count: confirmData.durationDays })}</DetailRow>
+              <DetailRow label={t('pricing.confirm.amount')}>
+                <span className="tabular">{formatIdr(confirmData.amount)}</span>
+              </DetailRow>
+            </DetailList>
+            <p className="field-helper" style={{ marginTop: 8 }}>{t('pricing.confirm.fees')}</p>
+            {confirmError && <InlineError>{confirmError}</InlineError>}
+          </>
+        )}
+      </Modal>
       <PlanLimitModal
         open={limitModal.open}
         resource={limitModal.resource}

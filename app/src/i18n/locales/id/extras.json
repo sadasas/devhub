@@ -680,6 +680,17 @@
       "pickWorkspace": "Pilih workspace yang akan di-upgrade.",
       "checkout": "Gagal memulai checkout.",
       "load": "Gagal memuat paket."
+    },
+    "confirm": {
+      "title": "Konfirmasi pembayaran",
+      "workspace": "Workspace",
+      "package": "Paket",
+      "duration": "Durasi",
+      "amount": "Jumlah",
+      "days": "{{count}} hari",
+      "fees": "Harga termasuk biaya QRIS/VA. Sisa hari paket lama ditambahkan (stacking). Setelah kedaluwarsa ada grace 7 hari read-only.",
+      "cancel": "Batal",
+      "pay": "Bayar {{price}}"
     }
   },
   "billing": {
