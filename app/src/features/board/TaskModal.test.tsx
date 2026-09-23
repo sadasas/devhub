@@ -209,14 +209,14 @@ describe('TaskModal milestone select', () => {
     fireEvent.click(document.querySelector('[data-prop="estimate"] .prop-view') as Element);
     expect(screen.getByText(/24\.5h/)).toBeTruthy();
     expect(screen.queryByLabelText('Actual (hours)')).toBeNull();
-    expect(screen.getByRole('spinbutton', { name: 'Estimate (hours)' })).toBeTruthy();
-    expect(screen.getByRole('dialog', { name: 'Estimate (hours)' })).toBeTruthy();
+    expect(screen.getByRole('spinbutton', { name: 'Estimate' })).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: 'Estimate' })).toBeTruthy();
   });
 
   it('dispatches numeric inline estimate on change', () => {
     render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
     fireEvent.click(document.querySelector('[data-prop="estimate"] .prop-view') as Element);
-    fireEvent.change(screen.getByRole('spinbutton', { name: 'Estimate (hours)' }), { target: { value: '8' } });
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Estimate' }), { target: { value: '8' } });
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'task/update',
       id: TASK_ID,
@@ -255,9 +255,9 @@ describe('TaskModal milestone select', () => {
 
   it('reveals the estimate control on activator click for keyboard users', () => {
     render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
-    expect(screen.queryByRole('spinbutton', { name: 'Estimate (hours)' })).toBeNull();
+    expect(screen.queryByRole('spinbutton', { name: 'Estimate' })).toBeNull();
     fireEvent.click(document.querySelector('[data-prop="estimate"] .prop-view') as Element);
-    expect(screen.getByRole('spinbutton', { name: 'Estimate (hours)' })).toBeTruthy();
+    expect(screen.getByRole('spinbutton', { name: 'Estimate' })).toBeTruthy();
   });
 
   it('shows blocked-by editing immediately without hover (touch-safe)', () => {
@@ -375,7 +375,7 @@ describe('TaskModal milestone select', () => {
   it('dispatches decimal inline estimate, keeping the dot', () => {
     render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
     fireEvent.click(document.querySelector('[data-prop="estimate"] .prop-view') as Element);
-    fireEvent.change(screen.getByRole('spinbutton', { name: 'Estimate (hours)' }), { target: { value: '8.5' } });
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Estimate' }), { target: { value: '8.5' } });
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'task/update',
       id: TASK_ID,
@@ -404,7 +404,7 @@ describe('TaskModal milestone select', () => {
   it('opens the estimate popup with a numeric guard on keys', () => {
     render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
     fireEvent.click(document.querySelector('[data-prop="estimate"] .prop-view') as Element);
-    const input = screen.getByRole('spinbutton', { name: 'Estimate (hours)' });
+    const input = screen.getByRole('spinbutton', { name: 'Estimate' });
     expect(input).toBeTruthy();
     expect(input.getAttribute('inputmode')).toBe('decimal');
   });

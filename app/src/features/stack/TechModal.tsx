@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CheckCircle, CaretRight, Clock, FileText, Trash, Stack, Circle } from '@phosphor-icons/react';
+import { CheckCircle, CaretRight, Clock, FileText, Trash, Stack, Circle, PencilSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { TECH_CATEGORY } from '../../lib/labels';
 import { formatDate, formatRelative } from '../../lib/utils';
@@ -240,6 +240,7 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
                 value={entry.category}
                 allowEmpty={false}
                 options={CATEGORY_OPTIONS.map((c) => ({ value: c, label: t(`stack.optionCategory.${c}`) }))}
+                onOpenChange={(o) => { if (!o) setHotProp(null); }}
                 onChange={(v) => { if (v) { update({ category: v as TechEntryCategory }); setHotProp(null); } }}
               />
             )}
@@ -266,6 +267,7 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
                 value={entry.status}
                 allowEmpty={false}
                 options={STATUS_OPTIONS.map((s) => ({ value: s, label: t(`stack.optionStatus.${s}`) }))}
+                onOpenChange={(o) => { if (!o) setHotProp(null); }}
                 onChange={(v) => { if (v) { update({ status: v as TechStatus }); setHotProp(null); } }}
               />
             )}
@@ -342,18 +344,22 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
       )}
     >
       {canEdit ? (
-        <textarea
-          ref={nameRef}
-          className="composer-title"
-          rows={1}
-          value={entry.name}
-          autoFocus={AUTO_FOCUS_INPUT}
-          maxLength={FE_LIMITS.TECH_NAME}
-          onChange={(e) => update({ name: e.target.value })}
-          aria-label={t('stack.techModal.nameLabel')}
-          aria-invalid={nameEmpty}
-          placeholder={t('stack.newTechModal.namePlaceholder')}
-        />
+        <div className="editable-field editable-field-title" style={{ position: 'relative' }}>
+          <textarea
+            ref={nameRef}
+            className="composer-title"
+            rows={1}
+            value={entry.name}
+            autoFocus={AUTO_FOCUS_INPUT}
+            maxLength={FE_LIMITS.TECH_NAME}
+            onChange={(e) => update({ name: e.target.value })}
+            aria-label={t('stack.techModal.nameLabel')}
+            aria-invalid={nameEmpty}
+            placeholder={t('stack.newTechModal.namePlaceholder')}
+            style={{ paddingRight: 20 }}
+          />
+          <PencilSimple size={12} aria-hidden="true" className="editable-pencil" />
+        </div>
       ) : (
         <h3 className="detail-title">
           {entry.name || <DetailEmpty>{t('stack.techModal.noNotes')}</DetailEmpty>}
@@ -367,17 +373,19 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
         <span style={{ color: 'var(--text-secondary)' }}>{formatDate(entry.createdAt)} {new Date(entry.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
       </div>
       {canEdit ? (
-        <MarkdownField
-          label={t('stack.techModal.notesLabel')}
-          icon={FileText}
-          value={entry.notes}
-          onChange={(v) => update({ notes: v })}
-          placeholder={t('stack.newTechModal.notesPlaceholder')}
-          maxLength={FE_LIMITS.TECH_NOTES}
-          rows={4}
-          variant="bare"
-          previewToggle
-        />
+        <div className="editable-field" style={{ position: 'relative' }}>
+          <MarkdownField
+            label={t('stack.techModal.notesLabel')}
+            icon={FileText}
+            value={entry.notes}
+            onChange={(v) => update({ notes: v })}
+            placeholder={t('stack.newTechModal.notesPlaceholder')}
+            maxLength={FE_LIMITS.TECH_NOTES}
+            rows={4}
+            variant="bare"
+            previewToggle
+          />
+        </div>
       ) : (
         <div className="md-bare">
           <div className="md-bare-head">

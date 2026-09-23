@@ -185,17 +185,19 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
 
               {/* Comment — MarkdownField seperti IssueModal */}
               {canEdit ? (
-                <MarkdownField
-                  label={t('schema.table.commentLabel')}
-                  icon={FileText}
-                  value={table.comment}
-                  onChange={(v) => update({ comment: v })}
-                  placeholder={t('schema.newTableModal.commentPlaceholder')}
-                  maxLength={FE_LIMITS.TABLE_COMMENT}
-                  rows={3}
-                  variant="bare"
-                  previewToggle
-                />
+                <div className="editable-field" style={{ position: 'relative' }}>
+                  <MarkdownField
+                    label={t('schema.table.commentLabel')}
+                    icon={FileText}
+                    value={table.comment}
+                    onChange={(v) => update({ comment: v })}
+                    placeholder={t('schema.newTableModal.commentPlaceholder')}
+                    maxLength={FE_LIMITS.TABLE_COMMENT}
+                    rows={3}
+                    variant="bare"
+                    previewToggle
+                  />
+                </div>
               ) : (
                 <div style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', borderRadius: 8, padding: 16 }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>

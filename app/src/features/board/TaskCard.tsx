@@ -9,6 +9,7 @@ import type { Task } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { Avatar } from '../../components/Avatar';
 import { Badge } from '../../components/Badge';
+import { TaskPriorityIcon, TaskStatusIcon } from '../../lib/task-icons';
 import { PinButton } from '../../components/PinButton';
 import { Tooltip } from '../../components/Tooltip';
 import { GCalSyncedMark } from '../integrations/GCalSyncedMark';
@@ -86,7 +87,10 @@ export const TaskCard = memo(function TaskCard({
     : null;
 
   const statusChip = showStatus && (
-    <Badge tone={TASK_STATUS[task.status].tone}>{TASK_STATUS[task.status].label}</Badge>
+    <Badge tone={TASK_STATUS[task.status].tone}>
+      <TaskStatusIcon status={task.status} size={11} />
+      {TASK_STATUS[task.status].label}
+    </Badge>
   );
   const milestoneChip = showMilestone && milestone && (
     <span className="task-label" title={milestone.name}>
@@ -143,8 +147,9 @@ export const TaskCard = memo(function TaskCard({
       >
         {density === 'compact' ? (
           <>
-            <div className="task-card-compact-name" title={task.title}>
-              {task.title}
+            <Tooltip title={task.title}>
+              <div className="task-card-compact-name">
+                {task.title}
               {isSubtask && parentTask && (
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-muted)', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t('board.taskCard.subtaskOf', { defaultValue: 'Subtask of {{parent}}', parent: parentTask.title })}>
                   <GitBranch size={11} aria-hidden="true" style={{ flexShrink: 0 }} />
@@ -152,6 +157,7 @@ export const TaskCard = memo(function TaskCard({
                 </span>
               )}
             </div>
+            </Tooltip>
             <div className="task-card-compact-row">
               {assigneeName && task.assigneeId && assignee && (
                 <span className="task-avatar" title={assigneeName}>
@@ -183,6 +189,7 @@ export const TaskCard = memo(function TaskCard({
                 className="task-card-priority"
                 title={t('board.taskCard.priorityTitle', { priority: TASK_PRIORITY[task.priority].label })}
               >
+                <TaskPriorityIcon priority={task.priority} size={11} />
                 {TASK_PRIORITY_SHORT[task.priority]}
               </Badge>
               {(task.estimate != null || task.actualHours != null) && (
@@ -207,6 +214,7 @@ export const TaskCard = memo(function TaskCard({
         <div className="task-card-top">
           <Tooltip title={String(t('board.taskCard.priorityTitle', { priority: TASK_PRIORITY[task.priority].label }))}>
             <Badge tone={TASK_PRIORITY[task.priority].tone} className="task-card-priority">
+              <TaskPriorityIcon priority={task.priority} size={11} />
               {TASK_PRIORITY_SHORT[task.priority]}
             </Badge>
           </Tooltip>
@@ -257,7 +265,9 @@ export const TaskCard = memo(function TaskCard({
             </Tooltip>
           )}
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={task.title}>{task.title}</span>
+              <Tooltip title={task.title}>
+                <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</span>
+              </Tooltip>
               {isSubtask && parentTask && (
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t('board.taskCard.subtaskOf', { defaultValue: 'Subtask of {{parent}}', parent: parentTask.title })}>
                   <GitBranch size={11} aria-hidden="true" style={{ flexShrink: 0 }} />

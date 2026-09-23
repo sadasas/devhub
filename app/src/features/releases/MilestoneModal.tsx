@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { CheckCircle, FileText, Trash, Circle, Tag, CalendarBlank } from "@phosphor-icons/react";
+import { CheckCircle, FileText, Trash, Circle, Tag, CalendarBlank, PencilSimple } from "@phosphor-icons/react";
 import { formatDate, formatRelative } from "../../lib/utils";
 import type { Milestone, MilestoneStatus } from "../../lib/types";
 import type { UpdatePatch } from "../../state/project-context";
@@ -213,7 +213,7 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
             </span>
           )}
           control={(
-            <SearchableSelect defaultOpen searchable={false} id="milestone-status" label="" ariaLabel={t("releases.modal.statusLabel")} value={milestone.status} allowEmpty={false} options={STATUS_OPTIONS.map((s) => ({ value: s, label: statusLabels[s] }))} onChange={(v) => { if (v) { update({ status: v as MilestoneStatus }); setHotProp(null); } }} />
+            <SearchableSelect defaultOpen searchable={false} id="milestone-status" label="" ariaLabel={t("releases.modal.statusLabel")} value={milestone.status} allowEmpty={false} options={STATUS_OPTIONS.map((s) => ({ value: s, label: statusLabels[s] }))} onOpenChange={(o) => { if (!o) setHotProp(null); }} onChange={(v) => { if (v) { update({ status: v as MilestoneStatus }); setHotProp(null); } }} />
           )}
         />
         <PropRow
@@ -256,17 +256,21 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
       </>}
     >
       {canEdit ? (
-        <textarea
-          ref={titleRef}
-          className="composer-title"
-          rows={1}
-          value={milestone.name}
-          autoFocus={AUTO_FOCUS_INPUT}
-          maxLength={LIMITS.MILESTONE_NAME}
-          onChange={(e) => update({ name: e.target.value })}
-          aria-label={t("releases.modal.nameLabel")}
-          aria-invalid={nameEmpty}
-        />
+        <div className="editable-field editable-field-title" style={{ position: 'relative' }}>
+          <textarea
+            ref={titleRef}
+            className="composer-title"
+            rows={1}
+            value={milestone.name}
+            autoFocus={AUTO_FOCUS_INPUT}
+            maxLength={LIMITS.MILESTONE_NAME}
+            onChange={(e) => update({ name: e.target.value })}
+            aria-label={t("releases.modal.nameLabel")}
+            aria-invalid={nameEmpty}
+            style={{ paddingRight: 20 }}
+          />
+          <PencilSimple size={12} aria-hidden="true" className="editable-pencil" />
+        </div>
       ) : (
         <h3
           className="detail-title"
@@ -282,17 +286,19 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
         </span>
         <span style={{ color: "var(--text-secondary)" }}>{formatDate(milestone.createdAt)} {new Date(milestone.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
       </div>
-      <MarkdownField
-        label={t("releases.modal.changelogLabel")}
-        icon={FileText}
-        value={milestone.changelog}
-        onChange={(v) => update({ changelog: v })}
-        placeholder={t("releases.modal.changelogPlaceholder")}
-        maxLength={LIMITS.MILESTONE_CHANGELOG}
-        rows={4}
-        variant="bare"
-        previewToggle
-      />
+      <div className="editable-field" style={{ position: "relative" }}>
+        <MarkdownField
+          label={t("releases.modal.changelogLabel")}
+          icon={FileText}
+          value={milestone.changelog}
+          onChange={(v) => update({ changelog: v })}
+          placeholder={t("releases.modal.changelogPlaceholder")}
+          maxLength={LIMITS.MILESTONE_CHANGELOG}
+          rows={4}
+          variant="bare"
+          previewToggle
+        />
+      </div>
       <p className="field-helper">{t("releases.modal.updated", { time: formatRelative(milestone.updatedAt) })}</p>
     </DetailShell>
       {versionOpen && createPortal(
