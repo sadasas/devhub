@@ -11,7 +11,6 @@ import {
 } from '../../lib/docs-urls';
 import type { GitHubAutomation, GitHubInstallationRepo, GitHubStatus } from '../../lib/types';
 import { Button } from '../../components/Button';
-import { Input } from '../../components/Input';
 import { SearchableSelect } from '../../components/SearchableSelect';
 
 interface GitHubSettingsProps {
@@ -88,7 +87,6 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingInstall, setPendingInstall] = useState<{ installationId: number; repos: GitHubInstallationRepo[] } | null>(null);
   const [picked, setPicked] = useState('');
-  const [manualId, setManualId] = useState('');
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -151,31 +149,6 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Connect failed');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  /**
-   * Bind manual untuk dead-end "install langsung dari GitHub" (tanpa params):
-   * user paste Installation ID dari URL halaman App GitHub.
-   */
-  async function bindManual() {
-    const installationId = Number(manualId.trim());
-    if (!Number.isInteger(installationId) || installationId <= 0) {
-      setError(t('settings.githubManualInvalid', { defaultValue: 'Enter a numeric installation ID.' }));
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    try {
-      await api.githubSetup(installationId);
-      const { repos } = await api.githubInstallRepos(installationId);
-      setPendingInstall({ installationId, repos });
-      setPicked(repos[0] ? `${repos[0].owner}/${repos[0].repo}` : '');
-      setManualId('');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Bind failed');
     } finally {
       setBusy(false);
     }
@@ -375,7 +348,6 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
                   </div>
                 </>
               ) : (
-                <>
                 <div className="settings-action">
                   <div className="settings-action-main">
                     <div className="github-identity">
@@ -398,30 +370,6 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
                     {t('settings.githubConnectShort', { defaultValue: 'Connect' })}
                   </Button>
                 </div>
-                {isAdmin && (
-                  <div className="integration-manual-row">
-                    <div className="integration-manual-field">
-                      <Input
-                        label={t('settings.githubManualId', { defaultValue: 'Installation ID' })}
-                        value={manualId}
-                        onChange={(e) => setManualId(e.target.value)}
-                        placeholder="12345678"
-                        inputMode="numeric"
-                      />
-                    </div>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => void bindManual()} disabled={busy || !manualId.trim()}>
-                      {t('settings.githubManualBind', { defaultValue: 'Bind installed App' })}
-                    </Button>
-                  </div>
-                )}
-                {isAdmin && (
-                  <p className="field-helper">
-                    {t('settings.githubManualHint', {
-                      defaultValue: 'Installed directly from GitHub without the button above? Paste the installation ID from the App page URL.',
-                    })}
-                  </p>
-                )}
-                </>
               )}
               {canConnect && !isAdmin && (
                 <p className="field-helper">

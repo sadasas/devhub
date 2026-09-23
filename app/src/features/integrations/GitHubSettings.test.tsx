@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GitHubSettings } from './GitHubSettings';
@@ -47,36 +47,10 @@ describe('GitHubSettings', () => {
     apiMock.githubStatus.mockResolvedValue(status());
   });
 
-  it('shows connect button and manual bind when disconnected', async () => {
+  it('shows connect button when disconnected', async () => {
     renderSettings();
     // Label pendek "Connect" = pola mirror Google (bukan "Connect GitHub").
     expect(await screen.findByRole('button', { name: 'Connect' })).toBeTruthy();
-    expect(screen.getByLabelText('Installation ID')).toBeTruthy();
-  });
-
-  it('binds manually via installation ID and shows the picker', async () => {
-    apiMock.githubSetup.mockResolvedValue({ installationId: 77, accountLogin: 'acme', accountType: 'Organization' });
-    apiMock.githubInstallRepos.mockResolvedValue({
-      repos: [{ owner: 'acme', repo: 'api', fullName: 'acme/api', isPrivate: true }],
-    });
-    renderSettings();
-    await screen.findByRole('button', { name: 'Connect' });
-    fireEvent.change(screen.getByLabelText('Installation ID'), { target: { value: '77' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Bind installed App' }));
-    await waitFor(() => expect(apiMock.githubSetup).toHaveBeenCalledWith(77));
-    expect(await screen.findByText('acme/api')).toBeTruthy();
-    expect(
-      screen.getByText('App installed — pick a repository below to finish connecting.'),
-    ).toBeTruthy();
-  });
-
-  it('rejects non-numeric installation IDs', async () => {
-    renderSettings();
-    await screen.findByRole('button', { name: 'Connect' });
-    fireEvent.change(screen.getByLabelText('Installation ID'), { target: { value: 'abc' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Bind installed App' }));
-    expect(await screen.findByText('Enter a numeric installation ID.')).toBeTruthy();
-    expect(apiMock.githubSetup).not.toHaveBeenCalled();
   });
 
   it('shows linked repo with automation and disconnect', async () => {
