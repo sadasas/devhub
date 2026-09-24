@@ -9,7 +9,6 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { Textarea } from '../../components/Textarea';
-import { WHITEBOARD_TEMPLATES } from './templates';
 
 const MAX_BOARDS = 50;
 
@@ -28,13 +27,11 @@ export function NewWhiteboardModal({ onClose, onCreated }: NewWhiteboardModalPro
   usePresenceStatus(t('whiteboard.newModal.presence'));
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [templateId, setTemplateId] = useState('blank');
   const atCap = (state?.whiteboards.length ?? 0) >= MAX_BOARDS;
 
   const submit = () => {
     if (!canEdit) return;
     if (!name.trim() || atCap) return;
-    const template = WHITEBOARD_TEMPLATES.find((t) => t.id === templateId) ?? WHITEBOARD_TEMPLATES[0]!;
     const ts = nowIso();
     const id = newId();
     dispatch({
@@ -45,7 +42,7 @@ export function NewWhiteboardModal({ onClose, onCreated }: NewWhiteboardModalPro
         updatedAt: ts,
         name: name.trim(),
         description: description.trim(),
-        elements: template.build(),
+        elements: [],
       },
     });
     onCreated?.(id);
@@ -81,25 +78,6 @@ export function NewWhiteboardModal({ onClose, onCreated }: NewWhiteboardModalPro
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <fieldset className="wb-template-grid">
-          <legend>{t('whiteboard.newModal.templateLegend')}</legend>
-          {WHITEBOARD_TEMPLATES.map((tpl) => (
-            <label
-              key={tpl.id}
-              className={`wb-template-option${templateId === tpl.id ? ' wb-template-option-active' : ''}`}
-            >
-              <input
-                type="radio"
-                name="wb-template"
-                value={tpl.id}
-                checked={templateId === tpl.id}
-                onChange={() => setTemplateId(tpl.id)}
-              />
-              <span className="wb-template-name">{t(`whiteboard.template.${tpl.id}.name`)}</span>
-              <span className="wb-template-desc">{t(`whiteboard.template.${tpl.id}.desc`)}</span>
-            </label>
-          ))}
-        </fieldset>
         <Textarea
           label={t('whiteboard.newModal.description')}
           rows={3}

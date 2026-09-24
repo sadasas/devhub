@@ -233,7 +233,6 @@
       "capHelper": "{{max}} boards per project — delete one to add another.",
       "name": "Name",
       "namePlaceholder": "e.g. Q3 architecture sketch",
-      "templateLegend": "Template",
       "description": "Description"
     },
     "editModal": {
@@ -301,51 +300,6 @@
       "noFill": "No fill",
       "custom": "Custom color",
       "hex": "Hex color"
-    },
-    "template": {
-      "blank": {
-        "name": "Blank",
-        "desc": "Empty canvas — start from scratch"
-      },      "kanban": {
-        "name": "Kanban",
-        "desc": "Todo / In Progress / Review / Done columns"
-      },
-      "ci-cd": {
-        "name": "CI/CD pipeline",
-        "desc": "Commit → Build → Test → Approval → Deploy"
-      },
-      "roadmap": {
-        "name": "Roadmap",
-        "desc": "Timeline with milestone markers"
-      },
-      "release-train": {
-        "name": "Release train",
-        "desc": "Releases × phases matrix"
-      },
-      "gitflow": {
-        "name": "Gitflow",
-        "desc": "Branching model (main / develop / feature / hotfix)"
-      },
-      "architecture": {
-        "name": "Architecture",
-        "desc": "Services, DB, boundaries — for system maps"
-      },
-      "workflow": {
-        "name": "Workflow",
-        "desc": "Lanes & steps — for Order-to-3PL, CI/CD"
-      },
-      "sequence": {
-        "name": "Sequence",
-        "desc": "Participants & messages — for API calls"
-      },
-      "dataflow": {
-        "name": "Dataflow",
-        "desc": "Stages & lineage — for PII & ETL"
-      },
-      "lifecycle": {
-        "name": "Lifecycle",
-        "desc": "States & transitions — for order status"
-      }
     }
   },
   "api": {

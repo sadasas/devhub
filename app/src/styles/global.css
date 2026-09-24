@@ -14227,14 +14227,6 @@ button.wb-layers-head {
 }
 button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent-ring); }
 .wb-layers-caret { margin-left: auto; display: inline-flex; color: var(--text-muted); }
-.wb-template-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0; padding: 0; border: none; }
-.wb-template-grid legend { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
-.wb-template-option { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--border-hairline); border-radius: var(--radius-card); background: var(--bg-elevated); cursor: pointer; }
-.wb-template-option input { position: absolute; opacity: 0; pointer-events: none; }
-.wb-template-option-active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-.wb-template-option:focus-within { box-shadow: 0 0 0 2px var(--accent-ring); }
-.wb-template-name { font-size: 12.5px; font-weight: 600; color: var(--text-primary); }
-.wb-template-desc { font-size: 11px; color: var(--text-muted); }
 /* Kanvas ala FigJam: selalu putih bersih + dot gelap di SEMUA theme app. Elemen memakai palet gelap. */
 .wb-canvas { position: relative; height: calc(100dvh - 340px); min-height: 480px; border: 1px solid var(--border-hairline); border-radius: var(--radius-card); background-color: #ffffff; background-image: radial-gradient(circle, rgba(0,0,0,0.11) 1.1px, transparent 1.1px); background-size: 20px 20px; overflow: hidden; user-select: none; overscroll-behavior: contain; }
 
