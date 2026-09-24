@@ -48,6 +48,10 @@ Komentar/DOCTYPE juga dibuang.
 Hard-fail (tidak disimpan) bila tak ada konten renderable tersisa —
 respons tool menyebut elemen + alasan; perbaiki dan kirim ulang.
 
+**Namespacing id**: atribut `id` dan referensi `url(#id)` ditulis ulang
+per elemen (`e<8hex>-...`) saat tulis + render — dua embed ber-id internal
+sama tidak saling memangsa. Idempoten (save berulang tidak menumpuk).
+
 ## 4. Aturan layout
 
 - `embed` **bebas validator showcase** (orphan/spacing/containment tidak
@@ -58,7 +62,6 @@ respons tool menyebut elemen + alasan; perbaiki dan kirim ulang.
   → perbaiki dari diagnostics → verifikasi baca ulang.
 
 ## 6. Aturan hidup di momen kerja (bukan cuma di dokumen ini)
-
 Agar user/agen lain otomatis tahu kontrak grouping:
 
 - `validate_whiteboard`: embed tanpa grup muncul sebagai warning `grouping`

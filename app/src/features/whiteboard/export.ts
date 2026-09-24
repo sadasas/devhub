@@ -237,14 +237,13 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null, ctx: Exp
     }
     case 'embed': {
       // SVG AI disarang apa adanya (sudah sanitasi saat tulis; sanitasi
-      // ulang di sini untuk jalur export langsung). Kosong = fallback box.
-      const clean = sanitizeSvgForRender(el.svg);
-      const clipId = `embedclip-${el.id}`;
-      const frame = `<clipPath id="${clipId}"><rect x="${round(el.x)}" y="${round(el.y)}" width="${round(el.w)}" height="${round(el.h)}" rx="8"/></clipPath>`;
+      // ulang di sini untuk jalur export langsung). Tanpa clipPath url(#id):
+      // viewport <svg> + overflow hidden sudah memotong (cermin kanvas).
+      const clean = sanitizeSvgForRender(el.svg, `e${el.id.slice(0, 8)}`);
       if (!clean) {
-        return `<g>${frame}<rect x="${round(el.x)}" y="${round(el.y)}" width="${round(el.w)}" height="${round(el.h)}" rx="8" fill="none" stroke="#8a8a93" stroke-width="1.5" stroke-dasharray="6 4"/><text x="${round(el.x + 12)}" y="${round(el.y + 24)}" font-size="13" fill="#8a8a93">${esc(el.title || 'Embed')}</text></g>`;
+        return `<g><rect x="${round(el.x)}" y="${round(el.y)}" width="${round(el.w)}" height="${round(el.h)}" rx="8" fill="none" stroke="#8a8a93" stroke-width="1.5" stroke-dasharray="6 4"/><text x="${round(el.x + 12)}" y="${round(el.y + 24)}" font-size="13" fill="#8a8a93">${esc(el.title || 'Embed')}</text></g>`;
       }
-      return `<g>${frame}<svg x="${round(el.x)}" y="${round(el.y)}" width="${round(el.w)}" height="${round(el.h)}" viewBox="0 0 ${round(el.w)} ${round(el.h)}"><g clip-path="url(#${clipId})">${clean}</g></svg></g>`;
+      return `<svg x="${round(el.x)}" y="${round(el.y)}" width="${round(el.w)}" height="${round(el.h)}" viewBox="0 0 ${round(el.w)} ${round(el.h)}" overflow="hidden"><g>${clean}</g></svg>`;
     }
     case 'ref': {
       const rect = refCardRect(el, refData, false);

@@ -145,9 +145,16 @@ function cleanAttrValue(name: string, value: string): string | null {
  * Sanitasi satu dokumen/fragment SVG. Tidak pernah melempar untuk input
  * string — hard-fail dikembalikan sebagai `{ ok: false }` agar pemanggil
  * (MCP tool / REST) bisa merumuskan pesannya sendiri.
+ *
+ * `idPrefix` (mis. potongan id elemen): namespacing SEMUA atribut `id`
+ * dan referensi `url(#id)` agar dua embed dengan id internal sama
+ * (mis. dua kartu login ber-`clipPath id="c"`) tidak saling memangsa
+ * lewat resolusi `url(#...)` dokumen-global. Id yang sudah berprefix
+ * tidak di-prefix ulang (idempoten saat save berulang).
  */
 export function sanitizeSvgEmbed(
   input: string,
+  idPrefix?: string,
 ): { ok: true; result: SanitizeResult } | { ok: false; reason: string } {
   if (typeof input !== "string" || input.trim() === "") {
     return { ok: false, reason: "SVG is empty" };
@@ -244,7 +251,17 @@ export function sanitizeSvgEmbed(
   }
   out.push(src.slice(lastIndex));
 
-  const svg = out.join("").trim();
+  let svg = out.join("").trim();
+  if (idPrefix) {
+    // Namespace id + referensinya (idempoten: lewati yang sudah berprefix).
+    const needs = (id: string) => !id.startsWith(`${idPrefix}-`);
+    svg = svg.replace(/\bid="([^"]+)"/g, (_m, id: string) =>
+      needs(id) ? `id="${idPrefix}-${id}"` : `id="${id}"`,
+    );
+    svg = svg.replace(/\burl\(#([^)\s]+)\)/g, (_m, id: string) =>
+      needs(id) ? `url(#${idPrefix}-${id})` : `url(#${id})`,
+    );
+  }
   if (renderable === 0) {
     return { ok: false, reason: "No renderable SVG content left after sanitizing" };
   }
@@ -318,7 +335,8 @@ export function sanitizeStateEmbeds(state: State): { cleaned: number; stripped: 
           `Embed cap exceeded (${LIMITS.WHITEBOARD_EMBEDS_PER_BOARD} per board) — split the wireframe into multiple boards or convert parts to native elements`,
         );
       }
-      const res = sanitizeSvgEmbed(el.svg);
+      // Prefix namespace = 8 hex awal id elemen (stabil per elemen).
+      const res = sanitizeSvgEmbed(el.svg, `e${el.id.slice(0, 8)}`);
       if (!res.ok) throw new EmbedSanitizerError(el.id, res.reason);
       if (res.result.svg !== el.svg) {
         el.svg = res.result.svg;

@@ -123,6 +123,38 @@ describe('whiteboard canvas embed', () => {
     expect(hint.disabled).toBe(true);
   });
 
+  it('konten utuh setelah pindah posisi (regresi rusak-saat-digeser)', () => {
+    const el = {
+      id: 'e1',
+      kind: 'embed',
+      x: 0,
+      y: 0,
+      w: 360,
+      h: 200,
+      title: 'Form',
+      svg: '<rect x="10" y="10" width="100" height="50" fill="#111214"/><text x="20" y="40" font-size="14" fill="#f5f5f5">Login</text>',
+    } as const;
+    const { container, rerender } = render(
+      <MemoryRouter>
+        <WhiteboardEditorShell board={boardWith([{ ...el }])} state={makeState()} onBack={() => {}} />
+      </MemoryRouter>,
+    );
+    // Simulasi pasca-drop: elemen sama, x/y baru (seperti dispatch commitDrag).
+    rerender(
+      <MemoryRouter>
+        <WhiteboardEditorShell board={boardWith([{ ...el, x: 200, y: 150 }])} state={makeState()} onBack={() => {}} />
+      </MemoryRouter>,
+    );
+    const nested = container.querySelector('svg.wb-svg svg');
+    expect(nested).not.toBeNull();
+    expect(nested?.getAttribute('width')).toBe('360');
+    expect(nested?.getAttribute('overflow')).toBe('hidden');
+    expect(nested?.innerHTML).toContain('Login');
+    expect(nested?.innerHTML).toContain('fill="#111214"');
+    // Tanpa clipPath url(#id): pemotong cukup viewport + overflow hidden.
+    expect(container.innerHTML).not.toContain('clipPath');
+  });
+
   it('tidak menampilkan hint bila embed sudah dikelompokkan', () => {
     render(
       <MemoryRouter>
