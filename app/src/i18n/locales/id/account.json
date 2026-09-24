@@ -745,6 +745,7 @@
       "expiredTitle": "Masa Pro habis",
       "expiredDesc": "Langganan Pro kamu sudah habis. Perpanjang untuk menjaga kapasitas tanpa batas.",
       "newPayment": "Lihat Paket",
+      "workspaceMismatch": "Order ini milik workspace lain: {{teamName}}",
       "loginRequired": "Login diperlukan",
       "loginRequiredDesc": "Status pembayaran untuk tim ini perlu login. Masuk dulu untuk melihat apakah Pro sudah aktif."
     },
@@ -771,6 +772,8 @@
       "composerTip": "Tip: ketik @ untuk menautkan task, issue, atau milestone",
       "messageAria": "Pesan",
       "placeholder": "Ketik pesan…",
+      "listAria": "Pesan tim",
+      "loading": "Memuat pesan",
       "enterToSend": "Enter untuk kirim · Shift+Enter untuk baris baru",
       "sendAria": "Kirim pesan",
       "chipOpen": "{{title}} — buka di proyek",

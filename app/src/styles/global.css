@@ -2394,6 +2394,13 @@ button.prop {
   border-radius: var(--radius-input);
 }
 
+.template-skeleton-kebab {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
 /* ============================================================
    Splash — App bootstrap (brand)
    ============================================================ */
@@ -7039,19 +7046,6 @@ html[data-theme='light'] .splash-bg {
   gap: 8px;
   flex-shrink: 0;
   margin-left: auto;
-}
-
-/* Templates mobile: aksi turun di bawah judul, rata kanan. */
-@media (max-width: 640px) {
-  .templates-page .data-row-top {
-    flex-wrap: wrap;
-    row-gap: 8px;
-  }
-  .templates-page .data-row-props {
-    width: 100%;
-    margin-left: 0;
-    justify-content: flex-end;
-  }
 }
 
 .data-row-btn .row-title-text {
@@ -13894,12 +13888,15 @@ input[type='checkbox'] {
 .diff-empty { font-size: 13px; color: var(--text-muted); }
 .tab-panel-loading { display:flex; flex-direction:column; gap:12px; }
 /* Whiteboard — list + editor shell */
-.wb-card { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: start; }
+.wb-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: start; }
+/* Judul nowrap (project-card-title ellipsis) memaksa min-content kolom 1fr:
+   kunci dengan minmax(0,1fr) + min-width:0 agar truncate aktif. */
 /* Anatomi split (2026-09): baris-atas + isi full-width — keduanya
    bentang penuh grid agar deskripsi tak tersentuh kolom aksi. */
 .wb-card > .data-row-top,
 .wb-card > .data-row-body {
   grid-column: 1 / -1;
+  min-width: 0;
 }
 .wb-card-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 0; background: none; border: none; text-align: left; font: inherit; color: inherit; cursor: pointer; border-radius: var(--radius-sm); }
 .wb-card-main:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent-ring); }

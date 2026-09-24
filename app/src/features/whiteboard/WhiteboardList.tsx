@@ -76,8 +76,8 @@ export function WhiteboardList({ onOpen, loading = false, unreadIds }: Whiteboar
           <Skeleton style={{ width: 96, height: 28, borderRadius: 8 }} />
         </span>
       </div>
-      <div className="project-grid" role="status" aria-live="polite" aria-busy="true" aria-label="Loading whiteboards">
-        <span className="sr-only">Loading whiteboards…</span>
+      <div className="project-grid" role="status" aria-live="polite" aria-busy="true" aria-label={t('common:loading.whiteboards')}>
+        <span className="sr-only">{t('common:loading.whiteboards')}…</span>
         <div aria-hidden="true" style={{ display: 'contents' }}>
           {[0, 1, 2].map((i) => (
             <div key={i} className="project-card wb-card">

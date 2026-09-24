@@ -106,6 +106,9 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
     if (!popup) return;
     const onDown = (e: PointerEvent) => {
       const t = e.target as Element | null;
+      // Panel SearchableSelect adalah portal di document.body (di luar popRef):
+      // klik opsi tidak boleh menutup popup sebelum onChange jalan.
+      if (t?.closest?.('.ss-panel')) return;
       if (popRef.current?.contains(t as Node) || t?.closest?.('[data-pop-anchor]')) return;
       setPopup(null);
     };
@@ -354,7 +357,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
             return (
               <span key={id} style={{ padding: '2px 8px', borderRadius: 6, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                 <LinkSimple size={10} aria-hidden="true" /> {bt?.title ?? id.slice(0, 6)}
-                <button type="button" onClick={() => setBlockedBy((prev) => prev.filter((x) => x !== id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, padding: '0 2px', lineHeight: 1, minWidth: 24, minHeight: 24 }} aria-label={`Remove blocker ${bt?.title ?? id}`}>×</button>
+                <button type="button" onClick={() => setBlockedBy((prev) => prev.filter((x) => x !== id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, padding: '0 2px', lineHeight: 1, minWidth: 24, minHeight: 24 }} aria-label={t('board.taskModal.removeBlocker', { title: bt?.title ?? id, defaultValue: `Remove blocker ${bt?.title ?? id}` })}>×</button>
               </span>
             );
           })}

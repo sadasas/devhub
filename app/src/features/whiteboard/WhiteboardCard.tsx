@@ -112,8 +112,8 @@ export function WhiteboardCard({ board, canEdit, unread = false, narrow = false,
         <span className="project-card-updated">{formatRelative(board.updatedAt)}</span>
         <span className="project-card-updated">#{shortId(board.id)}</span>
         {unread && (
-          <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">
-            New
+          <span className="unread-pill" role="status" aria-label={t('whiteboard.card.unread')} title={t('whiteboard.card.unread')}>
+            {t('whiteboard.card.unread')}
           </span>
         )}
       </span>

@@ -40,8 +40,7 @@ describe('RowMenu', () => {
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('closes on Escape and on outside pointerdown', () => {
-    renderMenu();
+  it('closes on Escape and on outside pointerdown', () => {    renderMenu();
     const trigger = screen.getByRole('button', { name: 'More actions for X' });
     fireEvent.click(trigger);
     expect(screen.getByRole('menu')).toBeTruthy();
@@ -51,5 +50,24 @@ describe('RowMenu', () => {
     expect(screen.getByRole('menu')).toBeTruthy();
     fireEvent.pointerDown(document.body);
     expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('does not bubble item clicks to a clickable parent (portal card)', () => {
+    const onParent = vi.fn();
+    const onDelete = vi.fn();
+    render(
+      <div onClick={onParent}>
+        <RowMenu
+          triggerLabel="More actions for X"
+          menuLabel="More actions for X"
+          menuId="rowmenu-bubble"
+          actions={[{ key: 'delete', label: 'Delete', icon: <span aria-hidden="true" />, danger: true, onSelect: onDelete }]}
+        />
+      </div>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'More actions for X' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    expect(onDelete).toHaveBeenCalledTimes(1);
+    expect(onParent).not.toHaveBeenCalled();
   });
 });

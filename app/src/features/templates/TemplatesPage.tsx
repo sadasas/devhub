@@ -10,6 +10,7 @@ import { EmptyState } from '../../components/EmptyState';
 import { DataErrorState } from '../../components/DataErrorState';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { Skeleton } from '../../components/Skeleton';
+import { RowMenu } from '../../components/RowMenu';
 import { InstantiateTemplateModal } from './InstantiateTemplateModal';
 
 interface DeleteTarget {
@@ -19,6 +20,28 @@ interface DeleteTarget {
 
 // Owner-only template library: the server lists only the caller's own
 // templates, so every row is deletable and there is no team gate here.
+
+/** Header ringkas ≤640px: aksi icon diganti kebab ⋮ + popup panel — pola IssuesPage. */
+function useIsTemplatesNarrow(): boolean {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(max-width: 640px)').matches
+      : false,
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(max-width: 640px)');
+    const update = (): void => setMatches(mq.matches);
+    update();
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', update);
+      return () => mq.removeEventListener('change', update);
+    }
+    mq.addListener(update);
+    return () => mq.removeListener(update);
+  }, []);
+  return matches;
+}
 export function TemplatesPage() {
   const { t } = useTranslation('extras');
   const [templates, setTemplates] = useState<ProjectTemplate[] | null>(null);
@@ -29,6 +52,7 @@ export function TemplatesPage() {
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const isNarrow = useIsTemplatesNarrow();
 
   useEffect(() => {
     let cancelled = false;
@@ -105,8 +129,7 @@ export function TemplatesPage() {
                       <Skeleton className="template-skeleton-meta-sm" />
                     </div>
                     <div className="data-row-side">
-                      <Skeleton className="template-skeleton-action" />
-                      <Skeleton className="template-skeleton-action-wide" />
+                      <Skeleton className="template-skeleton-kebab" />
                     </div>
                   </div>
                 ))}
@@ -129,23 +152,51 @@ export function TemplatesPage() {
                       <span className="row-title-text">{tpl.name}</span>
                     </div>
                     <span className="data-row-props">
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        leftIcon={<Trash size={14} aria-hidden="true" />}
-                        onClick={() => openDelete(tpl)}
-                        aria-label={`${t('templates.delete')}: ${tpl.name}`}
-                      >
-                        {t('templates.delete')}
-                      </Button>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        leftIcon={<Copy size={14} aria-hidden="true" />}
-                        onClick={() => setUseTarget(tpl)}
-                      >
-                        {t('templates.use')}
-                      </Button>
+                      {!isNarrow ? (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="btn-icon"
+                            onClick={() => setUseTarget(tpl)}
+                            aria-label={t('templates.use')}
+                            title={t('templates.use')}
+                          >
+                            <Copy size={14} aria-hidden="true" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="btn-icon btn-danger"
+                            onClick={() => openDelete(tpl)}
+                            aria-label={`${t('templates.delete')}: ${tpl.name}`}
+                            title={`${t('templates.delete')}: ${tpl.name}`}
+                          >
+                            <Trash size={14} aria-hidden="true" />
+                          </Button>
+                        </>
+                      ) : (
+                        <RowMenu
+                          triggerLabel={`More actions for ${tpl.name}`}
+                          menuLabel={`More actions for ${tpl.name}`}
+                          menuId={`template-rowmenu-${tpl.id}`}
+                          actions={[
+                            {
+                              key: 'use',
+                              label: t('templates.use'),
+                              icon: <Copy size={14} aria-hidden="true" />,
+                              onSelect: () => setUseTarget(tpl),
+                            },
+                            {
+                              key: 'delete',
+                              label: `${t('templates.delete')}: ${tpl.name}`,
+                              icon: <Trash size={14} aria-hidden="true" />,
+                              danger: true,
+                              onSelect: () => openDelete(tpl),
+                            },
+                          ]}
+                        />
+                      )}
                     </span>
                   </div>
                   {tpl.description && <div className="data-row-meta">{tpl.description}</div>}

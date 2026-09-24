@@ -164,33 +164,35 @@ export function LabelsSection() {
               <div
                 key={def.id}
                 className="mini-row"
-                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 0', borderTop: i === 0 ? 'none' : '1px solid var(--border-hairline)' }}
+                style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '7px 0', borderTop: i === 0 ? 'none' : '1px solid var(--border-hairline)' }}
               >
-                <span
-                  aria-hidden="true"
-                  title={LABEL_COLOR_LABEL[def.color]}
-                  style={{ width: 12, height: 12, borderRadius: '50%', flexShrink: 0, background: style.color }}
-                />
-                <span style={{ ...style, fontSize: 12, padding: '2px 8px', borderRadius: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 220 }} title={def.description || def.name}>
-                  {def.name}
-                </span>
-                {def.description && (
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {def.description}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span
+                    aria-hidden="true"
+                    title={LABEL_COLOR_LABEL[def.color]}
+                    style={{ width: 12, height: 12, borderRadius: '50%', flexShrink: 0, background: style.color }}
+                  />
+                  <span style={{ ...style, fontSize: 12, padding: '2px 8px', borderRadius: 6, overflowWrap: 'anywhere' }} title={def.description || def.name}>
+                    {def.name}
                   </span>
-                )}
-                <span style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0, marginLeft: def.description ? 0 : 'auto' }} className="tabular">
-                  {t('settings.labelsUsed', { defaultValue: '{{count}} tasks', count })}
-                </span>
-                {canEdit && (
-                  <>
-                    <button type="button" className="mini-del" onClick={() => openEdit(def)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 6, display: 'inline-flex', flexShrink: 0 }} aria-label={`${t('settings.labelsRename', { defaultValue: 'Rename' })} ${def.name}`}>
-                      <PencilSimple size={14} aria-hidden="true" />
-                    </button>
-                    <button type="button" className="mini-del" onClick={() => setDeleteId(def.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--status-danger)', padding: 6, display: 'inline-flex', flexShrink: 0 }} aria-label={`${t('settings.labelsDelete', { defaultValue: 'Delete' })} ${def.name}`}>
-                      <Trash size={14} aria-hidden="true" />
-                    </button>
-                  </>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0, marginLeft: 'auto' }} className="tabular">
+                    {t('settings.labelsUsed', { defaultValue: '{{count}} tasks', count })}
+                  </span>
+                  {canEdit && (
+                    <>
+                      <button type="button" className="mini-del" onClick={() => openEdit(def)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 6, display: 'inline-flex', flexShrink: 0 }} aria-label={`${t('settings.labelsRename', { defaultValue: 'Rename' })} ${def.name}`}>
+                        <PencilSimple size={14} aria-hidden="true" />
+                      </button>
+                      <button type="button" className="mini-del" onClick={() => setDeleteId(def.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--status-danger)', padding: 6, display: 'inline-flex', flexShrink: 0 }} aria-label={`${t('settings.labelsDelete', { defaultValue: 'Delete' })} ${def.name}`}>
+                        <Trash size={14} aria-hidden="true" />
+                      </button>
+                    </>
+                  )}
+                </div>
+                {def.description && (
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', paddingLeft: 20, overflowWrap: 'anywhere' }}>
+                    {def.description}
+                  </div>
                 )}
               </div>
             );

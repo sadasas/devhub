@@ -391,8 +391,8 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           <Skeleton style={{ width: 32, height: 32, borderRadius: 8 }} />
         </div>
       </div>
-      <div className="kanban" role="status" aria-live="polite" aria-busy="true" aria-label="Loading board">
-        <span className="sr-only">Loading board…</span>
+      <div className="kanban" role="status" aria-live="polite" aria-busy="true" aria-label={t('common:loading.board')}>
+        <span className="sr-only">{t('common:loading.board')}…</span>
         <div aria-hidden="true" style={{ display: 'contents' }}>
           {COLUMNS.map((col) => (
             <div key={col} className="kanban-col">

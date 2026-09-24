@@ -36,7 +36,7 @@ describe('TaskCard', () => {
   it('renders an unread dot for unread tasks', () => {
     render(<TaskCard task={task()} onOpen={() => {}} unread />);
     expect(document.querySelector('.unread-pill')).toBeTruthy();
-    expect(screen.getByText('New')).toBeTruthy();
+    expect(screen.getByText('Unread')).toBeTruthy();
   });
 
   it('omits the unread dot for read tasks', () => {

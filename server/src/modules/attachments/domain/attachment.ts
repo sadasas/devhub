@@ -27,11 +27,52 @@ const ALLOWED_MIME_EXACT = new Set([
   'video/quicktime',
 ]);
 
-export function isAllowedMime(mime: string): boolean {
+/**
+ * Tebakan mime dari ekstensi nama file — hanya untuk allowlist di atas.
+ * Browser/klien kadang mengirim `mime` kosong (mis. berkas tanpa asosiasi
+ * OS); tanpa fallback, file 100 KB yang sah ikut ditolak 415.
+ * Ekstensi di luar allowlist tetap ditolak (executable/script tak lolos).
+ */
+const EXTENSION_MIME: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  svg: 'image/svg+xml',
+  bmp: 'image/bmp',
+  ico: 'image/x-icon',
+  avif: 'image/avif',
+  txt: 'text/plain',
+  md: 'text/markdown',
+  markdown: 'text/markdown',
+  csv: 'text/csv',
+  log: 'text/plain',
+  mp4: 'video/mp4',
+  webm: 'video/webm',
+  mov: 'video/quicktime',
+  m4v: 'video/mp4',
+  pdf: 'application/pdf',
+  json: 'application/json',
+  zip: 'application/zip',
+};
+
+export function isAllowedMime(mime: string, filename?: string): boolean {
   const m = mime.trim().toLowerCase();
-  if (!m || m.length > 100) return false;
-  if (ALLOWED_MIME_EXACT.has(m)) return true;
-  return ALLOWED_MIME_PREFIXES.some((p) => m.startsWith(p));
+  if (m && m.length <= 100) {
+    if (ALLOWED_MIME_EXACT.has(m)) return true;
+    if (ALLOWED_MIME_PREFIXES.some((p) => m.startsWith(p))) return true;
+    return false;
+  }
+  const base = (filename ?? '').split(/[\\/]/).pop() ?? '';
+  const dot = base.lastIndexOf('.');
+  if (dot < 0) return false;
+  const ext = base.slice(dot + 1).toLowerCase();
+  if (!/^[a-z0-9]{1,10}$/.test(ext)) return false;
+  const guessed = EXTENSION_MIME[ext];
+  if (!guessed) return false;
+  if (ALLOWED_MIME_EXACT.has(guessed)) return true;
+  return ALLOWED_MIME_PREFIXES.some((p) => guessed.startsWith(p));
 }
 
 export const signUploadSchema = z.object({
