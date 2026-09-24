@@ -4,6 +4,7 @@ import { loadState, saveState } from '../state-db.js';
 import { newId, nowIso, textContent, toolError } from '../../domain/entity.js';
 import { whiteboardElementSchema, LIMITS, type WhiteboardElement } from '../../../projects/domain/state.js';
 import { EmbedSanitizerError, embedGroupingHints, sanitizeStateEmbeds } from '../../../projects/domain/sanitize-svg.js';
+import { findDanglingRefs } from '../../../projects/domain/whiteboard-refs.js';
 import { validateWhiteboardShowcase } from '../../../projects/domain/validate-whiteboard.js';
 
 const EMBED_EXAMPLE =
@@ -97,8 +98,9 @@ export function registerCreateWhiteboard(server: McpServer): void {
       state.whiteboards.push(board);
       await saveState(args.projectId, state);
       const grouping = embedGroupingHints(board.elements);
+      const warnings = findDanglingRefs(state, board.elements);
       return {
-        content: [textContent({ id: board.id, name: board.name, elementCount: board.elements.length, updatedAt: now, ...(stripped.length > 0 ? { sanitizerStripped: stripped } : {}), ...(grouping.length > 0 ? { groupingHints: grouping } : {}) })],
+        content: [textContent({ id: board.id, name: board.name, elementCount: board.elements.length, updatedAt: now, ...(stripped.length > 0 ? { sanitizerStripped: stripped } : {}), ...(grouping.length > 0 ? { groupingHints: grouping } : {}), ...(warnings.length > 0 ? { warnings } : {}) })],
       };
     },
   );

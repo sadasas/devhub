@@ -351,41 +351,137 @@ describe('MCP whiteboard tools', () => {
     expect(after.whiteboards[0]!.elements.map((e) => e.id)).toEqual([nodeB]);
   });
 
-  it('WB-10: patch rejects unknown ids, kind changes and duplicates', async () => {
-    const cookie = await register('wb-patch-bad@gmail.com');
+  it('warns on ref to a missing entity but still creates the board', async () => {
+    const cookie = await register('wb-dangling-ref@gmail.com');
+    const projectId = await createProject(cookie);
+    const key = await createKey(cookie);
+
+    const text = await toolText(key, 'create_whiteboard', {
+      projectId,
+      name: 'Dangling',
+      elements: [{ kind: 'ref', entity: 'tasks', entityId: '00000000-0000-4000-8000-000000000000', x: 0, y: 0 }],
+    });
+    const result = JSON.parse(text) as { elementCount: number; warnings?: Array<{ code: string }> };
+    expect(result.elementCount).toBe(1);
+    expect(result.warnings?.some((w) => w.code === 'dangling_ref')).toBe(true);
+
+    const state = await fetchState(cookie, projectId);
+    expect(state.whiteboards[0]?.elements).toHaveLength(1);
+  });
+
+  it('emits no warnings for a ref to an existing task', async () => {
+    const cookie = await register('wb-valid-ref@gmail.com');
+    const projectId = await createProject(cookie);
+    const key = await createKey(cookie);
+
+    const taskText = await toolText(key, 'create_task', { projectId, title: 'Real task' });
+    const taskId = (JSON.parse(taskText) as { id: string }).id;
+
+    const text = await toolText(key, 'create_whiteboard', {
+      projectId,
+      name: 'Linked',
+      elements: [{ kind: 'ref', entity: 'tasks', entityId: taskId, x: 0, y: 0 }],
+    });
+    const result = JSON.parse(text) as { elementCount: number; warnings?: unknown };
+    expect(result.elementCount).toBe(1);
+    expect(result.warnings).toBeUndefined();
+  });
+
+  it('warns on an edge pointing at an unknown element', async () => {
+    const cookie = await register('wb-dangling-edge@gmail.com');
+    const projectId = await createProject(cookie);
+    const key = await createKey(cookie);
+
+    const text = await toolText(key, 'create_whiteboard', {
+      projectId,
+      name: 'Loose edge',
+      elements: [{ ...EDGE_EL, sourceNodeId: '00000000-0000-4000-8000-000000000000' }],
+    });
+    const result = JSON.parse(text) as { elementCount: number; warnings?: Array<{ code: string }> };
+    expect(result.elementCount).toBe(1);
+    expect(result.warnings?.some((w) => w.code === 'dangling_edge')).toBe(true);
+  });
+
+  it('warns on patch-added dangling refs', async () => {
+    const cookie = await register('wb-patch-dangling@gmail.com');
+    const projectId = await createProject(cookie);
+    const key = await createKey(cookie);
+
+    const created = await toolText(key, 'create_whiteboard', { projectId, name: 'Patch warn' });
+    const boardId = (JSON.parse(created) as { id: string }).id;
+
+    const patched = await toolText(key, 'patch_whiteboard', {
+      projectId,
+      whiteboardId: boardId,
+      add: [{ kind: 'ref', entity: 'issues', entityId: '00000000-0000-4000-8000-000000000000', x: 0, y: 0 }],
+    });
+    const result = JSON.parse(patched) as { added: number; warnings?: Array<{ code: string }> };
+    expect(result.added).toBe(1);
+    expect(result.warnings?.some((w) => w.code === 'dangling_ref')).toBe(true);
+  });
+
+  it('validate_whiteboard flags dangling refs without writing', async () => {
+    const cookie = await register('wb-validate-dangling@gmail.com');
+    const projectId = await createProject(cookie);
+    const key = await createKey(cookie);
+
+    const text = await toolText(key, 'validate_whiteboard', {
+      projectId,
+      elements: [{ id: '44444444-4444-4444-8444-444444444444', kind: 'ref', entity: 'tasks', entityId: '00000000-0000-4000-8000-000000000000', x: 0, y: 0 }],
+    });
+    const result = JSON.parse(text) as { ok: boolean; warnings: Array<{ code: string }> };
+    expect(result.ok).toBe(false);
+    expect(result.warnings.some((w) => w.code === 'dangling_ref')).toBe(true);
+
+    const state = await fetchState(cookie, projectId);
+    expect(state.whiteboards).toHaveLength(0);
+  });
+
+  it('refuses to empty a board without confirmEmpty', async () => {
+    const cookie = await register('wb-guard@gmail.com');
     const projectId = await createProject(cookie);
     const key = await createKey(cookie);
 
     const created = await toolText(key, 'create_whiteboard', {
       projectId,
-      name: 'Strict',
+      name: 'Keep me',
+      elements: [STICKY, TEXT_EL, EDGE_EL],
+    });
+    const boardId = (JSON.parse(created) as { id: string }).id;
+
+    const res = await toolCall(key, 'update_whiteboard', {
+      projectId,
+      whiteboardId: boardId,
+      elements: [],
+    });
+    expect(res.body.result?.isError).toBe(true);
+    expect(res.body.result?.content?.[0]?.text).toContain('confirmEmpty');
+
+    const state = await fetchState(cookie, projectId);
+    expect(state.whiteboards[0]?.elements).toHaveLength(3);
+  });
+
+  it('empties a board when confirmEmpty is set', async () => {
+    const cookie = await register('wb-guard-ok@gmail.com');
+    const projectId = await createProject(cookie);
+    const key = await createKey(cookie);
+
+    const created = await toolText(key, 'create_whiteboard', {
+      projectId,
+      name: 'Clear me',
       elements: [STICKY],
     });
     const boardId = (JSON.parse(created) as { id: string }).id;
-    const stickyId = (await fetchState(cookie, projectId)).whiteboards[0]!.elements[0]!.id;
 
-    const unknown = await toolCall(key, 'patch_whiteboard', {
+    const updated = await toolText(key, 'update_whiteboard', {
       projectId,
       whiteboardId: boardId,
-      update: [{ id: '00000000-0000-4000-8000-000000000000', patch: { text: 'x' } }],
+      elements: [],
+      confirmEmpty: true,
     });
-    expect(unknown.body.result?.isError).toBe(true);
-    expect(unknown.body.result?.content?.[0]?.text).toContain('Unknown element id');
+    expect(JSON.parse(updated)).toMatchObject({ elementCount: 0 });
 
-    const kindChange = await toolCall(key, 'patch_whiteboard', {
-      projectId,
-      whiteboardId: boardId,
-      update: [{ id: stickyId, patch: { kind: 'text' } }],
-    });
-    expect(kindChange.body.result?.isError).toBe(true);
-    expect(kindChange.body.result?.content?.[0]?.text).toContain('immutable');
-
-    const dup = await toolCall(key, 'patch_whiteboard', {
-      projectId,
-      whiteboardId: boardId,
-      add: [{ ...TEXT_EL, id: stickyId }],
-    });
-    expect(dup.body.result?.isError).toBe(true);
-    expect(dup.body.result?.content?.[0]?.text).toContain('Duplicate element id');
+    const state = await fetchState(cookie, projectId);
+    expect(state.whiteboards[0]?.elements).toHaveLength(0);
   });
 });

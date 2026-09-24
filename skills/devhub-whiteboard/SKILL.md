@@ -79,6 +79,8 @@ list_whiteboards → validate_whiteboard (dry-run) → create_whiteboard / patch
 ## 5. Common pitfalls
 
 - `update_whiteboard` with a partial `elements` array **deletes everything else**. Prefer `patch_whiteboard`.
+- Emptying a board requires `confirmEmpty: true` — without it the call is refused and nothing changes.
+- Responses may carry `warnings` (`dangling_ref` / `dangling_edge`): the board is still saved, but fix the ids — ref cards render empty until the target exists.
 - `fill: false` is legacy boolean — new boards use `"none"` (or `"solid"`/`"transparent"`).
 - `ref` cards render expanded (260×150) even though stored collapsed — validate against the expanded size.
 - Check the response `groupingHints` after create/patch and group flagged embeds.

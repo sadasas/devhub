@@ -1,8 +1,10 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { textContent, toolError } from '../../domain/entity.js';
-import { whiteboardElementSchema, type WhiteboardElement } from '../../../projects/domain/state.js';
+import { whiteboardElementSchema, type State, type WhiteboardElement } from '../../../projects/domain/state.js';
 import { embedGroupingHints } from '../../../projects/domain/sanitize-svg.js';
+import { findDanglingRefs } from '../../../projects/domain/whiteboard-refs.js';
+import { loadState } from '../state-db.js';
 
 const ELEMENTS_DESCRIPTION =
   'Elements to validate (max 1000). Same schema as create_whiteboard. Each element: { id?, kind: "stroke"|"sticky"|"text"|"shape"|"edge"|"boundary"|"ref"|"embed", ...fields }. ' +
@@ -175,6 +177,26 @@ export function registerValidateWhiteboard(server: McpServer): void {
           b: '',
           gap: 0,
           suggestion: 'Wrap each widget in <g data-component="name">, e.g. <g data-component="submit">...</g>.',
+        });
+      }
+
+      // Dangling references (advisory): ref targets missing from state,
+      // edge endpoints missing from the submitted array. Best-effort —
+      // unknown project skips ref checks (edge checks still run).
+      let refState: State | null = null;
+      try {
+        refState = await loadState(args.projectId);
+      } catch {
+        refState = null;
+      }
+      for (const w of findDanglingRefs(refState, elements)) {
+        warnings.push({
+          code: w.code,
+          message: w.message,
+          a: w.elementId,
+          b: '',
+          gap: 0,
+          suggestion: w.suggestion,
         });
       }
 

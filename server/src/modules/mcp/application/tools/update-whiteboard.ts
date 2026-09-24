@@ -4,6 +4,7 @@ import { loadState, saveState } from '../state-db.js';
 import { applyDefined, findEntity, newId, nowIso, textContent, toolError } from '../../domain/entity.js';
 import { whiteboardElementSchema, LIMITS, type WhiteboardElement } from '../../../projects/domain/state.js';
 import { EmbedSanitizerError, embedGroupingHints, sanitizeStateEmbeds } from '../../../projects/domain/sanitize-svg.js';
+import { findDanglingRefs } from '../../../projects/domain/whiteboard-refs.js';
 import { validateWhiteboardShowcase } from '../../../projects/domain/validate-whiteboard.js';
 
 const ELEMENTS_DESCRIPTION =
@@ -31,6 +32,10 @@ const inputSchema = z.object({
     .max(LIMITS.WHITEBOARD_ELEMENTS)
     .optional()
     .describe(ELEMENTS_DESCRIPTION),
+  confirmEmpty: z
+    .boolean()
+    .default(false)
+    .describe('Required when replacing a non-empty board with an empty elements array (mass-delete guard)'),
 });
 
 export function registerUpdateWhiteboard(server: McpServer): void {
@@ -65,6 +70,12 @@ export function registerUpdateWhiteboard(server: McpServer): void {
         }
         elements = parsed.data;
       }
+      // Mass-delete guard: replacing a non-empty board with [] needs explicit confirmation.
+      if (elements !== undefined && elements.length === 0 && board.elements.length > 0 && !args.confirmEmpty) {
+        return toolError(
+          `Refusing to delete ${board.elements.length} element(s) from board ${board.id} — pass confirmEmpty: true to confirm, or use patch_whiteboard delete for selective removal`,
+        );
+      }
       // Sanitizer embed (fail-closed); saveState mengulanginya sebagai backstop.
       let stripped: string[] = [];
       try {
@@ -83,6 +94,7 @@ export function registerUpdateWhiteboard(server: McpServer): void {
       board.updatedAt = nowIso();
       await saveState(args.projectId, state);
       const grouping = embedGroupingHints(board.elements);
+      const warnings = findDanglingRefs(state, board.elements);
       return {
         content: [
           textContent({
@@ -92,6 +104,7 @@ export function registerUpdateWhiteboard(server: McpServer): void {
             updatedAt: board.updatedAt,
             ...(stripped.length > 0 ? { sanitizerStripped: stripped } : {}),
             ...(grouping.length > 0 ? { groupingHints: grouping } : {}),
+            ...(warnings.length > 0 ? { warnings } : {}),
           }),
         ],
       };
