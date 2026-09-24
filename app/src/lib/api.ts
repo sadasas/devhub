@@ -7,6 +7,7 @@ import type {
   ChatRef,
   ChatResolvedRef,
   GitHubAutomation,
+  GitHubInstallation,
   GitHubInstallationRepo,
   GitHubStatus,
   Invitation,
@@ -728,6 +729,8 @@ export const api = {
 
   /** GitHub App integration: semua URL terpusat di sini — jangan hardcode di komponen. */
   githubInstallUrl: () => request<{ installUrl: string }>('/integrations/github/install-url'),
+  githubInstallations: () =>
+    request<{ installations: GitHubInstallation[] }>('/integrations/github/installations'),
   githubSetup: (installationId: number, setupAction?: string) =>
     request<{ installationId: number; accountLogin: string | null; accountType: string | null }>(
       `/integrations/github/setup?installation_id=${installationId}${setupAction ? `&setup_action=${encodeURIComponent(setupAction)}` : ''}`,

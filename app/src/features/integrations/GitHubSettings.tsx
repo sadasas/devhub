@@ -9,7 +9,9 @@ import {
   GITHUB_INSTALLATIONS_URL,
   GITHUB_PRIVACY_URL,
 } from '../../lib/docs-urls';
-import type { GitHubAutomation, GitHubInstallationRepo, GitHubStatus } from '../../lib/types';
+import type { GitHubAutomation, GitHubInstallation, GitHubInstallationRepo, GitHubStatus } from '../../lib/types';
+import { savePendingReturn } from '../../lib/github';
+import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { SearchableSelect } from '../../components/SearchableSelect';
 
@@ -87,6 +89,10 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingInstall, setPendingInstall] = useState<{ installationId: number; repos: GitHubInstallationRepo[] } | null>(null);
   const [picked, setPicked] = useState('');
+  const [flash, setFlash] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
+  const [installations, setInstallations] = useState<GitHubInstallation[] | null>(null);
+  const [pickedInstallation, setPickedInstallation] = useState<number | null>(null);
+  const [reposLoading, setReposLoading] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -136,6 +142,68 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
     void refresh();
   }, [refresh]);
 
+  // Flash dari kembalian Gate (?github=connected&repo= / ?github_error=):
+  // konsumsi sekali lalu bersihkan URL (cermin pola GCal ?gcal=connected).
+  useEffect(() => {
+    const connected = searchParams.get('github') === 'connected';
+    const err = searchParams.get('github_error');
+    if (!connected && !err) return;
+    if (connected) {
+      const repo = searchParams.get('repo');
+      setFlash({
+        tone: 'success',
+        text: t('settings.githubConnectedFlash', {
+          defaultValue: 'GitHub connected{{repo}}.',
+          repo: repo ? `: ${repo}` : '',
+        }),
+      });
+    } else {
+      setFlash({
+        tone: 'error',
+        text: err || t('settings.githubFailed', { defaultValue: 'Connection failed.' }),
+      });
+    }
+    const next = new URLSearchParams(searchParams);
+    next.delete('github');
+    next.delete('repo');
+    next.delete('github_error');
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Daftar instalasi untuk picker tanpa redirect (State B): hanya saat
+  // belum connected dan user admin — member cukup baca status.
+  useEffect(() => {
+    if (!status || status.connected || !isAdmin || installations !== null) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { installations: rows } = await api.githubInstallations();
+        if (!cancelled) setInstallations(rows);
+      } catch {
+        if (!cancelled) setInstallations([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [status, isAdmin, installations]);
+
+  async function selectInstallation(installationId: number) {
+    setPickedInstallation(installationId);
+    setReposLoading(true);
+    setError(null);
+    try {
+      const { repos } = await api.githubInstallRepos(installationId);
+      setPendingInstall({ installationId, repos });
+      setPicked(repos[0] ? `${repos[0].owner}/${repos[0].repo}` : '');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load repositories');
+    } finally {
+      setReposLoading(false);
+    }
+  }
+
   async function connectPicked() {
     if (!picked || !pendingInstall) return;
     const [owner, repo] = picked.split('/');
@@ -145,7 +213,14 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
     try {
       await api.githubConnect(projectId, pendingInstall.installationId, owner, repo);
       setPendingInstall(null);
-      setNotice(t('settings.githubConnected', { defaultValue: 'Repository connected.' }));
+      setPickedInstallation(null);
+      setFlash({
+        tone: 'success',
+        text: t('settings.githubConnectedFlash', {
+          defaultValue: 'GitHub connected{{repo}}.',
+          repo: `: ${owner}/${repo}`,
+        }),
+      });
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Connect failed');
@@ -206,8 +281,11 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
     try {
       // Simpan project asal agar gate global bisa default-kan picker setelah
       // redirect GitHub (pengganti `state` ala OAuth — Setup URL statis).
+      // Simpan juga path kembali agar Gate mengantar pulang ke Settings
+      // (bukan terdampar di dashboard) + flash sukses.
       try {
         window.localStorage.setItem('devhub:github:pendingProject', projectId);
+        savePendingReturn(`${window.location.pathname}${window.location.search}`);
       } catch {
         // storage penuh/diblokir — flow tetap jalan via picker manual.
       }
@@ -238,6 +316,25 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
               {notice}
             </p>
           )}
+          {flash ? (
+            <div
+              className="save-toast save-banner"
+              role={flash.tone === 'error' ? 'alert' : 'status'}
+              data-testid="github-flash"
+            >
+              <Badge tone={flash.tone === 'error' ? 'danger' : 'success'} dot>
+                {flash.tone === 'error'
+                  ? t('settings.githubFailed', { defaultValue: 'Connection failed' })
+                  : t('settings.githubFlashConnected', { defaultValue: 'Connected' })}
+              </Badge>
+              <div className="save-toast-body">
+                <span>{flash.text}</span>
+              </div>
+              <Button variant="ghost" size="sm" className="save-toast-close" onClick={() => setFlash(null)}>
+                {t('settings.githubDismiss', { defaultValue: 'Dismiss' })}
+              </Button>
+            </div>
+          ) : null}
           {error && (
             <p className="field-helper" role="alert">
               {error}
@@ -333,6 +430,36 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
                 })}
               </p>
               <GitHubDisclosure />
+              {isAdmin && installations !== null && installations.length > 0 && !pendingInstall ? (
+                <>
+                  <p className="field-helper">
+                    {t('settings.githubInstalledUnmapped', {
+                      defaultValue: 'App installed — pick a repository below to finish connecting.',
+                    })}
+                  </p>
+                  <SearchableSelect
+                    id="github-installation-pick"
+                    label={t('settings.githubInstallation', { defaultValue: 'GitHub installation' })}
+                    ariaLabel={t('settings.githubInstallation', { defaultValue: 'GitHub installation' })}
+                    value={pickedInstallation !== null ? String(pickedInstallation) : ''}
+                    allowEmpty={false}
+                    searchable
+                    options={installations.map((inst) => ({
+                      value: String(inst.installationId),
+                      label: inst.accountLogin
+                        ? `${inst.accountLogin}${inst.accountType ? ` (${inst.accountType})` : ''}`
+                        : `#${inst.installationId}`,
+                    }))}
+                    onChange={(v) => {
+                      const id = Number(v);
+                      if (Number.isInteger(id) && id > 0) void selectInstallation(id);
+                    }}
+                  />
+                  {reposLoading ? (
+                    <p className="field-helper">{t('settings.loading', { defaultValue: 'Loading…' })}</p>
+                  ) : null}
+                </>
+              ) : null}
               {pendingInstall ? (
                 <>
                   <p className="field-helper">

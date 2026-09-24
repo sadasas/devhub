@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { GithubLogo } from '@phosphor-icons/react';
 import { api } from '../../lib/api';
-import { clearPendingProject, readPendingProject } from '../../lib/github';
+import { clearPendingProject, clearPendingReturn, readPendingProject, readPendingReturn } from '../../lib/github';
 import type { GitHubInstallationRepo } from '../../lib/types';
 import { useProjects } from '../../state/projects-context';
 import { Button } from '../../components/Button';
@@ -25,6 +25,7 @@ interface PendingSetup {
 export function GitHubSetupGate() {
   const { t } = useTranslation('project');
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { projects } = useProjects();
   const [pending, setPending] = useState<PendingSetup | null>(null);
   const [loading, setLoading] = useState(false);
@@ -80,8 +81,24 @@ export function GitHubSetupGate() {
     clearPendingProject();
   }
 
+  /**
+   * Antar pulang ke Settings asal (bukan terdampar di dashboard):
+   * return path disimpan startConnect; flash sukses ditampilkan Settings
+   * via ?github=connected&repo=. Tanpa path tersimpan → tetap di tempat.
+   */
+  function navigateHome(repo: string) {
+    const ret = readPendingReturn();
+    clearPendingReturn();
+    clearPendingProject();
+    if (!ret) return false;
+    const sep = ret.includes('?') ? '&' : '?';
+    navigate(`${ret}${sep}github=connected&repo=${encodeURIComponent(repo)}`, { replace: true });
+    return true;
+  }
+
   function close() {
     setPending(null);
+    clearPendingReturn();
     cleanupParams();
   }
 
@@ -101,6 +118,8 @@ export function GitHubSetupGate() {
           project: name,
         }),
       );
+      // Pulang ke Settings asal bila diketahui (flash sukses di sana).
+      if (navigateHome(pickedRepo)) return;
       cleanupParams();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Connect failed');

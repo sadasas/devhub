@@ -107,6 +107,14 @@ export interface GitHubInstallationRepo {
   isPrivate: boolean;
 }
 
+/** Instalasi GitHub App yang dikenal DevHub (tanpa secret — untuk picker). */
+export interface GitHubInstallation {
+  installationId: number;
+  accountLogin: string | null;
+  accountType: string | null;
+  status: string;
+}
+
 export interface Task extends Base {
   title: string;
   status: TaskStatus;
