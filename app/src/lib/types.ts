@@ -377,6 +377,9 @@ export interface WhiteboardText {
   groupId?: string | null;
 }
 
+/** Shape fill mode (FigJam): solid opaque, translucent tint, or no fill. */
+export type WhiteboardShapeFill = 'solid' | 'transparent' | 'none';
+
 export interface WhiteboardShape {
   id: string;
   kind: 'shape';
@@ -386,7 +389,9 @@ export interface WhiteboardShape {
   w: number;
   h: number;
   color: string;
-  fill: boolean;
+  fill: WhiteboardShapeFill;
+  /** Warna body terpisah (Figma); null = ikut border. Tanpa migrasi. */
+  fillColor?: string | null;
   strokeWidth: number;
   dash?: WhiteboardShapeDash | null;
   label: string;

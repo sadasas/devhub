@@ -10,13 +10,14 @@ import {
   unionBounds,
   wrapTextLines,
   wrapToWidth,
-  BOUNDARY_LABEL_DY,
   boundaryChipWidth,
+  boundaryLabelDY,
   CHIP_CHAR_W,
   REF_LAYOUT,
   type Rect,
   type RefCardData,
 } from './geometry';
+import { shapeFillMode, shapeLabelFill, shapePaintColor } from './canvas-palette';
 import { effectiveArrowStyle, orthogonalPath, pathMidpoint, portPoint, portToward, type Point } from './edges';
 import { fontStackOf, listedLines, type RichTextFields } from './fonts';
 
@@ -161,9 +162,10 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null, ctx: Exp
       const textX = align === 'left' ? el.x + pad : align === 'right' ? el.x + el.w - pad : el.x + el.w / 2;
       const innerW = Math.max(24, el.w - pad * 2);
       const labelLines = el.label ? wrapToWidth(listedLines(el.label, el).join('\n'), fontSize, innerW, 4) : [];
-      const fill = el.fill ? ` fill="${esc(el.color)}" fill-opacity="0.15"` : ' fill="none"';
-      const isLightFill = el.fill && ["#e4e4e7","#6ea8fe","#f2b8c6","#34c38e","#5db69b","#a78bfa","#e8b955"].includes(el.color);
-  const labelFill = el.labelColor ?? (isLightFill ? "#0f172a" : el.color);
+      const fillMode = shapeFillMode(el.fill);
+      const paint = shapePaintColor(el.color, (el as { fillColor?: string | null }).fillColor);
+      const fill = fillMode === 'none' ? ' fill="none"' : ` fill="${esc(paint)}"${fillMode === 'transparent' ? ' fill-opacity="0.15"' : ''}`;
+  const labelFill = shapeLabelFill(el.fill, paint, el.labelColor);
       const step = fontSize + 2;
       const n = labelLines.length;
       const vMode = el.valign ?? null;
@@ -224,13 +226,13 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null, ctx: Exp
       return `<g><polyline points="${linePoints}" fill="none" stroke="${esc(el.color)}" stroke-width="${el.width}"${dash}/>${arrow}${label}</g>`;
     }
     case 'boundary': {
-      const fontSize = el.fontSize ?? 14;
+      const fontSize = el.fontSize ?? 16;
       const labelColor = (el as { labelColor?: string | null }).labelColor ?? '#374151';
       const bold = !!(el as { bold?: boolean | null }).bold;
       const chipW = boundaryChipWidth(listedLines(el.label, el).join(' '), fontSize, el.w - 12, bold);
       const chipH = fontSize * 1.5;
   const chip = el.label
-        ? `<g transform="translate(${round(el.x + 6)}, ${round(el.y + BOUNDARY_LABEL_DY)})"><rect x="-4" y="${round(-(chipH - 2))}" width="${round(chipW)}" height="${round(chipH)}" rx="5" fill="${esc(el.color)}" fill-opacity="0.25"/><text x="0" y="0" font-size="${fontSize}" fill="${esc(labelColor)}"${fontAttrs(el)}>${esc(truncateToWidth(listedLines(el.label, el).join(' '), fontSize, chipW - 12, bold ? 600 : 400))}</text></g>`
+        ? `<g transform="translate(${round(el.x + 6)}, ${round(el.y + boundaryLabelDY(fontSize))})"><rect x="-4" y="${round(-(chipH - 2))}" width="${round(chipW)}" height="${round(chipH)}" rx="3" fill="${esc(el.color)}" fill-opacity="0.25"/><text x="0" y="0" font-size="${fontSize}" fill="${esc(labelColor)}"${fontAttrs(el)}>${esc(truncateToWidth(listedLines(el.label, el).join(' '), fontSize, chipW - 12, bold ? 600 : 400))}</text></g>`
         : '';
       return `<g><rect x="${round(el.x)}" y="${round(el.y)}" width="${round(el.w)}" height="${round(el.h)}" rx="8" fill="${esc(el.color)}" fill-opacity="0.05" stroke="${esc(el.color)}" stroke-width="1.5" stroke-dasharray="6 4"/>${chip}</g>`;
     }

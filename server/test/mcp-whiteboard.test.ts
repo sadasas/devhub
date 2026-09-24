@@ -121,7 +121,7 @@ describe('MCP whiteboard tools', () => {
       w: 120,
       h: 80,
       color: '#6ea8fe',
-      fill: false,
+      fill: 'none',
       strokeWidth: 2,
       label: shapeType,
     }));

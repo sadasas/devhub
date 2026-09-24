@@ -804,7 +804,7 @@ describe('whiteboard editor shell', () => {
     const board: Whiteboard = {
       ...BOARD,
       elements: [
-        { id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 200, h: 120, color: '#e8b955', fill: true, strokeWidth: 2, label: '' },
+        { id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 200, h: 120, color: '#e8b955', fill: 'transparent', strokeWidth: 2, label: '' },
       ],
     };
     let current: Whiteboard = { ...board };
@@ -886,7 +886,7 @@ describe('whiteboard editor shell', () => {
     const board: Whiteboard = {
       ...BOARD,
       elements: [
-        { id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 200, h: 120, color: '#6ea8fe', fill: false, strokeWidth: 2, label: 'Decide approach' },
+        { id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 200, h: 120, color: '#6ea8fe', fill: 'none', strokeWidth: 2, label: 'Decide approach' },
       ],
     };
     renderShell(board);
@@ -930,6 +930,33 @@ describe('whiteboard editor shell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     expect(svg.style.cursor).toBe('grab');
+  });
+
+  it('opens inline editing on text drop so typing never hits tool shortcuts', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    let current: Whiteboard = { ...BOARD };
+    dispatch.mockImplementation((action: { type: string; id: string; patch?: { elements: WhiteboardElement[] } }) => {
+      if (action.type === 'whiteboard/update' && action.patch) {
+        current = { ...current, elements: action.patch.elements };
+      }
+    });
+    const view = renderShell(current);
+    const rerender = () => view.rerender(<MemoryRouter><WhiteboardEditorShell board={current} state={makeState()} onBack={() => {}} /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: 'Text — T' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 60 });
+    fireEvent.pointerUp(svg, { clientX: 100, clientY: 60 });
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    rerender();
+    // Editor langsung terbuka & fokus: ketikan 'v' mendarat di teks, bukan shortcut Select.
+    const box = screen.getByRole('textbox', { name: 'Text' });
+    expect(document.activeElement).toBe(box);
+    fireEvent.keyDown(box, { key: 'v' });
+    fireEvent.change(box, { target: { value: 'v' } });
+    expect((box as HTMLTextAreaElement).value).toBe('v');
+    expect(screen.getByRole('button', { name: 'Select — V' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Text — T' }).getAttribute('aria-pressed')).toBe('false');
   });
 
   it('shows all task data on an expanded ref card and toggles it collapsed with the corner button', () => {
@@ -2086,16 +2113,17 @@ const children = Array.from(svg.querySelectorAll('g')).map((g) => g.children[0])
     expect(boundaryIdx).toBeGreaterThan(-1);
     expect(stickyIdx).toBeGreaterThan(boundaryIdx);
     expect(svg.textContent).toContain('System');
-    // Chip label duduk di DALAM border pojok kiri: translate = (x+6, y+18),
-    // gap atas (2px) sama dengan gap kiri — bukan (x+6, y+6) yang menabrak garis.
+    // Chip label duduk di DALAM border pojok kiri, sudut tajam: baseline =
+    // y + 1.5×font (gap atas selalu = gap kiri 2px), bukan menabrak garis.
     const chip = Array.from(svg.querySelectorAll('g[transform]')).find(
-      (g) => g.getAttribute('transform') === 'translate(-14, -2)',
+      (g) => g.getAttribute('transform') === 'translate(-14, 4)',
     );
     expect(chip?.textContent).toContain('System');
-    // Tinggi mengikuti font default 14 (h=21, y=-19) → atas di dalam border.
+    // Tinggi mengikuti font default 16 (h=24, y=-22) → atas di dalam border.
     const chipRect = chip?.querySelector('rect');
-    expect(Number(chipRect?.getAttribute('height'))).toBe(21);
-    expect(Number(chipRect?.getAttribute('y'))).toBe(-19);
+    expect(Number(chipRect?.getAttribute('height'))).toBe(24);
+    expect(Number(chipRect?.getAttribute('y'))).toBe(-22);
+    expect(chipRect?.getAttribute('rx')).toBe('3');
   });
 
   it('edits a boundary label inline on double-click', () => {
@@ -2171,7 +2199,7 @@ const children = Array.from(svg.querySelectorAll('g')).map((g) => g.children[0])
         w: 100,
         h: 60,
         color: '#6ea8fe',
-        fill: false,
+        fill: 'none',
         strokeWidth: 2,
         label: '',
       })),
@@ -2196,8 +2224,8 @@ const paths = Array.from(svg.querySelectorAll('path')).map((p) => p.getAttribute
     const board: Whiteboard = {
       ...BOARD,
       elements: [
-        { id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '' },
-        { id: 's2', kind: 'shape', shapeType: 'rect', x: 300, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '' },
+        { id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: 'none', strokeWidth: 2, label: '' },
+        { id: 's2', kind: 'shape', shapeType: 'rect', x: 300, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: 'none', strokeWidth: 2, label: '' },
         { id: 'e1', kind: 'edge', sourceNodeId: 's1', targetNodeId: 's2', sourcePort: 'right', targetPort: 'left', x1: 100, y1: 30, x2: 300, y2: 30, arrowhead: true, label: '', arrowStyle: 'diamond', color: '#8b5cf6', width: 2 },
         { id: 'e2', kind: 'edge', x1: 0, y1: 100, x2: 200, y2: 100, arrowhead: false, label: '', arrowStyle: 'circle', color: '#e4e4e7', width: 2 },
         { id: 'e3', kind: 'edge', x1: 0, y1: 150, x2: 200, y2: 150, arrowhead: true, label: '', arrowStyle: 'none', color: '#e4e4e7', width: 2 },
@@ -2310,7 +2338,7 @@ const el = action.patch.elements.find((e) => e.id === 'a');
     });
     const board: Whiteboard = {
       ...BOARD,
-      elements: [{ id: 'a', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '' }],
+      elements: [{ id: 'a', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: 'none', strokeWidth: 2, label: '' }],
     };
     renderShell(board);
     fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
@@ -2340,7 +2368,7 @@ const el = action.patch.elements.find((e) => e.id === 'a');
     useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
     renderShell({
       ...BOARD,
-      elements: [{ id: 'a', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '' }],
+      elements: [{ id: 'a', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: 'none', strokeWidth: 2, label: '' }],
     });
     fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
@@ -2359,7 +2387,7 @@ const el = action.patch.elements.find((e) => e.id === 'a');
     useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch: vi.fn() });
     renderShell({
       ...BOARD,
-      elements: [{ id: 'a', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '' }],
+      elements: [{ id: 'a', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: 'none', strokeWidth: 2, label: '' }],
     });
     fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
@@ -2377,7 +2405,7 @@ const el = action.patch.elements.find((e) => e.id === 'a');
     useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch: vi.fn() });
     renderShell({
       ...BOARD,
-      elements: [{ id: 'a', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '', rotation: 90 }],
+      elements: [{ id: 'a', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: 'none', strokeWidth: 2, label: '', rotation: 90 }],
     });
     fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
@@ -2576,6 +2604,27 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       const blob = createObjectURL.mock.calls[0]![0] as Blob;
       expect(blob.type).toBe('image/svg+xml');
       clickSpy.mockRestore();
+    });
+
+    it('exports the selection transparent without grid (FigJam parity)', async () => {
+      const createObjectURL = vi.fn().mockReturnValue('blob:mock');
+      const revokeObjectURL = vi.fn();
+      Object.defineProperty(URL, 'createObjectURL', { value: createObjectURL, configurable: true });
+      Object.defineProperty(URL, 'revokeObjectURL', { value: revokeObjectURL, configurable: true });
+      renderShell({
+        ...BOARD,
+        elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#2563eb', fill: 'none', strokeWidth: 2, label: 'Hi' }],
+      });
+      const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+      fireEvent.pointerDown(svg, { button: 0, clientX: 50, clientY: 30 });
+      fireEvent.pointerUp(svg, { clientX: 50, clientY: 30 });
+      fireEvent.contextMenu(svg, { clientX: 50, clientY: 30 });
+      fireEvent.click(screen.getByRole('menuitem', { name: 'SVG selection' }));
+      expect(createObjectURL).toHaveBeenCalledTimes(1);
+      const text = await (createObjectURL.mock.calls[0]![0] as Blob).text();
+      expect(text).toContain('Hi');
+      expect(text).not.toContain('wb-export-dots');
+      expect(text).not.toContain('fill="#ffffff"');
     });
 
     it('WB-3: stays silent (no error toast) when the PDF popup is blocked', () => {
@@ -2794,7 +2843,7 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
       renderShell({
         ...BOARD,
-        elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '' }],
+        elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: 'none', strokeWidth: 2, label: '' }],
       });
       fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
       const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
@@ -2866,23 +2915,24 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
       renderShell({
         ...BOARD,
-        elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '' }],
+        elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: 'none', strokeWidth: 2, label: '' }],
       });
       fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
       fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
       const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
       fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
       fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
-      // No inspector anywhere; the floating bar carries type + color + border.
+      // No inspector anywhere; the floating bar carries type + fill + border (no duplicate dots).
       expect(screen.queryByRole('complementary')).toBeNull();
       expect(screen.getByRole('button', { name: 'Shape type' })).not.toBeNull();
-      expect(screen.getByRole('button', { name: 'Fill color #6ea8fe' })).not.toBeNull();
+      expect(screen.queryByRole('button', { name: 'Border color #6ea8fe' })).toBeNull();
+      expect(screen.getByRole('button', { name: 'Fill color #374151' })).not.toBeNull();
       expect(screen.getByRole('button', { name: 'Line style' })).not.toBeNull();
-      // Type dropdown: all tabs + fill switch.
+      // Type dropdown: all tabs (fill tri-state lives in the color panel + strip).
       fireEvent.click(screen.getByRole('button', { name: 'Shape type' }));
       const typeDialog = screen.getByRole('dialog', { name: 'Shape type' });
       expect(within(typeDialog).getByRole('radiogroup', { name: 'Basic' })).not.toBeNull();
-      expect(within(typeDialog).getByRole('checkbox', { name: 'Filled' })).not.toBeNull();
+      expect(within(typeDialog).queryByRole('radiogroup', { name: 'Fill color' })).toBeNull();
       // Non-basic tab content is present too.
       expect(within(typeDialog).getByRole('radio', { name: 'Predefined process' })).not.toBeNull();
       fireEvent.click(within(typeDialog).getByRole('radio', { name: 'Predefined process' }));
@@ -2895,6 +2945,15 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       fireEvent.click(within(borderDialog).getByRole('radio', { name: 'dashed' }));
       action = dispatch.mock.calls[1]![0] as { patch: { elements: Array<Record<string, unknown>> } };
       expect(action.patch.elements[0]).toMatchObject({ id: 's1', dash: 'dashed' });
+      // Pilih warna di popup border: border pindah, body dikunci (tak ikut berubah).
+      // Fixture TANPA key fillColor (elemen legacy) — pin harus tetap tertulis.
+      fireEvent.click(within(borderDialog).getByRole('button', { name: 'Fill color #f4706d' }));
+      action = dispatch.mock.calls[2]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+      expect(action.patch.elements[0]).toMatchObject({ id: 's1', color: '#f4706d', fillColor: '#6ea8fe' });
+      // Preset ketebalan di popup yang sama (tanpa slider/input ketik).
+      fireEvent.click(within(borderDialog).getByRole('radio', { name: '8' }));
+      action = dispatch.mock.calls[3]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+      expect(action.patch.elements[0]).toMatchObject({ id: 's1', strokeWidth: 8 });
     });
 
     it('V2: clicking Add text on an empty shape opens the editor and the merged text bar', () => {
@@ -2902,16 +2961,16 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
       renderShell({
         ...BOARD,
-        elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '' }],
+        elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: 'none', strokeWidth: 2, label: '' }],
       });
       fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
       const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
       fireEvent.pointerDown(svg, { button: 0, clientX: 66, clientY: 46 });
       fireEvent.pointerUp(svg, { clientX: 66, clientY: 46 });
-      // Element-only bar while empty and idle.
+      // Merged bar while empty and idle (no double-click needed).
       expect(screen.getByRole('button', { name: 'Shape type' })).not.toBeNull();
-      expect(screen.queryByRole('button', { name: 'Font' })).toBeNull();
-      // Click the ghost → inline editor + merged text props (incl. shape type).
+      expect(screen.getByRole('button', { name: 'Font' })).not.toBeNull();
+      // Click the ghost → inline editor (bar already merged, incl. shape type).
       fireEvent.pointerDown(screen.getByText('Add text'));
       expect(screen.getByRole('textbox', { name: 'Label' })).not.toBeNull();
       expect(screen.getByRole('button', { name: 'Font' })).not.toBeNull();
@@ -2931,7 +2990,7 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
       fireEvent.pointerUp(svg, { clientX: 20, clientY: 20 });
       expect(screen.getByRole('button', { name: 'Fill color #e8b955' })).not.toBeNull();
-      expect(screen.queryByRole('button', { name: 'Font' })).toBeNull();
+      expect(screen.getByRole('button', { name: 'Font' })).not.toBeNull();
       fireEvent.pointerDown(screen.getByText('Add text'));
       const editor = screen.getByRole('textbox', { name: 'Sticky text' }) as HTMLTextAreaElement;
       expect(editor.style.background).toBe('transparent');
@@ -2943,7 +3002,7 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
       renderShell({
         ...BOARD,
-        elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: 'Hi' }],
+        elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: 'none', strokeWidth: 2, label: 'Hi' }],
       });
       fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
       const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
@@ -2962,7 +3021,7 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
       renderShell({
         ...BOARD,
-        elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: 'Hi' }],
+        elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: 'none', strokeWidth: 2, label: 'Hi' }],
       });
       fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
       const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
@@ -2983,7 +3042,7 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
       renderShell({
         ...BOARD,
-        elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: 'Hi' }],
+        elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: 'none', strokeWidth: 2, label: 'Hi' }],
       });
       fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
       const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
@@ -2991,7 +3050,8 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       fireEvent.pointerUp(svg, { clientX: 66, clientY: 46 });
       expect(screen.getByRole('button', { name: 'Duplicate' })).not.toBeNull();
       expect(screen.getByRole('button', { name: 'Shape type' })).not.toBeNull();
-      expect(screen.getByRole('button', { name: 'Fill color #6ea8fe' })).not.toBeNull();
+      expect(screen.queryByRole('button', { name: 'Border color #6ea8fe' })).toBeNull();
+      expect(screen.getByRole('button', { name: 'Fill color #374151' })).not.toBeNull();
       expect(screen.getByRole('button', { name: 'Font' })).not.toBeNull();
       expect(screen.getByRole('button', { name: 'Text size' })).not.toBeNull();
       expect(screen.getByRole('button', { name: 'Bold' })).not.toBeNull();
@@ -3146,7 +3206,7 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
         w: 100,
         h: 60,
         color: '#6ea8fe',
-        fill: false,
+        fill: 'none',
         strokeWidth: 2,
         label: '',
       })) as WhiteboardElement[];
@@ -3173,8 +3233,8 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       renderShell({
         ...BOARD,
         elements: [
-          { id: 'a', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '' },
-          { id: 'b', kind: 'shape', shapeType: 'rect', x: 200, y: 0, w: 150, h: 80, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '' },
+          { id: 'a', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: 'none', strokeWidth: 2, label: '' },
+          { id: 'b', kind: 'shape', shapeType: 'rect', x: 200, y: 0, w: 150, h: 80, color: '#6ea8fe', fill: 'none', strokeWidth: 2, label: '' },
         ],
       });
       fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
@@ -3302,7 +3362,7 @@ describe('whiteboard editor shell mobile', () => {
     useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
     renderShell({
       ...BOARD,
-      elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: 'Hi' }],
+      elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: 'none', strokeWidth: 2, label: 'Hi' }],
     });
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
     fireEvent.pointerDown(svg, { button: 0, clientX: 66, clientY: 46 });
@@ -3394,7 +3454,7 @@ describe('whiteboard editor shell mobile', () => {
     useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
     renderShell({
       ...BOARD,
-      elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: 'Hi' }],
+      elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: 'none', strokeWidth: 2, label: 'Hi' }],
     });
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
     fireEvent.pointerDown(svg, { button: 0, clientX: 66, clientY: 46 });
@@ -3577,7 +3637,7 @@ describe('whiteboard figjam interactions', () => {
       w: 200,
       h: 160,
       color: '#6ea8fe',
-      fill: false,
+      fill: 'none',
       strokeWidth: 2,
       label: 'Hi',
     } as WhiteboardElement;

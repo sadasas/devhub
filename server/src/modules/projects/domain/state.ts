@@ -345,7 +345,11 @@ const whiteboardShapeSchema = z.object({
   w: z.number().min(1).max(10_000),
   h: z.number().min(1).max(10_000),
   color: z.string().max(20).default('#6ea8fe'),
-  fill: z.boolean().default(false),
+  fill: z
+    .union([z.boolean(), z.enum(['solid', 'transparent', 'none'])])
+    .transform((v) => (typeof v === 'boolean' ? (v ? 'transparent' : 'none') : v))
+    .default('none'),
+  fillColor: z.string().max(20).nullable().optional(),
   strokeWidth: z.number().min(0.5).max(100).default(2),
   dash: z.enum(['solid', 'dashed', 'none']).default('solid'),
   label: z.string().max(200).default(''),

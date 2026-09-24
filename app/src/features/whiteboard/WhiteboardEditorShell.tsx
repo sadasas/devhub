@@ -5,12 +5,12 @@ import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { ToastStack } from '../../components/ToastStack';
 import { Tooltip } from '../../components/Tooltip';
-import type { State, Whiteboard, WhiteboardAlign, WhiteboardFontFamily, WhiteboardShapeType, WhiteboardArrowStyle } from '../../lib/types';
+import type { State, Whiteboard, WhiteboardAlign, WhiteboardFontFamily, WhiteboardShapeFill, WhiteboardShapeType, WhiteboardArrowStyle } from '../../lib/types';
 import { WhiteboardCanvas } from './WhiteboardCanvas';
 import { WhiteboardLayers } from './WhiteboardLayers';
 import { ShapeLibraryPanel } from './ShapeLibraryPanel';
 import { ShapeThumb } from './ShapeThumb';
-import { BASIC_SWATCHES } from './WhiteboardColorPanel';
+import { BASIC_SWATCHES, FillModeSegmented } from './WhiteboardColorPanel';
 import { WhiteboardShortcutsDialog } from './WhiteboardShortcutsDialog';
 import { AlignDropdown, ColorDropdown, DropdownShell, DropCaret, FontDropdown, SizeDropdown, TextStyleToggles, WidthSlider } from './WhiteboardTextControls';
 import { pushShapeRecent, type LibraryItem } from './libraries';
@@ -235,6 +235,14 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
     try { return localStorage.getItem('wb:textBullet') === '1'; } catch { return false; }
   });
   const [shapeColor, setShapeColor] = useState<string>(() => storedInk('wb:shapeColor', SHAPE_COLOR));
+  const [shapeFillColor, setShapeFillColor] = useState<string | null>(() => {
+    try {
+      const v = localStorage.getItem('wb:shapeFillColor');
+      return v ? remapLegacyLightColor(v) : null;
+    } catch {
+      return null;
+    }
+  });
   const [shapeFontSize, setShapeFontSize] = useState<number>(() => {
     try { const v = Number(localStorage.getItem('wb:shapeFontSize')); return clampFont(v, 12); } catch { return 12; }
   });
@@ -244,8 +252,14 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
   const [shapeType, setShapeType] = useState<WhiteboardShapeType>(() => {
     try { const v = localStorage.getItem('wb:shapeType'); return (v && ALLOWED_SHAPE_TYPES.has(v) ? v : 'rect') as WhiteboardShapeType; } catch { return 'rect'; }
   });
-  const [shapeFill, setShapeFill] = useState<boolean>(() => {
-    try { return localStorage.getItem('wb:shapeFill') === '1'; } catch { return false; }
+  const [shapeFill, setShapeFill] = useState<WhiteboardShapeFill>(() => {
+    try {
+      const v = localStorage.getItem('wb:shapeFillMode') ?? localStorage.getItem('wb:shapeFill');
+      if (v === 'solid' || v === 'transparent' || v === 'none') return v;
+      return v === '1' ? 'transparent' : 'none';
+    } catch {
+      return 'none';
+    }
   });
   const [edgeColor, setEdgeColor] = useState<string>(() => storedInk('wb:edgeColor', TEXT_COLOR));
   const [edgeFontSize, setEdgeFontSize] = useState<number>(() => {
@@ -256,7 +270,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
   });
   const [boundaryColor, setBoundaryColor] = useState<string>(() => storedInk('wb:boundaryColor', BOUNDARY_COLOR));
   const [boundaryFontSize] = useState<number>(() => {
-    try { const v = Number(localStorage.getItem('wb:boundaryFontSize')); return clampFont(v, 14); } catch { return 14; }
+    try { const v = Number(localStorage.getItem('wb:boundaryFontSize')); return clampFont(v, 16); } catch { return 16; }
   });
   const [boundaryAlign] = useState<WhiteboardAlign>(() => {
     try { return (localStorage.getItem('wb:boundaryAlign') as WhiteboardAlign) ?? 'left'; } catch { return 'left'; }
@@ -303,10 +317,16 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
   const [stripPop, setStripPop] = useState<StripPop>(null);
   useEffect(() => { setStripPop(null); }, [tool]);
   useEffect(() => { try { localStorage.setItem('wb:shapeColor', shapeColor); } catch {} }, [shapeColor]);
+  useEffect(() => {
+    try {
+      if (shapeFillColor) localStorage.setItem('wb:shapeFillColor', shapeFillColor);
+      else localStorage.removeItem('wb:shapeFillColor');
+    } catch {}
+  }, [shapeFillColor]);
   useEffect(() => { try { localStorage.setItem('wb:shapeFontSize', String(shapeFontSize)); } catch {} }, [shapeFontSize]);
   useEffect(() => { try { localStorage.setItem('wb:shapeAlign', shapeAlign); } catch {} }, [shapeAlign]);
   useEffect(() => { try { localStorage.setItem('wb:shapeType', shapeType); } catch {} }, [shapeType]);
-  useEffect(() => { try { localStorage.setItem('wb:shapeFill', shapeFill ? '1' : '0'); } catch {} }, [shapeFill]);
+  useEffect(() => { try { localStorage.setItem('wb:shapeFillMode', shapeFill); } catch {} }, [shapeFill]);
   useEffect(() => { try { localStorage.setItem('wb:edgeColor', edgeColor); } catch {} }, [edgeColor]);
   useEffect(() => { try { localStorage.setItem('wb:edgeFontSize', String(edgeFontSize)); } catch {} }, [edgeFontSize]);
   useEffect(() => { try { localStorage.setItem('wb:edgeArrowStyle', edgeArrowStyle); } catch {} }, [edgeArrowStyle]);
@@ -792,7 +812,8 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
       )}
       {tool === 'shape' && (
         <>
-          {stripDots(shapeColor, setShapeColor, t('whiteboard.textbar.fill'))}
+          {stripDots(shapeColor, setShapeColor, t('whiteboard.popover.shapeColor'))}
+          {stripDots(shapeFillColor, (c) => setShapeFillColor(c), t('whiteboard.textbar.fill'))}
           {stripSize('shapeSize', shapeFontSize, (v) => setShapeFontSize(clampFont(v, 12)))}
           <AlignDropdown
             value={shapeAlign}
@@ -801,17 +822,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
             onClose={() => setStripPop(null)}
             onChange={setShapeAlign}
           />
-          <Tooltip content={t('whiteboard.popover.filled')} side="top">
-            <button
-              type="button"
-              className={`wb-stripbtn${shapeFill ? ' wb-stripbtn-active' : ''}`}
-              aria-label={t('whiteboard.popover.filled')}
-              aria-pressed={shapeFill}
-              onClick={() => setShapeFill((v) => !v)}
-            >
-              <Stack size={15} aria-hidden="true" />
-            </button>
-          </Tooltip>
+          <FillModeSegmented value={shapeFill} onChange={setShapeFill} />
         </>
       )}
       {tool === 'edge' && (
@@ -1096,6 +1107,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
             textStrike={textStrike}
             textBullet={textBullet}
             shapeColor={shapeColor}
+            shapeFillColor={shapeFillColor}
             shapeFontSize={shapeFontSize}
             shapeAlign={shapeAlign}
             shapeType={shapeType}

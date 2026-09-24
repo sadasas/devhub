@@ -88,7 +88,7 @@ describe('whiteboard tools', () => {
       w: SHAPE_W,
       h: SHAPE_H,
       color: SHAPE_COLOR,
-      fill: false,
+      fill: 'none',
       strokeWidth: SHAPE_STROKE_WIDTH,
       label: '',
     });

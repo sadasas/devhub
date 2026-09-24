@@ -79,7 +79,7 @@ export function buildShape(
     w: SHAPE_W,
     h: SHAPE_H,
     color,
-    fill: false,
+    fill: 'none',
     strokeWidth: SHAPE_STROKE_WIDTH,
     label: '',
     labelColor,

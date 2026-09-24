@@ -33,7 +33,7 @@ const sticky = (x: number, y: number, str: string, w = 200, h = 60, color = C.wa
   id: id(), kind: "sticky", x, y, w, h, color, text: str,
 });
 const shape = (x: number, y: number, label: string, w = 190, h = 56, color = C.info, shapeType: WhiteboardShapeType = "rect"): WhiteboardElement => ({
-  id: id(), kind: "shape", shapeType, x, y, w, h, color, fill: true, strokeWidth: 2, label, labelColor: templateLabelOn(color),
+  id: id(), kind: "shape", shapeType, x, y, w, h, color, fill: "transparent", strokeWidth: 2, label, labelColor: templateLabelOn(color),
 });
 const boundary = (x: number, y: number, label: string, w: number, h: number, color = C.info): WhiteboardElement => ({
   id: id(), kind: "boundary", x, y, w, h, color, label,

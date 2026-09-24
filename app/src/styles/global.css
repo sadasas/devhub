@@ -14426,7 +14426,7 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
   .wb-rotate-fab:active { cursor: grabbing; color: var(--accent); }
   /* Sheet ⋮ panel properti: aksi saja, scroll vertikal bila penuh. */
   .wb-moresheet-sep { height: 1px; background: var(--border-hairline); margin: 8px 0; }
-  .wb-moresheet-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; }
+  .wb-moresheet-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   .wb-moresheet-cell {
     display: flex;
     flex-direction: column;
@@ -14442,7 +14442,7 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
   .wb-moresheet-cell:hover { background: var(--surface-hover); }
   .wb-moresheet-cell:disabled { opacity: 0.4; cursor: default; }
   .wb-moresheet-cellname { font-size: 12px; text-align: center; }
-  .wb-moresheet-list { display: flex; flex-direction: column; gap: 2px; }
+  .wb-moresheet-list { display: flex; flex-direction: column; gap: 4px; }
   .wb-moresheet-row {
     display: flex;
     align-items: center;
@@ -14511,7 +14511,7 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 .wb-color-picker::-webkit-color-swatch-wrapper { padding: 2px; }
 .wb-color-picker::-webkit-color-swatch { border: none; border-radius: 3px; }
 .wb-color-hex { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
-.fp-segmented { display: flex; gap: 4px; margin-bottom: 8px; }
+.fp-segmented { display: flex; gap: 8px; margin-bottom: 8px; }
 .fp-seg { flex: 1; padding: 4px 6px; font-size: 11px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: none; color: var(--text-secondary); cursor: pointer; }
 .fp-seg-active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
 .fp-segmented-wrap { flex-wrap: wrap; }
@@ -14690,6 +14690,7 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 .wb-dot:hover { border-color: var(--accent); transform: scale(1.1); }
 .wb-dot-active { outline: 2px solid var(--accent); outline-offset: 1px; }
 /* Color + line popups anchored to the floating bar. */
+.wb-pop-sep { height: 1px; background: var(--border-hairline); margin: 6px 0; }
 .wb-colorpop, .wb-linepop {
   position: absolute;
   bottom: calc(100% + 8px);
@@ -14705,9 +14706,7 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-raised);
 }
-.wb-colorpop-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.wb-colorpop-heading { font-size: 12px; font-weight: 600; color: var(--text-primary); }
-.wb-colorpop-grid { display: grid; grid-template-columns: repeat(6, auto); gap: 6px; }
+.wb-colorpop-grid { display: grid; grid-template-columns: repeat(6, auto); gap: 10px; }
 .wb-colorpop-grid .wb-dot { width: 28px; height: 28px; }
 .wb-rainbow { position: relative; width: 28px; height: 28px; border-radius: 50%; overflow: hidden; border: 1px solid var(--border-strong); cursor: pointer; }
 .wb-rainbow-ui { position: absolute; inset: 0; background: conic-gradient(#f4706d, #e8b955, #34c38e, #6ea8fe, #a78bfa, #f4706d); }
@@ -14837,12 +14836,16 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
   padding: 0;
 }
 .wb-sizebox-step:hover { color: var(--text-primary); background: var(--bg-overlay); }
-.fp-segmented-bar { display: inline-flex; gap: 2px; margin-bottom: 0; }
-.fp-segmented-bar .fp-seg { flex: none; display: inline-flex; align-items: center; justify-content: center; padding: 5px; }
+.fp-segmented-bar { display: inline-flex; gap: 8px; margin-bottom: 0; }
+.fp-segmented-bar .fp-seg { flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 5px 8px; }
+.fp-seg .wb-lineopt-name { font-size: 12px; }
+/* Panel warna: segmented fill meregang penuh selebar popup (sepadat popup garis). */
+.wb-colorpop .fp-segmented-bar { display: flex; }
+.wb-colorpop .fp-segmented-bar .fp-seg { flex: 1; }
 .wb-widthwrap { display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 4px 2px; width: fit-content; }
 .wb-slider { width: 204px; max-width: 100%; accent-color: var(--accent); cursor: pointer; }
 .wb-widthwrap .wb-sizebox { max-width: 60px; }
-.wb-shapetype-grid { display: grid; grid-template-columns: repeat(4, auto); gap: 4px; }
+.wb-shapetype-grid { display: grid; grid-template-columns: repeat(4, auto); gap: 10px; }
 .wb-shapetype-scroll { max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
 .wb-shape-cell-active { outline: 2px solid var(--accent); outline-offset: -2px; }
 /* Inline text editing overlay. */

@@ -45,6 +45,7 @@ import type {
   WhiteboardFontFamily,
   WhiteboardRefEntity,
   WhiteboardShape,
+  WhiteboardShapeFill,
   WhiteboardShapeType,
   WhiteboardSticky,
   WhiteboardValign,
@@ -79,8 +80,8 @@ import {
   worldViewportRect,
   wrapTextLines,
   wrapToWidth,
-  BOUNDARY_LABEL_DY,
   boundaryChipWidth,
+  boundaryLabelDY,
   CHIP_CHAR_W,
   REF_LAYOUT,
   type AlignMode,
@@ -107,6 +108,8 @@ import {
   type Point,
   type PortSide,
 } from './edges';
+import { SHAPE_FILL_TINT_OPACITY, shapeFillMode, shapeLabelFill, shapePaintColor } from './canvas-palette';
+import { ColorSwatchGrid, LineStyleSegmented, type LineStyleOption } from './WhiteboardColorPanel';
 import {
   BOUNDARY_COLOR,
   SHAPE_COLOR,
@@ -130,7 +133,7 @@ import {
 } from './tools';
 import { isModalOrPaletteOpen, isTypingTarget } from '../../lib/keys';
 import { listedLines, svgTextStyle } from './fonts';
-import { AlignDropdown, ColorDropdown, DropCaret, DropdownShell, FontDropdown, SizeDropdown, TextStyleToggles, ValignDropdown, WidthSlider } from './WhiteboardTextControls';
+import { AlignDropdown, ColorDropdown, DropCaret, DropdownShell, FontDropdown, SizeDropdown, TextStyleToggles, ValignDropdown, WidthPresets, WidthSlider } from './WhiteboardTextControls';
 import { SHAPE_LIBRARY_TABS } from './libraries';
 import { ShapeThumb } from './ShapeThumb';
 import { RefPicker } from './RefPicker';
@@ -175,12 +178,13 @@ interface WhiteboardCanvasProps {
   textStrike?: boolean | null;
   textBullet?: boolean | null;
   shapeColor?: string;
+  shapeFillColor?: string | null;
   shapeLabelColor?: string;
   shapeFontSize?: number;
   shapeAlign?: string | null;
   shapeType?: string | null;
   shapeLabel?: string | null;
-  shapeFill?: boolean;
+  shapeFill?: WhiteboardShapeFill | boolean;
   edgeColor?: string;
   edgeFontSize?: number;
   edgeAlign?: string | null;
@@ -261,6 +265,7 @@ const OPTIONAL_PATCH_FIELDS: ReadonlySet<string> = new Set([
   'labelColor',
   'dash',
   'fill',
+  'fillColor',
   'fontFamily',
   'bold',
   'strikethrough',
@@ -489,8 +494,9 @@ const ElementView = memo(function ElementView({
         const innerW = Math.max(24, el.w - pad * 2);
         const labelLines = el.label ? wrapToWidth(listedLines(el.label, el).join('\n'), fontSize, innerW, 4) : [];
         const rot = el.rotation ? `rotate(${el.rotation}, ${el.x + el.w / 2}, ${el.y + el.h / 2})` : undefined;
-        const isLightFill = el.fill && ["#e4e4e7","#6ea8fe","#f2b8c6","#34c38e","#5db69b","#a78bfa","#e8b955"].includes(el.color);
-        const labelFill = el.labelColor ?? (isLightFill ? "#0f172a" : el.color);
+        const fillMode = shapeFillMode(el.fill);
+        const paint = shapePaintColor(el.color, el.fillColor);
+        const labelFill = shapeLabelFill(el.fill, paint, el.labelColor);
         const anchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
         const textX = align === 'left' ? el.x + pad : align === 'right' ? el.x + el.w - pad : el.x + el.w / 2;
         const style = svgTextStyle(el);
@@ -518,8 +524,8 @@ const ElementView = memo(function ElementView({
           <g transform={rot}>
             <path
               d={shapePath(el)}
-              fill={el.fill ? el.color : 'none'}
-              fillOpacity={el.fill ? 0.15 : undefined}
+              fill={fillMode === 'none' ? 'none' : paint}
+              fillOpacity={fillMode === 'transparent' ? SHAPE_FILL_TINT_OPACITY : undefined}
               stroke={el.dash === 'none' ? 'none' : el.color}
               strokeWidth={el.strokeWidth}
               strokeDasharray={el.dash === 'dashed' ? '8 5' : undefined}
@@ -651,21 +657,21 @@ const ElementView = memo(function ElementView({
               strokeDasharray="6 4"
             />
             {!editing && el.label && (() => {
-              const fontSize = el.fontSize ?? 14;
+              const fontSize = el.fontSize ?? 16;
               const labelColor = (el as { labelColor?: string | null }).labelColor ?? '#0f172a';
               const bold = !!(el as { bold?: boolean | null }).bold;
               const chipW = boundaryChipWidth(listedLines(el.label, el).join(' '), fontSize, el.w - 12, bold);
-              // Tinggi mengikuti font (12px → persis 18/-16 seperti semula),
-              // baseline selalu di tengah optikal bg.
+              // Tinggi + baseline mengikuti font (12px → persis 18/-16 seperti
+              // semula): gap atas selalu = gap kiri (2px), sudut tajam.
               const chipH = fontSize * 1.5;
               return (
-                <g transform={`translate(${el.x + 6}, ${el.y + BOUNDARY_LABEL_DY})`}>
+                <g transform={`translate(${el.x + 6}, ${el.y + boundaryLabelDY(fontSize)})`}>
                   <rect
                     x={-4}
                     y={-(chipH - 2)}
                     width={chipW}
                     height={chipH}
-                    rx={5}
+                    rx={3}
                     fill={el.color}
                     fillOpacity={0.25}
                   />
@@ -794,7 +800,7 @@ interface DraftStroke {
   points: Array<[number, number]>;
 }
 
-export function WhiteboardCanvas({ board, tool, history, readOnly = false, readOnlyState = null, readOnlyProjectId, selectedIds: selectedIdsProp, onSelectedChange, onToolChange, onOpenShortcuts: onOpenShortcutsProp, registerDelete: registerDeleteProp, isMobile: isMobileProp, snapOn: snapOnProp, penColor: penColorProp, penWidth: penWidthProp, eraserWidth: eraserWidthProp, stickyColor: stickyColorProp, stickyTextColor: stickyTextColorProp, stickyFontSize: stickyFontSizeProp, stickyAlign: stickyAlignProp, textColor: textColorProp, textFontSize: textFontSizeProp, textAlign: textAlignProp, textFontFamily: textFontFamilyProp, textBold: textBoldProp, textStrike: textStrikeProp, textBullet: textBulletProp, shapeColor: shapeColorProp, shapeLabelColor: shapeLabelColorProp, shapeFontSize: shapeFontSizeProp, shapeAlign: shapeAlignProp, shapeType: shapeTypeProp, shapeLabel: shapeLabelProp, shapeFill: shapeFillProp, onNotice: onNoticeProp, edgeColor: edgeColorProp, edgeFontSize: edgeFontSizeProp, edgeAlign: edgeAlignProp, edgeLabel: edgeLabelProp, edgeArrowStyle: edgeArrowStyleProp, edgeDash: edgeDashProp, boundaryColor: boundaryColorProp, boundaryLabelColor: boundaryLabelColorProp, boundaryFontSize: boundaryFontSizeProp, boundaryAlign: boundaryAlignProp, boundaryLabel: boundaryLabelProp, panToId, hideChrome = false }: WhiteboardCanvasProps) {
+export function WhiteboardCanvas({ board, tool, history, readOnly = false, readOnlyState = null, readOnlyProjectId, selectedIds: selectedIdsProp, onSelectedChange, onToolChange, onOpenShortcuts: onOpenShortcutsProp, registerDelete: registerDeleteProp, isMobile: isMobileProp, snapOn: snapOnProp, penColor: penColorProp, penWidth: penWidthProp, eraserWidth: eraserWidthProp, stickyColor: stickyColorProp, stickyTextColor: stickyTextColorProp, stickyFontSize: stickyFontSizeProp, stickyAlign: stickyAlignProp, textColor: textColorProp, textFontSize: textFontSizeProp, textAlign: textAlignProp, textFontFamily: textFontFamilyProp, textBold: textBoldProp, textStrike: textStrikeProp, textBullet: textBulletProp, shapeColor: shapeColorProp, shapeLabelColor: shapeLabelColorProp, shapeFontSize: shapeFontSizeProp, shapeAlign: shapeAlignProp, shapeType: shapeTypeProp, shapeLabel: shapeLabelProp, shapeFill: shapeFillProp, shapeFillColor: shapeFillColorProp, onNotice: onNoticeProp, edgeColor: edgeColorProp, edgeFontSize: edgeFontSizeProp, edgeAlign: edgeAlignProp, edgeLabel: edgeLabelProp, edgeArrowStyle: edgeArrowStyleProp, edgeDash: edgeDashProp, boundaryColor: boundaryColorProp, boundaryLabelColor: boundaryLabelColorProp, boundaryFontSize: boundaryFontSizeProp, boundaryAlign: boundaryAlignProp, boundaryLabel: boundaryLabelProp, panToId, hideChrome = false }: WhiteboardCanvasProps) {
   const { t } = useTranslation('extras');
   const proj = useProjectOptional(null);
   const { canEdit, dispatch, projectId, state } =
@@ -892,7 +898,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   // font list, size list or stroke-width slider.
   interface BarPopState {
     kind: 'fill' | 'line' | 'font' | 'size' | 'align' | 'valign' | 'width' | 'shapeType' | 'border';
-    field?: 'color' | 'textColor' | 'labelColor';
+    field?: 'color' | 'textColor' | 'labelColor' | 'fillColor';
   }
   const [barPop, setBarPop] = useState<BarPopState | null>(null);
   // Mobile ⋮ bottom sheet: actions for the current selection.
@@ -1095,11 +1101,13 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       const elements = board.elements.filter((el) => selectedIds.includes(el.id));
       const sel = { ...board, elements };
       const refData = new Map(elements.map((el) => [el.id, refDataMap.get(el.id) ?? null] as const));
+      // Seleksi diekspor transparan tanpa grid ala FigJam (full-board ikut toggle transparan).
+      const opts = { background: 'transparent' } as const;
       try {
         if (kind === 'png') {
-          downloadWhiteboardPng(sel, refData, {});
+          downloadWhiteboardPng(sel, refData, opts);
         } else {
-          downloadWhiteboardSvg(sel, refData, {});
+          downloadWhiteboardSvg(sel, refData, opts);
         }
       } catch {
         /* silent by design (D8: no transient notices) */
@@ -1769,7 +1777,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       const withDefaults = {
         ...base,
         label: shapeLabelProp ?? '',
-        fill: shapeFillProp ?? false,
+        fill: shapeFillMode(shapeFillProp),
+        fillColor: shapeFillColorProp ?? null,
         fontSize: Math.max(4, Math.min(96, shapeFontSizeProp ?? 12)),
         align: (shapeAlignProp ?? 'center') as any,
       } as WhiteboardElement;
@@ -1794,10 +1803,14 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...board.elements, placed] } });
     setSelectedIds([placed.id]);
     if (onToolChange) onToolChange('select');
+    // Drop-klik langsung masuk mode ketik (FigJam): tanpa ini fokus tetap di
+    // body dan ketikan pertama dibajak shortcut satu-huruf toolbar.
+    setTextZoneId(placed.id);
+    startTextEdit(placed);
   };
 
   /** FigJam drag-to-place: commits the drag rect as a shape. Tiny drags count
-   * as a click and fall back to the fixed-size placement at the press point. */
+  as a click and fall back to the fixed-size placement at the press point. */
   const commitShapeDraft = (d: { x1: number; y1: number; x2: number; y2: number }) => {
     if (isReadOnly) return;
     const w = Math.abs(d.x2 - d.x1);
@@ -1812,12 +1825,13 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     const x = snap(Math.min(d.x1, d.x2));
     const y = snap(Math.min(d.y1, d.y2));
     const base = buildShape(x, y, shapeColorProp ?? SHAPE_COLOR, (shapeTypeProp as WhiteboardShapeType) ?? 'rect', shapeLabelColorProp ?? null);
-    const placed = {
-      ...base,
-      w,
-      h,
-      label: shapeLabelProp ?? '',
-      fill: shapeFillProp ?? false,
+      const placed = {
+        ...base,
+        w,
+        h,
+        label: shapeLabelProp ?? '',
+        fill: shapeFillMode(shapeFillProp),
+        fillColor: shapeFillColorProp ?? null,
       fontSize: Math.max(4, Math.min(96, shapeFontSizeProp ?? 12)),
       align: (shapeAlignProp ?? 'center') as any,
     } as WhiteboardElement;
@@ -1937,7 +1951,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   const textFontOf = (el: WhiteboardElement): number => {
     if (el.kind === 'text') return el.fontSize;
     if (el.kind === 'edge') return el.fontSize ?? 11;
-    if (el.kind === 'boundary') return el.fontSize ?? 14;
+    if (el.kind === 'boundary') return el.fontSize ?? 16;
     if (el.kind === 'sticky' || el.kind === 'shape') return el.fontSize ?? 12;
     return 12;
   };
@@ -2512,7 +2526,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       }
       history.record();
       const baseB = buildBoundary(x, y, w, h, boundaryColorProp ?? BOUNDARY_COLOR);
-      const boundary = { ...baseB, label: boundaryLabelProp ?? '', labelColor: boundaryLabelColorProp ?? '#374151', fontSize: Math.max(4, Math.min(96, boundaryFontSizeProp ?? 14)), align: (boundaryAlignProp ?? 'left') as any } as typeof baseB;
+      const boundary = { ...baseB, label: boundaryLabelProp ?? '', labelColor: boundaryLabelColorProp ?? '#374151', fontSize: Math.max(4, Math.min(96, boundaryFontSizeProp ?? 16)), align: (boundaryAlignProp ?? 'left') as any } as typeof baseB;
       dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...board.elements, boundary] } });
       setSelectedIds([boundary.id]);
       if (onToolChange) onToolChange('select');
@@ -2709,7 +2723,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
           ...buildBoundary(world.x - 150, world.y - 100, 300, 200, boundaryColorProp ?? BOUNDARY_COLOR),
           label: boundaryLabelProp ?? '',
           labelColor: boundaryLabelColorProp ?? '#374151',
-          fontSize: Math.max(4, Math.min(96, boundaryFontSizeProp ?? 14)),
+          fontSize: Math.max(4, Math.min(96, boundaryFontSizeProp ?? 16)),
           align: (boundaryAlignProp ?? 'left') as WhiteboardBoundary['align'],
         } as WhiteboardElement;
       if (!newEl) return;
@@ -2855,13 +2869,14 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                 w,
                 h,
                 color: shapeColorProp ?? SHAPE_COLOR,
-                fill: shapeFillProp ?? false,
+                fill: shapeFillMode(shapeFillProp),
+                fillColor: shapeFillColorProp ?? null,
               } as WhiteboardShape;
               return (
                 <path
                   d={shapePath(ghost)}
-                  fill={ghost.fill ? ghost.color : 'none'}
-                  fillOpacity={ghost.fill ? 0.15 : undefined}
+                  fill={shapeFillMode(ghost.fill) === 'none' ? 'none' : (ghost.fillColor ?? ghost.color)}
+                  fillOpacity={shapeFillMode(ghost.fill) === 'transparent' ? SHAPE_FILL_TINT_OPACITY : undefined}
                   stroke="var(--accent)"
                   strokeWidth={1.5}
                   strokeDasharray="6 4"
@@ -3218,19 +3233,15 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
               const valign: WhiteboardValign = rich.valign ?? (el.kind === 'shape' ? 'center' : 'top');
               // Edge labels reuse the line color (edges own no labelColor field).
               const textField = (el.kind === 'sticky' ? 'textColor' : el.kind === 'text' || el.kind === 'edge' ? 'color' : 'labelColor') as 'color' | 'textColor' | 'labelColor';
-              // V2 merged panel: text props join as soon as there is text or an edit is open.
-              const isEditing = editingText?.id === el.id;
-              const hasText =
-                el.kind === 'sticky' || el.kind === 'text'
-                  ? el.text !== ''
-                  : el.kind === 'shape' || el.kind === 'edge' || el.kind === 'boundary'
-                    ? el.label !== ''
-                    : false;
-              const showTextProps = el.kind === 'text' || hasText || isEditing;
-              const togglePop = (kind: 'fill' | 'line' | 'font' | 'size' | 'align' | 'valign' | 'width' | 'shapeType' | 'border', field?: 'color' | 'textColor' | 'labelColor') => {
+              // V2 merged panel: text props always join for text-capable kinds.
+              const togglePop = (kind: 'fill' | 'line' | 'font' | 'size' | 'align' | 'valign' | 'width' | 'shapeType' | 'border', field?: 'color' | 'textColor' | 'labelColor' | 'fillColor') => {
                 setBarPop(barPop?.kind === kind ? null : { kind, field });
               };
-              const colorDot = (field: 'color' | 'textColor' | 'labelColor', label: string) => {
+              const colorDot = (
+                field: 'color' | 'textColor' | 'labelColor' | 'fillColor',
+                label: string,
+                fillMode?: { value: WhiteboardShapeFill | boolean | null; onChange: (m: WhiteboardShapeFill) => void },
+              ) => {
                 const cur = (el as unknown as Record<string, unknown>)[field];
                 return (
                   <ColorDropdown
@@ -3239,12 +3250,32 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                     open={barPop?.kind === 'fill' && (barPop.field ?? 'color') === field}
                     onToggle={() => togglePop('fill', field)}
                     onClose={() => setBarPop(null)}
-                    onPick={(c) => applyBulkPatch({ [field]: c })}
+                    onPick={(c) =>
+                      // Border shape ala FigJam: kunci body ke cat saat ini
+                      // agar tak ikut berubah via fallback fillColor-null.
+                      applyBulkPatch(
+                        field === 'color' && el.kind === 'shape'
+                          ? {
+                              [field]: c,
+                              fillColor: shapePaintColor(el.color, el.fillColor),
+                            }
+                          : { [field]: c },
+                      )
+                    }
                     label={label}
-                    glyph={field === 'color' ? 'dot' : 'letter'}
+                    glyph={field === 'textColor' || field === 'labelColor' ? 'letter' : 'dot'}
+                    fillMode={fillMode?.value}
+                    onFillMode={fillMode?.onChange}
                   />
                 );
               };
+              const shapeFillCtl =
+                el.kind === 'shape'
+                  ? {
+                      value: shapeFillMode(el.fill),
+                      onChange: (m: WhiteboardShapeFill) => applyBulkPatch({ fill: m }),
+                    }
+                  : undefined;
               const textControls = (withColor: boolean): ReactNode[] => [
                 <FontDropdown
                   value={rich.fontFamily ?? 'simple'}
@@ -3302,27 +3333,25 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                     </>
                   }
                 >
-                  <WidthSlider
-                    value={edge.width}
-                    min={1}
-                    max={20}
-                    label={t('whiteboard.popover.lineWidth')}
-                    onChange={(v) => applyBulkPatch({ width: v })}
+                  <LineStyleSegmented
+                    value={(edge.dash ?? 'solid') as LineStyleOption}
+                    options={['solid', 'dashed', 'dotted']}
+                    onChange={(d) => applyBulkPatch({ dash: d })}
+                    label={t('whiteboard.popover.lineStyle')}
                   />
-                  <div className="fp-segmented" role="group" aria-label={t('whiteboard.popover.lineStyle')}>
-                    {(['solid', 'dashed', 'dotted'] as const).map((d) => (
-                      <button
-                        key={d}
-                        type="button"
-                        role="radio"
-                        aria-checked={(edge.dash ?? 'solid') === d}
-                        className={`fp-seg${(edge.dash ?? 'solid') === d ? ' fp-seg-active' : ''}`}
-                        onClick={() => applyBulkPatch({ dash: d })}
-                      >
-                        {d}
-                      </button>
-                    ))}
-                  </div>
+                  <div className="wb-pop-sep" role="separator" aria-hidden="true" />
+                  <ColorSwatchGrid
+                    value={edge.color}
+                    onPick={(c) => applyBulkPatch({ color: c })}
+                    heading={t('whiteboard.popover.shapeColor')}
+                  />
+                  <div className="wb-pop-sep" role="separator" aria-hidden="true" />
+                  <WidthPresets
+                    value={edge.width}
+                    onPick={(v) => applyBulkPatch({ width: v })}
+                    label={t('whiteboard.popover.lineWidth')}
+                  />
+                  <div className="wb-pop-sep" role="separator" aria-hidden="true" />
                   <div className="fp-segmented" role="group" aria-label={t('whiteboard.popover.arrowStyle')}>
                     {(['none', 'open', 'solid', 'diamond', 'circle'] as const).map((st) => (
                       <button
@@ -3397,18 +3426,10 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                       </div>
                     ))}
                   </div>
-                  <label className="fp-check">
-                    <input
-                      type="checkbox"
-                      checked={shape.fill}
-                      onChange={(e) => applyBulkPatch({ fill: e.target.checked })}
-                    />
-                    {t('whiteboard.popover.filled')}
-                  </label>
                 </DropdownShell>
               );
               const borderPop = (shape: WhiteboardShape) => {
-                const cur = shape.dash ?? 'solid';
+                const cur = (shape.dash ?? 'solid') as LineStyleOption;
                 return (
                   <DropdownShell
                     open={barPop?.kind === 'border'}
@@ -3423,18 +3444,28 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                       </>
                     }
                   >
-                    {(['solid', 'dashed', 'none'] as const).map((d) => (
-                      <button
-                        key={d}
-                        type="button"
-                        role="radio"
-                        aria-checked={cur === d}
-                        className={`wb-fontopt${cur === d ? ' wb-fontopt-active' : ''}`}
-                        onClick={() => applyBulkPatch({ dash: d })}
-                      >
-                        <span className="wb-fontopt-name">{d}</span>
-                      </button>
-                    ))}
+                    <LineStyleSegmented
+                      value={cur}
+                      options={['solid', 'dashed', 'none']}
+                      onChange={(d) => applyBulkPatch({ dash: d })}
+                      label={t('whiteboard.popover.lineStyle')}
+                    />
+                    <div className="wb-pop-sep" role="separator" aria-hidden="true" />
+                    <ColorSwatchGrid
+                      value={shape.color}
+                      onPick={(c) =>
+                        // Ganti border saja (Figma): kunci body ke warna cat
+                        // saat ini agar tak ikut berubah via fallback null.
+                        applyBulkPatch({ color: c, fillColor: shapePaintColor(shape.color, shape.fillColor) })
+                      }
+                      heading={t('whiteboard.textbar.fill')}
+                    />
+                    <div className="wb-pop-sep" role="separator" aria-hidden="true" />
+                    <WidthPresets
+                      value={shape.strokeWidth}
+                      onPick={(v) => applyBulkPatch({ strokeWidth: v })}
+                      label={t('whiteboard.popover.lineWidth')}
+                    />
                   </DropdownShell>
                 );
               };
@@ -3444,23 +3475,13 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                 setClipboard(src);
                 applyPaste(src, 24);
               };
+              // Satu bar gabungan: properti teks selalu tampil untuk kind
+              // ber-teks (tanpa double-click, tanpa panel terpisah).
               if (el.kind === 'sticky') {
-                // No text and no edit: element props only (fill).
-                if (!showTextProps) return colorDot('color', t('whiteboard.textbar.fill'));
                 return maybeSplit(colorDot('color', t('whiteboard.textbar.fill')), ...textControls(true));
               }
               if (el.kind === 'text') return maybeSplit(...textControls(true));
               if (el.kind === 'shape') {
-                if (!el.label && !isEditing) {
-                  // Empty shape: type + color + border dropdowns (Image: shape props).
-                  return maybeSplit(
-                    typePop(el),
-                    colorDot('color', t('whiteboard.textbar.fill')),
-                    borderPop(el),
-                    widthPop(el.strokeWidth, t('whiteboard.popover.lineWidth'), (v) => applyBulkPatch({ strokeWidth: v })),
-                  );
-                }
-                // Shape with text, or Add-text being typed: type, duplicate, fill, full text controls.
                 return maybeSplit(
                   typePop(el),
                   <Tooltip content={t('whiteboard.ctx.duplicate')} side="top">
@@ -3473,17 +3494,12 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                       <Copy size={15} aria-hidden="true" />
                     </button>
                   </Tooltip>,
-                  colorDot('color', t('whiteboard.textbar.fill')),
+                  colorDot('fillColor', t('whiteboard.textbar.fill'), shapeFillCtl),
+                  borderPop(el),
                   ...textControls(true),
                 );
               }
               if (el.kind === 'edge') {
-                if (!showTextProps) {
-                  return maybeSplit(
-                    colorDot('color', t('whiteboard.popover.shapeColor')),
-                    linePop(t('whiteboard.popover.lineStyle'), el),
-                  );
-                }
                 return maybeSplit(
                   colorDot('color', t('whiteboard.popover.shapeColor')),
                   linePop(t('whiteboard.popover.lineStyle'), el),
@@ -3692,12 +3708,12 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
           lineHW = lineHeight;
           rowsN = 1;
         } else if (el.kind === 'boundary') {
-          const fontSize = el.fontSize ?? 14;
+          const fontSize = el.fontSize ?? 16;
           // Cermin chip: box = bg persis (lebar mengikuti label, teks tengah vertikal).
           const chipH = fontSize * 1.5;
           const chipW = boundaryChipWidth(editingText.value, fontSize, el.w - 12, !!(el as { bold?: boolean | null }).bold);
           boxLeftW = el.x + 6;
-          boxTopW = el.y + BOUNDARY_LABEL_DY - (chipH - 2);
+          boxTopW = el.y + boundaryLabelDY(fontSize) - (chipH - 2);
           boxW = Math.max(40, chipW);
           boxH = chipH;
           lineHW = chipH;

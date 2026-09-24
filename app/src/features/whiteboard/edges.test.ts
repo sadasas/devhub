@@ -145,7 +145,7 @@ describe('whiteboard edges', () => {
   });
 
   it('hit-tests elements top-most first (stroke vs shape)', () => {
-    const shape = { id: 'a', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 50, color: '#6ea8fe', fill: false, strokeWidth: 2, label: '' } as const;
+    const shape = { id: 'a', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 50, color: '#6ea8fe', fill: 'none', strokeWidth: 2, label: '' } as const;
     const text = { id: 'b', kind: 'text', x: 10, y: 20, color: '#e4e4e7', fontSize: 16, text: 'hi' } as const;
     const hit = elementsAtPoint([shape, text], { x: 20, y: 20 }, 8);
     expect(hit?.id).toBe('b');
