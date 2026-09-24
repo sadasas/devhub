@@ -27,6 +27,10 @@ export const LIMITS = {
   WHITEBOARD_DESCRIPTION: 500,
   WHITEBOARD_ELEMENTS: 1_000,
   WHITEBOARDS_PER_PROJECT: 50,
+  // Jaring DB untuk kind bebas `embed` (SVG AI): panjang svg tak dibatasi
+  // (eksperimen), tapi jumlah embed per board dicap agar baris projects.data
+  // tidak menggembung tanpa batas.
+  WHITEBOARD_EMBEDS_PER_BOARD: 20,
   ERDGROUP_NAME: 30,
   ERDGROUPS_PER_PROJECT: 20,
   TIMELINE_ORDER: 5000,
@@ -473,6 +477,30 @@ const whiteboardRefSchema = z.object({
   groupId: z.string().uuid().nullable().default(null),
 });
 
+/**
+ * Kind bebas `embed`: wadah SVG mentah dari AI (wireframe dsb.).
+ * Markup mentah TIDAK disimpan apa adanya - selalu lewat sanitize-svg
+ * (allowlist tag dan atribut; buang script, handler on-event, skema
+ * javascript, foreignObject, dan referensi eksternal) di setiap jalur
+ * tulis (MCP tools + REST state sync).
+ * Panjang svg sengaja tak dicap (eksperimen); jumlah embed per board
+ * dicap via LIMITS.WHITEBOARD_EMBEDS_PER_BOARD.
+ * Embed bebas dari showcase-validator (orphan, spacing, containment) -
+ * hanya cek skema (koordinat finite, w dan h) yang berlaku.
+ */
+const whiteboardEmbedSchema = z.object({
+  id: whiteboardElementId,
+  kind: z.literal('embed'),
+  x: whiteboardCoord,
+  y: whiteboardCoord,
+  w: z.number().min(20).max(2000),
+  h: z.number().min(20).max(2000),
+  svg: z.string().min(1),
+  title: z.string().max(200).default(''),
+  locked: z.boolean().default(false),
+  groupId: z.string().uuid().nullable().default(null),
+});
+
 export const whiteboardElementSchema = z.discriminatedUnion('kind', [
   whiteboardStrokeSchema,
   whiteboardStickySchema,
@@ -481,6 +509,7 @@ export const whiteboardElementSchema = z.discriminatedUnion('kind', [
   whiteboardEdgeSchema,
   whiteboardBoundarySchema,
   whiteboardRefSchema,
+  whiteboardEmbedSchema,
 ]);
 
 export const whiteboardSchema = z.object({
@@ -586,6 +615,7 @@ export type WhiteboardText = z.infer<typeof whiteboardTextSchema>;
 export type WhiteboardShape = z.infer<typeof whiteboardShapeSchema>;
 export type WhiteboardEdge = z.infer<typeof whiteboardEdgeSchema>;
 export type WhiteboardRef = z.infer<typeof whiteboardRefSchema>;
+export type WhiteboardEmbed = z.infer<typeof whiteboardEmbedSchema>;
 export type Whiteboard = z.infer<typeof whiteboardSchema>;
 export type LabelColor = z.infer<typeof labelColor>;
 export type LabelDef = z.infer<typeof labelDefSchema>;

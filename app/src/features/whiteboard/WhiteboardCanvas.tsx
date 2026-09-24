@@ -139,6 +139,7 @@ import { Tooltip } from '../../components/Tooltip';
 import { BottomSheet } from '../../components/BottomSheet';
 import { WhiteboardContextMenu } from './WhiteboardContextMenu';
 import { downloadWhiteboardPng, downloadWhiteboardSvg } from './export';
+import { sanitizeSvgForRender } from './svg-sanitize';
 import { buildRefDataMap } from './ref-data';
 import type { WhiteboardHistory } from './useWhiteboardHistory';
 
@@ -340,6 +341,12 @@ const ElementView = memo(function ElementView({
       pointerEvents="none"
     />
   );
+
+  // Kind bebas `embed`: sanitasi render-time (lapis kedua; lapis pertama di
+  // server saat tulis). Dihitung sekali per render ElementView.
+  const embedHtml = el.kind === 'embed' ? sanitizeSvgForRender(el.svg) : '';
+  // Label untuk fallback kind-tak-dikenal (el menyempit ke never di default).
+  const kindLabel: string = (el as { kind?: unknown }).kind as string;
 
   const content = (() => {
     switch (el.kind) {
@@ -758,8 +765,46 @@ const ElementView = memo(function ElementView({
           </g>
         );
       }
-      default:
-        return null;
+      case 'embed': {
+        // SVG AI disarang ke viewport w/h elemen; klik/drag/seleksi tetap
+        // lewat bounds rect generik (tidak ada kode khusus).
+        if (!embedHtml) {
+          return (
+            <g>
+              <rect x={el.x} y={el.y} width={el.w} height={el.h} rx={8} fill="none" stroke="#8a8a93" strokeWidth={1.5} strokeDasharray="6 4" />
+              <text x={el.x + 12} y={el.y + 24} fontSize={13} fill="#8a8a93">
+                {el.title || 'Embed'}
+              </text>
+            </g>
+          );
+        }
+        const clipId = `wb-embedclip-${el.id}`;
+        return (
+          <g>
+            <defs>
+              <clipPath id={clipId}>
+                <rect x={el.x} y={el.y} width={el.w} height={el.h} rx={8} />
+              </clipPath>
+            </defs>
+            <svg x={el.x} y={el.y} width={el.w} height={el.h} viewBox={`0 0 ${el.w} ${el.h}`}>
+              <g clipPath={`url(#${clipId})`} dangerouslySetInnerHTML={{ __html: embedHtml }} />
+            </svg>
+          </g>
+        );
+      }
+      default: {
+        // Toleransi client lama / kind masa depan: placeholder, bukan crash.
+        const b = elementBounds(el);
+        if (b.w <= 0 || b.h <= 0) return null;
+        return (
+          <g>
+            <rect x={b.x} y={b.y} width={b.w} height={b.h} rx={8} fill="none" stroke="#8a8a93" strokeWidth={1.5} strokeDasharray="6 4" />
+            <text x={b.x + 12} y={b.y + 24} fontSize={13} fill="#8a8a93">
+              {kindLabel}
+            </text>
+          </g>
+        );
+      }
     }
   })();
 

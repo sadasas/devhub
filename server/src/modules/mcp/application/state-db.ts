@@ -1,6 +1,7 @@
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { pool } from '../../../db/pool.js';
 import { stateSchema, type State } from '../../projects/domain/state.js';
+import { EmbedSanitizerError, sanitizeStateEmbeds } from '../../projects/domain/sanitize-svg.js';
 import { mergePrd, normalizePrd, type Prd, type PrdPatch } from '../../projects/domain/prd.js';
 import { getMcpUserId, setLoadedStateVersion, getLoadedStateVersion } from './context.js';
 import { getProjectWithRole } from '../../authorization/application/authz.js';
@@ -53,6 +54,15 @@ export async function saveState(projectId: string, state: State): Promise<void> 
         .map((i) => `${i.path.join('.')} (${i.message})`)
         .join('; ')}`,
     );
+  }
+  // Kind bebas `embed`: sanitasi SVG + cap jumlah per board (fail-closed).
+  try {
+    sanitizeStateEmbeds(state);
+  } catch (err) {
+    if (err instanceof EmbedSanitizerError) {
+      throw new McpError(ErrorCode.InvalidParams, `Embed rejected: ${err.message}`);
+    }
+    throw err;
   }
   const client = await pool.connect();
   try {

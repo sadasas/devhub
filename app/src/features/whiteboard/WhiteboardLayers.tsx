@@ -30,6 +30,8 @@ function elementLabel(el: WhiteboardElement): string {
       return el.label || 'Boundary';
     case 'ref':
       return `${el.entity}:${el.entityId.slice(0, 6)}`;
+    case 'embed':
+      return el.title ? el.title.slice(0, 32) || 'Embed' : 'Embed';
     case 'stroke':
       return 'Stroke';
     default:
@@ -45,6 +47,7 @@ function kindIcon(kind: WhiteboardElement['kind']): string {
     case 'edge': return '→';
     case 'boundary': return '▢';
     case 'ref': return '🔗';
+    case 'embed': return '▦';
     case 'stroke': return '✎';
     default: return '•';
   }

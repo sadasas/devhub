@@ -167,7 +167,7 @@ export interface ApiEndpoint extends Base {
   responses: ApiResponse[];
 }
 
-export type WhiteboardElementKind = 'stroke' | 'sticky' | 'text' | 'shape' | 'edge' | 'boundary' | 'ref';
+export type WhiteboardElementKind = 'stroke' | 'sticky' | 'text' | 'shape' | 'edge' | 'boundary' | 'ref' | 'embed';
 export type WhiteboardStrokeTool = 'pen' | 'eraser';
 export type WhiteboardShapeType =
   | 'rect'
@@ -425,6 +425,20 @@ export interface WhiteboardRef {
   groupId?: string | null;
 }
 
+/** Cermin app: kind bebas `embed` (wadah SVG AI). Admin hanya membaca, tanpa kanvas. */
+export interface WhiteboardEmbed {
+  id: string;
+  kind: 'embed';
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  svg: string;
+  title: string;
+  locked?: boolean;
+  groupId?: string | null;
+}
+
 export type WhiteboardElement =
   | WhiteboardStroke
   | WhiteboardSticky
@@ -432,7 +446,8 @@ export type WhiteboardElement =
   | WhiteboardShape
   | WhiteboardEdge
   | WhiteboardBoundary
-  | WhiteboardRef;
+  | WhiteboardRef
+  | WhiteboardEmbed;
 
 export interface Whiteboard extends Base {
   name: string;

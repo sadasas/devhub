@@ -1083,6 +1083,7 @@ export function elementBounds(el: Partial<WhiteboardElement> & { kind: string })
     case 'sticky':
     case 'shape':
     case 'boundary':
+    case 'embed':
       return { x: el.x ?? 0, y: el.y ?? 0, w: el.w ?? 0, h: el.h ?? 0 };
     case 'text': {
       const fontSize = el.fontSize ?? 16;
