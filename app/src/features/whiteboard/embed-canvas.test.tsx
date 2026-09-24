@@ -155,6 +155,47 @@ describe('whiteboard canvas embed', () => {
     expect(container.innerHTML).not.toContain('clipPath');
   });
 
+  it('aksi split memecah embed berkelompok jadi elemen natif', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    render(
+      <MemoryRouter>
+        <WhiteboardEditorShell
+          board={boardWith([
+            {
+              id: 'e1',
+              kind: 'embed',
+              x: 0,
+              y: 0,
+              w: 360,
+              h: 200,
+              title: 'Form',
+              svg: '<g data-component="a"><rect x="10" y="10" width="100" height="50" fill="#111214"/></g><g data-component="b"><text x="20" y="40" font-size="14" fill="#f5f5f5">Hi</text></g>',
+            },
+          ])}
+          state={makeState()}
+          onBack={() => {}}
+        />
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Select area — M' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    fireEvent.pointerDown(svg, { button: 0, clientX: 16, clientY: 16 });
+    fireEvent.pointerMove(svg, { clientX: 400, clientY: 240 });
+    fireEvent.pointerUp(svg, { clientX: 400, clientY: 240 });
+    fireEvent.contextMenu(svg, { clientX: 100, clientY: 100 });
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Split into components' }));
+    expect(dispatch).toHaveBeenCalled();
+    const updateCall = dispatch.mock.calls.find(
+      (c) => (c[0] as { type?: string }).type === 'whiteboard/update',
+    );
+    expect(updateCall).toBeDefined();
+    const elements = (updateCall![0] as { patch: { elements: Array<{ id: string; kind: string }> } }).patch.elements;
+    expect(elements.some((e) => e.id === 'e1')).toBe(false);
+    expect(elements.filter((e) => e.kind === 'shape')).toHaveLength(1);
+    expect(elements.filter((e) => e.kind === 'text')).toHaveLength(1);
+  });
+
   it('tidak menampilkan hint bila embed sudah dikelompokkan', () => {
     render(
       <MemoryRouter>

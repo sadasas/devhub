@@ -71,6 +71,13 @@ Agar user/agen lain otomatis tahu kontrak grouping:
 - Editor: klik kanan 1 embed tanpa grup → item menu nonaktif berisi tips
   (`whiteboard.ctx.embedGroupingHint`, EN+ID).
 
+## 7. Aksi split di editor (klik kanan)
+
+Pilih 1 embed berkelompok → "Pecah jadi komponen" (`whiteboard.ctx.splitEmbed`):
+tiap grup → elemen natif bila primitif sederhana, embed anak bila kompleks;
+1 dispatch (undo-able), cek cap 1000 elemen. Embed tanpa grup tetap
+menampilkan tips (tidak ada yang bisa dipecah).
+
 ## 5. Golden sample (login form, 360x520)
 
 Lihat `app/src/features/whiteboard/svg-components.test.ts`
