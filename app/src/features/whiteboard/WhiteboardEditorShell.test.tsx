@@ -510,6 +510,111 @@ describe('whiteboard editor shell', () => {
     });
   });
 
+  it('draws a free-floating edge on empty-to-empty drag', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      ...BOARD,
+      elements: [
+        { id: 'a', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' },
+      ],
+    };
+    renderShell(board);
+    fireEvent.click(screen.getByRole('button', { name: 'Edge — L' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    fireEvent.pointerDown(svg, { button: 0, clientX: 400, clientY: 300 });
+    fireEvent.pointerMove(svg, { clientX: 500, clientY: 300 });
+    fireEvent.pointerUp(svg, { clientX: 500, clientY: 300 });
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const action = dispatch.mock.calls[0]![0] as {
+      patch: { elements: Array<Record<string, unknown>> };
+    };
+    const edge = action.patch.elements.find((el) => el.kind === 'edge');
+    expect(edge).toBeDefined();
+    expect(edge).toMatchObject({
+      kind: 'edge',
+      sourceNodeId: null,
+      targetNodeId: null,
+      sourcePort: null,
+      targetPort: null,
+      arrowhead: true,
+      x1: 384,
+      y1: 284,
+      x2: 484,
+      y2: 284,
+    });
+  });
+
+  it('attaches only the start when dragging node to empty space', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      ...BOARD,
+      elements: [
+        { id: 'a', kind: 'sticky', x: 0, y: 0, w: 200, h: 120, color: '#e8b955', text: 'A' },
+      ],
+    };
+    renderShell(board);
+    fireEvent.click(screen.getByRole('button', { name: 'Edge — L' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+    fireEvent.pointerMove(svg, { clientX: 400, clientY: 300 });
+    fireEvent.pointerUp(svg, { clientX: 400, clientY: 300 });
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const action = dispatch.mock.calls[0]![0] as {
+      patch: { elements: Array<Record<string, unknown>> };
+    };
+    const edge = action.patch.elements.find((el) => el.kind === 'edge');
+    expect(edge).toMatchObject({
+      sourceNodeId: 'a',
+      targetNodeId: null,
+      sourcePort: 'right',
+      targetPort: null,
+      x1: 200,
+      y1: 60,
+      x2: 384,
+      y2: 284,
+    });
+  });
+
+  it('ignores an edge click without drag on empty space', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      ...BOARD,
+      elements: [
+        { id: 'a', kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' },
+      ],
+    };
+    renderShell(board);
+    fireEvent.click(screen.getByRole('button', { name: 'Edge — L' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    fireEvent.pointerDown(svg, { button: 0, clientX: 400, clientY: 300 });
+    fireEvent.pointerUp(svg, { clientX: 400, clientY: 300 });
+
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
   it('locks edge ports to the side the mouse aims at when connecting diagonally', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
@@ -2158,7 +2263,7 @@ const children = Array.from(svg.querySelectorAll('g')).map((g) => g.children[0])
     expect(patch.patch.elements.find((el) => el.kind === 'boundary')).toMatchObject({ label: 'System' });
   });
 
-  it('cannot start or end an edge on a boundary', () => {
+  it('draws a free edge inside a boundary without attaching to it', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
       state: null,
@@ -2177,7 +2282,15 @@ const children = Array.from(svg.querySelectorAll('g')).map((g) => g.children[0])
     fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 100 });
     fireEvent.pointerMove(svg, { clientX: 120, clientY: 120 });
     fireEvent.pointerUp(svg, { clientX: 120, clientY: 120 });
-    expect(dispatch).not.toHaveBeenCalled();
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const action = dispatch.mock.calls[0]![0] as {
+      patch: { elements: Array<Record<string, unknown>> };
+    };
+    const edge = action.patch.elements.find((el) => el.kind === 'edge');
+    expect(edge).toMatchObject({ sourceNodeId: null, targetNodeId: null });
+    // Still silent: no notice, just the edge.
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByRole('status')).toBeNull();
   });
 
   it('renders the new shape types with distinct paths', () => {
@@ -2654,13 +2767,18 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       return { dispatch, svg: document.querySelector('svg.wb-svg') as SVGSVGElement };
     }
 
-    it('stays silent (no notice) when an edge is dropped on empty space', () => {
+    it('creates a partially-attached edge when dropped on empty space', () => {
       const { dispatch, svg } = renderEdgeBoard();
       fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
       fireEvent.pointerMove(svg, { clientX: 500, clientY: 400 });
       fireEvent.pointerUp(svg, { clientX: 500, clientY: 400 });
-      expect(dispatch).not.toHaveBeenCalled();
-      // D8: edge-drop hint notice removed.
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      const action = dispatch.mock.calls[0]![0] as {
+        patch: { elements: Array<Record<string, unknown>> };
+      };
+      const edge = action.patch.elements.find((el) => el.kind === 'edge');
+      expect(edge).toMatchObject({ sourceNodeId: 'a', targetNodeId: null });
+      // Still silent: no notice, just the edge.
       expect(screen.queryByRole('alert')).toBeNull();
       expect(screen.queryByRole('status')).toBeNull();
     });

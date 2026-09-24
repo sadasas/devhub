@@ -104,6 +104,7 @@ import {
   portPoint,
   portSideToward,
   portToward,
+  snapPointToBounds,
   type EdgeEndpoints,
   type Point,
   type PortSide,
@@ -303,10 +304,15 @@ function shiftEndpoints(
 }
 
 interface EdgeDraft {
-  fromId: string;
+  /** Null when the draft started on empty space (free-floating edge). */
+  fromId: string | null;
+  /** Zero-size rect at the start point when fromId is null. */
   fromBounds: Rect;
   cur: Point;
 }
+
+/** Minimum drag length for a free-floating edge (click without drag is a no-op). */
+const MIN_FREE_EDGE_LEN = 6;
 
 interface ElementViewProps {
   el: WhiteboardElement;
@@ -1043,8 +1049,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
 
   const edgeDraftHover = useMemo(() => {
     if (!edgeDraft) return null;
-    const fromEl = board.elements.find((el) => el.id === edgeDraft.fromId);
-    if (!fromEl) return null;
+    const fromEl = edgeDraft.fromId ? (board.elements.find((el) => el.id === edgeDraft.fromId) ?? null) : null;
+    if (edgeDraft.fromId && !fromEl) return null;
     const hover = elementsAtPoint(board.elements, edgeDraft.cur, EDGE_TOUCH_TOLERANCE, refRects, NO_BOUNDARY);
     return { fromEl, hover };
   }, [board.elements, edgeDraft, refRects]);
@@ -1929,38 +1935,65 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     setEdgeDraft(null);
     if (isReadOnly) return;
     if (!d) return;
-    const fromEl = board.elements.find((el) => el.id === d.fromId);
-    if (!fromEl) return;
+    const fromEl = d.fromId ? board.elements.find((el) => el.id === d.fromId) : undefined;
+    if (d.fromId && !fromEl) return;
     const target = elementsAtPoint(board.elements, d.cur, EDGE_TOUCH_TOLERANCE, refRects, NO_BOUNDARY);
-    // WB-6: dropping on empty space/self is a silent no-op no more.
-    if (!target || target.id === d.fromId) {
-      return;
+    const endNode = target && target.id !== d.fromId ? target : null;
+    // Dropping back onto the start node stays a silent no-op (legacy behavior).
+    if (fromEl && !endNode && target) return;
+    let edge: WhiteboardEdge;
+    if (fromEl && endNode) {
+      const fromBounds = boundsFor(fromEl);
+      const toBounds = boundsFor(endNode);
+      const sourcePort: PortSide = portSideToward(fromBounds, d.cur);
+      const targetPort: PortSide = nearestPortSide(d.cur, toBounds) ?? portSideToward(toBounds, d.cur);
+      const ep = edgeEndpoints(fromBounds, toBounds, d.cur);
+      edge = {
+        id: newId(),
+        kind: 'edge',
+        x1: ep.x1,
+        y1: ep.y1,
+        x2: ep.x2,
+        y2: ep.y2,
+        color: edgeColorProp ?? DEFAULT_EDGE_COLOR,
+        width: DEFAULT_EDGE_WIDTH,
+        arrowhead: true,
+        label: edgeLabelProp ?? '',
+        arrowStyle: (edgeArrowStyleProp as WhiteboardEdge['arrowStyle']) ?? 'solid',
+        dash: (edgeDashProp as WhiteboardEdge['dash']) ?? 'solid',
+        fontSize: Math.max(4, Math.min(96, edgeFontSizeProp ?? 11)),
+        align: (edgeAlignProp ?? 'center') as any,
+        sourceNodeId: fromEl.id,
+        targetNodeId: endNode.id,
+        sourcePort,
+        targetPort,
+      };
+    } else {
+      // Free-floating edge: raw points, attached ends snap to node ports.
+      const startPt = fromEl ? portToward(boundsFor(fromEl), d.cur) : { x: d.fromBounds.x, y: d.fromBounds.y };
+      const endPt = endNode ? snapPointToBounds(d.cur, boundsFor(endNode)) : d.cur;
+      if (Math.hypot(endPt.x - startPt.x, endPt.y - startPt.y) < MIN_FREE_EDGE_LEN) return;
+      edge = {
+        id: newId(),
+        kind: 'edge',
+        x1: startPt.x,
+        y1: startPt.y,
+        x2: endPt.x,
+        y2: endPt.y,
+        color: edgeColorProp ?? DEFAULT_EDGE_COLOR,
+        width: DEFAULT_EDGE_WIDTH,
+        arrowhead: true,
+        label: edgeLabelProp ?? '',
+        arrowStyle: (edgeArrowStyleProp as WhiteboardEdge['arrowStyle']) ?? 'solid',
+        dash: (edgeDashProp as WhiteboardEdge['dash']) ?? 'solid',
+        fontSize: Math.max(4, Math.min(96, edgeFontSizeProp ?? 11)),
+        align: (edgeAlignProp ?? 'center') as any,
+        sourceNodeId: fromEl?.id ?? null,
+        targetNodeId: endNode?.id ?? null,
+        sourcePort: fromEl ? portSideToward(boundsFor(fromEl), d.cur) : null,
+        targetPort: endNode ? (nearestPortSide(d.cur, boundsFor(endNode)) ?? portSideToward(boundsFor(endNode), d.cur)) : null,
+      };
     }
-    const fromBounds = boundsFor(fromEl);
-    const toBounds = boundsFor(target);
-    const sourcePort: PortSide = portSideToward(fromBounds, d.cur);
-    const targetPort: PortSide = nearestPortSide(d.cur, toBounds) ?? portSideToward(toBounds, d.cur);
-    const ep = edgeEndpoints(fromBounds, toBounds, d.cur);
-    const edge: WhiteboardEdge = {
-      id: newId(),
-      kind: 'edge',
-      x1: ep.x1,
-      y1: ep.y1,
-      x2: ep.x2,
-      y2: ep.y2,
-      color: edgeColorProp ?? DEFAULT_EDGE_COLOR,
-      width: DEFAULT_EDGE_WIDTH,
-      arrowhead: true,
-      label: edgeLabelProp ?? '',
-      arrowStyle: (edgeArrowStyleProp as WhiteboardEdge['arrowStyle']) ?? 'solid',
-      dash: (edgeDashProp as WhiteboardEdge['dash']) ?? 'solid',
-      fontSize: Math.max(4, Math.min(96, edgeFontSizeProp ?? 11)),
-      align: (edgeAlignProp ?? 'center') as any,
-      sourceNodeId: fromEl.id,
-      targetNodeId: target.id,
-      sourcePort,
-      targetPort,
-    };
     if (board.elements.length >= MAX_ELEMENTS) {
       notifyAtCap();
       return;
@@ -2247,8 +2280,11 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     if (tool === 'edge') {
       if (isReadOnly) return;
       const hit = elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects, NO_BOUNDARY);
-      if (!hit || hit.kind === 'edge') return;
-      const d: EdgeDraft = { fromId: hit.id, fromBounds: boundsFor(hit), cur: pt };
+      // Node start attaches; anything else (empty space, edge, boundary) draws free-floating.
+      const d: EdgeDraft =
+        hit && CONNECTABLE_KINDS.has(hit.kind)
+          ? { fromId: hit.id, fromBounds: boundsFor(hit), cur: pt }
+          : { fromId: null, fromBounds: { x: pt.x, y: pt.y, w: 0, h: 0 }, cur: pt };
       edgeDraftRef.current = d;
       setEdgeDraft(d);
       return;
