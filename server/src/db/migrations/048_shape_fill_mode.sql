@@ -1,4 +1,4 @@
--- 047_shape_fill_mode: fill boolean → enum tri-state ala FigJam
+-- 048_shape_fill_mode: fill boolean → enum tri-state ala FigJam
 -- ('solid' opaque | 'transparent' tint | 'none'). true lama dirender sebagai
 -- tint 0.15 → 'transparent' (tampilan tak berubah); false → 'none'.
 -- Idempoten: hanya boolean JSON yang dicocokkan; run ulang = no-op.

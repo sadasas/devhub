@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { AttachmentEmbed } from "../components/AttachmentEmbed";
+import type { Attachment } from "./types";
 
 type MdBlock =
   | { type: "list"; ordered: boolean; items: string[] }
@@ -7,7 +9,7 @@ type MdBlock =
   | { type: "quote"; text: string }
   | { type: "codeblock"; lang: string; text: string };
 
-const INLINE_RE = /(\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\))|(\*\*[^*]+\*\*)|(_[^_]+_)|(`[^`]+`)/g;
+const INLINE_RE = /(!\[([^\]]*)\]\(([^)\s]+)\))|(\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\))|(\*\*[^*]+\*\*)|(_[^_]+_)|(`[^`]+`)/g;
 
 function isSafeUrl(url: string): boolean {
   try {
@@ -16,6 +18,11 @@ function isSafeUrl(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+export interface MarkdownEmbedContext {
+  projectId?: string;
+  attachments?: Attachment[];
 }
 
 export function parseLines(text: string): MdBlock[] {
@@ -101,7 +108,7 @@ export function parseLines(text: string): MdBlock[] {
   return blocks;
 }
 
-export function renderInline(text: string): ReactNode {
+export function renderInline(text: string, ctx?: MarkdownEmbedContext): ReactNode {
   const nodes: ReactNode[] = [];
   let last = 0;
   let key = 0;
@@ -111,9 +118,20 @@ export function renderInline(text: string): ReactNode {
   while ((m = INLINE_RE.exec(text))) {
     if (m.index > last) nodes.push(text.slice(last, m.index));
     const token = m[0];
-    if (token.startsWith("[")) {
-      const label = m[2] ?? "";
-      const href = m[3] ?? "";
+    if (token.startsWith("![")) {
+      // Gambar ala Linear: ![alt](https://...) atau ![alt](attachment:<id>)
+      const alt = m[2] ?? "";
+      const src = m[3] ?? "";
+      if (src) {
+        nodes.push(
+          <AttachmentEmbed key={key++} projectId={ctx?.projectId} attachments={ctx?.attachments} src={src} alt={alt} />,
+        );
+      } else {
+        nodes.push(alt);
+      }
+    } else if (token.startsWith("[")) {
+      const label = m[5] ?? "";
+      const href = m[6] ?? "";
       if (isSafeUrl(href)) {
         nodes.push(
           <a key={key++} href={href} target="_blank" rel="noopener noreferrer" className="md-link">
@@ -141,9 +159,10 @@ export function renderInline(text: string): ReactNode {
   return nodes;
 }
 
-export function MarkdownBlocks({ text }: { text: string }) {
+export function MarkdownBlocks({ text, projectId, attachments }: { text: string } & MarkdownEmbedContext) {
   const blocks = parseLines(text);
   if (blocks.length === 0) return null;
+  const ctx: MarkdownEmbedContext = { projectId, attachments };
 
   return (
     <div className="md-blocks">
@@ -152,14 +171,14 @@ export function MarkdownBlocks({ text }: { text: string }) {
           const Tag = b.level === 1 ? "h3" : b.level === 2 ? "h3" : "h4";
           return (
             <Tag key={i} className="md-heading">
-              {renderInline(b.text)}
+              {renderInline(b.text, ctx)}
             </Tag>
           );
         }
         if (b.type === "quote") {
           return (
             <blockquote key={i} className="md-quote">
-              {renderInline(b.text)}
+              {renderInline(b.text, ctx)}
             </blockquote>
           );
         }
@@ -174,18 +193,18 @@ export function MarkdownBlocks({ text }: { text: string }) {
           return b.ordered ? (
             <ol key={i} className="md-list">
               {b.items.map((it, j) => (
-                <li key={j}>{renderInline(it)}</li>
+                <li key={j}>{renderInline(it, ctx)}</li>
               ))}
             </ol>
           ) : (
             <ul key={i} className="md-list">
               {b.items.map((it, j) => (
-                <li key={j}>{renderInline(it)}</li>
+                <li key={j}>{renderInline(it, ctx)}</li>
               ))}
             </ul>
           );
         }
-        return <p key={i}>{renderInline(b.text)}</p>;
+        return <p key={i}>{renderInline(b.text, ctx)}</p>;
       })}
     </div>
   );

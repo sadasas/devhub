@@ -1967,7 +1967,6 @@ export function ERD({
         >
           {colTip && tipTable && tipCol ? (
             <TooltipCard
-              tone="light"
               title={tipCol.name}
               description={tipCol.type.trim() !== '' ? tipCol.type : '—'}
             >
@@ -1995,7 +1994,7 @@ export function ERD({
           ) : (
             tipRel &&
             tipRelLabel && (
-              <TooltipCard tone="light" title={tipRelLabel}>
+              <TooltipCard title={tipRelLabel}>
                 <div className="erd-col-tip-divider" aria-hidden="true" />
                 <div className="erd-col-tip-row">
                   <span className="erd-col-tip-label">Cardinality:</span>{' '}

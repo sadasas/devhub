@@ -202,4 +202,43 @@ describe('TaskCard', () => {
     const pill = document.querySelector('.task-card-labels .task-label');
     expect(pill?.getAttribute('title')).toBe(name);
   });
+
+  it('shows the parent name under a subtask title instead of the legacy sub chip', () => {
+    useProjectMock.mockReturnValue({
+      state: { milestones: [], tasks: [task({ id: 'p1', title: 'Parent task' })], testCases: [] },
+      canEdit: true,
+      dispatch: dispatchMock,
+    });
+    render(<TaskCard task={task({ id: 's1', title: 'Sub A', parentTaskId: 'p1' })} onOpen={() => {}} />);
+    expect(screen.getByText('Parent task')).toBeTruthy();
+    expect(document.querySelector('.task-card .task-label')?.textContent).not.toBe('sub');
+  });
+
+  it('renders a subtask progress bar and due rollup on the parent card', () => {
+    const future = new Date(Date.now() + 5 * 86_400_000).toISOString().slice(0, 10);
+    const sub1 = task({ id: 's1', title: 'Sub A', parentTaskId: 't1', status: 'done', dueDate: future });
+    const sub2 = task({ id: 's2', title: 'Sub B', parentTaskId: 't1', status: 'todo', dueDate: future });
+    useProjectMock.mockReturnValue({
+      state: { milestones: [], tasks: [task({}), sub1, sub2], testCases: [] },
+      canEdit: true,
+      dispatch: dispatchMock,
+    });
+    render(<TaskCard task={task({})} onOpen={() => {}} />);
+    const bar = document.querySelector('.task-card [role="progressbar"]');
+    expect(bar).toBeTruthy();
+    expect(bar?.getAttribute('aria-valuenow')).toBe('1');
+    expect(bar?.getAttribute('aria-valuemax')).toBe('2');
+    // Due rollup: parent tanpa due sendiri menampilkan due subtask terdekat.
+    expect(document.querySelectorAll('.task-card .task-due').length).toBeGreaterThan(0);
+  });
+
+  it('omits progress and rollup when there are no subtasks', () => {
+    useProjectMock.mockReturnValue({
+      state: { milestones: [], tasks: [task({})], testCases: [] },
+      canEdit: true,
+      dispatch: dispatchMock,
+    });
+    render(<TaskCard task={task({})} onOpen={() => {}} />);
+    expect(document.querySelector('.task-card [role="progressbar"]')).toBeNull();
+  });
 });

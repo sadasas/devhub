@@ -38,7 +38,7 @@ import { DataErrorState } from '../../components/DataErrorState';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { SearchableSelect } from '../../components/SearchableSelect';
-import { SortControl } from '../../components/SortControl';
+import { ApiSortControl } from '../../components/ApiSortControl';
 import { Textarea } from '../../components/Textarea';
 import { FE_LIMITS } from '../../lib/limits';
 import { ApiDocsView } from './ApiDocsView';
@@ -524,17 +524,19 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
 
   const sortPair = mode === 'workspace' ? (
     <div className="api-sort-pair">
-      <SortControl
-        label={t('api.sort.collections')}
-        options={API_COLLECTION_SORT_SPECS.map((s) => ({ value: s.key, label: t(s.label) }))}
-        value={collectionSort}
-        onChange={setCollectionSort}
-      />
-      <SortControl
-        label={t('api.sort.endpoints')}
-        options={API_ENDPOINT_SORT_SPECS.map((s) => ({ value: s.key, label: t(s.label) }))}
-        value={endpointSort}
-        onChange={setEndpointSort}
+      <ApiSortControl
+        collections={{
+          label: t('api.sort.collections'),
+          options: API_COLLECTION_SORT_SPECS.map((s) => ({ value: s.key, label: t(s.label) })),
+          value: collectionSort,
+          onChange: setCollectionSort,
+        }}
+        endpoints={{
+          label: t('api.sort.endpoints'),
+          options: API_ENDPOINT_SORT_SPECS.map((s) => ({ value: s.key, label: t(s.label) })),
+          value: endpointSort,
+          onChange: setEndpointSort,
+        }}
       />
     </div>
   ) : null;

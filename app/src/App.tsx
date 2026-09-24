@@ -61,10 +61,20 @@ function TeamLegacyRedirect() {
   if (!team) return <Navigate to="/" replace />;
   const slug = encodeURIComponent(team.slug || team.id);
   const tab = searchParams.get('tab');
-  if (tab === 'usage') return <Navigate to={`/${slug}/settings?section=billing`} replace />;
-  if (tab === 'members') return <Navigate to={`/${slug}/members`} replace />;
-  if (tab === 'settings') return <Navigate to={`/${slug}/settings`} replace />;
-  return <Navigate to={`/${slug}/projects`} replace />;
+  // Setup-return GitHub ikut diloloskan (lihat HomeRedirect) agar tidak mati
+  // di redirect legacy ini.
+  const setupQs = ['github', 'installation_id', 'setup_action']
+    .map((k) => {
+      const v = searchParams.get(k);
+      return v !== null && v !== '' ? `${k}=${encodeURIComponent(v)}` : '';
+    })
+    .filter(Boolean)
+    .join('&');
+  const withSetup = (path: string) => (setupQs ? `${path}${path.includes('?') ? '&' : '?'}${setupQs}` : path);
+  if (tab === 'usage') return <Navigate to={withSetup(`/${slug}/settings?section=billing`)} replace />;
+  if (tab === 'members') return <Navigate to={withSetup(`/${slug}/members`)} replace />;
+  if (tab === 'settings') return <Navigate to={withSetup(`/${slug}/settings`)} replace />;
+  return <Navigate to={withSetup(`/${slug}/projects`)} replace />;
 }
 
 // Bare /:teamSlug canonicalizes to the projects tab (preserves query).

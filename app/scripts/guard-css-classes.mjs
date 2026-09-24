@@ -128,8 +128,6 @@ export const HEX_VALUE_ALLOWLIST = new Set([
   '#a78bfa',
   '#f2b8c6',
   '#f4706d',
-  '#111827',
-  '#2f6df6',
   '#1a1a1a', // kanvas: default warna teks sticky + fallback rgba (ColorPalette/Inspector/EditorShell)
   '#06251a', // kanvas: swatch hijau gelap palet konten (ColorPalette)
 ]);

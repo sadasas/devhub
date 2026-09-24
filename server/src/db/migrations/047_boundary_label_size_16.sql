@@ -1,4 +1,4 @@
--- 046_boundary_label_size_16: default label boundary 14 → 16 (lanjutan 045;
+-- 047_boundary_label_size_16: default label boundary 14 → 16 (lanjutan 045;
 -- kontrol size boundary dihapus dari toolbar). Idempoten: hanya fontSize
 -- tepat 12/14 pada kind boundary yang diubah; run ulang = no-op.
 -- Nilai custom dan kind lain tak tersentuh.

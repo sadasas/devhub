@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CaretLeft, CaretRight, CalendarBlank, Check, Circle, Clock, Eye, CheckCircle, Flag, Plus } from
+import { CaretLeft, CaretRight, CalendarBlank, Check, GitBranch, Plus } from
 '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { addDaysIso, inMonth, isoOf, monthName, parseIso, visibleMonthMatrix, weekDays } from '../../lib/calendar';
 import { dueBucket, dueLabel, dueTone, taskDueChip, todayIso } from '../../lib/due-dates';
 import { subRangeOutsideParent } from '../../lib/start-dates';
 import { TASK_PRIORITY, TASK_PRIORITY_ORDER, TASK_STATUS } from '../../lib/labels';
+import { TaskPriorityIcon, TaskStatusIcon } from '../../lib/task-icons';
 import { formatDate } from '../../lib/utils';
 import { getAppLocale } from '../../i18n';
 
@@ -77,10 +78,10 @@ interface CalTaskChipProps {
 }
 
 const STATUS_ICON: Record<string, React.ReactNode> = {
-  todo: <Circle size={14} weight="bold" aria-hidden="true" />,
-  inProgress: <Clock size={14} weight="bold" aria-hidden="true" />,
-  review: <Eye size={14} weight="bold" aria-hidden="true" />,
-  done: <CheckCircle size={14} weight="fill" aria-hidden="true" />,
+  todo: <TaskStatusIcon status="todo" size={14} />,
+  inProgress: <TaskStatusIcon status="inProgress" size={14} />,
+  review: <TaskStatusIcon status="review" size={14} />,
+  done: <TaskStatusIcon status="done" size={14} />,
 };
 
 function useMediaQuery(query: string): boolean {
@@ -119,6 +120,7 @@ function formatDayAriaLabel(isoDate: string): string {
 }
 
 function CalTaskChip({ task, date, segmentStart, span, members, onOpenTask, onTouchDrop, onDragOffset, onMove, onDragState, style, classNameExtra, readOnly = false }: CalTaskChipProps) {
+  const { t } = useTranslation('tracker');
   const project = useProjectSafe();
   const canEdit = !readOnly && (project?.canEdit ?? false);
   const canMove = canEdit && !!onMove;
@@ -133,8 +135,12 @@ function CalTaskChip({ task, date, segmentStart, span, members, onOpenTask, onTo
   useTouchDrag(ref, { enabled: canEdit && !!onTouchDrop, onDrop: handleTouchDrop });
   const assignee = task.assigneeId ? members?.[task.assigneeId] : undefined;
   const assigneeName = assignee ? (assignee.displayName || assignee.email) : undefined;
+  const parentTitle = task.parentTaskId
+    ? (project?.state?.tasks.find((tt) => tt.id === task.parentTaskId)?.title ?? null)
+    : null;
   const baseLabel = date ? `${task.title} · ${dueLabel(date, todayIso())}` : task.title;
-  const fullLabel = assigneeName ? `${baseLabel} · ${assigneeName}` : baseLabel;
+  const subLabel = parentTitle ? `${baseLabel} · ${t('board.cal.subtaskOf', { defaultValue: 'subtask of {{parent}}', parent: parentTitle })}` : baseLabel;
+  const fullLabel = assigneeName ? `${subLabel} · ${assigneeName}` : subLabel;
   const ariaLabel = canMove ? `${fullLabel}. Press M to move date, Enter to open.` : fullLabel;
   const rawTone = task.status === 'done' ? taskDueChip(task).tone : date ? dueTone(dueBucket(date, todayIso())) : 'neutral';
   const tone = rawTone as 'danger' | 'warn' | 'success' | 'neutral';
@@ -163,13 +169,19 @@ function CalTaskChip({ task, date, segmentStart, span, members, onOpenTask, onTo
             {TASK_STATUS[task.status].label}
           </span>
           <span className="task-activity-tip-row">
-            <Flag size={12} aria-hidden="true" />
+            <TaskPriorityIcon priority={task.priority} size={12} />
             {TASK_PRIORITY[task.priority].label}
           </span>
           {assigneeName && task.assigneeId && (
             <span className="task-activity-tip-row">
               <Avatar src={assignee?.avatarUrl ?? null} name={assigneeName} email={assignee?.email} id={task.assigneeId} size={14} alt="" />
               {assigneeName}
+            </span>
+          )}
+          {parentTitle && (
+            <span className="task-activity-tip-row">
+              <GitBranch size={12} aria-hidden="true" />
+              {t('board.cal.subtaskOf', { defaultValue: 'subtask of {{parent}}', parent: parentTitle })}
             </span>
           )}
         </span>
@@ -225,6 +237,7 @@ function CalTaskChip({ task, date, segmentStart, span, members, onOpenTask, onTo
       onDragEnd={() => { setDragging(false); onDragState?.(null); }}
     >
       <span aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, opacity: 0.9 }}>
+        {parentTitle && <GitBranch size={12} weight="bold" style={{ marginRight: 2 }} />}
         {STATUS_ICON[task.status]}
       </span>
       <span className="due-cal-task-title">{task.title}</span>
@@ -964,7 +977,9 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
                       className={`due-cal-mini-card due-cal-mini-card-${task.priority}`}
                       onClick={() => onOpenTask?.(task.id)}
                       aria-label={`${task.title} — ${dueLabel(task.dueDate, today)}`}
+                      style={task.parentTaskId ? { paddingLeft: 16, borderLeft: '1px solid var(--border-hairline)' } : undefined}
                     >
+                      {task.parentTaskId && <GitBranch size={11} aria-hidden="true" style={{ flexShrink: 0 }} />}
                       <span className="due-cal-mini-card-title">{task.title}</span>
                       {task.dueDate && (
                         <span className="due-cal-mini-card-meta tabular">{dueLabel(task.dueDate, today)}</span>

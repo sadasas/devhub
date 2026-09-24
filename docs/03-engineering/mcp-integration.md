@@ -50,8 +50,8 @@ Every tool: inputs validated by zod; response includes `updatedAt` of the mutate
 | `project_state` | `projectId` | Full state document (12 entity collections) + project meta (name, description, status, PRD) | No | `mcp` or `mcp:read` |
 | `update_prd` | `projectId`, `{ purpose?, goals?, features?, scope?, outOfScope? }` | Merged PRD (all 5 sections) | Yes | `mcp` / `mcp:write` |
 | `plan_project` | `projectId`, `brief: string` | Proposed `{ tasks: [...], milestones: [...], estimateHours }` | No (suggestion only) | `mcp` or `mcp:read` |
-| `create_task` | `projectId`, task fields (title, status?, priority?, estimate?, labels?, blockedBy?) | Created task | Yes | `mcp` / `mcp:write` |
-| `update_task` | `projectId`, `taskId`, `{ status?, actualHours? }` | Updated task | Yes | `mcp` / `mcp:write` |
+| `create_task` | `projectId`, task fields (title, status?, priority?, estimate?, labels?, blockedBy?, githubLinks?) | Created task | Yes | `mcp` / `mcp:write` |
+| `update_task` | `projectId`, `taskId`, `{ status?, actualHours?, githubLinks? }` | Updated task | Yes | `mcp` / `mcp:write` |
 | `add_issue` | `projectId`, issue fields (title, severity, status?, description?, reproduction?, linkedTaskId?) | Created issue | Yes | `mcp` / `mcp:write` |
 | `update_issue` | `projectId`, `issueId`, `{ title?, severity?, status?, description?, reproduction?, linkedTaskId? }` | Updated issue | Yes | `mcp` / `mcp:write` |
 | `add_decision` | `projectId`, ADR fields (title, context, options[], decision, consequences, status?, date?) | Created decision | Yes | `mcp` / `mcp:write` |

@@ -64,22 +64,40 @@ const registerSchema = z.object({
   client_uri: z.string().url().optional(),
 });
 
+/** Loopback http (dengan/tanpa port eksplisit) — bukan remote. */
+export function isLoopbackOrigin(origin: string): boolean {
+  return (
+    origin === "http://localhost" ||
+    origin === "http://127.0.0.1" ||
+    origin.startsWith("http://localhost:") ||
+    origin.startsWith("http://127.0.0.1:")
+  );
+}
+
+/**
+ * Allowlist DCR (C1): loopback SELALU lolos di semua environment
+ * (RFC 8252 §7.3 — callback aplikasi native tidak pernah meninggalkan
+ * mesin user, port berapa pun; CLI MCP memakai port acak), origin lain
+ * wajib ada di APP_PUBLIC_URL / OAUTH_REDIRECT_ORIGINS.
+ */
+export function isDcrRedirectAllowed(origin: string, allowedOrigins: ReadonlySet<string>): boolean {
+  if (isLoopbackOrigin(origin)) return true;
+  return allowedOrigins.has(origin);
+}
+
 oauthRouter.post('/oauth/register', async (req, res) => {
   const parsed = parseOrThrow(registerSchema, req.body, 'Invalid client metadata');
-  // DCR allowlist (C1): only allow redirect_uris whose origin is in APP_PUBLIC_URL or OAUTH_REDIRECT_ORIGINS,
-  // plus localhost for dev. Prevents evil.com registration.
+  // DCR allowlist (C1): APP_PUBLIC_URL / OAUTH_REDIRECT_ORIGINS + loopback
+  // (isDcrRedirectAllowed). Mencegah registrasi evil.com.
   const allowedOrigins = new Set<string>();
   if (config.APP_PUBLIC_URL) { try { allowedOrigins.add(new URL(config.APP_PUBLIC_URL).origin); } catch {} }
   for (const o of config.OAUTH_REDIRECT_ORIGINS) { try { allowedOrigins.add(new URL(o).origin); } catch {} }
-  const isDev = config.NODE_ENV !== 'production';
   for (const uri of parsed.redirect_uris) {
     let origin: string;
     try { origin = new URL(uri).origin; } catch { throw new ApiError(400, 'INVALID_REQUEST', `Invalid redirect_uri: ${uri}`); }
-    const isLocalhost = origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:');
-    if (isLocalhost && isDev) continue;
-    if (allowedOrigins.has(origin)) continue;
-    // Allow loopback for MCP local clients (e.g. http://localhost:*) in dev, otherwise reject
-    throw new ApiError(400, 'INVALID_REQUEST', `redirect_uri origin not allowed: ${origin}`);
+    if (!isDcrRedirectAllowed(origin, allowedOrigins)) {
+      throw new ApiError(400, 'INVALID_REQUEST', `redirect_uri origin not allowed: ${origin}`);
+    }
   }
   const clientId = `devhub_${randomBytes(16).toString('hex')}`;
   const clientSecret = null; // public clients - PKCE only, no secret per OAuth 2.1

@@ -11,6 +11,7 @@ import {
   PROJECT_STATUS,
   TASK_STATUS,
 } from '../../lib/labels';
+import { IssueStatusIcon } from '../../lib/task-icons';
 import { formatDate, linkedTestCases } from '../../lib/utils';
 import { dueBucket, taskDueChip } from '../../lib/due-dates';
 import { computeProjectStats } from '../../lib/stats';
@@ -620,7 +621,10 @@ function PublicIssues({
                 <span className="data-row-title">{issue.title}</span>
               </button>
               <span className="data-row-props">
-                <Badge tone={ISSUE_STATUS[issue.status].tone}>{ISSUE_STATUS[issue.status].label}</Badge>
+                <Badge tone={ISSUE_STATUS[issue.status].tone}>
+                  <IssueStatusIcon status={issue.status} size={11} />
+                  {ISSUE_STATUS[issue.status].label}
+                </Badge>
               </span>
             </div>
             <span className="data-row-sub">

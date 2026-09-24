@@ -70,7 +70,7 @@ export function TemplatesPage() {
   }
 
   return (
-    <div className="page">
+    <div className="page templates-page">
       {/* Flat content card wraps page content; modals stay as sibling portal targets. */}
       <article className="pcard">
         <div className="pcard-body">

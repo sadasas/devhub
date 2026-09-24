@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
 import { findEntity, newId, nowIso, textContent, toolError } from '../../domain/entity.js';
 import { whiteboardElementSchema, LIMITS, type WhiteboardElement } from '../../../projects/domain/state.js';
+import { EmbedSanitizerError, embedGroupingHints, sanitizeStateEmbeds } from '../../../projects/domain/sanitize-svg.js';
 
 const inputSchema = z.object({
   projectId: z.string().uuid().describe('UUID of the target project'),
@@ -112,7 +113,18 @@ export function registerPatchWhiteboard(server: McpServer): void {
       }
 
       board.updatedAt = nowIso();
+      // Sanitizer embed (fail-closed); saveState mengulanginya sebagai backstop.
+      let stripped: string[] = [];
+      try {
+        stripped = sanitizeStateEmbeds(state).stripped;
+      } catch (err) {
+        if (err instanceof EmbedSanitizerError) {
+          return toolError(`Embed rejected: ${err.message}`);
+        }
+        throw err;
+      }
       await saveState(args.projectId, state);
+      const grouping = embedGroupingHints(board.elements);
       return {
         content: [
           textContent({
@@ -122,6 +134,8 @@ export function registerPatchWhiteboard(server: McpServer): void {
             deleted,
             elementCount: board.elements.length,
             updatedAt: board.updatedAt,
+            ...(stripped.length > 0 ? { sanitizerStripped: stripped } : {}),
+            ...(grouping.length > 0 ? { groupingHints: grouping } : {}),
           }),
         ],
       };

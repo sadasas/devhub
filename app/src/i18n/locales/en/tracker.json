@@ -55,6 +55,17 @@
       "syncOff": "Sync off",
       "syncedTask": "Synced to Google Calendar"
     },
+    "github": {
+      "openPr": "Open pull request",
+      "mergedSuggest": "A linked PR was merged. Mark this task done?",
+      "markDone": "Mark done",
+      "noLinks": "No linked branches or PRs yet. Include DEV-{{key}} in a branch or PR to link automatically.",
+      "openInGithub": "Open in GitHub",
+      "unlink": "Unlink {{ref}}",
+      "copied": "Copied",
+      "copyBranch": "Copy branch",
+      "readonly": "Read-only: only editors can unlink."
+    },
     "dropHere": "Drop tasks here",
     "emptySwipe": "No tasks in {{label}}",
     "emptyMineSwipe": "No tasks assigned to you in {{label}}",
@@ -73,7 +84,9 @@
       "priorityTitle": "{{priority}} priority",
       "blockedByTooltip": "Blocked by: {{names}}",
       "unread": "Unread",
-      "srSummary": "{{status}} task with {{priority}} priority. Drag to move between columns. On touch: press and hold, then drag. Move with arrow keys when focused."
+      "srSummary": "{{status}} task with {{priority}} priority. Drag to move between columns. On touch: press and hold, then drag. Move with arrow keys when focused.",
+      "subtaskOf": "Subtask of {{parent}}",
+      "subtaskProgress": "{{done}} of {{total}} subtasks done"
     },
     "taskModal": {
       "presenceEditing": "Editing task",
@@ -91,7 +104,7 @@
       "dueDateLabel": "Due date",
       "startDateLabel": "Start date",
       "doneDateLabel": "Done date",
-      "estimateLabel": "Estimate (hours)",
+      "estimateLabel": "Estimate",
       "actualLabel": "Actual",
       "actualHint": "Manual wins permanently — empty = auto from start date",
       "propertiesLabel": "Properties",
@@ -127,7 +140,16 @@
       "deleteConfirmTitle": "Delete task?",
       "deleteConfirmBody": "This permanently deletes the task. This cannot be undone.",
       "autosaveSaving": "Saving…",
-      "autosaveSaved": "All changes saved"
+      "autosaveSaved": "All changes saved",
+      "subtaskBadge": "Subtask",
+      "backToParent": "Back to parent task",
+      "openSubtask": "Open subtask {{title}}",
+      "subAssignee": "Subtask assignee",
+      "subDates": "Subtask dates",
+      "subPriority": "Subtask priority",
+      "subPriorityInherit": "{{label}} (inherited)",
+      "followParent": "Follow parent",
+      "subRangeWarn": "Date is outside the parent range ({{start}} – {{due}})."
     },
     "attachments": {
       "title": "Attachments",
@@ -153,7 +175,15 @@
       "downloadFailed": "Download failed — please try again.",
       "deleteFailed": "Could not remove attachment.",
       "deleteTitle": "Remove attachment?",
-      "deleteDesc": "Remove \"{{name}}\"? This cannot be undone."
+      "deleteDesc": "Remove \"{{name}}\"? This cannot be undone.",
+      "preview": "Preview {{name}}",
+      "previewLoading": "Loading preview…",
+      "previewTooLarge": "Too large to preview — download to view.",
+      "previewFailed": "Preview failed — download to view instead.",
+      "previewUnsupported": "No in-app preview for this file type.",
+      "downloadCta": "Download",
+      "unfurlLoading": "Loading link preview…",
+      "uploadFromEditor": "Attach file"
     },
     "datePicker": {
       "today": "Today",
@@ -174,7 +204,7 @@
       "titleLabel": "Name",
       "titlePlaceholder": "What needs to be done?",
       "priorityLabel": "Priority",
-      "estimateLabel": "Estimate (hours)",
+      "estimateLabel": "Estimate",
       "descriptionPlaceholder": "Add details, context, or acceptance criteria…",
       "dueDateLabel": "Due date",
       "startDateLabel": "Start date",
@@ -208,6 +238,7 @@
       "daySummaryDone_one": "{{count}} task · {{done}} done",
       "daySummaryDone_other": "{{count}} tasks · {{done}} done",
       "subRangeBlocked": "Subtask date is outside the parent range.",
+      "subtaskOf": "subtask of {{parent}}",
       "monthPicker": {
         "pickMonth": "Pick month",
         "dialogLabel": "Pick month and year",

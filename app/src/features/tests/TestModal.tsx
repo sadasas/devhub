@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Trash, FileText, ListChecks, Clock, CheckCircle, Circle, Bug } from '@phosphor-icons/react';
+import { Trash, FileText, ListChecks, Clock, CheckCircle, Circle, Bug, PencilSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatRelative } from '../../lib/utils';
 import type { TestCase, TestCaseStatus } from '../../lib/types';
@@ -111,7 +111,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
             </span>
           )}
           control={(
-            <SearchableSelect defaultOpen searchable={false} id="test-status" label="" ariaLabel={t('tests.modal.statusLabel')} value={test.status} allowEmpty={false} options={STATUS_OPTIONS.map((s) => ({ value: s, label: t(`tests.status.${s}`) }))} onChange={(v) => { if (v) { update({ status: v as TestCaseStatus }); setHotProp(null); } }} />
+            <SearchableSelect defaultOpen searchable={false} id="test-status" label="" ariaLabel={t('tests.modal.statusLabel')} value={test.status} allowEmpty={false} options={STATUS_OPTIONS.map((s) => ({ value: s, label: t(`tests.status.${s}`) }))} onOpenChange={(o) => { if (!o) setHotProp(null); }} onChange={(v) => { if (v) { update({ status: v as TestCaseStatus }); setHotProp(null); } }} />
           )}
         />
         <PropRow
@@ -127,7 +127,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
             <span className="prop-view-empty">—</span>
           )}
           control={(
-            <SearchableSelect defaultOpen id="test-task" label="" ariaLabel={t('tests.modal.linkedTaskLabel')} value={test.taskId} options={state.tasks.map((x) => ({ value: x.id, label: x.title }))} onChange={(v) => { update({ taskId: v }); setHotProp(null); }} triggerEmptyLabel={t('tests.modal.linkedTaskLabel')} />
+            <SearchableSelect defaultOpen id="test-task" label="" ariaLabel={t('tests.modal.linkedTaskLabel')} value={test.taskId} options={state.tasks.map((x) => ({ value: x.id, label: x.title }))} onOpenChange={(o) => { if (!o) setHotProp(null); }} onChange={(v) => { update({ taskId: v }); setHotProp(null); }} triggerEmptyLabel={t('tests.modal.linkedTaskLabel')} />
           )}
         />
         <PropRow
@@ -143,7 +143,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
             <span className="prop-view-empty">—</span>
           )}
           control={(
-            <SearchableSelect defaultOpen id="test-issue" label="" ariaLabel={t('tests.modal.linkedIssueLabel')} value={test.issueId} options={state.issues.map((x) => ({ value: x.id, label: x.title }))} onChange={(v) => { update({ issueId: v }); setHotProp(null); }} triggerEmptyLabel={t('tests.modal.linkedIssueLabel')} />
+            <SearchableSelect defaultOpen id="test-issue" label="" ariaLabel={t('tests.modal.linkedIssueLabel')} value={test.issueId} options={state.issues.map((x) => ({ value: x.id, label: x.title }))} onOpenChange={(o) => { if (!o) setHotProp(null); }} onChange={(v) => { update({ issueId: v }); setHotProp(null); }} triggerEmptyLabel={t('tests.modal.linkedIssueLabel')} />
           )}
         />
       </>}
@@ -158,18 +158,22 @@ export function TestModal({ testId, onClose }: TestModalProps) {
       )}
     >
       {canEdit ? (
-        <textarea
-          ref={titleRef}
-          className="composer-title"
-          rows={1}
-          value={test.name}
-          autoFocus={AUTO_FOCUS_INPUT}
-          maxLength={LIMITS.TESTCASE_NAME}
-          onChange={(e) => update({ name: e.target.value })}
-          aria-label={t('tests.modal.nameLabel')}
-          aria-invalid={nameEmpty}
-          placeholder={t('tests.newModal.namePlaceholder')}
-        />
+        <div className="editable-field editable-field-title" style={{ position: 'relative' }}>
+          <textarea
+            ref={titleRef}
+            className="composer-title"
+            rows={1}
+            value={test.name}
+            autoFocus={AUTO_FOCUS_INPUT}
+            maxLength={LIMITS.TESTCASE_NAME}
+            onChange={(e) => update({ name: e.target.value })}
+            aria-label={t('tests.modal.nameLabel')}
+            aria-invalid={nameEmpty}
+            placeholder={t('tests.newModal.namePlaceholder')}
+            style={{ paddingRight: 20 }}
+          />
+          <PencilSimple size={12} aria-hidden="true" className="editable-pencil" />
+        </div>
       ) : (
         <h3 className="detail-title">
           {test.name || <DetailEmpty>{t('tests.modal.noSteps')}</DetailEmpty>}
@@ -183,17 +187,19 @@ export function TestModal({ testId, onClose }: TestModalProps) {
         <span style={{ color: 'var(--text-secondary)' }}>{formatDate(test.createdAt)} {new Date(test.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
       </div>
       {canEdit ? (
-        <MarkdownField
-          label={t('tests.modal.stepsLabel')}
-          icon={ListChecks}
-          value={test.steps}
-          onChange={(v) => update({ steps: v })}
-          placeholder={t('tests.newModal.stepsPlaceholder')}
-          maxLength={LIMITS.TESTCASE_STEPS}
-          rows={4}
-          variant="bare"
-          previewToggle
-        />
+        <div className="editable-field" style={{ position: 'relative' }}>
+          <MarkdownField
+            label={t('tests.modal.stepsLabel')}
+            icon={ListChecks}
+            value={test.steps}
+            onChange={(v) => update({ steps: v })}
+            placeholder={t('tests.newModal.stepsPlaceholder')}
+            maxLength={LIMITS.TESTCASE_STEPS}
+            rows={4}
+            variant="bare"
+            previewToggle
+          />
+        </div>
       ) : (
         <div>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -205,17 +211,19 @@ export function TestModal({ testId, onClose }: TestModalProps) {
         </div>
       )}
       {canEdit ? (
-        <MarkdownField
-          label={t('tests.modal.expectedLabel')}
-          icon={FileText}
-          value={test.expected}
-          onChange={(v) => update({ expected: v })}
-          placeholder={t('tests.newModal.expectedPlaceholder')}
-          maxLength={LIMITS.TESTCASE_EXPECTED}
-          rows={3}
-          variant="bare"
-          previewToggle
-        />
+        <div className="editable-field" style={{ position: 'relative' }}>
+          <MarkdownField
+            label={t('tests.modal.expectedLabel')}
+            icon={FileText}
+            value={test.expected}
+            onChange={(v) => update({ expected: v })}
+            placeholder={t('tests.newModal.expectedPlaceholder')}
+            maxLength={LIMITS.TESTCASE_EXPECTED}
+            rows={3}
+            variant="bare"
+            previewToggle
+          />
+        </div>
       ) : (
         <div>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>

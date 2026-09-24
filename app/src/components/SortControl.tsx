@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { CaretDown, SortAscending, SortDescending } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import type { SortDir } from '../lib/sort';
@@ -156,6 +156,10 @@ export function SortControl({
     }
   };
 
+  // Tanpa opsi DAN tanpa filter, trigger tak berguna — sembunyikan total.
+  // (Setelah semua hook agar urutan hook stabil.)
+  if (!showSort && filters.length === 0) return null;
+
   const trigger = (
     <button
       type="button"
@@ -222,49 +226,50 @@ export function SortControl({
                   {options.map((o) => {
                     const checked = pendingKey === o.value;
                     return (
-                      <button
-                        key={o.value}
-                        type="button"
-                        className={`sheet-radio-row${checked ? ' sheet-radio-row-active' : ''}`}
-                        role="radio"
-                        aria-checked={checked}
-                        onClick={() => setPendingKey(o.value)}
-                      >
-                        <span className="sheet-radio-dot" aria-hidden="true" />
-                        {o.label}
-                      </button>
+                      <Fragment key={o.value}>
+                        <button
+                          type="button"
+                          className={`sheet-radio-row${checked ? ' sheet-radio-row-active' : ''}`}
+                          role="radio"
+                          aria-checked={checked}
+                          onClick={() => setPendingKey(o.value)}
+                        >
+                          <span className="sheet-radio-dot" aria-hidden="true" />
+                          {o.label}
+                        </button>
+                        {checked && (
+                          <div
+                            className="seg-control"
+                            role="radiogroup"
+                            aria-label={t('sort.direction')}
+                          >
+                            {(['asc', 'desc'] as const).map((dir) => {
+                              const dirChecked = pendingDir === dir;
+                              return (
+                                <button
+                                  key={dir}
+                                  type="button"
+                                  className={`seg-btn${dirChecked ? ' seg-btn-active' : ''}`}
+                                  role="radio"
+                                  aria-checked={dirChecked}
+                                  onClick={() => setPendingDir(dir)}
+                                >
+                                  {dir === 'asc' ? (
+                                    <SortAscending size={14} aria-hidden="true" />
+                                  ) : (
+                                    <SortDescending size={14} aria-hidden="true" />
+                                  )}
+                                  {dir === 'asc' ? t('sort.ascending') : t('sort.descending')}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </Fragment>
                     );
                   })}
                 </div>
               </div>
-              {pendingKey && (
-              <div
-                className="seg-control"
-                role="radiogroup"
-                aria-label={t('sort.direction')}
-              >
-                {(['asc', 'desc'] as const).map((dir) => {
-                  const checked = pendingDir === dir;
-                  return (
-                    <button
-                      key={dir}
-                      type="button"
-                      className={`seg-btn${checked ? ' seg-btn-active' : ''}`}
-                      role="radio"
-                      aria-checked={checked}
-                      onClick={() => setPendingDir(dir)}
-                    >
-                      {dir === 'asc' ? (
-                        <SortAscending size={14} aria-hidden="true" />
-                      ) : (
-                        <SortDescending size={14} aria-hidden="true" />
-                      )}
-                      {dir === 'asc' ? t('sort.ascending') : t('sort.descending')}
-                    </button>
-                  );
-                })}
-              </div>
-              )}
             </>
           )}
           {filters.length > 0 && (
@@ -321,39 +326,43 @@ export function SortControl({
                   {t('sort.none')}
                 </button>
               )}
-              {options.map((o) => (
-                <button
-                  key={o.value}
-                  type="button"
-                  className={`sort-menu-row ${o.value === (pendingKey ?? value?.key) ? 'sort-menu-row-active' : ''}`}
-                  role="menuitemradio"
-                  aria-checked={o.value === (pendingKey ?? value?.key)}
-                  onClick={() => selectKey(o.value)}
-                >
-                  {o.label}
-                </button>
-              ))}
-              {(value || pendingKey) && (
-              <div className="sort-menu-dir seg-control" role="group" aria-label={t('sort.direction')}>
-                {(['asc', 'desc'] as const).map((dir) => (
-                  <button
-                    key={dir}
-                    type="button"
-                    className={`sort-menu-dir-row seg-btn ${activeDir === dir ? 'sort-menu-dir-active seg-btn-active' : ''}`}
-                    role="menuitemradio"
-                    aria-checked={activeDir === dir}
-                    onClick={() => selectDir(dir)}
-                  >
-                    {dir === 'asc' ? (
-                      <SortAscending size={13} aria-hidden="true" />
-                    ) : (
-                      <SortDescending size={13} aria-hidden="true" />
+              {options.map((o) => {
+                const isActive = o.value === (pendingKey ?? value?.key);
+                return (
+                  <Fragment key={o.value}>
+                    <button
+                      type="button"
+                      className={`sort-menu-row ${isActive ? 'sort-menu-row-active' : ''}`}
+                      role="menuitemradio"
+                      aria-checked={isActive}
+                      onClick={() => selectKey(o.value)}
+                    >
+                      {o.label}
+                    </button>
+                    {isActive && (value || pendingKey) && (
+                      <div className="sort-menu-dir" role="group" aria-label={t('sort.direction')}>
+                        {(['asc', 'desc'] as const).map((dir) => (
+                          <button
+                            key={dir}
+                            type="button"
+                            className={`sort-menu-dir-row seg-btn ${activeDir === dir ? 'sort-menu-dir-active seg-btn-active' : ''}`}
+                            role="menuitemradio"
+                            aria-checked={activeDir === dir}
+                            onClick={() => selectDir(dir)}
+                          >
+                            {dir === 'asc' ? (
+                              <SortAscending size={13} aria-hidden="true" />
+                            ) : (
+                              <SortDescending size={13} aria-hidden="true" />
+                            )}
+                            {dir === 'asc' ? t('sort.ascending') : t('sort.descending')}
+                          </button>
+                        ))}
+                      </div>
                     )}
-                    {dir === 'asc' ? t('sort.ascending') : t('sort.descending')}
-                  </button>
-                ))}
-              </div>
-              )}
+                  </Fragment>
+                );
+              })}
             </>
           )}
           {filters.length > 0 && (

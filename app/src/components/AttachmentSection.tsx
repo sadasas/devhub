@@ -1,87 +1,21 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { DownloadSimple, LinkSimple, Plus, Trash } from '@phosphor-icons/react';
+import { DownloadSimple, Eye, LinkSimple, Plus, Trash } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
-import * as Tus from 'tus-js-client';
 import { api, ApiError } from '../lib/api';
 import { getErrorMessage, isPlanLimitError } from '../lib/errors';
 import { formatBytes } from '../lib/format';
 import { newId, nowIso } from '../lib/utils';
 import type { Attachment } from '../lib/types';
+import { isPreviewableAttachment, linkDomain, previewKind } from '../lib/attachmentPreview';
+import { putFile, putFileTus } from '../lib/attachmentUpload';
 import { Button } from './Button';
 import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
 import { InlineError } from './InlineError';
+import { AttachmentPreviewModal, dropPreviewCache, useAttachmentUrl } from './AttachmentPreviewModal';
+import { LinkCard } from './LinkCard';
 
 export const ATTACHMENT_CLIENT_MAX_MB = 10;
-
-function putFile(url: string, file: File, onProgress: (pct: number) => void): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('PUT', url);
-    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) onProgress(Math.min(99, Math.round((e.loaded / e.total) * 100)));
-    };
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        onProgress(100);
-        resolve();
-      } else {
-        reject(new Error(`Upload failed (${xhr.status})`));
-      }
-    };
-    xhr.onerror = () => reject(new Error('Upload failed'));
-    xhr.onabort = () => reject(new Error('Upload cancelled'));
-    xhr.send(file);
-  });
-}
-
-/**
- * Upload resumable via protokol TUS (dokumen resmi Supabase).
- * Endpoint + token presigned dari backend — service key tak pernah ke browser.
- */
-function putFileTus(
-  file: File,
-  tus: { tusEndpoint: string; uploadToken: string; bucket: string; objectName: string },
-  onProgress: (pct: number) => void,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const upload = new Tus.Upload(file, {
-      endpoint: tus.tusEndpoint,
-      retryDelays: [0, 3000, 5000, 10000, 20000],
-      headers: {
-        'x-signature': tus.uploadToken,
-        'x-upsert': 'true',
-      },
-      uploadDataDuringCreation: true,
-      removeFingerprintOnSuccess: true,
-      chunkSize: 6 * 1024 * 1024,
-      metadata: {
-        bucketName: tus.bucket,
-        objectName: tus.objectName,
-        contentType: file.type || 'application/octet-stream',
-        cacheControl: '3600',
-      },
-      onError: (err) => reject(err instanceof Error ? err : new Error('Upload failed')),
-      onProgress: (bytesUploaded, bytesTotal) => {
-        if (bytesTotal > 0) {
-          onProgress(Math.min(99, Math.round((bytesUploaded / bytesTotal) * 100)));
-        }
-      },
-      onSuccess: () => {
-        onProgress(100);
-        resolve();
-      },
-    });
-    void upload
-      .findPreviousUploads()
-      .then((previous) => {
-        if (previous.length > 0) upload.resumeFromPreviousUpload(previous[0]!);
-        upload.start();
-      })
-      .catch((err) => reject(err instanceof Error ? err : new Error('Upload failed')));
-  });
-}
 
 interface AttachmentSectionProps {
   projectId: string;
@@ -99,6 +33,57 @@ interface AttachmentSectionProps {
    */
   mode?: 'attached' | 'staged';
   onBusyChange?: (busy: boolean) => void;
+}
+
+/**
+ * Thumbnail 40px ala Linear — hanya untuk image/video previewable.
+ * Tanpa ikon dekoratif (lolos tes "no decorative svg outside buttons"):
+ * sebelum blob siap, render placeholder div kosong.
+ */
+function AttachmentThumb({
+  projectId,
+  att,
+  localUrl,
+  label,
+  onPreview,
+}: {
+  projectId: string;
+  att: Attachment;
+  localUrl?: string | null;
+  label: string;
+  onPreview: () => void;
+}) {
+  const kind = previewKind(att.mime);
+  const { url } = useAttachmentUrl(projectId, att, localUrl);
+  if (kind !== 'image' && kind !== 'video') return null;
+  const box = {
+    width: 40,
+    height: 40,
+    borderRadius: 6,
+    flexShrink: 0,
+    overflow: 'hidden',
+    background: 'var(--bg-inset)',
+    border: '1px solid var(--border-hairline)',
+    padding: 0,
+    cursor: 'pointer',
+  } as const;
+  if (!url) {
+    return <span style={box} aria-hidden="true" />;
+  }
+  if (kind === 'video') {
+    return (
+      <button type="button" onClick={onPreview} aria-label={label} style={{ ...box, position: 'relative' }}>
+        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+        <video src={url} muted preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <span aria-hidden="true" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 14, textShadow: '0 1px 4px rgba(0,0,0,.6)' }}>▶</span>
+      </button>
+    );
+  }
+  return (
+    <button type="button" onClick={onPreview} aria-label={label} style={box}>
+      <img src={url} alt="" aria-hidden="true" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+    </button>
+  );
 }
 
 export function AttachmentSection({
@@ -127,14 +112,27 @@ export function AttachmentSection({
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Attachment | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [previewTarget, setPreviewTarget] = useState<Attachment | null>(null);
+  /** Object URL lokal per attachment — thumb instan + preview staged tanpa sign-download. */
+  const [localUrls, setLocalUrls] = useState<Record<string, string>>({});
   const menuRef = useRef<HTMLDivElement>(null);
   const addBtnRef = useRef<HTMLButtonElement>(null);
   const linkFormRef = useRef<HTMLDivElement>(null);
+  const localUrlsRef = useRef(localUrls);
+  localUrlsRef.current = localUrls;
   const staged = mode === 'staged';
 
   useEffect(() => {
     onBusyChange?.(busy);
   }, [busy, onBusyChange]);
+
+  // Revoke semua object URL lokal saat unmount (hindari bocor memori).
+  useEffect(
+    () => () => {
+      for (const u of Object.values(localUrlsRef.current)) URL.revokeObjectURL(u);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -216,6 +214,12 @@ export function AttachmentSection({
         url: null,
         linkedAt: nowIso(),
       };
+      // Object URL lokal: thumb instan + preview staged tanpa sign-download
+      // (URL storage bertanda hanya hidup ~60 detik — lihat storageClient).
+      if (isPreviewableAttachment(attachment)) {
+        const objectUrl = URL.createObjectURL(file);
+        setLocalUrls((prev) => ({ ...prev, [attachment.id]: objectUrl }));
+      }
       if (!staged) {
         await api.attachmentConfirm({ projectId, entity, entityId, attachment });
       }
@@ -238,9 +242,10 @@ export function AttachmentSection({
   }
 
   async function handleAddLink() {
-    const name = linkName.trim().slice(0, 200);
     const url = linkUrl.trim();
-    if (!name || !url || busy) return;
+    // Judul ala Linear --title: opsional, default = domain (bukan wajib isi).
+    const name = linkName.trim().slice(0, 200) || linkDomain(url) || url.slice(0, 200);
+    if (!url || busy) return;
     if (!/^https?:\/\//i.test(url)) {
       setError(t('board.attachments.linkFailed', { defaultValue: 'Could not add link — check the URL.' }));
       return;
@@ -283,6 +288,12 @@ export function AttachmentSection({
       return;
     }
     if (!canDownload) return;
+    // Prefer blob/object URL lokal bila ada (tak kena expiry 60 detik).
+    const local = localUrls[att.id];
+    if (local) {
+      window.open(local, '_blank', 'noopener,noreferrer');
+      return;
+    }
     setDownloadingId(att.id);
     try {
       const res = await api.attachmentSignDownload(projectId, att.id);
@@ -306,6 +317,17 @@ export function AttachmentSection({
       } else {
         await api.attachmentRemove(projectId, entity, entityId, att.id);
       }
+      const local = localUrls[att.id];
+      if (local) {
+        URL.revokeObjectURL(local);
+        setLocalUrls((prev) => {
+          const next = { ...prev };
+          delete next[att.id];
+          return next;
+        });
+      }
+      dropPreviewCache(att.id);
+      if (previewTarget?.id === att.id) setPreviewTarget(null);
       onChanged(attachments.filter((a) => a.id !== att.id));
       setDeleteTarget(null);
     } catch (err) {
@@ -325,7 +347,11 @@ export function AttachmentSection({
         )}
       </h4>
       <div style={{ marginTop: 2 }}>
-        {attachments.map((att, i) => (
+        {attachments.map((att, i) => {
+          const previewable = isPreviewableAttachment(att);
+          const previewLabel = t('board.attachments.preview', { defaultValue: 'Preview {{name}}', name: att.name });
+          const openPreview = () => setPreviewTarget(att);
+          return (
           <div
             key={att.id}
             className="mini-row"
@@ -334,20 +360,53 @@ export function AttachmentSection({
               borderTop: i === 0 ? 'none' : '1px solid var(--border-hairline)',
             }}
           >
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span
-                style={{ display: 'block', fontSize: 'var(--text-ui)', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                title={att.name}
-              >
-                {att.name}
+            {att.provider === 'link' ? (
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <LinkCard attachment={att} />
+                <span style={{ display: 'block', fontSize: 'var(--text-caption)', color: 'var(--text-muted)' }}>
+                  {t('board.attachments.linkBadge', { defaultValue: 'Link' })}
+                </span>
               </span>
-              <span style={{ display: 'block', fontSize: 'var(--text-caption)', color: 'var(--text-muted)' }}>
-                {att.provider === 'link'
-                  ? t('board.attachments.linkBadge', { defaultValue: 'Link' })
-                  : formatBytes(att.size)}
+            ) : (
+              <>
+              {previewable && (
+                <AttachmentThumb projectId={projectId} att={att} localUrl={localUrls[att.id]} label={previewLabel} onPreview={openPreview} />
+              )}
+              <span style={{ flex: 1, minWidth: 0 }}>
+                {previewable ? (
+                  <button
+                    type="button"
+                    onClick={openPreview}
+                    title={att.name}
+                    style={{ display: 'block', width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', fontSize: 'var(--text-ui)', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                  >
+                    {att.name}
+                  </button>
+                ) : (
+                  <span
+                    style={{ display: 'block', fontSize: 'var(--text-ui)', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                    title={att.name}
+                  >
+                    {att.name}
+                  </span>
+                )}
+                <span style={{ display: 'block', fontSize: 'var(--text-caption)', color: 'var(--text-muted)' }}>
+                  {formatBytes(att.size)}
+                </span>
               </span>
-            </span>
+              </>
+            )}
             <span className="att-actions">
+            {previewable && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm btn-icon"
+                onClick={openPreview}
+                aria-label={previewLabel}
+              >
+                <Eye size={14} aria-hidden="true" />
+              </button>
+            )}
             {(att.provider === 'link' || (!staged && canDownload)) && (
               <button
                 type="button"
@@ -371,7 +430,8 @@ export function AttachmentSection({
             )}
             </span>
           </div>
-        ))}
+          );
+        })}
       </div>
       {progress !== null && (
         <div role="status" style={{ marginTop: 6 }}>
@@ -400,6 +460,7 @@ export function AttachmentSection({
             className="sr-only"
             tabIndex={-1}
             aria-hidden="true"
+            accept="image/*,video/*,.pdf,.json,.txt,.zip"
             onChange={(e) => void handleFiles(e.target.files)}
           />
           <Button
@@ -478,7 +539,7 @@ export function AttachmentSection({
             size="md"
             className="btn-icon"
             onClick={() => void handleAddLink()}
-            disabled={!linkName.trim() || !linkUrl.trim() || busy}
+            disabled={!linkUrl.trim() || busy}
             aria-label={t('board.attachments.linkAdd', { defaultValue: 'Add' })}
           >
             <Plus size={16} aria-hidden="true" />
@@ -491,6 +552,12 @@ export function AttachmentSection({
         </p>
       )}
     </section>
+    <AttachmentPreviewModal
+      projectId={projectId}
+      attachment={previewTarget}
+      localUrl={previewTarget ? (localUrls[previewTarget.id] ?? null) : null}
+      onClose={() => setPreviewTarget(null)}
+    />
     <ConfirmDeleteDialog
       open={deleteTarget !== null}
       title={t('board.attachments.deleteTitle', { defaultValue: 'Remove attachment?' })}

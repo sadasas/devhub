@@ -5,6 +5,7 @@ import {
   Copy,
   Lock,
   XCircle,
+  ArrowLeft,
   ArrowSquareOut,
   Trash,
 } from '@phosphor-icons/react';
@@ -70,6 +71,24 @@ function WorkspaceEyebrow({ name, loading }: { name: string | null; loading?: bo
       <span aria-hidden="true" className="billing-context-dot">·</span>
       <span className="billing-context-name" title={name}>{name}</span>
     </p>
+  );
+}
+
+/* Tombol kembali ikon-only di kiri atas kartu (satu rupa semua state). */
+function CardBack({ to, label }: { to: string; label: string }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="btn-icon"
+        aria-label={label}
+        title={label}
+        onClick={() => { window.location.href = to; }}
+      >
+        <ArrowLeft size={16} aria-hidden="true" />
+      </Button>
+    </div>
   );
 }
 
@@ -315,6 +334,8 @@ export function BillingRedirectPage() {
   const workspaceName: string | null = (detailPayment?.teamName ?? null) as string | null;
   const workspaceMismatch =
     !!detailPayment && !!teamId && detailPayment.teamId !== teamId;
+  const billingHref = `/?team=${encodeURIComponent(teamId || detailPayment?.teamId || '')}&tab=settings&section=billing`;
+  const backLabel = t('teams.payment.back', { defaultValue: 'Kembali ke workspace' });
 
   const renderHeroIcon = () => {
     const size = 20;
@@ -336,6 +357,7 @@ export function BillingRedirectPage() {
       <main className="billing-redirect-page" aria-labelledby="billing-redirect-title">
         {displayState === 'loading' && (
           <div className="billing-redirect-card" role="status" aria-live="polite" aria-busy="true" aria-label="Loading billing status">
+            <CardBack to={billingHref} label={backLabel} />
             <span className="sr-only">Memuat pembayaran…</span>
             <WorkspaceEyebrow name={null} loading />
             <div aria-hidden="true" style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
@@ -367,6 +389,7 @@ export function BillingRedirectPage() {
 
         {displayState === 'unauthenticated' && (
           <section className="billing-redirect-card billing-redirect-card--neutral" role="alert" aria-live="assertive">
+            <CardBack to="/" label={t('common:action.backToHome', { defaultValue: 'Beranda' })} />
             <WorkspaceEyebrow name={workspaceName} />
             <div className="billing-redirect-hero">
               {renderHeroIcon()}
@@ -376,7 +399,6 @@ export function BillingRedirectPage() {
               </div>
             </div>
             <div className="billing-redirect-actions">
-              <Link className="billing-redirect-link" to="/">{t('common:action.backToHome', { defaultValue: 'Beranda' })}</Link>
               <Button variant="primary" onClick={() => { const rt = `${window.location.pathname}${window.location.search}`; window.location.href = `/?returnTo=${encodeURIComponent(rt)}`; }}>{t('common:action.signIn', { defaultValue: 'Masuk' })}</Button>
             </div>
           </section>
@@ -401,6 +423,7 @@ export function BillingRedirectPage() {
         {(data || detailPayment) && displayState === 'pending' && targetPayment && (
           <>
             <section className="billing-redirect-card" role="status" aria-live="polite">
+            <CardBack to={billingHref} label={backLabel} />
             <WorkspaceEyebrow name={workspaceName} />
             <div className="billing-redirect-hero">
               {renderHeroIcon()}
@@ -458,6 +481,7 @@ export function BillingRedirectPage() {
 
         {(data || detailPayment) && displayState === 'success' && (
           <section className="billing-redirect-card billing-redirect-card--success" role="status" aria-live="polite">
+            <CardBack to={billingHref} label={backLabel} />
             <WorkspaceEyebrow name={workspaceName} />
             <div className="billing-redirect-hero">
               {renderHeroIcon()}
@@ -481,16 +505,13 @@ export function BillingRedirectPage() {
                 <button type="button" className="billing-redirect-copy" onClick={() => void handleCopy(targetPayment.orderId)} aria-label={t("teams.payment.copyOrderId")}><Copy size={12} aria-hidden="true" /> {copied ? t("common:copied") : t("teams.payment.copyOrder")}</button>
               </div>
             )}
-            <div className="billing-redirect-actions">
-              {/* Usage now lives in the dashboard settings tab (billing section). */}
-              <Button variant="primary" onClick={() => (window.location.href = `/?team=${encodeURIComponent(teamId || detailPayment?.teamId || '')}&tab=settings&section=billing`)}>{t('teams.payment.back', { defaultValue: 'Kembali ke workspace' })}</Button>
-            </div>
             <p className="billing-redirect-help">{t("teams.payment.successHelp")}</p>
           </section>
         )}
 
         {(data || detailPayment) && displayState === 'failed' && (
           <section className="billing-redirect-card billing-redirect-card--danger" role="alert">
+            <CardBack to={billingHref} label={backLabel} />
             <WorkspaceEyebrow name={workspaceName} />
             <div className="billing-redirect-hero">
               {renderHeroIcon()}
@@ -511,7 +532,6 @@ export function BillingRedirectPage() {
               </div>
             )}
             <div className="billing-redirect-actions">
-              <Link className="billing-redirect-link" to={`/?team=${encodeURIComponent(teamId || detailPayment?.teamId || '')}&tab=settings&section=billing`}>{t('teams.payment.back', { defaultValue: 'Kembali ke workspace' })}</Link>
               {/* Usage now lives in the dashboard settings tab (billing section). */}
               <Button variant="primary" size="sm" onClick={() => (window.location.href = `/pricing?teamId=${teamId || detailPayment?.teamId || ''}`)}>{t('teams.payment.newPayment', { defaultValue: 'Lihat Paket' })}</Button>
             </div>

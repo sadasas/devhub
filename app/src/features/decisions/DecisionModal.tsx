@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Trash, Scales, Clock, FileText, ListChecks, CheckCircle, Circle, CalendarBlank, Rocket } from '@phosphor-icons/react';
+import { Trash, Scales, Clock, FileText, ListChecks, CheckCircle, Circle, CalendarBlank, Rocket, PencilSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatRelative } from '../../lib/utils';
 import type { Decision, DecisionStatus } from '../../lib/types';
@@ -35,6 +35,7 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
   const [hotProp, setHotProp] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const titleRef = useRef<HTMLTextAreaElement | null>(null);
+  const optionsRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     setHotProp(null);
@@ -47,6 +48,11 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
     if (ta) {
       ta.style.height = 'auto';
       ta.style.height = `${ta.scrollHeight}px`;
+    }
+    const opt = optionsRef.current;
+    if (opt) {
+      opt.style.height = 'auto';
+      opt.style.height = `${opt.scrollHeight}px`;
     }
   });
 
@@ -115,7 +121,7 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
               </span>
             )}
             control={(
-              <SearchableSelect defaultOpen searchable={false} id="decision-status" label="" ariaLabel={t('decisions.modal.statusLabel')} value={decision.status} allowEmpty={false} options={STATUS_OPTIONS.map((s) => ({ value: s, label: t(`decisions.status.${s}`) }))} onChange={(v) => { if (v) { update({ status: v as DecisionStatus }); setHotProp(null); } }} />
+              <SearchableSelect defaultOpen searchable={false} id="decision-status" label="" ariaLabel={t('decisions.modal.statusLabel')} value={decision.status} allowEmpty={false} options={STATUS_OPTIONS.map((s) => ({ value: s, label: t(`decisions.status.${s}`) }))} onOpenChange={(o) => { if (!o) setHotProp(null); }} onChange={(v) => { if (v) { update({ status: v as DecisionStatus }); setHotProp(null); } }} />
             )}
           />
           <PropRow
@@ -154,7 +160,7 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
               </span>
             )}
             control={(
-              <SearchableSelect defaultOpen id="decision-milestone" label="" ariaLabel={t('decisions.modal.milestoneLabel', { defaultValue: 'Milestone' })} value={decision.milestoneId ?? null} options={state.milestones.map((m) => ({ value: m.id, label: m.name }))} onChange={(v) => { update({ milestoneId: v }); setHotProp(null); }} triggerEmptyLabel={t('decisions.modal.milestoneLabel', { defaultValue: 'Milestone' })} />
+              <SearchableSelect defaultOpen id="decision-milestone" label="" ariaLabel={t('decisions.modal.milestoneLabel', { defaultValue: 'Milestone' })} value={decision.milestoneId ?? null} options={state.milestones.map((m) => ({ value: m.id, label: m.name }))} onOpenChange={(o) => { if (!o) setHotProp(null); }} onChange={(v) => { update({ milestoneId: v }); setHotProp(null); }} triggerEmptyLabel={t('decisions.modal.milestoneLabel', { defaultValue: 'Milestone' })} />
             )}
           />
         </>
@@ -170,18 +176,22 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
       )}
     >
       {canEdit ? (
-        <textarea
-          ref={titleRef}
-          className="composer-title"
-          rows={1}
-          value={decision.title}
-          autoFocus={AUTO_FOCUS_INPUT}
-          maxLength={LIMITS.DECISION_TITLE}
-          onChange={(e) => update({ title: e.target.value })}
-          aria-label={t('decisions.modal.titleLabel')}
-          aria-invalid={titleEmpty}
-          placeholder={t('decisions.newModal.titlePlaceholder')}
-        />
+        <div className="editable-field editable-field-title" style={{ position: 'relative' }}>
+          <textarea
+            ref={titleRef}
+            className="composer-title"
+            rows={1}
+            value={decision.title}
+            autoFocus={AUTO_FOCUS_INPUT}
+            maxLength={LIMITS.DECISION_TITLE}
+            onChange={(e) => update({ title: e.target.value })}
+            aria-label={t('decisions.modal.titleLabel')}
+            aria-invalid={titleEmpty}
+            placeholder={t('decisions.newModal.titlePlaceholder')}
+            style={{ paddingRight: 20 }}
+          />
+          <PencilSimple size={12} aria-hidden="true" className="editable-pencil" />
+        </div>
       ) : (
         <h3 className="detail-title">
           {decision.title || <DetailEmpty>{t('decisions.modal.noContext')}</DetailEmpty>}
@@ -196,17 +206,19 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
       </div>
 
       {canEdit ? (
-        <MarkdownField
-          label={t('decisions.modal.contextLabel')}
-          icon={FileText}
-          value={decision.context}
-          onChange={(v) => update({ context: v })}
-          placeholder={t('decisions.newModal.contextPlaceholder')}
-          maxLength={LIMITS.DECISION_CONTEXT}
-          rows={3}
-          variant="bare"
-          previewToggle
-        />
+        <div className="editable-field" style={{ position: 'relative' }}>
+          <MarkdownField
+            label={t('decisions.modal.contextLabel')}
+            icon={FileText}
+            value={decision.context}
+            onChange={(v) => update({ context: v })}
+            placeholder={t('decisions.newModal.contextPlaceholder')}
+            maxLength={LIMITS.DECISION_CONTEXT}
+            rows={3}
+            variant="bare"
+            previewToggle
+          />
+        </div>
       ) : (
         <div className="md-bare">
           <div className="md-bare-head">
@@ -221,21 +233,26 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
       )}
 
       {canEdit ? (
-        <div className="md-bare">
-          <div className="md-bare-head">
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <ListChecks size={12} aria-hidden="true" /> {t('decisions.modal.optionsLabel')}
-            </span>
+        <div className="editable-field" style={{ position: 'relative' }}>
+          <div className="md-bare">
+            <div className="md-bare-head">
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <ListChecks size={12} aria-hidden="true" /> {t('decisions.modal.optionsLabel')}
+              </span>
+              <span className="spacer" />
+              <PencilSimple size={12} aria-hidden="true" className="editable-pencil" />
+            </div>
+            <textarea
+              ref={optionsRef}
+              className="textarea-bare"
+              rows={3}
+              value={decision.options.join('\n')}
+              onChange={(e) => update({ options: e.target.value.split('\n').map((o) => o.trim()).filter(Boolean).slice(0, LIMITS.DECISION_OPTIONS) })}
+              placeholder={t('decisions.newModal.optionsPlaceholder')}
+              aria-label={t('decisions.modal.optionsLabel')}
+              maxLength={LIMITS.DECISION_OPTION}
+            />
           </div>
-          <textarea
-            className="textarea-bare"
-            rows={3}
-            value={decision.options.join('\n')}
-            onChange={(e) => update({ options: e.target.value.split('\n').map((o) => o.trim()).filter(Boolean).slice(0, LIMITS.DECISION_OPTIONS) })}
-            placeholder={t('decisions.newModal.optionsPlaceholder')}
-            aria-label={t('decisions.modal.optionsLabel')}
-            maxLength={LIMITS.DECISION_OPTION}
-          />
         </div>
       ) : (
         <div className="md-bare">
@@ -253,17 +270,19 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
       )}
 
       {canEdit ? (
-        <MarkdownField
-          label={t('decisions.modal.decisionLabel')}
-          icon={Scales}
-          value={decision.decision}
-          onChange={(v) => update({ decision: v })}
-          placeholder={t('decisions.newModal.decisionPlaceholder')}
-          maxLength={LIMITS.DECISION_TEXT}
-          rows={3}
-          variant="bare"
-          previewToggle
-        />
+        <div className="editable-field" style={{ position: 'relative' }}>
+          <MarkdownField
+            label={t('decisions.modal.decisionLabel')}
+            icon={Scales}
+            value={decision.decision}
+            onChange={(v) => update({ decision: v })}
+            placeholder={t('decisions.newModal.decisionPlaceholder')}
+            maxLength={LIMITS.DECISION_TEXT}
+            rows={3}
+            variant="bare"
+            previewToggle
+          />
+        </div>
       ) : (
         <div className="md-bare">
           <div className="md-bare-head">
@@ -278,17 +297,19 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
       )}
 
       {canEdit ? (
-        <MarkdownField
-          label={t('decisions.modal.consequencesLabel')}
-          icon={FileText}
-          value={decision.consequences}
-          onChange={(v) => update({ consequences: v })}
-          placeholder={t('decisions.newModal.consequencesPlaceholder')}
-          maxLength={LIMITS.DECISION_CONSEQUENCES}
-          rows={2}
-          variant="bare"
-          previewToggle
-        />
+        <div className="editable-field" style={{ position: 'relative' }}>
+          <MarkdownField
+            label={t('decisions.modal.consequencesLabel')}
+            icon={FileText}
+            value={decision.consequences}
+            onChange={(v) => update({ consequences: v })}
+            placeholder={t('decisions.newModal.consequencesPlaceholder')}
+            maxLength={LIMITS.DECISION_CONSEQUENCES}
+            rows={2}
+            variant="bare"
+            previewToggle
+          />
+        </div>
       ) : (
         <div className="md-bare">
           <div className="md-bare-head">

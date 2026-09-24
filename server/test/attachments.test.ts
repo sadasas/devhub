@@ -29,10 +29,13 @@ describe('attachments (043)', () => {
     await resetDb();
   });
 
-  it('isAllowedMime allows docs/images/text, rejects executables', () => {
+  it('isAllowedMime allows docs/images/text/video, rejects executables', () => {
     expect(isAllowedMime('image/png')).toBe(true);
     expect(isAllowedMime('application/pdf')).toBe(true);
     expect(isAllowedMime('text/plain')).toBe(true);
+    expect(isAllowedMime('video/mp4')).toBe(true);
+    expect(isAllowedMime('video/webm')).toBe(true);
+    expect(isAllowedMime('video/quicktime')).toBe(true);
     expect(isAllowedMime('application/x-sh')).toBe(false);
     expect(isAllowedMime('application/x-msdownload')).toBe(false);
     expect(isAllowedMime('')).toBe(false);
@@ -287,5 +290,32 @@ describe('attachments (043)', () => {
       .set('Cookie', stranger)
       .send({ projectId, storageKey: `${teamId}/${projectId}/tasks/draft/x.png` });
     expect(denied.status).toBe(404);
+  });
+
+  it('unfurl requires auth, validates url, blocks SSRF targets', async () => {
+    const anon = await request(app).get('/api/v1/attachments/unfurl').query({ url: 'https://example.com/x' });
+    expect(anon.status).toBe(401);
+    const cookie = await register('att-unfurl@gmail.com');
+    const missing = await request(app).get('/api/v1/attachments/unfurl').set('Cookie', cookie);
+    expect(missing.status).toBe(400);
+    const bad = await request(app)
+      .get('/api/v1/attachments/unfurl')
+      .set('Cookie', cookie)
+      .query({ url: 'notaurl' });
+    expect(bad.status).toBe(400);
+    for (const blocked of [
+      'http://localhost:3000/admin',
+      'http://127.0.0.1/secret',
+      'http://10.0.0.5/',
+      'http://169.254.169.254/latest/meta-data/',
+      'http://metadata.google.internal/',
+    ]) {
+      const res = await request(app)
+        .get('/api/v1/attachments/unfurl')
+        .set('Cookie', cookie)
+        .query({ url: blocked });
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    }
   });
 });

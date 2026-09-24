@@ -64,6 +64,7 @@ DevHub is a project management application designed specifically for **engineeri
 | Release Tracker | Per-milestone task lists in the release detail view |
 | Schema Diffing | Compare two saved schema versions — tables, columns, relations added/removed |
 | Profile | Two-column profile: identity card (avatar, bio, role, joined date) + GitHub-style stats — contribution heatmap (365 days), tasks completed, issues resolved, active days, current/longest streak (`/profile`) |
+| GitHub | GitHub App: 1 repo/project link, webhook auto-link via DEV keys, PR badge + CI/review status on cards, suggest-done banner, one-time issue import (admin-only connect, see ADR-052) |
 
 ### V3 (planned — see [Roadmap](docs/01-project/roadmap.md))
 

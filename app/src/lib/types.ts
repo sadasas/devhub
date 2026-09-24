@@ -64,6 +64,57 @@ export interface LabelDef extends Base {
   description: string;
 }
 
+export interface GitHubLink {
+  id: string;
+  repo: string;
+  kind: 'branch' | 'pr' | 'commit';
+  ref: string;
+  url: string;
+  title: string;
+  status: 'open' | 'draft' | 'merged' | 'closed' | 'unknown';
+  lastSyncedAt?: string | null;
+  linkedBy?: string | null;
+  linkedAt?: string | null;
+  ciState?: 'pass' | 'fail' | 'pending' | null;
+  reviewState?: 'approved' | 'changes_requested' | null;
+}
+
+export interface GitHubRepo {
+  owner: string;
+  repo: string;
+}
+
+export type GitHubAutomationMode = 'suggest' | 'auto' | 'off';
+
+export interface GitHubAutomation {
+  onPrOpened: GitHubAutomationMode;
+  onPrMerged: GitHubAutomationMode;
+}
+
+export interface GitHubStatus {
+  connected: boolean;
+  owner: string | null;
+  repo: string | null;
+  installationId: number | null;
+  accountLogin: string | null;
+  automation: GitHubAutomation | null;
+}
+
+export interface GitHubInstallationRepo {
+  owner: string;
+  repo: string;
+  fullName: string;
+  isPrivate: boolean;
+}
+
+/** Instalasi GitHub App yang dikenal DevHub (tanpa secret — untuk picker). */
+export interface GitHubInstallation {
+  installationId: number;
+  accountLogin: string | null;
+  accountType: string | null;
+  status: string;
+}
+
 export interface Task extends Base {
   title: string;
   status: TaskStatus;
@@ -82,6 +133,7 @@ export interface Task extends Base {
   pinned?: boolean;
   description: string;
   attachments?: Attachment[];
+  githubLinks?: GitHubLink[];
 }
 
 export interface Issue extends Base {
@@ -93,6 +145,7 @@ export interface Issue extends Base {
   linkedTaskId?: string | null;
   pinned?: boolean;
   attachments?: Attachment[];
+  fixPr?: GitHubLink | null;
 }
 
 export interface TestCase extends Base {
@@ -214,7 +267,7 @@ export interface ApiEndpoint extends Base {
   responses: ApiResponse[];
 }
 
-export type WhiteboardElementKind = 'stroke' | 'sticky' | 'text' | 'shape' | 'edge' | 'boundary' | 'ref';
+export type WhiteboardElementKind = 'stroke' | 'sticky' | 'text' | 'shape' | 'edge' | 'boundary' | 'ref' | 'embed';
 export type WhiteboardStrokeTool = 'pen' | 'eraser';
 export type WhiteboardShapeType =
   | 'rect'
@@ -477,6 +530,24 @@ export interface WhiteboardRef {
   groupId?: string | null;
 }
 
+/**
+ * Kind bebas `embed`: wadah SVG mentah dari AI (wireframe dsb.).
+ * Markup di `svg` selalu lewat sanitizer allowlist (server saat tulis +
+ * client saat render). Cermin server `whiteboardEmbedSchema`.
+ */
+export interface WhiteboardEmbed {
+  id: string;
+  kind: 'embed';
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  svg: string;
+  title: string;
+  locked?: boolean;
+  groupId?: string | null;
+}
+
 export type WhiteboardElement =
   | WhiteboardStroke
   | WhiteboardSticky
@@ -484,7 +555,8 @@ export type WhiteboardElement =
   | WhiteboardShape
   | WhiteboardEdge
   | WhiteboardBoundary
-  | WhiteboardRef;
+  | WhiteboardRef
+  | WhiteboardEmbed;
 
 export interface Whiteboard extends Base {
   name: string;

@@ -53,6 +53,13 @@ const envSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().max(500).default(''),
   GITHUB_CLIENT_ID: z.string().max(500).default(''),
   GITHUB_CLIENT_SECRET: z.string().max(500).default(''),
+  // GitHub App untuk integrasi repo (046_github, modul integrations/github).
+  // Kosong = integrasi mati (endpoint mengembalikan GITHUB_NOT_CONFIGURED).
+  // Private key disimpan base64 1 baris (bukan multiline PEM) agar aman di env.
+  GITHUB_APP_ID: z.string().max(50).default(''),
+  GITHUB_APP_PRIVATE_KEY_B64: z.string().max(10000).default(''),
+  GITHUB_APP_WEBHOOK_SECRET: z.string().max(500).default(''),
+  GITHUB_APP_SLUG: z.string().max(200).default(''),
   // Redirect origins — comma-separated extra allowed origins for OAuth callbacks (e.g. Vercel preview)
   OAUTH_REDIRECT_ORIGINS: z
     .string()

@@ -29,6 +29,8 @@ import { billingPublicRouter, billingRouter } from './modules/billing/handlers/b
 import { socialRouter } from './modules/auth/handlers/social.routes.js';
 import { gcalPlaygroundRouter } from './modules/integrations/gcal/playground.routes.js';
 import { gcalRouter } from './modules/integrations/gcal/handlers/gcal.routes.js';
+import { githubRouter } from './modules/integrations/github/handlers/github.routes.js';
+import { githubWebhookRouter } from './modules/integrations/github/handlers/github-webhook.routes.js';
 import { gcalOutboxRouter } from './modules/integrations/gcal/handlers/gcal-outbox.routes.js';
 import { mailOutboxRouter } from './modules/mail/handlers/mail-outbox.routes.js';
 
@@ -190,6 +192,8 @@ export function createApp(): express.Express {
   });
   app.use('/oauth', oauthLimiter);
   app.use('/.well-known', oauthLimiter);
+  // Webhook GitHub: raw bytes SEBELUM express.json (HMAC butuh bytes persis).
+  app.use('/webhooks/github', express.raw({ type: 'application/json', limit: '2mb' }));
   app.use(express.json({ limit: '2mb' }));
   app.use(express.urlencoded({ limit: '1mb', extended: true }));
   app.use(cookieParser());
@@ -226,6 +230,8 @@ export function createApp(): express.Express {
   app.use('/api/v1/billing', billingPublicRouter);
   app.use('/api/v1/billing', billingRouter);
   app.use('/api/v1/integrations/gcal', gcalRouter);
+  app.use('/api/v1/integrations/github', githubRouter);
+  app.use('/webhooks/github', githubWebhookRouter);
 
   app.use('/mcp', mcpLimiter);
   app.use('/mcp', requireMcpKey);

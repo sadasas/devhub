@@ -4,6 +4,7 @@ import { pool } from '../../../db/pool.js';
 import { z } from 'zod';
 import { parseOrThrow } from '../../../shared/db.js';
 import { stateSchema, projectStatus, emptyState, type Milestone, type State } from '../domain/state.js';
+import { EmbedSanitizerError, sanitizeStateEmbeds } from '../domain/sanitize-svg.js';
 import { mergePrd, normalizePrd, prdPatchSchema, type Prd, type PrdPatch } from '../domain/prd.js';
 import { normalizeTabs, publicTabsSchema } from '../domain/sharing.js';
 import {
@@ -403,6 +404,15 @@ export async function putProjectState(
   if (!currentParsed.success) {
     throw new ApiError(500, 'INTERNAL', 'Stored state is invalid');
   }
+  // Kind bebas `embed`: sanitasi SVG + cap jumlah per board (fail-closed).
+  try {
+    sanitizeStateEmbeds(state);
+  } catch (err) {
+    if (err instanceof EmbedSanitizerError) {
+      throw new ApiError(400, 'EMBED_REJECTED', `Embed rejected: ${err.message}`);
+    }
+    throw err;
+  }
   const updated = await updateProjectState(projectId, JSON.stringify(state), version);
   if (!updated) {
     const fresh = await getProjectWithRole(userId, projectId);
@@ -460,6 +470,16 @@ export async function importProject(
   input: ImportProjectInput,
 ): Promise<{ projectId: string; restored: boolean; version?: number }> {
   const { meta, state, teamId } = input;
+  // Kind bebas `embed`: sanitasi SVG + cap jumlah per board (fail-closed).
+  // Berlaku untuk restore maupun import baru — file eksternal tak dipercaya.
+  try {
+    sanitizeStateEmbeds(state);
+  } catch (err) {
+    if (err instanceof EmbedSanitizerError) {
+      throw new ApiError(400, 'EMBED_REJECTED', `Embed rejected: ${err.message}`);
+    }
+    throw err;
+  }
   const existing = await getProjectWithRole(userId, meta.projectId);
   if (existing) {
     assertWrite(existing.role);

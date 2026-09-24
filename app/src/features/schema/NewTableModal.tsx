@@ -201,13 +201,19 @@ export function NewTableModal({ open, onClose, initialPosition = null, onCreated
                 marginBottom: 8,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6,
+                justifyContent: 'space-between',
+                gap: 8,
               }}
             >
-              <Table size={12} aria-hidden="true" /> {t('schema.table.columnsLabel')}
-              <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: 11 }}>
-                · {columns.filter((c) => c.name.trim()).length} {t('schema.table.columnsLabel').toLowerCase()}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <Table size={12} aria-hidden="true" /> {t('schema.table.columnsLabel')}
+                <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: 11 }}>
+                  · {columns.filter((c) => c.name.trim()).length} {t('schema.table.columnsLabel').toLowerCase()}
+                </span>
               </span>
+              <Button variant="ghost" size="sm" leftIcon={<Plus size={14} aria-hidden="true" />} onClick={addColumn}>
+                {t('schema.table.addColumn')}
+              </Button>
             </div>
             <div className="col-edit-grid">
               <div className="col-edit-caption" aria-hidden="true">
@@ -300,9 +306,6 @@ export function NewTableModal({ open, onClose, initialPosition = null, onCreated
                 </div>
               ))}
             </div>
-            <Button variant="ghost" size="sm" leftIcon={<Plus size={14} aria-hidden="true" />} onClick={addColumn}>
-              {t('schema.table.addColumn')}
-            </Button>
             <p className="field-helper" style={{ marginTop: 8 }}>
               {t('schema.table.noColumnsYetEdit')}
             </p>

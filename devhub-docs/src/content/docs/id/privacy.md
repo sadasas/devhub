@@ -1,9 +1,9 @@
 ---
 title: Kebijakan Privasi
-description: Data apa yang dikumpulkan DevHub, mengapa, dan hak Anda. Dokumen kanonis versi 2026-09-13-v3, berlaku 2026-08-13.
+description: Data apa yang dikumpulkan DevHub, mengapa, dan hak Anda. Dokumen kanonis versi 2026-09-23-v4, berlaku 2026-08-13.
 ---
 
-> **Dokumen legal kanonis — versi `2026-09-13-v3`, terakhir diperbarui 2026-09-13, berlaku 2026-08-13.**
+> **Dokumen legal kanonis — versi `2026-09-23-v4`, terakhir diperbarui 2026-09-23, berlaku 2026-08-13.**
 > Halaman ini adalah satu-satunya sumber kebenaran. Terjemahan bahasa Indonesia dari [Privacy Policy](/privacy/) — jika ada perbedaan, versi Inggris yang berlaku.
 > Rute aplikasi `/privacy` mengarah ke sini.
 
@@ -54,6 +54,13 @@ Harga dapat berubah dari waktu ke waktu; nominal yang ditagihkan adalah nominal 
 - Data Anda tidak dijual atau disewakan kepada siapa pun.
 - Cookie Google Analytics (`_ga` / `_ga_XXXX`) bersifat **non-necessary** dan hanya disetelah persetujuan Anda via footer **Pengaturan Cookie** (lihat §4).
 
+### 2.6 Integrasi proyek (opsional, dikonfigurasi oleh Anda)
+
+Integrasi proyek mati secara default dan hanya berjalan setelah owner/admin menghubungkannya di Project settings → Integrations.
+
+- **Sinkron Google Calendar.** Saat terhubung, task bertanggal awal/tenggat menjadi event sehari penuh di kalender sekunder bernama “DevHub - \<project\>” di akun Google Anda; suntingan dan penghapusan tersinkron otomatis. Yang diterima Google per task tersinkron: judul, tanggal, deskripsi, prioritas, label, status, dan tautan kembali ke task. DevHub meminta scope least-privilege `calendar.app.created`: hanya dapat membuat dan mengelola kalender serta event buatannya — tidak dapat membaca kalender Anda yang lain. Token koneksi disimpan terenkripsi dan diperbarui otomatis. Putuskan di Project settings (atau cabut via izin akun Google) untuk menghentikan sinkronisasi; event yang sudah dibuat tetap ada di kalender Anda. Penanganan data di sisi Google mengikuti [kebijakan API Google](https://developers.google.com/terms/api-services-user-data-policy).
+- **GitHub App.** Saat terhubung, GitHub App mengirim event webhook (push, pull request, review, check) untuk repositori tertaut; DevHub menempelkan tautan (repo, referensi PR/commit/branch, judul, status, state CI/review) ke task yang cocok dan memposting komentar linkback saat PR pertama kali menautkan task. Akses memakai token instalasi berumur pendek (~1 jam, diperbarui saat dipakai) — kata sandi GitHub Anda tidak pernah disimpan. Memutuskan koneksi menghapus pemetaan repo; tautan task dipertahankan sebagai riwayat. Uninstall App di GitHub juga menghentikan pengiriman. Penanganan data di sisi GitHub mengikuti [kebijakan GitHub](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement).
+
 ## 3. Cara Data Digunakan
 
 - Untuk mengoperasikan, mengamankan, dan meningkatkan Layanan.
@@ -84,6 +91,7 @@ Kami memakai satu cookie login necessary plus pembantu login sosial berumur pend
 | Data akun + proyek | Hingga Anda menghapus akun atau meminta penghapusan |
 | Catatan billing | Disimpan sebagai catatan keuangan/operasional selama akun ada dan sebagaimana diwajibkan hukum Indonesia; dianonimkan atau dihapus atas permintaan penghapusan akun terverifikasi sejauh diizinkan hukum |
 | Log server | 14 hari, lalu dihapus otomatis |
+| Token & pemetaan integrasi | Dihapus saat disconnect (riwayat event/tautan seperti dijelaskan di §2.6) |
 | Backup | Retensi bergulir (salinan lama digantikan sesuai jadwal) |
 
 **Hak Anda (ditangani dalam 3×24 jam untuk verifikasi + konfirmasi tindakan):**
@@ -96,7 +104,7 @@ Setelah langganan kedaluwarsa, workspace kembali ke limit Free. Selama **7 hari 
 
 ## 7. Pengungkapan Hukum
 
-Kami hanya mengungkapkan data ke pihak ketiga bila diwajibkan hukum atau permintaan hukum yang mengikat menurut hukum Indonesia, dan akan memberi tahu Anda sejauh diizinkan hukum. Konfirmasi pembayaran dengan Pakasir (`app.pakasir.com`) hanya mencakup ID order dan nominal — tidak pernah konten proyek Anda.
+Kami hanya mengungkapkan data ke pihak ketiga bila diwajibkan hukum atau permintaan hukum yang mengikat menurut hukum Indonesia, dan akan memberi tahu Anda sejauh diizinkan hukum. Konfirmasi pembayaran dengan Pakasir (`app.pakasir.com`) hanya mencakup ID order dan nominal — tidak pernah konten proyek Anda. Integrasi proyek (§2.6) hanya mengirim metadata task/repo yang dijelaskan di sana ke Google/GitHub — tidak pernah kata sandi atau konten proyek yang tidak terkait.
 
 ## 8. Anak-anak
 

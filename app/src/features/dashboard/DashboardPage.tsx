@@ -758,7 +758,6 @@ export function DashboardPage() {
                         <Tooltip
                           key={d.date}
                           side="top"
-                          tone="dark"
                           title={fullDate}
                           description={
                             <span className="task-activity-tip-rows">

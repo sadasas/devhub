@@ -13,6 +13,7 @@ import { todayIso } from '../../lib/due-dates';
 import { Avatar } from '../../components/Avatar';
 import { PROJECT_STATUS, TEAM_ROLE } from '../../lib/labels';
 import { TASK_PRIORITY_ORDER } from '../../lib/labels';
+import { TaskPriorityIcon } from '../../lib/task-icons';
 import { computeProjectStats } from '../../lib/stats';
 import { PRD_SECTIONS } from '../../lib/prd';
 import { MarkdownBlocks, renderInline } from '../../lib/markdown';
@@ -91,7 +92,7 @@ function Bars({
   formatValue,
   ariaLabel,
 }: {
-  rows: { label: string; value: number; color: string; tab?: string; projectId?: string }[];
+  rows: { label: string; value: number; color: string; tab?: string; projectId?: string; icon?: ReactNode }[];
   formatValue?: (v: number) => string;
   ariaLabel?: string;
 }) {
@@ -102,7 +103,7 @@ function Bars({
       {rows.map((r) => {
         const row = (
           <>
-            <span className="bar-label">{r.label}</span>
+            <span className="bar-label">{r.icon}{r.label}</span>
             <div className="bar-track">
               <div className="bar-fill" style={{ width: `${(r.value / max) * 100}%`, background: r.color }} />
             </div>
@@ -415,6 +416,7 @@ export function OverviewPage({ project }: { project: Project }) {
     color: PRIORITY_COLOR[p],
     tab: 'board',
     projectId: project.id,
+    icon: <TaskPriorityIcon priority={p} size={12} />,
   }));
   // Hanya issue open — konsisten dengan counter Open issues.
   const severityRows = SEVERITY_ORDER.map((s) => ({

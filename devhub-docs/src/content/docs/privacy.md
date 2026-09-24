@@ -1,9 +1,9 @@
 ---
 title: Privacy Policy
-description: What data DevHub collects, why, and your rights. Canonical version 2026-09-13-v3, effective 2026-08-13.
+description: What data DevHub collects, why, and your rights. Canonical version 2026-09-23-v4, effective 2026-08-13.
 ---
 
-> **Canonical legal document — version `2026-09-13-v3`, last updated 2026-09-13, effective 2026-08-13.**
+> **Canonical legal document — version `2026-09-23-v4`, last updated 2026-09-23, effective 2026-08-13.**
 > This page is the single source of truth. The in-app route `/privacy` redirects here.
 > Indonesian translation: [Kebijakan Privasi](/id/privacy/).
 
@@ -56,6 +56,13 @@ Prices may change over time; the amount charged is the amount shown and recorded
 - No sale or rental of your data to anyone.
 - Google Analytics cookies (`_ga` / `_ga_XXXX`) are **non-necessary** and are only set after your consent via footer **Pengaturan Cookie** (see §4).
 
+### 2.6 Project integrations (optional, configured by you)
+
+Project integrations are off by default and only run after an owner/admin connects them in Project settings → Integrations.
+
+- **Google Calendar sync.** When connected, tasks with start or due dates become all-day events in a secondary calendar named “DevHub - \<project\>” in your Google account; edits and deletions sync automatically. What Google receives per synced task: title, dates, description, priority, labels, status, and a link back to the task. DevHub requests the least-privilege scope `calendar.app.created`: it can only create and manage calendars and events it created — it cannot read your other calendars. Connection tokens are stored encrypted and refreshed automatically. Disconnect in Project settings (or revoke via Google account permissions) stops syncing; events already created stay in your calendar. Google's handling of that data follows [Google's API policies](https://developers.google.com/terms/api-services-user-data-policy).
+- **GitHub App.** When connected, the GitHub App delivers webhook events (push, pull requests, reviews, checks) for the linked repository; DevHub attaches links (repo, PR/commit/branch reference, title, status, CI/review state) to matching tasks and posts a linkback comment when a PR first links tasks. Access uses a short-lived installation token (~1 hour, refreshed on use) — your GitHub password is never stored. Disconnecting removes the repo mapping; task links are kept as history. Uninstalling the App on GitHub also stops delivery. GitHub's handling of that data follows [GitHub's policies](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement).
+
 ## 3. How Data Is Used
 
 - To operate, secure, and improve the Service.
@@ -86,6 +93,7 @@ We use one necessary login cookie plus a short-lived social-login helper. Analyt
 | Account + project data | Until you delete your account or request deletion |
 | Billing records | Retained as financial/operational records while your account exists and as required by Indonesian law; anonymized or deleted on verified account-deletion request where legally permitted |
 | Server logs | 14 days, then automatically deleted |
+| Integration tokens & mappings | Removed on disconnect (events/links history as described in §2.6) |
 | Backups | Rolling retention (older copies are replaced on a schedule) |
 
 **Your rights (handled within 3×24 hours for verification + action confirmation):**
@@ -98,7 +106,7 @@ After a subscription expires, the workspace reverts to Free limits. For **7 days
 
 ## 7. Legal Disclosures
 
-We will only disclose data to third parties if required by law or a binding legal request under Indonesian law, and we will notify you where legally permitted. Payment confirmation with Pakasir (`app.pakasir.com`) covers only the order ID and amount — never your project content.
+We will only disclose data to third parties if required by law or a binding legal request under Indonesian law, and we will notify you where legally permitted. Payment confirmation with Pakasir (`app.pakasir.com`) covers only the order ID and amount — never your project content. Project integrations (§2.6) send only the task/repo metadata described there to Google/GitHub — never passwords or unrelated project content.
 
 ## 8. Children
 

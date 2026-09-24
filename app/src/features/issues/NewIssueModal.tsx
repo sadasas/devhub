@@ -14,6 +14,7 @@ import { PlanLimitModal } from '../../components/PlanLimitModal';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { MarkdownField } from '../../components/MarkdownField';
 import { LIMITS } from '../../lib/limits';
+import { TaskSeverityIcon } from '../../lib/task-icons';
 
 const SEVERITY_OPTIONS: IssueSeverity[] = ['critical', 'high', 'medium', 'low'];
 
@@ -157,6 +158,7 @@ export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
             rows={4}
             variant="bare"
             previewToggle
+            embedAttachments={projectId ? { projectId, attachments: draft } : undefined}
           />
           <MarkdownField
             label={t('issues.newModal.reproductionStepsLabel')}
@@ -168,6 +170,7 @@ export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
             rows={4}
             variant="bare"
             previewToggle
+            embedAttachments={projectId ? { projectId, attachments: draft } : undefined}
           />
           {canEdit && projectId && (
             <AttachmentSection
@@ -199,7 +202,7 @@ export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
               value={severity || null}
               allowEmpty={false}
               triggerEmptyLabel={t('issues.newModal.severityLabel')}
-              options={SEVERITY_OPTIONS.map((s) => ({ value: s, label: t(`issues.severity.${s}`) }))}
+              options={SEVERITY_OPTIONS.map((s) => ({ value: s, label: t(`issues.severity.${s}`), icon: <TaskSeverityIcon severity={s} size={13} /> }))}
               onChange={(v) => { if (v) setSeverity(v as IssueSeverity); }}
             />
           </span>
