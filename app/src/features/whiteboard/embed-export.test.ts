@@ -11,7 +11,7 @@ describe('serializeWhiteboard embed', () => {
     const svg = serializeWhiteboard([
       embed('e1', '<rect x="10" y="10" width="340" height="500" rx="16" fill="#111214"/><text x="180" y="62" font-size="28" fill="#f5f5f5">Login</text>'),
     ]);
-    expect(svg).toContain('<svg x="0" y="0" width="360" height="520" viewBox="0 0 360 520">');
+    expect(svg).toContain('<svg x="0" y="0" width="360" height="520" viewBox="0 0 360 520" overflow="hidden">');
     expect(svg).toContain('fill="#111214"');
     expect(svg).toContain('>Login</text>');
   });

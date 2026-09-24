@@ -78,6 +78,20 @@ describe('sanitizeSvgEmbed (kind embed)', () => {
     expect(res.result.svg).not.toMatch(/<svg\b/);
     expect(res.result.svg).toContain('<rect');
   });
+
+  it('me-namespace id dan referensi url(#id) per elemen', () => {
+    const src = '<clipPath id="c"><rect x="0" y="0" width="10" height="10"/></clipPath><g clip-path="url(#c)"><rect x="0" y="0" width="10" height="10"/></g>';
+    const res = sanitizeSvgEmbed(src, 'e12345678');
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.result.svg).toContain('id="e12345678-c"');
+    expect(res.result.svg).toContain('url(#e12345678-c)');
+    // Idempoten: save berulang tidak menumpuk prefix.
+    const again = sanitizeSvgEmbed(res.result.svg, 'e12345678');
+    expect(again.ok).toBe(true);
+    if (!again.ok) return;
+    expect(again.result.svg).toBe(res.result.svg);
+  });
 });
 
 describe('whiteboardEmbedSchema', () => {

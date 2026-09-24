@@ -33,4 +33,13 @@ describe('sanitizeSvgForRender (embed, lapis client)', () => {
     expect(sanitizeSvgForRender('')).toBe('');
     expect(sanitizeSvgForRender('<g></g>')).toBe('');
   });
+
+  it('me-namespace id dan url(#id) bila prefix diberi', () => {
+    const out = sanitizeSvgForRender(
+      '<clipPath id="c"><rect x="0" y="0" width="10" height="10"/></clipPath><g clip-path="url(#c)"><rect x="0" y="0" width="10" height="10"/></g>',
+      'e12345678',
+    );
+    expect(out).toContain('id="e12345678-c"');
+    expect(out).toContain('url(#e12345678-c)');
+  });
 });

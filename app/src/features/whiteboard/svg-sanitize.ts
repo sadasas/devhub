@@ -173,8 +173,12 @@ function sanitizeNode(node: Element): void {
 /**
  * Kembalikan markup aman untuk disisipkan, atau string kosong bila tak ada
  * konten renderable tersisa (pemanggil tampilkan fallback).
+ *
+ * `idPrefix`: namespacing atribut `id` + referensi `url(#id)` per elemen
+ * (cermin server) — `url(#...)` diselesaikan dokumen-global sehingga dua
+ * embed ber-id internal sama akan saling memangsa tanpa ini. Idempoten.
  */
-export function sanitizeSvgForRender(input: string): string {
+export function sanitizeSvgForRender(input: string, idPrefix?: string): string {
   if (typeof input !== 'string' || input.trim() === '') return '';
   if (typeof DOMParser === 'undefined' || typeof document === 'undefined') return '';
   const noComments = input
@@ -193,6 +197,26 @@ export function sanitizeSvgForRender(input: string): string {
   if (doc.querySelector('parsererror')) return '';
   const root = doc.documentElement;
   sanitizeNode(root);
+  if (idPrefix) {
+    const needs = (id: string) => !id.startsWith(`${idPrefix}-`);
+    const all = root.querySelectorAll('[id]');
+    all.forEach((node) => {
+      const id = node.getAttribute('id');
+      if (id && needs(id)) node.setAttribute('id', `${idPrefix}-${id}`);
+    });
+    // Tulis ulang referensi url(#...) di atribut presentasi.
+    const refed = root.querySelectorAll('*');
+    refed.forEach((node) => {
+      for (const attr of ['clip-path', 'fill', 'stroke']) {
+        const v = node.getAttribute(attr);
+        if (!v || !v.includes('url(#')) continue;
+        node.setAttribute(
+          attr,
+          v.replace(/url\(#([^)\s]+)\)/g, (_m, id: string) => (needs(id) ? `url(#${idPrefix}-${id})` : `url(#${id})`)),
+        );
+      }
+    });
+  }
   let renderable = false;
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
   let node: Element | null = walker.currentNode as Element;

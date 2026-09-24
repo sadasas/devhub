@@ -344,8 +344,14 @@ const ElementView = memo(function ElementView({
   );
 
   // Kind bebas `embed`: sanitasi render-time (lapis kedua; lapis pertama di
-  // server saat tulis). Dihitung sekali per render ElementView.
-  const embedHtml = el.kind === 'embed' ? sanitizeSvgForRender(el.svg) : '';
+  // server saat tulis). Di-memo per isi svg — DOMParser tiap frame drag
+  // adalah satu-satunya kerja unik embed dan sumber bug kelas ini.
+  const embedSvg = el.kind === 'embed' ? el.svg : '';
+  const embedKey = el.kind === 'embed' ? el.id : '';
+  const embedHtml = useMemo(
+    () => (el.kind === 'embed' ? sanitizeSvgForRender(embedSvg, `e${embedKey.slice(0, 8)}`) : ''),
+    [el.kind, embedSvg, embedKey],
+  );
   // Label untuk fallback kind-tak-dikenal (el menyempit ke never di default).
   const kindLabel: string = (el as { kind?: unknown }).kind as string;
 
@@ -769,6 +775,9 @@ const ElementView = memo(function ElementView({
       case 'embed': {
         // SVG AI disarang ke viewport w/h elemen; klik/drag/seleksi tetap
         // lewat bounds rect generik (tidak ada kode khusus).
+        // SENGAJA tanpa clipPath url(#id): <svg> tersarang sudah memotong
+        // di viewport-nya (overflow hidden), dan referensi url(#...)
+        // diselesaikan dokumen-global sehingga rawan salah sasaran.
         if (!embedHtml) {
           return (
             <g>
@@ -779,18 +788,10 @@ const ElementView = memo(function ElementView({
             </g>
           );
         }
-        const clipId = `wb-embedclip-${el.id}`;
         return (
-          <g>
-            <defs>
-              <clipPath id={clipId}>
-                <rect x={el.x} y={el.y} width={el.w} height={el.h} rx={8} />
-              </clipPath>
-            </defs>
-            <svg x={el.x} y={el.y} width={el.w} height={el.h} viewBox={`0 0 ${el.w} ${el.h}`}>
-              <g clipPath={`url(#${clipId})`} dangerouslySetInnerHTML={{ __html: embedHtml }} />
-            </svg>
-          </g>
+          <svg x={el.x} y={el.y} width={el.w} height={el.h} viewBox={`0 0 ${el.w} ${el.h}`} overflow="hidden">
+            <g dangerouslySetInnerHTML={{ __html: embedHtml }} />
+          </svg>
         );
       }
       default: {
