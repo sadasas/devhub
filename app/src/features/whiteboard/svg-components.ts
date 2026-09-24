@@ -28,7 +28,9 @@ function parseFragment(svg: string): SVGSVGElement | null {
     'image/svg+xml',
   );
   if (doc.querySelector('parsererror')) return null;
-  return doc.documentElement;
+  const root = doc.documentElement as unknown as SVGSVGElement | null;
+  if (!root || root.tagName.toLowerCase() !== 'svg') return null;
+  return root;
 }
 
 /** Potong blob SVG menjadi komponen per `<g data-component>`. */
