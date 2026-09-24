@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
 import { newId, nowIso, textContent, toolError } from '../../domain/entity.js';
 import { whiteboardElementSchema, LIMITS, type WhiteboardElement } from '../../../projects/domain/state.js';
-import { EmbedSanitizerError, sanitizeStateEmbeds } from '../../../projects/domain/sanitize-svg.js';
+import { EmbedSanitizerError, embedGroupingHints, sanitizeStateEmbeds } from '../../../projects/domain/sanitize-svg.js';
 import { validateWhiteboardShowcase } from '../../../projects/domain/validate-whiteboard.js';
 
 const EMBED_EXAMPLE =
@@ -16,6 +16,7 @@ const ELEMENTS_DESCRIPTION =
   '(script/event-handlers/javascript:/foreignObject/external-refs are stripped; hard-fail if nothing renderable remains). ' +
   'Embeds are exempt from showcase layout rules; max 20 embeds per board. ' +
   'Wrap each widget in <g data-component="name"> for later splitting; always set title. ' +
+  'Example group: <g data-component="submit"><rect .../><text>Login</text></g>. ' +
   'Examples: ' +
   '{ kind: "sticky", x: 0, y: 0, w: 200, h: 120, color: "#e8b955", text: "note" }, ' +
   '{ kind: "text", x: 0, y: 0, color: "#374151", fontSize: 16, text: "title" }, ' +
@@ -95,8 +96,9 @@ export function registerCreateWhiteboard(server: McpServer): void {
       }
       state.whiteboards.push(board);
       await saveState(args.projectId, state);
+      const grouping = embedGroupingHints(board.elements);
       return {
-        content: [textContent({ id: board.id, name: board.name, elementCount: board.elements.length, updatedAt: now, ...(stripped.length > 0 ? { sanitizerStripped: stripped } : {}) })],
+        content: [textContent({ id: board.id, name: board.name, elementCount: board.elements.length, updatedAt: now, ...(stripped.length > 0 ? { sanitizerStripped: stripped } : {}), ...(grouping.length > 0 ? { groupingHints: grouping } : {}) })],
       };
     },
   );

@@ -140,6 +140,7 @@ import { BottomSheet } from '../../components/BottomSheet';
 import { WhiteboardContextMenu } from './WhiteboardContextMenu';
 import { downloadWhiteboardPng, downloadWhiteboardSvg } from './export';
 import { sanitizeSvgForRender } from './svg-sanitize';
+import { hasDataComponents } from './svg-components';
 import { buildRefDataMap } from './ref-data';
 import type { WhiteboardHistory } from './useWhiteboardHistory';
 
@@ -2654,6 +2655,13 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     const hasLocked = board.elements.some((el) => selectedIds.includes(el.id) && el.locked);
     const hasGroup = board.elements.some((el) => selectedIds.includes(el.id) && el.groupId);
     const anyLocked = board.elements.some((el) => el.locked);
+    // Hint kontrak grouping: embed terpilih tunggal yang belum dikelompokkan.
+    const singleEmbed =
+      selectedIds.length === 1
+        ? board.elements.find((el) => el.id === selectedIds[0] && el.kind === 'embed')
+        : undefined;
+    const embedUngrouped =
+      singleEmbed !== undefined && singleEmbed.kind === 'embed' && !hasDataComponents(singleEmbed.svg);
     return [
       [
         { id: 'copy', label: t('whiteboard.ctx.copy'), shortcut: 'Ctrl+C', disabled: !hasSel, run: copySelection },
@@ -2676,6 +2684,18 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       [
         { id: 'delete', label: t('whiteboard.canvas.deleteSelected'), shortcut: 'Del', danger: true, disabled: !hasSel, run: removeSelection },
       ],
+      ...(embedUngrouped
+        ? [
+            [
+              {
+                id: 'embedGrouping',
+                label: t('whiteboard.ctx.embedGroupingHint'),
+                disabled: true,
+                run: () => {},
+              },
+            ],
+          ]
+        : []),
       [
         { id: 'link', label: t('whiteboard.ctx.copyLink'), disabled: !hasSel, run: copyBoardLink },
         { id: 'png', label: t('whiteboard.export.pngSelection'), disabled: !hasSel, run: () => downloadSelection('png') },

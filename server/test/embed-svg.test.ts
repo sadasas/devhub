@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sanitizeSvgEmbed, sanitizeStateEmbeds, EmbedSanitizerError } from '../src/modules/projects/domain/sanitize-svg.js';
+import { embedGroupingHints, hasDataComponents, sanitizeSvgEmbed, sanitizeStateEmbeds, EmbedSanitizerError } from '../src/modules/projects/domain/sanitize-svg.js';
 import { LIMITS, whiteboardElementSchema } from '../src/modules/projects/domain/state.js';
 
 const LOGIN_SVG = [
@@ -106,6 +106,24 @@ describe('whiteboardEmbedSchema', () => {
       svg: '<rect x="0" y="0" width="10" height="10"/>',
     });
     expect(parsed.success).toBe(false);
+  });
+});
+
+describe('kontrak grouping (hasDataComponents + embedGroupingHints)', () => {
+  it('mendeteksi grup data-component', () => {
+    expect(hasDataComponents('<g data-component="card"><rect x="0" y="0" width="5" height="5"/></g>')).toBe(true);
+    expect(hasDataComponents('<rect x="0" y="0" width="5" height="5"/>')).toBe(false);
+  });
+
+  it('memberi hint untuk embed tanpa grup', () => {
+    const hints = embedGroupingHints([
+      { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', kind: 'embed', title: 'Form', svg: '<rect x="0" y="0" width="5" height="5"/>' },
+      { id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', kind: 'embed', title: 'OK', svg: '<g data-component="x"><rect x="0" y="0" width="5" height="5"/></g>' },
+      { id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', kind: 'sticky' } as any,
+    ]);
+    expect(hints).toHaveLength(1);
+    expect(hints[0]?.elementId).toBe('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    expect(hints[0]?.message).toContain('data-component');
   });
 });
 

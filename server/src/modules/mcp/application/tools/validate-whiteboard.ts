@@ -2,6 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { textContent, toolError } from '../../domain/entity.js';
 import { whiteboardElementSchema, type WhiteboardElement } from '../../../projects/domain/state.js';
+import { embedGroupingHints } from '../../../projects/domain/sanitize-svg.js';
 
 const ELEMENTS_DESCRIPTION =
   'Elements to validate (max 1000). Same schema as create_whiteboard. Each element: { id?, kind: "stroke"|"sticky"|"text"|"shape"|"edge"|"boundary"|"ref"|"embed", ...fields }. ' +
@@ -95,8 +96,7 @@ export function registerValidateWhiteboard(server: McpServer): void {
       }
       const elements = parsed.data;
 
-      const warnings: Array<{ code: string; message: string; a: string; b: string; gap: number; suggestion: string }> = [];
-      const overlaps: Array<{ a: string; b: string; aKind: string; bKind: string }> = [];
+      const warnings: Array<{ code: string; message: string; a: string; b: string; gap: number; suggestion: string }> = [];      const overlaps: Array<{ a: string; b: string; aKind: string; bKind: string }> = [];
 
       // Build bounds maps for both collapsed and expanded ref
       const boundsExpanded = new Map<string, Rect>();
@@ -163,6 +163,19 @@ export function registerValidateWhiteboard(server: McpServer): void {
             warnings.push({ code: 'oob', message: `Element ${el.id} out of bounds`, a: el.id, b: '', gap: 0, suggestion: 'Clamp coords to -100000..100000' });
           }
         }
+      }
+
+      // Kontrak grouping: ajari agen yang embed-nya belum dikelompokkan.
+      // Advisory (tidak memblokir create/update) — embed tetap bebas showcase.
+      for (const hint of embedGroupingHints(elements)) {
+        warnings.push({
+          code: 'grouping',
+          message: hint.message,
+          a: hint.elementId,
+          b: '',
+          gap: 0,
+          suggestion: 'Wrap each widget in <g data-component="name">, e.g. <g data-component="submit">...</g>.',
+        });
       }
 
       const ok = warnings.length === 0 && overlaps.length === 0;

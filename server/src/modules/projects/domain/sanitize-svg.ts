@@ -120,6 +120,7 @@ const TAG_RE = /<(\/?)([a-zA-Z][a-zA-Z0-9]*)\b([^<>]*)>/g;
 const ATTR_RE = /([^\s=/>]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g;
 const LOCAL_URL_RE = /^url\(#[^)\s]+\)$/;
 const JS_PROTO_RE = /javascript\s*:/i;
+const DATA_COMPONENT_RE = /<g\b[^<>]*\bdata-component\s*=\s*("[^"]*"|'[^']*')/i;
 
 export interface SanitizeResult {
   /** Markup bersih, siap disimpan di `embed.svg` / dirender. */
@@ -261,6 +262,42 @@ export class EmbedSanitizerError extends Error {
   }
 }
 
+/**
+ * Kontrak grouping antar-agen: tiap widget SVG dibungkus
+ * `<g data-component="nama">` agar bisa dipecah per komponen
+ * (split/reverse-compile). Deteksi string-level (tanpa DOM).
+ */
+export function hasDataComponents(svg: string): boolean {
+  return typeof svg === "string" && DATA_COMPONENT_RE.test(svg);
+}
+
+export interface EmbedGroupingHint {
+  elementId: string;
+  message: string;
+}
+
+/**
+ * Pesan ajar untuk agen: embed mana yang belum ikut kontrak grouping
+ * + cara benarnya. Dipakai respons validate/create/patch/update —
+ * aturan hidup di momen agen bekerja, bukan cuma di docs.
+ */
+export function embedGroupingHints(
+  elements: Array<{ id: string; kind: string; title?: string | null; svg?: unknown }>,
+): EmbedGroupingHint[] {
+  const out: EmbedGroupingHint[] = [];
+  for (const el of elements) {
+    if (el.kind !== "embed" || typeof el.svg !== "string") continue;
+    if (!hasDataComponents(el.svg)) {
+      out.push({
+        elementId: el.id,
+        message:
+          `Embed ${el.id}${el.title ? ` (${el.title})` : ""} has no <g data-component="..."> groups — ` +
+          `wrap each widget (e.g. <g data-component="submit">...</g>) so it can be split into components later`,
+      });
+    }
+  }
+  return out;
+}
 /**
  * Satu-satunya pintu tulis embed: sanitasi in-place seluruh `embed.svg`
  * dalam state + tegakkan cap jumlah embed per board.
