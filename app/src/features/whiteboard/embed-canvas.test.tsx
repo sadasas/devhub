@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import type { State, Whiteboard } from '../../lib/types';
 import { WhiteboardEditorShell } from './WhiteboardEditorShell';
@@ -87,5 +87,73 @@ describe('whiteboard canvas embed', () => {
       </MemoryRouter>,
     );
     expect(container.textContent).toContain('Kartu');
+  });
+
+  it('menampilkan hint grouping saat embed tanpa grup diklik kanan', () => {
+    render(
+      <MemoryRouter>
+        <WhiteboardEditorShell
+          board={boardWith([
+            {
+              id: 'e1',
+              kind: 'embed',
+              x: 0,
+              y: 0,
+              w: 360,
+              h: 520,
+              title: 'Form',
+              svg: '<rect x="10" y="10" width="100" height="50"/>',
+            },
+          ])}
+          state={makeState()}
+          onBack={() => {}}
+        />
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Select area — M' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    fireEvent.pointerDown(svg, { button: 0, clientX: 16, clientY: 16 });
+    fireEvent.pointerMove(svg, { clientX: 400, clientY: 560 });
+    fireEvent.pointerUp(svg, { clientX: 400, clientY: 560 });
+    fireEvent.contextMenu(svg, { clientX: 100, clientY: 100 });
+    const hint = screen.getByRole('menuitem', {
+      name: 'Tip: wrap widgets in <g data-component> to allow splitting',
+    }) as HTMLButtonElement;
+    expect(hint).not.toBeNull();
+    expect(hint.disabled).toBe(true);
+  });
+
+  it('tidak menampilkan hint bila embed sudah dikelompokkan', () => {
+    render(
+      <MemoryRouter>
+        <WhiteboardEditorShell
+          board={boardWith([
+            {
+              id: 'e1',
+              kind: 'embed',
+              x: 0,
+              y: 0,
+              w: 360,
+              h: 520,
+              title: 'Form',
+              svg: '<g data-component="card"><rect x="10" y="10" width="100" height="50"/></g>',
+            },
+          ])}
+          state={makeState()}
+          onBack={() => {}}
+        />
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Select area — M' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    fireEvent.pointerDown(svg, { button: 0, clientX: 16, clientY: 16 });
+    fireEvent.pointerMove(svg, { clientX: 400, clientY: 560 });
+    fireEvent.pointerUp(svg, { clientX: 400, clientY: 560 });
+    fireEvent.contextMenu(svg, { clientX: 100, clientY: 100 });
+    expect(
+      screen.queryByRole('menuitem', {
+        name: 'Tip: wrap widgets in <g data-component> to allow splitting',
+      }),
+    ).toBeNull();
   });
 });

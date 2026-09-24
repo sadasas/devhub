@@ -33,6 +33,11 @@ function parseFragment(svg: string): SVGSVGElement | null {
   return root;
 }
 
+/** Ada grup `<g data-component>` dalam SVG (deteksi string-level, tanpa DOM). */
+export function hasDataComponents(svg: string): boolean {
+  return typeof svg === 'string' && /<g\b[^<>]*\bdata-component\s*=\s*("[^"]*"|'[^']*')/i.test(svg);
+}
+
 /** Potong blob SVG menjadi komponen per `<g data-component>`. */
 export function splitSvgComponents(svg: string): SvgComponent[] {
   const root = parseFragment(svg);

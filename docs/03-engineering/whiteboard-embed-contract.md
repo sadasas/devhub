@@ -57,6 +57,17 @@ respons tool menyebut elemen + alasan; perbaiki dan kirim ulang.
 - Loop kerja: `list_whiteboards` → `patch_whiteboard` → `validate_whiteboard`
   → perbaiki dari diagnostics → verifikasi baca ulang.
 
+## 6. Aturan hidup di momen kerja (bukan cuma di dokumen ini)
+
+Agar user/agen lain otomatis tahu kontrak grouping:
+
+- `validate_whiteboard`: embed tanpa grup muncul sebagai warning `grouping`
+  (advisory — tidak memblokir create/update).
+- Respons `create/patch/update_whiteboard`: field `groupingHints` bila ada
+  embed tanpa grup.
+- Editor: klik kanan 1 embed tanpa grup → item menu nonaktif berisi tips
+  (`whiteboard.ctx.embedGroupingHint`, EN+ID).
+
 ## 5. Golden sample (login form, 360x520)
 
 Lihat `app/src/features/whiteboard/svg-components.test.ts`

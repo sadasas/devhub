@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
 import { findEntity, newId, nowIso, textContent, toolError } from '../../domain/entity.js';
 import { whiteboardElementSchema, LIMITS, type WhiteboardElement } from '../../../projects/domain/state.js';
-import { EmbedSanitizerError, sanitizeStateEmbeds } from '../../../projects/domain/sanitize-svg.js';
+import { EmbedSanitizerError, embedGroupingHints, sanitizeStateEmbeds } from '../../../projects/domain/sanitize-svg.js';
 
 const inputSchema = z.object({
   projectId: z.string().uuid().describe('UUID of the target project'),
@@ -124,6 +124,7 @@ export function registerPatchWhiteboard(server: McpServer): void {
         throw err;
       }
       await saveState(args.projectId, state);
+      const grouping = embedGroupingHints(board.elements);
       return {
         content: [
           textContent({
@@ -134,6 +135,7 @@ export function registerPatchWhiteboard(server: McpServer): void {
             elementCount: board.elements.length,
             updatedAt: board.updatedAt,
             ...(stripped.length > 0 ? { sanitizerStripped: stripped } : {}),
+            ...(grouping.length > 0 ? { groupingHints: grouping } : {}),
           }),
         ],
       };

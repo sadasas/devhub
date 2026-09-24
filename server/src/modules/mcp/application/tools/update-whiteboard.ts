@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
 import { applyDefined, findEntity, newId, nowIso, textContent, toolError } from '../../domain/entity.js';
 import { whiteboardElementSchema, LIMITS, type WhiteboardElement } from '../../../projects/domain/state.js';
-import { EmbedSanitizerError, sanitizeStateEmbeds } from '../../../projects/domain/sanitize-svg.js';
+import { EmbedSanitizerError, embedGroupingHints, sanitizeStateEmbeds } from '../../../projects/domain/sanitize-svg.js';
 import { validateWhiteboardShowcase } from '../../../projects/domain/validate-whiteboard.js';
 
 const ELEMENTS_DESCRIPTION =
@@ -11,6 +11,7 @@ const ELEMENTS_DESCRIPTION =
   '`id` is optional — the server assigns one when omitted. ' +
   'Kind "embed" holds raw AI-generated SVG (wireframes): allowlist-sanitized on write, exempt from showcase rules, max 20 embeds per board. ' +
   'Wrap each widget in <g data-component="name">; always set title. ' +
+  'Example group: <g data-component="submit"><rect .../><text>Login</text></g>. ' +
   'Examples: ' +
   '{ kind: "sticky", x: 0, y: 0, w: 200, h: 120, color: "#e8b955", text: "note" }, ' +
   '{ kind: "text", x: 0, y: 0, color: "#374151", fontSize: 16, text: "title" }, ' +
@@ -81,6 +82,7 @@ export function registerUpdateWhiteboard(server: McpServer): void {
       });
       board.updatedAt = nowIso();
       await saveState(args.projectId, state);
+      const grouping = embedGroupingHints(board.elements);
       return {
         content: [
           textContent({
@@ -89,6 +91,7 @@ export function registerUpdateWhiteboard(server: McpServer): void {
             elementCount: board.elements.length,
             updatedAt: board.updatedAt,
             ...(stripped.length > 0 ? { sanitizerStripped: stripped } : {}),
+            ...(grouping.length > 0 ? { groupingHints: grouping } : {}),
           }),
         ],
       };
