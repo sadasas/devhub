@@ -58,10 +58,14 @@ export function tusEndpoint(): string {
 async function createSignedUpload(
   storageKey: string,
   expiresIn: number,
+  upsert = false,
 ): Promise<{ signed: string; token: string }> {
   const res = await fetch(
     `${storageOrigin()}/storage/v1/object/upload/sign/${storageBucket()}/${encodeKey(storageKey)}`,
-    { method: 'POST', headers: headers(), body: JSON.stringify({ expiresIn }) },
+    // upsert ikut di-sign: token mengikat opsi path — harus sama dengan
+    // header x-upsert saat upload, bila tidak Supabase menolak 403
+    // "Invalid Compact JWS" di endpoint resumable.
+    { method: 'POST', headers: headers(), body: JSON.stringify({ expiresIn, upsert }) },
   );
   if (!res.ok) {
     let detail = '';
@@ -129,7 +133,7 @@ export async function mintTusPresigned(
   expiresIn: number;
 }> {
   const expiresIn = 7200; // token presigned berlaku 2 jam per dokumen resmi
-  const { token } = await createSignedUpload(storageKey, expiresIn);
+  const { token } = await createSignedUpload(storageKey, expiresIn, true);
   if (!token) throw storageError(502, 'missing presigned token');
   return {
     tusEndpoint: tusEndpoint(),

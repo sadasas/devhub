@@ -8,7 +8,7 @@ import { formatBytes } from '../lib/format';
 import { newId, nowIso } from '../lib/utils';
 import type { Attachment } from '../lib/types';
 import { isPreviewableAttachment, linkDomain, previewKind } from '../lib/attachmentPreview';
-import { putFile, putFileTus } from '../lib/attachmentUpload';
+import { putFile, putFileTus, isUploadAuthError } from '../lib/attachmentUpload';
 import { Button } from './Button';
 import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
 import { InlineError } from './InlineError';
@@ -198,9 +198,16 @@ export function AttachmentSection({
         size: file.size,
       });
       // Jalur utama: TUS resumable. sign.uploadUrl dipertahankan sebagai
-      // fallback bila token TUS tak tersedia (mis. Supabase tak balas token).
+      // fallback bila token TUS tak tersedia (mis. Supabase tak balas token)
+      // maupun saat TUS ditolak auth (401/403 — token tak cocok header).
       if (sign.tus) {
-        await putFileTus(file, sign.tus, setProgress);
+        try {
+          await putFileTus(file, sign.tus, setProgress);
+        } catch (err) {
+          if (!isUploadAuthError(err)) throw err;
+          setProgress(0);
+          await putFile(sign.uploadUrl, file, setProgress);
+        }
       } else {
         await putFile(sign.uploadUrl, file, setProgress);
       }

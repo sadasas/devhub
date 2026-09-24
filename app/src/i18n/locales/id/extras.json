@@ -20,7 +20,8 @@
       "elements_other": "{{count}} elemen",
       "unread": "Belum dibaca",
       "deleteBoard": "Hapus board",
-      "editBoard": "Ubah board"
+      "editBoard": "Ubah board",
+      "openBoard": "Buka board"
     },
     "toolbar": {
       "tools": "Perangkat whiteboard",
@@ -365,6 +366,7 @@
       "endpoints_one": "{{count}} endpoint",
       "endpoints_other": "{{count}} endpoint"
     },
+    "unread": "Belum dibaca",
     "mode": {
       "aria": "Mode tampilan API",
       "workspace": "Workspace",
@@ -609,6 +611,7 @@
       "prioritySupport": "Priority support"
     },
     "savings": "Hemat {{percent}}%",
+    "bestValue": "Paling hemat",
     "originalPriceAria": "Harga normal {{price}}",
     "billedYearly": "Ditagih tahunan — setara {{monthly}}/bulan",
     "youSave": "Hemat {{amount}} dibanding harga normal",
@@ -636,6 +639,23 @@
       "whiteboard": "Whiteboard & diagram",
       "api": "API docs + OpenAPI"
     },
+    "compareGroup": {
+      "billing": "Harga",
+      "limits": "Batasan",
+      "features": "Fitur inti",
+      "support": "Dukungan"
+    },
+    "compareRow": {
+      "members": "Anggota",
+      "projects": "Proyek",
+      "storage": "Penyimpanan DevHub",
+      "export": "Export JSON",
+      "support": "Priority support"
+    },
+    "compareCol": {
+      "feature": "Fitur"
+    },
+    "loadingAria": "Memuat paket",
     "faqSection": "Pertanyaan Umum",
     "faq": {
       "upgrade": {
@@ -673,6 +693,9 @@
     "downgradeBlockedTitleGeneric": "Tidak bisa downgrade",
     "downgradeBlockedDesc": "Downgrade diblokir — pemakaian melebihi batas paket tujuan.",
     "downgradeBlockedHelp": "Kurangi anggota atau proyek, atau pilih paket dengan limit lebih tinggi.",
+    "downgradeBlockedHintStorage": "Melebihi penyimpananmu ({{used}}/{{limit}})",
+    "downgradeBlockedHelpStorage": "Hapus file lama atau pilih paket dengan penyimpanan lebih besar.",
+    "storageFullHelp": "File lama tetap aman & bisa diunduh. File besar tetap bisa via tautan (gratis, tanpa kuota).",
     "manageProjects": "Kelola proyek",
     "viewOtherPackages": "Lihat paket lain",
     "scheduled": "Terjadwal",
@@ -897,6 +920,9 @@
         "verifyTitle": "Verifikasi koneksi",
         "autoPromptTitle": "Biarakan agen Anda meminta konfigurasi yang belum ada",
         "agentsyncTitle": "Otomatiskan alur kerja Anda (auto-sync agen)",
+        "oauthTitle": "OAuth 2.1 PKCE — Publik",
+        "ratelimitTitle": "Batas Rate",
+        "envSwitcherAria": "Pemilih shell",
         "keyDesc": "Otorisasi via OAuth — jalankan opencode mcp auth devhub dan login via form custom."
       },
       "prereq": {

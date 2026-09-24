@@ -106,7 +106,7 @@ export async function signUpload(userId: string, input: SignUploadInput) {
   if (input.size > maxBytes) {
     throw new ApiError(413, 'FILE_TOO_LARGE', `Files are limited to ${Math.round(maxBytes / 1048576)} MB`);
   }
-  if (!isAllowedMime(input.mime)) {
+  if (!isAllowedMime(input.mime, input.name)) {
     throw new ApiError(415, 'UNSUPPORTED_FILE', 'This file type must be added as a link instead');
   }
   const usage = await getTeamUsage(teamId);

@@ -28,13 +28,26 @@
     "signIn": "Sign in",
     "backToHome": "Back to Home",
     "refresh": "Check Status",
-    "copied": "Copied"
+    "copied": "Copied",
+    "save": "Save"
   },
   "save": {
     "saving": "Saving…",
     "allSaved": "All changes saved",
     "failed": "Save failed: {{error}} — your changes are kept locally."
   },
+  "loading": {
+    "board": "Loading board",
+    "issues": "Loading issues",
+    "decisions": "Loading decisions",
+    "tests": "Loading tests",
+    "whiteboards": "Loading whiteboards",
+    "overview": "Loading overview",
+    "schema": "Loading schema",
+    "teams": "Loading teams",
+    "projects": "Loading projects"
+  },
+  "breadcrumb": "Breadcrumb",
   "sort": {
     "trigger": "Sort",
     "menu": "Sort",
@@ -52,7 +65,8 @@
     "search": "Search…",
     "searchLabel": "Search {{what}}",
     "options": "Options",
-    "noMatches": "No matches for “{{query}}”"
+    "noMatches": "No matches for “{{query}}”",
+    "resultsCount": "{{count}} options"
   },
   "presence": {
     "chip": "{{count}} online",

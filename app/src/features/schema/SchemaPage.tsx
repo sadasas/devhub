@@ -787,8 +787,8 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
           </div>
         </div>
       ) : (
-      <div className="data-list" role="status" aria-live="polite" aria-busy="true" aria-label="Loading schema">
-        <span className="sr-only">Loading schema…</span>
+      <div className="data-list" role="status" aria-live="polite" aria-busy="true" aria-label={t('common:loading.schema')}>
+        <span className="sr-only">{t('common:loading.schema')}…</span>
         <div aria-hidden="true" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           {[0, 1, 2].map((i) => (
             <div key={i} className="data-row" style={{ minHeight: 56, gap: 12 }}>
@@ -851,8 +851,8 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
       >
         <Badge tone="accent">{v.version}</Badge>
         {unreadIds?.has(v.id) && (
-          <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">
-            New
+          <span className="unread-pill" role="status" aria-label={t('schema.unread')} title={t('schema.unread')}>
+            {t('schema.unread')}
           </span>
         )}
         <div className="version-main">
@@ -1194,8 +1194,8 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
                             </span>
                             <span>#{shortId(t2.id)}</span>
                             {unreadIds?.has(t2.id) && (
-                              <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">
-                                New
+                              <span className="unread-pill" role="status" aria-label={t('schema.unread')} title={t('schema.unread')}>
+                                {t('schema.unread')}
                               </span>
                             )}
                           </div>
@@ -1265,8 +1265,8 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
                           <span>{t('schema.page.onDelete', { value: r.onDelete })}</span>
                           <span>#{shortId(r.id)}</span>
                           {!isViewing && unreadIds?.has(r.id) && (
-                            <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">
-                              New
+                            <span className="unread-pill" role="status" aria-label={t('schema.unread')} title={t('schema.unread')}>
+                              {t('schema.unread')}
                             </span>
                           )}
                         </div>
@@ -1312,7 +1312,7 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
         {!isNarrow && (
         <aside className={`schema-side ${versionsCollapsed ? 'schema-side-collapsed' : ''} `} aria-label={t('schema.versionsHeading')}>
           {versionsCollapsed ? (
-            <button type="button" className="schema-side-collapsed-btn" onClick={() => setVersionsCollapsed(false)} aria-label="Expand versions" title="Expand versions">
+            <button type="button" className="schema-side-collapsed-btn" onClick={() => setVersionsCollapsed(false)} aria-label={t('schema.versionsExpand', { defaultValue: 'Expand versions' })} title={t('schema.versionsExpand', { defaultValue: 'Expand versions' })}>
               <CaretLeft size={14} aria-hidden="true" />
               <span className="schema-side-collapsed-label">{t('schema.versionsHeading')}</span>
               <Badge tone="accent">{state.schemaVersions.length}</Badge>
@@ -1325,11 +1325,11 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
                     variant="ghost"
                     size="sm"
                     className="btn-icon"
-                    aria-label={versionsCollapsed ? 'Expand versions' : 'Minimize versions'}
+                    aria-label={versionsCollapsed ? t('schema.versionsExpand', { defaultValue: 'Expand versions' }) : t('schema.versionsMinimize', { defaultValue: 'Minimize versions' })}
                     aria-expanded={!versionsCollapsed}
                     aria-controls="versions-list"
                     onClick={() => setVersionsCollapsed((v) => !v)}
-                    title={versionsCollapsed ? 'Expand' : 'Minimize'}
+                    title={versionsCollapsed ? t('schema.versionsExpandShort', { defaultValue: 'Expand' }) : t('schema.versionsMinimizeShort', { defaultValue: 'Minimize' })}
                   >
                     <CaretRight size={13} aria-hidden="true" />
                   </Button>

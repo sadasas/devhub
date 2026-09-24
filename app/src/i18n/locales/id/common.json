@@ -28,13 +28,26 @@
     "signIn": "Masuk",
     "backToHome": "Kembali ke Beranda",
     "refresh": "Cek Status",
-    "copied": "Tersalin"
+    "copied": "Tersalin",
+    "save": "Simpan"
   },
   "save": {
     "saving": "Menyimpan…",
     "allSaved": "Semua perubahan tersimpan",
     "failed": "Gagal menyimpan: {{error}} — perubahan Anda tetap aman di perangkat ini."
   },
+  "loading": {
+    "board": "Memuat board",
+    "issues": "Memuat issue",
+    "decisions": "Memuat keputusan",
+    "tests": "Memuat test case",
+    "whiteboards": "Memuat whiteboard",
+    "overview": "Memuat ringkasan",
+    "schema": "Memuat schema",
+    "teams": "Memuat tim",
+    "projects": "Memuat proyek"
+  },
+  "breadcrumb": "Breadcrumb",
   "sort": {
     "trigger": "Urutkan",
     "menu": "Urutkan",
@@ -52,7 +65,8 @@
     "search": "Cari…",
     "searchLabel": "Cari {{what}}",
     "options": "Opsi",
-    "noMatches": "Tidak ada hasil untuk “{{query}}”"
+    "noMatches": "Tidak ada hasil untuk “{{query}}”",
+    "resultsCount": "{{count}} opsi"
   },
   "presence": {
     "chip": "{{count}} online",

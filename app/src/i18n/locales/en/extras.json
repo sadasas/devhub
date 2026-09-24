@@ -20,7 +20,8 @@
       "elements_other": "{{count}} elements",
       "unread": "Unread",
       "deleteBoard": "Delete board",
-      "editBoard": "Edit board"
+      "editBoard": "Edit board",
+      "openBoard": "Open board"
     },
     "toolbar": {
       "tools": "Whiteboard tools",
@@ -363,6 +364,7 @@
       "endpoints_one": "{{count}} endpoint",
       "endpoints_other": "{{count}} endpoints"
     },
+    "unread": "Unread",
     "mode": {
       "aria": "API view mode",
       "workspace": "Workspace",
@@ -607,6 +609,7 @@
       "prioritySupport": "Priority support"
     },
     "savings": "Save {{percent}}%",
+    "bestValue": "Best value",
     "originalPriceAria": "Regular price {{price}}",
     "billedYearly": "Billed yearly — equals {{monthly}}/mo",
     "youSave": "Save {{amount}} vs regular price",
@@ -634,6 +637,23 @@
       "whiteboard": "Whiteboard & diagrams",
       "api": "API docs + OpenAPI"
     },
+    "compareGroup": {
+      "billing": "Pricing",
+      "limits": "Limits",
+      "features": "Core features",
+      "support": "Support"
+    },
+    "compareRow": {
+      "members": "Members",
+      "projects": "Projects",
+      "storage": "DevHub storage",
+      "export": "Export JSON",
+      "support": "Priority support"
+    },
+    "compareCol": {
+      "feature": "Feature"
+    },
+    "loadingAria": "Loading packages",
     "faqSection": "FAQ",
     "faq": {
       "upgrade": {
@@ -671,6 +691,9 @@
     "downgradeBlockedTitleGeneric": "Cannot downgrade",
     "downgradeBlockedDesc": "Downgrade blocked — your workspace exceeds the target package limit.",
     "downgradeBlockedHelp": "Reduce members or projects, or choose a higher limit package.",
+    "downgradeBlockedHintStorage": "Exceeds your storage ({{used}}/{{limit}})",
+    "downgradeBlockedHelpStorage": "Delete old files or choose a package with more storage.",
+    "storageFullHelp": "Old files stay safe and downloadable. Large files can still be added as links (free, no quota).",
     "manageProjects": "Manage projects",
     "viewOtherPackages": "View other packages",
     "scheduled": "Scheduled",
@@ -895,6 +918,9 @@
         "verifyTitle": "Verify the connection",
         "autoPromptTitle": "Let your agent ask for missing config",
         "agentsyncTitle": "Automate your workflow (agent auto-sync)",
+        "oauthTitle": "OAuth 2.1 PKCE — Public",
+        "ratelimitTitle": "Rate Limits",
+        "envSwitcherAria": "Shell selector",
         "keyDesc": "Authorize via OAuth — run opencode mcp auth devhub and log in via the custom form."
       },
       "prereq": {

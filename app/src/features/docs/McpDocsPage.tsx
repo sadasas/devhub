@@ -491,7 +491,7 @@ function EnvSwitcher({ psCode, bashCode }: { psCode: string; bashCode: string })
 
   return (
     <div className="docs-env-wrap">
-      <div className="segmented" role="tablist" aria-label="Shell selector">
+      <div className="segmented" role="tablist" aria-label={t('docs.mcp.envSwitcherAria', { defaultValue: 'Shell selector' })}>
         <button
           type="button"
           role="tab"

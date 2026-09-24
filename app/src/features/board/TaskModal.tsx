@@ -218,7 +218,7 @@ export function TaskModal({ taskId, onClose, onNavigate }: TaskModalProps) {
   const blockerChip = (bt: { id: string; title: string }, removable: boolean) => (
     <span key={bt.id} style={{ padding: '2px 8px', borderRadius: 6, background: 'var(--bg-inset)', border: '1px solid var(--border-hairline)', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
       <LinkSimple size={10} aria-hidden="true" /> {bt.title} {removable ? (
-        <button type="button" onClick={() => toggleBlocker(bt.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 'inherit', padding: '0 2px', lineHeight: 1, minWidth: 24, minHeight: 24 }} aria-label={`Remove blocker ${bt.title}`}>×</button>
+        <button type="button" onClick={() => toggleBlocker(bt.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 'inherit', padding: '0 2px', lineHeight: 1, minWidth: 24, minHeight: 24 }} aria-label={t('board.taskModal.removeBlocker', { title: bt.title, defaultValue: `Remove blocker ${bt.title}` })}>×</button>
       ) : (
         <span aria-hidden="true" style={{ color: 'var(--text-muted)', fontSize: 'inherit', padding: '0 2px', lineHeight: 1, visibility: 'hidden' }}>×</span>
       )}
@@ -667,10 +667,10 @@ export function TaskModal({ taskId, onClose, onNavigate }: TaskModalProps) {
                     className="btn btn-ghost btn-sm"
                     onClick={clampSubtasks}
                   >
-                    {t('board.taskModal.clampSubtasks', {
-                      defaultValue: 'Sesuaikan {{count}} subtask',
-                      count: orphanedSubtasks.length,
-                    })}
+                      {t('board.taskModal.clampSubtasks', {
+                        defaultValue: 'Adjust {{count}} subtasks',
+                        count: orphanedSubtasks.length,
+                      })}
                   </button>
                 </div>
               )}
@@ -1334,8 +1334,8 @@ export function TaskModal({ taskId, onClose, onNavigate }: TaskModalProps) {
     </DetailShell>
     <ConfirmDeleteDialog
       open={confirmOpen}
-      title="Delete task?"
-      description="This permanently deletes the task. This cannot be undone."
+      title={t('board.taskModal.deleteConfirmTitle', { defaultValue: 'Delete task?' })}
+      description={t('board.taskModal.deleteConfirmBody', { defaultValue: 'This permanently deletes the task. This cannot be undone.' })}
       onClose={() => setConfirmOpen(false)}
       onConfirm={remove}
     />
