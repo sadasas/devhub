@@ -4,11 +4,13 @@ import { textContent, toolError } from '../../domain/entity.js';
 import { whiteboardElementSchema, type WhiteboardElement } from '../../../projects/domain/state.js';
 
 const ELEMENTS_DESCRIPTION =
-  'Elements to validate (max 1000). Same schema as create_whiteboard. Each element: { id?, kind: "stroke"|"sticky"|"text"|"shape"|"edge"|"boundary"|"ref", ...fields }. ' +
+  'Elements to validate (max 1000). Same schema as create_whiteboard. Each element: { id?, kind: "stroke"|"sticky"|"text"|"shape"|"edge"|"boundary"|"ref"|"embed", ...fields }. ' +
+  'Kind "embed" (AI SVG wireframes) is exempt from overlap/too-close checks; only finite-coords/out-of-bounds apply. ' +
   'Examples: { kind: "sticky", x: 0, y: 0, w: 200, h: 120, color: "#e8b955", text: "note" }, ' +
   '{ kind: "text", x: 0, y: 0, color: "#374151", fontSize: 16, text: "title" }, ' +
   '{ kind: "shape", shapeType: "rect", x: 0, y: 0, w: 120, h: 80, color: "#2563eb", fill: false, strokeWidth: 2, label: "" }, ' +
-  '{ kind: "boundary", x: 0, y: 0, w: 300, h: 200, color: "#2563eb", label: "" }';
+  '{ kind: "boundary", x: 0, y: 0, w: 300, h: 200, color: "#2563eb", label: "" }, ' +
+  '{ kind: "embed", x: 0, y: 0, w: 360, h: 520, title: "Login form", svg: "<rect .../><text .../>..." }';
 
 const inputSchema = z.object({
   projectId: z.string().uuid().describe('UUID of the project to validate against (for future ref-data expansion)'),

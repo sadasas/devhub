@@ -22,6 +22,7 @@ function elementBounds(el: WhiteboardElement): Rect | null {
     case "sticky":
     case "shape":
     case "boundary":
+    case "embed":
       return { x: (el as any).x, y: (el as any).y, w: (el as any).w, h: (el as any).h };
     case "text": {
       const fontSize = (el as any).fontSize ?? 16;

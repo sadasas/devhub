@@ -1,6 +1,7 @@
 import { ApiError } from '../../../shared/errors.js';
 import { pool } from '../../../db/pool.js';
 import { stateSchema, type State } from '../domain/state.js';
+import { EmbedSanitizerError, sanitizeStateEmbeds } from '../domain/sanitize-svg.js';
 import { assertWrite, type TeamRole } from '../../authorization/application/authz.js';
 import {
   insertActivity,
@@ -50,6 +51,15 @@ export async function mutateProject(
     if (!parsed.success) throw new ApiError(500, 'INTERNAL', 'Stored state is invalid');
     const state = parsed.data;
     const activity = fn(state);
+    // Kind bebas `embed`: sanitasi SVG + cap jumlah per board (fail-closed).
+    try {
+      sanitizeStateEmbeds(state);
+    } catch (err) {
+      if (err instanceof EmbedSanitizerError) {
+        throw new ApiError(400, 'EMBED_REJECTED', `Embed rejected: ${err.message}`);
+      }
+      throw err;
+    }
     const after = stateSchema.safeParse(state);
     if (!after.success) {
       throw new ApiError(400, 'BAD_REQUEST', 'Mutation would violate state limits', {
