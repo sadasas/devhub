@@ -99,6 +99,32 @@ export async function getInstallation(installationId: number): Promise<GithubIns
   return toInstallation(res.rows[0] as Parameters<typeof toInstallation>[0]);
 }
 
+export interface GithubInstallationSummary {
+  installationId: number;
+  accountLogin: string | null;
+  accountType: string | null;
+  status: string;
+}
+
+/**
+ * Daftar instalasi untuk picker repo (State B tanpa redirect).
+ * SENGAJA tanpa token_blob/token_expires_at — picker tidak butuh secret.
+ */
+export async function listInstallations(): Promise<GithubInstallationSummary[]> {
+  const res = await pool.query(
+    `SELECT installation_id, account_login, account_type, status
+     FROM github_installations ORDER BY installation_id ASC`,
+  );
+  return (res.rows as Array<{ installation_id: string | number; account_login: string | null; account_type: string | null; status: string }>).map(
+    (row) => ({
+      installationId: Number(row.installation_id),
+      accountLogin: row.account_login,
+      accountType: row.account_type,
+      status: row.status,
+    }),
+  );
+}
+
 export async function saveInstallationToken(
   installationId: number,
   tokenBlob: string,
