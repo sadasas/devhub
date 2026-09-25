@@ -438,6 +438,7 @@ const whiteboardEdgeSchema = z.object({
   dash: z.enum(['solid', 'dashed', 'dotted']).default('solid'),
   fontSize: z.number().min(4).max(96).nullable().optional(),
   align: z.enum(['left', 'center', 'right']).nullable().optional(),
+  valign: whiteboardValign,
   fontFamily: whiteboardFontFamily,
   bold: whiteboardBold,
   strikethrough: whiteboardStrike,

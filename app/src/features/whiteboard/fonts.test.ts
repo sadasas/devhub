@@ -7,6 +7,7 @@ import {
   fontPresetName,
   fontStackOf,
   listedLines,
+  parseStoredFontSize,
   svgTextStyle,
 } from './fonts';
 
@@ -18,6 +19,18 @@ describe('whiteboard fonts', () => {
     expect(fontStackOf('scribbled')).toContain('Caveat');
     expect(fontStackOf(undefined)).toBe(fontStackOf('simple'));
     expect(fontStackOf(null)).toBe(fontStackOf('simple'));
+  });
+
+  it('falls back to the default instead of the minimum for missing stored sizes', () => {
+    // Number(null) is 0 — a naive Number()+clamp would init fresh toolbars to 4.
+    expect(parseStoredFontSize(null, 16)).toBe(16);
+    expect(parseStoredFontSize(undefined, 16)).toBe(16);
+    expect(parseStoredFontSize('', 16)).toBe(16);
+    expect(parseStoredFontSize('abc', 16)).toBe(16);
+    expect(parseStoredFontSize('20', 16)).toBe(20);
+    expect(parseStoredFontSize('16', 12)).toBe(16);
+    expect(parseStoredFontSize('200', 16)).toBe(96);
+    expect(parseStoredFontSize('2', 16)).toBe(4);
   });
 
   it('exposes the five FigJam size presets capped at 96', () => {

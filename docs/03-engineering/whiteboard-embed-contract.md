@@ -4,13 +4,14 @@
 |---|---|
 | **Status** | Active (eksperimen) |
 | **Untuk** | Agen MCP eksternal yang membuat wireframe via `patch_whiteboard` / `create_whiteboard` |
+| **Sumber MCP** | Deskripsi ringkas kontrak ini ikut terkirim di `ELEMENTS_DESCRIPTION` (`whiteboard-embed-guide.ts`) agar lolos percobaan pertama tanpa baca docs |
 
 ## 1. Format elemen
 
 ```json
 { "kind": "embed", "x": 0, "y": 0, "w": 360, "h": 520,
   "title": "Login form",
-  "svg": "<rect .../><text .../>..." }
+  "svg": "<g data-component=\"card\"><rect .../></g><g data-component=\"submit\"><rect .../><text>Login</text></g>" }
 ```
 
 - `w/h`: 20..2000. Koordinat `x/y` posisi di kanvas; isi SVG berkoordinat

@@ -615,6 +615,321 @@ describe('whiteboard editor shell', () => {
     expect(dispatch).not.toHaveBeenCalled();
   });
 
+  it('shows two endpoint dots on a selected edge and attaches start on node drop', () => {
+    // Live harness: dispatch applies the patch so adornments resolve against fresh elements.
+    let latest: WhiteboardElement[] = [
+      { id: 'b', kind: 'sticky', x: 300, y: 0, w: 200, h: 120, color: '#e8b955', text: 'B' },
+    ];
+    const calls: Array<{ patch: { elements: WhiteboardElement[] } }> = [];
+    function LiveShell() {
+      const [elements, setElements] = useState(latest);
+      const dispatch = (action: { patch: { elements: WhiteboardElement[] } }) => {
+        calls.push(action);
+        latest = action.patch.elements;
+        setElements(latest);
+      };
+      useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+      return (
+        <MemoryRouter>
+          <WhiteboardEditorShell board={{ ...BOARD, elements }} state={makeState()} onBack={() => {}} />
+        </MemoryRouter>
+      );
+    }
+    render(<LiveShell />);
+    fireEvent.click(screen.getByRole('button', { name: 'Edge — L' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    // Draw a free edge first (auto-selected, tool flips to select).
+    fireEvent.pointerDown(svg, { button: 0, clientX: 400, clientY: 300 });
+    fireEvent.pointerMove(svg, { clientX: 500, clientY: 300 });
+    fireEvent.pointerUp(svg, { clientX: 500, clientY: 300 });
+    expect(calls).toHaveLength(1);
+
+    const dots = screen.getAllByTestId('wb-edge-endpoint');
+    expect(dots).toHaveLength(2);
+
+    // Drag the start dot onto sticky B's right port (world 500,60 → client 516,76).
+    fireEvent.pointerDown(dots[0]!, { button: 0, clientX: 400, clientY: 300 });
+    fireEvent.pointerMove(svg, { clientX: 516, clientY: 76 });
+    fireEvent.pointerUp(svg, { clientX: 516, clientY: 76 });
+
+    expect(calls).toHaveLength(2);
+    const edge = calls[1]!.patch.elements.find((el) => el.kind === 'edge');
+    expect(edge).toMatchObject({
+      sourceNodeId: 'b',
+      targetNodeId: null,
+      sourcePort: 'right',
+      x1: 500,
+      y1: 60,
+    });
+  });
+
+  it('detaches an endpoint when dropped on empty space', () => {
+    let latest: WhiteboardElement[] = [
+      { id: 'a', kind: 'sticky', x: 0, y: 0, w: 200, h: 120, color: '#e8b955', text: 'A' },
+      { id: 'b', kind: 'sticky', x: 300, y: 0, w: 200, h: 120, color: '#e8b955', text: 'B' },
+    ];
+    const calls: Array<{ patch: { elements: WhiteboardElement[] } }> = [];
+    function LiveShell() {
+      const [elements, setElements] = useState(latest);
+      const dispatch = (action: { patch: { elements: WhiteboardElement[] } }) => {
+        calls.push(action);
+        latest = action.patch.elements;
+        setElements(latest);
+      };
+      useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+      return (
+        <MemoryRouter>
+          <WhiteboardEditorShell board={{ ...BOARD, elements }} state={makeState()} onBack={() => {}} />
+        </MemoryRouter>
+      );
+    }
+    render(<LiveShell />);
+    fireEvent.click(screen.getByRole('button', { name: 'Edge — L' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    // Node-to-node edge (auto-selected).
+    fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+    fireEvent.pointerMove(svg, { clientX: 320, clientY: 80 });
+    fireEvent.pointerUp(svg, { clientX: 320, clientY: 80 });
+    expect(calls).toHaveLength(1);
+
+    // Start dot sits at A's right port: world (200,60) → client (216,76).
+    const dots = screen.getAllByTestId('wb-edge-endpoint');
+    expect(dots).toHaveLength(2);
+    fireEvent.pointerDown(dots[0]!, { button: 0, clientX: 216, clientY: 76 });
+    fireEvent.pointerMove(svg, { clientX: 600, clientY: 400 });
+    fireEvent.pointerUp(svg, { clientX: 600, clientY: 400 });
+
+    expect(calls).toHaveLength(2);
+    const edge = calls[1]!.patch.elements.find((el) => el.kind === 'edge');
+    expect(edge).toMatchObject({
+      sourceNodeId: null,
+      sourcePort: null,
+      targetNodeId: 'b',
+      x1: 584,
+      y1: 384,
+    });
+  });
+
+  it('refuses to attach an endpoint to a locked node', () => {
+    let latest: WhiteboardElement[] = [
+      { id: 'b', kind: 'sticky', x: 300, y: 0, w: 200, h: 120, color: '#e8b955', text: 'B', locked: true },
+    ];
+    const calls: Array<{ patch: { elements: WhiteboardElement[] } }> = [];
+    function LiveShell() {
+      const [elements, setElements] = useState(latest);
+      const dispatch = (action: { patch: { elements: WhiteboardElement[] } }) => {
+        calls.push(action);
+        latest = action.patch.elements;
+        setElements(latest);
+      };
+      useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+      return (
+        <MemoryRouter>
+          <WhiteboardEditorShell board={{ ...BOARD, elements }} state={makeState()} onBack={() => {}} />
+        </MemoryRouter>
+      );
+    }
+    render(<LiveShell />);
+    fireEvent.click(screen.getByRole('button', { name: 'Edge — L' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    fireEvent.pointerDown(svg, { button: 0, clientX: 400, clientY: 300 });
+    fireEvent.pointerMove(svg, { clientX: 500, clientY: 300 });
+    fireEvent.pointerUp(svg, { clientX: 500, clientY: 300 });
+
+    const dots = screen.getAllByTestId('wb-edge-endpoint');
+    fireEvent.pointerDown(dots[0]!, { button: 0, clientX: 400, clientY: 300 });
+    fireEvent.pointerMove(svg, { clientX: 516, clientY: 76 });
+    fireEvent.pointerUp(svg, { clientX: 516, clientY: 76 });
+
+    expect(calls).toHaveLength(2);
+    const edge = calls[1]!.patch.elements.find((el) => el.kind === 'edge');
+    expect(edge).toMatchObject({ sourceNodeId: null, targetNodeId: null });
+  });
+
+  it('hides align but shows valign for a selected edge', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      ...BOARD,
+      elements: [
+        { id: 'e1', kind: 'edge', x1: 0, y1: 0, x2: 200, y2: 0, color: '#8b5cf6', width: 2, arrowhead: true, label: 'Yes', arrowStyle: 'solid' },
+      ],
+    };
+    renderShell(board);
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    fireEvent.pointerDown(svg, { button: 0, clientX: 116, clientY: 16 });
+    fireEvent.pointerUp(svg, { clientX: 116, clientY: 16 });
+
+    expect(screen.queryByRole('button', { name: 'Text alignment' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Vertical alignment' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Bottom' }));
+
+    expect(dispatch).toHaveBeenCalled();
+    const action = dispatch.mock.calls[dispatch.mock.calls.length - 1]![0] as {
+      patch: { elements: Array<Record<string, unknown>> };
+    };
+    expect(action.patch.elements.find((el) => el.id === 'e1')).toMatchObject({ valign: 'bottom' });
+  });
+
+  it('offsets an edge label above and below the line via valign', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      ...BOARD,
+      elements: [
+        { id: 'e1', kind: 'edge', x1: 0, y1: 100, x2: 200, y2: 100, color: '#8b5cf6', width: 2, arrowhead: true, label: 'Yes', arrowStyle: 'solid', fontSize: 12, valign: 'bottom' },
+      ],
+    };
+    renderShell(board);
+    const label = document.querySelector('.wb-edge-label') as SVGTextElement;
+    // mid.y (100) + fontSize/2 (6) + 12
+    expect(label.getAttribute('y')).toBe('118');
+    expect(label.getAttribute('text-anchor')).toBe('middle');
+  });
+
+  it('a half-attached edge follows its node when dragged', () => {
+    let latest: WhiteboardElement[] = [
+      { id: 'a', kind: 'sticky', x: 0, y: 0, w: 200, h: 120, color: '#e8b955', text: 'A' },
+      { id: 'e1', kind: 'edge', x1: 200, y1: 60, x2: 400, y2: 60, color: '#8b5cf6', width: 2, arrowhead: true, arrowStyle: 'solid', label: '', sourceNodeId: 'a', sourcePort: 'right', targetNodeId: null },
+    ];
+    function LiveShell() {
+      const [elements, setElements] = useState(latest);
+      const dispatch = (action: { patch: { elements: WhiteboardElement[] } }) => {
+        latest = action.patch.elements;
+        setElements(latest);
+      };
+      useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+      return (
+        <MemoryRouter>
+          <WhiteboardEditorShell board={{ ...BOARD, elements }} state={makeState()} onBack={() => {}} />
+        </MemoryRouter>
+      );
+    }
+    render(<LiveShell />);
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    // Drag node A by (+128, 0): client (20,20) → (148,20).
+    fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 20 });
+    fireEvent.pointerMove(svg, { clientX: 148, clientY: 20 });
+    fireEvent.pointerUp(svg, { clientX: 148, clientY: 20 });
+
+    // Attached start re-derives to A's new right port (328,60); free end stays.
+    const line = svg.querySelector('polyline:not([stroke-opacity])') as SVGPolylineElement;
+    expect(line.getAttribute('points')).toBe('328,60 400,60');
+  });
+
+  it('selects a both-attached edge by its live line, not stale raw coords', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      ...BOARD,
+      elements: [
+        { id: 'a', kind: 'sticky', x: 300, y: 0, w: 200, h: 120, color: '#e8b955', text: 'A' },
+        // Raw coords predate a node drag; live line runs (500,60) → (500,200).
+        { id: 'e1', kind: 'edge', x1: 0, y1: 200, x2: 500, y2: 200, color: '#8b5cf6', width: 2, arrowhead: true, label: '', arrowStyle: 'solid', sourceNodeId: 'a', sourcePort: 'right', targetNodeId: null },
+      ],
+    };
+    renderShell(board);
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    // Midpoint of the live line (500,130) → client (+16); raw line sits at y=200.
+    fireEvent.pointerDown(svg, { button: 0, clientX: 516, clientY: 146 });
+    fireEvent.pointerUp(svg, { clientX: 516, clientY: 146 });
+
+    expect(screen.getAllByTestId('wb-edge-endpoint')).toHaveLength(2);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('ghost hint font never drops below 13 screen px', async () => {
+    const { ghostHintFontSize } = await import('./WhiteboardCanvas');
+    expect(ghostHintFontSize(16, 1)).toBe(16);
+    expect(ghostHintFontSize(16, 0.5)).toBe(26);
+    expect(ghostHintFontSize(16, 0.3)).toBeCloseTo(43.33, 1);
+    expect(ghostHintFontSize(20, 2)).toBe(20);
+  });
+
+  it('shows an Add-text ghost on a selected empty-label edge', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      ...BOARD,
+      elements: [
+        { id: 'e1', kind: 'edge', x1: 0, y1: 100, x2: 200, y2: 100, color: '#8b5cf6', width: 2, arrowhead: true, label: '', arrowStyle: 'solid' },
+        { id: 'e2', kind: 'edge', x1: 0, y1: 300, x2: 200, y2: 300, color: '#8b5cf6', width: 2, arrowhead: true, label: 'Has', arrowStyle: 'solid' },
+      ],
+    };
+    renderShell(board);
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    // Select the empty-label edge (world y=100 → client y=116).
+    fireEvent.pointerDown(svg, { button: 0, clientX: 116, clientY: 116 });
+    fireEvent.pointerUp(svg, { clientX: 116, clientY: 116 });
+
+    const ghosts = Array.from(document.querySelectorAll('.wb-edge-label')).filter((n) => n.textContent === 'Add text');
+    expect(ghosts).toHaveLength(1);
+
+    // Clicking the ghost opens the inline label editor.
+    fireEvent.pointerDown(ghosts[0]!, { button: 0, clientX: 116, clientY: 116 });
+    expect(screen.getByRole('textbox')).not.toBeNull();
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('renders arrowhead icons matching the real markers and picks diamond', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      ...BOARD,
+      elements: [
+        { id: 'e1', kind: 'edge', x1: 0, y1: 100, x2: 200, y2: 100, color: '#8b5cf6', width: 2, arrowhead: true, label: '', arrowStyle: 'solid' },
+      ],
+    };
+    renderShell(board);
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+
+    fireEvent.pointerDown(svg, { button: 0, clientX: 116, clientY: 116 });
+    fireEvent.pointerUp(svg, { clientX: 116, clientY: 116 });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Line style' }));
+    const group = screen.getByRole('group', { name: 'Arrow style' });
+    expect(group.querySelectorAll('svg')).toHaveLength(5);
+    fireEvent.click(screen.getByRole('radio', { name: 'diamond' }));
+
+    expect(dispatch).toHaveBeenCalled();
+    const action = dispatch.mock.calls[dispatch.mock.calls.length - 1]![0] as {
+      patch: { elements: Array<Record<string, unknown>> };
+    };
+    expect(action.patch.elements.find((el) => el.id === 'e1')).toMatchObject({ arrowStyle: 'diamond' });
+  });
+
   it('locks edge ports to the side the mouse aims at when connecting diagonally', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({
@@ -2461,7 +2776,7 @@ const el = action.patch.elements.find((e) => e.id === 'a');
     // FigJam parity: no rotate handle on canvas, no rotate button in the bar.
     expect(document.querySelector('[data-testid="wb-rotate-handle"]')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Rotate 90°' })).toBeNull();
-    // ...but the four corner scale handles are present.
+    // ...and the four corner scale handles are present.
     expect(document.querySelectorAll('[data-testid="wb-resize-handle"]')).toHaveLength(4);
 
     // SE corner world (100,60) → client (116,76); ring point (130,90) ≈ 19.8px out.

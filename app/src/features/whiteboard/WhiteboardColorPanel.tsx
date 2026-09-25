@@ -47,7 +47,7 @@ export function FillModeSegmented({
   const cur = shapeFillMode(value);
   const keyOf = (m: WhiteboardShapeFill) => (m === 'solid' ? 'fill' : m === 'transparent' ? 'transparent' : 'noFill');
   return (
-    <span className="fp-segmented fp-segmented-bar" role="radiogroup" aria-label={t('whiteboard.textbar.fill')}>
+    <span className="fp-segmented fp-segmented-bar fp-seg-nowrap" role="radiogroup" aria-label={t('whiteboard.textbar.fill')}>
       {FILL_MODES.map((m) => {
         const name = t(`whiteboard.colorPanel.${keyOf(m)}`);
         return (

@@ -4,6 +4,7 @@ import { loadState, saveState } from '../state-db.js';
 import { findEntity, newId, nowIso, textContent, toolError } from '../../domain/entity.js';
 import { whiteboardElementSchema, LIMITS, type WhiteboardElement } from '../../../projects/domain/state.js';
 import { EmbedSanitizerError, embedGroupingHints, sanitizeStateEmbeds } from '../../../projects/domain/sanitize-svg.js';
+import { EMBED_EXAMPLE_GROUPED, EMBED_GUIDE } from './whiteboard-embed-guide.js';
 import { findDanglingRefs } from '../../../projects/domain/whiteboard-refs.js';
 
 const inputSchema = z.object({
@@ -14,13 +15,16 @@ const inputSchema = z.object({
     .max(LIMITS.WHITEBOARD_ELEMENTS)
     .optional()
     .describe(
-      'Elements to append (same shape as create_whiteboard elements; id optional — assigned when omitted)',
+      'Elements to append (same shape as create_whiteboard elements; id optional — assigned when omitted). ' +
+        EMBED_GUIDE +
+        ' Example embed: ' +
+        EMBED_EXAMPLE_GROUPED,
     ),
   update: z
     .array(
       z.object({
         id: z.string().uuid().describe('Target element id'),
-        patch: z.record(z.string().max(100), z.unknown()).describe('Shallow field patch (kind is immutable)'),
+        patch: z.record(z.string().max(100), z.unknown()).describe('Shallow field patch (kind is immutable). For embed kind you may patch x/y/w/h/title/svg; svg must stay a grouped fragment with <g data-component="name"> or groupingHints will trigger.'),
       }),
     )
     .max(LIMITS.WHITEBOARD_ELEMENTS)
@@ -46,7 +50,7 @@ export function registerPatchWhiteboard(server: McpServer): void {
     {
       title: 'Patch whiteboard elements',
       description:
-        'Granular whiteboard edit: add / update / delete individual elements without replacing the whole board (unlike update_whiteboard full replacement). Schema-validated per element; 1000 elements per board cap enforced.',
+        'Granular whiteboard edit: add / update / delete individual elements without replacing the whole board (unlike update_whiteboard full replacement). Schema-validated per element; 1000 elements per board cap enforced. Preferred path for AI SVG embed wireframes — validate_whiteboard dry-run first; responses may carry groupingHints, sanitizerStripped, warnings.',
       inputSchema,
     },
     async (args) => {

@@ -484,4 +484,28 @@ describe('MCP whiteboard tools', () => {
     const state = await fetchState(cookie, projectId);
     expect(state.whiteboards[0]?.elements).toHaveLength(0);
   });
+
+  it('round-trips layout_board output into create_whiteboard with zero warnings', async () => {
+    const cookie = await register('wb-layout@gmail.com');
+    const projectId = await createProject(cookie);
+    const key = await createKey(cookie);
+
+    const layoutText = await toolText(key, 'layout_board', {
+      type: 'sequence',
+      participants: ['Browser', 'API'],
+      messages: [{ from: 0, to: 1, label: 'POST /mcp' }],
+    });
+    const layout = JSON.parse(layoutText) as { elementCount: number; elements: unknown[]; width: number; height: number };
+    expect(layout.elementCount).toBe(2 + 2 + 1 + 1 + 8);
+    expect(layout.width).toBeGreaterThan(0);
+
+    const created = await toolText(key, 'create_whiteboard', {
+      projectId,
+      name: 'Laid out',
+      elements: layout.elements,
+    });
+    const result = JSON.parse(created) as { elementCount: number; warnings?: unknown };
+    expect(result.elementCount).toBe(layout.elementCount);
+    expect(result.warnings).toBeUndefined();
+  });
 });

@@ -18,6 +18,7 @@ import { SHORTCUTS } from './shortcuts';
 import { isModalOrPaletteOpen, isTypingTarget } from '../../lib/keys';
 import type { WbTool } from './tools';
 import { BOUNDARY_COLOR, PEN_COLOR, SHAPE_COLOR, TEXT_COLOR } from './tools';
+import { parseStoredFontSize } from './fonts';
 import { remapLegacyLightColor } from './canvas-palette';
 
 /**
@@ -210,14 +211,14 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
     try { return localStorage.getItem('wb:stickyColor') ?? '#e8b955'; } catch { return '#e8b955'; }
   });
   const [stickyFontSize, setStickyFontSize] = useState<number>(() => {
-    try { const v = Number(localStorage.getItem('wb:stickyFontSize')); return clampFont(v, 12); } catch { return 12; }
+    try { return parseStoredFontSize(localStorage.getItem('wb:stickyFontSize'), 16); } catch { return 16; }
   });
   const [stickyAlign, setStickyAlign] = useState<WhiteboardAlign>(() => {
     try { return (localStorage.getItem('wb:stickyAlign') as WhiteboardAlign) ?? 'left'; } catch { return 'left'; }
   });
   const [textColor, setTextColor] = useState<string>(() => storedInk('wb:textColor', TEXT_COLOR));
   const [textFontSize, setTextFontSize] = useState<number>(() => {
-    try { const v = Number(localStorage.getItem('wb:textFontSize')); return clampFont(v, 16); } catch { return 16; }
+    try { return parseStoredFontSize(localStorage.getItem('wb:textFontSize'), 16); } catch { return 16; }
   });
   const [textAlign, setTextAlign] = useState<WhiteboardAlign>(() => {
     try { return (localStorage.getItem('wb:textAlign') as WhiteboardAlign) ?? 'left'; } catch { return 'left'; }
@@ -244,7 +245,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
     }
   });
   const [shapeFontSize, setShapeFontSize] = useState<number>(() => {
-    try { const v = Number(localStorage.getItem('wb:shapeFontSize')); return clampFont(v, 12); } catch { return 12; }
+    try { return parseStoredFontSize(localStorage.getItem('wb:shapeFontSize'), 16); } catch { return 16; }
   });
   const [shapeAlign, setShapeAlign] = useState<WhiteboardAlign>(() => {
     try { return (localStorage.getItem('wb:shapeAlign') as WhiteboardAlign) ?? 'center'; } catch { return 'center'; }
@@ -263,14 +264,14 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
   });
   const [edgeColor, setEdgeColor] = useState<string>(() => storedInk('wb:edgeColor', TEXT_COLOR));
   const [edgeFontSize, setEdgeFontSize] = useState<number>(() => {
-    try { const v = Number(localStorage.getItem('wb:edgeFontSize')); return clampFont(v, 11); } catch { return 11; }
+    try { return parseStoredFontSize(localStorage.getItem('wb:edgeFontSize'), 16); } catch { return 16; }
   });
   const [edgeArrowStyle] = useState<WhiteboardArrowStyle>(() => {
     try { const v = localStorage.getItem('wb:edgeArrowStyle'); return (v && ALLOWED_ARROW.has(v) ? v : 'solid') as WhiteboardArrowStyle; } catch { return 'solid'; }
   });
   const [boundaryColor, setBoundaryColor] = useState<string>(() => storedInk('wb:boundaryColor', BOUNDARY_COLOR));
   const [boundaryFontSize] = useState<number>(() => {
-    try { const v = Number(localStorage.getItem('wb:boundaryFontSize')); return clampFont(v, 16); } catch { return 16; }
+    try { return parseStoredFontSize(localStorage.getItem('wb:boundaryFontSize'), 16); } catch { return 16; }
   });
   const [boundaryAlign] = useState<WhiteboardAlign>(() => {
     try { return (localStorage.getItem('wb:boundaryAlign') as WhiteboardAlign) ?? 'left'; } catch { return 'left'; }

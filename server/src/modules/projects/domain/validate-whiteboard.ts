@@ -53,6 +53,10 @@ function rectsIntersect(a: Rect, b: Rect): boolean {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
 
+function pointInRect(pt: Point, r: Rect): boolean {
+  return pt.x >= r.x && pt.x <= r.x + r.w && pt.y >= r.y && pt.y <= r.y + r.h;
+}
+
 function distToSegment(pt: Point, a: Point, b: Point): number {
   const dx = b.x - a.x, dy = b.y - a.y;
   if (dx === 0 && dy === 0) return Math.hypot(pt.x - a.x, pt.y - a.y);
@@ -116,6 +120,12 @@ export function validateWhiteboardShowcase(elements: WhiteboardElement[]): White
       if (other.kind === "edge" || other.kind === "stroke" || other.kind === "boundary") continue;
       // skip if edge is connected to this node
       if ((el as any).sourceNodeId === otherId || (el as any).targetNodeId === otherId) continue;
+      // Lifelines (vertical dashed edges) intentionally run through the
+      // activation bars and boxes on their own line — not a crossing.
+      if ((el as any).dash === "dashed" && Math.abs(a.x - b.x) < 5) continue;
+      // An edge starting or ending inside a node is connecting to it, not
+      // crossing through it — only mid-route passes fail.
+      if (pointInRect(a, rect) || pointInRect(b, rect)) continue;
       // check if segment intersects rect (with 2px tolerance)
       // simple check: if segment bbox intersects node rect and distance < 2
       const segBounds: Rect = { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(a.x - b.x) || 1, h: Math.abs(a.y - b.y) || 1 };
@@ -135,7 +145,7 @@ export function validateWhiteboardShowcase(elements: WhiteboardElement[]): White
   for (const el of elements) {
     if (el.kind !== "edge" || !(el as any).label) continue;
     const label = (el as any).label as string;
-    const fontSize = (el as any).fontSize ?? 11;
+    const fontSize = (el as any).fontSize ?? 16;
     const w = approxTextWidth(label, fontSize);
     const seg = edgeSegments(el as any);
     const mid: Point = { x: (seg[0].x + seg[1].x) / 2, y: (seg[0].y + seg[1].y) / 2 };
@@ -158,7 +168,8 @@ export function validateWhiteboardShowcase(elements: WhiteboardElement[]): White
       if (otherId === el.id) continue;
       const other = elements.find(e => e.id === otherId);
       if (!other || other.kind === "edge" || other.kind === "stroke" || other.kind === "boundary") continue;
-      if (rectsIntersect(labelRect, rect)) {
+      // Labels on edges starting/ending inside a node emanate from it — not a collision.
+      if (rectsIntersect(labelRect, rect) && !pointInRect(seg[0], rect) && !pointInRect(seg[1], rect)) {
         diagnostics.push(diag("whiteboard/label-overlap-node", `Label "${label}" overlaps ${other.kind} ${otherId}`, { edgeId: el.id, obstacleId: otherId }, {}, ["move label"]));
         if (diagnostics.length >= 3) return { ok: false, diagnostics };
       }

@@ -66,8 +66,12 @@ Every tool: inputs validated by zod; response includes `updatedAt` of the mutate
 | `add_api_collection` | `projectId`, `name`, `description?` | Created collection (rejects duplicate names) | Yes | `mcp` / `mcp:write` |
 | `add_api_endpoint` | `projectId`, `method`, `path`, `name`, `collectionId?`, `description?`, `headers[]?`, `params[]?`, `body?`, `responses[]?` | Created endpoint | Yes | `mcp` / `mcp:write` |
 | `update_api_endpoint` | `projectId`, `endpointId`, `{ collectionId?, method?, path?, name?, description?, headers[]?, params[]?, body?, responses[]? }` | Updated endpoint | Yes | `mcp` / `mcp:write` |
-| `create_whiteboard` | `projectId`, `name`, `description?`, `elements[]?` (id optional — server-assigned; kinds: stroke/sticky/text/shape/edge/boundary/ref) | Created board (id, name, elementCount) | Yes | `mcp` / `mcp:write` |
-| `update_whiteboard` | `projectId`, `whiteboardId`, `{ name?, description?, elements[]? }` — elements replaced wholesale | Updated board | Yes | `mcp` / `mcp:write` |
+| `create_whiteboard` | `projectId`, `name`, `description?`, `elements[]?` (id optional — server-assigned; kinds: stroke/sticky/text/shape/edge/boundary/ref/embed) — embed = AI SVG fragment, grouped `<g data-component>`, w/h 20..2000, max 20/board | Created board (id, name, elementCount + groupingHints/sanitizerStripped) | Yes | `mcp` / `mcp:write` |
+| `update_whiteboard` | `projectId`, `whiteboardId`, `{ name?, description?, elements[]?, confirmEmpty? }` — elements replaced wholesale (same embed contract as create) | Updated board | Yes | `mcp` / `mcp:write` |
+| `patch_whiteboard` | `projectId`, `whiteboardId`, `{ add[]?, update[]?, delete[]? }` — granular add/update/delete; preferred path for embeds | Patched board (added/updated/deleted + hints) | Yes | `mcp` / `mcp:write` |
+| `validate_whiteboard` | `projectId`, `elements[]` — dry-run overlap/too-close/oob + advisory embed grouping + dangling refs | `{ ok, warnings, overlaps, suggestions }` | No | `mcp` or `mcp:read` |
+| `list_whiteboards` | `projectId`, `limit?`, `includeElements?` | Boards with id/name/count (+ elements) | No | `mcp` or `mcp:read` |
+| `layout_board` | `{ type: sequence, participants[], messages[], activations?, phases? }` — constrained sequence layout, returns elements with ids | Layout elements + next-step hint | No | `mcp` or `mcp:read` |
 
 **Conventions:**
 - Tool names are registered with a server prefix in the client (`devhub_project_state`, etc.).
@@ -79,7 +83,7 @@ Every tool: inputs validated by zod; response includes `updatedAt` of the mutate
 - Issue: `open` → `reproduced` → `fixing` → `resolved` | `wontfix`
 - Decision: `proposed` → `accepted` | `rejected` | `superseded` (no update tool — one-shot)
 - Milestone: `planned` → `inProgress` → `released`
-- Whiteboard: no status — create/update with full element replacement (max 50/project)
+- Whiteboard: no status — create/patch/update (max 50/project, 1000 elements/board, 20 embeds/board); validate dry-run first for first-try embeds
 
 ---
 

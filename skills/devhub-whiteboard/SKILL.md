@@ -22,11 +22,12 @@ repo `docs/03-engineering/whiteboard-embed-contract.md`.
 ## 1. Mandatory workflow
 
 ```
-list_whiteboards → validate_whiteboard (dry-run) → create_whiteboard / patch_whiteboard
+list_whiteboards → [layout_board] → validate_whiteboard (dry-run) → create_whiteboard / patch_whiteboard
 ```
 
 1. `list_whiteboards({ projectId })` — see existing boards first; never create duplicates blindly.
-2. `validate_whiteboard({ projectId, elements })` — dry-run, no DB write.
+2. `layout_board({ type: 'sequence', participants, messages })` — constrained layout assistant for sequence diagrams (no DB write). Send semantic graph, get standard-positioned elements with ids: participants across the top in story order, dashed lifelines, labeled horizontal messages (solid = call, dotted = return/async). Paste the output straight into step 4.
+3. `validate_whiteboard({ projectId, elements })` — dry-run, no DB write.
    Fix every `overlap` / `too_close` warning using its `suggestion` before writing.
 3. Write with the right tool:
    - `create_whiteboard({ projectId, name, description?, elements? })` — new board.
@@ -52,21 +53,23 @@ list_whiteboards → validate_whiteboard (dry-run) → create_whiteboard / patch
 
 ```json
 { "kind": "embed", "x": 0, "y": 0, "w": 360, "h": 520,
-  "title": "Login form", "svg": "<g data-component=\"submit\"><rect .../></g>" }
+  "title": "Login form", "svg": "<g data-component=\"card\"><rect .../></g><g data-component=\"submit\"><rect .../><text>Login</text></g>" }
 ```
 
 - Send a **fragment** (no outer `<svg>`; a single outer tag is unwrapped automatically).
-- `w/h`: 20–2000. SVG content uses **local** coords `0..w` / `0..h`. `title` is required
+- `w/h`: 20–2000. SVG content uses **local** coords `0..w` / `0..h`. `title` is required and meaningful
   (shown in Layers panel, fallback, export).
 - **Grouping (required for multi-widget wireframes):** wrap each widget in
-  `<g data-component="name">`, e.g. `<g data-component="submit">...</g>`.
-  Ungrouped embeds trigger advisory `grouping` warnings and cannot be split/edited per component.
+  `<g data-component="name">`, e.g. `<g data-component="card">...</g><g data-component="submit">...</g>`.
+  Copy the two-group example above — single-shape svg triggers advisory `grouping` warnings and cannot be split/edited per component.
+  Golden sample: `LOGIN_FORM_SVG` in `app/src/features/whiteboard/svg-components.test.ts` (4 groups, all reverse-compilable).
 - **Sanitizer allowlist:** `g rect circle ellipse line polyline polygon path text tspan
   defs linearGradient radialGradient stop clipPath` (+ nested `svg`).
-  Always stripped: `script style foreignObject image use a animate*`, `on*` handlers,
-  `href`, inline `style`, `javascript:` URLs. Hard-fail (nothing saved) if no
+  Always stripped: `script style foreignObject image use a animate* set iframe embed object video audio`, `on*` handlers,
+  `href`/`xlink:href`, inline `style`, `javascript:` values, non-local `url()` (only `url(#local)` survives); comments/DOCTYPE dropped. Hard-fail (nothing saved) if no
   renderable content remains — the tool response names the element and reason.
 - `id` attributes are namespaced per element on write — reuse ids freely across embeds.
+- Max **20** embeds per board — split large wireframes across boards/embeds. Tool descriptions (`create/update/validate/patch`) carry this same contract; `patch_whiteboard add` is the preferred path for embeds after `validate_whiteboard` dry-run.
 
 ## 4. Limits (hard)
 

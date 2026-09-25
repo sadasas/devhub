@@ -256,7 +256,9 @@ export function boundaryLabelDY(fontSize: number): number {
  */
 export function boundaryChipWidth(label: string, fontSize: number, maxW: number, bold = false): number {
   const textW = approxTextWidth(label, fontSize, bold ? 600 : 400);
-  return Math.min(textW + 12, Math.max(20, maxW));
+  // +12 padding, +8 tolerance: browser glyphs may measure wider than the
+  // estimator, and a hug-tight chip would truncate its own label.
+  return Math.min(textW + 20, Math.max(28, maxW));
 }
 
 const MEASURE_STACK =

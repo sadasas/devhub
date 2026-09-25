@@ -14533,6 +14533,8 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 .wb-color-hex { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
 .fp-segmented { display: flex; gap: 8px; margin-bottom: 8px; }
 .fp-seg { flex: 1; padding: 4px 6px; font-size: 11px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: none; color: var(--text-secondary); cursor: pointer; }
+.fp-seg-icon { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 10px; }
+.fp-seg-icon svg { flex-shrink: 0; }
 .fp-seg-active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
 .fp-segmented-wrap { flex-wrap: wrap; }
 .fp-segmented-wrap .fp-seg { flex: 0 0 calc(50% - 2px); white-space: nowrap; }
@@ -14726,7 +14728,7 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-raised);
 }
-.wb-colorpop-grid { display: grid; grid-template-columns: repeat(6, auto); gap: 10px; }
+.wb-colorpop-grid { display: grid; grid-template-columns: repeat(auto-fill, 28px); justify-content: start; gap: 8px; }
 .wb-colorpop-grid .wb-dot { width: 28px; height: 28px; }
 .wb-rainbow { position: relative; width: 28px; height: 28px; border-radius: 50%; overflow: hidden; border: 1px solid var(--border-strong); cursor: pointer; }
 .wb-rainbow-ui { position: absolute; inset: 0; background: conic-gradient(#f4706d, #e8b955, #34c38e, #6ea8fe, #a78bfa, #f4706d); }
@@ -14858,6 +14860,7 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 .wb-sizebox-step:hover { color: var(--text-primary); background: var(--bg-overlay); }
 .fp-segmented-bar { display: inline-flex; gap: 8px; margin-bottom: 0; }
 .fp-segmented-bar .fp-seg { flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 5px 8px; }
+.fp-seg-nowrap .fp-seg { white-space: nowrap; }
 .fp-seg .wb-lineopt-name { font-size: 12px; }
 /* Panel warna: segmented fill meregang penuh selebar popup (sepadat popup garis). */
 .wb-colorpop .fp-segmented-bar { display: flex; }

@@ -87,20 +87,38 @@ function ctxBounds(el: WhiteboardElement, ctx: ExportCtx): Rect {
 
 /** Mirror of WhiteboardCanvas `derivedEdges`: recompute attached endpoints from node bounds. */
 function resolveEdgeEndpoints(el: WhiteboardEdge, ctx: ExportCtx): { x1: number; y1: number; x2: number; y2: number } {
-  if (el.sourceNodeId && el.targetNodeId) {
-    const src = ctx.byId.get(el.sourceNodeId);
-    const dst = ctx.byId.get(el.targetNodeId);
-    if (src && dst) {
-      const sb = ctxBounds(src, ctx);
-      const tb = ctxBounds(dst, ctx);
-      const sc = { x: sb.x + sb.w / 2, y: sb.y + sb.h / 2 };
-      const tc = { x: tb.x + tb.w / 2, y: tb.y + tb.h / 2 };
-      const p1 = el.sourcePort ? portPoint(sb, el.sourcePort) : portToward(sb, tc);
-      const p2 = el.targetPort ? portPoint(tb, el.targetPort) : portToward(tb, sc);
-      return { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y };
-    }
+  const src = el.sourceNodeId ? ctx.byId.get(el.sourceNodeId) : undefined;
+  const dst = el.targetNodeId ? ctx.byId.get(el.targetNodeId) : undefined;
+  if (!src && !dst) {
+    return { x1: el.x1, y1: el.y1, x2: el.x2, y2: el.y2 };
   }
-  return { x1: el.x1, y1: el.y1, x2: el.x2, y2: el.y2 };
+  if (src && dst) {
+    const sb = ctxBounds(src, ctx);
+    const tb = ctxBounds(dst, ctx);
+    const sc = { x: sb.x + sb.w / 2, y: sb.y + sb.h / 2 };
+    const tc = { x: tb.x + tb.w / 2, y: tb.y + tb.h / 2 };
+    const p1 = el.sourcePort ? portPoint(sb, el.sourcePort) : portToward(sb, tc);
+    const p2 = el.targetPort ? portPoint(tb, el.targetPort) : portToward(tb, sc);
+    return { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y };
+  }
+  // Half-attached: attached end tracks live bounds, the other keeps raw coords.
+  let x1 = el.x1;
+  let y1 = el.y1;
+  let x2 = el.x2;
+  let y2 = el.y2;
+  if (src) {
+    const sb = ctxBounds(src, ctx);
+    const p1 = el.sourcePort ? portPoint(sb, el.sourcePort) : portToward(sb, { x: x2, y: y2 });
+    x1 = p1.x;
+    y1 = p1.y;
+  }
+  if (dst) {
+    const tb = ctxBounds(dst, ctx);
+    const p2 = el.targetPort ? portPoint(tb, el.targetPort) : portToward(tb, { x: x1, y: y1 });
+    x2 = p2.x;
+    y2 = p2.y;
+  }
+  return { x1, y1, x2, y2 };
 }
 
 function elementSvg(el: WhiteboardElement, refData: RefCardData | null, ctx: ExportCtx): string {
@@ -110,7 +128,7 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null, ctx: Exp
       return `<polyline points="${points}" fill="none" stroke="${esc(el.color)}" stroke-width="${el.width}" stroke-linecap="round" stroke-linejoin="round"/>`;
     }
     case 'sticky': {
-      const fontSize = el.fontSize ?? 12;
+      const fontSize = el.fontSize ?? 16;
       const align = el.align ?? 'left';
       const anchor = align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start';
       const lineHeight = textLineHeight(fontSize);
@@ -157,7 +175,7 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null, ctx: Exp
     }
     case 'shape': {
       const pad = 8;
-      const fontSize = el.fontSize ?? 12;
+      const fontSize = el.fontSize ?? 16;
       const align = el.align ?? 'center';
       const anchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
       const textX = align === 'left' ? el.x + pad : align === 'right' ? el.x + el.w - pad : el.x + el.w / 2;
@@ -220,10 +238,10 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null, ctx: Exp
           : '';
       const mid = pathMidpoint(points);
       const dash = (el.dash ?? 'solid') === 'dashed' ? ' stroke-dasharray="8 5"' : (el.dash ?? 'solid') === 'dotted' ? ' stroke-dasharray="2 4"' : '';
-      const fontSize = el.fontSize ?? 11;
-      const align = el.align ?? 'center';
-      const anchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
-      const label = el.label ? textNode(mid.x, mid.y, fontSize, el.color, listedLines(el.label, el).join(' '), anchor, undefined, fontAttrs(el)) : '';
+      const fontSize = el.fontSize ?? 16;
+      // Edge labels are always horizontally centered; vertical placement via valign.
+      const dy = el.valign === 'top' ? -(fontSize / 2 + 6) : el.valign === 'bottom' ? fontSize / 2 + 12 : 0;
+      const label = el.label ? textNode(mid.x, mid.y + dy, fontSize, el.color, listedLines(el.label, el).join(' '), 'middle', undefined, fontAttrs(el)) : '';
       return `<g><polyline points="${linePoints}" fill="none" stroke="${esc(el.color)}" stroke-width="${el.width}"${dash}/>${arrow}${label}</g>`;
     }
     case 'boundary': {

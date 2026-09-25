@@ -157,4 +157,16 @@ describe('whiteboard edges', () => {
     expect(hit?.id).toBe('e1');
     expect(elementsAtPoint([edge], { x: 50, y: 20 }, 8)).toBeNull();
   });
+
+  it('prefers content over an overlapping boundary (paint order)', () => {
+    const shape = { id: 'a', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 50, color: '#6ea8fe', fill: 'none', strokeWidth: 2, label: '' } as const;
+    const boundary = { id: 'bd', kind: 'boundary', x: -10, y: -10, w: 300, h: 200, color: '#6ea8fe', label: '' } as const;
+    // Boundary appended last (paints behind, but array-last) — content still wins.
+    expect(elementsAtPoint([shape, boundary], { x: 20, y: 20 }, 8)?.id).toBe('a');
+    expect(elementsAtPoint([boundary, shape], { x: 20, y: 20 }, 8)?.id).toBe('a');
+    // Bare boundary area still selects the boundary.
+    expect(elementsAtPoint([shape, boundary], { x: 200, y: 100 }, 8)?.id).toBe('bd');
+    // Exclusion still applies to both passes.
+    expect(elementsAtPoint([shape, boundary], { x: 20, y: 20 }, 8, undefined, new Set(['shape', 'boundary']))).toBeNull();
+  });
 });

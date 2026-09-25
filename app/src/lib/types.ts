@@ -476,6 +476,7 @@ export interface WhiteboardEdge {
   dash?: 'solid' | 'dashed' | 'dotted';
   fontSize?: number | null;
   align?: WhiteboardAlign | null;
+  valign?: WhiteboardValign | null;
   fontFamily?: WhiteboardFontFamily | null;
   bold?: boolean | null;
   strikethrough?: boolean | null;
