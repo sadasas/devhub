@@ -13,7 +13,8 @@ export default {
       url.pathname.startsWith('/mcp') ||
       url.pathname.startsWith('/oauth/') ||
       url.pathname === '/health' ||
-      url.pathname.startsWith('/.well-known/');
+      url.pathname.startsWith('/.well-known/') ||
+      url.pathname.startsWith('/webhooks/');
 
     // WebSocket upgrade for /ws
     const isWs = url.pathname.startsWith('/ws');
