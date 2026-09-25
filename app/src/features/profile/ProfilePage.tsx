@@ -26,6 +26,7 @@ import { Avatar } from '../../components/Avatar';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { DataErrorState } from '../../components/DataErrorState';
+import { InlineError } from '../../components/InlineError';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 import { Skeleton } from '../../components/Skeleton';
 import { ThemeSwitcher } from '../../components/ThemeSwitcher';
@@ -398,7 +399,7 @@ export function ProfilePage() {
             <p className="field-helper" style={{ marginBottom: 12 }}>
               {t('profile.security.connectedHelper', { defaultValue: 'Link Google or GitHub to sign in with one click. Keep your email/password — OAuth is additive.' })}
             </p>
-            {linkedError ? (linkedErrorRaw ? <DataErrorState error={linkedErrorRaw} onRetry={() => void fetchLinked()} /> : <div className="inline-error" style={{ marginBottom: 10 }}>{linkedError}</div>) : null}
+            {linkedError ? (linkedErrorRaw ? <DataErrorState error={linkedErrorRaw} onRetry={() => void fetchLinked()} /> : <InlineError>{linkedError}</InlineError>) : null}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div className="settings-action">
                 <div className="settings-action-main" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 10 }}>

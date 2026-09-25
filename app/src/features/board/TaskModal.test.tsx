@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import type { State, Task } from '../../lib/types';
+import type { GitHubLink, State, Task } from '../../lib/types';
 import { TaskModal } from './TaskModal';
 
 const { setStatusMock, listMembersMock, fetchActivityMock, canEditMock, gcalStatusMock, gcalSyncedMock } = vi.hoisted(() => ({
@@ -301,6 +301,53 @@ describe('TaskModal milestone select', () => {
     fireEvent.click(screen.getByRole('option', { name: 'Done' }));
     expect(document.querySelector('#task-status')).toBeNull();
     expect(document.querySelector('[data-prop="status"] .prop-view')).toBeTruthy();
+  });
+
+  it('shows the blocked-done error under the Status row (status trigger)', () => {
+    const blockerId = '66666666-6666-4666-8666-666666666666';
+    mockState.tasks = [
+      makeTask({ blockedBy: [blockerId] }),
+      makeTask({ id: blockerId, title: 'Blocker', status: 'todo' }),
+    ];
+    render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: 'Todo' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Done' }));
+    const alert = screen.getByRole('alert');
+    expect(alert.textContent).toContain('finish them first');
+    // Tepat sesudah baris Status di sidebar — bukan di kolom utama.
+    const statusRow = document.querySelector('[data-prop="status"]');
+    expect(statusRow?.nextElementSibling).toBe(alert);
+    expect(document.querySelector('.detail-side')?.contains(alert)).toBe(true);
+    expect(mockDispatch).not.toHaveBeenCalledWith({
+      type: 'task/update',
+      id: TASK_ID,
+      patch: { status: 'done' },
+    });
+  });
+
+  it('shows the blocked-done error above the GitHub section (suggest trigger)', () => {
+    const blockerId = '66666666-6666-4666-8666-666666666666';
+    const merged: GitHubLink = {
+      id: '11111111-1111-4111-8111-111111111111',
+      repo: 'org/repo',
+      kind: 'pr',
+      ref: '7',
+      url: 'https://github.com/org/repo/pull/7',
+      title: 'Fix login',
+      status: 'merged',
+    };
+    mockState.tasks = [
+      makeTask({ status: 'review', blockedBy: [blockerId], githubLinks: [merged] }),
+      makeTask({ id: blockerId, title: 'Blocker', status: 'todo' }),
+    ];
+    render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
+    const markDone = screen.getByRole('button', { name: 'Mark done' });
+    fireEvent.click(markDone);
+    const alert = screen.getByRole('alert');
+    expect(alert.textContent).toContain('finish them first');
+    // Di kolom utama tepat sebelum section GitHub — bukan di sidebar.
+    expect(document.querySelector('.detail-side')?.contains(alert)).toBe(false);
+    expect(alert.compareDocumentPosition(markDone) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('opens priority options in a single click and closes after picking', () => {

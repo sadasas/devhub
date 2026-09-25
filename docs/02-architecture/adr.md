@@ -710,4 +710,16 @@
 - **Consequences:** Positive — e2e link <15 dtk tanpa double-entry; timeline ringkas 1 row/event; least-privilege + sealed token; tanpa worker baru. Negative — tanpa worker, retry outbox manual/oportunistik; token 1 jam refresh lazy (skew 5 mnt); monorepo multi-project memproses N project per delivery; `installation token` butuh env App (tanpa itu 503 `GITHUB_NOT_CONFIGURED`).
 - **Alternatives:** PAT per-request tanpa App (ditolak: scope lebar, token panjang, tanpa webhook); full 2-way issues mirror (ditolak: konflik + beban queue, selective sync lebih jujur); auto-Done diam-diam (ditolak: QA ke-skip, suggest-only); worker/queue dedicated (ditolak: over-engineering untuk volume saat ini, outbox+drain cukup).
 
+### ADR-053
+**GitHub multi-akun: verifikasi repo milik instalasi + picker hanya instalasi hidup**
+
+- **Status:** Accepted (2026-09-25) — follow-up ADR-052 (kasus: project A konek akun-X, project B konek akun-Y)
+- **Context:** Model DB sudah multi-instalasi (1 repo/project, instalasi bebas beda per project) dan frontend sudah picker + "Install on another GitHub account", tapi `POST /repos` menerima `owner/repo` apa pun untuk instalasi yang dikenal — salah pilih instalasi baru ketahuan belakangan (webhook sepi). `GET /installations` juga mengembalikan instalasi `suspended`/`removed` yang tak bisa dipakai.
+- **Decision:**
+  - **`assertRepoBelongsToInstallation` (`install-service.ts`):** sebelum insert mapping, cocokkan `owner/repo` (case-insensitive, GitHub case-insensitive) ke `listInstallationRepos` via token instalasi (cache sealed reuse); gagal -> `403 REPO_NOT_IN_INSTALLATION` dengan pesan menyebut instalasi + akun + arahan picker. Batas jujur: list dibatasi 10 halaman (±1000 repo) — org raksasa bisa false-negative; pesan mengarahkan lewat picker (sumber list yang sama).
+  - **`listInstallations` hanya `status = 'connected'`:** suspended/removed (ditandai webhook `installation`/`suspend`) disembunyikan dari picker; reconnect = install ulang App. Tanpa ubah kontrak response.
+  - **Tanpa ubah `app/`:** error tampil via banner danger existing; picker kosong via hint existing (matriks kepatuhan UI terverifikasi — nol kelas/string/role baru).
+- **Consequences:** Positive — salah wiring gagal cepat dengan pesan jelas (bukan diam); picker bebas entri mati. Negative — +0-2 panggilan GitHub API per connect admin-only (route sudah rate-limit 60/15m); false-negative di atas ±1000 repo per instalasi.
+- **Alternatives:** Verifikasi via nama repo saja tanpa token (ditolak: tidak membuktikan kepemilikan instalasi); tampilkan suspended dengan badge + disable (ditolak: `SearchableSelect` tak dukung opsi disabled — filter backend lebih sederhana); OAuth user-token fallback (ditolak: di luar scope App,PAT-like).
+
 

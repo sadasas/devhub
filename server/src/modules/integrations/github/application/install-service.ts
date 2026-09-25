@@ -8,6 +8,7 @@ import {
   createInstallationToken,
   getInstallationInfo,
   isGithubAppConfigured,
+  listInstallationRepos,
 } from "../infrastructure/github-app.js";
 import { openInstallationToken, sealInstallationToken } from "../infrastructure/token-vault.js";
 import {
@@ -61,5 +62,37 @@ export async function ensureInstallationToken(installationId: number): Promise<s
     const message = err instanceof Error ? err.message : "installation token failed";
     await markInstallationStatus(installationId, "error", message).catch(() => {});
     throw err;
+  }
+}
+
+/**
+ * Verifikasi repo milik instalasi (multi-akun): gagal bila `owner/repo`
+ * tidak ada di daftar repo instalasi — mencegah salah pilih instalasi
+ * (mis. instalasi akun-A dipasangkan repo akun-B; GitHub owner/repo
+ * case-insensitive). Dipanggil POST /repos sebelum insert mapping.
+ * Batas jujur: daftar dibatasi 10 halaman (±1000 repo, lihat
+ * listInstallationRepos) — org raksasa di atas itu bisa false-negative;
+ * pesannya mengarahkan lewat picker (sumber list yang sama).
+ */
+export async function assertRepoBelongsToInstallation(
+  installationId: number,
+  owner: string,
+  repo: string,
+): Promise<void> {
+  assertGithubConfigured();
+  const row = await getInstallation(installationId);
+  if (!row) throw new Error(`Unknown GitHub installation: ${installationId}`);
+  const token = await ensureInstallationToken(installationId);
+  const repos = await listInstallationRepos(token);
+  const wantOwner = owner.toLowerCase();
+  const wantRepo = repo.toLowerCase();
+  const found = repos.some((r) => r.owner.toLowerCase() === wantOwner && r.repo.toLowerCase() === wantRepo);
+  if (!found) {
+    const account = row.accountLogin ? ` ("${row.accountLogin}")` : "";
+    throw new ApiError(
+      403,
+      "REPO_NOT_IN_INSTALLATION",
+      `Repository ${owner}/${repo} is not in GitHub installation #${installationId}${account}. Pick a repository from that installation's picker (or install the App on the right account).`,
+    );
   }
 }

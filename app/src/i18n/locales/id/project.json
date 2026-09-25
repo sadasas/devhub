@@ -144,7 +144,10 @@
     "githubPrivacyLink": "Kebijakan Privasi",
     "githubTermsLink": "Syarat",
     "githubRevokeLink": "Pengaturan GitHub App",
-    "githubSideLink": "kebijakan GitHub"
+    "githubSideLink": "kebijakan GitHub",
+    "githubRetry": "Coba lagi",
+    "githubNotConfiguredTitle": "GitHub App belum dikonfigurasi",
+    "githubNotConfiguredDesc": "GitHub App belum disiapkan di server ini. Minta admin untuk mengonfigurasinya, lalu coba lagi."
   },
   "deleteModal": {
     "title": "Hapus project",

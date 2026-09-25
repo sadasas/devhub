@@ -226,6 +226,8 @@ export function TaskModal({ taskId, onClose, onNavigate }: TaskModalProps) {
   );
   const [cycleWarn, setCycleWarn] = useState<string | null>(null);
   const [doneWarn, setDoneWarn] = useState<string | null>(null);
+  /** Pemicu terakhir doneWarn ('status' = dropdown Status, 'suggest' = tombol Mark done) — error tampil di dekat situ, satu lokasi. */
+  const [doneWarnSource, setDoneWarnSource] = useState<'status' | 'suggest' | null>(null);
   const [rangeWarn, setRangeWarn] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [storageLimitOpen, setStorageLimitOpen] = useState(false);
@@ -263,6 +265,7 @@ export function TaskModal({ taskId, onClose, onNavigate }: TaskModalProps) {
     setPickingBlocker(false);
     setCycleWarn(null);
     setDoneWarn(null);
+    setDoneWarnSource(null);
     setRangeWarn(null);
     setConfirmOpen(false);
     setStorageLimitOpen(false);
@@ -344,7 +347,7 @@ export function TaskModal({ taskId, onClose, onNavigate }: TaskModalProps) {
   const update = (patch: UpdatePatch<Task>) =>
     dispatch({ type: 'task/update', id: task.id, patch });
 
-  const changeStatus = (next: TaskStatus) => {
+  const changeStatus = (next: TaskStatus, source: 'status' | 'suggest' = 'status') => {
     if (next === 'done' && !isTaskCompletable(task, state!.testCases, state!.tasks)) {
       const pending = state!.testCases.filter(
         (tc) => tc.taskId === task.id && tc.status !== 'pass',
@@ -368,9 +371,11 @@ export function TaskModal({ taskId, onClose, onNavigate }: TaskModalProps) {
             : t('board.taskModal.cannotMarkDone', { count: pending.length }),
         );
       }
+      setDoneWarnSource(source);
       return;
     }
     setDoneWarn(null);
+    setDoneWarnSource(null);
     update({ status: next });
   };
 
@@ -572,9 +577,10 @@ export function TaskModal({ taskId, onClose, onNavigate }: TaskModalProps) {
                   </span>
                 )}
                 control={(
-                  <SearchableSelect defaultOpen searchable={false} id="task-status" label="" ariaLabel={t('board.taskModal.statusLabel')} value={task.status} allowEmpty={false} options={STATUS_OPTIONS.map((s) => ({ value: s, label: TASK_STATUS[s].label, icon: <TaskStatusIcon status={s} size={13} /> }))} onOpenChange={(o) => { if (!o) setHotProp(null); }} onChange={(v) => { if (v) { changeStatus(v as TaskStatus); setHotProp(null); } }} />
+                  <SearchableSelect defaultOpen searchable={false} id="task-status" label="" ariaLabel={t('board.taskModal.statusLabel')} value={task.status} allowEmpty={false} options={STATUS_OPTIONS.map((s) => ({ value: s, label: TASK_STATUS[s].label, icon: <TaskStatusIcon status={s} size={13} /> }))} onOpenChange={(o) => { if (!o) setHotProp(null); }} onChange={(v) => { if (v) { changeStatus(v as TaskStatus, 'status'); setHotProp(null); } }} />
                 )}
               />
+              {doneWarn && doneWarnSource === 'status' && <InlineError>{doneWarn}</InlineError>}
               {/* Priority */}
               <PropRow
                 propKey="priority"
@@ -1013,8 +1019,6 @@ export function TaskModal({ taskId, onClose, onNavigate }: TaskModalProps) {
                 embedAttachments={{ projectId, attachments: task.attachments ?? [] }}
               />
             </div>
-            {doneWarn && <InlineError>{doneWarn}</InlineError>}
-
             {!task.parentTaskId && (
               <>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
@@ -1322,11 +1326,12 @@ export function TaskModal({ taskId, onClose, onNavigate }: TaskModalProps) {
               onChanged={(next) => update({ attachments: next })}
               onQuotaExceeded={() => setStorageLimitOpen(true)}
             />
+            {doneWarn && doneWarnSource === 'suggest' && <InlineError>{doneWarn}</InlineError>}
             <GitHubTaskSection
               task={task}
               canEdit={canEdit}
               onChanged={(next) => update({ githubLinks: next })}
-              onMarkDone={() => changeStatus('done')}
+              onMarkDone={() => changeStatus('done', 'suggest')}
             />
             <h4 className="detail-subtitle">Activity</h4>
             <ActivityList projectId={projectId} entity="tasks" entityId={task.id} />

@@ -198,6 +198,10 @@ is reserved for floating layers.
 | 2026-09-22 | Lampiran ala Linear: thumb 40px + tombol Eye → `AttachmentPreviewModal` (reuse `.md-preview`/`.modal-fullscreen`, zoom gambar, video, PDF `sandbox`, teks cap 1MB); `LinkCard` (favicon+domain, OG title/desc/image via `/attachments/unfurl` SSRF-guarded cache 1 jam); embed deskripsi `![alt](attachment:<id>)` (blob URL sesi, lolos expiry 60 dtk signed URL); upload dari editor (paperclip/drag-drop/paste, staged vs attached). Kelas baru `.link-card` tanpa `*-title/*-label` (guard hijau); video dibuka di allowlist (`video/*`) |
 | 2026-09-22 | Subtask ala Linear/Asana/ClickUp (gaya subtle, tanpa tint): tambah inline judul+assignee+tanggal di TaskModal (reuse `SearchableSelect` + `DatePicker range` portal; chain Enter, validasi rentang parent saat buat); baris subtask indent 16 + rail `border-hairline` 1px, avatar 14-16 + meta 11px muted + due chip existing; badge `Subtask` (`Badge neutral`) + breadcrumb `btn-ghost btn-sm`; kartu board: ikon `GitBranch` 11 + sub-label parent 11px muted, progress reuse `.usage-meter-bar/fill`, due rollup via `taskDueChip`; kalender: ikon + parent di tooltip/chip. Nol kelas/hex/spacing/font baru (guard hijau) |
 | 2026-09-23 | Tooltip satu gaya inverse theme-aware: prop `tone` dihapus (±30 call-site), `.tooltip-card-{dark,light,info}` + arrow varian dilipat ke 1 blok token (`--surface/text/border/icon-inverse`, nilai dibalik per tema); hex `#111827/#2f6df6` keluar dari allowlist guard; aturan: plain vs rich tak lagi dibedakan tone (konsensus Linear/GitHub/Onyx, inversi Radix) |
+| 2026-09-25 | Feedback section unified: `StatusBanner` (`danger/warn/success/info` → `save-banner/conflict-banner/save-status/info-banner`, role otomatis) gantikan duplikasi flash/error GCal/GitHub; pilot migrasi `GCalSettings` + `GitHubSettings` (error pindah ke bawah aksi, `unconfigured` jadi warn, tombol "Install on another GitHub account"); `GitHubSetupGate` ke `InlineError`; aturan penempatan di `coding-standards` §7 + `design-tokens` §7 |
+| 2026-09-25 | Koreksi: butir "urutan kanonis section integrasi" (scoped, behavioral) dicabut dari §7 global — diganti aturan penempatan global di `coding-standards` §7 (banner menempel pemicu, teks statis utuh); §7 kembali ke mekanik (ritme, varian warna); warn GitHub pindah ke atas baris aksi |
+| 2026-09-25 | `InlineError` ditegaskan global: ikon `Warning` 12px + teks 600 (seragam 71 titik + `Input`/`Textarea`); tetap teks tanpa kotak, `role=alert` tak berubah; `.field-error > svg` nempel baris pertama (pola `save-toast`), gap 6 tangga space-* |
+| 2026-09-25 | Audit penempatan feedback se-app: aturan kedekatan dilonggarkan jadi "di atas ATAU bawah pemicu asal bersebelahan" (konvensi modal: error di atas footer = menempel); 12 titik P0 diperbaiki (duplikat PricingPage, alert-pada-info PlanLimitModal/TeamBillingPanel, role ganda PaymentHistory, primitif custom ProfilePage, load-gagal auth/billing, ember salah ProjectPage, kode mati LabelsSection, doneWarn dinamis TaskModal) |
 
 ---
 
@@ -259,6 +263,11 @@ Rules:
 - **Urutan kanonis blok baca General:** 1 nama (+ikon) → 2 ID + Copy →
   3 meta sekunder (proyek: Team·Status; tim: Team URL) → 4 Description
   di akhir. Blok tanpa data dilewati, tidak disusun ulang.
+- **Varian banner section:** danger `save-banner`, warn `conflict-banner`,
+  success `save-status`, info `info-banner` — semua via `var(--status-*)`.
+  Banner in-flow selebar wadahnya (cap 400px hanya untuk toast melayang
+  di `.toast-stack`). Penempatan diatur `coding-standards.md` §7
+  (banner menempel pada pemicu; teks statis utuh tak disela).
 - Guard memindai (warn-first): margin/padding/gap/row-gap/column-gap (tangga space-*);
   border-radius mentah (50% = DILARANG); border-width selain 1px; rgba() mentah di border.
   Transition SENGAJA tidak dijaga guard (butuh triase ADR per kasus, lihat §9).

@@ -7,6 +7,8 @@ import { clearPendingProject, clearPendingReturn, readPendingProject, readPendin
 import type { GitHubInstallationRepo } from '../../lib/types';
 import { useProjects } from '../../state/projects-context';
 import { Button } from '../../components/Button';
+import { DataErrorState } from '../../components/DataErrorState';
+import { InlineError } from '../../components/InlineError';
 import { Modal } from '../../components/Modal';
 import { SearchableSelect } from '../../components/SearchableSelect';
 
@@ -34,11 +36,13 @@ export function GitHubSetupGate() {
   const [pickedRepo, setPickedRepo] = useState('');
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   const isSetupReturn =
     searchParams.get('github') === 'installed' && searchParams.get('installation_id') !== null;
 
-  // Ambil info instalasi + daftar repo sekali saat params terdeteksi.
+  // Ambil info instalasi + daftar repo sekali saat params terdeteksi
+  // (attempt = pemicu ulang saat retry dari DataErrorState).
   useEffect(() => {
     if (!isSetupReturn || pending || loading) return;
     const installationId = Number(searchParams.get('installation_id'));
@@ -65,7 +69,7 @@ export function GitHubSetupGate() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSetupReturn]);
+  }, [isSetupReturn, attempt]);
 
   if (!isSetupReturn) return null;
 
@@ -158,9 +162,14 @@ export function GitHubSetupGate() {
       {loading ? (
         <p className="field-helper">{t('settings.loading', { defaultValue: 'Loading…' })}</p>
       ) : error && !pending ? (
-        <p className="field-helper" role="alert">
-          {error}
-        </p>
+        <DataErrorState
+          error={error}
+          onRetry={() => {
+            setError(null);
+            setAttempt((a) => a + 1);
+          }}
+          retryLabel={t('settings.githubRetry', { defaultValue: 'Try again' })}
+        />
       ) : done ? (
         <p className="field-helper" role="status">
           {done}
@@ -173,11 +182,6 @@ export function GitHubSetupGate() {
               account: pending.accountLogin ? ` on "${pending.accountLogin}"` : '',
             })}
           </p>
-          {error && (
-            <p className="field-helper" role="alert">
-              {error}
-            </p>
-          )}
           <SearchableSelect
             id="github-gate-project"
             label={t('settings.githubGateProject', { defaultValue: 'DevHub project' })}
@@ -200,8 +204,9 @@ export function GitHubSetupGate() {
               if (v) setPickedRepo(v);
             }}
           />
+          {error && <InlineError>{error}</InlineError>}
           {adminProjects.length === 0 && (
-            <p className="field-helper" role="alert">
+            <p className="field-helper">
               {t('settings.githubAdminOnly', { defaultValue: 'Only owners and admins can change the repository mapping.' })}
             </p>
           )}

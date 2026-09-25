@@ -433,7 +433,6 @@ export function PricingPage() {
                   busy={isSelectedBusy}
                   anyBusy={anyBusy}
                   disabledReason={disabledReason}
-                  actionError={actionError?.pkgId === pkg.id ? actionError.message : null}
                   onRequireWorkspace={requestWorkspaceFocus}
                   isCurrent={isCurrent}
                   isScheduled={isScheduled}

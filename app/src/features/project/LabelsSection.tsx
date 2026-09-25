@@ -12,7 +12,6 @@ import {
 import type { LabelColor, LabelDef } from '../../lib/types';
 import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
-import { InlineError } from '../../components/InlineError';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 
@@ -250,7 +249,6 @@ export function LabelsSection() {
             onChange={(e) => setFormDesc(e.target.value)}
             placeholder={t('settings.labelsDescPlaceholder', { defaultValue: 'Description (tooltip)…' })}
           />
-          {formError && !formName.trim() && <InlineError>{formError}</InlineError>}
         </div>
       </Modal>
 

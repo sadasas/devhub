@@ -4,7 +4,7 @@ import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { SearchableSelect } from '../../components/SearchableSelect';
-import { InlineError } from '../../components/InlineError';
+import { StatusBanner } from '../../components/StatusBanner';
 import { MILESTONE_STATUS, TASK_PRIORITY, TASK_STATUS } from '../../lib/labels';
 import { TaskPriorityIcon } from '../../lib/task-icons';
 import type { Decision, Milestone, SchemaVersion, Task } from '../../lib/types';
@@ -268,9 +268,10 @@ export function ReleasesFlowView({
   if (!selected) {
     return (
       <div className="release-flow-invalid">
-        <InlineError>
-          {t('releases.flow.invalidMilestone', { defaultValue: 'Selected milestone not found. Choose one below.' })}
-        </InlineError>
+        <StatusBanner
+          tone="danger"
+          message={t('releases.flow.invalidMilestone', { defaultValue: 'Selected milestone not found. Choose one below.' })}
+        />
         <div className="release-flow-selector">
           {milestones.map((m) => (
             <Button key={m.id} size="sm" variant="ghost" onClick={() => onSelect(m.id)}>
@@ -303,16 +304,17 @@ export function ReleasesFlowView({
       <ReadinessChecklist milestone={selected} tasks={flowTasks} issues={issues} testCases={testCases} />
 
       {dag.hasCycle && (
-        <InlineError>
-          {t('releases.flow.cycleDetected', { defaultValue: 'Cycle detected in blockedBy chain — showing fallback order.' })} {dag.cyclePath.join(' → ')}
-        </InlineError>
+        <StatusBanner
+          tone="danger"
+          message={<>{t('releases.flow.cycleDetected', { defaultValue: 'Cycle detected in blockedBy chain — showing fallback order.' })} {dag.cyclePath.join(' → ')}</>}
+        />
       )}
 
       {dag.allBlocked && flowTasks.length > 0 && (
-        <div className="release-flow-banner release-flow-banner--danger" role="status">
-          <WarningCircle size={16} weight="fill" />
-          <span>{t('releases.flow.allBlocked', { defaultValue: 'All tasks are blocked. Start with the tasks that block the most others.' })}</span>
-        </div>
+        <StatusBanner
+          tone="danger"
+          message={t('releases.flow.allBlocked', { defaultValue: 'All tasks are blocked. Start with the tasks that block the most others.' })}
+        />
       )}
 
       {flowTasks.length === 0 ? (

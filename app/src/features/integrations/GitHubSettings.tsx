@@ -11,9 +11,19 @@ import {
 } from '../../lib/docs-urls';
 import type { GitHubAutomation, GitHubInstallation, GitHubInstallationRepo, GitHubStatus } from '../../lib/types';
 import { savePendingReturn } from '../../lib/github';
-import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
+import { DataErrorState } from '../../components/DataErrorState';
 import { SearchableSelect } from '../../components/SearchableSelect';
+import { StatusBanner } from '../../components/StatusBanner';
+
+/** Error code server saat GitHub App belum dikonfigurasi (duck-typing agar aman di test mock). */
+function isNotConfiguredError(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    (err as { code?: unknown }).code === 'GITHUB_NOT_CONFIGURED'
+  );
+}
 
 interface GitHubSettingsProps {
   projectId: string;
@@ -93,6 +103,7 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
   const [installations, setInstallations] = useState<GitHubInstallation[] | null>(null);
   const [pickedInstallation, setPickedInstallation] = useState<number | null>(null);
   const [reposLoading, setReposLoading] = useState(false);
+  const [unconfigured, setUnconfigured] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -100,7 +111,14 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
     try {
       setStatus(await api.githubStatus(projectId));
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load GitHub status');
+      if (isNotConfiguredError(e)) {
+        // Opsi B: NOT_CONFIGURED hanya diwakili banner warn persisten —
+        // jangan isi error generik agar tidak tampil dobel.
+        setUnconfigured(true);
+        setError(null);
+      } else {
+        setError(e instanceof Error ? e.message : 'Failed to load GitHub status');
+      }
     } finally {
       setLoading(false);
     }
@@ -121,7 +139,12 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
           setPicked(repos[0] ? `${repos[0].owner}/${repos[0].repo}` : '');
         }
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'GitHub setup failed');
+        if (isNotConfiguredError(e)) {
+          setUnconfigured(true);
+          if (!cancelled) setError(null);
+        } else if (!cancelled) {
+          setError(e instanceof Error ? e.message : 'GitHub setup failed');
+        }
       } finally {
         if (!cancelled) {
           const next = new URLSearchParams(searchParams);
@@ -179,8 +202,12 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
     (async () => {
       try {
         const { installations: rows } = await api.githubInstallations();
-        if (!cancelled) setInstallations(rows);
-      } catch {
+        if (!cancelled) {
+          setInstallations(rows);
+          setUnconfigured(false);
+        }
+      } catch (e) {
+        if (isNotConfiguredError(e)) setUnconfigured(true);
         if (!cancelled) setInstallations([]);
       }
     })();
@@ -198,7 +225,12 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
       setPendingInstall({ installationId, repos });
       setPicked(repos[0] ? `${repos[0].owner}/${repos[0].repo}` : '');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load repositories');
+      if (isNotConfiguredError(e)) {
+        setUnconfigured(true);
+        setError(null);
+      } else {
+        setError(e instanceof Error ? e.message : 'Failed to load repositories');
+      }
     } finally {
       setReposLoading(false);
     }
@@ -223,7 +255,12 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
       });
       await refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Connect failed');
+      if (isNotConfiguredError(e)) {
+        setUnconfigured(true);
+        setError(null);
+      } else {
+        setError(e instanceof Error ? e.message : 'Connect failed');
+      }
     } finally {
       setBusy(false);
     }
@@ -292,7 +329,12 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
       const { installUrl } = await api.githubInstallUrl();
       window.location.href = installUrl;
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not start GitHub connect');
+      if (isNotConfiguredError(e)) {
+        setUnconfigured(true);
+        setError(null);
+      } else {
+        setError(e instanceof Error ? e.message : 'Could not start GitHub connect');
+      }
       setBusy(false);
     }
   }
@@ -306,40 +348,36 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
       {loading ? (
         <p className="field-helper">{t('settings.loading', { defaultValue: 'Loading…' })}</p>
       ) : error && !status ? (
-        <p className="field-helper" role="alert">
-          {error}
-        </p>
+        <DataErrorState
+          error={error}
+          onRetry={() => void refresh()}
+          retryLabel={t('settings.githubRetry', { defaultValue: 'Try again' })}
+        />
       ) : (
         <>
           {notice && (
-            <p className="field-helper" role="status">
-              {notice}
-            </p>
+            <StatusBanner
+              tone="success"
+              message={notice}
+              onDismiss={() => setNotice(null)}
+              dismissLabel={t('settings.githubDismiss', { defaultValue: 'Dismiss' })}
+              testId="github-notice"
+            />
           )}
           {flash ? (
-            <div
-              className="save-toast save-banner"
-              role={flash.tone === 'error' ? 'alert' : 'status'}
-              data-testid="github-flash"
-            >
-              <Badge tone={flash.tone === 'error' ? 'danger' : 'success'} dot>
-                {flash.tone === 'error'
+            <StatusBanner
+              tone={flash.tone === 'error' ? 'danger' : 'success'}
+              title={
+                flash.tone === 'error'
                   ? t('settings.githubFailed', { defaultValue: 'Connection failed' })
-                  : t('settings.githubFlashConnected', { defaultValue: 'Connected' })}
-              </Badge>
-              <div className="save-toast-body">
-                <span>{flash.text}</span>
-              </div>
-              <Button variant="ghost" size="sm" className="save-toast-close" onClick={() => setFlash(null)}>
-                {t('settings.githubDismiss', { defaultValue: 'Dismiss' })}
-              </Button>
-            </div>
+                  : t('settings.githubFlashConnected', { defaultValue: 'Connected' })
+              }
+              message={flash.text}
+              onDismiss={() => setFlash(null)}
+              dismissLabel={t('settings.githubDismiss', { defaultValue: 'Dismiss' })}
+              testId="github-flash"
+            />
           ) : null}
-          {error && (
-            <p className="field-helper" role="alert">
-              {error}
-            </p>
-          )}
           {status?.connected ? (
             <div className="github-stack">
               <p className="field-helper">
@@ -430,7 +468,14 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
                 })}
               </p>
               <GitHubDisclosure />
-              {isAdmin && installations !== null && installations.length > 0 && !pendingInstall ? (
+              {isAdmin && installations !== null && installations.length === 0 && !pendingInstall && !unconfigured ? (
+                <p className="field-helper">
+                  {t('settings.githubNoInstallations', {
+                    defaultValue: 'No installations yet — install the App first.',
+                  })}
+                </p>
+              ) : null}
+              {isAdmin && installations !== null && installations.length > 0 && !pendingInstall && !unconfigured ? (
                 <>
                   <p className="field-helper">
                     {t('settings.githubInstalledUnmapped', {
@@ -458,7 +503,29 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
                   {reposLoading ? (
                     <p className="field-helper">{t('settings.loading', { defaultValue: 'Loading…' })}</p>
                   ) : null}
+                  <div className="integration-action-end">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      leftIcon={<GithubLogo size={14} weight="fill" aria-hidden="true" />}
+                      onClick={() => void startConnect()}
+                      disabled={busy || !canConnect}
+                    >
+                      {t('settings.githubInstallOther', { defaultValue: 'Install on another GitHub account' })}
+                    </Button>
+                  </div>
                 </>
+              ) : null}
+              {unconfigured ? (
+                <StatusBanner
+                  tone="warn"
+                  title={t('settings.githubNotConfiguredTitle', { defaultValue: 'GitHub App not configured' })}
+                  message={t('settings.githubNotConfiguredDesc', {
+                    defaultValue: 'The GitHub App is not set up on this server yet. Ask an admin to configure it, then try again.',
+                  })}
+                  testId="github-unconfigured"
+                />
               ) : null}
               {pendingInstall ? (
                 <>
@@ -519,6 +586,15 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
               )}
             </div>
           )}
+          {error && status && !unconfigured ? (
+            <StatusBanner
+              tone="danger"
+              message={error}
+              onDismiss={() => setError(null)}
+              dismissLabel={t('settings.githubDismiss', { defaultValue: 'Dismiss' })}
+              testId="github-toast"
+            />
+          ) : null}
         </>
       )}
     </div>

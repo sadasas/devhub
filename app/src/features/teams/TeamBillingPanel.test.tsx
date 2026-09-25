@@ -73,6 +73,21 @@ describe('TeamBillingPanel', () => {
     expect(screen.queryByRole('button', { name: /View Pricing/ })).toBeNull();
   });
 
+  it('shows a warn banner when pro expires within 7 days', async () => {
+    vi.mocked(mocks.billingStatus).mockResolvedValue({
+      team: { id: 't1', name: 'Platform', plan: 'pro', planExpiresAt: new Date(Date.now() + 3 * 86_400_000).toISOString(), planPackageName: 'Pro' },
+      usage: {
+        members: { used: 5, limit: null },
+        projects: { used: 40, limit: null },
+        storage: { usedBytes: 1048576, limitBytes: null },
+      },
+      payments: [],
+    });
+    renderPanel();
+    const banner = await screen.findByTestId('billing-ending-soon');
+    expect(banner.getAttribute('role')).toBe('alert');
+  });
+
   it('hides upgrade actions from non-admin members', async () => {
     vi.mocked(mocks.billingStatus).mockResolvedValue(BASE);
     renderPanel(false);

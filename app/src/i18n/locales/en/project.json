@@ -144,7 +144,10 @@
     "githubPrivacyLink": "Privacy Policy",
     "githubTermsLink": "Terms",
     "githubRevokeLink": "GitHub App settings",
-    "githubSideLink": "GitHub's policies"
+    "githubSideLink": "GitHub's policies",
+    "githubRetry": "Try again",
+    "githubNotConfiguredTitle": "GitHub App not configured",
+    "githubNotConfiguredDesc": "The GitHub App is not set up on this server yet. Ask an admin to configure it, then try again."
   },
   "deleteModal": {
     "title": "Delete project",

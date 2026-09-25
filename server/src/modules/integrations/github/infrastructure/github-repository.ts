@@ -109,11 +109,13 @@ export interface GithubInstallationSummary {
 /**
  * Daftar instalasi untuk picker repo (State B tanpa redirect).
  * SENGAJA tanpa token_blob/token_expires_at — picker tidak butuh secret.
+ * Hanya status 'connected' — instalasi suspended/removed (ditandai webhook)
+ * disembunyikan; reconnect = install ulang App di akun itu.
  */
 export async function listInstallations(): Promise<GithubInstallationSummary[]> {
   const res = await pool.query(
     `SELECT installation_id, account_login, account_type, status
-     FROM github_installations ORDER BY installation_id ASC`,
+     FROM github_installations WHERE status = 'connected' ORDER BY installation_id ASC`,
   );
   return (res.rows as Array<{ installation_id: string | number; account_login: string | null; account_type: string | null; status: string }>).map(
     (row) => ({
