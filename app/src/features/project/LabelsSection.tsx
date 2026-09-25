@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, PencilSimple, Plus, Trash } from '@phosphor-icons/react';
 import { useProject } from '../../state/project-context';
@@ -15,6 +15,29 @@ import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { InlineError } from '../../components/InlineError';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { RowMenu } from '../../components/RowMenu';
+
+/** Mode sempit (≤640px): aksi rename/hapus diganti kebab ⋮ — pola IssuesPage. */
+function useIsLabelsNarrow(): boolean {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(max-width: 640px)').matches
+      : false,
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(max-width: 640px)');
+    const update = (): void => setMatches(mq.matches);
+    update();
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', update);
+      return () => mq.removeEventListener('change', update);
+    }
+    mq.addListener(update);
+    return () => mq.removeListener(update);
+  }, []);
+  return matches;
+}
 
 function Swatches({
   value,
@@ -72,6 +95,7 @@ export function LabelsSection() {
   const [formDesc, setFormDesc] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const isNarrow = useIsLabelsNarrow();
 
   const isDuplicate = (n: string, exceptId?: string) =>
     (state?.labelDefs ?? []).some((d) => d.id !== exceptId && d.name.trim().toLowerCase() === n.trim().toLowerCase());
@@ -178,7 +202,7 @@ export function LabelsSection() {
                   <span style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0, marginLeft: 'auto' }} className="tabular">
                     {t('settings.labelsUsed', { defaultValue: '{{count}} tasks', count })}
                   </span>
-                  {canEdit && (
+                  {canEdit && !isNarrow && (
                     <>
                       <button type="button" className="mini-del" onClick={() => openEdit(def)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 6, display: 'inline-flex', flexShrink: 0 }} aria-label={`${t('settings.labelsRename', { defaultValue: 'Rename' })} ${def.name}`}>
                         <PencilSimple size={14} aria-hidden="true" />
@@ -187,6 +211,28 @@ export function LabelsSection() {
                         <Trash size={14} aria-hidden="true" />
                       </button>
                     </>
+                  )}
+                  {canEdit && isNarrow && (
+                    <RowMenu
+                      triggerLabel={`More actions for ${def.name}`}
+                      menuLabel={`More actions for ${def.name}`}
+                      menuId={`label-rowmenu-${def.id}`}
+                      actions={[
+                        {
+                          key: 'rename',
+                          label: `${t('settings.labelsRename', { defaultValue: 'Rename' })} ${def.name}`,
+                          icon: <PencilSimple size={14} aria-hidden="true" />,
+                          onSelect: () => openEdit(def),
+                        },
+                        {
+                          key: 'delete',
+                          label: t('settings.labelsDelete', { defaultValue: 'Delete' }),
+                          icon: <Trash size={14} aria-hidden="true" />,
+                          danger: true,
+                          onSelect: () => setDeleteId(def.id),
+                        },
+                      ]}
+                    />
                   )}
                 </div>
                 {def.description && (

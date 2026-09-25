@@ -4,7 +4,7 @@
 |---|---|
 | **Document status** | Active |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-09 |
+| **Last updated** | 2026-09-24 |
 
 ---
 
@@ -50,7 +50,10 @@ Every PR or merge to `main` is reviewed against:
 - [ ] No new dependencies without ADR/scope note
 
 ### 3.4 UI/UX (when touching UI)
-- [ ] Uses design-system primitives + tokens (no raw hex/spacing)
+- [ ] Uses design-system primitives + tokens (no raw hex/spacing) — token baru ikut update `design-tokens.md` di PR yang sama (Living Rule)
+- [ ] Guard hijau: `npm run guard:css` tanpa temuan baru (`scripts/guard-css-classes.mjs`)
+- [ ] Portal/menu/select: dropdown/kalender via portal; `RowMenu` kebab + `stopPropagation`; `SearchableSelect` tanpa emit saat mount (ada regression test)
+- [ ] i18n parity: string baru ada di EN + ID (`defaultNS: common` untuk aksi umum via `common:`); EN byte-identik dengan copy semula
 - [ ] Keyboard operable; focus visible
 - [ ] Contrast AA; `prefers-reduced-motion` honored
 - [ ] Loading (skeleton), empty, and error states present
@@ -59,6 +62,7 @@ Every PR or merge to `main` is reviewed against:
 
 ### 3.5 Tests & build
 - [ ] Unit tests for new reducer/zod/auth logic
+- [ ] Upload matrix (bila menyentuh upload): TUS sukses → resume → fallback PUT → `isUploadAuthError` (401/403) — via `app/src/lib/attachmentUpload.ts`
 - [ ] `npm run lint && npm run typecheck && npm run test && npm run build` green
 
 ---
@@ -71,6 +75,7 @@ All 3.x checklists pass **and**:
 - [ ] Docs updated if contract/behavior changed (types.ts ↔ zod sync)
 - [ ] ADR added if an architectural decision changed
 - [ ] PR body explains what/why for future self
+- [ ] UI PR sertakan screenshot 4-kombinasi: light + dark × 360px + desktop (per-area acceptance, cf. [Design Tokens §5](design-tokens.md#5-living-rule))
 
 ---
 

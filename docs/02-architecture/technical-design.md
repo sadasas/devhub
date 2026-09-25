@@ -5,7 +5,7 @@
 | **Document status** | Draft (Phase 0) |
 | **Version** | 1.0 |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-09-03 |
+| **Last updated** | 2026-09-24 |
 | **Related documents** | [PRD](../01-project/prd.md) · [ADR Log](adr.md) · [Security Design](security-design.md) · [MCP Guide](../03-engineering/mcp-integration.md) |
 
 ---
@@ -69,16 +69,21 @@ This document specifies the technical architecture for DevHub V1: system context
 | `AuthPages` | Register / login / logout flows |
 | `Layout` | Sidebar + content shell |
 | `Dashboard` | Project cards: progress, open issues, outdated deps, nearest milestone |
-| Feature tabs | `Board`, `Issues`, `TestCases`, `Stack`, `Schema` (with ERD), `Decisions`, `Releases`, `Stats` |
+| Feature tabs | `Board` (incl. `?view=due` calendar), `Issues`, `TestCases`, `Stack`, `Schema` (with ERD), `Decisions`, `Releases`, `API` (collections + endpoints, OpenAPI import/export), `Whiteboard` (ShapeLibrary 100 geometri/8 tab + FigJam panel + embed SVG), `Overview` (ex-Stats+About), `Templates`, `Billing`, `Integrations` (GitHub App + GCal) |
+| `RowMenu` | Kebab standar ≤640px untuk Issues/Decisions/Tests/Releases/Whiteboard/Labels/Templates (`stopPropagation` fix); TemplatesPage icon-only + kebab |
+| `i18n` | `i18next` + `react-i18next`, 6 ns (`common/shell/account/tracker/project/extras`), `defaultNS: common`, `LANG_STORAGE_KEY` (addendum ADR-046, overhaul P0+P1) |
+| `Upload` | `tus-js-client` jalur utama TUS (chunk 6MB, `x-signature` + `x-upsert`, metadata `bucket/object`) + fallback PUT + `isUploadAuthError`; service-key tak ke browser |
+| `SearchableSelect` | Mount-emit fix + test regresi; dipakai assignee/label/filter select |
 | `CommandPalette` | Ctrl+K global command palette + keyboard shortcuts + create actions (deep-link `?tab=X&new=1`) |
 | `components/` | Design-system primitives: Button, Input, Badge, Modal, Skeleton, EmptyState, Toast |
 | `styles/` | `tokens.css` (CSS variables), `global.css` |
 
 **Design constraints (locked):**
-- No runtime UI dependencies except `@phosphor-icons/react`.
+- Runtime UI deps: `@phosphor-icons/react`, `react-router` v7 (ADR-016), `i18next`/`react-i18next` (ADR-046/056), `yaml` (ADR-019 OpenAPI), `tus-js-client` (ADR-055 upload). Klaim zero-dep (ADR-007) sudah superseded.
 - Kanban drag & drop: native HTML5 DnD (no library).
 - Charts: hand-built SVG components.
-- Dark theme only; CSS variables; Geist/Geist Mono self-hosted via `@fontsource`.
+- Light/Dark theme via `html[data-theme]` (ADR-047); whiteboard/ERD export theme-aware; canvas teks via `truncateToWidth`.
+- Mobile: `RowMenu` kebab ≤640px; `LabelsSection` wrap + kebab mobile; drawer settings mobile (`Layout`/`Sidebar`); `project-card-title` `display:block`; grid `minmax`.
 
 ### 3.2 API Server (`server/`)
 
@@ -135,6 +140,12 @@ server/src/
 | `oauth_clients` | OAuth DCR public clients | client_id (PK), redirect_uris (text[]), client_name, client_uri, created_at |
 | `oauth_authorization_codes` | PKCE authorization codes | code (PK), client_id (FK), user_id (FK → users), redirect_uri, scope, code_challenge, code_challenge_method, resource, expires_at, used_at |
 | `oauth_access_tokens` | Bearer tokens (rotation) | token (PK), client_id (FK), user_id (FK → users), scope, resource, expires_at, refresh_token (unique), refresh_expires_at, created_at |
+| `activity_log` | Per-entity activity (REST + MCP parity) | project_id, entity, entity_id, action, changes, author_id, created_at; prune 500/project, 50/entity |
+| `team_messages` | Team chat (viewer boleh tulis, ADR-038) | id, team_id, author_id, body, created_at |
+| `billing_packages` / `billing_package_prices` | Paket dinamis DB-driven + Free kelolaan admin (grandfathered bila nonaktif) | package (max_members/max_projects NULL=unlimited), prices (duration_days+price_idr) |
+| `team_payments` | Pakasir payments | order_id UNIQUE, team_id, package snapshot, period, amount, status |
+| `github_installations` / `github_project_repos` / `github_webhook_events` / `github_outbox` | GitHub App (ADR-052): install, 1 repo/project, idempotency delivery_id, retry 1m/5m/30m | token sealed AES-256-GCM |
+| `gcal_*` (`tokens` vault + `outbox`) | GCal (ADR-059, tandingan ADR-052): vault AES-256-GCM, outbox 1m/5m/30m, sync-service, scope `calendar` |
 
 **Why JSONB?** See ADR-002. The 10-entity state model is a single JSON document per project. Indexed fields: `team_id` (projects), `user_id` (team_members), `email`+`status` (invitations).
 
@@ -158,31 +169,36 @@ interface Base {
 | Entity | Fields |
 |---|---|
 | `Project` | name, description, status, createdAt |
-| `Task` | title, status (Todo/In Progress/Review/Done), priority, estimate (h), actualHours (h), labels: string[], blockedBy: taskId[] |
-| `Issue` | title, severity (Critical/High/Med/Low), status (Open/Reproduced/Fixing/Resolved/Won't fix), reproduction, linkedTaskId? |
-| `TestCase` | taskId? / issueId?, name, steps, expected, status (Pass/Fail/Pending) |
+| `Task` | title, status (Todo/In Progress/Review/Done), priority, estimate (h), actualHours (h), labels: string[], blockedBy: taskId[], `dueDate?`, `startDate?`, `completedAt?` (auto-derive), `pinned`, `parentTaskId?` (subtask 1-level), `githubLinks[]` (max 20, dedupe repo+kind+ref, `ciState`/`reviewState`) |
+| `Issue` | title, severity (Critical/High/Med/Low), status (Open/Reproduced/Fixing/Resolved/Won't fix), reproduction, linkedTaskId?, `fixPr?`, `pinned` |
+| `TestCase` | taskId? / issueId?, name, steps, expected, status (Pass/Fail/Pending), `pinned` |
 | `TechEntry` | name, version, category (Frontend/Backend/DB/Tooling), status (Current/Update available/Major upgrade), notes |
 | `Table` | name, comment, columns: Column[], indexes: string[] |
 | `Column` | name, type, nullable, primaryKey, default, comment |
 | `Relation` | fromTableId+fromColumnId, toTableId+toColumnId, cardinality ('1:1'/'1:N'/'N:M'), onDelete (CASCADE/SET NULL/RESTRICT) |
 | `SchemaVersion` | version, appliedAt, notes |
-| `Decision` | title, status (Proposed/Accepted/Rejected/Superseded), context, options: string[], decision, consequences, date |
+| `Decision` | title, status (Proposed/Accepted/Rejected/Superseded), context, options: string[], decision, consequences, date, `pinned` |
 | `Milestone` | name, version?, targetDate, status (Planned/In Progress/Released), changelog? |
+| `ApiCollection` | name ≤200, description ≤2k |
+| `ApiEndpoint` | collectionId?, method (GET/POST/PUT/PATCH/DELETE/OPTIONS), path ≤500, name ≤200, description ≤10k, headers[], params[] (path/query/header), body ≤50k, responses[] |
+| `Whiteboard` | name, elements[] (≤1000/board, ≤5/project): `stroke`/`sticky`/`text` (w? wrap)/`shape` (+cylinder/parallelogram/hexagon/roundedRect)/`edge` (label ≤200, arrowStyle none/open/solid/diamond/circle)/`boundary`/`ref` (multi-entity)/`embed` (SVG AI, ≤20/board); koordinat ±100.000 |
 
 **State shape (per project):**
 
 ```jsonc
 {
-  "tasks": [...],
-  "issues": [...],
-  "testCases": [...],
+  "tasks": [...],          // dueDate/startDate/completedAt/pinned/parentTaskId/githubLinks
+  "issues": [...],         // fixPr/pinned
+  "testCases": [...],      // pinned
   "techEntries": [...],
-  "tables": [...],
-  "columns": [...],      // referenced by tables + relations
+  "tables": [...],         // columns inline per table
   "relations": [...],
   "schemaVersions": [...],
-  "decisions": [...],
-  "milestones": [...]
+  "decisions": [...],      // pinned
+  "milestones": [...],
+  "apiCollections": [...],
+  "apiEndpoints": [...],
+  "whiteboards": [...]     // elements stroke/sticky/text/shape/edge/boundary/ref/embed
 }
 ```
 
@@ -196,7 +212,7 @@ interface Base {
 
 ## 5. API Design
 
-Base URL: `/api`. All endpoints JSON. Auth via httpOnly cookie `devhub_session`.
+Base URL: `/api/v1`. All endpoints JSON. Auth via httpOnly cookie `devhub_session`. Granular entity routes via `entity-router.ts` factory (zod reuse, `SELECT ... FOR UPDATE` per-project writer serialization, `ETag: "<version>"` on reads, optional `If-Match: <version>` → `409 CONFLICT` + `details.current.version`); `PUT /state` remains bulk/compat; cascade server-side (delete table → relations, milestone → `task.milestoneId`, task → `issue.linkedTaskId`).
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
@@ -234,6 +250,13 @@ Base URL: `/api`. All endpoints JSON. Auth via httpOnly cookie `devhub_session`.
 | GET | `/oauth/authorized-apps` | Yes | List authorized clients (session) |
 | DELETE | `/oauth/authorized-apps/:clientId` | Yes | Revoke client (session) |
 | GET | `/api/v1/health` | No | Health check (monitoring) |
+| GET | `/api/v1/projects/:projectId/{tasks\|issues\|testCases\|milestones\|techEntries\|decisions\|tables\|relations\|schemaVersions\|apiCollections\|apiEndpoints}` | Yes | Granular list (`?after=&limit=` cursor) + `ETag` |
+| GET\|PATCH\|DELETE | `/api/v1/projects/:projectId/{entity}/{entityId}` | Yes | Granular read/write (editor+; `If-Match` optional → 409) |
+| POST | `/billing/checkout` | Yes | Pakasir checkout admin-only `{teamId, packageId, priceId}` → payment URL |
+| POST | `/billing/webhook` | No | Pakasir webhook publik (verify server-to-server `transactiondetail`, idempoten per order_id) |
+| GET | `/billing/packages` | No | Daftar paket aktif (DB-driven) |
+| POST | `/webhooks/github` | No | GitHub App webhook (`express.raw`, HMAC sha256, dedupe `delivery_id`) |
+| * | `/integrations/gcal/*` | Yes | Google Calendar sync-service (vault AES-256-GCM, outbox 1m/5m/30m, scope `calendar`) |
 
 `*` `GET /oauth/authorize` requires an active session cookie; otherwise 302 to login with `returnTo`.
 
@@ -284,8 +307,12 @@ Versioning contract, request/response examples, and error format: see the in-app
 | `add_tech` | Creates a tech stack entry | `mcp` / `mcp:write` |
 | `add_test_case` | Creates a test case (optionally linked to a task or issue) | `mcp` / `mcp:write` |
 | `update_test_case` | Updates a test case (status, steps, expected, linked task/issue) | `mcp` / `mcp:write` |
+| `add_api_collection` | Creates an API collection | `mcp` / `mcp:write` |
+| `add_api_endpoint` | Documents an API endpoint (method+path+collection) | `mcp` / `mcp:write` |
+| `update_api_endpoint` | Patches endpoint contract (method/path/params/body/responses/collection) | `mcp` / `mcp:write` |
+| whiteboard tools (`create_whiteboard`/`update_whiteboard`/`patch_whiteboard`/`list_whiteboards`/`validate_whiteboard`) | Granular board edit incl. `embed` SVG wireframes; validator cegah overlap | `mcp` / `mcp:write` (`list` = read) |
 
-All tools return normalized responses with `updatedAt` so agents can detect external changes.
+Transport stateless **POST-only** (`GET /mcp` → `405 + Allow: POST`); `project_state` default `limit: 200`/koleksi (`limit: 0` = semua, `counts` penuh). All tools return normalized responses with `updatedAt` so agents can detect external changes.
 
 ### 7.3 Example Agent Loop (opencode)
 
@@ -335,22 +362,25 @@ Full spec: [MCP Integration Guide](../03-engineering/mcp-integration.md).
 
 ## 9. Deployment Architecture
 
-```
-Dockerfile (node:22-alpine)
-  ├── server build (dist/)
-  └── app static build served by Express (or CDN in Phase 2)
+FE static di **Cloudflare Workers** (Workers Builds, `assets.directory: ./dist`, `not_found_handling: single-page-application`); API prod di **Suga**; DB **Neon** (Postgres). Lokal: `docker-compose.yml` (postgres:16-alpine :5432) untuk dev/test.
 
-docker-compose.yml (local dev):  postgres:16-alpine on :5432
+```
+Workers (app static) ──HTTPS /api (same-origin proxy)──► Suga (Express) ──pg──► Neon
 ```
 
 | Env var | Required | Description |
 |---|---|---|
-| `DATABASE_URL` | Yes | `postgres://user:pass@host:5432/devhub` |
+| `DATABASE_URL` | Yes | Neon `postgres://user:pass@host:5432/devhub` |
 | `JWT_SECRET` | Yes | ≥ 32 random chars |
 | `PORT` | No | Default 3000 |
 | `NODE_ENV` | No | `development` / `production` (cookie Secure flag) |
 | `COOKIE_SECURE` | No | Force Secure cookies when behind TLS proxy |
+| `COOKIE_DOMAIN` | No | Parent domain prod (single login app+admin, ADR-051); kosong = host-only dev |
 | `TRUST_PROXY` | No | `true` when behind reverse proxy (required for OAuth discovery origin) |
+| `APP_PUBLIC_URL` | Yes (billing) | Origin publik untuk redirect Pakasir + OAuth `frontendOrigin()` |
+| `PAKASIR_ENABLED` / `PAKASIR_SANDBOX` / `PAKASIR_SLUG` / `PAKASIR_API_KEY` | Billing | Pakasir payment link IDR (ADR-044/045) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | OAuth login | Social login Google (ADR-048) |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` (+ App env) | OAuth + App | Social login + GitHub App integration (ADR-048/052) |
 
 See [Deployment Runbook](../05-operations/deployment-runbook.md).
 
@@ -361,9 +391,10 @@ See [Deployment Runbook](../05-operations/deployment-runbook.md).
 | Concern | Choice | Rationale / ADR |
 |---|---|---|
 | Frontend build | Vite + React 18 + TS | Fast, standard |
-| UI deps | `@phosphor-icons/react` only | Zero-dep policy, single icon family (ADR-007) |
-| Styling | Native CSS variables | Skill-driven design system; no framework needed |
+| UI deps | `@phosphor-icons/react`, `react-router` v7, `i18next`/`react-i18next`, `yaml`, `tus-js-client` | Icons (ADR-007 sisa) + routing (ADR-016) + i18n 6ns (ADR-046/056) + OpenAPI (ADR-019) + TUS upload (ADR-055) |
+| Styling | Native CSS variables | Skill-driven design system; light/dark via `html[data-theme]` (ADR-047) |
 | Server | Node 22 + Express | Simple, huge ecosystem |
+| Realtime | `ws` + RoomRegistry generik | WS primary, polling fallback saat disconnected (ADR-024/025) |
 | Validation | zod | Typed schemas shared between API + MCP |
 | DB | PostgreSQL + JSONB | Reliability + flexible payload (ADR-002) |
 | Auth | bcryptjs + jsonwebtoken + cookie-parser | Pure-JS (Windows-safe), httpOnly cookie (ADR-005) |

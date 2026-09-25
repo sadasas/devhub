@@ -177,7 +177,7 @@ describe('TemplatesPage narrow (≤640px)', () => {
     renderPage();
     await screen.findByText('Sprint template');
     fireEvent.click(screen.getByRole('button', { name: /More actions for/ }));
-    fireEvent.click(screen.getByRole('menuitem', { name: /Delete: Sprint template/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm delete' }));
 
     await waitFor(() => expect(del).toHaveBeenCalledWith(template.id));

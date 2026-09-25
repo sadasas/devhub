@@ -462,12 +462,18 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
     return result;
   }, [spanningSegments, rowGroups, expandedRows, maxVisible]);
 
-  // Row heights: if expanded, height follows max lanes, else 112
-  // C6 mobile: empty rows collapse to 72px, collapsed rows fit
-  // maxVisible(2) lanes (28 + 2*26 + 28 = 108). Desktop stays 112/140.
+  // Row heights: daynum (28) + lanes (26 each) + footer slot (gap + 22px
+  // text-button + bottom pad) agar tombol +N lagi / ciutkan muat di dalam cell.
+  // C6 mobile: empty rows collapse to 72px; overlay tak dirender di mobile
+  // sehingga formula footer hanya untuk desktop.
+  const FOOTER_GAP = 6;
+  const FOOTER_H = 22;
+  const FOOTER_PAD = 8;
   const rowHeights = useMemo(() => {
     const emptyH = isMobileCal ? 72 : 112;
-    const collapsedH = isMobileCal ? 28 + MAX_VISIBLE_MOBILE * 26 + 28 : 140;
+    const collapsedH = isMobileCal
+      ? 28 + MAX_VISIBLE_MOBILE * 26 + 28
+      : 28 + MAX_VISIBLE * 26 + FOOTER_GAP + FOOTER_H + FOOTER_PAD;
     const heights: number[] = [];
     const numRows = weekMode ? 1 : weeks.length;
     for (let r = 0; r < numRows; r++) {
@@ -481,7 +487,8 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
         const pos = dateToPos.get(d);
         return pos?.row === r;
       });
-      const needed = isRowExpanded ? Math.max(collapsedH, 28 + totalLanes * 26 + 28) : collapsedH;
+      const footerExtra = isMobileCal ? 28 : FOOTER_GAP + FOOTER_H + FOOTER_PAD;
+      const needed = isRowExpanded ? Math.max(collapsedH, 28 + totalLanes * 26 + footerExtra) : collapsedH;
       heights.push(needed);
     }
     return heights;
@@ -852,7 +859,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
           if (isExpanded) return null;
           const overflow = covering - maxVisible;
           const rowTop = rowHeights.slice(0, row).reduce((a,b)=>a+b+1,0);
-          const top = rowTop + 28 + maxVisible * 26; // lane berikutnya di dalam cell
+          const top = rowTop + 28 + maxVisible * 26 + FOOTER_GAP; // slot footer di dalam cell
           const left = `calc(${col} * ((100% - 6px) / 7 + 1px) + 4px)`;
           const width = `calc((100% - 6px) / 7 - 8px)`;
           return (
@@ -860,6 +867,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
               key={`more-${date}`}
               type="button"
               className="due-cal-more"
+              data-drop-key={`date:${date}`}
               style={{
                 position: 'absolute',
                 top: `${top}px`,
@@ -867,6 +875,21 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
                 width,
                 zIndex: 2,
                 pointerEvents: 'auto',
+              }}
+              onDragOver={(e) => {
+                // Backup bila pointer-events CSS lolos: teruskan ke cell date ini.
+                e.preventDefault();
+                e.stopPropagation();
+                e.dataTransfer.dropEffect = 'move';
+                if (dragTaskIdRef.current !== null && ghostDate !== date) setGhostDate(date);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setGhostDate(null);
+                setDragActive(false);
+                const id = e.dataTransfer.getData('text/plain');
+                if (id) moveToDate(id, date);
               }}
               onClick={(e) => {
                 e.stopPropagation();
@@ -886,22 +909,24 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
             </button>
           );
         })}
-        {/* tombol ciutkan per cell */}
-        {Array.from(expandedCells).map(date => {
-          const pos = dateToPos.get(date);
-          if (!pos) return null;
-          const row = pos.row;
-          const col = pos.col;
+        {/* tombol ciutkan per baris: 1 tombol per row di kolom expanded paling kiri,
+            selalu di slot footer dalam cell (tidak mepet tepi / keluar). */}
+        {Array.from(expandedRows).map(row => {
           const group = rowGroups.get(row) as any;
           const total = group?.lanes.length ?? 0;
-          const top = rowHeights.slice(0, row).reduce((a,b)=>a+b+1,0) + 28 + total * 26 + 4;
+          const datesInRow = Array.from(expandedCells).filter(d => dateToPos.get(d)?.row === row);
+          const anchorDate = datesInRow.sort()[0] ?? cells[row * 7] ?? '';
+          const anchorPos = dateToPos.get(anchorDate);
+          const col = anchorPos?.col ?? 0;
+          const top = rowHeights.slice(0, row).reduce((a,b)=>a+b+1,0) + 28 + total * 26 + FOOTER_GAP;
           const left = `calc(${col} * ((100% - 6px) / 7 + 1px) + 4px)`;
           const width = `calc((100% - 6px) / 7 - 8px)`;
           return (
             <button
-              key={`less-${date}`}
+              key={`less-row-${row}`}
               type="button"
               className="due-cal-more"
+              data-drop-key={anchorDate ? `date:${anchorDate}` : undefined}
               style={{
                 position: 'absolute',
                 top: `${top}px`,
@@ -910,22 +935,33 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
                 zIndex: 2,
                 pointerEvents: 'auto',
               }}
+              onDragOver={anchorDate ? (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.dataTransfer.dropEffect = 'move';
+                if (dragTaskIdRef.current !== null && ghostDate !== anchorDate) setGhostDate(anchorDate);
+              } : undefined}
+              onDrop={anchorDate ? (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setGhostDate(null);
+                setDragActive(false);
+                const id = e.dataTransfer.getData('text/plain');
+                if (id) moveToDate(id, anchorDate);
+              } : undefined}
               onClick={(e) => {
                 e.stopPropagation();
+                // Collapse seluruh baris: buang semua expandedCells di row ini.
                 setExpandedCells(s => {
                   const n = new Set(s);
-                  n.delete(date);
+                  for (const d of datesInRow) n.delete(d);
                   return n;
                 });
-                // check if any other cell in same row still expanded, if not, collapse row
-                const stillExpandedInRow = Array.from(expandedCells).some(d => d !== date && dateToPos.get(d)?.row === row);
-                if (!stillExpandedInRow) {
-                  setExpandedRows(s => {
-                    const n = new Set(s);
-                    n.delete(row);
-                    return n;
-                  });
-                }
+                setExpandedRows(s => {
+                  const n = new Set(s);
+                  n.delete(row);
+                  return n;
+                });
               }}
             >
               ciutkan

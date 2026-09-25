@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { GithubLogo } from '@phosphor-icons/react';
+import { GithubLogo, LinkBreak } from '@phosphor-icons/react';
 import { api } from '../../lib/api';
 import {
   DOCS_PRIVACY_URL,
@@ -326,7 +326,7 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
                     <Button type="button" variant="ghost" size="sm" onClick={() => void drain()} disabled={busy}>
                       {t('settings.githubDrain', { defaultValue: 'Retry failed sync' })}
                     </Button>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => void disconnect()} disabled={busy}>
+                    <Button type="button" variant="ghost" size="sm" leftIcon={<LinkBreak size={14} aria-hidden="true" />} onClick={() => void disconnect()} disabled={busy}>
                       {t('settings.githubDisconnect', { defaultValue: 'Disconnect' })}
                     </Button>
                   </div>

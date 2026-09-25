@@ -4,7 +4,7 @@
 |---|---|
 | **Document status** | Active |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-10 |
+| **Last updated** | 2026-09-24 |
 | **Applies to** | All TypeScript code in `app/` and `server/` |
 
 ---
@@ -37,11 +37,11 @@ devhub/
 │       └── styles/          # tokens.css, global.css, fonts.css
 ├── server/
 │   └── src/
-│       ├── api/             # routers: auth.routes.ts, projects.routes.ts, keys.routes.ts, state.routes.ts
-│       ├── auth/            # password.ts, jwt.ts, middleware/requireAuth.ts
+│       ├── modules/         # modular monolith per bounded context (ADR-041)
+│       │   └── <domain>/    #   handlers/*.ts, services, domain (zod), routes
+│       │       └── handlers/*.ts  # thin: validate (zod) → service → respond
 │       ├── db/              # pool.ts, migrations/, migrate.ts
-│       ├── mcp/             # server.ts, context.ts, keys.ts, require-key.ts, tools/ (one file per tool)
-│       ├── schema/          # zod schemas (shared shape with app types)
+│       ├── mcp/             # server.ts, tools/ (one file per tool) — auth via modules/oauth + modules/mcp/handlers/require-key.ts
 │       └── app.ts, index.ts
 ├── docs/                    # this documentation suite
 └── docker-compose.yml, Dockerfile
@@ -91,23 +91,30 @@ enum TaskStatus { Todo, InProgress, Review, Done }
 - **Effects:** every `useEffect` has a cleanup where needed (polling, listeners); polling only while tab visible (document.visibilitychange).
 - **Accessibility:** labels above inputs (never placeholder-as-label), error text below inputs, `aria-*` on all interactive custom elements, buttons reachable by keyboard, focus ring always visible.
 - **Motion:** only transform/opacity; `:active` scale 0.98 tactile feedback; all animations gated by `@media (prefers-reduced-motion: no-preference)`.
+- **Portal overlays:** dropdown/kalender/menu yang bisa terpotong ancestor WAJIB portal ke body (`select-portal` / `datepicker-portal` — lihat [Design Tokens §10](design-tokens.md#10-menu-select-chip-card-skeleton-drawer-sep-2026)).
+- **Row menus:** aksi baris WAJIB `RowMenu` kebab (`app/src/components/RowMenu.tsx`) + `stopPropagation` di trigger + menu agar tidak memicu row-click/navigasi.
+- **Selects:** `SearchableSelect` DILARANG emit `onChange` saat mount (`select-mount-emit` guard + regression test); emit hanya pada pilih user.
 
 ---
 
 ## 6. Design System Usage (tokens & components)
 
+**Sumber tunggal nilai visual = [Design Tokens](design-tokens.md).**
+Tabel di bawah hanya ringkasan — bila bertentangan dengan `design-tokens.md`,
+dokumen token yang menang (Living Rule §5).
+
 **Tokens live in `app/src/styles/tokens.css`** — never hardcode raw hex in components.
 
-| Token group | Examples |
-|---|---|
-| Surfaces | `--surface-0` (zinc-950 base), `--surface-1` (zinc-900), `--surface-2` (zinc-800) |
-| Text | `--text-primary`, `--text-secondary`, `--text-muted` |
-| Border | `--border-hairline: rgba(255,255,255,0.08)` |
-| Accent | `--accent` (emerald, desaturated) + hover/active variants |
-| Status | `--status-danger`, `--status-warn`, `--status-success` (same family as accent) |
-| Radius | `--radius-card: 8px`, `--radius-input: 6px`, `--radius-pill: 9999px` |
-| Z-index | `--z-nav: 10`, `--z-palette: 30`, `--z-modal: 40`, `--z-overlay: 50` |
-| Fonts | `--font-sans` (Geist), `--font-mono` (Geist Mono) |
+| Token group | Examples | Status |
+|---|---|---|
+| Surfaces | `--surface-0` (zinc-950 base), `--surface-1` (zinc-900), `--surface-2` (zinc-800) | Ringkasan — lihat `design-tokens.md` §3 |
+| Text | `--text-primary`, `--text-secondary`, `--text-muted` | Ringkasan — lihat `design-tokens.md` §2 |
+| Border | `--border-hairline: rgba(255,255,255,0.08)` | Ringkasan — lihat `design-tokens.md` §7 |
+| Accent | `--accent` (emerald, desaturated) + hover/active variants | Ringkasan — lihat `design-tokens.md` §8 |
+| Status | `--status-danger`, `--status-warn`, `--status-success` (same family as accent) | Ringkasan — lihat `design-tokens.md` §8 |
+| Radius | `--radius-card: 8px`, `--radius-input: 6px`, `--radius-pill: 9999px` | Ringkasan — lihat `design-tokens.md` §7 |
+| Z-index | `--z-nav: 10`, `--z-palette: 30`, `--z-modal: 40`, `--z-overlay: 50` | Ringkasan |
+| Fonts | `--font-sans` (Geist), `--font-mono` (Geist Mono) | Ringkasan — lihat `design-tokens.md` §2 |
 
 **Component rules:**
 - Build with primitives from `app/src/components/` (Button, Input, Badge, Modal, Skeleton, EmptyState, Toast). Do not reinvent them.
@@ -132,6 +139,7 @@ enum TaskStatus { Todo, InProgress, Review, Done }
 - Persistence: reducer → `StorageProvider` abstraction (`apiProvider` default; granular entity CRUD with `If-Match` optimistic locking); debounced ~800ms coalesced mutation queue in `ProjectProvider`, flush with keepalive on `pagehide`; `409` → LWW sync reconcile then conflict banner (banner only when local changes cannot be merged). Offline layer (M11): `ProjectPage` uses the `offlineProvider` wrapper (network-first `loadState` with IndexedDB cache fallback on network errors; every dispatched mutation journaled to IndexedDB and hydrated back on mount for replay; `fake-indexeddb` in tests). Sync service (M11): `app/src/lib/sync-service.ts` — `reconcileQueue` merges pending mutations against the fresh server snapshot per-entity with LWW on `updatedAt` (local entity from reducer state, delete-wins for deletes, capped at 3 reconcile attempts per flush); an `online` listener flushes pending work when connectivity returns. Offline shell bootstrap (M11): `auth-context`, `projects-context` and `teams-context` cache their last successful payloads in the IDB `meta` store (`getMeta`/`putMeta`, DB v2); on a **network error only** (not 401) they hydrate from the cache, so the app shell (user, projects list, teams, per-project state) boots offline from IndexedDB. Trust note: a cached session is a local hint — the server-side cookie still governs access once online (`/me` 401 → logout).
 - Realtime (M12): `ProjectProvider` opens one `RealtimeSocket` (`app/src/lib/realtime-client.ts`) per project to the server `/ws` endpoint (same-origin or derived from `VITE_API_URL`). The server broadcasts `state:diff` (entity-level ops with full `after` entity) and `state:sync` (coarse "refetch" signal) into `project:{id}` rooms. The client applies diffs with `applyStateDiff` (pure: created→append, updated→replace in place, deleted→remove), skipping ops whose `entity:id` matches a pending local mutation, and only when `diff.version > versionRef`. `state:sync` and reconnect (`joined`) trigger a full `loadState` resync. Own edits are never re-applied from the socket; conflicts stay handled by the 409/LWW reconcile path. Presence: server broadcasts `{type:'presence', projectId, users:[{userId, name}]}` on join/leave/close (display_name from `users`); client keeps `presence` in `ProjectContext` and renders `PresenceChip` in the ProjectPage header (badge-info "N online" + tooltip, deduped names, hidden when empty).
 - ID generation: `crypto.randomUUID()`.
+- Uploads: semua upload lampiran WAJIB lewat `app/src/lib/attachmentUpload.ts` — TUS resumable dulu, fallback PUT saat TUS tak tersedia; bedakan auth error via `isUploadAuthError` (401/403 → login ulang, bukan retry buta). Lihat [Design Tokens §10](design-tokens.md#10-menu-select-chip-card-skeleton-drawer-sep-2026).
 - Export/import: `JSON.stringify` of state; import validated against the zod schema (shared contract) before acceptance.
 
 ---
@@ -140,7 +148,8 @@ enum TaskStatus { Todo, InProgress, Review, Done }
 
 - Native CSS with custom properties; no CSS-in-JS, no Tailwind (locked zero-dep design).
 - Class naming: BEM-lite (`board__column`, `board__column--active`).
-- Layout: CSS Grid for multi-column layouts (no flex percentage math).
+- Layout: CSS Grid for multi-column layouts (no flex percentage math). Kartu responsif WAJIB `repeat(auto-fill, minmax(...))` (`grid-minmax-card`); judul kartu `display:block` (`project-card-title-block`) — lihat [Design Tokens §10](design-tokens.md#10-menu-select-chip-card-skeleton-drawer-sep-2026).
+- Chips/labels: WAJIB wrap (`chip-wrap`, flex-wrap tanpa truncate); label chip TANPA `maxWidth` paksa (`label-chip-no-maxwidth`).
 - Responsive: breakpoints sm 640 / md 768 / lg 1024 / xl 1280; dashboards degrade to single column below md.
 - No `h-screen`; use `min-height: 100dvh` for shells.
 - No pure black/white (`#000`/`#fff`); surfaces from token scale.

@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | **Document status** | Active (Phase 2) |
-| **Version** | 2.0 |
+| **Version** | 2.1 |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-09-13 |
+| **Last updated** | 2026-09-24 |
 | **Related documents** | [Monitoring](monitoring.md) · [Backup & Recovery](backup-recovery.md) · [Security Design](../02-architecture/security-design.md) |
 
 ---
@@ -71,7 +71,7 @@ Solo operation: the operator is on-call 24/7. This document defines **what count
 | Channel | Alamat / topik | Kapan dipakai |
 |---|---|---|
 | Email operator | `support@devhub.nrawangbatin.my.id` (ganti dengan email owner asli saat go-live; placeholder ini WAJIB diganti sebelum broadcast) | Semua SEV-1/2: notifikasi user + thread postmortem |
-| ntfy push | `ntfy.sh/devhub-alerts` (sama dengan [Monitoring](monitoring.md#41-topik-ntfy-devhub-alerts--tiga-alert-wajib-phase-2)) | Deteksi + update cepat (< 5 mnt): `SEV-1 DETECTED`, `SEV-1 MITIGATED`, `SEV-1 RESOLVED` |
+| ntfy push | `ntfy.sh/devhub-alerts` (sama dengan [Monitoring](monitoring.md#41-topik-ntfy-devhub-alerts--lima-alert-wajib-phase-2-sep-2026)) | Deteksi + update cepat (< 5 mnt): `SEV-1 DETECTED`, `SEV-1 MITIGATED`, `SEV-1 RESOLVED` |
 | Log insiden | Tabel §6 dokumen ini | Setiap update T-0 / T+1h / resolved |
 
 Contoh kirim update cepat via ntfy:
@@ -164,7 +164,28 @@ Checklist uji:
 
 | ID | Date | Sev | Summary | Root cause | Actions |
 |---|---|---|---|---|---|
-| *(none yet — V1 not released)* | | | | | |
+| INC-2026-09-A | 2026-09 (Sep) | SEV-3 | Upload lampiran TUS gagal massal: Supabase 403 `Invalid Compact JWS` di endpoint resumable | Token presign di-sign **tanpa** `upsert` (`createSignedUpload` default `upsert=false`) tetapi upload TUS mengirim header `x-upsert` — token mengikat opsi path sehingga Supabase menolak 403. Dampak: resumable upload gagal; fallback PUT satu-request tetap jalan | Sign TUS presign dengan `upsert=true` (`mintTusPresigned`, `storageClient.ts`); pertahankan fallback PUT via signed `uploadUrl`; monitor alert #4 storage-403 ([Monitoring §3.1.1](monitoring.md)) |
+| INC-2026-09-B | 2026-09 (Sep) | SEV-3 | `pool-timeout` intermiten di `requireAuth`/`verifySession`: login/`/auth/me` gagal berkala + `/health` 503 sesaat | `pg-pool` jenuh sesaat di Suga `cuddly-hawk` (`PG_POOL_MAX=6`, idle 30s, connection timeout 5s, `statement_timeout=30s`): `verifySession` (`jwt.ts`) query `users.jwt_version` ikut antre di belakang query lambat; Neon cold-start memperparah | Retry sisi klien untuk auth gagal sesaat; jaga `PG_POOL_MAX=6` + query ringan; monitor alert #5 pool-timeout ([Monitoring §3.1.2–3.1.3](monitoring.md)); playbook §6.1.2 |
+
+---
+
+## 6.1 Playbook Sep-2026 (storage-403 & pool-timeout)
+
+### 6.1.1 Storage-403 TUS upsert mismatch
+
+1. **Deteksi:** ntfy alert #4 ATAU grep `Object storage request failed.*403` ([Monitoring §3.1.1](monitoring.md)).
+2. **Konfirmasi:** `POST /api/v1/attachments/presign` → upload TUS dengan header `x-upsert` → reproduksi 403 `Invalid Compact JWS`; cek log server ada `status:403` dari `storageClient.ts`.
+3. **Mitigasi cepat:** arahkan user ke **fallback PUT** (`uploadUrl` satu-request) — tidak butuh header `x-upsert`, tetap jalan selama sign OK.
+4. **Fix permanen:** pastikan `mintTusPresigned` memanggil `createSignedUpload(key, 7200, true)` — nilai `upsert` saat sign HARUS sama dengan header `x-upsert` saat upload.
+5. **Verifikasi:** upload TUS kecil OK + fallback PUT OK + grep 403 NOL dalam 30 menit; catat di tabel §6.
+
+### 6.1.2 Pool-timeout requireAuth/verifySession
+
+1. **Deteksi:** ntfy alert #5 ATAU grep pool `timeout` + latency `requireAuth` ([Monitoring §3.1.2–3.1.3](monitoring.md)) + `/health` 503 berkala.
+2. **Konfirmasi:** `SELECT count(*) FROM pg_stat_activity;` vs `PG_POOL_MAX=6`; cek Suga `cuddly-hawk` logs: timeout di `verifySession` (`users.jwt_version`), bukan kredensial salah (401 biasa tetap 401, bukan timeout).
+3. **Mitigasi cepat:** retry 1× sisi klien untuk auth gagal sesaat; jangan restart DB membabi-buta; bila jenuh (> 6 koneksi aktif lama) identifikasi query lambat (`statement_timeout=30s` seharusya memutusnya).
+4. **Fix permanen:** pertahankan `PG_POOL_MAX=6`, `idleTimeoutMillis=30000`, `connectionTimeoutMillis=5000` (`server/src/db/pool.ts`); pakai Neon **direct** string (bukan pooled); jaga query auth tetap 1 PK lookup.
+5. **Verifikasi:** login + `/auth/me` 200 tiga kali beruntun + `/health` 200 + grep timeout NOL dalam 30 menit; catat di tabel §6.
 
 ---
 

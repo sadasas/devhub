@@ -4,7 +4,7 @@
 |---|---|
 | **Document status** | Active |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-09-15 |
+| **Last updated** | 2026-09-24 |
 | **Applies to** | All UI code in `app/src` (components, features, styles) |
 
 > Design tokens are the single source of truth for visual values. Any UI work
@@ -198,6 +198,10 @@ is reserved for floating layers.
 | 2026-09-22 | Lampiran ala Linear: thumb 40px + tombol Eye → `AttachmentPreviewModal` (reuse `.md-preview`/`.modal-fullscreen`, zoom gambar, video, PDF `sandbox`, teks cap 1MB); `LinkCard` (favicon+domain, OG title/desc/image via `/attachments/unfurl` SSRF-guarded cache 1 jam); embed deskripsi `![alt](attachment:<id>)` (blob URL sesi, lolos expiry 60 dtk signed URL); upload dari editor (paperclip/drag-drop/paste, staged vs attached). Kelas baru `.link-card` tanpa `*-title/*-label` (guard hijau); video dibuka di allowlist (`video/*`) |
 | 2026-09-22 | Subtask ala Linear/Asana/ClickUp (gaya subtle, tanpa tint): tambah inline judul+assignee+tanggal di TaskModal (reuse `SearchableSelect` + `DatePicker range` portal; chain Enter, validasi rentang parent saat buat); baris subtask indent 16 + rail `border-hairline` 1px, avatar 14-16 + meta 11px muted + due chip existing; badge `Subtask` (`Badge neutral`) + breadcrumb `btn-ghost btn-sm`; kartu board: ikon `GitBranch` 11 + sub-label parent 11px muted, progress reuse `.usage-meter-bar/fill`, due rollup via `taskDueChip`; kalender: ikon + parent di tooltip/chip. Nol kelas/hex/spacing/font baru (guard hijau) |
 | 2026-09-23 | Tooltip satu gaya inverse theme-aware: prop `tone` dihapus (±30 call-site), `.tooltip-card-{dark,light,info}` + arrow varian dilipat ke 1 blok token (`--surface/text/border/icon-inverse`, nilai dibalik per tema); hex `#111827/#2f6df6` keluar dari allowlist guard; aturan: plain vs rich tak lagi dibedakan tone (konsensus Linear/GitHub/Onyx, inversi Radix) |
+| 2026-09-24 | Menu/select §10: `RowMenu` kebab + `stopPropagation` (`app/src/components/RowMenu.tsx`); `SearchableSelect` mount-emit guard + regression test; portal `DatePicker`; overlay `bg-overlay` (§3) |
+| 2026-09-24 | Chip/card/skeleton/drawer §10: `chip-wrap` + `label-chip-no-maxwidth` (tanpa maxWidth paksa); `grid-minmax-card` + `project-card-title-block`; `template-skeleton-kebab`; `templates-icon-only` + `labels-kebab-mobile` via `useIs*Narrow`; `drawer-settings` |
+| 2026-09-24 | Upload + whiteboard §10: upload TUS + fallback PUT + `isUploadAuthError` (`app/src/lib/attachmentUpload.ts`); whiteboard kind `embed` (SVG wireframe, sanitasi allowlist, max 20/board) |
+| 2026-09-24 | i18n §10: aksi umum via `common:` (`defaultNS: common`, 6 ns + paritas EN/ID dalam PR yang sama); rujukan silang `select-mount-emit` + `upload-tus-fallback` |
 
 ---
 
@@ -388,3 +392,39 @@ Rules:
   lipat ke btn-md ikut task per-area Auth, bukan fondasi). Transition belum dijaga guard.
 - Transisi baru WAJIB duration-fast + ease-out kecuali justifikasi + ADR.
 - Opt-out fokus (mis. composer bare) didaftar eksplisit per kasus, bukan pola.
+
+---
+
+## 10. Menu, select, chip, card, skeleton, drawer (Sep-2026)
+
+Pola Sep-2026 untuk baris/aksi padat + seleksi + kartu responsif.
+Sumber: `RowMenu` (`app/src/components/RowMenu.tsx`), `SearchableSelect`
+mount-emit guard + test, portal `DatePicker`, `common:xxx` i18n,
+upload TUS + fallback PUT + `isUploadAuthError`
+(`app/src/lib/attachmentUpload.ts`), whiteboard kind `embed`.
+
+| Token / pola | Value / kelas | Role |
+|---|---|---|
+| `menu-kebab` | `RowMenu` trigger kebab icon-only + `stopPropagation` di trigger + menu | Aksi baris (Templates, Labels, dsb.) tanpa memicu row-click/navigasi; overlay pakai `bg-overlay` (§3), target sentuh ikut `btn-icon` (§9) |
+| `skeleton-kebab` / `template-skeleton-kebab` | skeleton mirror layout kebab | Loading Templates/row mirror posisi kebab agar tidak shift saat data datang |
+| `select-mount-emit` | `SearchableSelect`: JANGAN emit `onChange` saat mount; hanya pada pilih user (guard + regression test) | Mencegah reset/filter ke-trigger saat inisialisasi |
+| `select-portal` / `datepicker-portal` | dropdown/kalender via portal ke body | Keluar dari `overflow:hidden` kartu/modal; tidak dipotong ancestor |
+| `chip-wrap` | flex-wrap chips, tanpa truncate | Baris label/meta membungkus, bukan overflow |
+| `label-chip-no-maxwidth` | label chip TANPA `maxWidth` | Label penuh terbaca + wrap (bukan ellipsis paksa) |
+| `grid-minmax-card` | grid `repeat(auto-fill, minmax(...))` | Kartu responsif tanpa flex-percentage-math (cf. coding-standards §9) |
+| `project-card-title-block` | judul kartu `display:block` | Perbaiki ellipsis/wrap judul project-card |
+| `templates-icon-only` | aksi Templates icon-only di sempit | Hemat ruang; label penuh hanya di lebar cukup |
+| `labels-kebab-mobile` | Labels/Templates pindah ke kebab di mobile via `useIs*Narrow` hooks | Satu mekanisme aksi di layar kecil (paired JS+CSS, cf. §4 thresholds 640px) |
+| `drawer-settings` | drawer untuk Settings di sempit | Panel pengaturan jadi drawer, bukan kolom terjepit |
+| `common-ns-key` | aksi umum via `common:` (`defaultNS: common`, 6 ns + paritas EN/ID) | `save/sort/select/presence/activity/error` milik `common`, bukan duplikat per-ns |
+| `upload-tus-fallback` | upload TUS + fallback PUT + `isUploadAuthError` | Resume besar via TUS; fallback PUT saat TUS tak tersedia; 401/403 dibedakan via `isUploadAuthError` (bukan retry buta) |
+| `whiteboard-embed` | whiteboard kind `embed` (SVG wireframe) | Konten AI-generated di kanvas; disanitasi allowlist, max 20/board |
+
+Rules:
+
+- RowMenu WAJIB `stopPropagation` (trigger + menu container).
+- Select/datepicker baru WAJIB portal + mount-emit guard + test.
+- Chip/label baru WAJIB wrap tanpa `maxWidth` paksa.
+- Grid kartu baru WAJIB `minmax`, bukan flex `%`.
+- Token i18n umum baru WAJIB `common:` + EN/ID paritas dalam PR yang sama.
+- Upload baru WAJIB lewat `attachmentUpload.ts` (TUS → fallback PUT, auth error via `isUploadAuthError`).

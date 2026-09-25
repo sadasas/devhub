@@ -189,7 +189,7 @@ export function TemplatesPage() {
                             },
                             {
                               key: 'delete',
-                              label: `${t('templates.delete')}: ${tpl.name}`,
+                              label: t('templates.delete'),
                               icon: <Trash size={14} aria-hidden="true" />,
                               danger: true,
                               onSelect: () => openDelete(tpl),

@@ -2,10 +2,10 @@
 
 | Field | Value |
 |---|---|
-| **Document status** | Draft (Phase 0) |
-| **Version** | 1.0 |
+| **Document status** | Active |
+| **Version** | 2.0 |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-10 |
+| **Last updated** | 2026-09-24 |
 
 ---
 
@@ -43,6 +43,9 @@ Location: colocated `*.test.ts` beside sources (`app/src/features/board/board.re
 | zod schemas | valid payload passes; unknown keys, wrong types, dangling refs rejected |
 | Auth helpers | password hash/verify (bcrypt), JWT sign/verify/expiry |
 | Utils | id generation, ISO date formatting, export/import round-trip |
+| Portal/menu/select | `RowMenu` stopPropagation (trigger + menu); `SearchableSelect` mount-emit guard (no `onChange` on mount, emit on user select); portal `DatePicker` escapes `overflow:hidden` |
+| i18n parity | new strings in EN + ID; `common:` keys for shared actions (`defaultNS: common`, 6 ns); EN byte-identical to original copy — parity test |
+| Guard/tokens | `scripts/guard-css-classes.mjs` — no new raw hex/spacing/radius; token changes update `design-tokens.md` in same PR |
 
 ### 2.2 What NOT to unit test
 
@@ -62,7 +65,7 @@ Location: `server/test/`.
 | `keys.test.ts` | create → list → revoke; raw key returned once; 401 without cookie; revoked key rejected on `/mcp` |
 | `state.test.ts` | GET empty state; PUT valid state; PUT invalid → 400; oversize body → 413 |
 | `export-import.test.ts` | export → import round-trip preserves data |
-| `mcp.test.ts` | no key → 401; invalid key → 401; revoked key → 401; user A's key cannot read/write user B's project; valid key + tool call → result; invalid args → 400 |
+| `mcp.test.ts` | OAuth bearer (no token → 401; `mcp:read` cannot write → 403; `mcp`/`mcp:write` can write); user A token cannot read/write user B's project; valid token + tool call → result; invalid args → 400; covers 12 entity collections (`project_state` returns 12) |
 
 **Database:** dedicated test Postgres (docker compose `devhub-test`), migrations run per suite, truncate between tests. `DATABASE_URL_TEST` env.
 
@@ -87,6 +90,11 @@ Playwright against a locally built app + test DB:
 5. MCP: call `create_task` via HTTP → UI (polling) shows it
 6. Whiteboard (M11): create whiteboard → draw stroke → saved → reload → stroke persists
 7. Whiteboard flowchart (M11): draw shape + edge (snap ke node) → drag node → edge ikut bergeser
+8. Templates icon-only: narrow viewport → row actions collapse to kebab/icon-only → screenshot 4-kombinasi
+9. Labels wrap/kebab: many labels → chips wrap (no maxWidth truncate) → mobile collapses to kebab via `useIs*Narrow`
+10. Drawer settings: narrow viewport → Settings renders as drawer → open/close + focus visible
+11. Upload TUS + fallback: large file resumes via TUS → TUS unavailable falls back to PUT → 401/403 surfaced via `isUploadAuthError`
+12. Whiteboard embed: `create_whiteboard` with kind `embed` (AI SVG wireframe) → renders sanitized → persists on reload
 
 ---
 

@@ -1,7 +1,10 @@
 # DevHub Landing Page — SEO Keyword Research
 
-**Document Version:** 1.0  
+**Document Version:** 1.1  
 **Created:** 2026-09-03  
+**Last updated:** 2026-09-24  
+**Canonical domain (prod):** https://devhub.nrawangbatin.my.id (bukan devhub.com)  
+**Pricing kanonis (IDR):** Pro 30 hari Rp 249.000 · 90 hari Rp 699.000 · 365 hari Rp 2.490.000 + promo LAUNCH149 Rp 149.000 (nonaktif) — semua copy/keyword komersial memakai IDR, bukan USD.  
 **Target:** Engineering teams (2–2,000 developers)  
 **Competitors:** Linear, Jira, GitHub Projects, Plane  
 
@@ -244,6 +247,22 @@ These keywords indicate high purchase intent and should be used in CTA copy, pri
 | sign up project management developer | 1,100 | 55 | Transactional | P0 | Signup page |
 | start free trial developer tools | 1,600 | 52 | Transactional | P0 | CTA buttons |
 
+### 5.1 Klaster Indonesia / QRIS (Bahasa Indonesia — konversi IDR via Pakasir)
+
+> Semua URL target memakai domain kanonis `https://devhub.nrawangbatin.my.id`. Harga di copy = IDR seed
+> (249.000/699.000/2.490.000 + LAUNCH149 149.000), bukan USD.
+
+| Keyword (ID) | Est. Monthly Volume | Difficulty | Intent | Priority | Placement |
+|---|---|---|---|---|---|
+| aplikasi manajemen proyek untuk developer | 1,300 | 45 | Commercial | P0 | Homepage ID / `/pricing` |
+| tools project management tim engineering | 880 | 42 | Commercial | P0 | Homepage ID |
+| dokumentasi teknis untuk tim software | 590 | 35 | Commercial | P0 | Homepage (differentiator ID) |
+| template ADR arsitektur software | 320 | 28 | Informational | P0 | `/features/adr` + blog ID |
+| harga project management developer Indonesia | 480 | 35 | Commercial | P0 | `/pricing` (IDR) |
+| bayar QRIS project management | 390 | 30 | Transactional | P0 | `/pricing` + FAQ (Pakasir QRIS) |
+| langganan tools developer bayar QRIS / VA | 260 | 28 | Transactional | P1 | `/pricing` + FAQ (Pakasir VA) |
+| alternatif Jira Linear untuk startup Indonesia | 420 | 38 | Commercial | P1 | Blog comparison ID |
+
 ---
 
 ## 6. Recommended Primary Keyword per Landing Page Section
@@ -339,7 +358,7 @@ DevHub Pricing | Free Project Management for Developers
 
 **Meta Description:**
 ```
-Free forever for small teams (2 members, 3 projects). Pro plan $15/month flat. No per-seat tax. Start your free trial today — no credit card required.
+Free forever for small teams (2 members, 3 projects). Pro Rp 249.000/30 hari via QRIS/VA Pakasir. No per-seat tax. Start free trial today — no credit card.
 ```
 *Length: 156 characters*
 

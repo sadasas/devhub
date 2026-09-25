@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CalendarBlank, GoogleLogo } from '@phosphor-icons/react';
+import { CalendarBlank, GoogleLogo, LinkBreak } from '@phosphor-icons/react';
 import { api, type GCalStatus } from '../../lib/api';
 import {
   DOCS_PRIVACY_URL,
@@ -239,6 +239,7 @@ export function GCalSettings({ projectId, canEdit, bare = false }: GCalSettingsP
                   <Button
                     variant="danger"
                     size="sm"
+                    leftIcon={<LinkBreak size={14} aria-hidden="true" />}
                     onClick={() => {
                       setDisconnectError(null);
                       setConfirmOpen(true);

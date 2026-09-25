@@ -4,7 +4,7 @@
 |---|---|
 | **Document status** | Active (living document) |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-13 |
+| **Last updated** | 2026-09-24 |
 
 ---
 
@@ -70,6 +70,13 @@
 | [ADR-050](#adr-050) | Target market expansion: solo → large engineering orgs (2 → 2,000) — complementary to Jira/Linear | Accepted | 2026-09-03 |
 | [ADR-051](#adr-051) | Admin frontend same-origin Worker proxy + shared parent-domain session (single login app + admin) | Accepted | 2026-09-13 |
 | [ADR-052](#adr-052) | GitHub App integration: repo link, webhook auto-link, suggest-don't-execute automation | Accepted | 2026-09-23 |
+| [ADR-053](#adr-053) | Whiteboard ShapeLibrary + FigJam panel + embed SVG + theme-aware export | Accepted | 2026-09-24 |
+| [ADR-054](#adr-054) | RowMenu kebab standar ≤640px + stopPropagation + Templates icon-only | Accepted | 2026-09-24 |
+| [ADR-055](#adr-055) | Upload TUS upsert (tus-js-client) + fallback PUT, service-key tak ke browser | Accepted | 2026-09-24 |
+| [ADR-056](#adr-056) | i18n addendum ADR-046: 6 namespace + defaultNS + LANG_STORAGE_KEY + overhaul P0+P1 | Accepted | 2026-09-24 |
+| [ADR-057](#adr-057) | SearchableSelect mount-emit fix + subtask 1-level + truncateToWidth | Accepted | 2026-09-24 |
+| [ADR-058](#adr-058) | LabelsSection wrap + kebab mobile + drawer settings mobile + grid minmax | Accepted | 2026-09-24 |
+| [ADR-059](#adr-059) | Google Calendar integration: vault + outbox + sync-service (tandingan ADR-052) | Accepted | 2026-09-24 |
 
 ---
 
@@ -709,5 +716,82 @@
   - **Connect/disconnect admin-only** (owner/admin tim; GitHub side butuh Org Owner/Repo Admin untuk install pertama). Disconnect hapus mapping saja; link task dipertahankan sebagai riwayat (badge "disconnected").
 - **Consequences:** Positive — e2e link <15 dtk tanpa double-entry; timeline ringkas 1 row/event; least-privilege + sealed token; tanpa worker baru. Negative — tanpa worker, retry outbox manual/oportunistik; token 1 jam refresh lazy (skew 5 mnt); monorepo multi-project memproses N project per delivery; `installation token` butuh env App (tanpa itu 503 `GITHUB_NOT_CONFIGURED`).
 - **Alternatives:** PAT per-request tanpa App (ditolak: scope lebar, token panjang, tanpa webhook); full 2-way issues mirror (ditolak: konflik + beban queue, selective sync lebih jujur); auto-Done diam-diam (ditolak: QA ke-skip, suggest-only); worker/queue dedicated (ditolak: over-engineering untuk volume saat ini, outbox+drain cukup).
+
+---
+
+### ADR-053
+**Whiteboard ShapeLibrary + FigJam panel + embed SVG + theme-aware export**
+
+- **Status:** Accepted (2026-09-24)
+- **Context:** Whiteboard M17/M18 punya shape terbatas (rect/diamond/ellipse + cylinder/parallelogram/hexagon/roundedRect) tanpa discovery — user harus tahu nama shape. Panel FigJam-style belum ada; export PNG/SVG belum theme-aware (light/dark); teks panjang overflow di shape kecil; MCP belum bisa menanam wireframe AI.
+- **Decision:** `ShapeLibrary` 100 geometri / 8 tab + panel FigJam + export theme light/dark + `truncateToWidth`; MCP `kind: embed` menampung SVG mentah AI (allowlist-sanitized, maks 20/board, bungkus `<g data-component>`).
+- **Consequences:** Positive — discovery shape lengkap tanpa dependency baru; export konsisten light/dark; embed memberi jalur wireframe AI via MCP. Negative — library 100 geometri menambah bundle JS kecil; sanitasi embed harus dirawat.
+- **Alternatives considered:** Library diagram tldraw/Excalidraw (ditolak: ADR-007/023, bundle +1–2 MB); panel custom per-shape tanpa library terpusat (ditolak: duplikasi picker).
+
+---
+
+### ADR-054
+**RowMenu kebab standar ≤640px + stopPropagation + Templates icon-only**
+
+- **Status:** Accepted (2026-09-24)
+- **Context:** Setiap tab list (Issues/Decisions/Tests/Releases/Whiteboard/Labels/Templates) punya pola aksi baris berbeda — tombol inline overflow di mobile; klik aksi ikut memicu navigasi baris; TemplatesPage belum konsisten.
+- **Decision:** `RowMenu` kebab standar aktif ≤640px untuk Issues/Decisions/Tests/Releases/Whiteboard/Labels/Templates + fix `stopPropagation`; TemplatesPage icon-only + kebab.
+- **Consequences:** Positive — satu pola aksi mobile, nol navigasi nyasar; konsistensi 7 tab. Negative — satu komponen lagi dirawat; desktop tetap inline (dua jalur render).
+- **Alternatives considered:** Selalu kebab di semua breakpoint (ditolak: boros klik di desktop); aksi inline scroll horizontal (ditolak: overflow + a11y buruk).
+
+---
+
+### ADR-055
+**Upload TUS upsert (tus-js-client) + fallback PUT, service-key tak ke browser**
+
+- **Status:** Accepted (2026-09-24)
+- **Context:** Upload file besar via PUT tunggal rawan gagal di jaringan flaky; butuh resume + upsert idempoten; service-key Supabase/storage tidak boleh terekspos ke browser.
+- **Decision:** `tus-js-client` sebagai jalur utama TUS (chunk 6MB, header `x-signature` + `x-upsert`, metadata `bucket/object`) + fallback PUT; `isUploadAuthError` membedakan 401/403 auth vs retryable; service-key hanya di server (presigned/short-lived ke browser).
+- **Consequences:** Positive — resume chunked, upsert idempoten; secret storage tidak bocor. Negative — satu dependency baru (`tus-js-client`); dua jalur (TUS + PUT) harus dites.
+- **Alternatives considered:** PUT tunggal saja (ditolak: gagal total saat flaky); presigned PUT tanpa TUS (ditolak: tanpa resume).
+
+---
+
+### ADR-056
+**i18n addendum ADR-046: 6 namespace + defaultNS + LANG_STORAGE_KEY + overhaul P0+P1**
+
+- **Status:** Accepted (2026-09-24)
+- **Context:** ADR-046 mengunci EN+ID + react-i18next tapi namespace/key tumbuh ad-hoc per fitur — risiko drift EN↔ID dan key collision; overhaul P0+P1 belum tercatat.
+- **Decision:** Addendum ADR-046: 6 namespace (`common/shell/account/tracker/project/extras`), `defaultNS: common`, kunci `LANG_STORAGE_KEY`, overhaul P0+P1 (kunci ganda dihapus, fallback EN).
+- **Consequences:** Positive — struktur key stabil, drift EN↔ID terdeteksi per-namespace. Negative — migrasi key menyentuh banyak file locale sekaligus.
+- **Alternatives considered:** Satu namespace datar (ditolak: collision + file raksasa); persist bahasa ke profil server (ditunda:ikut ADR-046).
+
+---
+
+### ADR-057
+**SearchableSelect mount-emit fix + subtask 1-level + truncateToWidth**
+
+- **Status:** Accepted (2026-09-24)
+- **Context:** `SearchableSelect` memancarkan onChange saat mount (reselect tak disengaja); task belum punya hierarki; teks shape/option panjang overflow tanpa util terpusat.
+- **Decision:** Mount-emit fix + test regresi; subtask 1-level via `parentTaskId` (tanpa nesting dalam); `truncateToWidth` untuk elipsis berbasis lebar kanvas.
+- **Consequences:** Positive — select stabil, hierarki dangkal anti-rekursi, teks kanvas rapi. Negative — subtask >1 level tetap tidak didukung (by design).
+- **Alternatives considered:** Subtask N-level rekursif (ditolak: kompleksitas query + UI tanpa kebutuhan); elipsis CSS saja (ditolak: kanvas SVG butuh ukur lebar manual).
+
+---
+
+### ADR-058
+**LabelsSection wrap + kebab mobile + drawer settings mobile + grid minmax**
+
+- **Status:** Accepted (2026-09-24)
+- **Context:** `LabelsSection` overflow di chip banyak; aksi label tidak konsisten mobile; drawer settings sempit di mobile; judul kartu project terpotong inline; grid kartu kaku di viewport kecil.
+- **Decision:** `LabelsSection` wrap + kebab mobile; drawer settings mobile (`Layout`/`Sidebar`); `project-card-title` `display:block`; grid `minmax`.
+- **Consequences:** Positive — mobile rapi tanpa scroll horizontal; kartu konsisten. Negative — wrap menambah tinggi section saat label banyak.
+- **Alternatives considered:** Scroll horizontal chip (ditolak: discoverability rendah); drawer desktop = mobile (ditolak: ruang desktop cukup).
+
+---
+
+### ADR-059
+**Google Calendar integration: vault + outbox + sync-service (tandingan ADR-052)**
+
+- **Status:** Accepted (2026-09-24)
+- **Context:** Task ber-`dueDate` (ADR-028) belum tersambung ke kalender eksternal; GitHub App (ADR-052) memberi pola integrasi (vault + outbox + webhook) yang bisa ditandingi untuk GCal tanpa worker baru; scope harus minimal (`calendar`).
+- **Decision:** Tandingan ADR-052: token vault AES-256-GCM, outbox retry 1m/5m/30m, `sync-service` oportunistik (tanpa worker), scope `calendar`; Task `dueDate` ↔ event mapping idempoten.
+- **Consequences:** Positive — pola integrasi konsisten (vault + outbox reuse); tanpa worker baru. Negative — sync oportunistik (delay saat idle); revoke token Google butuh reconnect manual.
+- **Alternatives considered:** Worker/queue dedicated (ditolak: sama seperti ADR-052, over-engineering); scope penuh `calendar.events` + contacts (ditolak: least-privilege).
 
 
