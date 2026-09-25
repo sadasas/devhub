@@ -112,6 +112,18 @@ export const githubLinkSchema = z.object({
   reviewState: z.enum(['approved', 'changes_requested']).nullable().optional(),
 });
 
+/**
+ * Provenance issue GitHub -> issue DevHub (auto-issue opsi A): sidik jari
+ * `owner+repo+number` untuk idempotensi create + pencocokan closed->resolved.
+ * zod-only, tanpa migrasi DB (issue tak punya array labels seperti task).
+ */
+export const githubIssueRefSchema = z.object({
+  owner: z.string().min(1).max(LIMITS.GITHUB_OWNER),
+  repo: z.string().min(1).max(LIMITS.GITHUB_REPO),
+  number: z.number().int().positive(),
+  url: z.string().max(LIMITS.GITHUB_LINK_URL).default(''),
+});
+
 /** Mapping 1 DevHub project <-> 1 repo GitHub (keputusan: per-project). */
 export const githubRepoSchema = z.object({
   owner: z.string().min(1).max(LIMITS.GITHUB_OWNER),
@@ -124,6 +136,11 @@ export const githubAutomationMode = z.enum(['suggest', 'auto', 'off']);
 export const githubAutomationSchema = z.object({
   onPrOpened: githubAutomationMode.default('suggest'),
   onPrMerged: githubAutomationMode.default('suggest'),
+  // Auto-issue opsi A: opened -> buat issue DevHub (hanya mode auto;
+  // suggest/off = diam, import manual tetap tersedia). issueLabels kosong =
+  // semua label; terisi = hanya issue berlabel salah satunya (case-insensitive).
+  onIssueOpened: githubAutomationMode.default('suggest'),
+  issueLabels: z.array(z.string().min(1).max(50)).max(20).default([]),
 });
 
 export const checklistItemSchema = z.object({
@@ -171,6 +188,8 @@ export const issueSchema = z.object({
   attachments: z.array(attachmentSchema).max(LIMITS.ATTACHMENTS_PER_ENTITY).default([]),
   // zod-only: 1 fix-PR per issue (laporan vs perbaikan terpisah — prinsip UX GH).
   fixPr: githubLinkSchema.nullable().optional(),
+  // Auto-issue opsi A: provenance issue GitHub (idempotensi + closed->resolved).
+  githubIssue: githubIssueRefSchema.nullable().optional(),
 });
 
 export const testCaseStatus = z.enum(['pass', 'fail', 'pending']);

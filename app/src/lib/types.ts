@@ -89,6 +89,9 @@ export type GitHubAutomationMode = 'suggest' | 'auto' | 'off';
 export interface GitHubAutomation {
   onPrOpened: GitHubAutomationMode;
   onPrMerged: GitHubAutomationMode;
+  onIssueOpened: GitHubAutomationMode;
+  /** Filter label auto-issue; kosong = semua label. */
+  issueLabels: string[];
 }
 
 export interface GitHubStatus {

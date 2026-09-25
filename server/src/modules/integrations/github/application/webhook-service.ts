@@ -28,6 +28,7 @@ import { ensureInstallationToken } from "./install-service.js";
 import { postIssueComment } from "../infrastructure/github-app.js";
 import {
   applyCheckEvent,
+  applyIssueEvent,
   applyPullRequestEvent,
   applyPushEvent,
   applyReviewEvent,
@@ -251,6 +252,60 @@ export async function dispatchEvent(event: string, payload: unknown): Promise<We
       "link",
     );
     return result;
+  }
+
+  if (event === "issues") {
+    const repo = repoOf(payload);
+    if (!repo) return { status: "ignored", detail: "no-repo" };
+    const issue = p.issue as
+      | {
+          number?: number;
+          title?: string;
+          body?: string | null;
+          state?: string;
+          labels?: Array<string | { name?: string }>;
+          html_url?: string;
+          closed_at?: string | null;
+          pull_request?: unknown;
+        }
+      | undefined;
+    if (typeof issue?.number !== "number") return { status: "ignored", detail: "no-issue" };
+    // PR juga masuk sebagai issue di API GitHub — alur PR yang menangani.
+    if (issue.pull_request !== undefined && issue.pull_request !== null) {
+      return { status: "ignored", detail: "is-pull-request" };
+    }
+    if (p.action !== "opened" && p.action !== "closed") {
+      return { status: "ignored", detail: `action-${String(p.action)}` };
+    }
+    const labels = (issue.labels ?? [])
+      .map((l) => (typeof l === "string" ? l : l?.name ?? "").slice(0, 50))
+      .filter(Boolean)
+      .slice(0, 5);
+    const issueNumber: number = issue.number;
+    const issueInput = {
+      number: issueNumber,
+      title: typeof issue.title === "string" ? issue.title : `#${issueNumber}`,
+      body: typeof issue.body === "string" ? issue.body : "",
+      state: typeof issue.state === "string" ? issue.state : "open",
+      labels,
+      url: typeof issue.html_url === "string" ? issue.html_url : "",
+      closedAt: typeof issue.closed_at === "string" ? issue.closed_at : null,
+    };
+    return applyToMappedProjects(
+      repo,
+      event,
+      payload,
+      (mapping, actorId) =>
+        applyIssueEvent({
+          projectId: mapping.projectId,
+          actorId,
+          owner: repo.owner,
+          repo: repo.repo,
+          automation: mapping.automation,
+          issue: issueInput,
+        }).then(({ linked }) => linked),
+      "link",
+    );
   }
 
   if (event === "pull_request_review") {

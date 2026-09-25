@@ -758,4 +758,12 @@ export const api = {
       `/integrations/github/outbox/drain?projectId=${encodeURIComponent(projectId)}`,
       { method: 'POST' },
     ),
+  githubImportIssues: (projectId: string) =>
+    request<{ imported: number; skipped: number; issueIds: string[]; truncated: boolean }>(
+      '/integrations/github/import',
+      {
+        method: 'POST',
+        body: JSON.stringify({ projectId }),
+      },
+    ),
 };

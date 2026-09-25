@@ -14,6 +14,7 @@ import { savePendingReturn } from '../../lib/github';
 import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { DataErrorState } from '../../components/DataErrorState';
+import { Input } from '../../components/Input';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { StatusBanner } from '../../components/StatusBanner';
 
@@ -105,6 +106,13 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
   const [pickedInstallation, setPickedInstallation] = useState<number | null>(null);
   const [reposLoading, setReposLoading] = useState(false);
   const [unconfigured, setUnconfigured] = useState(false);
+  const [issueLabelsText, setIssueLabelsText] = useState('');
+
+  // Sinkronkan input filter label dari status server (sekali per refresh).
+  useEffect(() => {
+    setIssueLabelsText((status?.automation?.issueLabels ?? []).join(', '));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -319,6 +327,27 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
     }
   }
 
+  async function importIssues() {
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await api.githubImportIssues(projectId);
+      setNotice(
+        t('settings.githubImported', {
+          defaultValue: 'Imported {{imported}} issues, skipped {{skipped}}.{{truncated}}',
+          imported: r.imported,
+          skipped: r.skipped,
+          truncated: r.truncated ? ' (truncated at 300)' : '',
+        }),
+      );
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Import failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function startConnect() {    setBusy(true);
     setError(null);
     try {
@@ -414,8 +443,61 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
                         if (v && status.automation) void saveAutomation({ ...status.automation, onPrMerged: v as GitHubAutomation['onPrMerged'] });
                       }}
                     />
+                    <span className="field-helper">
+                      {t('settings.githubOnIssueOpened', { defaultValue: 'On issue opened' })}
+                    </span>
+                    <SearchableSelect
+                      id="github-auto-issue"
+                      label=""
+                      ariaLabel={t('settings.githubOnIssueOpened', { defaultValue: 'On issue opened' })}
+                      value={status.automation?.onIssueOpened ?? 'suggest'}
+                      allowEmpty={false}
+                      searchable={false}
+                      options={[
+                        { value: 'suggest', label: t('settings.githubModeSuggest', { defaultValue: 'Suggest' }) },
+                        { value: 'auto', label: t('settings.githubModeAuto', { defaultValue: 'Auto' }) },
+                        { value: 'off', label: t('settings.githubModeOff', { defaultValue: 'Off' }) },
+                      ]}
+                      onChange={(v) => {
+                        if (v && status.automation) void saveAutomation({ ...status.automation, onIssueOpened: v as GitHubAutomation['onIssueOpened'] });
+                      }}
+                    />
                   </div>
+                  {status.automation?.onIssueOpened === 'auto' && (
+                    <div className="integration-inline-row">
+                      <Input
+                        label={t('settings.githubIssueLabels', { defaultValue: 'Labels to auto-create (issue)' })}
+                        helper={t('settings.githubIssueLabelsHelper', {
+                          defaultValue: 'Only these labels become DevHub issues. Empty = all labels.',
+                        })}
+                        value={issueLabelsText}
+                        onChange={(e) => setIssueLabelsText(e.target.value)}
+                        onBlur={() => {
+                          if (!status.automation) return;
+                          const next = issueLabelsText
+                            .split(',')
+                            .map((s) => s.trim())
+                            .filter(Boolean)
+                            .slice(0, 20);
+                          const current = status.automation.issueLabels ?? [];
+                          if (next.join('\n') !== current.join('\n')) {
+                            void saveAutomation({ ...status.automation, issueLabels: next });
+                          }
+                        }}
+                        disabled={busy}
+                      />
+                    </div>
+                  )}
                   <div className="integration-actions integration-action-end">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => void importIssues()}
+                      disabled={busy}
+                    >
+                      {t('settings.githubImportIssues', { defaultValue: 'Import issues' })}
+                    </Button>
                     <Button
                       type="button"
                       variant="ghost"

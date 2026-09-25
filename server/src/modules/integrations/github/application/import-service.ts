@@ -1,23 +1,97 @@
 /**
  * Import service GitHub (application, ADR-041): one-time import issues repo
- * menjadi tasks DevHub. Idempoten via label provenance `gh:owner/repo#N`.
- * Tanpa express — dipanggil routes. Token dari caller (sudah di-resolve).
+ * menjadi issues DevHub (target issue-only ala Linear). Idempoten via
+ * provenance terstruktur `githubIssue{owner,repo,number}` (issue DevHub tak
+ * punya array labels seperti task). Tanpa express — dipanggil routes.
+ * Token dari caller (sudah di-resolve).
  */
 
-import { LIMITS } from "../../../projects/domain/state.js";
+import { LIMITS, type Issue, type State } from "../../../projects/domain/state.js";
 import { mutateProject } from "../../../projects/application/entityService.js";
 import { broadcastDiff } from "../../../realtime/infrastructure/broadcast.js";
 import { newId, nowIso } from "../../../../shared/ids.js";
-import { listRepoIssues } from "../infrastructure/github-app.js";
+import { listRepoIssues, type RepoIssueItem } from "../infrastructure/github-app.js";
 
 export interface ImportResult {
   imported: number;
   skipped: number;
-  taskIds: string[];
+  issueIds: string[];
+}
+
+/** Bentuk issue GitHub minimal yang bisa dijadikan issue DevHub. */
+export interface GithubIssueSource {
+  number: number;
+  title: string;
+  body: string;
+  state: string;
+  labels: string[];
+  url: string;
+  closedAt: string | null;
+}
+
+export function toGithubIssueSource(item: RepoIssueItem): GithubIssueSource {
+  return {
+    number: item.number,
+    title: item.title,
+    body: item.body,
+    state: item.state,
+    labels: item.labels,
+    url: item.url,
+    closedAt: item.closedAt,
+  };
+}
+
+/** Cari issue DevHub dari sidik provenance GitHub (eksak, bukan scan teks). */
+export function findIssueByProvenance(
+  state: State,
+  owner: string,
+  repo: string,
+  number: number,
+): Issue | undefined {
+  return state.issues.find(
+    (i) => i.githubIssue?.owner === owner && i.githubIssue?.repo === repo && i.githubIssue?.number === number,
+  );
 }
 
 /**
- * Import issues (PR di-skip) menjadi tasks todo/done. 1 txn + 1 activity row.
+ * Bangun issue DevHub dari 1 issue GitHub (dipakai import manual + webhook
+ * otomatis — satu sumber kebenaran). Severity selalu medium (tanpa pemetaan
+ * label, keputusan sesi 2026-09-25); linkedTaskId diisi saat triase manual.
+ */
+export function buildIssueFromGithubIssue(
+  source: GithubIssueSource,
+  owner: string,
+  repo: string,
+  now: string,
+): Issue {
+  const fullName = `${owner}/${repo}`;
+  const resolved = source.state === "closed";
+  const footer = [
+    `Imported from ${fullName}#${source.number} (${source.url})`,
+    ...(source.labels.length > 0 ? [`Labels: ${source.labels.join(", ")}`] : []),
+  ].join("\n");
+  return {
+    id: newId(),
+    createdAt: now,
+    updatedAt: now,
+    title: source.title.slice(0, LIMITS.ISSUE_TITLE) || `#${source.number}`,
+    severity: "medium",
+    status: resolved ? "resolved" : "open",
+    description: `${source.body.slice(0, LIMITS.ISSUE_DESCRIPTION - 300)}\n\n${footer}`.slice(
+      0,
+      LIMITS.ISSUE_DESCRIPTION,
+    ),
+    reproduction: "",
+    linkedTaskId: null,
+    pinned: false,
+    attachments: [],
+    fixPr: null,
+    githubIssue: { owner, repo, number: source.number, url: source.url },
+  };
+}
+
+/**
+ * Import issues (PR di-skip) menjadi issues open/resolved. 1 txn + 1 activity row.
  * Cap 300 issues (3 halaman) — dokumentasikan, bukan silent cut: kembalikan
  * `truncated: true` bila halaman terakhir penuh.
  */
@@ -29,77 +103,42 @@ export async function importRepoIssues(input: {
   repo: string;
 }): Promise<ImportResult & { truncated: boolean }> {
   const issues = await listRepoIssues(input.token, input.owner, input.repo);
-  const repo = `${input.owner}/${input.repo}`;
   let imported = 0;
   let skipped = 0;
-  const taskIds: string[] = [];
+  const issueIds: string[] = [];
   const now = nowIso();
   const { version } = await mutateProject(input.actorId, input.projectId, undefined, (state) => {
-    const existing = new Set<string>();
-    for (const t of state.tasks) {
-      for (const l of t.labels ?? []) {
-        if (l.startsWith("gh:")) existing.add(l);
-      }
-    }
-    let firstTaskId: string | undefined;
-    for (const issue of issues) {
-      if (issue.isPullRequest) {
+    let firstIssueId: string | undefined;
+    for (const item of issues) {
+      if (item.isPullRequest) {
         skipped += 1;
         continue;
       }
-      const provenance = `gh:${repo}#${issue.number}`;
-      if (existing.has(provenance)) {
+      if (findIssueByProvenance(state, input.owner, input.repo, item.number)) {
         skipped += 1;
         continue;
       }
-      const id = newId();
-      const done = issue.state === "closed";
-      state.tasks.push({
-        id,
-        createdAt: now,
-        updatedAt: now,
-        title: issue.title.slice(0, LIMITS.TASK_TITLE) || `#${issue.number}`,
-        status: done ? "done" : "todo",
-        priority: "medium",
-        estimate: undefined,
-        actualHours: undefined,
-        labels: [...issue.labels, provenance].slice(0, 20),
-        blockedBy: [],
-        parentTaskId: null,
-        checklist: [],
-        milestoneId: null,
-        dueDate: null,
-        startDate: null,
-        completedAt: done ? issue.closedAt ?? now : null,
-        assigneeId: null,
-        pinned: false,
-        description: `${issue.body.slice(0, LIMITS.TASK_DESCRIPTION - 200)}\n\nImported from ${repo}#${issue.number} (${issue.url})`.slice(
-          0,
-          LIMITS.TASK_DESCRIPTION,
-        ),
-        attachments: [],
-        githubLinks: [],
-      });
-      existing.add(provenance);
-      taskIds.push(id);
-      firstTaskId ??= id;
+      const issue = buildIssueFromGithubIssue(toGithubIssueSource(item), input.owner, input.repo, now);
+      state.issues.push(issue);
+      issueIds.push(issue.id);
+      firstIssueId ??= issue.id;
       imported += 1;
     }
-    if (!firstTaskId) return;
+    if (!firstIssueId) return;
     return {
-      entity: "tasks",
-      entityId: firstTaskId,
+      entity: "issues",
+      entityId: firstIssueId,
       action: "created",
-      summary: `GitHub: imported ${imported} issue(s) from ${repo}`,
+      summary: `GitHub: imported ${imported} issue(s) from ${input.owner}/${input.repo}`,
     };
   });
-  if (taskIds.length > 0) {
+  if (issueIds.length > 0) {
     broadcastDiff(input.projectId, {
       type: "state:diff",
       projectId: input.projectId,
       version,
-      ops: taskIds.map((id) => ({ entity: "tasks", id, op: "created" as const })),
+      ops: issueIds.map((id) => ({ entity: "issues", id, op: "created" as const })),
     });
   }
-  return { imported, skipped, taskIds, truncated: issues.length >= 300 };
+  return { imported, skipped, issueIds, truncated: issues.length >= 300 };
 }

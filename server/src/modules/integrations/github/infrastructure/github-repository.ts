@@ -10,6 +10,25 @@ import { pool } from "../../../../db/pool.js";
 export const GITHUB_MAX_ATTEMPTS = 5;
 export const GITHUB_BACKOFF_MINUTES = [1, 5, 30, 30, 30] as const;
 
+/** Normalisasi automation mapping (kolom JSONB boleh lebih tua dari skema). */
+export function toAutomation(raw: unknown): GithubProjectRepo["automation"] {
+  const a = (raw ?? {}) as {
+    onPrOpened?: string;
+    onPrMerged?: string;
+    onIssueOpened?: string;
+    issueLabels?: unknown;
+  };
+  const labels = Array.isArray(a.issueLabels)
+    ? a.issueLabels.filter((l): l is string => typeof l === "string").slice(0, 20)
+    : [];
+  return {
+    onPrOpened: a.onPrOpened ?? "suggest",
+    onPrMerged: a.onPrMerged ?? "suggest",
+    onIssueOpened: a.onIssueOpened ?? "suggest",
+    issueLabels: labels,
+  };
+}
+
 export function computeNextRetry(attempts: number, now: Date = new Date()): Date {
   const idx = Math.min(Math.max(attempts, 1), GITHUB_BACKOFF_MINUTES.length) - 1;
   const minutes = GITHUB_BACKOFF_MINUTES[idx] ?? 30;
@@ -31,7 +50,7 @@ export interface GithubProjectRepo {
   installationId: number;
   owner: string;
   repo: string;
-  automation: { onPrOpened: string; onPrMerged: string };
+  automation: { onPrOpened: string; onPrMerged: string; onIssueOpened: string; issueLabels: string[] };
 }
 
 export type GithubOutboxOp = "link" | "status" | "comment" | "import";
@@ -164,16 +183,12 @@ export async function getProjectRepo(projectId: string): Promise<GithubProjectRe
     | { project_id: string; installation_id: string | number; owner: string; repo: string; automation: unknown }
     | undefined;
   if (!row) return null;
-  const automation = (row.automation ?? {}) as { onPrOpened?: string; onPrMerged?: string };
   return {
     projectId: row.project_id,
     installationId: Number(row.installation_id),
     owner: row.owner,
     repo: row.repo,
-    automation: {
-      onPrOpened: automation.onPrOpened ?? "suggest",
-      onPrMerged: automation.onPrMerged ?? "suggest",
-    },
+    automation: toAutomation(row.automation),
   };
 }
 
@@ -197,16 +212,12 @@ export async function connectProjectRepo(input: {
     [input.projectId, input.installationId, input.owner, input.repo, input.connectedBy],
   );
   const row = res.rows[0] as { project_id: string; installation_id: string | number; owner: string; repo: string; automation: unknown };
-  const automation = (row.automation ?? {}) as { onPrOpened?: string; onPrMerged?: string };
   return {
     projectId: row.project_id,
     installationId: Number(row.installation_id),
     owner: row.owner,
     repo: row.repo,
-    automation: {
-      onPrOpened: automation.onPrOpened ?? "suggest",
-      onPrMerged: automation.onPrMerged ?? "suggest",
-    },
+    automation: toAutomation(row.automation),
   };
 }
 
@@ -217,7 +228,7 @@ export async function disconnectProjectRepo(projectId: string): Promise<boolean>
 
 export async function updateProjectAutomation(
   projectId: string,
-  automation: { onPrOpened: string; onPrMerged: string },
+  automation: GithubProjectRepo["automation"],
 ): Promise<boolean> {
   const res = await pool.query(
     `UPDATE github_project_repos SET automation = $2::jsonb, updated_at = now() WHERE project_id = $1`,
@@ -234,19 +245,13 @@ export async function findProjectsByRepo(owner: string, repo: string): Promise<G
     [owner, repo],
   );
   return (res.rows as Array<{ project_id: string; installation_id: string | number; owner: string; repo: string; automation: unknown }>).map(
-    (row) => {
-      const automation = (row.automation ?? {}) as { onPrOpened?: string; onPrMerged?: string };
-      return {
-        projectId: row.project_id,
-        installationId: Number(row.installation_id),
-        owner: row.owner,
-        repo: row.repo,
-        automation: {
-          onPrOpened: automation.onPrOpened ?? "suggest",
-          onPrMerged: automation.onPrMerged ?? "suggest",
-        },
-      };
-    },
+    (row) => ({
+      projectId: row.project_id,
+      installationId: Number(row.installation_id),
+      owner: row.owner,
+      repo: row.repo,
+      automation: toAutomation(row.automation),
+    }),
   );
 }
 

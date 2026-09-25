@@ -14,6 +14,7 @@ const { apiMock } = vi.hoisted(() => ({
     githubDisconnect: vi.fn(),
     githubAutomation: vi.fn(),
     githubDrain: vi.fn(),
+    githubImportIssues: vi.fn(),
   },
 }));
 
@@ -196,5 +197,50 @@ describe('GitHubSettings', () => {
     const flash = await screen.findByTestId('github-flash');
     const desc = screen.getByText(/One repository per project/);
     expect(desc.compareDocumentPosition(flash) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('shows issue automation + import button when connected', async () => {
+    apiMock.githubStatus.mockResolvedValue(
+      status({
+        connected: true,
+        owner: 'acme',
+        repo: 'web',
+        installationId: 42,
+        accountLogin: 'acme',
+        automation: { onPrOpened: 'suggest', onPrMerged: 'suggest', onIssueOpened: 'suggest', issueLabels: [] },
+      }),
+    );
+    apiMock.githubImportIssues.mockResolvedValue({ imported: 2, skipped: 1, issueIds: [], truncated: false });
+    renderSettings();
+    expect(await screen.findByText('On issue opened')).toBeTruthy();
+    expect(screen.queryByLabelText(/Labels to auto-create/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Import issues' }));
+    await waitFor(() => expect(apiMock.githubImportIssues).toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111'));
+    expect(await screen.findByText(/Imported 2 issues, skipped 1/)).toBeTruthy();
+  });
+
+  it('shows label filter only in auto mode and saves on blur', async () => {
+    apiMock.githubStatus.mockResolvedValue(
+      status({
+        connected: true,
+        owner: 'acme',
+        repo: 'web',
+        installationId: 42,
+        accountLogin: 'acme',
+        automation: { onPrOpened: 'suggest', onPrMerged: 'suggest', onIssueOpened: 'auto', issueLabels: ['bug'] },
+      }),
+    );
+    renderSettings();
+    const input = (await screen.findByDisplayValue('bug')) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'bug, enhancement' } });
+    fireEvent.blur(input);
+    await waitFor(() =>
+      expect(apiMock.githubAutomation).toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111', {
+        onPrOpened: 'suggest',
+        onPrMerged: 'suggest',
+        onIssueOpened: 'auto',
+        issueLabels: ['bug', 'enhancement'],
+      }),
+    );
   });
 });
