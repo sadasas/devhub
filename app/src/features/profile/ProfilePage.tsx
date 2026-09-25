@@ -298,8 +298,8 @@ export function ProfilePage() {
                 {t('profile.yourTeams')}
               </h3>
               {teams === null ? (
-                <div role="status" aria-busy="true" aria-label="Loading teams">
-                  <span className="sr-only">Loading teams…</span>
+                <div role="status" aria-busy="true" aria-label={t('common:loading.teams')}>
+                  <span className="sr-only">{t('common:loading.teams')}…</span>
                   <div aria-hidden="true" className="profile-collection-skeleton">
                     {[0, 1, 2].map((i) => (
                       <div key={i} className="profile-collection-skeleton-row">
@@ -337,8 +337,8 @@ export function ProfilePage() {
                 {t('profile.yourProjects')}
               </h3>
               {projects === null ? (
-                <div role="status" aria-busy="true" aria-label="Loading projects">
-                  <span className="sr-only">Loading projects…</span>
+                <div role="status" aria-busy="true" aria-label={t('common:loading.projects')}>
+                  <span className="sr-only">{t('common:loading.projects')}…</span>
                   <div aria-hidden="true" className="profile-collection-skeleton">
                     {[0, 1, 2].map((i) => (
                       <div key={i} className="profile-collection-skeleton-row">

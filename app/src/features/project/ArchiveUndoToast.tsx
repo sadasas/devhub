@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Archive, ArrowCounterClockwise, X } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/Button';
 
 interface Props {
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function ArchiveUndoToast({ action, onUndo, onDismiss, durationMs = 10000 }: Props) {
+  const { t } = useTranslation('project');
   const [visible, setVisible] = useState(true);
   const [paused, setPaused] = useState(false);
   const remainingRef = useRef(durationMs);
@@ -45,8 +47,8 @@ export function ArchiveUndoToast({ action, onUndo, onDismiss, durationMs = 10000
   }, [paused, durationMs]);
 
   if (!visible) return null;
-  const label = action === 'archived' ? 'Project archived.' : 'Project restored.';
-  const undoLabel = action === 'archived' ? 'Undo' : 'Undo';
+  const label = action === 'archived' ? t('archiveToast.archived', { defaultValue: 'Project archived.' }) : t('archiveToast.restored', { defaultValue: 'Project restored.' });
+  const undoLabel = t('archiveToast.undo', { defaultValue: 'Undo' });
   const icon = action === 'archived' ? <Archive size={13} aria-hidden="true" /> : <ArrowCounterClockwise size={13} aria-hidden="true" />;
   return (
     <div
@@ -66,7 +68,7 @@ export function ArchiveUndoToast({ action, onUndo, onDismiss, durationMs = 10000
       <Button variant="ghost" size="sm" onClick={onUndo}>
         {undoLabel}
       </Button>
-      <button type="button" className="btn btn-ghost btn-sm btn-icon" aria-label="Dismiss" onClick={() => { setVisible(false); onDismiss(); }}>
+      <button type="button" className="btn btn-ghost btn-sm btn-icon" aria-label={t('archiveToast.dismiss', { defaultValue: 'Dismiss' })} onClick={() => { setVisible(false); onDismiss(); }}>
         <X size={12} weight="bold" aria-hidden="true" />
       </button>
     </div>

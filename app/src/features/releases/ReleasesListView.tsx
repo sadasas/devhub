@@ -126,7 +126,7 @@ function MilestoneRow({ m, tasks, unread, canEdit, onSelect, onEdit, onDelete, i
         <span className="data-row-meta">
           <span className={overdue ? "text-danger" : ""}><CalendarBlank size={12} aria-hidden="true" /> {m.targetDate ? formatDate(m.targetDate) : t("releases.noTargetDate")}</span>
           <span>#{shortId(m.id)}</span>
-          {unread && <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">New</span>}
+          {unread && <span className="unread-pill" role="status" aria-label={t('releases.unread')} title={t('releases.unread')}>{t('releases.unread')}</span>}
         </span>
         {total > 0 && (
           <span className="milestone-progress">

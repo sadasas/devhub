@@ -172,6 +172,12 @@
     "bodyArchive": "Project menjadi hanya-baca dan disembunyikan dari tampilan Aktif. Anda dapat memulihkannya kapan saja.",
     "bodyRestore": "Project dapat diedit kembali."
   },
+  "archiveToast": {
+    "archived": "Project diarsipkan.",
+    "restored": "Project dipulihkan.",
+    "undo": "Urungkan",
+    "dismiss": "Tutup"
+  },
   "errors": {
     "invalidExport": "Bukan dokumen ekspor DevHub yang valid.",
     "parseJson": "Tidak dapat membaca file terpilih sebagai JSON.",
@@ -292,7 +298,8 @@
     "unread_other": "{{count}} pesan belum dibaca",
     "drawerAria": "Chat tim",
     "drawerTitle": "{{team}} — Chat tim",
-    "closeAria": "Tutup chat"
+    "closeAria": "Tutup chat",
+    "resizeAria": "Ubah ukuran panel chat"
   },
   "stack": {
     "sort": {
@@ -313,6 +320,7 @@
     "emptyDesc": "Catat apa yang digunakan proyek ini — versi, kategori, dan kapan upgrade diperlukan.",
     "unread": "Belum dibaca",
     "editEntryAria": "Edit entri",
+    "openDetails": "Buka detail entri teknologi",
     "category": {
       "frontend": "Frontend",
       "backend": "Backend",
@@ -405,6 +413,10 @@
     "appliedAt": "diterapkan {{date}}",
     "relationsHeading": "Relasi",
     "versionsHeading": "Versi schema",
+    "versionsExpand": "Bentangkan versi",
+    "versionsMinimize": "Lipatkan versi",
+    "versionsExpandShort": "Bentangkan",
+    "versionsMinimizeShort": "Lipatkan",
     "diffVersions": "Bandingkan versi",
     "saveVersion": "Simpan versi",
     "empty": {
@@ -760,6 +772,8 @@
     "emptyDesc": "Catat pilihan arsitektur dan trade-off sebagai ADR agar diri Anda di masa depan ingat alasannya.",
     "unread": "Belum dibaca",
     "editAria": "Edit keputusan",
+    "openDetails": "Buka detail keputusan",
+    "deleteAria": "Hapus keputusan {{title}}",
     "status": {
       "proposed": "Diusulkan",
       "accepted": "Diterima",
@@ -824,6 +838,7 @@
     "emptyDesc": "Kelompokkan pekerjaan ke dalam rilis dan simpan changelog atas apa yang dirilis di masing-masing.",
     "unread": "Belum dibaca",
     "editAria": "Edit milestone",
+    "openDetails": "Buka detail milestone",
     "noTargetDate": "Tanpa tanggal target",
     "progressDone": "{{done}}/{{total}} selesai",
     "statusBadge": {

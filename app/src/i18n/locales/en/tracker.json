@@ -84,6 +84,8 @@
       "priorityTitle": "{{priority}} priority",
       "blockedByTooltip": "Blocked by: {{names}}",
       "unread": "Unread",
+      "unreadAria": "New — not yet viewed",
+      "unreadTitle": "New · not yet viewed",
       "srSummary": "{{status}} task with {{priority}} priority. Drag to move between columns. On touch: press and hold, then drag. Move with arrow keys when focused.",
       "subtaskOf": "Subtask of {{parent}}",
       "subtaskProgress": "{{done}} of {{total}} subtasks done"
@@ -149,7 +151,21 @@
       "subPriority": "Subtask priority",
       "subPriorityInherit": "{{label}} (inherited)",
       "followParent": "Follow parent",
-      "subRangeWarn": "Date is outside the parent range ({{start}} – {{due}})."
+      "subRangeWarn": "Date is outside the parent range ({{start}} – {{due}}).",
+      "parentShrinkWarn": "{{count}} subtasks are outside the new range.",
+      "clampSubtasks": "Adjust {{count}} subtasks",
+      "parentLabel": "Parent",
+      "parentMissing": "(missing)",
+      "detachParent": "Detach",
+      "subtasksLabel": "Subtasks",
+      "setParent": "Make subtask of…",
+      "addSubtask": "New subtask…",
+      "checklistLabel": "Checklist",
+      "uncheckItem": "Mark as todo",
+      "checkItem": "Mark done",
+      "addChecklist": "New item…",
+      "removeBlocker": "Remove blocker {{title}}",
+      "removeLabel": "Remove {{name}}"
     },
     "attachments": {
       "title": "Attachments",
@@ -229,6 +245,11 @@
       "moreChip": "+{{count}} more",
       "moreTitle": "{{count}} tasks due — open day list",
       "close": "Close",
+      "moveTitle": "Move task",
+      "moveLabel": "Due date (YYYY-MM-DD, empty to clear)",
+      "moveHint": "Leave empty to move to No date. Press M on a chip to open this dialog.",
+      "expandUnscheduled": "Expand unscheduled",
+      "collapseUnscheduled": "Collapse unscheduled",
       "addTask": "Add task",
       "addTaskShort": "Task",
       "emptyTitle": "No tasks due",
@@ -255,6 +276,21 @@
         "sat": "Sat",
         "sun": "Sun"
       }
+    },
+    "timeline": {
+      "laneAll": "All tasks",
+      "unassigned": "Unassigned",
+      "groupLabel": "Group",
+      "group": {
+        "none": "None",
+        "milestone": "Milestone",
+        "assignee": "Assignee"
+      },
+      "today": "Today",
+      "unscheduledEmpty": "No unscheduled tasks — drag bar here to clear dates",
+      "laneTasks": "Tasks",
+      "prev": "Previous",
+      "next": "Next"
     }
   },
   "issues": {
@@ -272,7 +308,9 @@
     "emptyDesc": "Log bugs with a severity level and reproduction steps so they don't get lost.",
     "linkedTo": "linked: {{title}}",
     "unread": "Unread",
-    "editAria": "Edit issue",
+      "editAria": "Edit issue",
+      "openDetails": "Open issue details",
+      "deleteAria": "Delete issue {{title}}",
     "severity": {
       "critical": "Critical",
       "high": "High",
@@ -355,7 +393,9 @@
     "metaTask": "task: {{title}}",
     "metaIssue": "issue: {{title}}",
     "unread": "Unread",
-    "editAria": "Edit test case",
+      "editAria": "Edit test case",
+      "openDetails": "Open test case details",
+      "deleteAria": "Delete test case {{name}}",
     "status": {
       "pending": "Pending",
       "pass": "Pass",

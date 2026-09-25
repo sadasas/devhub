@@ -140,7 +140,11 @@ export function RowMenu({ triggerLabel, menuLabel, menuId, actions }: RowMenuPro
                 type="button"
                 role="menuitem"
                 className={`more-item${a.danger ? ' text-danger' : ''}`}
-                onClick={() => {
+                onClick={(e) => {
+                  // Portal React bubble lewat tree React (bukan DOM): tanpa ini
+                  // klik item ikut memicu onClick induk kartu (mis. WhiteboardCard
+                  // onOpen) sehingga navigasi pindah dan aksi menu tak terlihat.
+                  e.stopPropagation();
                   a.onSelect();
                   setOpen(false);
                   triggerRef.current?.focus();

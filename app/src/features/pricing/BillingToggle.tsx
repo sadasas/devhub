@@ -137,7 +137,7 @@ export function BillingToggle({ packages, value, onChange }: BillingToggleProps)
           const isBest = bestDays === d.durationDays;
           const daysLabel = isId ? `${d.durationDays} hari` : `${d.durationDays} days`;
           const ariaLabel = isBest
-            ? `${daysLabel} — ${formatIdr(d.priceIdr)} — Best value${sav ? ` — ${t('pricing.savings', { percent: sav })}` : ''}`
+            ? `${daysLabel} — ${formatIdr(d.priceIdr)} — ${t('pricing.bestValue', { defaultValue: 'Best value' })}${sav ? ` — ${t('pricing.savings', { percent: sav })}` : ''}`
             : sav
               ? `${daysLabel} — ${formatIdr(d.priceIdr)} — ${t('pricing.savings', { percent: sav })}`
               : `${daysLabel} — ${formatIdr(d.priceIdr)}`;

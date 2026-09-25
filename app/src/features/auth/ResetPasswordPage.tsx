@@ -90,7 +90,7 @@ export function ResetPasswordPage() {
             />
             <button
               type="button"
-              aria-label={show ? 'Hide' : 'Show'}
+              aria-label={show ? t('profile.passwordToggle.hide') : t('profile.passwordToggle.show')}
               onClick={() => setShow((v) => !v)}
               style={{
                 position: 'absolute',

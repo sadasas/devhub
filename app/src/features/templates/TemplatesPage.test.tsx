@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { api } from '../../lib/api';
@@ -127,5 +127,60 @@ describe('TemplatesPage (owner-only)', () => {
     await waitFor(() =>
       expect(inst).toHaveBeenCalledWith(template.id, TEAM_ID, 'Sprint template'),
     );
+  });
+});
+
+describe('TemplatesPage narrow (≤640px)', () => {
+  const realMatchMedia = window.matchMedia;
+  beforeEach(() => {
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('640px'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+  });
+  afterEach(() => {
+    window.matchMedia = realMatchMedia;
+    vi.restoreAllMocks();
+  });
+
+  it('replaces inline actions with a kebab popup menu', async () => {
+    vi.spyOn(api, 'listTemplates').mockResolvedValue([makeTemplate()]);
+
+    renderPage();
+    await screen.findByText('Sprint template');
+    expect(screen.getAllByRole('button', { name: /More actions for/ })).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: 'Use template' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Delete: Sprint template/ })).toBeNull();
+  });
+
+  it('kebab menu runs Use and Delete actions', async () => {
+    const template = makeTemplate();
+    vi.spyOn(api, 'listTemplates').mockResolvedValue([template]);
+
+    renderPage();
+    await screen.findByText('Sprint template');
+    fireEvent.click(screen.getByRole('button', { name: /More actions for/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Use template' }));
+    expect(await screen.findByLabelText(/Project name/)).toBeDefined();
+  });
+
+  it('kebab Delete opens confirm dialog and deletes', async () => {
+    const template = makeTemplate();
+    vi.spyOn(api, 'listTemplates').mockResolvedValue([template]);
+    const del = vi.spyOn(api, 'deleteTemplate').mockResolvedValue({ ok: true });
+
+    renderPage();
+    await screen.findByText('Sprint template');
+    fireEvent.click(screen.getByRole('button', { name: /More actions for/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Delete: Sprint template/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete' }));
+
+    await waitFor(() => expect(del).toHaveBeenCalledWith(template.id));
+    expect(await screen.findByText('No templates yet')).toBeDefined();
   });
 });

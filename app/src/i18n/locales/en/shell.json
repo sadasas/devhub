@@ -97,6 +97,7 @@
     "toggleTeamChat": "Toggle team chat",
     "searching": "Searching…",
     "noMatches": "No matches for “{{query}}”",
+    "resultsCount": "{{count}} results",
     "hintNavigate": "navigate",
     "hintOpen": "open",
     "hintClose": "esc close"

@@ -158,7 +158,7 @@ function DagTaskCard({
   onOpen: (id: string) => void;
   unread?: boolean;
 }) {
-  const { t } = useTranslation('tracker');
+  const { t } = useTranslation('project');
   const due = taskDueChip(task);
   const tone = state === 'done' ? 'success' : state === 'ready' ? 'info' : 'danger';
   const stateLabel =
@@ -182,7 +182,7 @@ function DagTaskCard({
           <span className="font-mono tabular" style={{ fontSize: 11, color: 'var(--text-muted)' }}>
             #{shortId(task.id)}
           </span>
-          {unread && <span className="unread-pill">New</span>}
+          {unread && <span className="unread-pill">{t('releases.unread')}</span>}
         </div>
         <div className="dag-card-title" title={task.title}>
           {task.title || 'Untitled task'}

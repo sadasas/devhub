@@ -140,7 +140,7 @@ import { BottomSheet } from '../../components/BottomSheet';
 import { WhiteboardContextMenu } from './WhiteboardContextMenu';
 import { downloadWhiteboardPng, downloadWhiteboardSvg } from './export';
 import { sanitizeSvgForRender } from './svg-sanitize';
-import { hasDataComponents } from './svg-components';
+import { approxComponentBBox, hasDataComponents, reverseCompileComponent, splitSvgComponents } from './svg-components';
 import { buildRefDataMap } from './ref-data';
 import type { WhiteboardHistory } from './useWhiteboardHistory';
 
@@ -2650,6 +2650,52 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     openCtxMenuAt(e.clientX, e.clientY);
   };
 
+  /**
+   * Pecah 1 embed berkelompok menjadi komponen (kontrak grouping):
+   * tiap `<g data-component>` → elemen natif bila primitif sederhana,
+   * embed anak bila kompleks. 1 dispatch (undo-able).
+   */
+  const splitSelectedEmbed = () => {
+    if (isReadOnly || selectedIds.length !== 1) return;
+    const target = board.elements.find((el) => el.id === selectedIds[0] && el.kind === 'embed');
+    if (!target || target.kind !== 'embed' || target.locked) return;
+    const parts = splitSvgComponents(target.svg).filter((p) => p.name !== '');
+    if (parts.length === 0) return;
+    const origin = { x: target.x, y: target.y };
+    const out: WhiteboardElement[] = [];
+    for (const part of parts) {
+      const rc = reverseCompileComponent(part.svg, origin, newId);
+      if (rc.kind === 'native') {
+        out.push(...rc.elements);
+        continue;
+      }
+      const box = approxComponentBBox(part.svg);
+      if (!box) continue;
+      out.push({
+        id: newId(),
+        kind: 'embed',
+        x: origin.x + box.x,
+        y: origin.y + box.y,
+        w: Math.min(2000, Math.max(20, box.w)),
+        h: Math.min(2000, Math.max(20, box.h)),
+        svg: part.svg,
+        title: part.name,
+      });
+    }
+    if (out.length === 0) return;
+    if (board.elements.length - 1 + out.length > MAX_ELEMENTS) {
+      notifyAtCap();
+      return;
+    }
+    history.record();
+    dispatch({
+      type: 'whiteboard/update',
+      id: board.id,
+      patch: { elements: [...board.elements.filter((el) => el.id !== target.id), ...out] },
+    });
+    setSelectedIds(out.map((el) => el.id));
+  };
+
   const ctxSections = (): Array<Array<{ id: string; label: string; shortcut?: string; danger?: boolean; disabled?: boolean; run: () => void }>> => {
     const hasSel = selectedIds.length > 0;
     const hasClip = !!clipboard && clipboard.length > 0;
@@ -2663,6 +2709,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         : undefined;
     const embedUngrouped =
       singleEmbed !== undefined && singleEmbed.kind === 'embed' && !hasDataComponents(singleEmbed.svg);
+    const embedSplittable =
+      singleEmbed !== undefined && singleEmbed.kind === 'embed' && hasDataComponents(singleEmbed.svg);
     return [
       [
         { id: 'copy', label: t('whiteboard.ctx.copy'), shortcut: 'Ctrl+C', disabled: !hasSel, run: copySelection },
@@ -2693,6 +2741,17 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                 label: t('whiteboard.ctx.embedGroupingHint'),
                 disabled: true,
                 run: () => {},
+              },
+            ],
+          ]
+        : []),
+      ...(embedSplittable
+        ? [
+            [
+              {
+                id: 'splitEmbed',
+                label: t('whiteboard.ctx.splitEmbed'),
+                run: splitSelectedEmbed,
               },
             ],
           ]

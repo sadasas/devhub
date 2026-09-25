@@ -1068,8 +1068,8 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
         onClose={() => setMoveTaskId(null)}
         footer={
           <>
-            <Button variant="ghost" size="md" onClick={() => setMoveTaskId(null)}>{t('action.cancel', { defaultValue: 'Cancel' })}</Button>
-            <Button variant="primary" size="md" leftIcon={<Check size={14} weight="bold" aria-hidden="true" />} onClick={confirmMove}>{t('action.save', { defaultValue: 'Save' })}</Button>
+            <Button variant="ghost" size="md" onClick={() => setMoveTaskId(null)}>{t('common:action.cancel', { defaultValue: 'Cancel' })}</Button>
+            <Button variant="primary" size="md" leftIcon={<Check size={14} weight="bold" aria-hidden="true" />} onClick={confirmMove}>{t('common:action.save', { defaultValue: 'Save' })}</Button>
           </>
         }
       >
