@@ -45,6 +45,7 @@ import { EmptyState } from '../../components/EmptyState';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { SaveBanner } from '../../components/SaveBanner';
+import { StatusBanner } from '../../components/StatusBanner';
 import { ToastStack } from '../../components/ToastStack';
 import { Skeleton } from '../../components/Skeleton';
 import { ProjectSettingsSkeleton } from '../../components/PageSkeletons';
@@ -502,6 +503,7 @@ export function ProjectPage() {
   const [importDoc, setImportDoc] = useState<ExportDocument | null>(null);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [limitOpen, setLimitOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
@@ -661,7 +663,7 @@ export function ProjectPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setDeleteError(getErrorMessage(err, t('errors.exportFailed')));
+      setExportError(getErrorMessage(err, t('errors.exportFailed')));
     }
   }
 
@@ -878,6 +880,16 @@ export function ProjectPage() {
             </div>
           </div>
         </header>
+
+        {exportError && (
+          <StatusBanner
+            tone="danger"
+            message={exportError}
+            onDismiss={() => setExportError(null)}
+            dismissLabel={t('banner.dismiss', { defaultValue: 'Dismiss' })}
+            testId="export-error"
+          />
+        )}
 
         {isArchived && (
           <ArchivedBanner

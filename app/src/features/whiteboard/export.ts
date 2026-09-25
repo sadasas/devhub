@@ -19,6 +19,7 @@ import {
 } from './geometry';
 import { effectiveArrowStyle, orthogonalPath, pathMidpoint, portPoint, portToward, type Point } from './edges';
 import { fontStackOf, listedLines, type RichTextFields } from './fonts';
+import { sanitizeSvgForRender } from './svg-sanitize';
 
 const EXPORT_MARGIN = 32;
 
@@ -233,6 +234,16 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null, ctx: Exp
         ? `<g transform="translate(${round(el.x + 6)}, ${round(el.y + BOUNDARY_LABEL_DY)})"><rect x="-4" y="${round(-(chipH - 2))}" width="${round(chipW)}" height="${round(chipH)}" rx="5" fill="${esc(el.color)}" fill-opacity="0.25"/><text x="0" y="0" font-size="${fontSize}" fill="${esc(labelColor)}"${fontAttrs(el)}>${esc(truncateToWidth(listedLines(el.label, el).join(' '), fontSize, chipW - 12, bold ? 600 : 400))}</text></g>`
         : '';
       return `<g><rect x="${round(el.x)}" y="${round(el.y)}" width="${round(el.w)}" height="${round(el.h)}" rx="8" fill="${esc(el.color)}" fill-opacity="0.05" stroke="${esc(el.color)}" stroke-width="1.5" stroke-dasharray="6 4"/>${chip}</g>`;
+    }
+    case 'embed': {
+      // SVG AI disarang apa adanya (sudah sanitasi saat tulis; sanitasi
+      // ulang di sini untuk jalur export langsung). Tanpa clipPath url(#id):
+      // viewport <svg> + overflow hidden sudah memotong (cermin kanvas).
+      const clean = sanitizeSvgForRender(el.svg, `e${el.id.slice(0, 8)}`);
+      if (!clean) {
+        return `<g><rect x="${round(el.x)}" y="${round(el.y)}" width="${round(el.w)}" height="${round(el.h)}" rx="8" fill="none" stroke="#8a8a93" stroke-width="1.5" stroke-dasharray="6 4"/><text x="${round(el.x + 12)}" y="${round(el.y + 24)}" font-size="13" fill="#8a8a93">${esc(el.title || 'Embed')}</text></g>`;
+      }
+      return `<svg x="${round(el.x)}" y="${round(el.y)}" width="${round(el.w)}" height="${round(el.h)}" viewBox="0 0 ${round(el.w)} ${round(el.h)}" overflow="hidden"><g>${clean}</g></svg>`;
     }
     case 'ref': {
       const rect = refCardRect(el, refData, false);

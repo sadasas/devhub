@@ -92,7 +92,7 @@ CREATE INDEX IF NOT EXISTS idx_projects_team_id ON projects (team_id);
 
 **Catatan implementasi:** backfill dijalankan dengan SQL prosedural (DO block) atau plain SQL di dalam migration — satu statement, jalankan sekali, tidak idempoten.
 
-**Skema kini (di luar `002_teams.sql`, lihat [TDD §3.3](technical-design.md#33-database-postgresql)):** `activity_log` (REST+MCP parity, prune 500/project), `team_messages` (chat, viewer boleh tulis ADR-038), `billing_packages`/`billing_package_prices` + `team_payments` (Pakasir DB-driven, ADR-044/045), `github_installations`/`github_project_repos`/`github_webhook_events`/`github_outbox` (ADR-052), `gcal_*` vault AES-256-GCM + outbox 1m/5m/30m (ADR-059), `oauth_clients`/`oauth_authorization_codes`/`oauth_access_tokens` (ADR-049), `projects.visibility` + `public_tabs` fail-closed (ADR-017/038).
+**Skema kini (di luar `002_teams.sql`, lihat [TDD §3.3](technical-design.md#33-database-postgresql)):** `activity_log` (REST+MCP parity, prune 500/project), `team_messages` (chat, viewer boleh tulis ADR-038), `billing_packages`/`billing_package_prices` + `team_payments` (Pakasir DB-driven, ADR-044/045), `github_installations`/`github_project_repos`/`github_webhook_events`/`github_outbox` (ADR-052), `gcal_*` vault AES-256-GCM + outbox 1m/5m/30m (ADR-066), `oauth_clients`/`oauth_authorization_codes`/`oauth_access_tokens` (ADR-049), `projects.visibility` + `public_tabs` fail-closed (ADR-017/038).
 
 ---
 
@@ -153,7 +153,7 @@ CREATE INDEX IF NOT EXISTS idx_projects_team_id ON projects (team_id);
 | `features/dashboard/DashboardPage.tsx` | Badge nama team per kartu |
 | `features/dashboard/NewProjectModal.tsx` | Dropdown pilih team |
 | `features/project/ProjectPage.tsx` | Viewer: sembunyikan Delete + tombol edit (via `canEdit`); router URL-based (`react-router` v7, ADR-016), bukan `navigation-context` |
-| `features/*/RowMenu.tsx` | Kebab standar ≤640px (Issues/Decisions/Tests/Releases/Whiteboard/Labels/Templates) + `stopPropagation`; TemplatesPage icon-only + kebab (ADR-054) |
+| `features/*/RowMenu.tsx` | Kebab standar ≤640px (Issues/Decisions/Tests/Releases/Whiteboard/Labels/Templates) + `stopPropagation`; TemplatesPage icon-only + kebab (ADR-061) |
 | `features/billing/*` (`BillingTab`, `PlanLimitModal`, `/billing/:teamId`, `/pricing`) | Plan card + usage meter + upgrade admin-only + riwayat; checkout `{teamId, packageId, priceId}` (ADR-044/045) |
 | `features/integrations/*` (GitHub App + GCal) | Connect/disconnect admin-only; mapping repo/project; banner suggest; link retained bergambar "disconnected" (ADR-052/059) |
 | `state/navigation-context.tsx` + `Layout.tsx` | View baru `team` |

@@ -9,10 +9,10 @@ import {
   GOOGLE_API_USER_DATA_POLICY_URL,
 } from '../../lib/docs-urls';
 import { getErrorMessage } from '../../lib/errors';
-import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { DataErrorState } from '../../components/DataErrorState';
+import { StatusBanner } from '../../components/StatusBanner';
 import { GCalBanner } from './GCalBanner';
 
 interface GCalSettingsProps {
@@ -298,33 +298,27 @@ export function GCalSettings({ projectId, canEdit, bare = false }: GCalSettingsP
               <GCalBanner email={status?.email} onReconnect={handleReconnect} busy={reconnectBusy} />
             ) : null}
             {flash ? (
-              <div
-                className="save-toast save-banner"
-                role={flash.tone === 'error' ? 'alert' : 'status'}
-                data-testid="gcal-flash"
-              >
-                <Badge tone={flash.tone === 'error' ? 'danger' : 'success'} dot>
-                  {flash.tone === 'error'
+              <StatusBanner
+                tone={flash.tone === 'error' ? 'danger' : 'success'}
+                title={
+                  flash.tone === 'error'
                     ? t('gcal.failed', { defaultValue: 'Connection failed' })
-                    : t('gcal.connected', { defaultValue: 'Connected' })}
-                </Badge>
-                <div className="save-toast-body">
-                  <span>{flash.text}</span>
-                </div>
-                <Button variant="ghost" size="sm" className="save-toast-close" onClick={() => setFlash(null)}>
-                  {t('gcal.dismiss', { defaultValue: 'Dismiss' })}
-                </Button>
-              </div>
+                    : t('gcal.connected', { defaultValue: 'Connected' })
+                }
+                message={flash.text}
+                onDismiss={() => setFlash(null)}
+                dismissLabel={t('gcal.dismiss', { defaultValue: 'Dismiss' })}
+                testId="gcal-flash"
+              />
             ) : null}
             {actionError ? (
-              <div className="save-toast save-banner" role="alert" data-testid="gcal-toast">
-                <div className="save-toast-body">
-                  <span>{actionError}</span>
-                </div>
-                <Button variant="ghost" size="sm" className="save-toast-close" onClick={() => setActionError(null)}>
-                  {t('gcal.dismiss', { defaultValue: 'Dismiss' })}
-                </Button>
-              </div>
+              <StatusBanner
+                tone="danger"
+                message={actionError}
+                onDismiss={() => setActionError(null)}
+                dismissLabel={t('gcal.dismiss', { defaultValue: 'Dismiss' })}
+                testId="gcal-toast"
+              />
             ) : null}
           </>
         )}

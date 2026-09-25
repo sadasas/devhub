@@ -70,13 +70,14 @@
 | [ADR-050](#adr-050) | Target market expansion: solo → large engineering orgs (2 → 2,000) — complementary to Jira/Linear | Accepted | 2026-09-03 |
 | [ADR-051](#adr-051) | Admin frontend same-origin Worker proxy + shared parent-domain session (single login app + admin) | Accepted | 2026-09-13 |
 | [ADR-052](#adr-052) | GitHub App integration: repo link, webhook auto-link, suggest-don't-execute automation | Accepted | 2026-09-23 |
-| [ADR-053](#adr-053) | Whiteboard ShapeLibrary + FigJam panel + embed SVG + theme-aware export | Accepted | 2026-09-24 |
-| [ADR-054](#adr-054) | RowMenu kebab standar ≤640px + stopPropagation + Templates icon-only | Accepted | 2026-09-24 |
-| [ADR-055](#adr-055) | Upload TUS upsert (tus-js-client) + fallback PUT, service-key tak ke browser | Accepted | 2026-09-24 |
-| [ADR-056](#adr-056) | i18n addendum ADR-046: 6 namespace + defaultNS + LANG_STORAGE_KEY + overhaul P0+P1 | Accepted | 2026-09-24 |
-| [ADR-057](#adr-057) | SearchableSelect mount-emit fix + subtask 1-level + truncateToWidth | Accepted | 2026-09-24 |
-| [ADR-058](#adr-058) | LabelsSection wrap + kebab mobile + drawer settings mobile + grid minmax | Accepted | 2026-09-24 |
-| [ADR-059](#adr-059) | Google Calendar integration: vault + outbox + sync-service (tandingan ADR-052) | Accepted | 2026-09-24 |
+| [ADR-053](#adr-053) | GitHub multi-akun: verifikasi repo milik instalasi + picker hanya instalasi hidup | Accepted | 2026-09-25 |
+| [ADR-060](#adr-060) | Whiteboard ShapeLibrary + FigJam panel + embed SVG + theme-aware export | Accepted | 2026-09-24 |
+| [ADR-061](#adr-061) | RowMenu kebab standar ≤640px + stopPropagation + Templates icon-only | Accepted | 2026-09-24 |
+| [ADR-062](#adr-062) | Upload TUS upsert (tus-js-client) + fallback PUT, service-key tak ke browser | Accepted | 2026-09-24 |
+| [ADR-063](#adr-063) | i18n addendum ADR-046: 6 namespace + defaultNS + LANG_STORAGE_KEY + overhaul P0+P1 | Accepted | 2026-09-24 |
+| [ADR-064](#adr-064) | SearchableSelect mount-emit fix + subtask 1-level + truncateToWidth | Accepted | 2026-09-24 |
+| [ADR-065](#adr-065) | LabelsSection wrap + kebab mobile + drawer settings mobile + grid minmax | Accepted | 2026-09-24 |
+| [ADR-066](#adr-066) | Google Calendar integration: vault + outbox + sync-service (tandingan ADR-052) | Accepted | 2026-09-24 |
 
 ---
 
@@ -720,6 +721,20 @@
 ---
 
 ### ADR-053
+**GitHub multi-akun: verifikasi repo milik instalasi + picker hanya instalasi hidup**
+
+- **Status:** Accepted (2026-09-25) — follow-up ADR-052 (kasus: project A konek akun-X, project B konek akun-Y)
+- **Context:** Model DB sudah multi-instalasi (1 repo/project, instalasi bebas beda per project) dan frontend sudah picker + "Install on another GitHub account", tapi `POST /repos` menerima `owner/repo` apa pun untuk instalasi yang dikenal — salah pilih instalasi baru ketahuan belakangan (webhook sepi). `GET /installations` juga mengembalikan instalasi `suspended`/`removed` yang tak bisa dipakai.
+- **Decision:**
+  - **`assertRepoBelongsToInstallation` (`install-service.ts`):** sebelum insert mapping, cocokkan `owner/repo` (case-insensitive, GitHub case-insensitive) ke `listInstallationRepos` via token instalasi (cache sealed reuse); gagal -> `403 REPO_NOT_IN_INSTALLATION` dengan pesan menyebut instalasi + akun + arahan picker. Batas jujur: list dibatasi 10 halaman (±1000 repo) — org raksasa bisa false-negative; pesan mengarahkan lewat picker (sumber list yang sama).
+  - **`listInstallations` hanya `status = 'connected'`:** suspended/removed (ditandai webhook `installation`/`suspend`) disembunyikan dari picker; reconnect = install ulang App. Tanpa ubah kontrak response.
+  - **Tanpa ubah `app/`:** error tampil via banner danger existing; picker kosong via hint existing (matriks kepatuhan UI terverifikasi — nol kelas/string/role baru).
+- **Consequences:** Positive — salah wiring gagal cepat dengan pesan jelas (bukan diam); picker bebas entri mati. Negative — +0-2 panggilan GitHub API per connect admin-only (route sudah rate-limit 60/15m); false-negative di atas ±1000 repo per instalasi.
+- **Alternatives:** Verifikasi via nama repo saja tanpa token (ditolak: tidak membuktikan kepemilikan instalasi); tampilkan suspended dengan badge + disable (ditolak: `SearchableSelect` tak dukung opsi disabled — filter backend lebih sederhana); OAuth user-token fallback (ditolak: di luar scope App,PAT-like).
+
+---
+
+### ADR-060
 **Whiteboard ShapeLibrary + FigJam panel + embed SVG + theme-aware export**
 
 - **Status:** Accepted (2026-09-24)
@@ -730,7 +745,7 @@
 
 ---
 
-### ADR-054
+### ADR-061
 **RowMenu kebab standar ≤640px + stopPropagation + Templates icon-only**
 
 - **Status:** Accepted (2026-09-24)
@@ -741,7 +756,7 @@
 
 ---
 
-### ADR-055
+### ADR-062
 **Upload TUS upsert (tus-js-client) + fallback PUT, service-key tak ke browser**
 
 - **Status:** Accepted (2026-09-24)
@@ -752,7 +767,7 @@
 
 ---
 
-### ADR-056
+### ADR-063
 **i18n addendum ADR-046: 6 namespace + defaultNS + LANG_STORAGE_KEY + overhaul P0+P1**
 
 - **Status:** Accepted (2026-09-24)
@@ -763,7 +778,7 @@
 
 ---
 
-### ADR-057
+### ADR-064
 **SearchableSelect mount-emit fix + subtask 1-level + truncateToWidth**
 
 - **Status:** Accepted (2026-09-24)
@@ -774,7 +789,7 @@
 
 ---
 
-### ADR-058
+### ADR-065
 **LabelsSection wrap + kebab mobile + drawer settings mobile + grid minmax**
 
 - **Status:** Accepted (2026-09-24)
@@ -785,7 +800,7 @@
 
 ---
 
-### ADR-059
+### ADR-066
 **Google Calendar integration: vault + outbox + sync-service (tandingan ADR-052)**
 
 - **Status:** Accepted (2026-09-24)

@@ -123,7 +123,7 @@
 
 - `npm audit` run before each release; dependencies pinned (package-lock committed).
 - Only well-maintained deps (express, pg, bcryptjs, jsonwebtoken, cookie-parser, express-rate-limit, zod, @modelcontextprotocol/sdk, react, vite, @phosphor-icons/react, react-router, i18next/react-i18next, yaml, tus-js-client, ws).
-- No arbitrary UI plugins; embed SVG allowlist-sanitized (ADR-053).
+- No arbitrary UI plugins; embed SVG allowlist-sanitized (ADR-060).
 
 ---
 

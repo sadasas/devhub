@@ -66,6 +66,33 @@ export function clearPendingProject(): void {
   }
 }
 
+/** Path kembali (halaman Settings asal) sebelum redirect ke github.com. */
+export const GITHUB_PENDING_RETURN_KEY = 'devhub:github:pendingReturn';
+
+export function savePendingReturn(path: string): void {
+  try {
+    window.localStorage.setItem(GITHUB_PENDING_RETURN_KEY, path);
+  } catch {
+    // abaikan — gate tetap jalan, tanpa auto-navigate pulang.
+  }
+}
+
+export function readPendingReturn(): string | null {
+  try {
+    return window.localStorage.getItem(GITHUB_PENDING_RETURN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function clearPendingReturn(): void {
+  try {
+    window.localStorage.removeItem(GITHUB_PENDING_RETURN_KEY);
+  } catch {
+    // abaikan.
+  }
+}
+
 /** Mirror server formatBranchName: `feat/<short8>-<slug>` (max 80). */
 export function formatBranchName(taskId: string, title: string, prefix = 'feat'): string {
   const short = taskId.replace(/-/g, '').slice(0, 8).toLowerCase();

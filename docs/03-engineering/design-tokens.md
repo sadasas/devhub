@@ -202,6 +202,10 @@ is reserved for floating layers.
 | 2026-09-24 | Chip/card/skeleton/drawer §10: `chip-wrap` + `label-chip-no-maxwidth` (tanpa maxWidth paksa); `grid-minmax-card` + `project-card-title-block`; `template-skeleton-kebab`; `templates-icon-only` + `labels-kebab-mobile` via `useIs*Narrow`; `drawer-settings` |
 | 2026-09-24 | Upload + whiteboard §10: upload TUS + fallback PUT + `isUploadAuthError` (`app/src/lib/attachmentUpload.ts`); whiteboard kind `embed` (SVG wireframe, sanitasi allowlist, max 20/board) |
 | 2026-09-24 | i18n §10: aksi umum via `common:` (`defaultNS: common`, 6 ns + paritas EN/ID dalam PR yang sama); rujukan silang `select-mount-emit` + `upload-tus-fallback` |
+| 2026-09-25 | Feedback section unified: `StatusBanner` (`danger/warn/success/info` → `save-banner/conflict-banner/save-status/info-banner`, role otomatis) gantikan duplikasi flash/error GCal/GitHub; pilot migrasi `GCalSettings` + `GitHubSettings` (error pindah ke bawah aksi, `unconfigured` jadi warn, tombol "Install on another GitHub account"); `GitHubSetupGate` ke `InlineError`; aturan penempatan di `coding-standards` §7 + `design-tokens` §7 |
+| 2026-09-25 | Koreksi: butir "urutan kanonis section integrasi" (scoped, behavioral) dicabut dari §7 global — diganti aturan penempatan global di `coding-standards` §7 (banner menempel pemicu, teks statis utuh); §7 kembali ke mekanik (ritme, varian warna); warn GitHub pindah ke atas baris aksi |
+| 2026-09-25 | `InlineError` ditegaskan global: ikon `Warning` 12px + teks 600 (seragam 71 titik + `Input`/`Textarea`); tetap teks tanpa kotak, `role=alert` tak berubah; `.field-error > svg` nempel baris pertama (pola `save-toast`), gap 6 tangga space-* |
+| 2026-09-25 | Audit penempatan feedback se-app: aturan kedekatan dilonggarkan jadi "di atas ATAU bawah pemicu asal bersebelahan" (konvensi modal: error di atas footer = menempel); 12 titik P0 diperbaiki (duplikat PricingPage, alert-pada-info PlanLimitModal/TeamBillingPanel, role ganda PaymentHistory, primitif custom ProfilePage, load-gagal auth/billing, ember salah ProjectPage, kode mati LabelsSection, doneWarn dinamis TaskModal) |
 
 ---
 
@@ -263,6 +267,11 @@ Rules:
 - **Urutan kanonis blok baca General:** 1 nama (+ikon) → 2 ID + Copy →
   3 meta sekunder (proyek: Team·Status; tim: Team URL) → 4 Description
   di akhir. Blok tanpa data dilewati, tidak disusun ulang.
+- **Varian banner section:** danger `save-banner`, warn `conflict-banner`,
+  success `save-status`, info `info-banner` — semua via `var(--status-*)`.
+  Banner in-flow selebar wadahnya (cap 400px hanya untuk toast melayang
+  di `.toast-stack`). Penempatan diatur `coding-standards.md` §7
+  (banner menempel pada pemicu; teks statis utuh tak disela).
 - Guard memindai (warn-first): margin/padding/gap/row-gap/column-gap (tangga space-*);
   border-radius mentah (50% = DILARANG); border-width selain 1px; rgba() mentah di border.
   Transition SENGAJA tidak dijaga guard (butuh triase ADR per kasus, lihat §9).

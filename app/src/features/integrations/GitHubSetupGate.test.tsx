@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, useLocation } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GitHubSetupGate } from './GitHubSetupGate';
 import type { Project } from '../../lib/types';
@@ -12,7 +12,10 @@ const { apiMock } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('../../lib/api', () => ({ api: apiMock }));
+vi.mock('../../lib/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../lib/api')>();
+  return { ...actual, api: apiMock };
+});
 
 const { projectsMock } = vi.hoisted(() => ({ projectsMock: { current: [] as Project[] } }));
 
@@ -41,8 +44,14 @@ function renderGate(entry: string) {
   return render(
     <MemoryRouter initialEntries={[entry]}>
       <GitHubSetupGate />
+      <LocationProbe />
     </MemoryRouter>,
   );
+}
+
+function LocationProbe() {
+  const loc = useLocation();
+  return <span data-testid="loc">{`${loc.pathname}${loc.search}`}</span>;
 }
 
 describe('GitHubSetupGate', () => {
@@ -63,7 +72,7 @@ describe('GitHubSetupGate', () => {
 
   it('renders nothing without setup params', () => {
     const { container } = renderGate('/');
-    expect(container.innerHTML).toBe('');
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
     expect(apiMock.githubSetup).not.toHaveBeenCalled();
   });
 
@@ -84,10 +93,38 @@ describe('GitHubSetupGate', () => {
     expect(await screen.findByText(/Connected acme\/web to project/)).toBeTruthy();
   });
 
-  it('shows an error when setup lookup fails', async () => {
+  it('navigates home to the stored Settings return after connect', async () => {
+    window.localStorage.setItem('devhub:github:pendingProject', '11111111-1111-4111-8111-111111111111');
+    window.localStorage.setItem(
+      'devhub:github:pendingReturn',
+      '/project/11111111-1111-4111-8111-111111111111?tab=settings&section=integrations',
+    );
+    renderGate('/?github=installed&installation_id=42&setup_action=install');
+    expect(await screen.findByRole('dialog')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Connect repository' }));
+    await waitFor(() =>
+      expect(apiMock.githubConnect).toHaveBeenCalledWith(
+        '11111111-1111-4111-8111-111111111111',
+        42,
+        'acme',
+        'web',
+      ),
+    );
+    await waitFor(() => {
+      const loc = screen.getByTestId('loc').textContent ?? '';
+      expect(loc).toContain('tab=settings');
+      expect(loc).toContain('github=connected');
+      expect(loc).toContain('repo=acme%2Fweb');
+    });
+    expect(window.localStorage.getItem('devhub:github:pendingReturn')).toBeNull();
+  });
+
+  it('shows a retryable error state when setup lookup fails', async () => {
     apiMock.githubSetup.mockRejectedValue(new Error('boom'));
     renderGate('/?github=installed&installation_id=42');
-    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Try again' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await waitFor(() => expect(apiMock.githubSetup).toHaveBeenCalledTimes(2));
   });
 
   it('blocks connect without an eligible project', async () => {

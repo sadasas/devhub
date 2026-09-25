@@ -79,7 +79,7 @@ This document specifies the technical architecture for DevHub V1: system context
 | `styles/` | `tokens.css` (CSS variables), `global.css` |
 
 **Design constraints (locked):**
-- Runtime UI deps: `@phosphor-icons/react`, `react-router` v7 (ADR-016), `i18next`/`react-i18next` (ADR-046/056), `yaml` (ADR-019 OpenAPI), `tus-js-client` (ADR-055 upload). Klaim zero-dep (ADR-007) sudah superseded.
+- Runtime UI deps: `@phosphor-icons/react`, `react-router` v7 (ADR-016), `i18next`/`react-i18next` (ADR-046/063), `yaml` (ADR-019 OpenAPI), `tus-js-client` (ADR-062 upload). Klaim zero-dep (ADR-007) sudah superseded.
 - Kanban drag & drop: native HTML5 DnD (no library).
 - Charts: hand-built SVG components.
 - Light/Dark theme via `html[data-theme]` (ADR-047); whiteboard/ERD export theme-aware; canvas teks via `truncateToWidth`.
@@ -145,7 +145,7 @@ server/src/
 | `billing_packages` / `billing_package_prices` | Paket dinamis DB-driven + Free kelolaan admin (grandfathered bila nonaktif) | package (max_members/max_projects NULL=unlimited), prices (duration_days+price_idr) |
 | `team_payments` | Pakasir payments | order_id UNIQUE, team_id, package snapshot, period, amount, status |
 | `github_installations` / `github_project_repos` / `github_webhook_events` / `github_outbox` | GitHub App (ADR-052): install, 1 repo/project, idempotency delivery_id, retry 1m/5m/30m | token sealed AES-256-GCM |
-| `gcal_*` (`tokens` vault + `outbox`) | GCal (ADR-059, tandingan ADR-052): vault AES-256-GCM, outbox 1m/5m/30m, sync-service, scope `calendar` |
+| `gcal_*` (`tokens` vault + `outbox`) | GCal (ADR-066, tandingan ADR-052): vault AES-256-GCM, outbox 1m/5m/30m, sync-service, scope `calendar` |
 
 **Why JSONB?** See ADR-002. The 10-entity state model is a single JSON document per project. Indexed fields: `team_id` (projects), `user_id` (team_members), `email`+`status` (invitations).
 
@@ -391,7 +391,7 @@ See [Deployment Runbook](../05-operations/deployment-runbook.md).
 | Concern | Choice | Rationale / ADR |
 |---|---|---|
 | Frontend build | Vite + React 18 + TS | Fast, standard |
-| UI deps | `@phosphor-icons/react`, `react-router` v7, `i18next`/`react-i18next`, `yaml`, `tus-js-client` | Icons (ADR-007 sisa) + routing (ADR-016) + i18n 6ns (ADR-046/056) + OpenAPI (ADR-019) + TUS upload (ADR-055) |
+| UI deps | `@phosphor-icons/react`, `react-router` v7, `i18next`/`react-i18next`, `yaml`, `tus-js-client` | Icons (ADR-007 sisa) + routing (ADR-016) + i18n 6ns (ADR-046/063) + OpenAPI (ADR-019) + TUS upload (ADR-062) |
 | Styling | Native CSS variables | Skill-driven design system; light/dark via `html[data-theme]` (ADR-047) |
 | Server | Node 22 + Express | Simple, huge ecosystem |
 | Realtime | `ws` + RoomRegistry generik | WS primary, polling fallback saat disconnected (ADR-024/025) |

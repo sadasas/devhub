@@ -270,7 +270,9 @@
       "duplicate": "Duplikat",
       "copyLink": "Salin tautan board",
       "bringFront": "Bawa ke depan",
-      "sendBack": "Kirim ke belakang"
+      "sendBack": "Kirim ke belakang",
+      "embedGroupingHint": "Tips: bungkus widget dengan <g data-component> agar bisa dipecah",
+      "splitEmbed": "Pecah jadi komponen"
     },
     "textbar": {
       "fill": "Warna isi",

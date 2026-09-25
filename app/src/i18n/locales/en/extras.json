@@ -269,7 +269,9 @@
       "duplicate": "Duplicate",
       "copyLink": "Copy link to board",
       "bringFront": "Bring to front",
-      "sendBack": "Send to back"
+      "sendBack": "Send to back",
+      "embedGroupingHint": "Tip: wrap widgets in <g data-component> to allow splitting",
+      "splitEmbed": "Split into components"
     },
     "textbar": {
       "fill": "Fill color",

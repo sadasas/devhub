@@ -170,3 +170,53 @@ describe('github install routes (F2)', () => {
     ).toBe(false);
   });
 });
+
+describe('github installations picker (State B tanpa redirect)', () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  it('returns 401 without auth', async () => {
+    const res = await request(app).get(`${API}/installations`);
+    expect(res.status).toBe(401);
+  });
+
+  it('returns empty list when nothing installed', async () => {
+    const cookie = await register('ghf2-h@gmail.com');
+    const res = await request(app)
+      .get(`${API}/installations`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(res.status).toBe(200);
+    expect(res.body.installations).toEqual([]);
+  });
+
+  it('lists known installations without token secrets', async () => {
+    const cookie = await register('ghf2-i@gmail.com');
+    await upsertInstallation({ installationId: 77001, accountLogin: 'org-lama', accountType: 'Organization' });
+    await upsertInstallation({ installationId: 77002, accountLogin: 'akun-baru', accountType: 'User' });
+    const res = await request(app)
+      .get(`${API}/installations`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp());
+    expect(res.status).toBe(200);
+    expect(res.body.installations).toEqual([
+      { installationId: 77001, accountLogin: 'org-lama', accountType: 'Organization', status: 'connected' },
+      { installationId: 77002, accountLogin: 'akun-baru', accountType: 'User', status: 'connected' },
+    ]);
+    expect(JSON.stringify(res.body)).not.toContain('token_blob');
+  });
+
+  it('connect rejects unknown installation with actionable 404', async () => {
+    const cookie = await register('ghf2-j@gmail.com');
+    const teamId = await createTeam(cookie);
+    const projectId = await createProject(cookie, 'P', teamId);
+    const res = await request(app)
+      .post(`${API}/repos`)
+      .set('Cookie', cookie)
+      .set('X-Forwarded-For', uniqueIp())
+      .send({ projectId, installationId: 987654, owner: 'org', repo: 'repo' });
+    expect(res.status).toBe(404);
+    expect(res.body.error.message).toContain('GET /installations');
+  });
+});

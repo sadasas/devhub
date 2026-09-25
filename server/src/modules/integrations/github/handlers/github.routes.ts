@@ -15,6 +15,7 @@ import {
 } from "../domain/github.js";
 import {
   assertGithubConfigured,
+  assertRepoBelongsToInstallation,
   handleSetupCallback,
   ensureInstallationToken,
 } from "../application/install-service.js";
@@ -28,6 +29,7 @@ import {
   getProjectRepo as getRepoRow,
   connectProjectRepo as connectRepoRow,
   disconnectProjectRepo as disconnectRepoRow,
+  listInstallations as listInstallationRows,
   updateProjectAutomation as updateAutomationRow,
 } from "../infrastructure/github-repository.js";
 
@@ -76,6 +78,12 @@ githubRouter.get("/setup", requireAuth, async (req: Request, res: Response) => {
   });
 });
 
+/** Daftar instalasi yang dikenal DevHub (untuk picker repo tanpa redirect). */
+githubRouter.get("/installations", requireAuth, async (_req: Request, res: Response) => {
+  const installations = await listInstallationRows();
+  res.json({ installations });
+});
+
 /** Daftar repo dalam 1 instalasi (untuk picker repo di Settings). */
 githubRouter.get("/installations/:installationId/repos", requireAuth, async (req: Request, res: Response) => {
   const installationId = Number(req.params.installationId);
@@ -91,9 +99,20 @@ githubRouter.get("/installations/:installationId/repos", requireAuth, async (req
 githubRouter.post("/repos", requireAuth, async (req: Request, res: Response) => {
   const body = parseOrThrow(githubConnectBodySchema, req.body, "Invalid connect body");
   const { userId } = await requireProjectAdmin(req, body.projectId);
-  assertGithubConfigured();
+  // Cek instalasi dulu (DB lokal, tanpa butuh App): 404 beraksi bahkan saat
+  // App belum dikonfigurasi — instalasi tak dikenal berarti memang belum ada.
   const installation = await getInstallationRow(body.installationId);
-  if (!installation) throw new ApiError(404, "NOT_FOUND", "GitHub installation not found");
+  if (!installation) {
+    throw new ApiError(
+      404,
+      "NOT_FOUND",
+      "GitHub installation not found. Install the App first (Connect button) or pick an existing installation from GET /installations",
+    );
+  }
+  assertGithubConfigured();
+  // Multi-akun: pastikan repo memang milik instalasi ini (bukan instalasi
+  // akun lain) sebelum mapping disimpan — gagal cepat dengan 403 yang jelas.
+  await assertRepoBelongsToInstallation(body.installationId, body.owner, body.repo);
   const mapping = await connectRepoRow({
     projectId: body.projectId,
     installationId: body.installationId,

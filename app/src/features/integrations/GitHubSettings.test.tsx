@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { MemoryRouter, useLocation } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GitHubSettings } from './GitHubSettings';
 
@@ -7,6 +7,7 @@ const { apiMock } = vi.hoisted(() => ({
   apiMock: {
     githubStatus: vi.fn(),
     githubInstallUrl: vi.fn(),
+    githubInstallations: vi.fn(),
     githubSetup: vi.fn(),
     githubInstallRepos: vi.fn(),
     githubConnect: vi.fn(),
@@ -37,46 +38,27 @@ function renderSettings(entry = '/project/p1?tab=settings&section=integrations')
   return render(
     <MemoryRouter initialEntries={[entry]}>
       <GitHubSettings projectId="11111111-1111-4111-8111-111111111111" canConnect isAdmin />
+      <LocationProbe />
     </MemoryRouter>,
   );
+}
+
+function LocationProbe() {
+  const loc = useLocation();
+  return <span data-testid="loc">{`${loc.pathname}${loc.search}`}</span>;
 }
 
 describe('GitHubSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     apiMock.githubStatus.mockResolvedValue(status());
+    apiMock.githubInstallations.mockResolvedValue({ installations: [] });
   });
 
-  it('shows connect button and manual bind when disconnected', async () => {
+  it('shows connect button when disconnected', async () => {
     renderSettings();
     // Label pendek "Connect" = pola mirror Google (bukan "Connect GitHub").
     expect(await screen.findByRole('button', { name: 'Connect' })).toBeTruthy();
-    expect(screen.getByLabelText('Installation ID')).toBeTruthy();
-  });
-
-  it('binds manually via installation ID and shows the picker', async () => {
-    apiMock.githubSetup.mockResolvedValue({ installationId: 77, accountLogin: 'acme', accountType: 'Organization' });
-    apiMock.githubInstallRepos.mockResolvedValue({
-      repos: [{ owner: 'acme', repo: 'api', fullName: 'acme/api', isPrivate: true }],
-    });
-    renderSettings();
-    await screen.findByRole('button', { name: 'Connect' });
-    fireEvent.change(screen.getByLabelText('Installation ID'), { target: { value: '77' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Bind installed App' }));
-    await waitFor(() => expect(apiMock.githubSetup).toHaveBeenCalledWith(77));
-    expect(await screen.findByText('acme/api')).toBeTruthy();
-    expect(
-      screen.getByText('App installed — pick a repository below to finish connecting.'),
-    ).toBeTruthy();
-  });
-
-  it('rejects non-numeric installation IDs', async () => {
-    renderSettings();
-    await screen.findByRole('button', { name: 'Connect' });
-    fireEvent.change(screen.getByLabelText('Installation ID'), { target: { value: 'abc' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Bind installed App' }));
-    expect(await screen.findByText('Enter a numeric installation ID.')).toBeTruthy();
-    expect(apiMock.githubSetup).not.toHaveBeenCalled();
   });
 
   it('shows linked repo with automation and disconnect', async () => {
@@ -94,5 +76,74 @@ describe('GitHubSettings', () => {
     expect(await screen.findByText('Linked to acme/web (acme).')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Disconnect' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Retry failed sync' })).toBeTruthy();
+    expect(apiMock.githubInstallations).not.toHaveBeenCalled();
+  });
+
+  it('lists known installations for manual pick without redirect', async () => {
+    apiMock.githubInstallations.mockResolvedValue({
+      installations: [{ installationId: 42, accountLogin: 'org-lama', accountType: 'Organization', status: 'connected' }],
+    });
+    apiMock.githubInstallRepos.mockResolvedValue({
+      repos: [{ owner: 'org-lama', repo: 'web', fullName: 'org-lama/web', isPrivate: false }],
+    });
+    renderSettings();
+    expect(await screen.findByText('GitHub installation')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'GitHub installation' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'org-lama (Organization)' }));
+    await waitFor(() => expect(apiMock.githubInstallRepos).toHaveBeenCalledWith(42));
+    expect(await screen.findByRole('button', { name: 'Connect repository' })).toBeTruthy();
+  });
+
+  it('offers install on another account when installations exist', async () => {
+    apiMock.githubInstallations.mockResolvedValue({
+      installations: [{ installationId: 7, accountLogin: 'akun-a', accountType: 'User', status: 'connected' }],
+    });
+    renderSettings();
+    expect(await screen.findByRole('button', { name: 'Install on another GitHub account' })).toBeTruthy();
+  });
+
+  it('shows a single unconfigured warn and keeps connect clickable (opsi B)', async () => {
+    const notConfigured = Object.assign(new Error('GitHub App is not configured'), {
+      code: 'GITHUB_NOT_CONFIGURED',
+    });
+    apiMock.githubInstallations.mockRejectedValue(notConfigured);
+    apiMock.githubInstallUrl.mockRejectedValue(notConfigured);
+    renderSettings();
+    const banner = await screen.findByTestId('github-unconfigured');
+    expect(banner.getAttribute('role')).toBe('alert');
+    // Opsi B: Connect tetap aktif (klik = cek ulang live), tanpa banner dobel.
+    // Disclosure statis selalu tampil (pola GCal) — hanya picker yang disembunyikan.
+    expect(screen.getByRole('button', { name: 'Connect' }).getAttribute('disabled')).toBeNull();
+    expect(screen.queryByTestId('github-toast')).toBeNull();
+    expect(screen.queryByText(/short-lived GitHub App token/)).not.toBeNull();
+    // Klik ulang saat masih unconfigured: tetap satu banner, tanpa danger tambahan.
+    fireEvent.click(screen.getByRole('button', { name: 'Connect' }));
+    await waitFor(() => expect(apiMock.githubInstallUrl).toHaveBeenCalledTimes(1));
+    expect(screen.getByTestId('github-unconfigured')).toBeTruthy();
+    expect(screen.queryByTestId('github-toast')).toBeNull();
+    // Aturan global: banner menempel pada aksi, teks statis utuh tak disela —
+    // warn sesudah disclosure, sebelum tombol Connect.
+    const disclosure = screen.getByText(/short-lived GitHub App token/);
+    const warn = screen.getByTestId('github-unconfigured');
+    const connect = screen.getByRole('button', { name: 'Connect' });
+    expect(disclosure.compareDocumentPosition(warn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(warn.compareDocumentPosition(connect) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('shows a success flash for ?github=connected and strips the query', async () => {
+    renderSettings('/project/p1?tab=settings&section=integrations&github=connected&repo=acme%2Fweb');
+    const flash = await screen.findByTestId('github-flash');
+    expect(flash.getAttribute('role')).toBe('status');
+    expect(within(flash).getByText('GitHub connected: acme/web.')).not.toBeNull();
+    await waitFor(() => {
+      expect(screen.getByTestId('loc').textContent).not.toContain('github=');
+    });
+  });
+
+  it('shows an error flash for ?github_error= and strips the query', async () => {
+    renderSettings('/project/p1?tab=settings&section=integrations&github_error=boom');
+    const flash = await screen.findByTestId('github-flash');
+    expect(flash.getAttribute('role')).toBe('alert');
+    expect(within(flash).getByText('boom')).not.toBeNull();
   });
 });

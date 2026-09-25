@@ -8,6 +8,7 @@ import { getErrorMessage } from '../../lib/errors';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { InlineError } from '../../components/InlineError';
+import { DataErrorState } from '../../components/DataErrorState';
 import { Logo } from '../../components/Logo';
 
 export function ResetPasswordPage() {
@@ -48,8 +49,10 @@ export function ResetPasswordPage() {
     return (
       <div className="auth">
         <main className="auth-form-wrap" style={{ maxWidth: 480, margin: '0 auto', paddingTop: 80 }}>
-          <InlineError>Invalid reset link — missing token.</InlineError>
-          <Button onClick={() => navigate('/')}>Back to login</Button>
+          <DataErrorState
+            error="Invalid reset link — missing token."
+            action={<Button onClick={() => navigate('/')}>Back to login</Button>}
+          />
         </main>
       </div>
     );

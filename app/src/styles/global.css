@@ -258,9 +258,21 @@ a:hover {
   line-height: 1.5;
 }
 
+/* Inline error field-level: ikon 12px + teks 600 agar terbaca sebagai
+   error, bukan helper text. Ikon nempel baris pertama (pola save-toast).
+   Gap 6 = tangga space-*; tanpa hex/radius/font-size baru. */
 .field-error {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
   font-size: 13px;
+  font-weight: 600;
   color: var(--status-danger);
+}
+
+.field-error > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .input,
@@ -6868,6 +6880,23 @@ html[data-theme='light'] .splash-bg {
 
 .conflict-banner > svg {
   color: var(--status-warn);
+}
+
+.info-banner {
+  border-color: var(--status-info);
+  background: color-mix(in srgb, var(--status-info) 12%, var(--bg-overlay));
+}
+
+.info-banner > svg {
+  color: var(--status-info);
+}
+
+/* Banner in-flow di section integrasi ikut lebar section. Cap 400px milik
+   .save-toast hanya untuk toast melayang di .toast-stack (SaveBanner,
+   ArchiveUndoToast, wb-cap-toast) — bukan untuk banner seksi. */
+.github-stack .save-toast,
+.gcal-stack .save-toast {
+  max-width: none;
 }
 
 .sr-only {

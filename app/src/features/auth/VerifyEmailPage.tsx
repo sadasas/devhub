@@ -7,7 +7,7 @@ import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
-import { InlineError } from '../../components/InlineError';
+import { StatusBanner } from '../../components/StatusBanner';
 import { Logo } from '../../components/Logo';
 
 /**
@@ -95,7 +95,7 @@ export function VerifyEmailPage() {
               {t('auth.verify.success', 'Email verified — redirecting to login...')}
             </div>
           )}
-          {phase === 'error' && error && <InlineError>{error}</InlineError>}
+          {phase === 'error' && error && <StatusBanner tone="danger" message={error} />}
 
           {phase === 'error' && (
             <form onSubmit={onResend} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

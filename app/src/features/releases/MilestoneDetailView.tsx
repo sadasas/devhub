@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "../../components/Badge";
 import { Button } from "../../components/Button";
-import { InlineError } from "../../components/InlineError";
+import { StatusBanner } from "../../components/StatusBanner";
 import { ConfirmDeleteDialog } from "../../components/ConfirmDeleteDialog";
 import { MILESTONE_STATUS, TASK_PRIORITY, TASK_STATUS } from "../../lib/labels";
 import { TaskPriorityIcon } from "../../lib/task-icons";
@@ -155,11 +155,9 @@ export function MilestoneDetailView({ milestone, tasks, issues, testCases, decis
         </div>
       </div>
 
-      {dag.hasCycle && <InlineError>{t("releases.flow.cycleDetected")} {dag.cyclePath.join(" → ")}</InlineError>}
+      {dag.hasCycle && <StatusBanner tone="danger" message={<>{t("releases.flow.cycleDetected")} {dag.cyclePath.join(" → ")}</>} />}
       {dag.allBlocked && total > 0 && (
-        <div className="release-flow-banner release-flow-banner--danger" role="status">
-          <WarningCircle size={16} weight="fill" /> <span>{t("releases.flow.allBlocked")}</span>
-        </div>
+        <StatusBanner tone="danger" message={t("releases.flow.allBlocked")} />
       )}
 
       {total === 0 ? (

@@ -128,6 +128,7 @@ dokumen token yang menang (Living Rule §5).
 
 - **Server:** every route wraps handlers in async error boundary → central error middleware → JSON `{ error: { code, message } }`. Known errors: `VALIDATION_ERROR`, `UNAUTHORIZED`, `NOT_FOUND`, `FORBIDDEN`, `RATE_LIMITED`, `INTERNAL`.
 - **Client:** ApiProvider normalizes errors; forms show inline errors under fields; destructive actions confirm; transient failures surface via Toast; never silent-catch state-write failures.
+- **Client feedback placement (global, all components):** a feedback banner is one rhythm block of its section and spans its container width; an action banner sticks to its trigger — directly below the action row/control, or directly above the footer button row with no intervening content (established modal convention, equally adjacent); a banner MUST NOT split static text blocks (desc/helper/disclosure/legal) — static text always stays contiguous and whole; load failure with no data replaces the content (`DataErrorState`, with retry); field errors sit directly under the input (`InlineError`); success/transient info uses `role=status` (banner or toast), never `.field-helper` with `role=alert`. Section primitives: `DataErrorState`/`InlineError`/`StatusBanner` — do not invent new ones per case.
 - **Never** log passwords, tokens, or cookie contents (see [Security Design](security-design.md)).
 
 ---
