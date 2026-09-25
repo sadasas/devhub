@@ -5,7 +5,7 @@
 | **Document status** | Active |
 | **Version** | 2.0 (OAuth) |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-09-02 |
+| **Last updated** | 2026-09-24 |
 | **Related documents** | [TDD §7](../02-architecture/technical-design.md#7-ai-agent-integration-mcp) · [ADR-049](../02-architecture/adr.md#adr-049) |
 
 ---
@@ -36,7 +36,7 @@ DevHub exposes a **Model Context Protocol (MCP) server** so AI coding agents (op
 
 Scopes:
 - `mcp` — full access (read + write), default. Compatible with `mcp:read` + `mcp:write`.
-- `mcp:read` — read-only: `project_state`, `plan_project`, `list_whiteboards`.
+- `mcp:read` — read-only: `project_state`, `plan_project`, `list_whiteboards`, `validate_whiteboard`.
 - `mcp:write` — write tools require `mcp` or `mcp:write` (enforced in `requireMcpKey`).
 
 ---
@@ -66,8 +66,11 @@ Every tool: inputs validated by zod; response includes `updatedAt` of the mutate
 | `add_api_collection` | `projectId`, `name`, `description?` | Created collection (rejects duplicate names) | Yes | `mcp` / `mcp:write` |
 | `add_api_endpoint` | `projectId`, `method`, `path`, `name`, `collectionId?`, `description?`, `headers[]?`, `params[]?`, `body?`, `responses[]?` | Created endpoint | Yes | `mcp` / `mcp:write` |
 | `update_api_endpoint` | `projectId`, `endpointId`, `{ collectionId?, method?, path?, name?, description?, headers[]?, params[]?, body?, responses[]? }` | Updated endpoint | Yes | `mcp` / `mcp:write` |
-| `create_whiteboard` | `projectId`, `name`, `description?`, `elements[]?` (id optional — server-assigned; kinds: stroke/sticky/text/shape/edge/boundary/ref) | Created board (id, name, elementCount) | Yes | `mcp` / `mcp:write` |
+| `create_whiteboard` | `projectId`, `name`, `description?`, `elements[]?` (id optional — server-assigned; kinds: stroke/sticky/text/shape/edge/boundary/ref/embed) | Created board (id, name, elementCount) | Yes | `mcp` / `mcp:write` |
+| `list_whiteboards` | `projectId` | Board list (id, name, element count; `includeElements?` for full elements) | No | `mcp` or `mcp:read` |
 | `update_whiteboard` | `projectId`, `whiteboardId`, `{ name?, description?, elements[]? }` — elements replaced wholesale | Updated board | Yes | `mcp` / `mcp:write` |
+| `patch_whiteboard` | `projectId`, `whiteboardId`, `{ add[]?, update[]?, delete[]? }` — granular per-element edit | Updated board | Yes | `mcp` / `mcp:write` |
+| `validate_whiteboard` | `projectId`, `elements[]` — dry-run (overlap, too-close, out-of-bounds) | `{ ok, warnings, overlaps, suggestions }` | No | `mcp` or `mcp:read` |
 
 **Conventions:**
 - Tool names are registered with a server prefix in the client (`devhub_project_state`, etc.).
@@ -79,7 +82,7 @@ Every tool: inputs validated by zod; response includes `updatedAt` of the mutate
 - Issue: `open` → `reproduced` → `fixing` → `resolved` | `wontfix`
 - Decision: `proposed` → `accepted` | `rejected` | `superseded` (no update tool — one-shot)
 - Milestone: `planned` → `inProgress` → `released`
-- Whiteboard: no status — create/update with full element replacement (max 50/project)
+- Whiteboard: no status — create/update with full element replacement (max 50/project); `patch_whiteboard` for granular add/update/delete; `validate_whiteboard` dry-runs layout before write. Kind `embed` holds raw AI-generated SVG wireframes (allowlist-sanitized on write, max 20 embeds/board, exempt from overlap checks; wrap each widget in `<g data-component="name">`).
 
 ---
 

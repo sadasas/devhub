@@ -61,12 +61,15 @@ Before creating a task (session start or mid-session), ask the user whether the 
 | Bug found / issue confirmed | `add_issue` | When issue is created |
 | Issue linked to task | `update_issue` (linkedTaskId) | When linking |
 | Test case written for task/issue | `add_test_case` | When test is written |
+| Portal/menu/select regression (mount-emit, stopPropagation, portal escape) | `add_test_case` | When regression test is written |
 | Milestone created / status changed | `add_milestone` / `update_milestone` | When milestone is changed |
 | API collection / endpoint baru diekspos (mis. tambah `server/src/modules/*/handlers/*.ts`, `entity-router.ts`, `*.routes.ts`) | `add_api_collection` / `add_api_endpoint` | Saat agen membuat/mengekspos endpoint atau collection baru — segera setelah route/handler committed & `method+path` final |
 | Kontrak API endpoint berubah (method/path/params/body/responses/collection) | `update_api_endpoint` | Saat agen mengubah kontrak — patch sebelum tutup sesi/commit |
 
 ## Behavior rules
 
+- UI Token Compliance: sumber tunggal nilai visual = `docs/03-engineering/design-tokens.md` — Living Rule §5 berlaku (token baru + guard di PR yang sama; Tier-1 tanpa ADR = temuan review).
+- Migrasi token per-area = 1 task (Profile → Dashboard settings → Billing → …, with before/after screenshots light + dark, 360px + desktop).
 - Only ADR-level decisions are recorded — not small cosmetic/style choices.
 - One decision = one call; do not batch them at end of project.
 - Tasks are created granular per verifiable unit of work, not one giant task.

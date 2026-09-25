@@ -1,8 +1,8 @@
 # Privacy Policy — DevHub
 
 **Effective date:** 2026-08-13
-**Last updated:** 2026-09-23
-**Version:** 2026-09-23-v4
+**Last updated:** 2026-09-24
+**Version:** 2026-09-24-v5
 
 ---
 
@@ -30,6 +30,8 @@ The Service is operated by the DevHub project owner ("the Operator"), domiciled 
 All content you create inside the Service: projects, tasks, issues, test cases, tech stack entries, schema definitions, decisions, milestones, statistics, and any notes you enter. This data belongs to you and is stored to provide the Service to you.
 
 **File attachments (premium workspaces):** files you upload to a task or issue are stored in managed DevHub object storage (byte content), while the app database keeps only metadata (file name, type, size, link reference). Each package has a storage quota set by the admin (the Free package has no upload quota — links only). Deleting an attachment, its task/issue, or its project removes the stored file; JSON export carries the attachment list (metadata), not the file bytes.
+
+**Storage sub-processor — Supabase + TUS resumable:** attachment bytes live in a **Supabase**-hosted object-storage bucket (`devhub-attachments`), acting as our sub-processor for file storage. Uploads use the TUS resumable protocol: your browser talks directly to Supabase (`https://<ref>.storage.supabase.co/storage/v1/upload/resumable`) with a short-lived presigned token (`x-signature`, 2 hours), with a single-request signed-URL PUT as fallback — your Supabase service key never leaves our server and is never exposed to browsers. What Supabase processes per upload: the file bytes, file name/MIME/size, and short-lived upload/download tokens. Supabase never receives your password, project content outside the uploaded file, or payment data. Their terms and privacy policy apply to their processing.
 
 ### 2.3 Billing data (Pakasir)
 
@@ -112,6 +114,7 @@ We use one necessary login cookie plus a short-lived social-login helper. Analyt
 | Billing records | Retained as financial/operational records while your account exists and as required by Indonesian law; anonymized or deleted on verified account-deletion request where legally permitted |
 | Server logs | 14 days, then automatically deleted |
 | Integration tokens & mappings | Removed on disconnect (events/links history as described in §2.7) |
+| Attachment bytes (Supabase bucket) vs metadata (app DB) | Bytes: deleted together with their attachment/task/issue/project (best-effort `removeObject`); metadata rows follow the account/project deletion below. JSON export carries metadata only — bytes cannot be reconstructed from an export |
 | Backups | Rolling retention (older copies are replaced on a schedule) |
 
 **Your rights (handled within 3×24 hours for verification + action confirmation):**
@@ -126,7 +129,7 @@ After a subscription expires, the workspace reverts to Free limits. For **7 days
 
 ## 7. Legal Disclosures
 
-We will only disclose data to third parties if required by law or a binding legal request under Indonesian law, and we will notify you where legally permitted. Payment confirmation with Pakasir (`app.pakasir.com`) covers only the order ID and amount — never your project content. Transactional email via Resend (§2.4) covers only the recipient, subject, body, and delivery metadata of account emails — never passwords or project content. Project integrations (§2.7) send only the task/repo metadata described there to Google/GitHub — never passwords or unrelated project content.
+We will only disclose data to third parties if required by law or a binding legal request under Indonesian law, and we will notify you where legally permitted. Payment confirmation with Pakasir (`app.pakasir.com`) covers only the order ID and amount — never your project content. Transactional email via Resend (§2.4) covers only the recipient, subject, body, and delivery metadata of account emails — never passwords or project content. File bytes + upload tokens via Supabase (§2.2) cover only the uploaded file and its metadata — never passwords, unrelated project content, or payment data. Project integrations (§2.7) send only the task/repo metadata described there to Google/GitHub — never passwords or unrelated project content.
 
 ---
 

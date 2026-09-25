@@ -4371,6 +4371,7 @@ html[data-theme='light'] .splash-bg {
 }
 
 .project-card-title {
+  display: block;
   font-size: 14px;
   font-weight: 600;
   overflow: hidden;
@@ -6487,9 +6488,11 @@ html[data-theme='light'] .splash-bg {
   outline-offset: -1px;
 }
 
-/* Saat drag aktif, chip overlay tak boleh menelan dragover — semua event
-   jatuh ke cell di bawahnya sehingga highlight target selalu update. */
-.due-cal-grid.is-dragging .due-cal-task {
+/* Saat drag aktif, chip overlay + tombol more/less tak boleh menelan dragover —
+   semua event jatuh ke cell di bawahnya sehingga highlight target selalu
+   update (termasuk sel penuh yang permukaannya tertutup tombol +N lagi). */
+.due-cal-grid.is-dragging .due-cal-task,
+.due-cal-grid.is-dragging .due-cal-more {
   pointer-events: none;
 }
 
@@ -15696,25 +15699,40 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 }
 
 .due-cal-more {
-  border: 1px dashed var(--border-hairline);
+  border: none;
   background: transparent;
   padding: 2px 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
   cursor: pointer;
-  min-height: 44px;
-  min-width: 44px;
+  min-height: auto;
+  min-width: 0;
+  height: 22px;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .due-cal-more:hover {
-  border-style: solid;
   color: var(--text-secondary);
   background: var(--bg-overlay);
+}
+
+@media (hover: none) {
+  /* Target sentuh 44px tanpa membesarkan visual: hit-area diperluas via ::after. */
+  .due-cal-more {
+    position: absolute;
+  }
+  .due-cal-more::after {
+    content: '';
+    position: absolute;
+    inset: -12px -4px;
+  }
 }
 
 /* Day modal task list (flat, hairline separators) */

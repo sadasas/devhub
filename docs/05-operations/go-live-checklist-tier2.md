@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | **Document status** | Active (Phase 2 Gate) |
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-09-13 |
+| **Last updated** | 2026-09-24 |
 | **Related documents** | [Deployment Runbook](deployment-runbook.md) · [Backup & Recovery](backup-recovery.md) · [Monitoring](monitoring.md) · [Incident Response](incident-response.md) |
 
 > Gate final Tier-2. Semua kotak HARUS ✅ sebelum domain publik diumumkan.
@@ -71,12 +71,14 @@ curl -sS https://devhub.nrawangbatin.my.id/ | grep -oiE 'G-[A-Z0-9]{4,}|DATABASE
 
 ## 2. Billing — nominal + negatif (tanpa uang asli)
 
-> Harga acuan: Rp 250.000/bln (30 hari) · Rp 2.500.000/thn (365 hari) via Pakasir.
+> Harga acuan (seed kanonis `server/src/db/seeds/001_pro_pricing_2026-09-13.sql`, ADR-045):
+> Pro 30 hari Rp 249.000 · 90 hari Rp 699.000 · 365 hari Rp 2.490.000 (ditulis `2490000`) via Pakasir (QRIS/VA).
+> Promo LAUNCH149 = 30 hari Rp 149.000 (coret Rp 249.000), **nonaktif by default** — jangan dianggap harga reguler.
 > Uji di team sandbox, JANGAN di team produksi.
 
 ### 2.1 Nominal (harus berhasil)
 
-1. Buat team sandbox → Billing → pilih paket Pro Bulanan → Checkout → dapat URL `app.pakasir.com/pay/...?order_id=...`.
+1. Buat team sandbox → Billing → pilih paket Pro Bulanan → Checkout → dapat URL `app.pakasir.com/pay/...?order_id=...` dengan amount **Rp 249.000** (bukan 250.000).
 2. Bayar nominal terkecil yang diizinkan sandbox → webhook `completed` → `GET /billing/status/:teamId` = `pro`, `expires` +30 hari (stacking bila sudah pro).
 
 ```bash
@@ -86,8 +88,9 @@ curl -sS -b cookies.txt https://devhub.nrawangbatin.my.id/api/v1/billing/status/
 # {"plan":"pro","expires":"2026-10-13T02:00:00.000Z","...": "..."}
 ```
 
-- [ ] Checkout nominal → URL Pakasir valid + `order_id` tercatat `pending`
+- [ ] Checkout nominal → URL Pakasir valid + `order_id` tercatat `pending` + amount = harga seed (`249000`/`699000`/`2490000`)
 - [ ] Setelah bayar sandbox → status `pro`, expiry +N hari, riwayat muncul di `/payments`
+- [ ] Promo LAUNCH149 (Rp 149.000) tetap nonaktif kecuali sengaja diaktifkan via admin (tidak muncul sebagai pilihan reguler)
 
 ### 2.2 Negatif (harus ditolak aman)
 
@@ -244,6 +247,41 @@ grep -oiE 'set-cookie: devhub_session[^;]*;[^$]*' /tmp/hdrs.txt || echo "cek man
 - [ ] Cookie `devhub_session` = `HttpOnly; SameSite=Lax; Secure` (bukan `None`)
 - [ ] UptimeRobot `devhub-prod-health` hijau (lihat [Monitoring §2.2.1](monitoring.md#221-setup-uptimerobot-free-5-menit-phase-2-aktif-2026-09-13))
 - [ ] ntfy test masuk: `curl -d "test go-live $(date -u +%FT%TZ)" ntfy.sh/devhub-alerts` → push diterima
+
+---
+
+## 7b. Smoke storage + i18n + mobile (Tier-2, Sep-2026)
+
+### 7b.1 Storage TUS + fallback PUT (Incognito login)
+
+```bash
+# presign TUS (ganti cookie login + PROJECT_ID/TASK_ID):
+curl -sS -b cookies.txt -H 'Content-Type: application/json' \
+  -d '{"projectId":"PROJECT_ID","taskId":"TASK_ID","filename":"smoke.png","mime":"image/png","size":12345}' \
+  https://devhub.nrawangbatin.my.id/api/v1/attachments/presign | head -c 300
+# expected: {"tusEndpoint":"https://.../storage/v1/upload/resumable","uploadToken":"...","bucket":"devhub-attachments",...}
+# upload 1 file kecil via TUS (header x-signature + x-upsert konsisten) → 200; ulangi via fallback PUT uploadUrl → 200
+```
+
+- [ ] Presign TUS OK (dapat `tusEndpoint` + `uploadToken`), upload kecil via TUS 200
+- [ ] Fallback PUT via `uploadUrl` 200 (jalur darurat insiden 403 upsert)
+- [ ] NOL 403 `Invalid Compact JWS` di log Suga `cuddly-hawk` selama smoke
+
+### 7b.2 i18n P0+P1 (ID ↔ EN)
+
+1. Login → ganti bahasa ID → EN → ID (header/settings), reload tiap ganti.
+2. Buka: template picker, label picker, billing, auth (login/register), whiteboard toolbar.
+
+- [ ] Tidak ada string kosong / key mentah (`*.title`, `undefined`) di semua layar di atas, kedua bahasa
+- [ ] `?lang=` (bila dipakai) konsisten setelah reload + navigasi SPA
+
+### 7b.3 Mobile template/label + kebab (390px, touch)
+
+1. DevTools device 390px (atau HP asli) → login → buka board/issue.
+2. Buka template picker + label picker; tap menu kebab (⋮) tiap kartu.
+
+- [ ] Template/label picker terbuka penuh, bisa pilih tanpa iOS zoom / terpotong
+- [ ] Menu kebab terlihat & ter-tap (touch target ≥ 36px), aksi jalan (edit/pin/hapus sesuai role)
 
 ---
 

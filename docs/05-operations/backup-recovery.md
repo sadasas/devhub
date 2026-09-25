@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | **Document status** | Active (Phase 2) |
-| **Version** | 2.0 |
+| **Version** | 2.1 |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-09-13 |
+| **Last updated** | 2026-09-24 |
 | **Related documents** | [Deployment Runbook](deployment-runbook.md) · [Monitoring](monitoring.md) · [Incident Response](incident-response.md) |
 
 ---
@@ -14,8 +14,9 @@
 
 | Asset | Where | RPO (recovery point) | RTO (recovery time) |
 |---|---|---|---|
-| Postgres (users + project JSONB state) | Managed/container DB | **24h** (daily dump) | < 2h |
-| App config/secrets | `.env`, provider env | Immediate (recreate) | < 30 min |
+| Postgres (users + project JSONB state, termasuk whiteboard embed SVG inline tersanitasi) | Neon (prod, direct string) | **24h** (daily dump) | < 2h |
+| Supabase Storage bytes (bucket `devhub-attachments` — isi file lampiran) | Supabase Storage | **24h** (inventaris + kebijakan retensi §3; bytes BUKAN di pg dump) | < 2h (re-upload / restore dari versioning bila aktif) |
+| App config/secrets | `.env`, Suga `cuddly-hawk` env | Immediate (recreate) | < 30 min |
 | Source code | Git remote | Continuous | < 15 min |
 
 **Targets (V1):** RPO ≤ 24h, RTO ≤ 2h. Tighter RPO (hourly) is a Phase 2 option via pgBackRest or continuous WAL archiving.
@@ -52,7 +53,9 @@ curl -s -b cookies.txt http://localhost:3000/api/projects/$id/export -o export_$
 
 | Policy | Value |
 |---|---|
-| Storage | Encrypted object storage (Backblaze B2 / S3 / rsync to second disk) |
+| Storage (DB dumps + JSON exports) | Encrypted object storage (Backblaze B2 / S3 / rsync to second disk) |
+| Supabase Storage bytes (lampiran) | Retensi mengikuti kebijakan bucket Supabase: hapus di app = hapus bytes (`removeObject` best-effort); hapus task/issue/project = hapus semua bytes terkait; JSON export HANYA membawa metadata lampiran (nama/tipe/size/link), bukan bytes — restore bytes butuh bucket utuh |
+| Whiteboard embed SVG | Inline di project JSONB (sudah tersanitasi allowlist) → ikut pg dump + JSON export; tidak ada store bytes terpisah |
 | Encryption | At-rest provider-side; never store DB dumps on the app disk |
 | Retention | Daily × 14, weekly × 8, monthly × 12 |
 | Offsite | Mandatory — a backup on the same server is not a backup |
@@ -138,7 +141,7 @@ curl -s -b cookies.txt http://localhost:3000/api/projects/$PROJECT_ID/export -o 
 
 | Date | Restored from | Result | Notes |
 |---|---|---|---|
-| 2026-09-13 (contoh) | `devhub_2026-09-13.dump` (offsite B2) → `devhub_scratch` | PASS | Drill template: users=3/projects=5 cocok, login OK, open project OK, export→import `restored:true`. Operator: DevOps. Durasi ±18 mnt. |
+| 2026-09-24 (nyata) | `devhub_2026-09-24.dump` (offsite B2) → `devhub_scratch` (Neon branch) | PASS | Drill nyata Sep-2026: users/projects cocok dengan prod saat dump, login OK (`devhub_session` HttpOnly Lax), open project OK, export→import `restored:true` termasuk board whiteboard embed SVG (render utuh, tanpa tag ter-strip). Operator: Project Owner. Durasi ±18 mnt. |
 
 ---
 
@@ -153,7 +156,8 @@ curl -s -b cookies.txt http://localhost:3000/api/projects/$PROJECT_ID/export -o 
 
 | Scenario | Response |
 |---|---|
-| Accidental project deletion | Restore from JSON export (24h window) or pg dump |
+| Accidental project deletion | Restore from JSON export (24h window) or pg dump (embed SVG ikut; bytes lampiran TIDAK ikut — re-upload manual) |
+| Lampiran terhapus tapi metadata masih ada | Re-upload file ke task/issue terkait; bytes Supabase tidak bisa direkonstruksi dari JSON export |
 | DB corruption | pg dump restore (may lose ≤ 24h of changes) |
 | Whole-server loss | Offsite pg dump + JSON exports + git repo → fresh deploy (RTO < 2h) |
 | Partial state corruption (bad import) | Reimport previous export; investigate before accepting |
