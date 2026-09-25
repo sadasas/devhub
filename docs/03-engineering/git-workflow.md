@@ -4,7 +4,7 @@
 |---|---|
 | **Document status** | Active |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-09 |
+| **Last updated** | 2026-09-24 |
 
 ---
 
@@ -57,7 +57,7 @@ main ──●──●──●────────────────
 | `perf` | Performance improvement |
 | `security` | Security fix (also apply the advisory process) |
 
-**Scope examples:** `auth`, `state`, `board`, `schema`, `mcp`, `server`, `app`, `docs`, `deps`.
+**Scope examples:** `auth`, `state`, `board`, `schema`, `mcp`, `server`, `app`, `docs`, `deps`, `whiteboard` (incl. `embed`), `upload` (tus), `i18n`, `templates`, `labels`, `tokens`/`guard`.
 
 **Rules:**
 - Imperative mood, ≤ 72 chars: `feat(board): add blockedBy dependency chip` ✓
@@ -86,6 +86,19 @@ Even for a solo repo, PRs keep history reviewable. Recommended flow:
 3. Self-review against the [Code Review checklist](code-review.md).
 4. CI (Phase 2): lint + typecheck + tests + build must pass.
 5. Merge `--squash` (single logical change) or `--no-ff`.
+
+**PR template — UI (wajib screenshot 4-kombinasi, cf. [Code Review §4](code-review.md#4-definition-of-done-merge-criteria)):**
+
+```md
+## What / why
+
+## Screenshots (light + dark × 360px + desktop)
+
+## Checklist
+- [ ] `npm run guard:css` hijau (token baru → `design-tokens.md` di PR yang sama)
+- [ ] i18n EN + ID (+ `common:` bila aksi umum)
+- [ ] Portal/menu/select + upload matrix bila tersentuh (cf. Code Review §3.4–3.5)
+```
 
 **Emergency fix path (hotfix):** branch `fix/<slug>` from `main` → merge immediately → tag patch version.
 
@@ -120,6 +133,7 @@ coverage/
 - Keep `package-lock.json` in sync with `package.json` (commit both together).
 - No large binaries in repo; assets in `public/` only when needed.
 - Changelog discipline: release changelogs live in-app (Milestone entity) and in git tags — not duplicated in a repo CHANGELOG file.
+- `test-changelog.md` SUDAH DIHAPUS — file itu tidak ada lagi; fixture-nya pindah ke `markdown.test.tsx`. Jangan mereferensikan/membuat ulang file tersebut.
 
 ---
 

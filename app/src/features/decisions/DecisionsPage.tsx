@@ -76,8 +76,8 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
           <Skeleton style={{ width: 96, height: 28, borderRadius: 8 }} />
         </span>
       </div>
-      <div className="data-list" role="status" aria-live="polite" aria-busy="true" aria-label="Loading decisions">
-        <span className="sr-only">Loading decisions…</span>
+      <div className="data-list" role="status" aria-live="polite" aria-busy="true" aria-label={t('common:loading.decisions')}>
+        <span className="sr-only">{t('common:loading.decisions')}…</span>
         <div aria-hidden="true">
           {[0, 1, 2].map((i) => (
             <div key={i} className="data-row" style={{ minHeight: 56 }}>
@@ -178,8 +178,8 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
                         <button
                           type="button"
                           className="btn btn-ghost btn-sm btn-icon btn-danger swap-trash"
-                          aria-label={`Delete decision ${d.title}`}
-                          title={`Delete decision ${d.title}`}
+                          aria-label={t('decisions.deleteAria', { title: d.title, defaultValue: `Delete decision ${d.title}` })}
+                          title={t('decisions.deleteAria', { title: d.title, defaultValue: `Delete decision ${d.title}` })}
                           onClick={(e) => {
                             e.stopPropagation();
                             const btn = e.currentTarget;
@@ -232,7 +232,7 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
                   <span># {d.date}</span>
                   <span>#{shortId(d.id)}</span>
                   {unreadIds?.has(d.id) && (
-                    <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">New</span>
+                    <span className="unread-pill" role="status" aria-label={t('decisions.unread')} title={t('decisions.unread')}>{t('decisions.unread')}</span>
                     )}
                 </span>
               </button>

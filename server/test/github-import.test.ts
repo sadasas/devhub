@@ -89,7 +89,7 @@ async function setupMapped(email: string) {
   return { cookie, teamId, projectId };
 }
 
-describe('github import + MCP links (F6)', () => {
+describe('github import issues + MCP links (F6, target issues)', () => {
   beforeEach(async () => {
     await resetDb();
   });
@@ -98,7 +98,7 @@ describe('github import + MCP links (F6)', () => {
     vi.unstubAllGlobals();
   });
 
-  it('imports issues as tasks, skips PRs, and is idempotent', async () => {
+  it('imports issues as DevHub issues, skips PRs, and is idempotent', async () => {
     const { cookie, projectId } = await setupMapped('ghf6-a@gmail.com');
     stubIssues(ISSUES);
 
@@ -110,22 +110,29 @@ describe('github import + MCP links (F6)', () => {
     expect(first.status).toBe(201);
     expect(first.body.imported).toBe(2);
     expect(first.body.skipped).toBe(1);
+    expect(first.body.issueIds).toHaveLength(2);
 
     const state = (
       await request(app).get(`${API}/projects/${projectId}/state`).set('Cookie', cookie).set('X-Forwarded-For', uniqueIp())
     ).body.state;
-    const titles = (state.tasks as Array<{ title: string }>).map((t) => t.title);
+    type Row = {
+      title: string;
+      status: string;
+      severity: string;
+      description: string;
+      githubIssue: { owner: string; repo: string; number: number } | null;
+    };
+    const rows = state.issues as Row[];
+    const titles = rows.map((t) => t.title);
     expect(titles).toContain('Login broken');
-    const done = (state.tasks as Array<{ title: string; status: string; completedAt: string | null }>).find(
-      (t) => t.title === 'Old bug',
-    );
-    expect(done?.status).toBe('done');
-    expect(done?.completedAt).toBe('2026-02-01T00:00:00.000Z');
-    const open = (state.tasks as Array<{ title: string; labels: string[]; description: string }>).find(
-      (t) => t.title === 'Login broken',
-    );
-    expect(open?.labels).toContain('gh:org/repo#1');
+    const done = rows.find((t) => t.title === 'Old bug');
+    expect(done?.status).toBe('resolved');
+    const open = rows.find((t) => t.title === 'Login broken');
+    expect(open?.status).toBe('open');
+    expect(open?.severity).toBe('medium');
+    expect(open?.githubIssue).toMatchObject({ owner: 'org', repo: 'repo', number: 1 });
     expect(open?.description).toContain('Imported from org/repo#1');
+    expect(open?.description).toContain('Labels: bug');
 
     const second = await request(app)
       .post(`${API}/integrations/github/import`)

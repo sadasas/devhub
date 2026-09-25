@@ -95,7 +95,7 @@ export function LabelPickerBody({
                   <button
                     type="button"
                     onClick={() => remove(name)}
-                    aria-label={`Remove ${name}`}
+                    aria-label={t('board.taskModal.removeLabel', { name, defaultValue: `Remove ${name}` })}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 'inherit', padding: 0, lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, minWidth: 24, minHeight: 24, borderRadius: 6 }}
                   >
                     <X size={12} aria-hidden="true" />
@@ -160,7 +160,7 @@ export function LabelPickerBody({
             onClick={create}
             disabled={!canCreate}
             aria-label={trimmed
-              ? t('settings.labelsInlineCreate', { defaultValue: 'Create label "{{name}}"', name: trimmed })
+              ? t('project:settings.labelsInlineCreate', { defaultValue: 'Create label "{{name}}"', name: trimmed })
               : t('board.taskModal.labelsNew', { defaultValue: 'New label' })}
             style={{
               display: 'inline-flex',
@@ -178,17 +178,17 @@ export function LabelPickerBody({
             }}
           >
             <Plus size={12} weight="bold" aria-hidden="true" />
-            {t('settings.labelsAdd', { defaultValue: 'Add' })}
+            {t('project:settings.labelsAdd', { defaultValue: 'Add' })}
           </button>
         </div>
-        <div role="radiogroup" aria-label={t('settings.labelsColor', { defaultValue: 'Label color' })} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+        <div role="radiogroup" aria-label={t('project:settings.labelsColor', { defaultValue: 'Label color' })} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
           {LABEL_COLOR_ORDER.map((c) => (
             <button
               key={c}
               type="button"
               role="radio"
               aria-checked={activeColor === c}
-              aria-label={`${t('settings.labelsColor', { defaultValue: 'Label color' })}: ${LABEL_COLOR_LABEL[c]}`}
+              aria-label={`${t('project:settings.labelsColor', { defaultValue: 'Label color' })}: ${LABEL_COLOR_LABEL[c]}`}
               title={LABEL_COLOR_LABEL[c]}
               onClick={() => setCreateColor(c)}
               style={{

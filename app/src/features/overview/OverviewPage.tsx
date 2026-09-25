@@ -289,8 +289,8 @@ export function OverviewPage({ project }: { project: Project }) {
 
   if (loading) {
     return (
-      <div role="status" aria-busy="true" aria-live="polite" aria-label="Loading overview">
-        <span className="sr-only">Loading overview…</span>
+      <div role="status" aria-busy="true" aria-live="polite" aria-label={t('common:loading.overview')}>
+        <span className="sr-only">{t('common:loading.overview')}…</span>
         <div aria-hidden="true">
           <div className="data-list-header">
             <Skeleton style={{ width: 130, height: 15 }} />

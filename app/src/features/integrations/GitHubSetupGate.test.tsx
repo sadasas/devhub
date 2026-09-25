@@ -12,7 +12,10 @@ const { apiMock } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('../../lib/api', () => ({ api: apiMock }));
+vi.mock('../../lib/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../lib/api')>();
+  return { ...actual, api: apiMock };
+});
 
 const { projectsMock } = vi.hoisted(() => ({ projectsMock: { current: [] as Project[] } }));
 
@@ -116,10 +119,12 @@ describe('GitHubSetupGate', () => {
     expect(window.localStorage.getItem('devhub:github:pendingReturn')).toBeNull();
   });
 
-  it('shows an error when setup lookup fails', async () => {
+  it('shows a retryable error state when setup lookup fails', async () => {
     apiMock.githubSetup.mockRejectedValue(new Error('boom'));
     renderGate('/?github=installed&installation_id=42');
-    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Try again' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await waitFor(() => expect(apiMock.githubSetup).toHaveBeenCalledTimes(2));
   });
 
   it('blocks connect without an eligible project', async () => {

@@ -38,7 +38,6 @@ export function PricingCard({
   busy,
   anyBusy,
   disabledReason,
-  actionError,
   variant,
   onRequireWorkspace,
   isCurrent = false,
@@ -53,7 +52,6 @@ export function PricingCard({
   busy: boolean;
   anyBusy: boolean;
   disabledReason?: string | null;
-  actionError?: string | null;
   variant?: string;
   onRequireWorkspace?: (pkgId: string) => void;
   isCurrent?: boolean;
@@ -145,11 +143,6 @@ export function PricingCard({
       </ul>
       <hr className="pricing-divider pricing-divider-cta" />
       <div className="pricing-card-cta">
-        {actionError && (
-          <p className="field-error pricing-cta-error" role="alert" tabIndex={-1}>
-            {actionError}
-          </p>
-        )}
         {isFree ? (
           <Button variant="ghost" size="md" disabled className="pricing-cta-btn" aria-disabled="true">
             {t('pricing.currentPlan')}

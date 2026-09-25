@@ -45,6 +45,7 @@ import { EmptyState } from '../../components/EmptyState';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { SaveBanner } from '../../components/SaveBanner';
+import { StatusBanner } from '../../components/StatusBanner';
 import { ToastStack } from '../../components/ToastStack';
 import { Skeleton } from '../../components/Skeleton';
 import { ProjectSettingsSkeleton } from '../../components/PageSkeletons';
@@ -110,8 +111,8 @@ function TabSkeleton({ tab }: { tab: ProjectTab }) {
   const { t } = useTranslation('project');
   if (tab === 'board') {
     return (
-      <div className="kanban" role="status" aria-busy="true" aria-label="Loading board">
-        <span className="sr-only">Loading board…</span>
+      <div className="kanban" role="status" aria-busy="true" aria-label={t('common:loading.board')}>
+        <span className="sr-only">{t('common:loading.board')}…</span>
         <div aria-hidden="true" style={{ display: 'contents' }}>
           {['skeleton.todo', 'skeleton.inProgress', 'skeleton.review', 'skeleton.done'].map((key) => (
             <div key={key} className="kanban-col">
@@ -152,8 +153,8 @@ function TabSkeleton({ tab }: { tab: ProjectTab }) {
 
   if (tab === 'whiteboard') {
     return (
-      <div className="project-grid" role="status" aria-busy="true" aria-label="Loading whiteboards">
-        <span className="sr-only">Loading whiteboards…</span>
+      <div className="project-grid" role="status" aria-busy="true" aria-label={t('common:loading.whiteboards')}>
+        <span className="sr-only">{t('common:loading.whiteboards')}…</span>
         <div aria-hidden="true" style={{ display: 'contents' }}>
           {[0, 1, 2].map((i) => (
             <div key={i} className="project-card" style={{ padding: 14, gap: 8, display: 'flex', flexDirection: 'column' }}>
@@ -174,8 +175,8 @@ function TabSkeleton({ tab }: { tab: ProjectTab }) {
 
   if (tab === 'overview') {
     return (
-      <div role="status" aria-busy="true" aria-label="Loading overview">
-        <span className="sr-only">Loading overview…</span>
+      <div role="status" aria-busy="true" aria-label={t('common:loading.overview')}>
+        <span className="sr-only">{t('common:loading.overview')}…</span>
         <div aria-hidden="true">
           <Skeleton style={{ width: 220, height: 20, marginBottom: 8 }} />
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
@@ -502,6 +503,7 @@ export function ProjectPage() {
   const [importDoc, setImportDoc] = useState<ExportDocument | null>(null);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [limitOpen, setLimitOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
@@ -661,7 +663,7 @@ export function ProjectPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setDeleteError(getErrorMessage(err, t('errors.exportFailed')));
+      setExportError(getErrorMessage(err, t('errors.exportFailed')));
     }
   }
 
@@ -737,7 +739,7 @@ export function ProjectPage() {
         <header className="project-header">
           <div className="project-heading">
             <div className="project-heading-top">
-            <nav className="breadcrumb" aria-label="Breadcrumb">
+            <nav className="breadcrumb" aria-label={t('common:breadcrumb', { defaultValue: 'Breadcrumb' })}>
               <ol className="breadcrumb-list">
                 <li>
                   <Link className="breadcrumb-link" to={teamDashboardTo} title={team?.name ?? undefined}>
@@ -878,6 +880,16 @@ export function ProjectPage() {
             </div>
           </div>
         </header>
+
+        {exportError && (
+          <StatusBanner
+            tone="danger"
+            message={exportError}
+            onDismiss={() => setExportError(null)}
+            dismissLabel={t('banner.dismiss', { defaultValue: 'Dismiss' })}
+            testId="export-error"
+          />
+        )}
 
         {isArchived && (
           <ArchivedBanner

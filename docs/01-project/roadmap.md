@@ -4,7 +4,7 @@
 |---|---|
 | **Document status** | Active |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-22 |
+| **Last updated** | 2026-09-24 |
 
 ---
 
@@ -15,7 +15,7 @@
 | 0 | Planning & Documentation | Full docs suite + locked scope | **Done** | 1 week |
 | 1 | V1 Build | Working app | Done | 4–6 weeks (part-time) |
 | 2 | Public Deploy | Multi-user hosting + hardening | Done | ~2 weeks |
-| 3 | Collaboration & PWA | Sync, real-time, offline | In progress | TBD |
+| 3 | Collaboration & PWA | Sync, offline (realtime WS done — M12) | In progress | TBD |
 
 ---
 
@@ -52,7 +52,7 @@ Projects · Kanban with `blockedBy` dependencies · Issues · Test cases · Tech
 
 ## 4. Phase 2 — Production Service (Shipped)
 
-**Drivers:** Hosting decision (Railway / Render / VPS — currently TBD), production Postgres, HTTPS domain, rate-limit tuning, backup automation (cron pg_dump), monitoring (health checks, logging, alerting), privacy policy + ToS publication (already drafted in `docs/06-compliance/`), account deletion flow verification.
+**Drivers:** Hosting done — Cloudflare Workers (FE) + Suga prod (cuddly-hawk) + Neon Postgres; production Postgres, HTTPS domain, rate-limit tuning, backup automation (cron pg_dump), monitoring (health checks, logging, alerting), privacy policy + ToS publication (already drafted in `docs/06-compliance/`), account deletion flow verification.
 
 **V2 features (deferred from V1) — all shipped in [M10](#10-v2-features-m10):**
 - [x] API Endpoint Inventory (document endpoints used by the app)
@@ -67,7 +67,7 @@ Projects · Kanban with `blockedBy` dependencies · Issues · Test cases · Tech
 
 **Shipped (collaboration core):** team workspaces (one team → many projects), email invites for registered users with accept/decline flow + 7-day expiry, roles owner/admin/editor/viewer (viewer read-only enforced at API, UI, and MCP layers), per-team sidebar grouping, migration 003 backfill moved existing projects into a per-user "Personal" team. See [Team Collaboration Design](../02-architecture/team-collaboration-design.md).
 
-**Remaining drivers:** Multi-device sync (IndexedDB provider + sync service), real-time collaboration (WebSocket + CRDT or last-write-wins merge — LWW already chosen for conflict handling, prepared via `Base.updatedAt`), PWA offline, WebDAV/Nextcloud backup option, ntfy.sh push notifications, real-time presence.
+**Remaining drivers:** Multi-device sync (IndexedDB provider + sync service), PWA offline, WebDAV/Nextcloud backup option, ntfy.sh push notifications. Real-time collaboration (WebSocket state-diff + presence — M12) dan viewer read-only enforcement **done**; conflict handling LWW via `Base.updatedAt` tetap berlaku.
 
 **Prerequisite:** StorageProvider abstraction already designed in [Technical Design](../02-architecture/technical-design.md) — adding sync requires one new provider, zero component changes.
 
@@ -544,6 +544,23 @@ Input teks koma diganti: toggle "Indexed" (I) per kolom untuk index biasa + chip
 ### Picker warna khusus kanvas
 
 `TableColorPicker` dihapus dari TableModal + NewTableModal (tabel baru selalu Default); pengaturan warna hanya via panel kanvas ERD.
+
+---
+
+## 29. Sep-2026 UI Polish + i18n + Upload + Integrasi
+
+Paket polish Sep-2026 (seluruhnya terverifikasi hijau — lint + `tsc -b` + build):
+
+| Fokus | Isi |
+|---|---|
+| RowMenu standar | Menu kebab `RowMenu` (≤640px) jadi standar di Issues/Decisions/Tests/Releases/Whiteboard/Labels/Templates — ganti tombol aksi inline yang overflow di mobile |
+| Upload TUS | Upload resumable TUS `x-upsert` + fallback PUT + guard `isUploadAuthError`; retry 400 berlebih dimatikan untuk draft invalid (lanjut §28 autosave guard) |
+| i18n P0+P1 | Overhaul i18n 6 namespace (`common/shell/account/tracker/project/extras`, `defaultNS: common`) — P0 + P1 selesai; key tanpa prefix wajib prefix eksplisit (pelajaran §28 footer TableModal) |
+| Templates icon-only | `TemplatesPage` icon-only + judul whiteboard `truncate`; `LabelsSection` wrap + kebab mobile; drawer settings auto-buka di mobile; `SearchableSelect` mount-emit fix; `project-card-title` `display:block` |
+| Drawer & kalender | Drawer settings auto-buka mobile; calendar view `?view=due` (`?view=due&cal=1`) tetap view ke-3 Board (bukan tab baru) |
+| Integrasi | GitHub import + Google Calendar sync ship; Teams/WS realtime (`/ws`, presence) shipped — lihat §5/M12 |
+
+**Verifikasi:** lint 0 error, `tsc -b` app+server bersih, build hijau; pola UI baru dicatat di dokumen token pada PR yang sama.
 
 ---
 

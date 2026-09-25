@@ -76,8 +76,8 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
           <Skeleton style={{ width: 96, height: 28, borderRadius: 8 }} />
         </span>
       </div>
-      <div className="data-list" role="status" aria-live="polite" aria-busy="true" aria-label="Loading tests">
-        <span className="sr-only">Loading tests…</span>
+      <div className="data-list" role="status" aria-live="polite" aria-busy="true" aria-label={t('common:loading.tests')}>
+        <span className="sr-only">{t('common:loading.tests')}…</span>
         <div aria-hidden="true">
           {[0, 1, 2].map((i) => (
             <div key={i} className="data-row" style={{ minHeight: 56 }}>
@@ -186,8 +186,8 @@ return (
                             <button
                               type="button"
                               className="btn btn-ghost btn-sm btn-icon btn-danger swap-trash"
-                              aria-label={`Delete test case ${test.name}`}
-                              title={`Delete test case ${test.name}`}
+                              aria-label={t('tests.deleteAria', { name: test.name, defaultValue: `Delete test case ${test.name}` })}
+                              title={t('tests.deleteAria', { name: test.name, defaultValue: `Delete test case ${test.name}` })}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 const btn = e.currentTarget;
@@ -252,7 +252,7 @@ return (
                     {linkedIssue && <span>{t('tests.metaIssue', { title: linkedIssue.title })}</span>}
                     <span>#{shortId(test.id)}</span>
                     {unreadIds?.has(test.id) && (
-                      <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">New</span>
+                      <span className="unread-pill" role="status" aria-label={t('tests.unread')} title={t('tests.unread')}>{t('tests.unread')}</span>
                       )}
                   </span>
                 </button>

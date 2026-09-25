@@ -15,6 +15,7 @@ import {
 } from "../domain/github.js";
 import {
   assertGithubConfigured,
+  assertRepoBelongsToInstallation,
   handleSetupCallback,
   ensureInstallationToken,
 } from "../application/install-service.js";
@@ -109,6 +110,9 @@ githubRouter.post("/repos", requireAuth, async (req: Request, res: Response) => 
     );
   }
   assertGithubConfigured();
+  // Multi-akun: pastikan repo memang milik instalasi ini (bukan instalasi
+  // akun lain) sebelum mapping disimpan — gagal cepat dengan 403 yang jelas.
+  await assertRepoBelongsToInstallation(body.installationId, body.owner, body.repo);
   const mapping = await connectRepoRow({
     projectId: body.projectId,
     installationId: body.installationId,

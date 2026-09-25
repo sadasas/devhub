@@ -21,4 +21,10 @@ describe('markdown image embeds (Linear-style)', () => {
     expect(screen.getByRole('link', { name: 'dok' }).getAttribute('href')).toBe('https://x.test/d');
     expect(document.querySelector('strong')).not.toBeNull();
   });
+
+  it('renders javascript: links as plain text (XSS fixture)', () => {
+    render(<MarkdownBlocks text="Link jahat harus jadi teks plain: [evil](javascript:alert(1))" />);
+    expect(screen.queryByRole('link', { name: 'evil' })).toBeNull();
+    expect(screen.getByText(/evil/)).toBeDefined();
+  });
 });

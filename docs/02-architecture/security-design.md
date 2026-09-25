@@ -5,7 +5,7 @@
 | **Document status** | Draft (Phase 0) |
 | **Version** | 1.0 |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-09-02 |
+| **Last updated** | 2026-09-24 |
 | **Related documents** | [TDD](technical-design.md) · [ADR-005](adr.md#adr-005) · [ADR-049](adr.md#adr-049) · [Incident Response](../05-operations/incident-response.md) |
 
 ---
@@ -31,8 +31,11 @@
 | Information disclosure | Reading others' projects | Owner-scoped queries; auth middleware on all routes |
 | DoS | Brute-force login, state spam | express-rate-limit; body size limits |
 | Elevation of privilege | Access admin endpoints | No admin roles in V1; least privilege by design |
+| Upload abuse | Malicious/resumable upload forgery, service-key leak | TUS `x-signature` + `x-upsert` server-verified, chunk 6MB, `isUploadAuthError` gate; service-key tak ke browser (presigned/short-lived only) |
+| Webhook forgery | Fake GitHub/Pakasir callback → state/billing mutation | `express.raw` sebelum `express.json` + HMAC sha256 verify + dedupe `delivery_id`; Pakasir re-verify server-to-server `transactiondetail` (amount+order_id cocok), mismatch → 200 silent |
+| Token-vault theft | OAuth/GCal/GitHub token DB leak | Sealed AES-256-GCM (`key-crypto` reuse token-vault); least-scope (`calendar`, App minimal perms); refresh lazy + skew 5 mnt |
 
-**High-risk assets:** user credentials, project state (technical memory), OAuth bearer tokens (`oauth_access_tokens`), `JWT_SECRET`.
+**High-risk assets:** user credentials, project state (technical memory), OAuth bearer tokens (`oauth_access_tokens`), integration token vault (GCal/GitHub, AES-256-GCM), webhook secrets (GitHub HMAC, Pakasir verify), `JWT_SECRET`.
 
 ---
 
@@ -84,8 +87,10 @@
 | Express | `express.json({ limit: '2mb' })` — body size cap |
 | Validation | zod schemas on every request body/params/query |
 | SQL | Parameterized queries only (pg) — no string interpolation |
-| HTML | UI uses React escaping by default; no `dangerouslySetInnerHTML` without explicit allowlist review |
+| HTML | UI uses React escaping by default; no `dangerouslySetInnerHTML` without explicit allowlist review; whiteboard `embed` SVG allowlist-sanitized (strip script/event-handler/`javascript:`/`foreignObject`/external-ref) |
 | JSON output | State served as JSON only; Content-Type enforced |
+| Webhook raw body | `POST /webhooks/github` + `/billing/webhook` pakai `express.raw` sebelum `express.json` (HMAC butuh byte mentah); verify → dedupe → apply, gagal apply → outbox + tetap 200 |
+| Upload presigned | TUS presigned/short-lived ke browser; service-key hanya server; `x-signature`/`x-upsert` + metadata `bucket/object` diverifikasi server |
 
 ---
 
@@ -117,8 +122,8 @@
 ## 8. Dependency & Supply Chain
 
 - `npm audit` run before each release; dependencies pinned (package-lock committed).
-- Only well-maintained deps (express, pg, bcryptjs, jsonwebtoken, cookie-parser, express-rate-limit, zod, @modelcontextprotocol/sdk, react, vite, @phosphor-icons/react).
-- No arbitrary UI plugins; zero-dep policy reduces supply-chain surface (ADR-007).
+- Only well-maintained deps (express, pg, bcryptjs, jsonwebtoken, cookie-parser, express-rate-limit, zod, @modelcontextprotocol/sdk, react, vite, @phosphor-icons/react, react-router, i18next/react-i18next, yaml, tus-js-client, ws).
+- No arbitrary UI plugins; embed SVG allowlist-sanitized (ADR-060).
 
 ---
 
@@ -139,8 +144,8 @@
 
 | Item | Practice |
 |---|---|
-| HTTPS | Terminated at proxy (Railway/Render built-in TLS, or Caddy/Nginx on VPS); `Secure` cookies |
-| Backups | Daily pg_dump to encrypted object storage (see [Backup & Recovery](../05-operations/backup-recovery.md)) |
+| HTTPS | Terminated at Cloudflare edge (Workers static FE + Suga prod API); `Secure` cookies; `COOKIE_DOMAIN` parent-domain single login (ADR-051) |
+| Backups | Daily pg_dump (Neon) to encrypted object storage (see [Backup & Recovery](../05-operations/backup-recovery.md)) |
 | Updates | `npm audit` + patch apply before deploy; Postgres minor upgrades |
 | Monitoring | Health endpoint + error logs (see [Monitoring](../05-operations/monitoring.md)) |
 | Incident | [Incident Response](../05-operations/incident-response.md) with severity matrix |
@@ -154,6 +159,9 @@
 - [ ] State: zod rejects malformed payload, dangling references, oversized body
 - [ ] MCP: no token → 401; invalid token → 401; expired token → 401; revoked client → 401; `mcp:read` token on write tool → 403; user A's token cannot access user B's project; malformed tool args → 400; PKCE mismatch → 400 at `/oauth/token`
 - [ ] Cookies: `HttpOnly` and `SameSite=Lax` flags verified in response headers; `Secure` in prod
+- [ ] Upload: service-key tak terekspos di bundle; `x-signature` invalid → 401/403 via `isUploadAuthError`; chunk corrupt → retryable bukan auth-fail
+- [ ] Webhook: HMAC salah → tolak/dedupe; replay `delivery_id` → idempoten; Pakasir amount/order mismatch → 200 silent tanpa mutasi
+- [ ] GCal: token vault terseal AES-256-GCM; scope minimal `calendar`; revoke → reconnect manual, tanpa token plaintext di log
 - [ ] `npm audit` clean (no high/critical)
 - [ ] Secrets: grep repo for `JWT_SECRET=` false positives; no raw bearer tokens committed
 

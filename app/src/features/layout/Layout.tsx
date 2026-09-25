@@ -310,16 +310,24 @@ export function Layout() {
   // and only close after the user picks a section (SettingsNav onSelect).
   // Berlaku untuk team (/x/settings) maupun project (/project/:id?tab=settings).
   // Perubahan query biasa (sort/filter) tidak menyentuh drawer.
+  // Tambahan: nav konten disembunyikan di mobile (CSS), jadi saat MASUK
+  // settings di mobile drawer dibuka otomatis agar submenu terlihat.
   const prevLocRef = useRef(location.pathname + location.search);
   useEffect(() => {
     const prev = prevLocRef.current;
     const cur = location.pathname + location.search;
     prevLocRef.current = cur;
     const prevPath = prev.split('?')[0] ?? '';
+    const isMobile = (() => {
+      try { return window.matchMedia('(max-width: 860px)').matches; } catch { return false; }
+    })();
     if (location.pathname !== prevPath) {
       const enteringSettings =
         location.pathname.endsWith('/settings') && !prev.endsWith('/settings');
-      if (enteringSettings) return;
+      if (enteringSettings) {
+        if (isMobile) setNavOpen(true);
+        return;
+      }
       setNavOpen(false);
       return;
     }
@@ -327,7 +335,10 @@ export function Layout() {
     const isProjectSettings =
       location.pathname.startsWith('/project/') &&
       new URLSearchParams(location.search).get('tab') === 'settings';
-    if (isProjectSettings && !wasProjectSettings) return;
+    if (isProjectSettings && !wasProjectSettings) {
+      if (isMobile) setNavOpen(true);
+      return;
+    }
     if (!isProjectSettings && wasProjectSettings) setNavOpen(false);
   }, [location.pathname, location.search]);
 

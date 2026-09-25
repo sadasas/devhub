@@ -17,6 +17,7 @@ import type { BillingPayment, BillingStatus, PaymentHistoryItem } from '../../li
 import { Badge } from '../../components/Badge';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { Button } from '../../components/Button';
+import { DataErrorState } from '../../components/DataErrorState';
 import { InlineError } from '../../components/InlineError';
 import { Skeleton } from '../../components/Skeleton';
 
@@ -405,19 +406,13 @@ export function BillingRedirectPage() {
         )}
 
         {error && displayState !== 'unauthenticated' && displayState !== 'loading' && !data && !detailPayment && (
-          <section className="billing-redirect-card billing-redirect-card--danger" role="alert">
-            <WorkspaceEyebrow name={workspaceName} />
-            <div className="billing-redirect-hero">
-              <span className="billing-redirect-icon billing-redirect-icon--danger" aria-hidden="true"><XCircle size={20} weight="regular" /></span>
-              <div>
-                <h1 className="billing-redirect-title">{t('teams.payment.loadErrorTitle', { defaultValue: 'Gagal memuat pembayaran' })}</h1>
-                <p className="billing-redirect-subtitle">{t(`common:dataError.${classifyError(loadErrorRaw ?? error)}Desc`, { defaultValue: 'Gagal memuat pembayaran. Coba lagi.' })}</p>
-              </div>
-            </div>
-            <div className="billing-redirect-actions">
-              <Button variant="secondary" onClick={() => void load()}>{t('common:action.retry', { defaultValue: 'Coba lagi' })}</Button>
-            </div>
-          </section>
+          <DataErrorState
+            error={loadErrorRaw ?? error}
+            onRetry={() => void load()}
+            retryLabel={t('common:action.retry', { defaultValue: 'Coba lagi' })}
+            title={t('teams.payment.loadErrorTitle', { defaultValue: 'Gagal memuat pembayaran' })}
+            description={t(`common:dataError.${classifyError(loadErrorRaw ?? error)}Desc`, { defaultValue: 'Gagal memuat pembayaran. Coba lagi.' })}
+          />
         )}
 
         {(data || detailPayment) && displayState === 'pending' && targetPayment && (
@@ -438,13 +433,13 @@ export function BillingRedirectPage() {
             </div>
             {workspaceMismatch && (
               <p className="billing-redirect-help" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                Order ini milik workspace lain: {detailPayment?.teamName}
+                {t('teams.payment.workspaceMismatch', { teamName: detailPayment?.teamName ?? '', defaultValue: `Order ini milik workspace lain: ${detailPayment?.teamName}` })}
               </p>
             )}
             <PaymentFacts payment={targetPayment} />
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 6 }}>
               <span className="billing-redirect-mono" title={targetPayment.orderId}>{t("teams.payment.orderSummary", { id: shortId(targetPayment.orderId), amount: targetPayment.amount.toLocaleString("id-ID") })}</span>
-              <button type="button" className="billing-redirect-copy" onClick={() => void handleCopy(targetPayment.orderId)} aria-label={t("teams.payment.copyOrderId")}><Copy size={12} aria-hidden="true" /> {copied ? t("common:copied") : t("teams.payment.copyOrder")}</button>
+              <button type="button" className="billing-redirect-copy" onClick={() => void handleCopy(targetPayment.orderId)} aria-label={t("teams.payment.copyOrderId")}><Copy size={12} aria-hidden="true" /> {copied ? t("common:action.copied") : t("teams.payment.copyOrder")}</button>
             </div>
             {actionError && <InlineError>{actionError}</InlineError>}
             <div className="billing-redirect-actions">
@@ -456,9 +451,9 @@ export function BillingRedirectPage() {
           </section>
           <ConfirmDeleteDialog
             open={confirmCancel}
-            title={t('billing.cancelTitle')}
-            description={targetPayment ? t('billing.cancelDesc', { packageName: targetPayment.packageName, teamName: workspaceName ?? '', amount: targetPayment.amount.toLocaleString('id-ID') }) : t('billing.cancelDescFallback')}
-            confirmLabel={t('billing.confirmCancel')}
+            title={t('extras:billing.cancelTitle')}
+            description={targetPayment ? t('extras:billing.cancelDesc', { packageName: targetPayment.packageName, teamName: workspaceName ?? '', amount: targetPayment.amount.toLocaleString('id-ID') }) : t('extras:billing.cancelDescFallback')}
+            confirmLabel={t('extras:billing.confirmCancel')}
             busy={busy === 'cancel'}
             onConfirm={() => { setConfirmCancel(false); void handleCancel(); }}
             onClose={() => { if (busy !== 'cancel') setConfirmCancel(false); }}
@@ -502,7 +497,7 @@ export function BillingRedirectPage() {
             {targetPayment && (
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 6 }}>
                 <span className="billing-redirect-mono" title={targetPayment.orderId}>{t("teams.payment.orderSummary", { id: shortId(targetPayment.orderId), amount: targetPayment.amount.toLocaleString("id-ID") })}</span>
-                <button type="button" className="billing-redirect-copy" onClick={() => void handleCopy(targetPayment.orderId)} aria-label={t("teams.payment.copyOrderId")}><Copy size={12} aria-hidden="true" /> {copied ? t("common:copied") : t("teams.payment.copyOrder")}</button>
+                <button type="button" className="billing-redirect-copy" onClick={() => void handleCopy(targetPayment.orderId)} aria-label={t("teams.payment.copyOrderId")}><Copy size={12} aria-hidden="true" /> {copied ? t("common:action.copied") : t("teams.payment.copyOrder")}</button>
               </div>
             )}
             <p className="billing-redirect-help">{t("teams.payment.successHelp")}</p>
@@ -528,7 +523,7 @@ export function BillingRedirectPage() {
             {targetPayment && (
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 6 }}>
                 <span className="billing-redirect-mono" title={targetPayment.orderId}>{t("teams.payment.orderSummary", { id: shortId(targetPayment.orderId), amount: targetPayment.amount.toLocaleString("id-ID") })}</span>
-                <button type="button" className="billing-redirect-copy" onClick={() => void handleCopy(targetPayment.orderId)} aria-label={t("teams.payment.copyOrderId")}><Copy size={12} aria-hidden="true" /> {copied ? t("common:copied") : t("teams.payment.copyOrder")}</button>
+                <button type="button" className="billing-redirect-copy" onClick={() => void handleCopy(targetPayment.orderId)} aria-label={t("teams.payment.copyOrderId")}><Copy size={12} aria-hidden="true" /> {copied ? t("common:action.copied") : t("teams.payment.copyOrder")}</button>
               </div>
             )}
             <div className="billing-redirect-actions">

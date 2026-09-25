@@ -1119,8 +1119,8 @@ export function ERDCanvasPanel({
                     >
                       <Badge tone="accent">{v.version}</Badge>
                       {unreadVersionIds?.has(v.id) && (
-                        <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">
-                          New
+                        <span className="unread-pill" role="status" aria-label={t('schema.unread')} title={t('schema.unread')}>
+                          {t('schema.unread')}
                         </span>
                       )}
                       <div className="version-main">

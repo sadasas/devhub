@@ -314,6 +314,118 @@ describe('DueCalendar', () => {
     expect(screen.getByText('+4 lagi')).toBeTruthy();
   });
 
+  it('bisa drop ke cell penuh yang tertutup tombol more (pointer-events + forward)', () => {
+    const mk = (id: string, title: string, dueDate: string): Task => ({
+      id,
+      title,
+      status: 'todo',
+      priority: 'low',
+      labels: [],
+      blockedBy: [],
+      dueDate,
+      description: '',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    });
+    mockState.tasks = [
+      mk('cccccccc-cccc-4ccc-8ccc-ccccccccccc0', 'Source task', '2026-08-20'),
+      ...Array.from({ length: 5 }, (_, i) =>
+        mk(`ddddddd${i}-dddd-4ddd-8ddd-ddddddddddd${i}`, `Full ${i}`, '2026-08-21'),
+      ),
+    ];
+    renderCalendar();
+    // Cell penuh: tombol more ada + punya data-drop-key (jalur touch elementFromPoint).
+    const more = screen.getByText('+2 lagi');
+    expect(more.getAttribute('data-drop-key')).toBe('date:2026-08-21');
+    const source = screen.getByText('Source task').closest('.due-cal-task') as HTMLElement;
+    const target = document.querySelector('[data-date="2026-08-21"]') as HTMLElement;
+    const transfer = () => ({ getData: () => 'cccccccc-cccc-4ccc-8ccc-ccccccccccc0', setData: vi.fn(), effectAllowed: 'move' }) as unknown as DataTransfer;
+    fireEvent.dragStart(source, { dataTransfer: transfer() });
+    fireEvent.dragOver(target, { dataTransfer: transfer() });
+    expect(target.classList.contains('due-cal-cell--drop-active')).toBe(true);
+    fireEvent.drop(target, { dataTransfer: transfer() });
+    expect(mocks.dispatch).toHaveBeenCalledWith({
+      type: 'task/update',
+      id: 'cccccccc-cccc-4ccc-8ccc-ccccccccccc0',
+      patch: { dueDate: '2026-08-21' },
+    });
+  });
+
+  it('drop via tombol more langsung juga sampai (backup onDrop forward)', () => {
+    const mk = (id: string, title: string, dueDate: string): Task => ({
+      id,
+      title,
+      status: 'todo',
+      priority: 'low',
+      labels: [],
+      blockedBy: [],
+      dueDate,
+      description: '',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    });
+    mockState.tasks = [
+      mk('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee0', 'Source task', '2026-08-20'),
+      ...Array.from({ length: 5 }, (_, i) =>
+        mk(`ffffff${i}-ffff-4fff-8fff-fffffffffff${i}`, `Full ${i}`, '2026-08-21'),
+      ),
+    ];
+    renderCalendar();
+    const source = screen.getByText('Source task').closest('.due-cal-task') as HTMLElement;
+    const transfer = () => ({ getData: () => 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee0', setData: vi.fn(), effectAllowed: 'move' }) as unknown as DataTransfer;
+    fireEvent.dragStart(source, { dataTransfer: transfer() });
+    fireEvent.drop(screen.getByText('+2 lagi'), { dataTransfer: transfer() });
+    expect(mocks.dispatch).toHaveBeenCalledWith({
+      type: 'task/update',
+      id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee0',
+      patch: { dueDate: '2026-08-21' },
+    });
+  });
+
+  it('satu tombol ciutkan per baris + muat di slot footer dalam cell', () => {
+    const mk = (id: string, title: string, dueDate: string): Task => ({
+      id,
+      title,
+      status: 'todo',
+      priority: 'low',
+      labels: [],
+      blockedBy: [],
+      dueDate,
+      description: '',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    });
+    mockState.tasks = [
+      ...Array.from({ length: 7 }, (_, i) =>
+        mk(`1111111${i}-1111-4111-8111-11111111111${i}`, `R3A ${i}`, '2026-08-20'),
+      ),
+      ...Array.from({ length: 7 }, (_, i) =>
+        mk(`2222222${i}-2222-4222-8222-22222222222${i}`, `R3B ${i}`, '2026-08-21'),
+      ),
+    ];
+    renderCalendar();
+    // 20 & 21 Agu 2026 satu baris (Sen 17 – Min 23): dua tombol more.
+    expect(screen.getAllByText('+4 lagi').length).toBe(2);
+    fireEvent.click(screen.getAllByText('+4 lagi')[0]!);
+    // Expand satu cell = expand sebaris: tinggal 1 tombol ciutkan.
+    const collapses = screen.getAllByText('ciutkan');
+    expect(collapses.length).toBe(1);
+    const btn = collapses[0] as HTMLElement;
+    expect(btn.getAttribute('data-drop-key')).toBeTruthy();
+    // Footer math: top + 22 (tinggi tombol) + 8 (pad) <= bawah baris expanded.
+    // Baris expanded terdeteksi via tinggi > 200 (collapsed=142, kosong=112).
+    const grid = document.querySelector('.due-cal-grid') as HTMLElement;
+    const rows = grid.style.gridTemplateRows.split(' ').map((s) => parseFloat(s));
+    const expandedIdx = rows.findIndex((v) => v > 200);
+    expect(expandedIdx).toBeGreaterThan(0);
+    const rowTop = rows.slice(1, expandedIdx).reduce((a, b) => a + b + 1, 0);
+    const top = parseFloat(btn.style.top);
+    expect(top + 22 + 8).toBeLessThanOrEqual(rowTop + rows[expandedIdx]! + 0.01);
+    // Collapse per baris mengembalikan kedua tombol more.
+    fireEvent.click(btn);
+    expect(screen.getAllByText('+4 lagi').length).toBe(2);
+  });
+
   it('hides day chips and unscheduled tasks rejected by taskFilter', () => {
     render(
       <DueCalendar

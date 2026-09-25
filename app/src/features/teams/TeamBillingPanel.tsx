@@ -10,6 +10,7 @@ import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { Skeleton } from '../../components/Skeleton';
 import { InlineError } from '../../components/InlineError';
+import { StatusBanner } from '../../components/StatusBanner';
 import { DataErrorState } from '../../components/DataErrorState';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { UsageMeter } from '../../components/UsageMeter';
@@ -152,14 +153,16 @@ export function TeamBillingPanel({ teamId, isAdmin }: TeamBillingPanelProps) {
   return (
     <section className="tab-panel billing-panel" aria-label={t('teams.billing.panelAria')}>
       {plan === 'pro' && daysLeft !== null && daysLeft <= 7 && (
-        <InlineError className="billing-warn">
-          {t('teams.billing.proEndingSoon', {
+        <StatusBanner
+          tone="warn"
+          message={t('teams.billing.proEndingSoon', {
             duration:
               daysLeft <= 0
                 ? t('teams.billing.lessThanADay')
                 : t('teams.billing.days', { count: daysLeft }),
           })}
-        </InlineError>
+          testId="billing-ending-soon"
+        />
       )}
       {pendingPayment && (
         <>

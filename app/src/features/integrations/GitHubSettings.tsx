@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { ArrowClockwise, GithubLogo, PlugsConnected } from '@phosphor-icons/react';
+import { ArrowClockwise, GithubLogo, LinkBreak } from '@phosphor-icons/react';
 import { api } from '../../lib/api';
 import {
   DOCS_PRIVACY_URL,
@@ -11,9 +11,21 @@ import {
 } from '../../lib/docs-urls';
 import type { GitHubAutomation, GitHubInstallation, GitHubInstallationRepo, GitHubStatus } from '../../lib/types';
 import { savePendingReturn } from '../../lib/github';
-import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
+import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
+import { DataErrorState } from '../../components/DataErrorState';
+import { Input } from '../../components/Input';
 import { SearchableSelect } from '../../components/SearchableSelect';
+import { StatusBanner } from '../../components/StatusBanner';
+
+/** Error code server saat GitHub App belum dikonfigurasi (duck-typing agar aman di test mock). */
+function isNotConfiguredError(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    (err as { code?: unknown }).code === 'GITHUB_NOT_CONFIGURED'
+  );
+}
 
 interface GitHubSettingsProps {
   projectId: string;
@@ -93,6 +105,14 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
   const [installations, setInstallations] = useState<GitHubInstallation[] | null>(null);
   const [pickedInstallation, setPickedInstallation] = useState<number | null>(null);
   const [reposLoading, setReposLoading] = useState(false);
+  const [unconfigured, setUnconfigured] = useState(false);
+  const [issueLabelsText, setIssueLabelsText] = useState('');
+
+  // Sinkronkan input filter label dari status server (sekali per refresh).
+  useEffect(() => {
+    setIssueLabelsText((status?.automation?.issueLabels ?? []).join(', '));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -100,7 +120,14 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
     try {
       setStatus(await api.githubStatus(projectId));
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load GitHub status');
+      if (isNotConfiguredError(e)) {
+        // Opsi B: NOT_CONFIGURED hanya diwakili banner warn persisten —
+        // jangan isi error generik agar tidak tampil dobel.
+        setUnconfigured(true);
+        setError(null);
+      } else {
+        setError(e instanceof Error ? e.message : 'Failed to load GitHub status');
+      }
     } finally {
       setLoading(false);
     }
@@ -121,7 +148,12 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
           setPicked(repos[0] ? `${repos[0].owner}/${repos[0].repo}` : '');
         }
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'GitHub setup failed');
+        if (isNotConfiguredError(e)) {
+          setUnconfigured(true);
+          if (!cancelled) setError(null);
+        } else if (!cancelled) {
+          setError(e instanceof Error ? e.message : 'GitHub setup failed');
+        }
       } finally {
         if (!cancelled) {
           const next = new URLSearchParams(searchParams);
@@ -179,8 +211,12 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
     (async () => {
       try {
         const { installations: rows } = await api.githubInstallations();
-        if (!cancelled) setInstallations(rows);
-      } catch {
+        if (!cancelled) {
+          setInstallations(rows);
+          setUnconfigured(false);
+        }
+      } catch (e) {
+        if (isNotConfiguredError(e)) setUnconfigured(true);
         if (!cancelled) setInstallations([]);
       }
     })();
@@ -198,7 +234,12 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
       setPendingInstall({ installationId, repos });
       setPicked(repos[0] ? `${repos[0].owner}/${repos[0].repo}` : '');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load repositories');
+      if (isNotConfiguredError(e)) {
+        setUnconfigured(true);
+        setError(null);
+      } else {
+        setError(e instanceof Error ? e.message : 'Failed to load repositories');
+      }
     } finally {
       setReposLoading(false);
     }
@@ -223,23 +264,33 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
       });
       await refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Connect failed');
+      if (isNotConfiguredError(e)) {
+        setUnconfigured(true);
+        setError(null);
+      } else {
+        setError(e instanceof Error ? e.message : 'Connect failed');
+      }
     } finally {
       setBusy(false);
     }
   }
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [disconnectBusy, setDisconnectBusy] = useState(false);
+  const [disconnectError, setDisconnectError] = useState<string | null>(null);
+
   async function disconnect() {
-    setBusy(true);
-    setError(null);
+    setDisconnectBusy(true);
+    setDisconnectError(null);
     try {
       await api.githubDisconnect(projectId);
       setNotice(t('settings.githubDisconnected', { defaultValue: 'Repository disconnected. Task links are kept as history.' }));
+      setConfirmOpen(false);
       await refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Disconnect failed');
+      setDisconnectError(e instanceof Error ? e.message : 'Disconnect failed');
     } finally {
-      setBusy(false);
+      setDisconnectBusy(false);
     }
   }
 
@@ -276,6 +327,27 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
     }
   }
 
+  async function importIssues() {
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await api.githubImportIssues(projectId);
+      setNotice(
+        t('settings.githubImported', {
+          defaultValue: 'Imported {{imported}} issues, skipped {{skipped}}.{{truncated}}',
+          imported: r.imported,
+          skipped: r.skipped,
+          truncated: r.truncated ? ' (truncated at 300)' : '',
+        }),
+      );
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Import failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function startConnect() {    setBusy(true);
     setError(null);
     try {
@@ -292,7 +364,12 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
       const { installUrl } = await api.githubInstallUrl();
       window.location.href = installUrl;
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not start GitHub connect');
+      if (isNotConfiguredError(e)) {
+        setUnconfigured(true);
+        setError(null);
+      } else {
+        setError(e instanceof Error ? e.message : 'Could not start GitHub connect');
+      }
       setBusy(false);
     }
   }
@@ -304,42 +381,17 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
         GitHub
       </h3>
       {loading ? (
-        <p className="field-helper">{t('settings.loading', { defaultValue: 'Loading…' })}</p>
-      ) : error && !status ? (
-        <p className="field-helper" role="alert">
-          {error}
+        <p className="field-helper" role="status">
+          {t('settings.loading', { defaultValue: 'Loading…' })}
         </p>
+      ) : error && !status ? (
+        <DataErrorState
+          error={error}
+          onRetry={() => void refresh()}
+          retryLabel={t('settings.githubRetry', { defaultValue: 'Try again' })}
+        />
       ) : (
         <>
-          {notice && (
-            <p className="field-helper" role="status">
-              {notice}
-            </p>
-          )}
-          {flash ? (
-            <div
-              className="save-toast save-banner"
-              role={flash.tone === 'error' ? 'alert' : 'status'}
-              data-testid="github-flash"
-            >
-              <Badge tone={flash.tone === 'error' ? 'danger' : 'success'} dot>
-                {flash.tone === 'error'
-                  ? t('settings.githubFailed', { defaultValue: 'Connection failed' })
-                  : t('settings.githubFlashConnected', { defaultValue: 'Connected' })}
-              </Badge>
-              <div className="save-toast-body">
-                <span>{flash.text}</span>
-              </div>
-              <Button variant="ghost" size="sm" className="save-toast-close" onClick={() => setFlash(null)}>
-                {t('settings.githubDismiss', { defaultValue: 'Dismiss' })}
-              </Button>
-            </div>
-          ) : null}
-          {error && (
-            <p className="field-helper" role="alert">
-              {error}
-            </p>
-          )}
           {status?.connected ? (
             <div className="github-stack">
               <p className="field-helper">
@@ -391,8 +443,61 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
                         if (v && status.automation) void saveAutomation({ ...status.automation, onPrMerged: v as GitHubAutomation['onPrMerged'] });
                       }}
                     />
+                    <span className="field-helper">
+                      {t('settings.githubOnIssueOpened', { defaultValue: 'On issue opened' })}
+                    </span>
+                    <SearchableSelect
+                      id="github-auto-issue"
+                      label=""
+                      ariaLabel={t('settings.githubOnIssueOpened', { defaultValue: 'On issue opened' })}
+                      value={status.automation?.onIssueOpened ?? 'suggest'}
+                      allowEmpty={false}
+                      searchable={false}
+                      options={[
+                        { value: 'suggest', label: t('settings.githubModeSuggest', { defaultValue: 'Suggest' }) },
+                        { value: 'auto', label: t('settings.githubModeAuto', { defaultValue: 'Auto' }) },
+                        { value: 'off', label: t('settings.githubModeOff', { defaultValue: 'Off' }) },
+                      ]}
+                      onChange={(v) => {
+                        if (v && status.automation) void saveAutomation({ ...status.automation, onIssueOpened: v as GitHubAutomation['onIssueOpened'] });
+                      }}
+                    />
                   </div>
+                  {status.automation?.onIssueOpened === 'auto' && (
+                    <div className="integration-inline-row">
+                      <Input
+                        label={t('settings.githubIssueLabels', { defaultValue: 'Labels to auto-create (issue)' })}
+                        helper={t('settings.githubIssueLabelsHelper', {
+                          defaultValue: 'Only these labels become DevHub issues. Empty = all labels.',
+                        })}
+                        value={issueLabelsText}
+                        onChange={(e) => setIssueLabelsText(e.target.value)}
+                        onBlur={() => {
+                          if (!status.automation) return;
+                          const next = issueLabelsText
+                            .split(',')
+                            .map((s) => s.trim())
+                            .filter(Boolean)
+                            .slice(0, 20);
+                          const current = status.automation.issueLabels ?? [];
+                          if (next.join('\n') !== current.join('\n')) {
+                            void saveAutomation({ ...status.automation, issueLabels: next });
+                          }
+                        }}
+                        disabled={busy}
+                      />
+                    </div>
+                  )}
                   <div className="integration-actions integration-action-end">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => void importIssues()}
+                      disabled={busy}
+                    >
+                      {t('settings.githubImportIssues', { defaultValue: 'Import issues' })}
+                    </Button>
                     <Button
                       type="button"
                       variant="ghost"
@@ -407,8 +512,11 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
                       type="button"
                       variant="danger"
                       size="sm"
-                      leftIcon={<PlugsConnected size={14} aria-hidden="true" />}
-                      onClick={() => void disconnect()}
+                      leftIcon={<LinkBreak size={14} aria-hidden="true" />}
+                      onClick={() => {
+                        setDisconnectError(null);
+                        setConfirmOpen(true);
+                      }}
                       disabled={busy}
                     >
                       {t('settings.githubDisconnect', { defaultValue: 'Disconnect' })}
@@ -430,7 +538,14 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
                 })}
               </p>
               <GitHubDisclosure />
-              {isAdmin && installations !== null && installations.length > 0 && !pendingInstall ? (
+              {isAdmin && installations !== null && installations.length === 0 && !pendingInstall && !unconfigured ? (
+                <p className="field-helper">
+                  {t('settings.githubNoInstallations', {
+                    defaultValue: 'No installations yet — install the App first.',
+                  })}
+                </p>
+              ) : null}
+              {isAdmin && installations !== null && installations.length > 0 && !pendingInstall && !unconfigured ? (
                 <>
                   <p className="field-helper">
                     {t('settings.githubInstalledUnmapped', {
@@ -458,6 +573,18 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
                   {reposLoading ? (
                     <p className="field-helper">{t('settings.loading', { defaultValue: 'Loading…' })}</p>
                   ) : null}
+                  <div className="integration-action-end">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      leftIcon={<GithubLogo size={14} weight="fill" aria-hidden="true" />}
+                      onClick={() => void startConnect()}
+                      disabled={busy || !canConnect}
+                    >
+                      {t('settings.githubInstallOther', { defaultValue: 'Install on another GitHub account' })}
+                    </Button>
+                  </div>
                 </>
               ) : null}
               {pendingInstall ? (
@@ -488,7 +615,7 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
                     </Button>
                   </div>
                 </>
-              ) : (
+              ) : installations !== null && installations.length > 0 && !unconfigured ? null : (
                 <div className="settings-action">
                   <div className="settings-action-main">
                     <div className="github-identity">
@@ -519,8 +646,65 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
               )}
             </div>
           )}
+          {error && status && !unconfigured ? (
+            <StatusBanner
+              tone="danger"
+              message={error}
+              onDismiss={() => setError(null)}
+              dismissLabel={t('settings.githubDismiss', { defaultValue: 'Dismiss' })}
+              testId="github-toast"
+            />
+          ) : null}
+          {unconfigured ? (
+            <StatusBanner
+              tone="warn"
+              title={t('settings.githubNotConfiguredTitle', { defaultValue: 'GitHub App not configured' })}
+              message={t('settings.githubNotConfiguredDesc', {
+                defaultValue: 'The GitHub App is not set up on this server yet. Ask an admin to configure it, then try again.',
+              })}
+              testId="github-unconfigured"
+            />
+          ) : null}
+          {flash ? (
+            <StatusBanner
+              tone={flash.tone === 'error' ? 'danger' : 'success'}
+              title={
+                flash.tone === 'error'
+                  ? t('settings.githubFailed', { defaultValue: 'Connection failed' })
+                  : t('settings.githubFlashConnected', { defaultValue: 'Connected' })
+              }
+              message={flash.text}
+              onDismiss={() => setFlash(null)}
+              dismissLabel={t('settings.githubDismiss', { defaultValue: 'Dismiss' })}
+              testId="github-flash"
+            />
+          ) : null}
+          {notice && (
+            <StatusBanner
+              tone="success"
+              message={notice}
+              onDismiss={() => setNotice(null)}
+              dismissLabel={t('settings.githubDismiss', { defaultValue: 'Dismiss' })}
+              testId="github-notice"
+            />
+          )}
         </>
       )}
+      <ConfirmDeleteDialog
+        open={confirmOpen}
+        title={t('settings.githubDisconnectTitle', { defaultValue: 'Disconnect repository?' })}
+        description={t('settings.githubDisconnectDesc', {
+          defaultValue:
+            'DevHub will stop linking PRs, commits and branches to tasks. Task links are kept as history.',
+        })}
+        confirmLabel={t('settings.githubDisconnect', { defaultValue: 'Disconnect' })}
+        busy={disconnectBusy}
+        error={disconnectError}
+        onConfirm={() => void disconnect()}
+        onClose={() => {
+          if (!disconnectBusy) setConfirmOpen(false);
+        }}
+      />
     </div>
   );
 }

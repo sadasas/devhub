@@ -364,7 +364,7 @@ export function AuthPage() {
               />
               <button
                 type="button"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={showPassword ? t('profile.passwordToggle.hide') : t('profile.passwordToggle.show')}
                 onClick={() => setShowPassword((v) => !v)}
                 style={{
                   position: 'absolute',
@@ -398,7 +398,7 @@ export function AuthPage() {
               />
               <button
                 type="button"
-                aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                aria-label={showConfirm ? t('profile.passwordToggle.hide') : t('profile.passwordToggle.show')}
                 onClick={() => setShowConfirm((v) => !v)}
                 style={{
                   position: 'absolute',

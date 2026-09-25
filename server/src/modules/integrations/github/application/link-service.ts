@@ -18,6 +18,11 @@ import {
 import { mutateProject } from "../../../projects/application/entityService.js";
 import { broadcastDiff } from "../../../realtime/infrastructure/broadcast.js";
 import { extractTaskKeys } from "../domain/github.js";
+import {
+  buildIssueFromGithubIssue,
+  findIssueByProvenance,
+  type GithubIssueSource,
+} from "./import-service.js";
 
 const WRITE_ROLES = new Set(["owner", "admin", "editor"]);
 
@@ -553,4 +558,95 @@ export async function applyCheckEvent(input: {
   });
   void version;
   return [...touched];
+}
+
+export interface IssueEventInput extends GithubIssueSource {}
+
+/**
+ * Filter label auto-issue: filter kosong = semua label lolos; terisi = issue
+ * harus punya minimal 1 label yang cocok (case-insensitive, trim).
+ */
+export function matchesIssueLabels(filter: string[], labels: string[]): boolean {
+  if (filter.length === 0) return true;
+  const have = new Set(labels.map((l) => l.toLowerCase().trim()).filter(Boolean));
+  return filter.some((f) => have.has(f.toLowerCase().trim()));
+}
+
+/**
+ * Event issues (opened/closed) — auto-issue opsi A, target DevHub issue saja.
+ * - opened + mode 'auto' + label cocok: buat issue (idempoten via provenance
+ *   githubIssue); sudah ada -> laporkan sebagai linked (tanpa tulis ulang).
+ * - closed + mode 'auto': issue berprovenance yang belum resolved -> resolved.
+ *   Issue tanpa provenance (buatan manual) TIDAK disentuh.
+ * - mode 'suggest'/'off': tanpa perubahan (import manual tetap tersedia).
+ */
+export async function applyIssueEvent(input: {
+  projectId: string;
+  actorId: string;
+  owner: string;
+  repo: string;
+  automation?: { onIssueOpened: string; issueLabels: string[] };
+  issue: IssueEventInput;
+}): Promise<{ linked: string[]; created: string[] }> {
+  const automation = input.automation ?? { onIssueOpened: "suggest", issueLabels: [] as string[] };
+  if (automation.onIssueOpened !== "auto") return { linked: [], created: [] };
+  const existing = await loadStateSnapshot(input.projectId).then(
+    (state) => findIssueByProvenance(state, input.owner, input.repo, input.issue.number),
+    () => undefined,
+  );
+  if (input.issue.state !== "closed") {
+    if (!matchesIssueLabels(automation.issueLabels, input.issue.labels)) return { linked: [], created: [] };
+    if (existing) return { linked: [existing.id], created: [] };
+    const now = nowIso();
+    const built = buildIssueFromGithubIssue(input.issue, input.owner, input.repo, now);
+    let pushed = false;
+    const { version } = await mutateProject(input.actorId, input.projectId, undefined, (state) => {
+      if (findIssueByProvenance(state, input.owner, input.repo, input.issue.number)) return;
+      state.issues.push(built);
+      pushed = true;
+      return {
+        entity: "issues",
+        entityId: built.id,
+        action: "created",
+        summary: `GitHub: auto-created issue from ${input.owner}/${input.repo}#${input.issue.number}`,
+      };
+    });
+    const current =
+      (await loadStateSnapshot(input.projectId).then(
+        (state) => findIssueByProvenance(state, input.owner, input.repo, input.issue.number),
+        () => undefined,
+      )) ?? built;
+    if (pushed) {
+      broadcastDiff(input.projectId, {
+        type: "state:diff",
+        projectId: input.projectId,
+        version,
+        ops: [{ entity: "issues", id: current.id, op: "created" as const }],
+      });
+    }
+    return { linked: [current.id], created: pushed ? [current.id] : [] };
+  }
+  if (!existing || existing.status === "resolved") return { linked: existing ? [existing.id] : [], created: [] };
+  const before = { ...existing };
+  const { version } = await mutateProject(input.actorId, input.projectId, undefined, (state) => {
+    const target = findIssueByProvenance(state, input.owner, input.repo, input.issue.number);
+    if (!target || target.status === "resolved") return;
+    target.status = "resolved";
+    target.updatedAt = nowIso();
+    return {
+      entity: "issues",
+      entityId: target.id,
+      action: "updated",
+      summary: `GitHub: resolved issue from ${input.owner}/${input.repo}#${input.issue.number}`,
+      before: before as unknown as Record<string, unknown>,
+      after: { ...target } as unknown as Record<string, unknown>,
+    };
+  });
+  broadcastDiff(input.projectId, {
+    type: "state:diff",
+    projectId: input.projectId,
+    version,
+    ops: [{ entity: "issues", id: existing.id, op: "updated" as const }],
+  });
+  return { linked: [existing.id], created: [] };
 }

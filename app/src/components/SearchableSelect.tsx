@@ -75,7 +75,15 @@ export function SearchableSelect({
   const inputRef = useRef<HTMLInputElement>(null);
   const onOpenChangeRef = useRef(onOpenChange);
   onOpenChangeRef.current = onOpenChange;
+  // Jangan emit saat mount: nilai awal (false bila defaultOpen mati) bukan
+  // transisi — pemanggil seperti parent-picker TaskModal menutup diri saat
+  // menerima false sehingga panel mati seketika setelah dibuka.
+  const mountedRef = useRef(false);
   useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
     onOpenChangeRef.current?.(open);
   }, [open]);
   const { t } = useTranslation();

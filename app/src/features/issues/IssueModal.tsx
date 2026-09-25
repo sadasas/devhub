@@ -384,6 +384,9 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
           {issue.title || <DetailEmpty>{t('issues.modal.untitledIssue')}</DetailEmpty>}
         </h3>
       )}
+      {titleEmpty && (
+        <InlineError>{t('issues.modal.titleRequired')}</InlineError>
+      )}
       <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12 }}>
         <span style={{ width: 110, color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
           <Clock size={12} aria-hidden="true" /> {t('issues.modal.createdTimeLabel')}
@@ -393,9 +396,6 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
           {new Date(issue.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </span>
       </div>
-      {titleEmpty && (
-        <InlineError>{t('issues.modal.titleRequired')}</InlineError>
-      )}
       {canEdit ? (
         <div className="editable-field" style={{ position: 'relative' }}>
           <MarkdownField

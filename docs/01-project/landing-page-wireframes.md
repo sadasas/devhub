@@ -169,7 +169,7 @@
 
 ┌─────────────────────────────────────────────────────────────────┐
 │                    2. FEATURES GRID                             │
-│              6 Feature Cards (3x2 desktop, 2x3 tablet)          │
+│           10 Feature Cards (3-col desktop, 2-col tablet)           │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
@@ -179,12 +179,12 @@
 
 ┌─────────────────────────────────────────────────────────────────┐
 │                    4. TECHNICAL DEEP DIVE                       │
-│         Tabbed Interface: Schema | ADR | Tech Stack | API       │
+│   Tabbed Interface: Schema | ADR | Tech Stack | API | Overview  │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
 │                    5. PRICING                                   │
-│                    3-Tier Pricing Table                         │
+│                    2-Tier Pricing Table                         │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
@@ -314,8 +314,8 @@
 
 ## 2️⃣ FEATURES GRID SECTION
 
-**Purpose:** Showcase 6 core features with visual icons  
-**Height:** Auto (content-dependent), ~720px desktop  
+**Purpose:** Showcase 10 core features with visual icons  
+**Height:** Auto (content-dependent), ~1080px desktop  
 
 ### Desktop Layout (1440px)
 
@@ -343,6 +343,24 @@
 │   │  design, pan &   │  │  chose this,     │  │  upgrade status, │   │
 │   │  zoom, versioning│  │  options, impact │  │  category ledger │   │
 │   └──────────────────┘  └──────────────────┘  └──────────────────┘   │
+│                                                                        │
+│   ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐   │
+│   │  🎨              │  │  📅              │  │  ⚡              │   │
+│   │  Whiteboard      │  │  Calendar        │  │  Realtime        │   │
+│   │                  │  │                  │  │                  │   │
+│   │  Infinite canvas,│  │  Due dates,      │  │  WS live sync +  │   │
+│   │  sticky notes,   │  │  month/week grid,│  │  presence, team  │   │
+│   │  live cards      │  │  drag reschedule │  │  workspaces      │   │
+│   └──────────────────┘  └──────────────────┘  └──────────────────┘   │
+│                                                                        │
+│   ┌──────────────────┐                                                  │
+│   │  📦              │                                                  │
+│   │  Templates       │                                                  │
+│   │                  │                                                  │
+│   │  Save & reuse    │                                                  │
+│   │  project setups, │                                                  │
+│   │  instantiate new │                                                  │
+│   └──────────────────┘                                                  │
 │                                                                        │
 └────────────────────────────────────────────────────────────────────────┘
 ```
@@ -427,7 +445,7 @@
 
 ### Interaction Patterns
 
-- **Staggered Fade-in:** Cards appear with 100ms delay each (1→2→3→4→5→6)
+- **Staggered Fade-in:** Cards appear with 100ms delay each (1→2→…→10)
 - **Hover Lift:** Cards lift 4px with shadow intensification
 - **Icon Highlight:** Icon background fills with accent color on card hover
 - **Link Arrow:** Arrow slides 4px right on hover (smooth transition)
@@ -542,7 +560,7 @@
 │         Features that understand how engineers actually work          │
 │                                                                        │
 │   ┌────────────────────────────────────────────────────────────────┐  │
-│   │  [Schema]  [ADR Log]  [Tech Stack]  [API Docs]  [Stats]       │  │
+│   │  [Schema]  [ADR Log]  [Tech Stack]  [API Docs]  [Overview]     │  │
 │   ├────────────────────────────────────────────────────────────────┤  │
 │   │                                                                │  │
 │   │  ┌───────────────────────────┐    ┌──────────────────────────┐ │  │
@@ -651,7 +669,7 @@
 | **ADR Log** | Decision timeline | "Record why, remember forever" |
 | **Tech Stack** | Dependency table | "Track versions, never lose track" |
 | **API Docs** | Endpoint list | "Auto-generated from your code" |
-| **Stats** | Velocity chart | "Estimates vs actuals over time" |
+| **Overview** | Counters + charts + PRD | "Estimates vs actuals + project brief at a glance" |
 
 ### Interaction Patterns
 
@@ -664,7 +682,7 @@
 
 ## 5️⃣ PRICING SECTION
 
-**Purpose:** Clear 3-tier pricing with feature comparison  
+**Purpose:** Clear 2-tier pricing (Free / Pro flat, IDR via Pakasir) with feature comparison  
 **Height:** ~720px desktop  
 
 ### Desktop Layout (1440px)
@@ -676,29 +694,28 @@
 │                    Start free, scale as you grow                       │
 │                                                                        │
 │   ┌────────────────────────────────────────────────────────────────┐  │
-│   │                   [Monthly]  [Annual -20%]                     │  │
+│   │            Flat per workspace · IDR via Pakasir (QRIS/VA)        │  │
 │   └────────────────────────────────────────────────────────────────┘  │
 │                                                                        │
-│   ┌──────────────┐ ┌──────────────┐ ┌──────────────┐                 │
-│   │    FREE      │ │    PRO        │ │    ENTERPRISE │                 │
-│   │              │ │    ★ Most     │ │              │                 │
-│   │   $0         │ │    Popular    │ │   Custom     │                 │
-│   │   /month     │ │   $12         │ │   Pricing    │                 │
-│   │              │ │   /month      │ │              │                 │
-│   ├──────────────┤ ├──────────────┤ ├──────────────┤                 │
-│   │ ✓ 3 Projects │ │ ✓ Unlimited  │ │ ✓ Everything │                 │
-│   │ ✓ 5MB Export │ │   Projects   │ │   in Pro     │                 │
-│   │ ✓ Basic Board│ │ ✓ 50MB Export│ │ ✓ Unlimited  │                 │
-│   │ ✓ 3 Team     │ │ ✓ Full Board │ │   Export     │                 │
-│   │   Members    │ │ ✓ Unlimited  │ │ ✓ SSO/SAML   │                 │
-│   │              │ │   Team       │ │ ✓ Audit Log  │                 │
-│   │              │ │ ✓ Templates  │ │ ✓ Priority   │                 │
-│   │              │ │ ✓ API Access │ │   Support    │                 │
-│   │              │ │              │ │ ✓ SLA        │                 │
-│   ├──────────────┤ ├──────────────┤ ├──────────────┤                 │
-│   │ [Get Started]│ │ [Start Free  │ │ [Contact     │                 │
-│   │              │ │  Trial]      │ │  Sales]      │                 │
-│   └──────────────┘ └──────────────┘ └──────────────┘                 │
+│   ┌──────────────┐ ┌──────────────┐                                   │
+│   │    FREE      │ │    PRO ★     │                                   │
+│   │              │ │  Most Popular │                                   │
+│   │   $0         │ │   Flat       │                                   │
+│   │              │ │   IDR via    │                                   │
+│   │              │ │   Pakasir    │                                   │
+│   ├──────────────┤ ├──────────────┤                                   │
+│   │ ✓ 3 Projects │ │ ✓ Unlimited  │                                   │
+│   │ ✓ 2 Members  │ │   Projects   │                                   │
+│   │ ✓ Basic Board│ │ ✓ Unlimited  │                                   │
+│   │ ✓ Export/    │ │   Members    │                                   │
+│   │   Import     │ │ ✓ Templates  │                                   │
+│   │              │ │ ✓ API Access │                                   │
+│   │              │ │ ✓ Realtime + │                                   │
+│   │              │ │   Whiteboard │                                   │
+│   ├──────────────┤ ├──────────────┤                                   │
+│   │ [Get Started]│ │ [Upgrade via │                                   │
+│   │              │ │  Pakasir]    │                                   │
+│   └──────────────┘ └──────────────┘                                   │
 │                                                                        │
 │                    All plans include:                                  │
 │   Dark theme · Export/Import · Keyboard shortcuts · MCP integration   │
@@ -713,8 +730,8 @@
 | **Section Padding** | padding: 128px 0 | padding: 96px 0 | padding: 64px 0 |
 | **Headline** | font-size: 48px, centered | font-size: 36px | font-size: 28px |
 | **Subheadline** | font-size: 20px | font-size: 18px | font-size: 16px |
-| **Toggle** | centered, mb-12 | centered | stacked above cards |
-| **Grid** | grid-template-columns: repeat(3, 1fr), gap: 32px | gap: 24px | grid-template-columns: 1fr, gap: 24px |
+| **Billing note** | centered flat-per-workspace strip (IDR via Pakasir QRIS/VA, no monthly/annual toggle) | centered | stacked above cards |
+| **Grid** | grid-template-columns: repeat(2, 1fr), gap: 32px | gap: 24px | grid-template-columns: 1fr, gap: 24px |
 | **Card** | min-height: 520px | min-height: 480px | min-height: auto |
 | **Price** | font-size: 56px | font-size: 48px | font-size: 40px |
 | **Feature List** | gap: 16px | gap: 14px | gap: 12px |
@@ -800,7 +817,7 @@
 }
 ```
 
-### Toggle Component
+### Billing Note Component (flat — monthly/annual toggle removed)
 
 ```css
 .pricing-toggle {
@@ -863,8 +880,8 @@
 
 ### Interaction Patterns
 
-- **Toggle Animation:** Switch slides with spring animation (cubic-bezier)
-- **Price Update:** Numbers count up/down when switching billing周期 (duration: 500ms)
+- **Flat billing:** No monthly/annual toggle — single flat price per workspace, paid in IDR via Pakasir (QRIS/VA)
+- **Price Update:** Numbers count up/down when switching Free → Pro highlight (duration: 500ms)
 - **Card Highlight:** Featured card has subtle pulse glow (2s loop, low opacity)
 - **Hover Lift:** All cards lift 4px on hover
 
@@ -1629,7 +1646,7 @@ html {
   Answer content
 </div>
 
-<!-- Pricing Toggle -->
+<!-- Flat billing note (no toggle) -->
 <div role="group" aria-labelledby="billing-period">
   <span id="billing-period">Billing Period</span>
   <button aria-pressed="false" role="switch">
@@ -1682,7 +1699,7 @@ Tertiary:  #6b7280 — Placeholder, disabled text, meta info
 | Logo (SVG) | SVG | 120px × 32px | With text, dark theme variant |
 | Logo (Icon) | SVG | 32px × 32px | Favicon, app icon |
 | Hero Visual | PNG/WebP | 560px × 400px | Product mockup, 2x for retina |
-| Feature Icons | SVG | 64px × 64px | 6 icons, line style |
+| Feature Icons | SVG | 64px × 64px | 10 icons, line style |
 | Social Icons | SVG | 32px × 32px | Twitter, GitHub, LinkedIn, Discord |
 | Step Illustrations | SVG | 200px × 200px | 3 illustrations for "How It Works" |
 | Tab Visuals | PNG/SVG | 400px × 300px | 5 tab panel visuals |

@@ -97,6 +97,7 @@
     "toggleTeamChat": "Toggle team chat",
     "searching": "Mencari…",
     "noMatches": "Tidak ada hasil untuk “{{query}}”",
+    "resultsCount": "{{count}} hasil",
     "hintNavigate": "navigasi",
     "hintOpen": "buka",
     "hintClose": "esc tutup"

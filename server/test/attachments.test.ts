@@ -39,6 +39,14 @@ describe('attachments (043)', () => {
     expect(isAllowedMime('application/x-sh')).toBe(false);
     expect(isAllowedMime('application/x-msdownload')).toBe(false);
     expect(isAllowedMime('')).toBe(false);
+    expect(isAllowedMime('', 'foto.png')).toBe(true);
+    expect(isAllowedMime('', 'catatan.md')).toBe(true);
+    expect(isAllowedMime('', 'data.zip')).toBe(true);
+    expect(isAllowedMime('', 'rekaman.mov')).toBe(true);
+    expect(isAllowedMime('', 'tanpa-ekstensi')).toBe(false);
+    expect(isAllowedMime('', 'jahat.exe')).toBe(false);
+    expect(isAllowedMime('', 'skrip.sh')).toBe(false);
+    expect(isAllowedMime('application/x-sh', 'aman.png')).toBe(false);
   });
 
   it('sign-upload is disabled without storage config (generic message)', async () => {

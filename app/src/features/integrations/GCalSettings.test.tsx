@@ -132,6 +132,23 @@ describe('GCalSettings (T4)', () => {
     expect((await screen.findAllByText('Not connected')).length).toBeGreaterThan(0);
   });
 
+  it('shows a disconnect success notice in the bottom slot', async () => {
+    apiMock.gcalStatus.mockResolvedValue(connectedStatus());
+    apiMock.gcalDisconnect.mockResolvedValue({ ok: true });
+
+    renderSettings();
+    await screen.findByRole('checkbox', { name: 'Calendar sync' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Disconnect' }));
+
+    const flash = await screen.findByTestId('gcal-flash');
+    expect(flash.getAttribute('role')).toBe('status');
+    expect(within(flash).getByText('Disconnected')).not.toBeNull();
+    expect(within(flash).getByText(/Existing events stay in your calendar/)).not.toBeNull();
+  });
+
   it('keeps the connection when disconnect is cancelled (Esc/close)', async () => {
     apiMock.gcalStatus.mockResolvedValue(connectedStatus());
 

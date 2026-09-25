@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CalendarBlank, GoogleLogo } from '@phosphor-icons/react';
+import { CalendarBlank, GoogleLogo, LinkBreak } from '@phosphor-icons/react';
 import { api, type GCalStatus } from '../../lib/api';
 import {
   DOCS_PRIVACY_URL,
@@ -9,10 +9,10 @@ import {
   GOOGLE_API_USER_DATA_POLICY_URL,
 } from '../../lib/docs-urls';
 import { getErrorMessage } from '../../lib/errors';
-import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { DataErrorState } from '../../components/DataErrorState';
+import { StatusBanner } from '../../components/StatusBanner';
 import { GCalBanner } from './GCalBanner';
 
 interface GCalSettingsProps {
@@ -39,8 +39,9 @@ export function GCalSettings({ projectId, canEdit, bare = false }: GCalSettingsP
   const [disconnectBusy, setDisconnectBusy] = useState(false);
   const [disconnectError, setDisconnectError] = useState<string | null>(null);
   const [reconnectBusy, setReconnectBusy] = useState(false);
-  // Flash dari redirect callback OAuth (?gcal=connected / ?gcal_error=CODE).
-  const [flash, setFlash] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
+  // Flash dari redirect callback OAuth (?gcal=connected / ?gcal_error=CODE)
+  // atau hasil aksi (disconnect sukses). Title opsional menimpa label baku.
+  const [flash, setFlash] = useState<{ tone: 'success' | 'error'; text: string; title?: string } | null>(null);
 
   const fetchStatus = useCallback(async () => {
     setLoading(true);
@@ -132,6 +133,13 @@ export function GCalSettings({ projectId, canEdit, bare = false }: GCalSettingsP
       setStatus((prev) =>
         prev ? { ...prev, connected: false, expired: false, syncEnabled: false } : prev,
       );
+      setFlash({
+        tone: 'success',
+        title: t('gcal.disconnectedFlashTitle', { defaultValue: 'Disconnected' }),
+        text: t('gcal.disconnectedFlash', {
+          defaultValue: 'Google Calendar disconnected. Existing events stay in your calendar.',
+        }),
+      });
       setConfirmOpen(false);
     } catch (err) {
       setDisconnectError(
@@ -239,6 +247,7 @@ export function GCalSettings({ projectId, canEdit, bare = false }: GCalSettingsP
                   <Button
                     variant="danger"
                     size="sm"
+                    leftIcon={<LinkBreak size={14} aria-hidden="true" />}
                     onClick={() => {
                       setDisconnectError(null);
                       setConfirmOpen(true);
@@ -293,37 +302,32 @@ export function GCalSettings({ projectId, canEdit, bare = false }: GCalSettingsP
                 </div>
               ) : null}
             </div>
+            {actionError ? (
+              <StatusBanner
+                tone="danger"
+                message={actionError}
+                onDismiss={() => setActionError(null)}
+                dismissLabel={t('gcal.dismiss', { defaultValue: 'Dismiss' })}
+                testId="gcal-toast"
+              />
+            ) : null}
             {connected && expired ? (
               <GCalBanner email={status?.email} onReconnect={handleReconnect} busy={reconnectBusy} />
             ) : null}
             {flash ? (
-              <div
-                className="save-toast save-banner"
-                role={flash.tone === 'error' ? 'alert' : 'status'}
-                data-testid="gcal-flash"
-              >
-                <Badge tone={flash.tone === 'error' ? 'danger' : 'success'} dot>
-                  {flash.tone === 'error'
+              <StatusBanner
+                tone={flash.tone === 'error' ? 'danger' : 'success'}
+                title={
+                  flash.title ??
+                  (flash.tone === 'error'
                     ? t('gcal.failed', { defaultValue: 'Connection failed' })
-                    : t('gcal.connected', { defaultValue: 'Connected' })}
-                </Badge>
-                <div className="save-toast-body">
-                  <span>{flash.text}</span>
-                </div>
-                <Button variant="ghost" size="sm" className="save-toast-close" onClick={() => setFlash(null)}>
-                  {t('gcal.dismiss', { defaultValue: 'Dismiss' })}
-                </Button>
-              </div>
-            ) : null}
-            {actionError ? (
-              <div className="save-toast save-banner" role="alert" data-testid="gcal-toast">
-                <div className="save-toast-body">
-                  <span>{actionError}</span>
-                </div>
-                <Button variant="ghost" size="sm" className="save-toast-close" onClick={() => setActionError(null)}>
-                  {t('gcal.dismiss', { defaultValue: 'Dismiss' })}
-                </Button>
-              </div>
+                    : t('gcal.connected', { defaultValue: 'Connected' }))
+                }
+                message={flash.text}
+                onDismiss={() => setFlash(null)}
+                dismissLabel={t('gcal.dismiss', { defaultValue: 'Dismiss' })}
+                testId="gcal-flash"
+              />
             ) : null}
           </>
         )}

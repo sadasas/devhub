@@ -28,6 +28,19 @@ export function putFile(url: string, file: File, onProgress: (pct: number) => vo
   });
 }
 
+/**
+ * True bila kegagalan upload tampak seperti penolakan auth (401/403 —
+ * mis. token TUS tak cocok dengan header). Dipakai untuk fallback ke PUT.
+ */
+export function isUploadAuthError(err: unknown): boolean {
+  const status = (
+    err as { originalResponse?: { getStatus?: () => number } } | null
+  )?.originalResponse?.getStatus?.();
+  if (status === 401 || status === 403) return true;
+  const msg = err instanceof Error ? err.message : String(err ?? '');
+  return /response code:\s*40[13]|401|403|unauthorized|access denied|invalid compact jws/i.test(msg);
+}
+
 export function putFileTus(
   file: File,
   tus: { tusEndpoint: string; uploadToken: string; bucket: string; objectName: string },

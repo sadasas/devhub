@@ -258,9 +258,21 @@ a:hover {
   line-height: 1.5;
 }
 
+/* Inline error field-level: ikon 12px + teks 600 agar terbaca sebagai
+   error, bukan helper text. Ikon nempel baris pertama (pola save-toast).
+   Gap 6 = tangga space-*; tanpa hex/radius/font-size baru. */
 .field-error {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
   font-size: 13px;
+  font-weight: 600;
   color: var(--status-danger);
+}
+
+.field-error > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .input,
@@ -2394,6 +2406,13 @@ button.prop {
   border-radius: var(--radius-input);
 }
 
+.template-skeleton-kebab {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
 /* ============================================================
    Splash — App bootstrap (brand)
    ============================================================ */
@@ -4352,6 +4371,7 @@ html[data-theme='light'] .splash-bg {
 }
 
 .project-card-title {
+  display: block;
   font-size: 14px;
   font-weight: 600;
   overflow: hidden;
@@ -6468,9 +6488,11 @@ html[data-theme='light'] .splash-bg {
   outline-offset: -1px;
 }
 
-/* Saat drag aktif, chip overlay tak boleh menelan dragover — semua event
-   jatuh ke cell di bawahnya sehingga highlight target selalu update. */
-.due-cal-grid.is-dragging .due-cal-task {
+/* Saat drag aktif, chip overlay + tombol more/less tak boleh menelan dragover —
+   semua event jatuh ke cell di bawahnya sehingga highlight target selalu
+   update (termasuk sel penuh yang permukaannya tertutup tombol +N lagi). */
+.due-cal-grid.is-dragging .due-cal-task,
+.due-cal-grid.is-dragging .due-cal-more {
   pointer-events: none;
 }
 
@@ -6860,6 +6882,23 @@ html[data-theme='light'] .splash-bg {
   color: var(--status-warn);
 }
 
+.info-banner {
+  border-color: var(--status-info);
+  background: color-mix(in srgb, var(--status-info) 12%, var(--bg-overlay));
+}
+
+.info-banner > svg {
+  color: var(--status-info);
+}
+
+/* Banner in-flow di section integrasi ikut lebar section. Cap 400px milik
+   .save-toast hanya untuk toast melayang di .toast-stack (SaveBanner,
+   ArchiveUndoToast, wb-cap-toast) — bukan untuk banner seksi. */
+.github-stack .save-toast,
+.gcal-stack .save-toast {
+  max-width: none;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -7039,19 +7078,6 @@ html[data-theme='light'] .splash-bg {
   gap: 8px;
   flex-shrink: 0;
   margin-left: auto;
-}
-
-/* Templates mobile: aksi turun di bawah judul, rata kanan. */
-@media (max-width: 640px) {
-  .templates-page .data-row-top {
-    flex-wrap: wrap;
-    row-gap: 8px;
-  }
-  .templates-page .data-row-props {
-    width: 100%;
-    margin-left: 0;
-    justify-content: flex-end;
-  }
 }
 
 .data-row-btn .row-title-text {
@@ -13894,12 +13920,15 @@ input[type='checkbox'] {
 .diff-empty { font-size: 13px; color: var(--text-muted); }
 .tab-panel-loading { display:flex; flex-direction:column; gap:12px; }
 /* Whiteboard — list + editor shell */
-.wb-card { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: start; }
+.wb-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: start; }
+/* Judul nowrap (project-card-title ellipsis) memaksa min-content kolom 1fr:
+   kunci dengan minmax(0,1fr) + min-width:0 agar truncate aktif. */
 /* Anatomi split (2026-09): baris-atas + isi full-width — keduanya
    bentang penuh grid agar deskripsi tak tersentuh kolom aksi. */
 .wb-card > .data-row-top,
 .wb-card > .data-row-body {
   grid-column: 1 / -1;
+  min-width: 0;
 }
 .wb-card-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 0; background: none; border: none; text-align: left; font: inherit; color: inherit; cursor: pointer; border-radius: var(--radius-sm); }
 .wb-card-main:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent-ring); }
@@ -15668,25 +15697,40 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 }
 
 .due-cal-more {
-  border: 1px dashed var(--border-hairline);
+  border: none;
   background: transparent;
   padding: 2px 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
   cursor: pointer;
-  min-height: 44px;
-  min-width: 44px;
+  min-height: auto;
+  min-width: 0;
+  height: 22px;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .due-cal-more:hover {
-  border-style: solid;
   color: var(--text-secondary);
   background: var(--bg-overlay);
+}
+
+@media (hover: none) {
+  /* Target sentuh 44px tanpa membesarkan visual: hit-area diperluas via ::after. */
+  .due-cal-more {
+    position: absolute;
+  }
+  .due-cal-more::after {
+    content: '';
+    position: absolute;
+    inset: -12px -4px;
+  }
 }
 
 /* Day modal task list (flat, hairline separators) */

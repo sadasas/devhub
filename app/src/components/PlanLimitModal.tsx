@@ -3,7 +3,7 @@ import { ArrowRight, FolderOpen } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { Button } from './Button';
 import { Modal } from './Modal';
-import { InlineError } from './InlineError';
+import { StatusBanner } from './StatusBanner';
 
 export type PlanLimitResource = 'projects' | 'members' | 'storage';
 
@@ -75,18 +75,19 @@ export function PlanLimitModal({
               defaultValue: `Downgrade diblokir karena pemakaian melebihi batas paket tujuan.`,
             })}
           </p>
-          <InlineError className="billing-warn">
-            {t('extras:pricing.downgradeBlockedHint', {
-              used: details.used,
-              limit: details.limit,
-              defaultValue: `Pakai ${details.used}/${details.limit}`,
-            })}
-          </InlineError>
           <p className="modal-copy">
             {resource === 'storage'
               ? t('extras:pricing.downgradeBlockedHelpStorage', { defaultValue: 'Hapus file lama atau pilih paket dengan penyimpanan lebih besar.' })
               : t('extras:pricing.downgradeBlockedHelp', { defaultValue: 'Kurangi anggota atau proyek, atau pilih paket dengan limit lebih tinggi.' })}
           </p>
+          <StatusBanner
+            tone="warn"
+            message={t('extras:pricing.downgradeBlockedHint', {
+              used: details.used,
+              limit: details.limit,
+              defaultValue: `Pakai ${details.used}/${details.limit}`,
+            })}
+          />
         </div>
       </Modal>
     );
@@ -116,18 +117,19 @@ export function PlanLimitModal({
             {t('extras:pricing.storageFullHelp', { defaultValue: 'File lama tetap aman & bisa diunduh. File besar tetap bisa via tautan (gratis, tanpa kuota).' })}
           </p>
         )}
+        <p className="modal-copy">
+          Lihat opsi paket &amp; durasi di halaman Pricing untuk melanjutkan upgrade.
+        </p>
         {details && (
-          <InlineError className="billing-warn">
-            {t('extras:pricing.downgradeBlockedHint', {
+          <StatusBanner
+            tone="warn"
+            message={t('extras:pricing.downgradeBlockedHint', {
               used: details.used,
               limit: details.limit,
               defaultValue: `Pakai ${details.used}/${details.limit}`,
             })}
-          </InlineError>
+          />
         )}
-        <p className="modal-copy">
-          Lihat opsi paket &amp; durasi di halaman Pricing untuk melanjutkan upgrade.
-        </p>
       </div>
     </Modal>
   );

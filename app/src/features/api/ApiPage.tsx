@@ -759,7 +759,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
               <button
                 type="button"
                 className="btn btn-ghost btn-sm btn-icon"
-                aria-label={t('action.close', { defaultValue: 'Close' })}
+                aria-label={t('common:action.close', { defaultValue: 'Close' })}
                 onClick={() => setDrawerOpen(false)}
               >
                 <X size={14} weight="bold" aria-hidden="true" />
@@ -846,7 +846,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                           <span className="api-tree-count">{endpointCount(c.id)}</span>
                           {unreadIds?.has(c.id) && (
                             <>
-                              <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">New</span>
+                              <span className="unread-pill" role="status" aria-label={t('api.unread')} title={t('api.unread')}>{t('api.unread')}</span>
                             </>
                           )}
                         </button>
@@ -879,7 +879,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                                   <span className="api-tree-item-title">{highlightMatch(e.name, query)}</span>
                                   {unreadIds?.has(e.id) && (
                                     <>
-                                      <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">New</span>
+                                      <span className="unread-pill" role="status" aria-label={t('api.unread')} title={t('api.unread')}>{t('api.unread')}</span>
                                     </>
                                   )}
                                 </button>
@@ -942,7 +942,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                                 <span className="api-tree-item-title">{highlightMatch(e.name, query)}</span>
                                 {unreadIds?.has(e.id) && (
                                   <>
-                                    <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">New</span>
+                                    <span className="unread-pill" role="status" aria-label={t('api.unread')} title={t('api.unread')}>{t('api.unread')}</span>
                                   </>
                                 )}
                               </button>
@@ -1444,7 +1444,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                         <span className="api-tree-item-path">{e.path}</span>
                         {unreadIds?.has(e.id) && (
                           <>
-                            <span className="unread-pill" role="status" aria-label="New — not yet viewed" title="New · not yet viewed">New</span>
+                            <span className="unread-pill" role="status" aria-label={t('api.unread')} title={t('api.unread')}>{t('api.unread')}</span>
                           </>
                         )}
                       </div>

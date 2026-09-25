@@ -5,7 +5,7 @@
 | **Document status** | Active |
 | **Version** | 2.0 (OAuth) |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-09-02 |
+| **Last updated** | 2026-09-24 |
 | **Related documents** | [TDD §7](../02-architecture/technical-design.md#7-ai-agent-integration-mcp) · [ADR-049](../02-architecture/adr.md#adr-049) |
 
 ---
@@ -36,7 +36,7 @@ DevHub exposes a **Model Context Protocol (MCP) server** so AI coding agents (op
 
 Scopes:
 - `mcp` — full access (read + write), default. Compatible with `mcp:read` + `mcp:write`.
-- `mcp:read` — read-only: `project_state`, `plan_project`, `list_whiteboards`.
+- `mcp:read` — read-only: `project_state`, `plan_project`, `list_whiteboards`, `validate_whiteboard`.
 - `mcp:write` — write tools require `mcp` or `mcp:write` (enforced in `requireMcpKey`).
 
 ---
@@ -83,7 +83,7 @@ Every tool: inputs validated by zod; response includes `updatedAt` of the mutate
 - Issue: `open` → `reproduced` → `fixing` → `resolved` | `wontfix`
 - Decision: `proposed` → `accepted` | `rejected` | `superseded` (no update tool — one-shot)
 - Milestone: `planned` → `inProgress` → `released`
-- Whiteboard: no status — create/patch/update (max 50/project, 1000 elements/board, 20 embeds/board); validate dry-run first for first-try embeds
+- Whiteboard: no status — create/patch/update (max 50/project, 1000 elements/board, 20 embeds/board); validate dry-run first for first-try embeds. Kind `embed` holds raw AI-generated SVG wireframes (allowlist-sanitized on write, exempt from overlap checks; wrap each widget in `<g data-component="name">`).
 
 ---
 

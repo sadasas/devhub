@@ -69,6 +69,11 @@
     "githubModeOff": "Off",
     "githubOnPrOpened": "On PR opened",
     "githubOnPrMerged": "On PR merged",
+    "githubOnIssueOpened": "On issue opened",
+    "githubIssueLabels": "Labels to auto-create (issue)",
+    "githubIssueLabelsHelper": "Only these labels become DevHub issues. Empty = all labels.",
+    "githubImportIssues": "Import issues",
+    "githubImported": "Imported {{imported}} issues, skipped {{skipped}}.{{truncated}}",
     "githubDesc": "Link pull requests and commits to tasks automatically via DEV keys. One repository per project.",
     "githubPickRepo": "Repository",
     "githubConnectRepo": "Connect repository",
@@ -144,7 +149,12 @@
     "githubPrivacyLink": "Privacy Policy",
     "githubTermsLink": "Terms",
     "githubRevokeLink": "GitHub App settings",
-    "githubSideLink": "GitHub's policies"
+    "githubSideLink": "GitHub's policies",
+    "githubRetry": "Try again",
+    "githubDisconnectTitle": "Disconnect repository?",
+    "githubDisconnectDesc": "DevHub will stop linking PRs, commits and branches to tasks. Task links are kept as history.",
+    "githubNotConfiguredTitle": "GitHub App not configured",
+    "githubNotConfiguredDesc": "The GitHub App is not set up on this server yet. Ask an admin to configure it, then try again."
   },
   "deleteModal": {
     "title": "Delete project",
@@ -168,6 +178,12 @@
     "confirmRestore": "Restore",
     "bodyArchive": "Project will become read-only and hidden from Active view. You can restore anytime.",
     "bodyRestore": "Project will become editable again."
+  },
+  "archiveToast": {
+    "archived": "Project archived.",
+    "restored": "Project restored.",
+    "undo": "Undo",
+    "dismiss": "Dismiss"
   },
   "errors": {
     "invalidExport": "Not a valid DevHub export document.",
@@ -289,7 +305,8 @@
     "unread_other": "{{count}} unread messages",
     "drawerAria": "Team chat",
     "drawerTitle": "{{team}} — Team chat",
-    "closeAria": "Close chat"
+    "closeAria": "Close chat",
+    "resizeAria": "Resize chat panel"
   },
   "stack": {
     "sort": {
@@ -310,6 +327,7 @@
     "emptyDesc": "Track what this project runs on — versions, categories and when an upgrade is due.",
     "unread": "Unread",
     "editEntryAria": "Edit entry",
+    "openDetails": "Open tech entry details",
     "category": {
       "frontend": "Frontend",
       "backend": "Backend",
@@ -402,6 +420,10 @@
     "appliedAt": "applied {{date}}",
     "relationsHeading": "Relations",
     "versionsHeading": "Schema versions",
+    "versionsExpand": "Expand versions",
+    "versionsMinimize": "Minimize versions",
+    "versionsExpandShort": "Expand",
+    "versionsMinimizeShort": "Minimize",
     "diffVersions": "Diff versions",
     "saveVersion": "Save version",
     "empty": {
@@ -756,6 +778,9 @@
     "emptyDesc": "Record architecture choices and trade-offs as ADRs so future you remembers why.",
     "unread": "Unread",
     "editAria": "Edit decision",
+    "openDetails": "Open decision details",
+    "deleteAria": "Delete decision {{title}}",
+    "openDetails": "Open decision details",
     "status": {
       "proposed": "Proposed",
       "accepted": "Accepted",
@@ -820,6 +845,7 @@
     "emptyDesc": "Group work into releases and keep a changelog of what shipped with each.",
     "unread": "Unread",
     "editAria": "Edit milestone",
+    "openDetails": "Open milestone details",
     "noTargetDate": "No target date",
     "progressDone": "{{done}}/{{total}} done",
     "statusBadge": {

@@ -8,7 +8,6 @@ import type { PaymentHistoryItem } from '../../lib/types';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
-import { InlineError } from '../../components/InlineError';
 import { DataErrorState } from '../../components/DataErrorState';
 import { Skeleton } from '../../components/Skeleton';
 import { formatDateAdmin } from '../../lib/format';
@@ -107,11 +106,6 @@ export function PaymentHistoryPage() {
       {error ? (
         <DataErrorState error={loadErrorRaw ?? error} onRetry={() => void load()} retryLabel={t('common:action.retry')} />
       ) : null}
-      {actionError && (
-        <div role="alert" className="mb-12">
-          <InlineError>{actionError}</InlineError>
-        </div>
-      )}
 
       {payments === null && !error ? (
         <BillingLedger aria-busy="true" aria-label={t('billing.title')}>
@@ -245,9 +239,13 @@ export function PaymentHistoryPage() {
         }
         confirmLabel={t('billing.confirmCancel')}
         busy={busyConfirm}
+        error={actionError}
         onConfirm={() => void onConfirmCancel()}
         onClose={() => {
-          if (!busyConfirm) setConfirmId(null);
+          if (!busyConfirm) {
+            setConfirmId(null);
+            setActionError(null);
+          }
         }}
       />
     </div>

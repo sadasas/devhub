@@ -32,7 +32,7 @@ DevHub is developed as a **hosted SaaS** for software projects of any size — f
 
 | # | Goal | Success metric |
 |---|---|---|
-| G1 | Ship a working, usable V1 for personal use | All 8 project tabs functional; zero critical bugs at release |
+| G1 | Ship a working, usable V1 for personal use | All 10 project tabs functional; zero critical bugs at release |
 | G2 | Capture technical memory | Tech stack, schema, ADRs, test cases all editable and exportable |
 | G3 | Enable AI agent collaboration | MCP server functional; agent can plan tasks and update status |
 | G4 | Zero-ops SaaS hosting | Docker-based deploy documented; restore from backup verified |
@@ -45,7 +45,7 @@ DevHub is developed as a **hosted SaaS** for software projects of any size — f
 
 ### 3.3 Non-Goals (explicitly out of scope)
 
-- NG1: **Not a team-collaboration platform** in V1. Multi-user sync is V3.
+- NG1: **Not a team-collaboration platform** in V1. ~~Multi-user sync is V3~~ — **shipped after V1:** team workspaces (owner/admin/editor/viewer) + WS realtime (M12); multi-device sync / PWA offline tetap V3.
 - NG2: **No AI chat UI** inside the app; AI integration is via MCP tools only.
 - NG3: **No Git CLI integration** in V1 (web browsers cannot spawn a git CLI; sidecar design rejected for now — see ADR-004).
 - NG4: **No plugin/marketplace ecosystem**.
@@ -67,15 +67,16 @@ DevHub is developed as a **hosted SaaS** for software projects of any size — f
 
 ### 5.1 In Scope (V1)
 
-- Projects, Kanban board with dependencies, issues, test cases.
-- Tech stack ledger, schema manager with ERD, decision log (ADR), releases/milestones, stats.
+- Projects, Kanban board with dependencies (+ calendar view `?view=due`), issues, test cases.
+- Tech stack ledger, schema manager with ERD, decision log (ADR), releases/milestones, overview (ex-stats/about), API inventory, whiteboard.
 - Auth (email + password), single Postgres instance, Docker Compose local dev.
 - Remote MCP server (API-key auth) for AI agents.
 - Export/import JSON; backup/restore documentation.
+- Shipped after V1 (now in scope): team workspaces + WS realtime, project templates, billing (Free/Pro via Pakasir).
 
 ### 5.2 Out of Scope (deferred)
 
-Git CLI integration, API endpoint inventory, templates, PWA offline, multi-device sync, real-time collaboration, billing/payments.
+Git CLI integration, ~~API endpoint inventory~~ (shipped M10), ~~templates~~ (shipped M10), PWA offline, multi-device sync, ~~real-time collaboration~~ (shipped M12: WS state-diff + presence), ~~billing/payments~~ (shipped: Free/Pro via Pakasir).
 
 ---
 
@@ -88,7 +89,7 @@ Git CLI integration, API endpoint inventory, templates, PWA offline, multi-devic
 | Constraint | Zero external UI runtime dependencies except `@phosphor-icons/react` |
 | Constraint | Node.js ≥ 22, npm ≥ 10 |
 | Constraint | Windows dev environment (pwsh); deployment targets Linux containers |
-| **TBD** | Hosting platform (Railway / Render / VPS) — decision deferred |
+| **Done** | Hosting: Cloudflare Workers (FE) + Suga prod (cuddly-hawk) + Neon Postgres |
 | Locked | Pricing: freemium 2-tier per [ADR-043](../02-architecture/adr.md#adr-043) (Free 2 member / 3 proyek · Pro $15/bln flat); license: proprietary |
 
 ---
@@ -111,7 +112,7 @@ Git CLI integration, API endpoint inventory, templates, PWA offline, multi-devic
 
 | KPI | Target (V1 release) |
 |---|---|
-| Availability of core flows | 100% — all 8 tabs usable |
+| Availability of core flows | 100% — all 10 tabs usable |
 | Export/import round-trip | Data integrity preserved (verified by test) |
 | MCP agent loop | Agent can create task → mark done → dashboard reflects it |
 | Setup time | < 15 minutes from clone to running app |
@@ -125,8 +126,8 @@ Git CLI integration, API endpoint inventory, templates, PWA offline, multi-devic
 |---|---|
 | Phase 0 — Planning + docs | 1 week (done) |
 | Phase 1 — V1 build | ~4–6 weeks (part-time, done) |
-| Phase 2 — Production service | ~2 weeks |
-| Hosting cost | ~$5–6/mo (managed hosting) |
+| Phase 2 — Production service | ~2 weeks (done: Cloudflare Workers FE + Suga prod + Neon Postgres) |
+| Hosting cost | ~$5–6/mo (managed hosting; Suga prod + Neon Postgres) |
 | Third-party services | $0 |
 
 ---

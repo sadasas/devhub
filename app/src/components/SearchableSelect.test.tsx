@@ -151,4 +151,18 @@ describe('SearchableSelect', () => {
     expect(screen.getByTestId('opt-icon')).toBeTruthy();
     expect(screen.getByRole('option', { name: 'Beta' }).querySelector('.ss-option-icon')).toBeNull();
   });
+
+  it('does not emit onOpenChange on mount, only on real open/close transitions', () => {
+    const onOpenChange = vi.fn();
+    renderSelect({ onOpenChange });
+    // Mount dengan panel tertutup bukan transisi — parent picker (mis.
+    // parentPicking TaskModal) tidak boleh menerima false di sini.
+    expect(onOpenChange).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button'));
+    expect(onOpenChange).toHaveBeenCalledTimes(1);
+    expect(onOpenChange).toHaveBeenLastCalledWith(true);
+    fireEvent.click(screen.getByRole('option', { name: 'Beta' }));
+    expect(onOpenChange).toHaveBeenCalledTimes(2);
+    expect(onOpenChange).toHaveBeenLastCalledWith(false);
+  });
 });

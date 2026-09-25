@@ -87,7 +87,7 @@ export function ReleasesTimelineView({ milestones, tasks, onSelect, unreadIds, s
                   <Badge tone={MILESTONE_STATUS[m.status].tone}>{t("releases.statusBadge." + m.status)}</Badge>
                   {m.version && <span className="tabular" style={{ fontSize: 12, color: "var(--text-secondary)" }}>v{m.version.replace(/^v/i, "")}</span>}
                   <span className="tabular" style={{ fontSize: 12, color: "var(--text-secondary)" }}>#{shortId(m.id)}</span>
-                  {unreadIds?.has(m.id) && <span className="unread-pill">New</span>}
+                  {unreadIds?.has(m.id) && <span className="unread-pill">{t('releases.unread')}</span>}
                 </div>
                 <div className="timeline-card-title">{m.name}</div>
                 {m.changelog && <div className="timeline-card-sub md-blocks"><MarkdownBlocks text={m.changelog} /></div>}
@@ -106,7 +106,7 @@ export function ReleasesTimelineView({ milestones, tasks, onSelect, unreadIds, s
                 <Badge tone={MILESTONE_STATUS[m.status].tone}>{t("releases.statusBadge." + m.status)}</Badge>
                 {m.version && <span className="tabular" style={{ fontSize: 12, color: "var(--text-secondary)" }}>v{m.version.replace(/^v/i, "")}</span>}
                 <span className="tabular" style={{ fontSize: 12, color: "var(--text-secondary)" }}>#{shortId(m.id)}</span>
-                {unreadIds?.has(m.id) && <span className="unread-pill">New</span>}
+                {unreadIds?.has(m.id) && <span className="unread-pill">{t('releases.unread')}</span>}
               </div>
               <div className="timeline-card-title">{m.name}</div>
               {m.changelog && <div className="timeline-card-sub md-blocks"><MarkdownBlocks text={m.changelog} /></div>}

@@ -5,7 +5,7 @@
 | **Document status** | Active |
 | **Version** | 1.0 |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-09-03 |
+| **Last updated** | 2026-09-24 |
 | **Related documents** | [Charter](project-charter.md) · [Roadmap](roadmap.md) · [Technical Design](../02-architecture/technical-design.md) |
 
 ---
@@ -109,7 +109,7 @@ DevHub is a hosted SaaS project management application for engineering teams —
 | G-1 | As a Builder / Large Eng member, I can open a command palette with Ctrl+K, so that I can navigate and create without mouse. | P0 |
 | G-2 | As a Builder / Large Eng member, I can use keyboard shortcuts for common actions. | P0 |
 | G-3 | As a user, I can register/login with email + password, so that my data is private. | P0 |
-| G-4 | As a user, I can switch the UI between English and Bahasa Indonesia, so that I can work in my preferred language. | P1 |
+| G-4 | As a user, I can switch the UI between English and Bahasa Indonesia, so that I can work in my preferred language. | P1 — done (6 namespaces: common/shell/account/tracker/project/extras, defaultNS common; P0+P1 overhaul Sep-2026) |
 
 ### 2.11 AI Agent (MCP) (M)
 
@@ -123,7 +123,7 @@ DevHub is a hosted SaaS project management application for engineering teams —
 
 ## 3. Functional Requirements
 
-### 3.1 Data Model (10 entities)
+### 3.1 Data Model (15 entities)
 
 All entities extend a `Base` shape for future collaboration:
 
@@ -134,16 +134,20 @@ Base { id: string (UUID), createdAt: ISO, updatedAt: ISO, authorId?: string }
 | Entity | Key fields |
 |---|---|
 | Project | name, description, status, createdAt |
-| Task | title, status (Todo/In Progress/Review/Done), priority, estimate, actualHours, labels, blockedBy: taskId[] |
-| Issue | title, severity (Critical/High/Med/Low), status (Open/Reproduced/Fixing/Resolved/Won't fix), reproduction, linkedTaskId? |
-| TestCase | taskId/issueId?, name, steps, expected, status (Pass/Fail/Pending) |
+| Task | title, status (Todo/In Progress/Review/Done), priority, estimate, actualHours, labels, blockedBy: taskId[], dueDate?, startDate?, completedAt?, pinned, assigneeId?, attachments[] |
+| Issue | title, severity (Critical/High/Med/Low), status (Open/Reproduced/Fixing/Resolved/Won't fix), reproduction, linkedTaskId?, pinned |
+| TestCase | taskId/issueId?, name, steps, expected, status (Pass/Fail/Pending), pinned |
 | TechEntry | name, version, category (Frontend/Backend/DB/Tooling), status (Current/Update available/Major upgrade), notes |
 | Table | name, comment, columns[], indexes |
 | Column | name, type, nullable, primaryKey, default, comment |
 | Relation | fromTableId+fromColumnId, toTableId+toColumnId, cardinality ('1:1'/'1:N'/'N:M'), onDelete |
 | SchemaVersion | version, appliedAt, notes |
-| Decision (ADR) | title, status (Proposed/Accepted/Rejected/Superseded), context, options, decision, consequences, date |
+| Decision (ADR) | title, status (Proposed/Accepted/Rejected/Superseded), context, options, decision, consequences, date, pinned |
 | Milestone | name, version?, targetDate, status (Planned/In Progress/Released), changelog? |
+| Whiteboard | name, description?, elements[] (stroke/sticky/text/shape/edge/boundary/ref/embed SVG; cap 1000/board, 50/project) |
+| ApiCollection | name, description? |
+| ApiEndpoint | collectionId?, method, path, name, description?, headers, params, body, responses |
+| ErdGroup | name, color, tableIds[], geometry? (x/y/w/h) |
 
 **Deletion rules:** deleting a Table cascades its Relations; deleting a Task unlinks `blockedBy` references.
 
@@ -151,28 +155,31 @@ Base { id: string (UUID), createdAt: ISO, updatedAt: ISO, authorId?: string }
 
 - **Layout:** Sidebar (navigation) + content area. Dark theme, keyboard-first.
 - **Dashboard:** project cards (progress, open issues, outdated deps, nearest milestone).
-- **Project Detail — 8 tabs:**
-  1. Board (Kanban + dependencies)
+- **Project Detail — 10 tabs:**
+  1. Board (Kanban + dependencies + calendar view `?view=due`)
   2. Issues
   3. Test Cases
   4. Stack
   5. Schema (CRUD + ERD SVG + versioning)
   6. Decisions (ADR)
   7. Releases (milestones + changelog)
-  8. Stats
+  8. API (collections + endpoints)
+  9. Overview (ex-Stats/About: counters + charts + PRD + members)
+  10. Whiteboard
 
 ### 3.3 API Requirements
 
 | Endpoint group | Requirements |
 |---|---|
-| Auth | `POST /api/auth/register`, `login`, `logout`; JWT in httpOnly cookie; brute-force protection |
+| Auth | `POST /api/v1/auth/register`, `login`, `logout`; JWT in httpOnly cookie; brute-force protection |
 | Projects | CRUD scoped to authenticated user |
-| State | `GET /api/projects/:id/state`, `PUT /api/projects/:id/state` (full JSONB payload, zod-validated) |
-| Export/Import | `GET/POST /api/projects/:id/export`, `.../import` |
+| State | `GET /api/v1/projects/:id/state`, `PUT /api/v1/projects/:id/state` (full JSONB payload, zod-validated) |
+| Granular entities | Per-entity CRUD under `/api/v1` (`entity-router.ts`: row-lock transaksional, `If-Match`/ETag opsional → 409 + banner konflik, cascade server-side); bulk `PUT /state` retained for compat |
+| Export/Import | `GET/POST /api/v1/projects/:id/export`, `.../import` |
 
 ### 3.4 MCP Tools
 
-Auth: OAuth 2.1 PKCE bearer (`scope mcp` / `mcp:read` / `mcp:write`) — `opencode mcp auth devhub` (see [MCP Guide](../03-engineering/mcp-integration.md)).
+Auth: OAuth 2.1 PKCE bearer (`scope mcp` / `mcp:read` / `mcp:write`) — `opencode mcp auth devhub` (see [MCP Guide](../03-engineering/mcp-integration.md)). Total **21 tools**.
 
 | Tool | Signature (brief) | Scope |
 |---|---|---|
@@ -192,6 +199,11 @@ Auth: OAuth 2.1 PKCE bearer (`scope mcp` / `mcp:read` / `mcp:write`) — `openco
 | `add_tech` | (projectId, name, version, category) → tech entry | `mcp` / `mcp:write` |
 | `add_test_case` | (projectId, name, taskId?, issueId?, steps?, expected?, status?) → test case | `mcp` / `mcp:write` |
 | `update_test_case` | (projectId, testCaseId, {name, status, steps, expected, taskId, issueId}) → test case | `mcp` / `mcp:write` |
+| `add_api_collection` | (projectId, name, {description}) → API collection | `mcp` / `mcp:write` |
+| `add_api_endpoint` | (projectId, method, path, {collectionId, name, headers, params, body, responses}) → API endpoint | `mcp` / `mcp:write` |
+| `create_whiteboard` | (projectId, name, {description, elements[] ≤1000}) → whiteboard (id auto-UUID; cap 50/project) | `mcp` / `mcp:write` |
+| `update_whiteboard` | (projectId, whiteboardId, {name, description, elements[]}) → whiteboard (full replacement) | `mcp` / `mcp:write` |
+| `patch_whiteboard` / `list_whiteboards` | patch elements granular / list boards in project | `mcp` / `mcp:write` (`list` also `mcp:read`) |
 
 ---
 
@@ -225,7 +237,7 @@ Auth: OAuth 2.1 PKCE bearer (`scope mcp` / `mcp:read` / `mcp:write`) — `openco
 
 ## 6. Out of Scope (V1)
 
-See [Charter §5.2](project-charter.md#52-out-of-scope-deferred). Highlights: Git CLI integration, API endpoint inventory, templates, PWA, sync, collaboration, billing.
+See [Charter §5.2](project-charter.md#52-out-of-scope-deferred). Still out: Git CLI integration, PWA, multi-device sync. Shipped since V1: ~~API endpoint inventory~~ (M10), ~~templates~~ (M10), ~~collaboration~~ (teams + WS realtime, M12), ~~billing~~ (Free/Pro via Pakasir).
 
 ---
 
@@ -233,8 +245,8 @@ See [Charter §5.2](project-charter.md#52-out-of-scope-deferred). Highlights: Gi
 
 | # | Question | Owner | Status |
 |---|---|---|---|
-| 1 | Hosting platform (Railway / Render / VPS)? | Owner | Deferred |
-| 2 | License (MIT / proprietary)? | Owner | Deferred |
+| 1 | Hosting platform (Railway / Render / VPS)? | Owner | Resolved: Cloudflare Workers (FE) + Suga prod (cuddly-hawk) + Neon Postgres |
+| 2 | License (MIT / proprietary)? | Owner | Resolved: proprietary (ADR-021; open core rejected ADR-043) |
 | 3 | Public registration open or invite-only? | Owner | Resolved: open registration (live on Auth page) |
 | 4 | Domain name? | Owner | Deferred |
 

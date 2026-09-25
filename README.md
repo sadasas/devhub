@@ -4,7 +4,7 @@
 
 > **Your data stays yours.** Export or import the full state of any project as JSON, anytime.
 
-**Status:** In development (Milestone 10 — V2 features shipped, v0.4.0 target). See [Roadmap](docs/01-project/roadmap.md).
+**Status:** In development (Sep-2026 — whiteboard embed, TUS upload, i18n EN/ID parity, kebab/portal patterns shipped). See [Roadmap](docs/01-project/roadmap.md).
 
 **DevHub is a hosted, multi-user project-management workspace. Self-hosting is not supported; data portability is guaranteed via JSON export/import.**
 
@@ -65,6 +65,14 @@ DevHub is a project management application designed specifically for **engineeri
 | Schema Diffing | Compare two saved schema versions — tables, columns, relations added/removed |
 | Profile | Two-column profile: identity card (avatar, bio, role, joined date) + GitHub-style stats — contribution heatmap (365 days), tasks completed, issues resolved, active days, current/longest streak (`/profile`) |
 | GitHub | GitHub App: 1 repo/project link, webhook auto-link via DEV keys, PR badge + CI/review status on cards, suggest-done banner, one-time issue import (admin-only connect, see ADR-052) |
+| RowMenu | Kebab row actions (`app/src/components/RowMenu.tsx`) + `stopPropagation` — Templates/Labels aman dari row-click |
+| Selects | `SearchableSelect` mount-emit guard + regression test; portal `DatePicker` (lolos `overflow:hidden`) |
+| Uploads | TUS resumable + fallback PUT + `isUploadAuthError` (`app/src/lib/attachmentUpload.ts`) |
+| Whiteboard | Kind `embed` (AI SVG wireframes, sanitasi allowlist, max 20/board) + granular `patch_whiteboard` + dry-run `validate_whiteboard` |
+| Templates | Icon-only actions di sempit + `template-skeleton-kebab` loading mirror |
+| Labels | Chips wrap tanpa `maxWidth` paksa; kebab mobile via `useIs*Narrow` hooks |
+| Drawer | Settings jadi drawer di viewport sempit |
+| i18n | 6 namespaces + `defaultNS: common` (`common:` untuk aksi umum) + paritas EN/ID |
 
 ### V3 (planned — see [Roadmap](docs/01-project/roadmap.md))
 
@@ -102,7 +110,7 @@ See [Technical Design Document](docs/02-architecture/technical-design.md) for th
 | AI | @modelcontextprotocol/sdk (remote MCP server) |
 | Infra | Docker Compose (local Postgres), Dockerfile (deploy) |
 
-**Design system:** Dark-tech (Linear × GitHub Dark × terminal). Self-hosted Geist / Geist Mono via @fontsource. One accent color (emerald). CSS token scales documented in [Coding Standards](docs/03-engineering/coding-standards.md).
+**Design system:** Dark-tech (Linear × GitHub Dark × terminal). Self-hosted Geist / Geist Mono via @fontsource. One accent color (emerald). CSS token scales documented in [Design Tokens](docs/03-engineering/design-tokens.md) (single source of truth; guard `scripts/guard-css-classes.mjs`) — summary in [Coding Standards](docs/03-engineering/coding-standards.md).
 
 ---
 
@@ -112,16 +120,17 @@ See [Technical Design Document](docs/02-architecture/technical-design.md) for th
 devhub/
 ├── app/                  # Browser UI (Vite + React + TS)
 │   ├── src/
-│   │   ├── components/   # Design-system components (Button, Input, Badge, Modal, ...)
+│   │   ├── components/   # Design-system components (Button, Input, Badge, Modal, RowMenu, ...)
 │   │   ├── features/     # Feature modules (board, issues, schema, stats, ...)
-│   │   ├── lib/          # ApiProvider, types, utils
+│   │   ├── lib/          # ApiProvider, types, utils (incl. attachmentUpload.ts — TUS + fallback PUT)
+│   │   ├── i18n/         # 6 namespaces (common defaultNS) + EN/ID locales
 │   │   └── styles/       # tokens.css, global.css
-├── server/               # Express API + MCP server
+│   ├── scripts/          # guard-css-classes.mjs (Living Rule design-tokens)
+├── server/               # Express API + MCP server (modular monolith, ADR-041)
 │   ├── src/
-│   │   ├── api/          # Route handlers
-│   │   ├── auth/         # register/login/logout, JWT, rate limiting
+│   │   ├── modules/      # per bounded context: */handlers/*.ts (thin: zod → service → respond)
 │   │   ├── db/           # pg pool, migrations
-│   │   └── mcp/          # MCP server + tools
+│   │   └── mcp/          # MCP server + tools (24 tools incl. whiteboard/api)
 ├── docs/                 # This documentation suite
 ├── docker-compose.yml    # Local Postgres
 ├── Dockerfile            # Deploy image
@@ -177,7 +186,7 @@ DevHub exposes a **remote MCP server** so AI coding agents (opencode, Claude, Cu
 
 - Protocol: Model Context Protocol, streamable HTTP transport.
 - Auth: OAuth 2.1 PKCE public client — `opencode mcp auth devhub` opens a browser login, then auto-stores the bearer token (scope `mcp` / `mcp:read` / `mcp:write`, 15m access + 30d refresh rotation). No API keys.
-- Tools: `project_state`, `update_prd`, `plan_project`, `create_task`, `update_task`, `add_issue`, `update_issue`, `add_decision`, `add_milestone`, `update_milestone`, `add_table`, `add_relation`, `delete_relation`, `add_tech`, `add_test_case`, `update_test_case`.
+- Tools: `project_state`, `update_prd`, `plan_project`, `create_task`, `update_task`, `add_issue`, `update_issue`, `add_decision`, `add_milestone`, `update_milestone`, `add_table`, `add_relation`, `delete_relation`, `add_tech`, `add_test_case`, `update_test_case`, `add_api_collection`, `add_api_endpoint`, `update_api_endpoint`, `create_whiteboard`, `list_whiteboards`, `update_whiteboard`, `patch_whiteboard`, `validate_whiteboard` (24 tools).
 
 OAuth tokens are scoped to the user who authorized them: agents can only access projects in teams that user belongs to, with the same role rules as the REST API (viewers are read-only — write tools are rejected, `mcp:read` tokens cannot write). A step-by-step guide is available in the app under **Docs** (sidebar, `/docs/mcp`). See [MCP Integration](docs/03-engineering/mcp-integration.md) for the full specification and example agent workflows.
 
@@ -191,7 +200,7 @@ OAuth tokens are scoped to the user who authorized them: agents can only access 
 | Phase 1 | V1 feature set | Done |
 | Phase 2 | Public deploy, auth hardening | Done |
 | Phase 2.5 | V2 features: templates, notes, release tracker, schema diffing, per-tab sharing (M10) | Shipped |
-| Phase 3 | Collaboration (teams, invites, roles), public sharing (`/p/:projectId`), in-app docs hub | In progress |
+| Phase 3 | Collaboration (teams, invites, roles), public sharing (`/p/:projectId`), in-app docs hub; Sep-2026: whiteboard embed, TUS upload, i18n parity, kebab/portal/drawer patterns | In progress |
 | Phase 4 | Real-time sync, PWA, team chat | Planned |
 
 ---

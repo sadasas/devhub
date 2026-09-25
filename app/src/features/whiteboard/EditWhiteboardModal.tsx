@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Check } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
@@ -47,7 +48,7 @@ export function EditWhiteboardModal({ board, onClose }: EditWhiteboardModalProps
           <Button variant="ghost" size="md" onClick={onClose}>
             {t('whiteboard.editModal.cancel')}
           </Button>
-          <Button variant="primary" size="md" onClick={submit} disabled={!canEdit || !name.trim()}>
+          <Button variant="primary" size="md" leftIcon={<Check size={14} weight="bold" aria-hidden="true" />} onClick={submit} disabled={!canEdit || !name.trim()}>
             {t('whiteboard.editModal.save')}
           </Button>
         </>

@@ -1,3 +1,5 @@
+> **ARSIP — SUPERSEDED (Sep-2026).** Dokumen audit Agustus 2026 ini dipertahankan apa adanya sebagai arsip historis dan telah kedaluwarsa oleh progres Sep-2026 (prod Suga `cuddly-hawk` + Neon, upload TUS Supabase + fallback PUT, tuning pool `PG_POOL_MAX=6`, i18n P0+P1, template/label mobile). Jangan dipakai untuk memvonis kondisi Suga/TUS/i18n kini; rujukan operasional kini ada di `docs/05-operations/`.
+
 # Audit Server & Platform — DevHub
 
 - **Tanggal**: 2026-08-13

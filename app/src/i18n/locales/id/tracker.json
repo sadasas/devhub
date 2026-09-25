@@ -84,6 +84,8 @@
       "priorityTitle": "prioritas {{priority}}",
       "blockedByTooltip": "Diblokir oleh: {{names}}",
       "unread": "Belum dibaca",
+      "unreadAria": "Baru — belum dilihat",
+      "unreadTitle": "Baru · belum dilihat",
       "srSummary": "task {{status}} dengan prioritas {{priority}}. Seret untuk memindahkan antar kolom. Di layar sentuh: tekan dan tahan, lalu seret. Pindahkan dengan tombol panah saat fokus.",
       "subtaskOf": "Subtask dari {{parent}}",
       "subtaskProgress": "{{done}} dari {{total}} subtask selesai"
@@ -149,7 +151,21 @@
       "subPriority": "Prioritas subtask",
       "subPriorityInherit": "{{label}} (warisan)",
       "followParent": "Ikuti parent",
-      "subRangeWarn": "Tanggal di luar rentang parent ({{start}} – {{due}})."
+      "subRangeWarn": "Tanggal di luar rentang parent ({{start}} – {{due}}).",
+      "parentShrinkWarn": "{{count}} subtask di luar rentang baru.",
+      "clampSubtasks": "Sesuaikan {{count}} subtask",
+      "parentLabel": "Induk",
+      "parentMissing": "(hilang)",
+      "detachParent": "Lepaskan",
+      "subtasksLabel": "Subtask",
+      "setParent": "Jadikan subtask dari…",
+      "addSubtask": "Subtask baru…",
+      "checklistLabel": "Checklist",
+      "uncheckItem": "Tandai belum selesai",
+      "checkItem": "Tandai selesai",
+      "addChecklist": "Item baru…",
+      "removeBlocker": "Hapus blocker {{title}}",
+      "removeLabel": "Hapus {{name}}"
     },
     "attachments": {
       "title": "Lampiran",
@@ -229,6 +245,11 @@
       "moreChip": "+{{count}} lagi",
       "moreTitle": "{{count}} task jatuh tempo — buka daftar hari",
       "close": "Tutup",
+      "moveTitle": "Pindahkan task",
+      "moveLabel": "Tanggal jatuh tempo (YYYY-MM-DD, kosongkan untuk hapus)",
+      "moveHint": "Kosongkan untuk pindah ke Tanpa tanggal. Tekan M pada chip untuk membuka dialog ini.",
+      "expandUnscheduled": "Bentangkan tanpa jadwal",
+      "collapseUnscheduled": "Lipatkan tanpa jadwal",
       "addTask": "Tambah task",
       "addTaskShort": "Task",
       "emptyTitle": "Tidak ada task jatuh tempo",
@@ -255,6 +276,21 @@
         "sat": "Sab",
         "sun": "Min"
       }
+    },
+    "timeline": {
+      "laneAll": "Semua task",
+      "unassigned": "Tanpa penanggung",
+      "groupLabel": "Kelompok",
+      "group": {
+        "none": "Tidak ada",
+        "milestone": "Milestone",
+        "assignee": "Penanggung jawab"
+      },
+      "today": "Hari ini",
+      "unscheduledEmpty": "Tidak ada task tanpa jadwal — seret bar ke sini untuk menghapus tanggal",
+      "laneTasks": "Task",
+      "prev": "Sebelumnya",
+      "next": "Berikutnya"
     }
   },
   "issues": {
@@ -273,6 +309,8 @@
     "linkedTo": "tertaut: {{title}}",
     "unread": "Belum dibaca",
     "editAria": "Edit issue",
+    "openDetails": "Buka detail issue",
+    "deleteAria": "Hapus issue {{title}}",
     "severity": {
       "critical": "Kritis",
       "high": "Tinggi",
@@ -356,6 +394,8 @@
     "metaIssue": "issue: {{title}}",
     "unread": "Belum dibaca",
     "editAria": "Edit test case",
+    "openDetails": "Buka detail test case",
+    "deleteAria": "Hapus test case {{name}}",
     "status": {
       "pending": "Menunggu",
       "pass": "Lulus",

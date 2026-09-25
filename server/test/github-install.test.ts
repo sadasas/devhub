@@ -150,7 +150,7 @@ describe('github install routes (F2)', () => {
     await connectProjectRepo({ projectId, installationId: 999001, owner: 'org', repo: 'repo', connectedBy: null });
     const got = await getProjectRepo(projectId);
     expect(got).toMatchObject({ owner: 'org', repo: 'repo', installationId: 999001 });
-    expect(got?.automation).toEqual({ onPrOpened: 'suggest', onPrMerged: 'suggest' });
+    expect(got?.automation).toEqual({ onPrOpened: 'suggest', onPrMerged: 'suggest', onIssueOpened: 'suggest', issueLabels: [] });
 
     // 1 repo boleh dipetakan ke banyak project (monorepo)
     const projectId2 = await createProject(cookie, 'P2', teamId);

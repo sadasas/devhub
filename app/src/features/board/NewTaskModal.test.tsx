@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import type { State } from '../../lib/types';
+import type { State, Task } from '../../lib/types';
 import { NewTaskModal } from './NewTaskModal';
 
 const mocks = vi.hoisted(() => ({
@@ -256,6 +256,75 @@ describe('NewTaskModal staged attachments', () => {
             expect.objectContaining({ provider: 'link', name: 'Spec', url: 'https://example.com/s.pdf' }),
           ],
         }),
+      }),
+    );
+  });
+});
+
+describe('NewTaskModal blocked-by picker', () => {
+  const T_ALPHA = '66666666-6666-4666-8666-666666666666';
+  const T_BETA = '77777777-7777-4777-8777-777777777777';
+
+  function makeTask(over: Partial<Task>): Task {
+    return {
+      id: T_ALPHA,
+      title: 'Alpha',
+      status: 'todo',
+      priority: 'medium',
+      labels: [],
+      blockedBy: [],
+      description: '',
+      createdAt: '2026-08-01T00:00:00.000Z',
+      updatedAt: '2026-08-01T00:00:00.000Z',
+      ...over,
+    };
+  }
+
+  beforeEach(() => {
+    mocks.dispatch.mockReset();
+    mockCtx = {};
+    mockState = {
+      ...makeState([]),
+      tasks: [makeTask({}), makeTask({ id: T_BETA, title: 'Beta' })],
+    };
+  });
+
+  afterEach(() => {
+    mockCtx = {};
+    vi.restoreAllMocks();
+  });
+
+  function openBlockedBy() {
+    renderModal();
+    // Prop pill (tertutup) lalu trigger select di dalam popup.
+    fireEvent.click(screen.getByRole('button', { name: 'Blocked by' }));
+    expect(screen.getByRole('dialog', { name: 'Blocked by' })).toBeTruthy();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Blocked by' })[1]!);
+  }
+
+  it('keeps the popup open on option pointerdown and adds the blocker on click', () => {
+    openBlockedBy();
+    const option = screen.getByRole('option', { name: 'Alpha · todo' });
+    // pointerdown dulu (simulasi mouse): popup tidak boleh unmount sebelum click.
+    fireEvent.pointerDown(option);
+    expect(screen.getByRole('dialog', { name: 'Blocked by' })).toBeTruthy();
+    fireEvent.click(option);
+    expect(screen.getByText('1 blocked')).toBeDefined();
+    // Multi-pick: popup tetap terbuka untuk pilihan berikutnya.
+    expect(screen.getByRole('dialog', { name: 'Blocked by' })).toBeTruthy();
+  });
+
+  it('submits the chosen blockers with task/add', () => {
+    openBlockedBy();
+    const option = screen.getByRole('option', { name: 'Beta · todo' });
+    fireEvent.pointerDown(option);
+    fireEvent.click(option);
+    fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'Needs beta' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add task' }));
+    expect(mocks.dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'task/add',
+        task: expect.objectContaining({ blockedBy: [T_BETA] }),
       }),
     );
   });

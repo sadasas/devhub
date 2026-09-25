@@ -205,7 +205,7 @@ export const TaskCard = memo(function TaskCard({
                   aria-label={t('board.taskCard.unreadAria', { defaultValue: 'New — not yet viewed' })}
                   title={t('board.taskCard.unreadTitle', { defaultValue: 'New · not yet viewed' })}
                 >
-                  New
+                  {t('board.taskCard.unread')}
                 </span>
               )}
             </div>
@@ -405,7 +405,7 @@ export const TaskCard = memo(function TaskCard({
                   role="status"
                   aria-label={t('board.taskCard.unreadAria', { defaultValue: 'New — not yet viewed' })}
                 >
-                  New
+                  {t('board.taskCard.unread')}
                 </span>
               </Tooltip>
             )}

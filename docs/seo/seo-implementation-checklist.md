@@ -1,6 +1,8 @@
 # DevHub SEO Implementation Checklist
 
-**Quick-Reference Guide** | Created: 2026-09-03
+**Quick-Reference Guide** | Created: 2026-09-03 | **Last updated:** 2026-09-24
+
+> **Lampiran Tier-2.** Dokumen ini adalah lampiran [Go-Live Checklist Tier-2](../05-operations/go-live-checklist-tier2.md) (§3 view-source canonical/OG/`lang=id`, §4 robots/sitemap tanpa `/p/*`, §5 GSC). Domain kanonis prod `https://devhub.nrawangbatin.my.id` (bukan `devhub.com`). Harga kanonis IDR seed `249000`/`699000`/`2490000` + `LAUNCH149 149000` (nonaktif) via Pakasir QRIS/VA — semua copy memakai IDR, bukan USD. Riset kata kunci (termasuk klaster ID/QRIS): [Keyword Research](keyword-research-landing-page.md).
 
 ---
 
@@ -26,15 +28,15 @@ Focus on these first — highest impact, achievable difficulty.
 ## ✅ Pre-Launch Checklist
 
 ### Technical SEO
-- [ ] Install Google Analytics 4
+- [x] Install Google Analytics 4 (DONE Sep-2026 — consent-gated via `consent.ts`, bake-time `VITE_GA_MEASUREMENT_ID`; lihat go-live §1)
 - [ ] Install Google Search Console (verify domain)
-- [ ] Generate XML sitemap (`/sitemap.xml`)
-- [ ] Create `robots.txt` (allow all, block admin paths)
-- [ ] Implement canonical tags on all pages
+- [x] Generate XML sitemap (`/sitemap.xml`, Tier-2 tanpa `/p/*` — DONE; lihat go-live §4)
+- [x] Create `robots.txt` (Tier-2: `Allow: /`, `Disallow: /p/`, sitemap absolut — DONE; lihat go-live §4)
+- [x] Implement canonical tags on all pages (DONE — domain prod; lihat go-live §3)
 - [ ] Set up 301 redirects (if migrating from old URLs)
-- [ ] Enable HTTPS (SSL certificate)
-- [ ] Test mobile-friendliness (Google Mobile-Friendly Test)
-- [ ] Check Core Web Vitals (PageSpeed Insights)
+- [x] Enable HTTPS (DONE — Suga TLS + Cloudflare CDN/WAF)
+- [x] Test mobile-friendliness (DONE — Batch 10 mobile support, lihat audit UI-UX)
+- [ ] Check Core Web Vitals (PageSpeed Insights — gate go-live §6 per rilis)
 - [ ] Implement structured data (JSON-LD)
 
 ### On-Page SEO (Per Page)
@@ -65,42 +67,42 @@ Focus on these first — highest impact, achievable difficulty.
 ```html
 <title>DevHub | Project Management for Developers & Engineering Teams</title>
 <meta name="description" content="Track tasks, bugs, test cases, tech stack, schema, and architectural decisions in one workspace. Built for engineering teams from solo builders to 2,000 engineers.">
-<link rel="canonical" href="https://devhub.com/">
+<link rel="canonical" href="https://devhub.nrawangbatin.my.id/">
 ```
 
 ### Features / Schema
 ```html
 <title>Database Schema Documentation Tool | DevHub ERD Generator</title>
 <meta name="description" content="Visual database schema designer with ERD diagrams, pan & zoom, and version control. Document tables, columns, and relationships for your engineering team.">
-<link rel="canonical" href="https://devhub.com/features/schema">
+<link rel="canonical" href="https://devhub.nrawangbatin.my.id/features/schema">
 ```
 
 ### Features / ADR
 ```html
 <title>Architecture Decision Record (ADR) Log | DevHub</title>
 <meta name="description" content="Record architectural decisions with context, options, and consequences. Never lose technical knowledge. Built for software teams who document everything.">
-<link rel="canonical" href="https://devhub.com/features/adr">
+<link rel="canonical" href="https://devhub.nrawangbatin.my.id/features/adr">
 ```
 
 ### Features / Tech Stack
 ```html
 <title>Tech Stack Tracker for Engineering Teams | DevHub</title>
 <meta name="description" content="Track technology versions, dependencies, and upgrade status. Maintain a living ledger of your stack. Perfect for teams managing multiple projects.">
-<link rel="canonical" href="https://devhub.com/features/tech-stack">
+<link rel="canonical" href="https://devhub.nrawangbatin.my.id/features/tech-stack">
 ```
 
 ### Pricing
 ```html
 <title>DevHub Pricing | Free Project Management for Developers</title>
-<meta name="description" content="Free forever for small teams (2 members, 3 projects). Pro plan $15/month flat. No per-seat tax. Start your free trial today — no credit card required.">
-<link rel="canonical" href="https://devhub.com/pricing">
+<meta name="description" content="Free forever for small teams (2 members, 3 projects). Pro Rp 249.000/30 hari via QRIS/VA Pakasir. No per-seat tax. Start free trial today — no credit card.">
+<link rel="canonical" href="https://devhub.nrawangbatin.my.id/pricing">
 ```
 
 ### FAQ
 ```html
 <title>FAQ | DevHub Project Management for Engineering Teams</title>
 <meta name="description" content="Answers to common questions about DevHub: How is it different from Jira? Can I export data? Is there a free plan? Technical documentation for developers.">
-<link rel="canonical" href="https://devhub.com/faq">
+<link rel="canonical" href="https://devhub.nrawangbatin.my.id/faq">
 ```
 
 ---
@@ -119,7 +121,7 @@ Focus on these first — highest impact, achievable difficulty.
   "offers": {
     "@type": "Offer",
     "price": "0",
-    "priceCurrency": "USD"
+    "priceCurrency": "IDR"
   },
   "aggregateRating": {
     "@type": "AggregateRating",
@@ -182,8 +184,8 @@ Focus on these first — highest impact, achievable difficulty.
   "description": "Professional project management for engineering teams",
   "offers": {
     "@type": "Offer",
-    "price": "15",
-    "priceCurrency": "USD",
+    "price": "249000",
+    "priceCurrency": "IDR",
     "priceValidUntil": "2027-01-01",
     "availability": "https://schema.org/InStock"
   }
@@ -365,6 +367,14 @@ gtag('event', 'submit', {
 
 ---
 
-**Last Updated:** 2026-09-03  
+---
+
+## Lampiran Tier-2 — status Sep-2026
+
+Checklist ini menginduk ke [Go-Live Checklist Tier-2](../05-operations/go-live-checklist-tier2.md). Gate SEO (§3 view-source canonical/OG/`lang=id`, §4 robots/sitemap tanpa `/p/*`, §5 GSC, §1 consent GA) diverifikasi di sana sebelum domain publik diumumkan; riset kata kunci (termasuk klaster ID/QRIS) ada di [Keyword Research](keyword-research-landing-page.md). Harga seed kanonis `server/src/db/seeds/001_pro_pricing_2026-09-13.sql`: `249000`/`699000`/`2490000` + `LAUNCH149 149000` (nonaktif). Yang sudah DONE dicentang `[x]` di § Pre-Launch; sisanya (blog, backlink, FAQ schema penuh) tetap terbuka.
+
+---
+
+**Last Updated:** 2026-09-24 (domain prod + harga IDR + status Tier-2)  
 **Owner:** SEO Lead  
-**Next Review:** 2026-10-03
+**Next Review:** 2026-12-24

@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | **Document status** | Active |
-| **Version** | 2.1 |
+| **Version** | 2.3 |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-08-21 |
+| **Last updated** | 2026-09-24 |
 | **Related documents** | [TDD §9](../02-architecture/technical-design.md#9-deployment-architecture) · [Monitoring](monitoring.md) · [Incident Response](incident-response.md) |
 
 ---
@@ -123,14 +123,14 @@ devhub.example.com {
 - `[Suga]` — **backend deploy path (2026-08-20):**
   1. **Neon (database):** create a free project at [neon.tech](https://neon.tech) → copy the **direct** connection string (`postgresql://user:password@ep-….neon.tech/dbname`). Do **not** use the pooled (PgBouncer) string — DevHub uses advisory locks (migrations) and `FOR UPDATE` row locks, which break under transaction pooling.
   2. **Suga:** sign up at [suga.app](https://suga.app) (no credit card) → create a Project → add a **Container** → choose **Build from GitHub** → install the Suga GitHub App and grant `sadasas/devhub` → pick branch `main` → Dockerfile path `/Dockerfile` with build context at repo root (the repo `Dockerfile` builds only the `server/` workspace; `app/`/`e2e/` never enter the image).
-  3. **Networking:** set the container port the app listens on (3000) and enable **Public HTTPS** on it — Suga provisions a TLS URL like `https://<hash>.suga.run` (Cloudflare CDN + WAF + DDoS included).
-  4. **Env vars** (mark secrets Sensitive): `DATABASE_URL` (Neon direct), `JWT_SECRET`, `NODE_ENV=production`, `COOKIE_SECURE=true`, `TRUST_PROXY=true`, `CORS_ORIGIN=` (empty = same-origin only via Worker proxy), `PORT=3000`, `PG_POOL_MAX=6`. Billing prod: `PAKASIR_SANDBOX=false`, `PAKASIR_SLUG`/`PAKASIR_API_KEY` prod (Sensitive), `APP_PUBLIC_URL=https://devhub.nrawangbatin.my.id`.
+  3. **Networking:** set the container port the app listens on (3000) and enable **Public HTTPS** on it — Suga provisions a TLS URL (Cloudflare CDN + WAF + DDoS included). Prod Suga host/container: **`cuddly-hawk`** — publik selalu via `https://devhub.nrawangbatin.my.id` (Worker proxy → Suga, same-origin).
+  4. **Env vars** (mark secrets Sensitive): `DATABASE_URL` (Neon direct, bukan pooled/PgBouncer), `JWT_SECRET`, `NODE_ENV=production`, `COOKIE_SECURE=true`, `TRUST_PROXY=true`, `CORS_ORIGIN=` (empty = same-origin only via Worker proxy), `PORT=3000`, `PG_POOL_MAX=6` (idle 30s, connection timeout 5s, `statement_timeout=30s` — lihat §6). Billing prod: `PAKASIR_SANDBOX=false`, `PAKASIR_SLUG`/`PAKASIR_API_KEY` prod (Sensitive), `APP_PUBLIC_URL=https://devhub.nrawangbatin.my.id`. Storage prod (Supabase, lihat §6): `DEVHUB_STORAGE_URL` + `DEVHUB_STORAGE_SERVICE_KEY` (Sensitive), `DEVHUB_STORAGE_BUCKET=devhub-attachments`, `DEVHUB_STORAGE_UPLOAD_MAX_MB=10`, `DEVHUB_STORAGE_TUS_ENDPOINT=` (kosong = auto-turun dari `DEVHUB_STORAGE_URL`).
   5. **Resources:** 0.1 vCPU / 256 MiB (free max). First deploy: migrations run automatically at boot (`index.ts` calls `migrate()`), then smoke-test §7.
-  6. API base is reachable at `https://<hash>.suga.run`; auto-build on push to `main` is on by default (deduped by commit SHA).
+  6. API base prod: `https://devhub.nrawangbatin.my.id/api` (Worker proxy → Suga `cuddly-hawk`); jangan sebar origin `*.suga.run` ke user/bundle. Auto-build on push to `main` is on by default (deduped by commit SHA).
 - `[Cloudflare]` — **frontend deploy path (2026-08-21, Workers Builds + static assets, per ADR-042):**
   1. `app/wrangler.json` already defines the Worker (`devhub-app`) with static assets from `./dist` and `not_found_handling: "single-page-application"` — every non-file path (e.g. `/project/*`, `/p/*`) serves `index.html`, so client-side routes deep-link correctly. No worker script is needed; the SPA is pure static.
   2. Cloudflare dashboard: **Workers & Pages → Create → connect to GitHub** → install the Cloudflare GitHub App and grant `sadasas/devhub` → select the repo → set **Root directory** `/app`, **Install command** `npm ci`, **Deploy command** `npx wrangler deploy` (Workers Builds runs it after the build).
-   3. **Build variables** (Settings → Variables and Secrets, set for both Production and Preview): `VITE_API_URL=/api/v1` (relative — same-origin via Worker proxy; runtime `app/src/lib/api.ts:27-46` memaksa relatif bila nilai absolut cross-site lolos). Legacy `https://<hash>.suga.run/api/v1` JANGAN dipakai lagi. Also set `NODE_VERSION=22`.
+   3. **Build variables** (Settings → Variables and Secrets, set for both Production and Preview): `VITE_API_URL=/api/v1` (relative — same-origin via Worker proxy; runtime `app/src/lib/api.ts:27-46` memaksa relatif bila nilai absolut cross-site lolos). Legacy absolut ke Suga langsung (`https://cuddly-hawk.*` / `*.suga.run/api/v1`) JANGAN dipakai lagi. Also set `NODE_VERSION=22`.
    4. **Analytics (opsional, consent-gated):** `VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX` (ID asli HANYA di dashboard, JANGAN di repo). Tanpa ini bundle memakai placeholder `G-XXXXXXX` dan tidak ada request GA sama sekali. Berlaku bake-time seperti `VITE_API_URL` — ganti nilai = rebuild. Verifikasi live: cari ID di bundle (`Sources → Ctrl+Shift+F`); consent Accept → `gtag/js` + `collect` muncul (matikan adblocker saat verifikasi — uBlock/Brave/Firefox ETP memblokir `googletagmanager.com`).
   4. Auto-deploy is on by default: every push to the production branch rebuilds the SPA; non-production branches and PRs get preview URLs on `<commit>-devhub-app.workers.dev` (previews hit the local backend via `npm run dev` unless you add their origin to `CORS_ORIGIN`).
    5. Manual deploy alternative: `npm run build -w app && npm run deploy -w app` (wrangler login required once).
@@ -167,19 +167,24 @@ One push to `main` can trigger deploys on Cloudflare (frontend) and Suga (backen
 | `DATABASE_URL` | Yes | Postgres connection string |
 | `JWT_SECRET` | Yes | ≥ 32 chars random |
 | `PORT` | No | Default 3000 (set explicitly on Suga) |
-| `PG_POOL_MAX` | No | Max pg pool connections (default 20; set **6** on memory-constrained hosts like Suga free) |
+| `PG_POOL_MAX` | No | Max pg pool connections (default 20; set **6** on memory-constrained hosts like Suga free `cuddly-hawk`). Pool efektif: `max=PG_POOL_MAX`, `idleTimeoutMillis=30000`, `connectionTimeoutMillis=5000`, `statement_timeout=30000` (`server/src/db/pool.ts`). Pakai Neon **direct** string, bukan pooled (advisory lock + `FOR UPDATE` pecah di transaction pooling) |
+| `DEVHUB_STORAGE_URL` | Storage | Supabase project URL (`https://<ref>.supabase.co`), kosong = upload mati (`503 STORAGE_DISABLED`) |
+| `DEVHUB_STORAGE_SERVICE_KEY` | Storage | Supabase service_role key — **Sensitive di Suga**, tidak pernah ke browser/bundle |
+| `DEVHUB_STORAGE_BUCKET` | Storage | Nama bucket objek, default `devhub-attachments` |
+| `DEVHUB_STORAGE_UPLOAD_MAX_MB` | Storage | Batas upload per file (MB, default 10) |
+| `DEVHUB_STORAGE_TUS_ENDPOINT` | Storage | Override endpoint TUS resumable; kosong = auto-turun (`https://<ref>.storage.supabase.co/storage/v1/upload/resumable`). Upload utama TUS presigned (`x-signature`), fallback PUT satu-request via signed URL |
 | `NODE_ENV` | No | `production` for prod behaviors |
 | `COOKIE_SECURE` | No | `true` behind TLS (forced in production) |
 | `TRUST_PROXY` | No | `true` when behind a reverse proxy — required so rate limiting, client IPs, and OAuth discovery origin (`/.well-known/*` → `https://devhub.nrawangbatin.my.id`) work correctly |
 | `CORS_ORIGIN` | FE split | Comma-separated origins allowed for cross-origin REST + WS. **Prod (same-origin via Worker proxy): leave empty** so the API is same-origin only. Only set when the SPA is truly cross-origin (legacy split) |
 | `COOKIE_DOMAIN` | FE split | Parent domain for the session cookie — **single login across app + admin subdomains (ADR-051)**. Prod (Suga): `.nrawangbatin.my.id`. Empty = host-only cookie (local dev, single frontend) |
-| `VITE_API_URL` (Cloudflare build variable) | FE split | **`/api/v1` (relative, same-origin via Worker proxy)** — SPA fetch base + WebSocket origin (see `realtime-client.ts`). Legacy absolute form `https://<hash>.suga.run/api/v1` is force-rewritten to `/api/v1` at runtime (`app/src/lib/api.ts:27-46`), but do NOT deploy new builds with the absolute value |
+| `VITE_API_URL` (Cloudflare build variable) | FE split | **`/api/v1` (relative, same-origin via Worker proxy)** — SPA fetch base + WebSocket origin (see `realtime-client.ts`). Legacy absolute form ke Suga langsung (prod host `cuddly-hawk`) is force-rewritten to `/api/v1` at runtime (`app/src/lib/api.ts:27-46`), but do NOT deploy new builds with the absolute value |
 | `VITE_GA_MEASUREMENT_ID` (Cloudflare build variable) | FE analytics | GA4 measurement ID (`G-XXXXXXXXXX`, real value dashboard-only). Empty/missing = placeholder `G-XXXXXXX` = zero GA network. Consent-gated page_view only (`app/src/lib/consent.ts`); bake-time — changing it requires rebuild |
 | `RESEND_API_KEY` | Mail (M31) | Resend API key, permission **Sending access** only. Empty = worker holds queue, nothing sends. **Sensitive on Suga** |
 | `MAIL_FROM` | Mail (M31) | Sender identity, e.g. `DevHub <noreply@devhub.nrawangbatin.my.id>` — domain must be Verified in Resend (DKIM + SPF) |
 | `MAIL_ENABLED` | Mail (M31) | `true` to actually send; `false` (default) = enqueue only, queue flushed when enabled. Kill-switch for mail incidents |
 
-**Cookie / same-origin ( kunci: JANGAN ganti kode ke `SameSite=None` ):** each SPA and the API are served from **one origin per frontend** (`https://devhub.nrawangbatin.my.id` for app, the admin subdomain for admin) — each Cloudflare Worker (`app/src/worker.ts`, `admin/src/worker.ts`) proxies `/api/*`, `/mcp`, `/oauth/*`, `/ws`, and `/.well-known/*` to Suga while serving static assets for everything else, and strips `Domain` from `Set-Cookie` **only when it points at the backend host**, preserving the parent-domain session cookie (`COOKIE_DOMAIN`, ADR-051) so one login covers both frontends while staying **first-party**. Therefore the session cookie is **`SameSite=Lax; HttpOnly; Secure`** in production (`server/src/shared/cookie.ts`), which blocks CSRF yet is sent on same-origin top-level and sub-requests. `SameSite=None` is intentionally NOT used — switching the code to `None` would turn a first-party session into a third-party cookie (blocked by Safari/Firefox ITP, CSRF surface). If login loops with 401, fix the proxy/origin — never the cookie.
+**Cookie / same-origin ( kunci: JANGAN ganti kode ke `SameSite=None` ):** each SPA and the API are served from **one origin per frontend** (`https://devhub.nrawangbatin.my.id` for app, the admin subdomain for admin) — each Cloudflare Worker (`app/src/worker.ts`, `admin/src/worker.ts`) proxies `/api/*`, `/mcp`, `/oauth/*`, `/ws`, `/.well-known/*`, and `/webhooks/*` (GitHub App deliveries must reach the backend — without this they hit the SPA as 405) to Suga while serving static assets for everything else, and strips `Domain` from `Set-Cookie` **only when it points at the backend host**, preserving the parent-domain session cookie (`COOKIE_DOMAIN`, ADR-051) so one login covers both frontends while staying **first-party**. Therefore the session cookie is **`SameSite=Lax; HttpOnly; Secure`** in production (`server/src/shared/cookie.ts`), which blocks CSRF yet is sent on same-origin top-level and sub-requests. `SameSite=None` is intentionally NOT used — switching the code to `None` would turn a first-party session into a third-party cookie (blocked by Safari/Firefox ITP, CSRF surface). If login loops with 401, fix the proxy/origin — never the cookie.
 
 **SPA fallback:** the server exposes the API only (no static hosting). Host the built `app/dist` behind a static server (Cloudflare Workers static assets, Caddy `file_server`, nginx, etc.) and route every non-file path — including `/project/*`, `/team/*`, `/docs/*`, and `/p/*` — to `index.html` so client-side routes (including public project pages) deep-link correctly (Cloudflare: handled by `not_found_handling: "single-page-application"` in `app/wrangler.json`). With the SPA on a different origin than the API, set `CORS_ORIGIN` to the SPA origin (dev proxy in `app/vite.config.ts` handles local development).
 
@@ -211,6 +216,9 @@ One push to `main` can trigger deploys on Cloudflare (frontend) and Suga (backen
 - [ ] Guard admin lolos: `node admin/scripts/guard-vite-api-url.mjs` hijau (gagal bila logika force-relatif di `admin/src/lib/api.ts` hilang) + `npm run test -w admin` lolos
 - [ ] Cookie `Domain=.nrawangbatin.my.id` terlihat di devtools (login via app maupun admin); `grep -r suga.run admin/dist` nol hit (origin BE tidak bocor ke bundle)
 - [ ] Single session (ADR-051): login di app → buka admin → `/auth/me` 200 tanpa login ulang; logout di satu frontend → frontend lain `/auth/me` 401
+- [ ] Storage smoke (Supabase TUS): `POST /api/v1/attachments/presign` → dapat `tusEndpoint` + `uploadToken`; upload 1 file kecil via TUS OK; fallback PUT via `uploadUrl` OK bila TUS gagal; file tanpa konfigurasi storage → `503 STORAGE_DISABLED` (bukan 500)
+- [ ] i18n smoke (P0+P1): ganti bahasa ID↔EN di app + admin → tidak ada string kosong/fallback mentah di header, template/label picker, billing, dan auth; `?lang=` deep-link konsisten
+- [ ] Mobile smoke: viewport 390px — template/label picker bisa dibuka, menu kebab (⋮) per kartu terlihat & terpakai touch, drawer navigasi + top bar OK, upload lampiran tidak memicu iOS zoom
 
 ### 7b. Suga production checklist (billing live)
 
@@ -224,7 +232,7 @@ Hanya via dashboard Suga — JANGAN commit nilai asli ke repo (hanya docs + `ser
 - [ ] `PG_POOL_MAX=6`
 - [ ] `CORS_ORIGIN` kosong (same-origin; isi hanya bila darurat split-origin sementara)
 - [ ] `COOKIE_DOMAIN=.nrawangbatin.my.id` (single session app + admin, ADR-051)
-- [ ] `VITE_API_URL=/api/v1` (build variable Cloudflare; JANGAN absolut `https://<hash>.suga.run/...`)
+- [ ] `VITE_API_URL=/api/v1` (build variable Cloudflare; JANGAN absolut ke Suga/`cuddly-hawk` langsung)
 - [ ] Webhook Pakasir menunjuk `https://devhub.nrawangbatin.my.id/api/v1/billing/webhook` (proxied Worker → Suga; test dengan payload kecil, ekspektasi `200 {ok:true}` tanpa aktivasi untuk order tak dikenal)
 - [ ] Pricing seed ADR-045 diterapkan: `psql "$DATABASE_URL" -f server/src/db/seeds/001_pro_pricing_2026-09-13.sql`, lalu verifikasi paket Pro `is_featured` + harga `(30,249000) (90,699000) (365,2490000)` + promo LAUNCH149 `(30,149000)` nonaktif
 - [ ] Email (M31): `MAIL_ENABLED=true`, `MAIL_FROM=DevHub <noreply@devhub.nrawangbatin.my.id>`, `RESEND_API_KEY` prod terisi + **Sensitive**; domain Verified di dashboard Resend (DKIM + 2 CNAME SPF hijau)
