@@ -206,6 +206,7 @@ is reserved for floating layers.
 | 2026-09-25 | Koreksi: butir "urutan kanonis section integrasi" (scoped, behavioral) dicabut dari §7 global — diganti aturan penempatan global di `coding-standards` §7 (banner menempel pemicu, teks statis utuh); §7 kembali ke mekanik (ritme, varian warna); warn GitHub pindah ke atas baris aksi |
 | 2026-09-25 | `InlineError` ditegaskan global: ikon `Warning` 12px + teks 600 (seragam 71 titik + `Input`/`Textarea`); tetap teks tanpa kotak, `role=alert` tak berubah; `.field-error > svg` nempel baris pertama (pola `save-toast`), gap 6 tangga space-* |
 | 2026-09-25 | Audit penempatan feedback se-app: aturan kedekatan dilonggarkan jadi "di atas ATAU bawah pemicu asal bersebelahan" (konvensi modal: error di atas footer = menempel); 12 titik P0 diperbaiki (duplikat PricingPage, alert-pada-info PlanLimitModal/TeamBillingPanel, role ganda PaymentHistory, primitif custom ProfilePage, load-gagal auth/billing, ember salah ProjectPage, kode mati LabelsSection, doneWarn dinamis TaskModal) |
+| 2026-09-25 | Slot tunggal banner section: SEMUA banner menumpuk di bawah konten (danger → warn → success) — flash/notice GitHub turun, tumpukan GCal disusun ulang, `GCalBanner` jadi wrapper `StatusBanner`, notice disconnect GCal, dialog konfirmasi disconnect GitHub, loading GitHub `role=status` |
 
 ---
 

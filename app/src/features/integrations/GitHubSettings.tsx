@@ -12,6 +12,7 @@ import {
 import type { GitHubAutomation, GitHubInstallation, GitHubInstallationRepo, GitHubStatus } from '../../lib/types';
 import { savePendingReturn } from '../../lib/github';
 import { Button } from '../../components/Button';
+import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { DataErrorState } from '../../components/DataErrorState';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { StatusBanner } from '../../components/StatusBanner';
@@ -266,17 +267,22 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
     }
   }
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [disconnectBusy, setDisconnectBusy] = useState(false);
+  const [disconnectError, setDisconnectError] = useState<string | null>(null);
+
   async function disconnect() {
-    setBusy(true);
-    setError(null);
+    setDisconnectBusy(true);
+    setDisconnectError(null);
     try {
       await api.githubDisconnect(projectId);
       setNotice(t('settings.githubDisconnected', { defaultValue: 'Repository disconnected. Task links are kept as history.' }));
+      setConfirmOpen(false);
       await refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Disconnect failed');
+      setDisconnectError(e instanceof Error ? e.message : 'Disconnect failed');
     } finally {
-      setBusy(false);
+      setDisconnectBusy(false);
     }
   }
 
@@ -346,7 +352,9 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
         GitHub
       </h3>
       {loading ? (
-        <p className="field-helper">{t('settings.loading', { defaultValue: 'Loading…' })}</p>
+        <p className="field-helper" role="status">
+          {t('settings.loading', { defaultValue: 'Loading…' })}
+        </p>
       ) : error && !status ? (
         <DataErrorState
           error={error}
@@ -355,29 +363,6 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
         />
       ) : (
         <>
-          {notice && (
-            <StatusBanner
-              tone="success"
-              message={notice}
-              onDismiss={() => setNotice(null)}
-              dismissLabel={t('settings.githubDismiss', { defaultValue: 'Dismiss' })}
-              testId="github-notice"
-            />
-          )}
-          {flash ? (
-            <StatusBanner
-              tone={flash.tone === 'error' ? 'danger' : 'success'}
-              title={
-                flash.tone === 'error'
-                  ? t('settings.githubFailed', { defaultValue: 'Connection failed' })
-                  : t('settings.githubFlashConnected', { defaultValue: 'Connected' })
-              }
-              message={flash.text}
-              onDismiss={() => setFlash(null)}
-              dismissLabel={t('settings.githubDismiss', { defaultValue: 'Dismiss' })}
-              testId="github-flash"
-            />
-          ) : null}
           {status?.connected ? (
             <div className="github-stack">
               <p className="field-helper">
@@ -446,7 +431,10 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
                       variant="danger"
                       size="sm"
                       leftIcon={<LinkBreak size={14} aria-hidden="true" />}
-                      onClick={() => void disconnect()}
+                      onClick={() => {
+                        setDisconnectError(null);
+                        setConfirmOpen(true);
+                      }}
                       disabled={busy}
                     >
                       {t('settings.githubDisconnect', { defaultValue: 'Disconnect' })}
@@ -517,16 +505,6 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
                   </div>
                 </>
               ) : null}
-              {unconfigured ? (
-                <StatusBanner
-                  tone="warn"
-                  title={t('settings.githubNotConfiguredTitle', { defaultValue: 'GitHub App not configured' })}
-                  message={t('settings.githubNotConfiguredDesc', {
-                    defaultValue: 'The GitHub App is not set up on this server yet. Ask an admin to configure it, then try again.',
-                  })}
-                  testId="github-unconfigured"
-                />
-              ) : null}
               {pendingInstall ? (
                 <>
                   <p className="field-helper">
@@ -595,8 +573,56 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
               testId="github-toast"
             />
           ) : null}
+          {unconfigured ? (
+            <StatusBanner
+              tone="warn"
+              title={t('settings.githubNotConfiguredTitle', { defaultValue: 'GitHub App not configured' })}
+              message={t('settings.githubNotConfiguredDesc', {
+                defaultValue: 'The GitHub App is not set up on this server yet. Ask an admin to configure it, then try again.',
+              })}
+              testId="github-unconfigured"
+            />
+          ) : null}
+          {flash ? (
+            <StatusBanner
+              tone={flash.tone === 'error' ? 'danger' : 'success'}
+              title={
+                flash.tone === 'error'
+                  ? t('settings.githubFailed', { defaultValue: 'Connection failed' })
+                  : t('settings.githubFlashConnected', { defaultValue: 'Connected' })
+              }
+              message={flash.text}
+              onDismiss={() => setFlash(null)}
+              dismissLabel={t('settings.githubDismiss', { defaultValue: 'Dismiss' })}
+              testId="github-flash"
+            />
+          ) : null}
+          {notice && (
+            <StatusBanner
+              tone="success"
+              message={notice}
+              onDismiss={() => setNotice(null)}
+              dismissLabel={t('settings.githubDismiss', { defaultValue: 'Dismiss' })}
+              testId="github-notice"
+            />
+          )}
         </>
       )}
+      <ConfirmDeleteDialog
+        open={confirmOpen}
+        title={t('settings.githubDisconnectTitle', { defaultValue: 'Disconnect repository?' })}
+        description={t('settings.githubDisconnectDesc', {
+          defaultValue:
+            'DevHub will stop linking PRs, commits and branches to tasks. Task links are kept as history.',
+        })}
+        confirmLabel={t('settings.githubDisconnect', { defaultValue: 'Disconnect' })}
+        busy={disconnectBusy}
+        error={disconnectError}
+        onConfirm={() => void disconnect()}
+        onClose={() => {
+          if (!disconnectBusy) setConfirmOpen(false);
+        }}
+      />
     </div>
   );
 }

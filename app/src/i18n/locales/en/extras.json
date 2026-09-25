@@ -1093,6 +1093,8 @@
     "syncPaused": "Sync paused",
     "dismiss": "Dismiss",
     "connectedFlash": "Google Calendar connected.",
+    "disconnectedFlashTitle": "Disconnected",
+    "disconnectedFlash": "Google Calendar disconnected. Existing events stay in your calendar.",
     "failed": "Connection failed",
     "errorInvalidState": "Connection attempt expired. Please try Connect again.",
     "errorExchange": "Google rejected the connection. Check the redirect URI setup.",

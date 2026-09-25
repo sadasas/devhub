@@ -39,8 +39,9 @@ export function GCalSettings({ projectId, canEdit, bare = false }: GCalSettingsP
   const [disconnectBusy, setDisconnectBusy] = useState(false);
   const [disconnectError, setDisconnectError] = useState<string | null>(null);
   const [reconnectBusy, setReconnectBusy] = useState(false);
-  // Flash dari redirect callback OAuth (?gcal=connected / ?gcal_error=CODE).
-  const [flash, setFlash] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
+  // Flash dari redirect callback OAuth (?gcal=connected / ?gcal_error=CODE)
+  // atau hasil aksi (disconnect sukses). Title opsional menimpa label baku.
+  const [flash, setFlash] = useState<{ tone: 'success' | 'error'; text: string; title?: string } | null>(null);
 
   const fetchStatus = useCallback(async () => {
     setLoading(true);
@@ -132,6 +133,13 @@ export function GCalSettings({ projectId, canEdit, bare = false }: GCalSettingsP
       setStatus((prev) =>
         prev ? { ...prev, connected: false, expired: false, syncEnabled: false } : prev,
       );
+      setFlash({
+        tone: 'success',
+        title: t('gcal.disconnectedFlashTitle', { defaultValue: 'Disconnected' }),
+        text: t('gcal.disconnectedFlash', {
+          defaultValue: 'Google Calendar disconnected. Existing events stay in your calendar.',
+        }),
+      });
       setConfirmOpen(false);
     } catch (err) {
       setDisconnectError(
@@ -294,23 +302,6 @@ export function GCalSettings({ projectId, canEdit, bare = false }: GCalSettingsP
                 </div>
               ) : null}
             </div>
-            {connected && expired ? (
-              <GCalBanner email={status?.email} onReconnect={handleReconnect} busy={reconnectBusy} />
-            ) : null}
-            {flash ? (
-              <StatusBanner
-                tone={flash.tone === 'error' ? 'danger' : 'success'}
-                title={
-                  flash.tone === 'error'
-                    ? t('gcal.failed', { defaultValue: 'Connection failed' })
-                    : t('gcal.connected', { defaultValue: 'Connected' })
-                }
-                message={flash.text}
-                onDismiss={() => setFlash(null)}
-                dismissLabel={t('gcal.dismiss', { defaultValue: 'Dismiss' })}
-                testId="gcal-flash"
-              />
-            ) : null}
             {actionError ? (
               <StatusBanner
                 tone="danger"
@@ -318,6 +309,24 @@ export function GCalSettings({ projectId, canEdit, bare = false }: GCalSettingsP
                 onDismiss={() => setActionError(null)}
                 dismissLabel={t('gcal.dismiss', { defaultValue: 'Dismiss' })}
                 testId="gcal-toast"
+              />
+            ) : null}
+            {connected && expired ? (
+              <GCalBanner email={status?.email} onReconnect={handleReconnect} busy={reconnectBusy} />
+            ) : null}
+            {flash ? (
+              <StatusBanner
+                tone={flash.tone === 'error' ? 'danger' : 'success'}
+                title={
+                  flash.title ??
+                  (flash.tone === 'error'
+                    ? t('gcal.failed', { defaultValue: 'Connection failed' })
+                    : t('gcal.connected', { defaultValue: 'Connected' }))
+                }
+                message={flash.text}
+                onDismiss={() => setFlash(null)}
+                dismissLabel={t('gcal.dismiss', { defaultValue: 'Dismiss' })}
+                testId="gcal-flash"
               />
             ) : null}
           </>

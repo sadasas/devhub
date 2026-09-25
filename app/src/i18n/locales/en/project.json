@@ -146,6 +146,8 @@
     "githubRevokeLink": "GitHub App settings",
     "githubSideLink": "GitHub's policies",
     "githubRetry": "Try again",
+    "githubDisconnectTitle": "Disconnect repository?",
+    "githubDisconnectDesc": "DevHub will stop linking PRs, commits and branches to tasks. Task links are kept as history.",
     "githubNotConfiguredTitle": "GitHub App not configured",
     "githubNotConfiguredDesc": "The GitHub App is not set up on this server yet. Ask an admin to configure it, then try again."
   },

@@ -1095,6 +1095,8 @@
     "syncPaused": "Sinkronisasi dijeda",
     "dismiss": "Tutup",
     "connectedFlash": "Google Calendar terhubung.",
+    "disconnectedFlashTitle": "Terputus",
+    "disconnectedFlash": "Google Calendar terputus. Event yang ada tetap tersimpan di kalendermu.",
     "failed": "Koneksi gagal",
     "errorInvalidState": "Upaya koneksi kedaluwarsa. Silakan coba Connect lagi.",
     "errorExchange": "Google menolak koneksi. Periksa setup redirect URI.",

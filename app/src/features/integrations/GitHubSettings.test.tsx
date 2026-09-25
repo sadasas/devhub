@@ -121,13 +121,13 @@ describe('GitHubSettings', () => {
     await waitFor(() => expect(apiMock.githubInstallUrl).toHaveBeenCalledTimes(1));
     expect(screen.getByTestId('github-unconfigured')).toBeTruthy();
     expect(screen.queryByTestId('github-toast')).toBeNull();
-    // Aturan global: banner menempel pada aksi, teks statis utuh tak disela —
-    // warn sesudah disclosure, sebelum tombol Connect.
+    // Aturan global slot-tunggal: semua banner di bawah konten (danger → warn
+    // → success); teks statis utuh, warn sesudah seluruh konten termasuk aksi.
     const disclosure = screen.getByText(/short-lived GitHub App token/);
     const warn = screen.getByTestId('github-unconfigured');
     const connect = screen.getByRole('button', { name: 'Connect' });
     expect(disclosure.compareDocumentPosition(warn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(warn.compareDocumentPosition(connect) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(connect.compareDocumentPosition(warn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('shows a success flash for ?github=connected and strips the query', async () => {
@@ -145,5 +145,56 @@ describe('GitHubSettings', () => {
     const flash = await screen.findByTestId('github-flash');
     expect(flash.getAttribute('role')).toBe('alert');
     expect(within(flash).getByText('boom')).not.toBeNull();
+  });
+
+  it('disconnects through ConfirmDeleteDialog', async () => {
+    apiMock.githubStatus.mockResolvedValue(
+      status({
+        connected: true,
+        owner: 'acme',
+        repo: 'web',
+        installationId: 42,
+        accountLogin: 'acme',
+        automation: { onPrOpened: 'suggest', onPrMerged: 'suggest' },
+      }),
+    );
+    apiMock.githubDisconnect.mockResolvedValue({ ok: true });
+    renderSettings();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Disconnect' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Disconnect repository?')).not.toBeNull();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Disconnect' }));
+    await waitFor(() => expect(apiMock.githubDisconnect).toHaveBeenCalledTimes(1));
+    expect(await screen.findByTestId('github-notice')).toBeTruthy();
+  });
+
+  it('keeps the mapping when disconnect is cancelled', async () => {
+    apiMock.githubStatus.mockResolvedValue(
+      status({
+        connected: true,
+        owner: 'acme',
+        repo: 'web',
+        installationId: 42,
+        accountLogin: 'acme',
+        automation: { onPrOpened: 'suggest', onPrMerged: 'suggest' },
+      }),
+    );
+    renderSettings();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Disconnect' }));
+    expect(await screen.findByText('Disconnect repository?')).not.toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(apiMock.githubDisconnect).not.toHaveBeenCalled();
+    expect(screen.getByText('Linked to acme/web (acme).')).not.toBeNull();
+  });
+
+  it('renders flash below content in the single bottom slot', async () => {
+    renderSettings('/project/p1?tab=settings&section=integrations&github=connected&repo=acme%2Fweb');
+    const flash = await screen.findByTestId('github-flash');
+    const desc = screen.getByText(/One repository per project/);
+    expect(desc.compareDocumentPosition(flash) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

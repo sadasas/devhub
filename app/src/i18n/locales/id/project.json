@@ -146,6 +146,8 @@
     "githubRevokeLink": "Pengaturan GitHub App",
     "githubSideLink": "kebijakan GitHub",
     "githubRetry": "Coba lagi",
+    "githubDisconnectTitle": "Putuskan repositori?",
+    "githubDisconnectDesc": "DevHub berhenti menautkan PR, commit, dan branch ke task. Tautan task dipertahankan sebagai riwayat.",
     "githubNotConfiguredTitle": "GitHub App belum dikonfigurasi",
     "githubNotConfiguredDesc": "GitHub App belum disiapkan di server ini. Minta admin untuk mengonfigurasinya, lalu coba lagi."
   },
