@@ -45,6 +45,7 @@ import type {
   WhiteboardFontFamily,
   WhiteboardRefEntity,
   WhiteboardShape,
+  WhiteboardShapeFill,
   WhiteboardShapeType,
   WhiteboardSticky,
   WhiteboardValign,
@@ -79,8 +80,8 @@ import {
   worldViewportRect,
   wrapTextLines,
   wrapToWidth,
-  BOUNDARY_LABEL_DY,
   boundaryChipWidth,
+  boundaryLabelDY,
   CHIP_CHAR_W,
   REF_LAYOUT,
   type AlignMode,
@@ -103,10 +104,13 @@ import {
   portPoint,
   portSideToward,
   portToward,
+  snapPointToBounds,
   type EdgeEndpoints,
   type Point,
   type PortSide,
 } from './edges';
+import { SHAPE_FILL_TINT_OPACITY, shapeFillMode, shapeLabelFill, shapePaintColor } from './canvas-palette';
+import { ColorSwatchGrid, LineStyleSegmented, type LineStyleOption } from './WhiteboardColorPanel';
 import {
   BOUNDARY_COLOR,
   SHAPE_COLOR,
@@ -130,7 +134,7 @@ import {
 } from './tools';
 import { isModalOrPaletteOpen, isTypingTarget } from '../../lib/keys';
 import { listedLines, svgTextStyle } from './fonts';
-import { AlignDropdown, ColorDropdown, DropCaret, DropdownShell, FontDropdown, SizeDropdown, TextStyleToggles, ValignDropdown, WidthSlider } from './WhiteboardTextControls';
+import { AlignDropdown, ColorDropdown, DropCaret, DropdownShell, FontDropdown, SizeDropdown, TextStyleToggles, ValignDropdown, WidthPresets, WidthSlider } from './WhiteboardTextControls';
 import { SHAPE_LIBRARY_TABS } from './libraries';
 import { ShapeThumb } from './ShapeThumb';
 import { RefPicker } from './RefPicker';
@@ -177,12 +181,13 @@ interface WhiteboardCanvasProps {
   textStrike?: boolean | null;
   textBullet?: boolean | null;
   shapeColor?: string;
+  shapeFillColor?: string | null;
   shapeLabelColor?: string;
   shapeFontSize?: number;
   shapeAlign?: string | null;
   shapeType?: string | null;
   shapeLabel?: string | null;
-  shapeFill?: boolean;
+  shapeFill?: WhiteboardShapeFill | boolean;
   edgeColor?: string;
   edgeFontSize?: number;
   edgeAlign?: string | null;
@@ -263,6 +268,7 @@ const OPTIONAL_PATCH_FIELDS: ReadonlySet<string> = new Set([
   'labelColor',
   'dash',
   'fill',
+  'fillColor',
   'fontFamily',
   'bold',
   'strikethrough',
@@ -298,9 +304,19 @@ function shiftEndpoints(
 }
 
 interface EdgeDraft {
-  fromId: string;
+  /** Null when the draft started on empty space (free-floating edge). */
+  fromId: string | null;
+  /** Zero-size rect at the start point when fromId is null. */
   fromBounds: Rect;
   cur: Point;
+}
+
+/** Minimum drag length for a free-floating edge (click without drag is a no-op). */
+const MIN_FREE_EDGE_LEN = 6;
+
+/** Ghost "Add text" hint font: element size clamped to a 13px screen minimum. */
+export function ghostHintFontSize(fontSize: number, zoom: number): number {
+  return Math.max(fontSize, 13 / Math.max(0.3, zoom));
 }
 
 interface ElementViewProps {
@@ -315,6 +331,8 @@ interface ElementViewProps {
   refData?: RefCardData | null;
   collapsed?: boolean;
   bounds?: Rect;
+  /** Canvas zoom scale — ghost hints clamp to a minimum screen size. */
+  zoom?: number;
 }
 
 const ElementView = memo(function ElementView({
@@ -327,8 +345,11 @@ const ElementView = memo(function ElementView({
   refData,
   collapsed = false,
   bounds: boundsProp,
+  zoom = 1,
 }: ElementViewProps) {
   const { t } = useTranslation('extras');
+  /** Ghost "Add text" hint stays readable when zoomed out (min 13 screen px). */
+  const ghostFs = (fs: number) => ghostHintFontSize(fs, zoom);
   const outline = (rect: Rect) => (
     <rect
       data-testid="wb-selection"
@@ -371,7 +392,7 @@ const ElementView = memo(function ElementView({
         );
       }
       case 'sticky': {
-        const fontSize = el.fontSize ?? 12;
+        const fontSize = el.fontSize ?? 16;
         const align = el.align ?? 'left';
         const lineHeight = textLineHeight(fontSize);
         const pad = 8;
@@ -423,7 +444,7 @@ const ElementView = memo(function ElementView({
               <text
                 x={textX}
                 y={vTop}
-                fontSize={fontSize}
+                fontSize={ghostFs(fontSize)}
                 fill={textFill}
                 opacity={0.45}
                 textAnchor={anchor as any}
@@ -457,7 +478,7 @@ const ElementView = memo(function ElementView({
           const baseX = align === 'center' ? el.x + el.w / 2 : align === 'right' ? el.x + el.w : el.x;
           return (
             <g transform={rot}>
-              <text x={baseX} y={el.y} fontSize={fontSize} fill={el.color} textAnchor={anchor as any} {...style}>
+              <text x={baseX} y={el.y} fontSize={showGhost ? ghostFs(fontSize) : fontSize} fill={el.color} textAnchor={anchor as any} {...style}>
                 {lines.map((line, i) => (
                   <tspan key={i} x={baseX} dy={i === 0 ? 0 : textLineHeight(fontSize)}>
                     {line}
@@ -480,7 +501,7 @@ const ElementView = memo(function ElementView({
         }
         return (
           <g transform={rot}>
-            <text x={el.x} y={el.y} fontSize={fontSize} fill={el.color} textAnchor={anchor as any} {...style}>
+            <text x={el.x} y={el.y} fontSize={showGhost ? ghostFs(fontSize) : fontSize} fill={el.color} textAnchor={anchor as any} {...style}>
               {showGhost ? (
                 <tspan
                   opacity={0.45}
@@ -498,13 +519,14 @@ const ElementView = memo(function ElementView({
       }
       case 'shape': {
         const pad = 8;
-        const fontSize = el.fontSize ?? 12;
+        const fontSize = el.fontSize ?? 16;
         const align = el.align ?? 'center';
         const innerW = Math.max(24, el.w - pad * 2);
         const labelLines = el.label ? wrapToWidth(listedLines(el.label, el).join('\n'), fontSize, innerW, 4) : [];
         const rot = el.rotation ? `rotate(${el.rotation}, ${el.x + el.w / 2}, ${el.y + el.h / 2})` : undefined;
-        const isLightFill = el.fill && ["#e4e4e7","#6ea8fe","#f2b8c6","#34c38e","#5db69b","#a78bfa","#e8b955"].includes(el.color);
-        const labelFill = el.labelColor ?? (isLightFill ? "#0f172a" : el.color);
+        const fillMode = shapeFillMode(el.fill);
+        const paint = shapePaintColor(el.color, el.fillColor);
+        const labelFill = shapeLabelFill(el.fill, paint, el.labelColor);
         const anchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
         const textX = align === 'left' ? el.x + pad : align === 'right' ? el.x + el.w - pad : el.x + el.w / 2;
         const style = svgTextStyle(el);
@@ -532,8 +554,8 @@ const ElementView = memo(function ElementView({
           <g transform={rot}>
             <path
               d={shapePath(el)}
-              fill={el.fill ? el.color : 'none'}
-              fillOpacity={el.fill ? 0.15 : undefined}
+              fill={fillMode === 'none' ? 'none' : paint}
+              fillOpacity={fillMode === 'transparent' ? SHAPE_FILL_TINT_OPACITY : undefined}
               stroke={el.dash === 'none' ? 'none' : el.color}
               strokeWidth={el.strokeWidth}
               strokeDasharray={el.dash === 'dashed' ? '8 5' : undefined}
@@ -563,7 +585,7 @@ const ElementView = memo(function ElementView({
                 y={vMode === 'top' ? el.y + pad + step / 2 : vMode === 'bottom' ? el.y + el.h - pad - step / 2 : legacyY}
                 textAnchor={anchor as any}
                 dominantBaseline="middle"
-                fontSize={fontSize}
+                fontSize={ghostFs(fontSize)}
                 fill={labelFill}
                 opacity={0.45}
                 style={{ cursor: 'text' }}
@@ -628,21 +650,45 @@ const ElementView = memo(function ElementView({
             )}
             {arrow}
             {!editing && el.label && (() => {
-              const fontSize = el.fontSize ?? 11;
-              const align = el.align ?? 'center';
-              const anchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
+              const fontSize = el.fontSize ?? 16;
+              // Edge labels are always horizontally centered; vertical placement via valign.
+              const dy = el.valign === 'top' ? -(fontSize / 2 + 6) : el.valign === 'bottom' ? fontSize / 2 + 12 : 0;
               return (
                 <text
                   className="wb-edge-label"
                   x={mid.x}
-                  y={mid.y}
-                  textAnchor={anchor as any}
+                  y={mid.y + dy}
+                  textAnchor="middle"
                   fontSize={fontSize}
                   fill={el.color}
                   pointerEvents="none"
                   {...svgTextStyle(el)}
                 >
                   {listedLines(el.label, el).join(' ')}
+                </text>
+              );
+            })()}
+            {!editing && !el.label && selected && (() => {
+              const fontSize = el.fontSize ?? 16;
+              const dy = el.valign === 'top' ? -(fontSize / 2 + 6) : el.valign === 'bottom' ? fontSize / 2 + 12 : 0;
+              return (
+                <text
+                  className="wb-edge-label"
+                  x={mid.x}
+                  y={mid.y + dy}
+                  textAnchor="middle"
+                  fontSize={ghostFs(fontSize)}
+                  fill={el.color}
+                  opacity={0.45}
+                  style={{ cursor: 'text' }}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onGhostEdit?.(el);
+                  }}
+                  {...svgTextStyle(el)}
+                >
+                  {t('whiteboard.canvas.addText')}
                 </text>
               );
             })()}
@@ -665,21 +711,21 @@ const ElementView = memo(function ElementView({
               strokeDasharray="6 4"
             />
             {!editing && el.label && (() => {
-              const fontSize = el.fontSize ?? 14;
+              const fontSize = el.fontSize ?? 16;
               const labelColor = (el as { labelColor?: string | null }).labelColor ?? '#0f172a';
               const bold = !!(el as { bold?: boolean | null }).bold;
               const chipW = boundaryChipWidth(listedLines(el.label, el).join(' '), fontSize, el.w - 12, bold);
-              // Tinggi mengikuti font (12px → persis 18/-16 seperti semula),
-              // baseline selalu di tengah optikal bg.
+              // Tinggi + baseline mengikuti font (12px → persis 18/-16 seperti
+              // semula): gap atas selalu = gap kiri (2px), sudut tajam.
               const chipH = fontSize * 1.5;
               return (
-                <g transform={`translate(${el.x + 6}, ${el.y + BOUNDARY_LABEL_DY})`}>
+                <g transform={`translate(${el.x + 6}, ${el.y + boundaryLabelDY(fontSize)})`}>
                   <rect
                     x={-4}
                     y={-(chipH - 2)}
                     width={chipW}
                     height={chipH}
-                    rx={5}
+                    rx={3}
                     fill={el.color}
                     fillOpacity={0.25}
                   />
@@ -841,7 +887,7 @@ interface DraftStroke {
   points: Array<[number, number]>;
 }
 
-export function WhiteboardCanvas({ board, tool, history, readOnly = false, readOnlyState = null, readOnlyProjectId, selectedIds: selectedIdsProp, onSelectedChange, onToolChange, onOpenShortcuts: onOpenShortcutsProp, registerDelete: registerDeleteProp, isMobile: isMobileProp, snapOn: snapOnProp, penColor: penColorProp, penWidth: penWidthProp, eraserWidth: eraserWidthProp, stickyColor: stickyColorProp, stickyTextColor: stickyTextColorProp, stickyFontSize: stickyFontSizeProp, stickyAlign: stickyAlignProp, textColor: textColorProp, textFontSize: textFontSizeProp, textAlign: textAlignProp, textFontFamily: textFontFamilyProp, textBold: textBoldProp, textStrike: textStrikeProp, textBullet: textBulletProp, shapeColor: shapeColorProp, shapeLabelColor: shapeLabelColorProp, shapeFontSize: shapeFontSizeProp, shapeAlign: shapeAlignProp, shapeType: shapeTypeProp, shapeLabel: shapeLabelProp, shapeFill: shapeFillProp, onNotice: onNoticeProp, edgeColor: edgeColorProp, edgeFontSize: edgeFontSizeProp, edgeAlign: edgeAlignProp, edgeLabel: edgeLabelProp, edgeArrowStyle: edgeArrowStyleProp, edgeDash: edgeDashProp, boundaryColor: boundaryColorProp, boundaryLabelColor: boundaryLabelColorProp, boundaryFontSize: boundaryFontSizeProp, boundaryAlign: boundaryAlignProp, boundaryLabel: boundaryLabelProp, panToId, hideChrome = false }: WhiteboardCanvasProps) {
+export function WhiteboardCanvas({ board, tool, history, readOnly = false, readOnlyState = null, readOnlyProjectId, selectedIds: selectedIdsProp, onSelectedChange, onToolChange, onOpenShortcuts: onOpenShortcutsProp, registerDelete: registerDeleteProp, isMobile: isMobileProp, snapOn: snapOnProp, penColor: penColorProp, penWidth: penWidthProp, eraserWidth: eraserWidthProp, stickyColor: stickyColorProp, stickyTextColor: stickyTextColorProp, stickyFontSize: stickyFontSizeProp, stickyAlign: stickyAlignProp, textColor: textColorProp, textFontSize: textFontSizeProp, textAlign: textAlignProp, textFontFamily: textFontFamilyProp, textBold: textBoldProp, textStrike: textStrikeProp, textBullet: textBulletProp, shapeColor: shapeColorProp, shapeLabelColor: shapeLabelColorProp, shapeFontSize: shapeFontSizeProp, shapeAlign: shapeAlignProp, shapeType: shapeTypeProp, shapeLabel: shapeLabelProp, shapeFill: shapeFillProp, shapeFillColor: shapeFillColorProp, onNotice: onNoticeProp, edgeColor: edgeColorProp, edgeFontSize: edgeFontSizeProp, edgeAlign: edgeAlignProp, edgeLabel: edgeLabelProp, edgeArrowStyle: edgeArrowStyleProp, edgeDash: edgeDashProp, boundaryColor: boundaryColorProp, boundaryLabelColor: boundaryLabelColorProp, boundaryFontSize: boundaryFontSizeProp, boundaryAlign: boundaryAlignProp, boundaryLabel: boundaryLabelProp, panToId, hideChrome = false }: WhiteboardCanvasProps) {
   const { t } = useTranslation('extras');
   const proj = useProjectOptional(null);
   const { canEdit, dispatch, projectId, state } =
@@ -924,7 +970,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     if (!svg) return;
     const rect = svg.getBoundingClientRect();
     const pt = screenToWorld(view.view, clientX - rect.left, clientY - rect.top);
-    const hit = elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects);
+    const hit = elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects, undefined, derivedEdges);
     if (hit && !selectedIds.includes(hit.id)) setSelectedIds([hit.id]);
     const hasSel = !!hit || selectedIds.length > 0;
     const hasClip = !!clipboard && clipboard.length > 0;
@@ -939,7 +985,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   // font list, size list or stroke-width slider.
   interface BarPopState {
     kind: 'fill' | 'line' | 'font' | 'size' | 'align' | 'valign' | 'width' | 'shapeType' | 'border';
-    field?: 'color' | 'textColor' | 'labelColor';
+    field?: 'color' | 'textColor' | 'labelColor' | 'fillColor';
   }
   const [barPop, setBarPop] = useState<BarPopState | null>(null);
   // Mobile ⋮ bottom sheet: actions for the current selection.
@@ -948,6 +994,9 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   const rotateDragRef = useRef<{ id: string; center: Point; startAng: number; startRot: number } | null>(null);
   const [rotateLive, setRotateLive] = useState<number | null>(null);
   const [hoverRotate, setHoverRotate] = useState(false);
+  // Edge endpoint drag: move one end of a selected edge (attach on node drop, free on empty drop).
+  const edgeEndpointDragRef = useRef<{ edgeId: string; end: 'start' | 'end'; cur: Point } | null>(null);
+  const [edgeEndpointPreview, setEdgeEndpointPreview] = useState<{ edgeId: string; end: 'start' | 'end'; cur: Point } | null>(null);
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const [viewport, setViewport] = useState<Rect | null>(null);
@@ -1020,26 +1069,63 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   const derivedEdges = useMemo(() => {
     const map = new Map<string, EdgeEndpoints>();
     for (const el of board.elements) {
-      if (el.kind !== 'edge' || !el.sourceNodeId || !el.targetNodeId) continue;
-      const src = byId.get(el.sourceNodeId);
-      const dst = byId.get(el.targetNodeId);
-      if (!src || !dst) continue;
-      const sb = boundsFor(src);
-      const tb = boundsFor(dst);
-      const sc = { x: sb.x + sb.w / 2, y: sb.y + sb.h / 2 };
-      const tc = { x: tb.x + tb.w / 2, y: tb.y + tb.h / 2 };
-      const p1 = el.sourcePort ? portPoint(sb, el.sourcePort) : portToward(sb, tc);
-      const p2 = el.targetPort ? portPoint(tb, el.targetPort) : portToward(tb, sc);
-      map.set(el.id, { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y });
+      if (el.kind !== 'edge') continue;
+      const src = el.sourceNodeId ? byId.get(el.sourceNodeId) : undefined;
+      const dst = el.targetNodeId ? byId.get(el.targetNodeId) : undefined;
+      if (!src && !dst) continue;
+      if (src && dst) {
+        const sb = boundsFor(src);
+        const tb = boundsFor(dst);
+        const sc = { x: sb.x + sb.w / 2, y: sb.y + sb.h / 2 };
+        const tc = { x: tb.x + tb.w / 2, y: tb.y + tb.h / 2 };
+        const p1 = el.sourcePort ? portPoint(sb, el.sourcePort) : portToward(sb, tc);
+        const p2 = el.targetPort ? portPoint(tb, el.targetPort) : portToward(tb, sc);
+        map.set(el.id, { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y });
+        continue;
+      }
+      // Half-attached: the attached end tracks its live node bounds, the
+      // free (or dangling) end keeps raw coords — so single-attached edges
+      // follow their node when dragged.
+      let x1 = el.x1;
+      let y1 = el.y1;
+      let x2 = el.x2;
+      let y2 = el.y2;
+      if (src) {
+        const sb = boundsFor(src);
+        const p1 = el.sourcePort ? portPoint(sb, el.sourcePort) : portToward(sb, { x: x2, y: y2 });
+        x1 = p1.x;
+        y1 = p1.y;
+      }
+      if (dst) {
+        const tb = boundsFor(dst);
+        const p2 = el.targetPort ? portPoint(tb, el.targetPort) : portToward(tb, { x: x1, y: y1 });
+        x2 = p2.x;
+        y2 = p2.y;
+      }
+      map.set(el.id, { x1, y1, x2, y2 });
     }
     return map;
   }, [board.elements, byId, boundsFor]);
 
+  /** Rendered endpoints of an edge (orthogonal path ends when ports lock, raw coords otherwise). */
+  const edgeRenderEnds = (el: WhiteboardEdge): [Point, Point] => {
+    const dep = derivedEdges.get(el.id);
+    const raw = dep ?? { x1: el.x1, y1: el.y1, x2: el.x2, y2: el.y2 };
+    if (el.sourcePort && el.targetPort && dep) {
+      const pts = orthogonalPath(raw, el.sourcePort, el.targetPort);
+      return [pts[0]!, pts[pts.length - 1]!];
+    }
+    return [
+      { x: raw.x1, y: raw.y1 },
+      { x: raw.x2, y: raw.y2 },
+    ];
+  };
+
   const edgeDraftHover = useMemo(() => {
     if (!edgeDraft) return null;
-    const fromEl = board.elements.find((el) => el.id === edgeDraft.fromId);
-    if (!fromEl) return null;
-    const hover = elementsAtPoint(board.elements, edgeDraft.cur, EDGE_TOUCH_TOLERANCE, refRects, NO_BOUNDARY);
+    const fromEl = edgeDraft.fromId ? (board.elements.find((el) => el.id === edgeDraft.fromId) ?? null) : null;
+    if (edgeDraft.fromId && !fromEl) return null;
+    const hover = elementsAtPoint(board.elements, edgeDraft.cur, EDGE_TOUCH_TOLERANCE, refRects, NO_BOUNDARY, derivedEdges);
     return { fromEl, hover };
   }, [board.elements, edgeDraft, refRects]);
 
@@ -1142,11 +1228,13 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       const elements = board.elements.filter((el) => selectedIds.includes(el.id));
       const sel = { ...board, elements };
       const refData = new Map(elements.map((el) => [el.id, refDataMap.get(el.id) ?? null] as const));
+      // Seleksi diekspor transparan tanpa grid ala FigJam (full-board ikut toggle transparan).
+      const opts = { background: 'transparent' } as const;
       try {
         if (kind === 'png') {
-          downloadWhiteboardPng(sel, refData, {});
+          downloadWhiteboardPng(sel, refData, opts);
         } else {
-          downloadWhiteboardSvg(sel, refData, {});
+          downloadWhiteboardSvg(sel, refData, opts);
         }
       } catch {
         /* silent by design (D8: no transient notices) */
@@ -1816,7 +1904,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       const withDefaults = {
         ...base,
         label: shapeLabelProp ?? '',
-        fill: shapeFillProp ?? false,
+        fill: shapeFillMode(shapeFillProp),
+        fillColor: shapeFillColorProp ?? null,
         fontSize: Math.max(4, Math.min(96, shapeFontSizeProp ?? 12)),
         align: (shapeAlignProp ?? 'center') as any,
       } as WhiteboardElement;
@@ -1841,10 +1930,14 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...board.elements, placed] } });
     setSelectedIds([placed.id]);
     if (onToolChange) onToolChange('select');
+    // Drop-klik langsung masuk mode ketik (FigJam): tanpa ini fokus tetap di
+    // body dan ketikan pertama dibajak shortcut satu-huruf toolbar.
+    setTextZoneId(placed.id);
+    startTextEdit(placed);
   };
 
   /** FigJam drag-to-place: commits the drag rect as a shape. Tiny drags count
-   * as a click and fall back to the fixed-size placement at the press point. */
+  as a click and fall back to the fixed-size placement at the press point. */
   const commitShapeDraft = (d: { x1: number; y1: number; x2: number; y2: number }) => {
     if (isReadOnly) return;
     const w = Math.abs(d.x2 - d.x1);
@@ -1859,12 +1952,13 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     const x = snap(Math.min(d.x1, d.x2));
     const y = snap(Math.min(d.y1, d.y2));
     const base = buildShape(x, y, shapeColorProp ?? SHAPE_COLOR, (shapeTypeProp as WhiteboardShapeType) ?? 'rect', shapeLabelColorProp ?? null);
-    const placed = {
-      ...base,
-      w,
-      h,
-      label: shapeLabelProp ?? '',
-      fill: shapeFillProp ?? false,
+      const placed = {
+        ...base,
+        w,
+        h,
+        label: shapeLabelProp ?? '',
+        fill: shapeFillMode(shapeFillProp),
+        fillColor: shapeFillColorProp ?? null,
       fontSize: Math.max(4, Math.min(96, shapeFontSizeProp ?? 12)),
       align: (shapeAlignProp ?? 'center') as any,
     } as WhiteboardElement;
@@ -1915,38 +2009,65 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     setEdgeDraft(null);
     if (isReadOnly) return;
     if (!d) return;
-    const fromEl = board.elements.find((el) => el.id === d.fromId);
-    if (!fromEl) return;
-    const target = elementsAtPoint(board.elements, d.cur, EDGE_TOUCH_TOLERANCE, refRects, NO_BOUNDARY);
-    // WB-6: dropping on empty space/self is a silent no-op no more.
-    if (!target || target.id === d.fromId) {
-      return;
+    const fromEl = d.fromId ? board.elements.find((el) => el.id === d.fromId) : undefined;
+    if (d.fromId && !fromEl) return;
+    const target = elementsAtPoint(board.elements, d.cur, EDGE_TOUCH_TOLERANCE, refRects, NO_BOUNDARY, derivedEdges);
+    const endNode = target && target.id !== d.fromId ? target : null;
+    // Dropping back onto the start node stays a silent no-op (legacy behavior).
+    if (fromEl && !endNode && target) return;
+    let edge: WhiteboardEdge;
+    if (fromEl && endNode) {
+      const fromBounds = boundsFor(fromEl);
+      const toBounds = boundsFor(endNode);
+      const sourcePort: PortSide = portSideToward(fromBounds, d.cur);
+      const targetPort: PortSide = nearestPortSide(d.cur, toBounds) ?? portSideToward(toBounds, d.cur);
+      const ep = edgeEndpoints(fromBounds, toBounds, d.cur);
+      edge = {
+        id: newId(),
+        kind: 'edge',
+        x1: ep.x1,
+        y1: ep.y1,
+        x2: ep.x2,
+        y2: ep.y2,
+        color: edgeColorProp ?? DEFAULT_EDGE_COLOR,
+        width: DEFAULT_EDGE_WIDTH,
+        arrowhead: true,
+        label: edgeLabelProp ?? '',
+        arrowStyle: (edgeArrowStyleProp as WhiteboardEdge['arrowStyle']) ?? 'solid',
+        dash: (edgeDashProp as WhiteboardEdge['dash']) ?? 'solid',
+        fontSize: Math.max(4, Math.min(96, edgeFontSizeProp ?? 16)),
+        align: (edgeAlignProp ?? 'center') as any,
+        sourceNodeId: fromEl.id,
+        targetNodeId: endNode.id,
+        sourcePort,
+        targetPort,
+      };
+    } else {
+      // Free-floating edge: raw points, attached ends snap to node ports.
+      const startPt = fromEl ? portToward(boundsFor(fromEl), d.cur) : { x: d.fromBounds.x, y: d.fromBounds.y };
+      const endPt = endNode ? snapPointToBounds(d.cur, boundsFor(endNode)) : d.cur;
+      if (Math.hypot(endPt.x - startPt.x, endPt.y - startPt.y) < MIN_FREE_EDGE_LEN) return;
+      edge = {
+        id: newId(),
+        kind: 'edge',
+        x1: startPt.x,
+        y1: startPt.y,
+        x2: endPt.x,
+        y2: endPt.y,
+        color: edgeColorProp ?? DEFAULT_EDGE_COLOR,
+        width: DEFAULT_EDGE_WIDTH,
+        arrowhead: true,
+        label: edgeLabelProp ?? '',
+        arrowStyle: (edgeArrowStyleProp as WhiteboardEdge['arrowStyle']) ?? 'solid',
+        dash: (edgeDashProp as WhiteboardEdge['dash']) ?? 'solid',
+        fontSize: Math.max(4, Math.min(96, edgeFontSizeProp ?? 16)),
+        align: (edgeAlignProp ?? 'center') as any,
+        sourceNodeId: fromEl?.id ?? null,
+        targetNodeId: endNode?.id ?? null,
+        sourcePort: fromEl ? portSideToward(boundsFor(fromEl), d.cur) : null,
+        targetPort: endNode ? (nearestPortSide(d.cur, boundsFor(endNode)) ?? portSideToward(boundsFor(endNode), d.cur)) : null,
+      };
     }
-    const fromBounds = boundsFor(fromEl);
-    const toBounds = boundsFor(target);
-    const sourcePort: PortSide = portSideToward(fromBounds, d.cur);
-    const targetPort: PortSide = nearestPortSide(d.cur, toBounds) ?? portSideToward(toBounds, d.cur);
-    const ep = edgeEndpoints(fromBounds, toBounds, d.cur);
-    const edge: WhiteboardEdge = {
-      id: newId(),
-      kind: 'edge',
-      x1: ep.x1,
-      y1: ep.y1,
-      x2: ep.x2,
-      y2: ep.y2,
-      color: edgeColorProp ?? DEFAULT_EDGE_COLOR,
-      width: DEFAULT_EDGE_WIDTH,
-      arrowhead: true,
-      label: edgeLabelProp ?? '',
-      arrowStyle: (edgeArrowStyleProp as WhiteboardEdge['arrowStyle']) ?? 'solid',
-      dash: (edgeDashProp as WhiteboardEdge['dash']) ?? 'solid',
-      fontSize: Math.max(4, Math.min(96, edgeFontSizeProp ?? 11)),
-      align: (edgeAlignProp ?? 'center') as any,
-      sourceNodeId: fromEl.id,
-      targetNodeId: target.id,
-      sourcePort,
-      targetPort,
-    };
     if (board.elements.length >= MAX_ELEMENTS) {
       notifyAtCap();
       return;
@@ -1956,6 +2077,48 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     // WB-6: select the new edge so its label is one click away in the inspector.
     setSelectedIds([edge.id]);
     if (onToolChange) onToolChange('select');
+  };
+
+  /** Commits an endpoint drag on a selected edge: attach on node drop, free on empty drop. */
+  const commitEdgeEndpoint = () => {
+    const d = edgeEndpointDragRef.current;
+    edgeEndpointDragRef.current = null;
+    setEdgeEndpointPreview(null);
+    if (!d || isReadOnly) return;
+    const el = board.elements.find((e) => e.id === d.edgeId);
+    if (!el || el.kind !== 'edge' || el.locked) return;
+    const target = elementsAtPoint(board.elements, d.cur, EDGE_TOUCH_TOLERANCE, refRects, NO_BOUNDARY, derivedEdges);
+    const node = target && target.id !== el.id && CONNECTABLE_KINDS.has(target.kind) && !target.locked ? target : null;
+    let patch: Partial<WhiteboardEdge>;
+    if (node) {
+      const nb = boundsFor(node);
+      const port = nearestPortSide(d.cur, nb) ?? portSideToward(nb, d.cur);
+      const pp = portPoint(nb, port);
+      patch =
+        d.end === 'start'
+          ? { x1: pp.x, y1: pp.y, sourceNodeId: node.id, sourcePort: port }
+          : { x2: pp.x, y2: pp.y, targetNodeId: node.id, targetPort: port };
+    } else {
+      patch =
+        d.end === 'start'
+          ? { x1: d.cur.x, y1: d.cur.y, sourceNodeId: null, sourcePort: null }
+          : { x2: d.cur.x, y2: d.cur.y, targetNodeId: null, targetPort: null };
+    }
+    const nx1 = patch.x1 ?? el.x1;
+    const ny1 = patch.y1 ?? el.y1;
+    const nx2 = patch.x2 ?? el.x2;
+    const ny2 = patch.y2 ?? el.y2;
+    if (Math.hypot(nx2 - nx1, ny2 - ny1) < MIN_FREE_EDGE_LEN) return;
+    history.record();
+    dispatch({
+      type: 'whiteboard/update',
+      id: board.id,
+      patch: {
+        elements: board.elements.map((e) =>
+          e.id === el.id ? ({ ...(e as WhiteboardEdge), ...patch } as WhiteboardElement) : e,
+        ),
+      },
+    });
   };
 
   const placeRef = (entity: WhiteboardRefEntity, entityId: string) => {
@@ -1983,9 +2146,9 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   };
   const textFontOf = (el: WhiteboardElement): number => {
     if (el.kind === 'text') return el.fontSize;
-    if (el.kind === 'edge') return el.fontSize ?? 11;
-    if (el.kind === 'boundary') return el.fontSize ?? 14;
-    if (el.kind === 'sticky' || el.kind === 'shape') return el.fontSize ?? 12;
+    if (el.kind === 'edge') return el.fontSize ?? 16;
+    if (el.kind === 'boundary') return el.fontSize ?? 16;
+    if (el.kind === 'sticky' || el.kind === 'shape') return el.fontSize ?? 16;
     return 12;
   };
   /** FigJam split: inner text area (text bar + inline edit) vs border/body (element bar). */
@@ -1999,7 +2162,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     }
     if (el.kind === 'shape') {
       if (!el.label) return false;
-      const fontSize = el.fontSize ?? 12;
+      const fontSize = el.fontSize ?? 16;
       const innerW = Math.max(24, el.w - pad * 2);
       const lines = wrapToWidth(el.label, fontSize, innerW, 4);
       const h = lines.length * (fontSize + 2);
@@ -2110,7 +2273,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     // below (keeps multi-selection for group drags, resize handles); edge
     // starts drafts from nodes in the edge branch below.
     if (tool !== 'pen' && tool !== 'eraser' && tool !== 'marquee' && tool !== 'select' && tool !== 'edge') {
-      const hitAny = elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects);
+      const hitAny = elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects, undefined, derivedEdges);
       if (hitAny) {
         const alreadySelected = selectedIds.includes(hitAny.id);
         if (!alreadySelected || selectedIds.length !== 1) {
@@ -2170,7 +2333,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
           }
         }
       }
-      const hit = elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects);
+      const hit = elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects, undefined, derivedEdges);
       if (!hit) {
         // WB-7: empty-drag in select starts a marquee (pan via Space/view tool).
         // Viewers keep pan-on-empty for navigation.
@@ -2232,9 +2395,12 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     }
     if (tool === 'edge') {
       if (isReadOnly) return;
-      const hit = elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects, NO_BOUNDARY);
-      if (!hit || hit.kind === 'edge') return;
-      const d: EdgeDraft = { fromId: hit.id, fromBounds: boundsFor(hit), cur: pt };
+      const hit = elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects, NO_BOUNDARY, derivedEdges);
+      // Node start attaches; anything else (empty space, edge, boundary) draws free-floating.
+      const d: EdgeDraft =
+        hit && CONNECTABLE_KINDS.has(hit.kind)
+          ? { fromId: hit.id, fromBounds: boundsFor(hit), cur: pt }
+          : { fromId: null, fromBounds: { x: pt.x, y: pt.y, w: 0, h: 0 }, cur: pt };
       edgeDraftRef.current = d;
       setEdgeDraft(d);
       return;
@@ -2291,6 +2457,14 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     if (edgeDraftRef.current) {
       if (isReadOnly) return;
       updateEdgeDraft(e);
+      return;
+    }
+    // Edge endpoint drag (started from a selected edge's end dot).
+    if (edgeEndpointDragRef.current) {
+      if (isReadOnly) return;
+      const next = { ...edgeEndpointDragRef.current, cur: worldAt(e) };
+      edgeEndpointDragRef.current = next;
+      setEdgeEndpointPreview(next);
       return;
     }
     if (tool === 'select') {
@@ -2478,6 +2652,11 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       commitEdge();
       return;
     }
+    // Edge endpoint drag commits regardless of tool.
+    if (edgeEndpointDragRef.current) {
+      commitEdgeEndpoint();
+      return;
+    }
     if (tool === 'marquee') {
       commitMarquee();
       return;
@@ -2559,7 +2738,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       }
       history.record();
       const baseB = buildBoundary(x, y, w, h, boundaryColorProp ?? BOUNDARY_COLOR);
-      const boundary = { ...baseB, label: boundaryLabelProp ?? '', labelColor: boundaryLabelColorProp ?? '#374151', fontSize: Math.max(4, Math.min(96, boundaryFontSizeProp ?? 14)), align: (boundaryAlignProp ?? 'left') as any } as typeof baseB;
+      const boundary = { ...baseB, label: boundaryLabelProp ?? '', labelColor: boundaryLabelColorProp ?? '#374151', fontSize: Math.max(4, Math.min(96, boundaryFontSizeProp ?? 16)), align: (boundaryAlignProp ?? 'left') as any } as typeof baseB;
       dispatch({ type: 'whiteboard/update', id: board.id, patch: { elements: [...board.elements, boundary] } });
       setSelectedIds([boundary.id]);
       if (onToolChange) onToolChange('select');
@@ -2584,6 +2763,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       setRotateLive(null);
       edgeDraftRef.current = null;
       setEdgeDraft(null);
+      edgeEndpointDragRef.current = null;
+      setEdgeEndpointPreview(null);
       marqueeRef.current = null;
       setMarquee(null);
       return;
@@ -2617,7 +2798,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     if (tool === 'view' || tool === 'marquee') return;
     const rect = e.currentTarget.getBoundingClientRect();
     const pt = screenToWorld(view.view, e.clientX - rect.left, e.clientY - rect.top);
-    const hit = elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects);
+    const hit = elementsAtPoint(board.elements, pt, EDGE_TOUCH_TOLERANCE, refRects, undefined, derivedEdges);
     if (!hit) return;
     if (hit.kind === 'ref') {
       const b = boundsFor(hit);
@@ -2834,7 +3015,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
           ...buildBoundary(world.x - 150, world.y - 100, 300, 200, boundaryColorProp ?? BOUNDARY_COLOR),
           label: boundaryLabelProp ?? '',
           labelColor: boundaryLabelColorProp ?? '#374151',
-          fontSize: Math.max(4, Math.min(96, boundaryFontSizeProp ?? 14)),
+          fontSize: Math.max(4, Math.min(96, boundaryFontSizeProp ?? 16)),
           align: (boundaryAlignProp ?? 'left') as WhiteboardBoundary['align'],
         } as WhiteboardElement;
       if (!newEl) return;
@@ -2879,6 +3060,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
               refData={el.kind === 'ref' ? (refDataMap.get(el.id) ?? null) : undefined}
               collapsed={el.kind === 'ref' ? collapsedRefs.has(el.id) : undefined}
               bounds={el.kind === 'ref' ? refRects.get(el.id) : undefined}
+              zoom={view.view.s}
             />
           ))}
           {draft &&
@@ -2944,6 +3126,26 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                 </g>
               );
             })()}
+          {edgeEndpointPreview &&
+            (() => {
+              const el = board.elements.find((e) => e.id === edgeEndpointPreview.edgeId);
+              if (!el || el.kind !== 'edge') return null;
+              const [p1, p2] = edgeRenderEnds(el);
+              const fixed = edgeEndpointPreview.end === 'start' ? p2 : p1;
+              const cur = edgeEndpointPreview.cur;
+              return (
+                <g>
+                  <polyline
+                    points={`${fixed.x},${fixed.y} ${cur.x},${cur.y}`}
+                    fill="none"
+                    stroke="var(--accent)"
+                    strokeWidth={1.5}
+                    strokeDasharray="5 4"
+                  />
+                  <circle cx={cur.x} cy={cur.y} r={4 / Math.max(0.3, view.view.s)} fill="var(--accent)" pointerEvents="none" />
+                </g>
+              );
+            })()}
           {boundaryDraft &&
             (() => {
               const x = Math.min(boundaryDraft.x1, boundaryDraft.x2);
@@ -2980,13 +3182,14 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                 w,
                 h,
                 color: shapeColorProp ?? SHAPE_COLOR,
-                fill: shapeFillProp ?? false,
+                fill: shapeFillMode(shapeFillProp),
+                fillColor: shapeFillColorProp ?? null,
               } as WhiteboardShape;
               return (
                 <path
                   d={shapePath(ghost)}
-                  fill={ghost.fill ? ghost.color : 'none'}
-                  fillOpacity={ghost.fill ? 0.15 : undefined}
+                  fill={shapeFillMode(ghost.fill) === 'none' ? 'none' : (ghost.fillColor ?? ghost.color)}
+                  fillOpacity={shapeFillMode(ghost.fill) === 'transparent' ? SHAPE_FILL_TINT_OPACITY : undefined}
                   stroke="var(--accent)"
                   strokeWidth={1.5}
                   strokeDasharray="6 4"
@@ -3017,7 +3220,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
             if (!target || isReadOnly || editingText) return null;
             const canResize = RESIZEABLE_KINDS.has(target.kind) && !target.locked;
             const canConnect = CONNECTABLE_KINDS.has(target.kind) && !target.locked;
-            if (!canResize && !canConnect) return null;
+            const canEditEndpoints = target.kind === 'edge' && !target.locked;
+            if (!canResize && !canConnect && !canEditEndpoints) return null;
             const b = boundsFor(target);
             const off = dragOffset ?? { dx: 0, dy: 0 };
             const s = Math.max(0.3, view.view.s);
@@ -3048,6 +3252,21 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
               x: corner === 'ne' || corner === 'se' ? b.x + b.w : b.x,
               y: corner === 'sw' || corner === 'se' ? b.y + b.h : b.y,
             });
+            const beginEndpointDrag = (end: 'start' | 'end') => (e: ReactPointerEvent<SVGCircleElement>) => {
+              e.stopPropagation();
+              const svg = view.ref.current;
+              if (!svg) return;
+              try {
+                svg.setPointerCapture?.(e.pointerId);
+              } catch {
+                /* jsdom — moves still target the svg */
+              }
+              const rect = svg.getBoundingClientRect();
+              const p = screenToWorld(view.view, e.clientX - rect.left, e.clientY - rect.top);
+              const d = { edgeId: (target as WhiteboardEdge).id, end, cur: p };
+              edgeEndpointDragRef.current = d;
+              setEdgeEndpointPreview(d);
+            };
             return (
               <g transform={`translate(${off.dx} ${off.dy})`}>
                 <g transform={rotAttr}>
@@ -3119,6 +3338,36 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                         </g>
                       );
                     })}
+                  {canEditEndpoints &&
+                    (() => {
+                      const [p1, p2] = edgeRenderEnds(target as WhiteboardEdge);
+                      return (
+                        <g>
+                          {(
+                            [
+                              { end: 'start', p: p1 },
+                              { end: 'end', p: p2 },
+                            ] as const
+                          ).map(({ end, p }) => (
+                            <g key={end}>
+                              <circle
+                                cx={p.x}
+                                cy={p.y}
+                                r={PORT_HIT / s}
+                                fill="transparent"
+                                pointerEvents="all"
+                                style={{ cursor: 'move' }}
+                                onPointerDown={beginEndpointDrag(end)}
+                                data-testid="wb-edge-endpoint"
+                              >
+                                <title>{t('whiteboard.canvas.edgeEndpoint')}</title>
+                              </circle>
+                              <circle cx={p.x} cy={p.y} r={portR} fill="var(--accent)" pointerEvents="none" />
+                            </g>
+                          ))}
+                        </g>
+                      );
+                    })()}
                 </g>
               </g>
             );
@@ -3343,19 +3592,15 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
               const valign: WhiteboardValign = rich.valign ?? (el.kind === 'shape' ? 'center' : 'top');
               // Edge labels reuse the line color (edges own no labelColor field).
               const textField = (el.kind === 'sticky' ? 'textColor' : el.kind === 'text' || el.kind === 'edge' ? 'color' : 'labelColor') as 'color' | 'textColor' | 'labelColor';
-              // V2 merged panel: text props join as soon as there is text or an edit is open.
-              const isEditing = editingText?.id === el.id;
-              const hasText =
-                el.kind === 'sticky' || el.kind === 'text'
-                  ? el.text !== ''
-                  : el.kind === 'shape' || el.kind === 'edge' || el.kind === 'boundary'
-                    ? el.label !== ''
-                    : false;
-              const showTextProps = el.kind === 'text' || hasText || isEditing;
-              const togglePop = (kind: 'fill' | 'line' | 'font' | 'size' | 'align' | 'valign' | 'width' | 'shapeType' | 'border', field?: 'color' | 'textColor' | 'labelColor') => {
+              // V2 merged panel: text props always join for text-capable kinds.
+              const togglePop = (kind: 'fill' | 'line' | 'font' | 'size' | 'align' | 'valign' | 'width' | 'shapeType' | 'border', field?: 'color' | 'textColor' | 'labelColor' | 'fillColor') => {
                 setBarPop(barPop?.kind === kind ? null : { kind, field });
               };
-              const colorDot = (field: 'color' | 'textColor' | 'labelColor', label: string) => {
+              const colorDot = (
+                field: 'color' | 'textColor' | 'labelColor' | 'fillColor',
+                label: string,
+                fillMode?: { value: WhiteboardShapeFill | boolean | null; onChange: (m: WhiteboardShapeFill) => void },
+              ) => {
                 const cur = (el as unknown as Record<string, unknown>)[field];
                 return (
                   <ColorDropdown
@@ -3364,12 +3609,32 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                     open={barPop?.kind === 'fill' && (barPop.field ?? 'color') === field}
                     onToggle={() => togglePop('fill', field)}
                     onClose={() => setBarPop(null)}
-                    onPick={(c) => applyBulkPatch({ [field]: c })}
+                    onPick={(c) =>
+                      // Border shape ala FigJam: kunci body ke cat saat ini
+                      // agar tak ikut berubah via fallback fillColor-null.
+                      applyBulkPatch(
+                        field === 'color' && el.kind === 'shape'
+                          ? {
+                              [field]: c,
+                              fillColor: shapePaintColor(el.color, el.fillColor),
+                            }
+                          : { [field]: c },
+                      )
+                    }
                     label={label}
-                    glyph={field === 'color' ? 'dot' : 'letter'}
+                    glyph={field === 'textColor' || field === 'labelColor' ? 'letter' : 'dot'}
+                    fillMode={fillMode?.value}
+                    onFillMode={fillMode?.onChange}
                   />
                 );
               };
+              const shapeFillCtl =
+                el.kind === 'shape'
+                  ? {
+                      value: shapeFillMode(el.fill),
+                      onChange: (m: WhiteboardShapeFill) => applyBulkPatch({ fill: m }),
+                    }
+                  : undefined;
               const textControls = (withColor: boolean): ReactNode[] => [
                 <FontDropdown
                   value={rich.fontFamily ?? 'simple'}
@@ -3393,14 +3658,18 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                   onStrikethrough={() => applyBulkPatch({ strikethrough: !rich.strikethrough })}
                   onBullet={() => applyBulkPatch({ list: rich.list === 'bullet' ? 'none' : 'bullet' })}
                 />,
-                <AlignDropdown
-                  value={align}
-                  open={barPop?.kind === 'align'}
-                  onToggle={() => togglePop('align')}
-                  onClose={() => setBarPop(null)}
-                  onChange={(a) => applyBulkPatch({ align: a })}
-                />,
-                ...((el.kind === 'sticky' || el.kind === 'shape'
+                ...(el.kind !== 'edge'
+                  ? [
+                      <AlignDropdown
+                        value={align}
+                        open={barPop?.kind === 'align'}
+                        onToggle={() => togglePop('align')}
+                        onClose={() => setBarPop(null)}
+                        onChange={(a) => applyBulkPatch({ align: a })}
+                      />,
+                    ]
+                  : []),
+                ...((el.kind === 'sticky' || el.kind === 'shape' || el.kind === 'edge'
                   ? [
                       <ValignDropdown
                         value={valign}
@@ -3427,27 +3696,25 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                     </>
                   }
                 >
-                  <WidthSlider
-                    value={edge.width}
-                    min={1}
-                    max={20}
-                    label={t('whiteboard.popover.lineWidth')}
-                    onChange={(v) => applyBulkPatch({ width: v })}
+                  <LineStyleSegmented
+                    value={(edge.dash ?? 'solid') as LineStyleOption}
+                    options={['solid', 'dashed', 'dotted']}
+                    onChange={(d) => applyBulkPatch({ dash: d })}
+                    label={t('whiteboard.popover.lineStyle')}
                   />
-                  <div className="fp-segmented" role="group" aria-label={t('whiteboard.popover.lineStyle')}>
-                    {(['solid', 'dashed', 'dotted'] as const).map((d) => (
-                      <button
-                        key={d}
-                        type="button"
-                        role="radio"
-                        aria-checked={(edge.dash ?? 'solid') === d}
-                        className={`fp-seg${(edge.dash ?? 'solid') === d ? ' fp-seg-active' : ''}`}
-                        onClick={() => applyBulkPatch({ dash: d })}
-                      >
-                        {d}
-                      </button>
-                    ))}
-                  </div>
+                  <div className="wb-pop-sep" role="separator" aria-hidden="true" />
+                  <ColorSwatchGrid
+                    value={edge.color}
+                    onPick={(c) => applyBulkPatch({ color: c })}
+                    heading={t('whiteboard.popover.shapeColor')}
+                  />
+                  <div className="wb-pop-sep" role="separator" aria-hidden="true" />
+                  <WidthPresets
+                    value={edge.width}
+                    onPick={(v) => applyBulkPatch({ width: v })}
+                    label={t('whiteboard.popover.lineWidth')}
+                  />
+                  <div className="wb-pop-sep" role="separator" aria-hidden="true" />
                   <div className="fp-segmented" role="group" aria-label={t('whiteboard.popover.arrowStyle')}>
                     {(['none', 'open', 'solid', 'diamond', 'circle'] as const).map((st) => (
                       <button
@@ -3455,10 +3722,37 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                         type="button"
                         role="radio"
                         aria-checked={effectiveArrowStyle(edge) === st}
-                        className={`fp-seg${effectiveArrowStyle(edge) === st ? ' fp-seg-active' : ''}`}
+                        className={`fp-seg fp-seg-icon${effectiveArrowStyle(edge) === st ? ' fp-seg-active' : ''}`}
                         onClick={() => applyBulkPatch({ arrowStyle: st })}
                       >
-                        {st}
+                        <svg width={26} height={12} viewBox="0 0 26 12" aria-hidden="true" focusable="false">
+                          {st === 'none' && <line x1={2} y1={6} x2={24} y2={6} stroke="currentColor" strokeWidth={1.5} strokeLinecap="butt" />}
+                          {st === 'open' && (
+                            <g stroke="currentColor" strokeWidth={1.5} fill="none">
+                              <line x1={2} y1={6} x2={13} y2={6} />
+                              <polygon points="13,2 21,6 13,10" />
+                            </g>
+                          )}
+                          {st === 'solid' && (
+                            <g stroke="currentColor" strokeWidth={1.5}>
+                              <line x1={2} y1={6} x2={13} y2={6} />
+                              <polygon points="13,2 21,6 13,10" fill="currentColor" stroke="none" />
+                            </g>
+                          )}
+                          {st === 'diamond' && (
+                            <g stroke="currentColor" strokeWidth={1.5}>
+                              <line x1={2} y1={6} x2={9} y2={6} />
+                              <polygon points="9,6 15,1 21,6 15,11" fill="currentColor" stroke="none" />
+                            </g>
+                          )}
+                          {st === 'circle' && (
+                            <g stroke="currentColor" strokeWidth={1.5}>
+                              <line x1={2} y1={6} x2={15} y2={6} />
+                              <circle cx={20} cy={6} r={3.5} fill="currentColor" stroke="none" />
+                            </g>
+                          )}
+                        </svg>
+                        <span>{st}</span>
                       </button>
                     ))}
                   </div>
@@ -3522,18 +3816,10 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                       </div>
                     ))}
                   </div>
-                  <label className="fp-check">
-                    <input
-                      type="checkbox"
-                      checked={shape.fill}
-                      onChange={(e) => applyBulkPatch({ fill: e.target.checked })}
-                    />
-                    {t('whiteboard.popover.filled')}
-                  </label>
                 </DropdownShell>
               );
               const borderPop = (shape: WhiteboardShape) => {
-                const cur = shape.dash ?? 'solid';
+                const cur = (shape.dash ?? 'solid') as LineStyleOption;
                 return (
                   <DropdownShell
                     open={barPop?.kind === 'border'}
@@ -3548,18 +3834,28 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                       </>
                     }
                   >
-                    {(['solid', 'dashed', 'none'] as const).map((d) => (
-                      <button
-                        key={d}
-                        type="button"
-                        role="radio"
-                        aria-checked={cur === d}
-                        className={`wb-fontopt${cur === d ? ' wb-fontopt-active' : ''}`}
-                        onClick={() => applyBulkPatch({ dash: d })}
-                      >
-                        <span className="wb-fontopt-name">{d}</span>
-                      </button>
-                    ))}
+                    <LineStyleSegmented
+                      value={cur}
+                      options={['solid', 'dashed', 'none']}
+                      onChange={(d) => applyBulkPatch({ dash: d })}
+                      label={t('whiteboard.popover.lineStyle')}
+                    />
+                    <div className="wb-pop-sep" role="separator" aria-hidden="true" />
+                    <ColorSwatchGrid
+                      value={shape.color}
+                      onPick={(c) =>
+                        // Ganti border saja (Figma): kunci body ke warna cat
+                        // saat ini agar tak ikut berubah via fallback null.
+                        applyBulkPatch({ color: c, fillColor: shapePaintColor(shape.color, shape.fillColor) })
+                      }
+                      heading={t('whiteboard.textbar.fill')}
+                    />
+                    <div className="wb-pop-sep" role="separator" aria-hidden="true" />
+                    <WidthPresets
+                      value={shape.strokeWidth}
+                      onPick={(v) => applyBulkPatch({ strokeWidth: v })}
+                      label={t('whiteboard.popover.lineWidth')}
+                    />
                   </DropdownShell>
                 );
               };
@@ -3569,23 +3865,13 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                 setClipboard(src);
                 applyPaste(src, 24);
               };
+              // Satu bar gabungan: properti teks selalu tampil untuk kind
+              // ber-teks (tanpa double-click, tanpa panel terpisah).
               if (el.kind === 'sticky') {
-                // No text and no edit: element props only (fill).
-                if (!showTextProps) return colorDot('color', t('whiteboard.textbar.fill'));
                 return maybeSplit(colorDot('color', t('whiteboard.textbar.fill')), ...textControls(true));
               }
               if (el.kind === 'text') return maybeSplit(...textControls(true));
               if (el.kind === 'shape') {
-                if (!el.label && !isEditing) {
-                  // Empty shape: type + color + border dropdowns (Image: shape props).
-                  return maybeSplit(
-                    typePop(el),
-                    colorDot('color', t('whiteboard.textbar.fill')),
-                    borderPop(el),
-                    widthPop(el.strokeWidth, t('whiteboard.popover.lineWidth'), (v) => applyBulkPatch({ strokeWidth: v })),
-                  );
-                }
-                // Shape with text, or Add-text being typed: type, duplicate, fill, full text controls.
                 return maybeSplit(
                   typePop(el),
                   <Tooltip content={t('whiteboard.ctx.duplicate')} side="top">
@@ -3598,17 +3884,12 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                       <Copy size={15} aria-hidden="true" />
                     </button>
                   </Tooltip>,
-                  colorDot('color', t('whiteboard.textbar.fill')),
+                  colorDot('fillColor', t('whiteboard.textbar.fill'), shapeFillCtl),
+                  borderPop(el),
                   ...textControls(true),
                 );
               }
               if (el.kind === 'edge') {
-                if (!showTextProps) {
-                  return maybeSplit(
-                    colorDot('color', t('whiteboard.popover.shapeColor')),
-                    linePop(t('whiteboard.popover.lineStyle'), el),
-                  );
-                }
                 return maybeSplit(
                   colorDot('color', t('whiteboard.popover.shapeColor')),
                   linePop(t('whiteboard.popover.lineStyle'), el),
@@ -3747,7 +4028,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         let rowsN = Math.max(1, editingText.value.split('\n').length);
         if (el.kind === 'shape') {
           const pad = 8;
-          const fontSize = el.fontSize ?? 12;
+          const fontSize = el.fontSize ?? 16;
           const innerW = Math.max(24, el.w - pad * 2);
           const step = fontSize + 2;
           const n = Math.max(1, wrapToWidth(listedLines(editingText.value, el).join('\n'), fontSize, innerW).length);
@@ -3770,7 +4051,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
           rowsN = n;
         } else if (el.kind === 'sticky') {
           const pad = 8;
-          const fontSize = el.fontSize ?? 12;
+          const fontSize = el.fontSize ?? 16;
           const lineHeight = textLineHeight(fontSize);
           const innerW = Math.max(24, el.w - pad * 2);
           const n = Math.max(1, wrapTextLines(editingText.value, fontSize, innerW).length);
@@ -3801,7 +4082,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
           rowsN = n;
         } else if (el.kind === 'edge') {
           const edge = el as WhiteboardEdge;
-          const fontSize = edge.fontSize ?? 11;
+          const fontSize = edge.fontSize ?? 16;
           const lineHeight = textLineHeight(fontSize);
           const ep = shiftEndpoints(derivedEdges.get(edge.id) ?? null, dragOffset, selectedSet, edge)
             ?? { x1: edge.x1, y1: edge.y1, x2: edge.x2, y2: edge.y2 };
@@ -3817,12 +4098,12 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
           lineHW = lineHeight;
           rowsN = 1;
         } else if (el.kind === 'boundary') {
-          const fontSize = el.fontSize ?? 14;
+          const fontSize = el.fontSize ?? 16;
           // Cermin chip: box = bg persis (lebar mengikuti label, teks tengah vertikal).
           const chipH = fontSize * 1.5;
           const chipW = boundaryChipWidth(editingText.value, fontSize, el.w - 12, !!(el as { bold?: boolean | null }).bold);
           boxLeftW = el.x + 6;
-          boxTopW = el.y + BOUNDARY_LABEL_DY - (chipH - 2);
+          boxTopW = el.y + boundaryLabelDY(fontSize) - (chipH - 2);
           boxW = Math.max(40, chipW);
           boxH = chipH;
           lineHW = chipH;

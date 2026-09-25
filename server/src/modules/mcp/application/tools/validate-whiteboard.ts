@@ -1,17 +1,20 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { textContent, toolError } from '../../domain/entity.js';
-import { whiteboardElementSchema, type WhiteboardElement } from '../../../projects/domain/state.js';
+import { whiteboardElementSchema, type State, type WhiteboardElement } from '../../../projects/domain/state.js';
 import { embedGroupingHints } from '../../../projects/domain/sanitize-svg.js';
+import { EMBED_EXAMPLE_GROUPED, EMBED_GUIDE } from './whiteboard-embed-guide.js';
+import { findDanglingRefs } from '../../../projects/domain/whiteboard-refs.js';
+import { loadState } from '../state-db.js';
 
 const ELEMENTS_DESCRIPTION =
   'Elements to validate (max 1000). Same schema as create_whiteboard. Each element: { id?, kind: "stroke"|"sticky"|"text"|"shape"|"edge"|"boundary"|"ref"|"embed", ...fields }. ' +
-  'Kind "embed" (AI SVG wireframes) is exempt from overlap/too-close checks; only finite-coords/out-of-bounds apply. ' +
-  'Examples: { kind: "sticky", x: 0, y: 0, w: 200, h: 120, color: "#e8b955", text: "note" }, ' +
+  EMBED_GUIDE +
+  ' Examples: { kind: "sticky", x: 0, y: 0, w: 200, h: 120, color: "#e8b955", text: "note" }, ' +
   '{ kind: "text", x: 0, y: 0, color: "#374151", fontSize: 16, text: "title" }, ' +
-  '{ kind: "shape", shapeType: "rect", x: 0, y: 0, w: 120, h: 80, color: "#2563eb", fill: false, strokeWidth: 2, label: "" }, ' +
+  '{ kind: "shape", shapeType: "rect", x: 0, y: 0, w: 120, h: 80, color: "#2563eb", fill: "none", strokeWidth: 2, label: "" }, ' +
   '{ kind: "boundary", x: 0, y: 0, w: 300, h: 200, color: "#2563eb", label: "" }, ' +
-  '{ kind: "embed", x: 0, y: 0, w: 360, h: 520, title: "Login form", svg: "<rect .../><text .../>..." }';
+  EMBED_EXAMPLE_GROUPED;
 
 const inputSchema = z.object({
   projectId: z.string().uuid().describe('UUID of the project to validate against (for future ref-data expansion)'),
@@ -82,7 +85,7 @@ export function registerValidateWhiteboard(server: McpServer): void {
     {
       title: 'Validate whiteboard layout',
       description:
-        'Dry-run validator for whiteboard elements. Checks for overlap, too-close (<30px gap), out-of-bounds, and ref-expanded collision. Use BEFORE create_whiteboard/update_whiteboard to avoid overlap. Returns { ok, warnings, overlaps, closePairs, suggestions }. No DB write.',
+        'Dry-run validator for whiteboard elements. Checks for overlap, too-close (<30px gap), out-of-bounds, ref-expanded collision, and advisory embed grouping (missing <g data-component>). Also surfaces dangling refs/edges. Use BEFORE create_whiteboard/update_whiteboard/patch_whiteboard to avoid overlap and first-try embed failures. Returns { ok, warnings, overlaps, closePairs, suggestions }. No DB write.',
       inputSchema,
     },
     async (args) => {
@@ -175,6 +178,26 @@ export function registerValidateWhiteboard(server: McpServer): void {
           b: '',
           gap: 0,
           suggestion: 'Wrap each widget in <g data-component="name">, e.g. <g data-component="submit">...</g>.',
+        });
+      }
+
+      // Dangling references (advisory): ref targets missing from state,
+      // edge endpoints missing from the submitted array. Best-effort —
+      // unknown project skips ref checks (edge checks still run).
+      let refState: State | null = null;
+      try {
+        refState = await loadState(args.projectId);
+      } catch {
+        refState = null;
+      }
+      for (const w of findDanglingRefs(refState, elements)) {
+        warnings.push({
+          code: w.code,
+          message: w.message,
+          a: w.elementId,
+          b: '',
+          gap: 0,
+          suggestion: w.suggestion,
         });
       }
 

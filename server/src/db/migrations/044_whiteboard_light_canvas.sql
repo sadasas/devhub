@@ -50,7 +50,10 @@ DECLARE
   col text := el ->> 'color';
   newcol text := col;
   lbl text;
-  fillon boolean := coalesce((el ->> 'fill')::boolean, false);
+  -- fill terisi = background shape terbaca (menentukan logika labelColor).
+  -- Toleran dua dunia: boolean legacy (true/false, pra-048) dan enum
+  -- tri-state ('solid'/'transparent' terisi, 'none' kosong, 048+).
+  fillon boolean := coalesce((el ->> 'fill') IN ('true', 'solid', 'transparent'), false);
   -- Gelap = luminansi < 0.35 (mencakup mapping gelap + custom gelap user).
   -- Dihitung SETELAH mapping (newcol), bukan dari warna mentah.
   fdark boolean;

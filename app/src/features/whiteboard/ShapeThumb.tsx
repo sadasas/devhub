@@ -22,7 +22,7 @@ export function ShapeThumb({ shapeType, size = 40 }: ShapeThumbProps) {
     w: 28,
     h: 28,
     color: '#6ea8fe',
-    fill: false,
+    fill: 'none',
     strokeWidth: 2,
     label: '',
   };

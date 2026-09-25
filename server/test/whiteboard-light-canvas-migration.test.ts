@@ -28,8 +28,8 @@ function legacyBoard() {
     elements: [
       { id: uid(), kind: 'text', x: 0, y: 0, color: '#e4e4e7', fontSize: 16, text: 'hi', w: 200 },
       { id: uid(), kind: 'edge', x1: 0, y1: 0, x2: 10, y2: 0, color: '#e4e4e7', width: 2, arrowhead: false, label: '', arrowStyle: 'solid' },
-      { id: uid(), kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: true, strokeWidth: 2, label: 'Box', labelColor: null },
-      { id: uid(), kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#1a1a1a', fill: true, strokeWidth: 2, label: 'Dark', labelColor: '#e4e4e7' },
+      { id: uid(), kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: 'transparent', strokeWidth: 2, label: 'Box', labelColor: null },
+      { id: uid(), kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#1a1a1a', fill: 'transparent', strokeWidth: 2, label: 'Dark', labelColor: '#e4e4e7' },
       { id: uid(), kind: 'boundary', x: 0, y: 0, w: 300, h: 200, color: '#6ea8fe', label: 'Area', labelColor: '#e4e4e7' },
       { id: uid(), kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#e8b955', text: 'amber', textColor: '#e4e4e7' },
       { id: uid(), kind: 'sticky', x: 0, y: 0, w: 100, h: 60, color: '#1a1a1a', text: 'dark', textColor: '#e4e4e7' },

@@ -238,12 +238,16 @@ export const CHIP_CHAR_W = 5.6;
 
 /**
  * Boundary label chip: vertical offset of the chip text baseline from the
- * boundary top edge. Chip height scales with the font (1.5×) around the
- * baseline, so the chip sits fully INSIDE the border (top-left corner),
- * never straddling the dashed line. Shared by canvas render, SVG export
- * and the inline edit overlay (keep the three in sync).
+ * boundary top edge — scales with the font (1.5×) so the top gap stays
+ * equal to the left gap (2px) at every size (12px → 18, like before).
+ * Chip height is the same 1.5× around the baseline: fully INSIDE the
+ * border (top-left corner), sharp corners, never straddling the line.
+ * Shared by canvas render, SVG export and the inline edit overlay
+ * (keep the three in sync).
  */
-export const BOUNDARY_LABEL_DY = 18;
+export function boundaryLabelDY(fontSize: number): number {
+  return fontSize * 1.5;
+}
 
 /**
  * Lebar chip label boundary mengikuti teks: ukur asli via canvas 2D bila
@@ -252,7 +256,9 @@ export const BOUNDARY_LABEL_DY = 18;
  */
 export function boundaryChipWidth(label: string, fontSize: number, maxW: number, bold = false): number {
   const textW = approxTextWidth(label, fontSize, bold ? 600 : 400);
-  return Math.min(textW + 12, Math.max(20, maxW));
+  // +12 padding, +8 tolerance: browser glyphs may measure wider than the
+  // estimator, and a hug-tight chip would truncate its own label.
+  return Math.min(textW + 20, Math.max(28, maxW));
 }
 
 const MEASURE_STACK =

@@ -265,7 +265,7 @@ describe('global search API v1', () => {
           w: 100,
           h: 60,
           color: '#6ea8fe',
-          fill: false,
+          fill: 'none',
           strokeWidth: 2,
           label: 'Decide approach',
         },

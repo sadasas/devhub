@@ -1,9 +1,24 @@
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { config as loadEnv } from 'dotenv';
 import { defineConfig } from 'vitest/config';
 
-const envDir = path.dirname(fileURLToPath(import.meta.url));
+// Vitest me-bundle config ke node_modules/.vite-temp, sehingga
+// import.meta.url TIDAK menunjuk ke server/. Cari direktori sumber
+// (yang berisi vitest.config.ts) dengan berjalan ke atas.
+function findConfigDir(startDir: string): string {
+  let dir = startDir;
+  for (let i = 0; i < 8; i++) {
+    if (existsSync(path.join(dir, 'vitest.config.ts'))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return startDir; // fallback: perilaku lama
+}
+
+const envDir = findConfigDir(path.dirname(fileURLToPath(import.meta.url)));
 loadEnv({ path: path.join(envDir, '.env'), quiet: true });
 
 if (!process.env.DATABASE_URL_TEST) {

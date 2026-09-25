@@ -227,7 +227,7 @@ describe('shape thumbnails', () => {
         w: SHAPE_THUMB_BOX.w,
         h: SHAPE_THUMB_BOX.h,
         color: '#6ea8fe',
-        fill: false,
+        fill: 'none',
         strokeWidth: 2,
         label: '',
       });

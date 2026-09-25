@@ -69,7 +69,7 @@ describe('whiteboard tools', () => {
   it('builds a sticky with schema defaults', () => {
     const sticky = buildSticky(10, 20);
     expect(sticky.kind).toBe('sticky');
-    expect(sticky).toMatchObject({ x: 10, y: 20, w: STICKY_W, h: STICKY_H, color: STICKY_COLOR, text: '' });
+    expect(sticky).toMatchObject({ x: 10, y: 20, w: STICKY_W, h: STICKY_H, color: STICKY_COLOR, text: '', fontSize: 16 });
   });
 
   it('builds a text element with schema defaults', () => {
@@ -88,9 +88,10 @@ describe('whiteboard tools', () => {
       w: SHAPE_W,
       h: SHAPE_H,
       color: SHAPE_COLOR,
-      fill: false,
+      fill: 'none',
       strokeWidth: SHAPE_STROKE_WIDTH,
       label: '',
+      fontSize: 16,
     });
   });
 

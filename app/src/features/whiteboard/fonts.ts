@@ -29,6 +29,18 @@ export const FONT_PRESETS: FontPreset[] = [
 export const FONT_SIZE_MIN = 4;
 export const FONT_SIZE_MAX = 96;
 
+/**
+ * Parse a persisted font size (localStorage). Missing/blank/garbage →
+ * fallback default (not the minimum): `Number(null)` is 0, so a naive
+ * `Number()` + clamp would initialize every fresh toolbar to 4.
+ */
+export function parseStoredFontSize(raw: string | null | undefined, def: number): number {
+  if (raw === null || raw === undefined || raw.trim() === '') return def;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return def;
+  return Math.max(FONT_SIZE_MIN, Math.min(FONT_SIZE_MAX, Math.round(n)));
+}
+
 export function fontPresetName(size: number): string {
   return FONT_PRESETS.find((p) => p.value === size)?.name ?? String(size);
 }
