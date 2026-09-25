@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { ArrowClockwise, GithubLogo, PlugsConnected } from '@phosphor-icons/react';
+import { ArrowClockwise, GithubLogo, LinkBreak } from '@phosphor-icons/react';
 import { api } from '../../lib/api';
 import {
   DOCS_PRIVACY_URL,
@@ -445,7 +445,7 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
                       type="button"
                       variant="danger"
                       size="sm"
-                      leftIcon={<PlugsConnected size={14} aria-hidden="true" />}
+                      leftIcon={<LinkBreak size={14} aria-hidden="true" />}
                       onClick={() => void disconnect()}
                       disabled={busy}
                     >
