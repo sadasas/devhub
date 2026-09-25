@@ -555,7 +555,7 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
                     </Button>
                   </div>
                 </>
-              ) : (
+              ) : installations !== null && installations.length > 0 && !unconfigured ? null : (
                 <div className="settings-action">
                   <div className="settings-action-main">
                     <div className="github-identity">
