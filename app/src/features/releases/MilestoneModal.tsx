@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { CheckCircle, FileText, Trash, Circle, Tag, CalendarBlank, PencilSimple } from "@phosphor-icons/react";
+import { CheckCircle, FileText, Circle, Tag, CalendarBlank, PencilSimple } from "@phosphor-icons/react";
 import { formatDate, formatRelative } from "../../lib/utils";
 import type { Milestone, MilestoneStatus } from "../../lib/types";
 import type { UpdatePatch } from "../../state/project-context";
 import { useProject } from "../../state/project-context";
 import { usePresenceStatus } from "../../hooks/usePresenceStatus";
-import { Button } from "../../components/Button";
 import { ConfirmDeleteDialog } from "../../components/ConfirmDeleteDialog";
 import { InlineError } from "../../components/InlineError";
 import { DatePicker } from "../../components/DatePicker";
 import { DetailShell } from "../../components/DetailShell";
+import { DetailFooter } from "../../components/DetailFooter";
 import { MarkdownField } from "../../components/MarkdownField";
 import { PropRow } from "../../components/PropRow";
 import { SearchableSelect } from "../../components/SearchableSelect";
@@ -175,15 +175,7 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
       onClose={onClose}
       footer={
         canEdit ? (
-          <>
-            <Button
-              variant="danger"
-              size="sm"
-              leftIcon={<Trash size={14} aria-hidden="true" />}
-              onClick={() => setConfirmOpen(true)}
-            >
-              {t("releases.modal.delete")}
-            </Button>
+          <DetailFooter onDelete={() => setConfirmOpen(true)} deleteLabel={t("releases.modal.delete")}>
             {(saving || lastSavedAt) && !nameEmpty && (
               <span className="save-state" role="status">
                 {saving ? (
@@ -196,7 +188,7 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
                 )}
               </span>
             )}
-          </>
+          </DetailFooter>
         ) : undefined
       }
       sidebar={<>

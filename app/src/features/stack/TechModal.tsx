@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CheckCircle, CaretRight, Clock, FileText, Trash, Stack, Circle, PencilSimple } from '@phosphor-icons/react';
+import { CheckCircle, CaretRight, Clock, FileText, Stack, Circle, PencilSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { TECH_CATEGORY } from '../../lib/labels';
 import { formatDate, formatRelative } from '../../lib/utils';
@@ -9,11 +9,11 @@ import type { UpdatePatch } from '../../state/project-context';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { ActivityList } from '../../components/ActivityList';
-import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { DetailEmpty } from '../../components/DetailList';
 import { InlineError } from '../../components/InlineError';
 import { DetailShell } from '../../components/DetailShell';
+import { DetailFooter } from '../../components/DetailFooter';
 import { MarkdownField } from '../../components/MarkdownField';
 import { PropRow } from '../../components/PropRow';
 import { SearchableSelect } from '../../components/SearchableSelect';
@@ -191,15 +191,7 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
       onClose={onClose}
       footer={
         canEdit ? (
-          <>
-            <Button
-              variant="danger"
-              size="sm"
-              leftIcon={<Trash size={14} aria-hidden="true" />}
-              onClick={() => setConfirmOpen(true)}
-            >
-              {t('stack.techModal.delete')}
-            </Button>
+          <DetailFooter onDelete={() => setConfirmOpen(true)} deleteLabel={t('stack.techModal.delete')}>
             {(saving || lastSavedAt) && !nameEmpty && (
               <span className="save-state" role="status">
                 {saving ? (
@@ -212,7 +204,7 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
                 )}
               </span>
             )}
-          </>
+          </DetailFooter>
         ) : undefined
       }
       sidebarHead={t('tracker:board.taskModal.propertiesLabel')}

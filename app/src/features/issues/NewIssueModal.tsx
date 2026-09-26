@@ -10,6 +10,7 @@ import { api } from '../../lib/api';
 import { AttachmentSection } from '../../components/AttachmentSection';
 import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 import { PlanLimitModal } from '../../components/PlanLimitModal';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { MarkdownField } from '../../components/MarkdownField';
@@ -118,14 +119,11 @@ export function NewIssueModal({ open, onClose }: NewIssueModalProps) {
       width="lg"
       className="modal-composer"
       footer={
-        <>
-          <Button variant="ghost" size="md" onClick={handleClose}>
-            {t('issues.newModal.cancel')}
-          </Button>
+        <ModalFooter onCancel={handleClose} cancelLabel={t('issues.newModal.cancel')}>
           <Button type="submit" size="md" form="new-issue-form" leftIcon={<Bug size={14} aria-hidden="true" />} disabled={!title.trim() || uploadBusy}>
             {t('issues.newModal.submit')}
           </Button>
-        </>
+        </ModalFooter>
       }
     >
       <form id="new-issue-form" className="composer-form" onSubmit={onSubmit} noValidate>

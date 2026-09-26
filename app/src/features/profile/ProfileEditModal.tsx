@@ -7,6 +7,7 @@ import { Button } from '../../components/Button';
 import { InlineError } from '../../components/InlineError';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 import { Textarea } from '../../components/Textarea';
 import { useAuth } from '../../state/auth-context';
 import { FE_LIMITS } from '../../lib/limits';
@@ -64,14 +65,11 @@ export function ProfileEditModal({ open, onClose }: ProfileEditModalProps) {
       onClose={onClose}
       width="sm"
       footer={
-        <>
-          <Button variant="ghost" size="md" onClick={onClose} disabled={saving}>
-            {t('common:action.cancel')}
-          </Button>
+        <ModalFooter onCancel={onClose} cancelLabel={t('common:action.cancel')} cancelDisabled={saving}>
           <Button type="submit" size="md" form="profile-edit-form" leftIcon={<FloppyDisk size={14} aria-hidden="true" />} loading={saving} disabled={!dirty}>
             {t('profile.editModal.save')}
           </Button>
-        </>
+        </ModalFooter>
       }
     >
       <form id="profile-edit-form" className="form-stack" onSubmit={(e) => void onSave(e)}>

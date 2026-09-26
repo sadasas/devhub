@@ -10,8 +10,10 @@ import {
 } from '../../lib/docs-urls';
 import { getErrorMessage } from '../../lib/errors';
 import { Button } from '../../components/Button';
+import { LinkButton } from '../../components/LinkButton';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { DataErrorState } from '../../components/DataErrorState';
+import { SettingsRowGroup } from '../../components/Section';
 import { StatusBanner } from '../../components/StatusBanner';
 import { GCalBanner } from './GCalBanner';
 
@@ -218,7 +220,7 @@ export function GCalSettings({ projectId, canEdit, bare = false }: GCalSettingsP
           />
         ) : (
           <>
-            <div className="settings-row-group">
+            <SettingsRowGroup>
               <div className="settings-action">
                 <div className="settings-action-main">
                   <div className="gcal-identity">
@@ -256,13 +258,9 @@ export function GCalSettings({ projectId, canEdit, bare = false }: GCalSettingsP
                     {t('gcal.disconnect', { defaultValue: 'Disconnect' })}
                   </Button>
                 ) : (
-                  <a
-                    className="btn btn-secondary btn-sm"
-                    href={api.gcalConnectUrl(projectId, window.location.href)}
-                  >
-                    <GoogleLogo size={14} weight="bold" aria-hidden="true" />
+                  <LinkButton href={api.gcalConnectUrl(projectId, window.location.href)} leftIcon={<GoogleLogo size={14} weight="bold" aria-hidden="true" />}>
                     {t('gcal.connect', { defaultValue: 'Connect' })}
-                  </a>
+                  </LinkButton>
                 )}
               </div>
               {connected ? (
@@ -301,7 +299,7 @@ export function GCalSettings({ projectId, canEdit, bare = false }: GCalSettingsP
                   </label>
                 </div>
               ) : null}
-            </div>
+            </SettingsRowGroup>
             {actionError ? (
               <StatusBanner
                 tone="danger"

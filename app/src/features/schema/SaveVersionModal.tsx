@@ -8,6 +8,7 @@ import { FloppyDisk } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { Textarea } from '../../components/Textarea';
 
@@ -58,14 +59,11 @@ export function SaveVersionModal({ open, onClose }: SaveVersionModalProps) {
       onClose={onClose}
       width="sm"
       footer={
-        <>
-          <Button variant="ghost" size="md" onClick={onClose}>
-            {t('schema.saveVersionModal.cancel')}
-          </Button>
+        <ModalFooter onCancel={onClose} cancelLabel={t('schema.saveVersionModal.cancel')}>
           <Button type="submit" size="md" form="save-version-form" leftIcon={<FloppyDisk size={14} aria-hidden="true" />} disabled={!version.trim()}>
             {t('schema.saveVersionModal.submit')}
           </Button>
-        </>
+        </ModalFooter>
       }
     >
       <form id="save-version-form" className="form-stack" onSubmit={onSubmit} noValidate>

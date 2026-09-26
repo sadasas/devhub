@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router';
 import { ShieldCheck, Trash, Clock, Key } from '@phosphor-icons/react';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
@@ -9,6 +8,8 @@ import { EmptyState } from '../../components/EmptyState';
 import { InlineError } from '../../components/InlineError';
 import { DataErrorState } from '../../components/DataErrorState';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
+import { PageHeader } from '../../components/PageHeader';
+import { LinkButton } from '../../components/LinkButton';
 import { Skeleton } from '../../components/Skeleton';
 import { SessionCountdown } from '../../components/SessionCountdown';
 import { formatExpiry } from '../../lib/utils';
@@ -79,17 +80,15 @@ export function KeysPage() {
       <article className="pcard">
         <div className="pcard-body">
           <div className="narrow-center">
-          <header className="page-header">
-            <div>
-              <h1 className="page-title">{t("account:keys.title")}</h1>
-              <p className="page-subtitle">
-                {t("account:keys.subtitle")}
-              </p>
-            </div>
-            {apps !== null && !error && apps.length > 0 && (
-              <span className="data-list-count">{t("account:keys.connectedCount", { count: apps.length })}</span>
-            )}
-          </header>
+          <PageHeader
+            title={t("account:keys.title")}
+            subtitle={t("account:keys.subtitle")}
+            actions={
+              apps !== null && !error && apps.length > 0 ? (
+                <span className="data-list-count">{t("account:keys.connectedCount", { count: apps.length })}</span>
+              ) : undefined
+            }
+          />
           {error ? (apps === null ? <DataErrorState error={loadErrorRaw ?? error} onRetry={() => { setError(null); setLoadErrorRaw(null); setAttempt((a) => a + 1); }} /> : <InlineError>{error}</InlineError>) : null}
       {apps === null && !error ? (
         <div className="data-list" role="status" aria-live="polite" aria-busy="true" aria-label={t("account:keys.loading")}>
@@ -124,8 +123,9 @@ export function KeysPage() {
             title={t("account:keys.empty.title")}
             description={t("account:keys.empty.description")}
             action={
-              <Link className="btn btn-primary btn-md" to="/docs/mcp">
-                <span aria-hidden="true" className="btn-icon-wrap"><Key size={14} weight="bold" aria-hidden="true" /></span> {t("account:keys.empty.readGuide")} </Link>
+              <LinkButton to="/docs/mcp" variant="primary" size="md" leftIcon={<Key size={14} weight="bold" aria-hidden="true" />}>
+                {t("account:keys.empty.readGuide")}
+              </LinkButton>
             }
           />
         </div>

@@ -9,6 +9,7 @@ import { Button } from '../../components/Button';
 import { InlineError } from '../../components/InlineError';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 import { Textarea } from '../../components/Textarea';
 
 export function EditGeneralModal({ project, onClose }: { project: Project; onClose: () => void }) {
@@ -46,10 +47,7 @@ export function EditGeneralModal({ project, onClose }: { project: Project; onClo
       title={t('settings.editGeneralTitle', { defaultValue: 'Edit general' })}
       onClose={onClose}
       footer={
-        <>
-          <Button variant="ghost" size="md" onClick={onClose} disabled={saving}>
-            {t('common:action.cancel', { defaultValue: 'Cancel' })}
-          </Button>
+        <ModalFooter onCancel={onClose} cancelLabel={t('common:action.cancel', { defaultValue: 'Cancel' })} cancelDisabled={saving}>
           <Button
             type="submit"
             size="md"
@@ -60,7 +58,7 @@ export function EditGeneralModal({ project, onClose }: { project: Project; onClo
           >
             {t('settings.save', { defaultValue: 'Save changes' })}
           </Button>
-        </>
+        </ModalFooter>
       }
     >
       <form

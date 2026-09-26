@@ -37,6 +37,7 @@ import { InlineError } from '../../components/InlineError';
 import { DataErrorState } from '../../components/DataErrorState';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { ConfirmFooter } from '../../components/ConfirmFooter';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { ApiSortControl } from '../../components/ApiSortControl';
 import { Textarea } from '../../components/Textarea';
@@ -1485,14 +1486,12 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
         onClose={() => setDeleteTarget(null)}
         width="sm"
         footer={
-          <>
-            <Button variant="ghost" size="md" onClick={() => setDeleteTarget(null)}>
-              {t('api.delete.cancel')}
-            </Button>
-            <Button variant="danger" size="md" leftIcon={<Trash size={14} aria-hidden="true" />} onClick={onDeleteTarget}>
-              {t('api.delete.confirm')}
-            </Button>
-          </>
+          <ConfirmFooter
+            onCancel={() => setDeleteTarget(null)}
+            onConfirm={onDeleteTarget}
+            confirmLabel={t('api.delete.confirm')}
+            cancelLabel={t('api.delete.cancel')}
+          />
         }
       >
         <p className="modal-copy">

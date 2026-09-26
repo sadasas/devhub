@@ -10,6 +10,7 @@ import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 import { InlineError } from '../../components/InlineError';
 import { FE_LIMITS } from '../../lib/limits';
 
@@ -109,14 +110,11 @@ curl -s -X POST ${origin}/mcp \\
       width="sm"
       footer={
         step === 'form' ? (
-          <>
-            <Button variant="ghost" size="md" onClick={handleClose}>
-              {t('common:action.cancel')}
-            </Button>
+          <ModalFooter onCancel={handleClose} cancelLabel={t('common:action.cancel')}>
             <Button type="submit" size="md" form="new-key-form" leftIcon={<Key size={14} aria-hidden="true" />} loading={submitting} disabled={!name.trim()}>
               {t('keys.newKeyModal.create')}
             </Button>
-          </>
+          </ModalFooter>
         ) : (
           <Button size="md" leftIcon={<Check size={14} weight="bold" aria-hidden="true" />} onClick={onDone}>{t('keys.newKeyModal.done')}</Button>
         )

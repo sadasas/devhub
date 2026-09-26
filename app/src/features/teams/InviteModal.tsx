@@ -10,6 +10,7 @@ import { Button } from '../../components/Button';
 import { Badge } from '../../components/Badge';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 import { InlineError } from '../../components/InlineError';
 import { PlanLimitModal, type PlanLimitResource } from '../../components/PlanLimitModal';
 
@@ -65,14 +66,11 @@ export function InviteModal({ teamId, open, onClose, onInvited }: InviteModalPro
         onClose={onClose}
         width="sm"
         footer={
-          <>
-            <Button variant="ghost" size="md" onClick={onClose}>
-              {t('common:action.cancel')}
-            </Button>
+          <ModalFooter onCancel={onClose} cancelLabel={t('common:action.cancel')}>
             <Button type="submit" size="md" form="invite-form" leftIcon={<Envelope size={14} aria-hidden="true" />} loading={submitting} disabled={!email.trim()}>
               {t('teams.inviteModal.send')}
             </Button>
-          </>
+          </ModalFooter>
         }
       >
       <form id="invite-form" className="form-stack" onSubmit={onSubmit} noValidate>

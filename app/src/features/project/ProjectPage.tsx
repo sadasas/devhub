@@ -44,6 +44,7 @@ import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { ConfirmFooter } from '../../components/ConfirmFooter';
 import { SaveBanner } from '../../components/SaveBanner';
 import { StatusBanner } from '../../components/StatusBanner';
 import { ToastStack } from '../../components/ToastStack';
@@ -982,20 +983,15 @@ export function ProjectPage() {
           onClose={() => setArchiveConfirm(null)}
           width="sm"
           footer={
-            <>
-              <Button variant="ghost" size="md" onClick={() => setArchiveConfirm(null)}>
-                {t('archiveModal.cancel')}
-              </Button>
-              <Button
-                variant={archiveConfirm === 'archive' ? 'primary' : 'ghost'}
-                size="md"
-                leftIcon={archiveConfirm === 'archive' ? <Archive size={14} aria-hidden="true" /> : <ArrowCounterClockwise size={14} aria-hidden="true" />}
-                loading={archiving}
-                onClick={() => void handleArchiveToggle(archiveConfirm === 'archive' ? 'archived' : 'active')}
-              >
-                {archiveConfirm === 'archive' ? t('archiveModal.confirmArchive') : t('archiveModal.confirmRestore')}
-              </Button>
-            </>
+            <ConfirmFooter
+              onCancel={() => setArchiveConfirm(null)}
+              onConfirm={() => void handleArchiveToggle(archiveConfirm === 'archive' ? 'archived' : 'active')}
+              tone={archiveConfirm === 'archive' ? 'primary' : 'ghost'}
+              confirmLabel={archiveConfirm === 'archive' ? t('archiveModal.confirmArchive') : t('archiveModal.confirmRestore')}
+              confirmIcon={archiveConfirm === 'archive' ? <Archive size={14} aria-hidden="true" /> : <ArrowCounterClockwise size={14} aria-hidden="true" />}
+              busy={archiving}
+              cancelLabel={t('archiveModal.cancel')}
+            />
           }
         >
           <p className="modal-copy">
@@ -1012,14 +1008,15 @@ export function ProjectPage() {
           onClose={() => setImportDoc(null)}
           width="sm"
           footer={
-            <>
-              <Button variant="ghost" size="md" onClick={() => setImportDoc(null)}>
-                {t('importModal.cancel')}
-              </Button>
-              <Button variant="primary" size="md" leftIcon={<UploadSimple size={14} aria-hidden="true" />} loading={importing} onClick={() => void onConfirmImport()}>
-                {t('importModal.confirm')}
-              </Button>
-            </>
+            <ConfirmFooter
+              onCancel={() => setImportDoc(null)}
+              onConfirm={() => void onConfirmImport()}
+              tone="primary"
+              confirmLabel={t('importModal.confirm')}
+              confirmIcon={<UploadSimple size={14} aria-hidden="true" />}
+              busy={importing}
+              cancelLabel={t('importModal.cancel')}
+            />
           }
         >
           <p className="modal-copy">

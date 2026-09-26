@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Trash, FileText, ListChecks, Clock, CheckCircle, Circle, Bug, PencilSimple } from '@phosphor-icons/react';
+import { FileText, ListChecks, Clock, CheckCircle, Circle, Bug, PencilSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatRelative } from '../../lib/utils';
 import type { TestCase, TestCaseStatus } from '../../lib/types';
@@ -7,11 +7,11 @@ import type { UpdatePatch } from '../../state/project-context';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { ActivityList } from '../../components/ActivityList';
-import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { PropRow } from '../../components/PropRow';
 import { InlineError } from '../../components/InlineError';
 import { DetailShell } from '../../components/DetailShell';
+import { DetailFooter } from '../../components/DetailFooter';
 import { DetailEmpty } from '../../components/DetailList';
 import { MarkdownField } from '../../components/MarkdownField';
 import { SearchableSelect } from '../../components/SearchableSelect';
@@ -72,15 +72,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
       onClose={onClose}
       footer={
         canEdit ? (
-          <>
-            <Button
-              variant="danger"
-              size="sm"
-              leftIcon={<Trash size={14} aria-hidden="true" />}
-              onClick={() => setConfirmOpen(true)}
-            >
-              {t('tests.modal.delete')}
-            </Button>
+          <DetailFooter onDelete={() => setConfirmOpen(true)} deleteLabel={t('tests.modal.delete')}>
             {(saving || lastSavedAt) && !nameEmpty && (
               <span className="save-state" role="status">
                 {saving ? (
@@ -93,7 +85,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
                 )}
               </span>
             )}
-          </>
+          </DetailFooter>
         ) : undefined
       }
       sidebarHead={t('board.taskModal.propertiesLabel')}

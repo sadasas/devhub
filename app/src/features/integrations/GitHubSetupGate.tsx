@@ -10,6 +10,7 @@ import { Button } from '../../components/Button';
 import { DataErrorState } from '../../components/DataErrorState';
 import { InlineError } from '../../components/InlineError';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 import { SearchableSelect } from '../../components/SearchableSelect';
 
 interface PendingSetup {
@@ -143,10 +144,7 @@ export function GitHubSetupGate() {
         </span>
       }
       footer={
-        <>
-          <Button type="button" variant="ghost" size="md" onClick={close}>
-            {t('settings.githubGateLater', { defaultValue: 'Later' })}
-          </Button>
+        <ModalFooter onCancel={close} cancelLabel={t('settings.githubGateLater', { defaultValue: 'Later' })}>
           <Button
             type="button"
             variant="primary"
@@ -156,7 +154,7 @@ export function GitHubSetupGate() {
           >
             {t('settings.githubConnectRepo', { defaultValue: 'Connect repository' })}
           </Button>
-        </>
+        </ModalFooter>
       }
     >
       {loading ? (

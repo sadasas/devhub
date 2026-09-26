@@ -18,7 +18,7 @@
       "noDescription": "No description.",
       "elements_one": "{{count}} element",
       "elements_other": "{{count}} elements",
-      "unread": "Unread",
+      "unread": "New",
       "deleteBoard": "Delete board",
       "editBoard": "Edit board",
       "openBoard": "Open board"
@@ -364,7 +364,7 @@
       "endpoints_one": "{{count}} endpoint",
       "endpoints_other": "{{count}} endpoints"
     },
-    "unread": "Unread",
+    "unread": "New",
     "mode": {
       "aria": "API view mode",
       "workspace": "Workspace",
@@ -407,7 +407,7 @@
       "collapseUngrouped": "Collapse Ungrouped",
       "expandUngrouped": "Expand Ungrouped",
       "ungrouped": "Ungrouped",
-      "unread": "Unread",
+      "unread": "New",
       "deleteCollectionNamed": "Delete collection {{name}}",
       "deleteCollection": "Delete collection",
       "deleteEndpointNamed": "Delete endpoint {{name}}",

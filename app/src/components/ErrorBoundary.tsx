@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { i18n } from '../i18n';
 import { Button } from './Button';
+import { LinkButton } from './LinkButton';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -102,9 +103,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 ? (isId ? 'Tersalin' : 'Copied')
                 : (isId ? 'Salin info' : 'Copy info')}
             </Button>
-            <a className="btn btn-ghost btn-sm" href={mailto}>
+            <LinkButton href={mailto} variant="ghost">
               {isId ? 'Lapor via email' : 'Report via email'}
-            </a>
+            </LinkButton>
           </div>
         </div>
       </div>

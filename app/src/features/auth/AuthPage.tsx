@@ -311,8 +311,8 @@ export function AuthPage() {
                     href={`/api/v1/auth/google?intent=login${returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : ''}`}
                     rel="external"
                     data-external="true"
-                    className="btn btn-secondary"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textDecoration: 'none', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-input)', padding: '10px 14px', fontWeight: 600 }}
+                    className="btn btn-secondary btn-md"
+                    style={{ fontWeight: 600 }}
                   >
                     <GoogleLogo size={18} weight="bold" /> Continue with Google
                   </a>
@@ -322,8 +322,8 @@ export function AuthPage() {
                     href={`/api/v1/auth/github?intent=login${returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : ''}`}
                     rel="external"
                     data-external="true"
-                    className="btn btn-secondary"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textDecoration: 'none', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-input)', padding: '10px 14px', fontWeight: 600 }}
+                    className="btn btn-secondary btn-md"
+                    style={{ fontWeight: 600 }}
                   >
                     <GithubLogo size={18} weight="fill" /> Continue with GitHub
                   </a>

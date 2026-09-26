@@ -7,6 +7,7 @@ import { FolderPlus } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 import { Textarea } from '../../components/Textarea';
 import { FE_LIMITS } from '../../lib/limits';
 
@@ -56,14 +57,11 @@ export function CollectionModal({ onClose, onCreated }: CollectionModalProps) {
       onClose={onClose}
       width="sm"
       footer={
-        <>
-          <Button variant="ghost" size="md" onClick={onClose}>
-            {t('api.collectionModal.cancel')}
-          </Button>
+        <ModalFooter onCancel={onClose} cancelLabel={t('api.collectionModal.cancel')}>
           <Button variant="primary" size="md" leftIcon={<FolderPlus size={14} aria-hidden="true" />} onClick={submit} disabled={!canEdit || !name.trim()}>
             {t('api.collectionModal.create')}
           </Button>
-        </>
+        </ModalFooter>
       }
     >
       <div className="form-stack">

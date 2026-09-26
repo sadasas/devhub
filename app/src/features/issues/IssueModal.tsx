@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Trash, Clock, Bug, FileText, CheckCircle, Warning, Circle, LinkSimple, PencilSimple } from '@phosphor-icons/react';
+import { Clock, Bug, FileText, CheckCircle, Warning, Circle, LinkSimple, PencilSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { ISSUE_SEVERITY, ISSUE_STATUS } from '../../lib/labels';
 import { IssueStatusIcon, TaskSeverityIcon } from '../../lib/task-icons';
@@ -10,11 +10,11 @@ import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { ActivityList } from '../../components/ActivityList';
 import { AttachmentSection } from '../../components/AttachmentSection';
-import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { PlanLimitModal } from '../../components/PlanLimitModal';
 import { PropRow, useHotProp } from '../../components/PropRow';
 import { DetailShell } from '../../components/DetailShell';
+import { DetailFooter } from '../../components/DetailFooter';
 import { DetailEmpty } from '../../components/DetailList';
 import { InlineError } from '../../components/InlineError';
 import { MarkdownField } from '../../components/MarkdownField';
@@ -86,15 +86,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
       onClose={fullscreenField ? () => setFullscreenField(null) : onClose}
       footer={
         canEdit ? (
-          <>
-            <Button
-              variant="danger"
-              size="sm"
-              leftIcon={<Trash size={14} aria-hidden="true" />}
-              onClick={() => setConfirmOpen(true)}
-            >
-              {t('issues.modal.delete')}
-            </Button>
+          <DetailFooter onDelete={() => setConfirmOpen(true)} deleteLabel={t('issues.modal.delete')}>
             {(saving || lastSavedAt) && !titleEmpty && (
               <span className="save-state" role="status">
                 {saving ? (
@@ -107,7 +99,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
                 )}
               </span>
             )}
-          </>
+          </DetailFooter>
         ) : undefined
       }
       sidebarHead={t('board.taskModal.propertiesLabel')}

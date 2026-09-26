@@ -8,6 +8,7 @@ import { formatDate, newId, nowIso } from '../../lib/utils';
 import type { DecisionStatus } from '../../lib/types';
 import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { CONCEPT_ICON } from '../../components/propertyIcons';
 import { DatePicker } from '../../components/DatePicker';
@@ -107,14 +108,11 @@ export function NewDecisionModal({ onClose }: NewDecisionModalProps) {
       expandLabel={t('tracker:board.newTaskModal.expandView')}
       collapseLabel={t('tracker:board.newTaskModal.contractView')}
       footer={
-        <>
-          <Button variant="ghost" size="md" onClick={onClose}>
-            {t('decisions.newModal.cancel')}
-          </Button>
+        <ModalFooter onCancel={onClose} cancelLabel={t('decisions.newModal.cancel')}>
           <Button type="submit" size="md" form="new-decision-form" variant="primary" leftIcon={<Scales size={14} aria-hidden="true" />} disabled={!title.trim()}>
             {t('decisions.newModal.submit')}
           </Button>
-        </>
+        </ModalFooter>
       }
     >
       <form id="new-decision-form" className="composer-form" onSubmit={submit} noValidate>

@@ -8,6 +8,7 @@ import { Plus } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 import { Textarea } from '../../components/Textarea';
 import { WHITEBOARD_TEMPLATES } from './templates';
 
@@ -59,14 +60,11 @@ export function NewWhiteboardModal({ onClose, onCreated }: NewWhiteboardModalPro
       onClose={onClose}
       width="md"
       footer={
-        <>
-          <Button variant="ghost" size="md" onClick={onClose}>
-            {t('whiteboard.newModal.cancel')}
-          </Button>
+        <ModalFooter onCancel={onClose} cancelLabel={t('whiteboard.newModal.cancel')}>
           <Button variant="primary" size="md" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={submit} disabled={!canEdit || !name.trim() || atCap}>
             {t('whiteboard.newModal.create')}
           </Button>
-        </>
+        </ModalFooter>
       }
     >
       <div className="form-stack">

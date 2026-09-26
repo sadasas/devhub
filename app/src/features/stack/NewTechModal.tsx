@@ -8,6 +8,7 @@ import { newId, nowIso } from "../../lib/utils";
 import type { TechEntryCategory, TechStatus } from "../../lib/types";
 import { Button } from "../../components/Button";
 import { Modal } from "../../components/Modal";
+import { ModalFooter } from "../../components/ModalFooter";
 import { MarkdownField } from "../../components/MarkdownField";
 import { SearchableSelect } from "../../components/SearchableSelect";
 import { FE_LIMITS } from "../../lib/limits";
@@ -228,14 +229,11 @@ export function NewTechModal({ open, onClose }: NewTechModalProps) {
       expandLabel={t("tracker:board.newTaskModal.expandView")}
       collapseLabel={t("tracker:board.newTaskModal.contractView")}
       footer={
-        <>
-          <Button variant="ghost" size="md" onClick={onClose}>
-            {t("stack.newTechModal.cancel")}
-          </Button>
+        <ModalFooter onCancel={onClose} cancelLabel={t("stack.newTechModal.cancel")}>
           <Button variant="primary" size="md" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={submit} disabled={!name.trim()}>
             {t("stack.newTechModal.submit")}
           </Button>
-        </>
+        </ModalFooter>
       }
     >
       <div className="composer-scroll">

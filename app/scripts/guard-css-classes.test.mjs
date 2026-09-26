@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
   ALLOWLIST,
+  BREAKPOINT_ALLOWLIST,
   DENYLIST,
+  EMPTY_PAGE_ALLOWLIST,
   extractFontSizes,
+  extractFullWidthSettingsActions,
   extractGhostVars,
   extractHardcodedHex,
+  extractOffScaleBreakpoints,
   extractOffScaleSpacing,
+  extractPerPageEmptyStates,
   extractTitleLabelClasses,
   extractTsxGhostVars,
   extractTsxHexFiles,
@@ -230,5 +235,42 @@ describe('guard-css-classes ghost var + inline style (pasal 7/8)', () => {
   it('findTokenWarnings: inline style masuk warn-first', () => {
     const w = findTokenWarnings('.a{}', [{ file: 'src/q.tsx', src: '<div style={{ marginTop: 1 }} />' }]);
     expect(w.some((x) => x.includes('style={{}}') && x.includes('src/q.tsx'))).toBe(true);
+  });
+});
+
+describe('guard-css-classes layout 4b/7b (breakpoint/empty/settings-action)', () => {
+  it('BREAKPOINT_ALLOWLIST mencakup tangga §4b + complements yang sudah dipakai', () => {
+    for (const bp of ['360', '640', '641', '860', '861', '900', '1024', '1280', '1281']) {
+      expect(BREAKPOINT_ALLOWLIST.has(bp)).toBe(true);
+    }
+  });
+
+  it('extractOffScaleBreakpoints: daftar §4b lolos, nilai baru tertangkap', () => {
+    expect(extractOffScaleBreakpoints('@media (max-width: 640px) { .a{} }')).toEqual(new Map());
+    expect(extractOffScaleBreakpoints('@media (min-width: 641px) and (max-width: 1024px) { .a{} }')).toEqual(
+      new Map(),
+    );
+    expect(extractOffScaleBreakpoints('@media (max-width: 480px) { .a{} }')).toEqual(
+      new Map([['480', 1]]),
+    );
+  });
+
+  it('extractPerPageEmptyStates: 7 page grandfathered lolos, page baru tertangkap', () => {
+    expect(EMPTY_PAGE_ALLOWLIST.size).toBe(7);
+    expect(extractPerPageEmptyStates('.issues-page .empty-state { }')).toEqual([]);
+    expect(extractPerPageEmptyStates('.billing-page .empty-state { }')).toEqual([
+      '.billing-page .empty-state',
+    ]);
+  });
+
+  it('extractFullWidthSettingsActions: width auto lolos, 100% tertangkap', () => {
+    expect(extractFullWidthSettingsActions('.dashboard__settings-copy { width: auto; }')).toEqual([]);
+    expect(extractFullWidthSettingsActions('.dashboard__settings-copy { width: 100%; }').length).toBe(1);
+  });
+
+  it('findTokenWarnings: pesan layout 4b/7b', () => {
+    const w = findTokenWarnings('@media (max-width: 480px) { .a{} } .billing-page .empty-state { }', []);
+    expect(w.some((x) => x.includes('480px'))).toBe(true);
+    expect(w.some((x) => x.includes('.billing-page .empty-state'))).toBe(true);
   });
 });

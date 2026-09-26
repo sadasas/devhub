@@ -19,6 +19,7 @@ import { MarkdownBlocks, renderInline } from '../../lib/markdown';
 import { useAuth } from '../../state/auth-context';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
+import { LinkButton } from '../../components/LinkButton';
 import { EmptyState } from '../../components/EmptyState';
 import { DataErrorState } from '../../components/DataErrorState';
 import { Skeleton } from '../../components/Skeleton';
@@ -295,26 +296,26 @@ export function PublicProjectPage() {
                 {hasCta && (
                   <span role="group" aria-label={t('public.cta.groupAria')} style={{ display: 'inline-flex', gap: 8, flexWrap: 'wrap' }}>
                     {contactUrl && (
-                      <a
-                        className="btn btn-secondary btn-sm"
+                      <LinkButton
                         href={contactUrl}
                         target="_blank"
                         rel="noopener noreferrer"
+                        iconPosition="right"
+                        leftIcon={<ArrowSquareOut size={11} aria-hidden="true" />}
                       >
                         {t('public.cta.contact')}
-                        <ArrowSquareOut size={11} aria-hidden="true" />
-                      </a>
+                      </LinkButton>
                     )}
                     {liveDemoUrl && (
-                      <a
-                        className="btn btn-secondary btn-sm"
+                      <LinkButton
                         href={liveDemoUrl}
                         target="_blank"
                         rel="noopener noreferrer"
+                        iconPosition="right"
+                        leftIcon={<ArrowSquareOut size={11} aria-hidden="true" />}
                       >
                         {t('public.cta.demo')}
-                        <ArrowSquareOut size={11} aria-hidden="true" />
-                      </a>
+                      </LinkButton>
                     )}
                   </span>
                 )}

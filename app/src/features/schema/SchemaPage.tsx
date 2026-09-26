@@ -14,6 +14,7 @@ import { Button } from '../../components/Button';
 import { Tooltip } from '../../components/Tooltip';
 import { EmptyState } from '../../components/EmptyState';
 import { Modal } from '../../components/Modal';
+import { ConfirmFooter } from '../../components/ConfirmFooter';
 import { Skeleton } from '../../components/Skeleton';
 import { SortControl } from '../../components/SortControl';
 import { ERD, type ERDLocateRequest, type ERDViewportHandle, type ErdPosition } from './ERD';
@@ -1596,22 +1597,15 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
         onClose={() => setConfirmRel(null)}
         width="sm"
         footer={
-          <>
-            <Button variant="ghost" size="md" onClick={() => setConfirmRel(null)}>
-              {t('schema.deleteRelationModal.cancel')}
-            </Button>
-            <Button
-              variant="danger"
-              size="md"
-              leftIcon={<Trash size={14} aria-hidden="true" />}
-              onClick={() => {
-                if (confirmRel) dispatch({ type: 'relation/remove', id: confirmRel.id });
-                setConfirmRel(null);
-              }}
-            >
-              {t('schema.deleteRelationModal.confirm')}
-            </Button>
-          </>
+          <ConfirmFooter
+            onCancel={() => setConfirmRel(null)}
+            onConfirm={() => {
+              if (confirmRel) dispatch({ type: 'relation/remove', id: confirmRel.id });
+              setConfirmRel(null);
+            }}
+            confirmLabel={t('schema.deleteRelationModal.confirm')}
+            cancelLabel={t('schema.deleteRelationModal.cancel')}
+          />
         }
       >
         <p className="modal-copy">

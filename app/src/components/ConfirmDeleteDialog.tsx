@@ -1,7 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
-import { Trash } from '@phosphor-icons/react';
-import { useTranslation } from 'react-i18next';
-import { Button } from './Button';
+import { ConfirmFooter } from './ConfirmFooter';
 import { InlineError } from './InlineError';
 import { Modal } from './Modal';
 
@@ -26,7 +24,6 @@ export function ConfirmDeleteDialog({
   onConfirm,
   onClose,
 }: ConfirmDeleteDialogProps) {
-  const { t } = useTranslation();
   const descId = useId();
   const errorRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -40,21 +37,12 @@ export function ConfirmDeleteDialog({
       width="sm"
       ariaDescribedBy={descId}
       footer={
-        <>
-          <Button variant="ghost" size="md" onClick={onClose} disabled={busy}>
-            {t('action.cancel')}
-          </Button>
-          <Button
-            variant="danger"
-            size="md"
-            loading={busy}
-            disabled={busy}
-            leftIcon={<Trash size={14} aria-hidden="true" />}
-            onClick={onConfirm}
-          >
-            {confirmLabel ?? t('action.delete')}
-          </Button>
-        </>
+        <ConfirmFooter
+          onCancel={onClose}
+          onConfirm={onConfirm}
+          confirmLabel={confirmLabel}
+          busy={busy}
+        />
       }
     >
       <p id={descId} className="modal-copy">{description}</p>

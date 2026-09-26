@@ -11,6 +11,7 @@ import { DataErrorState } from '../../components/DataErrorState';
 import { DetailList, DetailRow } from '../../components/DetailList';
 import { InlineError } from '../../components/InlineError';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { Skeleton } from '../../components/Skeleton';
 import { Avatar } from '../../components/Avatar';
@@ -502,10 +503,7 @@ export function PricingPage() {
         onClose={confirmBusy ? undefined : closeConfirm}
         width="sm"
         footer={
-          <>
-            <Button variant="ghost" size="md" onClick={closeConfirm} disabled={confirmBusy}>
-              {t('pricing.confirm.cancel')}
-            </Button>
+          <ModalFooter onCancel={closeConfirm} cancelLabel={t('pricing.confirm.cancel')} cancelDisabled={confirmBusy}>
             <Button
               variant="primary"
               size="md"
@@ -515,7 +513,7 @@ export function PricingPage() {
             >
               {confirmData ? t('pricing.confirm.pay', { price: formatIdr(confirmData.amount) }) : t('pricing.confirm.pay', { price: '' })}
             </Button>
-          </>
+          </ModalFooter>
         }
       >
         {confirmData && (

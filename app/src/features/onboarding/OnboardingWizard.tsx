@@ -1,8 +1,7 @@
 import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ArrowRight, Flag } from '@phosphor-icons/react';
-import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
+import { WizardFooter } from '../../components/WizardFooter';
 import { TourProgressPill } from './TourProgressPill';
 import { TourPopover } from './TourPopover';
 import { TourSpotlight } from './TourSpotlight';
@@ -114,52 +113,20 @@ export function OnboardingWizard({
   }, [isFirst, isLast, onBack, onFinish, onNext, blocked]);
 
   const footer = (
-    <>
-      {/* Skip: always visible, one click, >=24px. */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onSkip}
-        autoFocus={autoFocusDesktop && blocked}
-        aria-label={t('tour.common.skipAll')}
-        className="tour-skip-btn"
-        data-tour-id="wizard-skip"
-      >
-        {t('tour.common.skip')}
-      </Button>
-      <span className="tour-footer-spacer" aria-hidden="true" />
-      {!isFirst && (
-        <Button variant="ghost" size="sm" onClick={onBack} leftIcon={<ArrowLeft size={14} aria-hidden="true" />}>
-          {t('tour.common.back')}
-        </Button>
-      )}
-      {isLast ? (
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={onFinish}
-          autoFocus={autoFocusDesktop && !blocked}
-          leftIcon={<Flag size={14} aria-hidden="true" />}
-          data-tour-id="wizard-finish"
-        >
-          {t('tour.common.done')}
-        </Button>
-      ) : (
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={onNext}
-          autoFocus={autoFocusDesktop && !blocked}
-          disabled={blocked}
-          aria-disabled={blocked}
-          title={blocked ? t(blockReason === 'team' ? 'tour.common.needTeam' : 'tour.common.needProject') : undefined}
-          data-tour-id="wizard-next"
-        >
-          <span>{def.id === 'welcome' ? t('tour.common.start') : t('tour.common.next')}</span>
-          <ArrowRight size={14} aria-hidden="true" />
-        </Button>
-      )}
-    </>
+    <WizardFooter
+      onSkip={onSkip}
+      skipLabel={t('tour.common.skip')}
+      skipAriaLabel={t('tour.common.skipAll')}
+      autoFocusSkip={autoFocusDesktop && blocked}
+      onBack={!isFirst ? onBack : undefined}
+      backLabel={t('tour.common.back')}
+      onAdvance={isLast ? onFinish : onNext}
+      advanceLabel={isLast ? t('tour.common.done') : def.id === 'welcome' ? t('tour.common.start') : t('tour.common.next')}
+      advanceMode={isLast ? 'finish' : 'next'}
+      advanceDisabled={blocked}
+      advanceDisabledReason={blocked ? t(blockReason === 'team' ? 'tour.common.needTeam' : 'tour.common.needProject') : undefined}
+      autoFocusAdvance={autoFocusDesktop && !blocked}
+    />
   );
 
   const cardBody = (

@@ -18,7 +18,7 @@
       "noDescription": "Tidak ada deskripsi.",
       "elements_one": "{{count}} elemen",
       "elements_other": "{{count}} elemen",
-      "unread": "Belum dibaca",
+      "unread": "Baru",
       "deleteBoard": "Hapus board",
       "editBoard": "Ubah board",
       "openBoard": "Buka board"
@@ -366,7 +366,7 @@
       "endpoints_one": "{{count}} endpoint",
       "endpoints_other": "{{count}} endpoint"
     },
-    "unread": "Belum dibaca",
+    "unread": "Baru",
     "mode": {
       "aria": "Mode tampilan API",
       "workspace": "Workspace",
@@ -409,7 +409,7 @@
       "collapseUngrouped": "Ciutkan Tanpa grup",
       "expandUngrouped": "Bentangkan Tanpa grup",
       "ungrouped": "Tanpa grup",
-      "unread": "Belum dibaca",
+      "unread": "Baru",
       "deleteCollectionNamed": "Hapus koleksi {{name}}",
       "deleteCollection": "Hapus koleksi",
       "deleteEndpointNamed": "Hapus endpoint {{name}}",

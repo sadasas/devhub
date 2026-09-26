@@ -17,6 +17,7 @@ import { useTouchDrag } from '../../hooks/useTouchDrag';
 import { Avatar } from '../../components/Avatar';
 import { InlineError } from '../../components/InlineError';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { MonthPicker } from '../../components/MonthPicker';
@@ -1103,10 +1104,9 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
         title={t('board.cal.moveTitle', { defaultValue: 'Move task' })}
         onClose={() => setMoveTaskId(null)}
         footer={
-          <>
-            <Button variant="ghost" size="md" onClick={() => setMoveTaskId(null)}>{t('common:action.cancel', { defaultValue: 'Cancel' })}</Button>
+          <ModalFooter onCancel={() => setMoveTaskId(null)} cancelLabel={t('common:action.cancel', { defaultValue: 'Cancel' })}>
             <Button variant="primary" size="md" leftIcon={<Check size={14} weight="bold" aria-hidden="true" />} onClick={confirmMove}>{t('common:action.save', { defaultValue: 'Save' })}</Button>
-          </>
+          </ModalFooter>
         }
       >
         <Input

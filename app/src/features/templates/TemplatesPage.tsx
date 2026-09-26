@@ -9,6 +9,7 @@ import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { DataErrorState } from '../../components/DataErrorState';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
+import { PageHeader } from '../../components/PageHeader';
 import { Skeleton } from '../../components/Skeleton';
 import { RowMenu } from '../../components/RowMenu';
 import { InstantiateTemplateModal } from './InstantiateTemplateModal';
@@ -99,15 +100,15 @@ export function TemplatesPage() {
       <article className="pcard">
         <div className="pcard-body">
           <div className="narrow-center">
-          <header className="page-header">
-            <div>
-              <h1 className="page-title">{t('templates.page.title')}</h1>
-              <p className="page-subtitle">{t('templates.page.subtitle')}</p>
-            </div>
-            {templates !== null && !error && templates.length > 0 && (
-              <span className="data-list-count">{t('templates.count', { count: templates.length })}</span>
-            )}
-          </header>
+          <PageHeader
+            title={t('templates.page.title')}
+            subtitle={t('templates.page.subtitle')}
+            actions={
+              templates !== null && !error && templates.length > 0 ? (
+                <span className="data-list-count">{t('templates.count', { count: templates.length })}</span>
+              ) : undefined
+            }
+          />
 
           {error ? (
             <DataErrorState error={loadErrorRaw ?? error} onRetry={() => setAttempt((a) => a + 1)} retryLabel={t('templates.retry')} />

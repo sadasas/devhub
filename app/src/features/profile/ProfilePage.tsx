@@ -28,6 +28,9 @@ import { Button } from '../../components/Button';
 import { DataErrorState } from '../../components/DataErrorState';
 import { InlineError } from '../../components/InlineError';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
+import { LinkButton } from '../../components/LinkButton';
+import { PageHeader } from '../../components/PageHeader';
+import { SettingsRowGroup } from '../../components/Section';
 import { Skeleton } from '../../components/Skeleton';
 import { ThemeSwitcher } from '../../components/ThemeSwitcher';
 import { ChangePasswordModal } from './ChangePasswordModal';
@@ -161,12 +164,7 @@ export function ProfilePage() {
       {/* Flat content card wraps page content; modals stay as sibling portal targets. */}
       <article className="pcard">
         <div className="pcard-body">
-      <header className="page-header">
-        <div>
-          <h1 className="page-title">{t('profile.title')}</h1>
-          <p className="page-subtitle">{t('profile.subtitle')}</p>
-        </div>
-      </header>
+      <PageHeader title={t('profile.title')} subtitle={t('profile.subtitle')} />
 
       <div className="profile-layout">
         <aside className="profile-side">
@@ -416,16 +414,15 @@ export function ProfilePage() {
                     {t('profile.security.unlink', { defaultValue: 'Unlink' })}
                   </Button>
                 ) : (
-                    <a
-                     href={`/api/v1/auth/google?intent=link&returnTo=${encodeURIComponent(returnToProfile)}`}
-                     rel="external"
-                     data-external="true"
-                     className="btn btn-secondary btn-sm"
-                  >
-                     <span aria-hidden="true" className="btn-icon-wrap"><ArrowSquareOut size={14} aria-hidden="true" /></span>
-                     {t('profile.security.connect', { defaultValue: 'Connect' })}
-                  </a>
-                 )}
+                    <LinkButton
+                      href={`/api/v1/auth/google?intent=link&returnTo=${encodeURIComponent(returnToProfile)}`}
+                      rel="external"
+                      data-external="true"
+                      leftIcon={<ArrowSquareOut size={14} aria-hidden="true" />}
+                    >
+                      {t('profile.security.connect', { defaultValue: 'Connect' })}
+                    </LinkButton>
+                  )}
               </div>
               <div className="settings-action">
                 <div className="settings-action-main" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -442,16 +439,15 @@ export function ProfilePage() {
                     {t('profile.security.unlink', { defaultValue: 'Unlink' })}
                   </Button>
                 ) : (
-                    <a
-                     href={`/api/v1/auth/github?intent=link&returnTo=${encodeURIComponent(returnToProfile)}`}
-                     rel="external"
-                     data-external="true"
-                     className="btn btn-secondary btn-sm"
-                  >
-                     <span aria-hidden="true" className="btn-icon-wrap"><ArrowSquareOut size={14} aria-hidden="true" /></span>
-                     {t('profile.security.connect', { defaultValue: 'Connect' })}
-                  </a>
-                 )}
+                    <LinkButton
+                      href={`/api/v1/auth/github?intent=link&returnTo=${encodeURIComponent(returnToProfile)}`}
+                      rel="external"
+                      data-external="true"
+                      leftIcon={<ArrowSquareOut size={14} aria-hidden="true" />}
+                    >
+                      {t('profile.security.connect', { defaultValue: 'Connect' })}
+                    </LinkButton>
+                  )}
               </div>
             </div>
             {linked === null && !linkedError && <p className="field-helper" style={{ marginTop: 8 }}>{t('profile.security.loadingLinked', { defaultValue: 'Loading linked accounts…' })}</p>}
@@ -471,7 +467,7 @@ export function ProfilePage() {
               })}
             </p>
             <dl className="settings-rows">
-              <div className="settings-row-group">
+              <SettingsRowGroup>
                 <div className="settings-row">
                   <dt>{t('profile.account.email')}</dt>
                   <dd style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -491,14 +487,14 @@ export function ProfilePage() {
                 <p className="field-helper field-helper--row">
                   {t('profile.account.emailHelper', { defaultValue: 'Email for login & team invites.' })}
                 </p>
-              </div>
-              <div className="settings-row-group">
+              </SettingsRowGroup>
+              <SettingsRowGroup>
                 <div className="settings-row">
                   <dt>{t('profile.account.memberSince')}</dt>
                   <dd>{formatDate(user.createdAt)}</dd>
                 </div>
-              </div>
-              <div className="settings-row-group">
+              </SettingsRowGroup>
+              <SettingsRowGroup>
                 <div className="settings-row settings-row--accountId">
                   <dt>{t('profile.account.accountId')}</dt>
                   <dd className="settings-row-value">
@@ -531,7 +527,7 @@ export function ProfilePage() {
                     defaultValue: 'Used when contacting support. Copy copies the full ID.',
                   })}
                 </p>
-              </div>
+              </SettingsRowGroup>
             </dl>
           </div>
 

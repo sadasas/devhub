@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { ArrowSquareOut, Check, ClockCounterClockwise, Copy, GearSix, PencilSimple, SignOut, Tag, Trash } from '@phosphor-icons/react';
 import { api } from '../../lib/api';
@@ -15,6 +15,9 @@ import { InlineError } from '../../components/InlineError';
 import { DataErrorState } from '../../components/DataErrorState';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { ConfirmFooter } from '../../components/ConfirmFooter';
+import { LinkButton } from '../../components/LinkButton';
+import { Section } from '../../components/Section';
 import { Skeleton } from '../../components/Skeleton';
 import { UsageMeter } from '../../components/UsageMeter';
 import { FE_LIMITS } from '../../lib/limits';
@@ -233,25 +236,23 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
       <div className="narrow-center">
       {/* General: read view (nama + URL + ID) + edit via modal. */}
       {activeSection === 'general' && (
-      <section className="dashboard__settings-section" aria-labelledby="dashboard-settings-general-title">
-        <div className="dashboard__settings-head">
-          <h2 id="dashboard-settings-general-title" tabIndex={-1} className="dashboard__settings-section-title">
-            {t('dashboard.team.settingsGeneralTitle')}
-          </h2>
-          {canEditGeneral && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              leftIcon={<PencilSimple size={14} aria-hidden="true" />}
-              onClick={() => setEditOpen(true)}
-              aria-label={t('dashboard.team.settingsEditGeneral', { defaultValue: 'Edit general' })}
-            >
-              {t('dashboard.team.settingsEditGeneral', { defaultValue: 'Edit' })}
-            </Button>
-          )}
-        </div>
-        <p className="dashboard__settings-section-desc">{t('dashboard.team.settingsGeneralDesc')}</p>
+      <Section
+        titleId="dashboard-settings-general-title"
+        title={t('dashboard.team.settingsGeneralTitle')}
+        description={t('dashboard.team.settingsGeneralDesc')}
+        actions={canEditGeneral ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            leftIcon={<PencilSimple size={14} aria-hidden="true" />}
+            onClick={() => setEditOpen(true)}
+            aria-label={t('dashboard.team.settingsEditGeneral', { defaultValue: 'Edit general' })}
+          >
+            {t('dashboard.team.settingsEditGeneral', { defaultValue: 'Edit' })}
+          </Button>
+        ) : undefined}
+      >
         <div className="dashboard__settings-read-name">
           {team.icon ? <span aria-hidden="true">{team.icon} </span> : null}
           {team.name}
@@ -288,16 +289,16 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
           <p className="dashboard__settings-helper">{t('dashboard.team.settingsReadOnlyHelper')}</p>
         )}
         {editOpen && <EditTeamGeneralModal team={team} onClose={() => setEditOpen(false)} />}
-      </section>
+      </Section>
       )}
 
       {/* Plan: package row + seat/project quotas + Manage (new tab). */}
       {activeSection === 'plan' && (
-      <section className="dashboard__settings-section" aria-labelledby="dashboard-settings-plan-title">
-        <h2 id="dashboard-settings-plan-title" tabIndex={-1} className="dashboard__settings-section-title">
-          {t('dashboard.team.settingsPlanTitle')}
-        </h2>
-        <p className="dashboard__settings-section-desc">{t('dashboard.team.settingsPlanDesc')}</p>
+      <Section
+        titleId="dashboard-settings-plan-title"
+        title={t('dashboard.team.settingsPlanTitle')}
+        description={t('dashboard.team.settingsPlanDesc')}
+      >
         <div className="dashboard__settings-plan-row">
           <div className="dashboard__settings-plan-main">
             <span className="dashboard__settings-plan-name">{planName}</span>
@@ -325,27 +326,28 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
           )}
         </div>
         <div className="dashboard__settings-plan-manage-row">
-          <a
-            className="btn btn-secondary btn-sm dashboard__settings-manage"
+          <LinkButton
             href={`/pricing?teamId=${encodeURIComponent(team.id)}`}
             target="_blank"
             rel="noreferrer"
             aria-label={t('dashboard.team.settingsPlanManageAria', { name: team.name })}
+            className="dashboard__settings-manage"
+            leftIcon={<ArrowSquareOut size={13} weight="bold" aria-hidden="true" />}
           >
-            <ArrowSquareOut size={13} weight="bold" aria-hidden="true" />
             {t('dashboard.team.settingsPlanManage')}
-          </a>
+          </LinkButton>
         </div>
-      </section>
+      </Section>
       )}
 
       {/* Usage: concise 3 stats + bars, links stay on /pricing and /payments. */}
       {activeSection === 'usage' && (
-      <section id="dashboard-settings-usage" className="dashboard__settings-section" aria-labelledby="dashboard-settings-usage-title">
-        <h2 id="dashboard-settings-usage-title" tabIndex={-1} className="dashboard__settings-section-title">
-          {t('dashboard.team.settingsUsageTitle')}
-        </h2>
-        <p className="dashboard__settings-section-desc">{t('dashboard.team.settingsUsageDesc')}</p>
+      <Section
+        id="dashboard-settings-usage"
+        titleId="dashboard-settings-usage-title"
+        title={t('dashboard.team.settingsUsageTitle')}
+        description={t('dashboard.team.settingsUsageDesc')}
+      >
         {billingLoading ? (
           <div
             className="dashboard__settings-usage-loading"
@@ -408,33 +410,30 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
               />
             </div>
             <div className="dashboard__settings-usage-links">
-              <Link
-                className="btn btn-secondary btn-sm dashboard__settings-link"
+              <LinkButton
                 to={`/pricing?teamId=${encodeURIComponent(team.id)}`}
+                className="dashboard__settings-link"
+                leftIcon={<Tag size={14} aria-hidden="true" />}
               >
-                <Tag size={14} aria-hidden="true" />
                 {t('teams.billing.viewPricing')}
-              </Link>
-              <Link className="btn btn-secondary btn-sm dashboard__settings-link" to="/payments">
-                <ClockCounterClockwise size={14} aria-hidden="true" />
+              </LinkButton>
+              <LinkButton className="dashboard__settings-link" to="/payments" leftIcon={<ClockCounterClockwise size={14} aria-hidden="true" />}>
                 {t('dashboard.team.settingsUsageViewHistory')}
-              </Link>
+              </LinkButton>
             </div>
           </>
         )}
-      </section>
+      </Section>
       )}
 
       {/* Danger zone: Leave (non-owner) + Delete (owner with typed confirm). */}
       {activeSection === 'danger' && (
-      <section
-        className="dashboard__settings-section dashboard__settings-section--danger"
-        aria-labelledby="dashboard-settings-danger-title"
+      <Section
+        titleId="dashboard-settings-danger-title"
+        title={t('dashboard.team.settingsDangerTitle')}
+        description={t('dashboard.team.settingsDangerDesc')}
+        variant="danger"
       >
-        <h2 id="dashboard-settings-danger-title" tabIndex={-1} className="dashboard__settings-section-title dashboard__settings-section-title--danger">
-          {t('dashboard.team.settingsDangerTitle')}
-        </h2>
-        <p className="dashboard__settings-section-desc">{t('dashboard.team.settingsDangerDesc')}</p>
         <div className="dashboard__settings-danger-row">
           <div className="dashboard__settings-danger-main">
             <h3 className="dashboard__settings-danger-name">{t('teams.leaveTeam')}</h3>
@@ -482,7 +481,7 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
             </Button>
           </div>
         )}
-      </section>
+      </Section>
       )}
 
       </div>
@@ -501,20 +500,13 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
         width="sm"
         ariaDescribedBy="leave-desc"
         footer={
-          <>
-            <Button variant="ghost" size="md" onClick={() => setLeaveOpen(false)} disabled={leaving}>
-              {t('common:action.cancel')}
-            </Button>
-            <Button
-              variant="danger"
-              size="md"
-              leftIcon={<SignOut size={14} aria-hidden="true" />}
-              loading={leaving}
-              onClick={() => void handleConfirmLeave()}
-            >
-              {t('teams.leaveModal.confirm')}
-            </Button>
-          </>
+          <ConfirmFooter
+            onCancel={() => setLeaveOpen(false)}
+            onConfirm={() => void handleConfirmLeave()}
+            confirmLabel={t('teams.leaveModal.confirm')}
+            confirmIcon={<SignOut size={14} aria-hidden="true" />}
+            busy={leaving}
+          />
         }
       >
         <p id="leave-desc" className="modal-copy">{t('teams.leaveModal.body', { name: team.name })}</p>

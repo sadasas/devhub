@@ -7,6 +7,7 @@ import { LIMITS } from '../../lib/limits';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 import { Textarea } from '../../components/Textarea';
 import type { Whiteboard } from '../../lib/types';
 
@@ -44,14 +45,11 @@ export function EditWhiteboardModal({ board, onClose }: EditWhiteboardModalProps
       onClose={onClose}
       width="md"
       footer={
-        <>
-          <Button variant="ghost" size="md" onClick={onClose}>
-            {t('whiteboard.editModal.cancel')}
-          </Button>
+        <ModalFooter onCancel={onClose} cancelLabel={t('whiteboard.editModal.cancel')}>
           <Button variant="primary" size="md" leftIcon={<Check size={14} weight="bold" aria-hidden="true" />} onClick={submit} disabled={!canEdit || !name.trim()}>
             {t('whiteboard.editModal.save')}
           </Button>
-        </>
+        </ModalFooter>
       }
     >
       <div className="form-stack">

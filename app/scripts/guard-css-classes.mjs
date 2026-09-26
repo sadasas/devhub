@@ -12,7 +12,8 @@
 // Cara menambah kelas yang sah: daftarkan di ALLOWLIST + dokumen token
 // dalam PR yang sama, lalu guard lolos lagi.
 // Jalan: node app/scripts/guard-css-classes.mjs (lihat package.json guard:css).
-// Hex/spacing/radius/border/btn: mode warn (exit 0); flag --strict untuk gagal-build (aktivasi masa depan).
+// Hex/spacing/radius/border/btn/breakpoint/empty/settings-action: mode warn
+// (exit 0); flag --strict untuk gagal-build (aktivasi masa depan).
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -33,6 +34,11 @@ export const ALLOWLIST = new Set(
 // Task Template (2026-09-16): cermin skeleton baris Template — dimensi milik
 // modul (Tier-2), didaftar eksplisit agar guard *-title tidak menolaknya.
 ALLOWLIST.add('template-skeleton-title');
+
+// Section icon (2026-09-26, §7b): modifier h2 settings bila `Section icon`
+// diisi — inline-flex + gap 8 + accent (pola .section-title). Tanpa ikon,
+// h2 tetap seperti semula; kelas ini tidak dipakai di tempat lain.
+ALLOWLIST.add('dashboard__settings-section-title--with-icon');
 
 // Jangkar kanonis — bila salah satunya hilang, sistem token rusak.
 export const REQUIRED_ANCHORS = [
@@ -103,9 +109,10 @@ export function findViolations(css) {
 }
 
 
-// Token-warning inventory (warn-first, lihat design-tokens pasal 7/8).
-// Hex/spacing dilaporkan sebagai WARNING (exit 0) sampai migrasi per area
-// selesai; flag --strict mengubahnya jadi FAIL (aktivasi masa depan).
+// Token-warning inventory (warn-first, lihat design-tokens pasal 4b/7/8/9).
+// Hex/spacing/radius/border/btn/breakpoint/empty/settings-action dilaporkan
+// sebagai WARNING (exit 0) sampai migrasi per area selesai; flag --strict
+// mengubahnya jadi FAIL (aktivasi masa depan).
 export const SPACING_SCALE = new Set([0, 2, 4, 6, 8, 10, 12, 16, 20, 24, 32, 48].map(String));
 
 // Domain warna SAH pasal 8 (bukan drift) — dikecualikan dari warn.
@@ -293,6 +300,54 @@ export function extractTsxInlineStyles(tsxSources) {
   return hit;
 }
 
+// Breakpoint/empty/settings-action inventory (warn-first, pasal 4b/7b).
+// - Breakpoint: nilai px @media (min/max-width) di luar daftar = drift;
+//   grandfathered mencakup complements 641/861 + tablet 700/767 + collapse
+//   900 + laptop 1024/1280/1281 yang sudah dipakai (lihat design-tokens §4b).
+// - Empty-state per-page: selektor `.xxx-page .empty-state` baru = drift;
+//   page baru WAJIB `.empty-state--center` global (§7b).
+// - Aksi settings fullwidth: `width: 100%` pada *-copy/*-manage/*-danger-btn
+//   = drift (§4b action-row: fit-content rata kanan, bukan fullwidth;
+//   pengecualian onboarding/modal didaftar eksplisit per kasus).
+export const BREAKPOINT_ALLOWLIST = new Set(
+  ['360', '640', '641', '700', '767', '860', '861', '900', '1024', '1280', '1281'],
+);
+
+export function extractOffScaleBreakpoints(css) {
+  const bad = new Map();
+  const clean = stripComments(css);
+  for (const m of clean.matchAll(/@media[^{]*\(\s*(?:max|min)-width\s*:\s*([\d.]+)px\s*\)/g)) {
+    if (!BREAKPOINT_ALLOWLIST.has(m[1])) bad.set(m[1], (bad.get(m[1]) || 0) + 1);
+  }
+  return bad;
+}
+
+export const EMPTY_PAGE_ALLOWLIST = new Set(
+  ['issues', 'tests', 'stack', 'decisions', 'releases', 'whiteboard', 'schema'],
+);
+
+export function extractPerPageEmptyStates(css) {
+  const bad = [];
+  const seen = new Set();
+  const clean = stripComments(css);
+  for (const m of clean.matchAll(/\.([A-Za-z0-9_-]+)-page\s+\.empty-state/g)) {
+    if (!EMPTY_PAGE_ALLOWLIST.has(m[1]) && !seen.has(m[0])) {
+      seen.add(m[0]);
+      bad.push(m[0]);
+    }
+  }
+  return bad;
+}
+
+export function extractFullWidthSettingsActions(css) {
+  const hit = [];
+  const clean = stripComments(css);
+  for (const m of clean.matchAll(/([^{}]*dashboard__settings-(?:copy|manage|danger-btn)[^{}]*)\{([^{}]*)\}/g)) {
+    if (/width\s*:\s*100%/.test(m[2])) hit.push(m[1].trim().split(/\s+/).slice(-2).join(' '));
+  }
+  return hit;
+}
+
 export function findTokenWarnings(css, tsxSources) {
   const warnings = [];
   for (const entry of extractHardcodedHex(css)) {
@@ -321,6 +376,15 @@ export function findTokenWarnings(css, tsxSources) {
   }
   for (const h of extractTsxInlineStyles(tsxSources)) {
     warnings.push("style={{}} inline di " + h.file + " (" + h.count + "x) - pindah ke kelas CSS/token agar ikut tema & media query (pasal 7, warn-first; btn-icon-wrap tersanksi dikecualikan)");
+  }
+  for (const entry of extractOffScaleBreakpoints(css)) {
+    warnings.push("breakpoint di luar daftar di global.css: " + entry[0] + "px (" + entry[1] + "x) - pakai tangga §4b (360/640/900/860/1024/1280) atau daftarkan di BREAKPOINT_ALLOWLIST");
+  }
+  for (const s of extractPerPageEmptyStates(css)) {
+    warnings.push("empty-state per-page baru di global.css: " + s + " - pakai .empty-state--center global (§7b)");
+  }
+  for (const s of extractFullWidthSettingsActions(css)) {
+    warnings.push("aksi settings fullwidth di global.css (" + s + ") - WAJIB fit-content rata kanan, bukan fullwidth (§4b action-row)");
   }
   return warnings;
 }

@@ -18,6 +18,7 @@ import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '../../components/Button';
+import { PageHeader } from '../../components/PageHeader';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { Callout } from './Callout';
 import { DocsNav } from './DocsNav';
@@ -811,12 +812,7 @@ export function McpDocsPage() {
       {/* Flat content card wraps page content; reading measure stays at 760px via docs-body. */}
       <article className="pcard">
         <div className="pcard-body">
-      <header className="page-header">
-        <div>
-          <h1 className="page-title">{t('docs.mcp.title')}</h1>
-          <p className="page-subtitle">{t('docs.mcp.subtitle')}</p>
-        </div>
-      </header>
+      <PageHeader title={t('docs.mcp.title')} subtitle={t('docs.mcp.subtitle')} />
 
       <div className="docs-grid">
         <div className="docs-main">

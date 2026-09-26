@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { LinkBreak } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '../../components/Button';
+import { ConfirmFooter } from '../../components/ConfirmFooter';
 import { InlineError } from '../../components/InlineError';
 import { Modal } from '../../components/Modal';
 
@@ -50,22 +50,15 @@ export function UnlinkProviderModal({
       onClose={busy ? undefined : onClose}
       width="sm"
       footer={
-        <>
-          <Button variant="ghost" size="md" onClick={onClose} disabled={busy}>
-            {t('profile.security.unlinkModal.cancel', { defaultValue: 'Cancel' })}
-          </Button>
-          <Button
-            variant="danger"
-            size="md"
-            leftIcon={<LinkBreak size={14} aria-hidden="true" />}
-            loading={busy}
-            disabled={busy || isLastMethod}
-            onClick={onConfirm}
-            aria-busy={busy || undefined}
-          >
-            {t('profile.security.unlinkModal.confirm', { defaultValue: 'Unlink' })}
-          </Button>
-        </>
+        <ConfirmFooter
+          onCancel={onClose}
+          onConfirm={onConfirm}
+          confirmLabel={t('profile.security.unlinkModal.confirm', { defaultValue: 'Unlink' })}
+          cancelLabel={t('profile.security.unlinkModal.cancel', { defaultValue: 'Cancel' })}
+          confirmIcon={<LinkBreak size={14} aria-hidden="true" />}
+          busy={busy}
+          confirmDisabled={isLastMethod}
+        />
       }
     >
       <div className="form-stack">

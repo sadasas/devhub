@@ -6,6 +6,7 @@ import type { TeamMember, TeamRole } from '../../lib/types';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 import { InlineError } from '../../components/InlineError';
 
 const CHANGEABLE_ROLES: TeamRole[] = ['admin', 'editor', 'viewer'];
@@ -42,10 +43,7 @@ export function ChangeRoleModal({ open, member, teamRole, busy, error, onClose, 
       onClose={busy ? undefined : onClose}
       width="sm"
         footer={
-          <>
-            <Button variant="ghost" size="md" onClick={onClose} disabled={!!busy}>
-              {t('common:action.cancel')}
-            </Button>
+          <ModalFooter onCancel={onClose} cancelLabel={t('common:action.cancel')} cancelDisabled={!!busy}>
             <Button
               variant="primary"
               size="md"
@@ -56,7 +54,7 @@ export function ChangeRoleModal({ open, member, teamRole, busy, error, onClose, 
             >
               {t('teams.changeRoleModal.save')}
             </Button>
-          </>
+          </ModalFooter>
         }
     >
       <div className="form-stack">

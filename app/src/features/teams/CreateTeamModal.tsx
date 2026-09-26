@@ -18,6 +18,7 @@ import { Plus } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 import { InlineError } from '../../components/InlineError';
 import { FE_LIMITS } from '../../lib/limits';
 
@@ -217,10 +218,7 @@ export function CreateTeamModal({ open, onClose, onSuccess }: CreateTeamModalPro
       onClose={onClose}
       width="sm"
       footer={
-        <>
-          <Button variant="ghost" size="md" onClick={onClose}>
-            {t('common:action.cancel')}
-          </Button>
+        <ModalFooter onCancel={onClose} cancelLabel={t('common:action.cancel')}>
           <Button
             type="submit"
             size="md"
@@ -231,7 +229,7 @@ export function CreateTeamModal({ open, onClose, onSuccess }: CreateTeamModalPro
           >
             {t('teams.createModal.create')}
           </Button>
-        </>
+        </ModalFooter>
       }
     >
       <form id="create-team-form" className="form-stack" onSubmit={onSubmit} noValidate>

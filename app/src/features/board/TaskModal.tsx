@@ -33,6 +33,7 @@ import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { PlanLimitModal } from '../../components/PlanLimitModal';
 import { PropRow } from '../../components/PropRow';
 import { DetailShell } from '../../components/DetailShell';
+import { DetailFooter } from '../../components/DetailFooter';
 import { DatePicker } from '../../components/DatePicker';
 import { DetailEmpty } from '../../components/DetailList';
 import { InlineError } from '../../components/InlineError';
@@ -537,15 +538,7 @@ export function TaskModal({ taskId, onClose, onNavigate }: TaskModalProps) {
       onClose={onClose}
       footer={
         canEdit ? (
-          <>
-            <Button
-              variant="danger"
-              size="sm"
-              leftIcon={<Trash size={14} aria-hidden="true" />}
-              onClick={() => setConfirmOpen(true)}
-            >
-              {t('board.taskModal.delete')}
-            </Button>
+          <DetailFooter onDelete={() => setConfirmOpen(true)} deleteLabel={t('board.taskModal.delete')}>
             {(saving || lastSavedAt) && !titleEmpty && (
               <span className="save-state" role="status">
                 {saving ? (
@@ -558,7 +551,7 @@ export function TaskModal({ taskId, onClose, onNavigate }: TaskModalProps) {
                 )}
               </span>
             )}
-          </>
+          </DetailFooter>
         ) : undefined
       }
       sidebarHead={t('board.taskModal.propertiesLabel')}

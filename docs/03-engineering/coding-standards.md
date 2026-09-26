@@ -4,7 +4,7 @@
 |---|---|
 | **Document status** | Active |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-09-24 |
+| **Last updated** | 2026-09-26 |
 | **Applies to** | All TypeScript code in `app/` and `server/` |
 
 ---
@@ -94,6 +94,9 @@ enum TaskStatus { Todo, InProgress, Review, Done }
 - **Portal overlays:** dropdown/kalender/menu yang bisa terpotong ancestor WAJIB portal ke body (`select-portal` / `datepicker-portal` — lihat [Design Tokens §10](design-tokens.md#10-menu-select-chip-card-skeleton-drawer-sep-2026)).
 - **Row menus:** aksi baris WAJIB `RowMenu` kebab (`app/src/components/RowMenu.tsx`) + `stopPropagation` di trigger + menu agar tidak memicu row-click/navigasi.
 - **Selects:** `SearchableSelect` DILARANG emit `onChange` saat mount (`select-mount-emit` guard + regression test); emit hanya pada pilih user.
+- **Overlay baru:** dropdown/menu/kalender/sheet yang bisa terpotong ancestor WAJIB portal ke body + clamp viewport (`overlay-clamp` — lihat [Design Tokens §9b](design-tokens.md#9b-modal-mobile-tabs-icon-only-and-overlay-clamp)).
+- **Grid kartu & empty-state baru:** kartu responsif WAJIB `minmax` (`grid-minmax-card`); empty-state mobile baru WAJIB `.empty-state--center` global, bukan selektor per-page (lihat [Design Tokens §7b](design-tokens.md#7b-overflow-grid-collapse-card-header-and-toolbar)).
+- **Aksi settings mobile baru:** WAJIB `fit-content` rata kanan (`action-row` — lihat [Design Tokens §4b](design-tokens.md#4b-breakpoints-content-widths-and-mobile-action-alignment)); fullwidth = temuan review kecuali onboarding/modal terdaftar.
 
 ---
 
@@ -121,6 +124,16 @@ dokumen token yang menang (Living Rule §5).
 - Numbers and task IDs render in `--font-mono` (density ≥ 7 rule).
 - One accent color globally; semantic colors only for status meaning (Color Consistency Lock).
 - Radius/z-index ONLY from the documented scales.
+
+**Footer/header/section primitives (Tier-1):**
+- `ModalFooter` (`cancelLabel + onCancel + children`) — tersedia (`app/src/components/ModalFooter.tsx` + test): Cancel ghost md kiri, aksi kanan; mobile 50/50 per §4b. Footer modal baru WAJIB pakai ini, bukan susunan manual.
+- `ConfirmFooter` (`onConfirm + confirmTone`) — tersedia (`app/src/components/ConfirmFooter.tsx` + test): thin wrapper konfirmasi 2-langkah (`danger` default + ikon, `primary` aksi, `ghost` pengembalian non-destruktif); `busy` lock + `confirmDisabled` untuk guard. Pilot migrasi: `ConfirmDeleteDialog`, `CollectionModal`, `UnlinkProviderModal`, `LabelsSection` modal, leave/archive/import modal.
+- `PageHeader` (`title + subtitle? + actions? + className?`) — tersedia (`app/src/components/PageHeader.tsx` + test): `h1.page-title` + `p.page-subtitle` kiri, aksi/count kanan. Pilot migrasi: `KeysPage`, `TemplatesPage`.
+- `Section` (`title + titleId + icon? + actions? + description? + variant?`) + `SettingsRowGroup` — tersedia (`app/src/components/Section.tsx` + test): `section[aria-labelledby] + head-row (bila actions) + desc + isi`; judul `dashboard__settings-section-title` dipertahankan (konvergensi ke `.section-title` ikut migrasi per area). Pilot migrasi: `LabelsSection`, `DashboardSettingsTab` general, `ProfilePage` + `GCalSettings` row-group.
+- Header/section manual baru = temuan review.
+- `DetailFooter` (`onDelete + deleteLabel + save-state children?`) — tersedia (`app/src/components/DetailFooter.tsx` + test): footer modal detail autosave `[danger sm Delete kiri][save-state kanan]`, tanpa Cancel; teks save-state per-area via `children` (kunci i18n tak diduplikat). Migrasi: `IssueModal`/`TaskModal`/`TechModal`/`TableModal`/`MilestoneModal`/`DecisionModal`/`TestModal`.
+- `WizardFooter` (skip + back? + next/finish) — tersedia (`app/src/components/WizardFooter.tsx` + test): footer tur `[ghost sm Skip][spacer][ghost sm Back?][primary sm Next|Finish]`, satu fragment dual-host (popover + modal); ukuran sm disengaja. Migrasi: `OnboardingWizard`.
+- `LinkButton` (`to` xor `href` + variant/size/icon) — tersedia (`app/src/components/LinkButton.tsx` + test): link berbaju tombol, union eksplisit internal (`to`, react-router) vs eksternal (`href`); `rel` default `noopener noreferrer` bila `target=_blank`; `iconPosition` left/right. Migrasi 11 link (CheckEmail/Docs/Keys/Settings-plan+usage/GCal-connect/mailto/Profile-OAuth×2/Public-CTA×2); dikecualikan: OAuth `AuthPage` (`fontWeight: 600` khusus).
 
 ---
 

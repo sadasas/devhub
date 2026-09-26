@@ -31,6 +31,7 @@ import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { InlineError } from '../../components/InlineError';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 import { Textarea } from '../../components/Textarea';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
@@ -301,10 +302,7 @@ export function ImportSchemaModal({ open, onClose }: ImportSchemaModalProps) {
         width="lg"
         ariaDescribedBy={previewId}
         footer={
-          <>
-            <Button variant="ghost" size="md" onClick={onClose}>
-              {t('schema.import.cancel')}
-            </Button>
+          <ModalFooter onCancel={onClose} cancelLabel={t('schema.import.cancel')}>
             {mode === 'replace' ? (
               <Button variant="danger" size="md" onClick={onConfirmMain} disabled={confirmDisabled}>
                 {t('schema.import.continue')}
@@ -320,7 +318,7 @@ export function ImportSchemaModal({ open, onClose }: ImportSchemaModalProps) {
                 {t('schema.import.confirm')}
               </Button>
             )}
-          </>
+          </ModalFooter>
         }
       >
         <div className="form-stack">

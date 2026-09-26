@@ -13,6 +13,7 @@ import { Plus } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { Textarea } from '../../components/Textarea';
 import { InlineError } from '../../components/InlineError';
@@ -88,14 +89,11 @@ export function NewProjectModal({ open, onClose, initialTeamId }: NewProjectModa
       onClose={onClose}
       width="sm"
       footer={
-        <>
-          <Button variant="ghost" size="md" onClick={onClose}>
-            {t('common:action.cancel')}
-          </Button>
+        <ModalFooter onCancel={onClose} cancelLabel={t('common:action.cancel')}>
           <Button type="submit" size="md" form="new-project-form" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} loading={submitting} disabled={!name.trim() || (teams?.length ?? 0) === 0}>
             {t('dashboard.modal.create')}
           </Button>
-        </>
+        </ModalFooter>
       }
     >
       <form id="new-project-form" className="form-stack" onSubmit={onSubmit} noValidate>

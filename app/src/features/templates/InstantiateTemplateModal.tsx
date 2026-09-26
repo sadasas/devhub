@@ -11,6 +11,7 @@ import { Copy } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 import { InlineError } from '../../components/InlineError';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { PlanLimitModal, type PlanLimitResource } from '../../components/PlanLimitModal';
@@ -103,10 +104,7 @@ export function InstantiateTemplateModal({
         onClose={onClose}
         width="sm"
         footer={
-          <>
-            <Button variant="ghost" size="md" onClick={onClose}>
-              {t('templates.cancel')}
-            </Button>
+          <ModalFooter onCancel={onClose} cancelLabel={t('templates.cancel')}>
             <Button
               type="submit"
               size="md"
@@ -117,7 +115,7 @@ export function InstantiateTemplateModal({
             >
               {t('templates.createProject')}
             </Button>
-          </>
+          </ModalFooter>
         }
       >
         <form id="instantiate-form" className="form-stack" onSubmit={onSubmit} noValidate>

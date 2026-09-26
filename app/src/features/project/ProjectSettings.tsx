@@ -7,6 +7,7 @@ import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Badge } from '../../components/Badge';
+import { Section } from '../../components/Section';
 import { EditGeneralModal } from './EditGeneralModal';
 import { GCalSettings } from '../integrations/GCalSettings';
 import { GitHubSettings } from '../integrations/GitHubSettings';
@@ -112,12 +113,13 @@ function GeneralSection({ project, canEditMeta }: { project: Project; canEditMet
   return (
     <div className="profile-panel">
       <div className="narrow-center">
-      <section className="dashboard__settings-section" aria-labelledby="project-settings-general-title">
-      <div className="dashboard__settings-head">
-        <h2 id="project-settings-general-title" tabIndex={-1} className="dashboard__settings-section-title">
-          {t('settings.generalTitle', { defaultValue: 'General' })}
-        </h2>
-        {canEditMeta && (
+      <Section
+        titleId="project-settings-general-title"
+        title={t('settings.generalTitle', { defaultValue: 'General' })}
+        description={t('settings.generalDesc', {
+          defaultValue: 'Project name and description. Changes apply to this project.',
+        })}
+        actions={canEditMeta ? (
           <Button
             type="button"
             variant="ghost"
@@ -128,13 +130,8 @@ function GeneralSection({ project, canEditMeta }: { project: Project; canEditMet
           >
             {t('settings.editGeneral', { defaultValue: 'Edit' })}
           </Button>
-        )}
-      </div>
-      <p className="dashboard__settings-section-desc">
-        {t('settings.generalDesc', {
-          defaultValue: 'Project name and description. Changes apply to this project.',
-        })}
-      </p>
+        ) : undefined}
+      >
       <div className="dashboard__settings-read-name">{project.name}</div>
       <div className="dashboard__settings-id-row">
         <div className="dashboard__settings-id-field">
@@ -184,7 +181,7 @@ function GeneralSection({ project, canEditMeta }: { project: Project; canEditMet
         </p>
       )}
       {editOpen && <EditGeneralModal project={project} onClose={() => setEditOpen(false)} />}
-      </section>
+      </Section>
       </div>
     </div>
   );
@@ -208,18 +205,14 @@ function DangerSection({
   return (
     <div className="profile-panel">
       <div className="narrow-center">
-      <section
-        className="dashboard__settings-section dashboard__settings-section--danger"
-        aria-labelledby="project-settings-danger-title"
+      <Section
+        titleId="project-settings-danger-title"
+        title={t('settings.dangerTitle', { defaultValue: 'Danger zone' })}
+        description={t('settings.dangerDesc', {
+          defaultValue: 'Irreversible and visibility actions for this project.',
+        })}
+        variant="danger"
       >
-        <h2 id="project-settings-danger-title" tabIndex={-1} className="dashboard__settings-section-title dashboard__settings-section-title--danger">
-          {t('settings.dangerTitle', { defaultValue: 'Danger zone' })}
-        </h2>
-        <p className="dashboard__settings-section-desc">
-          {t('settings.dangerDesc', {
-            defaultValue: 'Irreversible and visibility actions for this project.',
-          })}
-        </p>
         {canArchive && (
           <div className="dashboard__settings-danger-row">
             <div className="dashboard__settings-danger-main">
@@ -276,7 +269,7 @@ function DangerSection({
             </Button>
           </div>
         )}
-      </section>
+      </Section>
       </div>
     </div>
   );
@@ -286,18 +279,17 @@ function IntegrationsSection({ projectId, canConnect, isAdmin }: { projectId: st
   return (
     <div className="profile-panel">
       <div className="narrow-center">
-      <section className="dashboard__settings-section dashboard__settings-section--integrations" aria-labelledby="project-settings-integrations-title">
-      <h2 id="project-settings-integrations-title" tabIndex={-1} className="dashboard__settings-section-title">
-        {t('settings.integrationsTitle', { defaultValue: 'Integrations' })}
-      </h2>
-      <p className="dashboard__settings-section-desc">
-        {t('settings.integrationsDesc', {
+      <Section
+        titleId="project-settings-integrations-title"
+        title={t('settings.integrationsTitle', { defaultValue: 'Integrations' })}
+        description={t('settings.integrationsDesc', {
           defaultValue: 'External connections for this project. Account-level links live in your profile.',
         })}
-      </p>
+        className="dashboard__settings-section--integrations"
+      >
       <GCalSettings projectId={projectId} canEdit={canConnect} bare />
       <GitHubSettings projectId={projectId} canConnect={canConnect} isAdmin={isAdmin} />
-      </section>
+      </Section>
       </div>
     </div>
   );

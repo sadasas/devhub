@@ -19756,6 +19756,20 @@ html[data-theme='light'] .tour-overlay-dim {
   color: var(--status-danger);
 }
 
+/* Ikon opsional di judul section (pola .section-title): inline-flex + gap 8
+   + accent — HANYA bila ikon diisi (`Section icon`). Tanpa ikon, h2 tetap
+   seperti semula (tanpa wrapper, tanpa margin tambahan). */
+.dashboard__settings-section-title--with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard__settings-section-title--with-icon svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
 .dashboard__settings-section-desc {
   margin: 0;
   font-size: 13px;

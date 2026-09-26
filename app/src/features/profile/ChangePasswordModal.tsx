@@ -7,6 +7,7 @@ import { Button } from '../../components/Button';
 import { InlineError } from '../../components/InlineError';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 import { FE_LIMITS } from '../../lib/limits';
 import { useAuth } from '../../state/auth-context';
 
@@ -123,10 +124,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
         changeSuccess ? (
           <Button size="md" leftIcon={<Check size={14} weight="bold" aria-hidden="true" />} onClick={onClose}>{t('profile.changeModal.done')}</Button>
         ) : (
-          <>
-            <Button variant="ghost" size="md" onClick={onClose} disabled={changing}>
-              {t('common:action.cancel')}
-            </Button>
+          <ModalFooter onCancel={onClose} cancelLabel={t('common:action.cancel')} cancelDisabled={changing}>
             <Button
               type="submit"
               size="md"
@@ -137,7 +135,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
             >
               {submitLabel}
             </Button>
-          </>
+          </ModalFooter>
         )
       }
     >

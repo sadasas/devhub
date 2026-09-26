@@ -14,7 +14,9 @@ import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 import { RowMenu } from '../../components/RowMenu';
+import { Section } from '../../components/Section';
 
 /** Mode sempit (≤640px): aksi rename/hapus diganti kebab ⋮ — pola IssuesPage. */
 function useIsLabelsNarrow(): boolean {
@@ -159,20 +161,16 @@ export function LabelsSection() {
   return (
     <div className="profile-panel">
       <div className="narrow-center">
-      <section className="dashboard__settings-section" aria-labelledby="project-settings-labels-title">
-        <div className="dashboard__settings-head">
-          <h2 id="project-settings-labels-title" tabIndex={-1} className="dashboard__settings-section-title" style={{ flex: 1, minWidth: 0, margin: 0 }}>
-            {t('settings.labelsTitle', { defaultValue: 'Labels' })}
-          </h2>
-          {canEdit && (
-            <Button variant="primary" size="sm" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={openCreate}>
-              {t('settings.labelsAdd', { defaultValue: 'Add' })}
-            </Button>
-          )}
-        </div>
-        <p className="dashboard__settings-section-desc">
-          {t('settings.labelsDesc', { defaultValue: 'Named colors for task labels in this project. Renaming updates every task; deleting keeps the text with an automatic color.' })}
-        </p>
+      <Section
+        titleId="project-settings-labels-title"
+        title={t('settings.labelsTitle', { defaultValue: 'Labels' })}
+        description={t('settings.labelsDesc', { defaultValue: 'Named colors for task labels in this project. Renaming updates every task; deleting keeps the text with an automatic color.' })}
+        actions={canEdit ? (
+          <Button variant="primary" size="sm" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={openCreate}>
+            {t('settings.labelsAdd', { defaultValue: 'Add' })}
+          </Button>
+        ) : undefined}
+      >
 
         <div style={{ marginTop: 2 }}>
           {defs.length === 0 && (
@@ -248,7 +246,7 @@ export function LabelsSection() {
             {t('settings.readonly', { defaultValue: 'Only owners and admins can edit project settings.' })}
           </p>
         )}
-      </section>
+      </Section>
       </div>
 
       <Modal
@@ -258,16 +256,13 @@ export function LabelsSection() {
           : t('settings.labelsCreateTitle', { defaultValue: 'New label' })}
         onClose={() => setModal(null)}
         footer={(
-          <>
-            <Button variant="ghost" size="md" onClick={() => setModal(null)}>
-              {t('settings.labelsCancel', { defaultValue: 'Cancel' })}
-            </Button>
+          <ModalFooter onCancel={() => setModal(null)} cancelLabel={t('settings.labelsCancel', { defaultValue: 'Cancel' })}>
             <Button variant="primary" size="md" leftIcon={isEditing ? <Check size={14} weight="bold" aria-hidden="true" /> : <Plus size={14} weight="bold" aria-hidden="true" />} onClick={save} disabled={!formName.trim()}>
               {isEditing
                 ? t('settings.labelsSave', { defaultValue: 'Save' })
                 : t('settings.labelsAdd', { defaultValue: 'Add' })}
             </Button>
-          </>
+          </ModalFooter>
         )}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

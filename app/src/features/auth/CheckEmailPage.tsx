@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { ArrowRight, EnvelopeSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams, useNavigate, Link } from 'react-router';
+import { useSearchParams, useNavigate } from 'react-router';
+import { LinkButton } from '../../components/LinkButton';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import { Button } from '../../components/Button';
@@ -138,9 +139,9 @@ export function CheckEmailPage() {
             )}
           </p>
           <p className="auth-switch" style={{ fontSize: 14 }}>
-            <Link to="/" className="btn btn-ghost btn-sm">
+            <LinkButton to="/" variant="ghost">
               {t('auth.action.signIn')}
-            </Link>
+            </LinkButton>
           </p>
         </div>
       </main>

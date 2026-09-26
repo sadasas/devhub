@@ -7,6 +7,7 @@ import { BookmarkSimple } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 import { Textarea } from '../../components/Textarea';
 import { InlineError } from '../../components/InlineError';
 
@@ -59,14 +60,11 @@ export function SaveTemplateModal({ open, projectId, projectName, onClose }: Sav
       width="sm"
       footer={
         saved ? undefined : (
-          <>
-            <Button variant="ghost" size="md" onClick={onClose}>
-              {t('templates.cancel')}
-            </Button>
+          <ModalFooter onCancel={onClose} cancelLabel={t('templates.cancel')}>
             <Button type="submit" size="md" form="save-template-form" leftIcon={<BookmarkSimple size={14} aria-hidden="true" />} loading={submitting} disabled={!name.trim()}>
               {t('templates.save')}
             </Button>
-          </>
+          </ModalFooter>
         )
       }
     >

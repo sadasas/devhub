@@ -10,6 +10,7 @@ import type { MilestoneStatus } from "../../lib/types";
 import { Button } from "../../components/Button";
 import { DatePicker } from "../../components/DatePicker";
 import { Modal } from "../../components/Modal";
+import { ModalFooter } from "../../components/ModalFooter";
 import { MarkdownField } from "../../components/MarkdownField";
 import { SearchableSelect } from "../../components/SearchableSelect";
 import { LIMITS } from "../../lib/limits";
@@ -184,14 +185,11 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
       expandLabel={t("tracker:board.newTaskModal.expandView")}
       collapseLabel={t("tracker:board.newTaskModal.contractView")}
       footer={
-        <>
-          <Button variant="ghost" size="md" onClick={onClose}>
-            {t("releases.newModal.cancel")}
-          </Button>
+        <ModalFooter onCancel={onClose} cancelLabel={t("releases.newModal.cancel")}>
           <Button variant="primary" size="md" type="submit" form="new-milestone-form" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} disabled={!name.trim()}>
             {t("releases.newModal.submit")}
           </Button>
-        </>
+        </ModalFooter>
       }
     >
       <form id="new-milestone-form" className="composer-form" onSubmit={submit} noValidate>

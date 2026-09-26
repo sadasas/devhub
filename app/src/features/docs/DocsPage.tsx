@@ -3,6 +3,8 @@ import { Link, useLocation } from 'react-router';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DocsNav } from './DocsNav';
+import { PageHeader } from '../../components/PageHeader';
+import { LinkButton } from '../../components/LinkButton';
 import { DocsToc, DocsTocMobile, type DocsTocItem } from './DocsToc';
 
 const DOC_NAV_ITEMS: DocsTocItem[] = [
@@ -60,12 +62,7 @@ export function DocsPage() {
       {/* Flat content card wraps page content; reading measure stays at 760px via docs-body. */}
       <article className="pcard">
         <div className="pcard-body">
-      <header className="page-header">
-        <div>
-          <h1 className="page-title">{t('docs.page.title')}</h1>
-          <p className="page-subtitle">{t('docs.page.subtitle')}</p>
-        </div>
-      </header>
+      <PageHeader title={t('docs.page.title')} subtitle={t('docs.page.subtitle')} />
 
       <div className="docs-grid">
         <div className="docs-main">
@@ -138,9 +135,9 @@ export function DocsPage() {
                   <div className="docs-step-content">
                     <h3 className="docs-step-title">{t('docs.quickstart.step1Title')}</h3>
                     <p className="docs-step-desc">{t('docs.quickstart.step1Desc')}</p>
-                    <Link to="/connected" className="btn btn-secondary btn-sm">
+                    <LinkButton to="/connected">
                       {t('docs.quickstart.goToKeys')}
-                    </Link>
+                    </LinkButton>
                   </div>
                 </li>
                 <li className="docs-quickstart-step">

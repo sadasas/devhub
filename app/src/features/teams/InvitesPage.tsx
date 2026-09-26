@@ -9,6 +9,7 @@ import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/Skeleton';
 import { InlineError } from '../../components/InlineError';
 import { DataErrorState } from '../../components/DataErrorState';
+import { PageHeader } from '../../components/PageHeader';
 import { PlanLimitModal } from '../../components/PlanLimitModal';
 import { isPlanLimitError } from '../../lib/errors';
 
@@ -55,12 +56,7 @@ export function InvitesPage() {
       <article className="pcard">
         <div className="pcard-body">
           <div className="narrow-center">
-          <header className="page-header">
-            <div>
-              <h1 className="page-title">{t('teams.invites.title')}</h1>
-              <p className="page-subtitle">{t('teams.invites.subtitle')}</p>
-            </div>
-          </header>
+          <PageHeader title={t('teams.invites.title')} subtitle={t('teams.invites.subtitle')} />
 
           {error ? <DataErrorState error={loadError ?? error} onRetry={() => void refresh()} /> : null}
           {actionError && <InlineError>{actionError}</InlineError>}

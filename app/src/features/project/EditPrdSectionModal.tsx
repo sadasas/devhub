@@ -9,6 +9,7 @@ import { useProjects } from '../../state/projects-context';
 import { Button } from '../../components/Button';
 import { InlineError } from '../../components/InlineError';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 import { MarkdownField } from '../../components/MarkdownField';
 
 /** Satu variabel per buka: deskripsi hero atau satu seksi PRD. */
@@ -92,14 +93,11 @@ export function EditPrdSectionModal({ open, section, onClose, project }: EditPrd
       expandLabel={t('tracker:board.newTaskModal.expandView')}
       collapseLabel={t('tracker:board.newTaskModal.contractView')}
       footer={
-        <>
-          <Button variant="ghost" size="md" onClick={onClose} disabled={saving}>
-            {t('project:prd.cancel')}
-          </Button>
+        <ModalFooter onCancel={onClose} cancelLabel={t('project:prd.cancel')} cancelDisabled={saving}>
           <Button type="submit" size="md" form="edit-prd-section-form" leftIcon={<FloppyDisk size={14} aria-hidden="true" />} disabled={!dirty} loading={saving}>
             {t('project:prd.save')}
           </Button>
-        </>
+        </ModalFooter>
       }
     >
       <form id="edit-prd-section-form" className="composer-form" onSubmit={(e) => void onSave(e)}>

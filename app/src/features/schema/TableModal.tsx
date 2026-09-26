@@ -17,6 +17,7 @@ import { InlineError } from '../../components/InlineError';
 import { Input } from '../../components/Input';
 import { MarkdownField } from '../../components/MarkdownField';
 import { Modal } from '../../components/Modal';
+import { DetailFooter } from '../../components/DetailFooter';
 import { ColumnTypeCombobox } from './ColumnTypeCombobox';
 import { ColumnFlagsToggle } from './ColumnFlagsToggle';
 
@@ -88,15 +89,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
         width="lg"
         footer={
           canEdit ? (
-            <>
-              <Button
-                variant="danger"
-                size="sm"
-                leftIcon={<Trash size={14} aria-hidden="true" />}
-                onClick={() => setConfirmOpen(true)}
-              >
-                {t('schema.table.delete')}
-              </Button>
+            <DetailFooter onDelete={() => setConfirmOpen(true)} deleteLabel={t('schema.table.delete')}>
               {(saving || lastSavedAt) && !titleEmpty && (
                 <span className="save-state" role="status">
                   {saving ? (
@@ -109,7 +102,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                   )}
                 </span>
               )}
-            </>
+            </DetailFooter>
           ) : undefined
         }
       >

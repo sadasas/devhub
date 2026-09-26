@@ -7,6 +7,7 @@ import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 import { MarkdownField } from '../../components/MarkdownField';
 import { FE_LIMITS } from '../../lib/limits';
 import { canAutoincrement, isPlainIndex, isUniqueIndex, togglePlainIndex, toggleUnique } from './column-helpers';
@@ -132,14 +133,11 @@ export function NewTableModal({ open, onClose, initialPosition = null, onCreated
       onClose={onClose}
       width="lg"
       footer={
-        <>
-          <Button variant="ghost" size="md" onClick={onClose}>
-            {t('schema.newTableModal.cancel')}
-          </Button>
+        <ModalFooter onCancel={onClose} cancelLabel={t('schema.newTableModal.cancel')}>
           <Button type="submit" size="md" form="new-table-form" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} disabled={!name.trim()}>
             {t('schema.newTableModal.submit')}
           </Button>
-        </>
+        </ModalFooter>
       }
     >
       <form id="new-table-form" className="form-stack" onSubmit={onSubmit} noValidate>

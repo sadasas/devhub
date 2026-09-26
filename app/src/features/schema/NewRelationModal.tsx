@@ -8,6 +8,7 @@ import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { Plus } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 import { InlineError } from '../../components/InlineError';
 import { SearchableSelect } from '../../components/SearchableSelect';
 
@@ -94,14 +95,11 @@ export function NewRelationModal({ open, onClose, initialFrom = null, initialTo 
       onClose={onClose}
       width="sm"
       footer={
-        <>
-          <Button variant="ghost" size="md" onClick={onClose}>
-            {t('schema.relationModal.cancel')}
-          </Button>
+        <ModalFooter onCancel={onClose} cancelLabel={t('schema.relationModal.cancel')}>
           <Button type="submit" size="md" form="new-relation-form" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} disabled={invalid}>
             {t('schema.relationModal.submit')}
           </Button>
-        </>
+        </ModalFooter>
       }
     >
       <form id="new-relation-form" className="form-stack" onSubmit={onSubmit} noValidate>

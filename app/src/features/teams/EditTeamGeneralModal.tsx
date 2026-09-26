@@ -16,6 +16,7 @@ import { Button } from '../../components/Button';
 import { InlineError } from '../../components/InlineError';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
+import { ModalFooter } from '../../components/ModalFooter';
 
 type SlugStatus =
   | { kind: 'idle' }
@@ -135,10 +136,7 @@ export function EditTeamGeneralModal({ team, onClose }: { team: Team; onClose: (
       title={t('dashboard.team.settingsEditGeneralTitle', { defaultValue: 'Edit general' })}
       onClose={onClose}
       footer={
-        <>
-          <Button variant="ghost" size="md" onClick={onClose} disabled={saving}>
-            {t('common:action.cancel', { defaultValue: 'Cancel' })}
-          </Button>
+        <ModalFooter onCancel={onClose} cancelLabel={t('common:action.cancel', { defaultValue: 'Cancel' })} cancelDisabled={saving}>
           <Button
             type="submit"
             size="md"
@@ -149,7 +147,7 @@ export function EditTeamGeneralModal({ team, onClose }: { team: Team; onClose: (
           >
             {t('dashboard.team.settingsSave')}
           </Button>
-        </>
+        </ModalFooter>
       }
     >
       <form

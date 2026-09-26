@@ -4,7 +4,7 @@
 |---|---|
 | **Document status** | Active |
 | **Owner** | Project Owner |
-| **Last updated** | 2026-09-24 |
+| **Last updated** | 2026-09-26 |
 | **Applies to** | All UI code in `app/src` (components, features, styles) |
 
 > Design tokens are the single source of truth for visual values. Any UI work
@@ -150,6 +150,34 @@ is reserved for floating layers.
 
 ---
 
+## 4b. Breakpoints, content widths and mobile action alignment
+
+| Token | Value | Role |
+|---|---|---|
+| `bp-small` | `360px` | Small-phone guards: cap teks + `row-gap: 8` saja; dilarang layout baru di sini |
+| `bp-mobile` | `640px` | Mobile: 1 kolom, `.page 16/16/32`, `.pcard-body 12px`, modal fullscreen + footer 50/50, toolbar/header 2-baris, icon-only, prop pil |
+| `bp-tablet-stack` | `900px` | SATU-SATUNYA breakpoint collapse 2-kolom → 1-kolom (detail-grid, schema-layout, welcome-grid, settings-row). Menggantikan 860/700/640/900 yang tersebar; pengecualian per modul wajib ADR |
+| `bp-drawer` | `860/861px` | App-shell drawer switch (`Layout.tsx` + CSS): grid 1 kolom + `rows: auto 1fr`, drawer `min(304px, 100vw-48px)` + backdrop blur, hamburger on, `topbar-btn` 44px |
+| `bp-tablet-rhythm` | `641–1024px` | `pcard-body 20/16/16`, `page` 20px; `861–1024px: page 16/20/40` |
+| `bp-laptop` | `1024px / 1281px` | `≥1024: .page:has(pcard) padding 16`; `≥1281: max-width 1280 centered` |
+| `content-narrow` | `360px` | `.auth-form` — form auth saja |
+| `content-read` | `800px` | `.narrow-center` — konten baca (members/settings-like); list panjang + board full-bleed tanpa wrapper |
+| `content-page` | `1280px` | `.page` — semua wrapper halaman |
+| `content-prose` | `42ch` | `.empty-state-desc` — deskripsi empty/prose |
+| `action-row` | `fit-content + align-self: flex-end` | Aksi baris settings/form di mobile: rata kanan, bukan fullwidth (sejajar tombol Save). Kanonis: `.dashboard__settings-copy/-manage/-danger-btn` |
+| `modal-footer` | desktop `flex-end`; mobile 50/50 | Footer modal: desktop `flex-end + wrap + gap 8`, Cancel kiri; mobile `.btn { flex: 1 1 0 }`, primary `flex: 2`, danger `max-width: 50%`, 44px |
+| `toolbar-header` | desktop `end`; mobile `100% + end` | `.page-header / .project-actions / .board-toolbar-actions`: desktop `end + wrap`, mobile turun `width: 100% + justify-content: flex-end + row-gap: 8` |
+| `onboarding-actions` | stacked / center | Empty/onboarding: stacked fullwidth primary 44px (mobile) atau center wrap (desktop). BUKAN rata kanan |
+
+Rules:
+
+- Breakpoint px baru di luar daftar di atas = temuan guard (warn-first; grandfathered: complements 641/861 + tablet 700/767 yang sudah dipakai, tercatat di guard).
+- `action-row` fullwidth (`width: 100%` pada `*-copy/*-manage/*-danger-btn`) = temuan guard; pengecualian onboarding/modal didaftar eksplisit per kasus, bukan pola.
+- Contoh kanonis (jangan fullwidth):
+  `@media (max-width: 640px) { .settings-row-actions { align-self: flex-end; } .settings-row-actions .btn { width: auto; min-height: 44px; } }`
+
+---
+
 ## 5. Living rule
 
 1. New token or value change → update this document **and** the guard in the
@@ -207,6 +235,26 @@ is reserved for floating layers.
 | 2026-09-25 | `InlineError` ditegaskan global: ikon `Warning` 12px + teks 600 (seragam 71 titik + `Input`/`Textarea`); tetap teks tanpa kotak, `role=alert` tak berubah; `.field-error > svg` nempel baris pertama (pola `save-toast`), gap 6 tangga space-* |
 | 2026-09-25 | Audit penempatan feedback se-app: aturan kedekatan dilonggarkan jadi "di atas ATAU bawah pemicu asal bersebelahan" (konvensi modal: error di atas footer = menempel); 12 titik P0 diperbaiki (duplikat PricingPage, alert-pada-info PlanLimitModal/TeamBillingPanel, role ganda PaymentHistory, primitif custom ProfilePage, load-gagal auth/billing, ember salah ProjectPage, kode mati LabelsSection, doneWarn dinamis TaskModal) |
 | 2026-09-25 | Slot tunggal banner section: SEMUA banner menumpuk di bawah konten (danger → warn → success) — flash/notice GitHub turun, tumpukan GCal disusun ulang, `GCalBanner` jadi wrapper `StatusBanner`, notice disconnect GCal, dialog konfirmasi disconnect GitHub, loading GitHub `role=status` |
+| 2026-09-26 | §4b breakpoint + content-width + action-alignment (4 klasifikasi: action-row rata kanan / modal-footer 50/50 / toolbar-header wrap-end / onboarding stacked) + §7b overflow-guard/grid-collapse/card-header/toolbar-stack/truncate/empty-center + §9b modal-mobile/tabs-icon-only/overlay-clamp; guard WARN breakpoint/empty-per-page/settings-fullwidth di PR yang sama (Fase 0, nol perubahan visual) |
+| 2026-09-26 | Fase 1 pilot: `ModalFooter` + `ConfirmFooter` (Tier-1, `app/src/components/`) + 8 regression test; migrasi `ConfirmDeleteDialog`/`CollectionModal`/`UnlinkProviderModal` tanpa perubahan visual; footer modal baru WAJIB primitif (manual = temuan review); `PageHeader`/`Section` tetap terencana |
+| 2026-09-26 | Fase 1 lanjutan: `PageHeader` + `Section`/`SettingsRowGroup` + 10 regression test; `section-title-icon` (`--with-icon`, ALLOWLIST + guard di PR yang sama); migrasi `KeysPage`/`TemplatesPage` (header), `LabelsSection`/`DashboardSettingsTab` general (section), `ProfilePage`/`GCalSettings` (row-group) tanpa perubahan visual; header/section manual baru = temuan review |
+| 2026-09-26 | Migrasi per-area Profile: header `ProfilePage` → `PageHeader`; footer `ProfileEditModal`/`ChangePasswordModal` (cabang form; cabang sukses 1-tombol Done tetap manual) → `ModalFooter`; tanpa perubahan visual (cancel `disabled` saat busy dipertahankan, label `common:action.cancel` eksplisit) |
+| 2026-09-26 | Migrasi per-area Dashboard: section plan/usage (incl. `id` deep-link, prop `id` baru di `Section` + test)/danger → `Section`; footer `NewProjectModal` → `ModalFooter`, leave-modal → `ConfirmFooter`; dikecualikan: header `MembersTab` (h2, `PageHeader` h1-only — semantik dipertahankan), delete-modal typed-confirm (`aria-describedby` per-button, di luar API `ConfirmFooter`), link `<a class="btn">` (belum ada primitif LinkButton) |
+| 2026-09-26 | Audit per-area Billing: patuh, nol perubahan — `TeamBillingPanel`/`PaymentHistoryPage` sudah primitif (`StatusBanner`/`DataErrorState`/`Badge`/`Button`/`BillingLedger` compound); dikecualikan: header `PaymentHistoryPage` (h1 bawa `mt-8`, `PageHeader` tanpa escape-hatch by design — lipat butuh verifikasi visual), empty `.billing-empty` kustom (bukan `EmptyState`, migrasi = risiko visual) |
+| 2026-09-26 | Migrasi per-area Tracker: footer `NewIssueModal` + dialog pindah-tanggal `DueCalendar` → `ModalFooter`; dikecualikan: footer `IssueModal`/`TaskModal` (`[danger sm Delete + save-state]`, tambah Cancel = ubah UX — butuh pola `DetailFooter` tersendiri), footer `NewTaskModal` (1-tombol submit tanpa Cancel, tambah Cancel = ubah UX) |
+| 2026-09-26 | Migrasi per-area Project: 3 section `ProjectSettings` (general/danger/integrations) → `Section`; footer `EditGeneralModal`/`EditPrdSectionModal` → `ModalFooter`; footer archive/import `ProjectPage` → `ConfirmFooter` (tone `ghost` baru untuk Restore non-destruktif + test); dikecualikan: delete-modal typed-confirm (`aria-describedby` per-button); catatan: Cancel kini disabled saat busy di archive/import (X/backdrop tetap aktif — selaras `ConfirmDeleteDialog`) |
+| 2026-09-26 | Migrasi per-area Whiteboard/Templates/Keys: 5 footer → `ModalFooter` (`NewWhiteboardModal`/`EditWhiteboardModal`/`SaveTemplateModal`/`InstantiateTemplateModal`/cabang form `NewKeyModal`; cabang done 1-tombol tetap manual); 1 gagal pre-existing sindrom `unread dot` (`WhiteboardList`, berkas tak tersentuh) |
+| 2026-09-26 | Migrasi per-area Public/Integrations: footer `GitHubSetupGate` → `ModalFooter`; dikecualikan: header `PublicWhiteboards` (`div` + h3) dan `PublicProjectPage` (`div` + aksi link mentah) — `PageHeader` me-render `header`+h1, migrasi = ubah landmark/outline public shell |
+| 2026-09-26 | Pola tertunda `DetailFooter` selesai: komponen + 3 test; migrasi 7 footer DetailShell save-state (`Issue`/`Task`/`Tech`/`Table`/`Milestone`/`Decision`/`TestModal`) + bersih import `Button`/`Trash` mati; teks save-state per-area dipertahankan via slot `children` |
+| 2026-09-26 | Pola tertunda `WizardFooter` selesai: komponen + 5 test; migrasi `OnboardingWizard` (satu fragment dual-host popover+modal dipertahankan, autoFocus desktop-only + gate `blocked` + `data-tour-id` dipertahankan; `aria-disabled="false"` → absen, setara semantik) |
+| 2026-09-26 | `LinkButton` selesai (pola tertunda terakhir): union `to`/`href` + `iconPosition` + 4 test; migrasi 11 link; dikecualikan OAuth `AuthPage` (`fontWeight: 600`); 1 gagal pre-existing (`PublicProjectPage` duplikat tombol Roadmap — list whiteboard tak tersentuh, CTA saya role=link tak bisa gandakan role=button) |
+| 2026-09-26 | Label pill activity dikembalikan `New`/`Baru` (10 kunci `unread` × EN/ID, nilai saja): selaras metode tab-switch — bukan status baca; test mayoritas (`Api/Stack/Decisions/Tests/Whiteboard/Schema`) memang mengharapkan `New`; 2 test (`IssuesPage`, `TaskCard`) ikut diluruskan |
+| 2026-09-26 | Audit per-area Layout/Sidebar: patuh, nol perubahan — shell Tier-2 (drawer/topbar/nav/switcher/user-menu) pakai kelas token sendiri; satu-satunya `.btn` (`Layout` banner) bersize; sidebar sudah konvergen 2026-09-15 |
+| 2026-09-26 | Migrasi per-area Pricing/Docs: footer konfirmasi checkout `PricingPage` → `ModalFooter`; header `DocsPage`/`McpDocsPage` → `PageHeader`; dikecualikan: footer `OnboardingWizard` (pola wizard `[Skip][spacer][Back?][Finish/Next]` sm dual-host Modal+Popover — migrasi = ubah size + putus reuse) |
+| 2026-09-26 | Migrasi per-area API: delete-modal `ApiPage` → `ConfirmFooter` (alur delete teruji hijau); 1 gagal pre-existing `unread dot` (badge tree `New`, di luar permukaan diff — footer saja, 7+/8-, nol sentuh tree; delete-flow hijau sebagai bukti migrasi) |
+| 2026-09-26 | Migrasi per-area Stack/Schema/Releases/Decisions: 7 footer → `ModalFooter` (`NewTechModal`/`SaveVersionModal`/`NewTableModal`/`NewRelationModal`/`ImportSchemaModal`/`NewMilestoneModal`/`NewDecisionModal`) + delete-relation `SchemaPage` → `ConfirmFooter`; dikecualikan: 5 footer DetailShell `[danger sm Delete + save-state]` (`TechModal`/`TableModal`/`MilestoneModal`/`DecisionModal`/`TestModal` — butuh pola `DetailFooter`) + single-submit `NewTestModal`; 3 gagal pre-existing di berkas tak tersentuh (2× sindrom `unread dot`, 1× popup versi `MilestoneModal` yang bahkan tak import `NewMilestoneModal`) |
+| 2026-09-26 | Migrasi per-area Teams: header `InvitesPage` → `PageHeader`; footer `CreateTeamModal`/`InviteModal`/`ChangeRoleModal`/`EditTeamGeneralModal` → `ModalFooter`; tanpa perubahan visual |
+| 2026-09-26 | Migrasi per-area Auth: 2 tombol OAuth `AuthPage` (`btn btn-secondary` tanpa size — sisa terakhir §9) → `btn-md`; inline duplikat (display/align/padding/border/radius, sudah milik `.btn`/`.btn-secondary`/`.btn-md`) dibuang, `fontWeight: 600` dipertahankan; temuan guard `tombol tanpa size` kini nol |
 
 ---
 
@@ -280,6 +328,25 @@ Rules:
   (tidak ada di tokens.css; gunakan `var(--status-*)`); `style={{}}` inline di TSX
   = WARN per file (warn-first; `btn-icon-wrap` tersanksi dikecualikan, skeleton
   mirror berdimensi tercatat sebagai utang triase per area).
+
+---
+
+## 7b. Overflow, grid collapse, card header and toolbar
+
+| Token / pola | Value / kelas | Role |
+|---|---|---|
+| `overflow-guard` | `.page, .tab-panel { min-width: 0 }` + `.page { overflow-x: clip }` | Halaman tidak scroll horizontal; scroll milik `.kanban/.tabs/.preview-table` internal. Syarat: overlay WAJIB portal (`coding-standards.md` §5) |
+| `grid-collapse` | `repeat(auto-fill, minmax(min(Npx, 100%), 1fr))` → `1fr` | Kartu responsif; mobile 1 kolom. `minmax(min(Npx,100%),1fr)` cegah overflow 320px |
+| `card-header-mobile` | breadcrumb baris 1, aksi baris 2 | Pola `pcard--compact` digeneralisasi: judul ellipsis + cap, `.project-actions { width: 100%; justify-content: flex-end; gap: 6 }` ≤640px |
+| `toolbar-stack-mobile` | switcher atas, aksi bawah | Pola `.board-toolbar` digeneralisasi: `flex-wrap + row-gap: 8`, actions `width: 100% + end`, kontrol jadi icon-only 44px. Berlaku schema/api/releases/stack |
+| `truncate-mobile` | `220px / 55vw / 38vw / 30vw` | Cap `.breadcrumb-current / .breadcrumb-link` — daftar tertutup, cap baru = temuan review |
+| `empty-state--center` | `align-items: center; text-align: center` ≤640px | SATU kelas global gantikan daftar per-page (issues/tests/stack/decisions/releases/whiteboard/schema); page baru WAJIB pakai ini |
+| `section-title-icon` | `.dashboard__settings-section-title--with-icon` (inline-flex + gap 8 + accent) | Ikon opsional di h2 settings (pola `.section-title`); HANYA bila `Section icon` diisi, tanpa ikon h2 tetap semula |
+
+Rules:
+
+- Empty-state per-page baru (`.xxx-page .empty-state`) = temuan guard — pakai `.empty-state--center`.
+- Grid kartu baru WAJIB `minmax` (cermin §10); `flex %` = temuan review.
 
 ---
 
@@ -402,6 +469,21 @@ Rules:
   lipat ke btn-md ikut task per-area Auth, bukan fondasi). Transition belum dijaga guard.
 - Transisi baru WAJIB duration-fast + ease-out kecuali justifikasi + ADR.
 - Opt-out fokus (mis. composer bare) didaftar eksplisit per kasus, bukan pola.
+
+---
+
+## 9b. Modal mobile, tabs icon-only and overlay clamp
+
+| Token / pola | Value / kelas | Role |
+|---|---|---|
+| `modal-mobile` | `100% + 100dvh-24 + safe-area` + footer 50/50 | `.modal-lg / .modal-composer--fullscreen` jadi fullscreen sheet ≤640px (`overflow-x: clip`); footer ikut `modal-footer` §4b |
+| `tabs-icon-only` | `min 44px + center + label hidden` | SATU pola gantikan board + releases: `min-width/min-height 44px`, label `display: none`, teks tetap di `aria-label` (`font-size: 0` tanpa px lolos guard) |
+| `overlay-clamp` | `100vw-16 / 100dvh-16` | SEMUA popover/sheet/menu: `position: fixed + max-width: calc(100vw-16px) + max-height: min(320px, 100dvh-16px)` + flip atas-bawah + clamp kiri/kanan + reposition saat scroll/resize (pola `RowMenu.tsx`) |
+
+Rules:
+
+- Overlay/dropdown/menu/kalender baru WAJIB portal ke body + `overlay-clamp` + `stopPropagation` (cermin §10 `menu-kebab`).
+- Primitif terencana (Fase 1, API di `coding-standards.md` §6): `ModalFooter/ConfirmFooter`, `PageHeader`, `Section + SettingsRowGroup` — susunan manual footer/header/section baru DILARANG setelah primitif tersedia.
 
 ---
 
