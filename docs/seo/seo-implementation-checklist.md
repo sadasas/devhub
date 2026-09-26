@@ -2,7 +2,7 @@
 
 **Quick-Reference Guide** | Created: 2026-09-03 | **Last updated:** 2026-09-24
 
-> **Lampiran Tier-2.** Dokumen ini adalah lampiran [Go-Live Checklist Tier-2](../05-operations/go-live-checklist-tier2.md) (§3 view-source canonical/OG/`lang=id`, §4 robots/sitemap tanpa `/p/*`, §5 GSC). Domain kanonis prod `https://devhub.nrawangbatin.my.id` (bukan `devhub.com`). Harga kanonis IDR seed `249000`/`699000`/`2490000` + `LAUNCH149 149000` (nonaktif) via Pakasir QRIS/VA — semua copy memakai IDR, bukan USD. Riset kata kunci (termasuk klaster ID/QRIS): [Keyword Research](keyword-research-landing-page.md).
+> **Lampiran Tier-2.** Dokumen ini adalah lampiran [Go-Live Checklist Tier-2](../05-operations/go-live-checklist-tier2.md) (§3 view-source canonical/OG/`lang=id`, §4 robots/sitemap tanpa `/p/*`, §5 GSC). Domain kanonis prod `https://devhub.nrawangbatin.my.id` (bukan `devhub.com`). Harga kanonis IDR seed `249000`/`699000`/`2490000` + `LAUNCH149 149000` (nonaktif) via Pakasir QRIS/VA — semua copy memakai IDR, bukan USD. Riset kata kunci (termasuk klaster ID/QRIS): Keyword Research (dokumen dihapus 2026-09-26).
 
 ---
 
@@ -371,7 +371,7 @@ gtag('event', 'submit', {
 
 ## Lampiran Tier-2 — status Sep-2026
 
-Checklist ini menginduk ke [Go-Live Checklist Tier-2](../05-operations/go-live-checklist-tier2.md). Gate SEO (§3 view-source canonical/OG/`lang=id`, §4 robots/sitemap tanpa `/p/*`, §5 GSC, §1 consent GA) diverifikasi di sana sebelum domain publik diumumkan; riset kata kunci (termasuk klaster ID/QRIS) ada di [Keyword Research](keyword-research-landing-page.md). Harga seed kanonis `server/src/db/seeds/001_pro_pricing_2026-09-13.sql`: `249000`/`699000`/`2490000` + `LAUNCH149 149000` (nonaktif). Yang sudah DONE dicentang `[x]` di § Pre-Launch; sisanya (blog, backlink, FAQ schema penuh) tetap terbuka.
+Checklist ini menginduk ke [Go-Live Checklist Tier-2](../05-operations/go-live-checklist-tier2.md). Gate SEO (§3 view-source canonical/OG/`lang=id`, §4 robots/sitemap tanpa `/p/*`, §5 GSC, §1 consent GA) diverifikasi di sana sebelum domain publik diumumkan; riset kata kunci (termasuk klaster ID/QRIS) ada di Keyword Research (dokumen dihapus 2026-09-26). Harga seed kanonis `server/src/db/seeds/001_pro_pricing_2026-09-13.sql`: `249000`/`699000`/`2490000` + `LAUNCH149 149000` (nonaktif). Yang sudah DONE dicentang `[x]` di § Pre-Launch; sisanya (blog, backlink, FAQ schema penuh) tetap terbuka.
 
 ---
 
