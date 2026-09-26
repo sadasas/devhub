@@ -243,4 +243,25 @@ describe('GitHubSettings', () => {
       }),
     );
   });
+
+  it('groups automation under PR vs Issue headings', async () => {
+    apiMock.githubStatus.mockResolvedValue(
+      status({
+        connected: true,
+        owner: 'acme',
+        repo: 'web',
+        installationId: 42,
+        accountLogin: 'acme',
+        automation: { onPrOpened: 'suggest', onPrMerged: 'suggest', onIssueOpened: 'suggest', issueLabels: [] },
+      }),
+    );
+    renderSettings();
+    const prGroup = await screen.findByRole('region', { name: 'Pull requests' });
+    expect(within(prGroup).getByText('On PR opened')).toBeTruthy();
+    expect(within(prGroup).getByText('On PR merged')).toBeTruthy();
+    expect(within(prGroup).queryByText('On issue opened')).toBeNull();
+    const issueGroup = screen.getByRole('region', { name: 'Issues' });
+    expect(within(issueGroup).getByText('On issue opened')).toBeTruthy();
+    expect(within(issueGroup).queryByText('On PR opened')).toBeNull();
+  });
 });

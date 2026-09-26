@@ -70,6 +70,8 @@
     "githubOnPrOpened": "Saat PR dibuka",
     "githubOnPrMerged": "Saat PR di-merge",
     "githubOnIssueOpened": "Saat issue dibuka",
+    "githubGroupPr": "Pull request",
+    "githubGroupIssue": "Issue",
     "githubIssueLabels": "Label yang dibuat otomatis (issue)",
     "githubIssueLabelsHelper": "Hanya label ini yang jadi issue DevHub. Kosong = semua label.",
     "githubImportIssues": "Impor issue",
