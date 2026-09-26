@@ -6,6 +6,11 @@
       "url": "https://devhub.nrawangbatin.my.id/mcp",
       "enabled": true
     },
+    "devhub-local": {
+      "type": "remote",
+      "url": "http://localhost:3000/mcp",
+      "enabled": true
+    },
     "suga": {
       "type": "remote",
       "url": "https://dashboard.suga.app/api/mcp",

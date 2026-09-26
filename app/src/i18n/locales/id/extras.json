@@ -108,7 +108,8 @@
       "resetView": "Atur ulang tampilan",
       "snapOn": "Snap ke grid: aktif",
       "snapOff": "Snap ke grid: nonaktif",
-      "edgeDropEmpty": "Jatuhkan di atas shape untuk menyambung — edge butuh target",
+      "edgeDropEmpty": "Jatuhkan di atas shape untuk menyambung — lepas di mana saja untuk edge bebas",
+      "edgeEndpoint": "Seret untuk memindah ujung ini — jatuhkan di shape untuk menempel",
       "dismissCap": "Tutup",
       "boundaryTooSmall": "Boundary terlalu kecil (min 40×40).",
       "rotate": "Putar seleksi",
@@ -234,7 +235,6 @@
       "capHelper": "Maksimal {{max}} board per proyek — hapus satu untuk menambah lainnya.",
       "name": "Nama",
       "namePlaceholder": "mis. Sketsa arsitektur Q3",
-      "templateLegend": "Template",
       "description": "Deskripsi"
     },
     "editModal": {
@@ -303,52 +303,6 @@
       "noFill": "Tanpa isi",
       "custom": "Warna kustom",
       "hex": "Warna hex"
-    },
-    "template": {
-      "blank": {
-        "name": "Kosong",
-        "desc": "Kanvas kosong — mulai dari nol"
-      },
-      "kanban": {
-        "name": "Kanban",
-        "desc": "Kolom Todo / In Progress / Review / Done"
-      },
-      "ci-cd": {
-        "name": "Pipeline CI/CD",
-        "desc": "Commit → Build → Test → Approval → Deploy"
-      },
-      "roadmap": {
-        "name": "Roadmap",
-        "desc": "Linimasa dengan penanda milestone"
-      },
-      "release-train": {
-        "name": "Release train",
-        "desc": "Matriks rilis × fase"
-      },
-      "gitflow": {
-        "name": "Gitflow",
-        "desc": "Model branching (main / develop / feature / hotfix)"
-      },
-      "architecture": {
-        "name": "Arsitektur",
-        "desc": "Service, DB, boundary — untuk peta sistem"
-      },
-      "workflow": {
-        "name": "Alur Kerja",
-        "desc": "Lanes & langkah — untuk Order-ke-3PL"
-      },
-      "sequence": {
-        "name": "Sekuens",
-        "desc": "Partisipan & pesan — untuk panggilan API"
-      },
-      "dataflow": {
-        "name": "Alur Data",
-        "desc": "Stage & lineage — untuk PII & ETL"
-      },
-      "lifecycle": {
-        "name": "Siklus Hidup",
-        "desc": "State & transisi — untuk status order"
-      }
     }
   },
   "api": {

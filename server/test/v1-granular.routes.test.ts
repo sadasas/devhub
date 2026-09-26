@@ -88,7 +88,7 @@ describe('granular entity API v1', () => {
       { id: strokeId, kind: 'stroke', tool: 'pen', color: '#34c38e', width: 3, thinning: 2, points: [[0, 0], [10, 20], [40, 20]] },
       { id: uid(), kind: 'sticky', x: 100, y: 100, w: 200, h: 120, color: '#e8b955', text: 'Note' },
       { id: uid(), kind: 'text', x: 50, y: 50, color: '#e4e4e7', fontSize: 16, text: 'Hello' },
-      { id: boxId, kind: 'shape', shapeType: 'diamond', x: 0, y: 0, w: 120, h: 80, color: '#6ea8fe', fill: true, strokeWidth: 2, label: 'Decide' },
+      { id: boxId, kind: 'shape', shapeType: 'diamond', x: 0, y: 0, w: 120, h: 80, color: '#6ea8fe', fill: 'transparent', strokeWidth: 2, label: 'Decide' },
       { id: uid(), kind: 'edge', x1: 10, y1: 10, x2: 300, y2: 200, color: '#e4e4e7', width: 2, arrowhead: true, sourceNodeId: strokeId, targetNodeId: boxId },
       { id: uid(), kind: 'ref', entity: 'tasks', entityId: taskId, x: 400, y: 400 },
       { id: uid(), kind: 'ref', entity: 'milestones', entityId: '22222222-2222-4222-8222-222222222222', x: 420, y: 400 },

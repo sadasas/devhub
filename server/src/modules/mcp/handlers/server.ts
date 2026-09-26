@@ -26,6 +26,7 @@ import { registerUpdateWhiteboard } from '../application/tools/update-whiteboard
 import { registerPatchWhiteboard } from '../application/tools/patch-whiteboard.js';
 import { registerListWhiteboards } from '../application/tools/list-whiteboards.js';
 import { registerValidateWhiteboard } from '../application/tools/validate-whiteboard.js';
+import { registerLayoutBoard } from '../application/tools/layout-board.js';
 
 export const mcpRouter = Router();
 
@@ -69,6 +70,7 @@ mcpRouter.post('/', async (req, res) => {
   registerUpdateWhiteboard(mcpServer);
   registerPatchWhiteboard(mcpServer);
   registerValidateWhiteboard(mcpServer);
+  registerLayoutBoard(mcpServer);
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,

@@ -138,7 +138,7 @@ export function validateWhiteboardShowcase(elements: WhiteboardElement[]): White
   for (const el of elements) {
     if (el.kind !== "edge" || !(el as any).label) continue;
     const label = (el as any).label as string;
-    const fontSize = (el as any).fontSize ?? 11;
+    const fontSize = (el as any).fontSize ?? 16;
     const w = approxTextWidth(label, fontSize);
     const seg = edgeSegments(el as any);
     const mid: Point = { x: (seg[0].x + seg[1].x) / 2, y: (seg[0].y + seg[1].y) / 2 };
@@ -305,7 +305,7 @@ export function validateWhiteboardShowcase(elements: WhiteboardElement[]): White
       const text = (el as any).text as string;
       // @ts-ignore
       const w = (el as any).w, h = (el as any).h;
-      const fontSize = (el as any).fontSize ?? 12;
+      const fontSize = (el as any).fontSize ?? 16;
       const maxLines = Math.max(1, Math.floor((h - 16) / (fontSize*1.35)));
       const lines = text.split("\n").length; // approx
       if (lines > maxLines || text.length > 500) {

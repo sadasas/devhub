@@ -404,90 +404,104 @@ export function GitHubSettings({ projectId, canConnect, isAdmin }: GitHubSetting
               <GitHubDisclosure />
               {isAdmin && (
                 <>
-                  <div className="integration-inline-row">
-                    <span className="field-helper">
-                      {t('settings.githubOnPrOpened', { defaultValue: 'On PR opened' })}
-                    </span>
-                    <SearchableSelect
-                      id="github-auto-opened"
-                      label=""
-                      ariaLabel={t('settings.githubOnPrOpened', { defaultValue: 'On PR opened' })}
-                      value={status.automation?.onPrOpened ?? 'suggest'}
-                      allowEmpty={false}
-                      searchable={false}
-                      options={[
-                        { value: 'suggest', label: t('settings.githubModeSuggest', { defaultValue: 'Suggest' }) },
-                        { value: 'auto', label: t('settings.githubModeAuto', { defaultValue: 'Auto' }) },
-                        { value: 'off', label: t('settings.githubModeOff', { defaultValue: 'Off' }) },
-                      ]}
-                      onChange={(v) => {
-                        if (v && status.automation) void saveAutomation({ ...status.automation, onPrOpened: v as GitHubAutomation['onPrOpened'] });
-                      }}
-                    />
-                    <span className="field-helper">
-                      {t('settings.githubOnPrMerged', { defaultValue: 'On PR merged' })}
-                    </span>
-                    <SearchableSelect
-                      id="github-auto-merged"
-                      label=""
-                      ariaLabel={t('settings.githubOnPrMerged', { defaultValue: 'On PR merged' })}
-                      value={status.automation?.onPrMerged ?? 'suggest'}
-                      allowEmpty={false}
-                      searchable={false}
-                      options={[
-                        { value: 'suggest', label: t('settings.githubModeSuggest', { defaultValue: 'Suggest' }) },
-                        { value: 'auto', label: t('settings.githubModeAuto', { defaultValue: 'Auto' }) },
-                        { value: 'off', label: t('settings.githubModeOff', { defaultValue: 'Off' }) },
-                      ]}
-                      onChange={(v) => {
-                        if (v && status.automation) void saveAutomation({ ...status.automation, onPrMerged: v as GitHubAutomation['onPrMerged'] });
-                      }}
-                    />
-                    <span className="field-helper">
-                      {t('settings.githubOnIssueOpened', { defaultValue: 'On issue opened' })}
-                    </span>
-                    <SearchableSelect
-                      id="github-auto-issue"
-                      label=""
-                      ariaLabel={t('settings.githubOnIssueOpened', { defaultValue: 'On issue opened' })}
-                      value={status.automation?.onIssueOpened ?? 'suggest'}
-                      allowEmpty={false}
-                      searchable={false}
-                      options={[
-                        { value: 'suggest', label: t('settings.githubModeSuggest', { defaultValue: 'Suggest' }) },
-                        { value: 'auto', label: t('settings.githubModeAuto', { defaultValue: 'Auto' }) },
-                        { value: 'off', label: t('settings.githubModeOff', { defaultValue: 'Off' }) },
-                      ]}
-                      onChange={(v) => {
-                        if (v && status.automation) void saveAutomation({ ...status.automation, onIssueOpened: v as GitHubAutomation['onIssueOpened'] });
-                      }}
-                    />
-                  </div>
-                  {status.automation?.onIssueOpened === 'auto' && (
+                  <section className="settings-row-group github-stack" aria-labelledby="github-group-pr-title">
+                    <h4 id="github-group-pr-title" className="dashboard__settings-danger-name">
+                      {t('settings.githubGroupPr', { defaultValue: 'Pull requests' })}
+                    </h4>
                     <div className="integration-inline-row">
-                      <Input
-                        label={t('settings.githubIssueLabels', { defaultValue: 'Labels to auto-create (issue)' })}
-                        helper={t('settings.githubIssueLabelsHelper', {
-                          defaultValue: 'Only these labels become DevHub issues. Empty = all labels.',
-                        })}
-                        value={issueLabelsText}
-                        onChange={(e) => setIssueLabelsText(e.target.value)}
-                        onBlur={() => {
-                          if (!status.automation) return;
-                          const next = issueLabelsText
-                            .split(',')
-                            .map((s) => s.trim())
-                            .filter(Boolean)
-                            .slice(0, 20);
-                          const current = status.automation.issueLabels ?? [];
-                          if (next.join('\n') !== current.join('\n')) {
-                            void saveAutomation({ ...status.automation, issueLabels: next });
-                          }
+                      <span className="field-helper">
+                        {t('settings.githubOnPrOpened', { defaultValue: 'On PR opened' })}
+                      </span>
+                      <SearchableSelect
+                        id="github-auto-opened"
+                        label=""
+                        ariaLabel={t('settings.githubOnPrOpened', { defaultValue: 'On PR opened' })}
+                        value={status.automation?.onPrOpened ?? 'suggest'}
+                        allowEmpty={false}
+                        searchable={false}
+                        options={[
+                          { value: 'suggest', label: t('settings.githubModeSuggest', { defaultValue: 'Suggest' }) },
+                          { value: 'auto', label: t('settings.githubModeAuto', { defaultValue: 'Auto' }) },
+                          { value: 'off', label: t('settings.githubModeOff', { defaultValue: 'Off' }) },
+                        ]}
+                        onChange={(v) => {
+                          if (v && status.automation) void saveAutomation({ ...status.automation, onPrOpened: v as GitHubAutomation['onPrOpened'] });
                         }}
-                        disabled={busy}
                       />
                     </div>
-                  )}
+                    <div className="integration-inline-row">
+                      <span className="field-helper">
+                        {t('settings.githubOnPrMerged', { defaultValue: 'On PR merged' })}
+                      </span>
+                      <SearchableSelect
+                        id="github-auto-merged"
+                        label=""
+                        ariaLabel={t('settings.githubOnPrMerged', { defaultValue: 'On PR merged' })}
+                        value={status.automation?.onPrMerged ?? 'suggest'}
+                        allowEmpty={false}
+                        searchable={false}
+                        options={[
+                          { value: 'suggest', label: t('settings.githubModeSuggest', { defaultValue: 'Suggest' }) },
+                          { value: 'auto', label: t('settings.githubModeAuto', { defaultValue: 'Auto' }) },
+                          { value: 'off', label: t('settings.githubModeOff', { defaultValue: 'Off' }) },
+                        ]}
+                        onChange={(v) => {
+                          if (v && status.automation) void saveAutomation({ ...status.automation, onPrMerged: v as GitHubAutomation['onPrMerged'] });
+                        }}
+                      />
+                    </div>
+                  </section>
+                  <section className="settings-row-group github-stack" aria-labelledby="github-group-issue-title">
+                    <h4 id="github-group-issue-title" className="dashboard__settings-danger-name">
+                      {t('settings.githubGroupIssue', { defaultValue: 'Issues' })}
+                    </h4>
+                    <div className="integration-inline-row">
+                      <span className="field-helper">
+                        {t('settings.githubOnIssueOpened', { defaultValue: 'On issue opened' })}
+                      </span>
+                      <SearchableSelect
+                        id="github-auto-issue"
+                        label=""
+                        ariaLabel={t('settings.githubOnIssueOpened', { defaultValue: 'On issue opened' })}
+                        value={status.automation?.onIssueOpened ?? 'suggest'}
+                        allowEmpty={false}
+                        searchable={false}
+                        options={[
+                          { value: 'suggest', label: t('settings.githubModeSuggest', { defaultValue: 'Suggest' }) },
+                          { value: 'auto', label: t('settings.githubModeAuto', { defaultValue: 'Auto' }) },
+                          { value: 'off', label: t('settings.githubModeOff', { defaultValue: 'Off' }) },
+                        ]}
+                        onChange={(v) => {
+                          if (v && status.automation) void saveAutomation({ ...status.automation, onIssueOpened: v as GitHubAutomation['onIssueOpened'] });
+                        }}
+                      />
+                    </div>
+                    {status.automation?.onIssueOpened === 'auto' && (
+                      <div className="integration-inline-row">
+                        <Input
+                          label={t('settings.githubIssueLabels', { defaultValue: 'Labels to auto-create (issue)' })}
+                          helper={t('settings.githubIssueLabelsHelper', {
+                            defaultValue: 'Only these labels become DevHub issues. Empty = all labels.',
+                          })}
+                          value={issueLabelsText}
+                          onChange={(e) => setIssueLabelsText(e.target.value)}
+                          onBlur={() => {
+                            if (!status.automation) return;
+                            const next = issueLabelsText
+                              .split(',')
+                              .map((s) => s.trim())
+                              .filter(Boolean)
+                              .slice(0, 20);
+                            const current = status.automation.issueLabels ?? [];
+                            if (next.join('\n') !== current.join('\n')) {
+                              void saveAutomation({ ...status.automation, issueLabels: next });
+                            }
+                          }}
+                          disabled={busy}
+                        />
+                      </div>
+                    )}
+                  </section>
                   <div className="integration-actions integration-action-end">
                     <Button
                       type="button"

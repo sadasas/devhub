@@ -65,6 +65,7 @@ Before creating a task (session start or mid-session), ask the user whether the 
 | Milestone created / status changed | `add_milestone` / `update_milestone` | When milestone is changed |
 | API collection / endpoint baru diekspos (mis. tambah `server/src/modules/*/handlers/*.ts`, `entity-router.ts`, `*.routes.ts`) | `add_api_collection` / `add_api_endpoint` | Saat agen membuat/mengekspos endpoint atau collection baru — segera setelah route/handler committed & `method+path` final |
 | Kontrak API endpoint berubah (method/path/params/body/responses/collection) | `update_api_endpoint` | Saat agen mengubah kontrak — patch sebelum tutup sesi/commit |
+| Tool/kontrak whiteboard MCP berubah (kind, limit, validasi, kontrak embed) | — (cek `skills/devhub-whiteboard/SKILL.md`) | Saat agen mengubah tool whiteboard — sinkronkan SKILL.md di PR yang sama |
 
 ## Behavior rules
 

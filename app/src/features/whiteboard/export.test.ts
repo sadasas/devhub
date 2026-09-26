@@ -15,9 +15,19 @@ describe('serializeWhiteboard', () => {
     expect(svg).toContain('height="174"');
   });
 
-  it('renders each element kind into SVG primitives', () => {    const elements: WhiteboardElement[] = [
+  it('falls back to 16px for elements without an explicit font size', () => {
+    const elements: WhiteboardElement[] = [
+      { id: 's1', kind: 'sticky', x: 0, y: 0, w: 100, h: 120, color: '#e8b955', text: 'hi' },
+      { id: 'e1', kind: 'edge', x1: 0, y1: 200, x2: 100, y2: 200, color: '#8b5cf6', width: 2, arrowhead: true, arrowStyle: 'solid', label: 'go' },
+    ];
+    const svg = serializeWhiteboard(elements);
+    expect(svg.match(/font-size="16"/g)?.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('renders each element kind into SVG primitives', () => {
+    const elements: WhiteboardElement[] = [
       { id: 'st', kind: 'stroke', tool: 'pen', color: '#e4e4e7', width: 2, thinning: 2, points: [[0, 0], [10, 10]] },
-      { id: 'sh', kind: 'shape', shapeType: 'rect', x: 0, y: 100, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: 'Decide' },
+      { id: 'sh', kind: 'shape', shapeType: 'rect', x: 0, y: 100, w: 100, h: 60, color: '#6ea8fe', fill: 'none', strokeWidth: 2, label: 'Decide' },
       { id: 'tx', kind: 'text', x: 0, y: 200, color: '#e4e4e7', fontSize: 16, text: 'note', w: 200 },
       { id: 'e1', kind: 'edge', x1: 0, y1: 0, x2: 100, y2: 0, color: '#8b5cf6', width: 2, arrowhead: true, arrowStyle: 'solid', label: 'Yes', sourceNodeId: null, targetNodeId: null },
       { id: 'bd', kind: 'boundary', x: 0, y: 0, w: 300, h: 200, color: '#6ea8fe', label: 'System' },
@@ -42,8 +52,17 @@ describe('serializeWhiteboard', () => {
     const stickyIdx = svg.indexOf('>hi</text>');
     expect(boundaryIdx).toBeGreaterThan(-1);
     expect(stickyIdx).toBeGreaterThan(boundaryIdx);
-    // Chip label di dalam border pojok kiri (x+6, y+18) — sinkron dengan canvas.
-    expect(svg).toContain('translate(-14, -2)');
+    // Chip label di dalam border pojok kiri, tajam — sinkron dengan canvas.
+    expect(svg).toContain('translate(-14, 4)');
+  });
+
+  it('recomputes the attached end of a half-attached edge from live node bounds', () => {
+    const elements: WhiteboardElement[] = [
+      { id: 'a', kind: 'sticky', x: 100, y: 0, w: 100, h: 60, color: '#e8b955', text: 'A' },
+      { id: 'e1', kind: 'edge', x1: 0, y1: 0, x2: 400, y2: 30, color: '#8b5cf6', width: 2, arrowhead: true, arrowStyle: 'solid', label: '', sourceNodeId: 'a', sourcePort: 'right', targetNodeId: null },
+    ];
+    const svg = serializeWhiteboard(elements);
+    expect(svg).toContain('points="200,30 400,30"');
   });
 
   it('serializes an edge with an orthogonal path when ports are present', () => {
@@ -177,7 +196,7 @@ describe('serializeWhiteboard', () => {
     const bottom = topY(serializeWhiteboard([stickyOf('bottom')]));
     expect(bottom).toBeGreaterThan(centered);
     const shapeOf = (valign?: 'top' | 'center' | 'bottom'): WhiteboardElement => ({
-      id: 's2', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: false, strokeWidth: 2, label: 'Hi', valign,
+      id: 's2', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: 'none', strokeWidth: 2, label: 'Hi', valign,
     });
     const shapeY = (svg: string) => Number(svg.match(/<text x="50" y="([\d.]+)" text-anchor="middle"/)?.[1]);
     expect(shapeY(serializeWhiteboard([shapeOf()]))).toBe(30); // legacy first-line middle

@@ -70,6 +70,8 @@
     "githubOnPrOpened": "On PR opened",
     "githubOnPrMerged": "On PR merged",
     "githubOnIssueOpened": "On issue opened",
+    "githubGroupPr": "Pull requests",
+    "githubGroupIssue": "Issues",
     "githubIssueLabels": "Labels to auto-create (issue)",
     "githubIssueLabelsHelper": "Only these labels become DevHub issues. Empty = all labels.",
     "githubImportIssues": "Import issues",

@@ -112,10 +112,13 @@ interface ColorDropdownProps {
   onClose: () => void;
   onPick: (color: string) => void;
   label: string;
+  /** Bila diisi: segmented fill shape di header panel. */
+  fillMode?: import('../../lib/types').WhiteboardShapeFill | boolean | null;
+  onFillMode?: (mode: import('../../lib/types').WhiteboardShapeFill) => void;
 }
 
 /** Fill/text color dot + caret opening the shared color panel in a portal. */
-export function ColorDropdown({ value, title, open, onToggle, onClose, onPick, label, glyph = 'dot' }: ColorDropdownProps & { glyph?: 'dot' | 'letter' }) {
+export function ColorDropdown({ value, title, open, onToggle, onClose, onPick, label, glyph = 'dot', fillMode, onFillMode }: ColorDropdownProps & { glyph?: 'dot' | 'letter' }) {
   const cur = typeof value === 'string' && value ? value : '#374151';
   const name = `${label} ${cur}`;
   return (
@@ -139,7 +142,7 @@ export function ColorDropdown({ value, title, open, onToggle, onClose, onPick, l
         </>
       }
     >
-      <WhiteboardColorPanel value={value} title={title} onPick={onPick} onClose={onClose} />
+      <WhiteboardColorPanel value={value} title={title} onPick={onPick} onClose={onClose} fillMode={fillMode} onFillMode={onFillMode} />
     </DropdownShell>
   );
 }
@@ -263,6 +266,7 @@ export function SizeDropdown({ value, open, onToggle, onClose, onPick }: SizeDro
           </span>
         </button>
       ))}
+      <div className="wb-pop-sep" role="separator" aria-hidden="true" />
       <span className="wb-sizebox">
         <input
           type="text"
@@ -477,6 +481,46 @@ export function TextStyleToggles({ bold, strikethrough, bullet, onBold, onStrike
       {btn(t('whiteboard.textbar.strikethrough'), strikethrough, onStrikethrough, <TextStrikethrough size={15} aria-hidden="true" />)}
       {btn(t('whiteboard.textbar.bullet'), bullet, onBullet, <ListBullets size={15} aria-hidden="true" />)}
     </>
+  );
+}
+
+/** Preset ketebalan garis ala tldraw (tanpa slider/input ketik). */
+export const WIDTH_PRESETS: ReadonlyArray<number> = [1, 2, 4, 8, 16];
+
+/**
+ * Deret opsi ketebalan berupa glyph garis setebal nilainya.
+ * Nilai custom (di luar preset) = tak ada yang tercentang; sekali pilih jadi preset.
+ */
+export function WidthPresets({
+  value,
+  onPick,
+  label,
+}: {
+  value: number;
+  onPick: (width: number) => void;
+  label: string;
+}) {
+  const cur = Math.round(value);
+  return (
+    <span className="fp-segmented fp-segmented-bar" role="radiogroup" aria-label={label}>
+      {WIDTH_PRESETS.map((w) => (
+        <Tooltip key={w} content={String(w)} side="top">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={cur === w}
+            aria-label={String(w)}
+            title={String(w)}
+            className={`fp-seg${cur === w ? ' fp-seg-active' : ''}`}
+            onClick={() => onPick(w)}
+          >
+            <svg width="28" height="12" viewBox="0 0 28 12" aria-hidden="true">
+              <line x1="2" y1="6" x2="26" y2="6" stroke="currentColor" strokeWidth={Math.min(w, 10)} strokeLinecap="round" />
+            </svg>
+          </button>
+        </Tooltip>
+      ))}
+    </span>
   );
 }
 

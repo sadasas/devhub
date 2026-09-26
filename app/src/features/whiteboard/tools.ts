@@ -18,6 +18,8 @@ export const BOUNDARY_COLOR = '#2563eb';
 export const STICKY_W = 200;
 export const STICKY_H = 120;
 export const TEXT_FONT_SIZE = 16;
+/** Default text size for every new text-capable element (sticky/shape/edge). */
+export const DEFAULT_FONT_SIZE = 16;
 export const SHAPE_W = 120;
 export const SHAPE_H = 80;
 export const SHAPE_STROKE_WIDTH = 2;
@@ -56,7 +58,7 @@ export function shouldCommitStroke(points: readonly [number, number][]): boolean
 }
 
 export function buildSticky(x: number, y: number, color: string = STICKY_COLOR, textColor: string | null = null): WhiteboardSticky {
-  return { id: newId(), kind: 'sticky', x, y, w: STICKY_W, h: STICKY_H, color, text: '', textColor };
+  return { id: newId(), kind: 'sticky', x, y, w: STICKY_W, h: STICKY_H, color, text: '', textColor, fontSize: DEFAULT_FONT_SIZE };
 }
 
 export function buildText(x: number, y: number, color: string = TEXT_COLOR): WhiteboardText {
@@ -79,10 +81,11 @@ export function buildShape(
     w: SHAPE_W,
     h: SHAPE_H,
     color,
-    fill: false,
+    fill: 'none',
     strokeWidth: SHAPE_STROKE_WIDTH,
     label: '',
     labelColor,
+    fontSize: DEFAULT_FONT_SIZE,
   };
 }
 

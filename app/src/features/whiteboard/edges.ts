@@ -225,14 +225,17 @@ export function pathMidpoint(points: Point[]): Point {
   return points[points.length - 1]!;
 }
 
-export function edgeHitsPoint(el: WhiteboardEdge, pt: Point, tolerance: number): boolean {
+export function edgeHitsPoint(el: WhiteboardEdge, pt: Point, tolerance: number, rendered?: EdgeEndpoints): boolean {
+  // Prefer live rendered endpoints (node-attached edges go stale in raw
+  // coords after a drag — hit-testing must match what is on screen).
+  const base = rendered ?? { x1: el.x1, y1: el.y1, x2: el.x2, y2: el.y2 };
   const raw: Point[] = [
-    { x: el.x1, y: el.y1 },
-    { x: el.x2, y: el.y2 },
+    { x: base.x1, y: base.y1 },
+    { x: base.x2, y: base.y2 },
   ];
   const path =
     el.sourcePort && el.targetPort
-      ? orthogonalPath({ x1: el.x1, y1: el.y1, x2: el.x2, y2: el.y2 }, el.sourcePort, el.targetPort)
+      ? orthogonalPath(base, el.sourcePort, el.targetPort)
       : raw;
   const minX = Math.min(...path.map((p) => p.x)) - tolerance;
   const maxX = Math.max(...path.map((p) => p.x)) + tolerance;
@@ -263,16 +266,24 @@ export function elementsAtPoint(
   tolerance = EDGE_TOUCH_TOLERANCE,
   refRects?: Map<string, Rect>,
   excludeKinds?: ReadonlySet<string>,
+  derivedEdges?: ReadonlyMap<string, EdgeEndpoints>,
 ): WhiteboardElement | null {
-  for (let i = elements.length - 1; i >= 0; i -= 1) {
-    const el = elements[i]!;
-    if (excludeKinds?.has(el.kind)) continue;
-    if (el.kind === 'edge') {
-      if (edgeHitsPoint(el, pt, tolerance)) return el;
-      continue;
+  // Two passes so hit-testing matches paint order (boundaries paint behind):
+  // content always wins over an overlapping boundary; a boundary is only
+  // hit when nothing else is under the cursor (or via the Layers panel).
+  for (let pass = 0; pass < 2; pass += 1) {
+    for (let i = elements.length - 1; i >= 0; i -= 1) {
+      const el = elements[i]!;
+      if (excludeKinds?.has(el.kind)) continue;
+      const isBoundary = el.kind === 'boundary';
+      if ((pass === 0) === isBoundary) continue;
+      if (el.kind === 'edge') {
+        if (edgeHitsPoint(el, pt, tolerance, derivedEdges?.get(el.id))) return el;
+        continue;
+      }
+      const bounds = el.kind === 'ref' && refRects ? refRects.get(el.id) : undefined;
+      if (pointInRect(pt, bounds ?? elementBounds(el))) return el;
     }
-    const bounds = el.kind === 'ref' && refRects ? refRects.get(el.id) : undefined;
-    if (pointInRect(pt, bounds ?? elementBounds(el))) return el;
   }
   return null;
 }
