@@ -157,7 +157,7 @@ export function reverseCompileComponent(
         w: Math.max(1, num(el.getAttribute('width'))),
         h: Math.max(1, num(el.getAttribute('height'))),
         color: fill === 'none' ? '#374151' : fill,
-        fill: fill !== 'none',
+        fill: fill === 'none' ? 'none' : 'solid',
         strokeWidth: num(el.getAttribute('stroke-width'), 2) || 2,
         label: '',
       });
@@ -175,7 +175,7 @@ export function reverseCompileComponent(
         w: Math.max(1, rx * 2),
         h: Math.max(1, ry * 2),
         color: fill === 'none' ? '#374151' : fill,
-        fill: fill !== 'none',
+        fill: fill === 'none' ? 'none' : 'solid',
         strokeWidth: 2,
         label: '',
       });

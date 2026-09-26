@@ -51,7 +51,7 @@ describe('reverseCompileComponent', () => {
     expect(res.elements).toHaveLength(2);
     const shape = res.elements.find((e) => e.kind === 'shape');
     const text = res.elements.find((e) => e.kind === 'text');
-    expect(shape).toMatchObject({ shapeType: 'roundedRect', x: 140, y: 544, w: 280, h: 52, fill: true });
+    expect(shape).toMatchObject({ shapeType: 'roundedRect', x: 140, y: 544, w: 280, h: 52, fill: 'solid' });
     expect(text).toMatchObject({ x: 280, text: 'Login' });
   });
 
