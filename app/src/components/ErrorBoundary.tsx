@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { i18n } from '../i18n';
 import { Button } from './Button';
 import { LinkButton } from './LinkButton';
+import { reportError } from '../lib/analytics';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -40,6 +41,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
     console.error('Unhandled render error:', error, info.componentStack);
+    try {
+      reportError(error, { route: window.location.pathname });
+    } catch {
+      /* reporting must never break the fallback UI */
+    }
   }
 
   private handleCopy = async () => {

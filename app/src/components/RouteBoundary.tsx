@@ -7,6 +7,8 @@ interface RouteBoundaryProps {
   children: ReactNode;
 }
 
+// Error reporting is handled once by the inner ErrorBoundary
+// (reportError with route) — no duplicate capture here by design.
 export function RouteBoundary({ fallback, children }: RouteBoundaryProps) {
   const location = useLocation();
   return (

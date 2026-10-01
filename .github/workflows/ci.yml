@@ -50,6 +50,14 @@ jobs:
         run: npm run lint -w server && npm run lint -w app
       - name: Build
         run: npm run build
+      - name: Upload source maps to PostHog
+        if: secrets.POSTHOG_API_KEY != ''
+        uses: PostHog/upload-source-maps@v2
+        with:
+          directory: app/dist
+          project-id: ${{ secrets.POSTHOG_PROJECT_ID }}
+          api-key: ${{ secrets.POSTHOG_API_KEY }}
+          host: https://eu.posthog.com
       - name: Server tests
         run: npm run test -w server
         env:

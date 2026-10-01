@@ -2,8 +2,8 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
 import { newId, nowIso, textContent } from '../../domain/entity.js';
-import { hours, LIMITS, githubLinkSchema } from '../../../projects/domain/state.js';
-import { deriveActualHours } from '../../../projects/domain/hours.js';
+import { LIMITS, githubLinkSchema } from '../../../projects/domain/state.js';
+import { initTaskHoursOnCreate } from '../../../projects/domain/hours.js';
 
 const inputSchema = z.object({
   projectId: z.string().uuid().describe('UUID of the target project'),
@@ -11,7 +11,6 @@ const inputSchema = z.object({
   status: z.enum(['todo', 'inProgress', 'review', 'done']).default('todo'),
   priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
   estimate: z.number().int().min(0).optional().describe('Estimated hours'),
-  actualHours: hours.optional().describe('Actual hours spent (auto-derived when status is done)'),
   labels: z.array(z.string().max(50)).max(20).default([]),
   parentTaskId: z.string().uuid().nullable().optional().describe('Optional parent task for 1-level subtask'),
   checklist: z.array(z.object({ id: z.string().uuid(), title: z.string().min(1).max(200), done: z.boolean().default(false) })).max(20).default([]),
@@ -51,18 +50,20 @@ export function registerCreateTask(server: McpServer): void {
     'create_task',
     {
       title: 'Create a task',
-      description: 'Add a task to a DevHub project board with status, priority, estimate and labels.',
-      inputSchema,
+      description:
+        'Add a task to a DevHub project board with status, priority, estimate and labels. Active hours (actualHours) are auto-derived from accumulated in-progress time — never send manual hours.',
+      inputSchema: inputSchema.passthrough(),
     },
     async (args) => {
       const state = await loadState(args.projectId);
       const now = nowIso();
       const completedAt = args.completedAt ?? (args.status === 'done' ? now : null);
-      const actualHours =
-        args.actualHours ??
-        (completedAt
-          ? deriveActualHours({ completedAt, createdAt: now, startDate: args.startDate })
-          : undefined);
+      const raw = args as Record<string, unknown>;
+      const warnings: string[] = [];
+      if (raw.actualHours !== undefined || raw.activeMs !== undefined || raw.inProgressAt !== undefined) {
+        warnings.push('actualHours/activeMs/inProgressAt are auto-derived and were ignored.');
+      }
+      const init = initTaskHoursOnCreate(args.status, now, now, completedAt);
       const task = {
         id: newId(),
         createdAt: now,
@@ -71,7 +72,9 @@ export function registerCreateTask(server: McpServer): void {
         status: args.status,
         priority: args.priority,
         estimate: args.estimate,
-        actualHours,
+        actualHours: init.actualHours,
+        inProgressAt: init.inProgressAt,
+        activeMs: init.activeMs,
         labels: args.labels,
         blockedBy: [] as string[],
         parentTaskId: args.parentTaskId ?? null,
@@ -88,7 +91,16 @@ export function registerCreateTask(server: McpServer): void {
       };
       state.tasks.push(task);
       await saveState(args.projectId, state);
-      return { content: [textContent({ id: task.id, title: task.title, status: task.status })] };
+      return {
+        content: [
+          textContent({
+            id: task.id,
+            title: task.title,
+            status: task.status,
+            ...(warnings.length > 0 ? { warnings } : {}),
+          }),
+        ],
+      };
     },
   );
 }

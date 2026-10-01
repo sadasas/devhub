@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { Plus, SquaresFour, Flag, CalendarBlank, ArrowsOutSimple, ArrowsInSimple, CaretDown } from '@phosphor-icons/react';
-import { useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import type { Milestone, Task, TaskStatus } from '../../lib/types';
 import { isTaskCompletable, openBlockerNames, taskBlockSummary } from '../../lib/utils';
@@ -27,6 +27,7 @@ import { NewTaskModal } from './NewTaskModal';
 import { InlineError } from '../../components/InlineError';
 import { DataErrorState } from '../../components/DataErrorState';
 import { isTypingTarget, isModalOrPaletteOpen } from '../../lib/keys';
+import { FOCUS_MODE_FLAG, useFeatureFlag } from '../../lib/analytics';
 
 const DueCalendar = lazy(() => import('./DueCalendar').then((m) => ({ default: m.DueCalendar })));
 
@@ -152,6 +153,8 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
   };
   const [overKey, setOverKey] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const focusEnabled = useFeatureFlag(FOCUS_MODE_FLAG, true);
   const [newTaskAt, setNewTaskAt] = useState<NewTaskTarget | null>(null);
   const [calHideCompleted, setCalHideCompleted] = useState(false);
   const [hideSubtasks, setHideSubtasks] = useState(false);
@@ -987,7 +990,7 @@ export function BoardPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       )}
       </div>
 
-      <TaskModal taskId={editId} onClose={() => setEditId(null)} onNavigate={setEditId} />
+      <TaskModal taskId={editId} onClose={() => { setEditId(null); }} onNavigate={setEditId} onEnterFocus={focusEnabled !== false ? (id) => navigate(`/project/${projectId}/focus/${id}`) : undefined} />
       <NewTaskModal
         open={newTaskAt !== null}
         status={newTaskAt?.status ?? null}

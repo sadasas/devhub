@@ -710,6 +710,8 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
     ? `28px ${rowHeights[0]}px`
     : `28px ${rowHeights.map((h) => `${h}px`).join(' ')}`;
 
+  const stripToggleLabel = stripCollapsed ? t('board.cal.expandUnscheduled') : t('board.cal.collapseUnscheduled');
+
   return (
     <div className={`due-cal${isMobileCal ? ' due-cal--mobile' : ''}`}>
       <div className="due-cal-toolbar">
@@ -1063,16 +1065,18 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
           ) : (
             <span className="due-cal-strip-label">{t('board.cal.noDate')} ({unscheduled.length})</span>
           )}
+          <Tooltip title={stripToggleLabel}>
           <button
             type="button"
             className="btn btn-ghost btn-sm btn-icon due-cal-strip-toggle"
             aria-expanded={!stripCollapsed}
             aria-controls="due-cal-strip"
-            aria-label={stripCollapsed ? t('board.cal.expandUnscheduled') : t('board.cal.collapseUnscheduled')}
+            aria-label={stripToggleLabel}
             onClick={(e) => { e.stopPropagation(); setStripCollapsed(v => !v); }}
           >
             {stripCollapsed ? <CaretRight size={14} /> : <CaretLeft size={14} />}
           </button>
+          </Tooltip>
         </div>
         {!stripCollapsed && unscheduled.length === 0 && (
           <span className="due-cal-strip-empty">

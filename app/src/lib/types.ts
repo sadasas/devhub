@@ -124,6 +124,10 @@ export interface Task extends Base {
   priority: TaskPriority;
   estimate?: number;
   actualHours?: number;
+  /** ADR-067: ISO mulai interval inProgress aktif (null = tak ada interval berjalan). */
+  inProgressAt?: string | null;
+  /** ADR-067: ms terakumulasi di inProgress (auto, ≥0). */
+  activeMs?: number;
   labels: string[];
   blockedBy: string[];
   parentTaskId?: string | null;

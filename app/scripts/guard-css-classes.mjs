@@ -40,6 +40,12 @@ ALLOWLIST.add('template-skeleton-title');
 // h2 tetap seperti semula; kelas ini tidak dipakai di tempat lain.
 ALLOWLIST.add('dashboard__settings-section-title--with-icon');
 
+// Focus page mobile (2026-09-29): `.focus-topbar-label` — span label teks di
+// topbar Focus (Back + Tandai selesai) yang disembunyikan di ≤640px .page
+// (pola tabs-icon-only §9b: teks tetap di aria-label tombol). Bukan judul
+// Tier-1; didaftar eksplisit agar guard *-label tidak menolaknya.
+ALLOWLIST.add('focus-topbar-label');
+
 // Jangkar kanonis — bila salah satunya hilang, sistem token rusak.
 export const REQUIRED_ANCHORS = [
   '.profile-panel-title',

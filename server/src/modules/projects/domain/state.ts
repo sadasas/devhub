@@ -156,6 +156,10 @@ export const taskSchema = z.object({
   priority: taskPriority,
   estimate: z.number().int().nonnegative().optional(),
   actualHours: hours.optional(),
+  // ADR-067: pelacakan otomatis waktu inProgress (zod-only, tanpa migrasi
+  // DB — state = JSONB di projects.data, data lama tanpa field tetap valid).
+  inProgressAt: isoDate.nullable().optional(),
+  activeMs: z.number().int().nonnegative().optional(),
   labels: z.array(z.string().max(50)).max(20).default([]),
   blockedBy: z.array(z.string().uuid()).default([]),
   // zod-only, tanpa migrasi DB: data lama tanpa field tetap valid (optional/null = tanpa parent/checklist).

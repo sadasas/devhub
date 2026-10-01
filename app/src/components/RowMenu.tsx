@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { DotsThreeVertical } from '@phosphor-icons/react';
+import { Tooltip } from './Tooltip';
 import type { ReactNode } from 'react';
 
 export interface RowMenuAction {
@@ -86,6 +87,7 @@ export function RowMenu({ triggerLabel, menuLabel, menuId, actions }: RowMenuPro
 
   return (
     <>
+      <Tooltip title={triggerLabel}>
       <button
         ref={triggerRef}
         type="button"
@@ -94,7 +96,6 @@ export function RowMenu({ triggerLabel, menuLabel, menuId, actions }: RowMenuPro
         aria-expanded={open}
         aria-controls={menuId}
         aria-label={triggerLabel}
-        title={triggerLabel}
         onClick={(e) => {
           e.stopPropagation();
           setOpen((o) => !o);
@@ -102,6 +103,7 @@ export function RowMenu({ triggerLabel, menuLabel, menuId, actions }: RowMenuPro
       >
         <DotsThreeVertical size={16} weight="bold" aria-hidden="true" />
       </button>
+      </Tooltip>
       {open && typeof document !== 'undefined' &&
         createPortal(
           <div
