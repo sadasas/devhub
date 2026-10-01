@@ -2,8 +2,8 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { loadState, saveState } from '../state-db.js';
 import { applyDefined, findEntity, nowIso, textContent } from '../../domain/entity.js';
-import { hours, LIMITS, githubLinkSchema } from '../../../projects/domain/state.js';
-import { deriveActualHours } from '../../../projects/domain/hours.js';
+import { LIMITS, githubLinkSchema } from '../../../projects/domain/state.js';
+import { applyActiveHoursTransition } from '../../../projects/domain/hours.js';
 
 const inputSchema = z.object({
   projectId: z.string().uuid().describe('UUID of the target project'),
@@ -12,9 +12,6 @@ const inputSchema = z.object({
   status: z.enum(['todo', 'inProgress', 'review', 'done']).optional(),
   priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
   estimate: z.number().int().min(0).optional(),
-  actualHours: hours
-        .optional()
-        .describe('Actual hours spent — auto-derived from startDate/createdAt when status moves to done'),
   labels: z.array(z.string().max(50)).max(20).optional(),
   parentTaskId: z.string().uuid().nullable().optional().describe('Set parent for 1-level subtask, or null to detach'),
   checklist: z.array(z.object({ id: z.string().uuid(), title: z.string().min(1).max(200), done: z.boolean().default(false) })).max(20).optional(),
@@ -55,35 +52,69 @@ export function registerUpdateTask(server: McpServer): void {
     {
       title: 'Update a task',
       description:
-        'Change a task in a DevHub project: status, priority, estimate, actual hours spent, labels or title. Agents should call this after completing implementation work.',
-      inputSchema,
+        'Change a task in a DevHub project: status, priority, estimate, labels or title. Active hours (actualHours) are auto-derived from accumulated in-progress time — never send manual hours. Agents should call this after completing implementation work.',
+      inputSchema: inputSchema.passthrough(),
     },
     async (args) => {
       const state = await loadState(args.projectId);
-      const task = findEntity(state.tasks, args.taskId, 'Task');
+      const task = findEntity(state.tasks, args.taskId, 'Task') as Record<string, unknown> & {
+        status: string;
+        createdAt: string;
+        title: string;
+        id: string;
+        actualHours?: number;
+        startDate?: string | null;
+        updatedAt: string;
+      };
+      const raw = args as Record<string, unknown>;
+      const warnings: string[] = [];
+      if (raw.actualHours !== undefined || raw.activeMs !== undefined || raw.inProgressAt !== undefined) {
+        warnings.push('actualHours/activeMs/inProgressAt are auto-derived and were ignored.');
+      }
+      const now = nowIso();
       let completedAt = args.completedAt;
       if (completedAt === undefined && args.status !== undefined) {
         if (args.status === 'done') {
-          if (task.status !== 'done') completedAt = nowIso();
-        } else {
+          if (task.status !== 'done') completedAt = now;
+        } else if (task.status === 'done') {
           completedAt = null;
         }
       }
-      const actualHours =
-        args.actualHours ??
-        (args.status === 'done' && task.status !== 'done' && completedAt
-          ? deriveActualHours({
-              completedAt,
-              createdAt: task.createdAt,
-              startDate: args.startDate ?? task.startDate,
-            })
-          : undefined);
+      // ADR-067: strip manual jam, hitung via transisi inProgress.
+      let hoursPatch: Record<string, unknown> = {};
+      if (args.status !== undefined && args.status !== task.status) {
+        hoursPatch = applyActiveHoursTransition(
+          {
+            status: task.status,
+            createdAt: task.createdAt,
+            inProgressAt: (task as Record<string, unknown>).inProgressAt as string | null | undefined,
+            activeMs: (task as Record<string, unknown>).activeMs as number | undefined,
+            actualHours: task.actualHours,
+          },
+          args.status,
+          now,
+          (completedAt as string | null | undefined) ??
+            ((task as Record<string, unknown>).completedAt as string | null | undefined) ??
+            now,
+        ) as Record<string, unknown>;
+      } else if ((task as Record<string, unknown>).activeMs === undefined && task.actualHours != null) {
+        hoursPatch = applyActiveHoursTransition(
+          {
+            status: task.status,
+            createdAt: task.createdAt,
+            inProgressAt: (task as Record<string, unknown>).inProgressAt as string | null | undefined,
+            activeMs: undefined,
+            actualHours: task.actualHours,
+          },
+          task.status,
+          now,
+        ) as Record<string, unknown>;
+      }
       applyDefined(task, {
         title: args.title?.trim(),
         status: args.status,
         priority: args.priority,
         estimate: args.estimate,
-        actualHours,
         labels: args.labels,
         parentTaskId: args.parentTaskId,
         checklist: args.checklist,
@@ -95,8 +126,9 @@ export function registerUpdateTask(server: McpServer): void {
         assigneeId: args.assigneeId,
         description: args.description,
         githubLinks: args.githubLinks,
+        ...hoursPatch,
       });
-      task.updatedAt = nowIso();
+      task.updatedAt = now;
       await saveState(args.projectId, state);
       return {
         content: [
@@ -105,6 +137,7 @@ export function registerUpdateTask(server: McpServer): void {
             title: task.title,
             status: task.status,
             actualHours: task.actualHours ?? null,
+            ...(warnings.length > 0 ? { warnings } : {}),
           }),
         ],
       };

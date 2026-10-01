@@ -4,6 +4,7 @@ import type { GitHubLink, Task } from '../../lib/types';
 import { formatBranchName, hasMergedUnresolved, shortTaskKey } from '../../lib/github';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { Button } from '../../components/Button';
+import { Tooltip } from '../../components/Tooltip';
 
 interface GitHubTaskSectionProps {
   task: Task;
@@ -68,6 +69,7 @@ export function GitHubTaskSection({ task, canEdit, onChanged, onMarkDone }: GitH
         <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
           {links.map((link) => {
             const Icon = KIND_ICON[link.kind] ?? GitCommit;
+            const unlinkLabel = t('board.github.unlink', { defaultValue: 'Unlink {{ref}}', ref: link.ref });
             return (
               <li
                 key={link.id}
@@ -94,14 +96,16 @@ export function GitHubTaskSection({ task, canEdit, onChanged, onMarkDone }: GitH
                   </a>
                 )}
                 {canEdit && (
+                  <Tooltip title={unlinkLabel}>
                   <button
                     type="button"
                     className="btn btn-ghost btn-sm btn-icon"
-                    aria-label={t('board.github.unlink', { defaultValue: 'Unlink {{ref}}', ref: link.ref })}
+                    aria-label={unlinkLabel}
                     onClick={() => onChanged(links.filter((l) => l.id !== link.id))}
                   >
                     <Trash size={14} aria-hidden="true" />
                   </button>
+                  </Tooltip>
                 )}
               </li>
             );

@@ -4,7 +4,7 @@ import { ApiError } from '../../../../shared/errors.js';
 import { parseOrThrow } from '../../../../shared/db.js';
 import { nowIso } from '../../../../shared/ids.js';
 import { stateSchema } from '../../domain/state.js';
-import { deriveActualHours } from '../../domain/hours.js';
+import { initTaskHoursOnCreate } from '../../domain/hours.js';
 import { getProjectWithRole } from '../../../authorization/application/authz.js';
 import { entitySummary, type ActivityDraft } from '../../../activity/application/activity.js';
 import { broadcastDiff } from '../../../realtime/infrastructure/broadcast.js';
@@ -87,15 +87,23 @@ function buildEntityRouter(entities: EntityConfig[]): Router {
       const id = payload.id as string;
       const now = nowIso();
       const entity = { id, createdAt: now, updatedAt: now, ...payload } as EntityRow;
-      if (cfg.key === 'tasks' && entity.status === 'done') {
-        if (entity.completedAt === undefined) entity.completedAt = now;
-        if (entity.completedAt != null && entity.actualHours === undefined) {
-          entity.actualHours = deriveActualHours({
-            completedAt: String(entity.completedAt),
-            createdAt: now,
-            startDate: entity.startDate as string | null | undefined,
-          });
-        }
+      if (cfg.key === 'tasks') {
+        // ADR-067: jam full-otomatis — strip input manual, jangan error.
+        delete (entity as Record<string, unknown>).actualHours;
+        delete (entity as Record<string, unknown>).activeMs;
+        delete (entity as Record<string, unknown>).inProgressAt;
+        const status = String(entity.status);
+        if (status === 'done' && entity.completedAt === undefined) entity.completedAt = now;
+        const init = initTaskHoursOnCreate(
+          status,
+          now,
+          now,
+          (entity.completedAt as string | null | undefined) ?? null,
+        );
+        entity.inProgressAt = init.inProgressAt;
+        (entity as Record<string, unknown>).activeMs = init.activeMs;
+        if (init.actualHours !== undefined) entity.actualHours = init.actualHours;
+        else delete (entity as Record<string, unknown>).actualHours;
       }
       const { version } = await (async () => {
         // Staged-upload flow (new modal): pointer lampiran ikut dalam payload

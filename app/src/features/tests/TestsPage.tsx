@@ -17,6 +17,7 @@ import { PinButton } from '../../components/PinButton';
 import { RowMenu } from '../../components/RowMenu';
 import { Skeleton } from '../../components/Skeleton';
 import { SortControl } from '../../components/SortControl';
+import { Tooltip } from '../../components/Tooltip';
 import { NewTestModal } from './NewTestModal';
 import { TestModal } from './TestModal';
 import { DataErrorState } from '../../components/DataErrorState';
@@ -183,11 +184,11 @@ return (
                                 })
                               }
                             />
+                            <Tooltip title={t('tests.deleteAria', { name: test.name, defaultValue: `Delete test case ${test.name}` })}>
                             <button
                               type="button"
                               className="btn btn-ghost btn-sm btn-icon btn-danger swap-trash"
                               aria-label={t('tests.deleteAria', { name: test.name, defaultValue: `Delete test case ${test.name}` })}
-                              title={t('tests.deleteAria', { name: test.name, defaultValue: `Delete test case ${test.name}` })}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 const btn = e.currentTarget;
@@ -199,6 +200,7 @@ return (
                             >
                               <Trash size={13} aria-hidden="true" />
                             </button>
+                            </Tooltip>
                           </span>
                         )}
                         {isNarrow && (

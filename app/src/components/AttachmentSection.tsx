@@ -14,6 +14,7 @@ import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
 import { InlineError } from './InlineError';
 import { AttachmentPreviewModal, dropPreviewCache, useAttachmentUrl } from './AttachmentPreviewModal';
 import { LinkCard } from './LinkCard';
+import { Tooltip } from './Tooltip';
 
 export const ATTACHMENT_CLIENT_MAX_MB = 10;
 
@@ -357,6 +358,8 @@ export function AttachmentSection({
         {attachments.map((att, i) => {
           const previewable = isPreviewableAttachment(att);
           const previewLabel = t('board.attachments.preview', { defaultValue: 'Preview {{name}}', name: att.name });
+          const downloadLabel = t('board.attachments.download', { defaultValue: 'Open {{name}}', name: att.name });
+          const removeLabel = t('board.attachments.remove', { defaultValue: 'Remove {{name}}', name: att.name });
           const openPreview = () => setPreviewTarget(att);
           return (
           <div
@@ -405,6 +408,7 @@ export function AttachmentSection({
             )}
             <span className="att-actions">
             {previewable && (
+              <Tooltip title={previewLabel}>
               <button
                 type="button"
                 className="btn btn-ghost btn-sm btn-icon"
@@ -413,27 +417,34 @@ export function AttachmentSection({
               >
                 <Eye size={14} aria-hidden="true" />
               </button>
+              </Tooltip>
             )}
             {(att.provider === 'link' || (!staged && canDownload)) && (
+              <Tooltip title={downloadLabel}>
+              <span style={{ display: 'inline-flex' }}>
               <button
                 type="button"
                 className="btn btn-ghost btn-sm btn-icon"
                 onClick={() => void handleDownload(att)}
                 disabled={downloadingId === att.id}
-                aria-label={t('board.attachments.download', { defaultValue: 'Open {{name}}', name: att.name })}
+                aria-label={downloadLabel}
               >
                 <DownloadSimple size={14} aria-hidden="true" />
               </button>
+              </span>
+              </Tooltip>
             )}
             {canEdit && (
+              <Tooltip title={removeLabel}>
               <button
                 type="button"
                 className="btn btn-danger btn-sm btn-icon"
                 onClick={() => setDeleteTarget(att)}
-                aria-label={t('board.attachments.remove', { defaultValue: 'Remove {{name}}', name: att.name })}
+                aria-label={removeLabel}
               >
                 <Trash size={14} aria-hidden="true" />
               </button>
+              </Tooltip>
             )}
             </span>
           </div>

@@ -6,6 +6,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CornersOut, MagnifyingGlassMinus, MagnifyingGlassPlus } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
+import { Tooltip } from "../../components/Tooltip";
 import type { TechEntry, TechEntryCategory, TechStatus } from "../../lib/types";
 
 const STATUS_COLOR: Record<TechStatus, string> = {
@@ -235,33 +236,36 @@ export function StackGraph({ entries, onOpen }: StackGraphProps) {
         </svg>
 
         <div className="erd-zoom">
+          <Tooltip title={t("schema.erd.zoomIn")}>
           <button
             type="button"
             className="btn btn-secondary btn-sm btn-icon"
             aria-label={t("schema.erd.zoomIn")}
-            title={t("schema.erd.zoomIn")}
             onClick={() => zoomAt(1.2)}
           >
             <MagnifyingGlassPlus size={13} aria-hidden="true" />
           </button>
+          </Tooltip>
+          <Tooltip title={t("schema.erd.zoomOut")}>
           <button
             type="button"
             className="btn btn-secondary btn-sm btn-icon"
             aria-label={t("schema.erd.zoomOut")}
-            title={t("schema.erd.zoomOut")}
             onClick={() => zoomAt(1 / 1.2)}
           >
             <MagnifyingGlassMinus size={13} aria-hidden="true" />
           </button>
+          </Tooltip>
+          <Tooltip title={t("schema.erd.resetView")}>
           <button
             type="button"
             className="btn btn-secondary btn-sm btn-icon"
             aria-label={t("schema.erd.resetView")}
-            title={t("schema.erd.resetView")}
             onClick={() => setView({ x: 16, y: 16, s: 1 })}
           >
             <CornersOut size={13} aria-hidden="true" />
           </button>
+          </Tooltip>
         </div>
       </div>
 

@@ -4,6 +4,11 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  // Sourcemap tersembunyi: tidak diunduh browser (tanpa comment //#sourceMappingURL),
+  // tapi tersedia untuk diunggah ke PostHog via CI agar stack error terbaca.
+  build: {
+    sourcemap: 'hidden',
+  },
   server: {
     proxy: {
       '/api': {

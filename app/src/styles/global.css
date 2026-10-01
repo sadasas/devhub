@@ -1191,6 +1191,22 @@ a:hover {
   padding-left: 16px;
 }
 
+/* Focus page (variant page): panel properti = kartu sticky. Modal tidak kena
+   (portal, tanpa ancestor .page). Mobile <=860px tidak kena (skop min-width). */
+@media (min-width: 861px) {
+  .page .detail-side {
+    position: sticky;
+    /* topbar juga sticky (±45px, z-nav) → panel harus nempel DI BAWAH bar,
+       bukan di bawah viewport, agar kepala "Properties" tak tertutup. */
+    top: 60px;
+    align-self: start;
+    max-height: calc(100dvh - 76px);
+    border: 1px solid var(--border-hairline);
+    border-radius: var(--radius-card);
+    padding: 12px 16px 16px;
+  }
+}
+
 .propside-head {
   font-size: 13px;
   font-weight: 600;
@@ -1815,7 +1831,7 @@ a:hover {
     order: -1;
   }
 
-  .detail-grid > .detail-main > *:not(textarea.composer-title):not(h3.detail-title):not(.detail-created):not(.editable-field-title) {
+  .detail-grid > .detail-main > *:not(textarea.composer-title):not(h3.detail-title):not(.detail-created):not(.editable-field-title):not(.focus-badges) {
     order: 3;
   }
 
@@ -3570,6 +3586,25 @@ html[data-theme='light'] .splash-bg {
   margin-left: auto;
 }
 
+/* Focus page topbar — sticky floating timer bar (page variant only).
+   Transparan di atas (border transparan cegah 1px jump), bg + hairline
+   muncul via .focus-topbar--scrolled. z-nav(10) < z-overlay(50) sehingga
+   panel timer tetap melayang di atas. */
+.focus-topbar {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-nav);
+  border-bottom: 1px solid transparent;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.focus-topbar--scrolled {
+  background: var(--bg-base);
+  border-bottom-color: var(--border-hairline);
+}
+
 .topbar-btn {
   display: inline-flex;
   align-items: center;
@@ -3629,6 +3664,7 @@ html[data-theme='light'] .splash-bg {
 @media (prefers-reduced-motion: reduce) {
   .topbar,
   .content-header,
+  .focus-topbar,
   .topbar-btn,
   .topbar-chat-badge {
     transition: none;
@@ -20456,6 +20492,10 @@ html[data-theme='light'] .tour-overlay-dim {
   overflow: clip;
 }
 
+/* FocusTimer header/sheet big number (Focus page topbar): centering handled by parent grid. */
+.focus-timer-display, .focus-timer-big { transition: color var(--duration-fast) var(--ease-out); }
+.focus-timer-display { font-size: var(--text-title); }
+
 /* Inner spacing (standar panel Tier-1, audit 2026-09: roomy 20px
    seragam dengan .profile-panel — dulu 32px 20px 16px). */
 .pcard-body {
@@ -23264,3 +23304,121 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
 .mini-row:hover .att-actions, .mini-row:focus-within .att-actions { opacity: 1; visibility: visible; }
 @media (hover: none) { .mini-row .att-actions { opacity: 1; visibility: visible; } }
 @media (prefers-reduced-motion: reduce) { .mini-row .att-actions { transition: none; } }
+
+/* Focus page mobile (≤640px, .page scope only) — topbar icon-only, badges
+   status/prioritas/overdue, kartu Properti collapsible, bottom bar sticky.
+   Desktop/modal tak tersentuh: defaults menyembunyikan elemen mobile-only;
+   satu blok media .page mengaktifkannya kembali (spesifisitas .page-* di atas
+   aturan modal, tanpa mengubah aturan existing). */
+.focus-badges { display: none; }
+.focus-bottombar { display: none; }
+.focus-props-toggle { display: none; }
+
+@media (max-width: 640px) {
+  /* Topbar icon-only: label teks sembunyi, ikon tetap. Tombol done
+     dihapus total di HP (aksinya pindah ke bottom bar). */
+  .page .focus-topbar-label { display: none; }
+  .page .focus-topbar-done { display: none; }
+
+  /* Badges row: status + priority + overdue (read-only, klik = buka Properti). */
+  .page .focus-badges {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 0;
+    cursor: pointer;
+  }
+  .page .focus-badges:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* Kartu Properti: full card + baris label/nilai susun (batalkan aliran pil
+     ≤640px existing tanpa menyentuh aturannya). */
+  .page .detail-side {
+    border: 1px solid var(--border-hairline);
+    border-radius: var(--radius-card);
+    padding: 12px 16px;
+  }
+  .page .propside-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .page .detail-side .prop {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 4px 8px;
+    border: 0;
+    background: none;
+    padding: 3px 0;
+    border-radius: var(--radius-input);
+    margin: 0;
+    min-height: 34px;
+  }
+  .page .detail-side .prop > .prop-view,
+  .page .detail-side .prop > .input,
+  .page .detail-side .prop > .ss-wrap,
+  .page .detail-side .prop > span:not(.prop-label):not(.prop-chev) {
+    flex: 1 1 100%;
+    min-width: 0;
+    max-width: none;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+  .page .detail-side .prop-label-text {
+    max-width: none;
+  }
+  .page .detail-side .prop-chev,
+  .page .detail-side .prop-edit {
+    display: revert;
+  }
+  .page .detail-side [data-blocked-row] > div:last-child {
+    flex: 1 1 100%;
+    order: 2;
+    flex-basis: 100%;
+  }
+
+  /* Toggle Properti: link mungil; desktop/modal tetap sembunyi. */
+  .page .focus-props-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    color: var(--accent);
+    font-size: 12px;
+    text-decoration: none;
+  }
+  .page .focus-props-toggle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* Bottom bar sticky: tombol Tandai selesai (inline width 100% di TSX). */
+  .page .focus-bottombar {
+    display: block;
+    position: sticky;
+    bottom: 0;
+    padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
+    background: var(--bg-base);
+    border-top: 1px solid var(--border-hairline);
+  }
+
+  /* HP: angka timer paling besar di header (20px → 24px). */
+  .page .focus-timer-display { font-size: var(--text-display); }
+
+  /* HP: badges (status/priority/deadline) di atas kartu Properti.
+     detail-main display:contents di ≤860px → anak-anaknya grid-item;
+     aside order 2, badges default order 3 → turunkan ke 0
+     (judul -2, created -1 tetap di atas). Kualifikasi div untuk
+     margin spesifisitas ekstra. */
+  .page .detail-grid > .detail-main > div.focus-badges { order: 0; }
+}
