@@ -166,7 +166,9 @@ describe('FocusTimer', () => {
     expect(screen.queryByRole('button', { name: '00:00' })).toBeNull();
     expect(screen.queryByLabelText('Minutes')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Countdown' }));
-    fireEvent.click(screen.getAllByRole('button', { name: 'Play' })[0]);
+    const firstPlay = screen.getAllByRole('button', { name: 'Play' })[0];
+    expect(firstPlay).toBeTruthy();
+    fireEvent.click(firstPlay!);
     expect(screen.queryByRole('button', { name: '25:00' })).toBeNull();
     expect(screen.queryByLabelText('Minutes')).toBeNull();
     act(() => {
@@ -258,7 +260,9 @@ describe('FocusTimer', () => {
     const resetBtn = screen.getByRole('button', { name: 'Reset' });
     expect(resetBtn.getAttribute('disabled')).not.toBeNull();
     expect(resetBtn.getAttribute('style') ?? '').toContain('0.45');
-    fireEvent.click(plays[1]);
+    const secondPlay = plays[1];
+    expect(secondPlay).toBeTruthy();
+    fireEvent.click(secondPlay!);
     expect(sheet()).toBeNull();
     expect(screen.getByRole('button', { name: 'Pause' })).toBeTruthy();
   });
@@ -285,7 +289,9 @@ describe('FocusTimer', () => {
     expect(panel()).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '+ 1 min' }));
     expect(screen.getAllByText('26:00').length).toBeGreaterThan(0);
-    fireEvent.click(screen.getAllByRole('button', { name: 'Play' })[1]);
+    const panelPlay = screen.getAllByRole('button', { name: 'Play' })[1];
+    expect(panelPlay).toBeTruthy();
+    fireEvent.click(panelPlay!);
     expect(panel()).toBeTruthy();
     expect(screen.getAllByRole('button', { name: 'Pause' })).toHaveLength(2);
   });
@@ -336,7 +342,9 @@ describe('FocusTimer', () => {
     mockMatchMedia(false);
     renderTimer();
     openPanel();
-    fireEvent.click(screen.getAllByRole('button', { name: 'Play' })[1]);
+    const desktopPlay = screen.getAllByRole('button', { name: 'Play' })[1];
+    expect(desktopPlay).toBeTruthy();
+    fireEvent.click(desktopPlay!);
     expect(panel()).toBeTruthy();
     act(() => {
       vi.advanceTimersByTime(5_000);
