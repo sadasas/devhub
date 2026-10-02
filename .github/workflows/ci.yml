@@ -25,6 +25,11 @@ jobs:
     name: Lint, build & unit tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # `secrets` is not allowed inside a step `if:` — hoist to env so the
+    # uploader can be gated with `if: env.POSTHOG_API_KEY != ''`.
+    env:
+      POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
+      POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_PROJECT_ID }}
     services:
       postgres:
         image: postgres:16-alpine
@@ -51,13 +56,13 @@ jobs:
       - name: Build
         run: npm run build
       - name: Upload source maps to PostHog
-        if: secrets.POSTHOG_API_KEY != ''
+        if: env.POSTHOG_API_KEY != ''
         uses: PostHog/upload-source-maps@v2
         with:
           directory: app/dist
-          project-id: ${{ secrets.POSTHOG_PROJECT_ID }}
-          api-key: ${{ secrets.POSTHOG_API_KEY }}
-          host: https://eu.posthog.com
+          project-id: ${{ env.POSTHOG_PROJECT_ID }}
+          api-key: ${{ env.POSTHOG_API_KEY }}
+          host: https://us.posthog.com
       - name: Server tests
         run: npm run test -w server
         env:
