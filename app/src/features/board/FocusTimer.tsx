@@ -350,11 +350,11 @@ export function FocusTimer() {
   const toggle = () => {
     if (finished) return;
     if (running) {
-      track('timer_pause');
+      track('timer_pause', { mode, elapsed: secs });
     } else if (secs === 0) {
       track('timer_start', { mode, duration: durationSecs });
     } else {
-      track('timer_resume');
+      track('timer_resume', { mode, elapsed: secs });
     }
     setRunning((v) => !v);
   };

@@ -90,9 +90,9 @@ describe('FocusTimer analytics', () => {
       vi.advanceTimersByTime(5_000);
     });
     fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
-    expect(trackMock).toHaveBeenCalledWith('timer_pause');
+    expect(trackMock).toHaveBeenCalledWith('timer_pause', { mode: 'down', elapsed: 5 });
     fireEvent.click(screen.getByRole('button', { name: 'Play' }));
-    expect(trackMock).toHaveBeenCalledWith('timer_resume');
+    expect(trackMock).toHaveBeenCalledWith('timer_resume', { mode: 'down', elapsed: 5 });
   });
 
   it('fires timer_complete with mode + duration at zero and timer_reset on reset', () => {

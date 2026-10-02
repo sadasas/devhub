@@ -5,6 +5,52 @@ import posthog from 'posthog-js';
 export const FOCUS_MODE_FLAG = 'focus-mode-enabled';
 
 let inited = false;
+let healthProbe: ReturnType<typeof setTimeout> | null = null;
+const reportedFlagIssues = new Set<string>();
+
+/**
+ * How long to wait after init before checking that flags actually loaded.
+ * SDK flag request times out at 3s, so 8s is well past a normal load.
+ */
+const FLAG_HEALTH_PROBE_MS = 8000;
+
+/**
+ * Fail-open makes "flags never loaded" look identical to "flag is off", so a
+ * dead `/flags` request (bad key, wrong region, network) is invisible in the
+ * UI. Log it once per key instead of staying silent.
+ */
+function reportFlagIssue(detail: string): void {
+  if (reportedFlagIssues.has(FOCUS_MODE_FLAG)) return;
+  reportedFlagIssues.add(FOCUS_MODE_FLAG);
+  console.warn(`[analytics] feature flag "${FOCUS_MODE_FLAG}": ${detail}`);
+}
+
+function scheduleFlagHealthProbe(): void {
+  try {
+    healthProbe = setTimeout(() => {
+      healthProbe = null;
+      if (!inited) return;
+      try {
+        const all = posthog.getAllFeatureFlags?.() ?? [];
+        if (all.length === 0) {
+          reportFlagIssue(
+            'no flags loaded — check VITE_POSTHOG_KEY, VITE_POSTHOG_HOST region and the /flags response. Kill-switch is inert (running on fallback).',
+          );
+        } else if (!all.some((flag) => flag.key === FOCUS_MODE_FLAG)) {
+          reportFlagIssue(
+            'flags loaded but this key is absent — flag missing, misspelled or rolled out to 0%. Running on fallback.',
+          );
+        }
+      } catch {
+        /* analytics must never break the app */
+      }
+    }, FLAG_HEALTH_PROBE_MS);
+    // Node test runner: don't let the pending probe hold the process open.
+    (healthProbe as unknown as { unref?: () => void }).unref?.();
+  } catch {
+    /* ignore */
+  }
+}
 
 function readEnv(key: string): string {
   try {
@@ -31,7 +77,7 @@ export function initAnalytics(): void {
   try {
     const key = readEnv('VITE_POSTHOG_KEY');
     if (!key) return;
-    const host = readEnv('VITE_POSTHOG_HOST') || 'https://eu.i.posthog.com';
+    const host = readEnv('VITE_POSTHOG_HOST') || 'https://us.i.posthog.com';
     posthog.init(key, {
       api_host: host,
       persistence: 'memory',
@@ -39,14 +85,20 @@ export function initAnalytics(): void {
       disable_session_recording: true,
     });
     inited = true;
+    scheduleFlagHealthProbe();
   } catch {
     /* analytics must never break the app */
   }
 }
 
-/** Test seam: reset module init state. */
+/** Test seam: reset module init state (and cancel a pending flag health probe). */
 export function __resetAnalyticsForTests(): void {
   inited = false;
+  if (healthProbe != null) {
+    clearTimeout(healthProbe);
+    healthProbe = null;
+  }
+  reportedFlagIssues.clear();
 }
 
 /** Track a custom event. No-op when uninit (missing key / SDK down). */
