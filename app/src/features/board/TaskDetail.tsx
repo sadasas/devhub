@@ -1108,7 +1108,7 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                 </button>
               )}
               </div>
-              <div style={{ marginTop: 2 }}>
+              <div style={{ marginTop: 8 }}>
                 {subtasks.length === 0 && !canEdit && <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>}
                 {subtasks.length > 0 && (
                 <div style={{ paddingLeft: 16, borderLeft: '1px solid var(--border-hairline)' }}>
@@ -1319,7 +1319,7 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
               {t('board.taskModal.checklistLabel', { defaultValue: 'Checklist' })}
               {checklist.length > 0 && <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}> · {checklist.filter((c) => c.done).length}/{checklist.length}</span>}
             </h4>
-            <div style={{ marginTop: 2 }}>
+            <div style={{ marginTop: 8 }}>
               {checklist.length === 0 && !canEdit && <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>}
               {checklist.map((c, i) => (
                 <div
