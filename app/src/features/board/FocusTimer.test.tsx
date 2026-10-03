@@ -116,7 +116,7 @@ describe('FocusTimer', () => {
     expect(screen.getAllByText('10:30').length).toBeGreaterThan(0);
     expect(sheet()).toBeTruthy();
     expect(screen.queryByLabelText('Minutes')).toBeNull();
-    expect(screen.getAllByRole('button', { name: 'Play' })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: 'Play' })).toHaveLength(3);
   });
 
   it('blur applies the edit without starting or closing', () => {
@@ -128,7 +128,7 @@ describe('FocusTimer', () => {
     fireEvent.blur(screen.getByLabelText('Seconds'));
     expect(screen.getAllByText('05:45').length).toBeGreaterThan(0);
     expect(sheet()).toBeTruthy();
-    expect(screen.getAllByRole('button', { name: 'Play' })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: 'Play' })).toHaveLength(3);
   });
 
   it('Escape cancels the edit, reverts and keeps the sheet open', () => {
@@ -227,7 +227,7 @@ describe('FocusTimer', () => {
     openSheet();
     fireEvent.click(screen.getByRole('button', { name: '+ 1 min' }));
     expect(screen.getAllByText('26:00').length).toBeGreaterThan(0);
-    expect(screen.getAllByRole('button', { name: 'Play' })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: 'Play' })).toHaveLength(3);
     expect(sheet()).toBeTruthy();
   });
 
@@ -256,7 +256,7 @@ describe('FocusTimer', () => {
     renderTimer();
     openSheet();
     const plays = screen.getAllByRole('button', { name: 'Play' });
-    expect(plays).toHaveLength(2);
+    expect(plays).toHaveLength(3);
     const resetBtn = screen.getByRole('button', { name: 'Reset' });
     expect(resetBtn.getAttribute('disabled')).not.toBeNull();
     expect(resetBtn.getAttribute('style') ?? '').toContain('0.45');
@@ -324,18 +324,15 @@ describe('FocusTimer', () => {
     expect(panel()).toBeNull();
   });
 
-  it('chevron rotates 180deg while the desktop panel is open', () => {
+  it('display button exposes aria-expanded while the desktop panel is open', () => {
     mockMatchMedia(false);
     renderTimer();
-    const chevron = () =>
-      (screen.getByRole('button', { name: 'Timer' }).querySelector('span[aria-hidden]') as HTMLElement);
-    expect(chevron().getAttribute('style') ?? '').not.toContain('rotate(180deg)');
+    const display = () => screen.getByRole('button', { name: 'Timer' });
+    expect(display().getAttribute('aria-expanded')).toBe('false');
     openPanel();
-    const openStyle = chevron().getAttribute('style') ?? '';
-    expect(openStyle).toContain('rotate(180deg)');
-    expect(openStyle).toContain('var(--duration-fast)');
+    expect(display().getAttribute('aria-expanded')).toBe('true');
     fireEvent.click(screen.getByRole('button', { name: 'Timer' }));
-    expect(chevron().getAttribute('style') ?? '').not.toContain('rotate(180deg)');
+    expect(display().getAttribute('aria-expanded')).toBe('false');
   });
 
   it('desktop panel play never closes; reset never closes', () => {

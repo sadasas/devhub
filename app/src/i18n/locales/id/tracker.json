@@ -187,6 +187,12 @@
       "timerMinutes": "Menit",
       "timerSeconds": "Detik",
       "timerFinished": "Selesai",
+      "musicLabel": "Musik",
+      "musicTrackLabel": "Trek ambien",
+      "musicVolumeLabel": "Volume",
+      "musicRain": "Hujan",
+      "musicNightWind": "Angin malam",
+      "musicWaves": "Ombak",
       "propsHide": "Sembunyikan",
       "propsShow": "Tampilkan"
     },

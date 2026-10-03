@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowCounterClockwise, CheckCircle, Hourglass, Pause, Play, Timer } from '@phosphor-icons/react';
+import { ArrowCounterClockwise, CheckCircle, Pause, Play, Timer } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/Button';
 import { BottomSheet } from '../../components/BottomSheet';
 import { Tooltip } from '../../components/Tooltip';
 import { track } from '../../lib/analytics';
+import { FocusMusic } from './FocusMusic';
 
 export function formatFocusTimer(secs: number): string {
   const safe = Math.max(0, Math.floor(secs));
@@ -270,6 +271,8 @@ function TimerSheetBody({
           <ArrowCounterClockwise size={18} aria-hidden="true" />
         </button>
       </div>
+      <hr className="sheet-divider" aria-hidden="true" />
+      <FocusMusic />
     </div>
   );
 }
@@ -393,43 +396,44 @@ export function FocusTimer() {
   };
 
   const showReset = secs > 0 || running || finished;
-  // @phosphor-icons/react@2.1.10 has no Stopwatch export — Timer is the fallback.
-  const ModeIcon = mode === 'down' ? Hourglass : Timer;
 
   return (
     <div className="focus-timer" style={{ position: 'relative' }}>
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-        <span aria-hidden="true" style={{ display: 'inline-flex', color: 'var(--text-muted)' }}>
-          <ModeIcon size={14} aria-hidden="true" />
-        </span>
+      <div
+        role="group"
+        aria-label={timerLabel}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 2,
+          border: '1px solid var(--border-hairline)',
+          borderRadius: 999,
+          padding: '2px 2px 2px 4px',
+          background: 'var(--bg-base)',
+        }}
+      >
         <button
           type="button"
           ref={displayButtonRef}
-          className="btn btn-ghost focus-timer-display"
+          className="btn btn-ghost btn-sm focus-timer-display"
           onClick={() => setSheetOpen((v) => !v)}
           aria-haspopup="dialog"
+          aria-expanded={sheetOpen}
           aria-label={timerLabel}
           title={display}
           style={{
             fontWeight: 600,
             fontVariantNumeric: 'tabular-nums',
             color: almostDone ? 'var(--status-warn)' : 'var(--text-primary)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            border: 0,
+            background: 'transparent',
           }}
         >
+          <Timer size={14} aria-hidden="true" style={{ color: 'var(--text-muted)' }} />
           {display}
-          <span
-            aria-hidden="true"
-            style={{
-              fontSize: 11,
-              color: 'var(--text-muted)',
-              marginLeft: 4,
-              display: 'inline-block',
-              transform: sheetOpen ? 'rotate(180deg)' : 'none',
-              transition: 'transform var(--duration-fast) var(--ease-out)',
-            }}
-          >
-            ▾
-          </span>
         </button>
         <Tooltip title={running ? (t('board.focus.timerPause') as string) : (t('board.focus.timerPlay') as string)}>
         <button
@@ -437,18 +441,25 @@ export function FocusTimer() {
           className="btn btn-ghost btn-sm btn-icon focus-timer-toggle"
           onClick={toggle}
           aria-label={running ? (t('board.focus.timerPause') as string) : (t('board.focus.timerPlay') as string)}
-          style={{ color: 'var(--text-muted)' }}
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: '50%',
+            background: running ? 'var(--text-primary)' : 'var(--bg-inset)',
+            color: running ? 'var(--bg-base)' : 'var(--text-muted)',
+            border: running ? 'none' : '1px solid var(--border-hairline)',
+          }}
         >
           {running ? <Pause size={12} aria-hidden="true" /> : <Play size={12} aria-hidden="true" />}
         </button>
         </Tooltip>
-        {finished && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, color: 'var(--status-success)' }}>
-            <CheckCircle size={14} aria-hidden="true" />
-            {t('board.focus.timerFinished')}
-          </span>
-        )}
       </div>
+      {finished && (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, color: 'var(--status-success)', marginLeft: 8 }}>
+          <CheckCircle size={14} aria-hidden="true" />
+          {t('board.focus.timerFinished')}
+        </span>
+      )}
       {coarse ? (
         <BottomSheet open={sheetOpen} title={timerLabel} onClose={() => setSheetOpen(false)}>
           <TimerSheetBody

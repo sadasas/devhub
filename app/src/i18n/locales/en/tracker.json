@@ -187,6 +187,12 @@
       "timerMinutes": "Minutes",
       "timerSeconds": "Seconds",
       "timerFinished": "Done",
+      "musicLabel": "Music",
+      "musicTrackLabel": "Ambient track",
+      "musicVolumeLabel": "Volume",
+      "musicRain": "Rain",
+      "musicNightWind": "Night wind",
+      "musicWaves": "Waves",
       "propsHide": "Hide",
       "propsShow": "Show"
     },
