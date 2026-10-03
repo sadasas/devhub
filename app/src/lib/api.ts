@@ -25,6 +25,7 @@ import type {
   TeamRole,
   User,
   UserStats,
+  YoutubeVideo,
 } from './types';
 import type { ProjectStats } from './stats';
 import type { ExportDocument } from './types';
@@ -765,5 +766,9 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ projectId }),
       },
+    ),
+  youtubeSearch: (q: string) =>
+    request<{ results: YoutubeVideo[]; cached: boolean }>(
+      `/integrations/youtube/search?q=${encodeURIComponent(q)}&maxResults=5`,
     ),
 };

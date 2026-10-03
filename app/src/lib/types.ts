@@ -118,6 +118,14 @@ export interface GitHubInstallation {
   status: string;
 }
 
+/** Video YouTube publik yang bisa di-embed (sumber antrean radio fokus). */
+export interface YoutubeVideo {
+  videoId: string;
+  title: string;
+  channelTitle: string;
+  thumbnailUrl: string;
+}
+
 export interface Task extends Base {
   title: string;
   status: TaskStatus;

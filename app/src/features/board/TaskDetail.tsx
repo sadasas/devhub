@@ -43,6 +43,7 @@ import { SearchableSelect } from '../../components/SearchableSelect';
 import { FE_LIMITS, LIMITS } from '../../lib/limits';
 import { isTypingTarget } from '../../lib/keys';
 import { FocusTimer } from './FocusTimer';
+import { FocusRadio } from './FocusRadio';
 import { FOCUS_MODE_FLAG, track, useFeatureFlag } from '../../lib/analytics';
 
 const STATUS_OPTIONS: TaskStatus[] = ['todo', 'inProgress', 'review', 'done'];
@@ -574,7 +575,10 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
               <CaretLeft size={14} aria-hidden="true" />
               <span className="focus-topbar-label">{t('board.focus.back')}</span>
             </button>
-            <FocusTimer />
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, justifySelf: 'center', minWidth: 0 }}>
+              <FocusTimer />
+              <FocusRadio />
+            </div>
             {task.status !== 'done' ? (
               <Button variant="primary" size="sm" className="focus-topbar-done" leftIcon={<CheckCircle size={14} aria-hidden="true" />} onClick={() => { track('focus_mark_done', { source: 'topbar' }); changeStatus('done'); }} style={{ justifySelf: 'end' }}>
                 <span className="focus-topbar-label">{t('board.taskModal.focusMarkDone')}</span>
