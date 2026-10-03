@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import posthog from 'posthog-js';
 
-/** Kill-switch for focus mode. Fail-open: anything !== false behaves ON. */
+/** Kill-switch for focus mode. Load-aware: ON only when flags load and the
+ * value is explicitly `true`; OFF when loaded-but-disabled; fail-open
+ * (fallback) while loading or when the `/flags` request fails. */
 export const FOCUS_MODE_FLAG = 'focus-mode-enabled';
 
 let inited = false;
@@ -122,24 +124,39 @@ export function reportError(err: unknown, props?: Record<string, unknown>): void
 }
 
 /**
- * Boolean feature flag with fail-open fallback. Returns `fallback` until
- * flags arrive; missing key / SDK-down / pending all behave ON when
- * fallback is true. No banner.
+ * Boolean feature flag, load-aware.
+ *
+ * - Initial value is `fallback` (optimistic: avoids UI flicker while `/flags`
+ *   is in flight; callers pass `true` so the feature renders instantly).
+ * - Once flags are definitively loaded (the `onFeatureFlags` signal, which the
+ *   SDK also fires immediately on subscribe when flags are already cached),
+ *   only an explicit `true` means ON. A disabled flag yields no value
+ *   (`undefined` — PostHog "Flag disabled: SDKs receive no value") → OFF.
+ *   This is what makes the kill-switch actually kill.
+ * - When the `/flags` request itself fails (`errorsLoading`), or the SDK
+ *   throws, the fallback is kept (fail-open): a dead analytics pipeline must
+ *   not take the feature down with it.
  */
 export function useFeatureFlag(key: string, fallback: boolean): boolean {
   const [value, setValue] = useState(fallback);
   useEffect(() => {
     let cancelled = false;
+    const applyLoaded = (loadedOk: boolean) => {
+      if (cancelled || !loadedOk) return;
+      try {
+        setValue(posthog.isFeatureEnabled?.(key) === true);
+      } catch {
+        /* keep current */
+      }
+    };
     try {
+      // Optimistic sync read: an already-known boolean applies instantly.
+      // Non-boolean (still loading, or disabled flag with no value) waits
+      // for the loaded signal below instead of guessing.
       const current = posthog.isFeatureEnabled?.(key);
       if (typeof current === 'boolean' && !cancelled) setValue(current);
-      const unsub = posthog.onFeatureFlags?.(() => {
-        try {
-          const next = posthog.isFeatureEnabled?.(key);
-          if (typeof next === 'boolean' && !cancelled) setValue(next);
-        } catch {
-          /* keep fallback */
-        }
+      const unsub = posthog.onFeatureFlags?.((_flags, _variants, ctx) => {
+        applyLoaded(ctx?.errorsLoading !== true);
       });
       return () => {
         cancelled = true;

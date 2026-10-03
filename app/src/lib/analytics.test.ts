@@ -95,9 +95,9 @@ describe('analytics wrapper', () => {
   });
 
   it('useFeatureFlag returns fallback until flags arrive, then the flag value', () => {
-    let flagsCb: (() => void) | null = null;
+    let flagsCb: ((flags: unknown, variants: unknown, ctx?: { errorsLoading?: boolean }) => void) | null = null;
     mocks.isFeatureEnabled.mockReturnValue(undefined);
-    mocks.onFeatureFlags.mockImplementation((cb: () => void) => {
+    mocks.onFeatureFlags.mockImplementation((cb: (flags: unknown, variants: unknown, ctx?: { errorsLoading?: boolean }) => void) => {
       flagsCb = cb;
       return () => {};
     });
@@ -105,9 +105,40 @@ describe('analytics wrapper', () => {
     expect(result.current).toBe(true);
     mocks.isFeatureEnabled.mockReturnValue(false);
     act(() => {
-      flagsCb?.();
+      flagsCb?.([], {}, { errorsLoading: false });
     });
     expect(result.current).toBe(false);
+  });
+
+  it('useFeatureFlag turns a disabled flag OFF after load (kill-switch, no value)', () => {
+    let flagsCb: ((flags: unknown, variants: unknown, ctx?: { errorsLoading?: boolean }) => void) | null = null;
+    // Disabled flag: SDK yields no value, before and after load.
+    mocks.isFeatureEnabled.mockReturnValue(undefined);
+    mocks.onFeatureFlags.mockImplementation((cb: (flags: unknown, variants: unknown, ctx?: { errorsLoading?: boolean }) => void) => {
+      flagsCb = cb;
+      return () => {};
+    });
+    const { result } = renderHook(() => useFeatureFlag('focus-mode-enabled', true));
+    expect(result.current).toBe(true);
+    act(() => {
+      flagsCb?.([], {}, { errorsLoading: false });
+    });
+    expect(result.current).toBe(false);
+  });
+
+  it('useFeatureFlag stays fail-open when the flags request fails (errorsLoading)', () => {
+    let flagsCb: ((flags: unknown, variants: unknown, ctx?: { errorsLoading?: boolean }) => void) | null = null;
+    mocks.isFeatureEnabled.mockReturnValue(undefined);
+    mocks.onFeatureFlags.mockImplementation((cb: (flags: unknown, variants: unknown, ctx?: { errorsLoading?: boolean }) => void) => {
+      flagsCb = cb;
+      return () => {};
+    });
+    const { result } = renderHook(() => useFeatureFlag('focus-mode-enabled', true));
+    expect(result.current).toBe(true);
+    act(() => {
+      flagsCb?.([], {}, { errorsLoading: true });
+    });
+    expect(result.current).toBe(true);
   });
 
   it('useFeatureFlag stays fail-open when SDK throws', () => {
