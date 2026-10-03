@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/Button';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { track } from '../../lib/analytics';
-import { AMBIENT_TRACKS, useAmbientAudio, type AmbientTrackId } from './useAmbientAudio';
+import { AMBIENT_TRACKS, type AmbientAudio, type AmbientTrackId } from './useAmbientAudio';
 
 const TRACK_LABEL_KEY: Record<AmbientTrackId, string> = {
   rain: 'musicRain',
@@ -14,12 +14,15 @@ const TRACK_LABEL_KEY: Record<AmbientTrackId, string> = {
 /**
  * Ambient music section inside the timer panel (desktop + bottom sheet).
  * Synthesized WebAudio (no files): rain / night wind / waves. Playback is
- * user-gesture initiated, volume persists to localStorage, and the voice is
- * torn down on unmount so no audio leaks past the panel.
+ * user-gesture initiated, volume persists to localStorage.
+ *
+ * The audio state is lifted to the caller (FocusTimer topbar level) so music
+ * keeps playing after the panel closes; stop via the panel, teardown happens
+ * when leaving the focus page.
  */
-export function FocusMusic() {
+export function FocusMusic({ music }: { music: AmbientAudio }) {
   const { t } = useTranslation('tracker');
-  const { trackId, setTrackId, playing, toggle, volume, setVolume } = useAmbientAudio();
+  const { trackId, setTrackId, playing, toggle, volume, setVolume } = music;
 
   const onToggle = () => {
     const next = toggle();

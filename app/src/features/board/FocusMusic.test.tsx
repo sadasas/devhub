@@ -63,6 +63,16 @@ function installAudioMock() {
 }
 
 import { FocusMusic } from './FocusMusic';
+import { useAmbientAudio } from './useAmbientAudio';
+
+/** Host with the real lifted hook (as FocusTimer provides it). */
+function renderMusic() {
+  function Host() {
+    const music = useAmbientAudio();
+    return <FocusMusic music={music} />;
+  }
+  render(<Host />);
+}
 
 beforeEach(() => {
   window.localStorage.clear();
@@ -77,7 +87,7 @@ afterEach(() => {
 
 describe('FocusMusic', () => {
   it('renders the section, default track and volume', () => {
-    render(<FocusMusic />);
+    renderMusic();
     expect(screen.getByText('Music')).toBeTruthy();
     expect(screen.getByLabelText('Ambient track')).toBeTruthy();
     expect(screen.getByLabelText('Volume')).toBeTruthy();
@@ -85,7 +95,7 @@ describe('FocusMusic', () => {
   });
 
   it('toggles playback and tracks music_start / music_stop with the track', () => {
-    render(<FocusMusic />);
+    renderMusic();
     const play = screen.getByRole('button', { name: 'Play' });
     fireEvent.click(play);
     expect(trackMock).toHaveBeenCalledWith('music_start', { track: 'rain' });
@@ -95,7 +105,7 @@ describe('FocusMusic', () => {
   });
 
   it('changes volume and persists it', () => {
-    render(<FocusMusic />);
+    renderMusic();
     const slider = screen.getByLabelText('Volume') as HTMLInputElement;
     fireEvent.change(slider, { target: { value: '42' } });
     expect(screen.getByText('42%')).toBeTruthy();

@@ -65,6 +65,7 @@ describe('FocusTimer', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+    Reflect.deleteProperty(window as unknown as Record<string, unknown>, 'AudioContext');
   });
 
   it('collapsed shows number, mode icon and toggle with no sheet', () => {
@@ -393,5 +394,68 @@ describe('FocusTimer', () => {
     });
     expect(screen.getByText('00:00')).toBeTruthy();
     expect(screen.getByText('Done')).toBeTruthy();
+  });
+
+  it('music keeps playing after the sheet closes (state lifted above the panel)', () => {
+    // NOTE: plain function — vi.fn() mocks are not constructible with `new`.
+    function MockAudioContext(this: unknown) {
+      return {
+        state: 'running',
+        currentTime: 0,
+        sampleRate: 44100,
+        destination: {},
+        createBuffer: (_ch: number, len: number) => ({
+          getChannelData: () => new Float32Array(len),
+        }),
+        createBufferSource: () => ({
+          connect: vi.fn(),
+          disconnect: vi.fn(),
+          buffer: null,
+          loop: false,
+          start: vi.fn(),
+          stop: vi.fn(),
+        }),
+        createBiquadFilter: () => ({
+          connect: vi.fn(),
+          disconnect: vi.fn(),
+          type: '',
+          frequency: { value: 0 },
+          Q: { value: 0 },
+        }),
+        createGain: () => ({
+          connect: vi.fn(),
+          disconnect: vi.fn(),
+          gain: { value: 0 },
+        }),
+        createOscillator: () => ({
+          connect: vi.fn(),
+          disconnect: vi.fn(),
+          type: '',
+          frequency: { value: 0 },
+          start: vi.fn(),
+          stop: vi.fn(),
+        }),
+        resume: vi.fn().mockResolvedValue(undefined),
+        close: vi.fn().mockResolvedValue(undefined),
+      };
+    }
+    Object.defineProperty(window, 'AudioContext', {
+      writable: true,
+      configurable: true,
+      value: MockAudioContext,
+    });
+    renderTimer();
+    openSheet();
+    // Pill play, sheet play, music play — the music one is last.
+    const musicPlay = screen.getAllByRole('button', { name: 'Play' })[2];
+    expect(musicPlay).toBeTruthy();
+    fireEvent.click(musicPlay!);
+    expect(screen.getAllByRole('button', { name: 'Pause' })).toHaveLength(1);
+    // Close and reopen: the voice survived the unmount.
+    fireEvent.click(screen.getByRole('button', { name: 'Timer' }));
+    expect(sheet()).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Timer' }));
+    expect(sheet()).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: 'Pause' })).toHaveLength(1);
   });
 });

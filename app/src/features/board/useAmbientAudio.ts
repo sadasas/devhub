@@ -239,3 +239,6 @@ export function useAmbientAudio() {
 
   return { trackId, setTrackId, playing, play, pause, toggle, volume, setVolume };
 }
+
+/** Prop-bag type for components rendered under the lifted hook. */
+export type AmbientAudio = ReturnType<typeof useAmbientAudio>;

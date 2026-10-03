@@ -6,6 +6,7 @@ import { BottomSheet } from '../../components/BottomSheet';
 import { Tooltip } from '../../components/Tooltip';
 import { track } from '../../lib/analytics';
 import { FocusMusic } from './FocusMusic';
+import { useAmbientAudio, type AmbientAudio } from './useAmbientAudio';
 
 export function formatFocusTimer(secs: number): string {
   const safe = Math.max(0, Math.floor(secs));
@@ -30,6 +31,8 @@ interface TimerSheetBodyProps {
   onPlay: () => void;
   onReset: () => void;
   onSetDuration: (totalSecs: number) => void;
+  /** Lifted ambient-audio state: outlives the panel so music keeps playing after close. */
+  music: AmbientAudio;
 }
 
 function TimerSheetBody({
@@ -45,6 +48,7 @@ function TimerSheetBody({
   onPlay,
   onReset,
   onSetDuration,
+  music,
 }: TimerSheetBodyProps) {
   const { t } = useTranslation('tracker');
   const showStepper = mode === 'down' && !running && !finished;
@@ -272,7 +276,7 @@ function TimerSheetBody({
         </button>
       </div>
       <hr className="sheet-divider" aria-hidden="true" />
-      <FocusMusic />
+      <FocusMusic music={music} />
     </div>
   );
 }
@@ -285,6 +289,9 @@ export function FocusTimer() {
   const [durationSecs, setDurationSecs] = useState(1500);
   const [finished, setFinished] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  // Lifted above the panel: outlives open/close so music keeps playing.
+  // Torn down only when the topbar unmounts (leaving the focus page).
+  const music = useAmbientAudio();
   const [coarse, setCoarse] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches,
   );
@@ -475,6 +482,7 @@ export function FocusTimer() {
             onPlay={playInSheet}
             onReset={reset}
             onSetDuration={setDuration}
+            music={music}
           />
         </BottomSheet>
       ) : sheetOpen ? (
@@ -504,6 +512,7 @@ export function FocusTimer() {
             onPlay={toggle}
             onReset={reset}
             onSetDuration={setDuration}
+            music={music}
           />
         </div>
       ) : null}
