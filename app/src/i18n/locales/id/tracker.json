@@ -178,6 +178,8 @@
       "timerReset": "Atur ulang",
       "timerStopwatch": "Stopwatch",
       "timerCountdown": "Countdown",
+      "timerSessionLength": "Durasi sesi",
+      "timerStartFocus": "Mulai fokus",
       "timerPreset": "Preset",
       "timerCustom": "Custom (menit)",
       "timerStart": "Mulai",

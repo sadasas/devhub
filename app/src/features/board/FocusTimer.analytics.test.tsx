@@ -59,13 +59,13 @@ describe('FocusTimer analytics', () => {
     expect(trackMock).toHaveBeenCalledWith('timer_mode_switch', { mode: 'up' });
   });
 
-  it('fires timer_duration_set from the stepper with seconds + source', () => {
+  it('fires timer_duration_set from a preset chip with seconds + source', () => {
     render(<FocusTimer />);
     openSheet();
-    fireEvent.click(screen.getByRole('button', { name: '+ 1 min' }));
+    fireEvent.click(screen.getByRole('button', { name: '50' }));
     expect(trackMock).toHaveBeenCalledWith('timer_duration_set', {
-      seconds: 1560,
-      source: 'stepper',
+      seconds: 3000,
+      source: 'preset',
     });
   });
 

@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { FocusTimer, formatFocusTimer } from './FocusTimer';
 
-// U+2212 MINUS SIGN — must match board.focus.timerSubtractMinute in tracker.json.
-const SUBTRACT_ONE = '− 1 min';
-const DURATION_HINT = 'Tap to add minutes · min 1:00';
+// Session preset chips (Opsi C) — labels are minute numbers.
+const PRESETS = ['15', '25', '50', '90'];
+const SESSION_LABEL = 'Session length';
 
 function mockMatchMedia(matches: boolean) {
   Object.defineProperty(window, 'matchMedia', {
@@ -116,7 +116,7 @@ describe('FocusTimer', () => {
     expect(screen.getAllByText('10:30').length).toBeGreaterThan(0);
     expect(sheet()).toBeTruthy();
     expect(screen.queryByLabelText('Minutes')).toBeNull();
-    expect(screen.getAllByRole('button', { name: 'Play' })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: 'Play' })).toHaveLength(1);
   });
 
   it('blur applies the edit without starting or closing', () => {
@@ -128,7 +128,7 @@ describe('FocusTimer', () => {
     fireEvent.blur(screen.getByLabelText('Seconds'));
     expect(screen.getAllByText('05:45').length).toBeGreaterThan(0);
     expect(sheet()).toBeTruthy();
-    expect(screen.getAllByRole('button', { name: 'Play' })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: 'Play' })).toHaveLength(1);
   });
 
   it('Escape cancels the edit, reverts and keeps the sheet open', () => {
@@ -195,76 +195,71 @@ describe('FocusTimer', () => {
     expect(screen.getAllByText('25:00').length).toBeGreaterThan(0);
   });
 
-  it('stepper composes with edited seconds duration', () => {
+  it('preset sets the duration and composes with manual edit', () => {
     renderTimer();
     openSheet();
-    fireEvent.click(screen.getByRole('button', { name: '25:00' }));
+    fireEvent.click(screen.getByRole('button', { name: '50' }));
+    expect(screen.getAllByText('50:00').length).toBeGreaterThan(0);
+    expect(sheet()).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '50:00' }));
     fireEvent.change(screen.getByLabelText('Minutes'), { target: { value: '10' } });
     fireEvent.change(screen.getByLabelText('Seconds'), { target: { value: '30' } });
     fireEvent.keyDown(screen.getByLabelText('Seconds'), { key: 'Enter' });
-    fireEvent.click(screen.getByRole('button', { name: '+ 1 min' }));
-    expect(screen.getAllByText('11:30').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('10:30').length).toBeGreaterThan(0);
     expect(sheet()).toBeTruthy();
   });
 
-  it('countdown idle shows the stepper and hint; stopwatch hides them', () => {
+  it('countdown idle shows session presets with 25 active; stopwatch hides them', () => {
     renderTimer();
     openSheet();
-    expect(screen.getByRole('button', { name: '+ 1 min' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: SUBTRACT_ONE })).toBeTruthy();
-    expect(screen.getByText(DURATION_HINT)).toBeTruthy();
+    for (const label of PRESETS) {
+      expect(screen.getByRole('button', { name: label })).toBeTruthy();
+    }
+    expect(screen.getByText(SESSION_LABEL)).toBeTruthy();
+    expect(screen.getByRole('button', { name: '25' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: '50' }).getAttribute('aria-pressed')).toBe('false');
     fireEvent.click(screen.getByRole('button', { name: 'Stopwatch' }));
-    expect(screen.queryByRole('button', { name: '+ 1 min' })).toBeNull();
-    expect(screen.queryByRole('button', { name: SUBTRACT_ONE })).toBeNull();
-    expect(screen.queryByText(DURATION_HINT)).toBeNull();
+    for (const label of PRESETS) {
+      expect(screen.queryByRole('button', { name: label })).toBeNull();
+    }
+    expect(screen.queryByText(SESSION_LABEL)).toBeNull();
     expect(sheet()).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Countdown' }));
-    expect(screen.getByRole('button', { name: '+ 1 min' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '50' })).toBeTruthy();
   });
 
-  it('stepper adds a minute without starting', () => {
+  it('preset 50 sets 50:00 without starting', () => {
     renderTimer();
     openSheet();
-    fireEvent.click(screen.getByRole('button', { name: '+ 1 min' }));
-    expect(screen.getAllByText('26:00').length).toBeGreaterThan(0);
-    expect(screen.getAllByRole('button', { name: 'Play' })).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: '50' }));
+    expect(screen.getAllByText('50:00').length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('button', { name: 'Play' })).toHaveLength(1);
     expect(sheet()).toBeTruthy();
   });
 
-  it('stepper subtract clamps at 1:00', () => {
-    renderTimer();
-    openSheet();
-    for (let i = 0; i < 30; i += 1) {
-      fireEvent.click(screen.getByRole('button', { name: SUBTRACT_ONE }));
-    }
-    expect(screen.getAllByText('01:00').length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole('button', { name: SUBTRACT_ONE }));
-    expect(screen.getAllByText('01:00').length).toBeGreaterThan(0);
-  });
-
-  it('stepper and hint hide while running', () => {
+  it('presets hide while running', () => {
     renderTimer();
     fireEvent.click(screen.getByRole('button', { name: 'Play' }));
     openSheet();
-    expect(screen.queryByRole('button', { name: '+ 1 min' })).toBeNull();
-    expect(screen.queryByRole('button', { name: SUBTRACT_ONE })).toBeNull();
-    expect(screen.queryByText(DURATION_HINT)).toBeNull();
+    for (const label of PRESETS) {
+      expect(screen.queryByRole('button', { name: label })).toBeNull();
+    }
+    expect(screen.queryByText(SESSION_LABEL)).toBeNull();
     expect(sheet()).toBeTruthy();
   });
 
-  it('circular play from idle closes the sheet; reset is disabled when idle', () => {
+  it('CTA starts focus from idle and closes the sheet; reset text is disabled when idle', () => {
     renderTimer();
     openSheet();
-    const plays = screen.getAllByRole('button', { name: 'Play' });
-    expect(plays).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: 'Play' })).toHaveLength(1);
+    const cta = screen.getByRole('button', { name: 'Start focus' });
+    expect(cta).toBeTruthy();
     const resetBtn = screen.getByRole('button', { name: 'Reset' });
     expect(resetBtn.getAttribute('disabled')).not.toBeNull();
     expect(resetBtn.getAttribute('style') ?? '').toContain('0.45');
-    const secondPlay = plays[1];
-    expect(secondPlay).toBeTruthy();
-    fireEvent.click(secondPlay!);
+    fireEvent.click(cta);
     expect(sheet()).toBeNull();
-    expect(screen.getByRole('button', { name: 'Pause' })).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: 'Pause' })).toHaveLength(1);
   });
 
   it('reset enables after progress, restores the duration and never closes', () => {
@@ -287,11 +282,11 @@ describe('FocusTimer', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Timer' }));
     expect(sheet()).toBeNull();
     expect(panel()).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: '+ 1 min' }));
-    expect(screen.getAllByText('26:00').length).toBeGreaterThan(0);
-    const panelPlay = screen.getAllByRole('button', { name: 'Play' })[1];
-    expect(panelPlay).toBeTruthy();
-    fireEvent.click(panelPlay!);
+    fireEvent.click(screen.getByRole('button', { name: '50' }));
+    expect(screen.getAllByText('50:00').length).toBeGreaterThan(0);
+    const panelCta = screen.getByRole('button', { name: 'Start focus' });
+    expect(panelCta).toBeTruthy();
+    fireEvent.click(panelCta);
     expect(panel()).toBeTruthy();
     expect(screen.getAllByRole('button', { name: 'Pause' })).toHaveLength(2);
   });
@@ -342,7 +337,7 @@ describe('FocusTimer', () => {
     // Idle countdown: editable → badge present.
     expect(screen.getByTestId('timer-edit-badge')).toBeTruthy();
     // Running: not editable → badge gone.
-    fireEvent.click(screen.getAllByRole('button', { name: 'Play' })[1]!);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Play' })[0]!);
     expect(screen.queryByTestId('timer-edit-badge')).toBeNull();
   });
 
@@ -354,13 +349,13 @@ describe('FocusTimer', () => {
     expect(screen.queryByTestId('timer-edit-badge')).toBeNull();
   });
 
-  it('desktop panel play never closes; reset never closes', () => {
+  it('desktop panel CTA never closes; reset never closes', () => {
     mockMatchMedia(false);
     renderTimer();
     openPanel();
-    const desktopPlay = screen.getAllByRole('button', { name: 'Play' })[1];
-    expect(desktopPlay).toBeTruthy();
-    fireEvent.click(desktopPlay!);
+    const desktopCta = screen.getByRole('button', { name: 'Start focus' });
+    expect(desktopCta).toBeTruthy();
+    fireEvent.click(desktopCta);
     expect(panel()).toBeTruthy();
     act(() => {
       vi.advanceTimersByTime(5_000);
@@ -404,14 +399,19 @@ describe('FocusTimer', () => {
     );
   });
 
-  it('shows the finished badge on completion', () => {
+  it('finished turns the pill toggle into a green check with no Done text', () => {
     renderTimer();
     fireEvent.click(screen.getByRole('button', { name: 'Play' }));
     act(() => {
       vi.advanceTimersByTime(25 * 60 * 1000);
     });
     expect(screen.getByText('00:00')).toBeTruthy();
-    expect(screen.getByText('Done')).toBeTruthy();
+    expect(screen.queryByText('Done')).toBeNull();
+    const check = screen.getByRole('button', { name: 'Done' });
+    expect(check.getAttribute('style') ?? '').toContain('var(--status-success)');
+    fireEvent.click(check);
+    expect(screen.getAllByText('25:00').length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: 'Play' })).toBeTruthy();
   });
 
 });

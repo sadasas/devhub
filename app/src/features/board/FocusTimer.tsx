@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowCounterClockwise, CheckCircle, Pause, PencilSimple, Play, Timer } from '@phosphor-icons/react';
+import { Check, Pause, PencilSimple, Play, Timer } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/Button';
 import { BottomSheet } from '../../components/BottomSheet';
@@ -26,11 +26,12 @@ interface TimerSheetBodyProps {
   showReset: boolean;
   durationSecs: number;
   onChangeMode: (next: 'up' | 'down') => void;
-  onStep: (delta: number) => void;
   onPlay: () => void;
   onReset: () => void;
-  onSetDuration: (totalSecs: number) => void;
+  onSetDuration: (totalSecs: number, source?: 'edit' | 'preset') => void;
 }
+
+const SESSION_PRESETS_MIN = [15, 25, 50, 90];
 
 function TimerSheetBody({
   display,
@@ -41,14 +42,13 @@ function TimerSheetBody({
   showReset,
   durationSecs,
   onChangeMode,
-  onStep,
   onPlay,
   onReset,
   onSetDuration,
 }: TimerSheetBodyProps) {
   const { t } = useTranslation('tracker');
-  const showStepper = mode === 'down' && !running && !finished;
   const canEdit = mode === 'down' && !running && !finished;
+  const showPresets = mode === 'down' && !running && !finished;
   const [editing, setEditing] = useState(false);
   const [mm, setMm] = useState('');
   const [ss, setSs] = useState('');
@@ -80,7 +80,6 @@ function TimerSheetBody({
   const inputStyle = {
     width: '3ch',
     textAlign: 'center' as const,
-    fontSize: 'var(--text-display)',
     fontWeight: 700,
     fontVariantNumeric: 'tabular-nums' as const,
     padding: '4px 6px',
@@ -88,13 +87,59 @@ function TimerSheetBody({
 
   return (
     <div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <Button
+          variant={mode === 'up' ? 'primary' : 'secondary'}
+          size="sm"
+          aria-pressed={mode === 'up'}
+          onClick={() => onChangeMode('up')}
+        >
+          {t('board.focus.timerStopwatch')}
+        </Button>
+        <Button
+          variant={mode === 'down' ? 'primary' : 'secondary'}
+          size="sm"
+          aria-pressed={mode === 'down'}
+          onClick={() => onChangeMode('down')}
+        >
+          {t('board.focus.timerCountdown')}
+        </Button>
+      </div>
+      {showPresets && (
+        <div style={{ marginTop: 12 }}>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', margin: '0 0 8px' }}>
+            {t('board.focus.timerSessionLength')}
+          </p>
+          <div
+            role="group"
+            aria-label={t('board.focus.timerSessionLength') as string}
+            style={{ display: 'flex', gap: 8 }}
+          >
+            {SESSION_PRESETS_MIN.map((min) => {
+              const active = durationSecs === min * 60;
+              return (
+                <Button
+                  key={min}
+                  variant={active ? 'primary' : 'secondary'}
+                  size="sm"
+                  style={{ flex: 1 }}
+                  aria-pressed={active}
+                  onClick={() => onSetDuration(min * 60, 'preset')}
+                >
+                  {min}
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+      )}
       {canEdit && editing ? (
         <div
           className="focus-timer-big"
           style={{
-            fontSize: 'var(--text-display)',
             fontWeight: 700,
             display: 'flex',
+            marginTop: 12,
             alignItems: 'center',
             justifyContent: 'center',
             gap: 8,
@@ -154,7 +199,7 @@ function TimerSheetBody({
           />
         </div>
       ) : canEdit ? (
-        <span style={{ position: 'relative', display: 'block' }}>
+        <span className="focus-timer-editwrap" style={{ position: 'relative', display: 'block', marginTop: 12 }}>
         <button
           type="button"
           className="focus-timer-big"
@@ -168,7 +213,6 @@ function TimerSheetBody({
             background: 'transparent',
             border: 'none',
             fontFamily: 'inherit',
-            fontSize: 'var(--text-display)',
             fontWeight: 700,
             textAlign: 'center',
             fontVariantNumeric: 'tabular-nums',
@@ -181,22 +225,9 @@ function TimerSheetBody({
         <span
           aria-hidden="true"
           data-testid="timer-edit-badge"
-          style={{
-            position: 'absolute',
-            right: 4,
-            bottom: -2,
-            width: 26,
-            height: 26,
-            borderRadius: '50%',
-            background: 'var(--bg-base)',
-            border: '1px solid var(--accent)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            pointerEvents: 'none',
-          }}
+          className="focus-timer-editbadge"
         >
-          <PencilSimple size={13} style={{ color: 'var(--accent)' }} aria-hidden="true" />
+          <PencilSimple size={13} aria-hidden="true" />
         </span>
         </span>
       ) : (
@@ -204,8 +235,8 @@ function TimerSheetBody({
           aria-hidden="true"
           className="focus-timer-big"
           style={{
-            fontSize: 'var(--text-display)',
             fontWeight: 700,
+            marginTop: 12,
             textAlign: 'center',
             fontVariantNumeric: 'tabular-nums',
             color: almostDone ? 'var(--status-warn)' : 'var(--text-primary)',
@@ -214,86 +245,22 @@ function TimerSheetBody({
           {display}
         </div>
       )}
-      <hr className="sheet-divider" aria-hidden="true" />
-      <div style={{ display: 'flex', gap: 8 }}>
-        <Button
-          variant={mode === 'up' ? 'primary' : 'secondary'}
-          size="sm"
-          aria-pressed={mode === 'up'}
-          onClick={() => onChangeMode('up')}
-        >
-          {t('board.focus.timerStopwatch')}
-        </Button>
-        <Button
-          variant={mode === 'down' ? 'primary' : 'secondary'}
-          size="sm"
-          aria-pressed={mode === 'down'}
-          onClick={() => onChangeMode('down')}
-        >
-          {t('board.focus.timerCountdown')}
+      <div style={{ marginTop: 12 }}>
+        <Button variant="primary" size="md" style={{ width: '100%' }} onClick={onPlay}>
+          {running ? t('board.focus.timerPause') : t('board.focus.timerStartFocus')}
         </Button>
       </div>
-      {showStepper && (
-        <>
-          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-            <Button variant="secondary" size="sm" style={{ flex: 1 }} onClick={() => onStep(-1)}>
-              {t('board.focus.timerSubtractMinute')}
-            </Button>
-            <Button variant="secondary" size="sm" style={{ flex: 1 }} onClick={() => onStep(1)}>
-              {t('board.focus.timerAddMinute')}
-            </Button>
-          </div>
-          <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', margin: '8px 0 0' }}>
-            {t('board.focus.timerDurationHint')}
-          </p>
-        </>
-      )}
-      <hr className="sheet-divider" aria-hidden="true" />
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-        <Tooltip title={running ? (t('board.focus.timerPause') as string) : (t('board.focus.timerPlay') as string)}>
+      <div style={{ textAlign: 'center', marginTop: 8 }}>
         <button
           type="button"
-          onClick={onPlay}
-          aria-label={running ? (t('board.focus.timerPause') as string) : (t('board.focus.timerPlay') as string)}
-          style={{
-            width: 64,
-            height: 64,
-            borderRadius: '50%',
-            border: 'none',
-            background: 'var(--text-primary)',
-            color: 'var(--bg-base)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-          }}
-        >
-          {running ? <Pause size={22} aria-hidden="true" /> : <Play size={22} aria-hidden="true" />}
-        </button>
-        </Tooltip>
-        <Tooltip title={t('board.focus.timerReset') as string}>
-        <button
-          type="button"
+          className="btn btn-ghost btn-sm"
           onClick={onReset}
           disabled={!showReset}
           aria-label={t('board.focus.timerReset') as string}
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: '50%',
-            background: 'transparent',
-            border: '1px solid var(--border-strong)',
-            color: 'var(--text-muted)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: showReset ? 'pointer' : 'default',
-            opacity: showReset ? 1 : 0.45,
-          }}
+          style={showReset ? undefined : { opacity: 0.45 }}
         >
-          <ArrowCounterClockwise size={18} aria-hidden="true" />
+          {t('board.focus.timerReset')}
         </button>
-        </Tooltip>
       </div>
     </div>
   );
@@ -401,22 +368,38 @@ export function FocusTimer() {
     setFinished(false);
   };
 
-  const stepDuration = (deltaMin: number) => {
-    const next = Math.min(59940, Math.max(60, durationSecs + deltaMin * 60));
-    setDurationSecs(next);
-    track('timer_duration_set', { seconds: next, source: 'stepper' });
-  };
-
-  const setDuration = (totalSecs: number) => {
+  const setDuration = (totalSecs: number, source: 'edit' | 'preset' = 'edit') => {
     const next = Math.min(59940, Math.max(60, totalSecs));
     setDurationSecs(next);
-    track('timer_duration_set', { seconds: next, source: 'edit' });
+    track('timer_duration_set', { seconds: next, source });
   };
 
-  const playInSheet = () => {
-    const willStart = !running && !finished;
+  const startFresh = () => {
+    track('timer_start', { mode, duration: durationSecs });
+    setSecs(0);
+    setFinished(false);
+    setRunning(true);
+  };
+
+  // Panel CTA: restart sesi baru saat finished, selain itu toggle biasa.
+  // Sheet (mobile) menutup saat mulai; panel desktop tetap terbuka.
+  const sheetPlay = () => {
+    if (finished) {
+      startFresh();
+      setSheetOpen(false);
+      return;
+    }
+    const willStart = !running;
     toggle();
     if (willStart) setSheetOpen(false);
+  };
+
+  const desktopPlay = () => {
+    if (finished) {
+      startFresh();
+      return;
+    }
+    toggle();
   };
 
   const showReset = secs > 0 || running || finished;
@@ -459,31 +442,42 @@ export function FocusTimer() {
           <Timer size={14} aria-hidden="true" style={{ color: 'var(--text-muted)' }} />
           {display}
         </button>
-        <Tooltip title={running ? (t('board.focus.timerPause') as string) : (t('board.focus.timerPlay') as string)}>
+        <Tooltip title={finished ? (t('board.focus.timerFinished') as string) : running ? (t('board.focus.timerPause') as string) : (t('board.focus.timerPlay') as string)}>
         <button
           type="button"
           className="btn btn-ghost btn-sm btn-icon focus-timer-toggle"
-          onClick={toggle}
-          aria-label={running ? (t('board.focus.timerPause') as string) : (t('board.focus.timerPlay') as string)}
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: '50%',
-            background: running ? 'var(--text-primary)' : 'var(--bg-inset)',
-            color: running ? 'var(--bg-base)' : 'var(--text-muted)',
-            border: running ? 'none' : '1px solid var(--border-hairline)',
-          }}
+          onClick={finished ? reset : toggle}
+          aria-label={finished ? (t('board.focus.timerFinished') as string) : running ? (t('board.focus.timerPause') as string) : (t('board.focus.timerPlay') as string)}
+          style={
+            finished
+              ? {
+                  width: 28,
+                  height: 28,
+                  borderRadius: '50%',
+                  background: 'var(--status-success)',
+                  color: 'var(--bg-base)',
+                  border: 'none',
+                }
+              : {
+                  width: 28,
+                  height: 28,
+                  borderRadius: '50%',
+                  background: running ? 'var(--text-primary)' : 'var(--bg-inset)',
+                  color: running ? 'var(--bg-base)' : 'var(--text-muted)',
+                  border: running ? 'none' : '1px solid var(--border-hairline)',
+                }
+          }
         >
-          {running ? <Pause size={12} aria-hidden="true" /> : <Play size={12} aria-hidden="true" />}
+          {finished ? (
+            <Check size={12} weight="bold" aria-hidden="true" />
+          ) : running ? (
+            <Pause size={12} aria-hidden="true" />
+          ) : (
+            <Play size={12} aria-hidden="true" />
+          )}
         </button>
         </Tooltip>
       </div>
-      {finished && (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, color: 'var(--status-success)', marginLeft: 8 }}>
-          <CheckCircle size={14} aria-hidden="true" />
-          {t('board.focus.timerFinished')}
-        </span>
-      )}
       {coarse ? (
         <BottomSheet open={sheetOpen} title={timerLabel} onClose={() => setSheetOpen(false)}>
           <TimerSheetBody
@@ -495,8 +489,7 @@ export function FocusTimer() {
             showReset={showReset}
             durationSecs={durationSecs}
             onChangeMode={changeMode}
-            onStep={stepDuration}
-            onPlay={playInSheet}
+            onPlay={sheetPlay}
             onReset={reset}
             onSetDuration={setDuration}
           />
@@ -523,8 +516,7 @@ export function FocusTimer() {
             showReset={showReset}
             durationSecs={durationSecs}
             onChangeMode={changeMode}
-            onStep={stepDuration}
-            onPlay={toggle}
+            onPlay={desktopPlay}
             onReset={reset}
             onSetDuration={setDuration}
           />

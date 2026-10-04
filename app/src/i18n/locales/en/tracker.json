@@ -178,6 +178,8 @@
       "timerReset": "Reset",
       "timerStopwatch": "Stopwatch",
       "timerCountdown": "Countdown",
+      "timerSessionLength": "Session length",
+      "timerStartFocus": "Start focus",
       "timerPreset": "Preset",
       "timerCustom": "Custom (minutes)",
       "timerStart": "Start",

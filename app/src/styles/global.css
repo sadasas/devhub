@@ -20495,6 +20495,8 @@ html[data-theme='light'] .tour-overlay-dim {
 /* FocusTimer header/sheet big number (Focus page topbar): centering handled by parent grid. */
 .focus-timer-display, .focus-timer-big { transition: color var(--duration-fast) var(--ease-out); }
 .focus-timer-display { font-size: var(--text-title); }
+/* Panel/sheet big digits ala wireframe Opsi C (48px display, allowlist guard). */
+.focus-timer-big, .focus-timer-big input { font-size: 48px; }
 
 /* Inner spacing (standar panel Tier-1, audit 2026-09: roomy 20px
    seragam dengan .profile-panel — dulu 32px 20px 16px). */
@@ -23295,6 +23297,40 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
 }
 @media (prefers-reduced-motion: reduce) {
   .editable-pencil {
+    transition: none;
+  }
+}
+
+/* FocusTimer pencil hover-reveal (konsisten dengan prop-edit / editable-pencil):
+   hanya tampil saat angka di-highlight (hover/fokus), selalu tampil di sentuh. */
+.focus-timer-editbadge {
+  position: absolute;
+  top: 0;
+  right: 4px;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-base);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+  pointer-events: none;
+}
+.focus-timer-editwrap:hover .focus-timer-editbadge,
+.focus-timer-editwrap:focus-within .focus-timer-editbadge {
+  opacity: 1;
+}
+@media (hover: none) {
+  .focus-timer-editbadge {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .focus-timer-editbadge {
     transition: none;
   }
 }
